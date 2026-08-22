@@ -38,8 +38,8 @@ fn workspace(files: &[(&str, &str)]) -> Workspace {
 
 /// Rewrite `file` and return (matches in that file, rewritten text).
 ///
-/// Matches are counted per file because a workspace can hold more than one file of
-/// the language under test, a Helm chart always carries its `Chart.yaml`.
+/// The count runs per file, because a workspace can hold more than one file of the language
+/// under test. A Helm chart always carries its `Chart.yaml`.
 ///
 /// The edit set is also run through `ReparseStrict`, so any pattern that produced a
 /// syntactically broken file fails here and not in review.
@@ -811,8 +811,8 @@ fn markdown_rewrites_a_heading() {
 
 // ------------------------------------------------------------------ every cell
 
-/// Every column of PLAN.md's feature × language matrix, with a pattern that is
-/// realistic for that language. This is the promise the matrix makes.
+/// Every column of PLAN.md's feature × language matrix, each with a pattern realistic for its
+/// language. This is the promise the matrix makes.
 #[test]
 fn every_matrix_language_restructures() {
     let cases: &[(Language, &str, &str, &str, &str, &str)] = &[
@@ -1100,12 +1100,12 @@ fn only_the_requested_language_is_rewritten() {
 
 #[test]
 fn a_statement_pattern_works_where_the_wrapper_is_empty() {
-    // Python, shell and YAML wrap a fragment in nothing at all, so the statement the
-    // pattern writes is the outermost node. The descent that strips wrapper-introduced
-    // statement containers used to strip that one too, leaving the fragment starting
-    // six bytes inside itself, every statement pattern in those languages was
-    // rejected as unparseable. Descending is only right when the child begins where
-    // the container does; `raise` does not.
+    // Python, shell and YAML wrap a fragment in nothing at all, so the statement the pattern
+    // writes is the outermost node. The descent that strips wrapper-introduced statement
+    // containers used to strip that one too. The fragment then started six bytes inside
+    // itself, and every statement pattern in those languages came back unparseable.
+    // Descending is only right when the child begins where the container does; `raise` does
+    // not.
     let src = "\
 def f(e):
     try:

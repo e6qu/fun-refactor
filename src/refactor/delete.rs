@@ -252,25 +252,24 @@ pub enum SparedReason {
         from: SymbolId,
         basis: HierarchyBasis,
     },
-    /// Its name begins with an underscore, which in Rust, TypeScript, Python and Zig
-    /// is how an author writes "this is deliberately not used", usually a parameter
-    /// a signature requires and the body ignores.
+    /// Its name begins with an underscore. Authors in Rust, TypeScript, Python and Zig write
+    /// that to mean "deliberately not used", usually for a parameter a signature requires and
+    /// the body ignores.
     DeclaredUnused,
-    /// Something uses this name, but more than one definition answers to it and
-    /// nothing here says which, two types declaring the same member, or one package
-    /// declaring the same function twice under opposite build tags. Every candidate
-    /// stays live.
+    /// Something uses this name, but more than one definition answers to it and nothing here
+    /// says which one. Two types may declare the same member, or one package may declare the
+    /// same function twice under opposite build tags. Every candidate stays live.
     AmbiguousMemberCall,
     /// It names where the file lives instead of something in it: Java's `package app;`,
     /// Go's `package main`. Nothing ever references one, so "unused" is true of all of
     /// them and says nothing.
     NamesTheFilesPlace,
-    /// A JavaBean accessor whose *property* is named somewhere the method is not: a
-    /// template writing `${owner.address}` reaches `getAddress`, and every Java template
-    /// engine, JSON mapper and data binder works that way.
+    /// A JavaBean accessor whose *property* is named somewhere the method is not. A template
+    /// writing `${owner.address}` reaches `getAddress`, and every Java template engine, JSON
+    /// mapper and data binder works that way.
     ReachedByItsProperty,
-    /// Something inside it is an entry point, so something outside the workspace reaches
-    /// in: a JUnit test class, a Rust `mod tests`, a Python class of pytest cases.
+    /// Something inside it is an entry point, so something outside the workspace reaches in.
+    /// A JUnit test class, a Rust `mod tests` and a Python class of pytest cases all qualify.
     HoldsAnEntryPoint,
     /// The language gives it no address: an HCL block with no labels, such as
     /// `terraform {}` or `lifecycle {}`.
@@ -374,18 +373,16 @@ impl UnusedReport {
 ///
 /// * Off the list. A symbol whose name appears in a **string literal** anywhere in the
 ///   workspace. Reflection, a name-keyed handler table, a route string and a template all reach
-///   code through a name no resolver follows, leaving only the string.
-/// * On it: a **cycle** of symbols referencing only each other, when no member is reachable
-///   from an entry point and nothing outside the cycle references any member. Otherwise mutual
-///   recursion hides a whole dead component, since every member has an incoming reference.
-/// * Off: a method **dynamic dispatch can reach**. A call through a `dyn Trait`, an interface
-///   value or a base-class reference names no single definition. But the workspace says which
-///   types implement the abstraction and [`CallGraph`] puts an edge on each. Those edges are
-///   unproven and marked so.
-/// * Off: a **package clause**, which names where the file lives (see
-///   [`names_where_the_file_lives`]).
-/// * Off: a symbol **containing an entry point**, and a **JavaBean accessor** whose property is
-///   named where the method is not.
+///   code through a name no resolver follows, leaving only the string. * On it: a **cycle** of
+///   symbols referencing only each other. No entry point reaches any member, and nothing
+///   outside the cycle references one. Otherwise mutual recursion hides a whole dead component,
+///   since every member has an incoming reference. * Off: a method **dynamic dispatch can
+///   reach**. A call through a `dyn Trait`, an interface value or a base-class reference names
+///   no single definition. But the workspace says which types implement the abstraction and
+///   [`CallGraph`] puts an edge on each. Those edges are unproven and marked so. * Off: a
+///   **package clause**, which names where the file lives (see [`names_where_the_file_lives`]).
+/// * Off: a symbol **containing an entry point**, and a **JavaBean accessor** whose property
+///   is named where the method is not.
 ///
 /// The result is a candidate list. It is not a delete list. Still invisible: a function held in a map
 /// or struct field and called through it, a name assembled at runtime. Any use inside a file
@@ -398,11 +395,11 @@ pub fn find_unused(index: &Index, entrypoints: &Entrypoints) -> Vec<SymbolId> {
 /// The property a JavaBean accessor exposes: `getAddress` and `isActive` expose
 /// `address` and `active`.
 ///
-/// Java only, because there the convention is a specification and not a habit:
-/// template engines, JSON mappers and Spring's own data binding all reach a getter by
-/// the property name and never write the method's. `spring-petclinic` called
-/// `Owner::getAddress` dead while its template says `${owner.address}` and its tests say
-/// `param("address", …)`. Both name the property; neither names the method.
+/// Java only, because the convention there is a specification rather than a habit. Template
+/// engines, JSON mappers and Spring's own data binding reach a getter by the property name
+/// and never write the method's. `spring-petclinic` called `Owner::getAddress` dead while its
+/// template says `${owner.address}` and its tests say `param("address", …)`. Both name the
+/// property; neither names the method.
 fn bean_property(symbol: &crate::model::Symbol) -> Option<String> {
     if symbol.language != crate::lang::Language::Java {
         return None;
@@ -425,10 +422,10 @@ fn bean_property(symbol: &crate::model::Symbol) -> Option<String> {
 
 /// An HCL block Terraform gives no address to.
 ///
-/// `resource "aws_vpc" "this"` is addressable as `aws_vpc.this` and `output "id"` as an output;
-/// `terraform {}`, `required_providers {}`, `lifecycle {}` and a `dynamic` block's `content {}`
-/// are not addressable at all. So nothing can reference one and "nothing uses this" is true of
-/// every one of them. terraform-aws-vpc reported 46, all of them one of those four.
+/// `resource "aws_vpc" "this"` is addressable as `aws_vpc.this`, and `output "id"` as an
+/// output. Nothing addresses `terraform {}`, `required_providers {}`, `lifecycle {}` or a
+/// `dynamic` block's `content {}`. So nothing can reference one and "nothing uses this" is
+/// true of every one of them. terraform-aws-vpc reported 46, all of them one of those four.
 ///
 /// A labelled block takes its name from a string label; a block with no labels takes it from
 /// the block-type keyword. So the quote before the name is the whole test. It reads the
@@ -464,11 +461,10 @@ fn names_where_the_file_lives(symbol: &crate::model::Symbol) -> bool {
 
 /// Did the author declare this unused by naming it so?
 ///
-/// A leading underscore is the convention in Rust, TypeScript, Python and Zig for a
-/// binding a signature forces on you and the body has no use for. Listing those as
-/// dead code buries the real findings, a single real file turned up eight of them.
-/// Go spells the same idea as a bare `_`, which binds nothing and never reaches the
-/// index in the first place.
+/// Rust, TypeScript, Python and Zig use a leading underscore for a binding the signature
+/// forces on you and the body never reads. Listing those as dead code buries the real
+/// findings, a single real file turned up eight of them. Go spells the same idea as a bare
+/// `_`, which binds nothing and never reaches the index in the first place.
 fn declared_unused(symbol: &crate::model::Symbol) -> bool {
     symbol.name.starts_with('_')
 }
@@ -481,15 +477,15 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
 
     // Two reachability answers, because a library has no `main`.
     //
-    // Everything an exported symbol reaches is live: something outside this workspace may call
-    // it, and no amount of scanning here can rule that out. Without this, the entire tree
-    // beneath a public API reads as dead, in helm/helm that was most of `pkg/action`, where
-    // `performInstall` is called by `performInstallCtx`, called by the exported
-    // `RunWithContext`.
+    // Everything an exported symbol reaches is live: something outside this workspace may
+    // call it, and no amount of scanning here can rule that out. Without this, the entire
+    // tree beneath a public API reads as dead. In helm/helm that covered most of
+    // `pkg/action`, where `performInstallCtx` calls `performInstall` and the exported
+    // `RunWithContext` calls `performInstallCtx`.
     //
-    // The exported symbols themselves are judged on the narrow answer. So an export nothing in
-    // the workspace uses is still reported, tagged as exported, since whether that is dead code
-    // or the public API is not ours to decide.
+    // The exported symbols themselves are judged on the narrow answer. An export nothing in
+    // the workspace uses still gets reported, tagged as exported. Only the author can say
+    // whether it is dead code or the public API.
     let exported_roots: Vec<SymbolId> = index
         .symbols
         .iter()
@@ -501,12 +497,12 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
     let reachable_from_entrypoints = call_graph.reachable_from(entrypoints);
     let reachable = call_graph.reachable_from(&api_roots);
 
-    // Some kinds are declared in several places and are still one thing: a CSS class
-    // written in a stylesheet and again in a theme, an element id. A reference picks
-    // one of those sites, so counting uses per site reports the others as dead, and
-    // `.nav-link`, used by three anchors in the markup, was reported dead twice while
-    // `fr delete` refused to remove it and named those same three uses. Grouped once
-    // here and not per symbol, which would be quadratic on a large workspace.
+    // Some kinds appear in several places and remain one thing. A CSS class may be written in
+    // a stylesheet and again in a theme, and so may an element id. A reference picks one of
+    // those sites, so counting uses per site reports the others as dead, and `.nav-link`,
+    // used by three anchors in the markup, was reported dead twice while `fr delete` refused
+    // to remove it and named those same three uses. Grouped once here and not per symbol,
+    // which would be quadratic on a large workspace.
     let mut siblings: HashMap<(&str, SymbolKind), Vec<SymbolId>> = HashMap::new();
     for symbol in &index.symbols {
         if symbol.kind.allows_multiple_definitions() {
@@ -895,18 +891,19 @@ fn enclosing_symbol(index: &Index, file: &Path, span: Span) -> Option<SymbolId> 
 /// The bytes a delete should remove.
 ///
 /// When the definition is alone on its lines, the whole lines go, indentation and trailing
-/// newline included. A blank line immediately after goes too, but only when a blank line or the
-/// start of the file already preceded the definition; otherwise that blank line separates the
-/// code that stays. Widen a symbol's span to the construct that cannot survive without it.
+/// newline included. A blank line immediately after goes too, but only when a blank line or
+/// the start of the file already preceded the definition. Otherwise that blank line separates
+/// the code that stays. Widen a symbol's span to the construct that cannot survive without
+/// it.
 ///
 /// The index keeps the span a *rename* rewrites, which is rarely the span a delete can remove.
 /// `export const defaultLimits = {…}` has the declarator as its span. Removing that leaves
 /// `export const ;`, which the engine's reparse check rejects, so `fr unused` named the
 /// constant and `fr delete` refused it. A CSS class has the same shape.
 ///
-/// One rule for both: climb while the symbol is the only child of its kind in its parent, since
-/// a parent left with none has nothing left to be. Stop at the first sibling of the same kind
-/// and take the symbol plus the separator joining them. Never climb into the root.
+/// One rule covers both. Climb while the symbol is the only child of its kind in its parent,
+/// because a parent left with none has nothing left to be. Stop at the first sibling of the
+/// same kind and take the symbol plus the separator joining them. Never climb into the root.
 pub(crate) fn widen_for_delete(
     parsed: &crate::parse::Parsed,
     source: &str,
@@ -1136,14 +1133,14 @@ fn textual_occurrences(
 
 /// Does this node kind hold a string literal?
 fn is_string_kind(kind: &str) -> bool {
-    // An attribute value is a string that the HTML grammar happens not to call one, and
-    // it is where a template names the code behind it: `th:text="${owner.address}"`
-    // reaches `Owner::getAddress`, `v-on:click="submit"` reaches `submit`. Reading only
-    // nodes with "string" in their name meant the whole Thymeleaf, Vue and Angular way of
-    // referring to code was invisible to the one rule meant to catch that.
-    // YAML spells its scalars apart: a bare `remote` is a `string_scalar` and a
-    // quoted `"remote"` is a `double_quote_scalar`. Only the first matched, so
-    // quoting a value hid it from the one rule meant to see data-borne names.
+    // An attribute value is a string that the HTML grammar happens not to call one, and a
+    // template names its code there. `th:text="${owner.address}"` reaches
+    // `Owner::getAddress`, and `v-on:click="submit"` reaches `submit`. Reading only nodes
+    // with "string" in their name hid the whole Thymeleaf, Vue and Angular way of referring
+    // to code from the one rule meant to catch it. YAML spells its scalars apart: a bare
+    // `remote` is a `string_scalar` and a quoted `"remote"` is a `double_quote_scalar`. Only
+    // the first matched, so quoting a value hid it from the one rule meant to see data-borne
+    // names.
     kind.contains("string")
         || kind.contains("quote_scalar")
         || kind.contains("char_literal")

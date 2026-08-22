@@ -5,16 +5,16 @@
 //!
 //! # Scope
 //!
-//! The signature is the contract: every parameter in order, with its type and the
-//! return type, carried across with only the spelling changed to the target's
+//! The signature is the contract. The writer carries every parameter in order, with
+//! its type and the return type, changing only the spelling to the target's
 //! convention. A type with no counterpart goes through by name and is counted, so a
 //! substitution never passes silently.
 //!
-//! Also translated: declarations, records, and the parts of a body that mean the same
-//! thing in every language, a return, a binding, a branch, a loop over a collection, a
-//! call. A record becomes a Rust `struct` with an `impl`, a Python `@dataclass`, a Go
-//! `struct` with methods beside it, or a TypeScript `interface` or `class` depending on
-//! whether it has behaviour.
+//! The writer also translates declarations and records. It carries the body constructs
+//! every language shares: a return, a binding, a branch, a loop over a collection, a
+//! call. A record becomes a Rust `struct` with an `impl`, a Python
+//! `@dataclass`, or a Go `struct` with methods beside it. TypeScript takes an
+//! `interface` or a `class`, depending on whether the record has behaviour.
 //!
 //! # Limits
 //!
@@ -33,9 +33,8 @@ mod write;
 
 /// What a file says, in the form no one language owns.
 ///
-/// The first half of [`plan`], on its own. A caller that wants to *compare* two files written
-/// in different languages has nowhere else to stand. The only thing they have in common is what
-/// this returns.
+/// The first half of [`plan`], on its own. A caller comparing two files written in
+/// different languages needs one shared form, and this returns it.
 pub fn read_file(path: &Path) -> Result<ir::Module> {
     let Some(language) = crate::lang::detect(path) else {
         bail!("{} is not a language this build recognises", path.display());
@@ -110,11 +109,9 @@ pub fn can_be_read(language: Language) -> bool {
 
 /// Whether a translation can be written in this language.
 ///
-/// Not TSX. A translation produces no JSX, so writing one into a `.tsx` file names a
-/// flavour the content does not have, `typescript` is the target, and `fr translate`
-/// turns a `.ts` file into a `.tsx` one where that is what is wanted. Reading and
-/// writing were one function, and the list the listing walks was the writing one, so
-/// asking for `tsx` worked while nothing ever offered it.
+/// TSX is excluded. A translation produces no JSX, so a `.tsx` file would name a
+/// flavour the content does not have. Name `typescript` as the target, then use
+/// `fr translate` to turn the `.ts` file into a `.tsx` one.
 pub fn can_be_written(language: Language) -> bool {
     SUPPORTED.contains(&language)
 }
@@ -307,16 +304,15 @@ fn plan_impl(
             read::promote_constructions(&mut module, &types);
         }
         // Two files of a sweep may each declare a `Thing`. Where the target
-        // keeps every file of a directory in one namespace, that is one name
-        // declared twice. The package could not build, while the report called
-        // every file translated. The later file's copy takes its own file's
-        // name in front, and says so.
+        // keeps every file of a directory in one namespace, one name is
+        // declared twice and the package will not build. The later file's copy
+        // takes its own file's name in front, and says so.
         if to.packages_by_directory() {
             rename_colliding_declarations(&mut module, path, siblings);
         }
     }
-    // Java has no top level below the type. So its writer needs a class to put the module in,
-    // and a public class must be named after its file.
+    // Java has no top level below the type, so its writer needs a class to hold the
+    // module. A public class must be named after its file.
     module.name = destination
         .file_stem()
         .map(|stem| stem.to_string_lossy().to_string());
@@ -331,8 +327,8 @@ fn plan_impl(
     output.insert_str(0, &header);
 
     // The output must be a file the target's own grammar accepts. The edit engine
-    // would catch it too, but only as "would not parse after the change", which says
-    // nothing about which construct did it. Checked here, where the answer is known.
+    // would catch a failure too, but only as "would not parse after the change",
+    // naming no construct. This check runs where the answer is known.
     let written = parsers.parse(to, &output)?;
     if written.has_errors() {
         let at = first_error(&written, &output)
@@ -345,8 +341,8 @@ fn plan_impl(
         );
     }
 
-    // Overwriting is replacing. An insertion at byte zero of an existing file kept
-    // the old translation below the new one, and every --force run doubled the file.
+    // Overwriting means replacing. The edit spans the whole existing file, so a
+    // --force run does not leave the old translation below the new one.
     let existing = crate::vfs::read_to_string(&destination)
         .map(|s| s.len())
         .unwrap_or(0);
@@ -374,11 +370,11 @@ fn plan_impl(
 
 /// Move an import written inside a function body up to the file's own imports.
 ///
-/// `def helper(): from a import Thing` is how Python breaks an import cycle.
+/// Python breaks an import cycle with `def helper(): from a import Thing`.
 /// The readers carry it as text, because a body has nowhere to put an import.
-/// The sweep then translated the body's live code while the import stayed a
-/// comment, so the output named a class nothing brought in. Every target here
-/// hoists its imports, so the file's top is where it belongs.
+/// Left there, the import stays a comment while the body's code translates,
+/// and the output names a class nothing brought in. Every target here hoists
+/// its imports, so the file's top is where it belongs.
 fn lift_local_imports(module: &mut ir::Module, from: Language) {
     let mut lifted: Vec<ir::Item> = Vec::new();
     for item in &mut module.items {
@@ -509,12 +505,11 @@ fn declares(module: &ir::Module, name: &str) -> bool {
 
 /// Line and column of the most specific syntax error in a parse.
 ///
-/// **Deepest, not first.** An error node can swallow the whole file, when the very
-/// first construct is wrong, tree-sitter's outermost `ERROR` starts at byte zero, and
-/// reporting that says "line 1, column 1" and prints the banner, which tells whoever
-/// reads the defect report nothing at all. The innermost error is where the parser
-/// gave up, and a `MISSING` node beats an `ERROR` at the same depth because
-/// it names what was expected and not where.
+/// This walk takes the deepest error in the tree. When the very first construct is
+/// wrong, tree-sitter's outermost `ERROR` starts at byte zero and swallows the whole
+/// file. Reporting that gives line 1, column 1, which points at the banner and tells
+/// a reader nothing. The innermost error is where the parser gave up. A `MISSING`
+/// node beats an `ERROR` at the same depth, because it names what was expected.
 fn first_error(parsed: &crate::parse::Parsed, source: &str) -> Option<crate::span::LineCol> {
     let mut cursor = parsed.root().walk();
     let mut stack = vec![(parsed.root(), 0usize)];
@@ -539,9 +534,9 @@ fn first_error(parsed: &crate::parse::Parsed, source: &str) -> Option<crate::spa
         }
     }
     // A parse can report an error that this walk does not find. An empty Zig struct holds a
-    // zero-width missing identifier that `Node::children` does not yield, and the message came
-    // out with no position at all. `error_spans` walks with a cursor and does find it, so it is
-    // the fallback and not a second opinion.
+    // zero-width missing identifier that `Node::children` never yields, which leaves the
+    // message with no position. `error_spans` walks with a cursor and does find it, so it
+    // serves as the fallback here.
     let at = match best {
         Some((_, _, at)) => at,
         None => parsed.error_spans().first().map(|span| span.start)?,

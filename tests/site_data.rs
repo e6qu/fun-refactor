@@ -1,10 +1,10 @@
 //! Generates the data behind `docs/catalog.html` and `docs/translate.html`.
 //!
-//! Every before, after and diff on those pages is produced here by running the real
-//! `fr` binary over the sample files below, in a temporary directory, as the
-//! command printed beside it would. Nothing on either page is typed by hand, because a
-//! hand-typed "after" is a claim about the tool and not a demonstration of it, and
-//! it goes stale the first time the tool improves.
+//! This test produces every before, after and diff on those pages. It runs the real `fr`
+//! binary over the sample files below, in a temporary directory, exactly as the command
+//! printed beside each one would. Nobody types anything on either page by hand. A hand-typed
+//! "after" claims what the tool does without showing it, and it goes stale the first time the
+//! tool improves.
 //!
 //! The generated files are committed, and this test fails when they no longer match
 //! what the tool produces. Regenerate with:
@@ -53,11 +53,11 @@ struct Entry {
     note: &'static str,
     /// What is the same after the change as it was before.
     ///
-    /// A refactoring is a change to the *text* of a program that leaves what the
-    /// program does alone. Every entry has to be able to say what that means for it,
-    /// and a move that redistributes behaviour across several files has to say where
-    /// the behaviour went, not only where the edit landed. Naming it per entry is what
-    /// stops the page from being a list of edits that happen to be reversible.
+    /// A refactoring is a change to the *text* of a program that leaves what the program does
+    /// alone. Every entry has to say what that means for it. A move that redistributes
+    /// behaviour across several files reports where the behaviour went, and not only where
+    /// the edit landed. Naming it per entry is what stops the page from being a list of edits
+    /// that happen to be reversible.
     invariant: &'static str,
     files: &'static [(&'static str, &'static str)],
     /// The `fr` invocation, with `@from…to@` standing for a range this test computes
@@ -697,8 +697,8 @@ struct Translation {
     target: &'static str,
     /// Where the sample came from, when it is not written for this page.
     provenance: Option<&'static str>,
-    /// A directory under `tests/corpus/` to copy in whole, for a translation whose
-    /// input is a *tree* and not a file, a Next.js route's URL is its path.
+    /// A directory under `tests/corpus/` to copy in whole. A translation whose input is a
+    /// *tree* needs this, because a Next.js route's URL is its path.
     corpus: Option<&'static str>,
 }
 
@@ -1280,9 +1280,9 @@ fn resolve(argument: &str, root: &Path) -> String {
 
 /// Take the temporary directory's name back out of some text.
 ///
-/// macOS hands out `/var/folders/...` and reports it back as `/private/var/...`, so
-/// the longer spelling has to go first, replacing the short one first leaves the
-/// `/private` behind and prints `/privatesrc/pricing.py`.
+/// macOS hands out `/var/folders/...` and reports it back as `/private/var/...`, so the
+/// longer spelling has to go first. Replacing the short one first leaves the `/private`
+/// behind and prints `/privatesrc/pricing.py`.
 fn scrub(text: &str, root: &Path) -> String {
     let root_text = root.to_string_lossy().to_string();
     let private = format!("/private{root_text}");
@@ -1319,8 +1319,8 @@ fn run(root: &Path, argv: &[String]) -> String {
 
 /// One command's standard output, on its own.
 ///
-/// `run` glues stderr on the end, which is right for a report and wrong for a document:
-/// `fr openapi` puts the notes on stderr precisely so that stdout stays parseable.
+/// `run` glues stderr on the end. A report wants that and a document does not, because `fr
+/// openapi` puts its notes on stderr to keep stdout parseable.
 fn run_stdout(root: &Path, argv: &[String]) -> String {
     let output = Command::new(FR)
         .arg("--root")
@@ -1643,9 +1643,9 @@ struct Endpoint {
 
 /// Every shape a CRUD API has, in one tree.
 ///
-/// Not a sampler: a router that answers all of these is a router that has met a
-/// collection, a member, a sub-collection, a sub-member, a replacement, an action, an
-/// aggregate and a catch-all, which is the whole surface most APIs ever have.
+/// A router that answers all of these has met a collection, a member, a sub-collection, a
+/// sub-member, a replacement, an action, an aggregate and a catch-all. Most APIs never
+/// present more surface than that.
 const ENDPOINTS: &[Endpoint] = &[
     Endpoint {
         route: "app/api/pets/route.ts",

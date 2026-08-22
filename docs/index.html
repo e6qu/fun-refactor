@@ -39,8 +39,8 @@
     <h1>Refactoring that tells you<br>what it could not prove.</h1>
     <p class="lede prose">
       Rename a symbol across Go, TypeScript, Rust, Python and a Helm chart at once.
-      Every reference it finds carries the evidence that found it, and only the
-      references it can justify are rewritten. The rest are handed back as a list.
+      Each reference it finds carries the evidence that found it. The tool rewrites
+      the references it can justify and hands you the rest as a list.
     </p>
 
     <div class="btn-row">
@@ -57,17 +57,17 @@
       <div class="prose">
         <h2>Every reference carries its resolution tier</h2>
         <p>
-          A textual rename covers every language and proves nothing; a compiler-backed
-          one proves everything and covers one language. This resolves what the syntax
-          settles, labels each answer with the rule that produced it, and rewrites only
-          the two strongest tiers.
+          A textual rename covers every language and proves nothing. A compiler-backed
+          one proves everything and covers one language. This tool resolves what the
+          syntax settles, labels each answer with the rule that produced it, and
+          rewrites the two strongest tiers.
         </p>
         <p>
-          <span class="tier-exact">exact</span> and
-          <span class="tier-weak">import-qualified</span> are rewritten.
+          It rewrites <span class="tier-exact">exact</span> and
+          <span class="tier-weak">import-qualified</span>. It hands you
           <span class="tier-weak">field-based</span> and
-          <span class="tier-weak">name-only</span> are reported for you to check.
-          Nothing is guessed.
+          <span class="tier-weak">name-only</span> to check yourself.
+          It guesses nothing.
         </p>
       </div>
       <div class="term">
@@ -88,10 +88,10 @@
   <div class="shell">
     <h2 class="prose">It reads the configuration too</h2>
     <p class="prose">
-      A Helm chart is a values file and templates that read it — a dataflow no
-      compiler sees. Rename a values key and the templates that use it move with it,
-      while <code>{{ .Release.Name }}</code> is left alone, because it is the same
-      word and a different thing.
+      A Helm chart pairs a values file with the templates that read it, a dataflow no
+      compiler sees. Rename a values key and the templates that use it move with it.
+      <code>{{ .Release.Name }}</code> stays as written, because it spells the same
+      word and means a different thing.
     </p>
 
     <div class="term" style="margin-top:1.5rem">
@@ -115,7 +115,7 @@ Name → appName: 3 site(s) across 2 file(s)
   <div class="shell">
     <h2 class="prose">Measured on real code</h2>
     <p class="prose">
-      Measured over
+      Every figure below comes from a run over
       <a href="https://github.com/helm/helm">helm/helm</a> and
       <a href="https://github.com/grafana/grafana">grafana/grafana</a>.
     </p>
@@ -127,7 +127,7 @@ Name → appName: 3 site(s) across 2 file(s)
       </div>
       <div class="stat">
         <span class="num">337</span>
-        <span class="what">duplicated blocks in helm — 64,530 redundant tokens, found in 3.6s</span>
+        <span class="what">duplicated blocks in helm, holding 64,530 redundant tokens, found in 3.6s</span>
       </div>
       <div class="stat">
         <span class="num">47</span>
@@ -147,10 +147,10 @@ Name → appName: 3 site(s) across 2 file(s)
       <li>Markdown</li>
     </ul>
     <p class="note prose">
-      273 of 384 capability × language pairs are supported; the other 111 are marked
-      not applicable with the reason attached — a YAML file has no call graph. The
-      matrix is computed from the code, not maintained by hand, and a test fails if
-      the README disagrees with it.
+      The tool supports 273 of 384 capability × language pairs. It marks the other
+      111 not applicable and attaches the reason to each: a YAML file has no call
+      graph. The code computes the matrix, and a test fails when the README disagrees
+      with it.
     </p>
   </div>
 </section>
@@ -181,7 +181,7 @@ Name → appName: 3 site(s) across 2 file(s)
 <footer>
   <div class="shell footer-inner">
     <div>
-      <strong style="color:var(--ink-soft)">fun-refactor</strong> — AGPL-3.0-or-later.<br>
+      <strong style="color:var(--ink-soft)">fun-refactor</strong>, AGPL-3.0-or-later.<br>
       Built on <a href="https://tree-sitter.github.io/">tree-sitter</a>.<br>
       <span id="built"></span>
     </div>

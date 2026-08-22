@@ -39,7 +39,8 @@
     <p class="lede prose">
       Enough to use it and to know when not to trust it. The
       <a href="https://github.com/e6qu/fun-refactor/blob/main/TUTORIAL.md">tutorial</a>
-      walks a whole refactor on a real codebase; this is the reference underneath it.
+      walks a whole refactor on a real codebase. Read this page for the reference
+      underneath it.
     </p>
   </div>
 </section>
@@ -53,8 +54,8 @@
 <span class="cmd">cargo install --path fun-refactor</span>   <span class="dim"># installs `fr`</span></pre></div>
     </div>
     <p class="note prose" style="margin-top:1rem">
-      Rust 2021 edition and a C compiler — every tree-sitter grammar is C, so a cold
-      build takes a few minutes.
+      You need the Rust 2021 edition and a C compiler. Every tree-sitter grammar is C,
+      so a cold build takes a few minutes.
     </p>
   </div>
 </section>
@@ -63,8 +64,8 @@
   <div class="shell prose wide">
     <h2>Naming a target</h2>
     <p>
-      Commands that act on a symbol take a <strong>target</strong>, written one of two
-      ways.
+      Give a <strong>target</strong> to any command that acts on a symbol, written one
+      of two ways.
     </p>
 
     <div class="scroll-x">
@@ -72,7 +73,7 @@
         <tr><th>Form</th><th>When</th><th>Example</th></tr>
         <tr>
           <td><code>path:line:col</code></td>
-          <td>Always works. 1-based; must land on the identifier itself, at the definition or any use of it.</td>
+          <td>Always works. Count from 1, and land on the identifier itself, at the definition or at any use of it.</td>
           <td><code>fr refs pkg/action/action.go:725:6</code></td>
         </tr>
         <tr>
@@ -82,7 +83,7 @@
         </tr>
         <tr>
           <td><code>path:l:c-l:c</code></td>
-          <td><code>fr extract</code>, which acts on a range, not a symbol.</td>
+          <td><code>fr extract</code>, which acts on a range instead of a symbol.</td>
           <td><code>fr extract a.go:8:5-8:19 count</code></td>
         </tr>
         <tr>
@@ -94,15 +95,17 @@
     </div>
 
     <p style="margin-top:1.25rem">
-      Relative paths are read against the <strong>workspace root</strong> — the current
-      directory unless <code>-C</code> says otherwise — not against your shell's working
-      directory. A path that does not exist is an error that says where it looked.
+      The tool reads a relative path against the <strong>workspace root</strong>, which
+      is the current directory unless <code>-C</code> says otherwise. Your shell's
+      working directory never enters into it. A path that does not exist gives an error
+      naming the place the tool looked.
     </p>
     <p>
-      If you are not sure what to write, the <a href="playground/">playground</a> shows
-      the <code>path:line:col</code> of whatever the cursor is on, in its status bar,
-      and copies it when clicked. It is the same string this table describes, so you
-      can point at something in the browser and act on it in a terminal.
+      If you are not sure what to write, open the
+      <a href="playground/">playground</a>. Its status bar shows the
+      <code>path:line:col</code> of whatever the cursor is on, and copies it when
+      clicked. That string is the one this table describes, so point at something in
+      the browser and act on it in a terminal.
     </p>
   </div>
 </section>
@@ -131,21 +134,21 @@
         </tr>
         <tr>
           <td><span class="tier-weak">field-based</span></td>
-          <td>The name is a member of something, but the receiver's type is not tracked.</td>
-          <td>no — reported</td>
+          <td>The name is a member of something, and the tool does not track the receiver's type.</td>
+          <td>no, reported</td>
         </tr>
         <tr>
           <td><span class="tier-weak">name-only</span></td>
           <td>Nothing but the name matched.</td>
-          <td>no — reported</td>
+          <td>no, reported</td>
         </tr>
       </table>
     </div>
 
     <p style="margin-top:1.25rem">
-      Refactorings also report <em>textual occurrences</em> — the name in a string or a
-      comment — and <em>parse errors</em>, because a file that could not be read may
-      hold references nobody can see.
+      Refactorings also report <em>textual occurrences</em>, meaning the name in a
+      string or a comment, and <em>parse errors</em>, because a file the tool could not
+      read may hold references nobody can see.
     </p>
   </div>
 </section>
@@ -166,7 +169,7 @@
       <tr><td><code>fr entrypoints</code></td><td>Where execution starts</td></tr>
       <tr><td><code>fr stitch</code></td><td>Config → code: which program reads this setting</td></tr>
       <tr><td><code>fr flow</code></td><td>Where a value came from, and where it goes</td></tr>
-      <tr><td><code>fr openapi [--yaml]</code></td><td>The contract a Next.js route tree declares, to diff a rewrite against — <a href="contract.html">worked through a pet store</a></td></tr>
+      <tr><td><code>fr openapi [--yaml]</code></td><td>The contract a Next.js route tree declares, to diff a rewrite against; <a href="contract.html">worked through a pet store</a></td></tr>
     </table></div>
 
     <h3>Finding work</h3>
@@ -189,7 +192,7 @@
       <tr><td><code>fr restructure</code></td><td>Pattern rewriting: <code>old($X)</code> → <code>new($X)</code></td></tr>
       <tr><td><code>fr remove-flag</code></td><td>Retire a feature flag and the branch that served it</td></tr>
       <tr><td><code>fr translate</code></td><td>Write the file as another language, or port a route to FastAPI</td></tr>
-      <tr><td><code>fr recipe</code></td><td>Run a refactoring written down — find, do, and say what must hold after</td></tr>
+      <tr><td><code>fr recipe</code></td><td>Run a refactoring written down: find, do, and say what must hold after</td></tr>
     </table></div>
 
     <p style="margin-top:1.25rem">
@@ -214,20 +217,20 @@
         <tr><th>Mode</th><th>What you get</th><th>Example</th></tr>
         <tr>
           <td><strong>Containment</strong></td>
-          <td>The same bytes under a different grammar. Nothing is rewritten, so
-              nothing can be lost.</td>
+          <td>The same bytes under a different grammar. It rewrites nothing, so
+              nothing can go missing.</td>
           <td><code>fr translate app.css scss</code></td>
         </tr>
         <tr>
           <td><strong>Translation</strong></td>
           <td>A draft between Rust, Go, Java, Python, TypeScript and Zig. Signatures carry
-              exactly; anything with no counterpart is in the output verbatim as a
-              comment, and counted.</td>
+              across intact; anything with no counterpart lands in the output verbatim,
+              inside a comment, and counted.</td>
           <td><code>fr translate sensors.py typescript</code></td>
         </tr>
         <tr>
           <td><strong>Framework port</strong></td>
-          <td>A Next.js API route as a FastAPI module — routes, methods, path
+          <td>A Next.js API route as a FastAPI module: routes, methods, path
               parameters, models and bodies.</td>
           <td><code>fr translate 'app/api/users/[id]/route.ts' fastapi</code></td>
         </tr>
@@ -235,11 +238,10 @@
     </div>
 
     <p style="margin-top:1.25rem">
-      <strong>The signature is the contract.</strong> Every parameter, in order, with
-      its type and the return type, carried exactly — only the spelling changes.
-      Where a type has no counterpart it is written through by name and
-      <em>counted</em>, because quietly substituting a type is how a signature stops
-      meaning what it said.
+      <strong>The signature is the contract.</strong> Every parameter crosses in order,
+      with its type and the return type, and only the spelling changes. Where a type
+      has no counterpart, the tool writes it through by name and <em>counts</em> it.
+      Substituting a type quietly makes a signature stop meaning what it said.
     </p>
 
     <h3>Names take the target's convention</h3>
@@ -247,11 +249,11 @@
       TypeScript writes <code>userName</code>, Python writes <code>user_name</code>, Go
       says "exported" with a capital letter. A translated file adopts the target's
       convention, under the same rule the refactorings follow: <strong>rename what the
-      file declares and nothing else</strong>. Functions, records, fields, constants,
-      parameters and locals are re-spelled at their declaration and at every use. A
-      name the module does not declare — <code>db.users.find</code>, a library function
-      — is left exactly as written, because re-casing it would rename somebody else's
-      API.
+      file declares and nothing else</strong>. The tool re-spells functions, records,
+      fields, constants, parameters and locals at their declaration and at every use.
+      It leaves a name the module does not declare, such as <code>db.users.find</code>
+      or any library function, as written, because re-casing it would rename somebody
+      else's API.
     </p>
 
     <h3>Typed Python and typed TypeScript</h3>
@@ -262,17 +264,17 @@
       <code>T | null</code>, a <code>@dataclass</code> is an <code>interface</code>, an
       f-string is a template literal, and <code>[f(x) for x in xs if p(x)]</code> is
       <code>xs.filter(p).map(f)</code>. Both directions carry <em>zero</em> constructs
-      verbatim — the strongest claim any pair in this tool makes.
+      verbatim, the strongest claim any pair in this tool makes.
     </p>
 
     <h3>Next.js to FastAPI</h3>
     <p>
-      A Next.js API route cannot be translated by reading the file alone, because
+      Reading the file alone cannot translate a Next.js API route, because
       <strong>the URL is the path</strong>.
-      <code>app/api/users/[id]/route.ts</code> serves <code>/users/{id}</code> and
-      nothing inside the file says so; <code>[...path]</code> is a catch-all, which
-      FastAPI spells <code>{path:path}</code> and which a translation emitting
-      <code>{path}</code> would silently point at the wrong URLs.
+      <code>app/api/users/[id]/route.ts</code> serves <code>/users/{id}</code>, and
+      nothing inside the file says so. <code>[...path]</code> is a catch-all, which
+      FastAPI spells <code>{path:path}</code>. A translation emitting
+      <code>{path}</code> would point silently at the wrong URLs.
     </p>
 
     <div class="scroll-x">
@@ -280,8 +282,8 @@
         <tr><th>Next.js</th><th>FastAPI</th></tr>
         <tr><td><code>export async function GET</code></td><td><code>@router.get(…)</code> on an <code>async def</code></td></tr>
         <tr><td>an exported <code>interface</code></td><td>a Pydantic <code>BaseModel</code></td></tr>
-        <tr><td><code>NextRequest</code></td><td><code>Request</code> — same headers, same <code>await .json()</code></td></tr>
-        <tr><td><code>const id = context.params.id</code></td><td><em>dropped</em> — FastAPI already supplies it</td></tr>
+        <tr><td><code>NextRequest</code></td><td><code>Request</code>, with the same headers and the same <code>await .json()</code></td></tr>
+        <tr><td><code>const id = context.params.id</code></td><td><em>dropped</em>, because FastAPI already supplies it</td></tr>
         <tr><td><code>return NextResponse.json(x)</code></td><td><code>return x</code></td></tr>
         <tr><td><code>NextResponse.json(x, { status: 404 })</code></td><td><code>JSONResponse(x, 404)</code></td></tr>
       </table>
@@ -289,32 +291,32 @@
 
     <p style="margin-top:1.25rem">
       It refuses a <code>.tsx</code> file containing JSX, and says why: a React
-      component renders a user interface and a FastAPI endpoint answers HTTP. There is
-      no translation between them, and a file that pretended there was would be worse
-      than no file. What stays foreign is your own dependencies — the database calls
-      and helpers the route imported — which no translation could supply.
+      component renders a user interface and a FastAPI endpoint answers HTTP. No
+      translation runs between them, and a file that pretended otherwise would be worse
+      than no file. Your own dependencies stay foreign too: the database calls and
+      helpers the route imported, which no translation could supply.
     </p>
 
     <p>
-      In the playground this is the <strong>Rewrite</strong> button, which lists every
-      target with what it would cost, grouped by which of the three promises it makes.
+      In the playground, press <strong>Rewrite</strong>. It lists every target with what
+      that target would cost, grouped by which of the three promises it makes.
     </p>
 
     <h3>Measured against real projects</h3>
     <p>
-      A fixture is written by whoever writes the assertion. So the same translations
-      run over two MIT-licensed projects vendored unmodified and pinned —
+      Whoever writes the assertion writes the fixture. So the same translations run
+      over two MIT-licensed projects, vendored unmodified and pinned:
       <code>fastapi/full-stack-fastapi-template</code> and
-      <code>shadcn-ui/taxonomy</code> — asserting three properties and not exact
-      output: it parses as what it claims to be, it adopts the target's conventions,
-      and nothing goes missing quietly.
+      <code>shadcn-ui/taxonomy</code>. Those runs assert three properties instead of
+      exact output: the result parses as what it claims to be, it adopts the target's
+      conventions, and nothing goes missing quietly.
     </p>
     <p>
       That found what the fixture tests did not, including two <em>silent wrong
       answers</em>: <code>session?.user.id</code> became <code>None.id</code>, and
-      <code>params.postId as string</code> became <code>None</code>. Both are now
-      carried with the original. On the hardest route in the corpus the count of
-      constructs carried over as comments went from 15 to 3.
+      <code>params.postId as string</code> became <code>None</code>. The tool now
+      carries both alongside the original. On the hardest route in the corpus the count
+      of constructs carried over as comments went from 15 to 3.
     </p>
   </div>
 </section>
@@ -339,7 +341,7 @@
       <table>
         <tr><th>Contract element</th><th>Where it lives in Next.js</th><th>Carried?</th></tr>
         <tr><td>URL template</td><td>the <em>file path</em></td><td><span class="tier-exact">yes</span></td></tr>
-        <tr><td>Catch-all segment</td><td><code>[...path]</code></td><td><span class="tier-exact">yes</span> — as <code>{path:path}</code></td></tr>
+        <tr><td>Catch-all segment</td><td><code>[...path]</code></td><td><span class="tier-exact">yes</span>, as <code>{path:path}</code></td></tr>
         <tr><td>Method</td><td>the exported function's name</td><td><span class="tier-exact">yes</span></td></tr>
         <tr><td>Path parameters</td><td>the bracketed segment</td><td><span class="tier-exact">yes</span>, typed</td></tr>
         <tr><td>Request body schema</td><td>a zod schema, or an <code>interface</code></td><td><span class="tier-weak">only from an <code>interface</code></span></td></tr>
@@ -352,10 +354,10 @@
     <p>
       <code>app/api/posts/[postId]/route.ts</code> serves <code>/posts/{post_id}</code>,
       and <strong>nothing inside the file says so</strong>. No content-only translation
-      can recover that, however well it reads TypeScript. It is the one part of the job that needs the tree and not the text, and it is most of the value.
+      can recover that, however well it reads TypeScript. This one part of the job needs the tree instead of the text, and it carries most of the value.
     </p>
     <p>
-      <code>[...path]</code> is a catch-all — it matches across slashes, which FastAPI
+      <code>[...path]</code> is a catch-all: it matches across slashes, which FastAPI
       spells <code>{path:path}</code>. A translation emitting <code>{path}</code> would
       answer a strictly smaller set of URLs than the service it replaced, silently, and
       only for the requests with a slash in them.
@@ -363,42 +365,43 @@
 
     <h3>Why OpenAPI makes the two directions asymmetric</h3>
     <p>
-      <strong>FastAPI derives OpenAPI from the code</strong> — the decorator gives the
-      URL and method, the annotated parameters give the path parameters, a Pydantic
-      model gives the body schema. The contract is a projection of the types instead of
-      a document somebody maintains. <strong>Next.js has no built-in equivalent.</strong>
+      <strong>FastAPI derives OpenAPI from the code.</strong> The decorator gives the
+      URL and method, the annotated parameters give the path parameters, and a Pydantic
+      model gives the body schema. The contract projects the types instead of sitting
+      in a document somebody maintains.
+      <strong>Next.js has no built-in equivalent.</strong>
     </p>
     <p>
-      So Next.js → FastAPI <em>gains</em> a machine-readable contract where none existed
-      — and that is the trap. The generated OpenAPI is exactly as complete as what
-      carried across, and <em>it does not look incomplete</em>.
+      So Next.js → FastAPI <em>gains</em> a machine-readable contract where none
+      existed, and there sits the trap. The generated OpenAPI covers what carried
+      across and no more, and <em>it does not look incomplete</em>.
     </p>
 
     <h3>Right behaviour, wrong document</h3>
     <p>
-      The sharp edge, and the tool now reports it. A translated handler returns
-      <code>204</code> and behaves correctly, but FastAPI builds its OpenAPI from the
-      <em>decorator</em> — so a status on a returned <code>Response</code> changes what
+      Here is the sharp edge, and the tool now reports it. A translated handler returns
+      <code>204</code> and behaves correctly. FastAPI builds its OpenAPI from the
+      <em>decorator</em>, so a status on a returned <code>Response</code> changes what
       the endpoint does without changing what it says it does:
     </p>
     <pre class="grammar"><code>@router.delete("/posts/{post_id}")          <em># documents 200</em>
 async def delete(post_id: str, req: Request):
     return Response(status_code=204)        <em># returns 204</em></code></pre>
     <p>
-      The rewrite is behaviour-preserving and contract-shrinking at once, and every test
+      The rewrite preserves behaviour and shrinks the contract at once, and every test
       you have will pass. The tool does not add <code>status_code=</code> to the
-      decorator, because which status is the <em>success</em> one is a judgement about
+      decorator. Which status counts as the <em>success</em> one is a judgement about
       the endpoint instead of a fact about the syntax. It lists every status it saw and
-      says what will happen if you leave them where they are.
+      says what happens if you leave them where they are.
     </p>
 
-    <h3>How you would actually check a rewrite</h3>
+    <h3>How to check a rewrite</h3>
     <p>
       The tool preserves what it can see and reports the rest. It does <strong>not</strong>
-      verify the contract, and no amount of reading one side can: export the contract
-      before, rewrite, export <code>/openapi.json</code> after, and diff them — treating
-      every difference as a defect until argued otherwise. Emitting that baseline from
-      the route tree is a real gap, and it is written down as one.
+      verify the contract, and no amount of reading one side can. Export the contract
+      first, rewrite, export <code>/openapi.json</code> afterwards, and diff the two,
+      treating every difference as a defect until argued otherwise. Emitting that
+      baseline from the route tree is a real gap, and the project writes it down as one.
     </p>
     <div class="btn-row">
       <a class="btn" href="translate.html#nextjs-to-fastapi">A route, translated</a>
@@ -411,39 +414,37 @@ async def delete(post_id: str, req: Request):
   <div class="shell prose wide">
     <h2>The playground</h2>
     <p>
-      The <a href="playground/">playground</a> is this analysis compiled to
-      WebAssembly. There is no server: the tab fetches a public repository from
-      GitHub, holds it in memory, indexes it, and every answer and every edit happens
-      in the browser. Nothing is uploaded and nothing on GitHub changes — the diff is
+      The <a href="playground/">playground</a> runs this analysis compiled to
+      WebAssembly. No server takes part: the tab fetches a public repository from
+      GitHub, holds it in memory, indexes it, and works out every answer and every edit
+      in the browser. Nothing leaves the tab and nothing on GitHub changes. The diff is
       the artifact, and you can download the session as a patch.
     </p>
     <p>
       It ships all thirty-eight of its methods and a bundled sixteen-language workspace,
-      so every one of them can be tried against every grammar without waiting for a
-      download or being rate-limited. Ten preset repositories cover the same ground on
-      real code.
+      so you can try every one against every grammar without waiting for a download or
+      hitting a rate limit. Ten preset repositories cover the same ground on real code.
     </p>
     <div class="scroll-x">
       <table>
         <tr><th>Pane</th><th>What it is for</th></tr>
         <tr>
           <td>Files</td>
-          <td>Every file loaded. A file in a language this build has no grammar for is
-              listed and reported, not silently dropped.</td>
+          <td>Every file loaded. A file in a language this build has no grammar for
+              still appears, with a note beside it, instead of vanishing.</td>
         </tr>
         <tr>
           <td>Outline</td>
-          <td>Every definition in the open file, from the index — the same answer
+          <td>Every definition in the open file, from the index, matching the answer
               <code>fr symbols</code> gives.</td>
         </tr>
         <tr>
           <td>Structure</td>
           <td>The parse tree. Every answer the tool gives is a claim about this tree,
-              so a surprising answer usually becomes obvious here — whether a name is
+              so a surprising answer usually becomes obvious here. Whether a name is
               an <code>identifier</code> or a <code>field_identifier</code> decides
-              what half the tool will do with it. Clicking a node selects exactly the
-              bytes it covers, which is how you pick a range for
-              <code>extract</code>.</td>
+              what half the tool will do with it. Click a node to select the bytes it
+              covers, then use that range for <code>extract</code>.</td>
         </tr>
         <tr>
           <td>Status bar</td>
@@ -452,31 +453,31 @@ async def delete(post_id: str, req: Request):
         </tr>
         <tr>
           <td>Result</td>
-          <td>What the action returned — a diff, a list with confidence tiers, a call
-              tree, or the refusal and its reason. A refusal is an answer: it names
+          <td>What the action returned. Expect a diff, a list with confidence tiers, a
+              call tree, or the refusal and its reason. A refusal answers too: it names
               the rule that stopped the change.</td>
         </tr>
       </table>
     </div>
     <p style="margin-top:1.25rem">
-      Navigation is where an editor keeps it: <code>F12</code> or
-      <code>⌘</code>/<code>Ctrl</code>-click goes to the definition, the arrows in the
+      Navigation sits where an editor keeps it. Press <code>F12</code> or
+      <code>⌘</code>/<code>Ctrl</code>-click to reach the definition. The arrows in the
       bar walk back and forward through the jumps you made, and a right-click offers
-      every action that applies to what is under the cursor — with a reason on each one
-      that cannot run. The columns drag, the sidebar sections fold, and the layout is
-      remembered.
+      every action that applies to what is under the cursor, with a reason on each one
+      that cannot run. Drag the columns, fold the sidebar sections, and the page
+      remembers the layout.
     </p>
     <p>
-      What the browser cannot do is what needs a filesystem: there is no fact cache,
-      and a repository has to be small enough to hold in a tab, so the loader caps the
-      file count and says what it left out.
+      The browser cannot do the parts that need a filesystem. It keeps no fact cache,
+      and a repository has to fit in a tab, so the loader caps the file count and says
+      what it left out.
     </p>
 
     <h3>Asking the page instead of reading it</h3>
     <p>
-      The playground answers to something other than a person too. A query parameter
-      picks the rendering, and the two machine-readable ones never load the editor —
-      about seven kilobytes of JavaScript, not four megabytes.
+      The playground answers a program as readily as a person. A query parameter picks
+      the rendering, and the two machine-readable ones never load the editor: about
+      seven kilobytes of JavaScript against four megabytes.
     </p>
     <div class="scroll-x">
       <table>
@@ -492,8 +493,8 @@ async def delete(post_id: str, req: Request):
         </tr>
         <tr>
           <td><code>playground/?render_as=json_data</code></td>
-          <td>The analysis with no interface around it — what was indexed, the entry
-              points, the call graph, the dead code, the duplicates, and the open
+          <td>The analysis with no interface around it: what the tool indexed, the
+              entry points, the call graph, the dead code, the duplicates, and the open
               file's symbols and parse tree.</td>
         </tr>
         <tr>
@@ -508,8 +509,8 @@ async def delete(post_id: str, req: Request):
       </table>
     </div>
     <p>
-      The whole document body is the JSON, so <code>JSON.parse(document.body.textContent)</code>
-      is the contract. An unknown <code>render_as</code> is refused with the list of valid ones, instead of being quietly treated as HTML.
+      The whole document body is the JSON, so read it with <code>JSON.parse(document.body.textContent)</code>.
+      An unknown <code>render_as</code> earns a refusal listing the valid ones, instead of quietly rendering HTML.
     </p>
   </div>
 </section>
@@ -520,37 +521,36 @@ async def delete(post_id: str, req: Request):
 
     <h3>Parsing, and where the trees live</h3>
     <p>
-      Each file is parsed by <a href="https://tree-sitter.github.io/">tree-sitter</a>,
-      one grammar per language, into a tree that keeps every byte — comments and
-      whitespace included. That is what makes losslessness possible: an edit is a
-      byte-range splice, so everything outside the range is untouched by construction.
+      <a href="https://tree-sitter.github.io/">tree-sitter</a> parses each file, one
+      grammar per language, into a tree that keeps every byte, comments and whitespace
+      included. Losslessness follows: an edit splices one byte range, so everything
+      outside the range survives by construction.
     </p>
     <p>
-      <strong>The trees are not stored.</strong> They live for the duration of one
-      file's extraction and are dropped; what survives is a much smaller set of facts —
-      symbols, references, scopes, imports — each carrying a byte span. Keeping 16,000
-      syntax trees in memory would cost more than re-parsing the few files any one
-      command needs.
+      <strong>The tool stores no trees.</strong> A tree lives for one file's extraction
+      and then goes. A much smaller set of facts survives it: symbols, references,
+      scopes and imports, each carrying a byte span. Keeping 16,000 syntax trees in
+      memory would cost more than re-parsing the few files any one command needs.
     </p>
     <p>
       Positions are byte offsets everywhere except the command line. Line and column
       are a display format, and a tool that miscounts a column corrupts a file.
     </p>
     <p>
-      Helm gets one extra step. A template action is <em>masked</em> before parsing —
-      replaced by filler of exactly the same byte length — so the surrounding YAML
-      still has valid structure and every offset stays correct. The actions are then
-      parsed separately, which is how <code>.Values.image.tag</code> becomes a
-      reference to a values key that a rename can rewrite.
+      Helm gets one extra step. The tool <em>masks</em> each template action before
+      parsing, replacing it with filler of the same byte length, so the surrounding
+      YAML keeps a valid structure and every offset stays correct. It then parses the
+      actions separately, turning <code>.Values.image.tag</code> into a reference to a
+      values key that a rename can rewrite.
     </p>
 
     <h3>The cache</h3>
     <p>
-      Content-addressed. A file's facts are keyed by the SHA-256 of its contents
-      combined with a fingerprint of the query set that produced them. Change the file
-      and the key changes; change a query and every key changes. There is no
-      invalidation logic to get wrong, because there is nothing to invalidate — a stale
-      entry is never looked up.
+      The cache addresses everything by content. A file's facts sit under a key made
+      from the SHA-256 of its contents and a fingerprint of the query set that produced
+      them. Change the file and the key changes; change a query and every key changes.
+      No invalidation logic can go wrong, because nothing needs invalidating: no
+      lookup ever reaches a stale entry.
     </p>
     <div class="term" style="max-width:44rem">
       <div class="term-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
@@ -573,14 +573,14 @@ size      3791 KiB
       <li><strong>Rejects overlaps.</strong> Two edits to the same bytes are a bug in the caller, not something to resolve by picking one.</li>
       <li><strong>Applies in descending offset order</strong>, so earlier offsets stay valid as it goes.</li>
       <li><strong>Reparses every changed file</strong> and refuses the whole edit if the file parses cleanly now and would not afterwards.</li>
-      <li><strong>Commits atomically.</strong> Either every file is written or none is.</li>
+      <li><strong>Commits atomically.</strong> Either every file lands or none does.</li>
     </ol>
     <p>
-      That reparse check is the net, not the safety. It cannot catch a change that
-      parses and means something else — hoisting a statement out from under the
-      condition that guarded it, or dropping the brackets a de Morgan result needs.
-      Those are caught by the analysis being right, which is why the confidence tiers
-      exist and why the tool refuses as much as it does.
+      That reparse check is the net beneath the work rather than the work. It cannot
+      catch a change that parses and means something else: hoisting a statement out
+      from under the condition that guarded it, or dropping the brackets a de Morgan
+      result needs. Only correct analysis catches those, so the confidence tiers exist
+      and the tool refuses as much as it does.
     </p>
   </div>
 </section>
@@ -590,13 +590,13 @@ size      3791 KiB
     <h2>Known limitations</h2>
     <p>
       <a href="https://github.com/e6qu/fun-refactor/blob/main/BUGS.md">BUGS.md</a> lists
-      every one, each with the measurement that established it. In summary: reachability
-      under dynamic dispatch is undecidable from source and is reported and not
-      guessed; Helm values passed on a command line are invisible to a workspace scan
-      unless you supply them with <code>-f</code> and <code>--set</code>; CSS classes
-      named inside TSX helper calls are not resolved, which measurably costs about
-      two-thirds of the reach of a stylesheet rename in a modern React codebase; and two
-      upstream grammar gaps, in SCSS and in Go's handling of a user-defined
+      every one, each with the measurement that established it. In summary: source
+      cannot decide reachability under dynamic dispatch, so the tool reports it and
+      leaves the guessing alone. A workspace scan cannot see Helm values passed on a
+      command line unless you supply them with <code>-f</code> and <code>--set</code>.
+      CSS classes named inside TSX helper calls go unresolved, which measurably costs
+      about two-thirds of the reach of a stylesheet rename in a modern React codebase.
+      Two upstream grammar gaps remain, in SCSS and in Go's handling of a user-defined
       <code>new</code>.
     </p>
   </div>
@@ -606,7 +606,7 @@ size      3791 KiB
 <footer>
   <div class="shell footer-inner">
     <div>
-      <strong style="color:var(--ink-soft)">fun-refactor</strong> — AGPL-3.0-or-later.<br>
+      <strong style="color:var(--ink-soft)">fun-refactor</strong>, AGPL-3.0-or-later.<br>
       Built on <a href="https://tree-sitter.github.io/">tree-sitter</a>.<br>
       <span id="built"></span>
     </div>

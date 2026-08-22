@@ -1,8 +1,8 @@
 # API contracts, the invariant when the language changes
 
-A refactoring preserves *behaviour*. A translation preserves a *signature*. Rewriting a
-service in another language has to preserve something else again. It is the only
-thing anyone outside the repository can see: the **contract**.
+A refactoring preserves *behaviour*. A translation preserves a *signature*. A rewrite
+into another language must preserve a third thing, the one thing anyone outside the
+repository can see: the **contract**.
 
 ```
                  what must not change              what is free to change
@@ -13,15 +13,14 @@ contract rewrite the HTTP contract                 the language, the framework,
                                                    function signatures, all of it
 ```
 
-That last row is the useful one and the least served by tooling. A caller does not
-import your functions. It sends `PATCH /posts/42` with a JSON body and expects `204`.
-Everything a refactoring tool normally protects, call sites, imports, symbol
-resolution, is irrelevant, and what matters is not in the type system of
-either language.
+That last row matters most and tooling serves it least. A caller never imports your
+functions. It sends `PATCH /posts/42` with a JSON body and expects `204`. A refactoring
+tool guards call sites, imports and symbol resolution, and none of that matters across
+this crossing. Neither language's type system holds what does.
 
 ## What an HTTP contract is made of
 
-Six things, and they do not all travel together:
+An HTTP contract holds six things, and they do not all travel together:
 
 | | Example | Where it lives |
 | --- | --- | --- |
@@ -32,30 +31,29 @@ Six things, and they do not all travel together:
 | **Response body schema** | the post, or an error | usually nowhere |
 | **Status codes** | `204`, `403`, `422` | the returned object |
 
-The first three are *addressing* and the last three are *shape*. This tool carries the
-addressing half exactly and the shape half only partly. The purpose of this
-document is to say which is which, because a rewrite that gets addressing right and
-shape wrong looks finished.
+The first three make up the *addressing* half and the last three the *shape* half. The
+tool carries addressing exactly and shape only partly. This document says which is
+which, because a rewrite that gets addressing right and shape wrong looks finished.
 
 ## Why OpenAPI is the pivot, and why it is asymmetric
 
-**FastAPI derives OpenAPI from the code.** The path decorator gives the URL and method,
-the annotated parameters give the path and query parameters, a Pydantic model gives the
-body schema, and `/openapi.json` falls out. The contract is not a document somebody
-maintains; it is a projection of the types.
+**FastAPI derives OpenAPI from the code.** The path decorator gives the URL and the
+method. The annotated parameters give the path and query parameters. A Pydantic model
+gives the body schema, and `/openapi.json` falls out. Nobody maintains that contract as
+a document; FastAPI projects it from the types.
 
-**Next.js does not.** The App Router has no built-in equivalent. The contract is
-implicit in `route.ts`, and where it is written down at all it is in a zod schema, a
-`next-swagger-doc` annotation, or a hand-kept YAML file that drifts.
+**Next.js does not.** The App Router ships no equivalent. `route.ts` implies the
+contract without stating it. Where a team writes it down at all, they write it in a zod
+schema, a `next-swagger-doc` annotation, or a hand-kept YAML file that drifts.
 
-So the two directions are not mirror images:
+So the two directions work differently:
 
-- **Next.js → FastAPI** *gains* a machine-readable contract where none existed. That is
-  worth a great deal, and it is also the trap. The generated OpenAPI is as
-  complete as what carried across, and it does not look incomplete.
-- **FastAPI → Next.js** *loses* one. Nothing in the target will regenerate it, so it
-  would have to be exported before the rewrite and asserted against afterwards. This
-  tool does not do that direction at all.
+- **Next.js → FastAPI** *gains* a machine-readable contract where none existed. The gain
+  is large and it is also the trap. The generated OpenAPI covers what carried across and
+  no more, and it never looks incomplete.
+- **FastAPI → Next.js** *loses* one. Nothing in the target regenerates it, so you would
+  export it before the rewrite and assert against it afterwards. This tool does not do
+  that direction at all.
 
 ## What `fr translate <route> fastapi` preserves
 
@@ -76,20 +74,20 @@ Run against `app/api/posts/[postId]/route.ts` from
 ### The URL is the path, and that is the whole trick
 
 `app/api/posts/[postId]/route.ts` serves `/posts/{post_id}`, and **nothing inside the
-file says so.** No content-only translation can recover it, however well it reads
-TypeScript. This is the one part of the job that requires reading the tree instead of
-the text, and it is most of the value.
+file says so.** No content-only translation recovers it, however well it reads
+TypeScript. This one part of the job demands reading the tree instead of the text, and
+it carries most of the value.
 
 `[...path]` is a catch-all: it matches across slashes. FastAPI spells that
-`{path:path}`, and a translation emitting `{path}` would produce a service that answers
-a strictly smaller set of URLs than the one it replaced, silently, and only for the
+`{path:path}`. A translation emitting `{path}` builds a service that answers a strictly
+smaller set of URLs than the one it replaced. It fails silently, and only for the
 requests with a slash in them.
 
 ### The status codes: right behaviour, wrong document
 
-This is the sharp edge, and the tool now reports it. The taxonomy route returns `204`,
-`403`, `422` and `500`. All four carry into the Python and the endpoint behaves
-correctly. But FastAPI builds its OpenAPI from the **decorator**:
+The tool now reports this sharp edge. The taxonomy route returns `204`, `403`, `422`
+and `500`. All four carry into the Python and the endpoint behaves correctly. But
+FastAPI builds its OpenAPI from the **decorator**:
 
 ```python
 @router.delete("/posts/{post_id}")          # documents 200
@@ -98,8 +96,8 @@ async def delete(post_id: str, req: Request):
 ```
 
 A `Response` with its own status changes what the endpoint *does* without changing what
-it *says it does*. The rewrite is behaviour-preserving and contract-shrinking at the
-same time, and every test you have will pass. The fix is to declare it:
+it *says it does*. The rewrite preserves behaviour and shrinks the contract at once,
+and every test you have passes. Declare the statuses to fix it:
 
 ```python
 @router.delete("/posts/{post_id}", status_code=204,
@@ -107,18 +105,18 @@ same time, and every test you have will pass. The fix is to declare it:
                           422: {"description": "invalid"}})
 ```
 
-The tool does not write that, because which status is the *success* one is a judgement
-about the endpoint instead of a fact about the syntax. It reports every status it saw
-and says what will happen if you leave them where they are.
+The tool does not write that. Picking the *success* status judges the endpoint rather
+than reading its syntax. The tool reports every status it saw and says what happens if
+you leave them where they are.
 
 ### Reading zod
 
-Most Next.js applications declare their shapes with zod, not with `interface`. A zod
-schema is a *runtime value*. It is not a type declaration. So nothing that reads declarations
-finds it, and left alone it arrives as an ordinary constant, producing a service whose
-published contract has no request body in it at all.
+Most Next.js applications declare their shapes with zod rather than with `interface`. A
+zod schema is a *runtime value* and not a type declaration. A reader that walks
+declarations finds nothing. Left alone, the schema arrives as an ordinary constant, and
+the published contract then carries no request body at all.
 
-The builder chain is read instead:
+The tool reads the builder chain instead:
 
 ```ts
 const postCreateSchema = z.object({
@@ -139,33 +137,33 @@ class PostCreate(BaseModel):
     published_at: datetime | None
 ```
 
-A chain is left-nested, `z.string().min(3).optional()` is
-`optional(max(min(string)))`, so it is walked to the base call with the modifiers
-collected on the way past. `.optional()` and `.nullable()` become `Optional`; `.int()`
-picks `int` over `float`.
+A chain nests to the left: `z.string().min(3).optional()` is
+`optional(max(min(string)))`. The reader walks it down to the base call and collects
+the modifiers on the way past. `.optional()` and `.nullable()` become `Optional`;
+`.int()` picks `int` over `float`.
 
-**The constraints are deliberately dropped.** `.min(3)` is validation, Pydantic spells
-it `Field(min_length=3)`, and the two are not the same rule in every case. Guessing one
-from the other would be guessing at the part of a contract it is least safe to guess at.
-A nested `z.object` is `dict` for the same reason: Python wants it to be its own model,
-and naming one would be inventing a name.
+**The tool drops the constraints deliberately.** `.min(3)` validates, Pydantic spells
+it `Field(min_length=3)`, and the two rules diverge in some cases. Guessing one from the
+other guesses at the part of a contract that least tolerates a guess. A nested
+`z.object` becomes `dict` for the same reason: Python wants its own model there, and
+naming one would invent a name.
 
 ## How you would check a rewrite
 
 The tool preserves what it can see and reports the rest. It does **not** verify the
-contract, and no amount of reading one side can. The check is a comparison:
+contract, and no amount of reading one side ever will. Compare the two sides instead:
 
-1. Export the contract from the original, for a Next.js app, that means writing the
-   OpenAPI document by hand or from its zod schemas, which is the work most teams have
-   already skipped.
+1. Export the contract from the original. For a Next.js app, that means writing the
+   OpenAPI document by hand or from its zod schemas, work most teams have already
+   skipped.
 2. Rewrite. Read the report: what carried, what did not, and which status codes are
    returned but not declared.
 3. Export the contract from the result: `curl localhost:8000/openapi.json`.
 4. **Diff them**, and treat every difference as a defect until argued otherwise.
 
-Step 1 is `fr openapi`. It walks the tree, finds every API route, and emits an
-OpenAPI 3.1 document from what the source *declares*, as JSON, or as YAML with
-`--yaml`, which a contract kept beside the code is usually written in:
+`fr openapi` does step 1. It walks the tree, finds every API route, and emits an
+OpenAPI 3.1 document from what the source *declares*. It writes JSON, or YAML with
+`--yaml`, the form teams usually use for a contract kept beside the code:
 
 ```sh
 fr openapi --yaml > before.yaml   # from the Next.js tree
@@ -174,24 +172,23 @@ curl -s localhost:8000/openapi.json > after.json
 diff <(yq -P -S . before.yaml) <(yq -P -S . after.json)
 ```
 
-Paths, methods and path parameters are exact, because they come from the tree. Schemas
-are as good as what was declared. **Responses are `default` only**, which status an
-endpoint returns is a fact about its code and not its declaration. Writing
-`200` for everything would be putting fiction into the file you are about to diff
-against; an empty entry does not.
+Paths, methods and path parameters come out exact, because the tree supplies them.
+Schemas go only as far as the declarations went. **Responses are `default` only**: an
+endpoint's status lives in its code rather than in its declaration. Writing `200` for
+everything puts fiction into the file you are about to diff against. An empty entry
+puts none.
 
-Everything it could not settle is printed beside the document and not guessed at,
-because a baseline that quietly invents an entry is the worst possible outcome. The
+The tool prints everything it could not settle beside the document rather than guessing
+at it. A baseline that quietly invents an entry is the worst outcome available. The
 diff comes out clean and the contract still shrank.
 
 ## A worked example: the pet store
 
-`tests/petstore/` is a Next.js App Router API with eight route files and thirteen
-operations, and it is there to be run and not read about. Every figure below comes
-from running the tool over it; the generated page is `docs/contract.html`.
+`tests/petstore/` holds a Next.js App Router API with eight route files and thirteen
+operations. Run it rather than read about it. Every figure below comes from running the
+tool over it, and the same run generates the page `docs/contract.html`.
 
-It has one of every shape a CRUD API has, because the shapes are where the difficulty
-is:
+It holds one of every shape a CRUD API has, because the shapes carry the difficulty:
 
 | Route file | URL | What it is |
 | --- | --- | --- |
@@ -214,40 +211,40 @@ curl -s localhost:8000/openapi.json > after.json
 #                                            4. diff, and argue about every difference
 ```
 
-Step 1 is the one teams skip, and skipping it makes the rest unfalsifiable. A
-rewrite with no baseline cannot be shown to have preserved anything.
+Teams skip step 1, and skipping it makes the rest unfalsifiable. Nobody can show that
+a rewrite with no baseline preserved anything.
 
 ### What has to be read that nobody declared
 
-Next.js declares none of the contract. Every element is inferred from somewhere else,
-and each one is a different kind of reading:
+Next.js declares none of the contract. The tool infers every element from somewhere
+else, and each element takes a different kind of reading:
 
 - **The URL is the file's path.** `app/api/pets/[petId]/route.ts` serves
   `/pets/{pet_id}`, and **nothing inside the file says so**. No content-only translation
-  can recover it, however well it reads TypeScript. This is most of the value.
+  recovers it, however well it reads TypeScript. It carries most of the value.
 - **`[...path]` is a catch-all**, matching across slashes. FastAPI spells that
-  `{path:path}`; emitting `{path}` produces a service that answers a strictly smaller
-  set of URLs than the one it replaced, silently. Only for the requests with a
-  slash in them.
+  `{path:path}`. Emitting `{path}` produces a service that answers a strictly smaller
+  set of URLs than the one it replaced, and it does so silently. The failure shows only
+  on requests with a slash in them.
 - **The method is the exported function's name.** `export async function PATCH` is
   `@router.patch`.
-- **The request body is a zod schema in another module.** `lib/schemas.ts` here, which
-  is where a real application keeps them. Reading only the route file finds nothing, so
-  the schemas are collected from anywhere in the tree. The *link* between an
-  operation and its body comes from the `petCreateSchema.parse(json)` call inside the
-  handler. A `components` section nothing refers to is not a contract; it says every
-  endpoint takes no body.
-- **The query parameters are read out of the URL by hand.**
-  `req.nextUrl.searchParams.get("species")` is the only declaration there is, so that
-  is what is read. Where a handler's statement could not be read at all, the document
-  says so: a query parameter inside a statement this tool carried verbatim is missing,
-  and a missing one that nothing mentions is the failure this whole document is about.
+- **The request body is a zod schema in another module.** `lib/schemas.ts` holds them
+  here, where a real application keeps them. Reading only the route file finds nothing,
+  so the tool collects schemas from anywhere in the tree. The
+  `petCreateSchema.parse(json)` call inside the handler supplies the *link* between an
+  operation and its body. Without that link, a `components` section refers to nothing
+  and the document says every endpoint takes no body.
+- **The handler reads the query parameters out of the URL by hand.**
+  `req.nextUrl.searchParams.get("species")` is the only declaration there is, so the
+  tool reads that. Where the tool could not read a handler's statement, the document
+  says so. A query parameter inside a statement the tool carried verbatim goes missing.
+  A gap nothing mentions is the failure this whole document guards against.
 
 ### What changes
 
 A Next.js handler receives `(request, context)` and digs the path parameter out of
-`context.params.petId`. FastAPI passes it as an argument. So the value arrives by a
-different route, and **every use of it moves with the parameter**:
+`context.params.petId`. FastAPI passes it as an argument. The value therefore arrives
+by a different route, and **every use of it moves with the parameter**:
 
 ```ts
 const pet = await db.pet.findUnique({ where: { id: context.params.petId } })
@@ -256,28 +253,29 @@ const pet = await db.pet.findUnique({ where: { id: context.params.petId } })
 pet = await db.pet.findUnique({"where": {"id": pet_id}})
 ```
 
-That is the behaviour being redistributed while the URL it answers stays exactly the
-same. Rewriting the declaration and leaving `context.params.petId` in the body produces
-a file that parses, imports and starts, and answers every request with a `NameError`.
+The behaviour moves while the URL it answers stays the same. Rewrite the declaration,
+leave `context.params.petId` in the body, and the file parses, imports and starts, then
+answers every request with a `NameError`.
 
 ### What the contract comes out as
 
-Thirteen operations, five schemas, every path parameter, the catch-all converter, and
-the query parameters the handlers read. What it deliberately does *not* have:
+The document holds thirteen operations, five schemas, every path parameter, the
+catch-all converter, and the query parameters the handlers read. It deliberately leaves
+out three things:
 
 - **Response bodies.** Next.js does not declare one and neither does the output.
-- **Status codes.** They carry into the *code* and are reported for the *contract*,
-  see below, because this is the sharp edge.
+- **Status codes.** They carry into the *code*, and the tool reports them for the
+  *contract*, see below, because they are the sharp edge.
 - **Required-ness of a query parameter.** A handler that defaults it and a handler that
-  rejects the request without it read the same way. So every query parameter is
-  optional in the baseline and the diff will tell you which ones are not.
+  rejects the request without it read the same way. So the baseline marks every query
+  parameter optional, and the diff tells you which ones the handlers require.
 
 ### Checking the crossing without running anything
 
-Step 4 says to run the finished service and diff its `/openapi.json` against the
+Step 4 tells you to run the finished service and diff its `/openapi.json` against the
 baseline. Half of that check needs no server: **`fr openapi` reads a FastAPI router
-too**, off the decorators and the signatures. So the same command answers the same
-question about the code the rewrite produced.
+too**, off the decorators and the signatures. The same command therefore answers the
+same question about the code the rewrite produced.
 
 ```sh
 fr openapi --yaml > before.yaml      # the Next.js tree
@@ -286,53 +284,52 @@ fr openapi --yaml > after.yaml       # the FastAPI router it became
 diff before.yaml after.yaml
 ```
 
-Run over the pet store, thirteen operations go in and thirteen come out, every URL,
-every method, every path parameter and every query parameter identical. Nothing lost,
-nothing invented, and the test suite asserts it, so a translation that started dropping
-endpoints would fail the build.
+Run it over the pet store: thirteen operations go in and thirteen come out, with every
+URL, method, path parameter and query parameter identical. The test suite asserts that,
+so a translation that started dropping endpoints would fail the build.
 
-**That the two documents agree does not mean the contract is complete**. The
-difference matters more than the agreement: both sides can be missing the same thing and
-agree perfectly. So the baseline says what it could not read:
+**That the two documents agree does not mean the contract is complete**. Watch the
+difference rather than the agreement: both sides can miss the same thing and agree
+perfectly. So the baseline says what it could not read:
 
 ```
 <route file>: N statement(s) could not be read; any query parameter
 read inside one of them is missing from this document
 ```
 
-A statement the tool carries whole is a statement it did not look inside, so that count
-is the number to watch. A gap that announces itself is a gap you can close; a gap that
-does not is what this document exists to prevent.
+A statement the tool carries whole is a statement it never looked inside, so watch that
+count. You can close a gap that announces itself. A silent gap is the one this document
+exists to prevent.
 
-The pet store's count has been two and is now zero. The two were
-`const limit = Number(… ?? "50")`, `??` had no counterpart in the IR, and
-`{ where: species ? { species } : {} }`, where `{ species }` is the shorthand every
-modern TypeScript file is written in and refusing it refused the whole object. With
-it the statement the object was in.
+The pet store's count ran at two and now reads zero. The first was
+`const limit = Number(… ?? "50")`, where `??` had no counterpart in the IR. The second
+was `{ where: species ? { species } : {} }`. Every modern TypeScript file uses that
+`{ species }` shorthand. Refusing it refused the whole object, and with it the
+statement the object sat in.
 
-What this cannot see, because it reads what is written and not what will happen: a
-router mounted under a prefix, a route added at run time, a dependency that rejects the
-request. For those you need the server, so step 4 is still step 4.
+The tool reads what the source writes down, never what will happen at run time. Three
+things escape it: a router mounted under a prefix, a route added at run time, a
+dependency that rejects the request. Those need the server, so step 4 stays step 4.
 
 ## What this is not
 
-**Not a proof.** Preserving the addressing half of a contract is a syntactic property
-and the tool can be held to it. Preserving the shape half requires knowing what the
-handlers do. The handlers are the part that is carried into the output as comments
-for a person to finish.
+**Not a proof.** Preserving the addressing half of a contract is a syntactic property,
+so you can hold the tool to it. Preserving the shape half requires knowing what the
+handlers do. The tool carries the handlers into the output as comments for a person to
+finish.
 
 **Not a migration.** Authentication, database access, middleware ordering and every
-library the route imported have no counterpart and are reported. They are not translated. What
-the tool does is the mechanical, error-prone half, the half where a mistyped path
-segment costs you a week and a missing `:path` costs you the requests nobody reports.
+library the route imported have no counterpart. The tool reports them and translates
+none of them. It does the mechanical, error-prone half. A mistyped path segment costs
+you a week there, and a missing `:path` costs you the requests nobody reports.
 
 ## See also
 
-- `docs/contract.html`, the pet store, worked, with every figure generated by running
-  the tool
-- `tests/petstore/`, the source it is worked from
-- `CROSS_LANGUAGE.md`, what crosses between languages and what does not
-- `src/transpile/nextjs.rs`, the implementation. What it refuses
-- `tests/nextjs.rs`, `tests/corpus.rs`, including the refusal for a `.tsx` file
-  containing JSX, because a React component renders a user interface and a FastAPI
-  endpoint answers HTTP. There is no translation between them
+- `docs/contract.html`, the pet store worked through, with every figure coming from a
+  run of the tool.
+- `tests/petstore/`, the source it works from.
+- `CROSS_LANGUAGE.md`, what crosses between languages and what does not.
+- `src/transpile/nextjs.rs`, the implementation, including what it refuses.
+- `tests/nextjs.rs` and `tests/corpus.rs`. They cover the refusal for a `.tsx` file
+  containing JSX. A React component renders a user interface and a FastAPI endpoint
+  answers HTTP, and no translation joins them.

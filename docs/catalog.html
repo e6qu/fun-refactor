@@ -37,43 +37,43 @@
     <p class="eyebrow">The catalogue</p>
     <h1 class="prose">Fowler and Beck, worked in Python</h1>
     <p class="lede prose">
-      A refactoring is a change to the <em>text</em> of a program that leaves what the
-      program <em>does</em> alone. That is the whole definition, and it is the only
-      thing every entry here has in common — so every entry says, in its own words,
-      what stayed the same.
+      A refactoring changes the <em>text</em> of a program and leaves what the
+      program <em>does</em> alone. That is the whole definition, and the only thing
+      every entry here has in common. So every entry says, in its own words, what
+      stayed the same.
     </p>
     <p class="lede prose">
-      Twenty-four entries: the named moves — Extract Function, Guard Clauses, Inline
-      Variable, Reorder Parameters — applied by the tool, one command each. Before,
-      after, the diff, and the sentences it printed about what it had done. Five of them
-      are not edits: four are <strong>refusals</strong>, and one finds work without
-      doing it.
+      Browse twenty-four entries. The tool applies each named move with one command:
+      Extract Function, Guard Clauses, Inline Variable, Reorder Parameters. Every entry
+      shows the before, the after, the diff, and the sentences the tool printed about
+      what it had done. Five entries edit nothing: four are <strong>refusals</strong>,
+      and one finds work without doing it.
     </p>
 
     <p class="note prose" style="margin-top:1.5rem">
       <span class="recorded">Every file</span> &nbsp;Where a move reaches past the file
-      it started in, <strong>every file is here</strong> — including the ones that did
-      not have to change. Changing a signature and not its callers is not half a
-      refactoring; it is a broken program. So the declaration and the calls appear
-      together, in their own tabs, and you can watch the behaviour move from one to the
-      other and stay the same.
+      it started in, <strong>every file is here</strong>, including the ones that did
+      not have to change. Change a signature without its callers and you have a broken
+      program. So the declaration and the calls appear together, in their own tabs, and
+      you can watch the behaviour move from one to the other and stay the same.
     </p>
 
     <p class="note prose" style="margin-top:1.5rem">
-      <span class="recorded">Generated</span> &nbsp;Every <em>after</em> and every diff
-      below is what the <code>fr</code> binary actually produced, captured by
-      <code>cargo&nbsp;test&nbsp;--test&nbsp;site_data</code>. A hand-typed “after” is a
-      claim about the tool instead of a demonstration of it, and it goes stale the
-      first time the tool improves. That test fails when the page and the tool disagree.
+      <span class="recorded">Generated</span> &nbsp;The <code>fr</code> binary produced
+      every <em>after</em> and every diff below, and
+      <code>cargo&nbsp;test&nbsp;--test&nbsp;site_data</code> captured them. A
+      hand-typed “after” claims something about the tool instead of demonstrating it,
+      and it goes stale the first time the tool improves. That test fails when the page
+      and the tool disagree.
     </p>
 
     <p class="note prose" style="margin-top:0.75rem">
       <span class="recorded">Whose code</span> &nbsp;The <em>names</em> are Fowler's and
       Beck's, and each entry says which book and which edition. The <strong>code is
-      not theirs</strong>: every sample here is written for this page, in Python, to
+      not theirs</strong>: somebody wrote every sample here for this page, in Python, to
       exercise the move the catalogue describes. Their examples are copyrighted, and a
-      translation of one into Python would be a derivative of it. Go and read them —
-      the books are where the <em>judgement</em> lives, and no tool has any of that.
+      translation of one into Python would be a derivative of it. Go and read them: the
+      books hold the <em>judgement</em>, and no tool has any of that.
     </p>
   </div>
 </section>
@@ -101,38 +101,38 @@
   <div class="shell prose wide">
     <h2>What is not here</h2>
     <p>
-      Most of the catalogue. Both books are largely about moves that need to know what
-      a type <em>is</em> — Replace Conditional with Polymorphism, Replace Primitive with
-      Object, Encapsulate Record — and this tool resolves names, not types. It would
-      have to guess, and a refactoring that guesses is a find-and-replace with better
-      manners.
+      Most of the catalogue. Both books dwell on moves that need to know what a type
+      <em>is</em>: Replace Conditional with Polymorphism, Replace Primitive with
+      Object, Encapsulate Record. This tool resolves names and leaves types alone. It
+      would have to guess, and a refactoring that guesses is a find-and-replace with
+      better manners.
     </p>
     <p>
-      The three entries that decline mark that boundary, and each
-      declines for a different reason. Fowler's own Guard Clauses example is an
-      <code>if</code>/<code>else</code> nest assigning to a result, and turning the
+      The three entries that decline mark that boundary, and each declines for a
+      different reason. Fowler's own Guard Clauses example nests
+      <code>if</code>/<code>else</code> and assigns to a result. Turning the
       <code>else</code> into an early return means deciding what the function returns on
-      the path that used to fall through — a judgement about the code.
-      <code>delete</code> refuses anything still referenced, which is what makes
-      <code>fr unused</code>'s list worth acting on. And a reorder that would put a
-      defaulted parameter before a required one is refused because Python will not run
-      it — a rule the refactoring has to know, since tree-sitter parses the broken
+      the path that used to fall through, a judgement about the code.
+      <code>delete</code> refuses anything still referenced, so
+      <code>fr unused</code>'s list is worth acting on. A reorder that would put a
+      defaulted parameter before a required one gets refused because Python will not run
+      it. The refactoring has to know that rule, since tree-sitter parses the broken
       result without complaint.
     </p>
     <p>
       Two entries cite <em>neither</em> catalogue and say so. Renaming a CSS class
       across a stylesheet and the markup that names it is a problem the books predate;
-      dropping unused imports is housekeeping nobody wrote a catalogue entry for. It
-      seemed better to admit that than to attach a plausible-looking section number.
+      dropping unused imports is housekeeping nobody wrote a catalogue entry for.
+      Admitting that beats attaching a plausible-looking section number.
     </p>
     <h3>The books</h3>
     <ul>
-      <li><em>Refactoring: Improving the Design of Existing Code</em>, 2nd ed. — Martin Fowler, 2018.</li>
-      <li><em>Refactoring</em>, 1st ed. — Martin Fowler with Kent Beck, 1999, and the
+      <li><em>Refactoring: Improving the Design of Existing Code</em>, 2nd ed., Martin Fowler, 2018.</li>
+      <li><em>Refactoring</em>, 1st ed., Martin Fowler with Kent Beck, 1999, and the
           <a href="https://refactoring.com/catalog/">online catalogue</a> that carries it forward.</li>
-      <li><em>Tidy First?</em> — Kent Beck, 2023. Small, reversible, one at a time.</li>
-      <li><em>Test-Driven Development by Example</em> — Kent Beck, 2002. Where the refactor step comes from.</li>
-      <li><em>Implementation Patterns</em> — Kent Beck, 2007.</li>
+      <li><em>Tidy First?</em>, Kent Beck, 2023. Small, reversible, one at a time.</li>
+      <li><em>Test-Driven Development by Example</em>, Kent Beck, 2002. Where the refactor step comes from.</li>
+      <li><em>Implementation Patterns</em>, Kent Beck, 2007.</li>
     </ul>
     <div class="btn-row">
       <a class="btn" href="playground/">Try it in the browser</a>
@@ -145,7 +145,7 @@
 <footer>
   <div class="shell footer-inner">
     <div>
-      <strong style="color:var(--ink-soft)">fun-refactor</strong> — AGPL-3.0-or-later.<br>
+      <strong style="color:var(--ink-soft)">fun-refactor</strong>, AGPL-3.0-or-later.<br>
       Built on <a href="https://tree-sitter.github.io/">tree-sitter</a>.<br>
       <span id="built"></span>
     </div>

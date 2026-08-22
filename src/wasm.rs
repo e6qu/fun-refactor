@@ -1,14 +1,14 @@
 //! The browser API.
 //!
-//! A workspace is handed over as a map of path to text, a repository fetched from GitHub, say.
-//! Every question is answered against that map. There is no filesystem, no cache and no thread
-//! pool. None of them are needed: the index is built once from source already in memory, and
-//! every analysis after that is reading facts.
+//! The host hands over a workspace as a map of path to text, a repository fetched from GitHub,
+//! say. Every answer here comes from that map. There is no filesystem, no cache and no thread
+//! pool, and none of them are needed. The index builds once from source already in memory, and
+//! every analysis after that reads facts.
 //!
 //! Everything returns JSON, because the alternative is a wasm-bindgen type for each of twenty
 //! answers and the shapes are the ones `--json` already prints.
 //!
-//! Edits are applied to the in-memory workspace, so a refactoring here is a real edit against
+//! Every edit lands in the in-memory workspace, so a refactoring here is a real edit against
 //! real bytes. It changes nothing on GitHub; the diff is the artifact.
 
 use crate::index::Index;
@@ -23,33 +23,34 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 pub struct Workspace {
     index: Index,
-    /// This workspace's bytes. Held and not installed once, because a page can
-    /// have two workspaces open and each one's spans only mean anything against the
-    /// text they were measured on.
+    /// This workspace's bytes. The handle stays here instead of installing once for
+    /// the page, because a page can hold two workspaces. Each one's spans mean
+    /// something only against the text they were measured on.
     files: crate::vfs::Handle,
     /// The last file parsed, and the text it was parsed from.
     ///
     /// The status bar asks what the cursor is on after every keystroke. Answering meant parsing
     /// the whole file: seventeen milliseconds on `requests/models.py`, which is a dropped frame
-    /// every time an arrow key repeats. Keyed by the source itself, so there is nothing to
-    /// invalidate, an edit changes the text and the next question misses. One file, because
-    /// only one is open.
+    /// every time an arrow key repeats. The memo is keyed by the source itself, so nothing
+    /// needs invalidating. An edit changes the text and the next question misses. One file,
+    /// because only one is open.
     parsed: std::cell::RefCell<Option<(PathBuf, String, crate::parse::Parsed)>>,
     /// Paths in the order they were given, so the file list a user sees is stable.
     /// A refactoring that creates a file appends to it.
     order: Vec<PathBuf>,
-    /// What was extracted from each file, kept so an edit re-extracts only the files
-    /// it touched. Extraction is per-file and parsing dominates it; resolution is
-    /// global and cheap by comparison. Re-parsing all four hundred files of a
-    /// workspace because one changed made a rename in `zod` take three seconds.
+    /// What the extractor found in each file, kept so an edit re-extracts only the
+    /// files it touched. Extraction runs per file and parsing dominates it, while
+    /// resolution is global and cheap beside it. Re-parsing all four hundred files of
+    /// a workspace because one changed made a rename in `zod` take three seconds.
     facts: std::collections::BTreeMap<PathBuf, (Language, crate::model::FileFacts)>,
     /// Files whose language this build has no grammar for.
     unsupported: Vec<String>,
 }
 
-/// A rendered tree or report, several analyses already know how to print themselves.
-/// Re-deriving those shapes in TypeScript would be a second implementation of an answer that
-/// already exists.
+/// A rendered tree or report, printed by the analysis that owns it.
+///
+/// Several analyses already know how to print themselves. Re-deriving those shapes in
+/// TypeScript would be a second implementation of an answer that already exists.
 #[derive(Serialize)]
 struct FlowText {
     tree: String,
@@ -69,9 +70,11 @@ fn first_notes(notes: Vec<String>) -> Vec<String> {
     out
 }
 
+/// The applied result, with a plan's plain-string notes attached under one name.
+///
 /// The move and signature plans report what they left alone as plain strings rather
-/// than the structured warning the others use. Instead of teaching the view two shapes,
-/// they are attached to the applied result under one name.
+/// than the structured warning the others use. Attaching them here saves the view from
+/// learning two shapes.
 fn with_notes(applied: String, notes: &[String]) -> String {
     if notes.is_empty() {
         return applied;
@@ -93,8 +96,10 @@ struct Located {
     line: usize,
 }
 
-/// `remove:1`, `move:0:2`, `add:1:<declaration>:<argument>`, the command line's
-/// spelling, so what is documented for the terminal is true here too.
+/// A signature change in the command line's spelling.
+///
+/// `remove:1`, `move:0:2` and `add:1:<declaration>:<argument>` read here as they do in
+/// the terminal, so the terminal's documentation holds for both.
 fn parse_signature_change(text: &str) -> Result<crate::refactor::signature::Change, String> {
     use crate::refactor::signature::Change;
     let parts: Vec<&str> = text.splitn(4, ':').collect();
@@ -126,10 +131,10 @@ struct Failure {
     /// True when the tool declined on purpose, naming a rule, and wrote nothing.
     ///
     /// A caller cannot tell a considered refusal from an internal fault by reading the
-    /// sentence, and `web/test/scale.mjs` tried: it matched the message against a list of
-    /// patterns, so rewording a refusal reclassified it as a defect. That is what happened
-    /// when five refusals stopped saying "is not supported for" and started saying what
-    /// was wrong. The type already knows; this reports it.
+    /// sentence, and `web/test/scale.mjs` tried. It matched the message against a list
+    /// of patterns, so rewording a refusal reclassified it as a defect. Five refusals
+    /// stopped saying "is not supported for", started saying what was wrong, and turned
+    /// into defects. The type already knows; this reports it.
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     refused: bool,
 }
@@ -160,8 +165,9 @@ fn ok<T: Serialize>(value: &T) -> String {
 impl Workspace {
     /// Load a repository. `files` is `{ "path/to/file.go": "contents", … }`.
     ///
-    /// Files in languages this does not parse are ignored and not refused: a real repository is
-    /// full of lockfiles and images. Refusing the whole load because of one would be useless.
+    /// This ignores files in languages it cannot parse instead of refusing them, because a
+    /// real repository is full of lockfiles and images. Refusing a whole load over one of
+    /// those would be useless.
     #[wasm_bindgen(constructor)]
     pub fn new(files: JsValue) -> Result<Workspace, JsValue> {
         console_error_panic_hook::set_once();
@@ -174,15 +180,15 @@ impl Workspace {
 impl Workspace {
     /// Load a repository from plain Rust values.
     ///
-    /// Split out of the constructor so that everything but the `JsValue` conversion
-    /// can be reached by `cargo test`. The browser API used to be exercised only by
-    /// `web/test/api.mjs`, which needs a wasm toolchain and a Node run, so a mistake
-    /// in it survived `cargo test` and `cargo clippy` and reached CI.
+    /// This sits outside the constructor so `cargo test` can reach everything but the
+    /// `JsValue` conversion. Only `web/test/api.mjs` exercised the browser API before,
+    /// and that needs a wasm toolchain and a Node run. So a mistake in it survived
+    /// `cargo test` and `cargo clippy` and reached CI.
     pub fn load(map: std::collections::BTreeMap<String, String>) -> Result<Workspace, String> {
-        // The grammars' scanners allocate through a bump allocator that starts at NULL until it
-        // is given a region. See the wasm-libc crate. Only there: a host build links a real
-        // libc. The shim is not compiled for it, which lets `cargo check --features
-        // wasm` work on a host and catch the mistakes that otherwise reach CI.
+        // The grammars' scanners allocate through a bump allocator that starts at NULL until
+        // something hands it a region. See the wasm-libc crate. A host build links a real
+        // libc and never compiles the shim, so `cargo check --features wasm` runs on a host
+        // and catches the mistakes that otherwise reach CI.
         #[cfg(target_arch = "wasm32")]
         {
             fun_refactor_wasm_libc::init_scanner_heap();
@@ -194,9 +200,9 @@ impl Workspace {
             .map(|(path, text)| (PathBuf::from(path), text))
             .collect();
 
-        // The whole workspace goes into the virtual filesystem first: language detection asks
-        // whether a `Chart.yaml` sits beside a YAML file. That has to be answerable before
-        // anything is parsed.
+        // The whole workspace goes into the virtual filesystem first. Language detection
+        // asks whether a `Chart.yaml` sits beside a YAML file, and that question has to
+        // have an answer before anything parses.
         let files = crate::vfs::new_handle(loaded.clone());
         crate::vfs::activate(&files);
 
@@ -208,9 +214,9 @@ impl Workspace {
             let Some(language) = crate::lang::detect(&path) else {
                 continue;
             };
-            // A grammar this build omits is a reason to leave one file out, not to
-            // refuse the repository. What is left out is reported, because a file
-            // list that quietly shrinks makes every later answer wrong invisibly.
+            // A grammar this build omits leaves one file out and never refuses the
+            // repository. The load reports what it left out, because a file list that
+            // quietly shrinks makes every later answer wrong invisibly.
             if !crate::parse::Parsers::supports(language) {
                 unsupported.push(format!("{} ({language})", path.display()));
                 continue;
@@ -218,8 +224,8 @@ impl Workspace {
             sources.push((path, language, text));
         }
 
-        // One parser set and one extractor for the whole workspace: the extractor
-        // compiles every query, and that cost is paid once. It is not once per file.
+        // One parser set and one extractor for the whole workspace. The extractor
+        // compiles every query, and this pays that cost once instead of per file.
         let parsers = crate::parse::Parsers::new();
         let mut extractor = crate::extract::Extractor::new();
         let mut facts = std::collections::BTreeMap::new();
@@ -351,9 +357,9 @@ impl Workspace {
                     col: usize,
                     confidence: String,
                     /// Whether a rename of this symbol would rewrite this site.
-                    /// The tiers alone under-answer: a declared receiver lifts
-                    /// a field-based use into the rewrite. A reader predicting
-                    /// the rename needs the answer the rename acts on.
+                    /// The tiers alone under-answer that, because a declared
+                    /// receiver lifts a field-based use into the rewrite. A
+                    /// reader predicting the rename needs the rename's answer.
                     rewritable: bool,
                 }
                 let rewritable = crate::refactor::rename::rewritable_spans(&self.index, id);
@@ -393,8 +399,8 @@ impl Workspace {
 
     /// The type the symbol at a position was declared with, as the source wrote it.
     ///
-    /// Nothing is inferred: a binding with no annotation comes back with `declared`
-    /// null, which is an answer and not a gap in one.
+    /// This infers nothing. A binding with no annotation comes back with `declared`
+    /// null, which is an answer rather than a gap in one.
     pub fn declared_type(&self, path: &str, line: usize, col: usize) -> String {
         self.enter();
         let id = match self.symbol_at(path, line, col) {
@@ -446,8 +452,8 @@ impl Workspace {
         }
     }
 
-    /// Code written more than once, compared structurally. Left out, the
-    /// floor is the one each language's density earns.
+    /// Code written more than once, compared structurally. Left out, `min_tokens`
+    /// falls to the floor each language's token density calls for.
     pub fn duplicates(&self, min_tokens: Option<usize>) -> String {
         self.enter();
         let options = crate::analysis::duplicates::Options {
@@ -470,8 +476,8 @@ impl Workspace {
             path: String,
             exported: bool,
         }
-        // The catalogs are what make a `#[test]` or an HTTP handler a root. Without
-        // them nothing but exports anchors reachability and the report is mostly noise.
+        // The catalogs mark a `#[test]` or an HTTP handler as a root. Without them
+        // only exports anchor reachability, and the report is mostly noise.
         let entrypoints = match crate::analysis::entrypoints::Entrypoints::detect(&self.index) {
             Ok(roots) => roots,
             Err(e) => return fail(e),
@@ -550,11 +556,11 @@ impl Workspace {
 
     /// Where the value at this position came from.
     ///
-    /// Config and markup languages have substitution and override provenance and not
-    /// dataflow, and `fr flow` routes between the two models on the caller's behalf. This
-    /// called dataflow whichever the language was, so the browser answered emptily for a
-    /// YAML anchor the CLI traced, and once dataflow started refusing those languages,
-    /// the browser started showing a refusal for a question the tool can answer.
+    /// Config and markup languages have substitution and override provenance rather than
+    /// dataflow, and `fr flow` routes between the two models for the caller. This called
+    /// dataflow whichever the language was, so the browser answered emptily for a YAML
+    /// anchor the CLI traced. Once dataflow began refusing those languages, the browser
+    /// showed a refusal for a question the tool can answer.
     pub fn flow_back(&self, path: &str, line: usize, col: usize) -> String {
         self.enter();
         let Ok(offset) = self.offset(path, line, col) else {
@@ -659,10 +665,11 @@ impl Workspace {
 
     /// The parse tree of a file, as a structure a view can walk.
     ///
-    /// Every answer this tool gives is a claim about a tree. Being able to see the tree is what
-    /// turns a surprising answer into an understandable one, a pattern that will not match, a
-    /// rewrite that refuses, a name the resolver reads as a field. Named nodes only: the
-    /// anonymous ones are punctuation, and a tree in which every brace is a row cannot be read.
+    /// Every answer this tool gives is a claim about a tree. Seeing the tree turns a
+    /// surprising answer into an understandable one: a pattern that will not match, a
+    /// rewrite that refuses, a name the resolver reads as a field. Named nodes only. The
+    /// anonymous ones are punctuation, and a tree in which every brace is a row cannot be
+    /// read.
     pub fn ast(&self, path: &str) -> String {
         self.enter();
         #[derive(Serialize)]
@@ -1180,11 +1187,10 @@ impl Workspace {
 
     // ------------------------------------------------------------- internals
 
-    /// A `line:col-line:col` selection, as the command line spells a range. Make this
-    /// workspace's files the ones the analysis reads.
+    /// Make this workspace's files the ones the analysis reads.
     ///
-    /// Called first by every method that answers a question about source. Two workspaces in one
-    /// page otherwise share whichever was created last. The older one's answers come out
+    /// Every method that answers a question about source calls this first. Two workspaces in
+    /// one page otherwise share whichever was created last. The older one's answers come out
     /// measured against the newer one's bytes, a wrong answer that looks like a right one.
     /// `tests/wasm_api.rs` checks that nothing new escapes this.
     fn enter(&self) {
@@ -1210,6 +1216,7 @@ impl Workspace {
         Some(node.kind().to_string())
     }
 
+    /// A `line:col-line:col` selection, as the command line spells a range.
     fn span_of(&self, path: &str, range: &str) -> Result<(PathBuf, Span), String> {
         let (start, end) = range
             .split_once('-')
@@ -1248,15 +1255,14 @@ impl Workspace {
             .collect()
     }
 
-    /// A call tree, rendered the way the terminal renders it.
     /// The call graph around one symbol, as nodes and edges a browser can draw.
     ///
-    /// `graph` answers with three counts, which says how big the graph is and nothing
+    /// `graph` answers with three counts, which say how big the graph is and nothing
     /// about its shape. The playground had no way to show the graph itself.
     ///
-    /// Bounded by `depth` in both directions from the symbol under the cursor. A whole
-    /// workspace holds thousands of functions, and a picture of all of them says less
-    /// than a picture of the neighbourhood a reader asked about.
+    /// The walk stops at `depth` in both directions from the symbol under the cursor. A
+    /// whole workspace holds thousands of functions, and a picture of all of them says
+    /// less than a picture of the neighbourhood a reader asked about.
     pub fn graph_around(&self, path: &str, line: usize, col: usize, depth: usize) -> String {
         self.enter();
         let start = match self.symbol_at(path, line, col) {
@@ -1337,6 +1343,7 @@ impl Workspace {
         })
     }
 
+    /// A call tree, rendered the way the terminal renders it.
     fn call_tree(
         &self,
         path: &str,
@@ -1407,8 +1414,8 @@ impl Workspace {
         #[derive(Serialize)]
         struct Applied<'a> {
             files: Vec<Changed>,
-            /// The sites the refactoring declined to touch, which is the half of the
-            /// answer a diff cannot show.
+            /// The sites the refactoring declined to touch. A diff cannot show that
+            /// half of the answer.
             warnings: &'a [crate::refactor::Warning],
         }
         #[derive(Serialize)]
@@ -1438,9 +1445,9 @@ impl Workspace {
         if let Err(e) = crate::edit::commit(&outcomes) {
             return fail(e);
         }
-        // The edit changed the bytes every span was measured against, so every span
-        // is remeasured. Only the files that were written are re-parsed; the rest
-        // cannot have changed, because an edit is the only thing that changes them.
+        // The edit changed the bytes every span was measured against, so this remeasures
+        // every span. Only the written files re-parse. Nothing else can have changed,
+        // because an edit is the only thing that changes a file here.
         let written: Vec<PathBuf> = outcomes
             .iter()
             .filter(|o| o.changed())
@@ -1458,11 +1465,11 @@ impl Workspace {
 
     /// Re-extract the files that were written, and resolve the whole workspace again.
     ///
-    /// Resolution has to be global, a rename in one file changes what a reference in another
-    /// points at. But extraction does not, and extraction is the expensive half. A file this
-    /// workspace has never seen is added to the listing here: `fr move` can write one. Before
-    /// this it was written to the virtual filesystem and then never indexed. So it had no
-    /// symbols and did not appear in the file list at all.
+    /// Resolution has to be global, since a rename in one file changes what a reference in
+    /// another points at. Extraction does not, and extraction is the expensive half. A file
+    /// this workspace has never seen joins the listing here, and `fr move` can write one.
+    /// Such a file went into the virtual filesystem and then never got indexed, so it had
+    /// no symbols and never appeared in the file list.
     fn reindex(&mut self, written: &[PathBuf]) -> anyhow::Result<()> {
         let parsers = crate::parse::Parsers::new();
         let mut extractor = crate::extract::Extractor::new();
@@ -1498,7 +1505,7 @@ impl Workspace {
     }
 }
 
-/// The span of a symbol's name, for the editor to select.
+/// The version of the crate this build came from.
 #[wasm_bindgen]
 pub fn version() -> String {
     env!("CARGO_PKG_VERSION").to_string()

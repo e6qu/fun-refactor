@@ -6,10 +6,10 @@
 //! removing them. A TypeScript namespace import is recorded as a glob for resolution.
 //! It binds exactly one name, so liveness judges it like any other import.
 //!
-//! Name-based liveness is exact for a value or type that must be spelled where it is
-//! used. It is blind to whatever a language brings into scope invisibly. `hold_back_reason`
-//! lists every such form this tool knows, keeps the import, and says why. Removing a live
-//! import breaks a build; keeping a dead one leaves a line.
+//! Name-based liveness is exact for a value or type the code must spell where it is
+//! used, and blind to whatever a language brings into scope invisibly.
+//! `hold_back_reason` lists every such form this tool knows, keeps the import, and says
+//! why. Removing a live import breaks a build, while keeping a dead one leaves a line.
 //!
 //! *Sorting* never regenerates import syntax. It reorders each statement's original
 //! bytes within one contiguous run of import lines. A blank line, a comment or any other
@@ -41,10 +41,10 @@ pub struct ImportsPlan {
     pub sorted_blocks: usize,
     /// What each touched statement's lines become, with no reordering in it.
     ///
-    /// [`ImportsPlan::edits`] carries the reordering too, which is right for the command and
-    /// wrong for a caller that only wants the dead names gone. A flag removal must not also
-    /// sort somebody's imports. A dropped statement maps to nothing, and a narrowed one to the
-    /// same statement without the names that died.
+    /// [`ImportsPlan::edits`] carries the reordering too, which suits the command and
+    /// not a caller that only wants the dead names gone. A flag removal must never sort
+    /// somebody's imports. A dropped statement maps to nothing, and a narrowed one to
+    /// the same statement without the names that died.
     pub replacements: Vec<(Span, String)>,
 }
 
@@ -52,9 +52,8 @@ pub struct ImportsPlan {
 /// can see it.
 ///
 /// Collected once per file from the parse tree, because every entry is a construct the
-/// fact queries do not report as a reference. Each set is consulted only when
-/// name-based liveness has already failed, so the cost is paid on the file, not on the
-/// import.
+/// fact queries never report as a reference. A lookup happens only after name-based
+/// liveness has failed, so each file pays the cost once.
 #[derive(Debug, Default)]
 struct InvisibleUses {
     /// Python names re-exported through `__all__`.
@@ -63,8 +62,8 @@ struct InvisibleUses {
     ///
     /// An import there is the package's public API. `from .mod import api_func`
     /// publishes `pkg.api_func` whether or not `__all__` says so, and stripping it
-    /// breaks every caller of the package. Liveness cannot see those callers, so
-    /// the file's role is the fact that decides.
+    /// breaks every caller of the package. Liveness cannot see those callers, so the
+    /// file's role decides.
     package_init: bool,
     /// TypeScript names appearing inside a `{...}` type in a JSDoc comment.
     jsdoc_types: HashSet<String>,

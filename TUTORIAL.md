@@ -1,11 +1,12 @@
 # Refactoring a real codebase with fun-refactor
 
-Everything below was run against [helm/helm](https://github.com/helm/helm) at commit
-[`a8ab76e`](https://github.com/helm/helm/commit/a8ab76e), a 539-file Go codebase that
-also carries 669 Helm templates, 95 Markdown documents and 83 plain YAML files. The
-outputs are copied from those runs. Where a number looks odd, the tool said it.
+Every command below ran against [helm/helm](https://github.com/helm/helm) at commit
+[`a8ab76e`](https://github.com/helm/helm/commit/a8ab76e). That repository holds 539
+Go files, and it also carries 669 Helm templates, 95 Markdown documents and 83 plain
+YAML files. The outputs come from those runs. Where a number looks odd, the tool
+said it.
 
-You will need the repository and the binary:
+Get the repository and the binary:
 
 ```console
 $ git clone https://github.com/helm/helm.git
@@ -19,9 +20,9 @@ $ cargo install --path ../fun-refactor    # or: cargo build --release
 
 ## 1. What is in here?
 
-Start by asking what the tool can read. Nothing is indexed until you ask for
-something. So this is also the cheapest way to find out whether a language you care
-about is being parsed at all.
+Start by asking what the tool can read. It indexes nothing until you ask for
+something. Asking first is also the cheapest way to learn whether it parses a
+language you care about.
 
 ```console
 $ fr parse --stats
@@ -33,19 +34,19 @@ markdown          95        0        0
 yaml              83        0        0
 ```
 
-`ERRORS` is the number of files that did not parse cleanly. Those thirteen Helm files
-are chart fixtures that hold broken templates on purpose. Helm tests its own
-error messages with them. This matters more than it looks: **a file that does not
-parse is invisible to every analysis below**. So a report that ignores parse failures
-is quietly incomplete. Every command that indexes the workspace names the files it
-could not parse in full, on stderr and as `unparsed_files` in its JSON. `fr rename`
-will also tell you that references may be missing. `fr duplicates` lists the files
-it skipped.
+`ERRORS` counts the files that did not parse cleanly. Those thirteen Helm files are
+chart fixtures that hold broken templates on purpose, and Helm tests its own error
+messages with them. Read that column closely: **no analysis below sees a file that
+failed to parse**. A report that passes over parse failures leaves you short and says
+nothing about it. Every command that indexes the workspace names the files it could
+not parse in full, on stderr and as `unparsed_files` in its JSON. `fr rename` also
+warns you that references may be missing, and `fr duplicates` lists the files it
+skipped.
 
 ## 2. Naming the thing you mean
 
-Every command that acts on a symbol takes a **target**, and there are two ways to
-write one.
+Every command that acts on a symbol takes a **target**. Write a target in one of two
+ways.
 
 **By name**, when the name is unambiguous:
 
@@ -59,24 +60,23 @@ $ fr refs writeToFile
 $ fr refs pkg/action/action.go:725:6
 ```
 
-The position is 1-based in both line and column. It must land on the symbol's
-identifier, and not the `func` keyword or the opening brace. Any occurrence works:
-the definition or any use of it. The tool resolves whatever is under the
-cursor and then works from the symbol it found. That makes the form
-editor-friendly; it is the same information an editor has when you right-click.
+Count lines and columns from 1. Land on the symbol's identifier, and not on the
+`func` keyword or the opening brace. Pick any occurrence you like, the definition or
+any use of it. The tool resolves whatever sits under the cursor and works from the
+symbol it found. An editor hands you the same information when you right-click, so
+this form suits editors.
 
-The workspace is **the project your shell is standing in**, found by walking up
-for a `.git`, a `Cargo.toml`, a `go.mod` and the like. Asked from `pkg/deep`, the
-tool reads the whole project. A question about a symbol is a question about the
-project: a caller two directories up is still a caller. Widening the root is
-announced, and `-C .` means this directory alone.
+The tool takes **the project your shell is standing in** as the workspace. It finds
+that root by walking up for a `.git`, a `Cargo.toml`, a `go.mod` and the like. Ask
+from `pkg/deep` and it still reads the whole project, because a caller two
+directories up is still a caller. It announces any widening of the root, and `-C .`
+confines it to this directory alone.
 
-Where `-C` says which workspace to use, relative paths are read **relative to
-that root**. `fr -C ../helm refs pkg/x.go:3:6` means that file in that
-workspace, not one relative to your shell. Where the root was found rather than
-stated, a path is read from where you stand.
+Give `-C` a workspace and the tool reads relative paths **relative to that root**.
+`fr -C ../helm refs pkg/x.go:3:6` names that file in that workspace, not one
+relative to your shell. Leave `-C` off and it reads a path from where you stand.
 
-Files that `.gitignore` excludes are outside all of this. `--no-ignore` reads
+The tool skips every file that `.gitignore` excludes. Pass `--no-ignore` to read
 them, which is how you reach a generated tree or a vendored copy.
 
 When a bare name is not enough, the tool refuses and shows you the choices rather
@@ -117,12 +117,12 @@ $ fr refs pkg/action/action.go:725:6
   pkg/action/upgrade.go:334:23  [exact]
 ```
 
-The tag on each line is the **confidence**, and it is the most important thing in the
-output. `exact` means the tool proved this reference resolves to that symbol, because the
-scope chain, the import or the package says so. The other tiers are
-`import-qualified`, `field-based` and `name-only`, in descending order of evidence.
-Only `exact` and `import-qualified` are rewritten by a refactoring; everything weaker
-is reported for you to look at. Section 8 explains what earns each tier.
+The tag on each line carries the **confidence**, and nothing else in the output
+matters more. `exact` means the tool proved this reference resolves to that symbol,
+because the scope chain, the import or the package says so. Three weaker tiers
+follow, in descending order of evidence: `import-qualified`, `field-based` and
+`name-only`. A refactoring rewrites `exact` and `import-qualified`, and reports
+everything weaker for you to look at. Section 8 says what earns each tier.
 
 `fr callers` walks the same edges upward:
 
@@ -138,11 +138,11 @@ determineReleaseSSApplyMethod
     Upgrade::RunWithContext
 ```
 
-`fr callees` walks it downward, `fr graph --dot` prints the whole thing, and
+`fr callees` walks it downward, and `fr graph --dot` prints the whole thing.
 `fr impact` answers "what could a change here touch" across all of it.
 
-`fr entrypoints` finds the roots: the places where execution starts. That makes
-reachability mean anything:
+`fr entrypoints` finds the roots, the places where execution starts. Reachability
+rests on them:
 
 ```console
 $ fr entrypoints
@@ -163,13 +163,13 @@ $ fr unused --lang go --internal
 
 Two flags matter here.
 
-`--lang go` narrows the *report*, not the index. That distinction is the whole
-point: you could scan only `pkg/` with `-C pkg`, but then the index cannot see the
-callers in `cmd/`. Everything they call would be reported as dead. Filters here
-never invent a finding.
+`--lang go` narrows the *report*, and leaves the index alone. Hold on to that
+distinction. Scan only `pkg/` with `-C pkg` and the index loses sight of the callers
+in `cmd/`, so it reports everything they call as dead. A filter here never invents a
+finding.
 
-`--internal` hides exported symbols. Helm is a library, and the public API of one
-has no caller inside its own repository, and that is not evidence of anything. Run
+`--internal` hides exported symbols. Helm ships as a library, and a library's public
+API has no caller inside its own repository, which proves nothing about it. Run
 without the flag and you get them, tagged:
 
 ```
@@ -180,16 +180,16 @@ API, which nothing in this repository can be expected to call. Pass
 --internal to list only what is definitely dead here.
 ```
 
-On helm the internal report is 47 findings, and none of them are functions, methods
-or variables: 39 unused parameters and 8 unused struct fields. That is a real
-result, and it took eight bug fixes to be able to say it. Helm has very little dead
-code. Before them the same command reported 238 candidates, nearly all of which
-were live code the tool could not see.
+On helm the internal report lists 47 findings: 39 unused parameters and 8 unused
+struct fields, and no functions, methods or variables. Eight bug fixes went into
+being able to say that. Helm has very little dead code. Before those fixes the same
+command reported 238 candidates, nearly all of them live code the tool could not
+see.
 
-The report also tells you what it *declined* to list and why. A symbol whose name
-appears in any string literal is left off, because reflection and handler tables
-reach code that no call edge shows. So is anything beginning with `_`, and anything
-reached only through an interface the tool cannot prove the receiver of.
+The report also tells you what it *declined* to list and why. It leaves off a symbol
+whose name appears in any string literal, because reflection and handler tables
+reach code that no call edge shows. It leaves off anything beginning with `_`, and
+anything reached only through an interface whose receiver it cannot prove.
 
 ### Code written twice
 
@@ -208,25 +208,25 @@ $ fr duplicates --lang go --path pkg/cmd --path pkg/action --min-tokens 100
 ```
 
 Those five blocks in `show.go` are five cobra subcommands built the same way, one
-after another. The comparison is **structural**: a subtree is hashed from the node
-kinds under it, so a copy whose variables were renamed still matches. That is the
-copy worth finding, because a textual search will never turn it up. `--exact` folds
-the identifiers and literals back in when you want the stricter question.
+after another. The tool compares **structure**: it hashes a subtree from the node
+kinds under it, so a copy whose variables were renamed still matches. Those renamed
+copies are the ones worth finding, because a textual search never turns them up. Add
+`--exact` to fold the identifiers and literals back in and ask the stricter question.
 
-Only the largest duplicated block of each finding is listed. A duplicated function
-duplicates its body, its loop and each of its statements. Printing all of them is one
-finding said five times with the useful one buried.
+The report lists only the largest duplicated block of each finding. A duplicated
+function duplicates its body, its loop and each of its statements. Printing all of
+them says one finding five times and buries the useful one.
 
-Across all of helm: **337 duplicated blocks, 64,530 redundant tokens**, in 3.6
-seconds. The largest is `internal/release/v2/info_test.go` against
-`pkg/release/v1/info_test.go`: 377 lines whose only differences are the package
-clause and one blank line.
+Across all of helm the tool found **337 duplicated blocks, 64,530 redundant tokens**,
+in 3.6 seconds. The largest pairs `internal/release/v2/info_test.go` with
+`pkg/release/v1/info_test.go`: 377 lines that differ only in the package clause and
+one blank line.
 
 ## 5. Making the change
 
-`determineReleaseSSApplyMethod` is a poor name: `SS` is "server-side", which nothing
-about the identifier says. It is unexported, used from four files in one package, and
-covered by a test, and a good first refactor.
+`determineReleaseSSApplyMethod` names itself poorly: `SS` stands for "server-side",
+and nothing in the identifier says so. It stays unexported, four files in one package
+use it, and a test covers it, so it makes a good first refactor.
 
 Every mutating command prints a diff and changes nothing until you pass `--write`.
 
@@ -254,9 +254,9 @@ $ fr rename pkg/action/action.go:725:6 releaseApplyMethod
  }
 ```
 
-…and the same for `install.go`, `rollback.go` and `upgrade.go`. Note what the tool
-did **not** do: `TestDetermineReleaseSSAApplyMethod` keeps its name. It is a different
-identifier that contains the old one, and renaming by text would have caught
+…and the same for `install.go`, `rollback.go` and `upgrade.go`. Look at what the
+tool left alone: `TestDetermineReleaseSSAApplyMethod` keeps its name. That different
+identifier contains the old one, and renaming by text would have caught
 it.
 
 The run also ends with a section worth reading every time:
@@ -268,9 +268,9 @@ Not changed. Review these yourself:
     …
 ```
 
-Those are the thirteen deliberately broken chart fixtures from section 1. If any of
-them mentioned this function, the tool would not know. Here they are YAML and cannot,
-but the tool does not assume that on your behalf.
+Those lines name the thirteen deliberately broken chart fixtures from section 1. If
+any of them mentioned this function, the tool would not know. Here they hold YAML and
+cannot mention it, and the tool still declines to assume that on your behalf.
 
 Apply it:
 
@@ -279,8 +279,7 @@ $ fr rename pkg/action/action.go:725:6 releaseApplyMethod --write
 Applied to 5 file(s).
 ```
 
-And check with the language's own compiler, which is the only verification that
-counts:
+Then check with the language's own compiler, the only verification that counts:
 
 ```console
 $ go build ./...
@@ -311,8 +310,8 @@ $ fr delete oldHelper                     # refuses if anything uses it
 $ fr imports pkg/action/install.go        # drop unused imports, sort the rest
 ```
 
-`fr rewrite` with no transformation named lists the ones that apply at that position,
-which an editor uses to build a code-action menu:
+Run `fr rewrite` with no transformation named. It lists the ones that apply at that
+position, and an editor builds its code-action menu from that list:
 
 ```console
 $ fr rewrite pkg/action/install.go:224:3
@@ -321,10 +320,10 @@ invert-if      swap the branches and negate the condition
 $ fr rewrite pkg/action/install.go:224:3 invert-if
 ```
 
-The menu offers a transformation only when its result reparses, so the menu
-never lists something that applying it would then refuse.
+The menu offers a transformation only when its result reparses, so it never lists
+something the tool would then refuse to apply.
 
-`fr delete` is the one that refuses most often, and usefully:
+`fr delete` refuses more often than any other command, and usefully so:
 
 ```console
 $ fr delete pkg/action/action.go:725:6
@@ -338,8 +337,8 @@ Remove or repoint these uses first; nothing was changed.
 
 ## 6. Configuration is code too
 
-This is where the tool differs from a language server. helm ships charts, and a chart
-is a values file and the templates that read it. The Go compiler never sees that path.
+Here the tool leaves a language server behind. helm ships charts, and a chart pairs a
+values file with the templates that read it. The Go compiler never sees that path.
 
 Ask where a rendered value comes from:
 
@@ -361,19 +360,19 @@ declaration Name: my-alpine  (pkg/cmd/testdata/testcharts/alpine/values.yaml:1)
   template-action {{.Values.Name}}  (…/templates/alpine-pod.yaml:17) [name-only]
 ```
 
-The **Stopped at** section records what it could not resolve. A values key can always be overridden
-by `-f` and `--set`. The tool cannot know your `helm install` command, so
-tell it, and the answer sharpens:
+The **Stopped at** section records what the tool could not resolve. `-f` and `--set`
+can override a values key at any time. The tool cannot know your `helm install`
+command, so tell it, and the answer sharpens:
 
 ```console
 $ fr flow back <target> -f values-prod.yaml --set image.tag=v2
 ```
 
 Helm's own precedence then decides the winner: chart `values.yaml`, then each
-enclosing parent chart, then each `-f` in the order given, then `--set`. Every loser
-is still listed, including a values file you say is *not* passed.
+enclosing parent chart, then each `-f` in the order given, then `--set`. The report
+still lists every loser, including a values file you say is *not* passed.
 
-Renaming a values key rewrites the templates that read it:
+Rename a values key and the tool rewrites the templates that read it:
 
 ```console
 $ fr rename pkg/cmd/testdata/testcharts/alpine/values.yaml:1:1 appName
@@ -387,13 +386,13 @@ Not changed. Review these yourself:
     …/alpine-pod.yaml:3:17  'Name' appears in a string or comment; left unchanged
 ```
 
-`{{.Release.Name}}` and `{{.Chart.Name}}` are left alone. They are the same word and
-a different thing.
+The tool leaves `{{.Release.Name}}` and `{{.Chart.Name}}` alone. They spell the same
+word and mean a different thing.
 
 ## 7. Opening the pull request
 
-Nothing about this step is special. The change is ordinary git
-work, reviewable line by line, with no tool-specific artifacts in it:
+This step holds nothing special. You commit ordinary git work, reviewable line by
+line, with no tool-specific artifacts in it:
 
 ```console
 $ git checkout -b rename-release-apply-method
@@ -411,12 +410,11 @@ $ gh pr create --fill
 
 Two habits worth keeping:
 
-- **Commit the refactor alone.** A mechanical change that touches five files is
-  trivial to review when it is only that. Impossible when it is mixed with a
-  behavioural one.
-- **Paste the refusals into the PR description.** If the tool listed six unparseable
-  files or four weakly-resolved sites, a reviewer should check them,
-  and they cannot know to look unless you say so.
+- **Commit the refactor alone.** A reviewer checks a mechanical change across five
+  files quickly, and struggles once you mix a behavioural change into it.
+- **Paste the refusals into the PR description.** When the tool lists six unparseable
+  files or four weakly-resolved sites, a reviewer should check them. Nobody knows to
+  look unless you say so.
 
 ---
 
@@ -424,36 +422,45 @@ Two habits worth keeping:
 
 ### Parsing, and where the trees live
 
-Every file is parsed with [tree-sitter](https://tree-sitter.github.io/), one grammar
-per language, into a syntax tree that keeps every byte, including comments
-and whitespace. Nothing is lost, because an edit is a byte-range
-splice, so anything outside the range is untouched by construction.
+The tool parses every file with [tree-sitter](https://tree-sitter.github.io/), one
+grammar per language, into a syntax tree that keeps every byte, including comments
+and whitespace. An edit splices one byte range, so everything outside that range
+survives by construction.
 
-**The trees are not stored.** They exist for the duration of one file's extraction and
-are dropped. What survives is a much smaller set of *facts*: symbols, references,
-scopes and imports, each carrying a byte span. Keeping 16,000 syntax trees in memory
-would cost more than re-parsing the handful of files any single command needs.
+**The tool stores no tree.** Each one lives for the length of one file's extraction,
+and then the tool drops it. A much smaller set of *facts* survives: symbols,
+references, scopes and imports, each carrying a byte span. Keeping 16,000 syntax
+trees in memory would cost more than re-parsing the handful of files any single
+command needs.
 
-Positions are byte offsets, never line/column pairs, everywhere except the command
-line. Line and column are a display format; a UTF-8 file with an emoji in a comment
-makes them ambiguous. A refactoring tool that miscounts a column corrupts a file.
+The tool works in byte offsets everywhere except the command line, never in
+line/column pairs. Line and column serve display; an emoji in a comment of a UTF-8
+file makes them ambiguous. A refactoring tool that miscounts a column corrupts a
+file.
 
-Helm gets one extra step. The tool *masks* a template action before it parses, and
-replaces it with filler of the same byte length. The surrounding YAML then has valid
-structure and every offset in the file stays correct. Whether the filler is spaces or
-`x` characters depends on where the action sits. An action alone on its line has to
-vanish structurally, while one inside a value has to become scalar text. The actions
-themselves are then parsed separately, so `.Values.image.tag` becomes a
-reference to a values key.
+Helm takes one extra step. Before parsing, the tool *masks* each template action and
+puts filler of the same byte length in its place. The surrounding YAML then holds
+valid structure, and every offset in the file stays correct. Where the action sits
+decides whether the filler is spaces or `x` characters. An action alone on its line
+has to vanish structurally, while one inside a value has to become scalar text. The
+tool then parses the actions separately, so `.Values.image.tag` becomes a reference
+to a values key.
 
 ### The index, and confidence
 
 Extraction produces facts per file. The index joins them and resolves each reference
-to the symbol it names, trying in order: the lexical scope chain, the same file, an
-import binding in that file, a string key (CSS classes, Helm values), a member of a
-value, the enclosing package or directory. Finally a unique exported name
-anywhere. The first rule that answers wins, and the report names *which rule answered*, which is the
-confidence:
+to the symbol it names, trying these rules in order:
+
+- The lexical scope chain.
+- The same file.
+- An import binding in that file.
+- A string key (CSS classes, Helm values).
+- A member of a value.
+- The enclosing package or directory.
+- Finally, a unique exported name anywhere.
+
+The first rule that answers wins, and the report names *which rule answered*. That
+name is the confidence:
 
 | Tier | What proved it | Rewritten? |
 |---|---|---|
@@ -462,24 +469,24 @@ confidence:
 | `field-based` | the name is a member somewhere, but the receiver's type is unknown | no |
 | `name-only` | nothing but the name matched | no |
 
-A refactoring rewrites the top two and reports the rest. This is the single design
-decision the whole tool rests on. **it would rather hand you a list to check than
-change a line it cannot justify.**
+A refactoring rewrites the top two tiers and reports the rest. The whole tool rests
+on that one design decision. **It hands you a list to check rather than change a line
+it cannot justify.**
 
 ### The cache
 
-Indexing helm takes a few seconds; doing it again for every command would not.
+Indexing helm takes a few seconds, and repeating that for every command would not do.
 
-The cache is content-addressed. A file's facts are keyed by the SHA-256 of its
-contents combined with a fingerprint of the query set that produced them. Change the
-file and the key changes; change a `queries/*/facts.scm` and every key changes. There
-is no invalidation logic to get wrong, because there is nothing to invalidate. Nothing
+The cache addresses content. It keys a file's facts by the SHA-256 of the contents,
+combined with a fingerprint of the query set that produced them. Change the file and
+the key changes; change a `queries/*/facts.scm` and every key changes. No
+invalidation logic can go wrong here, because nothing needs invalidating. Nothing
 ever looks up a stale entry.
 
 Entries live under `$FUN_REFACTOR_CACHE`, or the platform cache directory
 (`~/Library/Caches/fun-refactor` on macOS, `~/.cache/fun-refactor` on Linux). The
-directory carries a schema version, so a release that changes what a fact *is* starts
-a new namespace instead of reading old data with a new meaning.
+directory carries a schema version. A release that changes what a fact *is* then
+starts a new namespace, instead of reading old data with a new meaning.
 
 ```console
 $ fr cache             # where it is and how big
@@ -490,39 +497,38 @@ $ fr cache --clear     # throw it away
 $ fr <command> --no-cache
 ```
 
-The directory name carries both the schema version and the query-set fingerprint,
-so editing a query file makes every stale entry unreachable and not
-wrong.
+The directory name carries both the schema version and the query-set fingerprint.
+Edit a query file and every stale entry becomes unreachable rather than wrong.
 
-Indexing is parallel across files, and results merge in scan order, so the output does
-not depend on which thread finished first.
+The tool indexes files in parallel and merges results in scan order, so the output
+stays the same whichever thread finishes first.
 
 ### The edit engine
 
-Every refactoring returns a *plan*, which is a set of edits, and touches nothing. The engine
-then:
+Every refactoring returns a *plan*, a set of edits, and touches nothing itself. The
+engine then:
 
 1. **Rejects overlaps.** Two edits to the same bytes are a bug in the caller, not
    something to resolve by picking one.
 2. **Applies in descending offset order**, so earlier offsets stay valid as it goes.
-3. **Reparses every changed file** and refuses the whole edit if the file parses
-   cleanly now and would not afterwards. This is what catches a rewrite that produces
+3. **Reparses every changed file** and refuses the whole edit if a file that parses
+   cleanly now would not afterwards. That check catches a rewrite producing
    `if !(a)` in a language that requires the brackets.
-4. **Commits atomically.** Either every file is written or none is.
+4. **Commits atomically.** It writes every file, or it writes none.
 
-That reparse check is a safety net and not the safety itself. It cannot catch a change that
-parses and means something else, such as moving a statement out from under the condition
-that guarded it, say, or dropping the brackets a de Morgan result needs. Those are
-caught by the analysis being right. The confidence tiers exist for that reason, and
-the tool refuses so much.
+That reparse check works as a safety net, and it does not stand in for the analysis.
+It misses a change that parses and means something else. A statement moves out from
+under the condition that guarded it, say, or a de Morgan result loses the brackets it
+needs. Correct analysis catches those. The confidence tiers exist for that reason,
+and the tool refuses so much.
 
 ---
 
 ## Where to go next
 
-- `fr capabilities` prints what is supported for each of the 16 languages, with the
-  reason attached to every cell that is not. It is derived from the code, not
-  maintained by hand.
+- `fr capabilities` prints what each of the 16 languages supports, with the reason
+  attached to every cell that is not. The code derives it, and nobody maintains it by
+  hand.
 - `fr <command> --help` for the flags each command takes.
 - `--json` on any command, for editor integration and scripting.
 - [BUGS.md](BUGS.md) for what is known not to work, each entry with the measurement

@@ -21,11 +21,11 @@ enum Newline {
 
 /// Write to stdout, taking a closed pipe as the reader saying it has enough.
 ///
-/// The standard `println!` panics when stdout has gone away, which turned
-/// `fr symbols --json | head` into a crash after `head` took what it wanted. A
-/// reader closing the pipe early is an ordinary end of the run, so the process
-/// ends quietly and successfully. Every other write failure still panics, as the
-/// standard macros would.
+/// The standard `println!` panics once stdout goes away, so `fr symbols --json |
+/// head` crashed as soon as `head` had taken what it wanted. A reader that closes
+/// the pipe early ends the run in the ordinary way, so the process stops quietly
+/// and successfully. Every other write failure still panics, as the standard
+/// macros do.
 fn emit(newline: Newline, text: std::fmt::Arguments<'_>) {
     use std::io::Write;
     let mut out = std::io::stdout().lock();
@@ -40,9 +40,9 @@ fn emit(newline: Newline, text: std::fmt::Arguments<'_>) {
     }
 }
 
-// These shadow the standard macros for the rest of this file, which is where every
-// stdout write in the binary lives. Keeping the standard spelling means a new
-// report cannot forget to opt in to the closed-pipe behaviour.
+// These two shadow the standard macros for the rest of this file. Every stdout
+// write in the binary sits here. Keeping the standard spelling stops a new report
+// from forgetting to opt in to the closed-pipe behaviour.
 macro_rules! println {
     () => { emit(Newline::Yes, format_args!("")) };
     ($($arg:tt)*) => { emit(Newline::Yes, format_args!($($arg)*)) };
@@ -74,8 +74,8 @@ const EXIT_CODES_HELP: &str = "Exit codes:\n  \
 struct Cli {
     /// Emit machine-readable JSON instead of human-readable text.
     ///
-    /// Paths in JSON are absolute, under the key `file`. Reports that used to spell
-    /// the same path under `path` still carry both keys for one release; read `file`.
+    /// The JSON writes every path absolutely, under the key `file`. Reports that once
+    /// spelled the same path under `path` carry both keys for one release; read `file`.
     #[arg(long, global = true)]
     json: bool,
 
@@ -91,16 +91,16 @@ struct Cli {
     #[arg(long, short = 'C', global = true, default_value = ".")]
     root: PathBuf,
 
-    /// Set where `root` was not stated and had to be found. A typed path is then
-    /// read against the shell's directory, the one the caller can see.
+    /// True where the caller left `root` unstated and the tool had to find it. A typed
+    /// path then reads against the shell's directory, the one the caller can see.
     #[arg(skip)]
     root_inferred: bool,
 
     /// Read files that .gitignore and friends exclude, and hidden files too.
     ///
     /// Generated trees, vendored copies and build output are refactoring targets
-    /// like any other, and they are usually ignored. Without this there was no
-    /// way to reach them at all: the scan honoured ignore files unconditionally.
+    /// like any other, and an ignore file usually excludes them. Without this flag
+    /// the scan honours every ignore file and cannot reach them at all.
     #[arg(long, global = true)]
     no_ignore: bool,
 
@@ -114,9 +114,9 @@ struct Cli {
 
 /// Every subcommand's name, asked of the parser and not written down again.
 ///
-/// The site tells a reader what to type, and a command that was renamed leaves prose
-/// that reads perfectly and does not run. A list maintained beside the parser would be
-/// one more thing to keep in step; this one cannot disagree with it.
+/// The site tells a reader what to type, and a renamed command leaves prose that reads
+/// perfectly and does not run. A second list kept beside the parser would drift out of
+/// step. This one cannot disagree with the parser.
 pub fn command_names() -> Vec<String> {
     use clap::CommandFactory;
     Cli::command()
@@ -141,8 +141,8 @@ enum Command {
     },
     /// Print a shell completion script for this tool.
     ///
-    /// Written from the command tree itself, so it cannot describe a command
-    /// this binary does not have. Send it where your shell reads completions:
+    /// This tool writes the script from its own command tree, so the script cannot
+    /// name a command the binary does not have. Send it where your shell reads it:
     /// `fr completions bash > /usr/local/etc/bash_completion.d/fr`.
     Completions {
         /// The shell to write for.
@@ -157,9 +157,9 @@ enum Command {
     },
     /// List the source files fun-refactor can act on.
     ///
-    /// Files larger than the size limit are skipped and listed, never silently
-    /// dropped. The limit is 4 MiB unless --max-file-size says otherwise. A skipped
-    /// file is invisible to every other command, and each of them warns about it.
+    /// The scan skips files larger than the size limit and lists them, never dropping
+    /// one silently. The limit is 4 MiB unless --max-file-size says otherwise. A
+    /// skipped file is invisible to every other command, and each one warns about it.
     Scan {
         /// Restrict to a language (repeatable), e.g. --lang rust --lang go.
         #[arg(long = "lang", alias = "language")]
@@ -188,15 +188,15 @@ enum Command {
         /// Show index-wide totals instead of listing symbols.
         #[arg(long)]
         stats: bool,
-        /// Only symbols in these files or directories. The whole workspace is
-        /// still indexed, so cross-file answers stay right; only the listing
+        /// Only symbols in these files or directories. The tool still indexes the
+        /// whole workspace, so cross-file answers stay right. Only the listing
         /// narrows.
         paths: Vec<PathBuf>,
     },
-    /// Show where a symbol is defined, every definition. It is not just one.
+    /// Show every place a symbol is defined.
     ///
-    /// A trait or interface method has as many definitions as implementations, and a
-    /// CSS class is declared by every rule that names it.
+    /// A trait or interface method has as many definitions as implementations, and
+    /// every rule that names a CSS class declares it.
     Def {
         /// Position as `path:line:col`, or a bare symbol name.
         /// Line and column are 1-based and land on the identifier.
@@ -207,12 +207,12 @@ enum Command {
     },
     /// Show a symbol's type: what the source declared, or what follows from what it did.
     ///
-    /// The two are reported separately and never merged, because "the source said `int`"
-    /// and "this holds an `int`" are different answers. A declared type is a contract. An
-    /// inferred one is a derivation, shown with the evidence it was drawn from, so a
-    /// reader can judge it. The evidence is a literal, a constructor call, or the
-    /// binding it was assigned from. Where neither is available the answer is that
-    /// there is no type written down, which is also different from both.
+    /// The command reports the two separately and never merges them, because "the source
+    /// said `int`" and "this holds an `int`" are different answers. A declared type is a
+    /// contract. An inferred one is a derivation, carrying the evidence it was drawn
+    /// from so a reader can judge it. That evidence is a literal, a constructor call, or
+    /// the binding the value came from. Where the command has neither, it answers that
+    /// nobody wrote a type down, a third answer again.
     Type {
         /// Position as `path:line:col`, or a bare symbol name.
         /// Line and column are 1-based and land on the identifier.
@@ -344,11 +344,11 @@ enum Command {
     },
     /// Find code that is written more than once.
     ///
-    /// Compares structure and not text, so a copy whose variables were renamed
-    /// still matches. That is the copy a textual search will never find.
+    /// The search compares structure and not text, so a copy whose variables were
+    /// renamed still matches. A textual search never finds that copy.
     Duplicates {
-        /// Smallest duplicate to report, in tokens. Left out, each language
-        /// gets the floor its own density earns. Code gets 60. Markup and
+        /// Smallest duplicate to report, in tokens. Left out, each language gets
+        /// the floor its own token density calls for. Code gets 60. Markup and
         /// configuration get 30, a dozen of their lines being far fewer tokens.
         #[arg(long)]
         min_tokens: Option<usize>,
@@ -369,9 +369,9 @@ enum Command {
         catalogs: Option<PathBuf>,
         /// Only report symbols in this language. Repeatable.
         ///
-        /// Filters the report, not the index: reachability is still worked out across the whole
-        /// workspace. So narrowing here cannot invent a dead symbol the way scanning a
-        /// subdirectory would.
+        /// This filters the report and leaves the index alone. The tool works out
+        /// reachability across the whole workspace, so narrowing here cannot invent a
+        /// dead symbol the way scanning a subdirectory would.
         #[arg(long = "lang", alias = "language", value_name = "LANG")]
         languages: Vec<String>,
         /// Only report symbols under this path prefix. Repeatable.
@@ -380,8 +380,8 @@ enum Command {
         /// Only report symbols nothing outside their own file or package can see.
         ///
         /// An exported symbol with no use in the workspace may still be the public
-        /// API of a library. No amount of scanning this repository can rule that
-        /// out. Those are the ones this hides.
+        /// API of a library. No amount of scanning this repository rules that out.
+        /// This flag hides those.
         #[arg(long)]
         internal: bool,
     },
@@ -397,26 +397,26 @@ enum Command {
     },
     /// Derive an OpenAPI document from a Next.js route tree.
     ///
-    /// The baseline a contract-preserving rewrite is checked against: build it before
-    /// the rewrite, run the finished service, fetch its `/openapi.json`, and diff.
-    /// Paths, methods and path parameters are exact; anything the source did not
-    /// declare is listed and not invented.
+    /// Check a contract-preserving rewrite against this baseline. Build it before the
+    /// rewrite, run the finished service, fetch its `/openapi.json`, then diff the two.
+    /// Paths, methods and path parameters are exact. The document lists anything the
+    /// source left undeclared and invents nothing.
     Openapi {
         /// Write the document here instead of to standard output.
         #[arg(long)]
         out: Option<PathBuf>,
         /// Write YAML instead of JSON.
         ///
-        /// The same document either way. YAML is what a contract kept beside the code
-        /// is usually written in, and it is what a person reads.
+        /// The same document either way. A contract kept beside the code usually lives
+        /// in YAML, and a person reads YAML more easily.
         #[arg(long)]
         yaml: bool,
     },
     /// Run a refactoring recipe: a file that says what to find, what to do to it,
     /// and what must be true afterwards.
     ///
-    /// Prints a report and a diff by default; pass --write to apply it. A recipe is
-    /// one transaction, either every step's edits are written or none are.
+    /// Prints a report and a diff by default; pass --write to apply it. A recipe runs
+    /// as one transaction: the tool writes every step's edits or none of them.
     ///
     /// A recipe file begins with `schema 1` and then one or more recipe blocks,
     /// `recipe <name> { <steps> }`. The smallest useful file is:
@@ -429,9 +429,9 @@ enum Command {
     ///
     /// RECIPES.md documents the grammar, every predicate and the expectations.
     //
-    // The one-line summary is respelled in `about`. The inline example needs
-    // `verbatim_doc_comment`, which would otherwise keep the summary's line break
-    // and wrap the command listing.
+    // `about` respells the one-line summary. The inline example needs
+    // `verbatim_doc_comment`, which otherwise keeps the summary's line break and
+    // wraps the command listing.
     #[command(
         verbatim_doc_comment,
         about = "Run a refactoring recipe: find, do, expect"
@@ -452,13 +452,13 @@ enum Command {
     },
     /// Rewrite a file as another language, beside the original.
     ///
-    /// Two different promises. Where one grammar contains the other, the result is
-    /// the same bytes under the target's extension, checked by the target's parser.
-    /// CSS as SCSS, a manifest as a Helm template, TypeScript as TSX. Between
-    /// programming languages the result is a draft translation. Signatures carry
-    /// their types where possible. Every construct without a counterpart is marked
-    /// in the output, never silently dropped. Omit the language to list what this
-    /// file could be.
+    /// This makes two different promises. Where one grammar contains the other, the
+    /// tool writes the same bytes under the target's extension and checks them with
+    /// the target's parser. CSS as SCSS, a manifest as a Helm template, TypeScript
+    /// as TSX. Between programming languages the tool writes a draft translation.
+    /// Signatures carry their types where possible. The output marks every construct
+    /// without a counterpart and drops none of them silently. Omit the language to
+    /// list what this file could be.
     ///
     /// Prints a diff by default; pass --write to apply it.
     Translate {
@@ -526,9 +526,9 @@ enum Command {
     },
     /// Trace where a value comes from or goes to.
     ///
-    /// For Helm charts, `-f` and `--set` describe the invocation the answer is
-    /// for. Without them a values key that the command line could override is
-    /// reported undecided. With them the same precedence order decides it.
+    /// For Helm charts, `-f` and `--set` describe the invocation the answer is for.
+    /// Without them the command reports a values key the command line could override
+    /// as undecided. With them, helm's own precedence order decides it.
     Flow {
         /// Direction: `back` (where does it come from) or `fwd` (where is it used).
         #[arg(value_parser = ["back", "fwd"])]
@@ -618,9 +618,9 @@ enum CompletionShell {
 
 /// A completion script, written from the command tree this binary really has.
 ///
-/// Thirty-three subcommands are a lot to type from memory, and nothing
-/// completed any of it. Generated rather than kept by hand, so a command added
-/// tomorrow is completed tomorrow.
+/// Thirty-three subcommands are a lot to type from memory, and no shell completed
+/// any of them. This writes the script instead of keeping one by hand, so a command
+/// added tomorrow is completed tomorrow.
 fn completion_script(shell: CompletionShell) -> String {
     use clap::CommandFactory;
     let command = Cli::command();
@@ -636,8 +636,8 @@ fn completion_script(shell: CompletionShell) -> String {
                 .get_arguments()
                 .filter_map(|a| a.get_long().map(|l| format!("--{l}")))
                 .collect();
-            // A description goes inside quotes in two of the three shells, and
-            // one line is all any of them shows.
+            // Two of the three shells put the description inside quotes, and none
+            // of them shows more than one line.
             let about = sub
                 .get_about()
                 .map(|a| a.to_string())
@@ -771,9 +771,9 @@ pub fn run() -> Result<()> {
         report_json_error(&error);
     }
     // The same prose, in the same shape, that returning the error from `main` printed.
-    // It is printed here because the exit code is chosen here, and `main` can only
-    // say 0 or 1. The workspace root is stripped from it because a person acts on
-    // `pkg/a.go:3:6`, while the JSON message above keeps the absolute spelling.
+    // It prints here because the exit code is chosen here, and `main` can only say 0
+    // or 1. Stripping the workspace root leaves `pkg/a.go:3:6`, which a person acts
+    // on. The JSON message above keeps the absolute spelling.
     eprintln!("Error: {}", humanize_paths(&cli, format!("{error:?}")));
     std::process::exit(exit_code(&error));
 }
@@ -1050,7 +1050,7 @@ fn cmd_trace(cli: &Cli, target: &str, depth: usize, direction: Direction2) -> Re
 
     print!("{}", trace.format_tree(&index));
 
-    // Calls we could see but not resolve belong in the answer, not hidden.
+    // Calls the graph saw and could not resolve belong in the answer, never hidden.
     let related: Vec<_> = graph
         .unresolved
         .iter()
@@ -1071,9 +1071,9 @@ fn cmd_trace(cli: &Cli, target: &str, depth: usize, direction: Direction2) -> Re
 /// A unified diff whose headers `git apply -p1` accepts.
 ///
 /// The edit engine names files absolutely, so its own headers read `--- a//home/...`,
-/// which git refuses to apply. Headers here are workspace-root-relative; every other
-/// field in the JSON keeps the absolute path. A file outside the root, a translation
-/// written elsewhere, keeps its full path because no relative spelling exists for it.
+/// which git refuses to apply. These headers spell each path relative to the workspace
+/// root. Every other field in the JSON keeps the absolute path. A file outside the
+/// root, a translation written elsewhere, has no relative spelling and keeps its own.
 fn workspace_diff(cli: &Cli, outcome: &crate::edit::FileOutcome) -> String {
     let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
     let shown = outcome.path.strip_prefix(&root).unwrap_or(&outcome.path);
@@ -1086,13 +1086,12 @@ fn workspace_diff(cli: &Cli, outcome: &crate::edit::FileOutcome) -> String {
 
 /// The project `start` sits inside, when that is somewhere above `start`.
 ///
-/// A question about a symbol is a question about the project, not about the
-/// directory a shell happens to be in. Answered from `pkg/deep`, `fr usages`
-/// said "0 use(s)" of a function `main.py` calls. `fr delete` offered to remove
-/// it. `fr rename` renamed the definition and left the caller reading a name
-/// nothing declares. All three reported success. The nearest enclosing marker
-/// wins, so a package inside a monorepo is read as itself. A stated `-C` is
-/// left alone.
+/// A question about a symbol asks about the project, and never about the directory a
+/// shell happens to sit in. Answered from `pkg/deep`, `fr usages` said "0 use(s)" of a
+/// function `main.py` calls. `fr delete` offered to remove it. `fr rename` renamed the
+/// definition and left the caller reading a name nothing declares. All three reported
+/// success. The nearest enclosing marker wins, so a package inside a monorepo reads as
+/// itself. A stated `-C` stays as the caller wrote it.
 fn enclosing_project(start: &std::path::Path) -> Option<PathBuf> {
     const MARKERS: &[&str] = &[
         ".git",
@@ -1159,7 +1158,7 @@ fn skipped_files_json(index: &Index) -> Vec<serde_json::Value> {
 
 /// The files the grammar read only in part, as data for a JSON report.
 ///
-/// Carried beside [`skipped_files_json`] and not merged into it. A skipped file
+/// This rides beside [`skipped_files_json`] instead of merging into it. A skipped file
 /// contributed nothing; one of these contributed some of itself, and the two ask a
 /// caller for different things.
 fn unparsed_files_json(index: &Index) -> Vec<serde_json::Value> {
@@ -1171,9 +1170,9 @@ fn unparsed_files_json(index: &Index) -> Vec<serde_json::Value> {
 
 /// Warn, on stderr, about the files this answer saw partially or not at all.
 ///
-/// Called from [`build_index`], so every command that indexes the workspace says it
-/// once, instead of each command remembering to. The JSON twins ride in each
-/// report as `skipped_files` and `unparsed_files`.
+/// [`build_index`] calls this, so every command that indexes the workspace warns once
+/// and no command has to remember to. The JSON twins ride in each report as
+/// `skipped_files` and `unparsed_files`.
 fn warn_partial_index(cli: &Cli, index: &Index) {
     if cli.json {
         return;
@@ -1247,9 +1246,9 @@ fn refuse_stale_plan(index: &Index, edits: &crate::edit::EditSet) -> Result<()> 
 
 /// Render a plan's diff, report what it did, and optionally commit it.
 ///
-/// `index` is the index the plan was made against, when there is one: it carries the
-/// files the scan skipped, which the report must repeat, and the text the spans were
-/// measured on, which lets a mid-run change be named as one.
+/// `index` is the index the plan was made against, where there is one. It carries the
+/// files the scan skipped, which the report repeats. It also carries the text the
+/// spans were measured on, so a mid-run change can be named as one.
 fn present(
     cli: &Cli,
     index: Option<&Index>,
@@ -1262,9 +1261,9 @@ fn present(
 
 /// [`present`], with fields only one command has to add to the JSON report.
 ///
-/// `fr restructure` reports the matches it declined to rewrite. In text they are lines
-/// above the diff. Printed in `--json` mode they landed on stdout in front of the
-/// object. So the output was no longer JSON, and no reader of it could parse.
+/// `fr restructure` reports the matches it declined to rewrite. In text those are lines
+/// above the diff. In `--json` mode they landed on stdout in front of the object, which
+/// left the output unparseable for every reader of it.
 fn present_with(
     cli: &Cli,
     index: Option<&Index>,
@@ -1322,8 +1321,8 @@ fn present_with(
 /// One translated file's JSON report, with the fidelity keys the directory sweep
 /// emits. A caller parses one shape whether it translated a file or a tree.
 ///
-/// The single-file report used to carry no fidelity at all. The counts were printed
-/// as prose and dropped from the JSON, so an agent could not tell a clean draft from
+/// The single-file report once carried no fidelity at all. It printed the counts as
+/// prose and dropped them from the JSON, so an agent could not tell a clean draft from
 /// a gutted one.
 fn present_translation(
     cli: &Cli,
@@ -1405,8 +1404,8 @@ fn cmd_extract(
     write: bool,
 ) -> Result<()> {
     // A malformed or inverted range is a command-line fault, and the shared parser
-    // returns an untyped error because a recipe reads the same spec. The kind is
-    // attached here, where the argument is known to have come from a command line.
+    // returns an untyped error because a recipe reads the same spec. This attaches
+    // the kind here, where the argument is known to come from a command line.
     let (path, start, end) =
         crate::span::parse_range(range).map_err(|e| Fault::invalid_input(e.to_string()))?;
     let path = workspace_path(cli, &path)?;
@@ -1503,8 +1502,8 @@ fn cmd_signature(cli: &Cli, target: &str, change_spec: &str, write: bool) -> Res
 /// `/private/var` name the same directory. Left alone that produced imports like
 /// `'../../../../../../../var/folders/…'`.
 ///
-/// The file itself need not exist yet, a move usually creates it. So it is the parent directory
-/// that is resolved, and a missing one is an error and not a path passed through untouched.
+/// The file itself need not exist yet, since a move usually creates it. So this resolves the
+/// parent directory, and a missing parent is an error instead of a path passed through whole.
 fn resolve_destination(cli: &Cli, destination: &std::path::Path) -> Result<std::path::PathBuf> {
     let absolute = if destination.is_absolute() {
         destination.to_path_buf()
@@ -1585,9 +1584,10 @@ fn cmd_delete(cli: &Cli, target: &str, write: bool) -> Result<()> {
 /// working directory. `-C` says which workspace to operate on, so
 /// `fr -C ../helm refs pkg/x.go:3:6` means that file in that workspace. Where the root was
 /// found rather than stated, the caller typed a path they can see from where they stand.
-/// The shell's directory is tried first then, and the root second. Canonical, because the
-/// index is. A path that does not exist is an error. Resolving it to itself lets the file
-/// read fail two frames later with "reading pkg/x.go. No such file". True and unhelpful.
+/// This then tries the shell's directory first and the root second. The answer is canonical,
+/// because the index is. A path that does not exist is an error. Resolving it to itself lets
+/// the file read fail two frames later with "reading pkg/x.go. No such file", which is true
+/// and unhelpful.
 fn workspace_path(cli: &Cli, path: &std::path::Path) -> Result<PathBuf> {
     let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
     // An absolute path is already where it says. A relative one typed against a
@@ -1617,9 +1617,9 @@ fn workspace_path(cli: &Cli, path: &std::path::Path) -> Result<PathBuf> {
 /// The byte offset of a 1-based position, refused as not-found when the file ends
 /// before it.
 ///
-/// A position past the end of the file names a place that does not exist. That is
-/// the failure a symbol nothing declares has, so both exit 3. It used to fall out
-/// as a bare context string and exit 1.
+/// A position past the end of the file names a place that does not exist. A symbol
+/// nothing declares fails the same way, so both exit 3. This once fell out as a bare
+/// context string and exited 1.
 fn offset_at(source: &str, line: usize, col: usize, path: &std::path::Path) -> Result<usize> {
     LineIndex::new(source)
         .offset(LineCol { line, col }, source)
@@ -1650,10 +1650,10 @@ fn parse_languages(names: &[String]) -> Result<Vec<crate::lang::Language>> {
 
 /// Path filters, spelled the way the index spells its paths.
 ///
-/// Resolved against the workspace root instead of the shell's cwd, and canonical,
-/// because the index holds canonical paths. The default root is `.`, so a filter
-/// built from it reads `./pkg/action` and matches no absolute path at all. The
-/// report then comes back empty and looks like a clean bill of health.
+/// This resolves them against the workspace root instead of the shell's cwd, and
+/// canonicalises them, because the index holds canonical paths. The default root is
+/// `.`, so a filter built from it reads `./pkg/action` and matches no absolute path at
+/// all. The report then comes back empty and looks like a clean bill of health.
 fn absolute_paths(cli: &Cli, paths: &[PathBuf]) -> Result<Vec<PathBuf>> {
     let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
     paths
@@ -1810,8 +1810,8 @@ fn cmd_unused(
 
     // The position, because the next command a reader runs is `fr delete`. A name is not enough
     // to name a symbol with: 34 of the first 40 candidates in `helm/helm` are defined twice.
-    // So `fr delete <name>` answers "defined 2 times; give a position". The list said which
-    // symbol it meant and had no way to say it.
+    // So `fr delete <name>` answers "defined 2 times; give a position". The list knew which
+    // symbol it meant and had no way to say so.
     let mut sources: BTreeMap<PathBuf, String> = BTreeMap::new();
     let mut locate = |symbol: &crate::model::Symbol| {
         let source = sources
@@ -1873,10 +1873,11 @@ fn cmd_unused(
         );
     }
 
-    // What a long answer is mostly made of. `spring-petclinic` reports 3,554, of which 3,395
-    // are CSS selectors in one vendored stylesheet, true. Useless as read, because the fourteen
-    // methods a person came for are somewhere in the scroll. The count alone does not say that;
-    // a reader should not have to pipe it through `sort` to find out what they are looking at.
+    // What a long answer is mostly made of. `spring-petclinic` reports 3,554 symbols, and
+    // 3,395 of them are CSS selectors in one vendored stylesheet. The report is true and
+    // unreadable, because the fourteen methods a person came for sit somewhere in the scroll.
+    // The count alone does not say that. A reader should not have to pipe the list through
+    // `sort` to find out what they are looking at.
     if unused.len() >= 50 {
         let mut by_kind: BTreeMap<&str, usize> = BTreeMap::new();
         let mut by_file: BTreeMap<&std::path::Path, usize> = BTreeMap::new();
@@ -1942,8 +1943,8 @@ fn cmd_imports(cli: &Cli, file: Option<&std::path::Path>, write: bool) -> Result
     }
 
     // Every import nothing names and the planner kept anyway, with the reason it worked
-    // out. The reasons were computed and then dropped. So "removed 0 import(s)" was the
-    // whole answer, and a reader could not learn which import was held, or why.
+    // out. The planner computed those reasons and then dropped them, so "removed 0
+    // import(s)" was the whole answer. A reader could not learn which import was held.
     if !cli.json && !plan.warnings.is_empty() {
         println!("Kept {} import(s) nothing names:", plan.warnings.len());
         for warning in &plan.warnings {
@@ -1982,8 +1983,8 @@ fn kept_imports_json(warnings: &[crate::refactor::Warning]) -> serde_json::Value
 
 /// Every file the index holds, one pass, one atomic apply.
 ///
-/// A file whose imports this tool cannot organize is skipped, counted and printed,
-/// because a silent skip reads as coverage.
+/// The sweep skips a file whose imports this tool cannot organize, then counts it and
+/// prints it, because a silent skip reads as coverage.
 fn cmd_imports_workspace(cli: &Cli, index: &crate::index::Index, write: bool) -> Result<()> {
     let mut edits = crate::edit::EditSet::new();
     let mut touched = 0usize;
@@ -1996,8 +1997,8 @@ fn cmd_imports_workspace(cli: &Cli, index: &crate::index::Index, write: bool) ->
     for path in files {
         match crate::refactor::imports::plan(index, &path) {
             Ok(plan) => {
-                // Counted before the files with nothing to do are dropped: an import held
-                // back is the reason a file has nothing to do.
+                // Counted before the loop drops the files with nothing to do. An import
+                // held back is often why a file has nothing to do.
                 kept.extend(plan.warnings.iter().cloned());
                 if plan.edits.is_empty() {
                     continue;
@@ -2165,9 +2166,9 @@ fn cmd_translate(
         return Ok(());
     };
 
-    // `fastapi` is a framework and not a language. The translation into it reads the file's
-    // *path* as well as its text, a Next.js route's URL is where it sits on disk. It is
-    // therefore its own target instead of a flavour of Python.
+    // `fastapi` names a framework and not a language. The translation into it reads the
+    // file's *path* as well as its text, since a Next.js route's URL is where the file
+    // sits on disk. So it gets a target of its own instead of a flavour of Python.
     if language.eq_ignore_ascii_case("fastapi") {
         return cmd_translate_fastapi(cli, &path, write, out, force);
     }
@@ -2186,8 +2187,8 @@ fn cmd_translate(
         );
     }
 
-    // Containment first. CSS as SCSS is the same bytes and needs no translation. A
-    // pair that is not a containment is a translation, which is a different promise.
+    // Containment first. CSS as SCSS is the same bytes and needs no translation. Any
+    // other pair takes a translation, which is a different promise.
     if crate::translate::targets(from).contains(&to) {
         let plan = crate::translate::plan_to(&path, to, out, force)?;
         let summary = format!(
@@ -2241,8 +2242,8 @@ fn cmd_translate(
         );
         // Not every note is about a carried construct. A type the source never wrote down, a
         // name the target reserves, a base class a language without inheritance cannot keep.
-        // Those were computed and then printed only when something *else* had gone wrong. So a
-        // translation that lost a supertype and nothing else reported a clean bill.
+        // The writer computed those and printed them only when something *else* had gone
+        // wrong. A translation that lost a supertype and nothing else read as a clean bill.
         if f.carried_verbatim > 0 {
             println!(
                 "  {} construct(s) had no counterpart and are in the output as comments:",
@@ -2275,10 +2276,9 @@ fn cmd_translate(
     present(cli, None, &plan.edits, &summary, write)
 }
 
-/// `fr translate <route.ts> fastapi`, a Next.js API route as a FastAPI module.
 /// Translate everything under a directory into one language, atomically.
 ///
-/// Every file is accounted for: translated, skipped for a named reason, or
+/// The report accounts for every file: translated, skipped for a named reason, or
 /// failed with the error beside it. A silent skip reads as coverage.
 fn cmd_translate_directory(
     cli: &Cli,
@@ -2304,17 +2304,17 @@ fn cmd_translate_directory(
 
     let scanned = scan(dir, &scan_options(cli, &[])?)?;
 
-    // Read the whole sweep before writing any of it. Translation is per file,
-    // but the files travel together: one declares a class another constructs,
-    // and an import points at a sibling translated too. The merged context
-    // gives every file's writer the whole set of declarations.
+    // Read the whole sweep before writing any of it. Translation runs per file, and
+    // the files travel together. One declares a class another constructs, and an
+    // import points at a sibling this sweep translates too. The merged context gives
+    // every file's writer the whole set of declarations.
     let mut modules: BTreeMap<PathBuf, crate::transpile::Module> = BTreeMap::new();
     for file in &scanned.files {
         if file.language == to || !crate::transpile::can_be_read(file.language) {
             continue;
         }
-        // A file that does not read is not lost here. The translation pass
-        // below reads it again and names the error beside its path.
+        // A file that does not read is not lost here. The translation pass below
+        // reads it again and names the error beside its path.
         if let Ok(module) = crate::transpile::read_file(&file.path) {
             modules.insert(file.path.clone(), module);
         }
@@ -2461,6 +2461,7 @@ fn cmd_translate_directory(
     present(cli, None, &edits, &summary, write)
 }
 
+/// `fr translate <route.ts> fastapi`, a Next.js API route as a FastAPI module.
 fn cmd_translate_fastapi(
     cli: &Cli,
     path: &std::path::Path,
@@ -2538,9 +2539,9 @@ fn cmd_openapi(cli: &Cli, out: Option<&std::path::Path>, yaml: bool) -> Result<(
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_else(|| "workspace".to_string());
-    // Either side of the crossing. A Next.js tree declares nothing and the contract is inferred
-    // from where the files sit. A FastAPI tree declares everything and the contract is read off
-    // the decorators. Which one is here decides which is read. The report says which it was,
+    // Either side of the crossing. A Next.js tree declares nothing, so the contract follows
+    // from where the files sit. A FastAPI tree declares everything, so the decorators carry
+    // the contract. Whichever tree is here decides which reader runs. The report names it,
     // because a document that does not say where it came from cannot be argued with.
     let mut baseline = crate::openapi::from_routes(&title, &root, &files)?;
     let mut side = "Next.js route tree";
@@ -2654,7 +2655,8 @@ fn cmd_recipe(
         all_ok &= report.ok;
         stopped_by_refusal |= report.stopped.is_some();
 
-        // The recipe is one transaction: the diff is the whole run. It is not a step.
+        // The recipe is one transaction, so the diff covers the whole run and never a
+        // single step.
         let mut edits = crate::edit::EditSet::new();
         for (path, (_, text)) in &after {
             let before = sources.get(path).map(|(_, t)| t.as_str()).unwrap_or("");
@@ -2688,9 +2690,9 @@ fn cmd_recipe(
         } else {
             print_recipe_report(&report);
             if report.rolled_back {
-                // The diff still prints, because it is the evidence of what failed.
-                // `present` would end it with "re-run with --write", which was the
-                // one thing the reader already did.
+                // The diff still prints, as the evidence of what failed. `present`
+                // would end it with "re-run with --write", the one thing the reader
+                // already did.
                 let outcomes = crate::edit::plan(&edits, crate::edit::Validation::ReparseStrict)?;
                 for outcome in &outcomes {
                     print!("{}", workspace_diff(cli, outcome));
@@ -2930,9 +2932,9 @@ fn cmd_remove_flag(cli: &Cli, flag: &str, value: FlagValue, write: bool) -> Resu
     };
 
     // The cascade reports a name nothing declares as an untyped error, and the exit
-    // code is chosen from the error's type. The same lookup it will make is asked
-    // here first. The failure then carries the not-found kind, and the near misses,
-    // that a bad rename target gets.
+    // code follows the error's type. So this makes the cascade's own lookup first.
+    // The failure then carries the not-found kind and the near misses that a bad
+    // rename target gets.
     let index = build_index(cli, &[])?;
     if let FlagTarget::Named(name) = &target {
         if index.symbols_written(name, None).is_empty() {
@@ -3043,9 +3045,9 @@ fn cmd_restructure(
     let index = build_index(cli, &[])?;
     let plan = crate::refactor::restructure::apply(&index, lang, pattern, template)?;
 
-    // A site the template cannot be written over is still a match, so it is reported
-    // before anything else. Saying nothing about it, or saying nothing matched, is how
-    // a run that left three call sites alone called itself complete.
+    // A site the template cannot be written over is still a match, so the report names
+    // it before anything else. A run that said nothing about those sites, or said
+    // nothing matched, called itself complete while leaving three call sites alone.
     let root = workspace_root(cli);
     if !cli.json {
         print!(
@@ -3076,8 +3078,8 @@ fn cmd_restructure(
 
 /// The matches a template could not be written over, as data.
 ///
-/// The same occurrences the text report lists, for a caller that reads JSON. It had
-/// neither: the prose went to stdout in front of the report and broke it.
+/// The same occurrences the text report lists, for a caller that reads JSON. The JSON
+/// carried none of them, and the prose went to stdout in front of the report and broke it.
 fn skipped_occurrences_json(skipped: &[(std::path::PathBuf, usize)]) -> serde_json::Value {
     let rows: Vec<serde_json::Value> = skipped
         .iter()
@@ -3242,9 +3244,11 @@ fn cmd_flow(
     Ok(())
 }
 
-/// Say which supplied input decided each Helm competition, and what the answer
-/// still rests on. With nothing supplied there is nothing extra to say, and the
-/// tree already reports every competition as undecided.
+/// Say which supplied input decided each Helm competition, and what the answer still
+/// rests on.
+///
+/// With nothing supplied there is nothing extra to say, and the tree already reports
+/// every competition as undecided.
 fn report_values_inputs(
     inputs: &crate::analysis::provenance::ValuesInputs,
     result: &crate::analysis::provenance::Provenance,
@@ -3384,8 +3388,8 @@ fn cmd_graph(cli: &Cli, dot: bool) -> Result<()> {
     let by_origin = graph.origin_breakdown();
     if cli.json {
         // The counts say how big the graph is and nothing about its shape, and
-        // anything reading this wants the edges. Files are spelled relative to
-        // the root, and a file outside it keeps its full path.
+        // anything reading this wants the edges. The nodes spell each file relative
+        // to the root, and a file outside it keeps its full path.
         let mut sources: BTreeMap<PathBuf, String> = BTreeMap::new();
         let nodes: Vec<_> = graph
             .nodes()
@@ -3448,8 +3452,8 @@ fn cmd_graph(cli: &Cli, dot: bool) -> Result<()> {
     // off. A different fact from "the callee is unknown".
     println!("file-scope calls  {}", graph.file_scope.len());
 
-    // A call site the dispatch scan and the index disagree about is reported. An
-    // edge on the wrong offset misreports; a missing one does not.
+    // The report names every call site the dispatch scan and the index disagree
+    // about. An edge on the wrong offset misreports; a missing one does not.
     if !graph.hierarchy_gaps.is_empty() {
         println!(
             "\n{} call site(s) the hierarchy scan could not line up with the index:",
@@ -3628,9 +3632,9 @@ fn cmd_rename(cli: &Cli, target: &str, new_name: &str, write: bool) -> Result<()
     if !plan.warnings.is_empty() {
         let grouped = crate::refactor::rename::group_warnings(&plan.warnings);
         let root = workspace_root(cli);
-        // A dispatch site *was* renamed, with the family it can reach; the
-        // other kinds were left alone. One heading over both called changed
-        // sites unchanged.
+        // The rename changed each dispatch site, along with the family it can
+        // reach, and left the other kinds alone. One heading over both called
+        // changed sites unchanged.
         let show = |kind: &str, warnings: &[&crate::refactor::Warning]| {
             println!("  {} ({}):", kind, warnings.len());
             for w in warnings.iter().take(10) {
@@ -3765,9 +3769,9 @@ impl std::error::Error for Fault {}
 
 /// The failure as one JSON object on stdout, beside the prose on stderr.
 ///
-/// Every error path used to print prose to stderr and nothing to stdout, so a caller
-/// that asked for JSON had nothing to parse. The exit code and the stderr prose are
-/// unchanged; this only fills the stdout half of the contract.
+/// Every error path once printed prose to stderr and nothing to stdout, so a caller
+/// that asked for JSON had nothing to parse. This leaves the exit code and the stderr
+/// prose alone and fills the stdout half of the contract.
 fn report_json_error(error: &anyhow::Error) {
     let fault = error.downcast_ref::<Fault>();
     let kind = match fault {
@@ -3860,9 +3864,9 @@ fn parse_position(target: &str) -> Option<Position> {
 ///
 /// `py/app.py:abc:1` fails to parse, and falling through to name lookup answered "no
 /// symbol named 'py/app.py:abc:1'". That sends the reader hunting for a naming problem
-/// when the fault is a typo in the position. Anything shaped like one, an existing
-/// file followed by colon-separated parts, is treated as one and refused with the
-/// part that is wrong.
+/// when the fault is a typo in the position. So this reads anything position-shaped as
+/// a position: an existing file followed by colon-separated parts. The refusal names
+/// the part that is wrong.
 fn parse_target_position(cli: &Cli, target: &str) -> Result<Option<Position>> {
     if let Some(pos) = parse_position(target) {
         refuse_zero_column(&pos)?;
@@ -3959,9 +3963,9 @@ fn did_you_mean(suggestions: &[String]) -> String {
 /// The sites that write this name and reach no definition.
 ///
 /// Nothing declares the name, and something in the workspace names it anyway.
-/// `<a href="#section-two">` with no element carrying that id was invisible: the
-/// answer was "no symbol named", which reads as a typo in the question. The sites
-/// are the answer.
+/// `<a href="#section-two">` with no element carrying that id was invisible. The tool
+/// answered "no symbol named", which reads as a typo in the question. These sites are
+/// the answer.
 fn naming_nothing(cli: &Cli, index: &Index, target: &str) -> String {
     let root = workspace_root(cli);
     let mut sources: BTreeMap<PathBuf, String> = BTreeMap::new();
@@ -4010,8 +4014,8 @@ fn candidates_of(symbols: &[&Symbol]) -> Vec<Candidate> {
 
 /// The likeliest reason a real file is absent from the index.
 ///
-/// Guessing badly is worse than not guessing, so each answer is checked against
-/// the thing that would cause it rather than inferred from the absence.
+/// Guessing badly is worse than not guessing. So this checks each answer against the
+/// thing that would cause it, instead of inferring it from the absence.
 fn why_unindexed(cli: &Cli, path: &std::path::Path) -> String {
     if crate::lang::detect(path).is_none() {
         return "It is in no language this reads.".to_string();
@@ -4060,7 +4064,7 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
     // A qualified name, `Box::size`, the spelling every listing prints, before a bare one. The
     // tool printed these everywhere and then refused them as input. So the obvious way to name
     // one of twenty `String` methods was the one way that did not work. The only alternative
-    // offered was a line and column somebody had to go and look up.
+    // on offer was a line and column somebody had to go and look up.
     let matches = index.symbols_written(target, None);
     match matches.len() {
         0 => {
@@ -4075,8 +4079,8 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
             ))
         }
         1 => Ok(matches[0]),
-        // Several sites can declare one entity, a CSS class has no canonical
-        // definition, and that is not an ambiguous choice between rivals.
+        // Several sites can declare one entity. A CSS class has no canonical
+        // definition, and its rules declare it together rather than as rivals.
         _ if index.is_one_entity(&matches) => Ok(matches[0]),
         // Every candidate answers to the name as written, so listing that name again
         // helps nobody. A position is the only thing left that tells them apart.
@@ -4095,10 +4099,10 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
             ))
         }
         _ => {
-            // Ambiguity is reported, never resolved by guessing.
+            // This reports the ambiguity and never resolves it by guessing.
             let mut listing = String::new();
-            // Each candidate is listed by the name that would select it. So the fix is to copy
-            // a line and not to go and find a line number.
+            // The listing names each candidate by the name that would select it, so the
+            // reader copies a line instead of hunting for a line number.
             for symbol in &matches {
                 listing.push_str(&format!(
                     "\n  {} ({}) in {}",
@@ -4134,12 +4138,12 @@ fn build_index(cli: &Cli, languages: &[String]) -> Result<Index> {
         crate::cache::Cache::open()
     };
 
-    // A cold index of a large workspace is most of a minute, and the silence read as
-    // a hang. When stderr is a terminal, one line counts the files up and is erased
-    // once the work is done. A JSON caller with stderr piped gets a machine line
-    // every second or so instead. An agent waiting on a pipe cannot see a repainting
-    // counter, and reads minutes of silence as a hang. Stdout carries nothing either
-    // way, so piped output stays byte-stable.
+    // A cold index of a large workspace takes most of a minute, and the silence read
+    // as a hang. Where stderr is a terminal, one line counts the files up and the run
+    // erases it once the work is done. A JSON caller with stderr piped gets a machine
+    // line every second or so instead. An agent waiting on a pipe cannot see a
+    // repainting counter, and reads minutes of silence as a hang. Stdout carries
+    // nothing either way, so piped output stays byte-stable.
     let tty = std::io::stderr().is_terminal();
     let paint = |done: usize, total: usize| {
         // Repainting on every file would spend more time on the terminal than on a
@@ -4392,10 +4396,11 @@ fn cmd_type(cli: &Cli, target: &str) -> Result<()> {
     let declared = crate::analysis::types::of(&index, symbol.id)?;
 
     if cli.json {
-        // Resolved, not raw. Serializing the analysis directly emitted `"symbol": 1` and
-        // `"defined_at": 0`, `SymbolId`s. Those are positions in this run's index and
-        // mean nothing to a reader of the output. `defined_at` read like a line number.
-        // Every other command answers with a qualified name and a place; so does this.
+        // Resolved names, never raw ids. Serializing the analysis directly emitted
+        // `"symbol": 1` and `"defined_at": 0`, both `SymbolId`s. Those number positions
+        // in this run's index and mean nothing to a reader of the output. `defined_at`
+        // read like a line number. Every other command answers with a qualified name
+        // and a place; so does this.
         let place = |id: crate::model::SymbolId| {
             index.symbol(id).map(|s| {
                 let source = crate::vfs::read_to_string(&s.file).unwrap_or_default();
@@ -4721,9 +4726,9 @@ fn cmd_refs(cli: &Cli, target: &str, include_unresolved: bool) -> Result<()> {
     };
 
     if cli.json {
-        // What a rename would rewrite, which the tiers alone under-answer:
-        // a declared receiver lifts a field-based use into the rewrite. A
-        // reader predicting the rename needs the rename's answer.
+        // What a rename would rewrite. The tiers alone under-answer that, because a
+        // declared receiver lifts a field-based use into the rewrite. A reader
+        // predicting the rename needs the rename's own answer.
         let rewritable = crate::refactor::rename::rewritable_spans(&index, symbol.id);
         let render =
             |list: &[&crate::model::Reference],
@@ -4881,7 +4886,7 @@ fn cmd_parse(cli: &Cli, languages: &[String], stats: bool) -> Result<()> {
 
     let mut per_language: BTreeMap<&'static str, Tally> = BTreeMap::new();
     // The count and where. A file named with "2 error node(s)" and no position is a report
-    // somebody cannot act on. The whole value of knowing a file did not parse is being able to
+    // somebody cannot act on. Knowing that a file did not parse pays off once the reader can
     // go and look at the part that did not.
     let mut failures: Vec<(PathBuf, Vec<LineCol>)> = Vec::new();
 
@@ -5005,8 +5010,8 @@ fn report_skipped(result: &crate::scan::ScanResult) {
     if !result.unsupported.is_empty() {
         let total: usize = result.unsupported.values().sum();
         // Commonest first, and only the leading few. A repository carries more
-        // kinds of file than a reader wants listed. The point is the size of
-        // what was passed over, not a census of it.
+        // kinds of file than a reader wants listed. This gives the size of what
+        // the scan passed over instead of a census of it.
         let mut kinds: Vec<_> = result.unsupported.iter().collect();
         kinds.sort_by(|a, b| b.1.cmp(a.1).then(a.0.cmp(b.0)));
         let named: Vec<String> = kinds

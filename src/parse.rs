@@ -23,14 +23,14 @@ impl Parsers {
 
     /// The tree-sitter grammar used for a language.
     ///
-    /// One dialect gets its own entry instead of borrowing a near neighbour's:
-    /// SCSS on the CSS grammar reported every `$variable` and `@mixin` as a parse
-    /// error, so it has the SCSS grammar. What a grammar still cannot express
-    /// surfaces through [`Parsed::has_errors`] instead of being mis-parsed silently.
+    /// One dialect gets its own entry instead of borrowing a near neighbour's. SCSS on the
+    /// CSS grammar reported every `$variable` and `@mixin` as a parse error, so SCSS has its
+    /// own grammar. What a grammar still cannot express surfaces through
+    /// [`Parsed::has_errors`] instead of being mis-parsed silently.
     fn grammar(lang: Language) -> Option<tree_sitter::Language> {
-        // Each arm is behind its own feature, because a grammar is a megabyte of C
-        // parse table and a browser build takes only what it will use. Absent means
-        // absent, not broken: [`Self::parse`] says which build you are running.
+        // Each arm sits behind its own feature. A grammar costs a megabyte of C parse table,
+        // and a browser build takes only what it uses. Absent means absent, not broken:
+        // [`Self::parse`] says which build you are running.
         match lang {
             #[cfg(feature = "lang-rust")]
             Language::Rust => Some(tree_sitter_rust::LANGUAGE.into()),
@@ -70,9 +70,9 @@ impl Parsers {
 
     /// Can this build parse `lang` at all?
     ///
-    /// A browser build may leave grammars out to save a megabyte each. The caller that loads a
-    /// whole repository needs to know *before* it hands over a file, a workspace should not
-    /// fail to open because one README is in a language this binary was not compiled with.
+    /// A browser build may leave grammars out to save a megabyte each. The caller that loads
+    /// a whole repository needs to know *before* it hands over a file. A workspace should
+    /// still open when one README is in a language this binary was not compiled with.
     pub fn supports(lang: Language) -> bool {
         Self::grammar(lang).is_some()
     }
@@ -104,8 +104,8 @@ impl Parsers {
             .set_language(&grammar)
             .with_context(|| format!("loading {lang} grammar"))?;
 
-        // Two languages are not parsed as written, and both replace bytes with the same
-        // number of bytes so every offset in the tree still indexes the original source.
+        // Two languages need masking before the parse. Both replace bytes with the same
+        // number of bytes, so every offset in the tree still indexes the original source.
         let (parse_input, masked_spans) = match lang {
             // Helm templates are not valid YAML.
             Language::Helm => {
@@ -164,11 +164,11 @@ impl Default for Parsers {
 
 /// Parse every opaque inline node of a block tree with the inline grammar.
 ///
-/// Each sub-tree is parsed from the *whole* source with tree-sitter's included ranges
-/// restricted to one inline node, so every byte offset in the result indexes the original
-/// document, the same property Helm masking preserves, and the one the edit engine depends on.
-/// Parsing the ranges one node at a time and not all at once also keeps the nodes independent.
-/// A stray `[` at the end of one paragraph cannot pair with a `]` in the next.
+/// The parser reads each sub-tree from the *whole* source, with tree-sitter's included ranges
+/// restricted to one inline node. Every byte offset in the result then indexes the original
+/// document, the property Helm masking preserves and the edit engine depends on. Parsing the
+/// ranges one node at a time and not all at once also keeps the nodes independent. A stray
+/// `[` at the end of one paragraph cannot pair with a `]` in the next.
 fn parse_inline_content(
     grammar: &tree_sitter::Language,
     block_tree: &Tree,
@@ -258,8 +258,8 @@ pub struct Parsed {
     /// Byte spans of Helm `{{ ... }}` template actions, masked out before YAML parsing.
     pub masked_spans: Vec<Span>,
     /// Why facts drawn from this tree fall short of the file, empty when they do not. Settled
-    /// here because the reasons need the original source, which the tree does not keep, because
-    /// every caller that indexes a file needs the same answer.
+    /// here because the reasons need the original source, which the tree does not keep. Every
+    /// caller that indexes a file needs the same answer.
     pub gaps: Vec<FactGap>,
 }
 
@@ -457,9 +457,9 @@ fn find_template_actions(source: &str) -> Vec<Span> {
             let start = i;
             i += 2;
 
-            // A comment's body is opaque: `{{- /* #j={{ $j }} */}}` is one action, and
-            // stopping at the first `}}` left ` */}}` behind as text the YAML grammar
-            // then had to make sense of.
+            // A comment's body is opaque. `{{- /* #j={{ $j }} */}}` is one action, and
+            // stopping at the first `}}` left ` */}}` behind for the YAML grammar to puzzle
+            // over.
             let after_dash = i + usize::from(bytes.get(i) == Some(&b'-'));
             let body = source[after_dash.min(source.len())..].trim_start();
             if body.starts_with("/*") {
@@ -534,11 +534,11 @@ fn mask_spans(source: &str, spans: &[Span]) -> String {
             // A plain-scalar character, so the surrounding text still parses as a value.
             b'x'
         };
-        // The scalar filler belongs to the line the action starts on. An action that runs over
-        // a newline continues on lines of its own. A scalar character at the start of one of
-        // those is content the surrounding structure did not ask for, inside a block scalar it
-        // lands at column zero and ends the block. `SERVICE_NAMES="{{` with its body on the
-        // next line does that.
+        // The scalar filler belongs to the line the action starts on. An action that runs
+        // over a newline continues on lines of its own. A scalar character at the start of
+        // one of those is content the surrounding structure never asked for. Inside a block
+        // scalar it lands at column zero and ends the block. `SERVICE_NAMES="{{` with its
+        // body on the next line does that.
         let mut seen_newline = false;
         for b in &mut out[span.start..span.end] {
             match *b == b'\n' {
@@ -662,12 +662,12 @@ fn supplies_the_block_below(source: &str, spans: &[Span], span: Span) -> bool {
 
 /// The expression a declaration binds, where the grammar exposes one.
 ///
-/// One definition, because there were three and they disagreed. Each was written against the
-/// languages its caller had in front of it, and each missed a different grammar: a Java local's
-/// value hangs off a declarator and not off the declaration, so `fr inline` called every Java
-/// local uninitialised. `fr type` answered `var`, the keyword that means "work it out", as
-/// though it were the type written down, because it could not reach the value to work anything
-/// out from.
+/// One definition, because there were three and they disagreed. Each one was written against
+/// the languages its caller had in front of it, and each missed a different grammar. A Java
+/// local's value hangs off a declarator rather than the declaration, so `fr inline` called
+/// every Java local uninitialised. `fr type` answered `var`, the keyword meaning "work it
+/// out", as though somebody had written that type down. It could not reach the value to work
+/// anything out from.
 ///
 /// The shapes, and why each is here:
 ///
@@ -820,9 +820,9 @@ mod tests {
 
     #[test]
     fn adjacent_actions_in_a_value_still_parse() {
-        // `name: {{.Release.Name}}-{{.Chart.Name}}` is ordinary Helm. Masking with
-        // spaces left `name:` followed by a lone `-`, which YAML rejects: 28 of the
-        // 37 parse failures across the Helm repository were this one shape.
+        // `name: {{.Release.Name}}-{{.Chart.Name}}` is ordinary Helm. Masking with spaces
+        // left `name:` followed by a lone `-`, which YAML rejects. This one shape caused 28
+        // of the 37 parse failures across the Helm repository.
         let src = "metadata:\n  name: {{.Release.Name}}-{{.Chart.Name}}\n";
         let parsed = parse(Language::Helm, src);
         assert!(

@@ -1,9 +1,9 @@
 //! Refactorings.
 //!
-//! Every refactoring returns a *plan*, an [`crate::edit::EditSet`] plus whatever it
-//! could not do, instead of touching files. The caller renders a diff or commits.
-//! Nothing is ever half-applied, and nothing that could not be verified is rewritten
-//! silently (PLAN.md D8).
+//! Every refactoring returns a *plan*: an [`crate::edit::EditSet`] plus whatever it
+//! could not do. The caller renders a diff or commits, so no refactoring touches a
+//! file itself. A plan never half-applies, and the tool rewrites nothing it could not
+//! verify (PLAN.md D8).
 
 pub mod cascade;
 pub mod delete;
@@ -19,16 +19,15 @@ pub mod signature;
 use serde::Serialize;
 use std::path::PathBuf;
 
-/// Is this node kind a container whose children are statements?
+/// Reports whether this node kind is a container whose children are statements.
 ///
-/// Shared because getting it wrong is not a cosmetic matter: several refactorings ask "is this
-/// the last statement in its block". A wrapper node mistaken for a statement makes a block of
-/// many look like a block of one. Go's `statement_list` sits between a block and its statements
-/// and did that, which let a guard clause hoist code out from under the condition that guarded
-/// it.
+/// Several refactorings ask whether a node is the last statement in its block. A
+/// wrapper node counted as a statement makes a block of many look like a block of
+/// one. Go's `statement_list` sits between a block and its statements, so counting it
+/// hoists a guard clause out from under its condition.
 ///
-/// Shell function bodies are `compound_statement`, which no other grammar in the set uses. So
-/// the list is not the same as the one extraction alone would need.
+/// Shell function bodies are `compound_statement`, which no other grammar in the set
+/// uses. The list therefore covers more kinds than extraction alone needs.
 pub(crate) fn is_statement_container(kind: &str) -> bool {
     kind.contains("block")
         || kind.contains("body")
@@ -40,11 +39,11 @@ pub(crate) fn is_statement_container(kind: &str) -> bool {
         || kind == "subshell"
 }
 
-/// Is this node kind a definition whose body holds members rather than statements?
+/// Reports whether this node kind holds members in its body rather than statements.
 ///
 /// A function spliced into one of these becomes a method, reachable only through a
-/// receiver, so a plain call to it does not resolve. Extraction hoists past every one of
-/// these instead of writing the definition where the member would go.
+/// receiver, so a plain call to it does not resolve. Extraction hoists past every one
+/// of these instead of writing the definition where a member would go.
 pub(crate) fn is_type_definition(kind: &str) -> bool {
     matches!(
         kind,
@@ -59,7 +58,7 @@ pub(crate) fn is_type_definition(kind: &str) -> bool {
     )
 }
 
-/// Is this node kind a function, so its body is a scope the names inside it belong to?
+/// Reports whether this node kind is a function, whose body scopes the names inside it.
 ///
 /// Hoisting stops at one of these. A definition moved past a function loses the
 /// enclosing locals it reads, and nothing puts them back.
@@ -80,10 +79,9 @@ pub(crate) fn is_function_definition(kind: &str) -> bool {
     )
 }
 
-/// Something a refactoring found but deliberately did not act on.
+/// Something a refactoring found and deliberately did not act on.
 ///
-/// Warnings say what the tool saw, why it
-/// declined, and where a human should look.
+/// A warning says what the tool saw, why it declined, and where a human should look.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Warning {
     pub kind: WarningKind,
@@ -119,9 +117,9 @@ impl WarningKind {
 
 /// One place a refusal is about, carried as data beside the prose.
 ///
-/// An ambiguity's rival definitions ride in the JSON error as `candidates`. The
-/// sites blocking a refusal rode only in its prose, and an agent had to parse the
-/// message back apart. This is the same fact as a field.
+/// An ambiguity's rival definitions ride in the JSON error as `candidates`. These
+/// sites ride the same way, so an agent reads them without parsing the prose back
+/// apart.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct RefusalSite {
     pub file: PathBuf,
@@ -136,18 +134,16 @@ pub enum Refusal {
     NameCollision { existing: String, file: PathBuf },
     /// A name inside the value means something else where the value would be moved to.
     ///
-    /// Distinct from a collision, which is about the name being introduced. This is about a
-    /// name being *carried*: substituting `price_of(order)` into a scope where `order` is a
-    /// different binding changes what the code does. Saying "renaming would shadow or collide
-    /// with it" describes neither the operation nor the fault.
+    /// A collision concerns the name being introduced. This concerns a name being
+    /// *carried*: substituting `price_of(order)` into a scope where `order` is a
+    /// different binding changes what the code does.
     NameCaptured { name: String, file: PathBuf },
     /// The rename would move a use under a different declaration of the same name.
     ///
-    /// Neither of the above: nothing collides, and no value is carried anywhere. Both
-    /// declarations stay where they are, and what changes is which one a use binds
-    /// to. An inner `let temp` can stand between an outer `value` and its use.
-    /// Renaming `value` to `temp` turns that use into a read of the inner binding,
-    /// and the file still compiles.
+    /// Nothing collides here, and no value travels. Both declarations stay put, and
+    /// only the binding a use resolves to changes. An inner `let temp` can stand
+    /// between an outer `value` and its use. Renaming `value` to `temp` turns that use
+    /// into a read of the inner binding, and the file still compiles.
     ScopeCaptured {
         name: String,
         file: PathBuf,
@@ -156,37 +152,24 @@ pub enum Refusal {
     },
     /// The requested name is not a valid identifier for the language.
     InvalidName { name: String, reason: String },
-    /// The operation is not implemented for this language. The operation has no meaning in this
-    /// language.
+    /// The operation has no meaning in this language, so the tool does not implement it.
     ///
-    /// `because` exists so that `language` can be the language. Without it, ten of the fifteen
-    /// sites raising this wrote `format!("{lang} — {reason}")` into a field named `language`.
-    /// One wrote "a variable is not a flag", which is not a language at all. The field's name
-    /// and type had stopped being true.
+    /// `language` holds the language and nothing else. Put the reason in `because`.
     Unsupported {
         operation: String,
         language: crate::lang::Language,
-        /// Why *the language* cannot, which is a property of the language and of nothing else.
-        /// `&'static str` and not `String`, because that makes the rule hold. A reason about
-        /// this particular input has a path or a name interpolated into it. An interpolated
-        /// reason will not fit here.
-        ///
-        /// Adding `because` at all was the previous attempt. It made the mistake easier to
-        /// avoid and did not stop it. `fr move` went on to tell a Rust user that Rust was
-        /// unsupported when the fault was a destination outside `src/`. Four more sites were
-        /// doing the same with crate roots and relative paths. A field that can be filled in
-        /// correctly is not a field that cannot be filled in wrongly.
+        /// Why *the language* cannot, a property of the language and of nothing else.
+        /// The type is `&'static str` so the rule holds. A reason about one particular
+        /// input interpolates a path or a name into itself, and no interpolated string
+        /// fits here. A fault that belongs to the files goes to [`Refusal::NotHere`].
         because: &'static str,
     },
-    /// The operation cannot be performed on *these* files, for a reason that is not the
-    /// language's.
+    /// These files block the operation, for a reason the language does not own.
     ///
-    /// Two paths in different crates, a directory that is its own Terraform module, a relative
-    /// import that would climb out of its root. Each of these was once a
-    /// [`Refusal::Unsupported`] naming the language, which said the opposite of what the
-    /// capability matrix says and of what the command does elsewhere. They are still considered
-    /// refusals, the tool declined on purpose and wrote nothing. This is where a considered
-    /// refusal goes when the language is not what is at fault.
+    /// Two paths in different crates, a directory that is its own Terraform module, a
+    /// relative import that would climb out of its root. The tool declined on purpose
+    /// and wrote nothing, so each of these counts as a considered refusal. Naming the
+    /// language instead would contradict the capability matrix.
     NotHere { operation: String, detail: String },
     /// Resolution was too weak to act on safely.
     TooWeak {
@@ -195,29 +178,26 @@ pub enum Refusal {
     },
     /// Two definitions answer to one name, so no call site can be attributed to either.
     ///
-    /// Not a [`Refusal::NameCollision`]: nothing is being introduced, and both
-    /// definitions were there before. Bash resolves this at run time by whichever
-    /// definition ran last, which no static reading can predict.
+    /// Both definitions were there before and the operation introduces nothing, which
+    /// separates this from [`Refusal::NameCollision`]. Bash resolves the name at run
+    /// time by whichever definition ran last, and no static reading predicts that.
     AmbiguousDefinition { name: String, file: PathBuf },
-    /// The symbol still has references that resolve to it, so deleting it would break them.
+    /// References still resolve to the symbol, so deleting it would break them.
     ///
-    /// The message carries the full listing, one blocking site per line. It was a plain
-    /// `anyhow!` before, which exited 1 while `fr --help` promised every considered
-    /// refusal exits 5. The exit code is chosen from the error's type, so the fix
-    /// belonged in the type. `references` is the same listing as data, for the JSON
-    /// error object.
+    /// `detail` carries the full listing, one blocking site per line, and `references`
+    /// carries the same listing as data for the JSON error object. The refusal has its
+    /// own type because the exit code comes from the error's type, and `fr --help`
+    /// promises every considered refusal exits 5.
     StillUsed {
         detail: String,
         references: Vec<RefusalSite>,
     },
     /// Something the tool cannot establish at all.
     ///
-    /// Distinct from [`Refusal::TooWeak`], which is about a resolution that exists and is not
-    /// strong enough to act on. These are the cases where there is nothing to be weak about. A
-    /// grammar that does not expose a call as a call, a shell script that sources a path
-    /// computed at run time. Reporting them as a confidence produced "resolution is only
-    /// 'exact'", which is a sentence that contradicts itself, and leaves the reader looking for
-    /// a resolution problem that is not there.
+    /// [`Refusal::TooWeak`] covers a resolution that exists and is too weak to act on.
+    /// Here no resolution exists at all. A grammar may never expose a call as a call,
+    /// or a shell script may source a path computed at run time. Reporting these as a
+    /// confidence produced the self-contradicting "resolution is only 'exact'".
     Unknowable { detail: String },
 }
 
@@ -275,8 +255,8 @@ impl std::fmt::Display for Refusal {
                 confidence.get().as_str()
             ),
             Refusal::NotHere { operation, detail } => write!(f, "{operation}: {detail}"),
-            // The detail is the whole message, worded at the site that knows the
-            // sites, so the wording did not change when the type did.
+            // `detail` holds the whole message, worded at the site that knows the
+            // blocking sites.
             Refusal::StillUsed { detail, .. } => f.write_str(detail),
             Refusal::Unknowable { detail } => {
                 write!(f, "{detail}. Refusing to change what cannot be checked")
@@ -288,8 +268,8 @@ impl std::fmt::Display for Refusal {
 impl Refusal {
     /// The positions this refusal is about, where it knows them exactly.
     ///
-    /// Variants that carry a file without a position stay out: inventing a line for
-    /// them would be data that looks measured and is not.
+    /// Variants that carry a file without a position stay out. Inventing a line for
+    /// them would report a measurement nobody took.
     pub fn references(&self) -> &[RefusalSite] {
         match self {
             Refusal::StillUsed { references, .. } => references,
@@ -325,10 +305,9 @@ pub(crate) fn receiver_declared_type(
 
 /// What the source says a reference's receiver holds, `this` and `self` apart.
 ///
-/// Three answers, because two of them are not the same silence. A receiver
-/// nothing describes and a receiver assigned two types are both unsafe to
-/// rewrite. A reader told the first about the second goes looking for an
-/// annotation that is already there.
+/// Three answers, because the two silences differ. A receiver nothing describes
+/// and a receiver assigned two types are both unsafe to rewrite. A reader told
+/// the first about the second hunts for an annotation that is already there.
 pub(crate) enum ReceiverType {
     /// The source states the type, and every assignment in scope agrees.
     Settled(String),
@@ -353,10 +332,10 @@ pub(crate) fn receiver_type(
 
 /// The type a reference's receiver is known to be, `this`/`self` included.
 ///
-/// The enclosing instance is the one receiver whose type is never a guess: it
-/// is the class this code is written in. Separate from
-/// [`receiver_declared_type`] because the warnings built on that one say
-/// "declared", which is not how `self` gets its type.
+/// The enclosing instance is the one receiver whose type is never a guess: the
+/// class this code is written in. [`receiver_declared_type`] stays separate
+/// because the warnings built on it say "declared", and `self` takes its type
+/// another way.
 pub(crate) fn receiver_known_type(
     index: &crate::index::Index,
     reference: &crate::model::Reference,
@@ -410,20 +389,18 @@ fn receiver_binding_type(
     let Some(binding) = binding else {
         return ReceiverType::Unwritten;
     };
-    // `var b = new B()` writes the type on the right of the `=`. The derivation
-    // is the source's own words as much as an annotation is, over the one
-    // assignment it reads. A name the scope assigns again holds two things, and
-    // this site is where that stops being evidence.
+    // `var b = new B()` writes the type on the right of the `=`, which counts as
+    // the source's own words. A name the scope assigns again holds two things, and
+    // this site stops treating it as evidence.
     let written = match crate::analysis::types::held_by(index, binding.id) {
         crate::analysis::types::Held::Settled(ty) => ty,
         crate::analysis::types::Held::Reassigned => return ReceiverType::Reassigned,
         crate::analysis::types::Held::Unwritten => return ReceiverType::Unwritten,
     };
-    // `List<Order>` names `List`; the last plain segment is the type's own name.
-    // `&Facts`, `*Buffer` and `?Handle` name the same types their sigils
-    // borrow, point at, or make optional. A receiver declared `&Facts` reaches
-    // what one declared `Facts` does, and the sigil made every such receiver
-    // read as unknown.
+    // `List<Order>` names `List`, and the last plain segment is the type's own
+    // name. `&Facts`, `*Buffer` and `?Handle` name the types their sigils borrow,
+    // point at or make optional. A receiver declared `&Facts` reaches what one
+    // declared `Facts` reaches, so strip the sigil.
     let base = written.split(['<', '[']).next().unwrap_or(&written).trim();
     let last = base.rsplit(['.', ':']).next().unwrap_or(base);
     let bare = last

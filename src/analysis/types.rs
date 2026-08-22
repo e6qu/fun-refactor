@@ -46,9 +46,9 @@ pub enum Basis {
 }
 
 impl Basis {
-    /// Prose for a reader, not an identifier. Named apart from the `as_str` that
-    /// several enums here use for their stable spelling, because conflating the two is
-    /// how `SymbolKind` came to print `"type"` in JSON and refuse to read it back.
+    /// Prose for a reader, not an identifier. This carries a different name from the `as_str`
+    /// several enums here use for their stable spelling. Conflating the two made `SymbolKind`
+    /// print `"type"` in JSON and then refuse to read it back.
     pub fn describe(&self) -> &'static str {
         match self {
             Basis::Literal => "from the literal",
@@ -122,10 +122,9 @@ impl Declared {
 /// a place to say it. Bash has no type syntax at all; markup and configuration have values and
 /// not declarations. A key in a YAML file is not annotated with anything.
 ///
-/// The list lived in the capability matrix and nowhere else. So the matrix said `n/a` for nine
-/// languages while [`of`] answered for all of them, with the empty answer that means "the
-/// source wrote nothing here", which is a different statement from "there is nowhere here to
-/// write".
+/// The list lived in the capability matrix and nowhere else. The matrix said `n/a` for nine
+/// languages while [`of`] answered for all of them. Its empty answer means "the source wrote
+/// nothing here", and that differs from "nowhere here to write".
 pub fn supports_declared_type(language: Language) -> bool {
     matches!(
         language,
@@ -307,9 +306,9 @@ fn assigned_name<'a>(node: Node<'a>) -> Option<Node<'a>> {
 
 /// How far a chain of derivations is followed.
 ///
-/// A binding assigned from a binding assigned from a call is three steps and readable.
-/// Beyond that the answer stops being something a reader can check at a glance, which is
-/// the only kind of answer this is willing to give.
+/// A binding assigned from a binding assigned from a call is three steps and readable. Beyond
+/// that, a reader can no longer check the answer at a glance. This function gives no other
+/// kind.
 const MAX_CHAIN: usize = 4;
 
 /// What follows from what the source declared, for a binding it left unannotated.
@@ -365,9 +364,9 @@ fn infer_bound(
 
 /// The expression a definition binds, where the grammar names one.
 ///
-/// The declaration itself first, through the one reader that knows every grammar's shape, and
-/// only then outwards: a Python `x: int = 1` hangs the value off the assignment and not off
-/// `x`. So the name alone is not always the declaration.
+/// Read the declaration itself first, through the one reader that knows every grammar's
+/// shape, and only then look outwards. A Python `x: int = 1` hangs the value off the
+/// assignment rather than off `x`. So the name alone is not always the declaration.
 fn assigned_value<'a>(
     parsed: &'a Parsed,
     language: Language,
@@ -532,11 +531,10 @@ fn infer_expression(
                 from: None,
             })
         }
-        // `Money(0, USD)` in Python, `new Money(...)` in TypeScript. The callee decides
-        // which of the two this is: a class is constructed, a function is called.
-        // Java spells a call `method_invocation` and a construction
-        // `object_creation_expression`, which is the same omission that once made
-        // `fr signature` refuse at every Java call site there has ever been.
+        // `Money(0, USD)` in Python, `new Money(...)` in TypeScript. The callee decides which
+        // of the two this is: a class is constructed, a function is called. Java spells a
+        // call `method_invocation` and a construction `object_creation_expression`. The same
+        // omission once made `fr signature` refuse at every Java call site.
         "call"
         | "call_expression"
         | "new_expression"
@@ -630,10 +628,10 @@ impl Declared {
 
 /// The type a literal states about itself.
 ///
-/// An object literal is deliberately absent. `{"amount": 100}` is a `dict` and saying so is
-/// true and useless, the whole subject of this is that a dictionary is where a type should have
-/// been. A tool that answers `dict` has agreed with the code and not described it. A list
-/// literal is the same shape of non-answer.
+/// An object literal is deliberately absent. `{"amount": 100}` is a `dict`, and saying so
+/// tells the reader nothing. This whole analysis exists because a dictionary sits where a
+/// type should have been. A tool that answers `dict` has agreed with the code and not
+/// described it. A list literal is the same shape of non-answer.
 ///
 /// Go and Java are here because each fixes the type at the declaration. `total := 0` is an
 /// `int` and `var s = "a"` is a `String`, whatever the code does later. Rust is absent for the
@@ -722,9 +720,9 @@ fn last_segment(text: &str) -> &str {
 
 /// A symbol of this name that the workspace defines, in the asking symbol's language.
 ///
-/// Same file first. A name that resolves to several things in one language is ambiguous and
-/// resolves to none of them here, for the reason every other lookup in this file gives. An
-/// answer picked by indexing order is not an answer.
+/// Same file first. A name that resolves to several things in one language is ambiguous, so
+/// it resolves to none of them here. Every other lookup in this file gives the same reason.
+/// An answer picked by indexing order is not an answer.
 fn resolve_in_workspace(index: &Index, from: &Symbol, name: &str) -> Option<SymbolId> {
     let candidates: Vec<&Symbol> = index
         .symbols
@@ -794,8 +792,8 @@ fn binding_type(parsed: &Parsed, source: &str, declaration: Span) -> Option<Stri
     let node = parsed
         .root()
         .descendant_for_byte_range(declaration.start, declaration.end)?;
-    // Outwards, because the name is often a child of the node carrying the type: a
-    // Python `x: int = 1` hangs the type off the assignment, not off `x`.
+    // Look outwards, because the name is often a child of the node carrying the type. A
+    // Python `x: int = 1` hangs the type off the assignment rather than off `x`.
     let mut current = Some(node);
     for _ in 0..4 {
         let here = current?;

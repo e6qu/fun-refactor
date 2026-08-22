@@ -157,8 +157,8 @@ pub struct Matcher {
     /// Symbol kind, e.g. function, block, key.
     ///
     /// The kind's own type, not its name. `symbol_kind: functoin` used to parse, load and
-    /// match nothing, which reads like a rule that is present and never
-    /// true, the same failure `deny_unknown_fields` catches for a misspelled key.
+    /// match nothing. It read like a rule that was present and never true, the failure
+    /// `deny_unknown_fields` catches for a misspelled key.
     #[serde(default)]
     pub symbol_kind: Option<SymbolKind>,
     /// The file name must equal this.
@@ -204,11 +204,10 @@ pub struct Matcher {
     pub file_directive: Option<String>,
     /// The declaration begins with this keyword.
     ///
-    /// Zig writes a test as `test "any prose you like" { … }`, so the name a rule could
-    /// match on is the description. `zig-test` asked for `name_prefix: test` and found
-    /// 12 of the 495 test blocks in Zig's standard library, the ones whose description
-    /// happens to begin with "test". The other 483 read as dead code, and so did
-    /// anything only they called.
+    /// Zig writes a test as `test "any prose you like" { … }`, so the name a rule could match
+    /// on is the description. `zig-test` asked for `name_prefix: test` and found 12 of the
+    /// 495 test blocks in Zig's standard library. Those twelve have a description beginning
+    /// with "test". The other 483 read as dead code, and so did anything only they called.
     #[serde(default)]
     pub declaration_keyword: Option<String>,
     /// The annotation's first string argument must start with this.
@@ -225,11 +224,11 @@ pub struct Matcher {
 impl Matcher {
     /// Does this matcher say anything at all?
     ///
-    /// Destructured and not tested field by field, so that adding a condition to `Matcher`
-    /// fails to compile here instead of being quietly left out of the answer. Three had been: a
-    /// rule whose only condition was `symbol_kind`, `exported` or `top_level` counted as saying
-    /// nothing. A rule that says nothing matched nothing, silently, and in a way that reads
-    /// like a rule that is never true.
+    /// Destructure it rather than testing field by field. Adding a condition to `Matcher`
+    /// then fails to compile here, instead of dropping out of the answer without a word.
+    /// Three had been: a rule whose only condition was `symbol_kind`, `exported` or
+    /// `top_level` counted as saying nothing. A rule that says nothing matched nothing,
+    /// silently, and in a way that reads like a rule that is never true.
     pub fn names_a_condition(&self) -> bool {
         let Matcher {
             file_prefix,
@@ -362,10 +361,10 @@ impl Catalog {
         let mut found = Vec::new();
         // One read per symbol instead of one per rule. Three of the predicates below need the
         // file's text. Asking each of them separately read the whole file once for every rule
-        // in the catalogue, on `vuejs/core`, 34,611 symbols against the rules that apply to
-        // TypeScript, which doubled the time this command takes. The index groups a file's
-        // symbols together, so remembering the last one is enough; a file that cannot be read
-        // is retried and not remembered.
+        // in the catalogue. On `vuejs/core` that meant 34,611 symbols against every
+        // TypeScript rule, and it doubled the time this command takes. The index groups a
+        // file's symbols together, so remembering the last one is enough; a file that cannot
+        // be read is retried and not remembered.
         let mut cached: Option<(std::path::PathBuf, String)> = None;
         for symbol in &index.symbols {
             if cached.as_ref().is_none_or(|(path, _)| path != &symbol.file) {
@@ -613,9 +612,9 @@ fn module_function(index: &Index, module: &str, function: &str) -> Option<Symbol
 ///
 /// This is a type and not a `&[SymbolId]` because an empty slice is a legal value with a
 /// catastrophic meaning: nothing is reachable. So everything not exported reads as dead. The
-/// playground shipped that, twenty symbols reported dead in the browser that the terminal
-/// reported live, including every `#[test]` function, because one caller passed `&[]` where the
-/// other passed a detected catalog, and both type-checked.
+/// playground shipped that. Twenty symbols the terminal reported live came back dead in the
+/// browser, every `#[test]` function among them, because one caller passed `&[]` where the
+/// other passed a detected catalog and both type-checked.
 ///
 /// Now a caller has to say which it means. There is no way to end up with no roots by omission;
 /// [`Entrypoints::none`] exists, but you have to ask for it by name.
@@ -774,11 +773,10 @@ pub fn summarise(entries: &[Entrypoint]) -> BTreeMap<&'static str, usize> {
 /// `#[test]` four declarations up does not leak onto this one.
 /// Is an annotation with this name written on the symbol?
 ///
-/// Two shapes. Rust and Python put an annotation on its own line above the definition,
-/// so the search walks back through the run of `#[…]` and `@…` lines. Java puts it
-/// inside the declaration, in the `modifiers` node, `@Test public void f()`, within
-/// the symbol's own span, where a backwards search from that span's start never reaches
-/// it.
+/// Two shapes. Rust and Python put an annotation on its own line above the definition. The
+/// search therefore walks back through the run of `#[…]` and `@…` lines. Java puts it inside
+/// the declaration, in the `modifiers` node, as in `@Test public void f()`. It sits within
+/// the symbol's own span, where a backwards search from that span's start never reaches it.
 ///
 /// Public so a recipe's `annotated-with=` predicate shares it instead of reimplementing
 /// it.
@@ -947,10 +945,10 @@ fn calls_by_name(node: tree_sitter::Node<'_>, source: &str) -> Vec<String> {
 
 /// Is this symbol under a directive, at the top of its file, or of its own body?
 ///
-/// Both forms are real. `"use server"` at the top of a file makes every export in it a
-/// server action; the same string at the top of one function body marks only that one.
-/// Quoted either way, and the first statement either way, which keeps a mention
-/// of the words in a comment or a string from counting.
+/// Both forms are real. `"use server"` at the top of a file makes every export in it a server
+/// action. The same string at the top of one function body marks that function alone. Quoted
+/// either way, and the first statement either way, which keeps a mention of the words in a
+/// comment or a string from counting.
 fn under_directive(source: &str, symbol: &Symbol, directive: &str) -> bool {
     let quoted = |line: &str| {
         let trimmed = line.trim().trim_end_matches(';').trim();
@@ -1378,11 +1376,11 @@ mod tests {
 
     #[test]
     fn coverage_gaps_are_reportable() {
-        // This used to assert that each gap's *name* was a non-empty string, which is true of
-        // every `&'static str` in the enum and would have passed had the function returned
-        // nothing, everything, or the wrong languages entirely. The report tells a reader which
-        // languages have no entry-point rules. The only way that is worth printing is if it
-        // agrees with which languages have none.
+        // This used to assert that each gap's *name* held a non-empty string. Every `&'static
+        // str` in the enum satisfies that, so the check passed whether the function returned
+        // nothing, everything, or the wrong languages entirely. The report tells a reader
+        // which languages have no entry-point rules. The only way that is worth printing is
+        // if it agrees with which languages have none.
         let catalog = Catalog::builtin().unwrap();
         let gaps = languages_without_rules(&catalog);
 

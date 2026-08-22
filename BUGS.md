@@ -3,7 +3,7 @@
 Known defects and limitations, and their status. Updated alongside PLAN.md at every
 stage.
 
-Format: `- [ ] B<N>: <symptom> — <where> — <status/notes>`
+Format: `- [ ] B<N>: <symptom>`, then where it happens, then status and notes.
 
 Open entries are characterised limitations: the behaviour is reported and no operation
 silently does the wrong thing.
@@ -21,10 +21,10 @@ if the report went away.
 
 Re-triaged against this branch. Every entry below still reproduces; none was found to be
 stale. Eight are limits of a published grammar. Each names the construct the grammar has no
-rule for, at the version this build pins: `tree-sitter` 0.26.11, with
-`tree-sitter-go` 0.25.0, `tree-sitter-python` 0.25.0, `tree-sitter-typescript` 0.23.2,
-`tree-sitter-zig` 1.1.2 and `tree-sitter-scss` 1.0.0. The version is part of the claim: an
-upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails when it does.
+rule for. This build pins `tree-sitter` 0.26.11, with `tree-sitter-go` 0.25.0,
+`tree-sitter-python` 0.25.0, `tree-sitter-typescript` 0.23.2, `tree-sitter-zig` 1.1.2 and
+`tree-sitter-scss` 1.0.0. The version carries part of the claim. An upgrade retires one of
+these entries, and `tests/known_grammar_gaps.rs` fails when it does.
 
 - [ ] B283: `.sass` maps to `Language::Scss`, and the indented syntax is not SCSS. Sass
   has two syntaxes, the braced one in `.scss` files and the older whitespace-significant
@@ -39,13 +39,20 @@ upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails wh
   grammar.
 
 - [ ] B5: `find_unused` and the call graph follow class-hierarchy dispatch as well as
-  resolved calls: a Rust `impl Trait for Type` (supertraits included), a Go interface
-  whose method set a type covers by name and arity, a TypeScript `implements`/`extends`
-  clause, and a Python base class each fan an unresolved method call out to every
-  implementation, tagged `field-based`, counted apart from resolved edges by
-  `fr graph`, and named as the reason a symbol was spared. TypeScript additionally
-  falls back to matching the method name alone where no `implements` is written, which
-  is unsound by design and labelled `method-name` and not `declared-supertype`.
+  resolved calls. Four declarations each fan an unresolved method call out to every
+  implementation:
+
+  * a Rust `impl Trait for Type`, supertraits included;
+  * a Go interface whose method set a type covers by name and arity;
+  * a TypeScript `implements`/`extends` clause;
+  * a Python base class.
+
+  Each fanned-out edge carries the tag `field-based`. `fr graph` counts it apart from
+  resolved edges, and the report names it as the reason a symbol was spared.
+  TypeScript additionally falls back to matching the method name alone where no
+  `implements` is written. That fallback is unsound by design, and it carries the
+  label `method-name` rather than `declared-supertype`.
+
   What remains is undecidable from the source, not unimplemented: a function held in a
   map, a struct field or a variable and called through it. Nothing declares it a
   method of any type, so there is no method set to look it up in. A name assembled
@@ -54,25 +61,28 @@ upgrade is what retires one of these, and `tests/known_grammar_gaps.rs` fails wh
   as possibly hiding uses. Zig (comptime duck typing) and Bash declare no
   implements-relationship at all, so neither has a hierarchy to read.
 
-- [ ] B13: an answer from supplied values inputs is only as complete as the
-  description of them. Given `--set` but no `-f`, or the reverse, the competition is decided *given the
-inputs supplied* and says so. It names the channel it was never told about; nothing infers an invocation. Three narrower edges: `--set ports[0].name`
-  and `--set ports[1].name` address the same key path, because the symbol index
-  records mapping paths without list indices. `--set x=null`, which deletes a key in
-  Helm, is ranked as a source that supplies it. And `{a,b}` list literals, `--set-file`
-  and `--set-json` are refused by name and not half-applied.
+- [ ] B13: an answer about supplied values is only as complete as the description the
+  caller gives. Given `--set` but no `-f`, or the reverse, the tool decides the
+  competition *given the inputs supplied* and says so. It names the channel nobody told
+  it about, and it infers no invocation. Three narrower edges remain.
+  `--set ports[0].name` and `--set ports[1].name` address the same key path, because
+  the symbol index records mapping paths without list indices. `--set x=null`, which
+  deletes a key in Helm, ranks as a source that supplies it. And the tool refuses
+  `{a,b}` list literals, `--set-file` and `--set-json` by name rather than
+  half-applying them.
 
-- [ ] B14: a CSS class named inside a TSX helper call or template literal,
-  `className={cx("btn", active && "on")}`, `` className={`btn ${size}`} ``, is not
-  resolved, because only a plain string attribute value is captured. A rename of that
-  class rewrites the plain `className="btn"` uses and leaves the helper ones. The
-  textual sweep does report each missed site as needing review. So the result is
-  incomplete and not silently wrong. Resolving them means teaching the TSX queries
-  which call arguments are class lists, which is a per-library convention (`clsx`,
-  `cx`, `classnames`, `cva`, `tailwind-merge`) instead of a language rule.
+- [ ] B14: the resolver misses a CSS class named inside a TSX helper call or template
+  literal. `className={cx("btn", active && "on")}` and `` className={`btn ${size}`} ``
+  both go unresolved, because the queries capture a plain string attribute value and
+  nothing else. A rename of that class rewrites the plain `className="btn"` uses and
+  leaves the helper ones. The textual sweep does report each missed site as needing
+  review. So the result is incomplete and not silently wrong. Resolving them means
+  teaching the TSX queries which call arguments hold class lists. Each library sets its
+  own convention there (`clsx`, `cx`, `classnames`, `cva`, `tailwind-merge`), so no
+  language rule covers it.
 
-  Measured over grafana/grafana's 4,400 TSX files, `className` is written as:
-  `styles.x` from CSS-in-JS 3,233 times, `cx(…)` 381, a plain string literal 224, a
+  Across grafana/grafana's 4,400 TSX files, `className` takes four forms. CSS-in-JS
+  `styles.x` appears 3,233 times, `cx(…)` 381, a plain string literal 224, a
   template literal 28. So the helper form outnumbers the resolvable one, and closing
   this would roughly triple the reach of a stylesheet-class rename in a modern React
   codebase. The CSS-in-JS majority is a different matter and out of scope: there is no
@@ -104,13 +114,13 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   * **`@use 'x' as t`**, and so the namespaced `@include t.m(…)` that follows it. None in
     bootstrap; found by hand.
 
-  Masking the rest was measured and rejected: they fix 23 more files' error counts and
+  A measurement rejected masking the rest. They fix 23 more files' error counts and
   recover **no** facts, because their error nodes stay inside the construct. Blanking
   valid source for nothing is a worse trade than the parse error. Fixing them properly is
-  upstream grammar work: `tree-sitter-scss` 1.0.0 has no rule accepting an interpolation
-  inside a declaration value, an empty parameter list on `@mixin` or `@include`, a nested
-  selector opening with a combinator, a map literal, `and` or `or` in an `@if` condition,
-  `!default`, or a namespace on `@use`.
+  upstream grammar work. `tree-sitter-scss` 1.0.0 has no rule for an interpolation
+  inside a declaration value, or for an empty parameter list on `@mixin` or `@include`.
+  It rejects a nested selector opening with a combinator, a map literal, and `and` or
+  `or` in an `@if` condition. It rejects `!default` and a namespace on `@use`.
 
   Corrected: this entry previously said `@content` inside a mixin was among them, from
   the grafana run. It parses, bare, nested, and with arguments, so the claim was either
@@ -165,15 +175,27 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   0.23.2 has no rule for an `import` type.
 
 - [ ] B133: `tree-sitter-zig` requires at least one member in a struct. So it cannot
-  parse `const Foo = struct {};`, which is ordinary Zig, and is the only parse failure
-  across 29 files of Zig's own standard library (`json/static_test.zig:465`). The tool's own check would
-  therefore refuse to write a correct file. So an empty record is written with an empty
+  parse `const Foo = struct {};`, which is ordinary Zig. That line is the only parse
+  failure across 29 files of Zig's own standard library (`json/static_test.zig:465`).
+  The tool's own check would therefore refuse to write a correct file. So an empty record is written with an empty
   `comptime {}` block in it, under a comment saying why. That block does nothing, both
   Zig and the grammar accept it, and the alternative was refusing to translate a type
   with no fields at all. `tree-sitter-zig` 1.1.2 requires at least one member in a
   container declaration.
 
 ## Fixed
+
+- [x] B726: **the project wrote one way and its tutorial wrote another.**
+  The type-safety page had learned to put a doer in every subject. It
+  gave an instruction wherever a reader can act. The rest of the repository still
+  reported arrangements, hid its actors, and reached for the phrases a
+  language model reaches for. This pass carried the doctrine across
+  everything. It covered nine documents, from the README to the glossary,
+  nine site pages, and the comment bodies of the source. `docs/style.md`
+  gained the doctrine, the sentence rhythms to ration, and the phrase
+  list. Long sentences fell from 947 to 484 and em-dashes from 52 to 34.
+  Self-reference fell from 50 to 34 and false comparisons from 19 to 13.
+  `tools/PROSE-DEBT` records every new number.
 
 - [x] B725: **the tutorial described its own lessons instead of giving
   them.** Every verdict paragraph reported an arrangement.
@@ -246,15 +268,15 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   answers in a fifth of a second.
 
 - [x] B715: **inlining a wrapped binding left a line of whitespace.** The
-  removal compared only the first line, so a `let` wrapped over several lines
+  removal compared only the first line. A `let` wrapped over several lines
   was cut from its keyword to its `;`, and the first line's indentation stayed
   behind as trailing whitespace. The whole lines go when nothing else sits on
   them.
 
 - [x] B716: **`guard-clause` negated one atom and called it the condition.**
-  `!path.is_empty() && !seen` guarded a push; the double-negative rule
-  stripped the leading `!`, so the guard became `path.is_empty() && !seen`
-  and let every duplicate through, silently, on this repository's own
+  `!path.is_empty() && !seen` guarded a push. The double-negative rule
+  stripped the leading `!`, so the guard became `path.is_empty() && !seen`.
+  Every duplicate went through silently, on this repository's own
   `values_paths`. The `!` covers one atom. A top-level `and`/`or` means the
   negation goes round the outside.
 
@@ -295,9 +317,9 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   is no arithmetic; the draft carries it marked.
 
 - [x] B706: **a path written inside a macro resolved name-only.**
-  `assert_eq!(fun_refactor::model::anchor_slug(x), y)` spells the whole path,
-  and a macro body is tokens, so no rule read it: the reference fell to the
-  weakest tier and `fr signature` refused the change. The tokens are walked
+  `assert_eq!(fun_refactor::model::anchor_slug(x), y)` spells the whole path.
+  A macro body is tokens, so no rule read it. The reference fell to the
+  weakest tier, and `fr signature` refused the change. The tokens are walked
   now, and the path becomes the receiver. A trailing module segment resolves
   to the file it names, the way the module tree names files.
 
@@ -326,8 +348,8 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   carry imports.
 
 - [x] B705: **`fr refs` could not predict what `fr rename` rewrites.** The
-  tiers alone under-answer: a field-based `s.pending` whose receiver is
-  declared `*BatchSink` rewrites too, and only the rename logic knew it, so
+  tiers alone under-answer. A field-based `s.pending` whose receiver is
+  declared `*BatchSink` rewrites too, and only the rename logic knew it. So
   the playground's fidelity sweep and any agent reading `--json` guessed low.
   Every reference now carries `rewritable`, computed from the rename's own
   plan, and the sweep checks the writes against the tool's own claim.
@@ -355,8 +377,8 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   workspace; its liveness answer stays with the reindexed file.
 
 - [x] B703: **two meanings on one span doubled ordinary references.** The
-  shorthand fix first kept a field and a value reading of *every* span, so a
-  Python keyword argument counted twice and `fr usages` disagreed with the
+  shorthand fix first kept a field and a value reading of *every* span. A
+  Python keyword argument counted twice, and `fr usages` disagreed with the
   index's own reference count. The second meaning arrives marked as a twin
   now, and only a genuine shorthand carries one.
 
@@ -367,14 +389,14 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   written down.
 
 - [x] B691: **a comma-separated `data-*` value was one symbol.** `data-quiz=
-  "a,b,c"` names three hooks a script reads one at a time, and it was indexed
-  as one name containing commas, so no part of it could ever match a use and
+  "a,b,c"` names three hooks a script reads one at a time. The index stored it
+  as one name containing commas. No part of it could ever match a use, and
   all three read as dead. Values fan out on commas as on spaces, in
   definitions as in references.
 
 - [x] B692: **an enum variant used from another file read as dead.** Rust
-  variants were captured as unqualified fields, so a cross-file
-  `Shape::Square(side)` resolved to nothing: this repository's own `Stmt::Let`,
+  variants were captured as unqualified fields. So a cross-file
+  `Shape::Square(side)` resolved to nothing. This repository's own `Stmt::Let`,
   matched seventeen times in one writer, was listed for deletion. A variant is
   a constant qualified by its enum now, the way Java's constants already were,
   and a variant rename reaches every match arm.
@@ -406,25 +428,24 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   `{ count }` had the same defect and takes the same fix.
 
 - [x] B697: **a field rename left `f.count` behind, blaming its own type.**
-  A struct was no container, so its fields had no owner, and the
-  declared-receiver rule refused `f.count` on an `&Facts` receiver with a
-  reason naming the very type being renamed. Structs qualify their fields now,
+  A struct was no container, so its fields had no owner. The declared-receiver
+  rule refused `f.count` on an `&Facts` receiver, with a reason naming the very
+  type being renamed. Structs qualify their fields now,
   and a declared type sheds its sigils: `&Facts`, `*Buffer` and `?Handle`
   reach what the bare names do.
 
 - [x] B698: **a local answered calls outside its scope.** Scopes were the
-  function's *body*, so parameters, declared before the block opens, spilled
-  into the enclosing module: a call to `fn stmt` resolved to a sibling
-  function's `stmt` parameter whenever the parameter sat nearer, and `fr
-  delete` offered the live function for deletion. Rust, Python, TypeScript
+  function's *body*. So parameters, declared before the block opens, spilled
+  into the enclosing module. A call to `fn stmt` resolved to a sibling
+  function's `stmt` parameter whenever the parameter sat nearer. `fr delete`
+  then offered the live function for deletion. Rust, Python, TypeScript
   and Java all scoped only the body. All four scope the whole definition now,
   and a local below file scope is no candidate outside its own chain.
 
-- [x] B699: **`fr delete` kept an orphaned import in silence.** Deleting the
-  only user of a `use` leaves an import that caution about traits rightly
-  keeps. The command said nothing, so the surprise arrived from
-  `-D warnings`. The kept import is named up front, with the
-  reason.
+- [x] B699: **`fr delete` kept an orphaned import in silence.** Deleting a
+  `use`'s only user leaves an import that trait caution rightly keeps. The
+  command said nothing, so the surprise arrived from `-D warnings`. The report
+  names the kept import up front, with the reason.
 
 - [x] B700: **a foreign trait's impl read as dead.** `impl Deserialize for
   AppliesTo` is called by serde, `impl Display` by every `format!`. The
@@ -433,8 +454,8 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   reason written down.
 
 - [x] B666: **a hoisted Python definition landed with a method's spacing.**
-  Fixing B660 moved an extracted definition out of the class it was written
-  in, to module scope, where `black` wants two blank lines in front of it and
+  Fixing B660 moved an extracted definition to module scope. It had been
+  written inside a class. `black` wants two blank lines in front of it and
   got one. Verified against `black --check`, which now leaves the output
   unchanged. A definition that stays a class member still takes one.
 
@@ -499,9 +520,9 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   Every command takes it, because every command scans.
 
 - [x] B626: **asked from a subdirectory, every command answered about that
-  subdirectory.** The root defaulted to `.`, so `fr usages` run in `pkg/deep`
-  reported "0 use(s)" of a function `main.py` calls, `fr delete` offered to
-  remove it, and `fr rename` renamed the definition and left the caller reading
+  subdirectory.** The root defaulted to `.`. So `fr usages` run in `pkg/deep`
+  reported "0 use(s)" of a function `main.py` calls. `fr delete` offered to
+  remove it. `fr rename` renamed the definition and left the caller reading
   a name nothing declares. All three exited zero and reported success. That is
   the worst shape a wrong answer takes. A shell sits in a subdirectory far more
   often than at a repository root, and an agent's shell almost always does.
@@ -616,9 +637,9 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   `kept_imports`. The workspace sweep prints the count and names the command that
   gives the reason. Pinned in `tests/cli.rs`.
 
-- [x] B683: **`fr impact` left out what `fr rename` reports.** The name written as
-  text is invisible to every resolver: an `__all__` entry, a line of
-  documentation, a CI script. `fr rename` sweeps for those and lists each one.
+- [x] B683: **`fr impact` left out what `fr rename` reports.** No resolver sees a
+  name written as text. An `__all__` entry, a line of documentation, a CI script
+  all hide one. `fr rename` sweeps for those and lists each one.
   The tool suggests `fr impact` before that rename, and it ran no such
   sweep. So it answered one site where the rename showed three. A reader met
   the rest after committing to the change. It runs the same sweep now, from
@@ -1418,9 +1439,9 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   `tests/rename_property_family.rs`.
 
 - [x] B412: **`fr inline --call` pasted a callee's module globals across files.**
-  `clamp` read `LIMIT` from beside itself; pasted into another file the name
-  meant nothing there, and the paste compiled, ran, and raised NameError with
-  no warning. A body name defined beside the callee and invisible at the call
+  `clamp` read `LIMIT` from beside itself. Pasted into another file, the name
+  meant nothing there. The paste compiled, ran, and raised NameError without a
+  warning. A body name defined beside the callee and invisible at the call
   site refuses, named. Pinned in `tests/inline_call.rs`.
 
 - [x] B411: **`fr move` broke Python importers twice over.** Code moved into the
@@ -1432,8 +1453,8 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   imports. Pinned in `tests/move_languages.rs`.
 
 - [x] B410: **a receiver's declared type did not hold its call still.** Renaming
-  `A`'s overloads took `b.size(2)` with them as a dispatch candidate, though
-  `b` is declared `B` and `B` answers `size` itself; javac refused the result.
+  `A`'s overloads took `b.size(2)` with them as a dispatch candidate. `b` is
+  declared `B`, and `B` answers `size` itself, so javac refused the result.
   A dispatch-candidate site whose receiver's declared type sits outside the
   family stays, and the warning names the type instead of claiming it unknown.
   The same evidence holds `fr signature` still. Pinned in
@@ -1441,19 +1462,19 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 - [x] B409: **TypeScript overload signatures renamed apart from their
   implementation.** Two `function pick` declarations over one body are one
-  function; renaming any alone left `error TS2389`. Same name, same file, same
+  function. Renaming any alone left `error TS2389`. Same name, same file, same
   container is the entity. Pinned in `tests/rename_hierarchy.rs`.
 
 - [x] B408: **deleting the only statement of a Python suite wrote a file that
-  does not parse.** The hole gets a `pass`, judged against every span of the
-  plan so a multi-site delete still empties cleanly.
+  does not parse.** A `pass` fills the hole. The judgment covers every span of
+  the plan, so a multi-site delete still empties cleanly.
   Pinned in `tests/python_attributes.rs`.
 
 - [x] B407: **instance attributes and locals fed each other's renames.** A bare
   `count` never names a member in the languages that spell members through a
-  receiver, and `self.count` in a sibling method is a member of the enclosing
-  class wherever its definition sites sit; both resolutions said otherwise, so
-  a local's rename took one line of three and an attribute's skipped the
+  receiver. `self.count` in a sibling method is a member of the enclosing
+  class wherever its definition sites sit. Both resolutions said otherwise, so
+  a local's rename took one line of three, and an attribute's skipped the
   sibling method and the subclass. Bare names now exclude members, the
   enclosing instance resolves by the class the code sits in, and the attribute
   family crosses the declared class chain. Pinned in
@@ -1542,47 +1563,47 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   Pinned in `tests/translate_results.rs` and `tests/translate_corpus_sweep.rs`.
 
 - [x] B398: **a Python instance attribute was not a symbol at all.** `fr rename`
-  answered "no symbol or resolved reference at" the most common rename target
-  the language has. Each `self.x = ...` site now defines a field; the class,
-  carried as the qualifier, groups the sites into one entity, and the reads
-  follow the rename. Pinned in `tests/python_attributes.rs`.
+  answered "no symbol or resolved reference at". Python programs rename that
+  target more often than any other. Each `self.x = ...` site now defines a
+  field. The class, carried as the qualifier, groups the sites into one entity,
+  and the reads follow the rename. Pinned in `tests/python_attributes.rs`.
 
 - [x] B397: **`@property` crossed as a method while its accessors stayed reads.**
-  In the target `it.total` was the function object, and every comparison
-  against it was quietly false. The flag crosses on the method: TypeScript
-  writes `get total()`, Python writes the decorator back, and the targets
-  without the idiom write the accessors as the calls they become.
+  In the target, `it.total` was the function object. Every comparison against it
+  was quietly false. The flag crosses on the method. TypeScript writes
+  `get total()`, and Python writes the decorator back. The targets without the
+  idiom write the accessors as the calls they become.
   Pinned in `tests/translate_classes.rs`.
 
 - [x] B396: **the everyday library calls crossed as compile errors.**
   `console.log` reached Python, `.push` reached Rust, `print` reached
   TypeScript, all unmarked. The readers rewrite their spellings into one
-  canonical set and the writers rewrite them out, `print`, `len`, `str`,
-  `.append`, `.upper`, `.lower`, `.strip` and `sep.join(xs)`; Go gains the
+  canonical set, and the writers rewrite them out: `print`, `len`, `str`,
+  `.append`, `.upper`, `.lower`, `.strip` and `sep.join(xs)`. Go gains the
   imports its mapped calls need. Pinned in `tests/translate_builtins.rs`.
 
-- [x] B395: **the program's own entry was dropped as unsupported.** `main();`
-  at the bottom of a TypeScript file, the call under Python's `__main__`
-  guard: both became comments, and the translated program ran and printed
-  nothing. A top-level statement is an item now; Python writes it back under
-  its own guard. With it went two shapes around the same story: a field's
-  initializer crosses as a default the dataclass accepts, and a returned
-  object literal builds the record its signature promised.
+- [x] B395: **the program's own entry was dropped as unsupported.** Two entry
+  forms became comments. `main();` sits at the bottom of a TypeScript file, and
+  the other call sits under Python's `__main__` guard. The translated program ran
+  and printed nothing. A top-level statement is an item now; Python writes it back under
+  its own guard. Two shapes around the same story went with it. A field's
+  initializer crosses as a default the dataclass accepts. A returned object
+  literal builds the record its signature promised.
   Pinned in `tests/translate_entrypoints.rs`.
 
-- [x] B394: **a class crossed as an empty struct.** The fields Python declares
-  in `__init__` and the ones `record Order(...)` declares in its header were
-  read as nothing, while the methods went on using them. Both derive now;
-  a constructor of plain assignments becomes each target's own constructor,
-  `Item(...)` becomes a construction, a Java static loses the receiver its
+- [x] B394: **a class crossed as an empty struct.** Python declares fields in
+  `__init__`, and `record Order(...)` declares them in its header. Both were
+  read as nothing, while the methods went on using them. Both derive now. A
+  constructor of plain assignments becomes each target's own constructor, and
+  `Item(...)` becomes a construction. A Java static loses the receiver its
   call sites never passed, and a record's accessor calls become the field
   reads they are. Pinned in `tests/translate_classes.rs` and
   `tests/translate_java_records.rs`.
 
 - [x] B393: **`return a, b` translated to a bare `return`.** The reader mapped
-  Go's multiple return to nothing, so a two-value return lost its payload with
+  Go's multiple return to nothing. A two-value return lost its payload with
   nothing said, in every target at once. Several values travelling as one are
-  a tuple in the IR now, expression and type both; a writer with no spelling
+  a tuple in the IR now, expression and type both. A writer with no spelling
   for one says so instead. Pinned in `tests/translate_tuples.rs`.
 
 - [x] B392: **a field and a method under one name shared one use list.** The
@@ -1593,11 +1614,11 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   Pinned in `tests/member_kinds.rs`.
 
 - [x] B391: **`fr move` broke both of an importer's imports.** An aliased
-  `import { foo as increment } from "./a"` was left naming a gone export while
-  a fresh unaliased import landed beside it. The existing statement repoints,
+  `import { foo as increment } from "./a"` named a gone export. A fresh
+  unaliased import landed beside it. The existing statement repoints,
   keeping the alias and splitting stayers from movers. The Go half of the same
   probe: a moved body's bare calls back into its old package now qualify with
-  the package name, the destination gains the import, and an unexported
+  the package name. The destination gains the import, and an unexported
   dependency refuses with the visibility problem named.
   Pinned in `tests/move_imports.rs` and `tests/move_languages.rs`.
 
@@ -1609,21 +1630,22 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 - [x] B389: **renaming Java overloads wrote calls to nothing.** Both `size`
   declarations renamed as one entity while every call stayed behind at
-  name-only confidence, and javac refused the result. When the group holds
+  name-only confidence. So javac refused the result. When the group holds
   every declaration the name answers to, a name-only call can only reach a
-  renamed one: it renames too, reported under the dispatch-candidate heading.
+  renamed one. So it renames too, reported under the dispatch-candidate heading.
   A stranger answering the same name still holds the calls in place.
   Pinned in `tests/rename_hierarchy.rs`.
 
 - [x] B388: **`fr inline` ran a side effect twice.** `let v = effect(); v + v`
-  inlined to `effect() + effect()`. The call inliner refused exactly this for
-  arguments; the variable path now applies the same rule, and only to values
+  inlined to `effect() + effect()`. The call inliner already refused this for
+  arguments. The variable path now applies the same rule, and only to values
   that can run something, so `a + b` twice still inlines.
   Pinned in `tests/inline_scope.rs`.
 
 - [x] B387: **a rename could move a use under a shadow and change what runs.**
-  Renaming outer `value` to `temp` under an inner `let temp` rebound the use;
-  the file compiled and returned a different number. Both directions refuse
+  An inner `let temp` shadowed outer `value`. Renaming `value` to `temp`
+  rebound the use, the file compiled, and it returned a different number.
+  Both directions refuse
   now, naming the capturing declaration, the line, and the fact that the
   compiler would not have noticed. Pinned in `tests/rename_capture.rs`.
 
@@ -1856,7 +1878,7 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   `-C`.
 
 - [x] B352: **clicking a node in the call graph landed on the indentation.** The drawing
-  carried each function's line and no column, so the click put the cursor at column 1. The
+  carried each function's line and no column. So the click put the cursor at column 1. The
   status bar then read "nothing the index knows at this position", and every action
   refused. `graph_around` carries the column of the name now. Found by clicking one.
 
@@ -1865,8 +1887,8 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   rest. Entries below B300 keep the symptom line alone, and the file is 9,000 words now.
   This entry was written once and lost before the commit, which is its own small lesson.
 
-- [x] B350: **the call graph tab never drew anything.** So `graph_around` has two checks
-  there now: the shape of an answer, and the shape of a refusal.
+- [x] B350: **the call graph tab never drew anything.** `graph_around` has two checks
+  there now. One asks the shape of an answer, the other the shape of a refusal.
 
 - [x] B349: **the graph pane was on screen at all times.** `.graph-view[hidden] { display:
   none }` settles it.
@@ -1882,8 +1904,8 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 - [x] B346: **the browser could not draw the call graph.** The walk itself is
   `CallGraph::neighbourhood`, which a test can reach without a browser.
 
-- [x] B345: **the dispatch wording explained nothing.** The message now says which
-  implementations a call could reach, and that the program chooses one while it runs.
+- [x] B345: **the dispatch wording explained nothing.** The message now names the
+  implementations a call could reach. It also says the program chooses one while it runs.
 
 - [x] B344: **a doc comment for one function sat on top of another.** Found while rewriting
   the comments in that file.
@@ -1895,120 +1917,118 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   `cancel-in-progress: true` now, so the newest deploy takes the slot.
 
 - [x] B341: **`fr flow` sent three languages to an analysis that has no arm for them.** The
-  rule that holds, no language is offered both, is what the test asserts now.
+  test asserts the rule now. No language is offered both.
 
 - [x] B340: **the browser never routed to provenance. So it answered questions the CLI
   could.** Both bindings route the same way the CLI does now.
 
 - [x] B339: **`fr remove-flag` told the reader to do something the command could not do.**
-  The resolved name is fixed before the cascade starts, because everything downstream, which
-  uses are left, which imports were orphaned, what each round is called, looks the flag up
-  by name.
+  The resolved name is fixed before the cascade starts. Everything downstream looks the
+  flag up by name: which uses are left, which imports were orphaned, what each round is
+  called.
 
-- [x] B338: **"move it somewhere under `src/`" led to a second refusal.** The first now says
-  the destination has to be one the module tree already declares. The second names the
-  line to add.
+- [x] B338: **"move it somewhere under `src/`" led to a second refusal.** The first now demands
+  a destination the module tree already declares. The second names the line to add.
 
-- [x] B337: **provenance's refusal named a library module.** "Use analysis::flow
-  (backward/forward) instead" is not something the reader of a CLI or browser message can
-  run. It names `fr flow`.
+- [x] B337: **provenance's refusal named a library module.** No reader of a CLI or
+  browser message can run "Use analysis::flow (backward/forward) instead". It names
+  `fr flow`.
 
 - [x] B336: **the compile gate passed whether the tool worked or refused.** Each site now
-  says which outcome it expects: `must_plan` where it compiles, `must_refuse` with the
-  reason where it declines.
+  says which outcome it expects. `must_plan` covers a site that compiles, `must_refuse` a
+  site that declines, with the reason.
 
 - [x] B335: **licence and provenance checks passed when they checked nothing.** All three
-  now count what they examined and fail when the count is zero.
+  count what they examined. A count of zero fails.
 
 - [x] B334: **nine refusals wrote their own article. Four kinds start with a vowel.** A test
   asks every kind at once and not the four that happen to be wrong today.
 
 - [x] B333: **`fr type` and `fr flow` answered for nine languages the matrix disclaims.**
-  Both now refuse by name, and the language list lives in one place each.
+  Both now refuse by name. The language list lives in one place each.
 
-- [x] B332: **the matrix disclaimed two capabilities the tool has.** One predicate now, and
-  it is the list of arms the command has: 272 of 384 pairs supported.
+- [x] B332: **the matrix disclaimed two capabilities the tool has.** One predicate now lists
+  the arms the command has. 272 of 384 pairs are supported.
 
 - [x] B331: **`fr remove-flag` wrote XML that no parser accepts.** The command asks
-  `supports_cascade` now, the same predicate the matrix publishes, and refuses by name.
+  `supports_cascade` now, the same predicate the matrix publishes. It refuses by name.
 
 - [x] B330: **the scale sweep measured whatever `web/src/wasm` happened to hold.** The sweep
-  now compares the artifact's timestamp against the newest `.rs` file and refuses to run
-  when it is behind.
+  now compares the artifact's timestamp against the newest `.rs` file. It refuses to run
+  when the artifact is behind.
 
 - [x] B329: **the scale sweep decided what counted as a refusal by reading the sentence.**
-  The browser API reports `refused` now, from the type and not from the prose.
+  The browser API reports `refused` from the type now. The prose no longer decides.
 
 - [x] B328: **four more refusals blamed a language for a path.** `because` is `&'static str`
   now.
 
-- [x] B327: **`fr move` told a Rust user that Rust was unsupported.** It is the one the
-  matrix audit found, because a claim and a refusal cannot both be right.
+- [x] B327: **`fr move` told a Rust user that Rust was unsupported.** The matrix audit found
+  it. A claim and a refusal cannot both be right.
 
 - [x] B326: **`fr delete` left the import its deleted code was the only user of.** The
   result parses either way. So the parse sweeps never saw it.
 
 - [x] B325: **`fr imports` never narrowed a statement that lost one of its names.** It
-  narrows now, by taking the dead names' clauses out of the statement and not
-  re-spelling it, because each language writes the list differently and the separator is the
-  only thing that has to be understood.
+  narrows now. It cuts the dead names' clauses out of the statement and leaves the rest
+  as written. Each language spells the list differently, so the separator is the only
+  part worth understanding.
 
 - [x] B324: **`fr remove-flag` left the imports its collapsed branch had been using.** That
-  command carries a body of knowledge about uses no query can see, a Rust trait reached
-  through its methods, a JSX pragma in a comment.
+  command knows about uses no query can see. A Rust trait reached through its methods,
+  a JSX pragma in a comment.
 
 - [x] B258: **closed unreproducible, with the evidence.**
 
 - [x] B323: **a Java statement declaring several names gave each of them all three.** The
   query captured the statement. It captures the declarator now, which the symbol is.
 
-- [x] B322: **`fr type` could not read a Java call or construction.** This is the same
-  omission that once made `fr signature` refuse at every Java call site there has ever been,
-  in a second place that had not heard.
+- [x] B322: **`fr type` could not read a Java call or construction.** The omission
+  repeats. It once made `fr signature` refuse at every Java call site there has
+  ever been. A second place had not heard.
 
 - [x] B321: **`fr type` answered `var`.** It falls through to inference now, which is what
   the keyword asks for.
 
 - [x] B320: **`fr inline` refused every Java local.** Java puts the name and the value
-  together in a declarator, because one statement may declare several, so the value hangs
-  off the declarator and not off the declaration.
+  in one declarator, since a statement may declare several. So the value hangs off the
+  declarator rather than the declaration.
 
 - [x] B319: **three readers answered "what does this declaration bind". Disagreed.** There
   is one reader now, `parse::declaration_value`, and `tests/declaration_values.rs` names
   every shape it has to know.
 
-- [x] B318: **`fr move` left the destination calling the symbol through the file it came
-  from.** The qualifier in front of a Zig call is the same thing said differently, and it is
-  dropped now.
+- [x] B318: **`fr move` left the destination reaching the symbol through its old file.**
+  A Zig call's qualifier says the same thing differently. The move drops it now.
 
 - [x] B317: **`fr signature` reported call sites it had not touched.** The two are told
   apart now: no argument list still means no parentheses. A grammar that wraps nothing
   is read on its own terms.
 
 - [x] B316: **a Zig `@import` path resolved to nothing.** So `fr rename` rewrote the
-  declaration and left every caller naming something that is not there.
+  declaration. That left every caller naming something that is not there.
 
-- [x] B315: **a Java static call resolved to the wrong method, at exact confidence.** A
-  receiver naming a type declared in this workspace is a path now, in any language.
+- [x] B315: **a Java static call resolved to the wrong method, at exact confidence.** The rule now
+  covers every language. A receiver naming a type this workspace declares is a path.
 
 - [x] B314: **the confidence cap and the rule that resolves a qualified call disagreed.**
-  Both places ask one question and now ask it in one place.
+  Both places now ask one question in one place.
 
 - [x] B313: **`Language` ignored a width in a format string.** Its `Display` wrote the
-  name straight out instead of going through `Formatter::pad`, so `{target:<10}` padded
-  nothing and the column of targets `fr translate` prints came out ragged wherever a
+  name straight out instead of going through `Formatter::pad`. So `{target:<10}` padded
+  nothing, and the column of targets `fr translate` prints came out ragged wherever a
   `Language` sat in it.
 
 - [x] B312: **`fr translate` offered a list that was not true.** `tests/translate_sweep.rs`
   holds the list to its word from both sides.
 
 - [x] B311: **`fr move` left a star re-export naming a file the symbol had left.** Removed
-  outright where the move took the last thing the source exported, because TypeScript calls
-  a file with no exports "not a module" and rejects the star for that instead.
+  outright where the move takes the last export. TypeScript calls a file with no exports
+  "not a module", and rejects the star for that instead.
 
-- [x] B310: **`fr move` dropped the names beside the one it repointed.** `export { width,
-  Holder } from "./holder"` came back as `export { width } from './util'` with `Holder`
-  gone.
+- [x] B310: **`fr move` dropped the names beside the one it repointed.** One name survived.
+  `export { width, Holder } from "./holder"` came back as
+  `export { width } from './util'` with `Holder` gone.
 
 - [x] B300: **`fr move` declined at a re-export barrel.** Now says why: readers write
   `ns.width`. Splitting the module in two cannot be followed by repointing one
@@ -2022,26 +2042,26 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   now reads it.
 
 - [x] B307: **`fr move` wrote import cycles that neither Go nor Python accepts.** Both are
-  refused now, naming the two files and what each would import.
+  refused now. The refusal names the two files and what each would import.
 
-- [x] B306: **`fr move` wrote a relative import into a file that is in no package.** The
-  import is written relative inside a package and absolute outside one.
+- [x] B306: **`fr move` wrote a relative import into a file in no package.** It writes
+  relative inside a package, absolute outside.
 
 - [x] B305: **`fr remove-flag` deleted a declaration whose readers it had refused.** A
-  cascade that changes nothing is now a refusal carrying the reasons, and not a plan of zero
-  edits.
+  cascade that changes nothing now refuses, carrying the reasons. It no longer returns a
+  plan of zero edits.
 
-- [x] B304: **`fr remove-flag` replaced the callee of a call instead of the call.** A rule
-  that is documented and never runs is the same defect shape as B296.
+- [x] B304: **`fr remove-flag` replaced the callee of a call instead of the call.** A documented
+  rule that never runs repeats B296's defect shape.
 
-- [x] B303: **`fr remove-flag` wrote a boolean into a type position.** So one use in a
-  position only a type can occupy settles what the name is. The whole operation is refused,
+- [x] B303: **`fr remove-flag` wrote a boolean into a type position.** One use in a
+  position only a type can occupy settles the name. The whole operation is refused,
   naming that use.
 
-- [x] B302: **`fr remove-flag` treated every constant as a possible flag.** Sweeping every
-  name in the vendored corpus, both values, found 234 asks that produced a plan, among them
-  `const DocumentScope = @import("DocumentScope.zig")`, which was rewritten to `*const
-  true`.
+- [x] B302: **`fr remove-flag` treated every constant as a possible flag.** A sweep found
+  234 asks that produced a plan. It ran over every name in the vendored corpus, both
+  values. One was `const DocumentScope = @import("DocumentScope.zig")`, rewritten to
+  `*const true`.
 
 - [x] B301: **`fr restructure` rewrote files when asked for no change.** Eight identity
   rewrites over `src/`: eight changed files before, none now.
@@ -2414,7 +2434,7 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 - [x] B119: **Go's `error` is Zig's keyword for an error set**
 
-- [x] B118: **the Zig reader read named children only, and in that grammar the `:` before a
+- [x] B118: **the Zig reader read named children only. In that grammar the `:` before a
   type, the `=` before a value and every operator are anonymous.**
 
 - [x] B117: **a `for` over two sequences. An `if`/`while` that unwraps an optional, were
@@ -2589,17 +2609,17 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 - [x] B48: a moved Python symbol left its module imports behind. `import os` binds
   `os` without naming it in the statement. So the name-based check that carries named
   imports never matched it, and the moved code lost `os.path`. Also carried now:
-  `from __future__ import annotations`, which binds nothing at all and decides how
-  every annotation in the file is read, `str | None` stops parsing without it below
-  Python 3.10. Which is placed first, where the language requires it.
+  `from __future__ import annotations`. It binds nothing at all and decides how
+  every annotation in the file is read. Without it, `str | None` stops parsing below
+  Python 3.10. It is placed first, where the language requires it.
 
 - [x] B46: **a guard clause exited the wrong construct.**
 
 - [x] B45: a statement pattern was impossible in Python, shell and YAML. Those
   languages wrap a `fr restructure` fragment in nothing, so the statement the pattern
   writes is the outermost node. The descent that strips wrapper-introduced
-  statement containers stripped that one too, leaving the fragment starting six bytes
-  inside itself and every such pattern rejected as "not a valid fragment". Descending
+  statement containers stripped that one too. The fragment then started six bytes
+  inside itself, and every such pattern was rejected as "not a valid fragment". Descending
   is only correct when the child begins where the container does; `raise` does not.
   `fr restructure 'raise InvalidURL($X)' 'raise InvalidURL($X) from None'` now works
   on psf/requests.
@@ -2611,8 +2631,8 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 - [x] B42: Rust reached nothing through a path. `super::render_custom_markup(…)` and
   `Patterns::from_low_args(…)` both resolved to nothing, because the prefix of a
   `scoped_identifier` was never recorded. References now carry it, flagged as a path
-  instead of a value, a path names a type or a module and can be matched against a
-  symbol's own qualifier with no type inference, since the type was written down.
+  instead of a value. A path names a type or a module. The resolver matches it against
+  a symbol's own qualifier with no type inference, since the source wrote the type down.
   This rule runs before every other: ripgrep declares four `from_low_args` methods in
   one file. So the nearest-in-file rule would otherwise pick whichever sat closest and
   leave the other three looking dead.
@@ -2632,19 +2652,19 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 - [x] B35: **`--path` filters matched nothing, and reported that as nothing found.**
 
 - [x] B36: a relative path in a target was read from the shell's working directory
-  instead of the workspace `-C` names, so `fr -C ../helm refs pkg/x.go:3:6` failed
+  instead of the workspace `-C` names. So `fr -C ../helm refs pkg/x.go:3:6` failed
   with "reading pkg/x.go: No such file". Four sites had their own
   `canonicalize().unwrap_or(…)`, which kept the unusable path and let the failure
   surface two frames later. They now share one resolver that says where it looked.
 
 - [x] B37: a field access resolved to a local variable. `i.provData` bound to a
-  `provData, err := …` two lines up, because the nearest-definition rule ran before
+  `provData, err := …` two lines up. The nearest-definition rule ran before
   anything checked that a member access can only name a member. The field then had no
   references at all and was reported as dead.
 
-- [x] B38: nothing tested the command line. Every test called the library directly,,
-so B35 and B36, both entirely in the layer between an argument and that
-  library, were invisible. `tests/cli.rs` runs the binary: argument parsing, path
+- [x] B38: nothing tested the command line. Every test called the library directly.
+  B35 and B36 both lived entirely in the layer between an argument and that
+  library, so nothing saw them. `tests/cli.rs` runs the binary: argument parsing, path
   resolution, exit codes, and the text a person reads.
 
 - [x] B26: **Go resolved nothing across files in a package.**
@@ -2662,11 +2682,11 @@ so B35 and B36, both entirely in the layer between an argument and that
   `templatesDirExists := run(…, templatesDirExists(path))` calls the package function
   and *then* shadows it. Resolving the call to the variable being declared made the
   function look dead. The rule holds in Rust (`let x = x + 1`) and Python (`x = f(x)`)
-  as well, and is now applied in all of them.
+  as well. All three apply it now.
 
 - [x] B30: a use bound to the nearest declaration in either direction. Go re-declares
-  with `:=` mid-function, and helm's `var ret …` / `return ret` / `ret, err := …`
-  bound the early return to the *later* binding because it sat 15 bytes closer. Value
+  with `:=` mid-function. In helm, `var ret …` / `return ret` / `ret, err := …`
+  bound the early return to the *later* binding. It sat 15 bytes closer. Value
   bindings now prefer a declaration above the use; a function may still be called
   above where it is written.
 
@@ -2678,9 +2698,9 @@ so B35 and B36, both entirely in the layer between an argument and that
 - [x] B32: **the public API of a library rooted nothing.**
 
 - [x] B33: two types sharing a private method name made both look dead, because the
-  call resolved to neither. They are now spared with that stated, except where the
-  hierarchy analysis has already ruled on the name, whose answer is the more precise
-  one and stands.
+  call resolved to neither. They are now spared with that stated. Where the hierarchy
+  analysis has already ruled on the name, its answer is the more precise one and
+  stands.
 
 - [x] B34: `fr unused` had no way to narrow its report. On a polyglot repository every
   Markdown heading drowned the code findings. `-C` could not be used to narrow
@@ -2690,11 +2710,11 @@ so B35 and B36, both entirely in the layer between an argument and that
 
 - [x] B16: micro-rewrites were published for seven languages and tested on three.
   `invert-if` and `guard-clause` negated the whole condition node, which in the C
-  family and Zig *includes the brackets*, so both emitted `if !(a)`, valid Rust,
+  family and Zig *includes the brackets*. So both emitted `if !(a)`, valid Rust,
   a syntax error in TypeScript, TSX and Zig. Zig failed earlier still: its grammar
   calls the consequence `body`, not `consequence`, so no part of the `if` was found.
-  Fixed by negating the expression inside the condition and splicing within it, so
-  whatever the grammar writes around it survives; `guard-clause` now builds its
+  The fix negates the expression inside the condition and splices within it, so
+  whatever the grammar writes around it survives. `guard-clause` now builds its
   header from the source's own bytes instead of reinventing one per language.
   Found by running the tool on grafana/grafana, where 63 of 65 real if/else sites
   now invert cleanly and both refusals are genuine `else if` chains.
@@ -2712,19 +2732,19 @@ so B35 and B36, both entirely in the layer between an argument and that
 - [x] B20: `extract --function` emitted `function helper(x: : number)` for TypeScript.
   The C-family grammars fold the `:` into the annotation node, and the renderer added
   another. The type is now read bare and each language spells its own punctuation, so
-  Go gets `x int` and not `x: int`. Its call site loses the C semicolon,
+  Go gets `x int` and not `x: int`. Its call site loses the C semicolon, and
   `gofmt -d` reports no diff on the result.
 
 - [x] B21: **a move produced files that parse and do not compile.**
 
-- [x] B22: a move given a destination spelled differently from the indexed path, a
-  relative path, or `/var` where the index holds `/private/var`, wrote imports like
-  `'../../../../../../../var/folders/…'`. In the relative case silently added no
-  import at all. `canonicalize()` had failed on a file that does not exist yet and the
-  result was passed through unchanged. The destination is now resolved through its
-  parent directory, and a missing directory is an error. The matching silent skip in
-  the move itself, a file that needed an import and did not get one, reported as
-  success, is now a failure.
+- [x] B22: a move wrote imports like `'../../../../../../../var/folders/…'`. It
+  happened when the destination was spelled differently from the indexed path: a
+  relative path, or `/var` where the index holds `/private/var`. In the relative case
+  it silently added no import at all. `canonicalize()` had failed on a file that does
+  not exist yet and the result was passed through unchanged. The destination is now
+  resolved through its parent directory, and a missing directory is an error. The move
+  itself had a matching silent skip: a file needed an import, did not get one, and the
+  run reported success. That is a failure now.
 
 - [x] B23: the index records one `Import` per imported name, each carrying the whole
   statement's span, so a four-name import read as four statements. Anything rewriting
@@ -2735,18 +2755,18 @@ so B35 and B36, both entirely in the layer between an argument and that
   TypeScript and tab-indented Go both received four, on every guard clause and every
   extracted function. One level is now read from the source.
 
-- [x] B25: `fr unused` listed every `_`-prefixed parameter, the convention in Rust,
-  TypeScript, Python and Zig for a binding a signature forces and the body ignores.
+- [x] B25: `fr unused` listed every `_`-prefixed parameter. Rust, TypeScript, Python
+  and Zig all use that prefix for a binding a signature forces and the body ignores.
   One real file contributed eight. They are now spared with that stated reason rather
   than dropped quietly.
 
-- [x] B10: Helm values precedence stopped at the command line, whether a
-  `values-*.yaml` is passed with `-f`, the order of several `-f` files. Every
-  `--set` were invisible and reported undecided. That was a missing input, not a
-  limit: `fr flow back <target> -f values-prod.yaml --set a.b=c` supplies the
-  invocation, and Helm's order (chart `values.yaml` < each enclosing parent chart <
-  each `-f` in the order given < `--set`) then decides it, winner marked and every
-  loser, including a values file the caller says is *not* passed, still listed.
+- [x] B10: Helm values precedence stopped at the command line. Whether a
+  `values-*.yaml` is passed with `-f`, the order of several `-f` files, every
+  `--set`: all were invisible and reported undecided. A missing input caused it,
+  not a limit. `fr flow back <target> -f values-prod.yaml --set a.b=c` supplies the
+  invocation. Helm's order then decides it: chart `values.yaml` < each enclosing
+  parent chart < each `-f` in the order given < `--set`. The winner is marked, and
+  every loser stays listed, including a values file the caller says is *not* passed.
   With nothing supplied the answer is what it was.
 
 - [x] B12: Terraform lost the third and later step past an index traversal. A query
@@ -2755,8 +2775,8 @@ so B35 and B36, both entirely in the layer between an argument and that
   the bound so it stays a decision instead of an accident.
 
 - [x] B0a: `LineIndex` invented a phantom trailing line for files ending in a newline,
-  so `"a\nb\n"` counted 3 lines and an EOF offset reported a column past the last
-  character, `src/span.rs`. Fixed: a trailing newline terminates the final line;
+  `src/span.rs`. So `"a\nb\n"` counted 3 lines, and an EOF offset reported a column
+  past the last character. Fixed: a trailing newline terminates the final line;
   columns clamp to the line end.
 
 - [x] B0b: `.gitignore` was ignored outside a git repository, so scans of worktrees
@@ -2772,12 +2792,12 @@ so B35 and B36, both entirely in the layer between an argument and that
   reflecting no single rendering. Fixed for the analyses that reason about values: a
   key wrapped in `{{- if }}` now produces a stop naming the exact condition. The
   condition's own `.Values` key resolves. Masking itself is unchanged by design. It
-  is what keeps byte offsets valid, so the symbol index still shows guarded keys
-  unconditionally; only provenance and stitch consult the guards.
+  keeps byte offsets valid, so the symbol index still shows guarded keys
+  unconditionally. Only provenance and stitch consult the guards.
 
 - [x] B3: deleting a CSS selector left its `{ ... }` block orphaned. The delete widens
-  the selector's span to the whole rule when it is alone on it, or to that selector
-  and its comma when the rule has others.
+  the selector's span to the whole rule when the selector is alone on it. Where the
+  rule has others, it widens to that selector and its comma.
 
 - [x] B4: import liveness was name-based, so anything a language brings into scope
   invisibly looked unused. Per-language guards now hold back and report: Python
@@ -2787,8 +2807,8 @@ so B35 and B36, both entirely in the layer between an argument and that
   Zig was verified to need none. Two real false positives fell out of it: Python
   `import a.b` binds `a`, not `b`, and `gopkg.in/yaml.v2` binds `yaml`, not `v2`.
 
-- [x] B6: consecutive standalone Go `import "x"` lines were not sorted, because the
-  `import` keyword sits outside the `import_spec` span and looked like unrelated code
+- [x] B6: consecutive standalone Go `import "x"` lines were not sorted. The `import`
+  keyword sits outside the `import_spec` span, so it looked like unrelated code
   ending the block.
 
 - [x] B7: Helm `.Values` references lived inside masked actions and were invisible.

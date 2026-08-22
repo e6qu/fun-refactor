@@ -1,12 +1,12 @@
 //! Micro-rewrites: the small, local transformations editors offer as code actions.
 //!
-//! Each one is a pure syntactic rewrite of a single construct, no cross-file reasoning, no type
-//! information. So they are cheap enough to offer a menu of. [`available`] answers "what
+//! Each one rewrites a single construct syntactically, with no cross-file reasoning and
+//! no type information, so a menu of them stays cheap. [`available`] answers "what
 //! applies here", the shape an editor needs.
 //!
-//! Negation is the shared hard part: `!(a && b)` and `a != b` are the same idea spelled
-//! differently per language. A naive `!(...)` wrapper produces double-negatives that read worse
-//! than the original. The negation here simplifies as it goes.
+//! Negation is the shared hard part: `!(a && b)` and `a != b` spell one idea differently
+//! per language. A naive `!(...)` wrapper produces double-negatives that read worse than
+//! the original, so the negation here simplifies as it goes.
 
 use super::Refusal;
 use crate::edit::{Edit, EditSet};
@@ -70,9 +70,8 @@ pub struct RewritePlan {
 
 /// Which rewrites apply at `offset`.
 ///
-/// A rewrite is only offered if its result reparses, so the menu never lists
-/// something that applying it would then refuse. It is the same check the commit
-/// makes, run early.
+/// The menu offers a rewrite only when its result reparses, so it never lists
+/// something the commit would then refuse. The commit runs the same check later.
 pub fn available(index: &Index, file: &Path, offset: usize) -> Result<Vec<Rewrite>> {
     let mut found = Vec::new();
     for rewrite in Rewrite::ALL {
@@ -143,9 +142,9 @@ pub fn supported(language: Language) -> bool {
 
 /// The pieces of an `if`, however the grammar spells them.
 struct IfParts {
-    /// The expression a negation applies to. Where a grammar makes the parentheses part of the
-    /// condition, this is what sits inside them. So that rewriting it leaves the brackets the
-    /// language requires standing.
+    /// The expression a negation applies to. Where a grammar folds the parentheses into
+    /// the condition, this span holds what sits inside them, so rewriting it leaves the
+    /// required brackets standing.
     condition: Span,
     consequence: Span,
     alternative: Option<Span>,
@@ -155,12 +154,11 @@ struct IfParts {
 
 /// Locate an `if`'s condition and branches.
 ///
-/// Grammars disagree about all three. The condition is bare in Rust, Go, Python and
-/// Zig but is a `parenthesized_expression` in the C family, and only the inside of
-/// it may be rewritten. The consequence is a `consequence` field everywhere except
-/// Zig, which calls it `body`. Bash names none of it: its branches are delimited by
-/// the `then`, `else` and `fi` keyword tokens, with the statements sitting as bare
-/// children in between.
+/// Grammars disagree about all three. Rust, Go, Python and Zig write the condition
+/// bare, while the C family wraps it in a `parenthesized_expression` whose inside is
+/// the only rewritable part. Every grammar but Zig names the consequence field
+/// `consequence`, and Zig calls it `body`. Bash names none of it, delimiting its
+/// branches with the `then`, `else` and `fi` keyword tokens.
 fn if_parts(node: Node<'_>) -> Option<IfParts> {
     let condition = condition_expression(node.child_by_field_name("condition")?);
 
@@ -234,9 +232,9 @@ fn condition_expression(condition: Node<'_>) -> Span {
     Span::from(condition)
 }
 
-/// Does this `else` lead to another `if` and not to a block?
+/// Reports whether this `else` leads to another `if` rather than to a block.
 ///
-/// An `else if` cannot have its branches swapped. The second condition is only ever tested when
+/// An `else if` cannot have its branches swapped. The second condition runs only when
 /// the first is false, so moving the block out from under it changes which tests run.
 fn continues_into_another_if(clause: Node<'_>) -> bool {
     if clause.kind().contains("elif") {
@@ -249,12 +247,12 @@ fn continues_into_another_if(clause: Node<'_>) -> bool {
         .any(|c| c.kind().starts_with("if_") || c.kind() == "if_expression")
 }
 
-/// Does this `if` bind what it tested?
+/// Reports whether this `if` binds what it tested.
 ///
-/// Zig writes `if (maybe) |value| { … }`: the condition is an optional and the payload binds
-/// what was inside it. Negating that condition leaves a binding with nothing to bind, `if
-/// (!maybe) |value|` is not a program. `!optional` is not a boolean there in the first place.
-/// The reader refuses the same shape for the same reason.
+/// Zig writes `if (maybe) |value| { … }`, where the condition is an optional and the
+/// payload binds what was inside it. Negating that condition leaves the payload with
+/// nothing to bind, and `!optional` is no boolean in Zig either. The reader refuses
+/// the same shape for the same reason.
 fn binds_a_payload(node: Node<'_>) -> bool {
     let mut cursor = node.walk();
     let children: Vec<Node> = node.named_children(&mut cursor).collect();
@@ -295,8 +293,8 @@ fn invert_if(
     let text = whole.text(source);
     let mut out = String::with_capacity(text.len());
 
-    // Rebuild by splicing the three parts, so everything between them, spacing,
-    // keywords, comments, survives exactly.
+    // Splice the three parts back in, so the spacing, keywords and comments between
+    // them survive byte for byte.
     let base = whole.start;
     let cond = parts.condition;
     let cons = parts.consequence;
@@ -315,9 +313,9 @@ fn invert_if(
 
 /// The block an else clause wraps.
 ///
-/// Zig puts a `labeled_statement` in the way, so the search descends. Returning the clause
-/// itself when no block is found would splice the `else` keyword into the consequence position.
-/// So an unrecognised shape is `None` and the caller refuses.
+/// Zig puts a `labeled_statement` in the way, so the search descends. Returning the
+/// clause itself would splice the `else` keyword into the consequence position, so an
+/// unrecognised shape yields `None` and the caller refuses.
 fn else_body_of(alternative: Node<'_>) -> Option<Node<'_>> {
     if alternative.kind().contains("block") {
         return Some(alternative);
@@ -338,11 +336,11 @@ fn de_morgan(
     offset: usize,
     language: Language,
 ) -> Result<(Span, String)> {
-    // tree-sitter-zig reads `!(a and b)` as an `error_union_type`: `!T` is an error union where
-    // a type is expected and a negation where a value is. The grammar resolves it the first
-    // way. Inside a condition there is no type, so the node is a negation whatever it is
-    // called. The checks below still have to agree, since an error union that really is one has
-    // no boolean operator to distribute over.
+    // tree-sitter-zig reads `!(a and b)` as an `error_union_type`. `!T` is an error
+    // union where a type is expected, and a negation where a value is. A condition
+    // holds no type, so the node is a negation whatever the grammar calls it. The checks
+    // below still agree, since a true error union has no boolean operator to distribute
+    // over.
     let unary = enclosing_kind(parsed, offset, |k| {
         k.contains("unary") || k.contains("not_operator") || k == "error_union_type"
     })
@@ -375,9 +373,9 @@ fn de_morgan(
         negate(right.trim(), language)
     );
 
-    // `!(a && b)` is one operand; `!a || !b` is two, and the brackets that used to hold it
-    // together are gone with the negation. Inside another operator that silently rebinds the
-    // expression, `x && !(a && b)` would become `x && !a || !b`. So the grouping has to come
+    // `!(a && b)` is one operand and `!a || !b` is two, and the negation took the
+    // brackets that held them together with it. An enclosing operator rebinds the loose
+    // operands, turning `x && !(a && b)` into `x && !a || !b`, so the grouping comes
     // back.
     if unary.parent().is_some_and(|p| binds_operands(p.kind())) {
         if language == Language::Bash {
@@ -391,7 +389,7 @@ fn de_morgan(
     Ok((span, rewritten))
 }
 
-/// Would this node take the expression inside it as an operand of its own operator?
+/// Reports whether this node takes the expression inside it as its own operand.
 fn binds_operands(kind: &str) -> bool {
     kind.contains("binary")
         || kind.contains("unary")
@@ -421,9 +419,9 @@ fn guard_clause(
         anyhow::bail!("this `if` has an `else`; invert it instead of guarding");
     }
 
-    // The `if` must be the last thing in its enclosing block, or an early return
-    // would skip whatever follows. The comparison is against the statement the `if`
-    // forms, which may sit inside a wrapper node and not directly in the block.
+    // The `if` must come last in its enclosing block, or an early return would skip
+    // whatever follows. The comparison uses the statement the `if` forms, which may
+    // sit inside a wrapper node rather than directly in the block.
     let (statement, block) = statement_in_block(node)
         .ok_or_else(|| anyhow::anyhow!("the `if` has no enclosing block"))?;
     let mut cursor = block.walk();
@@ -438,20 +436,20 @@ fn guard_clause(
         );
     }
 
-    // What "early exit" means depends on what the block is. Last in a loop body means
-    // `continue`; last in a function body means `return`. ripgrep has an `if` ending
-    // a `for` body inside a function returning `Result<PathBuf>`, where `return` was
-    // both the wrong control flow and the wrong type.
+    // The block decides what "early exit" means. Last in a loop body means `continue`,
+    // and last in a function body means `return`. An `if` ending a `for` body inside a
+    // function returning `Result<PathBuf>` takes `continue`, since `return` there is
+    // the wrong control flow and the wrong type.
     let exit = early_exit(block, source, language)?;
 
     let negated = negate(parts.condition.text(source), language);
     let body = strip_block(parts.consequence, source);
     let indent = crate::edit::line_indent(source, Span::from(node).start);
 
-    // Reuse the source's own header. Everything from the `if` keyword up to the
-    // body, with the condition negated in place. Whatever the language spells
-    // around the condition, brackets in Zig and the C family, `:` in Python, `; then`
-    // in shell, is preserved and not reinvented per language.
+    // Reuse the source's own header: everything from the `if` keyword up to the body,
+    // with the condition negated in place. That preserves whatever the language writes
+    // around the condition: brackets in Zig and the C family, `:` in Python, `; then`
+    // in shell.
     let start = Span::from(node).start;
     let header = format!(
         "{}{negated}{}",
@@ -460,9 +458,9 @@ fn guard_clause(
     );
     let header = header.trim_end();
 
-    // The body is already indented one level past the `if`. So the file's own unit is the
-    // difference, tabs in Go, two spaces in most TypeScript. Guessing four spaces would
-    // reindent every guard this touches.
+    // The body already sits one level past the `if`, so the file's own unit measures
+    // the difference: tabs in Go, two spaces in most TypeScript. Guessing four spaces
+    // would reindent every guard this touches.
     let unit = crate::edit::indent_unit(source);
     let guard = match language {
         Language::Python => format!("{header}\n{indent}{unit}{exit}\n"),
@@ -507,19 +505,16 @@ fn guard_clause(
 
 /// The statement that exits the block early: `continue` in a loop, `return` in a function.
 ///
-/// A guard clause replaces nesting with an early exit, and which exit is correct is decided by
-/// the block, not by the refactoring. ripgrep's `find_program` ends a `for` body with an `if`.
-/// Rewriting that to `return` leaves the loop entirely, and leaves it with no value in a
-/// function returning `Result<PathBuf>`.
+/// A guard clause replaces nesting with an early exit, and the block decides which exit
+/// is correct. A `for` body ending in an `if` takes `continue`, since `return` leaves
+/// the loop entirely and returns no value from a function returning `Result<PathBuf>`.
 ///
-/// A function that declares a return type is refused and not guessed at: what to return early
-/// is a decision only the author can make.
+/// A function that declares a return type refuses instead. Only the author can decide
+/// what to return early.
 fn early_exit(block: Node<'_>, source: &str, language: Language) -> Result<&'static str> {
-    // Every ancestor, and not the first few. A bounded walk stops before it reaches the
-    // function whenever the `if` sits inside a `match` arm or a nested block. The answer it
-    // falls through to is `return`, which is the unsafe one. `src/cli.rs` and `src/extract.rs`
-    // both have an `if` deep enough to reach it. A bare `return` there does not compile in a
-    // function that returns a value.
+    // Walk every ancestor. A bounded walk stops short of the function whenever the `if`
+    // sits inside a `match` arm or a nested block. It then falls through to the unsafe
+    // `return`, and a bare `return` does not compile in a function that returns a value.
     let mut current = block;
     while let Some(parent) = current.parent() {
         let kind = parent.kind();
@@ -537,11 +532,11 @@ fn early_exit(block: Node<'_>, source: &str, language: Language) -> Result<&'sta
         }
         current = parent;
     }
-    // Neither a loop nor a function: a bare block, a module body, a shell script.
+    // No loop and no function: a bare block, a module body, a shell script.
     Ok("return")
 }
 
-/// Does this function declare that it returns something?
+/// Reports whether this function declares that it returns something.
 fn declares_a_return_value(function: Node<'_>, source: &str, language: Language) -> bool {
     // Every grammar in the set names the return type field, except Go, which calls it
     // `result`, and shell, which has none.
@@ -550,9 +545,9 @@ fn declares_a_return_value(function: Node<'_>, source: &str, language: Language)
             let text = Span::from(node).text(source).trim();
             let nothing = match language {
                 Language::Rust => text.is_empty() || text == "()",
-                // Java and Zig both spell "returns nothing" as a written `void` and not as an
-                // absent type. So an empty test would read every method as returning something
-                // and refuse every guard clause in the language.
+                // Java and Zig both write "returns nothing" as a `void` that is present
+                // in the source. An emptiness test would read every method as returning
+                // something and refuse every guard clause in the language.
                 Language::Zig | Language::Java => text == "void",
                 Language::TypeScript | Language::Tsx => {
                     text.trim_start_matches(':').trim() == "void"
@@ -582,7 +577,7 @@ fn statement_in_block(node: Node<'_>) -> Option<(Node<'_>, Node<'_>)> {
 
 /// The innermost `if` construct containing `offset`.
 ///
-/// The node must be named: a bare `if` keyword token also has the kind "if", and
+/// The node must be named. A bare `if` keyword token also has the kind "if", and
 /// asking a keyword for its condition finds nothing.
 fn enclosing_if<'a>(parsed: &'a Parsed, offset: usize) -> Option<Node<'a>> {
     enclosing_kind(parsed, offset, |k| {
@@ -610,10 +605,10 @@ fn enclosing_kind<'a>(
 fn boolean_spelling(language: Language) -> (&'static str, &'static str, &'static str) {
     match language {
         Language::Python => ("not ", "and", "or"),
-        // Zig spells the two logical operators as words, as Python does, and negates
-        // with a sigil, as C does. Falling into the C arm made `a and b` invisible to
-        // every rule that looks for an operator, so inverting `if (a == 1 and b == 2)`
-        // flipped the first comparison and left the `and`, which is a different program.
+        // Zig writes the two logical operators as words, as Python does, and negates
+        // with a sigil, as C does. The C arm hides `a and b` from every rule that looks
+        // for an operator. Inverting `if (a == 1 and b == 2)` there flips the first
+        // comparison and leaves the `and` standing.
         Language::Zig => ("!", "and", "or"),
         // Shell negates a command with `! cmd`, so the sigil needs its space.
         Language::Bash => ("! ", "&&", "||"),
@@ -623,8 +618,8 @@ fn boolean_spelling(language: Language) -> (&'static str, &'static str, &'static
 
 /// Where `needle` sits at the top level of `text`, outside every bracket.
 ///
-/// The same scan `split_boolean` does, and for the same reason. `f(a == 1) == 2` has two `==`
-/// in it and only one of them is the comparison the condition makes.
+/// The same scan `split_boolean` runs, and for the same reason. `f(a == 1) == 2` holds
+/// two `==`, and only one of them is the comparison the condition makes.
 fn top_level_find(text: &str, needle: &str) -> Option<usize> {
     let bytes = text.as_bytes();
     let mut depth = 0usize;
@@ -644,11 +639,10 @@ fn negate(expression: &str, language: Language) -> String {
     let trimmed = expression.trim();
     let (not_token, and_op, or_op) = boolean_spelling(language);
 
-    // A double negative cancels, when the `!` covers the whole expression. In
-    // `!path.is_empty() && !seen` it covers only the first atom, and stripping
-    // it produced `path.is_empty() && !seen`: a guard that let duplicates
-    // through, silently. A top-level `and`/`or` means the negation goes round
-    // the outside instead.
+    // A double negative cancels when the `!` covers the whole expression. In
+    // `!path.is_empty() && !seen` it covers only the first atom, so stripping it
+    // yields `path.is_empty() && !seen`, a guard that lets duplicates through. A
+    // top-level `and`/`or` sends the negation round the outside instead.
     if split_boolean(trimmed, and_op, or_op).is_none() {
         if let Some(rest) = trimmed.strip_prefix(not_token) {
             let inner = rest.trim();
@@ -656,14 +650,13 @@ fn negate(expression: &str, language: Language) -> String {
         }
     }
 
-    // A comparison flips to its opposite instead of gaining a `!`, but only when the comparison
-    // is the whole of the condition, and only at the top level.
+    // A comparison flips to its opposite instead of gaining a `!`. That applies only at
+    // the top level, and only when the comparison is the whole condition.
     //
-    // `a == 1 and b == 2` negated by flipping the first `==` is `a != 1 and b == 2`, which is a
-    // different program. The negation of an `and` is an `or` of the negations. Flipping one
-    // operand cannot say that. Where there is a boolean operator at the top level the negation
-    // goes round the outside, which De Morgan is there to distribute afterwards, if that is
-    // what the reader wants.
+    // Flipping the first `==` in `a == 1 and b == 2` yields `a != 1 and b == 2`, a
+    // different program. The negation of an `and` is an `or` of the negations, and
+    // flipping one operand cannot say that. With a boolean operator at the top level the
+    // negation goes round the outside, and De Morgan distributes it on request.
     if split_boolean(trimmed, and_op, or_op).is_none() {
         let mut flips: Vec<(&str, &str)> = vec![
             (" == ", " != "),
@@ -692,9 +685,9 @@ fn negate(expression: &str, language: Language) -> String {
         }
     }
 
-    // A compound expression needs brackets so the negation binds to all of it,
-    // except in shell, where `( … )` opens a subshell. Negating a command there is
-    // just `! cmd`, and adding brackets would change what the code does.
+    // A compound expression needs brackets so the negation binds to all of it. Shell is
+    // the exception, where `( … )` opens a subshell. Negating a command there gives
+    // `! cmd`, and adding brackets would change what the code does.
     if language != Language::Bash && trimmed.contains(' ') && !is_parenthesised(trimmed) {
         format!("{not_token}({trimmed})")
     } else {
@@ -760,7 +753,7 @@ fn strip_block(span: Span, source: &str) -> Span {
     span
 }
 
-/// Is the whole expression wrapped in one pair of brackets?
+/// Reports whether one pair of brackets wraps the whole expression.
 fn is_parenthesised(text: &str) -> bool {
     if !(text.starts_with('(') && text.ends_with(')')) {
         return false;
@@ -771,7 +764,7 @@ fn is_parenthesised(text: &str) -> bool {
             '(' => depth += 1,
             ')' => {
                 depth -= 1;
-                // Closing before the end means these are not a matching outer pair.
+                // A bracket closing before the end leaves the outer pair unmatched.
                 if depth == 0 && i + 1 != text.len() {
                     return false;
                 }

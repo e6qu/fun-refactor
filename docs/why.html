@@ -64,15 +64,14 @@
       <div class="card">
         <h3>This tool</h3>
         <p>
-          One index across sixteen languages, built from syntax and not from types.
-          Each reference is resolved by a specific rule — the scope chain, an import,
-          the enclosing package — and <em>which rule answered</em> is attached to the
-          answer.
+          It builds one index across sixteen languages out of syntax alone. A named
+          rule resolves each reference: the scope chain, an import, the enclosing
+          package. Every answer carries <em>which rule answered</em> it.
         </p>
         <p>
           It rewrites the references it resolved exactly or through an import, and
           lists the rest: weakly resolved sites, names appearing in strings, files that
-          did not parse. Output is a diff plus that list.
+          did not parse. It prints the diff, then the list.
         </p>
       </div>
     </div>
@@ -83,22 +82,22 @@
   <div class="shell prose wide">
     <h2>Defects found by running it on real repositories</h2>
     <p>
-      Each of these was in this tool, produced output that parsed, and was found by
-      running it over an existing codebase instead of a fixture.
+      Each of these lived in this tool, produced output that parsed, and turned up
+      when somebody ran it over an existing codebase instead of a fixture.
     </p>
 
     <h3>A guard clause that moved code out from under its guard</h3>
     <p>
       Go's grammar puts a <code>statement_list</code> between a block and its
-      statements. Counted as a statement, it made every block look like a block of one
-      — so the check "is this <code>if</code> the last thing here?" passed for an
+      statements. Counting it as a statement made every block look like a block of
+      one. The check "is this <code>if</code> the last thing here?" then passed for an
       <code>if</code> with code after it, and the rewrite hoisted that code out from
       under the condition guarding it.
     </p>
     <p>
       The result parses. No syntax check catches it. Over 250 files of helm's
-      <code>pkg/services</code>: <strong>1,258 of 1,498 applications were wrong</strong>
-      — 84%. After the fix those are refused and the remaining 240 apply.
+      <code>pkg/services</code>, <strong>1,258 of 1,498 applications were wrong</strong>,
+      or 84%. The fix refuses those and applies the remaining 240.
     </p>
 
     <h3>A de Morgan rewrite that dropped its own brackets</h3>
@@ -111,12 +110,12 @@
 
     <h3>References that were never found at all</h3>
     <p>
-      A Go package is a directory — a function in one file is called from the next with
-      no import and no qualifier. Only Terraform was treated that way, so
+      A Go package is a directory: code in one file calls a function in the next with
+      no import and no qualifier. The index treated only Terraform that way, so
       <code>fr refs</code> returned <em>zero</em> for symbols helm calls from the file
       next door. Dead-code analysis reported <strong>238 internal Go symbols as
-      dead</strong> where 47 are. A rename rewrote the definition and listed the call
-      sites it could not see as merely "unresolved".
+      dead</strong> where 47 are. A rename rewrote the definition and filed the call
+      sites it could not see under "unresolved".
     </p>
     <p class="note">
       That last one reported the gap instead of rewriting wrongly. It was still a
@@ -127,7 +126,7 @@
 
 <section>
   <div class="shell">
-    <h2 class="prose">What it is measured on</h2>
+    <h2 class="prose">What the figures cover</h2>
     <div class="grid three" style="margin-top:2rem">
       <div class="stat">
         <span class="num">1,376</span>
@@ -135,18 +134,17 @@
       </div>
       <div class="stat">
         <span class="num">16,525</span>
-        <span class="what">Grafana files parsed in 10.9s — 13 languages, one index</span>
+        <span class="what">Grafana files parsed in 10.9s across 13 languages, one index</span>
       </div>
       <div class="stat">
         <span class="num">0</span>
-        <span class="what">capability × language pairs marked "refused"; the other 111 are not applicable, with a reason</span>
+        <span class="what">capability × language pairs marked "refused"; the tool marks the other 111 not applicable and gives a reason</span>
       </div>
     </div>
     <p class="note prose" style="margin-top:2rem">
-      The capability matrix is computed by asking each refactoring's own predicate, not
-      maintained by hand — because the hand-written version drifted twice, once hiding
-      27 cells that had never been built and once publishing six working ones as
-      refused.
+      Every cell of the capability matrix comes from asking that refactoring's own
+      predicate. The hand-maintained version drifted twice: once it hid 27 cells
+      nobody had built, and once it published six working ones as refused.
     </p>
   </div>
 </section>
@@ -155,15 +153,15 @@
   <div class="shell prose wide">
     <h2>Where it fits</h2>
     <p>
-      Not a replacement for rust-analyzer or gopls. They have types; this has syntax,
-      and syntax stops at the point where a receiver's type would tell you which method
-      you meant. When it reaches that point it says <span class="tier-weak">field-based</span>
+      Keep rust-analyzer and gopls. They read types; this reads syntax, and syntax
+      stops where a receiver's type would tell you which method you meant. At that
+      point the tool says <span class="tier-weak">field-based</span>
       and leaves the line alone.
     </p>
     <p>What it has that they do not:</p>
     <ul>
       <li>One index over the whole repository, whatever the file is written in.</li>
-      <li>Configuration as a first-class language — a Helm values key knows which templates read it, and a rename moves them.</li>
+      <li>Configuration as a first-class language: a Helm values key knows which templates read it, and a rename moves them.</li>
       <li>Answers that survive a file that does not compile, because it never needed the compiler.</li>
       <li>An explicit account of what it did not do, every time.</li>
     </ul>
@@ -180,7 +178,7 @@
 <footer>
   <div class="shell footer-inner">
     <div>
-      <strong style="color:var(--ink-soft)">fun-refactor</strong> — AGPL-3.0-or-later.<br>
+      <strong style="color:var(--ink-soft)">fun-refactor</strong>, AGPL-3.0-or-later.<br>
       Built on <a href="https://tree-sitter.github.io/">tree-sitter</a>.<br>
       <span id="built"></span>
     </div>
