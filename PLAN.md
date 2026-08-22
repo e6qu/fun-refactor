@@ -1943,3 +1943,32 @@ still agrees with them.
 `docs/style.md` now carries the doctrine, the rhythms to ration and the
 phrase list, so the next writer inherits the rules rather than the
 corrections.
+
+### The pass where the contract page stopped repeating itself
+
+A translation reads one file and writes another, so the patch in its
+report adds every line and removes none. The contract page showed that
+patch as a Diff pane, next to a pane holding the same Python. Thirteen
+endpoints, thirteen panes, each one saying twice what it had already
+said once.
+
+The page now diffs the route against the file it became. The engine
+grew `unified_diff_between` for it, because a patch whose two sides
+carry different names needs both in its header, and `git apply` reads
+that header. A reader sees which block of TypeScript each block of
+Python answers, with seven or eight lines of context where the two
+files agree.
+
+The audit that followed found no invented feature behind the CLI.
+`restructure`, `flow`, `duplicates` and `impact` all do what the matrix
+says, on real files, including the config languages. It did find four
+capability drivers that could not fail. One passed a pattern chosen to
+match nothing, one swallowed a `Result`, and all four dropped the answer
+they were given. Each one reads its answer now.
+
+The probes themselves are worth recording, since they are the evidence
+that nothing behind the CLI is invented. `restructure` rewrote a Python
+accumulator, and `flow back` traced a YAML port to its literal.
+`duplicates` found two identical CSS rules, then declined the same pair
+under `--exact`. `rename` left the disk alone without `--write`, and
+rewrote both the definition and the call site with it.
