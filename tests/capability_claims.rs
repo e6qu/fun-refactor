@@ -239,13 +239,28 @@ fn drive(capability: Capability, language: Language, f: &Fixture) -> Outcome {
                 .map_err(said),
             None => return Outcome::NotDriven,
         },
+        // The pattern cannot match, so the search has to come back empty. Checking that much
+        // keeps the driver honest. A `restructure` returning edits for a shape absent from
+        // the file would pass here if the outcome went unread.
         Capability::Restructure => {
             refactor::restructure::apply(&f.index, language, "nothing_matches_this", "nor_this")
-                .map(|_| ())
+                .map(|plan| {
+                    assert!(
+                        plan.edits.is_empty(),
+                        "{language:?}: a pattern that matches nothing produced edits"
+                    );
+                })
                 .map_err(said)
         }
+        // Every fixture here has `caller` calling `width`, and the table claims a call graph
+        // for the imperative languages only. So an empty edge list means the graph found
+        // nothing, and reading the result is what tells the two apart.
         Capability::CallGraph => {
-            let _ = analysis::call_graph::CallGraph::build(&f.index);
+            let graph = analysis::call_graph::CallGraph::build(&f.index);
+            assert!(
+                !graph.edges().is_empty(),
+                "{language:?}: the call graph over a file with a call has no edges"
+            );
             Ok(())
         }
         Capability::Flow => match f.a_symbol() {

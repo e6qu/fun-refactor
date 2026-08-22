@@ -299,9 +299,9 @@ pub fn commit(outcomes: &[FileOutcome]) -> Result<usize> {
     // in-memory workspace every read comes from. A partial write cannot survive a failure
     // because there is no second copy to be inconsistent with.
     //
-    // Asked of the vfs and not of `cfg!(feature = "cli")`. Where the writes go is a fact about
-    // the active backing. The feature only says which backings exist, and a build with both
-    // would stage a temporary file beside a path that is in a browser's memory and has no
+    // Asked of the vfs and not of `cfg!(feature = "cli")`. Where the writes go is a fact
+    // about the active backing. The feature only says which backings exist. A build with both
+    // would stage a temporary file beside a path that lives in a browser's memory and has no
     // directory on disk.
     if crate::vfs::is_in_memory() {
         verify_basis_unchanged(outcomes)?;
@@ -485,6 +485,14 @@ fn commit_via_staging(outcomes: &[FileOutcome]) -> Result<usize> {
 
 /// Render a unified diff between two texts.
 pub fn unified_diff(before: &str, after: &str, path: &str) -> String {
+    unified_diff_between(before, after, path, path)
+}
+
+/// Render a unified diff between two texts that live at different paths.
+///
+/// A translation reads one file and writes another, so the two sides of its diff carry
+/// different names. `git apply` reads the header, so the paths have to be the real ones.
+pub fn unified_diff_between(before: &str, after: &str, from_path: &str, to_path: &str) -> String {
     use similar::{ChangeTag, TextDiff};
 
     if before == after {
@@ -492,7 +500,7 @@ pub fn unified_diff(before: &str, after: &str, path: &str) -> String {
     }
 
     let diff = TextDiff::from_lines(before, after);
-    let mut out = format!("--- a/{path}\n+++ b/{path}\n");
+    let mut out = format!("--- a/{from_path}\n+++ b/{to_path}\n");
 
     for group in diff.grouped_ops(3) {
         let (first, last) = (group.first(), group.last());
@@ -554,10 +562,10 @@ pub fn line_indent(source: &str, offset: usize) -> String {
 
 /// One level of indentation, as this file writes it.
 ///
-/// Read from the source and not assumed: generated code that arrives four spaces
-/// deep in a two-space TypeScript file or a tab-indented Go file is a visible wart on
-/// every line it touches. The shortest indentation any line carries is one level,
-/// every real file has at least one line indented exactly once.
+/// Read it from the source rather than assuming it. Generated code arriving four spaces deep
+/// in a two-space TypeScript file, or in a tab-indented Go file, leaves a visible wart on
+/// every line it touches. The shortest indentation any line carries is one level, every real
+/// file has at least one line indented exactly once.
 pub fn indent_unit(source: &str) -> String {
     source
         .lines()

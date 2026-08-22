@@ -185,6 +185,23 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
 
 ## Fixed
 
+- [x] B727: **the contract page called a creation patch a diff.** Every
+  endpoint on `contract.html` showed a Diff pane taken from the
+  translate report. A translation writes a file beside the one it read,
+  so that patch adds every line and removes none. The pane repeated the
+  FastAPI pane next to it. The page now diffs the route against the
+  file it became, so a reader sees which block of TypeScript each block
+  of Python answers. `edit::unified_diff_between` renders it, because
+  the two sides carry different names. The generator asserts that each
+  diff has both signs, which is the check the old pane would have failed.
+
+- [x] B728: **two capability drivers could not fail.** The coverage test
+  says a cell nothing drives is a claim nothing checks. Its restructure
+  driver passed a pattern chosen to match nothing and dropped the
+  result, and its call-graph driver dropped the graph. Both now read
+  what came back. The empty pattern must produce no edits, and a graph
+  over a fixture whose `caller` calls `width` must have an edge.
+
 - [x] B726: **the project wrote one way and its tutorial wrote another.**
   The type-safety page had learned to put a doer in every subject. It
   gave an instruction wherever a reader can act. The rest of the repository still

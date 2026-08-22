@@ -35,14 +35,14 @@ host.innerHTML = ENDPOINTS.map(
 
 for (const endpoint of ENDPOINTS) {
   const { report } = split(endpoint.report);
-  const { diff } = split(endpoint.report);
   const panes = [
     { label: "Next.js", body: endpoint.before },
     { label: "FastAPI", body: endpoint.after },
   ];
-  // The diff is all additions: nothing was changed, a file was written beside the one
-  // that was read. Shown anyway, because that is the shape of the edit the tool makes.
-  if (diff) panes.push({ label: "Diff", body: diff, paint: paintDiff });
+  // The route against the file it became, so a reader sees which block of TypeScript each
+  // block of Python answers. The report carries a patch of its own, and that one adds every
+  // line of a file that did not exist before, which repeats the FastAPI pane.
+  if (endpoint.diff) panes.push({ label: "Diff", body: endpoint.diff, paint: paintDiff });
   if (report) panes.push({ label: "What it said", body: report, paint: paintReport });
   specimen(host.querySelector(`.specimen[data-route="${CSS.escape(endpoint.route)}"]`), {
     title: endpoint.route,
