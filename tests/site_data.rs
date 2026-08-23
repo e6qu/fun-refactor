@@ -1306,9 +1306,9 @@ fn run(root: &Path, argv: &[String]) -> String {
     // The workspace is a temporary directory and its name is different every run; the
     // page has to show the path a reader would type.
     //
-    // macOS hands out `/var/folders/...` and reports it back as `/private/var/...`, so
-    // the longer spelling has to go first, replacing the short one first leaves the
-    // `/private` behind and prints `/privatesrc/pricing.py`.
+    // macOS hands out `/var/folders/...` and reports it back as `/private/var/...`, so the
+    // longer spelling goes first. Replacing the short one first leaves the `/private` behind
+    // and prints `/privatesrc/pricing.py`.
     let root_text = root.to_string_lossy().to_string();
     let private = format!("/private{root_text}");
     for prefix in [private.as_str(), root_text.as_str()] {
@@ -1643,7 +1643,7 @@ struct Endpoint {
 
 /// Every shape a CRUD API has, in one tree.
 ///
-/// A router that answers all of these has met a collection, a member, a sub-collection, a
+/// A router answering all of these has met a collection, a member, a sub-collection, a
 /// sub-member, a replacement, an action, an aggregate and a catch-all. Most APIs never
 /// present more surface than that.
 const ENDPOINTS: &[Endpoint] = &[
@@ -1762,23 +1762,45 @@ fn contract_data() -> String {
         // Read off disk and not out of the report. So it has to be scrubbed here: the header
         // names the file it was translated from. That path is a temporary directory whose name
         // changes every run.
-        let after = std::fs::read_dir(&directory)
+        let written = std::fs::read_dir(&directory)
             .unwrap()
             .flatten()
             .map(|e| e.path())
             .find(|p| p.extension().is_some_and(|x| x == "py"))
-            .map(|p| scrub(&std::fs::read_to_string(p).unwrap(), workspace))
             .unwrap_or_else(|| panic!("{} produced no Python", endpoint.route));
+        let after = scrub(&std::fs::read_to_string(&written).unwrap(), workspace);
+        let written = written
+            .strip_prefix(workspace)
+            .unwrap_or(&written)
+            .to_string_lossy()
+            .into_owned();
+
+        // The route against the file it became. The report carries a patch of its own. That
+        // one adds every line of a file that did not exist before, and says no more than the
+        // Python pane beside it. This compares the two sides, so a reader sees which block of
+        // TypeScript each block of Python answers. It comes from the tool's own engine.
+        let diff =
+            fun_refactor::edit::unified_diff_between(&before, &after, endpoint.route, &written);
+        // A creation patch adds every line and removes none, which says no more than the pane
+        // beside it. The page showed one of those for a year. A comparison has both signs.
+        let body = || diff.lines().skip(2).filter(|l| !l.starts_with("@@"));
+        assert!(
+            body().any(|l| l.starts_with('-')) && body().any(|l| l.starts_with('+')),
+            "{}: the diff must compare the route against the file it became, \
+             and this one only adds lines:\n{diff}",
+            endpoint.route
+        );
 
         out.push_str(&format!(
             "  {{\n    route: {},\n    shape: {},\n    note: {},\n    command: {},\n    \
-             before: {},\n    after: {},\n    report: {},\n  }},\n",
+             before: {},\n    after: {},\n    diff: {},\n    report: {},\n  }},\n",
             json_string(endpoint.route),
             json_string(endpoint.shape),
             json_string(endpoint.note),
             json_string(&format!("fr translate '{}' fastapi", endpoint.route)),
             json_string(&before),
             json_string(&after),
+            json_string(&diff),
             json_string(&report),
         ));
     }

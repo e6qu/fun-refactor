@@ -239,13 +239,28 @@ fn drive(capability: Capability, language: Language, f: &Fixture) -> Outcome {
                 .map_err(said),
             None => return Outcome::NotDriven,
         },
+        // The pattern cannot match, so the search has to come back empty. Checking that much
+        // keeps the driver honest. A `restructure` returning edits for a shape absent from
+        // the file would pass here if the outcome went unread.
         Capability::Restructure => {
             refactor::restructure::apply(&f.index, language, "nothing_matches_this", "nor_this")
-                .map(|_| ())
+                .map(|plan| {
+                    assert!(
+                        plan.edits.is_empty(),
+                        "{language:?}: a pattern that matches nothing produced edits"
+                    );
+                })
                 .map_err(said)
         }
+        // Every fixture here has `caller` calling `width`, and the table claims a call graph
+        // for the imperative languages only. So an empty edge list means the graph found
+        // nothing, and reading the result is what tells the two apart.
         Capability::CallGraph => {
-            let _ = analysis::call_graph::CallGraph::build(&f.index);
+            let graph = analysis::call_graph::CallGraph::build(&f.index);
+            assert!(
+                !graph.edges().is_empty(),
+                "{language:?}: the call graph over a file with a call has no edges"
+            );
             Ok(())
         }
         Capability::Flow => match f.a_symbol() {
@@ -260,10 +275,11 @@ fn drive(capability: Capability, language: Language, f: &Fixture) -> Outcome {
                 .map_err(said),
             None => return Outcome::NotDriven,
         },
-        Capability::EntryPoints => {
-            let _ = analysis::entrypoints::Entrypoints::detect(&f.index);
-            Ok(())
-        }
+        // Detection returns a `Result`, and dropping it here reported success for a language
+        // whose detection had failed.
+        Capability::EntryPoints => analysis::entrypoints::Entrypoints::detect(&f.index)
+            .map(|_| ())
+            .map_err(said),
         Capability::ExtractVariable => match f.a_span() {
             Some(span) => refactor::extract::variable(&f.index, &f.file, span, "lifted", false)
                 .map(|_| ())
@@ -338,9 +354,16 @@ fn drive(capability: Capability, language: Language, f: &Fixture) -> Outcome {
         Capability::Duplicates => analysis::duplicates::find_in(&f.index, &f.root)
             .map(|_| ())
             .map_err(said),
+        // A fixture this small may honestly have nothing unused, so the count proves nothing.
+        // What every answer owes is that each symbol it names exists. Dropping the list let a
+        // reply of invented ids pass.
         Capability::DeadCode => match analysis::entrypoints::Entrypoints::detect(&f.index) {
             Ok(entrypoints) => {
-                let _ = refactor::delete::find_unused(&f.index, &entrypoints);
+                let unused = refactor::delete::find_unused(&f.index, &entrypoints);
+                assert!(
+                    unused.iter().all(|id| f.index.symbol(*id).is_some()),
+                    "{language:?}: the unused list names a symbol the index does not hold"
+                );
                 Ok(())
             }
             Err(e) => Err(said(e)),
