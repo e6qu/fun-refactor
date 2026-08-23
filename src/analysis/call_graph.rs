@@ -278,7 +278,7 @@ impl CallGraph {
     /// `Held { run: candidate }` names a function without calling it, and `(h.run)()`
     /// calls a name without naming a function. Neither half resolves to a callable on
     /// its own, and together they say `go` may reach `candidate`. May, and not does.
-    /// Which function is behind the name is settled while the program runs, so the edge
+    /// Which function is behind the name is settled while the program runs. So the edge
     /// is a dispatch candidate like any other, and it is labelled as one.
     fn add_function_value_edges(
         &mut self,
@@ -289,18 +289,54 @@ impl CallGraph {
         if hierarchy.function_values.is_empty() {
             return;
         }
+
+        // Resolve each binding once. A name is bound in a handful of places and called
+        // in thousands, so the work belongs on the small side of that.
+        let mut behind: HashMap<&str, Vec<SymbolId>> = HashMap::new();
+        for (name, sites) in &hierarchy.function_values {
+            let mut callees: Vec<SymbolId> = sites
+                .iter()
+                .filter_map(|(file, offset)| {
+                    index
+                        .reference_at(file, *offset)
+                        .and_then(|r| r.target)
+                        .and_then(|t| index.symbol(t))
+                        .filter(|s| s.kind.is_callable())
+                        .map(|s| s.id)
+                })
+                .collect();
+            callees.sort();
+            callees.dedup();
+            if !callees.is_empty() {
+                behind.insert(name.as_str(), callees);
+            }
+        }
+        if behind.is_empty() {
+            return;
+        }
         for (path, calls) in &hierarchy.calls {
+            if !calls
+                .iter()
+                .any(|(name, _)| behind.contains_key(name.as_str()))
+            {
+                continue;
+            }
+            // Where the call sites are is known, so the file's references are indexed by
+            // where each one starts instead of scanned once per call.
+            let starts: HashMap<usize, &crate::model::Reference> = index
+                .references_in(path)
+                .map(|r| (r.span.start, r))
+                .collect();
             for (name, at) in calls {
-                // The name first: it is a map lookup, and most calls go through a name
-                // nothing was ever assigned to. Resolving the call site is a scan of the
-                // file's references, so it waits until there is something to gain.
-                let Some(sites) = hierarchy.function_values.get(name) else {
+                // The name first: most calls go through a name nothing was ever put
+                // behind, and that is a map lookup.
+                let Some(callees) = behind.get(name.as_str()) else {
                     continue;
                 };
                 // A call that already names a function is answered; this is for the ones
                 // that name a field, a variable or nothing at all.
-                let resolved = index
-                    .reference_at(path, *at)
+                let resolved = starts
+                    .get(at)
                     .and_then(|r| r.target)
                     .and_then(|t| index.symbol(t));
                 if resolved.is_some_and(|s| s.kind.is_callable()) {
@@ -309,20 +345,12 @@ impl CallGraph {
                 let Some(caller_id) = enclosing_callable(index, path, *at) else {
                     continue;
                 };
-                for (file, offset) in sites {
-                    let Some(callee) = index
-                        .reference_at(file, *offset)
-                        .and_then(|r| r.target)
-                        .and_then(|t| index.symbol(t))
-                        .filter(|s| s.kind.is_callable())
-                    else {
-                        continue;
-                    };
-                    if !edges.insert((caller_id, callee.id, *at)) {
+                for callee in callees {
+                    if !edges.insert((caller_id, *callee, *at)) {
                         continue;
                     }
                     let from = self.node_for(caller_id);
-                    let to = self.node_for(callee.id);
+                    let to = self.node_for(*callee);
                     self.graph.add_edge(
                         from,
                         to,
@@ -1256,8 +1284,11 @@ impl Hierarchy {
             let mut bindings: Vec<(String, usize)> = Vec::new();
             let mut calls: Vec<(String, usize)> = Vec::new();
             let mut visit = |node: Node| {
-                collect_function_value(node, &source, &mut bindings);
-                collect_called_name(node, &source, &mut calls);
+                // A leaf is neither a binding nor a call, and most nodes are leaves.
+                if node.child_count() > 1 {
+                    collect_function_value(node, family, &source, &mut bindings);
+                    collect_called_name(node, &source, &mut calls);
+                }
                 match family {
                     Family::Rust => hierarchy.visit_rust(node, &source, &mut sites),
                     Family::Go => hierarchy.visit_go(node, &source, &mut sites),
@@ -1751,18 +1782,51 @@ fn methods_by_owner(index: &Index) -> HashMap<(Family, String, String), Vec<Symb
     methods
 }
 
-/// Visit every node of a tree, iteratively, a deeply nested expression must not
-/// depend on the stack depth of the analysis.
+/// The nodes that bind one name to another, per family.
+///
+/// This runs on every node of every file, and a kind comparison costs nothing. So the
+/// shapes are named. Inside one, the two halves are read from the node's fields.
+fn binding_kinds(family: Family) -> &'static [&'static str] {
+    match family {
+        Family::Rust => &[
+            "field_initializer",
+            "let_declaration",
+            "assignment_expression",
+            "const_item",
+            "static_item",
+        ],
+        Family::Go => &[
+            "keyed_element",
+            "assignment_statement",
+            "short_var_declaration",
+            "var_spec",
+            "const_spec",
+        ],
+        Family::Ts => &["pair", "variable_declarator", "assignment_expression"],
+        Family::Java => &["variable_declarator", "assignment_expression"],
+        Family::Python => &["assignment", "pair", "keyword_argument"],
+    }
+}
+
 /// A bare name put behind another name: `run: candidate`, `let run = candidate`,
 /// `h.run = candidate`, `{"run": candidate}`.
 ///
-/// Every grammar here labels the two halves of such a node with fields. So the shape is
-/// read from the fields and not from a list of node types per language. The value must be
-/// one identifier: a call, a closure or an expression is not a function this can name.
-/// What the identifier resolves to is the index's answer, asked for later.
-fn collect_function_value(node: Node, source: &str, out: &mut Vec<(String, usize)>) {
+/// The two halves are read from the node's fields where the grammar labels them, and
+/// positionally where Go does not. The value must be one identifier: a call, a closure or
+/// an expression is not a function this can name. What the identifier resolves to is the
+/// index's answer, asked for later.
+fn collect_function_value(
+    node: Node,
+    family: Family,
+    source: &str,
+    out: &mut Vec<(String, usize)>,
+) {
     const VALUE_FIELDS: [&str; 2] = ["value", "right"];
     const NAME_FIELDS: [&str; 5] = ["name", "left", "key", "field", "pattern"];
+
+    if !binding_kinds(family).contains(&node.kind()) {
+        return;
+    }
 
     fn named<'t>(node: Node<'t>, fields: &[&str]) -> Option<Node<'t>> {
         fields
@@ -1770,15 +1834,22 @@ fn collect_function_value(node: Node, source: &str, out: &mut Vec<(String, usize
             .find_map(|field| node.child_by_field_name(field))
     }
     // Go labels neither half of `Held{run: candidate}`, so a three-child node joined by
-    // `:` or `=` is read positionally.
+    // `:` or `=` is read positionally. Only Go: every other grammar here labels them, and
+    // a three-child node is otherwise the commonest shape there is.
     let unlabelled = || -> Option<(Node<'_>, Node<'_>)> {
-        (node.child_count() == 3 && matches!(text(node.child(1)?, source), ":" | "="))
-            .then(|| (node.child(0), node.child(2)))
-            .and_then(|(name, value)| Some((name?, value?)))
+        (family == Family::Go
+            && node.child_count() == 3
+            && matches!(text(node.child(1)?, source), ":" | "="))
+        .then(|| (node.child(0), node.child(2)))
+        .and_then(|(name, value)| Some((name?, value?)))
     };
-    let (name, value) = match (named(node, &NAME_FIELDS), named(node, &VALUE_FIELDS)) {
-        (Some(name), Some(value)) => (name, value),
-        _ => match unlabelled() {
+    // The value first: two field lookups, and most nodes have neither.
+    let (name, value) = match named(node, &VALUE_FIELDS) {
+        Some(value) => match named(node, &NAME_FIELDS) {
+            Some(name) => (name, value),
+            None => return,
+        },
+        None => match unlabelled() {
             Some(pair) => pair,
             None => return,
         },
@@ -1814,14 +1885,41 @@ fn collect_called_name(node: Node, source: &str, out: &mut Vec<(String, usize)>)
     let Some(function) = node.child_by_field_name("function") else {
         return;
     };
-    let mut last: Option<(String, usize)> = None;
-    walk(function, &mut |child: Node| {
-        if child.child_count() == 0 && is_plain_name(text(child, source)) {
-            last = Some((text(child, source).to_string(), child.start_byte()));
+    // The name is the last one in the expression. So the search runs from the right and
+    // stops at the first leaf that is a name. Walking the whole callee would read every
+    // argument of every nested call for nothing.
+    let mut node = function;
+    loop {
+        if node.child_count() == 0 {
+            if is_plain_name(text(node, source)) {
+                out.push((text(node, source).to_string(), node.start_byte()));
+                return;
+            }
+            // A `)` or a `]` ends the expression; the name is before it.
+            match previous(node, function) {
+                Some(previous) => node = previous,
+                None => return,
+            }
+            continue;
         }
-    });
-    if let Some(name) = last {
-        out.push(name);
+        node = node
+            .child(node.child_count() as u32 - 1)
+            .expect("a last child");
+    }
+}
+
+/// The node before this one, staying inside `root`.
+fn previous<'t>(node: Node<'t>, root: Node<'t>) -> Option<Node<'t>> {
+    let mut node = node;
+    loop {
+        if let Some(sibling) = node.prev_sibling() {
+            return Some(sibling);
+        }
+        let parent = node.parent()?;
+        if parent == root {
+            return None;
+        }
+        node = parent;
     }
 }
 
@@ -1834,6 +1932,8 @@ fn is_plain_name(text: &str) -> bool {
         && !text.starts_with(|c: char| c.is_ascii_digit())
 }
 
+/// Visit every node of a tree, iteratively: a deeply nested expression must not
+/// depend on the stack depth of the analysis.
 fn walk(root: Node, visit: &mut impl FnMut(Node)) {
     let mut cursor = root.walk();
     loop {

@@ -1985,6 +1985,17 @@ impl Index {
         reference.target.and_then(|t| self.symbol(t))
     }
 
+    /// Every reference in one file, in the order they were recorded.
+    ///
+    /// A caller that asks about many offsets in one file should index these once rather
+    /// than scan them once per offset.
+    pub fn references_in(&self, path: &Path) -> impl Iterator<Item = &Reference> {
+        self.files
+            .get(path)
+            .into_iter()
+            .flat_map(|info| info.references.iter().map(|i| &self.references[*i]))
+    }
+
     /// The reference at a byte offset, if any.
     pub fn reference_at(&self, path: &Path, offset: usize) -> Option<&Reference> {
         let info = self.files.get(path)?;
