@@ -680,8 +680,6 @@ mod tests {
     }
 }
 
-// ------------------------------------------------------------------- inline call
-
 /// An inlined call worked out but not applied.
 #[derive(Debug)]
 pub struct InlineCallPlan {
@@ -1202,7 +1200,6 @@ fn needs_parentheses(expansion: &str) -> bool {
     needs_grouping(trimmed)
 }
 
-// ------------------------------------------------------- config languages
 //
 // Each of these inverts the corresponding extraction. Substitute the named value at every use
 // site and delete the declaration, and take the container the extraction created when nothing
@@ -1317,8 +1314,6 @@ fn needs_grouping(value: &str) -> bool {
     }
     false
 }
-
-// ------------------------------------------------------------ Terraform / HCL
 
 /// Inline a `locals` entry. Substitute its expression at every `local.<name>`, delete the
 /// entry, and take the `locals` block with it when the block becomes empty.
@@ -1522,8 +1517,6 @@ fn hcl_foreign_local_uses(index: &Index, file: &std::path::Path, name: &str) -> 
     out
 }
 
-// ------------------------------------------------------------------ Helm / YAML
-
 /// Inline a YAML anchor: substitute its value at every `*alias` and drop the `&name`.
 fn yaml_anchor(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     let sym = index
@@ -1627,8 +1620,6 @@ fn yaml_anchor(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         use_sites: references.len(),
     })
 }
-
-// ---------------------------------------------------------------------- CSS/SCSS
 
 /// Inline a custom property: substitute its value at every `var(--name)` and delete
 /// the declaration, taking an emptied rule with it.
@@ -1804,8 +1795,6 @@ fn css_declaration_value_span(declaration: Node<'_>) -> Option<Span> {
     Some(Span::new(first.start_byte(), last.end_byte()))
 }
 
-// ---------------------------------------------------------------------- Markdown
-
 /// Inline a link reference definition: rewrite every reference link as an inline link
 /// and delete the definition.
 fn markdown_link_definition(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
@@ -1920,8 +1909,6 @@ fn markdown_definition_removal(source: &str, definition: Span) -> Span {
     }
     Span::new(start, line.end)
 }
-
-// -------------------------------------------------------------------------- Bash
 
 /// Every node in the tree, in source order, that `keep` accepts.
 fn collect_nodes<'a>(root: Node<'a>, mut keep: impl FnMut(Node<'a>) -> bool) -> Vec<Node<'a>> {
@@ -2321,8 +2308,6 @@ fn bash_is_one_plain_word(text: &str) -> bool {
                 )
         })
 }
-
-// --------------------------------------------------------------------------- XML
 
 /// Inline an XML internal-subset entity. Substitute its replacement text at every `&name;`
 /// and delete the `<!ENTITY …>`. Take the `<!DOCTYPE …>` an extraction created when nothing

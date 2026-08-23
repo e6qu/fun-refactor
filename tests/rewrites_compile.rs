@@ -70,8 +70,6 @@ impl ParseOffset for String {
     }
 }
 
-// ------------------------------------------------------------- the fixtures
-
 const RUST: &str = "\
 pub fn scale(w: usize, h: usize) -> usize {
     w * 2 + h * 3
@@ -451,8 +449,6 @@ fn skip(fixture: &Fixture) -> bool {
     true
 }
 
-// ------------------------------------------------------------------ the sweep
-
 #[test]
 fn every_fixture_compiles_before_anything_touches_it() {
     let mut run = GateRun::default();
@@ -795,6 +791,6 @@ fn the_rewrite_gate_states_what_it_covers() {
     }
     common::require_on_ci("rewrite gate", &missing);
     eprintln!(
-        "rewrite gate: not driven — tsx, bash, html, css, scss, hcl, yaml, helm, xml, markdown"
+        "rewrite gate: not driven: tsx, bash, html, css, scss, hcl, yaml, helm, xml, markdown"
     );
 }

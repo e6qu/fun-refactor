@@ -81,8 +81,6 @@ spec:
           {{- end }}
 "#;
 
-// --------------------------------------------------------------- plain YAML
-
 #[test]
 fn values_file_parses_cleanly() {
     let parsed = Parsers::new().parse(Language::Yaml, VALUES).unwrap();
@@ -170,8 +168,6 @@ fn flow_mapping_keys_are_definitions_too() {
     assert_eq!(sym(&f, "flow::b").name_span.text(VALUES), "b");
 }
 
-// ------------------------------------------------------------ anchor/alias
-
 #[test]
 fn anchor_and_alias_pair_up_by_name() {
     // This is the YAML rename story: renaming `&base` must rewrite every `*base`.
@@ -243,8 +239,6 @@ fn anchor_names_are_not_also_reported_as_references() {
     assert!(x_refs[0].span.start > 8, "only the alias is a reference");
 }
 
-// ---------------------------------------------------------------- structure
-
 #[test]
 fn multi_document_streams_keep_documents_apart() {
     let src = "---\nname: a\n---\nname: b\n";
@@ -281,8 +275,6 @@ fn block_scalars_contribute_no_spurious_keys() {
     assert_eq!(names(&f), vec!["script", "after"], "got {:?}", names(&f));
 }
 
-// ------------------------------------------------------------- known gaps
-
 #[test]
 fn quoted_keys_report_the_bare_name() {
     // The grammar gives quoted scalars no inner-content node. So @name captures the whole
@@ -298,8 +290,6 @@ fn quoted_keys_report_the_bare_name() {
     assert_eq!(q.name, "quoted key");
     assert_eq!(q.name_span.text(VALUES), "quoted key");
 }
-
-// --------------------------------------------------------------------- Helm
 
 #[test]
 fn helm_template_parses_and_extracts_its_structure() {

@@ -270,8 +270,8 @@ fn the_guard_clause_refusal_names_a_rewrite_that_applies() {
 
 #[test]
 fn the_css_extract_refusal_names_a_rename_that_works() {
-    // "rename {} to `.scss` if that is what was meant", the same bytes under the SCSS
-    // grammar have to extract, or the advice sends the reader in a circle.
+    // "rename {} to `.scss` if you meant SCSS", the same bytes under the SCSS grammar
+    // must extract, or the advice sends the reader in a circle.
     let content = ".card {\n  color: red;\n  padding: 4px;\n}\n";
     let (_tmp, root, index) = workspace(&[("a.css", content)]);
     let file = root.join("a.css");
@@ -554,7 +554,7 @@ fn the_no_cascade_here_reason_names_two_commands_that_work() {
 
 #[test]
 fn the_bash_digit_refusal_names_a_spelling_that_works() {
-    // "`$12` is not parameter 12 … Write it as `${12}` first if that is what was meant." A
+    // "`$12` is not parameter 12 … Write it as `${12}` first if you meant parameter 12." A
     // shell reads `$1` then the literal `2`. So a function with twelve parameters cannot be
     // rewritten until the author says which they meant. The advice is only worth printing if
     // the braced spelling then goes through.

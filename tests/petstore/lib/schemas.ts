@@ -1,8 +1,3 @@
-// The shapes the pet store's API speaks, declared once.
-//
-// A zod schema is a runtime value, not a type declaration, so nothing that reads
-// declarations finds it. `fr translate` reads the builder chain instead — which is
-// what lets a Pydantic model come out the other side with the same fields.
 import * as z from "zod"
 
 export const petCreateSchema = z.object({

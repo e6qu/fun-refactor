@@ -502,8 +502,6 @@ impl Workspace {
         crate::vfs::read_to_string(PathBuf::from(path)).unwrap_or_default()
     }
 
-    // ------------------------------------------------- navigation and analysis
-
     /// What satisfies the abstraction at this position.
     pub fn implementations(&self, path: &str, line: usize, col: usize) -> String {
         self.enter();
@@ -1021,8 +1019,6 @@ impl Workspace {
         ok(&crate::capabilities::matrix())
     }
 
-    // ------------------------------------------------------------ refactorings
-
     /// Extract the selected range into a binding.
     pub fn extract_variable(&mut self, path: &str, range: &str, name: &str) -> String {
         self.enter();
@@ -1184,8 +1180,6 @@ impl Workspace {
             Err(e) => fail(e),
         }
     }
-
-    // ------------------------------------------------------------- internals
 
     /// Make this workspace's files the ones the analysis reads.
     ///

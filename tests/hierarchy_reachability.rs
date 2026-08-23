@@ -102,8 +102,6 @@ fn assert_never_exact(graph: &CallGraph, id: SymbolId) {
     }
 }
 
-// ------------------------------------------------------------------------- Rust
-
 /// A trait, two impls, and one call through `&dyn Trait`.
 ///
 /// `Ledger` lives in its own file with an inherent `area`: nothing relates it to
@@ -284,8 +282,6 @@ fn main() { S.run(); }
     assert_eq!(graph.hierarchy_edge_count(), 0, "nothing here is dynamic");
 }
 
-// --------------------------------------------------------------------------- Go
-
 /// A Go package split across files, so the index cannot cheat with a same-file match.
 fn go_shapes() -> Vec<(&'static str, &'static str)> {
     vec![
@@ -384,8 +380,6 @@ fn go_an_implementation_reached_only_by_dispatch_is_not_reported_unused() {
         "nothing reaches Ledger.Area: {unused:?}"
     );
 }
-
-// ------------------------------------------------------------------- TypeScript
 
 fn ts_shapes() -> Vec<(&'static str, &'static str)> {
     vec![
@@ -496,8 +490,6 @@ fn typescript_an_implementation_reached_only_by_dispatch_is_not_reported_unused(
     }
 }
 
-// ----------------------------------------------------------------------- Python
-
 fn python_shapes() -> Vec<(&'static str, &'static str)> {
     vec![
         (
@@ -569,8 +561,6 @@ fn python_a_subclass_reached_only_by_dispatch_is_not_reported_unused() {
     );
 }
 
-// ------------------------------------------------------------------- honesty
-
 #[test]
 fn dispatch_edges_are_counted_apart_from_resolved_ones() {
     let (_tmp, index) = workspace(&rust_shapes());
@@ -636,7 +626,6 @@ fn main() {
     );
 }
 
-// -------------------------------------- implementations of the abstraction itself
 //
 // "What are the Sinks?" is the question people ask of an interface. It used to answer nothing:
 // `implementations_of` required a method. So pointing at the type it belongs to returned an
@@ -799,7 +788,6 @@ impl Memory {
     assert!(implementations(&index, "Memory").is_empty());
 }
 
-// ------------------------------------ a call that resolved *to the abstraction*
 //
 // The dispatch layer looks at call sites that resolved to nothing. There is a second shape it
 // never saw. `sink.Store(r)` where `sink` is declared as the interface type resolves perfectly

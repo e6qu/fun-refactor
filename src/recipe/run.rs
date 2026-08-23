@@ -838,8 +838,6 @@ fn extract_at(index: &Index, root: &Path, at: &str, name: &str, function: bool) 
     })
 }
 
-// ------------------------------------------------------------------- selection
-
 /// The predicates this build answers, for the error that lists them.
 pub const PREDICATES: &[&str] = &[
     "name",

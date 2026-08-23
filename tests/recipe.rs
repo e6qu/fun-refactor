@@ -47,8 +47,6 @@ def modern_auth_check(user, token):
     return user.verify(token)
 "#;
 
-// ------------------------------------------------------------------- parsing
-
 #[test]
 fn the_schema_comes_first_and_is_mandatory() {
     // It makes a staged answer to sharing possible: a reader can refuse a file
@@ -181,8 +179,6 @@ fn reserved_words_and_predicates_do_not_overlap() {
         );
     }
 }
-
-// ------------------------------------------------------------------- running
 
 fn run(
     files: &[(&str, &str)],
@@ -595,8 +591,6 @@ fn a_misspelled_predicate_value_names_itself() {
         );
     }
 }
-
-// ------------------------------------------------------- restructure counting
 
 #[test]
 fn a_restructure_pattern_that_matches_nothing_stops_the_run() {

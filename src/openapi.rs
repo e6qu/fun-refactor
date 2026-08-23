@@ -295,8 +295,6 @@ fn json_type(ty: &Type) -> Value {
     }
 }
 
-// ------------------------------------------------- the other side of the crossing
-
 /// The contract a FastAPI tree *declares*, read the same way FastAPI reads it.
 ///
 /// The point of a baseline is to be diffed against the finished service, and doing that

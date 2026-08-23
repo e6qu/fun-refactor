@@ -5,7 +5,6 @@ import * as z from "zod"
 import { db } from "@/lib/db"
 import { petPatchSchema } from "@/lib/schemas"
 
-/** One pet. */
 export async function GET(req: NextRequest, context: { params: { petId: string } }) {
   const pet = await db.pet.findUnique({ where: { id: context.params.petId } })
 
@@ -16,7 +15,6 @@ export async function GET(req: NextRequest, context: { params: { petId: string }
   return NextResponse.json(pet)
 }
 
-/** Change what is known about a pet. */
 export async function PATCH(req: NextRequest, context: { params: { petId: string } }) {
   try {
     const json = await req.json()
@@ -36,7 +34,6 @@ export async function PATCH(req: NextRequest, context: { params: { petId: string
   }
 }
 
-/** Rehome a pet: it leaves the store. */
 export async function DELETE(req: NextRequest, context: { params: { petId: string } }) {
   await db.pet.delete({ where: { id: context.params.petId } })
   return new Response(null, { status: 204 })

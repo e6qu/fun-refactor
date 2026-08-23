@@ -100,8 +100,6 @@ fn realistic_configuration_parses_cleanly() {
     );
 }
 
-// ------------------------------------------------------------- definitions
-
 #[test]
 fn variable_blocks_are_variables_named_without_quotes() {
     let f = hcl(MAIN_TF);
@@ -231,8 +229,6 @@ fn nested_blocks_nest_by_containment() {
     // The resource's type label qualifies what it encloses too.
     assert_eq!(lifecycle.qualifier.as_deref(), Some("aws_instance"));
 }
-
-// -------------------------------------------------------------- references
 
 #[test]
 fn var_and_local_references_name_the_declaration() {
@@ -412,8 +408,6 @@ fn every_reference_starts_unresolved() {
         .all(|r| r.target.is_none() && r.confidence == Confidence::NameOnly));
 }
 
-// ----------------------------------------------------------------- imports
-
 #[test]
 fn module_source_is_the_import() {
     let f = hcl(MAIN_TF);
@@ -458,8 +452,6 @@ fn a_module_without_a_literal_source_yields_no_import() {
     assert_eq!(sym(&f, "m").kind, SymbolKind::Module);
 }
 
-// ------------------------------------------------------------------ scopes
-
 #[test]
 fn block_bodies_are_nested_scopes() {
     let f = hcl(MAIN_TF);
@@ -484,8 +476,6 @@ fn object_expressions_open_their_own_scope() {
     assert_ne!(inner, outer);
     assert!(f.scope_chain(inner).contains(&outer));
 }
-
-// ------------------------------------------------------------- known gaps
 
 #[test]
 fn empty_labels_define_nothing() {

@@ -37,8 +37,6 @@ fn names_of(f: &FileFacts, kind: SymbolKind) -> Vec<&str> {
         .collect()
 }
 
-// ------------------------------------------------------------------ functions
-
 #[test]
 fn functions_are_found_with_exact_name_spans() {
     let src = "fn helper() void {}\npub fn add(a: i32, b: i32) i32 {\n    return a + b;\n}\n";
@@ -86,8 +84,6 @@ fn parameters_are_definitions_inside_the_function_scope() {
     assert!(f.scope_chain(a.scope).contains(&file_scope));
 }
 
-// ----------------------------------------------------------------- test decls
-
 #[test]
 fn a_string_named_test_drops_the_quotes_from_its_name_span() {
     let src = "test \"adds two numbers\" {}\n";
@@ -112,8 +108,6 @@ fn a_decl_test_references_the_declaration_it_exercises() {
     let r = f.references.iter().find(|r| r.name == "thing").unwrap();
     assert!(r.span.start > src.find("test ").unwrap());
 }
-
-// -------------------------------------------------------------- declarations
 
 #[test]
 fn const_struct_is_a_single_struct_definition() {
@@ -147,21 +141,19 @@ fn each_container_form_yields_exactly_one_symbol_of_the_right_kind() {
 }
 
 #[test]
-fn empty_container_bodies_do_not_parse() {
-    // Grammar limitation, not a query one: tree-sitter-zig 1.1.2 requires at least
-    // one member inside a container, so `struct {}`, valid Zig, fails to parse.
-    // Recorded here so the day the grammar is fixed, this test fails loudly.
-    for src in ["const Z = struct {};\n", "const O = opaque {};\n"] {
+fn a_container_with_no_members_parses_and_declares_its_symbol() {
+    // `grammars/zig` patches the four container rules to take
+    // `optional($._container_members)`, which is what `source_file` already takes.
+    for (src, name, kind) in [
+        ("const Z = struct {};\n", "Z", SymbolKind::Struct),
+        ("const O = opaque {};\n", "O", SymbolKind::Struct),
+        ("const E = enum {};\n", "E", SymbolKind::Enum),
+        ("const U = union {};\n", "U", SymbolKind::Struct),
+    ] {
         let parsed = Parsers::new().parse(Language::Zig, src).unwrap();
-        assert!(parsed.has_errors(), "{src:?} unexpectedly parsed cleanly");
-        // The grammar flags this subtree without emitting an ERROR node. The parser
-        // falls back to the innermost node that reports an error, so the breakage is
-        // still visible to the edit engine's before/after comparison.
-        assert!(
-            !parsed.error_spans().is_empty(),
-            "{src:?} must report a span, or an edit that breaks a file this way \
-             would be accepted"
-        );
+        assert!(!parsed.has_errors(), "{src:?} is ordinary Zig");
+        let f = zig(src);
+        assert_eq!(sym(&f, name).kind, kind, "{src:?}");
     }
 }
 
@@ -222,8 +214,6 @@ fn function_locals_are_constants_or_variables_by_keyword() {
     assert_eq!(sym(&f, "acc").kind, SymbolKind::Variable);
     assert!(!sym(&f, "total").exported);
 }
-
-// ---------------------------------------------------------- members & methods
 
 #[test]
 fn functions_inside_a_container_become_qualified_methods() {
@@ -295,8 +285,6 @@ fn payload_captures_are_variable_definitions() {
     assert_eq!(v.kind, SymbolKind::Variable);
     assert_eq!(v.name_span.text(src), "value");
 }
-
-// ---------------------------------------------------------------- references
 
 #[test]
 fn calls_are_reported_as_call_references() {
@@ -386,8 +374,6 @@ fn references_start_unresolved() {
     assert_eq!(r.confidence, Confidence::NameOnly);
 }
 
-// ------------------------------------------------------------------- imports
-
 #[test]
 fn import_binds_a_name_to_a_path() {
     let src = "const std = @import(\"std\");\n";
@@ -402,7 +388,7 @@ fn import_binds_a_name_to_a_path() {
     assert!(!i.names[0].is_aliased());
     assert_eq!(i.span.text(src), "const std = @import(\"std\");");
 
-    // The binding is also an ordinary constant, because that is what it is.
+    // The binding is also an ordinary constant.
     assert_eq!(sym(&f, "std").kind, SymbolKind::Constant);
 }
 
@@ -434,8 +420,6 @@ fn a_pub_import_is_exported() {
     assert!(sym(&f, "std").exported);
 }
 
-// -------------------------------------------------------------------- scopes
-
 #[test]
 fn blocks_nest_inside_functions_which_nest_inside_the_file() {
     let src = "fn outer() void {\n    const x: u32 = 1;\n    {\n        const y: u32 = 2;\n        _ = y;\n    }\n    _ = x;\n}\n";
@@ -447,8 +431,6 @@ fn blocks_nest_inside_functions_which_nest_inside_the_file() {
     let file = f.scope_at(0).unwrap();
     assert!(f.scope_chain(inner).contains(&file));
 }
-
-// ------------------------------------------------------------ whole-file pass
 
 #[test]
 fn a_realistic_file_extracts_without_duplicate_definitions() {

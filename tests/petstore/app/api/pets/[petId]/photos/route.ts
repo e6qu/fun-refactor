@@ -5,7 +5,6 @@ import * as z from "zod"
 import { db } from "@/lib/db"
 import { photoCreateSchema } from "@/lib/schemas"
 
-/** Every photo of one pet. */
 export async function GET(req: NextRequest, context: { params: { petId: string } }) {
   const photos = await db.photo.findMany({
     where: { petId: context.params.petId },
@@ -15,7 +14,6 @@ export async function GET(req: NextRequest, context: { params: { petId: string }
   return NextResponse.json(photos)
 }
 
-/** Add a photo to a pet. */
 export async function POST(req: NextRequest, context: { params: { petId: string } }) {
   try {
     const json = await req.json()

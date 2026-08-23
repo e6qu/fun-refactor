@@ -38,8 +38,6 @@ fn organize(files: &[(&str, &str)], target: &str) -> (imports::ImportsPlan, Stri
     (plan, updated, path)
 }
 
-// --------------------------------------------------------------- unused imports
-
 #[test]
 fn removes_an_import_nothing_names() {
     let (plan, updated, _) = organize(
@@ -356,8 +354,6 @@ fn a_rust_trait_imported_only_for_its_methods_is_kept() {
     );
 }
 
-// ------------------------------------------------------------------- sorting
-
 #[test]
 fn sorts_a_block_by_path() {
     let (plan, updated, _) = organize(
@@ -552,8 +548,6 @@ fn zig_import_consts_sort_by_path() {
         "const aaa = @import(\"aaa\");\nconst zzz = @import(\"zzz\");\n\npub fn f() void {\n    _ = zzz;\n    _ = aaa;\n}\n"
     );
 }
-
-// ------------------------------------------------------------------ refusals
 
 #[test]
 fn languages_without_import_declarations_refuse() {

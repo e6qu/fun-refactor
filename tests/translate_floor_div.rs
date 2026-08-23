@@ -155,8 +155,6 @@ fn floor_division_survives_a_round_trip_through_typescript() {
     );
 }
 
-// --------------------------------------------------- the numbers themselves.
-
 fn said(output: &std::process::Output) -> String {
     String::from_utf8_lossy(&output.stdout).trim().to_string()
 }

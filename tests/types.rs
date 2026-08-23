@@ -131,8 +131,6 @@ fn a_type_from_outside_the_tree_is_not_a_gap() {
     assert_eq!(found.defined_at, None);
 }
 
-// ---------------------------------------------------------------- inference
-
 const PY_INFER: &str = "\
 from dataclasses import dataclass
 

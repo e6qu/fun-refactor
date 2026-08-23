@@ -22,7 +22,6 @@
 ;
 ; Attribute names are matched case-insensitively (`ID=`, `Class=` are legal HTML).
 
-; ---------------------------------------------------------------- scopes
 ; Not lexical scoping — HTML has none — but the element tree is the containment
 ; structure that makes "which element is this fact in" answerable.
 (document) @scope
@@ -30,7 +29,6 @@
 (script_element) @scope
 (style_element) @scope
 
-; ------------------------------------------------------------ definitions
 ; `id="root"` — the definition site of an element id.
 (attribute
   (attribute_name) @_attr
@@ -62,7 +60,6 @@
   (attribute_value) @name
   (#match? @_attr "^(?i)data-.")) @definition.data-attribute
 
-; ------------------------------------------------------------- references
 ; `class="btn"` — a use site of a CSS class definition. See the multi-value gap
 ; above: the span is the whole attribute value.
 (attribute
@@ -99,7 +96,6 @@
   (#match? @_attr "^(?i)href$")
   (#match? @reference.element-id "#."))
 
-; ---------------------------------------------------------------- imports
 ; `<link href="theme.css">` — the CSS file this document depends on. This is the
 ; edge that makes a class rename cross the language boundary.
 (element

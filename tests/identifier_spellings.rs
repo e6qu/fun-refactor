@@ -6,7 +6,7 @@
 //! wrote `"kind": "type"` and could not read it back. So its own output was not valid input to
 //! itself, and nothing was checking.
 //!
-//! Not every `as_str` is an identifier. `Capability` and `Basis` return prose for a reader —
+//! Not every `as_str` is an identifier. `Capability` and `Basis` return prose for a reader,
 //! "call graph", "from the literal", and are named `label` and `describe` so the difference is
 //! visible and not remembered.
 //!

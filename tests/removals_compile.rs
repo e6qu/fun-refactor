@@ -426,5 +426,5 @@ fn the_removal_gate_states_what_it_covers() {
     // Java's `import` binds one name, so the shape these fixtures are built around does
     // not exist there. They are driven by the other two gate files.
     common::require_on_ci("removal gate", &missing);
-    eprintln!("removal gate: not driven — zig and java, which have no multi-name import");
+    eprintln!("removal gate: not driven: zig and java, which have no multi-name import");
 }

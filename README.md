@@ -85,7 +85,7 @@ fr cache                      # where cached facts live, and how big
 fr scan                       # files it can act on
 fr parse --stats              # syntax health per language
 fr symbols --kind function    # what is defined
-fr def <name|path:line:col>   # where is it defined — every definition
+fr def <name|path:line:col>   # where is it defined, every one of them
 fr implementations <target>   # the concrete implementations of an abstraction
 fr usages <target>            # every use, grouped by file, with its context
 fr refs <target>              # where is it used, with confidence per site

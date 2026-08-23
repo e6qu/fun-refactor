@@ -95,10 +95,9 @@ fn spellings(language: Language, module: &Module) -> Spellings {
     let mut map = BTreeMap::new();
     let mut fields = BTreeMap::new();
     let into = |map: &mut BTreeMap<String, String>, name: &str, kind: Kind, exported: bool| {
-        // `_` is not a name, it is the word for "no name". Rust, Go, Python and Zig
-        // all use it, and putting it through a convention asked what the empty word
-        // is called in `camelCase`. The answer was the empty string, so every `_ = x;`
-        // in a Zig file came out as ` = x;`.
+        // `_` is the word for "no name". Rust, Go, Python and Zig all use it, and putting it
+        // through a convention asked what the empty word is called in `camelCase`. The answer
+        // was the empty string, so every `_ = x;` in a Zig file came out as ` = x;`.
         if name.is_empty() || name.chars().all(|c| c == '_') {
             return;
         }
@@ -497,7 +496,7 @@ fn reserved(language: Language, name: &str) -> bool {
 /// What this language calls the receiver inside a method body.
 ///
 /// The readers normalise nothing: each records the word its own source used, because
-/// Go lets the author choose it. This is the other half — the word to put back on,
+/// Go lets the author choose it. This is the other half: the word to put back on,
 /// and it is a fact about the target and not about the source.
 fn receiver_word(language: Language) -> &'static str {
     match language {
@@ -713,7 +712,7 @@ pub fn write_in_context(
     let unnameable: Vec<String> = out.unnameable.borrow().iter().cloned().collect();
     for name in unnameable {
         out.fidelity.notes.push(format!(
-            "`{name}` is not a name {language} can spell; it is written `{}`, and every \
+            "{language} cannot spell `{name}`, so it is written `{}`, and every \
              use of it needs a real name",
             sanitise(&name)
         ));
@@ -756,10 +755,10 @@ struct Out {
     unnameable: std::cell::RefCell<std::collections::BTreeSet<String>>,
     /// Names that had to be escaped because the target reserves them.
     ///
-    /// Collected while writing and reported at the end. `select` is a name sqlmodel exports and
-    /// a keyword in Go, and `select(User)` is not something Go's grammar will accept. So the
-    /// file was refused outright, which gives the reader nothing. Escaping it and *saying so*
-    /// gives them a draft and the one line to fix.
+    /// Collected while writing and reported at the end. `select` is a name sqlmodel exports
+    /// and a keyword in Go, and `select(User)` is not something Go's grammar will accept.
+    /// Refusing the file outright gives the reader nothing. Escaping it and *saying so* gives
+    /// them a draft and the one line to fix.
     escaped: std::cell::RefCell<std::collections::BTreeSet<String>>,
     /// The types this module declares.
     ///
@@ -956,7 +955,7 @@ impl Out {
 
     /// The same name, made writable where the target will not take it as written.
     fn legal(&self, spelled: String) -> String {
-        // A TypeScript member can be named by an expression — `[Symbol.dispose]()`,
+        // A TypeScript member can be named by an expression, as in `[Symbol.dispose]()`,
         // and no other language here has anything of the kind. Written through, it
         // produced `pub fn [symbol.dispose](&self)`, which is not Rust. A qualified
         // path is a different matter and must survive untouched: `std::fmt::Display`
@@ -1007,9 +1006,9 @@ impl Out {
     ///
     /// A use site reads `x.name`, and nothing here knows the type of `x`. This therefore
     /// renames a field of a foreign object that happens to share a name with one this module
-    /// declares. The alternative, never renaming a field at a use site, leaves the
-    /// declaration and its uses spelled differently, which is worse and also wrong. Is this a
-    /// type with no counterpart here, written through by name?
+    /// declares. Never renaming a field at a use site leaves the declaration and its uses
+    /// spelled differently, which does not compile. Is this a type with no counterpart here,
+    /// written through by name?
     fn is_foreign(&self, ty: &Type) -> bool {
         match ty {
             Type::Named { name, .. } => !self.declared_types.contains(name),
@@ -1587,8 +1586,6 @@ fn carry(out: &mut Out, what: &Unsupported) {
     }
 }
 
-// ------------------------------------------------------------------ conventions
-
 /// These statements as Rust text, for a carry that keeps its body.
 ///
 /// A settle pass that walks the IR has no source text left to carry; the
@@ -1711,8 +1708,6 @@ pub(super) fn pascal(name: &str) -> String {
         None => camel,
     }
 }
-
-// ------------------------------------------------------------------------- Rust
 
 /// What this module calls its floor-division helper.
 ///
@@ -2555,7 +2550,7 @@ fn binary_operand(text: String, operand: &Expr, enclosing: BinaryOp, on_the_righ
     let inner = match operand {
         Expr::Binary { op, .. } => op.precedence(),
         // A conditional binds looser than any operator in the table, so it always
-        // needs the brackets. Everything else — a name, a literal, a call, an index,
+        // needs the brackets. Everything else, a name, a literal, a call, an index,
         // is one thing and never does.
         Expr::Ternary { .. } | Expr::Coalesce { .. } => 0,
         _ => return text,
@@ -2570,7 +2565,7 @@ fn binary_operand(text: String, operand: &Expr, enclosing: BinaryOp, on_the_righ
 /// The operand of `!` or `-`, bracketed when it is not a single thing.
 ///
 /// `-(a + b)` is not `-a + b`. `!(a and b)` means something other than `!a and b`. De
-/// Morgan's law says so, and that is why the transformation earns a refactoring of its own.
+/// Morgan's law says so, and the transformation earns a refactoring of its own.
 fn unary_operand(text: String, operand: &Expr) -> String {
     match operand {
         Expr::Binary { .. } | Expr::Ternary { .. } | Expr::Coalesce { .. } => {
@@ -2957,8 +2952,6 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
     }
 }
 
-// ----------------------------------------------------------------------- Python
-
 fn python(out: &mut Out, module: &Module) {
     if !module.doc.is_empty() {
         out.line("\"\"\"");
@@ -3279,8 +3272,8 @@ fn python_function(out: &mut Out, f: &Function, method: bool) {
             (Some(d), false) => format!(" = {}", python_expr(out, d)),
             (None, _) => String::new(),
         };
-        // The sentinel widens the type it stands in for: `width: float = None`
-        // is a lie a checker catches.
+        // The sentinel widens the type it stands in for, and a checker rejects `width: float
+        // = None`.
         let annotation = match reads_a_parameter && !annotation.is_empty() {
             true => format!("{} | None", annotation),
             false => annotation,
@@ -3357,10 +3350,9 @@ fn python_function(out: &mut Out, f: &Function, method: bool) {
 /// A line, preceded by anything an expression could not say where it stood.
 ///
 /// Python has no inline comment: `#` runs to the end of the line, so a note written inside a
-/// call's parentheses swallows the closing one. The note used to go only to the fidelity
-/// report. That left a bare `None` in the file where a value had been, so the report told the
-/// truth while the code lied. It goes above the statement now, which is where Zig puts its
-/// own for exactly the same reason.
+/// call's parentheses swallows the closing one. The note goes into the file as well as the
+/// fidelity report, because a bare `None` where a value belongs says nothing on its own. It
+/// goes above the statement now, which is where Zig puts its own for exactly the same reason.
 fn python_line(out: &mut Out, text: &str) {
     let pending = std::mem::take(&mut out.pending);
     for note in pending {
@@ -3379,10 +3371,9 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
     }
     let mut wrote = false;
     for (at, stmt) in body.iter().enumerate() {
-        // Whether a statement was produced is a property of the statement, asked once here and
-        // not set inside each arm. An arm that forgot left a stray `raise NotImplementedError`
-        // after a perfectly good body, which is how the `try` arm arrived broken. How the next
-        // one would have.
+        // Whether a statement was produced is a property of the statement, asked once here
+        // and not set inside each arm. An arm that forgets leaves a stray `raise
+        // NotImplementedError` after a working body. How the next one would have.
         wrote |= !matches!(stmt, Stmt::Unsupported(_) | Stmt::Expr(Expr::Null));
         match stmt {
             Stmt::Return(value) => {
@@ -4360,8 +4351,6 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
     }
 }
 
-// --------------------------------------------------------------------------- Go
-
 fn go(out: &mut Out, module: &Module) {
     let package = go_package(module);
     out.line(&format!("package {package}"));
@@ -4532,8 +4521,8 @@ fn go(out: &mut Out, module: &Module) {
         }
     }
 
-    // The packages the body turned out to need, inserted under the package
-    // clause, where Go requires them, after the body said which they are.
+    // The packages the body needs, inserted under the package clause where Go requires them,
+    // once the body has named them.
     if !out.go_imports.is_empty() {
         let block: String = out
             .go_imports
@@ -5811,8 +5800,6 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
     }
 }
 
-// ------------------------------------------------------------------- TypeScript
-
 fn typescript(out: &mut Out, module: &Module) {
     for line in &module.doc {
         out.line(&format!("// {line}"));
@@ -6983,8 +6970,6 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
     }
 }
 
-// ------------------------------------------------------------------------- Java
-
 /// Java has no top level below the type, so a module is written *inside* a class.
 ///
 /// That is the one structural thing this writer does that no other does. Every other target
@@ -7052,9 +7037,9 @@ fn java(out: &mut Out, module: &Module) {
         .filter(|i| matches!(i, Item::Record(_) | Item::Sum(_)))
         .collect();
 
-    // **One public class per file**, named after the file. That is not a convention in Java, it
-    // is a rule the compiler enforces. It is the whole reason this writer has to make a choice
-    // no other one does. A module that is only a record gives its name to the file. A module
+    // **One public class per file**, named after the file. Java requires this, and it is a
+    // rule the compiler enforces. It is the whole reason this writer has to make a choice no
+    // other one does. A module that is only a record gives its name to the file. A module
     // with loose functions keeps the file's own class public and writes its records as
     // package-private siblings beside it.
     if loose.is_empty() {
@@ -8235,8 +8220,6 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
     }
 }
 
-// ------------------------------------------------------------------------- Zig
-
 /// Zig.
 ///
 /// Two facts about the language shape this writer. **A type is a value**: a struct is what a
@@ -8314,18 +8297,6 @@ fn zig(out: &mut Out, module: &Module) {
                 inherited_base(out, r, false);
                 out.line(&format!("{visibility}const {name} = struct {{"));
                 out.open();
-                // `const Foo = struct {};` is valid Zig and the grammar this tool reads with
-                // cannot parse it. So the output would be refused by its own check. An empty
-                // `comptime` block does nothing, says so, and both Zig and the grammar accept
-                // it. Recorded in BUGS.md as upstream.
-                if r.fields.is_empty() && r.methods.is_empty() {
-                    let note = out.comment(
-                        "a struct with nothing in it; the empty comptime block stands \
-                         in for `struct {}`, which tree-sitter-zig cannot parse",
-                    );
-                    out.line(&note);
-                    out.line("comptime {}");
-                }
                 for f in &r.fields {
                     let ty =
                         f.ty.as_ref()
@@ -9095,8 +9066,8 @@ fn zig_type(ty: &Type) -> String {
         Type::Bool => "bool".to_string(),
         Type::Int => "i64".to_string(),
         Type::Float => "f64".to_string(),
-        // Zig has no string type. A string is a slice of bytes that does not change,
-        // and that is what a literal is.
+        // Zig has no string type. A string is a slice of bytes that does not change, which
+        // describes a literal.
         Type::String => "[]const u8".to_string(),
         Type::List(inner) => format!("[]const {}", zig_type(inner)),
         // Hashing a slice by its contents and hashing it by its address are different maps in
@@ -9460,7 +9431,7 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
     }
 }
 
-/// The text of a template that interpolates nothing, if that is what this is.
+/// The text of a template that interpolates nothing, where the node holds one.
 fn literal_text(parts: &[TemplatePart]) -> Option<String> {
     let mut text = String::new();
     for part in parts {
@@ -9481,21 +9452,19 @@ fn zig_binary(op: BinaryOp) -> &'static str {
     }
 }
 
-// ------------------------------------------------------------------------ shared
-
 /// A named type, spelled the way this target spells generics.
 ///
 /// The name is deliberately *not* case-converted: a `Reading` or an `HttpResponse` is a real
 /// type somewhere. Renaming it to suit a convention would point the signature at something that
 /// does not exist.
 ///
-/// A name that cannot be written as a type at all, a tuple, a closure, a trait object, becomes
-/// the target's unknown type. Emitting it verbatim produced `-> Result<(), String>` in a Python
-/// file, which Python cannot parse. And a signature that does not parse is worse than one that
-/// admits a gap. A qualified name arrives spelled the source language's way: Go's `sync.Mutex`
-/// is not Rust, and Rust's `std::sync::Mutex` is not Go. The path is kept. It says where the
-/// type came from, and only `separator` changes.
-/// The parts rendered and comma-joined, the shape every tuple spelling shares.
+/// A name that cannot be written as a type at all, a tuple, a closure, a trait object,
+/// becomes the target's unknown type. Emitting it verbatim produced `-> Result<(), String>`
+/// in a Python file, which Python cannot parse. A signature that does not parse serves
+/// nobody; one that admits a gap does. A qualified name arrives spelled the source language's
+/// way: Go's `sync.Mutex` is not Rust, and Rust's `std::sync::Mutex` is not Go. The path is
+/// kept. It says where the type came from, and only `separator` changes. The parts rendered
+/// and comma-joined, the shape every tuple spelling shares.
 fn joined<T>(parts: &[T], mut render: impl FnMut(&T) -> String) -> String {
     parts.iter().map(&mut render).collect::<Vec<_>>().join(", ")
 }
@@ -9763,7 +9732,6 @@ fn carried_statement(out: &mut Out, stmt: &Stmt, render: impl FnOnce(&mut Out, &
     out.blank();
 }
 
-// ------------------------------------------------------------ the builtin table
 //
 // The canonical spellings are Python's, because its reader needs no normalising:
 // `print(x)`, `len(x)`, `str(x)`, `.append`, `.upper`, `.lower`, `.strip`, and

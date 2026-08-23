@@ -1,24 +1,17 @@
-# Writing habits this project is removing. `tools/check-prose.py` counts them and
+# Writing habits this project has removed. `tools/check-prose.py` counts them and
 # `docs/style.md` says what to write instead.
 #
 # A count above its number fails the build. A count below it fails too, and asks you
 # to lower the number here. Both directions are recorded, so the total only falls.
 #
-# Re-baselined once, upward, when the meter was fixed and not the rules: the string
-# extractor decoded no escape sequences, so `.\n` never ended a sentence and the two
-# words around a `\n` counted as one. B363 records it. The honest count on the day of
-# the fix was 1160, against 1114 under the broken meter.
+# Four of the five rules stand at zero and stay there: the next em-dash, false
+# comparison, filler word or sentence pointing at its own text fails the build.
+# Long sentences are still being split, one file at a time.
 #
-# Measured against the same rules before any of this work: em-dash 2050,
-# false-comparison 240, filler 350, self-reference 222, long-sentence 2339.
-#
-# The project-wide reword lowered every count at once. Comments, documents and the
-# site pages went through the writing doctrine in `docs/style.md`: a doer in every
-# subject, an instruction where a reader can act, no phrase a language model reaches
-# for by habit. Long sentences fell from 947 to 484.
-#
-em-dash 34
-false-comparison 13
-filler 10
-self-reference 34
-long-sentence 483
+# Measured against the same rules before any of this work: 2050 em-dashes, 240 false
+# comparisons, 350 fillers, 222 self-references and 2339 long sentences.
+em-dash 0
+false-comparison 0
+filler 0
+self-reference 0
+long-sentence 470

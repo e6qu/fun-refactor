@@ -2,7 +2,7 @@
 //!
 //! A signature change is the refactoring with the least room for a partial result. The
 //! declaration and every call move together or the code stops compiling. So a call the tool
-//! cannot see is not a smaller change, it is a broken one.
+//! cannot see is a broken change.
 
 use fun_refactor::index::Index;
 use fun_refactor::refactor::signature::{self, Change};
@@ -57,7 +57,7 @@ fn a_java_call_is_a_method_invocation() {
 
 #[test]
 fn a_constructor_call_is_a_call_whatever_it_was_written_down_as() {
-    // `new Thing(1, "x")` is recorded as a reference to the *type* — which it also is, so
+    // `new Thing(1, "x")` is recorded as a reference to the *type*, which it also is, so
     // filtering on the recorded kind skipped it. A constructor's parameters could be reordered
     // while every `new` was left as it was.
     let source = "public class B {\n    B(int a, String b) { }\n    \

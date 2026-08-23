@@ -410,7 +410,7 @@ pub fn support(capability: Capability, language: Language) -> Support {
 
         C::ChangeSignature => {
             // Bash has no declaration to edit, but a shell function's signature is its
-            // positional numbering, and that is what changes at call sites.
+            // positional numbering, and the call sites change with it.
             if imperative || matches!(language, Language::Hcl | Language::Scss) {
                 Support::Yes
             } else {

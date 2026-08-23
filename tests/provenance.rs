@@ -49,8 +49,6 @@ fn has_hop(p: &prov::Provenance, needle: &str) -> bool {
     p.hops.iter().any(|h| h.text.contains(needle))
 }
 
-// ============================================================== Terraform/HCL
-
 const VARIABLES_TF: &str = r#"variable "region" {
   type    = string
   default = "us-east-1"
@@ -410,8 +408,6 @@ fn an_output_reports_its_caller_or_says_there_is_none() {
     );
 }
 
-// ==================================================================== Helm
-
 const PARENT_VALUES: &str = r#"image:
   tag: "1.0"
   repository: parent
@@ -673,8 +669,6 @@ fn a_key_no_template_reads_says_so_instead_of_reporting_nothing() {
     );
 }
 
-// ==================================================================== YAML
-
 const ANCHORED: &str = r#"defaults: &base
   retries: 3
   timeout: 30
@@ -730,8 +724,6 @@ fn a_plain_yaml_key_reports_its_literal_origin() {
         result.stops
     );
 }
-
-// ===================================================================== CSS
 
 const STYLES: &str = r#".btn { color: red; padding: 1px; }
 #main .btn { color: blue; }
@@ -1019,8 +1011,6 @@ fn a_class_used_from_html_is_reported_as_a_consumer() {
     );
 }
 
-// ============================================================ refusals
-
 #[test]
 fn imperative_languages_are_refused_and_pointed_at_flow() {
     let (tmp, index) = workspace(&[("src/main.rs", "fn f() {\n    let a = 1;\n}\n")]);
@@ -1084,8 +1074,6 @@ fn an_unknown_symbol_id_is_an_error_not_an_empty_answer() {
     let (_tmp, index) = workspace(&[("a/main.tf", "locals {\n  x = 1\n}\n")]);
     assert!(provenance(&index, SymbolId(9999), 5).is_err());
 }
-
-// ============================================================ presentation
 
 #[test]
 fn format_tree_shows_hops_competitions_and_stops() {

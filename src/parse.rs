@@ -39,7 +39,7 @@ impl Parsers {
             #[cfg(feature = "lang-java")]
             Language::Java => Some(tree_sitter_java::LANGUAGE.into()),
             #[cfg(feature = "lang-zig")]
-            Language::Zig => Some(tree_sitter_zig::LANGUAGE.into()),
+            Language::Zig => Some(fun_refactor_zig_grammar::LANGUAGE.into()),
             #[cfg(feature = "lang-typescript")]
             Language::TypeScript => Some(tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into()),
             #[cfg(feature = "lang-typescript")]

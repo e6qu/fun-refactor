@@ -1351,8 +1351,9 @@ impl Index {
                 // One name declared twice under one object name. The manifests
                 // disagree, so picking one is a guess and the report says so.
                 [first, ..] => (Some(first.id), Confidence::FieldBased),
-                // The object is outside the workspace, or declares no such key.
-                // Nothing here is provable, and no weaker rule may guess instead.
+                // The object is outside the workspace, or declares no such key. The evidence
+                // runs out here, so the answer carries the weakest confidence and names no
+                // symbol.
                 [] => (None, Confidence::NameOnly),
             };
         }

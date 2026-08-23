@@ -8,7 +8,6 @@
 ; rules at the end of this file are written structurally — through the `name:`
 ; field and through attribute shape — and not by naming JSX nodes.
 
-; ---------------------------------------------------------------- scopes
 ;
 ; Parameters sit outside the body block, so they share the enclosing scope with
 ; the function's own name (same as the Rust queries). Arrow functions are the
@@ -28,7 +27,6 @@
 (catch_clause) @scope
 (switch_body) @scope
 
-; ------------------------------------------------------------- containers
 ;
 ; A container qualifies the symbols nested inside it: a function declared in a
 ; class body becomes `Class::method`. Containers are separate patterns from the
@@ -48,7 +46,6 @@
 (enum_declaration
   name: (identifier) @container.name) @container
 
-; ------------------------------------------------ top-level declarations
 ;
 ; `export function f() {}` parses as an export_statement *wrapping* a
 ; function_declaration, and captures only group within a single pattern match,
@@ -250,7 +247,6 @@
      @definition.variable)
 ]) @export
 
-; ------------------------------------------------------ namespaces, ambient
 ;
 ; A bare `namespace NS {}` is an expression statement, not a declaration, so it
 ; needs its own parent. `declare`d declarations sit under an ambient_declaration,
@@ -273,7 +269,6 @@
 (_ (function_signature
      name: (identifier) @name) @definition.function)
 
-; ------------------------------------------------------------- parameters
 ;
 ; Destructured parameters bind each element separately, sharing the parameter's
 ; full span. Property renames inside a destructuring pattern (`{a: local}`) bind
@@ -305,7 +300,6 @@
 (arrow_function
   parameter: (identifier) @name @definition.parameter)
 
-; --------------------------------------------------------- loop and catch
 (for_in_statement
   kind: ["const" "let" "var"]
   left: (identifier) @name @definition.variable)
@@ -318,7 +312,6 @@
 (catch_clause
   parameter: (identifier) @name @definition.variable)
 
-; ------------------------------------------------------------- members
 ;
 ; Methods are captured as functions: the extractor promotes a function inside a
 ; container to a Method and qualifies it, so `class C { m() {} }` yields `C::m`.
@@ -357,7 +350,6 @@
 (enum_body
   name: (property_identifier) @name @definition.field)
 
-; ------------------------------------------------------------- references
 (call_expression
   function: (identifier) @reference.call)
 
@@ -418,7 +410,6 @@
 (update_expression
   argument: (identifier) @reference.identifier)
 
-; ------------------------------------------------------------------- JSX
 ;
 ; A capitalised identifier in a `name:` field is a component reference:
 ; `<MyComponent />` and its closing tag. Lowercase names are HTML tags and are
@@ -442,6 +433,34 @@
     (string (string_fragment) @reference.string))
  (#any-of? @_attr "className" "class" "id"))
 
+; `` className={`btn ${size}`} ``. The literal parts name classes; the substitutions
+; are computed and name nothing this workspace can see. Written with a wildcard for the
+; same reason as the rule above: JSX wraps the value in a node the plain TypeScript
+; grammar does not have, and one file compiles against both.
+((_ (property_identifier) @_attr
+    (template_string (string_fragment) @reference.string))
+ (#any-of? @_attr "className" "class" "id"))
+
+((_ (property_identifier) @_attr
+    (_ (template_string (string_fragment) @reference.string)))
+ (#any-of? @_attr "className" "class" "id"))
+
+; `cx("btn", active && "on")`. A class-list helper takes class names as arguments,
+; and the libraries that provide one agree on the shape even where they disagree on
+; the name. A string reaching it is the same reference the attribute would hold.
+((call_expression
+   function: (identifier) @_helper
+   arguments: (arguments (string (string_fragment) @reference.string)))
+ (#any-of? @_helper "cx" "clsx" "classnames" "classNames" "cva" "twMerge" "twJoin"))
+
+; The same call with the string under a condition: `active && "on"`, `big ? "l" : "s"`.
+((call_expression
+   function: (identifier) @_helper
+   arguments: (arguments
+     [(binary_expression (string (string_fragment) @reference.string))
+      (ternary_expression (string (string_fragment) @reference.string))]))
+ (#any-of? @_helper "cx" "clsx" "classnames" "classNames" "cva" "twMerge" "twJoin"))
+
 ; `data-testid="submit-btn"` — the same string the HTML that renders this element
 ; writes. Written in the same structural shape as `className` above, because the
 ; JSX attribute node cannot be named here. Every site is a definition, as in HTML:
@@ -450,7 +469,6 @@
     (string (string_fragment) @name))
  (#match? @_attr "^data-.")) @definition.data-attribute
 
-; ---------------------------------------------------------------- imports
 ;
 ; One Import record per bound name, so `@import.original` always pairs with the
 ; `@import.name` beside it. A side-effect import binds nothing and is recognised

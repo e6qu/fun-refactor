@@ -205,8 +205,8 @@ fn a_language_filter_narrows_the_report() {
 
 #[test]
 fn a_file_that_does_not_parse_is_named_rather_than_silently_skipped() {
-    // Its structure cannot be trusted, so it is not compared, but a report that
-    // quietly leaves files out reads as "no duplication here".
+    // Its structure cannot be trusted, so the comparison skips it, and a report that quietly
+    // leaves files out reads as "no duplication here".
     let good = go_function("alpha", "total");
     let (_tmp, index) = workspace(&[
         ("a/x.go", good.as_str()),

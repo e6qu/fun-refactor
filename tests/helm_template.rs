@@ -39,8 +39,6 @@ fn template(source: &str) -> helm::Template {
     helm::Template::of(source, &parsed)
 }
 
-// ============================================================ the action parser
-
 #[test]
 fn a_values_path_survives_a_pipeline() {
     let a = action("{{ .Values.x | default \"y\" | quote }}");
@@ -241,8 +239,6 @@ fn a_comment_holds_no_references() {
     assert!(a.refs.is_empty());
 }
 
-// ------------------------------------------------------------------- nesting
-
 const NESTED: &str = r#"{{- if .Values.a }}
 alpha: 1
 {{- range .Values.list }}
@@ -412,8 +408,6 @@ fn action_spans_index_the_original_file() {
     );
     assert!(template.actions_in(Span::new(0, 5)).is_empty());
 }
-
-// ====================================================== the chart, end to end
 
 const CHART: &str = "name: app\nversion: 0.1.0\n";
 
@@ -692,8 +686,6 @@ fn an_include_of_a_template_nothing_defines_is_unresolved() {
     );
 }
 
-// ---------------------------------------------------------------- precedence
-
 #[test]
 fn two_chart_values_files_have_a_decided_winner() {
     // B10, narrowed: `-f` and `--set` are invisible, but the order of a subchart's
@@ -776,8 +768,6 @@ fn two_user_values_files_name_both_as_the_undecidable_pair() {
         stops(&result)
     );
 }
-
-// -------------------------------------------------------------------- stitch
 
 #[test]
 fn an_env_var_takes_its_values_path_from_the_action_after_the_colon() {

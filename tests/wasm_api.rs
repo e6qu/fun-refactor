@@ -8,11 +8,11 @@
 //!
 //! So this reads the source. Each method must call `self.enter()` before touching source.
 //!
-//! Without it the method reads whichever workspace was created most recently. Two repositories
-//! open in one page is enough to trigger it, and the failure is silent, spans measured against
-//! one file's bytes, applied to another's. That is how the playground came to report a rewrite
-//! as unavailable at a position where applying it worked. The listing re-read the file and got
-//! a different workspace's text.
+//! Without it the method reads whichever workspace was created most recently. Two
+//! repositories open in one page is enough to trigger it, and the failure is silent, spans
+//! measured against one file's bytes, applied to another's. The playground then reports a
+//! rewrite as unavailable at a position where applying it worked. The listing re-read the
+//! file and got a different workspace's text.
 //!
 //! Reading the source is a poor substitute for a type, and it is exhaustive, which the tests
 //! that call the methods are not.

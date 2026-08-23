@@ -57,9 +57,9 @@ impl CascadePlan {
 
 /// Does the collapse step know this language's conditionals?
 ///
-/// Substituting the flag needs nothing but the index, so it works wherever a symbol
-/// resolves. Collapsing the conditional the substitution just made constant needs
-/// the grammar's `if` shape, and that is what this list is.
+/// Substituting the flag needs nothing but the index, so it works wherever a symbol resolves.
+/// Collapsing the conditional the substitution just made constant needs the grammar's `if`
+/// shape, which this list holds.
 pub fn supports_cascade(language: Language) -> bool {
     matches!(
         language,
@@ -744,8 +744,8 @@ fn hcl_block_argument(block: Node<'_>, source: &str, name: &str) -> Option<Strin
 ///
 /// Every use the substitution could rewrite is gone by now. Whatever still spells the flag is
 /// something it declined. Either the use takes a form no literal fits, or its resolution was
-/// never strong enough to touch. Finding them in the finished text is what makes the line
-/// numbers point at the file the caller will open.
+/// never strong enough to touch. Finding them in the finished text points the line numbers at
+/// the file the caller will open.
 ///
 /// The declaration is read from the finished text as well. Where it survived, it survived
 /// because a use of it did. Reporting it as one more unrewritable use of itself said
@@ -1423,8 +1423,6 @@ fn else_body(alternative: Node<'_>) -> Node<'_> {
     inner.unwrap_or(alternative)
 }
 
-// --------------------------------------------------------------------------- zig
-
 /// Zig `if`s, in both the statement and the expression spelling.
 ///
 /// The statement calls its branches `body` and, one level down, inside the `else_clause`,
@@ -1557,8 +1555,6 @@ fn zig_block(node: Node<'_>) -> Option<Node<'_>> {
     }
     children.into_iter().find(|c| c.kind() == "block")
 }
-
-// -------------------------------------------------------------------------- bash
 
 /// Shell `if`s whose test provably succeeds or fails.
 ///
@@ -1817,8 +1813,6 @@ fn bash_literal(node: Node<'_>, source: &str) -> Option<String> {
         _ => None,
     }
 }
-
-// --------------------------------------------------------------------------- hcl
 
 /// Terraform's flag is a boolean `variable`, and its conditionals are expressions.
 ///
@@ -2142,8 +2136,6 @@ fn dangling_resource_uses(
     }
     Ok(out)
 }
-
-// ------------------------------------------------------------------- reporting
 
 /// Everything the cascade substituted into but could not finish collapsing.
 ///

@@ -86,7 +86,7 @@ fn source_is_read_only_through_the_vfs() {
             for (needle, instead) in banned {
                 if line.contains(needle) {
                     offences.push(format!(
-                        "{}:{}: `{}` — use {} so this works in the browser too\n    {}",
+                        "{}:{}: `{}`: use {} so this works in the browser too\n    {}",
                         file.strip_prefix(&root).unwrap_or(file).display(),
                         line_number + 1,
                         needle,

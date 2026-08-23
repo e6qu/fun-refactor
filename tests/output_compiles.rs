@@ -19,8 +19,6 @@ use fun_refactor::edit::EditSet;
 use fun_refactor::index::Index;
 use std::process::Command;
 
-// ------------------------------------------------- every command, plain crate
-
 #[test]
 fn organising_imports_compiles() {
     let ws = Workspace::new(&plain());
@@ -87,8 +85,6 @@ fn inlining_a_variable_compiles() {
     let planned = fun_refactor::refactor::inline::variable(&index, total).map(|p| p.edits);
     must_plan("inlining a variable", &ws, planned);
 }
-
-// ------------------------------------------ every command, the awkward crate
 
 /// Here a plan is optional. A refusal is the right answer when a use site cannot be
 /// verified. Writing a plan that does not compile is the only outcome this forbids.
@@ -217,8 +213,6 @@ fn a_guard_clause_in_a_function_that_returns_a_value_compiles_or_refuses() {
         "this function returns a value, so an early exit needs one too",
     );
 }
-
-// ------------------------------------------------------- TypeScript
 
 fn tsc_is_available() -> bool {
     Command::new("tsc")
@@ -403,8 +397,6 @@ fn moving_out_from_under_a_star_barrel_compiles() {
     );
 }
 
-// ------------------------------------------------------------------- Go
-
 /// The same shapes again in Go: a free function and a method sharing a name, an import
 /// of the function from another package, and a caller of both.
 fn go_files() -> Vec<(&'static str, &'static str)> {
@@ -516,10 +508,8 @@ fn organising_go_imports_compiles_or_refuses() {
     }
 }
 
-// --------------------------------------------------------------- Python
-
-/// The same shapes in Python. `check` is what the toolchain calls, so the assertions in
-/// it are the behaviour a refactoring has to preserve and not only the names.
+/// The same shapes in Python. The toolchain calls `check`, so the assertions in it are the
+/// behaviour a refactoring has to preserve and not only the names.
 fn python_files() -> Vec<(&'static str, &'static str)> {
     vec![
         (
@@ -624,8 +614,6 @@ fn inlining_a_python_variable_compiles_or_refuses() {
     let planned = fun_refactor::refactor::inline::variable(&index, total).map(|p| p.edits);
     must_plan("inlining a Python variable", &ws, planned);
 }
-
-// ------------------------------------------------------------------ Zig
 
 /// The same shapes again in Zig: a free function and a method of one name, a second file
 /// importing the first, and a root that calls both.
@@ -732,8 +720,6 @@ fn inlining_a_zig_variable_compiles_or_refuses() {
     let planned = fun_refactor::refactor::inline::variable(&index, total).map(|p| p.edits);
     must_plan("inlining a Zig variable", &ws, planned);
 }
-
-// ----------------------------------------------------------------- Java
 
 /// The same shapes in Java, where they land differently: a class has no top level. So the free
 /// function is a static method on a class of its own and the method is on the record.
@@ -985,6 +971,6 @@ fn the_gate_states_what_it_covers() {
     // The ten below have no compiler to run, a stylesheet, a manifest and a document
     // are checked by parsing them, which the edit engine already does.
     eprintln!(
-        "compile gate: not driven — bash, html, css, scss, hcl, yaml, helm, xml, markdown, tsx"
+        "compile gate: not driven: bash, html, css, scss, hcl, yaml, helm, xml, markdown, tsx"
     );
 }

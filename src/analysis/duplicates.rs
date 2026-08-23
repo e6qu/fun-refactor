@@ -48,7 +48,7 @@ pub struct CloneClass {
 impl CloneClass {
     /// Tokens that would stop being written twice if this were factored out.
     ///
-    /// One copy has to stay, so the saving is what the others cost.
+    /// One copy has to stay, so the saving is the cost of the others.
     pub fn redundant_tokens(&self) -> usize {
         self.tokens * (self.instances.len() - 1)
     }

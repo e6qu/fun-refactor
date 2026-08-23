@@ -814,9 +814,9 @@ pub fn why_not_organizable(language: Language) -> Option<&'static str> {
              one's in the cascade, and @import must precede all other rules, so \
              sorting or removing them would change which styles apply"
         }
-        // Not a declaration but a command that *runs* the other file: a later `source` may
-        // depend on a variable an earlier one set. A file may be sourced purely for a side
-        // effect no name here refers to.
+        // A command that *runs* the other file, so a later `source` may depend on a variable
+        // an earlier one set. A file may be sourced purely for a side effect no name here
+        // refers to.
         Language::Bash => {
             "`source` runs the other file instead of declaring a dependency on it, so \
              order carries meaning and a file sourced only for its side effects looks \
@@ -1099,9 +1099,9 @@ fn statements<'a>(
 
 /// The clauses of a plain Python `import a, b as c`, one [`NamedImport`] each.
 ///
-/// Nothing here is spelled the way `from m import a, b` spells its names, so the fact
-/// query cannot report name spans for it. The tree can: each `name` child is one module
-/// clause, whose local binding is the first path segment, or the alias when it has one.
+/// This form spells its names differently from `from m import a, b`, so the fact query
+/// reports no name spans for it. The tree can: each `name` child is one module clause, whose
+/// local binding is the first path segment, or the alias when it has one.
 fn python_plain_names(parsed: &Parsed, statement: Span, source: &str) -> Vec<NamedImport> {
     let Some(node) = parsed
         .root()

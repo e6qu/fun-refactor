@@ -68,10 +68,7 @@ fn a_rust_move_to_the_wrong_place_does_not_blame_rust() {
     .to_string();
 
     assert!(!blames_the_language(&said, Language::Rust), "{said}");
-    assert!(
-        said.contains("src/"),
-        "and it says what is actually wrong: {said}"
-    );
+    assert!(said.contains("src/"), "and it says what is wrong: {said}");
 }
 
 #[test]

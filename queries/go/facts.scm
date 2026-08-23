@@ -11,7 +11,6 @@
 ; several definitions. The `type` / `const` / `var` keyword therefore falls outside
 ; `full_span` for single-spec declarations.
 
-; ---------------------------------------------------------------- scopes
 (source_file) @scope
 (block) @scope
 (func_literal) @scope
@@ -27,7 +26,6 @@
 (communication_case) @scope
 (default_case) @scope
 
-; ------------------------------------------------------------- containers
 ; The receiver type qualifies a method as `T::m`. The `T` written in the receiver
 ; is a reference to the type declared elsewhere, never a second definition of it,
 ; which is exactly what `@container` expresses. Receivers come in four shapes:
@@ -65,7 +63,6 @@
   name: (type_identifier) @container.name
   type: (interface_type)) @container
 
-; ------------------------------------------------------------ definitions
 ; The package clause names the compilation unit every importer refers to, so it is
 ; exported by construction and not by capitalisation.
 (package_clause
@@ -205,7 +202,6 @@
   left: (expression_list
     (identifier) @name)) @definition.variable
 
-; ------------------------------------------------------------- references
 (call_expression
   function: (identifier) @reference.call)
 
@@ -239,7 +235,6 @@
 
 (identifier) @reference.identifier
 
-; ---------------------------------------------------------------- imports
 ; One `Import` per spec, so a grouped `import ( ... )` reports each path with its
 ; own span instead of one span covering the whole block.
 (import_spec

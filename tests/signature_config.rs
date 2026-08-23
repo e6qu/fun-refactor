@@ -25,8 +25,6 @@ use fun_refactor::{
 };
 use std::path::{Path, PathBuf};
 
-// --------------------------------------------------------------- harness
-
 struct Workspace {
     dir: tempfile::TempDir,
     index: Index,
@@ -122,8 +120,6 @@ fn realistic() -> Workspace {
     ])
 }
 
-// ------------------------------------------------------ the shape it acts on
-
 #[test]
 fn the_module_call_surface_is_indexed_as_expected() {
     // The rest of the tests lean on these facts; if the extraction changes shape,
@@ -165,8 +161,6 @@ fn the_module_call_surface_is_indexed_as_expected() {
     assert_eq!(size.len(), 1, "the call argument alone: {size:?}");
     assert_eq!(size[0].file, ws.path("main.tf"));
 }
-
-// --------------------------------------------------------------- removing
 
 #[test]
 fn removing_a_variable_deletes_the_block_and_every_argument() {
@@ -302,8 +296,6 @@ fn a_position_past_the_end_names_what_there_is() {
         "got: {error}"
     );
 }
-
-// ----------------------------------------------------------------- adding
 
 #[test]
 fn adding_a_variable_declares_it_and_passes_it_everywhere() {
@@ -553,8 +545,6 @@ fn a_declaration_that_is_not_a_variable_block_is_rejected() {
     }
 }
 
-// --------------------------------------------------------------- refusals
-
 #[test]
 fn reordering_module_variables_is_refused_as_meaningless() {
     let ws = realistic();
@@ -678,7 +668,6 @@ fn a_locals_entry_is_not_a_module_variable() {
     );
 }
 
-// ------------------------------------------------------------------ SCSS
 // `@mixin name($a, $b)` is a parameter list and `@include name(1, 2)` is a call,
 // so a mixin's signature changes through exactly the same path a function's does.
 
@@ -923,7 +912,6 @@ fn a_namespaced_include_does_not_parse_and_blocks_the_change() {
     assert!(error.contains("uses.scss"), "got: {error}");
     assert!(error.contains("invisible to the index"), "got: {error}");
 }
-// ----------------------------------------------------------- no regression
 
 #[test]
 fn function_signatures_still_work_the_same_way() {

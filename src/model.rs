@@ -142,10 +142,9 @@ impl SymbolKind {
     /// Is this kind referenced by name from other files, and not through scope
     /// or imports?
     ///
-    /// CSS classes, element ids, custom properties, YAML keys, Markdown headings and
-    /// link definitions are all named globally by string. This is what makes
-    /// cross-language references possible: `class="btn"` in HTML names the `.btn`
-    /// declared in a stylesheet.
+    /// CSS classes, element ids, custom properties, YAML keys, Markdown headings and link
+    /// definitions are all named globally by string. Cross-language references rest on that:
+    /// `class="btn"` in HTML names the `.btn` declared in a stylesheet.
     pub fn is_string_keyed(&self) -> bool {
         matches!(
             self,
@@ -322,7 +321,7 @@ pub struct Reference {
     /// it and gained one that nothing declares.
     #[serde(default)]
     pub expects: Option<SymbolKind>,
-    /// The receiver was written as a *path* — Rust's `Patterns::build`, `super::f`,
+    /// The receiver was written as a *path*, as in Rust's `Patterns::build`, `super::f`,
     /// and not as a value.
     ///
     /// A path names a type or a module, so it can be matched against a symbol's own
