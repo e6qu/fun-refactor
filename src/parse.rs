@@ -45,7 +45,7 @@ impl Parsers {
             #[cfg(feature = "lang-typescript")]
             Language::Tsx => Some(tree_sitter_typescript::LANGUAGE_TSX.into()),
             #[cfg(feature = "lang-python")]
-            Language::Python => Some(tree_sitter_python::LANGUAGE.into()),
+            Language::Python => Some(fun_refactor_python_grammar::LANGUAGE.into()),
             #[cfg(feature = "lang-bash")]
             Language::Bash => Some(tree_sitter_bash::LANGUAGE.into()),
             #[cfg(feature = "lang-html")]

@@ -1,5 +1,3 @@
-// Every identifier gets its own name, so none of them fits where another goes.
-
 declare const brand: unique symbol;
 type Branded<T, B> = T & { readonly [brand]: B };
 

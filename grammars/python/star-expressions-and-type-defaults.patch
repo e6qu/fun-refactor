@@ -1,0 +1,12 @@
+471c471
+<       commaSep1($.type),
+---
+>       commaSep1(seq($.type, optional(seq('=', $.type)))),
+526c526
+<       $.expression,
+---
+>       choice($.expression, $.list_splat),
+532c532
+<             $.expression,
+---
+>             choice($.expression, $.list_splat),

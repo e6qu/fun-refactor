@@ -1,5 +1,3 @@
-"""The strings become closed sets, and each provider's vocabulary stops at the door."""
-
 from enum import StrEnum
 from typing import NewType
 
@@ -9,19 +7,16 @@ VendorId = NewType("VendorId", str)
 
 RETRY_LIMIT: int = 3
 
-
 class Provider(StrEnum):
     STRIPE = "stripe"
     ADYEN = "adyen"
     WISE = "wise"
-
 
 class PaymentState(StrEnum):
     AUTHORIZED = "authorized"
     CAPTURED = "captured"
     REFUNDED = "refunded"
     FAILED = "failed"
-
 
 PROVIDER_VOCABULARY: dict[Provider, dict[str, PaymentState]] = {
     Provider.STRIPE: {
@@ -41,22 +36,17 @@ PROVIDER_VOCABULARY: dict[Provider, dict[str, PaymentState]] = {
     },
 }
 
-
 def provider_state(provider: Provider, raw: str) -> PaymentState | None:
-    """A word this provider does not use is not a state; it is unread input."""
     return PROVIDER_VOCABULARY[provider].get(raw)
-
 
 def find_payment(payments: dict, payment_id: PaymentId) -> dict | None:
     return payments.get(payment_id)
-
 
 def authorize(payment: dict, customer: dict) -> dict:
     if payment["amount"] > 100000 and customer["kyc"] != "verified":
         return {"ok": False, "reason": "verification required"}
     payment["state"] = PaymentState.AUTHORIZED
     return {"ok": True}
-
 
 def capture(payment: dict, vendor: dict) -> dict:
     if payment["state"] != PaymentState.AUTHORIZED:
@@ -66,7 +56,6 @@ def capture(payment: dict, vendor: dict) -> dict:
     payment["state"] = PaymentState.CAPTURED
     payment["captured_at"] = 1700000000
     return {"ok": True}
-
 
 def refund(payment: dict, amount: int) -> dict:
     if payment["state"] != PaymentState.CAPTURED:
