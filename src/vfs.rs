@@ -27,7 +27,7 @@ use std::path::Path;
 /// file in memory. The edit failed with `edit at 1..301 extends past end of file (226
 /// bytes)`.
 ///
-/// Nothing here is wasm-specific. The gate only ever picked a backend.
+/// The gate picks a backend, and this one holds files in memory.
 mod memory {
     use std::cell::RefCell;
     use std::collections::BTreeMap;

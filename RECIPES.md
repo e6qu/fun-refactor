@@ -339,7 +339,7 @@ For each step it prints what was selected and by which predicate, what changed, 
 was refused and why, and what `expect` found.
 
 ```
-recipe retire-legacy-auth — 3 steps
+recipe retire-legacy-auth: 3 step(s)
 
   1  remove-flag "USE_LEGACY_AUTH" = false
      14 files changed, 212 lines removed

@@ -10,7 +10,6 @@
 ; a quantified anonymous pattern inside each definition instead of a separate rule:
 ; captures only group within a single match.
 
-; ---------------------------------------------------------------- scopes
 (source_file) @scope
 (block) @scope
 (function_declaration) @scope
@@ -28,7 +27,6 @@
 (switch_expression) @scope
 (switch_case) @scope
 
-; ------------------------------------------------------------- containers
 ; `const Point = struct { … }` binds a container to a name. Functions declared
 ; inside it are methods of `Point`, and its fields qualify as `Point::x`. The
 ; identifier is the type's one definition site, so the container reuses it rather
@@ -46,7 +44,6 @@
     (error_set_declaration)
   ]) @container
 
-; ------------------------------------------------------------ definitions
 (function_declaration
   "pub"? @export
   "export"? @export
@@ -153,7 +150,6 @@
 (payload
   (identifier) @name) @definition.variable
 
-; ------------------------------------------------------------- references
 (call_expression
   function: (identifier) @reference.call)
 
@@ -201,7 +197,6 @@
 
 (identifier) @reference.identifier
 
-; ---------------------------------------------------------------- imports
 ; `const std = @import("std");` — the const's identifier is the locally bound name
 ; and the builtin's string argument is the path.
 ((variable_declaration

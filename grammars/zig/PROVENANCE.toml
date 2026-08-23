@@ -1,0 +1,21 @@
+# Where this grammar came from, and what was changed in it.
+#
+# `empty-containers.patch` is the diff against the upstream `grammar.js` named below.
+# Re-apply it when taking a newer release, and regenerate `src/parser.c` with the
+# `tree-sitter` CLI.
+
+language = "zig"
+upstream = "https://github.com/tree-sitter-grammars/tree-sitter-zig"
+tag = "v1.1.2"
+archive = "https://github.com/tree-sitter-grammars/tree-sitter-zig/archive/refs/tags/v1.1.2.tar.gz"
+archive_sha256 = "612d67059faa90ec7691e5d786d70d8f7c2c8b15b83de901b9b801122ad4cf25"
+license = "MIT"
+license_file = "LICENSE"
+generated_with = "tree-sitter-cli 0.26.13"
+
+[patch]
+file = "empty-containers.patch"
+subject = "a container with no members"
+rules = ["struct_declaration", "opaque_declaration", "enum_declaration", "union_declaration"]
+change = "each takes optional($._container_members), as source_file already does"
+accepts = ["struct {}", "enum {}", "union {}", "opaque {}"]

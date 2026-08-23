@@ -329,7 +329,7 @@ pub fn format_report(index: &Index, impact: &Impact) -> String {
 
     if impact.callers_beyond_the_depth_limit > 0 {
         out.push_str(&format!(
-            "\nThis is what the search reached, not everything there is: the caller \
+            "\nThe search reached this far, which is not everything there is: the caller \
              depth stopped it at {} function(s) that are themselves called from \
              elsewhere. Raise --caller-depth to see further.\n",
             impact.callers_beyond_the_depth_limit

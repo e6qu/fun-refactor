@@ -54,8 +54,6 @@ fn parses_as(language: Language, source: &str) -> bool {
         .unwrap_or(false)
 }
 
-// ------------------------------------------------------- a real FastAPI backend
-
 const FASTAPI_FILES: &[&str] = &["crud.py", "models.py", "security.py"];
 
 #[test]
@@ -168,8 +166,6 @@ fn a_foreign_library_type_is_never_renamed_to_suit_the_target() {
     let plan = transpile::plan(&root.join("security.py"), Language::TypeScript).unwrap();
     assert!(!plan.output.contains("session"), "{}", plan.output);
 }
-
-// --------------------------------------------------------- a real Next.js app
 
 const ROUTES: &[&str] = &[
     "app/api/posts/route.ts",

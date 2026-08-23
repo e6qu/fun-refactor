@@ -274,11 +274,10 @@ pub enum SparedReason {
     /// The language gives it no address: an HCL block with no labels, such as
     /// `terraform {}` or `lifecycle {}`.
     NoAddressToReferenceIt,
-    /// It implements a trait this workspace does not declare, so the caller
-    /// is the machinery behind that trait. serde constructs values through
-    /// `Deserialize::deserialize`, and `Display::fmt` answers every `format!`.
-    /// Nothing here can see those calls, and "unused" would offer a running
-    /// method for deletion.
+    /// It implements a trait this workspace does not declare, so the caller is the machinery
+    /// behind that trait. serde constructs values through `Deserialize::deserialize`, and
+    /// `Display::fmt` answers every `format!`. The calls arrive through the trait, out of
+    /// this workspace's sight, so the method stays live.
     ImplementsForeignTrait,
     /// It structures a document instead of naming code: a Markdown heading. Most
     /// headings are never linked to, so "nothing links here" is true of nearly

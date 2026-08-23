@@ -89,7 +89,7 @@ fn a_path_attribute_in_prose_does_not_refuse_the_move() {
         ("src/lib.rs", LIB),
         (
             "src/helper.rs",
-            "/// Is it annotated — `#[name]`, `#[path::name]` or `@name`?\npub fn moved_thing() -> u8 {\n    7\n}\n",
+            "/// Is it annotated: `#[name]`, `#[path::name]` or `@name`?\npub fn moved_thing() -> u8 {\n    7\n}\n",
         ),
         ("src/other.rs", OTHER),
     ]);

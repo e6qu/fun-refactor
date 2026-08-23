@@ -71,8 +71,8 @@ fn a_signature_survives_the_crossing() {
 
 #[test]
 fn a_record_is_written_the_way_the_target_writes_records() {
-    // Idiom, not transliteration: a dataclass in Python, a struct in Go, an interface
-    // in TypeScript, because that is what each language calls a named product.
+    // Idiom, not transliteration: a dataclass in Python, a struct in Go, an interface in
+    // TypeScript, each being that language's named product.
     let (python, _) = translate(&[("a.rs", RUST_SOURCE)], "a.rs", Language::Python);
     assert!(python.contains("@dataclass"), "got:\n{python}");
     assert!(python.contains("class Reading:"), "got:\n{python}");
@@ -134,7 +134,7 @@ pub fn shout(names: Vec<String>) -> Vec<String> {
     );
     assert!(
         python.contains("names.iter().map(|n| { n.to_uppercase() }).collect()"),
-        "the original must be in the file, not merely counted:\n{python}"
+        "the original must be in the file, and not only counted:\n{python}"
     );
     // And the signature still crossed, which is the point of translating at all.
     assert!(
@@ -145,9 +145,9 @@ pub fn shout(names: Vec<String>) -> Vec<String> {
 
 #[test]
 fn an_interpolated_string_keeps_interpolating() {
-    // `f"{c} below"` flattened to the literal text `{c} below` is not a gap, it is a wrong
-    // answer. It was one this found in its own output. Each target spells interpolation its own
-    // way and every one of them must still substitute.
+    // `f"{c} below"` flattened to the literal text `{c} below` is a wrong answer. It was one
+    // this found in its own output. Each target spells interpolation its own way and every
+    // one of them must still substitute.
     let source = "\
 def describe(celsius: float) -> str:
     return f\"{celsius} below the floor\"

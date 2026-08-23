@@ -163,8 +163,6 @@ fn examples() -> Vec<Example> {
         .collect()
 }
 
-// ------------------------------------------------------------------ the checkers
-
 fn mypy_available() -> bool {
     Command::new("mypy")
         .arg("--version")
@@ -316,8 +314,6 @@ fn every_run_tagged_example_executes() {
         "no example carries `run: yes`, so nothing was executed"
     );
 }
-
-// ------------------------------------------------------------------ the page
 
 /// Every before-and-after pair, as (after id, python diff, typescript diff).
 ///

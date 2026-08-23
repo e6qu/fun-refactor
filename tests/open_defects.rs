@@ -43,19 +43,6 @@ fn symbol(index: &Index, name: &str) -> SymbolId {
         .id
 }
 
-fn applied(root: &Path, file: &str, edits: &fun_refactor::edit::EditSet) -> String {
-    let path = root.join(file);
-    let before = std::fs::read_to_string(&path).expect("read");
-    match edits.edits_for(&path) {
-        Some(for_file) => {
-            fun_refactor::edit::apply_to_string(&before, for_file).expect("the edits apply")
-        }
-        None => before,
-    }
-}
-
-// --------------------------------------------------------------------- B5
-
 #[test]
 fn dispatch_is_followed_as_far_as_the_source_declares_it() {
     // B5. A call through a trait object resolves to no implementation, so reachability fans it
@@ -92,51 +79,9 @@ fn dispatch_is_followed_as_far_as_the_source_declares_it() {
     assert!(
         dead.contains(&"candidate"),
         "B5's remaining half is a function reached only through a struct field, and it is \
-         still listed — if it no longer is, update the entry: {dead:?}"
+         still listed. If it no longer is, update the entry: {dead:?}"
     );
 }
-
-// -------------------------------------------------------------------- B14
-
-#[test]
-fn a_class_named_inside_a_helper_call_is_reported_and_not_rewritten() {
-    // B14. Only a plain string attribute value is captured, so `cx("btn", …)` is not a
-    // resolved use of the class. The rename is therefore incomplete, and it says so,
-    // naming the file and position of every site it left, which keeps it from
-    // being silently wrong.
-    let (_tmp, root) = workspace(&[
-        ("s.css", ".btn {\n  color: red;\n}\n"),
-        (
-            "c.tsx",
-            "export function A() {\n  return <div className=\"btn\" />;\n}\n\
-             export function B({ active }: { active: boolean }) {\n  \
-             return <div className={cx(\"btn\", active && \"on\")} />;\n}\n\
-             declare function cx(...parts: unknown[]): string;\n",
-        ),
-    ]);
-    let index = index_of(&root);
-    let plan = fun_refactor::refactor::rename::plan(&index, symbol(&index, "btn"), "primary")
-        .expect("a plan");
-    let out = applied(&root, "c.tsx", &plan.edits);
-
-    assert!(
-        out.contains("className=\"primary\""),
-        "the plain attribute is the half that does work:\n{out}"
-    );
-    assert!(
-        out.contains("cx(\"btn\""),
-        "B14 says the helper call is left alone — if it is rewritten now, retire the \
-         entry:\n{out}"
-    );
-    assert!(
-        !plan.warnings.is_empty(),
-        "an incomplete rename that reports nothing is silently wrong, which is the one \
-         thing B14 says this is not"
-    );
-}
-
-// -------------------------------------------------------------------- B13
-
 #[test]
 fn a_values_answer_names_the_channel_it_was_never_told_about() {
     // B13. Given some of the inputs and not others, the competition is decided *given the

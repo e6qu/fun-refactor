@@ -87,8 +87,6 @@ fn one(
     restructured(&[(file, src)], language, file, pattern, template)
 }
 
-// ------------------------------------------------------------------------- rust
-
 const RUST_SRC: &str = "\
 fn f() {
     // old_api(9) is not code
@@ -130,8 +128,6 @@ fn rust_does_not_match_a_different_arity_or_name() {
     let (n, _) = one(Language::Rust, "a.rs", RUST_SRC, "old_api($X, $Y)", "z($X)");
     assert_eq!(n, 1, "only the two-argument call has that shape");
 }
-
-// --------------------------------------------------------------------------- go
 
 const GO_SRC: &str = "\
 package main
@@ -179,8 +175,6 @@ fn go_does_not_match_a_similar_call() {
     assert_eq!(n, 1, "only the two-argument call");
 }
 
-// -------------------------------------------------------------------------- zig
-
 const ZIG_SRC: &str = "\
 pub fn f() void {
     // oldApi(9) is not code
@@ -213,8 +207,6 @@ pub fn f() void {
     );
 }
 
-// ------------------------------------------------------------------- typescript
-
 const TS_SRC: &str = "\
 // oldApi(9) is not code
 const banner = \"oldApi(9)\";
@@ -244,8 +236,6 @@ const c = newApi(x, {});
 "
     );
 }
-
-// -------------------------------------------------------------------------- tsx
 
 const TSX_SRC: &str = "\
 // <Old title=\"x\" /> is not code
@@ -283,8 +273,6 @@ export const App = () => (
     );
 }
 
-// ----------------------------------------------------------------------- python
-
 const PY_SRC: &str = "\
 # old(9) is not code
 banner = \"old(9)\"
@@ -314,8 +302,6 @@ def f():
 "
     );
 }
-
-// ------------------------------------------------------------------------- bash
 
 const BASH_SRC: &str = "\
 #!/usr/bin/env bash
@@ -358,8 +344,6 @@ fn bash_double_dollar_matches_a_literal_expansion() {
     assert_eq!(n, 1, "only the literal $BASE expansion");
     assert_eq!(out, "wget $BASE\ncurl $OTHER\n");
 }
-
-// -------------------------------------------------------------------------- hcl
 
 const HCL_SRC: &str = "\
 # var.commented is not code
@@ -412,8 +396,6 @@ resource \"aws_instance\" \"a\" {
     );
 }
 
-// ------------------------------------------------------------------------- yaml
-
 const YAML_SRC: &str = "\
 # image: commented
 note: \"image: quoted\"
@@ -465,8 +447,6 @@ fn yaml_binds_a_quoted_scalar_without_its_quotes() {
     assert_eq!(n, 1, "the unquoted scalar is a different shape");
     assert_eq!(out, "title: \"web\"\nother: web\n");
 }
-
-// ------------------------------------------------------------------------- helm
 
 const HELM_CHART: &str = "apiVersion: v2\nname: mychart\nversion: 0.1.0\n";
 
@@ -567,8 +547,6 @@ fn helm_refuses_a_pattern_containing_a_template_action() {
     );
 }
 
-// -------------------------------------------------------------------------- css
-
 const CSS_SRC: &str = "\
 /* color: green is not code */
 .btn {
@@ -645,8 +623,6 @@ fn scss_restructures_plain_css_and_scss_only_syntax_alike() {
     assert_eq!(out, ".btn {\n  color: $accent;\n}\n");
 }
 
-// ------------------------------------------------------------------------- html
-
 const HTML_SRC: &str = "\
 <html>
   <body>
@@ -705,8 +681,6 @@ fn html_binds_an_attribute_value() {
     );
 }
 
-// -------------------------------------------------------------------------- xml
-
 const XML_SRC: &str = "\
 <project>
   <!-- <dependency scope=\"compile\">junit</dependency> is not markup -->
@@ -754,8 +728,6 @@ fn xml_matches_a_literal_attribute_value() {
         "got:\n{out}"
     );
 }
-
-// --------------------------------------------------------------------- markdown
 
 const MD_SRC: &str = "\
 # Guide
@@ -808,8 +780,6 @@ fn markdown_rewrites_a_heading() {
         "the level-one heading is untouched:\n{out}"
     );
 }
-
-// ------------------------------------------------------------------ every cell
 
 /// Every column of PLAN.md's feature × language matrix, each with a pattern realistic for its
 /// language. This is the promise the matrix makes.
@@ -1040,8 +1010,6 @@ fn no_language_matches_inside_a_string_or_comment() {
     }
 }
 
-// ------------------------------------------------------------------- semantics
-
 #[test]
 fn a_repeated_metavariable_binds_consistently_in_yaml() {
     let src = "a:\n  x: same\n  y: same\nb:\n  x: one\n  y: two\n";
@@ -1132,8 +1100,6 @@ fn an_expression_pattern_still_matches_only_the_expression() {
     assert_eq!(n, 1);
     assert!(out.contains("a = h()"), "got:\n{out}");
 }
-
-// -------------------------------------------------------------------- comments
 
 /// A comment is an extra, so it sits between two children of the node it interrupts.
 /// Counting it as one of them made `foo(1, /* why */ 2)` a three-argument call. The

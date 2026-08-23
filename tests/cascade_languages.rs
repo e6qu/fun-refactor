@@ -44,8 +44,6 @@ fn unfinished(plan: &cascade::CascadePlan) -> String {
     plan.unfinished.join("\n")
 }
 
-// =========================================================================== zig
-
 #[test]
 fn zig_true_keeps_the_enabled_branch_and_removes_the_dead_one() {
     let tmp = workspace(&[(
@@ -311,8 +309,6 @@ fn zig_a_labelled_block_branch_is_kept_whole() {
     assert!(out.contains("blk:"), "the label must survive:\n{out}");
     must_still_parse(&plan);
 }
-
-// ========================================================================== bash
 
 #[test]
 fn bash_true_collapses_a_quoted_string_test() {
@@ -650,8 +646,6 @@ fn bash_an_unrelated_conditional_is_not_touched() {
     assert!(!out.contains("USE_NEW"), "got:\n{out}");
     assert!(plan.unfinished.is_empty(), "{}", unfinished(&plan));
 }
-
-// =========================================================================== hcl
 
 #[test]
 fn terraform_true_drops_a_count_of_one_and_the_variable() {
@@ -1036,8 +1030,6 @@ fn terraform_resolves_the_variable_across_the_module_directory() {
     assert_eq!(result_for(tmp.path(), "queues.tf", &plan), "");
     assert_eq!(result_for(tmp.path(), "variables.tf", &plan), "");
 }
-
-// ================================================================ across languages
 
 #[test]
 fn a_language_without_a_collapse_step_refuses_rather_than_going_quiet() {

@@ -21,13 +21,11 @@
 ; part. Renaming the prefix `foo` means rewriting the leading segment of these
 ; spans, which again is engine-side post-processing.
 
-; ---------------------------------------------------------------- scopes
 ; Namespace prefixes are scoped to the element that declares them, so the element
 ; tree is a real scope tree here, not just a convenience.
 (document) @scope
 (element) @scope
 
-; ------------------------------------------------------------ definitions
 ; `id="a"` and `xml:id="a"` define an element id. XML is case-sensitive, so the
 ; attribute names are matched exactly. A DTD may declare an ID-typed attribute
 ; under any other name; those are not recognised without reading the DTD.
@@ -43,7 +41,6 @@
   (Name) @name
   (#match? @name "^xmlns:")) @definition.module
 
-; ------------------------------------------------------------- references
 ; `idref`/`idrefs`/`ref` point at an element id.
 (Attribute
   (Name) @_attr
@@ -67,7 +64,6 @@
   (#not-match? @reference.identifier "^xmlns:")
   (#not-match? @reference.identifier "^xml:"))
 
-; ------------------------------------------------------------ DTD entities
 ; An internal-subset entity is XML's only binding form: `<!ENTITY brand "Acme">`
 ; declares a name that `&brand;` substitutes. Capturing both puts entities in the
 ; index, so rename and inline reach them like any other symbol.

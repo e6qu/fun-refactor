@@ -212,9 +212,9 @@ pub struct Matcher {
     pub declaration_keyword: Option<String>,
     /// The annotation's first string argument must start with this.
     ///
-    /// A decorator's name is not unique across libraries: `@patch` is `unittest.mock`'s
-    /// far more often than it is FastAPI's. What separates them is what the decorator
-    /// names, a URL path or a module, so a route rule asks for the path.
+    /// A decorator's name is not unique across libraries: `@patch` is `unittest.mock`'s far
+    /// more often than it is FastAPI's. The decorator names either a URL path or a module, so
+    /// a route rule asks for the path.
     ///
     /// Only meaningful alongside `annotated_with`, and rejected without it.
     #[serde(default)]

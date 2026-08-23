@@ -118,8 +118,6 @@ def check_predicate(key, line):
         hint = f" — did you mean {near[0]!r}?" if near else ""
         raise SyntaxError(f"line {line}: unknown predicate {key!r}{hint}")
 
-# ---------------------------------------------------------------- the examples
-
 EXAMPLES = {
 "retire-legacy-auth": '''
 schema 1
@@ -199,7 +197,6 @@ for name, src in BAD.items():
         print(f"  ok   {name}: {e}")
 
 
-# ------------------------------------------------------- adversarial round two
 print("\nadversarial")
 ADVERSARIAL = {
  "missing value before next step":

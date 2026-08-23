@@ -5,7 +5,7 @@
 //! - **Zig** resolves through `@import`. So a moved declaration is reached by a new namespace.
 //!   The tests assert the `const … = @import(…)` line byte for byte and the qualifier on every
 //!   use.
-//! - **Bash** has no import that binds a name — `source` splices a whole script in. So a moved
+//! - **Bash** has no import that binds a name, because `source` splices a whole script in. So a moved
 //!   function needs its surviving callers to source its new home. What `source` cannot say is
 //!   what a computed path put in scope, and that refuses.
 //! - **YAML / Helm** address a values key by its path, and a top-level key's path does not
@@ -122,9 +122,7 @@ fn refusal(result: anyhow::Result<move_symbol::MovePlan>) -> String {
     }
 }
 
-// ===========================================================================
 // Zig: a file is a namespace reached through `@import`.
-// ===========================================================================
 
 #[test]
 fn zig_qualifies_the_uses_left_behind_in_the_source_file() {
@@ -427,9 +425,7 @@ fn zig_reports_an_import_the_moved_code_depended_on() {
     );
 }
 
-// ===========================================================================
 // Bash: no import binds a name, only `source`.
-// ===========================================================================
 
 #[test]
 fn bash_sources_the_new_home_from_the_script_that_still_calls_it() {
@@ -644,9 +640,7 @@ fn bash_leaves_a_recursive_call_alone_because_it_travels_with_the_function() {
     assert_eq!(ws.read("app.sh"), "");
 }
 
-// ===========================================================================
 // YAML and Helm: a top-level key's path does not mention its file.
-// ===========================================================================
 
 #[test]
 fn helm_moves_a_values_key_and_warns_that_only_values_yaml_is_read() {
@@ -875,9 +869,7 @@ fn yaml_refuses_an_anchor() {
     assert!(message.contains("An anchor is resolved"), "got: {message}");
 }
 
-// ===========================================================================
 // What stays refused, and what each language offers.
-// ===========================================================================
 
 #[test]
 fn html_and_xml_stay_refused_by_name() {

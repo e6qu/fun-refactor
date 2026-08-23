@@ -653,8 +653,6 @@ fn refuse_unless_it_substitutes(sym: &Symbol) -> Result<()> {
     Ok(())
 }
 
-// ---------------------------------------------------------------- the walker
-
 struct Ctx<'a> {
     index: &'a Index,
     max_depth: usize,
@@ -783,8 +781,6 @@ impl<'a> Ctx<'a> {
         found
     }
 }
-
-// ------------------------------------------------------------------ Terraform
 
 /// What a Terraform symbol is, which decides where its value lives.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1630,8 +1626,6 @@ fn tfvars_entry(source: &str, name: &str) -> Result<Option<(Span, String)>> {
     }
     Ok(None)
 }
-
-// --------------------------------------------------------------- YAML / Helm
 
 /// Rank of a `values-*.yaml` file beside a chart: above every chart values file, because `-f`
 /// outranks all of them. Far enough above to leave room for any depth of chart nesting below
@@ -2686,8 +2680,6 @@ fn chart_levels(chart: &Path, local: &[String]) -> Vec<(PathBuf, Vec<String>)> {
     levels
 }
 
-// ----------------------------------------------------------------------- CSS
-
 /// One declaration competing in the cascade.
 #[derive(Debug, Clone)]
 struct CssDeclaration {
@@ -3428,8 +3420,6 @@ fn split_top_level(text: &str, separator: char) -> Vec<String> {
     parts.push(current);
     parts
 }
-
-// -------------------------------------------------------------------- shared
 
 /// The namespace segment written immediately before a reference: the `var` of
 /// `var.region`, the `module` of `module.network.vpc_id`.

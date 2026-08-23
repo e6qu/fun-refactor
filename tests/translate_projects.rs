@@ -19,8 +19,6 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-// ------------------------------------------------------------------ fixtures
-
 /// A four-file Python package: models, storage, helpers and an entrypoint.
 ///
 /// Every seam a project has is in it. `cli` constructs classes two other files
@@ -237,8 +235,6 @@ const EXPECTED_STDOUT: &str = "== INVENTORY ==\n\
     items: 3\n\
     total: 1950c\n";
 
-// ------------------------------------------------------------------ the sweep
-
 /// Write a fixture package into `dir`.
 fn write_package(dir: &Path, files: &[(&str, &str)]) {
     for (name, source) in files {
@@ -302,8 +298,6 @@ fn said(output: &std::process::Output) -> String {
         String::from_utf8_lossy(&output.stderr)
     )
 }
-
-// ------------------------------------------------------------------ the gates
 
 #[test]
 fn a_python_package_sweeps_to_typescript_with_real_imports_and_one_naming_table() {

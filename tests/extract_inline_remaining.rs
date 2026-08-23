@@ -109,8 +109,6 @@ fn symbol_at(index: &Index, path: &Path, offset: usize) -> SymbolId {
         .id
 }
 
-// ======================================================== bash: extract variable
-
 #[test]
 fn bash_extract_names_a_command_substitution() {
     let src = "#!/bin/bash\nresult=$(compute a)\necho \"$result\"\n";
@@ -306,8 +304,6 @@ fn bash_extract_refuses_a_name_already_in_use() {
     );
 }
 
-// ========================================================== bash: inline variable
-
 #[test]
 fn bash_inline_takes_a_quoted_values_contents_inside_quotes() {
     let src = "#!/bin/bash\ngreeting=\"hello world\"\necho \"$greeting\"\n";
@@ -481,8 +477,6 @@ fn bash_extract_then_inline_restores_the_original_bytes() {
     }
 }
 
-// ======================================================== bash: extract function
-
 #[test]
 fn bash_extract_function_defines_it_before_the_enclosing_one() {
     let src = "#!/bin/bash\n\ndeploy() {\n  echo start\n  build\n  test\n  echo done\n}\n";
@@ -590,8 +584,6 @@ fn bash_extract_function_refuses_a_blank_selection() {
     assert!(err.contains("blank"), "got: {err}");
 }
 
-// ========================================================= zig: extract function
-
 #[test]
 fn zig_extract_function_writes_the_return_type_without_an_arrow() {
     let src = "fn run() void {\n    const width: i32 = 3;\n    const area: i32 = width * 2;\n    log(area);\n}\n";
@@ -644,8 +636,6 @@ fn zig_extract_function_refuses_the_selection_whose_type_was_never_written() {
     assert!(err.contains("width"), "got: {err}");
     assert!(err.contains("zig"), "got: {err}");
 }
-
-// ============================================================ scss: extract mixin
 
 #[test]
 fn scss_extract_mixin_passes_outside_variables_as_parameters() {
@@ -750,8 +740,6 @@ fn scss_extract_mixin_refuses_a_name_already_in_use() {
         "got: {err}"
     );
 }
-
-// ============================================================== xml: entities
 
 #[test]
 fn xml_extract_creates_the_internal_subset_when_there_is_none() {

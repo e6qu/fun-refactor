@@ -39,8 +39,6 @@ fn applied(plan: &delete::DeletePlan, path: &PathBuf) -> String {
     }
 }
 
-// ------------------------------------------------------------------- refusals
-
 #[test]
 fn refuses_while_a_reference_still_resolves_to_the_symbol() {
     let source = "fn helper() {}\nfn main() {\n    helper();\n}\n";
@@ -140,8 +138,6 @@ fn an_unknown_symbol_is_an_error_not_a_no_op() {
     let error = delete::plan(&index, SymbolId(9999)).unwrap_err();
     assert!(error.to_string().contains("unknown symbol"), "{error}");
 }
-
-// -------------------------------------------------------------------- deleting
 
 #[test]
 fn deletes_an_unused_definition_whole_line_and_all() {
@@ -307,8 +303,6 @@ fn deleting_the_last_selector_in_a_list_takes_the_preceding_comma() {
         ".card { margin: 0; }\n"
     );
 }
-
-// ------------------------------------------------------------- unused symbols
 
 #[test]
 fn find_unused_reports_an_orphan_and_not_the_entry_point() {
@@ -534,7 +528,6 @@ fn an_exported_symbol_is_reported_but_marked_as_such() {
     assert!(named.contains(&("unexported", false)), "got {named:?}");
 }
 
-// ------------------------------------------- the two halves agree, in every language
 //
 // `an_unused_symbol_from_find_unused_can_then_be_deleted` above states the invariant and checks
 // it for one Rust function. Run over a polyglot workspace it failed thirteen times out of

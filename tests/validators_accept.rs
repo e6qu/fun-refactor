@@ -85,8 +85,6 @@ fn skip(fixture: &Fixture) -> bool {
     true
 }
 
-// ------------------------------------------------------------- the fixtures
-
 const BASH: &str = "\
 #!/usr/bin/env bash
 set -euo pipefail
@@ -293,8 +291,6 @@ fn fixtures() -> Vec<Fixture> {
         },
     ]
 }
-
-// ------------------------------------------------------------------ the sweep
 
 #[test]
 fn every_fixture_satisfies_its_validator_before_anything_touches_it() {
@@ -631,7 +627,7 @@ fn the_validator_gate_states_what_it_covers() {
     }
     common::require_on_ci("validator gate", &missing);
     eprintln!(
-        "validator gate: not driven — scss (no sass here), markdown (nothing to validate), \
+        "validator gate: not driven: scss (no sass here), markdown (nothing to validate), \
          yaml (checked as part of the chart helm lint renders)"
     );
 }

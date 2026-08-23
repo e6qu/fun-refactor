@@ -19,8 +19,6 @@ use fun_refactor::{
 };
 use std::path::{Path, PathBuf};
 
-// ------------------------------------------------------------------- harness
-
 struct Workspace {
     tmp: tempfile::TempDir,
     index: Index,
@@ -118,8 +116,6 @@ fn untouched_regions_survive(before: &str, after: &str, edits: &[fun_refactor::e
         at += found + piece.len();
     }
 }
-
-// ================================================================ Terraform
 
 const TF_MAIN: &str = "\
 resource \"aws_s3_bucket\" \"assets\" {
@@ -447,8 +443,6 @@ fn hcl_extract_then_inline_restores_the_original() {
     assert_eq!(applied(&inlined.edits, &path), TF_MAIN);
 }
 
-// ===================================================================== YAML
-
 const VALUES: &str = "\
 frontend:
   image: nginx:1.25
@@ -622,8 +616,6 @@ fn yaml_extract_then_inline_restores_the_original() {
     assert_eq!(applied(&inlined.edits, &path), VALUES);
 }
 
-// ===================================================================== Helm
-
 const HELM_CHART: &str = "apiVersion: v2\nname: acme\nversion: 0.1.0\n";
 
 const HELM_DEPLOYMENT: &str = "\
@@ -743,8 +735,6 @@ fn helm_extract_then_inline_restores_the_original() {
     let inlined = inline::variable(&ws.index, id).unwrap();
     assert_eq!(applied(&inlined.edits, &path), HELM_DEPLOYMENT);
 }
-
-// -------------------------------------------------- Helm named template (fn)
 
 #[test]
 fn helm_extract_function_writes_a_named_template_and_an_include() {
@@ -867,8 +857,6 @@ fn helm_extract_function_writes_a_named_template_to_a_file_that_did_not_exist() 
         manifest.updated
     );
 }
-
-// ------------------------------------------------------------------------ CSS
 
 const CSS: &str = "\
 .btn {
@@ -1175,8 +1163,6 @@ fn css_extract_then_inline_restores_the_original() {
     assert_eq!(applied(&inlined.edits, &path), CSS);
 }
 
-// ================================================================= Markdown
-
 const MD: &str = "\
 # Guide
 
@@ -1381,8 +1367,6 @@ fn markdown_extract_then_inline_restores_the_original() {
     let inlined = inline::variable(&ws.index, id).unwrap();
     assert_eq!(applied(&inlined.edits, &path), MD);
 }
-
-// ============================================================ cross-cutting
 
 #[test]
 fn every_config_extraction_leaves_the_rest_of_the_file_byte_identical() {

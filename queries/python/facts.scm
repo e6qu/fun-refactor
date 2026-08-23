@@ -18,7 +18,6 @@
 ; — is identical either way; only a whole-definition move would want the
 ; decorators, and it can walk up one node to find them.
 
-; ---------------------------------------------------------------- scopes
 ; Only the module, functions, lambdas and comprehensions introduce a scope in
 ; Python: an `if` or `for` block does not, so their blocks are deliberately not
 ; captured. A class body is a scope of its own that nested functions do not see
@@ -35,7 +34,6 @@
 (dictionary_comprehension) @scope
 (generator_expression) @scope
 
-; ------------------------------------------------------------- containers
 ; A class qualifies the functions inside it as methods. Unlike a Rust `impl`,
 ; the class is also a definition in its own right, so the same node is captured
 ; twice: once as @container here and once as @definition.class below. The
@@ -44,7 +42,6 @@
 (class_definition
   name: (identifier) @container.name) @container
 
-; ------------------------------------------------------------ definitions
 ((function_definition
    name: (identifier) @name @export) @definition.function
  (#not-match? @name "^_"))
@@ -70,7 +67,6 @@
    left: (type (identifier) @name)) @definition.type
  (#match? @name "^_"))
 
-; ------------------------------------------------------------- parameters
 ; One pattern per parameter form: plain, annotated, defaulted, annotated and
 ; defaulted, `*args` and `**kwargs` (each of the last two also in an annotated
 ; form, where the splat pattern sits inside a typed_parameter). The forms nest
@@ -85,7 +81,6 @@
 (typed_parameter (list_splat_pattern (identifier) @name)) @definition.parameter
 (typed_parameter (dictionary_splat_pattern (identifier) @name)) @definition.parameter
 
-; --------------------------------------------------- module-level bindings
 ; A module-level assignment binds a module attribute. ALL_CAPS is the constant
 ; convention; anything else is a plain variable. Crossed with the underscore
 ; visibility convention, that makes four mutually exclusive patterns.
@@ -109,7 +104,6 @@
  (#not-match? @name "^[A-Z_][A-Z0-9_]*$")
  (#match? @name "^_"))
 
-; ----------------------------------------------------------- class fields
 ; An assignment directly in a class body is a class attribute, annotated
 ; (`x: int = 1`) or not.
 ((class_definition body: (block (expression_statement
@@ -139,7 +133,6 @@
  (#eq? @_receiver "self")
  (#match? @name "^_"))
 
-; ---------------------------------------------------------------- locals
 ; A local is an assignment inside a block. The pattern is repeated once per
 ; construct that owns a block instead of being written against (block) directly,
 ; because the one block that must NOT be matched here is a class body: its
@@ -170,7 +163,6 @@
 (case_clause
   consequence: (block (expression_statement (assignment left: (identifier) @name) @definition.variable)))
 
-; ------------------------------------------------- other binding forms
 ; A loop variable, a `with ... as f` / `except ... as e` binding and a walrus
 ; are all bindings whose name is the whole definition: capturing the identifier
 ; as both @name and @definition keeps full_span off the loop body, which would
@@ -187,7 +179,6 @@
  (#match? @name "^[A-Za-z_][A-Za-z0-9_]*$"))
 (named_expression name: (identifier) @name @definition.variable)
 
-; ------------------------------------------------------------- references
 (call
   function: (identifier) @reference.call)
 
@@ -223,7 +214,6 @@
 
 (identifier) @reference.identifier
 
-; ---------------------------------------------------------------- imports
 ; `import os` / `import os.path`
 (import_statement
   name: (dotted_name) @import.path) @import

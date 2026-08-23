@@ -13,13 +13,11 @@
 ; `template_literal`, because @name is the byte range a rename replaces and it
 ; must not swallow the quotes.
 
-; ---------------------------------------------------------------- scopes
 (config_file) @scope
 (body) @scope
 (object) @scope
 (for_expr) @scope
 
-; ------------------------------------------------------------ definitions
 ; Block patterns are distinguished by label arity, which is structural rather
 ; than semantic: the anchors below require the labels and the opening brace to be
 ; consecutive named siblings, so a one-label pattern cannot match a two-label
@@ -91,7 +89,6 @@
     (attribute
       . (identifier) @name) @definition.key))
 
-; ------------------------------------------------------------- references
 ; A traversal is a `variable_expr` root followed by `.step` `get_attr` children,
 ; flat under one `expression`. Which segment is the renameable one depends on the
 ; root namespace, so every form is matched explicitly — a catch-all over
@@ -224,7 +221,6 @@
 (function_call
   . (identifier) @reference.call)
 
-; ---------------------------------------------------------------- imports
 ; `source` on a module block is Terraform's only import: it names another
 ; configuration whose variables and outputs become this module's call surface.
 ; The module label is the local binding that surface is reached through.

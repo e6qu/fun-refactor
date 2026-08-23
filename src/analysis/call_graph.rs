@@ -824,8 +824,6 @@ fn escape_dot(s: &str) -> String {
     s.replace('\\', "\\\\").replace('"', "\\\"")
 }
 
-// ------------------------------------------------------- class hierarchy analysis
-
 /// Languages whose types share one hierarchy namespace.
 ///
 /// A Go `Shape` and a TypeScript `Shape` are unrelated names that never dispatch to
@@ -888,10 +886,10 @@ struct CallSite {
 /// file, the same price [`crate::refactor::delete::find_unused`] already pays to read
 /// string literals.
 ///
-/// Nothing here is inferred. Every entry is a declaration someone wrote: an `impl
-/// Trait for Type`, an `implements` clause, or a `class C(Base)` line. Go has no
-/// `implements` keyword, so an entry there is a method set covering an interface's.
-/// In Go that is the whole of implementing an interface.
+/// Every entry comes from a declaration somebody wrote: an `impl Trait for Type`, an
+/// `implements` clause, or a `class C(Base)` line. Go has no `implements` keyword, so an
+/// entry there is a method set covering an interface's. In Go that is the whole of
+/// implementing an interface.
 #[derive(Debug, Default)]
 pub struct Hierarchy {
     /// Methods an abstraction declares, name to arity: a Rust trait, a Go interface,
@@ -1375,7 +1373,6 @@ impl Hierarchy {
             .insert(key.1);
     }
 
-    // ------------------------------------------------------------------ Rust
     fn visit_rust(&mut self, node: Node, source: &str, sites: &mut Vec<CallSite>) {
         match node.kind() {
             "trait_item" => {
@@ -1426,7 +1423,6 @@ impl Hierarchy {
         }
     }
 
-    // -------------------------------------------------------------------- Go
     fn visit_go(&mut self, node: Node, source: &str, sites: &mut Vec<CallSite>) {
         match node.kind() {
             "type_spec" => {
@@ -1487,7 +1483,6 @@ impl Hierarchy {
         }
     }
 
-    // ------------------------------------------------------------ TypeScript
     fn visit_ts(&mut self, node: Node, source: &str, sites: &mut Vec<CallSite>) {
         match node.kind() {
             "class_declaration" | "abstract_class_declaration" | "interface_declaration" => {
@@ -1535,7 +1530,6 @@ impl Hierarchy {
         }
     }
 
-    // ------------------------------------------------------------------ Java
     fn visit_java(&mut self, node: Node, source: &str, sites: &mut Vec<CallSite>) {
         match node.kind() {
             "class_declaration"
@@ -1588,7 +1582,6 @@ impl Hierarchy {
         }
     }
 
-    // ---------------------------------------------------------------- Python
     fn visit_python(&mut self, node: Node, source: &str, sites: &mut Vec<CallSite>) {
         match node.kind() {
             "class_definition" => {

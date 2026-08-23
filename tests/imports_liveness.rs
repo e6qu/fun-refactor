@@ -55,8 +55,6 @@ fn removed_paths(files: &[(&str, &str)], target: &str) -> Vec<String> {
     outcome(files, target).0
 }
 
-// -------------------------------------------------------------------------- Rust
-
 #[test]
 fn rust_an_import_nothing_names_goes() {
     assert_eq!(
@@ -81,8 +79,6 @@ fn rust_a_trait_used_through_its_methods_is_kept() {
         "trait",
     );
 }
-
-// ------------------------------------------------------------------------ Python
 
 #[test]
 fn python_a_plain_unused_import_goes() {
@@ -191,8 +187,6 @@ fn python_dunder_all_naming_something_else_does_not_save_an_import() {
         vec!["m".to_string()]
     );
 }
-
-// -------------------------------------------------------------------- TypeScript
 
 #[test]
 fn typescript_an_import_nothing_names_goes() {
@@ -329,8 +323,6 @@ fn typescript_without_the_pragma_the_same_import_goes() {
     );
 }
 
-// ---------------------------------------------------------------------------- Go
-
 #[test]
 fn go_an_import_nothing_names_goes() {
     assert_eq!(
@@ -430,8 +422,6 @@ fn go_a_visible_package_clause_that_nothing_names_still_goes() {
     );
 }
 
-// -------------------------------------------------------------------------- Zig
-
 #[test]
 fn zig_needs_no_guard_and_removes_what_nothing_names() {
     // `@import` yields an ordinary container-level `const`, and every use of it spells
@@ -463,8 +453,6 @@ fn zig_keeps_an_import_its_const_name_reaches() {
     assert!(removed.is_empty(), "got {removed:?}");
     assert!(warnings.is_empty(), "got {warnings:?}");
 }
-
-// ------------------------------------------------- unused symbols (B5, find_unused)
 
 fn only_symbol(index: &Index, name: &str) -> fun_refactor::model::SymbolId {
     let found = index.find_symbols(name, None);
