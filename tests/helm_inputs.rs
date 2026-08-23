@@ -11,7 +11,8 @@
 
 use fun_refactor::{
     analysis::provenance::{
-        self, consumers_with_inputs, provenance, provenance_with_inputs, StopReason, ValuesInputs,
+        self, consumers_with_inputs, provenance, provenance_with_inputs, SetFlags, StopReason,
+        ValuesInputs,
     },
     helm,
     index::Index,
@@ -575,7 +576,7 @@ fn set_paths_follow_helms_own_syntax() {
     assert_eq!(dotted.len(), 1);
     assert_eq!(dotted[0].keys(), vec!["image", "tag"]);
     assert_eq!(dotted[0].value, "1.2");
-    assert!(!dotted[0].string);
+    assert!(!dotted[0].is_string());
 
     // A list index addresses an element; the values index records mapping keys only. So the
     // index is kept in the text and dropped from the key path.
@@ -605,20 +606,83 @@ fn set_paths_follow_helms_own_syntax() {
     assert_eq!(value[0].value, "--a,--b");
 
     let string = helm::parse_set("tag=1.20", true).unwrap();
-    assert!(string[0].string);
+    assert!(string[0].is_string());
     assert_eq!(string[0].flag(), "--set-string");
     assert_eq!(string[0].describe(), "`--set-string tag=1.20`");
 }
 
 #[test]
-fn unsupported_set_syntax_is_refused_by_name() {
-    let list = helm::parse_set("a={x,y}", false).unwrap_err().to_string();
-    assert!(list.contains("list syntax"), "{list}");
-    assert!(
-        list.contains("-f"),
-        "the refusal names what does work: {list}"
-    );
+fn a_list_literal_sets_one_element_per_item() {
+    // `--set a={x,y}` is the list `a[0]=x,a[1]=y`, which is how helm reads it.
+    let list = helm::parse_set("a={x,y}", false).unwrap();
+    assert_eq!(list.len(), 2);
+    assert_eq!(list[0].keys(), vec!["a"]);
+    assert_eq!(list[0].element().as_deref(), Some("a[0]"));
+    assert_eq!(list[0].value, "x");
+    assert_eq!(list[1].element().as_deref(), Some("a[1]"));
+    assert_eq!(list[1].value, "y");
 
+    // The commas inside the braces belong to the list, and the ones outside separate
+    // assignments.
+    let several = helm::parse_set("a={x,y},b=1", false).unwrap();
+    assert_eq!(several.len(), 3);
+    assert_eq!(several[2].keys(), vec!["b"]);
+
+    let empty = helm::parse_set("a={}", false).unwrap();
+    assert!(empty.is_empty(), "an empty literal sets no element");
+
+    let unclosed = helm::parse_set("a={x", false).unwrap_err().to_string();
+    assert!(unclosed.contains("never closed"), "{unclosed}");
+}
+
+#[test]
+fn a_null_value_removes_the_key() {
+    // Helm deletes a key set to null, so the assignment takes a value away instead of
+    // supplying one.
+    let removed = helm::parse_set("a.b=null", false).unwrap();
+    assert!(removed[0].deletes);
+
+    // Under --set-string it is the four-letter word.
+    let text = helm::parse_set("a.b=null", true).unwrap();
+    assert!(!text[0].deletes);
+}
+
+#[test]
+fn set_file_and_set_json_are_read_as_helm_reads_them() {
+    let file = helm::parse_set_file("cert=./tls.crt").unwrap();
+    assert_eq!(file[0].keys(), vec!["cert"]);
+    assert_eq!(file[0].value, "./tls.crt");
+    assert_eq!(file[0].flag(), "--set-file");
+
+    // JSON holding an object sets every key beneath the path, so each leaf is an
+    // assignment of its own and ranks like any other.
+    let json = helm::parse_set_json(r#"a={"b":1,"c":{"d":"x"}}"#).unwrap();
+    let keys: Vec<Vec<String>> = json.iter().map(|s| s.keys()).collect();
+    assert!(
+        keys.contains(&vec!["a".to_string(), "b".to_string()]),
+        "{keys:?}"
+    );
+    assert!(
+        keys.contains(&vec!["a".to_string(), "c".to_string(), "d".to_string()]),
+        "{keys:?}"
+    );
+    assert_eq!(json[0].flag(), "--set-json");
+
+    // A JSON list sets one element per item, as the brace literal does.
+    let list = helm::parse_set_json(r#"a=[1,2]"#).unwrap();
+    assert_eq!(list.len(), 2);
+    assert_eq!(list[1].element().as_deref(), Some("a[1]"));
+
+    // JSON null removes the key, as `--set a=null` does.
+    let removed = helm::parse_set_json("a=null").unwrap();
+    assert!(removed[0].deletes);
+
+    let bad = helm::parse_set_json("a={oops").unwrap_err().to_string();
+    assert!(bad.contains("not JSON"), "{bad}");
+}
+
+#[test]
+fn set_syntax_that_names_no_key_is_refused() {
     let bare = helm::parse_set("justakey", false).unwrap_err().to_string();
     assert!(bare.contains("not an assignment"), "{bare}");
 
@@ -635,8 +699,11 @@ fn an_order_between_set_and_set_string_that_the_flags_lost_is_refused() {
     // say what that was. So the one case where it matters is refused.
     let clash = ValuesInputs::parse(
         &[],
-        &["image.tag=1".to_string()],
-        &["image.tag=2".to_string()],
+        SetFlags {
+            sets: &["image.tag=1".to_string()],
+            strings: &["image.tag=2".to_string()],
+            ..SetFlags::default()
+        },
     )
     .unwrap_err()
     .to_string();
@@ -645,8 +712,11 @@ fn an_order_between_set_and_set_string_that_the_flags_lost_is_refused() {
     // Different keys never need that order, and are accepted.
     let fine = ValuesInputs::parse(
         &[],
-        &["image.tag=1".to_string()],
-        &["image.repository=repo".to_string()],
+        SetFlags {
+            sets: &["image.tag=1".to_string()],
+            strings: &["image.repository=repo".to_string()],
+            ..SetFlags::default()
+        },
     )
     .unwrap();
     assert_eq!(fine.sets.len(), 2);
@@ -657,8 +727,7 @@ fn an_order_between_set_and_set_string_that_the_flags_lost_is_refused() {
 fn parsed_inputs_describe_themselves_as_a_command_line() {
     let inputs = ValuesInputs::parse(
         &[PathBuf::from("values-prod.yaml")],
-        &["a.b=c".to_string()],
-        &[],
+        SetFlags::of(&["a.b=c".to_string()]),
     )
     .unwrap();
     assert_eq!(inputs.describe(), "-f values-prod.yaml --set a.b=c");
@@ -792,4 +861,100 @@ fn a_file_nobody_passed_is_never_labelled_user_supplied() {
         !competition.decided,
         "the command line can still change the answer"
     );
+}
+
+#[test]
+fn two_elements_of_one_list_are_two_answers_and_not_a_competition() {
+    // `--set ports[0].name` and `--set ports[1].name` address the same key path and
+    // different elements of it. Neither overrides the other, so the report holds one
+    // competition per element and names which.
+    let (_tmp, index) = workspace(&[
+        ("app/Chart.yaml", "name: app\nversion: 0.1.0\n"),
+        (
+            "app/values.yaml",
+            "ports:\n  - name: http\n    port: 80\n  - name: https\n    port: 443\n",
+        ),
+        (
+            "app/templates/service.yaml",
+            "apiVersion: v1\nkind: Service\nspec:\n  ports: {{ .Values.ports }}\n",
+        ),
+    ]);
+    let name = key_with_path(&index, "values.yaml", "ports.name");
+    let inputs = ValuesInputs::parse(
+        &[],
+        SetFlags::of(&["ports[0].name=web,ports[1].name=tls".to_string()]),
+    )
+    .unwrap();
+    let report = provenance_with_inputs(&index, name, 5, &inputs).unwrap();
+
+    let subjects: Vec<&str> = report
+        .competitions
+        .iter()
+        .map(|c| c.subject.as_str())
+        .collect();
+    assert!(
+        subjects.iter().any(|s| s.contains("ports[0]")),
+        "the first element has an answer of its own: {subjects:?}"
+    );
+    assert!(
+        subjects.iter().any(|s| s.contains("ports[1]")),
+        "and so does the second: {subjects:?}"
+    );
+    for competition in &report.competitions {
+        let losers: Vec<&str> = competition
+            .sources
+            .iter()
+            .filter(|s| !s.wins)
+            .map(|s| s.reason.as_str())
+            .collect();
+        assert!(
+            !losers.iter().any(|r| r.contains("outranks")),
+            "no element loses to the other: {losers:?}"
+        );
+    }
+}
+
+#[test]
+fn a_key_set_to_null_is_reported_as_removed() {
+    let (_tmp, index) = chart();
+    let tag = key_with_path(&index, "app/values.yaml", "image.tag");
+    let inputs = ValuesInputs::parse(&[], SetFlags::of(&["image.tag=null".to_string()])).unwrap();
+    let report = provenance_with_inputs(&index, tag, 5, &inputs).unwrap();
+
+    let said = report
+        .competitions
+        .iter()
+        .flat_map(|c| c.sources.iter())
+        .filter(|s| s.wins)
+        .map(|s| s.reason.clone())
+        .collect::<Vec<_>>()
+        .join(" | ");
+    assert!(
+        said.contains("removes the key"),
+        "the winning source takes the value away: {said}"
+    );
+}
+
+#[test]
+fn set_json_supplies_every_key_beneath_it() {
+    let (_tmp, index) = chart();
+    let tag = key_with_path(&index, "app/values.yaml", "image.tag");
+    let inputs = ValuesInputs::parse(
+        &[],
+        SetFlags {
+            jsons: &[r#"image={"tag":"2.0","repository":"other"}"#.to_string()],
+            ..SetFlags::default()
+        },
+    )
+    .unwrap();
+    let report = provenance_with_inputs(&index, tag, 5, &inputs).unwrap();
+    let said = report
+        .competitions
+        .iter()
+        .flat_map(|c| c.sources.iter())
+        .filter(|s| s.wins)
+        .map(|s| s.reason.clone())
+        .collect::<Vec<_>>()
+        .join(" | ");
+    assert!(said.contains("--set-json"), "{said}");
 }

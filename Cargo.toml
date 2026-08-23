@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "crates/wasm-libc", "grammars/zig", "grammars/python"]
+members = [".", "crates/wasm-libc", "grammars/zig", "grammars/python", "grammars/go", "grammars/typescript", "grammars/scss"]
 
 [package]
 name = "fun-refactor"
@@ -43,15 +43,15 @@ cli = [
 # grammar this build omits is still recognised by extension; the refusal names the
 # build instead of pretending the file is unsupported.
 lang-rust = ["dep:tree-sitter-rust"]
-lang-go = ["dep:tree-sitter-go"]
-lang-typescript = ["dep:tree-sitter-typescript"]
+lang-go = ["dep:fun-refactor-go-grammar"]
+lang-typescript = ["dep:fun-refactor-typescript-grammar"]
 lang-python = ["dep:fun-refactor-python-grammar"]
 lang-zig = ["dep:fun-refactor-zig-grammar"]
 lang-java = ["dep:tree-sitter-java"]
 lang-bash = ["dep:tree-sitter-bash"]
 lang-html = ["dep:tree-sitter-html"]
 lang-css = ["dep:tree-sitter-css"]
-lang-scss = ["dep:tree-sitter-scss"]
+lang-scss = ["dep:fun-refactor-scss-grammar"]
 lang-hcl = ["dep:tree-sitter-hcl"]
 lang-yaml = ["dep:tree-sitter-yaml"]
 lang-xml = ["dep:tree-sitter-xml"]
@@ -65,20 +65,20 @@ wasm = ["dep:wasm-bindgen", "dep:console_error_panic_hook", "dep:serde-wasm-bind
 # Tree-sitter parsing. Grammar pins inherited from funveil (github.com/e6qu/funveil
 # @ 2b9a47408e3419ce0061a2c9a2dd5f1efc11f4ba) — a known-good, mutually compatible set.
 tree-sitter = "0.26"
-tree-sitter-typescript = { version = "0.23", optional = true }
 fun-refactor-zig-grammar = { path = "grammars/zig", optional = true }
 fun-refactor-python-grammar = { path = "grammars/python", optional = true }
+fun-refactor-go-grammar = { path = "grammars/go", optional = true }
+fun-refactor-typescript-grammar = { path = "grammars/typescript", optional = true }
+# SCSS has its own grammar: the CSS one has no rule for $variables, @mixin or
+# @include, so SCSS parsed as CSS is mostly parse errors (was BUGS.md B1).
+fun-refactor-scss-grammar = { path = "grammars/scss", optional = true }
 tree-sitter-rust = { version = "0.24", optional = true }
 tree-sitter-bash = { version = "0.25", optional = true }
 tree-sitter-hcl = { version = "1.1", optional = true }
 tree-sitter-yaml = { version = "0.7", optional = true }
-tree-sitter-go = { version = "0.25", optional = true }
 tree-sitter-java = { version = "0.23", optional = true }
 tree-sitter-html = { version = "0.23", optional = true }
 tree-sitter-css = { version = "0.25", optional = true }
-# SCSS has its own grammar: the CSS one has no rule for $variables, @mixin or
-# @include, so SCSS parsed as CSS is mostly parse errors (was BUGS.md B1).
-tree-sitter-scss = { version = "1.0", optional = true }
 tree-sitter-xml = { version = "0.7", optional = true }
 # The maintained grammar from tree-sitter-grammars/tree-sitter-markdown. Its
 # predecessor (tree-sitter-markdown-fork 0.7) abort()s inside its C++ inline scanner

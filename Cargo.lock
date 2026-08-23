@@ -357,7 +357,10 @@ dependencies = [
  "assert_cmd",
  "clap",
  "console_error_panic_hook",
+ "fun-refactor-go-grammar",
  "fun-refactor-python-grammar",
+ "fun-refactor-scss-grammar",
+ "fun-refactor-typescript-grammar",
  "fun-refactor-wasm-libc",
  "fun-refactor-zig-grammar",
  "ignore",
@@ -381,14 +384,11 @@ dependencies = [
  "tree-sitter",
  "tree-sitter-bash",
  "tree-sitter-css",
- "tree-sitter-go",
  "tree-sitter-hcl",
  "tree-sitter-html",
  "tree-sitter-java",
  "tree-sitter-md-025",
  "tree-sitter-rust",
- "tree-sitter-scss",
- "tree-sitter-typescript",
  "tree-sitter-xml",
  "tree-sitter-yaml",
  "walkdir",
@@ -396,7 +396,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "fun-refactor-go-grammar"
+version = "0.1.0"
+dependencies = [
+ "cc",
+ "tree-sitter-language",
+]
+
+[[package]]
 name = "fun-refactor-python-grammar"
+version = "0.1.0"
+dependencies = [
+ "cc",
+ "tree-sitter-language",
+]
+
+[[package]]
+name = "fun-refactor-scss-grammar"
+version = "0.1.0"
+dependencies = [
+ "cc",
+ "tree-sitter-language",
+]
+
+[[package]]
+name = "fun-refactor-typescript-grammar"
 version = "0.1.0"
 dependencies = [
  "cc",
@@ -1242,16 +1266,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tree-sitter-go"
-version = "0.25.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8560a4d2f835cc0d4d2c2e03cbd0dde2f6114b43bc491164238d333e28b16ea"
-dependencies = [
- "cc",
- "tree-sitter-language",
-]
-
-[[package]]
 name = "tree-sitter-hcl"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1302,26 +1316,6 @@ name = "tree-sitter-rust"
 version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "439e577dbe07423ec2582ac62c7531120dbfccfa6e5f92406f93dd271a120e45"
-dependencies = [
- "cc",
- "tree-sitter-language",
-]
-
-[[package]]
-name = "tree-sitter-scss"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33909a9ca86390ebbf3461e9949c4bbe2767d2d024b486306d27616641d4ba24"
-dependencies = [
- "cc",
- "tree-sitter",
-]
-
-[[package]]
-name = "tree-sitter-typescript"
-version = "0.23.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c5f76ed8d947a75cc446d5fccd8b602ebf0cde64ccf2ffa434d873d7a575eff"
 dependencies = [
  "cc",
  "tree-sitter-language",

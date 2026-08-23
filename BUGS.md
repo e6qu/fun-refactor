@@ -10,137 +10,137 @@ silently does the wrong thing.
 
 Every open entry is pinned by a test, so a claim that stops being true fails a build
 instead of sitting here. B11 said `@content` was a gap after it had stopped being one, and
-nothing noticed. The eight grammar limits are pinned by `tests/known_grammar_gaps.rs`,
-from both sides, the failing form and the neighbouring forms that work. The three that are
-this tool's own behaviour are pinned by `tests/open_defects.rs`. Each asserts the
-whole entry: what the tool does not do, and what it reports instead. Every one of these
-stands on the second half. A test that checked only the first would pass just as well
-if the report went away.
+nothing noticed. The grammar limits are pinned by `tests/known_grammar_gaps.rs`, from both
+sides, the failing form and the neighbouring forms that work. The ones that are this
+tool's own behaviour are pinned by `tests/open_defects.rs`. Each asserts the whole entry:
+what the tool does not do, and what it reports instead. Every one of these stands on the
+second half. A test that checked only the first would pass just as well if the report went
+away.
 
 ## Open
 
-Re-triaged against this branch. Every entry below still reproduces; none was found to be
-stale. Eight are limits of a published grammar. Each names the construct the grammar has no
-rule for. This build pins `tree-sitter` 0.26.11, with `tree-sitter-go` 0.25.0,
-`tree-sitter-python` 0.25.0, `tree-sitter-typescript` 0.23.2, `tree-sitter-zig` 1.1.2 and
-`tree-sitter-scss` 1.0.0. The version carries part of the claim. An upgrade retires one of
-these entries, and `tests/known_grammar_gaps.rs` fails when it does.
+Re-triaged against this branch. Both entries below still reproduce. Where a published
+grammar could not read source the language accepts, this build compiles a patched copy
+instead of recording the gap: `grammars/` holds one for Go, Python, SCSS, TypeScript and
+Zig, each with its upstream tag, licence, patch and the measurement that shows the patch
+additive. What is left below is one language with no grammar of its own and one limit of
+this tool's own analysis.
 
 - [ ] B283: `.sass` maps to `Language::Scss`, and the indented syntax is not SCSS. Sass
   has two syntaxes, the braced one in `.scss` files and the older whitespace-significant
-  one in `.sass` files, and `tree-sitter-scss` implements the first. So a `.sass` file
-  is scanned and then fails to parse. It is visible and not silent, so the
-  mapping stays: removing it would make those files vanish the way `.js` files did.
-  Pinned in `tests/known_grammar_gaps.rs`. `tree-sitter-scss` 1.0.0 implements the braced
-  syntax only and has no rule set for the indented one. So this needs a second grammar
-  and not a change to that one. What changed meanwhile: `fr parse` now prints the
-  cause beside the positions, in text and in `--json` as `known_cause`. The error
-  nodes no longer read as a syntax error to hunt for. The gap that remains is the
-  grammar.
+  one in `.sass` files, and the SCSS grammar implements the first. So a `.sass` file is
+  scanned and then fails to parse. The failure is visible and not silent, so the mapping
+  stays. Removing it would make those files vanish the way `.js` files did. `fr parse`
+  prints the cause beside the positions, in text and in `--json` as `known_cause`. Pinned
+  in `tests/known_grammar_gaps.rs`.
 
-- [ ] B5: `find_unused` and the call graph follow class-hierarchy dispatch as well as
-  resolved calls. Four declarations each fan an unresolved method call out to every
-  implementation:
+  This needs a grammar of its own and not a change to the SCSS one. The two syntaxes
+  differ in how every block and every statement ends. One grammar exists,
+  `bajrangCoder/tree-sitter-sass`, MIT and unreleased. Measured here at commit
+  `fb280c41`: it reads its own corpus whole, 42 of 42, and reads a file of ordinary
+  indented Sass. Eleven error nodes remain in the showcase file its own author wrote.
+  What it cannot read is a namespaced call (`color.adjust(…)`), a named argument, and a
+  list literal. So taking it means patching it the way `grammars/scss` was patched.
+  Then `.sass` needs a language of its own: a fact query written against its node names,
+  and its own column in the capability matrix. That is the work, and none of it is
+  blocked.
+
+- [ ] B5: `find_unused` and the call graph follow what the source shows, and no further.
+  A call that names no definition is fanned out to the definitions the workspace admits.
+  Four declarations each fan an unresolved method call out to every implementation:
 
   * a Rust `impl Trait for Type`, supertraits included;
   * a Go interface whose method set a type covers by name and arity;
   * a TypeScript `implements`/`extends` clause;
   * a Python base class.
 
-  Each fanned-out edge carries the tag `field-based`. `fr graph` counts it apart from
-  resolved edges, and the report names it as the reason a symbol was spared.
-  TypeScript additionally falls back to matching the method name alone where no
-  `implements` is written. That fallback is unsound by design, and it carries the
-  label `method-name` rather than `declared-supertype`.
+  A fifth reaches through a value. A function is assigned to a name,
+  `Held { run: candidate }`, and called through it, `(h.run)()`. Every such edge carries
+  the tag `field-based`. `fr graph` counts it apart from resolved edges, and the report
+  names it as the reason a symbol was spared. The value edge is keyed by the name, so a
+  call through `run` reaches every function assigned to a `run` anywhere. It is labelled
+  `function-value` and not passed off as resolved. TypeScript also falls back to matching
+  a method name alone where no `implements` is written, under the label `method-name`.
 
-  What remains is undecidable from the source, not unimplemented: a function held in a
-  map, a struct field or a variable and called through it. Nothing declares it a
-  method of any type, so there is no method set to look it up in. A name assembled
-  at runtime from pieces no string literal spells. A symbol used only from a file that
-  failed to parse is invisible for a third reason. `delete::plan` reports that file
-  as possibly hiding uses. Zig (comptime duck typing) and Bash declare no
-  implements-relationship at all, so neither has a hierarchy to read.
-
-- [ ] B13: an answer about supplied values is only as complete as the description the
-  caller gives. Given `--set` but no `-f`, or the reverse, the tool decides the
-  competition *given the inputs supplied* and says so. It names the channel nobody told
-  it about, and it infers no invocation. Three narrower edges remain.
-  `--set ports[0].name` and `--set ports[1].name` address the same key path, because
-  the symbol index records mapping paths without list indices. `--set x=null`, which
-  deletes a key in Helm, ranks as a source that supplies it. And the tool refuses
-  `{a,b}` list literals, `--set-file` and `--set-json` by name rather than
-  half-applying them.
-
-- [ ] B11: SCSS forms `tree-sitter-scss` 1.0 cannot parse. Measured over
-  `twbs/bootstrap`'s stylesheets, the canonical SCSS codebase: 73 of 99 files failed,
-  and 59 do after B280 masked the first form below.
-
-  The counts this entry used to carry were of files that *use* each form and fail.
-That is co-occurrence, not cost: most of those files hit several forms at once. Masking one
-  form at a time and re-measuring gives what each costs:
-
-  * **Interpolation in a declaration value**, `color: #{$v}`, `--x: #{$v}`. Handled by
-    masking (B280); the grammar still cannot read it. Worth masking because its error
-    node runs to the end of the file instead of staying in the declaration. 14 files
-    parse once it is masked. The facts recovered are far larger than that, symbols
-    1916 → 2826, references 3839 → 6277. Interpolation in a selector (`.a-#{$x}`) and in
-    a property *name* (`--#{$p}x`) both parse unaided.
-  * **Empty parentheses**, on a declaration (`@mixin m()`) or a call (`@include m();`),
-    13 files.
-  * **A nested rule opening with a combinator**, `.a { > .b { … } }`, and the selector
-    list `> .b, > .c`. 10 files. Not in this entry until a sweep of the corpus found it,
-    which the counts above were hiding.
-  * **Map literals**, `$m: (a: 1, b: 2)`, nested or not.
-  * **`@if` with `and` or `or`**, `@if $a == 1 and $b == 2`. A bare comparison parses.
-  * **`!default`**, `$x: 1rem !default`, on every configurable variable in a Sass
-    library.
-  * **`@use 'x' as t`**, and so the namespaced `@include t.m(…)` that follows it. None in
-    bootstrap; found by hand.
-
-  A measurement rejected masking the rest. They fix 23 more files' error counts and
-  recover **no** facts, because their error nodes stay inside the construct. Blanking
-  valid source for nothing is a worse trade than the parse error. Fixing them properly is
-  upstream grammar work. `tree-sitter-scss` 1.0.0 has no rule for an interpolation
-  inside a declaration value, or for an empty parameter list on `@mixin` or `@include`.
-  It rejects a nested selector opening with a combinator, a map literal, and `and` or
-  `or` in an `@if` condition. It rejects `!default` and a namespace on `@use`.
-
-  Corrected: this entry previously said `@content` inside a mixin was among them, from
-  the grafana run. It parses, bare, nested, and with arguments, so the claim was either
-  wrong when written or fixed upstream since, and nothing had re-checked it.
-
-- [ ] B15: `tree-sitter-go` parses `new(…)` as the builtin, which takes a *type*.
-  A call to a user-defined function named `new` therefore fails: `new("-10s")` and
-  `new(err.Error())` both produce error nodes. In Go `new` is a predeclared
-  identifier, not a keyword, and may be shadowed, so this is an upstream grammar bug
-  and not invalid source. It accounts for **177 of the 178 Go files** that fail to
-  parse in grafana/grafana (2.9% of 6,214); the remaining one is unexplained. Files
-  still index, since an error node is local to its subtree, what is lost are the
-  facts inside that expression. In `tree-sitter-go` 0.25.0 `new` is consumed by the
-  builtin-call rule, so no ordinary call expression is produced for it.
-
-- [ ] B232: `tree-sitter-typescript` cannot read a property called `in` when another
-  member precedes it. `interface G { in?: string }` is fine and so is
-  `interface G { in: string }`, but this is not:
-
-  ```ts
-  interface G {
-    a?: string
-    in?: string      // error node
-  }
-  ```
-
-  The grammar takes `in` after a preceding member as the `in` operator. Found in
-  `vuejs/core`'s SVG attribute types, where the SVG `in` and `in2` filter attributes sit
-  in a long list of properties. `tree-sitter-typescript` 0.23.2 takes `in` after a
-  preceding member as the `in` operator.
-
-- [ ] B231: `tree-sitter-typescript` cannot read an import type,
-  `import("@babel/types").Statement[]` in a type position. Valid TypeScript and common in
-  generated declarations; found in `vuejs/core`'s compiler-sfc. `tree-sitter-typescript`
-  0.23.2 has no rule for an `import` type.
+  What remains is undecidable from the source: a function this workspace never names.
+  Either a caller outside it supplies the value, or the name is assembled at runtime from
+  pieces no string literal spells. A symbol used only from a file that failed to parse is
+  invisible for a third reason. `delete::plan` reports that file as possibly hiding
+  uses. Zig (comptime duck typing) and Bash declare no implements-relationship at all, so
+  neither has a hierarchy to read.
 
 ## Fixed
+
+- [x] B11: **the Sass a stylesheet is written in.** `tree-sitter-scss` 1.0.0
+  failed on 203 of the 276 stylesheets in `twbs/bootstrap` and `jgthms/bulma`. Its gaps
+  ran from `$m: (a: 1)` and `!default` to `@use "x" as t`, and this entry listed seven of
+  them; measuring against the two corpora found twenty more, among them a variadic
+  parameter, a named argument over two lines, `:nth-child(n + 3)`, an escape in a name,
+  and `@container`. `grammars/scss` reads all of them, and fails on none of the 276 files.
+
+  Three parts of the patch are worth naming. A colon opens a pseudo class when a `{`
+  follows before the statement ends. The scanner took the brace of an interpolation for
+  that one, so `color: #{$v}` read as a selector. It now reads past an interpolation.
+
+  A map is told from a list by a colon of the bracket's own, which is further ahead than
+  any rule can see. So the scanner looks for it and hands the parser a different bracket.
+  That is the lookahead Sass itself does.
+
+  `%` is a unit glued to a number and the modulo operator when it stands apart. `-` is a
+  sign glued to a variable and subtraction when it stands apart. Both are rules about
+  spacing, so both belong to the token.
+
+  The masking B280 added is gone with the gap. The parser reads the declaration, so
+  nothing is filled in and nothing has to be read back. Checked over the 73 files the
+  published grammar reads cleanly, 5,068 nodes: one tree differs. It is `$return: ()`,
+  where the published grammar invents a zero-width `integer_value` and this one reads the
+  empty list that is written.
+
+- [x] B15: **a Go package that defines its own `new`.** `new` and `make` are predeclared
+  identifiers in Go and not keywords. A package may define a function called `new` and
+  call it. `tree-sitter-go` 0.25.0 gave the name one argument list, the special one whose
+  first argument is a type, so `new("-10s")` and `new(err.Error())` were error nodes.
+  They account for 177 of the 178 Go files that fail to parse in `grafana/grafana`.
+
+  `grammars/go` lets either argument list follow the name. The one taking a type has the
+  higher dynamic precedence, so every call the published parser reads keeps the tree it
+  had. Checked over `spf13/cobra`, `gin-gonic/gin`, `sirupsen/logrus` and the grammar's
+  own examples: 181 files, 281,884 nodes, identical throughout. The grammar's own corpus
+  passes 67 of 67.
+
+- [x] B231, B232: **an import type, and a member called `in`.** Both are ordinary
+  TypeScript and both were found in `vuejs/core`. `import("@babel/types").Statement` was a
+  whole `type` and nothing smaller, so it took no `[]` and no type arguments. A member
+  called `in` ended the interface it sat in. The scanner never ends a line before `in`,
+  which is an operator in an expression.
+
+  `grammars/typescript` moves the import-type forms to `primary_type`, which an array
+  type and a generic type are built from. `generic_type` takes one as a name.
+  In a type there is no `in` and no `instanceof` operator, so a line opening with either
+  ends the member before it. An identifier that only begins with one, `in2`, ends a
+  statement in an expression too. The published scanner got that wrong as well. Checked
+  over `vuejs/core` and `excalidraw/excalidraw`, 476 TypeScript files and 199 TSX files,
+  812,690 nodes: identical trees, plus the two files the published grammar cannot read.
+
+  Corrected: an earlier attempt on these two claimed a fix that regeneration alone had not
+  made. The check behind that claim was wrong twice over. It used a repro typed with semicolons
+  the entry does not have. And it took an error count from output where the parser had
+  failed to load. The vendored copy was reverted rather than shipped.
+
+- [x] B13: **the rest of the Helm `--set` family.** An answer about supplied values is
+  only as complete as the description the caller gives. Four edges were missing from that
+  description.
+
+  `--set ports[0].name` and `--set ports[1].name` addressed the same key path and were
+  ranked against each other. Each element now holds a competition of its own, and neither
+  overrides the other. `--set x=null` removes a key in Helm and ranked as a source that
+  supplies it. It is now reported as removing it. `--set-file` and `--set-json` were
+  refused by name and are now read. The JSON is expanded to one assignment per leaf, so
+  the keys beneath it rank like any other. And `{a,b}` was refused. It is the list
+  `key[0]=a,key[1]=b`, which is how Helm reads it.
+
+  The order between two different flags is still not recoverable from the flag lists. So
+  two assignments to one path under different flags are refused, as they always were.
 
 - [x] B233, B234: **valid Python the grammar could not read.** A starred
   element in an unparenthesised tuple failed unless it was a name:
@@ -154,19 +154,23 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   returns the tree the stock one returns, and the five forms that used to
   fail now parse.
 
-- [x] B133: **valid Zig that the grammar could not read.** `const Foo =
-  struct {};` is ordinary Zig, and `tree-sitter-zig` rejected it. Its
-  four container rules take `_container_members`, which needs at least
-  one member. `source_file` takes `optional($._container_members)` and
-  reads an empty file. The published 1.1.2 is the newest release and
-  master carries the same rule, so this project compiles its own copy.
-  `grammars/zig` holds the upstream source, its licence, the four-line
-  patch and the provenance to check them. The patch is additive: over
-  `zls`'s `DocumentStore.zig` and `offsets.zig` and this repository's
-  sample, 14,463 nodes, the patched parser returns the tree the stock one
-  returns. `struct {}`, `enum {}`, `union {}` and `opaque {}` parse now.
-  The Zig writer no longer pads an empty record with a `comptime {}`
-  block to get past its own check.
+- [x] B133: **an empty Zig container came back holding a field that is not
+  written.** `const Foo = struct {};` is ordinary Zig. Its four container
+  rules take `_container_members`, which needs at least one member, while
+  `source_file` takes `optional($._container_members)` and reads an empty
+  file. The published 1.1.2 is the newest release and master carries the
+  same rule, so this project compiles its own copy. `grammars/zig` holds
+  the upstream source, its licence, the four-line patch and the provenance
+  to check them.
+
+  Corrected: this entry used to say the grammar *rejected* the form. It
+  does not. It fills the gap with a `container_field` whose name is zero
+  bytes long, and reports no error. That is the worse of the two: a member
+  no line of the file declares, with nothing to say it was invented. The
+  patch is additive over `zls`, 77 files and 231,518 nodes. The only trees
+  that change are the ones holding that phantom. The Zig writer no longer
+  pads an empty record with a `comptime {}` block to get past its own
+  check.
 
 - [x] B14: **a class name reached the markup three ways and a rename
   rewrote one.** `className="btn"` resolved to the CSS selector, while

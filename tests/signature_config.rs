@@ -828,36 +828,28 @@ fn a_mixin_written_without_parentheses_gains_them() {
 }
 
 #[test]
-fn a_mixin_with_empty_parentheses_does_not_parse_and_blocks_the_change() {
-    // `@mixin m()` is valid Sass, but tree-sitter-scss wants a parameter between the
-    // parentheses and reports a MISSING node when there is none.
+fn a_mixin_with_empty_parentheses_takes_a_parameter() {
+    // `@mixin m()` is valid Sass, and `grammars/scss` reads it.
     let src = "@mixin block() {\n  display: block;\n}\n";
     let parsed = Parsers::new().parse(Language::Scss, src).unwrap();
-    assert!(
-        parsed.has_errors(),
-        "evidence: `@mixin m()` is not in tree-sitter-scss"
-    );
-    // The parentheses that do parse are the ones with something in them.
-    let with_parameter = Parsers::new()
-        .parse(Language::Scss, "@mixin block($a) {\n  display: block;\n}\n")
-        .unwrap();
-    assert!(!with_parameter.has_errors());
+    assert!(!parsed.has_errors());
 
     let ws = Workspace::new(&[("empty.scss", src)]);
     let block = ws.symbol("block", SymbolKind::Function);
-    let error = refusal(
-        signature::change(
-            &ws.index,
-            block,
-            Change::Add {
-                at: 0,
-                declaration: "$w".into(),
-                argument: "1px".into(),
-            },
-        )
-        .unwrap_err(),
+    let plan = signature::change(
+        &ws.index,
+        block,
+        Change::Add {
+            at: 0,
+            declaration: "$w".into(),
+            argument: "1px".into(),
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        applied(&plan, &ws.path("empty.scss")),
+        "@mixin block($w) {\n  display: block;\n}\n"
     );
-    assert!(error.contains("do not parse cleanly"), "got: {error}");
 }
 
 #[test]
@@ -879,38 +871,47 @@ fn an_scss_function_has_a_signature_too() {
 // the change refuses instead of editing around a call site it cannot see.
 
 #[test]
-fn an_include_with_empty_parentheses_does_not_parse_and_blocks_the_change() {
+fn an_include_with_empty_parentheses_is_a_call_site() {
     let src = "@mixin theme($fg) {\n  color: $fg;\n}\n.a {\n  @include theme();\n}\n";
     let parsed = Parsers::new().parse(Language::Scss, src).unwrap();
-    assert!(
-        parsed.has_errors(),
-        "evidence: `@include m();` is not in tree-sitter-scss"
-    );
+    assert!(!parsed.has_errors());
 
     let ws = Workspace::new(&[("theme.scss", src)]);
     let theme = ws.symbol("theme", SymbolKind::Function);
-    let error = refusal(signature::change(&ws.index, theme, Change::Remove(0)).unwrap_err());
-    assert!(error.contains("do not parse cleanly"), "got: {error}");
-    assert!(error.contains("invisible to the index"), "got: {error}");
+    let plan = signature::change(
+        &ws.index,
+        theme,
+        Change::Add {
+            at: 1,
+            declaration: "$bg".into(),
+            argument: "black".into(),
+        },
+    )
+    .unwrap();
+    assert_eq!(plan.call_sites, 1);
+    assert_eq!(
+        applied(&plan, &ws.path("theme.scss")),
+        "@mixin theme($fg, $bg) {\n  color: $fg;\n}\n.a {\n  @include theme(black);\n}\n"
+    );
 }
 
 #[test]
-fn a_namespaced_include_does_not_parse_and_blocks_the_change() {
-    // `@use 'theme' as t;` + `@include t.theme(...)` is ordinary Sass, and neither
-    // the `as` clause nor the namespaced include is in this grammar. The call site
-    // is therefore invisible, which is precisely when a partial update happens.
+fn a_namespaced_include_is_a_call_site() {
+    // `@use 'theme' as t;` + `@include t.theme(...)` is ordinary Sass. The call site is
+    // the mixin's, reached through the name the `@use` bound. A signature change that
+    // missed it would leave the file half updated.
     let namespaced = "@use 'theme' as t;\n\n.a {\n  @include t.theme(red);\n}\n";
     let parsed = Parsers::new().parse(Language::Scss, namespaced).unwrap();
-    assert!(
-        parsed.has_errors(),
-        "evidence: namespaced `@include ns.m()` is not in tree-sitter-scss"
-    );
+    assert!(!parsed.has_errors());
 
     let ws = Workspace::new(&[("theme.scss", THEME_SCSS), ("uses.scss", namespaced)]);
     let theme = ws.symbol("theme", SymbolKind::Function);
-    let error = refusal(signature::change(&ws.index, theme, Change::Remove(0)).unwrap_err());
-    assert!(error.contains("uses.scss"), "got: {error}");
-    assert!(error.contains("invisible to the index"), "got: {error}");
+    let plan = signature::change(&ws.index, theme, Change::Remove(2)).unwrap();
+    assert_eq!(plan.call_sites, 1);
+    assert_eq!(
+        applied(&plan, &ws.path("uses.scss")),
+        "@use 'theme' as t;\n\n.a {\n  @include t.theme(red);\n}\n"
+    );
 }
 
 #[test]

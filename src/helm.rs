@@ -704,15 +704,45 @@ impl std::fmt::Display for SetSegment {
     }
 }
 
-/// One `--set` or `--set-string` assignment from a `helm` command line.
+/// Which `--set` flag an assignment came from.
+///
+/// Helm has five, and they differ in where the value comes from and how it is read.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SetSource {
+    /// `--set`, the value read as YAML would read it.
+    Literal,
+    /// `--set-string`, the value kept a string.
+    String,
+    /// `--set-file`, the value read from the file the path names.
+    File,
+    /// `--set-json`, the value parsed as JSON, which may set a whole subtree.
+    Json,
+}
+
+impl SetSource {
+    pub fn flag(&self) -> &'static str {
+        match self {
+            SetSource::Literal => "--set",
+            SetSource::String => "--set-string",
+            SetSource::File => "--set-file",
+            SetSource::Json => "--set-json",
+        }
+    }
+}
+
+/// One assignment from a `helm` command line.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SetValue {
     /// The path as written, indices included.
     pub path: Vec<SetSegment>,
-    /// The value, with `\.`, `\,`, `\=` and `\\` escapes resolved.
+    /// The value, with `\.`, `\,`, `\=` and `\\` escapes resolved. For `--set-file` it is
+    /// the path the value is read from, and for `--set-json` the leaf the JSON holds.
     pub value: String,
-    /// `--set-string`: Helm keeps the value a string instead of coercing it.
-    pub string: bool,
+    /// Which flag it came from.
+    pub source: SetSource,
+    /// `--set x=null` removes the key in Helm, so this source takes a value away instead
+    /// of supplying one.
+    pub deletes: bool,
     /// The assignment as written, e.g. `image.tag=1.2`.
     pub text: String,
 }
@@ -722,7 +752,9 @@ impl SetValue {
     ///
     /// Values-file keys are indexed by their mapping path, a key under a sequence is qualified
     /// by the sequence's key, with no index. So `ports[0].name` and the `name` under `ports:`
-    /// are the same key path here.
+    /// are the same key path here. Which *element* of `ports` the assignment sets is
+    /// [`SetValue::element`], and two assignments that set different elements set different
+    /// values without either overriding the other.
     pub fn keys(&self) -> Vec<String> {
         self.path
             .iter()
@@ -733,12 +765,37 @@ impl SetValue {
             .collect()
     }
 
-    pub fn flag(&self) -> &'static str {
-        if self.string {
-            "--set-string"
-        } else {
-            "--set"
+    /// The list element the path addresses, `ports[0]`, or `None` when it addresses none.
+    ///
+    /// The path up to and including its last index. Everything after that index is a key
+    /// *within* that element.
+    pub fn element(&self) -> Option<String> {
+        let last = self
+            .path
+            .iter()
+            .rposition(|segment| matches!(segment, SetSegment::Index(_)))?;
+        let mut out = String::new();
+        for segment in &self.path[..=last] {
+            match segment {
+                SetSegment::Key(name) => {
+                    if !out.is_empty() {
+                        out.push('.');
+                    }
+                    out.push_str(name);
+                }
+                SetSegment::Index(i) => out.push_str(&format!("[{i}]")),
+            }
         }
+        Some(out)
+    }
+
+    /// `true` when this assignment carries the string it was written with.
+    pub fn is_string(&self) -> bool {
+        self.source == SetSource::String
+    }
+
+    pub fn flag(&self) -> &'static str {
+        self.source.flag()
     }
 
     /// The assignment as it would be written on the command line.
@@ -756,37 +813,201 @@ impl std::fmt::Display for SetValue {
 /// Parse one `--set`/`--set-string` argument, which may hold several assignments separated by
 /// unescaped commas, as Helm's `strvals` does.
 ///
-/// What is not supported is refused by name and not half-applied: the `{a,b}` list literal has
-/// no single key to compete for. So it is rejected with the alternative that does work.
+/// A `{a,b}` list literal sets one element per item, which is the same list Helm builds from
+/// `key[0]=a,key[1]=b`, so it is read into those assignments.
 pub fn parse_set(argument: &str, string: bool) -> Result<Vec<SetValue>> {
+    let source = if string {
+        SetSource::String
+    } else {
+        SetSource::Literal
+    };
     if argument.trim().is_empty() {
-        bail!("`--set` was given nothing to set; it takes key=value");
-    }
-    if unescaped_positions(argument, '{').next().is_some() {
         bail!(
-            "`{argument}` uses Helm's `{{a,b}}` list syntax, which names no single key to \
-             rank; pass the list in a `-f` values file instead"
+            "`{}` was given nothing to set; it takes key=value",
+            source.flag()
         );
     }
 
     let mut out = Vec::new();
-    for assignment in split_unescaped(argument, ',') {
-        let assignment = assignment.trim().to_string();
+    for assignment in split_assignments(argument)? {
         if assignment.is_empty() {
-            bail!("`{argument}` holds an empty assignment; --set takes key=value[,key=value]");
+            bail!(
+                "`{argument}` holds an empty assignment; {} takes key=value[,key=value]",
+                source.flag()
+            );
         }
         let Some((key, value)) = split_once_unescaped(&assignment, '=') else {
-            bail!("`{assignment}` is not an assignment; --set takes key=value");
+            bail!(
+                "`{assignment}` is not an assignment; {} takes key=value",
+                source.flag()
+            );
         };
         let path = parse_set_path(&key)?;
+        if let Some(items) = list_literal(&value)? {
+            for (i, item) in items.into_iter().enumerate() {
+                let mut path = path.clone();
+                path.push(SetSegment::Index(i));
+                out.push(SetValue {
+                    path,
+                    value: unescape(&item),
+                    source,
+                    deletes: false,
+                    text: assignment.clone(),
+                });
+            }
+            continue;
+        }
+        let value = unescape(&value);
         out.push(SetValue {
+            deletes: source == SetSource::Literal && value == "null",
             path,
-            value: unescape(&value),
-            string,
+            value,
+            source,
             text: assignment,
         });
     }
     Ok(out)
+}
+
+/// Parse one `--set-file KEY=PATH` argument. The value is whatever the file holds.
+pub fn parse_set_file(argument: &str) -> Result<Vec<SetValue>> {
+    let mut out = Vec::new();
+    for assignment in split_assignments(argument)? {
+        let Some((key, path)) = split_once_unescaped(&assignment, '=') else {
+            bail!("`{assignment}` is not an assignment; --set-file takes key=path");
+        };
+        if path.trim().is_empty() {
+            bail!("`{assignment}` names no file; --set-file takes key=path");
+        }
+        out.push(SetValue {
+            path: parse_set_path(&key)?,
+            value: unescape(&path),
+            source: SetSource::File,
+            deletes: false,
+            text: assignment,
+        });
+    }
+    Ok(out)
+}
+
+/// Parse one `--set-json KEY=JSON` argument.
+///
+/// JSON holding an object or a list sets every key beneath the path. So each leaf becomes
+/// an assignment of its own, and the keys under it rank like any other.
+pub fn parse_set_json(argument: &str) -> Result<Vec<SetValue>> {
+    let Some((key, json)) = split_once_unescaped(argument, '=') else {
+        bail!("`{argument}` is not an assignment; --set-json takes key=json");
+    };
+    let root = parse_set_path(&key)?;
+    let value: serde_json::Value = serde_json::from_str(json.trim())
+        .map_err(|e| anyhow::anyhow!("`{argument}` is not JSON --set-json can read: {e}"))?;
+
+    let mut out = Vec::new();
+    flatten_json(&root, &value, argument, &mut out);
+    if out.is_empty() {
+        // An empty object or list sets the key to that empty value, and nothing under it.
+        out.push(SetValue {
+            path: root,
+            value: json.trim().to_string(),
+            source: SetSource::Json,
+            deletes: false,
+            text: argument.to_string(),
+        });
+    }
+    Ok(out)
+}
+
+/// One assignment per leaf the JSON holds, each under the path that reaches it.
+fn flatten_json(
+    path: &[SetSegment],
+    value: &serde_json::Value,
+    text: &str,
+    out: &mut Vec<SetValue>,
+) {
+    match value {
+        serde_json::Value::Object(map) => {
+            for (key, child) in map {
+                let mut path = path.to_vec();
+                path.push(SetSegment::Key(key.clone()));
+                flatten_json(&path, child, text, out);
+            }
+        }
+        serde_json::Value::Array(items) => {
+            for (i, child) in items.iter().enumerate() {
+                let mut path = path.to_vec();
+                path.push(SetSegment::Index(i));
+                flatten_json(&path, child, text, out);
+            }
+        }
+        leaf => out.push(SetValue {
+            path: path.to_vec(),
+            value: match leaf {
+                serde_json::Value::String(s) => s.clone(),
+                other => other.to_string(),
+            },
+            source: SetSource::Json,
+            deletes: leaf.is_null(),
+            text: text.to_string(),
+        }),
+    }
+}
+
+/// Split an argument on the commas that separate assignments, leaving the ones inside a
+/// `{a,b}` list literal where they are.
+fn split_assignments(argument: &str) -> Result<Vec<String>> {
+    let mut out = Vec::new();
+    let mut start = 0usize;
+    let mut depth = 0usize;
+    let escaped = |at: usize| {
+        argument[..at]
+            .chars()
+            .rev()
+            .take_while(|c| *c == '\\')
+            .count()
+            % 2
+            == 1
+    };
+    for (i, c) in argument.char_indices() {
+        if escaped(i) {
+            continue;
+        }
+        match c {
+            '{' => depth += 1,
+            '}' => {
+                if depth == 0 {
+                    bail!("`{argument}` closes a `{{` that was never opened");
+                }
+                depth -= 1;
+            }
+            ',' if depth == 0 => {
+                out.push(argument[start..i].trim().to_string());
+                start = i + 1;
+            }
+            _ => {}
+        }
+    }
+    if depth != 0 {
+        bail!("`{argument}` opens a `{{` that is never closed");
+    }
+    out.push(argument[start..].trim().to_string());
+    Ok(out)
+}
+
+/// The items of a `{a,b}` literal, or `None` when the value is not one.
+fn list_literal(value: &str) -> Result<Option<Vec<String>>> {
+    let value = value.trim();
+    let Some(inner) = value.strip_prefix('{').and_then(|v| v.strip_suffix('}')) else {
+        return Ok(None);
+    };
+    if inner.trim().is_empty() {
+        return Ok(Some(Vec::new()));
+    }
+    Ok(Some(
+        split_unescaped(inner, ',')
+            .into_iter()
+            .map(|item| item.trim().to_string())
+            .collect(),
+    ))
 }
 
 /// `image.tag`, `ports[0].name`, `annotations.foo\.bar`. Helm's key syntax.

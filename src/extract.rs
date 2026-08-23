@@ -431,65 +431,6 @@ fn link_destination(span: Span, source: &str, kind: ReferenceKind) -> Option<Spa
     }
 }
 
-/// The variables and calls written inside SCSS `#{ ... }`.
-///
-/// The filler that makes the declaration parse is an identifier, so everything between the
-/// braces reaches the query as one word. These are the same two shapes the SCSS query matches
-/// outside interpolation, `$name`. A name applied to arguments, read from the source the mask
-/// replaced.
-fn interpolation_references(
-    source: &str,
-    parsed: &Parsed,
-    path: &Path,
-    scope_at: &impl Fn(usize) -> crate::model::ScopeId,
-) -> Vec<Reference> {
-    fn is_name_byte(b: u8) -> bool {
-        b.is_ascii_alphanumeric() || b == b'-' || b == b'_'
-    }
-
-    let bytes = source.as_bytes();
-    let mut out = Vec::new();
-    for interpolation in &parsed.masked_spans {
-        let mut i = interpolation.start;
-        while i < interpolation.end {
-            let dollar = bytes[i] == b'$';
-            if !dollar && !(bytes[i].is_ascii_alphabetic() || bytes[i] == b'_') {
-                i += 1;
-                continue;
-            }
-            let start = i;
-            i += 1;
-            while i < interpolation.end && is_name_byte(bytes[i]) {
-                i += 1;
-            }
-            // `$x` is a variable; `f(` is a call. A bare word is a keyword or a unit
-            // (`px`, `and`, `if`), which names nothing the index holds.
-            let kind = match (dollar, bytes.get(i)) {
-                (true, _) if i > start + 1 => ReferenceKind::Identifier,
-                (false, Some(b'(')) => ReferenceKind::Call,
-                _ => continue,
-            };
-            let span = Span::new(start, i);
-            out.push(Reference {
-                name: span.text(source).to_string(),
-                span,
-                file: path.to_path_buf(),
-                language: Language::Scss,
-                scope: scope_at(span.start),
-                target: None,
-                confidence: Confidence::NameOnly,
-                kind,
-                expects: None,
-                receiver: None,
-                receiver_is_path: false,
-                member_in_macro: false,
-                twin: false,
-            });
-        }
-    }
-    out
-}
-
 /// The `.Values` paths a Helm template names, as references to the values file.
 ///
 /// One reference per path, spanning the *last* segment only. Renaming the key `tag` under
@@ -1066,13 +1007,6 @@ impl Extractor {
         // could.
         if lang == Language::Helm {
             references.extend(values_references(source, parsed, path, &scope_at));
-        }
-
-        // SCSS interpolation is masked for the same reason and costs the same thing: the
-        // grammar never sees `$border-radius-pill` in `#{$border-radius-pill}`. Reading
-        // the braces back is what keeps masking a change to the parse alone.
-        if lang == Language::Scss {
-            references.extend(interpolation_references(source, parsed, path, &scope_at));
         }
 
         // A Kubernetes manifest addresses another one by a name written as a value,

@@ -186,7 +186,8 @@ Query files hold what `fr` knows about a language, and Rust holds none of it.
 `queries/<lang>/facts.scm` declares the definitions, references, scopes and imports
 of one language. `src/extract.rs` documents the names a query may attach to a node.
 YAML files in `catalogs/` carry the rules for entry points. To add a language or a
-framework, add data.
+framework, add data. A language whose published grammar cannot read it needs one thing
+more: a patched copy under `grammars/`, which that directory's README explains.
 
 ## Status
 
@@ -214,13 +215,15 @@ Three documents cover the work that spans more than one language at a time:
 - [RECIPES.md](RECIPES.md) for the recipe language `fr recipe` runs.
 
 [BUGS.md](BUGS.md) tracks the open limitations, and the tool reports each one to you
-instead of answering it wrongly in silence. Five stand open:
+instead of answering it wrongly in silence. Two stand open:
 
-- Reachability under dynamic dispatch.
-- Helm values passed on a command line.
-- A CSS class named inside a TSX helper.
-- Three SCSS forms the grammar does not cover.
-- Deep Terraform index traversals.
+- Sass's indented syntax, which has no grammar here and fails to parse in the open.
+- Reachability through a function value nothing in the workspace names.
+
+Where a published grammar could not read source the language accepts, this build
+compiles a patched copy instead: `grammars/` holds one for Go, Python, SCSS, TypeScript
+and Zig, each with its upstream tag, licence, patch and the corpus measurement showing
+the patch changes no tree the published parser already read.
 
 One piece remains unbuilt: the optional LSP delegation backend. (The plan also lists
 a watch-mode daemon, though the fact cache already recovers most of what it would

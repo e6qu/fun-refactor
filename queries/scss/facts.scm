@@ -72,9 +72,7 @@
 (function_statement
   name: (identifier) @name) @definition.function
 
-; A parameter of either. The empty parentheses of `@mixin m()` produce a zero-width
-; `parameter` node in this grammar, so the dollar match doubles as a guard against
-; declaring a symbol with an empty name.
+; A parameter of either.
 (parameters
   (parameter
     (variable) @name
@@ -96,9 +94,15 @@
   (#match? @reference.identifier "^\\$")
 
 ; `@include theme(red)` calls a mixin. This is the call site a signature change
-; rewrites, so it is a call and not a plain identifier use.
+; rewrites, so it is a call and not a plain identifier use. A namespaced include
+; names the same mixin through the namespace a `@use` gave it, so the name alone
+; is the reference and the namespace is not.
 (include_statement
   (identifier) @reference.call)
+
+(include_statement
+  (namespaced_name
+    name: (identifier) @reference.call))
 
 ; `double(3)` calls a Sass function. `var()` is excluded because it is CSS's
 ; custom-property lookup instead of a function anyone declares, and it already has
@@ -131,12 +135,14 @@
     (arguments
       [(string_value) (plain_value)] @import.path))) @import
 
-; `@use "buttons";` and `@forward "buttons";` — the Sass module system. The
-; `as <namespace>` clause is not in this grammar (it parses as an ERROR sibling), so
-; only the path is captured; a namespaced `@include ns.mixin()` is likewise not
-; parseable and is reported and not resolved.
+; `@use "buttons";` and `@forward "buttons";` — the Sass module system. The path is
+; what the import names; the `as <namespace>` clause binds a local name for it, and
+; a namespaced `@include ns.mixin()` resolves through that name.
 (use_statement
   (string_value) @import.path) @import
+
+(use_statement
+  alias: (identifier) @name) @definition.module
 
 (forward_statement
   (string_value) @import.path) @import

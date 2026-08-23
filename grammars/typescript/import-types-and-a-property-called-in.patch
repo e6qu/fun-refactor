@@ -1,0 +1,73 @@
+--- a/common/define-grammar.js	2024-11-11 04:32:53
++++ b/common/define-grammar.js	2026-08-23 22:42:22
+@@ -726,8 +726,6 @@
+         $.readonly_type,
+         $.constructor_type,
+         $.infer_type,
+-        prec(-1, alias($._type_query_member_expression_in_type_annotation, $.member_expression)),
+-        prec(-1, alias($._type_query_call_expression_in_type_annotation, $.call_expression)),
+       ),
+ 
+       tuple_parameter: $ => seq(
+@@ -782,6 +780,8 @@
+         $.intersection_type,
+         $.union_type,
+         'const',
++        prec(-1, alias($._type_query_member_expression_in_type_annotation, $.member_expression)),
++        prec(-1, alias($._type_query_call_expression_in_type_annotation, $.call_expression)),
+       ),
+ 
+       template_type: $ => seq('${', choice($.primary_type, $.infer_type), '}'),
+@@ -818,6 +818,7 @@
+         field('name', choice(
+           $._type_identifier,
+           $.nested_type_identifier,
++          prec(-1, alias($._type_query_member_expression_in_type_annotation, $.member_expression)),
+         )),
+         field('type_arguments', $.type_arguments),
+       )),
+--- a/common/scanner.h	2024-11-11 04:32:53
++++ b/common/scanner.h	2026-08-23 22:42:22
+@@ -15,6 +15,8 @@
+     ERROR_RECOVERY,
+ };
+ 
++static bool is_identifier_char(int32_t c) { return iswalnum(c) || c == '_' || c == '$'; }
++
+ static void advance(TSLexer *lexer) { lexer->advance(lexer, false); }
+ 
+ static void skip(TSLexer *lexer) { lexer->advance(lexer, true); }
+@@ -162,8 +164,9 @@
+             skip(lexer);
+             return lexer->lookahead != '=';
+ 
+-            // Don't insert a semicolon before `in` or `instanceof`, but do insert one
+-            // before an identifier.
++            // Don't insert a semicolon before the operators `in` and `instanceof`, but do
++            // insert one before an identifier that begins with either. A type has no such
++            // operators, so there a member called `in` starts a new one.
+         case 'i':
+             skip(lexer);
+ 
+@@ -172,8 +175,8 @@
+             }
+             skip(lexer);
+ 
+-            if (!iswalpha(lexer->lookahead)) {
+-                return false;
++            if (!is_identifier_char(lexer->lookahead)) {
++                return !valid_symbols[LOGICAL_OR];
+             }
+ 
+             for (unsigned i = 0; i < 8; i++) {
+@@ -183,8 +186,8 @@
+                 skip(lexer);
+             }
+ 
+-            if (!iswalpha(lexer->lookahead)) {
+-                return false;
++            if (!is_identifier_char(lexer->lookahead)) {
++                return !valid_symbols[LOGICAL_OR];
+             }
+             break;
+     }

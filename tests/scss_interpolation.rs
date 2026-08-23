@@ -1,13 +1,12 @@
-//! SCSS `#{ ... }`, which the grammar cannot read and the mask hands back.
+//! SCSS `#{ ... }`, and the facts written inside it.
 //!
-//! `tree-sitter-scss` 1.0 has no rule for interpolation in a declaration value. What makes it
-//! expensive part is the recovery: the ERROR node covers the rest of the file. So one
-//! interpolated value costs every fact below it. Filling the braces with an identifier keeps
-//! the declaration well formed, and the references written inside them are read back from the
-//! source afterwards.
+//! `tree-sitter-scss` 1.0 has no rule for interpolation in a declaration value. Its error
+//! node runs to the end of the file, so one interpolated value cost every fact below it.
+//! `grammars/scss` reads the declaration, and the variables and calls between the braces are
+//! ordinary nodes that the query matches where it matches them anywhere else.
 //!
-//! Measured over `twbs/bootstrap`, 99 stylesheets: 73 files failed to parse and now 59 do,
-//! symbols went 1916 to 2826, references 3839 to 6277. No file lost a reference it had before.
+//! Measured over `twbs/bootstrap` and `jgthms/bulma`, 276 stylesheets: the published grammar
+//! fails on 203 of them and this one on none.
 
 use fun_refactor::extract::Extractor;
 use fun_refactor::lang::Language;
@@ -58,7 +57,7 @@ fn an_interpolated_value_no_longer_costs_the_rest_of_the_file() {
 }
 
 #[test]
-fn what_the_braces_hide_comes_back_as_references() {
+fn what_the_braces_hold_is_read_as_references() {
     let (errors, _, references) =
         parsed_and_facts(".a { color: #{escape-svg($fill)}; width: #{$w}; }");
     assert_eq!(errors, 0);
@@ -80,9 +79,9 @@ fn a_bare_word_inside_the_braces_names_nothing() {
 }
 
 #[test]
-fn a_name_is_read_from_the_source_not_the_filler() {
-    // The filler exists for the parse. Every offset still indexes the original text,
-    // so a selector reports what the file says instead of a row of `x`.
+fn an_interpolated_name_is_the_text_the_file_holds() {
+    // A selector built around an interpolation is named by what the file says, braces
+    // and all: that is the text a rename has to rewrite.
     let (_, symbols, _) = parsed_and_facts(".btn-#{$variant} { color: red; }");
     assert!(
         symbols.iter().any(|s| s.contains("#{$variant}")),
@@ -105,7 +104,7 @@ fn braces_inside_the_braces_are_one_interpolation() {
 
 #[test]
 fn an_unterminated_interpolation_stays_a_syntax_error() {
-    // Masking it would hide a fault in the file instead of one in the grammar.
+    // A fault in the file, and it is reported as one.
     let (errors, _, _) = parsed_and_facts(".a { color: #{$v; }");
     assert!(errors > 0);
 }
