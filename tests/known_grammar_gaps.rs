@@ -21,20 +21,21 @@ fn error_nodes(language: Language, source: &str) -> usize {
 }
 
 #[test]
-fn python_cannot_read_a_starred_literal_in_a_bare_tuple() {
-    // B233. `g = 1, *[2]` is ordinary Python. A starred *name* or *call* in the same position
-    // is read fine. So this is narrow, but `g = 1, *"ten"` appears in black's own test data,
-    // which is where it was found.
+fn python_reads_a_starred_element_in_a_bare_tuple() {
+    // `grammars/python` gives `expression_list` the choice Python's own star_expressions
+    // has: each element is an expression or a starred one.
     for source in [
         "g = 1, *[2]\n",
         "g = 1, *(2,)\n",
         "g = 1, *{2}\n",
         "g = 1, *\"ab\"\n",
         "g = *\"ab\", 1\n",
+        "def f():\n    return 1, *[2]\n",
     ] {
-        assert!(
-            error_nodes(Language::Python, source) > 0,
-            "the grammar now reads `{}`, so retire B233 if the tree is right",
+        assert_eq!(
+            error_nodes(Language::Python, source),
+            0,
+            "`{}` is ordinary Python",
             source.trim()
         );
     }
@@ -42,7 +43,7 @@ fn python_cannot_read_a_starred_literal_in_a_bare_tuple() {
 
 #[test]
 fn python_reads_the_forms_around_that_one() {
-    // The boundary of B233, so a fix that over-corrects is visible too.
+    // The boundary of the starred-element rule, so a fix that over-corrects shows up.
     for source in [
         "g = 1, *rest\n",
         "g = 1, *f()\n",
@@ -61,14 +62,21 @@ fn python_reads_the_forms_around_that_one() {
 }
 
 #[test]
-fn python_cannot_read_a_type_parameter_default() {
-    // B234. PEP 696, Python 3.13.
-    assert!(error_nodes(Language::Python, "type A[T = int] = float\n") > 0);
-    assert_eq!(
-        error_nodes(Language::Python, "type A[T] = float\n"),
-        0,
-        "a type alias without a default should read cleanly"
-    );
+fn python_reads_a_type_parameter_default() {
+    // PEP 696, Python 3.13. `grammars/python` gives each type parameter an optional
+    // `= type`.
+    for source in [
+        "type A[T = int] = float\n",
+        "type A[T] = float\n",
+        "type P[T: int = bool] = float\n",
+    ] {
+        assert_eq!(
+            error_nodes(Language::Python, source),
+            0,
+            "`{}` is ordinary Python",
+            source.trim()
+        );
+    }
 }
 
 #[test]

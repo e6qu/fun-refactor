@@ -1,7 +1,4 @@
-"""Taking a payment, as the code was found."""
-
 RETRY_LIMIT = 3
-
 
 def provider_state(provider, raw):
     if provider == "stripe":
@@ -27,17 +24,14 @@ def provider_state(provider, raw):
             return "failed"
     return "unknown"
 
-
 def find_payment(payments, payment_id):
     return payments.get(payment_id)
-
 
 def authorize(payment, customer):
     if payment["amount"] > 100000 and customer["kyc"] != "verified":
         return {"ok": False, "reason": "verification required"}
     payment["state"] = "authorized"
     return {"ok": True}
-
 
 def capture(payment, vendor):
     if payment["state"] != "authorized":
@@ -47,7 +41,6 @@ def capture(payment, vendor):
     payment["state"] = "captured"
     payment["captured_at"] = 1700000000
     return {"ok": True}
-
 
 def refund(payment, amount):
     if payment["state"] != "captured":

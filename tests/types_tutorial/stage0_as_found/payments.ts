@@ -1,5 +1,3 @@
-// Taking a payment, as the code was found.
-
 export const RETRY_LIMIT = 3;
 
 export function providerState(provider, raw) {

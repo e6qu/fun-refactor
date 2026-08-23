@@ -30,3 +30,14 @@ parse as the empty containers they are.
 Checked against `zls`'s `DocumentStore.zig` and `offsets.zig` and this repository's own
 sample: 14,463 nodes, and the patched parser returns the same tree as the stock one for
 every byte of it.
+
+## python
+
+Two forms of ordinary Python failed. A starred element in an unparenthesised tuple
+parsed only when it was a name, because the grammar reads that position as a pattern:
+`g = 1, *rest` worked and `g = 1, *[2]` did not. And a type parameter could carry no
+default, so `type A[T = int] = float` failed, which PEP 696 added in Python 3.13.
+
+`expression_list` now takes the choice Python's own star_expressions has, and each type
+parameter takes an optional `= type`. Checked over 102 files and 50,399 nodes: the
+patched parser returns the same tree as the stock one everywhere the stock one parses.

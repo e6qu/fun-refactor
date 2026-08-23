@@ -1,5 +1,3 @@
-"""An amount cannot be negative, and two currencies are never one number."""
-
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import NewType
@@ -10,12 +8,10 @@ VendorId = NewType("VendorId", str)
 
 RETRY_LIMIT: int = 3
 
-
 class Provider(StrEnum):
     STRIPE = "stripe"
     ADYEN = "adyen"
     WISE = "wise"
-
 
 class PaymentState(StrEnum):
     AUTHORIZED = "authorized"
@@ -23,29 +19,21 @@ class PaymentState(StrEnum):
     REFUNDED = "refunded"
     FAILED = "failed"
 
-
 class Currency(StrEnum):
     USD = "USD"
     EUR = "EUR"
-
 
 class Kyc(StrEnum):
     UNVERIFIED = "unverified"
     PENDING = "pending"
     VERIFIED = "verified"
 
-
 class Payouts(StrEnum):
     DISABLED = "disabled"
     ENABLED = "enabled"
 
-
 @dataclass(frozen=True)
 class Money:
-    """A whole number of the currency's smallest unit, and which currency that is.
-
-    Built only through `of`, which is the one place a bad amount can be turned away.
-    """
 
     minor_units: int
     currency: Currency
@@ -66,9 +54,7 @@ class Money:
             raise ValueError("two currencies do not compare")
         return self.minor_units > other.minor_units
 
-
 LIMIT_WITHOUT_VERIFICATION = Money(100000, Currency.USD)
-
 
 @dataclass
 class Payment:
@@ -78,24 +64,20 @@ class Payment:
     state: PaymentState
     captured_at: int | None = None
 
-
 @dataclass
 class Customer:
     id: CustomerId
     kyc: Kyc
-
 
 @dataclass
 class Vendor:
     id: VendorId
     payouts: Payouts
 
-
 @dataclass(frozen=True)
 class Outcome:
     ok: bool
     reason: str = ""
-
 
 PROVIDER_VOCABULARY: dict[Provider, dict[str, PaymentState]] = {
     Provider.STRIPE: {
@@ -115,21 +97,17 @@ PROVIDER_VOCABULARY: dict[Provider, dict[str, PaymentState]] = {
     },
 }
 
-
 def provider_state(provider: Provider, raw: str) -> PaymentState | None:
     return PROVIDER_VOCABULARY[provider].get(raw)
 
-
 def find_payment(payments: dict[PaymentId, Payment], payment_id: PaymentId) -> Payment | None:
     return payments.get(payment_id)
-
 
 def authorize(payment: Payment, customer: Customer) -> Outcome:
     if payment.amount.exceeds(LIMIT_WITHOUT_VERIFICATION) and customer.kyc != Kyc.VERIFIED:
         return Outcome(False, "verification required")
     payment.state = PaymentState.AUTHORIZED
     return Outcome(True)
-
 
 def capture(payment: Payment, vendor: Vendor) -> Outcome:
     if payment.state != PaymentState.AUTHORIZED:
@@ -139,7 +117,6 @@ def capture(payment: Payment, vendor: Vendor) -> Outcome:
     payment.state = PaymentState.CAPTURED
     payment.captured_at = 1700000000
     return Outcome(True)
-
 
 def refund(payment: Payment, amount: Money) -> Outcome:
     if payment.state != PaymentState.CAPTURED:

@@ -1,5 +1,3 @@
-// The same code, with the types it already had written down.
-
 export const RETRY_LIMIT: number = 3;
 
 export function providerState(provider: string, raw: string): string {

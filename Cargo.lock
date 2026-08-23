@@ -357,6 +357,7 @@ dependencies = [
  "assert_cmd",
  "clap",
  "console_error_panic_hook",
+ "fun-refactor-python-grammar",
  "fun-refactor-wasm-libc",
  "fun-refactor-zig-grammar",
  "ignore",
@@ -385,7 +386,6 @@ dependencies = [
  "tree-sitter-html",
  "tree-sitter-java",
  "tree-sitter-md-025",
- "tree-sitter-python",
  "tree-sitter-rust",
  "tree-sitter-scss",
  "tree-sitter-typescript",
@@ -393,6 +393,14 @@ dependencies = [
  "tree-sitter-yaml",
  "walkdir",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "fun-refactor-python-grammar"
+version = "0.1.0"
+dependencies = [
+ "cc",
+ "tree-sitter-language",
 ]
 
 [[package]]
@@ -1284,16 +1292,6 @@ name = "tree-sitter-md-025"
 version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b2d54d63bc7fdf0c1c38237611d966548fbccf8f0923a7de5d525b87c9957a96"
-dependencies = [
- "cc",
- "tree-sitter-language",
-]
-
-[[package]]
-name = "tree-sitter-python"
-version = "0.25.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6bf85fd39652e740bf60f46f4cda9492c3a9ad75880575bf14960f775cb74a1c"
 dependencies = [
  "cc",
  "tree-sitter-language",

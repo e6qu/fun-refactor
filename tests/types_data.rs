@@ -82,7 +82,11 @@ const STAGES: &[(&str, &str, &str, &str)] = &[
         "stage7_deleted",
         "Delete what can no longer happen",
         "The checks are unreachable now. Deleting them proves that the code which \
-         existed only to guard against the impossible is gone, and that nothing broke.",
+         existed only to guard against the impossible is gone, and that nothing broke. \
+         Two guards in `capture` go, because the parameter types leave the arguments \
+         no other shape to arrive in. The one in `refund` stays. It relates two values \
+         rather than naming a state, and no type here says \"no larger than the \
+         amount in that other object\".",
         "The defences themselves.",
     ),
 ];
