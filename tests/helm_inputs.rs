@@ -20,8 +20,6 @@ use fun_refactor::{
 };
 use std::path::PathBuf;
 
-// ------------------------------------------------------------------ fixtures
-
 const PARENT_VALUES: &str = r#"replicaCount: 1
 image:
   tag: "1.0"
@@ -138,8 +136,6 @@ fn stops(result: &provenance::Provenance) -> Vec<String> {
     result.stops.iter().map(|(_, r)| r.to_string()).collect()
 }
 
-// ------------------------------------------------- nothing supplied: unchanged
-
 #[test]
 fn with_no_inputs_the_command_line_still_decides_nothing() {
     // The baseline this whole feature is additive to: two values files beside the chart both
@@ -188,8 +184,6 @@ fn passing_no_inputs_explicitly_is_the_same_answer_as_passing_none() {
         listing(tag_competition(&empty))
     );
 }
-
-// ----------------------------------------------------------- one `-f` decides
 
 #[test]
 fn one_values_file_decides_the_winner_and_keeps_every_loser() {
@@ -303,8 +297,6 @@ fn a_key_only_a_file_that_is_not_passed_sets_is_unset_in_this_invocation() {
     );
 }
 
-// ------------------------------------------------------- order of several `-f`
-
 #[test]
 fn two_values_files_apply_in_the_order_they_were_given() {
     let (tmp, index) = chart();
@@ -343,8 +335,6 @@ fn two_values_files_apply_in_the_order_they_were_given() {
     // Both are ranked above the chart, and neither is dropped.
     assert_eq!(competition.sources.len(), 4);
 }
-
-// ------------------------------------------------------------- `--set` is top
 
 #[test]
 fn a_set_beats_every_values_file_however_many_were_passed() {
@@ -396,8 +386,6 @@ fn the_last_set_of_a_repeated_key_is_the_one_that_applies() {
         "--set replicaCount=7"
     );
 }
-
-// ------------------------------------------------- a key no values file has
 
 #[test]
 fn a_set_for_a_key_no_values_file_declares_is_reported_as_introducing_it() {
@@ -482,8 +470,6 @@ fn an_input_that_sets_nothing_relevant_says_so_rather_than_going_quiet() {
     );
 }
 
-// ------------------------------------------------- honesty about what is left
-
 #[test]
 fn a_partial_command_line_decides_only_given_what_was_supplied() {
     let (_tmp, index) = chart();
@@ -554,8 +540,6 @@ fn the_forward_direction_takes_the_same_inputs() {
     assert_eq!(competition.winner().unwrap().hop.text, "tag: \"8.4\"");
 }
 
-// --------------------------------------------------------- resolving the flags
-
 #[test]
 fn a_values_file_outside_the_scan_is_refused_rather_than_ignored() {
     let (_tmp, index) = chart();
@@ -584,8 +568,6 @@ fn a_values_file_names_the_scanned_file_by_a_relative_path() {
         "tag: \"8.4\""
     );
 }
-
-// --------------------------------------------------------- Helm's --set syntax
 
 #[test]
 fn set_paths_follow_helms_own_syntax() {
@@ -683,8 +665,6 @@ fn parsed_inputs_describe_themselves_as_a_command_line() {
     assert!(!inputs.is_empty());
     assert!(ValuesInputs::default().is_empty());
 }
-
-// ------------------------------------------------- `index .Values "literal"`
 
 #[test]
 fn index_with_a_literal_key_resolves_to_that_values_key() {

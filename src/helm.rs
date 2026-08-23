@@ -26,8 +26,8 @@
 //! with no values path. A `with` rebinds the dot to exactly one value, which does resolve
 //! ([`Template::values_path_of`]).
 //!
-//! `index .Values "a-b"` resolves, since that is how a chart reaches a key whose name is not an
-//! identifier. Only literal string arguments resolve; a computed key (`index .Values $k`) or a
+//! `index .Values "a-b"` resolves, because a chart reaches a key with a non-identifier name
+//! that way. Only literal string arguments resolve; a computed key (`index .Values $k`) or a
 //! nested call reports through [`Action::problems`].
 //!
 //! # The command line
@@ -687,8 +687,6 @@ pub fn builtins_in(text: &str) -> Vec<String> {
         .collect()
 }
 
-// ------------------------------------------------------- `--set` on the CLI
-
 /// One step of a `--set` path: `image.tag` is two keys, `ports[0].name` is a key,
 /// an index and a key.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -882,8 +880,6 @@ fn unescape(text: &str) -> String {
     }
     out
 }
-
-// ------------------------------------------------------------------ the lexer
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Tok {
@@ -1179,8 +1175,6 @@ fn lex_number(inner: &str, at: usize) -> (String, usize) {
     }
     (inner[at..i].to_string(), i)
 }
-
-// ------------------------------------------------------------- classification
 
 /// Source text spanning a run of tokens.
 fn token_text(source: &str, tokens: &[Token]) -> String {

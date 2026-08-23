@@ -22,7 +22,6 @@
 ; the parse depends on what surrounds it, which is why the file carries
 ; `FactGap::TemplatedKeys` instead of leaving the report to `has_errors`.
 
-; ---------------------------------------------------------------- scopes
 (stream) @scope
 (document) @scope
 (block_mapping) @scope
@@ -30,7 +29,6 @@
 (flow_mapping) @scope
 (flow_sequence) @scope
 
-; ------------------------------------------------------------- containers
 ; A key whose value is a collection qualifies the keys nested under it, so `tag`
 ; under `image` reports as `image::tag`. The container is the *value* node, not
 ; the pair: a pair contains its own key, which would make every key qualify
@@ -51,7 +49,6 @@
   key: (flow_node (plain_scalar (string_scalar) @container.name))
   value: (flow_node (anchor)) @container)
 
-; ------------------------------------------------------------ definitions
 ; `<<` is the merge key: it names no field, it splices the aliased mapping in.
 ; The alias on its right is captured as a reference below, which is the whole of
 ; what a merge means for rename.
@@ -82,7 +79,6 @@
 (flow_node
   (anchor (anchor_name) @name)) @definition.anchor
 
-; ------------------------------------------------------------- references
 ; `*name`, including the alias half of a `<<:` merge — the other end of the
 ; anchor rename pair.
 (alias

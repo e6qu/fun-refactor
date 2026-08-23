@@ -13,12 +13,10 @@
 ; declared with `export`, which is the one real visibility distinction the
 ; language makes (visible to child processes).
 
-; ---------------------------------------------------------------- scopes
 (program) @scope
 (function_definition body: (compound_statement) @scope)
 (subshell) @scope
 
-; ------------------------------------------------------------ definitions
 ; Both `f() { ... }` and `function f { ... }` carry a `name` field, so one
 ; pattern covers both spellings.
 (function_definition
@@ -76,7 +74,6 @@
   initializer: (variable_assignment
     name: (variable_name) @name) @definition.variable)
 
-; ------------------------------------------------------------- references
 ; A command invocation. Most command names are external programs; the ones that
 ; name a function defined in the workspace resolve to it in the index.
 (command
@@ -94,7 +91,6 @@
 ((variable_name) @reference.identifier
  (#not-match? @reference.identifier "^[0-9]+$"))
 
-; ---------------------------------------------------------------- imports
 ; `source lib.sh` and `. lib.sh` splice another script's definitions into this
 ; one — bash's only import mechanism. The path is a bare word, a quoted string
 ; or a concatenation such as `"$DIR"/lib.sh`. The extractor unquotes a path by

@@ -12,8 +12,6 @@ function escape(text) {
     .replaceAll(">", "&gt;");
 }
 
-// ------------------------------------------------------------ highlighting
-
 const PYTHON_KEYWORDS =
   "def|return|if|elif|else|for|while|match|case|class|from|import|type|in|is|not|and|or|" +
   "None|True|False|raise|try|except|finally|with|as|lambda|assert|async|await|pass|yield";
@@ -52,8 +50,6 @@ function highlight(code, language) {
   return out + plain(code.slice(at), keywords);
 }
 
-// ------------------------------------------------------------ the language
-
 const LANG_KEY = "fr-typesafety-lang";
 const LABELS = { python: "Python 3.14", typescript: "TypeScript 5.9" };
 
@@ -90,8 +86,6 @@ function langToggle() {
       ${button("python", "Python")}${button("typescript", "TypeScript")}
     </div>`;
 }
-
-// ------------------------------------------------------------ running cells
 
 let pyodidePromise;
 let compilerPromise;
@@ -179,8 +173,6 @@ async function runTypescript(code) {
     return { ok: false, output: String(error?.message ?? error) };
   }
 }
-
-// ------------------------------------------------- checking cells in the page
 
 const TS_LIB_HOST = "https://cdn.jsdelivr.net/npm/typescript@5.9.3/lib/";
 let libsPromise;
@@ -386,8 +378,6 @@ async function runCell(action, code, language, out) {
       : result.output || "failed");
 }
 
-// ------------------------------------------------------------ the pieces
-
 function editUrl(id) {
   const file = lang === "python" ? `python/${id}.py` : `typescript/${id}.ts`;
   return `https://github.com/e6qu/fun-refactor/edit/main/tests/typesafety/${file}`;
@@ -522,8 +512,6 @@ function wireCommon(slot, codes) {
     }
   });
 }
-
-// ------------------------------------------------------------ the slots
 
 for (const slot of document.querySelectorAll("[data-example]")) {
   const render = () => {

@@ -141,7 +141,7 @@ defines every ripgrep flag as a struct impl. Nineteen of them are the same shape
 
 ```console
 $ fr duplicates --lang rust --min-tokens 120
-19 copies, 137 tokens each (2466 redundant) — rust
+19 copies, 137 tokens each (2466 redundant): rust
   crates/core/flags/defs.rs:2673-2700
   crates/core/flags/defs.rs:3351-3379
   crates/core/flags/defs.rs:3409-3438
@@ -156,7 +156,7 @@ Zig, on the language server's test suite:
 
 ```console
 $ fr duplicates --lang zig --min-tokens 100
-7 copies, 109 tokens each (654 redundant) — zig
+7 copies, 109 tokens each (654 redundant): zig
   tests/lsp_features/semantic_tokens.zig:334-343
   tests/lsp_features/semantic_tokens.zig:344-353
   tests/lsp_features/semantic_tokens.zig:354-363
@@ -219,7 +219,7 @@ $ fr rename testcharts/alpine/values.yaml:1:1 appName
 -  name: "{{.Release.Name}}-{{.Values.Name}}"
 +  name: "{{.Release.Name}}-{{.Values.appName}}"
 
-Not changed — review these yourself:
+Not changed. Review these yourself:
   textual-occurrence (1):
     alpine-pod.yaml:3:17  'Name' appears in a string or comment; left unchanged
 ```

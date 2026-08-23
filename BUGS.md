@@ -71,23 +71,6 @@ these entries, and `tests/known_grammar_gaps.rs` fails when it does.
   `{a,b}` list literals, `--set-file` and `--set-json` by name rather than
   half-applying them.
 
-- [ ] B14: the resolver misses a CSS class named inside a TSX helper call or template
-  literal. `className={cx("btn", active && "on")}` and `` className={`btn ${size}`} ``
-  both go unresolved, because the queries capture a plain string attribute value and
-  nothing else. A rename of that class rewrites the plain `className="btn"` uses and
-  leaves the helper ones. The textual sweep does report each missed site as needing
-  review. So the result is incomplete and not silently wrong. Resolving them means
-  teaching the TSX queries which call arguments hold class lists. Each library sets its
-  own convention there (`clsx`, `cx`, `classnames`, `cva`, `tailwind-merge`), so no
-  language rule covers it.
-
-  Across grafana/grafana's 4,400 TSX files, `className` takes four forms. CSS-in-JS
-  `styles.x` appears 3,233 times, `cx(…)` 381, a plain string literal 224, a
-  template literal 28. So the helper form outnumbers the resolvable one, and closing
-  this would roughly triple the reach of a stylesheet-class rename in a modern React
-  codebase. The CSS-in-JS majority is a different matter and out of scope: there is no
-  stylesheet selector to link `styles.x` to.
-
 - [ ] B11: SCSS forms `tree-sitter-scss` 1.0 cannot parse. Measured over
   `twbs/bootstrap`'s stylesheets, the canonical SCSS codebase: 73 of 99 files failed,
   and 59 do after B280 masked the first form below.
@@ -174,16 +157,44 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   generated declarations; found in `vuejs/core`'s compiler-sfc. `tree-sitter-typescript`
   0.23.2 has no rule for an `import` type.
 
-- [ ] B133: `tree-sitter-zig` requires at least one member in a struct. So it cannot
-  parse `const Foo = struct {};`, which is ordinary Zig. That line is the only parse
-  failure across 29 files of Zig's own standard library (`json/static_test.zig:465`).
-  The tool's own check would therefore refuse to write a correct file. So an empty record is written with an empty
-  `comptime {}` block in it, under a comment saying why. That block does nothing, both
-  Zig and the grammar accept it, and the alternative was refusing to translate a type
-  with no fields at all. `tree-sitter-zig` 1.1.2 requires at least one member in a
-  container declaration.
-
 ## Fixed
+
+- [x] B133: **valid Zig that the grammar could not read.** `const Foo =
+  struct {};` is ordinary Zig, and `tree-sitter-zig` rejected it. Its
+  four container rules take `_container_members`, which needs at least
+  one member. `source_file` takes `optional($._container_members)` and
+  reads an empty file. The published 1.1.2 is the newest release and
+  master carries the same rule, so this project compiles its own copy.
+  `grammars/zig` holds the upstream source, its licence, the four-line
+  patch and the provenance to check them. The patch is additive: over
+  `zls`'s `DocumentStore.zig` and `offsets.zig` and this repository's
+  sample, 14,463 nodes, the patched parser returns the tree the stock one
+  returns. `struct {}`, `enum {}`, `union {}` and `opaque {}` parse now.
+  The Zig writer no longer pads an empty record with a `comptime {}`
+  block to get past its own check.
+
+- [x] B14: **a class name reached the markup three ways and a rename
+  rewrote one.** `className="btn"` resolved to the CSS selector, while
+  `cx("btn", active && "on")` and `` `btn ${size}` `` did not, so a
+  rename rewrote the plain attribute and reported the rest. Across
+  grafana/grafana's 4,400 TSX files the helper form outnumbers the plain
+  one, 381 to 224. The queries capture both now: a string handed to
+  `cx`, `clsx`, `classnames`, `classNames`, `cva`, `twMerge` or
+  `twJoin` is a class reference, under a condition as well as beside
+  one, and so is every literal part of a template literal in a class
+  attribute. CSS-in-JS `styles.x` is a different subject, because no
+  stylesheet selector stands behind it.
+
+- [x] B730: **the comments carried banners, history and hedging.** 277
+  rules of dashes separated sections in the source, and 86 more in the
+  site scripts, the tooling and the tree-sitter queries. Comment bodies
+  told the story of the defect behind them, in the past tense, with an
+  opinion about how bad it had been. The petstore fixtures the contract
+  page renders carried doc comments repeating what the code did, and one
+  repeating the page's own note almost word for word. All of it went.
+  `docs/style.md` now says a comment is timeless, gives the reason
+  rather than the behaviour, and states what is true rather than what is
+  absent.
 
 - [x] B727: **the contract page called a creation patch a diff.** Every
   endpoint on `contract.html` showed a Diff pane taken from the

@@ -1972,3 +1972,25 @@ accumulator, and `flow back` traced a YAML port to its literal.
 `duplicates` found two identical CSS rules, then declined the same pair
 under `--exact`. `rename` left the disk alone without `--write`, and
 rewrote both the definition and the call site with it.
+
+### The pass where the comments stopped talking about themselves
+
+A comment earns its line by saying what the code cannot. Three habits
+here failed that test. Rules of dashes divided files into sections, 363
+of them once the site scripts and the queries were counted. Comment
+bodies narrated the defect that produced the code, in the past tense,
+and often graded it. And a few described their subject by what it was
+not.
+
+All three went, and `docs/style.md` carries the rule so the next writer
+inherits it: a comment is timeless, gives the reason rather than the
+behaviour, and states what is true rather than what is missing.
+
+One comment turned out to be covering for the code. A class name
+reaches the markup three ways, and the queries captured one of them, so
+`fr rename` rewrote `className="btn"` and reported `cx("btn", …)` and
+`` `btn ${size}` `` as occurrences it could not touch. The comment
+explained that resolving them meant teaching a per-library convention.
+Teaching it took two query patterns. The rename now rewrites all four
+occurrences and reports none, and the test that pinned the gap pins the
+fix.

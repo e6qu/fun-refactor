@@ -17,7 +17,7 @@ use std::process::Command;
 ///
 /// Each gate file prints the tools it drove and the ones it skipped. Under `cargo test` that
 /// output is captured, so on CI nobody ever sees it. A validator that is not installed skips
-/// its cases, says so into a void. The run goes green looking exactly like one that checked
+/// its cases, says so into a void. The run goes green, looking like one that checked
 /// everything.
 ///
 /// So the rule differs by where it runs. On a laptop a missing tool is ordinary and the line is
@@ -499,8 +499,6 @@ fn the_fixture_compiles_before_anything_touches_it() {
         }
     }
 }
-
-// ------------------------------------------------------------------ the gate
 
 pub fn the_free_function(index: &Index, name: &str) -> fun_refactor::model::SymbolId {
     index

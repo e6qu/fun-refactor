@@ -574,8 +574,6 @@ mod tests {
     }
 }
 
-// ---------------------------------------------------------------- extract function
-
 /// A function extraction worked out but not applied.
 #[derive(Debug)]
 pub struct ExtractFunctionPlan {
@@ -655,7 +653,7 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
             "plain CSS has no mixin, function or any other construct that names a group \
              of declarations, so there is nothing to extract into. `@mixin` / `@include` \
              are Sass, and the SCSS grammar is the only one here that parses them. Rename \
-             {} to `.scss` if that is what was meant",
+             {} to `.scss` if you meant SCSS",
             file.display()
         ),
         _ => {}
@@ -1423,7 +1421,7 @@ fn requires_explicit_types(language: Language) -> bool {
 ///
 /// Zig is here on the same footing as Rust and Go: all three require a written type on every
 /// parameter. None of them is refused for that in the abstract. What is refused is the
-/// individual selection whose parameter or return type was never written down —
+/// individual selection whose parameter or return type was never written down,
 /// [`requires_explicit_types`] names the bindings and stops there.
 fn supports_imperative_extract_function(language: Language) -> bool {
     matches!(
@@ -1731,9 +1729,9 @@ fn references_within<'a>(
 
 /// The type written at a declaration site, if the source states one.
 ///
-/// There is no type inference here: a binding whose type the programmer left to the compiler
-/// has none to recover. So the caller is told and nothing is guessed. The type a declaration
-/// states, as a bare type with no punctuation.
+/// This reads the type a declaration states. Where the programmer left the type to the
+/// compiler, the caller is told so. The type a declaration states, as a bare type with no
+/// punctuation.
 ///
 /// The C-family grammars make the `:` part of the annotation node, so the text of the `type`
 /// field is `: number` and not `number`. Every caller wants the type alone and re-spells the
@@ -1825,8 +1823,8 @@ fn render_call(
 
 /// How the file being edited is indented.
 ///
-/// `outer` is what the extracted region already carries. `unit` holds one level of
-/// indentation as this file writes it. The value comes from the source rather than an
+/// `outer` holds the indentation the extracted region already carries. `unit` holds one level
+/// of indentation as this file writes it. The value comes from the source rather than an
 /// assumption, so a two-space or tab-indented file does not come back with four spaces.
 /// `lead` is the definition's own indentation, taken from whatever it is written beside. It
 /// is empty for a definition that lands at the top of the file.
@@ -1963,7 +1961,6 @@ fn render_function(
     }
 }
 
-// ------------------------------------------------------- config languages
 //
 // None of these languages has a binding form. So "extract variable" means the construct that
 // plays the same role: name a value once and refer to it. What that construct is differs per
@@ -2035,8 +2032,6 @@ fn invalid(name: &str, reason: &str) -> anyhow::Error {
     }
     .into()
 }
-
-// ------------------------------------------------------------ Terraform / HCL
 
 /// Extract a Terraform expression into a `locals` entry.
 ///
@@ -2199,8 +2194,6 @@ fn hcl_module_collision(index: &Index, file: &Path, name: &str) -> Option<std::p
         .find(|s| s.language == Language::Hcl && s.file.parent() == dir)
         .map(|s| s.file.clone())
 }
-
-// ------------------------------------------------------------------ Helm / YAML
 
 /// Extract a repeated YAML scalar into an anchor plus aliases.
 ///
@@ -2378,8 +2371,6 @@ fn yaml_is_anchorable(node: Node<'_>, _source: &str) -> bool {
             )
         })
 }
-
-// ---------------------------------------------------------------------- CSS/SCSS
 
 /// Extract a declaration value into a custom property declared in `:root`.
 ///
@@ -2605,8 +2596,6 @@ fn css_insertion_point(parsed: &Parsed, source: &str) -> usize {
     }
 }
 
-// ---------------------------------------------------------------------- Markdown
-
 /// Turn an inline link's destination into a link reference definition.
 fn markdown_link_definition(
     index: &Index,
@@ -2764,8 +2753,6 @@ fn markdown_ends_with_definition(parsed: &Parsed) -> bool {
         }
     }
 }
-
-// ------------------------------------------------------- Helm named template
 
 /// Extract a region of a Helm template into a named template in `_helpers.tpl`.
 ///
@@ -2933,7 +2920,6 @@ fn helm_helpers_path(file: &Path, chart_root: &Path) -> std::path::PathBuf {
     chart_root.join("templates").join("_helpers.tpl")
 }
 
-// -------------------------------------------------------------------------- Bash
 //
 // Shell has bindings, so "extract variable" means what it means everywhere else. What is
 // different is that the *spelling of a reference decides its semantics*. `"$name"` is exactly
@@ -3217,12 +3203,11 @@ fn bash_would_split(node: Node<'_>, source: &str) -> bool {
 /// requires. A function has to have been *defined* by the time the call runs, and definition
 /// happens in file order.
 ///
-/// There is no parameter analysis, and there is none to do. Shell has no block scope. Every
-/// name a shell function reads is global or a caller's `local`, and the new function can
-/// still read both. So no binding has to cross the boundary. Only the positional parameters
-/// fail to survive the move. Inside a function, `$1` names that function's first argument
-/// rather than the enclosing one's. So a region that reads them is refused instead of
-/// silently rebound.
+/// Shell has no block scope, so every name a shell function reads is global or a caller's
+/// `local`, and the new function reads both. Every binding stays where it is. Only the
+/// positional parameters fail to survive the move. Inside a function, `$1` names that
+/// function's first argument rather than the enclosing one's. So a region that reads them is
+/// refused instead of silently rebound.
 fn bash_function(
     index: &Index,
     file: &Path,
@@ -3459,15 +3444,13 @@ fn bash_script_top(parsed: &Parsed, source: &str) -> usize {
     source.len()
 }
 
-// -------------------------------------------------------------------------- SCSS
-
 /// Extract declarations into an SCSS `@mixin`, called back through `@include`.
 ///
-/// A mixin is defined at the top level of the stylesheet. So it can no longer see anything the
-/// rule it came from had in scope. Sass resolves a `$variable` where the mixin is *defined*,
-/// not where it is included. So every `$variable` the selection reads from outside itself
-/// becomes a parameter and is passed at the include site. That is what keeps the meaning
-/// identical whether the variable was a file-level one or declared inside the rule.
+/// A mixin is defined at the top level of the stylesheet. So it can no longer see anything
+/// the rule it came from had in scope. Sass resolves a `$variable` where the mixin is
+/// *defined*, not where it is included. So every `$variable` the selection reads from outside
+/// itself becomes a parameter and is passed at the include site. The meaning then holds
+/// whether the variable was a file-level one or declared inside the rule.
 ///
 /// Sass also evaluates a stylesheet top-down, so the definition goes above every rule and not
 /// beside the one it came from, a mixin included before it is declared is an error, not a
@@ -3630,8 +3613,6 @@ fn scss_mixin(index: &Index, file: &Path, span: Span, name: &str) -> Result<Extr
         body,
     })
 }
-
-// --------------------------------------------------------------------------- XML
 
 /// Extract repeated text into an internal-subset entity.
 ///

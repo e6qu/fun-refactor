@@ -326,8 +326,6 @@ fn scan_names_each_file_absolutely_and_lists_skipped_symlinks() {
     );
 }
 
-// ---------------------------------------------------------------- skipped files
-
 /// A Python module whose one symbol is used by a second, oversized module.
 fn skipping_workspace() -> tempfile::TempDir {
     let mut big = String::from("from a import helper\n");
@@ -473,8 +471,6 @@ fn a_file_that_did_not_parse_rides_in_every_answer_it_could_falsify() {
     }
 }
 
-// --------------------------------------------------------------------- recipes
-
 const RENDER_PY: &str = "def render():\n    return 1\n\ndef user():\n    return render()\n";
 
 #[test]
@@ -599,8 +595,6 @@ fn a_delete_refusal_carries_its_blocking_positions_as_data() {
     assert_eq!(references[0]["col"], 12, "{references:?}");
 }
 
-// -------------------------------------------------------------------- translate
-
 #[test]
 fn the_translate_listing_obeys_json() {
     // List mode ignored --json and printed prose into a parser.
@@ -637,8 +631,6 @@ fn a_single_file_translation_reports_the_sweeps_fidelity_block() {
     assert!(ok, "{printed}");
     assert_eq!(printed["signatures_with_foreign_types"], 1, "{printed}");
 }
-
-// ---------------------------------------------------------------------- symbols
 
 #[test]
 fn a_symbols_span_round_trips_into_extract() {
@@ -680,8 +672,6 @@ fn a_symbols_span_round_trips_into_extract() {
         .assert()
         .success();
 }
-
-// ----------------------------------------------------------------- explain JSON
 
 #[test]
 fn explain_emits_selectors_and_expectations_as_structures() {

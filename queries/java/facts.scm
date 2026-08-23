@@ -21,7 +21,6 @@
 ; package, not to a caller who imports the type, and this flag decides whether a rename
 ; has to look outside the file.
 
-; ---------------------------------------------------------------- scopes
 (program) @scope
 (class_body) @scope
 (interface_body) @scope
@@ -43,7 +42,6 @@
 (catch_clause) @scope
 (finally_clause) @scope
 
-; ------------------------------------------------------------- containers
 ; A type qualifies the methods and fields declared inside it, so `Account::getOwner`
 ; is distinguishable from any other `getOwner` in the workspace.
 (class_declaration name: (identifier) @container.name) @container
@@ -51,7 +49,6 @@
 (enum_declaration name: (identifier) @container.name) @container
 (record_declaration name: (identifier) @container.name) @container
 
-; ------------------------------------------------------------ definitions
 ; The package clause names the compilation unit every importer refers to.
 (package_declaration
   (_) @name) @definition.module
@@ -203,7 +200,6 @@
 (type_parameter
   (type_identifier) @name) @definition.parameter
 
-; ------------------------------------------------------------- references
 (method_invocation
   name: (identifier) @reference.call)
 
@@ -217,7 +213,6 @@
 
 (identifier) @reference.identifier
 
-; ---------------------------------------------------------------- imports
 ; `import a.b.C;` binds the last segment, which is the name the file then writes.
 (import_declaration
   (scoped_identifier

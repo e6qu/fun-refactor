@@ -1,8 +1,8 @@
 //! Extract function: the data-flow half of the extract/inline family.
 //!
-//! What makes this refactoring hard is not moving the text but working out the
-//! interface: which locals flow in as parameters, which flow out as returns, and
-//! whether a call can reproduce the region's control flow at all.
+//! The hard part of this refactoring is working out the interface: which locals flow in as
+//! parameters, which flow out as returns, and whether a call can reproduce the region's
+//! control flow at all.
 
 use fun_refactor::edit::apply_to_string;
 use fun_refactor::index::Index;
@@ -627,8 +627,6 @@ fn a_selection_wholly_inside_a_loop_body_still_extracts() {
     let out = apply(&plan, &path);
     assert!(out.contains("def step("), "the extraction happened.\n{out}");
 }
-
-// --------------------------------------------------- where the definition lands
 
 #[test]
 fn extracting_from_a_method_that_is_not_the_last_keeps_the_class_whole() {

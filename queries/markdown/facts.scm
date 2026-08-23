@@ -25,13 +25,11 @@
 ; lets a rename find all of the occurrences, but there is no LinkDef symbol for a
 ; footnote.
 
-; ---------------------------------------------------------------- scopes
 ; The block grammar nests `section` nodes under their headings, but every Markdown
 ; name is document-global — an anchor resolves against the whole file — so the
 ; document stays the only scope.
 (document) @scope
 
-; ------------------------------------------------------------ definitions
 ; `# Title` — the heading text is the name because that is what the anchor slug is
 ; generated from. The opening `#` markers are outside `heading_content`; an optional
 ; closing marker (`## Title ##`) is not, and the extractor trims it.
@@ -61,7 +59,6 @@
 ; Patterns below this marker run against the inline sub-trees. Their spans are
 ; offsets into the original document, exactly like the block patterns above.
 
-; ------------------------------------------------------------- references
 ; `[text][label]` — a full reference link points at a link reference definition.
 (full_reference_link
   (link_label) @reference.string)

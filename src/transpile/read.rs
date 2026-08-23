@@ -1,9 +1,8 @@
 //! Reading a syntax tree into the IR.
 //!
-//! One reader per language. Each walks the named nodes, recognises the constructs the
-//! IR has, and wraps everything else in [`Unsupported`] with the original text and its
-//! line. A reader never guesses. It reports an unrecognised node, because a translation
-//! that quietly drops a statement is worse than one that admits the gap.
+//! One reader per language. Each walks the named nodes, recognises the constructs the IR has,
+//! and wraps everything else in [`Unsupported`] with the original text and its line. A reader
+//! never guesses. It reports an unrecognised node, so a dropped statement is never silent.
 
 use super::ir::*;
 use crate::lang::Language;
@@ -443,8 +442,6 @@ fn constructs(
         _ => None,
     }
 }
-
-// ------------------------------------------------------------------------- Rust
 
 mod rust {
     use super::*;
@@ -1768,8 +1765,6 @@ mod rust {
     }
 }
 
-// ----------------------------------------------------------------------- Python
-
 mod python {
     use super::*;
 
@@ -1796,8 +1791,7 @@ mod python {
                     let record = record(cx, child, &mut carried);
                     module.items.push(Item::Record(record));
                 }
-                // `@dataclass class User:` is the typed-Python idiom for a record, and
-                // the decorator used to make the whole class untranslatable.
+                // `@dataclass class User:` is the typed-Python idiom for a record.
                 "decorated_definition" => {
                     let decorators: Vec<String> = cx
                         .children(child)
@@ -3123,8 +3117,8 @@ mod python {
             }
             "string" => {
                 // An f-string interpolates. Dropping the braces would turn `f"{c} below the
-                // floor"` into the literal text `{c} below the floor`. A wrong answer is
-                // worse than a gap, so the fragment travels carried.
+                // floor"` into the literal text `{c} below the floor`. The fragment travels
+                // carried, so the output states a gap rather than a wrong answer.
                 if cx
                     .children(node)
                     .iter()
@@ -3290,8 +3284,8 @@ mod python {
             }
             "comparison_operator" | "boolean_operator" | "binary_operator" => {
                 // `is not` and `not in` are two tokens. Reading only the first turned `x is
-                // not None` into `x == None`. The output then said the opposite of the input,
-                // which is worse than saying nothing.
+                // not None` into `x == None`. Reading only the first says the opposite of the
+                // input.
                 let mut cursor = node.walk();
                 let operator: String = node
                     .children(&mut cursor)
@@ -3359,8 +3353,6 @@ mod python {
         }
     }
 }
-
-// --------------------------------------------------------------------------- Go
 
 mod go {
     use super::*;
@@ -3961,10 +3953,9 @@ mod go {
             "comment" | "line_comment" | "block_comment" => {
                 Stmt::Comment(super::uncomment(&cx.text(node)))
             }
-            // `return x` wraps its value in an `expression_list`, the same shape that hid every
-            // function body. `return a, b` is Go's multiple return, and it crosses as a tuple.
-            // Mapping it to nothing, as this arm once did, turned a two-value return into a
-            // bare `return` with nothing said.
+            // `return x` wraps its value in an `expression_list`, the same shape that hid
+            // every function body. `return a, b` is Go's multiple return, and it crosses as a
+            // tuple. Mapping it to nothing turns a two-value return into a bare `return`.
             "return_statement" => Stmt::Return(cx.children(node).first().map(|e| {
                 match (e.kind(), cx.children(*e).as_slice()) {
                     ("expression_list", [only]) => expr(cx, *only),
@@ -4342,8 +4333,6 @@ mod go {
         }
     }
 }
-
-// ------------------------------------------------------------------- TypeScript
 
 /// Java.
 ///
@@ -4727,10 +4716,9 @@ mod java {
                     }
                 }
                 "comment" | "{" | "}" => {}
-                // A member this does not recognise is not a member that is not there. Every
-                // reader here ended its member loop with `_ => {}`. A `@staticmethod`
-                // disappeared from a class that way, while the report said every signature
-                // had carried across intact.
+                // A member this does not recognise is not a member that is not there. A
+                // member loop ending in `_ => {}` drops what it does not recognise, and the
+                // report still counts every signature as carried.
                 _ => carried.push(Item::Unsupported(cx.unsupported(member))),
             }
         }
@@ -5393,10 +5381,10 @@ mod java {
 /// Zig.
 ///
 /// Two things shape this reader. A `variable_declaration` with no `var` or `const` in front
-/// of it is an **assignment**. It is not a declaration — the grammar reuses the node. So
-/// telling the two apart means reading the keyword instead of the node kind. A type is a
-/// value there too. `const Reading = struct { … };` is a `variable_declaration` whose value
-/// happens to be a struct, and records come from exactly that.
+/// of it is an **assignment**. The grammar reuses the node for both. So telling the two apart
+/// means reading the keyword instead of the node kind. A type is a value there too. `const
+/// Reading = struct { … };` is a `variable_declaration` whose value happens to be a struct,
+/// which is where records come from.
 ///
 /// What deliberately does not cross: `try`, `catch`, error unions and `comptime`. Zig models
 /// failure in the return type and no other target here has anything to put there. So each is
@@ -6202,7 +6190,7 @@ mod zig {
         if let Some(rest) = text.strip_prefix('?') {
             return Type::Optional(Box::new(from_text(rest)));
         }
-        // A generic type here is a name *applied* to its arguments — `ArrayList(u8)`,
+        // A generic type here is a name *applied* to its arguments, as in `ArrayList(u8)`,
         // which the writer emits. Reading the whole thing as one name turned
         // `HashSet(Thing)` into a type called `HashSet(Thing)`.
         // A slice is a list. The grammar gives this its own node most of the time, and
@@ -8677,8 +8665,6 @@ mod typescript {
         }
     }
 }
-
-// ------------------------------------------------------------------------ shared
 
 /// Split `Name<A, B>` or `Name[A, B]` into its base and its arguments.
 ///

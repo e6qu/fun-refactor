@@ -37,8 +37,6 @@ fn names_of(f: &FileFacts, kind: SymbolKind) -> Vec<&str> {
         .collect()
 }
 
-// ------------------------------------------------------------------ functions
-
 #[test]
 fn functions_are_found_with_exact_name_spans() {
     let src = "package p\n\nfunc Add(a int, b int) int { return a + b }\nfunc helper() {}\n";
@@ -100,8 +98,6 @@ fn parameters_and_locals_are_never_exported() {
     assert_eq!(local.kind, SymbolKind::Variable);
     assert!(!local.exported);
 }
-
-// -------------------------------------------------------------------- methods
 
 #[test]
 fn value_receiver_qualifies_the_method() {
@@ -171,8 +167,6 @@ fn interface_methods_are_qualified_by_the_interface() {
     assert_eq!(scale.qualified_name(), "Shape::scale");
     assert!(!scale.exported);
 }
-
-// --------------------------------------------------------------------- types
 
 #[test]
 fn each_type_declaration_form_yields_exactly_one_symbol_of_the_right_kind() {
@@ -260,8 +254,6 @@ fn type_parameters_are_parameter_definitions() {
     assert_eq!(sym(&f, "T").name_span.text(src), "T");
 }
 
-// ---------------------------------------------------------------- references
-
 #[test]
 fn calls_are_reported_as_call_references() {
     let src = "package p\n\nimport \"fmt\"\n\nfunc a() {}\n\nfunc b(p Point) {\n\ta()\n\tfmt.Println(1)\n\tp.Scale(2)\n}\n\ntype Point struct{}\n\nfunc (p Point) Scale(n int) {}\n";
@@ -324,8 +316,6 @@ fn references_start_unresolved() {
     assert_eq!(r.confidence, Confidence::NameOnly);
 }
 
-// ------------------------------------------------------------------- imports
-
 #[test]
 fn single_import_captures_the_unquoted_path() {
     let src = "package p\n\nimport \"fmt\"\n";
@@ -365,8 +355,6 @@ fn import_paths_keep_their_slashes() {
     assert_eq!(f.imports[0].path, "github.com/foo/bar");
 }
 
-// -------------------------------------------------------------------- scopes
-
 #[test]
 fn function_bodies_and_blocks_nest() {
     let src =
@@ -390,8 +378,6 @@ fn a_parameter_lives_in_its_function_scope_not_the_file_scope() {
     assert_ne!(param, file);
     assert!(f.scope_chain(param).contains(&file));
 }
-
-// ------------------------------------------------------------ whole-file pass
 
 #[test]
 fn a_realistic_file_extracts_without_duplicate_definitions() {

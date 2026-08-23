@@ -741,31 +741,27 @@ mod tests {
 
     #[test]
     fn plan_rejects_breakage_a_grammar_flags_without_an_error_node() {
-        // Some grammars mark a subtree erroneous without emitting an ERROR node
-        // (tree-sitter-zig does this for an empty container body). Comparing error
-        // span counts alone would see no change and accept the edit, so the
-        // tree-wide flag is checked too.
+        // A grammar can mark a tree erroneous through a MISSING node, where the parser
+        // supplies a token the source never wrote. No ERROR node appears, so comparing
+        // error-span counts alone would accept the edit. The tree-wide flag catches it.
         let tmp = tempfile::tempdir().unwrap();
-        let path = tmp.path().join("thing.zig");
-        crate::vfs::write(&path, "const S = struct { x: i32 };\n").unwrap();
+        let path = tmp.path().join("thing.rs");
+        crate::vfs::write(&path, "fn main() {}\n").unwrap();
 
         let before = Parsers::new()
-            .parse(Language::Zig, "const S = struct { x: i32 };\n")
+            .parse(Language::Rust, "fn main() {}\n")
             .unwrap();
         assert!(!before.has_errors(), "the starting file must parse cleanly");
 
         let mut set = EditSet::new();
-        // Emptying the body produces the flagged-but-node-less error case.
-        set.add(&path, Edit::new(Span::new(17, 27), "{}", "empty the body"));
+        // Taking the closing brace leaves the parser to supply one.
+        set.add(&path, Edit::new(Span::new(11, 12), "", "drop the brace"));
 
         let err = plan(&set, Validation::ReparseStrict)
             .unwrap_err()
             .to_string();
         assert!(err.contains("edit rejected"), "unexpected error: {err}");
-        assert_eq!(
-            crate::vfs::read_to_string(&path).unwrap(),
-            "const S = struct { x: i32 };\n"
-        );
+        assert_eq!(crate::vfs::read_to_string(&path).unwrap(), "fn main() {}\n");
     }
 
     #[test]

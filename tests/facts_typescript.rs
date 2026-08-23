@@ -49,8 +49,6 @@ fn refs_named<'a>(f: &'a FileFacts, name: &str) -> Vec<&'a Reference> {
     f.references.iter().filter(|r| r.name == name).collect()
 }
 
-// ---------------------------------------------------------------- samples
-
 const DECLS: &str = r#"export function exportedFn(a: number): void {}
 function plainFn() {}
 export const arrowFn = (x: string) => x;
@@ -122,8 +120,6 @@ export function Card({ title }: Props) {
 
 const Small = () => <p className="tiny">hi</p>;
 "#;
-
-// ------------------------------------------------------------ declarations
 
 #[test]
 fn samples_parse_cleanly_in_both_grammars() {
@@ -285,8 +281,6 @@ fn namespace_members_keep_their_own_visibility() {
     assert!(!one(&f, "hidden").exported);
 }
 
-// ---------------------------------------------------------------- members
-
 #[test]
 fn class_members_are_qualified_methods_and_fields() {
     for (lang, f) in both(MEMBERS) {
@@ -359,8 +353,6 @@ fn enum_members_are_fields_qualified_by_the_enum() {
     }
 }
 
-// ------------------------------------------------------------- parameters
-
 #[test]
 fn parameters_of_every_shape_are_captured() {
     for (lang, f) in both(PARAMS) {
@@ -395,8 +387,6 @@ fn loop_and_catch_bindings_are_variables() {
         }
     }
 }
-
-// ---------------------------------------------------------------- imports
 
 #[test]
 fn every_import_form_is_recorded() {
@@ -466,8 +456,6 @@ fn export_clauses_are_references_not_definitions() {
         assert!(!refs_named(&f, "gamma").is_empty(), "{lang}");
     }
 }
-
-// ------------------------------------------------------------- references
 
 #[test]
 fn calls_are_recorded_as_calls() {
@@ -576,8 +564,6 @@ fn an_arrow_body_is_its_own_scope() {
         assert_ne!(inner, outer, "{lang}");
     }
 }
-
-// -------------------------------------------------------------------- JSX
 
 #[test]
 fn jsx_component_names_are_references_and_html_tags_are_not() {
@@ -726,8 +712,6 @@ fn the_two_grammars_agree_on_shared_syntax() {
     };
     assert_eq!(key(&ts), key(&tsx));
 }
-
-// ------------------------------------------------------------ limitations
 
 #[test]
 fn export_declare_is_captured_but_not_marked_exported() {

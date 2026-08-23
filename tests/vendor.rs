@@ -157,7 +157,7 @@ fn every_licence_is_compatible_with_this_project() {
         checked += 1;
         assert!(
             COMPATIBLE.contains(&licence),
-            "vendored material under '{licence}' — this project is \
+            "vendored material under '{licence}': this project is \
              AGPL-3.0-or-later, so a licence outside the permissive set needs a \
              deliberate decision, not a silent import"
         );
@@ -180,7 +180,7 @@ fn a_licence_file_accompanies_every_grammar_that_ships_one() {
         checked += 1;
         assert!(
             vendor_root().join(relative).exists(),
-            "{relative} is referenced by the manifest but missing — the licence text \
+            "{relative} is referenced by the manifest but missing. The licence text \
              has to travel with the files it covers"
         );
     }
@@ -215,7 +215,7 @@ fn nothing_vendored_is_compiled_into_the_binary() {
                 read += 1;
                 assert!(
                     !source.contains("vendor/"),
-                    "{} reaches into vendor/ — that turns reference material into a \
+                    "{} reaches into vendor/, which turns reference material into a \
                      compiled dependency, with different licence obligations",
                     path.display()
                 );
@@ -227,8 +227,6 @@ fn nothing_vendored_is_compiled_into_the_binary() {
         "only {read} source file(s) were read; the walk found nothing"
     );
 }
-
-// ------------------------------------------------------- the translation corpus
 
 /// `tests/corpus/`, real files from real projects, kept for the translation tests.
 ///

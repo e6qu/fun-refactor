@@ -8,8 +8,8 @@
 //! `Holder.java`, with `Holder`'s own method, at exact confidence.
 //!
 //! What every one of these has in common is that the source wrote the qualifier down. Nothing
-//! here is inference: the resolution is as strong as the statement, and that is why these come
-//! back `exact` or `import-qualified` and not `field-based`. A refactoring rewrites the first
+//! here is inference: the resolution is as strong as the statement, so these come back
+//! `exact` or `import-qualified` rather than `field-based`. A refactoring rewrites the first
 //! two and refuses the third. So the difference is the difference between a rename that works
 //! and one that leaves the callers behind.
 
@@ -69,8 +69,6 @@ fn references(index: &Index, id: SymbolId) -> Vec<(String, Confidence)> {
     out.sort();
     out
 }
-
-// -------------------------------------------------------------------- Zig
 
 #[test]
 fn a_zig_call_through_an_import_binding_resolves_into_that_file() {
@@ -154,8 +152,6 @@ fn a_zig_call_through_a_value_is_not_a_call_through_an_import() {
     );
 }
 
-// ------------------------------------------------------------------- Java
-
 #[test]
 fn a_java_static_call_resolves_to_the_class_it_names() {
     let (_tmp, root) = workspace(&[
@@ -232,8 +228,6 @@ fn one_design_written_in_two_languages_keeps_its_calls_apart() {
         );
     }
 }
-
-// --------------------------------------------------------------------- Go
 
 #[test]
 fn a_go_call_into_another_package_resolves_there() {

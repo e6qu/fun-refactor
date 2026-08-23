@@ -18,14 +18,12 @@
 ; definition of a class: `.btn { }` written twice declares the same class twice,
 ; and renaming it must rewrite all of them.
 
-; ---------------------------------------------------------------- scopes
 ; CSS scoping is not lexical, but block structure is what nests declarations
 ; inside rules, media queries and keyframes, so it is the useful scope tree.
 (stylesheet) @scope
 (block) @scope
 (keyframe_block_list) @scope
 
-; ------------------------------------------------------------ definitions
 ; Class selectors. `class_name` is also used by the grammar for pseudo-classes
 ; (`:hover`, `:root`), so the pattern is anchored on `class_selector` to keep
 ; pseudo-classes out of the symbol table.
@@ -53,7 +51,6 @@
 (namespace_statement
   (namespace_name) @name) @definition.module
 
-; ------------------------------------------------------------- references
 ; `var(--brand-color)` and `var(--brand-color, fallback)`: only arguments spelled
 ; like a custom property are references; the fallback value is not.
 (call_expression
@@ -76,7 +73,6 @@
   .
   (tag_name) @reference.identifier)
 
-; ---------------------------------------------------------------- imports
 ; `@import "other.css";` — the engine strips the quotes from an import path.
 (import_statement
   (string_value) @import.path) @import

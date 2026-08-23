@@ -5,7 +5,6 @@ import * as z from "zod"
 import { db } from "@/lib/db"
 import { statusUpdateSchema } from "@/lib/schemas"
 
-/** Set a pet's adoption status. The whole resource is replaced, so this is a PUT. */
 export async function PUT(req: NextRequest, context: { params: { petId: string } }) {
   try {
     const json = await req.json()

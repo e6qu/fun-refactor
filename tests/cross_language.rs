@@ -228,7 +228,6 @@ fn cross_language_edits_survive_reparse_validation() {
     let _ = Path::new(tmp.path());
 }
 
-// ----------------------------------------------- which boundaries may be crossed
 //
 // Resolution matches candidates by name across the whole workspace. Until the
 // language table existed it did so without asking what language a candidate was
@@ -336,19 +335,14 @@ fn the_boundaries_that_are_real_still_resolve() {
     );
 }
 
-/// B14: a class named inside a helper call or a template literal is reported. It is not lost.
+/// A class reaches the markup three ways, and a rename rewrites all three.
 ///
-/// Only a plain string attribute value is captured, so `cx("btn", …)` and `` `btn ${size}` ``
-/// do not resolve to the CSS selector. Resolving them means teaching the queries which call
-/// arguments are class lists, which is a per-library convention (`clsx`, `cx`, `classnames`,
-/// `cva`) instead of a language rule.
-///
-/// What this pins is the part that makes the gap survivable: a rename rewrites what it resolved
-/// and reports every occurrence it did not. So the result is incomplete and not silently
-/// wrong. It is here so that a change making it silent is a failure, and so that resolving
-/// these one day fails a test naming the entry to retire.
+/// `className="btn"` is the plain case. `cx("btn", …)` hands the name to a class-list helper,
+/// and `` `btn ${size}` `` builds the list in a template literal. The helper libraries agree
+/// on the shape of the call even where they disagree on its name, and the literal parts of a
+/// template are as fixed as any attribute value.
 #[test]
-fn a_class_in_a_tsx_helper_call_is_reported_rather_than_rewritten() {
+fn a_class_is_renamed_through_a_helper_call_and_a_template_literal() {
     let (_tmp, index) = workspace(&[
         ("styles.css", ".btn { color: red; }\n.on { color: blue; }\n"),
         (
@@ -373,17 +367,19 @@ fn a_class_in_a_tsx_helper_call_is_reported_rather_than_rewritten() {
         .paths()
         .filter_map(|p| plan.edits.edits_for(p).map(|e| e.len()))
         .sum::<usize>();
-    assert_eq!(resolved, 2, "the declaration and the plain attribute");
+    assert_eq!(
+        resolved, 4,
+        "the declaration, the attribute, the helper call and the template literal"
+    );
 
     let reported: Vec<_> = plan
         .warnings
         .iter()
         .filter(|w| w.file.extension().is_some_and(|e| e == "tsx"))
         .collect();
-    assert_eq!(
-        reported.len(),
-        2,
-        "the helper call and the template literal are each reported: {reported:#?}"
+    assert!(
+        reported.is_empty(),
+        "every occurrence is rewritten, so none is reported: {reported:#?}"
     );
 }
 

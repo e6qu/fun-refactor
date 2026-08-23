@@ -1,10 +1,10 @@
 //! SCSS `#{ ... }`, which the grammar cannot read and the mask hands back.
 //!
 //! `tree-sitter-scss` 1.0 has no rule for interpolation in a declaration value. What makes it
-//! expensive is not the missing rule but the recovery: the ERROR node covers the rest of the
-//! file. So one interpolated value costs every fact below it. Filling the braces with an
-//! identifier keeps the declaration well formed, and the references written inside them are
-//! read back from the source afterwards.
+//! expensive part is the recovery: the ERROR node covers the rest of the file. So one
+//! interpolated value costs every fact below it. Filling the braces with an identifier keeps
+//! the declaration well formed, and the references written inside them are read back from the
+//! source afterwards.
 //!
 //! Measured over `twbs/bootstrap`, 99 stylesheets: 73 files failed to parse and now 59 do,
 //! symbols went 1916 to 2826, references 3839 to 6277. No file lost a reference it had before.

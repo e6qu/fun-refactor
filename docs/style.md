@@ -94,6 +94,23 @@ grows. Add to it whatever gets caught in review.
 
 A comment says what the reader cannot see in the code.
 
+**Say it in the fewest words that still sound human.** Full sentences where a sentence
+is needed. No throat-clearing, no editorialising, no calling a thing clever or a shame.
+
+**Do not say what the code does.** The code says that. A comment gives the reason, the
+constraint, the unit, or the rule that the code alone cannot state.
+
+**Write for a reader who arrives today.** A comment is timeless. It describes the code
+as it stands, never the defect that led to it, never what an earlier version did, never
+what somebody once tried. `BUGS.md` holds defects and the git log holds changes.
+
+| Avoid | Write |
+| --- | --- |
+| The old behaviour added a dead import. | (delete: the rule above it already says what to do) |
+| Reading only the first turned X into Y, which is a wrong answer. | Read both, because X and Y mean opposite things. |
+| which is worse than declining the move | (delete, or state the consequence plainly) |
+| This used to refuse every Java call site. | (delete) |
+
 Delete a comment that repeats the code. `// increment the counter` above `count += 1`
 tells the reader nothing.
 

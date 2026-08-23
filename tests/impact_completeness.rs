@@ -77,8 +77,6 @@ fn raising_the_depth_finds_what_the_note_promised() {
     );
 }
 
-// ------------------------------------------------- the same sites the rename shows
-
 #[test]
 fn impact_accounts_for_every_site_a_rename_would_show() {
     // The tool suggests `fr impact` before a change, and `fr rename` is the change. An
@@ -147,8 +145,6 @@ fn impact_accounts_for_every_site_a_rename_would_show() {
         "the rename shows sites the impact never mentions: {missing:?}."
     );
 }
-
-// ------------------------------------------------- the same question of duplicates
 
 #[test]
 fn duplicates_names_the_threshold_it_searched_with() {

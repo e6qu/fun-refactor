@@ -9,8 +9,8 @@
 //! the answer is that nothing is known, distinct from `Any`.
 //!
 //! What counts as the type depends on the symbol. A binding has one. A callable has a
-//! signature, so that is what this reports for one: the parameter types the source wrote. A
-//! marker where it wrote none.
+//! signature, so this reports the parameter types the source wrote. A marker where it wrote
+//! none.
 
 use crate::index::Index;
 use crate::lang::Language;

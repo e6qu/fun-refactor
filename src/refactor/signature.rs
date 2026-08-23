@@ -113,7 +113,7 @@ pub struct SignaturePlan {
 /// Refuse to remove a parameter the body still reads.
 ///
 /// `def f(a, b): return a + b` with `remove:1` produced `def f(a): return a + b`, which names
-/// something nothing supplies. The shell path has had this rule since it was written — "the
+/// something nothing supplies. The shell path has had this rule since it was written: "the
 /// body still reads $2, the parameter being removed". It was never true of anything else, which
 /// is the shape most of the defects in this tool have had. A rule that holds for the language
 /// it was written against.
@@ -1066,7 +1066,7 @@ fn call_expression<'a>(parsed: &'a Parsed, span: Span) -> Option<Node<'a>> {
                 "include_statement" | "method_invocation" | "object_creation_expression"
             )
         {
-            // The walk has to find the call this reference *names*, not one it merely sits
+            // The walk has to find the call this reference *names*, rather than one it sits
             // inside. A mention in an argument position, `render(Pet)`, walks up into a call
             // to something else entirely. Its arguments would then be reordered as though
             // they belonged to the mentioned symbol.
@@ -1129,7 +1129,6 @@ fn list_items(list: Node<'_>) -> Vec<Span> {
         .collect()
 }
 
-// -------------------------------------------------------- Bash functions
 //
 // `greet() { … }` declares no parameters, but a caller still observes a signature. The
 // positional parameters `$1`, `$2`, … the body reads. The words each call site passes. A change
@@ -1309,7 +1308,7 @@ fn shell_function(index: &Index, sym: &Symbol, change: Change) -> Result<Signatu
     // caller learns that the position they named exists nowhere.
     if edits.is_empty() {
         anyhow::bail!(
-            "the change leaves `{}` exactly as it was: no call site and no reference in \
+            "the change leaves `{}` as it was: no call site and no reference in \
              its body names that position.{}",
             sym.name,
             notes.iter().map(|n| format!("\n  {n}")).collect::<String>()
@@ -1899,8 +1898,6 @@ fn descendants(node: Node<'_>) -> Vec<Node<'_>> {
     }
     out
 }
-
-// ----------------------------------------------------- Terraform modules
 
 /// A `variable "x" { ... }` block declared in the target module's directory.
 #[derive(Debug)]
@@ -2548,8 +2545,6 @@ fn location(path: &Path, offset: usize) -> String {
         .unwrap_or(0);
     format!("{}:{line}", path.display())
 }
-
-// -------------------------------------------------------- HCL tree access
 
 /// The blocks directly under the file body. `variable` and `module` are only
 /// meaningful there, and a rewrite must not mistake a nested block for one.

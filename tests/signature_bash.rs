@@ -117,9 +117,7 @@ fn refusal(result: anyhow::Result<signature::SignaturePlan>) -> String {
     }
 }
 
-// ===========================================================================
 // Removing an argument.
-// ===========================================================================
 
 #[test]
 fn removes_a_middle_argument_and_renumbers_what_follows() {
@@ -230,9 +228,7 @@ fn notes_a_call_site_with_nothing_at_that_position() {
     );
 }
 
-// ===========================================================================
 // Moving and adding.
-// ===========================================================================
 
 #[test]
 fn moving_swaps_both_the_arguments_and_the_body_references() {
@@ -396,9 +392,7 @@ fn notes_a_call_that_cannot_be_reordered_for_want_of_positions() {
     );
 }
 
-// ===========================================================================
 // The numbering itself.
-// ===========================================================================
 
 #[test]
 fn braced_references_are_renumbered_in_place() {
@@ -474,9 +468,7 @@ fn notes_a_body_that_reads_the_parameter_count() {
     );
 }
 
-// ===========================================================================
 // The shapes no renumbering can follow.
-// ===========================================================================
 
 #[test]
 fn refuses_a_body_that_expands_the_whole_parameter_list() {
@@ -546,9 +538,7 @@ fn refuses_a_recursive_call_whose_argument_is_also_renumbered() {
     assert!(message.contains("rewritten twice"), "got: {message}");
 }
 
-// ===========================================================================
 // Call sites that are not one word per position.
-// ===========================================================================
 
 #[test]
 fn refuses_a_call_that_passes_dollar_at_before_the_position_changed() {
@@ -637,9 +627,7 @@ fn refuses_an_unquoted_command_substitution_at_a_position_being_changed() {
     );
 }
 
-// ===========================================================================
 // Which calls are calls at all.
-// ===========================================================================
 
 #[test]
 fn refuses_when_two_functions_share_the_name() {
@@ -729,9 +717,7 @@ fn refuses_a_symbol_that_is_not_a_function() {
     );
 }
 
-// ===========================================================================
 // The result.
-// ===========================================================================
 
 #[test]
 fn the_rewritten_workspace_still_resolves() {
@@ -783,10 +769,7 @@ fn refuses_a_change_that_would_rewrite_nothing() {
         symbol_id(&index, "f"),
         Change::Remove(4),
     ));
-    assert!(
-        message.contains("leaves `f` exactly as it was"),
-        "got: {message}"
-    );
+    assert!(message.contains("leaves `f` as it was"), "got: {message}");
     assert!(message.contains("position 4"), "got: {message}");
 }
 

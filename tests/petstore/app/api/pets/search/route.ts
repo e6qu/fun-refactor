@@ -5,13 +5,6 @@ import * as z from "zod"
 import { db } from "@/lib/db"
 import { petSearchSchema } from "@/lib/schemas"
 
-/**
- * Search, which is a POST because the query is a body.
- *
- * Not every endpoint is CRUD, and `search` is a *sibling* of `[petId]` in the tree —
- * so `/pets/search` and `/pets/{pet_id}` are two different URLs that a router has to
- * tell apart. The order they are declared in decides which one wins.
- */
 export async function POST(req: NextRequest) {
   try {
     const json = await req.json()

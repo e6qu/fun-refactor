@@ -96,9 +96,7 @@ fn error(result: Result<move_symbol::MovePlan, anyhow::Error>) -> String {
     }
 }
 
-// ===========================================================================
 // Rust, module paths derived from the file tree.
-// ===========================================================================
 
 /// A crate whose module tree is spelled out, which is the precondition Rust needs.
 fn rust_crate(files: &[(&str, &str)]) -> Workspace {
@@ -438,9 +436,7 @@ fn rust_refuses_a_move_between_crates() {
     assert!(message.contains("different crate roots"), "got: {message}");
 }
 
-// ===========================================================================
 // Go, a package is a directory.
-// ===========================================================================
 
 #[test]
 fn go_move_inside_one_package_changes_nothing_else() {
@@ -715,9 +711,7 @@ fn go_refuses_when_a_third_package_already_qualifies_the_name() {
     );
 }
 
-// ===========================================================================
 // HCL / Terraform, a module is a directory.
-// ===========================================================================
 
 #[test]
 fn hcl_resource_moves_between_files_of_one_module_with_no_other_change() {
@@ -875,9 +869,7 @@ fn hcl_refuses_to_move_a_block_nested_in_another_block() {
     );
 }
 
-// ===========================================================================
 // CSS, names are global, reachability is not.
-// ===========================================================================
 
 #[test]
 fn css_rule_moves_to_an_imported_partial_without_a_warning() {
@@ -983,9 +975,7 @@ fn css_refuses_to_move_a_custom_property_on_its_own() {
     assert!(message.contains("not a rule"), "got: {message}");
 }
 
-// ===========================================================================
 // Markdown, a section is a heading and what is under it.
-// ===========================================================================
 
 const GUIDE: &str = "\
 # Guide
@@ -1187,9 +1177,7 @@ fn markdown_refuses_to_move_something_that_is_not_a_section() {
     assert!(message.contains("not a heading"), "got: {message}");
 }
 
-// ===========================================================================
 // The languages that stay refused, and the ones that already worked.
-// ===========================================================================
 
 #[test]
 fn typescript_and_python_are_unchanged() {
@@ -1348,7 +1336,6 @@ fn movable_lists_what_each_language_can_move() {
     assert_eq!(markdown, ["One"]);
 }
 
-// -------------------------------------------------------------------------- What moves with
 // the code.
 //
 // A move that relocates the text and nothing else leaves a file that parses and does not

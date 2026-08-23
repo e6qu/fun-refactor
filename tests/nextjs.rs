@@ -300,8 +300,6 @@ fn the_destination_is_named_for_the_route() {
     assert_eq!(plan.edits.file_count(), 1);
 }
 
-// ------------------------------------------------------------ zod and OpenAPI
-
 const ZOD_ROUTE: &str = r#"import { NextResponse } from "next/server";
 import * as z from "zod";
 

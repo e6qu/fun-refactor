@@ -183,9 +183,7 @@ fn interchangeable(from: Language, to: Language) -> bool {
         )
 }
 
-// ---------------------------------------------------------------------------
 // TypeScript and Python: resolution follows relative paths.
-// ---------------------------------------------------------------------------
 
 /// A file that exports `sym`'s name onward from the file that declares it.
 fn re_exporting_files(index: &Index, sym: &Symbol) -> Vec<PathBuf> {
@@ -244,8 +242,7 @@ fn exports_anything_else(index: &Index, file: &Path, moved: SymbolId) -> bool {
 /// `export { width, Holder } from "./holder"` becomes `export { Holder } from "./holder"`
 /// followed by `export { width } from "./util"`. Repointing an export is not repointing an
 /// import: an import binds a name for the file that wrote it. An export hands the name onward
-/// to every file that reads through this one. Doing the second as though it were the first left
-/// the barrel naming a symbol the old file no longer has.
+/// to every file that reads through this one.
 ///
 /// Every file importing through the barrel keeps working and needs no edit, so the list that
 /// gains an import leaves them out.
@@ -473,10 +470,7 @@ fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> R
             continue;
         }
         // A reference inside the moved span travels with it. `Counter.STEP` written in
-        // `Counter`'s own method is no use left behind. Counting it as one had the
-        // source importing a name it no longer mentions.
-        // Where the moved code also needs something the source keeps, the two phantom
-        // imports read as a cycle and the move was refused for it.
+        // `Counter`'s own method is no use left behind.
         if reference.file == sym.file && removal.contains(reference.span) {
             continue;
         }
@@ -543,8 +537,7 @@ fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> R
     );
 
     // The destination may already have been importing it from here. It is local now, so that
-    // import points at a file which no longer defines the name. The file fails on the line that
-    // used to make it work. Nothing was adding this import, so nothing was removing it either.
+    // import points at a file which no longer defines the name.
     if let Some(edit) = drop_local_import(index, destination, &sym.file, &sym.name)? {
         plan.edits.add(destination.to_path_buf(), edit);
     }
@@ -558,11 +551,9 @@ fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> R
             plan.imports_added.push(file.clone());
             continue;
         }
-        // `import mod` and `mod.foo()` reach the symbol through the module, and
-        // there is no named import to repoint. The receivers rewrite to the new
-        // module and the file imports it. The old behaviour added a dead named
-        // import, and every call kept dereferencing the module that no longer
-        // holds the name.
+        // `import mod` and `mod.foo()` reach the symbol through the module, and there is no
+        // named import to repoint. The receivers rewrite to the new module and the file
+        // imports it.
         if repoint_module_attribute_uses(index, file, sym, destination, &mut plan.edits)? {
             plan.imports_added.push(file.clone());
             continue;
@@ -975,11 +966,10 @@ fn back_import(language: Language, from: &Path, to: &Path, names: &[String]) -> 
 /// Make a symbol visible outside its file, if the language says so and it is not
 /// already.
 ///
-/// The edit rewrites the declaration's first word instead of inserting `export`
-/// ahead of it. An insertion has no width, and a file whose first line is the
-/// declaration would put it at the same offset as the new import, two zero-width
-/// edits at one position, whose order decides whether the result reads
-/// `import …` then `export function`, or the nonsense `export import …`.
+/// The edit rewrites the declaration's first word instead of inserting `export` ahead of it.
+/// An insertion has no width. Where the declaration is the first line, it lands at the same
+/// offset as the new import, and the order of two zero-width edits at one position decides
+/// whether the result reads `import …` then `export function`, or `export import …`.
 fn export_edit(language: Language, file: &Path, symbol: &Symbol) -> Option<Edit> {
     if !matches!(language, Language::TypeScript | Language::Tsx) {
         return None;
@@ -1424,9 +1414,7 @@ fn after_the_prologue(source: &str) -> usize {
     offset
 }
 
-// ---------------------------------------------------------------------------
 // Rust: resolution follows module paths.
-// ---------------------------------------------------------------------------
 
 /// A Rust file's position in a crate. This holds the `src` directory it lives under and the
 /// module path from the crate root, which is empty for the root itself.
@@ -1658,9 +1646,8 @@ fn move_rust(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
 
 /// Where a Rust file sits in its crate.
 ///
-/// Refuses instead of guessing: a wrong `use` path produces a file that does not
-/// compile, which is worse than declining the move.
-/// How `file` can name `to_module` in a `use`, or `None` if it cannot be worked out.
+/// Refuses instead of guessing, because a wrong `use` path produces a file that does not
+/// compile. How `file` can name `to_module` in a `use`, or `None` if it cannot be worked out.
 ///
 /// Inside the crate that is `crate::…`. Outside it, an integration test, an example, a
 /// benchmark, the library is a dependency named by its package, so the same module is
@@ -2077,9 +2064,7 @@ fn with_rust_attributes(source: &str, span: Span) -> Span {
     Span::new(start, span.end)
 }
 
-// ---------------------------------------------------------------------------
 // Go: a package is a directory.
-// ---------------------------------------------------------------------------
 
 fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
     if sym.container.is_some() {
@@ -2635,9 +2620,7 @@ fn with_go_doc_comment(source: &str, span: Span) -> Span {
     Span::new(start, span.end)
 }
 
-// ---------------------------------------------------------------------------
 // HCL / Terraform: a module is a directory.
-// ---------------------------------------------------------------------------
 
 fn move_hcl(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
     let source_dir = sym.file.parent();
@@ -2760,9 +2743,7 @@ fn locals_block_in(index: &Index, file: &Path) -> Option<Span> {
         .next_back()
 }
 
-// ---------------------------------------------------------------------------
 // CSS: names are global; reachability is what breaks.
-// ---------------------------------------------------------------------------
 
 fn move_css(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
     if sym.kind == SymbolKind::Property {
@@ -2794,8 +2775,8 @@ fn move_css(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan>
         format!("move the {} rule in", sym.name),
     );
 
-    // Nothing to repoint: a CSS name is global. What can silently break is whether the
-    // destination is loaded at all where the rule used to apply.
+    // Nothing to repoint: a CSS name is global. What can break is whether the destination is
+    // loaded where the rule applies.
     if !imports_reach(index, &sym.file, destination) {
         plan.warnings.push(format!(
             "{} does not reach {} through any @import, so the rules moved there will \
@@ -2812,10 +2793,9 @@ fn move_css(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan>
 
 /// Widen a selector to the rule it heads.
 ///
-/// A selector is its own symbol. That is what a rename rewrites, but what a move
-/// carries is the whole rule. A rule with several selectors is refused: taking one
-/// selector elsewhere means duplicating the declaration block, which is a different
-/// edit with different consequences.
+/// A selector is its own symbol, and a rename rewrites it. A move carries the whole rule. A
+/// rule with several selectors is refused: taking one selector elsewhere means duplicating
+/// the declaration block, which is a different edit with different consequences.
 fn widen_to_rule(source: &str, sym: &Symbol) -> Result<Span> {
     let parsed = crate::parse::Parsers::new().parse(sym.language, source)?;
     let Some(node) = parsed
@@ -2909,9 +2889,7 @@ fn imports_reach(index: &Index, origin: &Path, target: &Path) -> bool {
     false
 }
 
-// ---------------------------------------------------------------------------
 // Markdown: a section is a heading and everything under it.
-// ---------------------------------------------------------------------------
 
 fn move_markdown(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
     if sym.kind != SymbolKind::Heading {
@@ -3237,9 +3215,7 @@ fn relative_link(from_dir: &Path, to: &Path) -> Option<String> {
     }
 }
 
-// ---------------------------------------------------------------------------
 // Zig: a file is a namespace, reached through `@import`.
-// ---------------------------------------------------------------------------
 
 fn move_zig(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
     if sym.container.is_some() {
@@ -3472,8 +3448,8 @@ fn zig_top_level<'a>(index: &'a Index, file: &Path) -> Vec<&'a Symbol> {
         .collect()
 }
 
-/// The local name `file` binds the `@import` of `target` to, if it has one.
-/// The `namespace.` in front of a use of a name, where that is what is written.
+/// The local name `file` binds the `@import` of `target` to, if it has one. The `namespace.`
+/// in front of a use of a name, where the source spells it that way.
 ///
 /// Returns the bytes from the namespace to the member, so removing them leaves the bare
 /// name behind. Nothing is returned where the use carries no namespace, or carries a
@@ -3609,9 +3585,7 @@ fn zig_import_insertion_point(source: &str) -> usize {
     point
 }
 
-// ---------------------------------------------------------------------------
 // Bash: there is no import, only `source`.
-// ---------------------------------------------------------------------------
 
 fn move_bash(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
     use super::signature::{shell_reaches, shell_source_graph};
@@ -3809,9 +3783,7 @@ fn shell_prelude_end(source: &str) -> usize {
     point
 }
 
-// ---------------------------------------------------------------------------
 // YAML and Helm: a values key is addressed by its path, which names no file.
-// ---------------------------------------------------------------------------
 
 fn move_values_key(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
     if sym.kind != SymbolKind::Key {
@@ -3974,9 +3946,7 @@ fn with_yaml_comment(source: &str, span: Span) -> Span {
     Span::new(start, span.end)
 }
 
-// ---------------------------------------------------------------------------
 // Shared machinery.
-// ---------------------------------------------------------------------------
 
 /// Take the whole line(s) a definition sits on. So the moved text carries its own formatting
 /// and the hole left behind does not become a stray blank line.
@@ -4323,8 +4293,7 @@ pub fn movable(index: &Index, file: &Path) -> Vec<SymbolId> {
         .iter()
         .filter_map(|id| index.symbol(*id))
         .filter(|s| match s.language {
-            // Nothing, because `move` refuses for Java: offering a symbol the
-            // operation will then decline is worse than an empty list.
+            // Nothing, because `move` refuses for Java. An empty list is the honest answer.
             Language::Java => false,
             Language::TypeScript | Language::Tsx | Language::Python => {
                 s.container.is_none()

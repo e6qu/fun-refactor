@@ -119,8 +119,6 @@ fn unittest_fixtures_are_entry_points() {
     }
 }
 
-// ------------------------------------------------ and the same case in TypeScript
-
 #[test]
 fn a_next_js_server_action_is_an_entry_point() {
     // A `"use server"` file exports functions the framework makes reachable over the
@@ -398,9 +396,9 @@ fn a_rule_that_cannot_mean_anything_is_rejected_when_it_loads() {
 
 /// A parameter of an annotated method is not itself an entry point.
 ///
-/// It sits inside the declaration's argument list, so the walk up to the annotation
-/// passes through the method's own text. `@KafkaListener` marks `consume` as a queue
-/// consumer; `payload` is what the queue hands it.
+/// It sits inside the declaration's argument list, so the walk up to the annotation passes
+/// through the method's own text. `@KafkaListener` marks `consume` as a queue consumer; the
+/// queue hands it `payload`.
 #[test]
 fn a_parameter_does_not_carry_its_method_s_annotation() {
     let found = entry_kinds(&[
@@ -559,7 +557,7 @@ fn a_kind_or_an_export_is_a_condition_by_itself() {
 ///
 /// `test "any prose you like" { … }` makes the description the symbol's name. So a rule asking
 /// for `name_prefix: test` matches only the tests whose description happens to begin with
-/// "test" — 12 of the 495 in Zig's own standard library. The other 483 were reported as dead
+/// "test", 12 of the 495 in Zig's own standard library. The other 483 were reported as dead
 /// code, and so was anything only they called.
 #[test]
 fn a_zig_test_block_is_an_entry_point_whatever_it_is_called() {

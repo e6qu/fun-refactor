@@ -200,7 +200,6 @@ fn a_realistic_stylesheet_parses_cleanly() {
     assert_eq!(selectors, ["card", "g", "hidden"]);
 }
 
-// ------------------------------------------------------------------ SCSS SCSS has its own
 // grammar. These tests hold the line in both directions: the Sass-only constructs parse. The
 // same source is still an error under CSS, the dialects are different languages, not one
 // language with a lenient mode.

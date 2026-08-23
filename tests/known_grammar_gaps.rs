@@ -34,7 +34,7 @@ fn python_cannot_read_a_starred_literal_in_a_bare_tuple() {
     ] {
         assert!(
             error_nodes(Language::Python, source) > 0,
-            "the grammar now reads `{}` — retire B233 if the tree is right",
+            "the grammar now reads `{}`, so retire B233 if the tree is right",
             source.trim()
         );
     }
@@ -164,7 +164,7 @@ fn scss_cannot_read_these_forms() {
     for (what, source) in cases {
         assert!(
             error_nodes(Language::Scss, source) > 0,
-            "{what} now parses — retire it from B11: {source}"
+            "{what} now parses, so retire it from B11: {source}"
         );
     }
 }
@@ -216,7 +216,7 @@ fn go_cannot_read_a_call_to_a_user_defined_new() {
                   func use() string {\n\treturn new(\"-10s\")\n}\n";
     assert!(
         error_nodes(Language::Go, source) > 0,
-        "a user-defined `new` now parses — retire B15"
+        "a user-defined `new` now parses, so retire B15"
     );
     // The shape either side of it: a call to anything else, and the builtin's own form.
     assert_eq!(
@@ -229,16 +229,24 @@ fn go_cannot_read_a_call_to_a_user_defined_new() {
     );
 }
 
-/// B133: `tree-sitter-zig` requires at least one member in a struct.
+/// A container with no members parses, in all four spellings Zig gives one.
 ///
-/// `const Foo = struct {};` is ordinary Zig. It is the only parse failure across 29
-/// files of Zig's own standard library.
+/// `grammars/zig` carries the patch. The published grammar takes `_container_members`
+/// where it should take `optional($._container_members)`, and rejects `struct {}`.
 #[test]
-fn zig_cannot_read_a_struct_with_no_members() {
-    assert!(
-        error_nodes(Language::Zig, "const Foo = struct {};\n") > 0,
-        "an empty struct now parses — retire B133"
-    );
+fn zig_reads_a_container_with_no_members() {
+    for source in [
+        "const Foo = struct {};\n",
+        "const E = enum {};\n",
+        "const U = union {};\n",
+        "const O = opaque {};\n",
+    ] {
+        assert_eq!(
+            error_nodes(Language::Zig, source),
+            0,
+            "an empty container is ordinary Zig: {source}"
+        );
+    }
     assert_eq!(
         error_nodes(Language::Zig, "const Bar = struct { x: i32 };\n"),
         0,

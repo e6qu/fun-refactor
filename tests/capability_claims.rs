@@ -369,8 +369,8 @@ fn drive(capability: Capability, language: Language, f: &Fixture) -> Outcome {
             Err(e) => Err(said(e)),
         },
         Capability::Translate => {
-            // Every target the matrix claims for this source, since one of them working
-            // is what the cell means.
+            // Every target the matrix claims for this source, because the cell means that one
+            // of them works.
             let mut last: Result<(), String> = Ok(());
             for target in Language::ALL {
                 if *target == language {

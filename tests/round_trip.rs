@@ -99,7 +99,7 @@ fn shape(ty: Option<&Type>) -> String {
             let inner: Vec<String> = parts.iter().map(|p| shape(Some(p))).collect();
             format!("tuple<{}>", inner.join(","))
         }
-        // A name this tool cannot write at all — a Python `str | Any`, a Rust closure,
+        // A name this tool cannot write at all, such as a Python `str | Any`, a Rust closure,
         // is replaced by a placeholder, which is a rename and the one exception this
         // check has to allow. The fidelity report is where that loss is stated.
         Some(Type::Named { name, .. }) if name.starts_with("Unwritable") => {
