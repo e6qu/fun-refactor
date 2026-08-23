@@ -21,15 +21,15 @@ it, and the provenance to check all three.
 
 ## zig
 
-`struct {}` is ordinary Zig, and `tree-sitter-zig` cannot read it. Its four container
-rules take `$._container_members`, which needs at least one member, while `source_file`
-takes `optional($._container_members)` and reads an empty file. The patch gives the four
-containers the same `optional`, so `struct {}`, `enum {}`, `union {}` and `opaque {}`
-parse as the empty containers they are.
+`struct {}` is ordinary Zig. The four container rules take `$._container_members`, which
+needs at least one member, while `source_file` takes `optional($._container_members)` and
+reads an empty file. Given `struct {}` the published grammar reports no error and returns
+a `container_field` whose name is zero bytes long: a member no line of the file declares.
+The patch gives the four containers the same `optional`, so `struct {}`, `enum {}`,
+`union {}` and `opaque {}` come back as the empty containers they are.
 
-Checked against `zls`'s `DocumentStore.zig` and `offsets.zig` and this repository's own
-sample: 14,463 nodes, and the patched parser returns the same tree as the stock one for
-every byte of it.
+Checked over `zls`, 77 files and 231,518 nodes: the patched parser returns the same tree
+as the stock one everywhere, and the phantom field is the only thing that goes.
 
 ## python
 
@@ -39,5 +39,61 @@ parsed only when it was a name, because the grammar reads that position as a pat
 default, so `type A[T = int] = float` failed, which PEP 696 added in Python 3.13.
 
 `expression_list` now takes the choice Python's own star_expressions has, and each type
-parameter takes an optional `= type`. Checked over 102 files and 50,399 nodes: the
-patched parser returns the same tree as the stock one everywhere the stock one parses.
+parameter takes an optional `= type`. Checked over `psf/requests` and `pallets/flask`,
+119 files and 136,341 nodes: the patched parser returns the same tree as the stock one
+everywhere the stock one parses.
+
+## go
+
+`new` and `make` are predeclared identifiers in Go, not keywords, so a package may define
+a function called `new` and call it. `tree-sitter-go` gives the name one argument list,
+the special one whose first argument is a type, so `new("-10s")` and `new(err.Error())`
+are error nodes. They account for 177 of the 178 Go files that fail to parse in
+`grafana/grafana`.
+
+The patch lets either argument list follow the name, and gives the one taking a type the
+higher dynamic precedence, so every call the stock parser reads keeps the tree it had.
+Checked against `spf13/cobra`, `gin-gonic/gin`, `sirupsen/logrus` and the grammar's own
+examples: 181 files, 281,884 nodes, identical trees. The grammar's own corpus passes
+whole, 67 of 67.
+
+## typescript
+
+Two forms of ordinary TypeScript failed. An import type, `import("@babel/types").Statement`,
+was a whole `type` and nothing smaller, so it took no `[]` and no type arguments. And a
+member called `in` ended the interface it sat in, because the scanner never ends a line
+before `in`, which is an operator in an expression. Both were found in `vuejs/core`.
+
+The import-type forms move to `primary_type`, which is what an array type and a generic
+type are built from, and `generic_type` takes one as a name. In a type there is no `in`
+and no `instanceof` operator, so a line opening with either ends the member before it;
+an identifier that merely begins with one, `in2`, ends it in an expression too, which the
+published scanner also got wrong.
+
+Checked against `vuejs/core` and `excalidraw/excalidraw`: 476 TypeScript files and 199
+TSX files, 812,690 nodes, and the patched parser returns the same tree as the stock one
+everywhere the stock one parses. Two files it reads that the stock one cannot, which are
+the two the entries came from. Both grammars' own corpus passes, 49 of 49.
+
+## scss
+
+The published grammar failed on 203 of the 276 stylesheets in `twbs/bootstrap` and
+`jgthms/bulma`; the patched one fails on none. Its gaps ran from `$m: (a: 1)` and
+`!default` to `@use "x" as t`, so the patch is wide. Three parts of it are worth naming.
+
+A colon opens a pseudo class when a `{` follows before the statement ends, and the
+scanner took the brace of an interpolation for that one, so `color: #{$v}` read as a
+selector. It now reads past an interpolation, and `plain_value` stops before one.
+
+A map is told from a list by a colon of the bracket's own, which is further ahead than
+any rule can see. The scanner looks for it and hands the parser a different bracket,
+which is the lookahead Sass itself does. It offers that bracket only where whitespace
+precedes the `(`, because a bracket flush against a name is a call's.
+
+`%` is a unit glued to a number and the modulo operator when it stands apart, and `-` is
+a sign glued to a variable and subtraction when it stands apart. Both are rules about
+spacing, so both belong to the token and not to the grammar around it.
+
+Checked over the 73 files the published grammar reads cleanly, 5,068 nodes: one tree
+differs, `$return: ()`, where the published grammar invents a zero-width `integer_value`
+inside a `parenthesized_value` and this one reads the empty list that is written.

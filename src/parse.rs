@@ -35,15 +35,17 @@ impl Parsers {
             #[cfg(feature = "lang-rust")]
             Language::Rust => Some(tree_sitter_rust::LANGUAGE.into()),
             #[cfg(feature = "lang-go")]
-            Language::Go => Some(tree_sitter_go::LANGUAGE.into()),
+            Language::Go => Some(fun_refactor_go_grammar::LANGUAGE.into()),
             #[cfg(feature = "lang-java")]
             Language::Java => Some(tree_sitter_java::LANGUAGE.into()),
             #[cfg(feature = "lang-zig")]
             Language::Zig => Some(fun_refactor_zig_grammar::LANGUAGE.into()),
             #[cfg(feature = "lang-typescript")]
-            Language::TypeScript => Some(tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into()),
+            Language::TypeScript => {
+                Some(fun_refactor_typescript_grammar::LANGUAGE_TYPESCRIPT.into())
+            }
             #[cfg(feature = "lang-typescript")]
-            Language::Tsx => Some(tree_sitter_typescript::LANGUAGE_TSX.into()),
+            Language::Tsx => Some(fun_refactor_typescript_grammar::LANGUAGE_TSX.into()),
             #[cfg(feature = "lang-python")]
             Language::Python => Some(fun_refactor_python_grammar::LANGUAGE.into()),
             #[cfg(feature = "lang-bash")]
@@ -54,7 +56,7 @@ impl Parsers {
             Language::Css => Some(tree_sitter_css::LANGUAGE.into()),
             // SCSS is a superset of CSS, and its own grammar knows the extra half.
             #[cfg(feature = "lang-scss")]
-            Language::Scss => Some(tree_sitter_scss::language()),
+            Language::Scss => Some(fun_refactor_scss_grammar::LANGUAGE.into()),
             #[cfg(feature = "lang-hcl")]
             Language::Hcl => Some(tree_sitter_hcl::LANGUAGE.into()),
             #[cfg(feature = "lang-yaml")]
@@ -104,23 +106,13 @@ impl Parsers {
             .set_language(&grammar)
             .with_context(|| format!("loading {lang} grammar"))?;
 
-        // Two languages need masking before the parse. Both replace bytes with the same
-        // number of bytes, so every offset in the tree still indexes the original source.
+        // Helm templates are not valid YAML, so the actions are masked before the parse.
+        // The mask replaces bytes with the same number of bytes, so every offset in the
+        // tree still indexes the original source.
         let (parse_input, masked_spans) = match lang {
-            // Helm templates are not valid YAML.
             Language::Helm => {
                 let actions = find_template_actions(source);
                 (mask_spans(source, &actions), actions)
-            }
-            // `tree-sitter-scss` 1.0 has no rule for `#{...}` in a declaration value. The ERROR
-            // node it produces is not the expression: it runs to the end of the file. So one
-            // interpolated value costs every fact below it. An identifier in its place leaves
-            // the declaration well formed. What the filler then hides, the variables and calls
-            // written inside the braces, is put back by `interpolation_references`. So the
-            // parse is the only thing that changes.
-            Language::Scss => {
-                let spans = find_scss_interpolations(source);
-                (fill_spans(source, &spans, b'x'), spans)
             }
             _ => (source.to_string(), Vec::new()),
         };
@@ -390,58 +382,6 @@ fn innermost_error_span(root: Node<'_>) -> Span {
             None => return Span::from(node),
         }
     }
-}
-
-/// Locate SCSS interpolations `#{ ... }`.
-///
-/// Braces nest, `#{map-get($m, #{$k})}` is one interpolation, so the scan counts them
-/// instead of stopping at the first `}`.
-fn find_scss_interpolations(source: &str) -> Vec<Span> {
-    let bytes = source.as_bytes();
-    let mut spans = Vec::new();
-    let mut i = 0;
-    while i + 1 < bytes.len() {
-        if bytes[i] != b'#' || bytes[i + 1] != b'{' {
-            i += 1;
-            continue;
-        }
-        let mut depth = 0usize;
-        let mut end = i + 1;
-        while end < bytes.len() {
-            match bytes[end] {
-                b'{' => depth += 1,
-                b'}' => {
-                    depth -= 1;
-                    if depth == 0 {
-                        break;
-                    }
-                }
-                _ => {}
-            }
-            end += 1;
-        }
-        // An unterminated `#{` is a syntax error in the file itself. Leaving it alone
-        // lets the grammar say so instead of masking the evidence.
-        if end == bytes.len() {
-            break;
-        }
-        spans.push(Span::new(i, end + 1));
-        i = end + 1;
-    }
-    spans
-}
-
-/// Replace every byte of each span with `filler`, keeping newlines so line numbers hold.
-fn fill_spans(source: &str, spans: &[Span], filler: u8) -> String {
-    let mut out = source.as_bytes().to_vec();
-    for span in spans {
-        for byte in &mut out[span.start..span.end] {
-            if *byte != b'\n' {
-                *byte = filler;
-            }
-        }
-    }
-    String::from_utf8(out).expect("filling with ASCII preserves UTF-8 validity")
 }
 
 /// Locate Go template actions `{{ ... }}`, tolerating `{{- -}}` trim markers.

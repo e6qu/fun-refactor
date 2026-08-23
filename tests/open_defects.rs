@@ -44,11 +44,11 @@ fn symbol(index: &Index, name: &str) -> SymbolId {
 }
 
 #[test]
-fn dispatch_is_followed_as_far_as_the_source_declares_it() {
+fn dispatch_is_followed_as_far_as_the_source_shows_it() {
     // B5. A call through a trait object resolves to no implementation, so reachability fans it
-    // out to every type that declares itself an implementation. What is left is undecidable and
-    // not unimplemented: a function held in a struct field and called through it is declared a
-    // method of nothing. So there is no method set to look it up in.
+    // out to every type that declares itself an implementation. A call through a field reaches
+    // whatever function the source puts behind that field. What is left is a function nothing
+    // names: assembled at runtime, or supplied by a caller this workspace does not hold.
     let (_tmp, root) = workspace(&[
         (
             "a.rs",
@@ -60,7 +60,14 @@ fn dispatch_is_followed_as_far_as_the_source_declares_it() {
             "b.rs",
             "pub struct Held {\n    pub run: fn() -> f64,\n}\n\
              pub fn go(h: &Held) -> f64 {\n    (h.run)()\n}\n\
-             pub fn candidate() -> f64 {\n    2.0\n}\n",
+             pub fn candidate() -> f64 {\n    2.0\n}\n\
+             pub fn make() -> Held {\n    Held { run: candidate }\n}\n",
+        ),
+        (
+            "c.rs",
+            "pub struct Table {\n    pub perform: fn() -> f64,\n}\n\
+             pub fn dispatch(t: &Table) -> f64 {\n    (t.perform)()\n}\n\
+             pub fn unnamed() -> f64 {\n    3.0\n}\n",
         ),
     ]);
     let index = index_of(&root);
@@ -77,11 +84,32 @@ fn dispatch_is_followed_as_far_as_the_source_declares_it() {
         "the implementation is reached through the trait, so it is not dead: {dead:?}"
     );
     assert!(
-        dead.contains(&"candidate"),
-        "B5's remaining half is a function reached only through a struct field, and it is \
-         still listed. If it no longer is, update the entry: {dead:?}"
+        !dead.contains(&"candidate"),
+        "the source puts `candidate` behind `run`, and `go` calls `run`: {dead:?}"
+    );
+    assert!(
+        dead.contains(&"unnamed"),
+        "B5's remaining half is a function the source never names, and it is still listed. \
+         If it no longer is, update the entry: {dead:?}"
+    );
+
+    // And the edge itself, which is what `fr callees` prints. It is a candidate and not a
+    // resolved call, because which function sits behind the field is settled at run time.
+    let graph = fun_refactor::analysis::call_graph::CallGraph::build(&index);
+    let go = symbol(&index, "go");
+    let candidate = symbol(&index, "candidate");
+    let reached: Vec<SymbolId> = graph.callees(go).into_iter().map(|(id, _)| id).collect();
+    assert!(
+        reached.contains(&candidate),
+        "`go` reaches `candidate` through the field: {reached:?}"
+    );
+    assert_eq!(
+        graph.origin_breakdown().get("function-value").copied(),
+        Some(1),
+        "and the edge says where it came from"
     );
 }
+
 #[test]
 fn a_values_answer_names_the_channel_it_was_never_told_about() {
     // B13. Given some of the inputs and not others, the competition is decided *given the
@@ -97,7 +125,7 @@ fn a_values_answer_names_the_channel_it_was_never_told_about() {
     ]);
     let index = index_of(&root);
     let key = symbol(&index, "replicas");
-    use fun_refactor::analysis::provenance::{self, ValuesInputs};
+    use fun_refactor::analysis::provenance::{self, SetFlags, ValuesInputs};
 
     // The report says this in its stops: a channel outside the workspace that could
     // pre-empt every source listed is a stop, and so is a competition the supplied inputs
@@ -111,7 +139,7 @@ fn a_values_answer_names_the_channel_it_was_never_told_about() {
             .join(" | ")
     };
 
-    let nothing_supplied = ValuesInputs::parse(&[], &[], &[]).expect("no inputs");
+    let nothing_supplied = ValuesInputs::parse(&[], SetFlags::default()).expect("no inputs");
     let without =
         provenance::provenance_with_inputs(&index, key, 5, &nothing_supplied).expect("a report");
     assert!(
@@ -121,7 +149,7 @@ fn a_values_answer_names_the_channel_it_was_never_told_about() {
     );
 
     let some_supplied =
-        ValuesInputs::parse(&[], &["replicas=3".to_string()], &[]).expect("one --set");
+        ValuesInputs::parse(&[], SetFlags::of(&["replicas=3".to_string()])).expect("one --set");
     let with =
         provenance::provenance_with_inputs(&index, key, 5, &some_supplied).expect("a report");
     assert!(
@@ -129,4 +157,32 @@ fn a_values_answer_names_the_channel_it_was_never_told_about() {
         "with some inputs the answer is decided given them, and names what is missing: {}",
         said(&with)
     );
+}
+
+#[test]
+fn a_call_through_a_name_reaches_every_function_put_behind_that_name() {
+    // The edge is keyed by the name, and two types may hold a field of the same name.
+    // So a call through `run` reaches both functions assigned to a `run` anywhere. That
+    // is unsound by design, in the same way class-hierarchy fan-out is. The edge carries
+    // the label that says so, and does not pass itself off as resolved.
+    let (_tmp, root) = workspace(&[(
+        "a.rs",
+        "pub struct A {\n    pub run: fn() -> f64,\n}\npub struct B {\n    pub run: fn() -> f64,\n}\n         pub fn one() -> f64 {\n    1.0\n}\npub fn two() -> f64 {\n    2.0\n}\n         pub fn build() -> (A, B) {\n    (A { run: one }, B { run: two })\n}\n         pub fn call(a: &A) -> f64 {\n    (a.run)()\n}\n",
+    )]);
+    let index = index_of(&root);
+    let graph = fun_refactor::analysis::call_graph::CallGraph::build(&index);
+    let reached: Vec<SymbolId> = graph
+        .callees(symbol(&index, "call"))
+        .into_iter()
+        .map(|(id, _)| id)
+        .collect();
+    assert!(reached.contains(&symbol(&index, "one")), "{reached:?}");
+    assert!(
+        reached.contains(&symbol(&index, "two")),
+        "the other `run` is reached too, and the label says the edge is a candidate: {reached:?}"
+    );
+    for (_, edge) in graph.callees(symbol(&index, "call")) {
+        assert_eq!(edge.origin.as_str(), "function-value");
+        assert!(edge.origin.is_dispatch(), "not a resolved call");
+    }
 }

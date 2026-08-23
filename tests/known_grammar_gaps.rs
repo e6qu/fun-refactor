@@ -1,11 +1,15 @@
-//! Valid source the grammars cannot read.
+//! Source the published grammars read wrongly, and what this build does with it.
 //!
-//! Each of these is accepted by the language's own reference implementation and produces an
-//! error node here. They are recorded and not worked around, and they are pinned and not
-//! written down, for two reasons pointing opposite ways. A grammar upgrade that fixes one
-//! should be noticed and the entry retired. A grammar that starts reading one of these
-//! *without* an error node while still building the wrong tree would be worse than the error, a
-//! wrong answer with nothing to say it is one.
+//! Every case below is accepted by the language's own reference implementation. The
+//! published grammar answered each one with an error node, or worse, with a plausible tree
+//! holding something the file does not say. `grammars/` carries a patched copy of five of
+//! them, and these are the forms those patches are for, pinned from both sides: the form
+//! that failed, and the neighbouring forms that always worked, so a fix that over-corrects
+//! fails here too.
+//!
+//! An error count is not always the assertion. Where the published grammar invented a
+//! node instead of reporting a gap, counting errors would pass before the fix and after
+//! it. The tree is what gets asserted there.
 //!
 //! Every case here has a BUGS.md entry. When a test fails, the entry is what to update.
 
@@ -79,31 +83,74 @@ fn python_reads_a_type_parameter_default() {
     }
 }
 
+/// An import type stands where any other type may.
+///
+/// The published grammar makes it a whole `type` and nothing smaller, so it takes no `[]`
+/// and no type arguments. `grammars/typescript` moves it to `primary_type`, which is what
+/// an array type and a generic type are built from.
 #[test]
-fn typescript_cannot_read_an_import_type() {
-    // B231.
-    assert!(
-        error_nodes(
-            Language::TypeScript,
-            "type A = { ast?: import(\"@babel/types\").Statement[] }\n"
-        ) > 0
-    );
+fn typescript_reads_an_import_type() {
+    for source in [
+        "type A = { ast?: import(\"@babel/types\").Statement[] }\n",
+        "type A = import(\"@babel/types\").Statement[]\n",
+        "type A = import(\"m\").S<number>\n",
+        "type A = import(\"m\").S.T[]\n",
+        "let x: import(\"m\").S.T\n",
+        "type A = import(\"m\").S | null\n",
+        "type A = typeof import(\"m\").x\n",
+    ] {
+        assert_eq!(
+            error_nodes(Language::TypeScript, source),
+            0,
+            "`{}` is ordinary TypeScript",
+            source.trim()
+        );
+    }
 }
 
+/// A member called `in` reads as a member, wherever it sits in the body.
+///
+/// `in` is an operator in an expression, so the published scanner never ends a line before
+/// it. A type has no such operator. `grammars/typescript` ends the member there, and
+/// leaves the operator alone where one can stand.
 #[test]
-fn typescript_cannot_read_a_property_called_in_after_another() {
-    // B232. Alone it is fine, which makes it worth pinning from both sides.
-    assert!(
-        error_nodes(
-            Language::TypeScript,
-            "interface G {\n  a?: string\n  in?: string\n}\n"
-        ) > 0
-    );
-    assert_eq!(
-        error_nodes(Language::TypeScript, "interface G {\n  in?: string\n}\n"),
-        0,
-        "`in` as the only member should read cleanly"
-    );
+fn typescript_reads_a_property_called_in() {
+    for source in [
+        "interface G {\n  a?: string\n  in?: string\n}\n",
+        "interface G {\n  in?: string\n}\n",
+        "interface G {\n  a?: string\n  in: string\n}\n",
+        "interface G {\n  a?: string\n  instanceof?: string\n}\n",
+        // The SVG filter attributes this was found in, in `vuejs/core`.
+        "interface G {\n  result?: string\n  in?: string\n  in2?: string\n}\n",
+    ] {
+        assert_eq!(
+            error_nodes(Language::TypeScript, source),
+            0,
+            "a member may be called `in`: {source}"
+        );
+    }
+}
+
+/// And the operator either side of it, which the same rule decides.
+#[test]
+fn typescript_reads_the_in_operator_across_a_line_break() {
+    for source in [
+        // The line break before `in` does not end the expression.
+        "function f(a: string, b: object) {\n  const y = a\n  in b ? 1 : 2\n}\n",
+        "function f(a: string, b: object) {\n  const y = a\n  instanceof Object ? 1 : 2\n}\n",
+        // An identifier that only begins with `in` is a new statement.
+        "function f() {\n  const x = 1\n  in2(x)\n}\n",
+        "function f() {\n  const x = 1\n  instanceofThing(x)\n}\n",
+        // A mapped type writes `in` as an operator of its own, inside brackets.
+        "type M<T> = { [K in keyof T]: string }\n",
+        "type M<T> = { [K\n  in keyof T]: string }\n",
+    ] {
+        assert_eq!(
+            error_nodes(Language::TypeScript, source),
+            0,
+            "`in` still reads as an operator where one can stand: {source}"
+        );
+    }
 }
 
 /// `.sass` maps to `Language::Scss`, and the indented syntax is not SCSS.
@@ -129,33 +176,108 @@ fn the_indented_sass_syntax_is_not_scss() {
     );
 }
 
-/// The SCSS forms behind B11, and what each one costs in `twbs/bootstrap`.
+/// The Sass the published grammar could not read.
 ///
-/// Interpolation in a declaration value is not here: `Parsers::parse` masks it, which
-/// is what tests/scss_interpolation.rs covers. The grammar still cannot read it. The
-/// rest produce error nodes that stay inside the construct, so the file around them
-/// still yields facts, masking them too was measured and recovered nothing.
+/// `grammars/scss` carries the patch. Every case here came from a stylesheet:
+/// `twbs/bootstrap` and `jgthms/bulma`, 276 files, of which the published grammar
+/// fails on 203 and this one on none.
 #[test]
-fn scss_cannot_read_these_forms() {
+fn scss_reads_these_forms() {
     let cases = [
+        // A declaration whose value holds an interpolation. The published grammar takes
+        // the colon for a pseudo class's, because it looks ahead for a brace and the
+        // interpolation has one.
+        ("interpolation in a value", ".a { color: #{$v}; }"),
+        ("interpolation in a custom property", ".a { --x: #{$v}; }"),
+        ("interpolation among values", ".a { width: 1px #{$v}; }"),
+        ("interpolation joined to a value", ".a { color: a#{$v}; }"),
         (
-            "empty parentheses on a declaration",
-            "@mixin m() { color: red; }",
+            "several values in an interpolation",
+            ".a { --x: #{transform 1s ease-in-out}; }",
         ),
+        // Argument lists, in every shape one is written.
+        ("empty parameters", "@mixin m() { color: red; }"),
         (
-            "empty parentheses on a call",
+            "empty arguments",
             "@mixin m { color: red; }\n.a { @include m(); }",
         ),
+        (
+            "variadic parameters",
+            "@mixin m($shadow...) { color: red; }",
+        ),
+        (
+            "a variadic argument",
+            "@mixin m($a...) { color: red; }\n.a { @include m($params...); }",
+        ),
+        (
+            "a variadic call argument",
+            "$m: map-merge($m, ($key: call(get-function($f), $args...)));",
+        ),
+        (
+            "a parameter default of several values",
+            "@mixin m($a, $b: 0 0 $x rgba($c, .5)) { color: red; }",
+        ),
+        (
+            "named arguments over lines",
+            ".a {\n  @include m(\n    $v,\n    $hover: shade($v, 1),\n  );\n}",
+        ),
+        (
+            "a space before the arguments",
+            ".a { @include m () { color: red; } }",
+        ),
+        // Conditions.
         (
             "`and` in an `@if`",
             "@if $a == 1 and $b == 2 { .a { color: red; } }",
         ),
+        (
+            "`or` in an `@if`",
+            "@if $a == 1 or $b == 2 { .a { color: red; } }",
+        ),
+        ("`not` in an `@if`", "@if not $a { .a { color: red; } }"),
+        ("`%` as the modulo operator", "$x: $l % 10;"),
+        // Maps and lists.
         ("a map literal", "$m: (a: 1, b: 2);"),
         ("a nested map literal", "$m: (a: (b: 1));"),
+        ("a map with a trailing comma", "$m: (a: 1, b: 2,);"),
+        ("a map without a space after the colon", "$m: (a:1, b:2);"),
+        (
+            "a map key built from an expression",
+            "$m: map-merge($m, (\"n\" + $key: (-$value)));",
+        ),
+        (
+            "several values in a map entry",
+            "$m: (\"a\": 0 0 $x rgba(1, 2, 3, .5), \"b\": 1);",
+        ),
+        ("an empty list", "$m: ();"),
+        ("a one-element list", "$v: if($x != list, ($v,), $v);"),
+        (
+            "a list of runs",
+            "$m: (\"s\": (0 1px 2px red, 0 0 0 1px blue));",
+        ),
+        // Flags.
         ("`!default`", "$x: 1rem !default;"),
+        ("`!global`", ".a { $x: 1 !global; }"),
+        (
+            "`!default` as the last declaration",
+            ".a { $x: 1rem !default }",
+        ),
+        // The module system.
         ("`@use ... as`", "@use \"x\" as t;"),
-        // Not in B11 until this test found it: nesting a rule under an explicit
-        // combinator. 10 of the 99 files write it.
+        ("`@use ... as *`", "@use \"x\" as *;"),
+        ("`@use ... with`", "@use \"x\" with ($a: 1);"),
+        ("`@forward ... as`", "@forward \"x\" as t-*;"),
+        ("`@forward ... show`", "@forward \"x\" show $a, b;"),
+        ("`@forward ... hide`", "@forward \"x\" hide $a, b;"),
+        (
+            "`@forward ... with`",
+            "@forward \"x\" with ($a: 1 !default);",
+        ),
+        (
+            "a namespaced `@include`",
+            "@use \"x\" as t;\n.a { @include t.m(1); }",
+        ),
+        // Selectors.
         (
             "a nested rule opening with `>`",
             ".a {\n  > .b { color: red; }\n}",
@@ -165,14 +287,100 @@ fn scss_cannot_read_these_forms() {
             ".a {\n  + .b { color: red; }\n}",
         ),
         (
+            "a nested rule opening with `~`",
+            ".a {\n  ~ .b { color: red; }\n}",
+        ),
+        (
             "a nested selector list opening with `>`",
             ".a {\n  > .b, > .c { color: red; }\n}",
         ),
+        (
+            "a mixed nested selector list",
+            ".a {\n  > .b,\n  .c { color: red; }\n}",
+        ),
+        (
+            "a relative selector in `:has`",
+            ".a:has(+ .b) { color: red; }",
+        ),
+        ("a step of `n + 3`", ".a:nth-child(n + 3) { color: red; }"),
+        (
+            "a step of `-n + 2`",
+            ".a:nth-last-child(-n + 2) { color: red; }",
+        ),
+        ("an interpolated placeholder", "%p-#{$b} { color: red; }"),
+        (
+            "extending a placeholder",
+            "%p { color: red; }\n.a { @extend %p; }",
+        ),
+        (
+            "extending an interpolated placeholder",
+            ".a { @extend %p-#{$b}; }",
+        ),
+        (
+            "interpolation after `::`",
+            ".a { &::#{$el} { color: red; } }",
+        ),
+        (
+            "interpolation after a pseudo class",
+            ".a { > :not(:first-child)#{$m} { color: red; } }",
+        ),
+        (
+            "an interpolated class with a number",
+            ".#{$p}-500px { color: red; }",
+        ),
+        (
+            "two interpolated classes",
+            ".#{$p}.#{$p}-500px { color: red; }",
+        ),
+        (
+            "an interpolated attribute name",
+            "[data-#{$p}theme=\"#{$n}\"] { color: red; }",
+        ),
+        ("an escape in a selector", ".a\\.5 { color: red; }"),
+        // Values and at-rules.
+        ("an escape in a value", "$a: \\f26e;"),
+        (
+            "a negated value in parentheses",
+            ".a { margin: (-$x) (-$y); }",
+        ),
+        (
+            "an unquoted data url",
+            ".a { background-image: url(data:image/svg+xml;charset=utf-8,%3Csvg%2F%3E); }",
+        ),
+        (
+            "`@container`",
+            "@container c (min-width: 1px) { .a { color: red; } }",
+        ),
+        (
+            "an interpolated `@container`",
+            "@container #{$n} (min-width: #{$w}) { .a { color: red; } }",
+        ),
+        (
+            "a fractional keyframe step",
+            "@keyframes a { 3.4% { opacity: 0; } }",
+        ),
+        (
+            "a keyframe step list",
+            "@keyframes a { 0%, 90% { opacity: 0; } }",
+        ),
+        (
+            "an interpolated keyframes name",
+            "@keyframes #{$p}-beat { 0% { opacity: 0; } }",
+        ),
+        (
+            "a list in `@return`",
+            "@function f($v) { @return red($v), green($v); }",
+        ),
+        (
+            "an interpolated feature query",
+            "@media (#{$a}: #{$b}) { .a { color: red; } }",
+        ),
     ];
     for (what, source) in cases {
-        assert!(
-            error_nodes(Language::Scss, source) > 0,
-            "{what} now parses, so retire it from B11: {source}"
+        assert_eq!(
+            error_nodes(Language::Scss, source),
+            0,
+            "{what} is ordinary Sass: {source}"
         );
     }
 }
@@ -214,51 +422,91 @@ fn scss_can_read_these_forms() {
     }
 }
 
-/// B15: `tree-sitter-go` reads `new(…)` as the builtin, which takes a type.
+/// A call to a user-defined `new` or `make` parses.
 ///
-/// `new` is a predeclared identifier in Go. It is not a keyword. So a package may define its own and
-/// call it, and 177 of the 178 Go files that fail to parse in `grafana/grafana` do that.
+/// `new` is a predeclared identifier in Go, not a keyword, so a package may define its own
+/// and call it. 177 of the 178 Go files that fail to parse in `grafana/grafana` do. The
+/// published grammar gives the name one argument list, the one whose first argument is a
+/// type. `grammars/go` lets either follow it.
 #[test]
-fn go_cannot_read_a_call_to_a_user_defined_new() {
-    let source = "package main\n\nfunc new(s string) string { return s }\n\n\
-                  func use() string {\n\treturn new(\"-10s\")\n}\n";
-    assert!(
-        error_nodes(Language::Go, source) > 0,
-        "a user-defined `new` now parses, so retire B15"
-    );
-    // The shape either side of it: a call to anything else, and the builtin's own form.
-    assert_eq!(
-        error_nodes(
+fn go_reads_a_call_to_a_user_defined_new() {
+    for source in [
+        "package main\n\nfunc new(s string) string { return s }\n\n\
+         func use() string {\n\treturn new(\"-10s\")\n}\n",
+        "package main\n\nfunc use(err error) string {\n\treturn new(err.Error())\n}\n",
+        "package main\n\nfunc use(n int) []int {\n\treturn make(sizeFor(n))\n}\n",
+    ] {
+        assert_eq!(
+            error_nodes(Language::Go, source),
+            0,
+            "a package may define `new` and call it: {source}"
+        );
+    }
+}
+
+/// And the builtin keeps the tree it had, which takes a type where an expression goes.
+#[test]
+fn go_reads_the_builtin_forms_of_new_and_make() {
+    for source in [
+        "package main\n\nfunc f() {\n\t_ = new(int)\n\t_ = new([]byte)\n}\n",
+        "package main\n\nfunc f() {\n\t_ = make(map[string]int, 4)\n\t_ = make(chan int)\n}\n",
+        "package main\n\nfunc f() {\n\t_ = make([]int, 0, 10)\n\t_ = new(struct{ x int })\n}\n",
+    ] {
+        assert_eq!(
+            error_nodes(Language::Go, source),
+            0,
+            "the builtin still reads a type: {source}"
+        );
+    }
+    let parsed = Parsers::new()
+        .parse(
             Language::Go,
-            "package main\n\nfunc old(s string) string { return s }\n\n\
-             func use() string {\n\treturn old(\"-10s\")\n}\n"
-        ),
-        0
+            "package main\n\nfunc f() {\n\t_ = make(map[string]int, 4)\n}\n",
+        )
+        .expect("the grammar loads");
+    assert!(
+        parsed.tree.root_node().to_sexp().contains("map_type"),
+        "the first argument is still read as a type"
     );
 }
 
-/// A container with no members parses, in all four spellings Zig gives one.
+/// A container with no members holds no member, in all four spellings Zig gives one.
 ///
 /// `grammars/zig` carries the patch. The published grammar takes `_container_members`
-/// where it should take `optional($._container_members)`, and rejects `struct {}`.
+/// where it should take `optional($._container_members)`, and fills the gap with a
+/// `container_field` whose name is zero bytes long. It reports no error while doing it,
+/// so an error count would pass either way: what this asserts is the tree.
 #[test]
 fn zig_reads_a_container_with_no_members() {
+    let parsers = Parsers::new();
     for source in [
         "const Foo = struct {};\n",
         "const E = enum {};\n",
         "const U = union {};\n",
         "const O = opaque {};\n",
+        "const P = packed struct {};\n",
     ] {
-        assert_eq!(
-            error_nodes(Language::Zig, source),
-            0,
-            "an empty container is ordinary Zig: {source}"
+        assert_eq!(error_nodes(Language::Zig, source), 0, "{source}");
+        let tree = parsers
+            .parse(Language::Zig, source)
+            .expect("the grammar loads")
+            .tree
+            .root_node()
+            .to_sexp();
+        assert!(
+            !tree.contains("container_field"),
+            "an empty container declares no field: {source} gave {tree}"
         );
     }
-    assert_eq!(
-        error_nodes(Language::Zig, "const Bar = struct { x: i32 };\n"),
-        0,
-        "a struct with a member still parses"
+    let with_member = parsers
+        .parse(Language::Zig, "const Bar = struct { x: i32 };\n")
+        .expect("the grammar loads")
+        .tree
+        .root_node()
+        .to_sexp();
+    assert!(
+        with_member.contains("container_field"),
+        "and one with a member still declares it: {with_member}"
     );
 }
 

@@ -355,22 +355,25 @@ figures below were measured on this branch.
 Every cell that `fr capabilities` marks `n/a` carries the reason the tool refuses. That
 keeps the column a commitment.
 
-### The 12 open defects
+### The two open defects
 
-None of the 12 is pending work. Each one was re-triaged against this branch, still
-reproduces, and is pinned by a test that fails when it stops being true.
+Each one was re-triaged against this branch, still reproduces, and is pinned by a test
+that fails when it stops being true.
 
-- **Eight are limits of a published grammar,** each naming the construct the grammar has
-  no rule for at the version this build pins. B11 and B283 cover SCSS forms and the
-  indented Sass syntax. B15 covers Go `new`. B231 and B232 cover TypeScript. B233 and B234
-  cover Python. B133 covers Zig. `tests/known_grammar_gaps.rs` pins every one from both
-  sides, the failing form and the neighbouring forms that work. So a grammar upgrade
-  that starts reading one retires the entry on purpose and not by accident.
-- **Three are incomplete answers that the tool reports.** B5 states what dispatch can be
-  known without types. B13 states what a partial set of values inputs can decide. B14
-  covers a CSS class assembled inside a helper call. Each one rests on the report it
-  prints. `tests/open_defects.rs` asserts both halves: a rename that quietly skipped the
-  helper call would satisfy the first half of B14 and fail the second.
+- **Where a published grammar could not read the language, this build compiles its own
+  copy.** `grammars/` holds a patched Go, Python, SCSS, TypeScript and Zig, each with its
+  upstream tag, licence, patch and the corpus measurement showing the patch additive.
+  That closed the eight grammar entries that stood here: B11 and B233/B234 and B15 and
+  B231/B232 and B133. `tests/known_grammar_gaps.rs` pins every patched form from both
+  sides: the form that failed, and the neighbouring forms that always worked. A fix that
+  over-corrects fails there too.
+- **B283 is the one language left with no grammar of its own.** Sass's indented syntax is
+  not SCSS and the failure is visible in `fr parse`. The entry names what taking the one
+  third-party grammar would cost.
+- **B5 is an incomplete answer that the tool reports.** It states what dispatch can be
+  known without types: what the source declares, and what it assigns.
+  `tests/open_defects.rs` asserts both halves. A call that quietly skipped the value edge
+  would satisfy the first half and fail the second.
 - **A dispatch family renames, re-signs and deletes as a unit (B382, B383).**
   One `Hierarchy`, four commands. The hierarchy that spares implementations from
   `fr unused` now carries `fr rename`, `fr signature` and `fr delete`. The declaration,
@@ -1239,8 +1242,9 @@ have become a place to forget the new variant (B282).
 
 The same sweep found the inverse: `.sass` is named by the table and cannot be parsed,
 because Sass's indented syntax is not SCSS (B283). That one stays as it is, the failure
-is visible in `fr parse`. Removing the mapping would make those files disappear the
-way the `.js` ones did.
+is visible in `fr parse`. Removing the mapping would make those files disappear the way
+the `.js` ones did. JavaScript is a subset of TypeScript; the indented syntax is a
+different language. It would need a grammar, a query set and a column of its own.
 
 ### Fragments nobody could resolve
 
@@ -1264,26 +1268,26 @@ parse**. B11 already recorded SCSS grammar gaps from `grafana/grafana`, where th
 of 8 stylesheets. So this is the same limitation measured somewhere it can be measured
 properly.
 
-One form is worth masking, and not for the reason the counts suggested. Interpolation in
-a declaration value (`color: #{$v}`) co-occurs with 51 of the 73 failures. Masking it
-alone fixes 14 files, because most of those 51 hit other forms too. So the count measured
-co-occurrence and not cost. Its error node settles the case. The node covers the rest of
-the file instead of the declaration, so `_accordion.scss` reported one error span of
-0..5050. Masking it took symbols from 1916 to 2826 and references from 3839 to 6277, and
-no file lost a reference (B280). The variables and calls inside the braces are read back
-afterwards.
+One form was worth masking while the grammar could not read it. Interpolation in a
+declaration value (`color: #{$v}`) co-occurs with 51 of the 73 failures. Masking it alone
+fixed 14 files, because most of those 51 hit other forms too, so the count measured
+co-occurrence and not cost. Its error node settled the case. The node covered the rest of the
+file instead of the declaration, so `_accordion.scss` reported one error span of
+0..5050. Masking took symbols from 1916 to 2826 and references from 3839 to 6277, and no
+file lost a reference (B280).
 
-Masking the other forms was measured and rejected in the same run. They fix 23 more files'
-error counts and recover no facts at all, since their errors stay inside the construct.
-The sweep also turned up a form the entry never had. A nested rule opens with a
-combinator, `.a { > .b { … } }`, in 10 files.
+`grammars/scss` reads the declaration, so the mask is gone with the gap and the parse is
+the parse. The same measurement ran against bootstrap and `jgthms/bulma`, and the
+patch was built from it. 203 of 276 files failed on the published grammar. None fail
+now. Twenty forms the entry never had turned up along the way. A variadic parameter, a named
+argument over two lines, `:nth-child(n + 3)`, an escape in a name, `@container`.
+Each one is written in a stylesheet somebody ships.
 
 The entry also claimed `@content` inside a mixin was among the gaps. It parses, bare,
 nested, and with arguments, so the claim was either wrong when written or fixed upstream
 since, and nothing re-checked it in between. `tests/known_grammar_gaps.rs` had no SCSS
-cases at all, which is how it rotted. It has nine failing forms and nine working ones now.
-A grammar upgrade that fixes one becomes a test failure, and the failure points at the
-entry to retire.
+cases at all, which is how it rotted. It has sixty-one now, and twenty more forms that
+always worked beside them.
 
 ### Two commands that have to agree
 

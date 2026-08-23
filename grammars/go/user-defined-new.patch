@@ -1,0 +1,40 @@
+--- a/grammar.js	2025-08-29 09:17:40
++++ b/grammar.js	2026-08-23 22:46:31
+@@ -85,6 +85,7 @@
+   word: $ => $.identifier,
+ 
+   conflicts: $ => [
++    [$.special_argument_list, $.argument_list],
+     [$._simple_type, $._expression],
+     [$._simple_type, $.generic_type, $._expression],
+     [$.qualified_type, $._expression],
+@@ -692,7 +693,10 @@
+     call_expression: $ => prec(PREC.primary, choice(
+       seq(
+         field('function', alias(choice('new', 'make'), $.identifier)),
+-        field('arguments', alias($.special_argument_list, $.argument_list)),
++        field('arguments', choice(
++          alias($.special_argument_list, $.argument_list),
++          $.argument_list,
++        )),
+       ),
+       seq(
+         field('function', $._expression),
+@@ -706,7 +710,7 @@
+       '...',
+     )),
+ 
+-    special_argument_list: $ => seq(
++    special_argument_list: $ => prec.dynamic(100, seq(
+       '(',
+       optional(seq(
+         $._type,
+@@ -714,7 +718,7 @@
+         optional(','),
+       )),
+       ')',
+-    ),
++    )),
+ 
+     argument_list: $ => seq(
+       '(',

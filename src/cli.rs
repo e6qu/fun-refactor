@@ -548,6 +548,12 @@ enum Command {
         /// Like --set, but helm keeps the value a string.
         #[arg(long = "set-string", value_name = "KEY=VALUE")]
         set_string: Vec<String>,
+        /// A helm --set-file assignment: the value is read from the file it names.
+        #[arg(long = "set-file", value_name = "KEY=PATH")]
+        set_file: Vec<String>,
+        /// A helm --set-json assignment: the value is JSON, and may set a subtree.
+        #[arg(long = "set-json", value_name = "KEY=JSON")]
+        set_json: Vec<String>,
     },
     /// Trace configuration values into the code that reads them.
     Stitch {
@@ -861,8 +867,18 @@ fn dispatch(cli: &Cli) -> Result<()> {
             values,
             set,
             set_string,
+            set_file,
+            set_json,
         } => {
-            let inputs = crate::analysis::provenance::ValuesInputs::parse(values, set, set_string)?;
+            let inputs = crate::analysis::provenance::ValuesInputs::parse(
+                values,
+                crate::analysis::provenance::SetFlags {
+                    sets: set,
+                    strings: set_string,
+                    files: set_file,
+                    jsons: set_json,
+                },
+            )?;
             cmd_flow(cli, direction, target, *depth, &inputs)
         }
         Command::Extract {

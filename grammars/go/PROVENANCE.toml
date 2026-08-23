@@ -1,0 +1,21 @@
+# Where this grammar came from, and what was changed in it.
+#
+# `user-defined-new.patch` is the diff against the upstream `grammar.js` named below.
+# Re-apply it when taking a newer release, and regenerate `src/parser.c` with the
+# `tree-sitter` CLI.
+
+language = "go"
+upstream = "https://github.com/tree-sitter/tree-sitter-go"
+tag = "v0.25.0"
+archive = "https://github.com/tree-sitter/tree-sitter-go/archive/refs/tags/v0.25.0.tar.gz"
+archive_sha256 = "2dc241b97872c53195e01b86542b411a3c1a6201d9c946c78d5c60c063bba1ef"
+license = "MIT"
+license_file = "LICENSE"
+generated_with = "tree-sitter-cli 0.26.13"
+
+[patch]
+file = "user-defined-new.patch"
+subject = "a call to a user-defined function named `new` or `make`"
+rules = ["call_expression", "special_argument_list"]
+change = "either argument list may follow the name, and the one taking a type wins the tie"
+accepts = ["new(\"-10s\")", "new(err.Error())", "make(nameFor(x))"]

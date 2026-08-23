@@ -46,6 +46,10 @@ pub enum EdgeOrigin {
     /// Class hierarchy analysis: the call site could not name one definition, and
     /// this is one of the implementations the workspace's own declarations admit.
     Hierarchy(HierarchyBasis),
+    /// A function assigned to the name the call goes through: `Held { run: candidate }`
+    /// and, elsewhere, `(h.run)()`. The call names no definition, and the workspace
+    /// shows what was put behind that name.
+    FunctionValue,
 }
 
 impl EdgeOrigin {
@@ -53,11 +57,18 @@ impl EdgeOrigin {
         match self {
             EdgeOrigin::Resolved => "resolved",
             EdgeOrigin::Hierarchy(basis) => basis.as_str(),
+            EdgeOrigin::FunctionValue => "function-value",
         }
     }
 
     pub fn is_hierarchy(&self) -> bool {
         matches!(self, EdgeOrigin::Hierarchy(_))
+    }
+
+    /// Whether the program picks this callee while it runs. Such an edge is possible
+    /// and unproven, however it was licensed.
+    pub fn is_dispatch(&self) -> bool {
+        !matches!(self, EdgeOrigin::Resolved)
     }
 }
 
@@ -257,8 +268,74 @@ impl CallGraph {
             }
         }
 
+        cg.add_function_value_edges(index, hierarchy, &mut edges);
         cg.add_dispatch_edges(index, hierarchy, &mut seen_sites, &mut edges);
         cg
+    }
+
+    /// Follow a call that goes through a name to the functions put behind that name.
+    ///
+    /// `Held { run: candidate }` names a function without calling it, and `(h.run)()`
+    /// calls a name without naming a function. Neither half resolves to a callable on
+    /// its own, and together they say `go` may reach `candidate`. May, and not does.
+    /// Which function is behind the name is settled while the program runs, so the edge
+    /// is a dispatch candidate like any other, and it is labelled as one.
+    fn add_function_value_edges(
+        &mut self,
+        index: &Index,
+        hierarchy: &Hierarchy,
+        edges: &mut HashSet<(SymbolId, SymbolId, usize)>,
+    ) {
+        if hierarchy.function_values.is_empty() {
+            return;
+        }
+        for (path, calls) in &hierarchy.calls {
+            for (name, at) in calls {
+                // The name first: it is a map lookup, and most calls go through a name
+                // nothing was ever assigned to. Resolving the call site is a scan of the
+                // file's references, so it waits until there is something to gain.
+                let Some(sites) = hierarchy.function_values.get(name) else {
+                    continue;
+                };
+                // A call that already names a function is answered; this is for the ones
+                // that name a field, a variable or nothing at all.
+                let resolved = index
+                    .reference_at(path, *at)
+                    .and_then(|r| r.target)
+                    .and_then(|t| index.symbol(t));
+                if resolved.is_some_and(|s| s.kind.is_callable()) {
+                    continue;
+                }
+                let Some(caller_id) = enclosing_callable(index, path, *at) else {
+                    continue;
+                };
+                for (file, offset) in sites {
+                    let Some(callee) = index
+                        .reference_at(file, *offset)
+                        .and_then(|r| r.target)
+                        .and_then(|t| index.symbol(t))
+                        .filter(|s| s.kind.is_callable())
+                    else {
+                        continue;
+                    };
+                    if !edges.insert((caller_id, callee.id, *at)) {
+                        continue;
+                    }
+                    let from = self.node_for(caller_id);
+                    let to = self.node_for(callee.id);
+                    self.graph.add_edge(
+                        from,
+                        to,
+                        CallEdge {
+                            offset: *at,
+                            file: path.clone(),
+                            confidence: Confidence::FieldBased,
+                            origin: EdgeOrigin::FunctionValue,
+                        },
+                    );
+                }
+            }
+        }
     }
 
     /// The hierarchy layer: fan a method call site out to every implementation the
@@ -554,7 +631,7 @@ impl CallGraph {
                             true => (other, id),
                             false => (id, other),
                         };
-                        edges.push((from, to, edge.origin.is_hierarchy()));
+                        edges.push((from, to, edge.origin.is_dispatch()));
                         if let std::collections::hash_map::Entry::Vacant(slot) = rank.entry(other) {
                             slot.insert(if upwards { -step } else { step });
                             next.push(other);
@@ -628,7 +705,7 @@ impl CallGraph {
                 continue;
             };
             for edge in self.graph.edges_directed(*node, Direction::Outgoing) {
-                if !hierarchy && edge.weight().origin.is_hierarchy() {
+                if !hierarchy && edge.weight().origin.is_dispatch() {
                     continue;
                 }
                 let callee = self.graph[edge.target()];
@@ -651,7 +728,7 @@ impl CallGraph {
             .edges_directed(*node, Direction::Incoming)
             .filter_map(|e| match e.weight().origin {
                 EdgeOrigin::Hierarchy(basis) => Some((self.graph[e.source()], basis)),
-                EdgeOrigin::Resolved => None,
+                EdgeOrigin::Resolved | EdgeOrigin::FunctionValue => None,
             })
             .collect();
         out.sort();
@@ -725,6 +802,7 @@ impl CallGraph {
             let label = match edge.weight().origin {
                 EdgeOrigin::Resolved => String::new(),
                 EdgeOrigin::Hierarchy(basis) => format!(", label=\"{}\"", basis.as_str()),
+                EdgeOrigin::FunctionValue => ", label=\"function-value\"".to_string(),
             };
             out.push_str(&format!(
                 "  n{} -> n{} [style={}{}];\n",
@@ -916,6 +994,15 @@ pub struct Hierarchy {
     method_sets: HashMap<TypeKey, BTreeMap<String, usize>>,
     /// Method-call syntax sites per file.
     call_sites: BTreeMap<PathBuf, Vec<CallSite>>,
+    /// Names a function was put behind, and where the function was named. A struct
+    /// field, an object property, a map entry, a variable: whatever the source
+    /// assigns a bare function name to. Held as the site of the *value*, so the index
+    /// resolves it the same way it resolves any other reference.
+    function_values: BTreeMap<String, BTreeSet<(PathBuf, usize)>>,
+    /// Every call site, as the last name in the expression that is being called and the
+    /// offset that name stands at. A call whose name resolves to a function is answered
+    /// elsewhere; the rest are the calls that go through a value.
+    calls: BTreeMap<PathBuf, Vec<(String, usize)>>,
     /// Files that could not be read or parsed. A gap costs edges, never invents
     /// them, but it is reported and not passed off as an empty hierarchy.
     pub gaps: Vec<(PathBuf, String)>,
@@ -1166,16 +1253,32 @@ impl Hierarchy {
                 .map(|name| (name.local.clone(), name.original.clone()))
                 .collect();
             let mut sites: Vec<CallSite> = Vec::new();
-            let mut visit = |node: Node| match family {
-                Family::Rust => hierarchy.visit_rust(node, &source, &mut sites),
-                Family::Go => hierarchy.visit_go(node, &source, &mut sites),
-                Family::Ts => hierarchy.visit_ts(node, &source, &mut sites),
-                Family::Java => hierarchy.visit_java(node, &source, &mut sites),
-                Family::Python => hierarchy.visit_python(node, &source, &mut sites),
+            let mut bindings: Vec<(String, usize)> = Vec::new();
+            let mut calls: Vec<(String, usize)> = Vec::new();
+            let mut visit = |node: Node| {
+                collect_function_value(node, &source, &mut bindings);
+                collect_called_name(node, &source, &mut calls);
+                match family {
+                    Family::Rust => hierarchy.visit_rust(node, &source, &mut sites),
+                    Family::Go => hierarchy.visit_go(node, &source, &mut sites),
+                    Family::Ts => hierarchy.visit_ts(node, &source, &mut sites),
+                    Family::Java => hierarchy.visit_java(node, &source, &mut sites),
+                    Family::Python => hierarchy.visit_python(node, &source, &mut sites),
+                }
             };
             walk(parsed.root(), &mut visit);
             if !sites.is_empty() {
                 hierarchy.call_sites.insert(path.clone(), sites);
+            }
+            for (name, offset) in bindings {
+                hierarchy
+                    .function_values
+                    .entry(name)
+                    .or_default()
+                    .insert((path.clone(), offset));
+            }
+            if !calls.is_empty() {
+                hierarchy.calls.insert(path.clone(), calls);
             }
         }
         hierarchy
@@ -1650,6 +1753,87 @@ fn methods_by_owner(index: &Index) -> HashMap<(Family, String, String), Vec<Symb
 
 /// Visit every node of a tree, iteratively, a deeply nested expression must not
 /// depend on the stack depth of the analysis.
+/// A bare name put behind another name: `run: candidate`, `let run = candidate`,
+/// `h.run = candidate`, `{"run": candidate}`.
+///
+/// Every grammar here labels the two halves of such a node with fields. So the shape is
+/// read from the fields and not from a list of node types per language. The value must be
+/// one identifier: a call, a closure or an expression is not a function this can name.
+/// What the identifier resolves to is the index's answer, asked for later.
+fn collect_function_value(node: Node, source: &str, out: &mut Vec<(String, usize)>) {
+    const VALUE_FIELDS: [&str; 2] = ["value", "right"];
+    const NAME_FIELDS: [&str; 5] = ["name", "left", "key", "field", "pattern"];
+
+    fn named<'t>(node: Node<'t>, fields: &[&str]) -> Option<Node<'t>> {
+        fields
+            .iter()
+            .find_map(|field| node.child_by_field_name(field))
+    }
+    // Go labels neither half of `Held{run: candidate}`, so a three-child node joined by
+    // `:` or `=` is read positionally.
+    let unlabelled = || -> Option<(Node<'_>, Node<'_>)> {
+        (node.child_count() == 3 && matches!(text(node.child(1)?, source), ":" | "="))
+            .then(|| (node.child(0), node.child(2)))
+            .and_then(|(name, value)| Some((name?, value?)))
+    };
+    let (name, value) = match (named(node, &NAME_FIELDS), named(node, &VALUE_FIELDS)) {
+        (Some(name), Some(value)) => (name, value),
+        _ => match unlabelled() {
+            Some(pair) => pair,
+            None => return,
+        },
+    };
+    // Go wraps each half of `Held{run: candidate}` in a `literal_element`, so the
+    // identifier is one node further down.
+    let mut value = value;
+    while value.child_count() == 1 {
+        value = value.child(0).expect("one child");
+    }
+    if value.child_count() != 0 || !is_plain_name(text(value, source)) {
+        return;
+    }
+    // `a.b = f` binds `b`, and `let f2 = f` binds `f2`. Either way the last segment is
+    // the name a call would go through.
+    let bound = text(name, source);
+    let last = bound
+        .rsplit(['.', ':'])
+        .next()
+        .unwrap_or(bound)
+        .trim_matches(|c: char| c == '"' || c == '\'' || c.is_whitespace());
+    if !is_plain_name(last) {
+        return;
+    }
+    out.push((last.to_string(), value.start_byte()));
+}
+
+/// The name a call goes through: the last identifier of whatever is being called.
+///
+/// `f()` gives `f`, `h.run()` and `(h.run)()` give `run`, `self.cb()` gives `cb`. What
+/// that name resolves to is the index's answer, asked for later.
+fn collect_called_name(node: Node, source: &str, out: &mut Vec<(String, usize)>) {
+    let Some(function) = node.child_by_field_name("function") else {
+        return;
+    };
+    let mut last: Option<(String, usize)> = None;
+    walk(function, &mut |child: Node| {
+        if child.child_count() == 0 && is_plain_name(text(child, source)) {
+            last = Some((text(child, source).to_string(), child.start_byte()));
+        }
+    });
+    if let Some(name) = last {
+        out.push(name);
+    }
+}
+
+/// Whether the text is one identifier, and so could name a function.
+fn is_plain_name(text: &str) -> bool {
+    !text.is_empty()
+        && text
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '_' || c == '$')
+        && !text.starts_with(|c: char| c.is_ascii_digit())
+}
+
 fn walk(root: Node, visit: &mut impl FnMut(Node)) {
     let mut cursor = root.walk();
     loop {

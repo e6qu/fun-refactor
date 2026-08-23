@@ -1,0 +1,76 @@
+# Where this grammar came from, and what was changed in it.
+#
+# `sass-the-grammar-could-not-read.patch` is the diff against the upstream `grammar.js`
+# and `src/scanner.c` named below. Re-apply it when taking a newer release, and
+# regenerate `src/parser.c` with the `tree-sitter` CLI. Generating needs
+# `tree-sitter-css`, which the upstream package.json pins, and the grammar extends.
+
+language = "scss"
+upstream = "https://github.com/tree-sitter-grammars/tree-sitter-scss"
+tag = "v1.0.0"
+archive = "https://github.com/tree-sitter-grammars/tree-sitter-scss/archive/refs/tags/v1.0.0.tar.gz"
+archive_sha256 = "78f44cbe73f6bc0f9fe3b035b54dd91ebf4dcbdb66adbba6e057d7ad830144eb"
+license = "MIT"
+# The release tarball carries no licence file. This one is the repository's, fetched
+# from the default branch, where the tag's own tree has none.
+license_file = "LICENSE"
+license_source = "https://raw.githubusercontent.com/tree-sitter-grammars/tree-sitter-scss/master/LICENSE"
+license_sha256 = "0eea8dc45e89deeb03c7799bbbc7b4688f365fb274562f4540ecfebdea82e727"
+generated_with = "tree-sitter-cli 0.26.13"
+generated_against = "tree-sitter-css 0.20.0"
+
+[[patch]]
+file = "sass-the-grammar-could-not-read.patch"
+subject = "a declaration whose value holds an interpolation"
+rules = ["scan_automatic", "reaches_a_block", "plain_value"]
+change = "the scanner reads past an interpolation when it looks for the brace that would make a colon a pseudo class's, and a value token stops before one"
+accepts = [".a { color: #{$v}; }", ".a { color: a#{$v}; }", ".a { --x: #{$v}; }"]
+
+[[patch]]
+file = "sass-the-grammar-could-not-read.patch"
+subject = "a map literal"
+rules = ["map_value", "map_entry", "opens_a_map"]
+change = "the scanner looks ahead for a colon of the bracket's own and hands the parser a different bracket, which is the lookahead Sass itself does"
+accepts = ["$m: (a: 1, b: 2)", "$m: (a: (b: 1))", "$m: (a:1,)", '@use "x" with ($a: 1)']
+
+[[patch]]
+file = "sass-the-grammar-could-not-read.patch"
+subject = "the words a condition is written with"
+rules = ["binary_expression", "unary_expression"]
+change = "`and`, `or` and `not` join conditions, and `%` divides when it stands apart from the number before it"
+accepts = ["@if $a == 1 and $b == 2 { .a { color: red; } }", "@if not $a { .a { color: red; } }", "$x: $l % 10"]
+
+[[patch]]
+file = "sass-the-grammar-could-not-read.patch"
+subject = "the clauses `@use` and `@forward` take"
+rules = ["use_statement", "forward_statement", "forward_prefix", "namespaced_name"]
+change = "`as`, `with`, `show` and `hide`, and the namespace a `@use` gives what it brings in"
+accepts = ['@use "x" as t;', '@forward "x" as t-*;', '@forward "x" show $a, b;', "@include t.m(1);"]
+
+[[patch]]
+file = "sass-the-grammar-could-not-read.patch"
+subject = "the flags a declaration ends with"
+rules = ["declaration", "last_declaration", "default_flag", "global_flag"]
+change = "`!default` and `!global` end a declaration where `!important` does"
+accepts = ["$x: 1rem !default;", ".a { $x: 1 !global; }"]
+
+[[patch]]
+file = "sass-the-grammar-could-not-read.patch"
+subject = "a rule that opens with a combinator"
+rules = ["selectors", "pseudo_class_arguments"]
+change = "a selector may open with `>`, `+` or `~`, which is how a nested rule names its parent"
+accepts = [".a { > .b { color: red; } }", ".a { > .b, > .c { color: red; } }", ".a:has(+ .b) { color: red; }"]
+
+[[patch]]
+file = "sass-the-grammar-could-not-read.patch"
+subject = "the shapes an argument list takes"
+rules = ["parameters", "parameter", "_include_arguments", "_include_argument", "arguments"]
+change = "empty, variadic, named, trailing-comma, and a space between the name and the bracket"
+accepts = ["@mixin m() { color: red; }", "@mixin m($x...) { color: red; }", ".a { @include m(); }", ".a { @include m ($a: 1,) { color: red; } }"]
+
+[[patch]]
+file = "sass-the-grammar-could-not-read.patch"
+subject = "the rest of what a stylesheet writes"
+rules = ["placeholder", "extend_statement", "return_statement", "interpolation", "feature_query", "at_rule", "keyframes_statement", "keyframe_block", "attribute_selector", "pseudo_element_selector", "nth_expression", "identifier", "_name_part", "negated_variable", "url_value", "list_value", "_query"]
+change = "an interpolated placeholder, name, query, keyframes name and attribute name; a step of `n + 3`; an escape in a name or a value; a negated variable; a URL holding a delimiter; a list of runs; and a query list without commas"
+accepts = ["%p-#{$b} { color: red; }", ".a:nth-child(n + 3) { color: red; }", ".a\\.5 { color: red; }", ".a { margin: (-$x); }", "@container c (min-width: 1px) { .a { color: red; } }"]

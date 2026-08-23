@@ -1,0 +1,38 @@
+# Where this grammar came from, and what was changed in it.
+#
+# `import-types-and-a-property-called-in.patch` is the diff against the upstream
+# `common/define-grammar.js` and `common/scanner.h` named below. Re-apply it when taking a
+# newer release, and regenerate both `src/parser.c` files with the `tree-sitter` CLI.
+# Generating needs `tree-sitter-javascript`, which the upstream package.json pins.
+
+language = "typescript"
+upstream = "https://github.com/tree-sitter/tree-sitter-typescript"
+tag = "v0.23.2"
+archive = "https://github.com/tree-sitter/tree-sitter-typescript/archive/refs/tags/v0.23.2.tar.gz"
+archive_sha256 = "2c4ce711ae8d1218a3b2f899189298159d672870b5b34dff5d937bed2f3e8983"
+license = "MIT"
+license_file = "LICENSE"
+generated_with = "tree-sitter-cli 0.26.13"
+generated_against = "tree-sitter-javascript 0.23.1"
+
+[[patch]]
+file = "import-types-and-a-property-called-in.patch"
+subject = "an import type where any other type may stand"
+rules = ["type", "primary_type", "generic_type"]
+change = "the import-type forms move from `type` to `primary_type`, and `generic_type` takes one as a name"
+accepts = [
+    "type A = import(\"m\").S[]",
+    "type A = import(\"m\").S<number>",
+    "type A = { ast?: import(\"m\").S[] }",
+]
+
+[[patch]]
+file = "import-types-and-a-property-called-in.patch"
+subject = "a member called `in` on a line of its own"
+rules = ["scan_automatic_semicolon"]
+change = "a type has no `in` or `instanceof` operator, so a line opening with either ends the member before it, and an identifier that merely starts with one always does"
+accepts = [
+    "interface G {\n  a?: string\n  in?: string\n}",
+    "interface G {\n  a?: string\n  instanceof?: string\n}",
+    "const x = 1\nin2(x)",
+]

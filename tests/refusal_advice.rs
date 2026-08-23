@@ -589,13 +589,13 @@ fn the_bash_digit_refusal_names_a_spelling_that_works() {
 }
 
 #[test]
-fn the_helm_list_refusal_names_an_input_that_is_accepted() {
-    // "`{a,b}` … names no single key to rank; pass the list in a `-f` values file
-    // instead." So a `-f` file holding that same list has to be taken and ranked.
-    let refusal = fun_refactor::helm::parse_set("ports={80,443}", false)
-        .expect_err("a list literal names no single key")
-        .to_string();
-    assert!(refusal.contains("`-f` values file instead"), "{refusal}");
+fn a_list_reaches_the_answer_from_the_flag_and_from_a_file() {
+    // `--set ports={80,443}` is the list `ports[0]=80,ports[1]=443`, which is how helm
+    // reads it. A `-f` file holding the same list has to be taken and ranked too.
+    let literal = fun_refactor::helm::parse_set("ports={80,443}", false).expect("a list literal");
+    assert_eq!(literal.len(), 2);
+    assert_eq!(literal[0].element().as_deref(), Some("ports[0]"));
+    assert_eq!(literal[1].value, "443");
 
     let (_tmp, root, index) = workspace(&[
         ("Chart.yaml", "name: demo\nversion: 0.1.0\n"),

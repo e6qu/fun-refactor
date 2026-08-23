@@ -424,29 +424,69 @@ pub struct ValuesInputs {
 /// Such a hop has line 0: there is no line to point at.
 pub const COMMAND_LINE: &str = "<command line>";
 
+/// The `--set` family as a flag parser collects it, one list per flag.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct SetFlags<'a> {
+    /// `--set key=value`
+    pub sets: &'a [String],
+    /// `--set-string key=value`
+    pub strings: &'a [String],
+    /// `--set-file key=path`
+    pub files: &'a [String],
+    /// `--set-json key=json`
+    pub jsons: &'a [String],
+}
+
+impl<'a> SetFlags<'a> {
+    /// Only `--set`, which is what most callers pass.
+    pub fn of(sets: &'a [String]) -> Self {
+        Self {
+            sets,
+            ..Self::default()
+        }
+    }
+}
+
 impl ValuesInputs {
     /// Parse the raw flag strings a CLI collects.
     ///
-    /// `sets` and `set_strings` arrive as two lists, in the shape the flag parser
-    /// produces, and their relative order is lost on the way. That order matters
-    /// only when both set the same key, so this refuses that case rather than
-    /// picking one.
-    pub fn parse(files: &[PathBuf], sets: &[String], set_strings: &[String]) -> Result<Self> {
+    /// Helm applies the `--set` family in the order it was written. The flags arrive as one
+    /// list per flag, and the order between two lists is lost on the way. That order matters
+    /// only when two of them set the same key, so this refuses that case rather than picking
+    /// one. Two assignments that set different elements of a list set different values, so
+    /// they are not that case.
+    pub fn parse(files: &[PathBuf], flags: SetFlags<'_>) -> Result<Self> {
         let mut parsed: Vec<helm::SetValue> = Vec::new();
-        for argument in sets {
-            parsed.extend(helm::parse_set(argument, false)?);
+        let mut from: Vec<&'static str> = Vec::new();
+        let take = |values: Vec<helm::SetValue>, parsed: &mut Vec<_>, from: &mut Vec<_>| {
+            for value in values {
+                from.push(value.flag());
+                parsed.push(value);
+            }
+        };
+        for argument in flags.sets {
+            take(helm::parse_set(argument, false)?, &mut parsed, &mut from);
         }
-        let plain = parsed.len();
-        for argument in set_strings {
-            parsed.extend(helm::parse_set(argument, true)?);
+        for argument in flags.strings {
+            take(helm::parse_set(argument, true)?, &mut parsed, &mut from);
         }
-        for set in &parsed[plain..] {
-            if let Some(clash) = parsed[..plain].iter().find(|s| s.keys() == set.keys()) {
+        for argument in flags.files {
+            take(helm::parse_set_file(argument)?, &mut parsed, &mut from);
+        }
+        for argument in flags.jsons {
+            take(helm::parse_set_json(argument)?, &mut parsed, &mut from);
+        }
+        for (i, set) in parsed.iter().enumerate() {
+            for (j, other) in parsed.iter().enumerate().take(i) {
+                if from[i] == from[j] || set.path != other.path {
+                    continue;
+                }
                 bail!(
-                    "`--set {}` and `--set-string {}` both set {}, and the order they were \
-                     written in is not recoverable from the flags; write both as --set or \
-                     both as --set-string",
-                    clash.text,
+                    "`{} {}` and `{} {}` both set {}, and the order they were written in is \
+                     not recoverable from the flags; write both under the same flag",
+                    from[j],
+                    other.text,
+                    from[i],
                     set.text,
                     set.keys().join(".")
                 );
@@ -1637,6 +1677,7 @@ const USER_SUPPLIED: u32 = 100;
 const SET_SUPPLIED: u32 = 1_000_000;
 
 /// Where a candidate value is written.
+#[derive(Clone)]
 enum ValuesOrigin {
     /// A key in a values file.
     Key { file: PathBuf, symbol: SymbolId },
@@ -1645,9 +1686,14 @@ enum ValuesOrigin {
 }
 
 /// A candidate source for one Helm values key.
+#[derive(Clone)]
 struct ValuesSource {
     rank: u32,
     label: String,
+    /// The list element the source sets, `ports[0]`, when it sets one. Two sources that
+    /// set different elements set different values, and neither overrides the other, so
+    /// they are ranked in separate competitions.
+    element: Option<String>,
     origin: ValuesOrigin,
     /// False for a values file the supplied inputs say is never passed. The listing
     /// keeps it, because the next reader will reach for it. It supplies nothing in
@@ -1660,6 +1706,9 @@ impl ValuesSource {
     /// wrote, or the chart level when the chart's own value stands.
     fn describe(&self) -> String {
         match &self.origin {
+            ValuesOrigin::Set(set) if set.deletes => {
+                format!("{}, which removes the key", set.describe())
+            }
             ValuesOrigin::Set(set) => set.describe(),
             ValuesOrigin::Key { file, .. } if self.rank >= USER_SUPPLIED => {
                 format!("`-f {}`", file_name(file))
@@ -2088,7 +2137,31 @@ impl Ctx<'_> {
 
         let mut candidates = self.helm_chart_candidates(&levels)?;
         candidates.extend(self.helm_input_candidates(&addressed)?);
-        self.helm_competition(format!("values key {}", local.join(".")), candidates, depth)
+
+        // An assignment that names a list element sets that element and no other. So
+        // `--set ports[0].name` and `--set ports[1].name` are two answers and not two
+        // sources competing for one. Each element gets its own competition. The sources
+        // that name no element are in every one of them.
+        let mut elements: Vec<String> = candidates
+            .iter()
+            .filter_map(|c| c.element.clone())
+            .collect();
+        elements.sort();
+        elements.dedup();
+        let subject = format!("values key {}", local.join("."));
+        if elements.len() < 2 {
+            return self.helm_competition(subject, candidates, depth);
+        }
+        let mut any = false;
+        for element in elements {
+            let group: Vec<ValuesSource> = candidates
+                .iter()
+                .filter(|c| c.element.is_none() || c.element.as_deref() == Some(element.as_str()))
+                .cloned()
+                .collect();
+            any |= self.helm_competition(format!("{subject} at {element}"), group, depth)?;
+        }
+        Ok(any)
     }
 
     /// The values files of a chart and each chart enclosing it.
@@ -2123,6 +2196,7 @@ impl Ctx<'_> {
                         } else {
                             format!("parent chart values ({})", file_name(dir))
                         },
+                        element: None,
                         origin: ValuesOrigin::Key { file, symbol },
                         participates: true,
                     });
@@ -2143,6 +2217,7 @@ impl Ctx<'_> {
                     } else {
                         format!("would win under -f {}", file_name(&file))
                     },
+                    element: None,
                     origin: ValuesOrigin::Key { file, symbol },
                     participates: !supplied,
                 });
@@ -2169,6 +2244,7 @@ impl Ctx<'_> {
                     i + 1,
                     total
                 ),
+                element: None,
                 origin: ValuesOrigin::Key {
                     file: file.clone(),
                     symbol,
@@ -2180,9 +2256,15 @@ impl Ctx<'_> {
             if set.keys() != addressed {
                 continue;
             }
+            let element = set.element();
+            let label = match &element {
+                Some(element) => format!("{} {element} on the command line", set.flag()),
+                None => format!("{} on the command line", set.flag()),
+            };
             out.push(ValuesSource {
                 rank: SET_SUPPLIED + i as u32,
-                label: format!("{} on the command line", set.flag()),
+                label,
+                element,
                 origin: ValuesOrigin::Set(set),
                 participates: true,
             });
@@ -2385,6 +2467,11 @@ impl Ctx<'_> {
         }
         if wins {
             return match (&candidate.origin, candidate.rank) {
+                (ValuesOrigin::Set(set), _) if set.deletes => format!(
+                    "{} outranks every values file, and null removes the key, so nothing \
+                     supplies it",
+                    set.describe()
+                ),
                 (ValuesOrigin::Set(set), _) => format!(
                     "{} outranks every values file, so it decides this key",
                     set.describe()
