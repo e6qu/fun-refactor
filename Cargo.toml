@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "crates/wasm-libc", "grammars/zig"]
+members = [".", "crates/wasm-libc", "grammars/zig", "grammars/python"]
 
 [package]
 name = "fun-refactor"
@@ -45,7 +45,7 @@ cli = [
 lang-rust = ["dep:tree-sitter-rust"]
 lang-go = ["dep:tree-sitter-go"]
 lang-typescript = ["dep:tree-sitter-typescript"]
-lang-python = ["dep:tree-sitter-python"]
+lang-python = ["dep:fun-refactor-python-grammar"]
 lang-zig = ["dep:fun-refactor-zig-grammar"]
 lang-java = ["dep:tree-sitter-java"]
 lang-bash = ["dep:tree-sitter-bash"]
@@ -65,10 +65,10 @@ wasm = ["dep:wasm-bindgen", "dep:console_error_panic_hook", "dep:serde-wasm-bind
 # Tree-sitter parsing. Grammar pins inherited from funveil (github.com/e6qu/funveil
 # @ 2b9a47408e3419ce0061a2c9a2dd5f1efc11f4ba) — a known-good, mutually compatible set.
 tree-sitter = "0.26"
-fun-refactor-zig-grammar = { path = "grammars/zig", optional = true }
-tree-sitter-rust = { version = "0.24", optional = true }
 tree-sitter-typescript = { version = "0.23", optional = true }
-tree-sitter-python = { version = "0.25", optional = true }
+fun-refactor-zig-grammar = { path = "grammars/zig", optional = true }
+fun-refactor-python-grammar = { path = "grammars/python", optional = true }
+tree-sitter-rust = { version = "0.24", optional = true }
 tree-sitter-bash = { version = "0.25", optional = true }
 tree-sitter-hcl = { version = "1.1", optional = true }
 tree-sitter-yaml = { version = "0.7", optional = true }

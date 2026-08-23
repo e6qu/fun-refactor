@@ -1,5 +1,3 @@
-// The strings become closed sets, and each provider's vocabulary stops at the door.
-
 declare const brand: unique symbol;
 type Branded<T, B> = T & { readonly [brand]: B };
 
@@ -31,7 +29,6 @@ const PROVIDER_VOCABULARY: Record<Provider, Record<string, PaymentState>> = {
   },
 };
 
-/** A word this provider does not use is not a state; it is unread input. */
 export function providerState(
   provider: Provider,
   raw: string,

@@ -1,5 +1,3 @@
-// An amount cannot be negative, and two currencies are never one number.
-
 declare const brand: unique symbol;
 type Branded<T, B> = T & { readonly [brand]: B };
 
@@ -15,12 +13,6 @@ export type Currency = "USD" | "EUR";
 export type Kyc = "unverified" | "pending" | "verified";
 export type Payouts = "disabled" | "enabled";
 
-/**
- * A whole number of the currency's smallest unit, and which currency that is.
- *
- * Built only through `Money.of`, which is the one place a bad amount can be
- * turned away.
- */
 export class Money {
   private constructor(
     readonly minorUnits: number,

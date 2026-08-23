@@ -1,5 +1,3 @@
-// What travels together is one thing, and a missing field is now a missing field.
-
 declare const brand: unique symbol;
 type Branded<T, B> = T & { readonly [brand]: B };
 

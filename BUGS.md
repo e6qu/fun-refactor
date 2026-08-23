@@ -119,23 +119,6 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   facts inside that expression. In `tree-sitter-go` 0.25.0 `new` is consumed by the
   builtin-call rule, so no ordinary call expression is produced for it.
 
-- [ ] B234: `tree-sitter-python` cannot read a type parameter default,
-  `type A[T = int] = float`, PEP 696, Python 3.13. A type alias without one reads
-  cleanly. Found in `psf/black`'s test data. `tree-sitter-python` 0.25.0 has no default
-  clause on a type parameter.
-
-- [ ] B233: `tree-sitter-python` cannot read a starred *literal* in an unparenthesised
-  tuple. `g = 1, *[2]` is ordinary Python, and so are the `*(2,)`, `*{2}` and `*"ab"`
-  forms. A starred *name* or *call* in the same position reads fine, and so does the
-  whole thing in brackets. Found in `psf/black`'s `expression.py`, where the line is
-  `g = 1, *"ten"`. `tree-sitter-python` 0.25.0's unparenthesised tuple accepts a splat of
-  a name or a call and not of a literal.
-
-  Both are pinned by `tests/known_grammar_gaps.rs`, from both sides: the failing form
-  and the neighbouring forms that work. A grammar upgrade that fixes one should retire
-  its entry. One that starts reading it *without* an error node while building the
-  wrong tree would be worse than the error it replaced.
-
 - [ ] B232: `tree-sitter-typescript` cannot read a property called `in` when another
   member precedes it. `interface G { in?: string }` is fine and so is
   `interface G { in: string }`, but this is not:
@@ -158,6 +141,18 @@ That is co-occurrence, not cost: most of those files hit several forms at once. 
   0.23.2 has no rule for an `import` type.
 
 ## Fixed
+
+- [x] B233, B234: **valid Python the grammar could not read.** A starred
+  element in an unparenthesised tuple failed unless it was a name:
+  `g = 1, *rest` parsed and `g = 1, *[2]` did not, because the grammar
+  reads a starred element there as a *pattern*, which takes a name, a
+  subscript or an attribute. A type parameter could carry no default, so
+  `type A[T = int] = float` failed, which PEP 696 added in Python 3.13.
+  `grammars/python` gives `expression_list` the choice Python's own
+  star_expressions has, and gives each type parameter an optional
+  `= type`. Over 102 Python files, 50,399 nodes, the patched parser
+  returns the tree the stock one returns, and the five forms that used to
+  fail now parse.
 
 - [x] B133: **valid Zig that the grammar could not read.** `const Foo =
   struct {};` is ordinary Zig, and `tree-sitter-zig` rejected it. Its

@@ -1,5 +1,3 @@
-// The checks for what can no longer happen, deleted.
-
 declare const brand: unique symbol;
 type Branded<T, B> = T & { readonly [brand]: B };
 
@@ -15,12 +13,6 @@ export type Currency = "USD" | "EUR";
 export type Kyc = "unverified" | "pending" | "verified";
 export type Payouts = "disabled" | "enabled";
 
-/**
- * A whole number of the currency's smallest unit, and which currency that is.
- *
- * Built only through `Money.of`, which is the one place a bad amount can be
- * turned away.
- */
 export class Money {
   private constructor(
     readonly minorUnits: number,
@@ -94,7 +86,6 @@ export interface Customer {
   readonly kyc: Kyc;
 }
 
-/** Only `verify` builds one, so holding one is proof the check was run. */
 export interface VerifiedCustomer {
   readonly id: CustomerId;
 }
@@ -104,7 +95,6 @@ export interface Vendor {
   readonly payouts: Payouts;
 }
 
-/** Only `enablePayouts` builds one. A vendor who cannot be paid has no value here. */
 export interface PayoutEnabledVendor {
   readonly id: VendorId;
 }
