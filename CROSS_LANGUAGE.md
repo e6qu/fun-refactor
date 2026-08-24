@@ -73,8 +73,9 @@ edit that compiles somewhere else and breaks here.
 | --- | --- | --- | --- |
 | any | itself | everything | the ordinary case |
 | TypeScript | TSX, and back | everything | TSX *is* TypeScript with JSX; a `.tsx` imports from a `.ts` constantly |
-| CSS | SCSS, and back | everything | SCSS compiles to CSS and they share one selector namespace |
-| HTML, XML, TSX, TypeScript, Markdown | CSS, SCSS | selectors, custom properties | markup names a style rule by class or id |
+| CSS | SCSS, Sass, and back | everything | both compile to CSS and the three share one selector namespace |
+| SCSS | Sass, and back | everything | one language, two syntaxes: the braced one and the indented one |
+| HTML, XML, TSX, TypeScript, Markdown | CSS, SCSS, Sass | selectors, custom properties | markup names a style rule by class or id |
 | Helm | YAML, and back | keys | a template names a key in its values file |
 | HTML, XML, TSX, TypeScript | HTML, XML | element ids | a template names an element the markup declares |
 | HTML, TSX, TypeScript | HTML, TSX | `data-*` hooks | a test and a component agree on `data-testid="submit-btn"` by string |
