@@ -59,7 +59,10 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
         }
     }
 
-    for file in files.iter().filter(|f| nextjs::is_api_route(f)) {
+    for file in files
+        .iter()
+        .filter(|f| nextjs::is_api_route(f) || nextjs::is_server_module(f))
+    {
         let plan = match nextjs::plan(file) {
             Ok(plan) => plan,
             Err(e) => {
@@ -80,27 +83,40 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
             }
         }
 
-        let entry = paths
-            .entry(plan.route.clone())
-            .or_insert_with(|| json!({}))
-            .as_object_mut()
-            .expect("a path item is an object");
+        // A server function takes its arguments in the framework's own wire encoding,
+        // not a JSON body this document could describe. Writing one would be a guess
+        // presented as a contract, so the gap is named instead.
+        if nextjs::is_server_module(file) {
+            notes.push(format!(
+                "{}: server functions take their arguments in the framework's own \
+                 encoding. Their payloads are not in this document",
+                relative(root, file)
+            ));
+        }
 
-        let parameters: Vec<Value> = nextjs::path_parameters(&plan.route)
-            .into_iter()
-            .map(|name| {
-                json!({
-                    "name": name,
-                    "in": "path",
-                    "required": true,
-                    // Every Next.js path segment arrives as text; a narrower type would
-                    // be a guess about what the handler does with it.
-                    "schema": { "type": "string" }
+        // One entry per endpoint. A route file's endpoints share its URL; a server
+        // module's each have their own.
+        for (method, route) in &plan.endpoints {
+            let entry = paths
+                .entry(route.clone())
+                .or_insert_with(|| json!({}))
+                .as_object_mut()
+                .expect("a path item is an object");
+
+            let parameters: Vec<Value> = nextjs::path_parameters(route)
+                .into_iter()
+                .map(|name| {
+                    json!({
+                        "name": name,
+                        "in": "path",
+                        "required": true,
+                        // Every Next.js path segment arrives as text; a narrower type
+                        // would be a guess about what the handler does with it.
+                        "schema": { "type": "string" }
+                    })
                 })
-            })
-            .collect();
+                .collect();
 
-        for method in &plan.methods {
             // The path parameters, plus whatever this handler reads out of the query.
             // Next.js declares neither; the path ones come from the tree and the query
             // ones from the handler reaching into the URL.
@@ -116,7 +132,7 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
                 }));
             }
             let mut operation = json!({
-                "operationId": format!("{}{}", method.to_lowercase(), operation_suffix(&plan.route)),
+                "operationId": format!("{}{}", method.to_lowercase(), operation_suffix(route)),
                 "parameters": all,
                 "responses": {
                     "default": { "description": "not declared by the source" }

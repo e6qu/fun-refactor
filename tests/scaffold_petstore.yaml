@@ -1,0 +1,44 @@
+openapi: "3.1.0"
+info:
+  title: pets
+  version: "1.0.0"
+paths:
+  /pets:
+    get:
+      summary: List pets
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+    post:
+      summary: Create a pet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PetCreate"
+  /pets/{petId}:
+    get:
+      summary: One pet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+components:
+  schemas:
+    PetCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        age:
+          type: integer
+        tags:
+          type: array
+          items:
+            type: string

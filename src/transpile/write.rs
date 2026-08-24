@@ -1663,7 +1663,7 @@ fn screaming(name: &str) -> String {
 }
 
 /// `camelCase`, for TypeScript and unexported Go.
-fn camel(name: &str) -> String {
+pub(super) fn camel(name: &str) -> String {
     // SCREAMING_SNAKE has to be lowered before it is re-cased, or `MIN_CELSIUS`
     // becomes `MINCELSIUS` and not `minCelsius`.
     let screaming = name
@@ -3734,7 +3734,7 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
     }
 }
 
-fn python_type(ty: &Type) -> String {
+pub(super) fn python_type(ty: &Type) -> String {
     match ty {
         Type::Unit => "None".to_string(),
         Type::Bool => "bool".to_string(),
