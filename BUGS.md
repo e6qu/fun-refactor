@@ -51,6 +51,36 @@ shows the patch additive. What is left below is one limit of this tool's own ana
 
 ## Fixed
 
+- [x] B735: **a Rust module alias resolved to nothing.** `use a::{b, c as d};` recorded
+  only `b`. The aliased entry in a use-group was not among the query's shapes, so `d::f()`
+  resolved to nothing, `fr unused` called `f` dead, and `fr delete` planned a deletion
+  that would not compile, warning about "unresolved occurrences" it should have counted
+  as callers. Running that deletion as a recipe against this repository found it.
+  `provenance::applies_to` is called from `tests/provenance.rs` through such an import,
+  and the tool reported the function unused.
+
+  Two rules were missing. The use-group's aliased entry now records `local <- original`
+  the way every other language's aliases do, at the top level and one group down. And
+  where several files share a stem, the segments before it now decide between them.
+  `analysis.provenance` names the file under `analysis/`, and a `tests/provenance.rs`
+  only shares the name. Any ambiguous stem used to resolve to nothing at all.
+  The recipe now refuses the deletion, naming both call sites.
+
+- [x] B736: **the scaffolder re-cased wire names.** A schema property, `petName`, is the
+  JSON key every request carries. The generated Pydantic model spelled it `pet_name`,
+  and that model serialises a different contract than the document it came from. The generated TypeScript interface camel-cased fields the same way, and a query
+  parameter's spelling changed the URL key FastAPI accepts. Path parameters were the
+  only names that are internal, and they were also the only ones it was right about.
+
+  Names are kept as the document spells them now. A name Python cannot declare is left
+  out of the model and reported, which shrinks the contract out loud instead of serving
+  a different one. TypeScript can quote any key, so nothing is left out there.
+
+- [x] B737: **a bare `return` translated into a handler that answers nothing.** FastAPI
+  serialises `return` as a JSON null with status 200. The Next.js handler it became just
+  returned, which is a handler that resolves with no `Response` at all. A bare return
+  now answers `Response.json(null)`, the same body either way.
+
 - [x] B734: **the browser build freed memory with the wrong allocator.** The grammars' C
   has no libc on `wasm32-unknown-unknown`, so `crates/wasm-libc` supplies one.
   tree-sitter's core is pointed at Rust's allocator, through the C hook alone. The Rust

@@ -891,24 +891,6 @@ pub struct Fidelity {
 }
 
 impl Fidelity {
-    /// Add another report to this one.
-    ///
-    /// A translation that writes several files, such as a FastAPI module becoming a route
-    /// tree, has one report per file and one to show.
-    pub fn absorb(&mut self, other: Fidelity) {
-        self.functions += other.functions;
-        self.records += other.records;
-        self.constants += other.constants;
-        self.signatures_complete += other.signatures_complete;
-        self.signatures_with_foreign_types += other.signatures_with_foreign_types;
-        self.carried_verbatim += other.carried_verbatim;
-        self.imports_listed += other.imports_listed;
-        self.newtypes += other.newtypes;
-        self.sums += other.sums;
-        self.signatures_with_changed_calls += other.signatures_with_changed_calls;
-        self.notes.extend(other.notes);
-    }
-
     /// Did everything cross intact?
     ///
     /// A translation that read *nothing* falls short of complete. Without the first

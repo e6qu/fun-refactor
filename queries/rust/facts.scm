@@ -200,6 +200,32 @@
     path: (_) @import.path
     list: (use_list (identifier) @import.name))) @import
 
+; `use a::{b as c};` binds `c` to `a::b`. The alias is the local name, and the path it
+; renames pairs with it as the original.
+(use_declaration
+  argument: (scoped_use_list
+    path: (_) @import.path
+    list: (use_list
+      (use_as_clause
+        path: (_) @import.original
+        alias: (identifier) @import.name)))) @import
+
+; A group nested one level down: `use a::{b::{c, d as e}};`. Rooted at the inner list,
+; so the outer brace's depth does not matter. The path is the inner one, which the
+; module search resolves the same way it resolves a top-level `use b::c`.
+(use_list
+  (scoped_use_list
+    path: (_) @import.path
+    list: (use_list (identifier) @import.name))) @import
+
+(use_list
+  (scoped_use_list
+    path: (_) @import.path
+    list: (use_list
+      (use_as_clause
+        path: (_) @import.original
+        alias: (identifier) @import.name)))) @import
+
 (use_declaration
   argument: (use_wildcard) @import.path) @import.glob @import
 

@@ -27,6 +27,8 @@ pub enum Rewrite {
     DeMorgan,
     /// Turn a whole-body `if` into an early-return guard.
     GuardClause,
+    /// Move a nested function to module scope.
+    HoistFunction,
 }
 
 impl Rewrite {
@@ -35,6 +37,7 @@ impl Rewrite {
             Rewrite::InvertIf => "invert-if",
             Rewrite::DeMorgan => "de-morgan",
             Rewrite::GuardClause => "guard-clause",
+            Rewrite::HoistFunction => "hoist-function",
         }
     }
 
@@ -43,6 +46,7 @@ impl Rewrite {
             Rewrite::InvertIf => "swap the branches and negate the condition",
             Rewrite::DeMorgan => "distribute the negation over the operator",
             Rewrite::GuardClause => "return early instead of nesting the body",
+            Rewrite::HoistFunction => "move this nested function to module scope",
         }
     }
 
@@ -51,12 +55,17 @@ impl Rewrite {
             "invert-if" => Some(Rewrite::InvertIf),
             "de-morgan" => Some(Rewrite::DeMorgan),
             "guard-clause" => Some(Rewrite::GuardClause),
+            "hoist-function" => Some(Rewrite::HoistFunction),
             _ => None,
         }
     }
 
-    pub const ALL: &'static [Rewrite] =
-        &[Rewrite::InvertIf, Rewrite::DeMorgan, Rewrite::GuardClause];
+    pub const ALL: &'static [Rewrite] = &[
+        Rewrite::InvertIf,
+        Rewrite::DeMorgan,
+        Rewrite::GuardClause,
+        Rewrite::HoistFunction,
+    ];
 }
 
 /// A rewrite worked out but not applied.
@@ -107,22 +116,31 @@ pub fn apply(index: &Index, file: &Path, offset: usize, rewrite: Rewrite) -> Res
     let source = crate::vfs::read_to_string(file)?;
     let parsed = Parsers::new().parse(language, &source)?;
 
-    let (span, replacement) = match rewrite {
-        Rewrite::InvertIf => invert_if(&parsed, &source, offset, language)?,
-        Rewrite::DeMorgan => de_morgan(&parsed, &source, offset, language)?,
-        Rewrite::GuardClause => guard_clause(&parsed, &source, offset, language)?,
+    // Most rewrites replace one span. A hoist is a deletion and an insertion, so every
+    // rewrite is a set of them, and the first one names the construct for display.
+    let replacements = match rewrite {
+        Rewrite::InvertIf => vec![invert_if(&parsed, &source, offset, language)?],
+        Rewrite::DeMorgan => vec![de_morgan(&parsed, &source, offset, language)?],
+        Rewrite::GuardClause => vec![guard_clause(&parsed, &source, offset, language)?],
+        Rewrite::HoistFunction => hoist_function(&parsed, &source, offset, language)?,
     };
 
+    let before = replacements
+        .first()
+        .map(|(span, _)| span.text(&source).to_string())
+        .unwrap_or_default();
     let mut edits = EditSet::new();
-    edits.add(
-        file.to_path_buf(),
-        Edit::new(span, replacement, rewrite.as_str().to_string()),
-    );
+    for (span, replacement) in replacements {
+        edits.add(
+            file.to_path_buf(),
+            Edit::new(span, replacement, rewrite.as_str().to_string()),
+        );
+    }
 
     Ok(RewritePlan {
         rewrite,
         edits,
-        before: span.text(&source).to_string(),
+        before,
     })
 }
 
@@ -138,6 +156,125 @@ pub fn supported(language: Language) -> bool {
             | Language::Bash
             | Language::Java
     )
+}
+
+/// Move the nested function at `offset` to module scope.
+///
+/// Rust only, and Rust is where the move preserves meaning. A nested `fn` is an item,
+/// and the compiler already forbids it from reaching the enclosing function's locals.
+/// A Python or TypeScript inner function can capture them, and hoisting one would
+/// quietly change what its names mean. Those are refused with the reason.
+fn hoist_function(
+    parsed: &Parsed,
+    source: &str,
+    offset: usize,
+    language: Language,
+) -> Result<Vec<(Span, String)>> {
+    if language != Language::Rust {
+        return Err(Refusal::Unsupported {
+            operation: "hoist-function".to_string(),
+            language,
+            because: "an inner function there can capture the enclosing scope, and \
+                      hoisting it would change what its names mean",
+        }
+        .into());
+    }
+    let node = parsed
+        .descendant_at(offset, offset)
+        .ok_or_else(|| anyhow::anyhow!("nothing at that position"))?;
+
+    // The innermost function containing the offset, and the top-level item above it.
+    let mut nested = None;
+    let mut top = None;
+    let mut current = Some(node);
+    while let Some(at) = current {
+        if at.kind() == "function_item" && nested.is_none() {
+            nested = Some(at);
+        }
+        if at.parent().is_some_and(|p| p.kind() == "source_file") {
+            top = Some(at);
+        }
+        current = at.parent();
+    }
+    let (Some(nested), Some(top)) = (nested, top) else {
+        anyhow::bail!("that position is not inside a function");
+    };
+    if Span::from(nested) == Span::from(top) {
+        anyhow::bail!("that function is already at module scope; point inside a nested one");
+    }
+
+    let name = nested
+        .child_by_field_name("name")
+        .map(|n| Span::from(n).text(source).to_string())
+        .unwrap_or_default();
+    // A module-level item of the same name would now be two definitions of one thing.
+    if parsed
+        .root()
+        .named_children(&mut parsed.root().walk())
+        .any(|item| {
+            item.child_by_field_name("name")
+                .is_some_and(|n| Span::from(n).text(source) == name)
+        })
+    {
+        anyhow::bail!(
+            "the module already defines `{name}`, so the hoisted function would collide \
+             with it"
+        );
+    }
+
+    // The lines the nested function occupies, indentation and doc comments included.
+    let line_start = source[..nested.start_byte()]
+        .rfind('\n')
+        .map(|at| at + 1)
+        .unwrap_or(0);
+    let indent = &source[line_start..nested.start_byte()];
+    let mut from = line_start;
+    // A comment right above the function is about the function, and travels with it.
+    loop {
+        let above_end = match from.checked_sub(1) {
+            Some(end) if source.as_bytes().get(end) == Some(&b'\n') => end,
+            _ => break,
+        };
+        let above_start = source[..above_end]
+            .rfind('\n')
+            .map(|at| at + 1)
+            .unwrap_or(0);
+        let line = &source[above_start..above_end];
+        match line.strip_prefix(indent) {
+            Some(rest) if rest.starts_with("//") => from = above_start,
+            _ => break,
+        }
+    }
+    let to = source[nested.end_byte()..]
+        .find('\n')
+        .map(|at| nested.end_byte() + at + 1)
+        .unwrap_or(source.len());
+
+    // The function, re-indented for module scope.
+    let dedented: String = source[from..to]
+        .lines()
+        .map(|line| line.strip_prefix(indent).unwrap_or(line))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let hoisted = format!("\n\n{}", dedented.trim_end());
+
+    Ok(vec![
+        // Take the function's lines out, and the blank line they leave behind.
+        (Span::new(from, blank_after(source, to)), String::new()),
+        (Span::new(top.end_byte(), top.end_byte()), hoisted),
+    ])
+}
+
+/// The end of the run of blank lines starting at `from`.
+fn blank_after(source: &str, from: usize) -> usize {
+    let mut at = from;
+    for line in source[from..].split_inclusive('\n') {
+        if !line.trim().is_empty() {
+            break;
+        }
+        at += line.len();
+    }
+    at
 }
 
 /// The pieces of an `if`, however the grammar spells them.

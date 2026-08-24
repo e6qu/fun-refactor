@@ -212,7 +212,7 @@ fn the_contract_survives_the_crossing() {
     assert_eq!(
         endpoints(&before.document),
         endpoints(&after.document),
-        "the same URLs, answering the same methods"
+        "the same URLs and methods"
     );
 }
 
@@ -275,4 +275,20 @@ fn the_translation_is_settled() {
         plan.routes.iter().map(|r| r.output.clone()).collect()
     };
     assert_eq!(text(&first), text(&second));
+}
+
+#[test]
+fn a_bare_return_still_answers_with_a_response() {
+    // FastAPI serialises a bare `return` as a JSON null with status 200. A Next.js
+    // handler that just `return`s answers with nothing at all, which is a different
+    // endpoint.
+    let (_tmp, plan) = translate(
+        "from fastapi import FastAPI\n\napp = FastAPI()\n\n\n@app.post(\"/reset\")\nasync def reset():\n    clear()\n    return\n",
+    );
+    let reset = route(&plan, "/reset");
+    assert!(
+        reset.output.contains("return Response.json(null);"),
+        "{}",
+        reset.output
+    );
 }

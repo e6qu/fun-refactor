@@ -1803,6 +1803,39 @@ impl Index {
         if matches.len() == 1 {
             return Some(matches[0].clone());
         }
+        // Several files share the stem, and the segments before it decide between them.
+        // `analysis.provenance` names the one under `analysis/`; a `tests/provenance.rs`
+        // only shares the name. Still only when one file survives, since a qualifier
+        // both share decides nothing.
+        if matches.len() > 1 {
+            let qualifiers: Vec<&str> = import_path
+                .split(['/', ':', '.'])
+                .filter(|s| !s.is_empty())
+                .collect();
+            let qualifiers = &qualifiers[..qualifiers.len().saturating_sub(1)];
+            if !qualifiers.is_empty() {
+                let qualified: Vec<&PathBuf> = matches
+                    .iter()
+                    .filter(|file| {
+                        let directories: Vec<&str> = file
+                            .parent()
+                            .map(|dir| {
+                                dir.components()
+                                    .filter_map(|c| match c {
+                                        std::path::Component::Normal(part) => part.to_str(),
+                                        _ => None,
+                                    })
+                                    .collect()
+                            })
+                            .unwrap_or_default();
+                        directories.ends_with(qualifiers)
+                    })
+                    .collect();
+                if qualified.len() == 1 {
+                    return Some(qualified[0].clone());
+                }
+            }
+        }
         // A Python package is a directory, so `pkg` names `pkg/__init__.py`. The stem
         // rule above cannot see that: the file's stem is `__init__`.
         let init_scan;

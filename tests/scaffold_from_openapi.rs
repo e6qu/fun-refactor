@@ -182,3 +182,108 @@ fn the_fastapi_scaffold_round_trips_through_the_contract() {
     urls.sort();
     assert_eq!(urls, ["/pets", "/pets/{pet_id}"]);
 }
+
+/// A document whose names are not this tool's convention, held to the wire.
+const CASED: &str = r##"
+openapi: "3.1.0"
+info:
+  title: cased
+  version: "1.0.0"
+paths:
+  /widgets:
+    get:
+      parameters:
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Widget"
+components:
+  schemas:
+    Widget:
+      type: object
+      required: [displayName]
+      properties:
+        displayName:
+          type: string
+        x-vendor-tag:
+          type: string
+"##;
+
+fn scaffolded_cased(target: Target) -> (tempfile::TempDir, scaffold::ScaffoldPlan) {
+    let tmp = tempfile::tempdir().expect("a temporary directory");
+    let path = tmp.path().join("openapi.yaml");
+    std::fs::write(&path, CASED).expect("write");
+    let out = tmp.path().join("app").join("api");
+    let plan = scaffold::plan_to(&path, target, Some(&out), false).expect("a plan");
+    (tmp, plan)
+}
+
+#[test]
+fn a_property_name_is_the_wire_contract_and_is_not_re_cased() {
+    // `displayName` in the document is the key every request carries. Re-cased to
+    // `display_name`, the model would serialise a different JSON than the contract.
+    let (_tmp, python) = scaffolded_cased(Target::FastApi);
+    assert!(
+        python.files[0].output.contains("    displayName: str\n"),
+        "{}",
+        python.files[0].output
+    );
+    let (_tmp2, ts) = scaffolded_cased(Target::NextJs);
+    let route = ts
+        .files
+        .iter()
+        .find(|f| f.output.contains("interface Widget"))
+        .expect("the schema is in the file that uses it");
+    assert!(
+        route.output.contains("    displayName: string;"),
+        "{}",
+        route.output
+    );
+}
+
+#[test]
+fn a_query_key_is_the_wire_contract_and_is_not_re_cased() {
+    // FastAPI reads the query key from the parameter's own name, so `page_size` would
+    // answer a different URL than the document declares.
+    let (_tmp, plan) = scaffolded_cased(Target::FastApi);
+    assert!(
+        plan.files[0].output.contains("pageSize: int | None = None"),
+        "{}",
+        plan.files[0].output
+    );
+}
+
+#[test]
+fn a_name_python_cannot_declare_is_left_out_loudly() {
+    // `x-vendor-tag` is not a Python name. Re-spelled it would change the wire key, so
+    // the field is left out and the plan says so. TypeScript can quote any key, so
+    // nothing is left out there.
+    let (_tmp, python) = scaffolded_cased(Target::FastApi);
+    assert!(
+        !python.files[0].output.contains("x-vendor-tag"),
+        "{}",
+        python.files[0].output
+    );
+    assert!(
+        python.notes.iter().any(|n| n.contains("x-vendor-tag")),
+        "{:?}",
+        python.notes
+    );
+    let (_tmp2, ts) = scaffolded_cased(Target::NextJs);
+    let route = ts
+        .files
+        .iter()
+        .find(|f| f.output.contains("interface Widget"))
+        .expect("the schema is in the file that uses it");
+    assert!(
+        route.output.contains("    \"x-vendor-tag\"?: string;"),
+        "{}",
+        route.output
+    );
+}

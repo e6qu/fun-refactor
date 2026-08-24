@@ -592,15 +592,17 @@ fn names_a_model(param: &Param, models: &[Record]) -> bool {
 fn respond(body: &mut [Stmt]) {
     for statement in body.iter_mut() {
         match statement {
-            Stmt::Return(Some(value)) => {
-                let returned = std::mem::replace(value, Expr::Null);
-                *value = Expr::Call {
+            Stmt::Return(value) => {
+                // FastAPI serialises a bare `return` as a JSON null with status 200,
+                // so the handler answers the same body either way.
+                let returned = value.take().unwrap_or(Expr::Null);
+                *value = Some(Expr::Call {
                     callee: Box::new(Expr::Field {
                         of: Box::new(Expr::Name("Response".into())),
                         name: "json".into(),
                     }),
                     args: vec![returned],
-                };
+                });
             }
             Stmt::If {
                 then, otherwise, ..
