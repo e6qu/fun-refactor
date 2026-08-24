@@ -1618,6 +1618,33 @@ impl Index {
                 files.push(file);
             }
         }
+
+        // A file may hand on what it does not declare: a Sass `@forward "theme"`, a
+        // TypeScript `export * from "./holder"`. The namespace then reaches through it,
+        // so the files it forwards to are bound to the same receiver. Bounded, because
+        // two files may forward to each other.
+        let mut frontier = files.clone();
+        for _ in 0..8 {
+            let mut onward: Vec<PathBuf> = Vec::new();
+            for file in &frontier {
+                let Some(info) = self.file(file) else {
+                    continue;
+                };
+                for import in info.imports.iter().filter(|i| i.re_export) {
+                    if let Some(next) = self.resolve_import_path(file, &import.path) {
+                        if !files.contains(&next) {
+                            files.push(next.clone());
+                            onward.push(next);
+                        }
+                    }
+                }
+            }
+            if onward.is_empty() {
+                break;
+            }
+            frontier = onward;
+        }
+
         files.sort();
         files.dedup();
         files
@@ -1677,6 +1704,22 @@ impl Index {
         let beside = crate::vfs::normalise(dir.join(import_path));
         if self.files.contains_key(&beside) {
             return Some(beside);
+        }
+
+        // A stylesheet names a file without its extension. A Sass partial is written with
+        // a leading underscore that no import spells: `@use "theme"` is `_theme.scss`.
+        // Both syntaxes, and the plain `.css` a `@use` may also name.
+        for extension in ["scss", "sass", "css"] {
+            let named = beside.with_extension(extension);
+            if self.files.contains_key(&named) {
+                return Some(named);
+            }
+            if let Some(stem) = beside.file_name().and_then(|n| n.to_str()) {
+                let partial = beside.with_file_name(format!("_{stem}.{extension}"));
+                if self.files.contains_key(&partial) {
+                    return Some(partial);
+                }
+            }
         }
 
         // Python writes a relative import as leading dots and then dotted segments. One dot

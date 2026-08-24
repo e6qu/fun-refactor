@@ -163,7 +163,25 @@ fn refine_name_span(span: Span, source: &str, lang: Language) -> Span {
     if lang == Language::Markdown {
         return trim_markdown_syntax(span, source);
     }
+    // The braced Sass syntax writes a namespaced name as one token: `theme.$brand`,
+    // `theme.double`. The name is what follows the last dot, and the namespace before it
+    // is read as the receiver. A rename has to rewrite the name and leave the namespace,
+    // which is a different symbol in a different file.
+    if lang == Language::Scss {
+        let text = span.text(source);
+        if let Some(dot) = text.rfind('.') {
+            let after = span.start + dot + 1;
+            if after < span.end && text[..dot].chars().all(is_namespace_character) {
+                return Span::new(after, span.end);
+            }
+        }
+    }
     span
+}
+
+/// Whether the character may stand in a stylesheet namespace, which is an identifier.
+fn is_namespace_character(c: char) -> bool {
+    c.is_alphanumeric() || c == '_' || c == '-'
 }
 
 /// Strip the Markdown syntax the grammar leaves inside a name.
@@ -298,6 +316,33 @@ fn receiver_of(root: Node<'_>, span: Span, source: &str, language: Language) -> 
             }
         }
     }
+    // The indented Sass syntax gives the namespace a node of its own, under a `module`
+    // field: `variable_module`, `call_expression` and `include_statement` all carry one.
+    if let Some(node) = root.descendant_for_byte_range(span.start, span.end) {
+        if let Some(module) = node.parent().and_then(|p| p.child_by_field_name("module")) {
+            if Span::from(module) != span {
+                return Some(Span::from(module).text(source).to_string());
+            }
+        }
+    }
+
+    // The braced syntax writes the namespace and the name as one token. What precedes the
+    // dot is text, and not a node above this one.
+    if language == Language::Scss {
+        let before = source[..span.start].strip_suffix('.').unwrap_or_default();
+        let namespace: String = before
+            .chars()
+            .rev()
+            .take_while(|c| is_namespace_character(*c))
+            .collect::<Vec<_>>()
+            .into_iter()
+            .rev()
+            .collect();
+        if !namespace.is_empty() {
+            return Some(namespace);
+        }
+    }
+
     const MEMBER_SHAPES: &[&str] = &[
         "selector_expression", // Go
         "member_expression",   // TypeScript, JavaScript

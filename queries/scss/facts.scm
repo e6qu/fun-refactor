@@ -87,11 +87,14 @@
   (#eq? @_fn "var")
   (#match? @reference.identifier "^--"))
 
-; `$brand` read anywhere: a declaration value, an argument, an interpolation. A
-; capture that lands on a declaration's or parameter's own name is dropped by the
-; extractor, so this pattern does not have to exclude definition sites itself.
+; `$brand` read anywhere: a declaration value, an argument, an interpolation, and
+; through the namespace a `@use` gave it, `theme.$brand`. This grammar writes the
+; namespace and the name as one token, and the extractor reads the name from after the
+; dot so a rename rewrites that and leaves the namespace alone. A capture that lands on a
+; declaration's or parameter's own name is dropped by the extractor, so this pattern does
+; not have to exclude definition sites itself.
 (variable) @reference.identifier
-  (#match? @reference.identifier "^\\$")
+  (#match? @reference.identifier "^([a-zA-Z_][a-zA-Z0-9_-]*\\.)?\\$")
 
 ; `@include theme(red)` calls a mixin. This is the call site a signature change
 ; rewrites, so it is a call and not a plain identifier use. A namespaced include
@@ -127,7 +130,7 @@
 
 ; `@import "other.css";` — the engine strips the quotes from an import path.
 (import_statement
-  (string_value) @import.path) @import
+  (string_value) @import.path) @import.glob @import
 
 ; `@import url("theme.css");` and `@import url(theme.css);`
 (import_statement
@@ -138,11 +141,17 @@
 ; `@use "buttons";` and `@forward "buttons";` — the Sass module system. The path is
 ; what the import names; the `as <namespace>` clause binds a local name for it, and
 ; a namespaced `@include ns.mixin()` resolves through that name.
+; `as t` binds one namespace and `as *` binds none, so the two are read in one pattern:
+; a `@use` is one import however it is written. `@import` is the older spelling of `as *`.
 (use_statement
-  (string_value) @import.path) @import
+  (string_value) @import.path
+  [alias: (identifier) @import.alias
+   "*" @import.glob]?) @import
 
 (use_statement
   alias: (identifier) @name) @definition.module
 
+; `@forward "buttons";` re-exports what that file declares: a third file that `@use`s
+; this one reaches them through this file's namespace.
 (forward_statement
-  (string_value) @import.path) @import
+  (string_value) @import.path) @import.re-export @import

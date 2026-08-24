@@ -1,5 +1,5 @@
 --- a/grammar.js	2024-04-09 04:49:34
-+++ b/grammar.js	2026-08-23 23:31:53
++++ b/grammar.js	2026-08-24 06:10:30
 @@ -14,8 +14,18 @@
  
    externals: ($, original) => original.concat([
@@ -74,7 +74,7 @@
      ),
  
      // Property Values
-@@ -104,14 +135,36 @@
+@@ -104,13 +135,35 @@
          $.nesting_selector,
          $._concatenated_identifier,
          $.list_value,
@@ -107,12 +107,11 @@
 +      optional(seq('with', field('configuration', $.map_value))),
 +      ';',
 +    ),
- 
-+    forward_prefix: $ => seq($.identifier, token.immediate('*')),
 +
++    forward_prefix: $ => seq($.identifier, token.immediate('*')),
+ 
      mixin_statement: $ => seq(
        '@mixin',
-       field('name', $.identifier),
 @@ -121,22 +174,33 @@
  
      include_statement: $ => seq(
@@ -330,6 +329,7 @@
        ),
      ),
  
+-    variable: _ => /([a-zA-Z_]+\.)?\$[a-zA-Z-_][a-zA-Z0-9-_]*/,
 +    url_value: _ => token(seq(
 +      /[uU][rR][lL]\(/,
 +      /[^)'"\s]*[,;!][^)'"\s]*/,
@@ -340,7 +340,7 @@
 +
 +    identifier: _ => /(--|-?[a-zA-Z_]|\\.)([a-zA-Z0-9-_]|\\.)*/,
 +
-     variable: _ => /([a-zA-Z_]+\.)?\$[a-zA-Z-_][a-zA-Z0-9-_]*/,
++    variable: _ => token(prec(1, /([a-zA-Z_]+\.)?\$[a-zA-Z-_][a-zA-Z0-9-_]*/)),
 +
 +    negated_variable: _ => token(seq('-', /([a-zA-Z_]+\.)?\$[a-zA-Z-_][a-zA-Z0-9-_]*/)),
 +
@@ -360,7 +360,7 @@
  });
  
 --- a/src/scanner.c	2024-04-09 04:49:34
-+++ b/src/scanner.c	2026-08-23 23:31:53
++++ b/src/scanner.c	2026-08-24 06:10:30
 @@ -7,12 +7,106 @@
      PSEUDO_CLASS_SELECTOR_COLON,
      ERROR_RECOVERY,
