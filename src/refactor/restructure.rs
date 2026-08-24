@@ -15,16 +15,38 @@
 //! 1. Encode `$NAME` as the ordinary identifier `FrMetaNAME`, legal in every supported grammar.
 //!    `$$NAME` escapes the sigil and stands for a literal `$NAME`, which Bash, SCSS and
 //!    Helm sources contain.
-//! 2. Try the encoded fragment inside each per-language wrapper in [`fragment_wrappers`], in
-//!    turn. Stop at the first that parses cleanly and yields a node starting at the fragment.
-//!    One fragment can be several shapes in one language: a CSS pattern may be a rule, a
-//!    declaration or a selector. The wrapper that parses picks one.
+//! 2. Parse the encoded fragment inside every per-language wrapper in [`fragment_wrappers`]
+//!    that accepts it. One fragment can be several shapes in one language. A CSS pattern may
+//!    be a rule, a declaration or a selector. `A | B` in Rust is a bitwise or and an
+//!    or-pattern. Only the target says which was meant. Every shape searches, and the first
+//!    to match a node anywhere is the one the caller wrote.
 //! 3. Match that node structurally against every node of every target file.
 //!
 //! A wrapper can contribute punctuation the fragment did not write. The CSS declaration wrapper
 //! adds the `;` that makes `color: $X` a declaration, and tree-sitter puts that `;` inside the
 //! declaration node. The match trims back to the end of the matched node's last named child, so
 //! rewriting `color: red;` replaces `color: red` and leaves the terminator.
+//!
+//! # Members
+//!
+//! A variant of an enum, a field of a struct and an arm of a match are members. So are a case
+//! of a switch and an entry of an object literal. Each parses only inside the thing that holds
+//! it, and adding one is most of what changing a program means.
+//!
+//! A member is written with the separator that puts it in its list, `Scss,`. Most grammars
+//! leave that separator out of the member's own node. So a match takes the target's separator
+//! with it, and rewriting `Scss,` as two variants leaves two commas rather than three. A
+//! trailing separator is optional after the last member, and its absence matches too.
+//!
+//! # Macro bodies
+//!
+//! No grammar knows what a Rust macro does with its arguments. `matches!(l, A | B)` holds a
+//! flat run of tokens where the source holds an or-pattern. A pattern still has tokens of its
+//! own, and those are compared against runs of macro tokens. Bracket nesting is counted, so a
+//! metavariable binds `item.name()` whole rather than stopping at the comma inside it.
+//!
+//! A shape that matched a node wins over one that matched only tokens. Every shape of a
+//! pattern has the same tokens, and only a node says which shape was meant.
 //!
 //! # Per-language notes
 //!
@@ -81,24 +103,12 @@ pub struct RestructurePlan {
 pub fn locate(index: &Index, language: Language, pattern: &str) -> Result<Vec<(PathBuf, Span)>> {
     let parsers = Parsers::new();
     let encoded = encode_metavariables(pattern);
-    let (pattern_parsed, pattern_source, offset, trim_trailing) =
-        parse_fragment(&parsers, language, &encoded, pattern)?;
-    let pattern_root = fragment_root(&pattern_parsed, offset, encoded.len())
-        .ok_or_else(|| anyhow::anyhow!("could not parse the pattern as {language}: '{pattern}'"))?;
-    if metavariable(pattern_root, &pattern_source).is_some() {
-        return Err(Refusal::InvalidName {
-            name: pattern.to_string(),
-            reason: "a pattern that is only a metavariable would match everything".into(),
-        }
-        .into());
-    }
-    let compiled = Pattern {
-        root: pattern_root,
-        source: &pattern_source,
-        trim_trailing,
-    };
+    let shapes = fragment_shapes(&parsers, language, &encoded, pattern)?;
+    let compiled = compile_shapes(&shapes, pattern)?;
 
-    let mut found = Vec::new();
+    let mut found: Vec<(Vec<(PathBuf, Span)>, usize)> =
+        compiled.iter().map(|_| (Vec::new(), 0)).collect();
+    let mut hit = compiled.len() - 1;
     for (path, info) in index.files() {
         if info.language != language {
             continue;
@@ -107,11 +117,24 @@ pub fn locate(index: &Index, language: Language, pattern: &str) -> Result<Vec<(P
             continue;
         };
         let parsed = parsers.parse(language, &source)?;
-        for found_here in find_matches(&parsed, &source, &compiled) {
-            found.push((path.clone(), found_here.span));
+        for (shape, pattern) in compiled.iter().enumerate().take(hit + 1) {
+            for found_here in find_matches(&parsed, &source, pattern) {
+                found[shape].0.push((path.clone(), found_here.span));
+                if !found_here.tokens {
+                    found[shape].1 += 1;
+                    hit = hit.min(shape);
+                }
+            }
         }
     }
-    Ok(found)
+    let chosen = found
+        .iter()
+        .position(|(_, structural)| *structural > 0)
+        .or_else(|| found.iter().position(|(sites, _)| !sites.is_empty()));
+    Ok(match chosen {
+        Some(shape) => found.swap_remove(shape).0,
+        None => Vec::new(),
+    })
 }
 
 /// Rewrite every occurrence of `pattern` as `template` across the workspace.
@@ -142,27 +165,8 @@ pub fn apply(
     // except Rust, where `$` is macro syntax.
     let original_pattern = pattern.to_string();
     let encoded = encode_metavariables(pattern);
-    let (pattern_parsed, pattern_source, offset, trim_trailing) =
-        parse_fragment(&parsers, language, &encoded, pattern)?;
-    // Locate the root again rather than returning it. A `Node` borrows its tree, and
-    // returning both from `parse_fragment` would need a self-referential struct.
-    // Re-walking a fragment-sized tree costs nothing.
-    let pattern_root = fragment_root(&pattern_parsed, offset, encoded.len())
-        .ok_or_else(|| anyhow::anyhow!("could not parse the pattern as {language}: '{pattern}'"))?;
-    let compiled = Pattern {
-        root: pattern_root,
-        source: &pattern_source,
-        trim_trailing,
-    };
-
-    // A pattern that is only a metavariable would match every node in the file.
-    if metavariable(pattern_root, &pattern_source).is_some() {
-        return Err(Refusal::InvalidName {
-            name: original_pattern,
-            reason: "a pattern that is only a metavariable would match everything".into(),
-        }
-        .into());
-    }
+    let shapes = fragment_shapes(&parsers, language, &encoded, pattern)?;
+    let compiled = compile_shapes(&shapes, pattern)?;
 
     // A metavariable the pattern never binds has nothing to substitute, so the
     // template would emit the literal text `$Y`. The reparse check catches the result
@@ -216,9 +220,12 @@ pub fn apply(
     };
     let template_binds = groups && template_is_an_operator_expression(&parsers, language, template);
 
-    let mut edits = EditSet::new();
-    let mut matches = Vec::new();
-    let mut skipped_with_comments = Vec::new();
+    // One fragment can be more than one shape in one language, and only the target says
+    // which. `A | B` is a bitwise or and an or-pattern, and the wrapper that parses first
+    // cannot tell. Every shape searches, and the earliest one that finds anything is the
+    // one the caller meant; a shape that matches nowhere had nothing to say.
+    let mut found: Vec<Found> = compiled.iter().map(|_| Found::default()).collect();
+    let mut hit = compiled.len() - 1;
 
     for (path, info) in index.files() {
         if info.language != language {
@@ -229,45 +236,85 @@ pub fn apply(
         };
         let parsed = parsers.parse(language, &source)?;
 
-        for found in find_matches(&parsed, &source, &compiled) {
-            let span = found.span;
-            // The template places every bound piece and says nothing about a comment
-            // written between the pattern's own tokens. Writing over it would delete
-            // it, so this leaves the site alone and reports it.
-            if let Some(first) = found.stranded_comments.first() {
-                skipped_with_comments.push((path.clone(), first.start));
-                continue;
+        for (shape, compiled) in compiled.iter().enumerate().take(hit + 1) {
+            let into = &mut found[shape];
+            for site in find_matches(&parsed, &source, compiled) {
+                let span = site.span;
+                // The template places every bound piece and says nothing about a comment
+                // written between the pattern's own tokens. Writing over it would delete
+                // it, so this leaves the site alone and reports it.
+                if let Some(first) = site.stranded_comments.first() {
+                    into.skipped_with_comments.push((path.clone(), first.start));
+                    if !site.tokens {
+                        into.structural += 1;
+                        hit = hit.min(shape);
+                    }
+                    continue;
+                }
+                let mut replacement = substitute(template, &site.bindings, &tight);
+                // The match sat where a call sat, and the replacement is an operator
+                // expression. Whatever the call was an operand of now binds into it.
+                if template_binds && matched_in_a_tight_place(&parsed, span) {
+                    replacement = format!("({replacement})");
+                }
+                // Skip a rewrite that changes nothing, and one that moves only
+                // whitespace. A template is written on one line, so substituting it over
+                // a receiver the author put on its own line pulls the line up. D2 says
+                // this tool never pretty-prints, and that covers layout it did not come
+                // to change.
+                if same_but_for_layout(&replacement, span.text(&source)) {
+                    continue;
+                }
+                into.matches
+                    .push((path.clone(), span.text(&source).to_string()));
+                into.edits.add(
+                    path.clone(),
+                    Edit::new(span, replacement, "restructure".to_string()),
+                );
+                if !site.tokens {
+                    into.structural += 1;
+                    hit = hit.min(shape);
+                }
             }
-            let mut replacement = substitute(template, &found.bindings, &tight);
-            // The match sat where a call sat, and the replacement is an operator
-            // expression. Whatever the call was an operand of now binds into it.
-            if template_binds && matched_in_a_tight_place(&parsed, span) {
-                replacement = format!("({replacement})");
-            }
-            // Skip a rewrite that changes nothing, and one that moves only whitespace.
-            // A template is written on one line, so substituting it over a receiver the
-            // author put on its own line pulls the line up. D2 says this tool never
-            // pretty-prints, and that covers layout it did not come to change.
-            if same_but_for_layout(&replacement, span.text(&source)) {
-                continue;
-            }
-            matches.push((path.clone(), span.text(&source).to_string()));
-            edits.add(
-                path.clone(),
-                Edit::new(span, replacement, "restructure".to_string()),
-            );
         }
     }
+
+    // A shape is chosen by the nodes it matched. Every shape finds the same runs of macro
+    // tokens, so those say nothing about which shape was meant. A shape that found only
+    // them is no better than the first. Those runs travel with whichever shape wins, since
+    // a rewrite that reaches inside a macro reaches inside every one.
+    let chosen = found
+        .iter()
+        .position(|shape| shape.structural > 0)
+        .or_else(|| {
+            found.iter().position(|shape| {
+                !shape.matches.is_empty() || !shape.skipped_with_comments.is_empty()
+            })
+        });
+    let chosen = match chosen {
+        Some(shape) => found.swap_remove(shape),
+        None => Found::default(),
+    };
 
     Ok(RestructurePlan {
         // Report the pattern the caller wrote, leaving the wrapped and encoded form
         // to the parser.
         pattern: original_pattern,
         template: template.to_string(),
-        edits,
-        matches,
-        skipped_with_comments,
+        edits: chosen.edits,
+        matches: chosen.matches,
+        skipped_with_comments: chosen.skipped_with_comments,
     })
+}
+
+/// What one shape of the pattern found across the workspace.
+#[derive(Default)]
+struct Found {
+    edits: EditSet,
+    matches: Vec<(PathBuf, String)>,
+    skipped_with_comments: Vec<(PathBuf, usize)>,
+    /// How many of those sites were nodes rather than runs of macro tokens.
+    structural: usize,
 }
 
 /// Reports whether the matched span sits as an operand of something that binds.
@@ -285,20 +332,47 @@ struct Pattern<'a> {
     root: Node<'a>,
     source: &'a str,
     trim_trailing: bool,
+    /// The separator the pattern was written with and the node left out, if any.
+    ///
+    /// `Scss,` is how a variant appears in the source. A match takes the target's comma
+    /// with it, or the rewrite leaves one behind.
+    separator: Option<char>,
 }
 
-/// Parse the encoded fragment inside the first wrapper that accepts it.
+/// One way the fragment parses: the wrapper's parse and where the fragment sits in it.
+struct Shape {
+    parsed: Parsed,
+    source: String,
+    offset: usize,
+    len: usize,
+    trim_trailing: bool,
+    separator: Option<char>,
+}
+
+impl Shape {
+    /// The fragment's node inside this shape's parse.
+    fn compile(&self) -> Option<Pattern<'_>> {
+        Some(Pattern {
+            root: fragment_root(&self.parsed, self.offset, self.len)?,
+            source: &self.source,
+            trim_trailing: self.trim_trailing,
+            separator: self.separator,
+        })
+    }
+}
+
+/// The fragment's node in each wrapper that accepts it, most specific first.
 ///
-/// Returns the parse, the wrapped source, the fragment's offset within it, and
-/// whether the fragment's node reaches past the fragment into the wrapper.
-fn parse_fragment(
+/// Refuses only when no wrapper does, since a fragment that parses as nothing is a
+/// fragment that is not a whole piece of code.
+fn fragment_shapes(
     parsers: &Parsers,
     language: Language,
     encoded: &str,
     display: &str,
-) -> Result<(Parsed, String, usize, bool)> {
-    let wrappers = fragment_wrappers(language);
-    for (prefix, suffix) in wrappers {
+) -> Result<Vec<Shape>> {
+    let mut shapes = Vec::new();
+    for (prefix, suffix) in fragment_wrappers(language) {
         let source = format!("{prefix}{encoded}{suffix}");
         let parsed = parsers.parse(language, &source)?;
         if parsed.has_errors() {
@@ -312,34 +386,144 @@ fn parse_fragment(
         // The node must begin where the fragment begins, since a node starting inside
         // the wrapper belongs to the wrapper. It may reach past the fragment only into
         // punctuation the wrapper itself supplied.
-        if root.start_byte() != offset
-            || root.end_byte() < end
-            || root.end_byte() > end + suffix.len()
-        {
+        if root.start_byte() != offset || root.end_byte() > end + suffix.len() {
             continue;
         }
+        // A member of a list is written with the separator that puts it there. `Scss,` is
+        // how a variant appears, and `pub run: f64,` how a field does. Most grammars leave
+        // that separator out of the member's own node, so the node stops short of what was
+        // written. Accept the shortfall when it is only the separator.
+        let separator = if root.end_byte() < end {
+            match encoded[root.end_byte() - offset..].trim() {
+                "," => Some(','),
+                ";" => Some(';'),
+                _ => continue,
+            }
+        } else {
+            None
+        };
         let trim_trailing = root.end_byte() > end;
-        return Ok((parsed, source, offset, trim_trailing));
+        shapes.push(Shape {
+            parsed,
+            source,
+            offset,
+            len: encoded.len(),
+            trim_trailing,
+            separator,
+        });
     }
+    if shapes.is_empty() {
+        // Name the mistake, which is nearly always a pattern that is not a whole piece
+        // of code. Naming the wrappers here would describe the machinery instead.
+        anyhow::bail!("'{display}' is not valid {language}; check for unbalanced brackets.");
+    }
+    Ok(shapes)
+}
 
-    // Name the mistake, which is nearly always a pattern that is not a whole piece of
-    // code. Naming the wrappers here would describe the machinery instead.
-    anyhow::bail!("'{display}' is not valid {language}; check for unbalanced brackets.")
+/// The pattern node of every shape, refusing the ones that would match everything.
+fn compile_shapes<'a>(shapes: &'a [Shape], display: &str) -> Result<Vec<Pattern<'a>>> {
+    // Two wrappers can hold the fragment the same way. A shape is what its tree is, so
+    // one that repeats an earlier tree would search every file a second time for the
+    // same answer.
+    let mut seen = HashSet::new();
+    let compiled: Vec<Pattern<'a>> = shapes
+        .iter()
+        .filter_map(Shape::compile)
+        // A pattern that is only a metavariable would match every node in the file.
+        .filter(|pattern| metavariable(pattern.root, pattern.source).is_none())
+        .filter(|pattern| {
+            let span = Span::from(pattern.root);
+            seen.insert((
+                shape_signature(pattern.root),
+                span.text(pattern.source).to_string(),
+                pattern.trim_trailing,
+                pattern.separator,
+            ))
+        })
+        .collect();
+    if compiled.is_empty() {
+        return Err(Refusal::InvalidName {
+            name: display.to_string(),
+            reason: "a pattern that is only a metavariable would match everything".into(),
+        }
+        .into());
+    }
+    Ok(compiled)
+}
+
+/// A tree written out as the kinds it is made of.
+///
+/// Two shapes with the same signature over the same text match the same nodes.
+/// `Node::to_sexp` says this already, and says it in C. The string it returns is
+/// allocated by the parser and freed by the caller. That is one allocation and one
+/// crossing of the boundary per shape. Walking the nodes here costs neither.
+fn shape_signature(node: Node<'_>) -> String {
+    let mut signature = String::new();
+    write_signature(node, &mut signature);
+    signature
+}
+
+fn write_signature(node: Node<'_>, out: &mut String) {
+    out.push('(');
+    out.push_str(node.kind());
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        write_signature(child, out);
+    }
+    out.push(')');
+}
+
+/// The fragment inside the first wrapper that accepts it.
+///
+/// The template helpers read one shape of a fragment to decide how tightly it binds.
+/// That question is about the fragment's own text, and no target answers it.
+fn parse_fragment(
+    parsers: &Parsers,
+    language: Language,
+    encoded: &str,
+    display: &str,
+) -> Result<Shape> {
+    let mut shapes = fragment_shapes(parsers, language, encoded, display)?;
+    Ok(shapes.remove(0))
 }
 
 /// Minimal syntax that makes a fragment parse as a whole file, most specific first.
 ///
 /// A language gets more than one entry when a fragment can legitimately be more than one shape.
-/// The first wrapper that parses decides which shape the pattern is.
+/// Every wrapper that parses gives a shape, and the target decides between them.
 fn fragment_wrappers(language: Language) -> &'static [(&'static str, &'static str)] {
     match language {
-        // An expression or statement inside a function body, or a whole item.
-        Language::Rust => &[("fn __fr_pattern() { ", "; }"), ("", "\n")],
+        // An expression or statement inside a function body, or a whole item. Then the
+        // members: a variant, a field, an arm of a match, and the pattern on its left. A
+        // member is neither an item nor an expression, so it needs a wrapper of its own.
+        // Adding a variant, and the arms that go with it, is most of what changing an
+        // enum means.
+        Language::Rust => &[
+            ("fn __fr_pattern() { ", "; }"),
+            ("", "\n"),
+            ("enum FrPattern { ", " }"),
+            ("struct FrPattern { ", " }"),
+            ("fn __fr_pattern() { match __fr_subject { ", " } }"),
+            ("fn __fr_pattern() { match __fr_subject { ", " => () } }"),
+        ],
         Language::Go => &[
             ("package p\n\nfunc __frPattern() {\n", "\n}\n"),
             ("package p\n\n", "\n"),
+            ("package p\n\ntype FrPattern struct {\n", "\n}\n"),
+            (
+                "package p\n\nfunc __frPattern() {\n\tswitch {\n",
+                "\n\t}\n}\n",
+            ),
         ],
-        Language::Zig => &[("pub fn __fr_pattern() void {\n", ";\n}\n"), ("", "\n")],
+        Language::Zig => &[
+            ("pub fn __fr_pattern() void {\n", ";\n}\n"),
+            ("", "\n"),
+            ("const FrPattern = struct {\n", "\n};\n"),
+            (
+                "pub fn __fr_pattern() void {\n    switch (x) {\n",
+                "\n    }\n}\n",
+            ),
+        ],
         // A statement inside a method inside a class, a member inside a class, or a
         // whole type. Java has no top level below the type, so even a bare expression
         // needs two wrappers before the grammar will look at it.
@@ -347,9 +531,26 @@ fn fragment_wrappers(language: Language) -> &'static [(&'static str, &'static st
             ("class FrPattern { void frPattern() {\n", ";\n} }\n"),
             ("class FrPattern {\n", "\n}\n"),
             ("", "\n"),
+            ("enum FrPattern { ", " }"),
+            (
+                "class FrPattern { void frPattern() { switch (x) {\n",
+                "\n} } }\n",
+            ),
         ],
-        // Python and the JS family accept a bare expression statement.
-        Language::TypeScript | Language::Tsx | Language::Python => &[("", "\n")],
+        // Python and the JS family accept a bare expression statement. Beyond that: a
+        // member of an interface or a class, a case of a switch, a property of an object.
+        Language::TypeScript | Language::Tsx => &[
+            ("", "\n"),
+            ("interface FrPattern {\n", "\n}\n"),
+            ("class FrPattern {\n", "\n}\n"),
+            ("switch (x) {\n", "\n}\n"),
+            ("const __frPattern = {\n", "\n};\n"),
+        ],
+        Language::Python => &[
+            ("", "\n"),
+            ("class FrPattern:\n    ", "\n"),
+            ("__fr_pattern = {\n", "\n}\n"),
+        ],
         // A bash command, pipeline or compound statement is already a whole script.
         Language::Bash => &[("", "\n")],
         // An attribute or block stands alone; a bare expression needs an attribute.
@@ -402,6 +603,16 @@ fn fragment_root<'a>(parsed: &'a Parsed, offset: usize, len: usize) -> Option<No
             let mut cursor = node.walk();
             node.named_children(&mut cursor).collect()
         };
+        // The fragment can sit inside a container the wrapper opened, such as the braces
+        // holding an enum's variants. The container begins at its own brace, so the node
+        // covering the fragment is the container rather than the member that was
+        // written. Step into the child that begins where the fragment does, and stop
+        // there. That child is a member of a list, and its role there is the point of
+        // writing it. Descending to the identifier inside a variant would match that
+        // name everywhere it is written, variant or not.
+        if node.start_byte() < span.start {
+            return named.iter().find(|c| c.start_byte() == span.start).copied();
+        }
         let only_child = named.len() == 1
             && named[0].start_byte() == node.start_byte()
             && (Span::from(named[0]) == Span::from(node) || node.kind().contains("statement"));
@@ -505,6 +716,11 @@ fn binding_text(node: Node<'_>, source: &str, quoted: bool) -> String {
 /// One place the pattern matched.
 struct Match {
     span: Span,
+    /// Whether this site is a run of macro tokens rather than a node.
+    ///
+    /// The pattern's tokens are the same whatever shape it parsed as, so every shape
+    /// finds the same runs. Only a structural match says which shape the caller meant.
+    tokens: bool,
     bindings: HashMap<String, String>,
     /// Comments inside the match that no metavariable binding carries over.
     ///
@@ -532,10 +748,11 @@ fn find_matches(parsed: &Parsed, source: &str, pattern: &Pattern<'_>) -> Vec<Mat
             &mut bindings,
             &mut bound,
         ) {
-            let span = match_span(node, pattern.trim_trailing);
+            let span = match_span(node, source, pattern);
             if !touches_template_action(&parsed.masked_spans, span) {
                 results.push(Match {
                     span,
+                    tokens: false,
                     bindings,
                     stranded_comments: stranded_comments(node, span, &bound),
                 });
@@ -543,6 +760,13 @@ fn find_matches(parsed: &Parsed, source: &str, pattern: &Pattern<'_>) -> Vec<Mat
                 // edits overlap, and the engine rejects them.
                 continue;
             }
+        }
+        // A macro's arguments are a bag of tokens. tree-sitter cannot know what
+        // `matches!` or `format!` does with them, so it records the whole run flat.
+        // `A | B` inside one is a run of tokens and nothing more. The run is still
+        // something to match against, and a shape written in Rust has a run of its own.
+        if is_macro_tokens(node) {
+            results.extend(token_matches(node, source, pattern));
         }
         stack.extend(node.named_children(&mut cursor));
     }
@@ -552,7 +776,155 @@ fn find_matches(parsed: &Parsed, source: &str, pattern: &Pattern<'_>) -> Vec<Mat
     // grammar's opaque leaf and the inline grammar's root, and rewriting one match
     // twice produces an overlapping edit the engine rejects.
     results.dedup_by_key(|found| found.span);
-    results
+    // Two matches that overlap without being equal cannot both be rewritten either. The
+    // walk already drops a match nested in another. A token run can overlap one that no
+    // walk order relates, so the earlier of the pair wins.
+    let mut kept: Vec<Match> = Vec::new();
+    for found in results {
+        if kept
+            .last()
+            .is_some_and(|last| last.span.end > found.span.start)
+        {
+            continue;
+        }
+        kept.push(found);
+    }
+    kept
+}
+
+/// Reports whether this node is a macro, whose body is a run of tokens.
+///
+/// The whole invocation, not the bracketed part. `println!` is two tokens outside the
+/// brackets, and a pattern naming the macro has to match them.
+fn is_macro_tokens(node: Node<'_>) -> bool {
+    matches!(node.kind(), "macro_invocation" | "macro_definition")
+}
+
+/// The tokens of a node: its leaves in order, comments left out.
+fn leaves<'a>(node: Node<'a>) -> Vec<Node<'a>> {
+    let mut tokens = Vec::new();
+    let mut stack = vec![node];
+    let mut cursor = node.walk();
+    while let Some(current) = stack.pop() {
+        if is_a_comment(current) {
+            continue;
+        }
+        if current.child_count() == 0 {
+            tokens.push(current);
+            continue;
+        }
+        let mut children: Vec<Node> = current.children(&mut cursor).collect();
+        children.reverse();
+        stack.extend(children);
+    }
+    tokens.sort_by_key(|token| token.start_byte());
+    tokens
+}
+
+/// Every run of macro tokens the pattern's own tokens match.
+fn token_matches(node: Node<'_>, source: &str, pattern: &Pattern<'_>) -> Vec<Match> {
+    let wanted = leaves(pattern.root);
+    // A one-token pattern is an ordinary node inside the run, and the walk reaches it.
+    // Matching it here as well would report the same site twice.
+    if wanted.len() < 2 {
+        return Vec::new();
+    }
+    let tokens = leaves(node);
+    let mut found = Vec::new();
+    let mut at = 0;
+    while at < tokens.len() {
+        let mut bindings = HashMap::new();
+        let mut bound = Vec::new();
+        let end = match_tokens(
+            &tokens[at..],
+            &wanted,
+            source,
+            pattern.source,
+            &mut bindings,
+            &mut bound,
+        );
+        match end {
+            Some(end) if end > 0 => {
+                let span = Span::new(tokens[at].start_byte(), tokens[at + end - 1].end_byte());
+                found.push(Match {
+                    span,
+                    tokens: true,
+                    stranded_comments: stranded_comments(node, span, &bound),
+                    bindings,
+                });
+                at += end;
+            }
+            _ => at += 1,
+        }
+    }
+    found
+}
+
+/// Match the pattern's tokens against the front of `tokens`, returning how many it took.
+///
+/// A metavariable binds the run up to the pattern's next literal token, counting
+/// brackets so that a comma inside a call belongs to the call. As the last token of a
+/// pattern it binds one token, or one bracketed group.
+fn match_tokens(
+    tokens: &[Node<'_>],
+    wanted: &[Node<'_>],
+    source: &str,
+    pattern_source: &str,
+    bindings: &mut HashMap<String, String>,
+    bound: &mut Vec<Span>,
+) -> Option<usize> {
+    let text = |node: &Node<'_>, of: &str| -> String { Span::from(*node).text(of).to_string() };
+    let mut at = 0;
+    for (index, want) in wanted.iter().enumerate() {
+        if let Some(meta) = metavariable(*want, pattern_source) {
+            let next = wanted.get(index + 1).map(|node| text(node, pattern_source));
+            let start = at;
+            let mut depth = 0i32;
+            loop {
+                let here = text(tokens.get(at)?, source);
+                if depth == 0 && at > start && next.as_deref() == Some(here.as_str()) {
+                    break;
+                }
+                depth += nesting(&here);
+                if depth < 0 {
+                    return None;
+                }
+                at += 1;
+                if next.is_none() && depth == 0 {
+                    break;
+                }
+            }
+            let span = Span::new(tokens[start].start_byte(), tokens[at - 1].end_byte());
+            let text = span.text(source).trim();
+            let text = match meta.quoted {
+                true => strip_quotes(text).unwrap_or(text),
+                false => text,
+            };
+            match bindings.get(&meta.name) {
+                Some(existing) if existing != text => return None,
+                Some(_) => {}
+                None => {
+                    bindings.insert(meta.name, text.to_string());
+                }
+            }
+            bound.push(span);
+            continue;
+        }
+        if text(tokens.get(at)?, source) != text(want, pattern_source) {
+            return None;
+        }
+        at += 1;
+    }
+    Some(at)
+}
+
+/// What a token does to bracket nesting.
+fn nesting(token: &str) -> i32 {
+    match token {
+        "(" | "[" | "{" => 1,
+        ")" | "]" | "}" => -1,
+        _ => 0,
+    }
 }
 
 /// Comments inside a match that no metavariable binding would carry over.
@@ -602,17 +974,49 @@ fn touches_template_action(actions: &[Span], span: Span) -> bool {
 /// A wrapper can supply trailing punctuation, such as the `;` that turns `color: $X`
 /// into a CSS declaration. The pattern never asked for the target's equivalent
 /// punctuation, so the match stops at the last named child.
-fn match_span(node: Node<'_>, trim_trailing: bool) -> Span {
-    if !trim_trailing {
-        return Span::from(node);
-    }
-    let mut cursor = node.walk();
-    match node.named_children(&mut cursor).last() {
-        Some(last) if last.end_byte() > node.start_byte() => {
-            Span::new(node.start_byte(), last.end_byte())
+///
+/// The opposite case is a pattern written with its own separator, `Scss,`. There the
+/// match takes the target's separator too, since the template carries one and two
+/// commas would be left where one was.
+fn match_span(node: Node<'_>, source: &str, pattern: &Pattern<'_>) -> Span {
+    let start = node.start_byte();
+    let mut end = node.end_byte();
+    if pattern.trim_trailing {
+        let mut cursor = node.walk();
+        if let Some(last) = node.named_children(&mut cursor).last() {
+            if last.end_byte() > start {
+                end = last.end_byte();
+            }
         }
-        _ => Span::from(node),
     }
+    // A node can carry the whitespace that follows it. Go's switch case runs to the line
+    // the next case starts on, and so does the statement list inside it. Rewriting that
+    // far pulls the closing brace onto the last line of the case. The template holds no
+    // trailing whitespace, so neither does the match.
+    let end = source[..end].trim_end().len().max(start);
+    match pattern.separator {
+        Some(separator) => Span::new(start, separator_end(source, end, separator)),
+        None => Span::new(start, end),
+    }
+}
+
+/// The byte after the separator that follows `from`, or `from` where none does.
+///
+/// A separator is optional after the last member of a list. Where one is missing, the
+/// source is written a legal way and the match still holds.
+fn separator_end(source: &str, from: usize, separator: char) -> usize {
+    let mut at = from;
+    for c in source[from..].chars() {
+        if c == separator {
+            return at + c.len_utf8();
+        }
+        if c == ' ' || c == '\t' {
+            at += c.len_utf8();
+            continue;
+        }
+        return from;
+    }
+    from
 }
 
 /// Reports whether this node is a comment.
@@ -757,19 +1161,19 @@ fn tightly_bound_metavariables(
 ) -> HashSet<String> {
     let mut tight = HashSet::new();
     let encoded = encode_metavariables(template);
-    let Ok((parsed, source, offset, _)) = parse_fragment(parsers, language, &encoded, template)
-    else {
+    let Ok(shape) = parse_fragment(parsers, language, &encoded, template) else {
         // The reparse check downstream reports an unparseable template, so add no
         // brackets here.
         return tight;
     };
-    let Some(root) = fragment_root(&parsed, offset, encoded.len()) else {
+    let Some(compiled) = shape.compile() else {
         return tight;
     };
+    let (root, source) = (compiled.root, compiled.source);
 
     let mut stack = vec![root];
     while let Some(node) = stack.pop() {
-        if let Some(meta) = metavariable(node, &source) {
+        if let Some(meta) = metavariable(node, source) {
             if node.parent().is_some_and(|p| binds_its_operands(p.kind())) {
                 tight.insert(meta.name);
             }
@@ -791,11 +1195,12 @@ fn template_is_an_operator_expression(
     template: &str,
 ) -> bool {
     let encoded = encode_metavariables(template);
-    let Ok((parsed, _, offset, _)) = parse_fragment(parsers, language, &encoded, template) else {
+    let Ok(shape) = parse_fragment(parsers, language, &encoded, template) else {
         return false;
     };
-    fragment_root(&parsed, offset, encoded.len())
-        .is_some_and(|root| binds_its_operands(root.kind()))
+    shape
+        .compile()
+        .is_some_and(|compiled| binds_its_operands(compiled.root.kind()))
 }
 
 /// Reports whether this text is a single thing, needing no brackets wherever it lands.

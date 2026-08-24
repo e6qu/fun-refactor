@@ -439,6 +439,9 @@ dependencies = [
 [[package]]
 name = "fun-refactor-wasm-libc"
 version = "0.1.0"
+dependencies = [
+ "tree-sitter",
+]
 
 [[package]]
 name = "fun-refactor-zig-grammar"

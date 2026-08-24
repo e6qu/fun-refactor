@@ -11,3 +11,9 @@ publish = false
 # hundred lines that can be read in one sitting instead of a hole in a guarantee.
 [lints.rust]
 unsafe_code = "allow"
+
+# For `set_allocator`. The binding keeps its own copy of the free function and uses it
+# for every buffer the C side hands back, so telling only the C library which allocator
+# to use leaves half the pairing wrong.
+[dependencies]
+tree-sitter = "0.26"

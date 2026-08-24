@@ -153,15 +153,6 @@ pub fn init_scanner_heap() {
 
 extern "C" {
     fn reset_heap(new_heap_start: *mut core::ffi::c_void);
-    /// tree-sitter's own allocator hook, from `lib/include/tree_sitter/api.h`.
-    fn ts_set_allocator(
-        new_malloc: Option<unsafe extern "C" fn(usize) -> *mut core::ffi::c_void>,
-        new_calloc: Option<unsafe extern "C" fn(usize, usize) -> *mut core::ffi::c_void>,
-        new_realloc: Option<
-            unsafe extern "C" fn(*mut core::ffi::c_void, usize) -> *mut core::ffi::c_void,
-        >,
-        new_free: Option<unsafe extern "C" fn(*mut core::ffi::c_void)>,
-    );
 }
 
 /// Give tree-sitter's core Rust's allocator.
@@ -171,12 +162,18 @@ extern "C" {
 /// TypeScript query alone exhausted it, and tree-sitter's response to a failed
 /// allocation is `abort()`, which in wasm is a trap with no message.
 ///
-/// `ts_set_allocator` is the supported way to answer that: the library allocates
-/// through these instead, which are Rust's allocator with a size header, and the
-/// arena is left to the scanners that actually call `malloc` themselves.
+/// `set_allocator` is the supported way to answer that: the library allocates through
+/// these instead, which are Rust's allocator with a size header, and the arena is left
+/// to the scanners that actually call `malloc` themselves.
+///
+/// Through the Rust binding, which keeps its own copy of the free function and uses it
+/// for every buffer the C side hands back. Setting only the C library's allocator
+/// leaves that copy pointing at the scanners' arena, so a string the parser allocated
+/// and the binding freed would cross two heaps. `Node::to_sexp` does exactly that, and
+/// one call to it tripped the arena's own assertion in the browser.
 pub fn use_rust_allocator_in_tree_sitter() {
     unsafe {
-        ts_set_allocator(
+        tree_sitter::set_allocator(
             Some(fr_malloc),
             Some(fr_calloc),
             Some(fr_realloc),

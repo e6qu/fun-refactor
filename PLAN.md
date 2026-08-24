@@ -599,6 +599,45 @@ is closed. The daemon is deferred with its reason. Deciding against types oblige
 refusal to explain itself. `fr rename` names why it left each site: read from a value of
 unknown type, written inside a macro, or matched by name alone.
 
+## What is still to build
+
+`fr` is a command line for declarative code changes. Source is edited through its
+structure, at the level of the tree and above, and never as text. Four surfaces carry
+that:
+
+- The **refactorings**, which rearrange code and leave its behaviour alone.
+- The **translations**, which write one language as another.
+- The **recipes**, a small language for writing a change down with the invariants it
+  must keep.
+- The **contract**, an OpenAPI document that says what a service promises.
+
+Three things this tool is for are not built. Each is written here before it is started,
+so the claim stays checkable against the tree.
+
+### Translating a service back the way it came
+
+`fr translate <route.ts> fastapi` writes a FastAPI module from a Next.js App Router
+route. The other direction is refused today: `fastapi reads a route file's path as well
+as its text, so routes translate one at a time.` Going that way, the URL has to be
+written *into* the file path, so the output is a whole route tree. The check for it
+exists already. `openapi::from_fastapi` reads a FastAPI tree into the same baseline
+`fr openapi` derives from Next.js. So either rewrite can be diffed against the contract
+it started from.
+
+### React server functions
+
+`"use server"` is understood as an entry point and no further. An exported async function
+under that marker is an endpoint the framework generates for it. So it answers to a route
+on one side and to a FastAPI handler on the other, and neither translation knows it.
+
+### Code from an OpenAPI document
+
+`fr openapi` derives a document from a route tree, and stops there. A document names
+paths, methods, parameters and schemas. That is enough to write a Next.js route tree or a
+FastAPI app, with the handler bodies left to a person. The rule that governs the
+derivation governs the writing: invent nothing, and report every place the document left
+undetermined.
+
 ## Progress log
 
 Every stage is complete except the optional LSP delegation backend. Every
@@ -1995,3 +2034,41 @@ explained that resolving them meant teaching a per-library convention.
 Teaching it took two query patterns. The rename now rewrites all four
 occurrences and reports none, and the test that pinned the gap pins the
 fix.
+
+### The pass where the tool could change its own shape
+
+`fr` is developed with `fr`, and the last session showed how
+little of that work `fr restructure` could express. Adding a
+language to this tool takes four edits, and all four were
+refused:
+
+- A variant added to the `Language` enum.
+- The match arms that go with it.
+- A field on a struct.
+- An or-pattern widened to admit the new name.
+
+`fr restructure --lang rust 'Scss,' ...` answered `'Scss,' is
+not valid rust; check for unbalanced brackets.`
+
+A pattern had to be an expression, a statement or a whole item,
+and a member is none of those. A member also carries the
+separator that puts it in its list. Most grammars leave that
+separator out of the member's own node, so the fragment reached
+one byte past the node that held it. Members have wrappers of
+their own now, in six languages, and a match takes the target's
+separator with it.
+
+Behind that sat a second refusal. `A | B` is a bitwise or and an
+or-pattern, and the wrapper that parsed first decided which. It
+picked the expression, so an arm written `Language::Css |
+Language::Scss =>` matched nothing at all. Every shape that
+parses now searches, and the first to match a node anywhere is
+the shape the caller wrote.
+
+The third was macros. No grammar knows what a macro does with
+its arguments, so `matches!(l, A | B)` holds a flat run of
+tokens where the source holds an or-pattern. This source is 1876
+`format!` calls and 378 `matches!` calls deep, so that blindness
+covered much of it. A pattern's own tokens are compared against
+runs of macro tokens, counting brackets. `$X` binds
+`item.name()` whole rather than stopping at the comma inside it.

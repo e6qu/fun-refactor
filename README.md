@@ -103,6 +103,8 @@ fr duplicates                 # code written more than once, by structure
 fr duplicates --exact         # ...requiring the names to match as well
 fr imports <file>             # drop unused imports, sort the rest
 fr restructure 'old($X)' 'new($X)' --lang rust
+fr restructure 'A | B' 'A | B | C' --lang rust
+                              # a member, an arm, or a run of macro tokens
 fr remove-flag USE_NEW --value true  # and everything that only served it
 fr rewrite <path:l:c>         # list local transformations that apply here
 fr rewrite <path:l:c> guard-clause   # ...and apply one
