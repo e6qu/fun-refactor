@@ -51,6 +51,40 @@ shows the patch additive. What is left below is one limit of this tool's own ana
 
 ## Fixed
 
+- [x] B733: **`fr` could not write the changes it is made of.** A pattern had to
+  be an expression, a statement or an item. A variant of an enum, a field of a
+  struct, an arm of a match and the pattern on its left are none of those. Adding a
+  language to this tool needs all four, and each was refused the same way: `'Scss,' is
+  not valid rust; check for unbalanced brackets.`
+
+  A member is written with the separator that puts it in its list. Most grammars leave
+  that separator out of the member's own node. The fragment reached one byte past the node
+  that held it, and every wrapper was rejected. Members have wrappers of their own
+  now, in Rust, Go, TypeScript, Java, Python and Zig. They cover an enum's variants, a
+  struct's fields, a switch's cases, an object's properties and a match's arms. A match
+  takes the target's separator with it, so rewriting `Scss,` as two variants leaves two
+  commas rather than three. A trailing separator is optional after the last member, and its
+  absence matches too.
+
+  A second refusal sat behind the first. `A | B` is a bitwise or and an or-pattern, and
+  the wrapper that parsed first decided which. It picked the expression, and the arm
+  written `Language::Css | Language::Scss =>` matched nothing. Every shape that parses now
+  searches, and the first to match a node anywhere is the one the caller wrote.
+
+  Rust macros were the third. No grammar knows what a macro does with its arguments, so
+  `matches!(l, A | B)` holds a flat run of tokens where the source holds an or-pattern.
+  This source is 1876 `format!` calls and 378 `matches!` calls deep, so a tool blind to
+  macro bodies is blind to much of it. A pattern's own tokens are compared against runs of
+  macro tokens, counting brackets. A metavariable binds `item.name()` whole rather than
+  stopping at the comma inside it. A shape that matched a node wins over one that matched
+  only tokens, since every shape of a pattern has the same tokens.
+
+  One more thing came out of it. A node can carry the whitespace that follows it, and Go's
+  switch case runs to the line the next case starts on. Rewriting that far pulled the
+  closing brace onto the last line of the case. A match now stops at the last byte that is
+  not whitespace. `tests/restructure_members.rs` holds all of it, one member kind at a
+  time, each rewrite put through the same reparse gate the CLI uses.
+
 - [x] B731: **a stylesheet variable crossed no file boundary.** One declared in
   `_theme.scss` and used in `style.scss` reached nothing. Sass splits a codebase into
   files and gives each one a namespace, and none of that was read. `@use "theme" as t` bound no name and `t.$brand` resolved to nothing.
