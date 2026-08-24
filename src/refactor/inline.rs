@@ -41,7 +41,7 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     match (sym.language, sym.kind) {
         (Language::Hcl, SymbolKind::Variable) => return hcl_local(index, symbol),
         (Language::Yaml | Language::Helm, SymbolKind::Anchor) => return yaml_anchor(index, symbol),
-        (Language::Css | Language::Scss, SymbolKind::Property) => {
+        (Language::Css | Language::Scss | Language::Sass, SymbolKind::Property) => {
             return css_custom_property(index, symbol)
         }
         (Language::Markdown, SymbolKind::LinkDef) => {

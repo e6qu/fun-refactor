@@ -4947,7 +4947,7 @@ fn cmd_parse(cli: &Cli, languages: &[String], stats: bool) -> Result<()> {
             payload["files_with_errors"] = serde_json::json!(failures
                 .iter()
                 .map(|(p, at)| {
-                    let mut entry = serde_json::json!({
+                    serde_json::json!({
                         "file": p.canonicalize().unwrap_or_else(|_| p.clone()),
                         "path": p,
                         "error_nodes": at.len(),
@@ -4955,11 +4955,7 @@ fn cmd_parse(cli: &Cli, languages: &[String], stats: bool) -> Result<()> {
                             .iter()
                             .map(|pos| serde_json::json!({ "line": pos.line, "col": pos.col }))
                             .collect::<Vec<_>>(),
-                    });
-                    if let Some(cause) = crate::lang::known_parse_gap(p) {
-                        entry["known_cause"] = serde_json::json!(cause);
-                    }
-                    entry
+                    })
                 })
                 .collect::<Vec<_>>());
         }
@@ -4995,9 +4991,6 @@ fn cmd_parse(cli: &Cli, languages: &[String], stats: bool) -> Result<()> {
                 shown.join(", "),
                 at.len()
             );
-            if let Some(cause) = crate::lang::known_parse_gap(path) {
-                println!("    {cause}");
-            }
         }
     }
     report_skipped(&result);

@@ -525,6 +525,7 @@ fn accessors_for(language: Language) -> &'static [Accessor] {
         Language::Html
         | Language::Css
         | Language::Scss
+        | Language::Sass
         | Language::Hcl
         | Language::Yaml
         | Language::Helm

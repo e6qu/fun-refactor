@@ -1,0 +1,66 @@
+# Where this grammar came from, and what was changed in it.
+#
+# `sass-the-grammar-could-not-read.patch` is the diff against the upstream `grammar.js`,
+# `src/scanner.c` and `queries/highlights.scm` named below. Re-apply it when taking a
+# newer commit, and regenerate `src/parser.c` with the `tree-sitter` CLI.
+#
+# The upstream has no release and no tag, so the pin is a commit. The archive checksum is
+# what makes that pin checkable.
+#
+# The grammar's own test corpus records three trees the first patch below changes. Those
+# expectations are regenerated with `tree-sitter test --update`, and the corpus then
+# passes whole, 42 of 42.
+
+language = "sass"
+upstream = "https://github.com/bajrangCoder/tree-sitter-sass"
+commit = "fb280c41b070657e4ff4d4e5e6eea6cb19efd9b8"
+archive = "https://github.com/bajrangCoder/tree-sitter-sass/archive/fb280c41b070657e4ff4d4e5e6eea6cb19efd9b8.tar.gz"
+archive_sha256 = "b6cd6538805e1543c327da54e25eeb3ef0b58cd728c8e48a342c2b416c42854b"
+license = "MIT"
+license_file = "LICENSE"
+generated_with = "tree-sitter-cli 0.26.13"
+
+[[patch]]
+subject = "a function whose name is an ordinary identifier"
+rules = ["call_expression", "color_function", "gradient_function", "math_function"]
+change = "the CSS colour, gradient and maths functions lose the name tokens that outranked the identifier token, and read as the ordinary calls they are"
+accepts = [
+    ".a\n  transition: color 0.2s ease",
+    ".a\n  color: color.adjust($c, $l: 1)",
+    "@function round($x)\n  @return $x",
+]
+
+[[patch]]
+subject = "an argument with a name"
+rules = ["arguments", "_argument"]
+change = "a call takes `$name: value` where a mixin's include already did"
+accepts = [".a\n  color: adjust($c, $lightness: -10%)"]
+
+[[patch]]
+subject = "a list written in parentheses"
+rules = ["list_value"]
+change = "`(a, b)` is a list, where the published grammar took the bracketed form and the map only"
+accepts = ["$d: (none, inline, block)", "@each $s in (0, 1, 2)\n  .c-#{$s}\n    width: $s"]
+
+[[patch]]
+subject = "a selector list written down the page"
+rules = ["selectors"]
+change = "a newline may follow the comma between two selectors"
+accepts = [".a,\n.b\n  color: red"]
+
+[[patch]]
+subject = "a name that joins two interpolations"
+rules = ["_identifier_with_interpolation", "_plain_value_with_interpolation", "_joining_characters"]
+change = "a hyphen or a digit run joins the pieces of a name, which the identifier token cannot spell on its own"
+accepts = [".#{$abbrev}-#{$size}\n  color: red", ".#{$prefix}-500px\n  color: red"]
+
+[[patch]]
+subject = "a variable the scanner never reads"
+rules = ["external_scanner_scan"]
+change = "one dead line goes, which the C compiler warns about"
+
+[[patch]]
+subject = "a combinator with spaces around it"
+rules = ["descendant_selector", "external_scanner_scan"]
+change = "the scanner decides whether a run of spaces is the descendant combinator, which it is only when a selector follows"
+accepts = ["li + li\n  color: red", ".a\n  & + li\n    color: red", "li > li\n  color: red"]

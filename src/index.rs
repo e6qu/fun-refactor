@@ -1710,6 +1710,7 @@ impl Index {
                 base.with_extension("tsx"),
                 base.with_extension("py"),
                 base.with_extension("scss"),
+                base.with_extension("sass"),
                 base.with_extension("css"),
                 base.with_extension("sh"),
                 base.join("index.ts"),

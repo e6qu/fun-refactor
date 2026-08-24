@@ -268,10 +268,12 @@ pub fn support(capability: Capability, language: Language) -> Support {
         // SCSS gets its own reason. `fr symbols` prints a mixin as a function, and
         // `fr usages` lists every `@include` of it. So "this language has no
         // functions" is untrue of what the tool has just described.
-        C::CallGraph if language == Language::Scss => Support::NotApplicable {
-            because: "a mixin is expanded where it is written, so a stylesheet holds no \
-                      call for a graph to walk; `fr usages` lists every `@include`",
-        },
+        C::CallGraph if matches!(language, Language::Scss | Language::Sass) => {
+            Support::NotApplicable {
+                because: "a mixin is expanded where it is written, so a stylesheet holds \
+                          no call for a graph to walk; `fr usages` lists every `@include`",
+            }
+        }
 
         C::CallGraph => {
             if imperative {
@@ -411,7 +413,7 @@ pub fn support(capability: Capability, language: Language) -> Support {
         C::ChangeSignature => {
             // Bash has no declaration to edit, but a shell function's signature is its
             // positional numbering, and the call sites change with it.
-            if imperative || matches!(language, Language::Hcl | Language::Scss) {
+            if imperative || matches!(language, Language::Hcl | Language::Scss | Language::Sass) {
                 Support::Yes
             } else {
                 absent(

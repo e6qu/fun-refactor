@@ -30,6 +30,7 @@ GRAMMARS = {
     "tree-sitter-html": ("html", "https://github.com/tree-sitter/tree-sitter-html"),
     "tree-sitter-css": ("css", "https://github.com/tree-sitter/tree-sitter-css"),
     "tree-sitter-scss": ("scss", "https://github.com/tree-sitter-grammars/tree-sitter-scss"),
+    "tree-sitter-sass": ("sass", "https://github.com/bajrangCoder/tree-sitter-sass"),
     "tree-sitter-xml": ("xml", "https://github.com/tree-sitter-grammars/tree-sitter-xml"),
     "tree-sitter-java": ("java", "https://github.com/tree-sitter/tree-sitter-java"),
     "tree-sitter-md-025": ("markdown", "https://github.com/tree-sitter-grammars/tree-sitter-markdown"),
@@ -60,12 +61,13 @@ def vendored_dir(language):
 
 
 def vendored_tag(directory):
-    """The upstream tag `PROVENANCE.toml` pins, which is this grammar's version."""
+    """What `PROVENANCE.toml` pins: an upstream tag, or a commit where there is no tag."""
     provenance = os.path.join(directory, "PROVENANCE.toml")
-    for line in open(provenance, encoding="utf-8"):
-        if line.strip().startswith("tag ="):
-            return line.split("=", 1)[1].strip().strip('"')
-    raise SystemExit(f"{provenance} names no tag")
+    for key in ("tag =", "commit ="):
+        for line in open(provenance, encoding="utf-8"):
+            if line.strip().startswith(key):
+                return line.split("=", 1)[1].strip().strip('"')
+    raise SystemExit(f"{provenance} names neither a tag nor a commit")
 
 
 def sha256(path):

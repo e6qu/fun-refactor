@@ -2,7 +2,7 @@
  * Every refactoring, against every symbol, at the scale people actually work at.
  *
  * The other harnesses ask whether a capability *works*. This one asks whether it
- * survives a real repository: hundreds of symbols, sixteen languages, and one bounded
+ * survives a real repository: hundreds of symbols, seventeen languages, and one bounded
  * wasm heap. It checks three things the CLI's own tests cannot:
  *
  *   1. Nothing traps. A Rust panic or an allocation failure in wasm is
@@ -140,13 +140,13 @@ for (const path of Object.keys(files)) {
  * Spread the probes across the workspace instead of taking the first N.
  *
  * `targets` is in path order, so the first forty of the bundled sample are all in
- * `chart/` — a run that claims to cover sixteen languages and covers YAML. Striding
+ * `chart/` — a run that claims to cover seventeen languages and covers YAML. Striding
  * takes the same number and touches every file, and one probe per language goes in
  * first so a language with few definitions cannot fall through the gaps.
  */
 // One probe per language first, then stride-fill the rest. Striding alone left `html`
 // and `scss` unprobed — they have few definitions and the gaps fall past them — so the
-// sweep covered fourteen of sixteen languages while its comment claimed all of them.
+// sweep covered fourteen of them while its comment claimed all of them.
 // Tuning LIMIT until they appear would fix today and break the next time a language is
 // added; taking one of each first makes the coverage a property of the algorithm.
 const languageOf = new Map(

@@ -963,6 +963,7 @@ impl Family {
             | Language::Html
             | Language::Css
             | Language::Scss
+            | Language::Sass
             | Language::Hcl
             | Language::Yaml
             | Language::Helm

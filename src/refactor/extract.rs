@@ -52,7 +52,7 @@ pub fn variable(
         Language::Yaml | Language::Helm => {
             return yaml_anchor(index, file, span, name, all_occurrences)
         }
-        Language::Css | Language::Scss => {
+        Language::Css | Language::Scss | Language::Sass => {
             return css_custom_property(index, file, span, name, all_occurrences)
         }
         Language::Markdown => {
@@ -209,6 +209,7 @@ pub fn supports_extract(language: Language) -> bool {
                 | Language::Helm
                 | Language::Css
                 | Language::Scss
+                | Language::Sass
                 | Language::Markdown
                 | Language::Bash
                 | Language::Xml
@@ -646,7 +647,7 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
     match language {
         Language::Helm => return helm_named_template(file, span, name),
         Language::Bash => return bash_function(index, file, span, name),
-        Language::Scss => return scss_mixin(index, file, span, name),
+        Language::Scss | Language::Sass => return sass_mixin(index, file, span, name, language),
         // A mixin is a Sass invention. Plain CSS has no construct that names a group
         // of declarations, so there is nothing here to extract into.
         Language::Css => anyhow::bail!(
@@ -1447,7 +1448,10 @@ fn supports_imperative_extract_function(language: Language) -> bool {
 /// list, and this is that list.
 pub fn supports_extract_function(language: Language) -> bool {
     supports_imperative_extract_function(language)
-        || matches!(language, Language::Helm | Language::Bash | Language::Scss)
+        || matches!(
+            language,
+            Language::Helm | Language::Bash | Language::Scss | Language::Sass
+        )
 }
 
 /// Widen a selection to the complete statements it touches.
@@ -2000,6 +2004,13 @@ fn ancestor_of_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
 }
 
 /// The innermost *strict* ancestor of `node` with this kind.
+fn ancestor_or_self_of_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
+    match node.kind() == kind {
+        true => Some(node),
+        false => strict_ancestor_of_kind(node, kind),
+    }
+}
+
 fn strict_ancestor_of_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
     let mut current = node.parent()?;
     loop {
@@ -2391,7 +2402,7 @@ fn css_custom_property(
 
     // `$name` asks for an SCSS variable, which only the SCSS grammar understands.
     let scss_variable = name.starts_with('$');
-    if scss_variable && language != Language::Scss {
+    if scss_variable && !matches!(language, Language::Scss | Language::Sass) {
         anyhow::bail!(
             "`{name}` asks for an SCSS `$variable`, but {} is plain CSS, which has no \
              such syntax. Use a name without the `$` to extract a CSS custom property, \
@@ -2460,19 +2471,38 @@ fn css_custom_property(
         vec![value_span]
     };
 
-    let declaration = format!("{property}: {value_text};");
+    // The indented syntax ends a declaration at the line and has no braces, so what is
+    // written differs from what the braced syntax writes.
+    let indented = language == Language::Sass;
+    let declaration = match indented {
+        true => format!("{property}: {value_text}"),
+        false => format!("{property}: {value_text};"),
+    };
 
     // An SCSS variable is declared at the top level of the stylesheet, not inside a
     // `:root` rule. That is a CSS custom property's home, and `$vars` are resolved
     // by the compiler instead of the cascade.
     if scss_variable {
-        let insert_at = css_insertion_point(&parsed, &source);
+        let top = css_insertion_point(&parsed, &source);
+        let insert_at = sass_variable_insertion_point(
+            &parsed,
+            &source,
+            &value_text,
+            top,
+            targets.iter().map(|t| t.start).min().unwrap_or(usize::MAX),
+            file,
+        )?;
         let mut edits = EditSet::new();
         edits.add(
             file.to_path_buf(),
             Edit::new(
                 Span::new(insert_at, insert_at),
-                format!("{declaration}\n\n"),
+                match insert_at == top {
+                    // At the top of the file, a blank line separates it from what follows.
+                    true => format!("{declaration}\n\n"),
+                    // Below the declarations it reads, where a blank line already stands.
+                    false => format!("{declaration}\n"),
+                },
                 format!("declare {property}"),
             ),
         );
@@ -2506,12 +2536,20 @@ fn css_custom_property(
                         (last.end_byte(), format!(" {declaration}"))
                     }
                 }
-                None => (block.start_byte() + 1, format!("\n  {declaration}\n")),
+                // An empty `:root` rule: the declaration is the body. The braced syntax
+                // opens with `{`, and the indented one opens with the line under it.
+                None => match indented {
+                    true => (block.start_byte(), format!("{declaration}\n")),
+                    false => (block.start_byte() + 1, format!("\n  {declaration}\n")),
+                },
             }
         }
         None => (
             css_insertion_point(&parsed, &source),
-            format!(":root {{\n  {declaration}\n}}\n\n"),
+            match indented {
+                true => format!(":root\n  {declaration}\n\n"),
+                false => format!(":root {{\n  {declaration}\n}}\n\n"),
+            },
         ),
     };
 
@@ -2541,6 +2579,55 @@ fn css_custom_property(
         edits,
         occurrences: targets.len(),
     })
+}
+
+/// Where a new `$variable` declaration may go: after every `$variable` its value reads.
+///
+/// Sass evaluates a stylesheet from the top, so a declaration written above the ones it
+/// reads is an undefined variable and not a forward reference. The declaration also has
+/// to stand above the first use it is extracted from. A value whose parts are declared
+/// after that use has nowhere to go at all.
+fn sass_variable_insertion_point(
+    parsed: &Parsed,
+    source: &str,
+    value_text: &str,
+    top: usize,
+    first_use: usize,
+    file: &Path,
+) -> Result<usize> {
+    let read: Vec<&str> = value_text
+        .split(|c: char| !(c.is_alphanumeric() || c == '$' || c == '-' || c == '_'))
+        .filter(|word| word.starts_with('$') && word.len() > 1)
+        .collect();
+    if read.is_empty() {
+        return Ok(top);
+    }
+
+    let mut after = top;
+    for declaration in collect_nodes(parsed.root(), |n| n.kind() == "declaration") {
+        let Some(name) = declaration.named_child(0) else {
+            continue;
+        };
+        let name = Span::from(name).text(source);
+        if !read.contains(&name) {
+            continue;
+        }
+        let end = source[..declaration.end_byte()].trim_end().len();
+        if end > first_use {
+            anyhow::bail!(
+                "`{name}` is declared after the value being extracted is used in {}, so \
+                 the new declaration has nowhere to stand: it would read a variable that \
+                 does not exist yet. Move `{name}` above that use first",
+                file.display()
+            );
+        }
+        // The line the declaration ends on, and the newline after it.
+        after = after.max(match source[end..].find('\n') {
+            Some(offset) => end + offset + 1,
+            None => source.len(),
+        });
+    }
+    Ok(after)
 }
 
 /// The value node of the declaration containing `node`, if the selection is in one.
@@ -2577,9 +2664,16 @@ fn css_insertion_point(parsed: &Parsed, source: &str) -> usize {
     let mut cursor = root.walk();
     let mut offset = 0usize;
     for child in root.named_children(&mut cursor) {
+        // Sass requires `@use` and `@forward` before any other rule. What goes in above
+        // them is not a mixin or a variable: it is a syntax error.
         if matches!(
             child.kind(),
-            "import_statement" | "charset_statement" | "comment"
+            "import_statement"
+                | "charset_statement"
+                | "comment"
+                | "single_line_comment"
+                | "use_statement"
+                | "forward_statement"
         ) {
             offset = child.end_byte();
         } else {
@@ -3455,7 +3549,16 @@ fn bash_script_top(parsed: &Parsed, source: &str) -> usize {
 /// Sass also evaluates a stylesheet top-down, so the definition goes above every rule and not
 /// beside the one it came from, a mixin included before it is declared is an error, not a
 /// forward reference.
-fn scss_mixin(index: &Index, file: &Path, span: Span, name: &str) -> Result<ExtractFunctionPlan> {
+fn sass_mixin(
+    index: &Index,
+    file: &Path,
+    span: Span,
+    name: &str,
+    language: Language,
+) -> Result<ExtractFunctionPlan> {
+    // The two Sass syntaxes name their nodes differently and write their blocks
+    // differently, and everything between those two ends is the same operation.
+    let indented = language == Language::Sass;
     if name.is_empty()
         || !name.starts_with(|c: char| c.is_ascii_alphabetic() || c == '_')
         || !name
@@ -3477,7 +3580,7 @@ fn scss_mixin(index: &Index, file: &Path, span: Span, name: &str) -> Result<Extr
     }
 
     let source = crate::vfs::read_to_string(file)?;
-    let parsed = Parsers::new().parse(Language::Scss, &source)?;
+    let parsed = Parsers::new().parse(language, &source)?;
     if parsed.has_errors() {
         anyhow::bail!(
             "{} does not parse cleanly, so the selection cannot be located reliably",
@@ -3495,14 +3598,18 @@ fn scss_mixin(index: &Index, file: &Path, span: Span, name: &str) -> Result<Extr
         anyhow::bail!("the selection at bytes {span} is blank; select the declarations to extract");
     }
 
+    // The node covering the whole selection, and not the one standing at its first byte.
+    // In the indented syntax a block starts where its first declaration does. So asking
+    // about that one byte answers with the block, the declaration or the property name,
+    // depending on nothing the caller can see.
     let node = parsed
         .root()
-        .descendant_for_byte_range(content.start, content.start)
+        .descendant_for_byte_range(content.start, content.end)
         .ok_or_else(|| anyhow::anyhow!("bytes {span} are outside {}", file.display()))?;
-    let block = strict_ancestor_of_kind(node, "block").ok_or_else(|| {
+    let block = ancestor_or_self_of_kind(node, "block").ok_or_else(|| {
         anyhow::anyhow!(
-            "the selection at bytes {span} is not inside a rule's `{{ … }}`; a mixin \
-             holds a rule's declarations, so there have to be some to move"
+            "the selection at bytes {span} is not inside a rule's body; a mixin holds a \
+             rule's declarations, so there have to be some to move"
         )
     })?;
     if !block.parent().is_some_and(|p| p.kind() == "rule_set") {
@@ -3531,12 +3638,19 @@ fn scss_mixin(index: &Index, file: &Path, span: Span, name: &str) -> Result<Extr
             other.kind()
         );
     }
-    let region = Span::new(first.start_byte(), last.end_byte());
+    // A declaration in the indented syntax ends at the start of the next line. So the
+    // region would otherwise swallow the newline that stays behind the `@include`.
+    let end = source[..last.end_byte()].trim_end().len();
+    let region = Span::new(first.start_byte(), end.max(first.start_byte()));
 
     // A `$variable` the selection declares itself travels with it. Every other one has to be
     // handed in, because the mixin is defined where the rule's scope is not.
+    let (declaration_name, use_kind) = match indented {
+        true => ("variable_name", "variable_value"),
+        false => ("property_name", "variable"),
+    };
     let declared_inside: Vec<String> = collect_nodes(parsed.root(), |n| {
-        n.kind() == "property_name"
+        n.kind() == declaration_name
             && region.contains(Span::from(n))
             && Span::from(n).text(&source).starts_with('$')
     })
@@ -3546,7 +3660,7 @@ fn scss_mixin(index: &Index, file: &Path, span: Span, name: &str) -> Result<Extr
 
     let mut parameters: Vec<Parameter> = Vec::new();
     for node in collect_nodes(parsed.root(), |n| {
-        n.kind() == "variable" && region.contains(Span::from(n))
+        n.kind() == use_kind && region.contains(Span::from(n))
     }) {
         let text = Span::from(node).text(&source).to_string();
         if declared_inside.contains(&text) || parameters.iter().any(|p| p.name == text) {
@@ -3575,7 +3689,10 @@ fn scss_mixin(index: &Index, file: &Path, span: Span, name: &str) -> Result<Extr
 
     let body = region.text(&source).to_string();
     let region_indent = line_indent(&source, region.start);
-    let mut definition = format!("@mixin {name}{signature} {{\n");
+    let mut definition = match indented {
+        true => format!("@mixin {name}{signature}\n"),
+        false => format!("@mixin {name}{signature} {{\n"),
+    };
     for line in body.lines() {
         if line.trim().is_empty() {
             definition.push('\n');
@@ -3584,7 +3701,11 @@ fn scss_mixin(index: &Index, file: &Path, span: Span, name: &str) -> Result<Extr
             definition.push_str(&format!("  {stripped}\n"));
         }
     }
-    definition.push_str("}\n\n");
+    if !indented {
+        definition.push('}');
+        definition.push('\n');
+    }
+    definition.push('\n');
 
     let insert_at = css_insertion_point(&parsed, &source);
     let mut edits = EditSet::new();
@@ -3600,7 +3721,10 @@ fn scss_mixin(index: &Index, file: &Path, span: Span, name: &str) -> Result<Extr
         file.to_path_buf(),
         Edit::new(
             region,
-            format!("@include {name}{signature};"),
+            match indented {
+                true => format!("@include {name}{signature}"),
+                false => format!("@include {name}{signature};"),
+            },
             format!("include {name}"),
         ),
     );

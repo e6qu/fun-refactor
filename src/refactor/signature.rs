@@ -166,7 +166,8 @@ fn parameter_name(text: &str, language: Language) -> Option<String> {
         | Language::Tsx
         | Language::Rust
         | Language::Zig
-        | Language::Scss => head.split(':').next()?.trim(),
+        | Language::Scss
+        | Language::Sass => head.split(':').next()?.trim(),
         // `name type`.
         Language::Go => head.split_whitespace().next()?,
         // `type name`, modifiers and annotations ahead of both.

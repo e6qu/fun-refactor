@@ -92,6 +92,11 @@ fn fixture(language: Language) -> (&'static str, &'static str) {
             "style.scss",
             "$gap: 4px;\n\n.note {\n  margin: $gap;\n}\n\n.other {\n  margin: $gap;\n}\n",
         ),
+        // The same stylesheet in the indented syntax, which is what a `.sass` file holds.
+        Language::Sass => (
+            "style.sass",
+            "$gap: 4px\n\n.note\n  margin: $gap\n\n.other\n  margin: $gap\n",
+        ),
         Language::Hcl => (
             "main.tf",
             "variable \"enabled\" {\n  type    = bool\n  default = true\n}\n\n\

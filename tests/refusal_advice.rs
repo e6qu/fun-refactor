@@ -113,7 +113,7 @@ fn every_language_flow_turns_away_is_told_one_of_exactly_two_things() {
             false => dead_end.push(language.name()),
         }
     }
-    assert_eq!(routed, ["css", "scss", "hcl", "yaml", "helm"]);
+    assert_eq!(routed, ["css", "scss", "sass", "hcl", "yaml", "helm"]);
     assert_eq!(dead_end, ["html", "xml", "markdown"]);
 }
 

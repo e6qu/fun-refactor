@@ -608,7 +608,7 @@ pub fn provenance_with_inputs(
     match sym.language {
         Language::Hcl => ctx.hcl_backward(sym, EdgeKind::Declaration, 0)?,
         Language::Yaml | Language::Helm => ctx.yaml_backward(sym, EdgeKind::Declaration, 0)?,
-        Language::Css | Language::Scss => ctx.css_backward(sym, 0)?,
+        Language::Css | Language::Scss | Language::Sass => ctx.css_backward(sym, 0)?,
         other => unreachable!(
             "refuse_unless_it_substitutes rejects {other} before the dispatch is reached"
         ),
@@ -644,7 +644,7 @@ pub fn consumers_with_inputs(
     match sym.language {
         Language::Hcl => ctx.hcl_forward(sym, EdgeKind::Declaration, 0)?,
         Language::Yaml | Language::Helm => ctx.yaml_forward(sym, 0)?,
-        Language::Css | Language::Scss => ctx.css_forward(sym, 0)?,
+        Language::Css | Language::Scss | Language::Sass => ctx.css_forward(sym, 0)?,
         other => unreachable!(
             "refuse_unless_it_substitutes rejects {other} before the dispatch is reached"
         ),
@@ -661,7 +661,12 @@ pub fn consumers_with_inputs(
 pub fn supports_provenance(language: Language) -> bool {
     matches!(
         language,
-        Language::Hcl | Language::Yaml | Language::Helm | Language::Css | Language::Scss
+        Language::Hcl
+            | Language::Yaml
+            | Language::Helm
+            | Language::Css
+            | Language::Scss
+            | Language::Sass
     )
 }
 
@@ -3361,7 +3366,8 @@ fn selector_list_text(rule: Node<'_>, source: &str) -> String {
 
 fn css_language(file: &Path) -> Language {
     match file.extension().and_then(|e| e.to_str()) {
-        Some("scss") | Some("sass") => Language::Scss,
+        Some("scss") => Language::Scss,
+        Some("sass") => Language::Sass,
         _ => Language::Css,
     }
 }

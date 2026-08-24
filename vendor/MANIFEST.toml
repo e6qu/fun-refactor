@@ -111,6 +111,20 @@ files = [
 ]
 
 [[artifact]]
+language = "sass"
+crate = "tree-sitter-sass"
+version = "fb280c41b070657e4ff4d4e5e6eea6cb19efd9b8"
+repository = "https://github.com/bajrangCoder/tree-sitter-sass"
+license = "MIT"
+license_file = "tree-sitter-queries/sass/LICENSE"
+files = [
+  { path = "highlights.scm", sha256 = "25678b68d0e5eb32fc2c9e6ba01802ac732b025dd3e17148bfdb258c9d70a032" },
+  { path = "indents.scm", sha256 = "0339e779dd81a2c9ef2fca4bf7cc9fa3b8bb4e4afb3f165235582625b94f4395" },
+  { path = "injections.scm", sha256 = "8c4ec73b170df550f1dcf98b3eebbd57b54ec80901fb1a13551ae2a932fa8ec9" },
+  { path = "locals.scm", sha256 = "67dd80f251cab18e3f0c8c091dbe943bf28ef81537ab434dd83786fe9bfc9524" },
+]
+
+[[artifact]]
 language = "scss"
 crate = "tree-sitter-scss"
 version = "v1.0.0"
