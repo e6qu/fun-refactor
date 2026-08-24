@@ -253,7 +253,7 @@ fn a_file_outside_the_api_directories_is_refused() {
     let (_tmp, root) = workspace(&[("lib/users.ts", ROUTE)]);
     let error = nextjs::plan(&root.join("lib/users.ts")).expect_err("not a route");
     assert!(
-        error.to_string().contains("not a Next.js API route"),
+        error.to_string().contains("neither a Next.js API route"),
         "{error}"
     );
     assert!(!nextjs::is_api_route(Path::new("lib/users.ts")));

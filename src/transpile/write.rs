@@ -3734,7 +3734,7 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
     }
 }
 
-fn python_type(ty: &Type) -> String {
+pub(super) fn python_type(ty: &Type) -> String {
     match ty {
         Type::Unit => "None".to_string(),
         Type::Bool => "bool".to_string(),

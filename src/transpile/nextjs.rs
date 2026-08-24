@@ -41,9 +41,17 @@ pub struct RoutePlan {
     pub source: PathBuf,
     pub destination: PathBuf,
     /// The URL path this file serves, in FastAPI's spelling.
+    ///
+    /// A route file serves one. A `"use server"` module serves one per exported function,
+    /// and this names the first of them; [`RoutePlan::endpoints`] names them all.
     pub route: String,
     /// The methods found, in the order they were declared.
     pub methods: Vec<String>,
+    /// Every endpoint the file declares, as `(method, URL)`.
+    ///
+    /// One entry per method for a route file, since the URL is the file's own. One per
+    /// exported function for a server module, since each is reached by its own name.
+    pub endpoints: Vec<(String, String)>,
     pub output: String,
     pub fidelity: Fidelity,
     /// The write, unapplied, so a caller can show it before committing to it.
@@ -78,6 +86,79 @@ pub struct Model {
     pub name: String,
     /// Field name and its type, spelled as the IR sees it.
     pub fields: Vec<(String, Option<Type>)>,
+}
+
+/// One endpoint a file declares, however it declares it.
+struct Endpoint {
+    /// The HTTP method, in the decorator's spelling.
+    method: String,
+    /// The URL it answers.
+    route: String,
+    /// The name the Python function takes.
+    name: String,
+    handler: Function,
+    kind: Kind,
+}
+
+/// How a caller reaches an endpoint, which decides where its arguments come from.
+#[derive(PartialEq, Eq, Clone, Copy)]
+enum Kind {
+    /// An App Router handler: the URL is the file's position, and the handler reads its
+    /// arguments off the request and the URL.
+    Route,
+    /// A `"use server"` function: the framework generates the call, and the arguments are
+    /// the function's own parameters.
+    ServerFunction,
+}
+
+/// Is this file a module of server functions?
+///
+/// `"use server"` at the top of a file makes every export in it callable from a browser,
+/// over a request the framework generates. There is no URL on disk to read, so each
+/// function is reached by its own name.
+pub fn is_server_module(path: &Path) -> bool {
+    let Some(language) = crate::lang::detect(path) else {
+        return false;
+    };
+    if !matches!(language, Language::TypeScript | Language::Tsx) {
+        return false;
+    }
+    crate::vfs::read_to_string(path)
+        .map(|source| declares_use_server(&source))
+        .unwrap_or(false)
+}
+
+/// Does this source open with the `"use server"` directive?
+///
+/// Quoted either way, and the first statement either way, so the words in a comment or
+/// inside a string do not count.
+fn declares_use_server(source: &str) -> bool {
+    source
+        .lines()
+        .find(|line| {
+            let t = line.trim();
+            !t.is_empty() && !t.starts_with("//") && !t.starts_with("/*") && !t.starts_with('*')
+        })
+        .map(|line| line.trim().trim_end_matches(';').trim())
+        .is_some_and(|line| line == "\"use server\"" || line == "'use server'")
+}
+
+/// `createPet` → `/create-pet`, the URL a server function is reached by.
+///
+/// The name is all there is: nothing on disk says where the call goes. Kebab-case keeps it
+/// a URL rather than an identifier, which is what every other route in the tree looks like.
+fn action_route(name: &str) -> String {
+    let mut url = String::from("/");
+    for (index, part) in super::snake_always(name).split('_').enumerate() {
+        if part.is_empty() {
+            continue;
+        }
+        if index > 0 {
+            url.push('-');
+        }
+        url.push_str(part);
+    }
+    url
 }
 
 /// The path segments that make up a route's URL, if this file is one.
@@ -219,11 +300,13 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<RoutePlan
         );
     }
 
-    if !is_api_route(path) {
+    let server_module = declares_use_server(&source);
+    if !is_api_route(path) && !server_module {
         bail!(
-            "{} is not a Next.js API route. Those are `app/**/api/**/route.ts` or \
-             anything under `pages/api/`. The URL comes from where the file sits, so this \
-             command needs the path and not only the contents.",
+            "{} is neither a Next.js API route nor a module of server functions. A route \
+             is `app/**/api/**/route.ts` or anything under `pages/api/`, and its URL comes \
+             from where the file sits. A server module opens with `\"use server\"`, and each \
+             of its exports is reached by its own name.",
             path.display()
         );
     }
@@ -239,12 +322,16 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<RoutePlan
 
     let module = super::read_module(language, &source, parsed.root())?;
     let route = route_for(path);
+    let endpoints = match server_module {
+        true => server_endpoints(&module),
+        false => route_endpoints(&module, &route),
+    };
     let Written {
         output,
         fidelity,
         methods,
         statuses,
-    } = write(&module, &route, path)?;
+    } = write(&module, &endpoints, path)?;
 
     // The declared shapes, from either place a Next.js route keeps them.
     let models: Vec<Model> = models_of(&module);
@@ -252,6 +339,14 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<RoutePlan
     let bodies = parsed_bodies(&module);
     let queries = read_queries(&module);
 
+    if endpoints.is_empty() && server_module {
+        bail!(
+            "{} opens with `\"use server\"` and exports no async function. The framework \
+             generates a call for each export, so a module without one declares nothing \
+             to reach.",
+            path.display()
+        );
+    }
     if methods.is_empty() {
         bail!(
             "{} exports no HTTP method. An App Router route exports `GET`, `POST` and \
@@ -272,9 +367,11 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<RoutePlan
         );
     }
 
-    let destination = match out {
-        Some(out) => out.to_path_buf(),
-        None => path.with_file_name(format!(
+    let destination = match (out, server_module) {
+        (Some(out), _) => out.to_path_buf(),
+        // A server module's name is its own: nothing on disk says where its calls go.
+        (None, true) => path.with_extension("py"),
+        (None, false) => path.with_file_name(format!(
             "{}.py",
             route
                 .trim_matches('/')
@@ -307,12 +404,20 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<RoutePlan
     );
     edits.declare_language(destination.clone(), crate::lang::Language::Python);
 
+    let route = match endpoints.first() {
+        Some(first) => first.route.clone(),
+        None => route,
+    };
     Ok(RoutePlan {
         source: path.to_path_buf(),
         destination,
         edits,
         route,
         methods,
+        endpoints: endpoints
+            .iter()
+            .map(|e| (e.method.to_uppercase(), e.route.clone()))
+            .collect(),
         output,
         fidelity,
         models,
@@ -320,6 +425,48 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<RoutePlan
         queries,
         statuses,
     })
+}
+
+/// The endpoints an App Router file declares: its exports named after HTTP methods.
+fn route_endpoints(module: &Module, route: &str) -> Vec<Endpoint> {
+    module
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Function(f) if METHODS.contains(&f.name.to_uppercase().as_str()) => {
+                Some(Endpoint {
+                    method: f.name.to_lowercase(),
+                    route: route.to_string(),
+                    name: f.name.to_lowercase(),
+                    handler: f.clone(),
+                    kind: Kind::Route,
+                })
+            }
+            _ => None,
+        })
+        .collect()
+}
+
+/// The endpoints a `"use server"` module declares: its exported async functions.
+///
+/// A server function is called with arguments and answers with a value, and POST is the
+/// method that does that. Nothing in the file says where the call goes. The name is the
+/// whole declaration.
+fn server_endpoints(module: &Module) -> Vec<Endpoint> {
+    module
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Function(f) if f.exported && f.is_async => Some(Endpoint {
+                method: "post".into(),
+                route: action_route(&f.name),
+                name: super::snake_always(&f.name),
+                handler: f.clone(),
+                kind: Kind::ServerFunction,
+            }),
+            _ => None,
+        })
+        .collect()
 }
 
 /// A tiny helper so an empty route name becomes a usable file name.
@@ -710,14 +857,14 @@ fn zod_type(spec: &Expr) -> Type {
 const VERDICT: &str = "# fun-refactor: verdict\n\n";
 
 /// Write the FastAPI module.
-fn write(module: &Module, route: &str, source: &Path) -> Result<Written> {
+fn write(module: &Module, endpoints: &[Endpoint], source: &Path) -> Result<Written> {
     // What each handler reads out of the URL. Read here as well as in `plan`, because the
     // contract and the code have to agree about it. A parameter the document mentions and the
     // router does not declare is the same failure as the reverse.
     let query_keys = read_queries(module);
     // The handlers are the exported functions named after HTTP methods; everything
     // else in the file is a helper and is written as an ordinary function.
-    let mut handlers = Vec::new();
+    let handlers: Vec<&Endpoint> = endpoints.iter().collect();
     let mut rest = Module {
         doc: module.doc.clone(),
         name: module.name.clone(),
@@ -726,9 +873,11 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<Written> {
     };
     for item in &module.items {
         match item {
-            Item::Function(f) if METHODS.contains(&f.name.to_uppercase().as_str()) => {
-                handlers.push(f.clone());
-            }
+            Item::Function(f) if endpoints.iter().any(|e| e.handler.name == f.name) => {}
+            // The `"use server"` directive is what made this file a server module. It is
+            // a fact about the source's framework, already spent: carried as a statement
+            // it lands in the output as a string that does nothing.
+            Item::Statement(Stmt::Expr(Expr::Str(text))) if text == "use server" => {}
             // `import { NextResponse } from "next/server"` is the one import that leaves
             // no work for the reader, because this translation rewrites every use of it.
             // Listing it under "the equivalent here is yours to add" would point at a
@@ -744,7 +893,7 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<Written> {
         }
     }
 
-    let methods: Vec<String> = handlers.iter().map(|h| h.name.to_uppercase()).collect();
+    let methods: Vec<String> = handlers.iter().map(|h| h.method.to_uppercase()).collect();
 
     // Everything that is not a handler goes through the ordinary Python writer, which turns
     // interfaces into dataclasses. Those are then promoted to Pydantic models, because a
@@ -759,10 +908,16 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<Written> {
         "# Translated from a Next.js API route ({}) by fun-refactor.\n",
         source.display()
     ));
+    // One line per URL: a route file serves one, and a server module serves one per
+    // exported function, each named beside its method.
+    let served: Vec<String> = handlers
+        .iter()
+        .map(|e| format!("{} {}", e.method.to_uppercase(), e.route))
+        .collect();
     out.push_str(&format!(
-        "# Route: {route}, {} handler(s): {}\n",
+        "# {} handler(s): {}\n",
         handlers.len(),
-        methods.join(", ")
+        served.join(", ")
     ));
     // The verdict is filled in at the end. Whether this is a skeleton stays unknown until
     // the handlers are written. A banner saying SKELETON over a file with nothing carried
@@ -788,24 +943,41 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<Written> {
         out.push_str("\n\n");
     }
 
-    // The path parameters the route declares, which every handler receives.
-    let parameters = path_parameters(route);
-
     // The imports the file will need. The writer collects them while writing the handlers
     // and patches them into the header afterwards. Importing `Request` and `JSONResponse`
     // unconditionally would leave the reader deciding about unused imports.
     let mut takes_request = false;
     let mut responses = Responses::default();
 
-    for handler in &handlers {
-        let method = handler.name.to_lowercase();
+    for endpoint in &handlers {
+        let handler = &endpoint.handler;
+        let method = &endpoint.method;
+        let route = &endpoint.route;
+        // The path parameters this endpoint's URL declares, which its handler receives.
+        let parameters = path_parameters(route);
         out.push('\n');
         out.push_str(&format!("@router.{method}(\"{route}\")\n"));
 
-        let mut signature: Vec<String> = parameters
-            .iter()
-            .map(|name| format!("{name}: str"))
-            .collect();
+        let mut signature: Vec<String> = match endpoint.kind {
+            // A server function's arguments are its parameters, and the framework carries
+            // them. FastAPI reads them out of the body, which is the same call.
+            Kind::ServerFunction => handler
+                .params
+                .iter()
+                .map(|p| match &p.ty {
+                    Some(ty) => format!(
+                        "{}: {}",
+                        super::snake_always(&p.name),
+                        super::write::python_type(ty)
+                    ),
+                    None => super::snake_always(&p.name),
+                })
+                .collect(),
+            Kind::Route => parameters
+                .iter()
+                .map(|name| format!("{name}: str"))
+                .collect(),
+        };
 
         // The query parameters this handler reads out of the URL, declared.
         //
@@ -816,6 +988,7 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<Written> {
         // `str | None = None` says, so the endpoint answers the same URLs it did.
         let declared_queries: Vec<String> = query_keys
             .iter()
+            .filter(|_| endpoint.kind == Kind::Route)
             .filter(|(m, _)| m.eq_ignore_ascii_case(&handler.name))
             .map(|(_, key)| (key.clone(), super::snake_always(key)))
             .filter(|(key, name)| {
@@ -845,7 +1018,11 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<Written> {
         // The writer keeps it under its own name and types it, so every line that reads it
         // stays live code. `context` has no counterpart, because FastAPI passes path
         // parameters directly.
-        let request = handler.params.iter().find(|p| is_the_request(p));
+        let request = handler
+            .params
+            .iter()
+            .filter(|_| endpoint.kind == Kind::Route)
+            .find(|p| is_the_request(p));
         if let Some(param) = request {
             signature.push(format!("{}: Request", param.name));
             takes_request = true;
@@ -860,7 +1037,7 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<Written> {
         }
         out.push_str(&format!(
             "async def {}({}):\n",
-            method,
+            endpoint.name,
             signature.join(", ").trim()
         ));
 
@@ -868,12 +1045,17 @@ fn write(module: &Module, route: &str, source: &Path) -> Result<Written> {
         // directly and has neither object. A statement that *reads* one of them cannot be
         // translated: `const id = context.params.id` would name something that does not
         // exist. The writer carries it with the rest.
-        let dropped: Vec<String> = handler
-            .params
-            .iter()
-            .filter(|p| !is_the_request(p))
-            .map(|p| p.name.clone())
-            .collect();
+        let dropped: Vec<String> = match endpoint.kind {
+            // A server function has no request and no context. Its parameters are the
+            // call's arguments, and they cross as parameters.
+            Kind::ServerFunction => Vec::new(),
+            Kind::Route => handler
+                .params
+                .iter()
+                .filter(|p| !is_the_request(p))
+                .map(|p| p.name.clone())
+                .collect(),
+        };
         // `const id = context.params.id` is *redundant*. FastAPI already pulls a path
         // parameter off the context object for you, so the writer drops the line and the
         // report says why. It is the commonest statement in a Next.js route. Carrying it

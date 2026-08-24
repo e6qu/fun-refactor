@@ -30,6 +30,7 @@ pub mod fastapi;
 pub mod ir;
 pub mod nextjs;
 mod read;
+pub mod scaffold;
 mod write;
 
 /// What a file says, in the form no one language owns.

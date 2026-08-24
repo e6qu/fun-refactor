@@ -2186,6 +2186,18 @@ fn cmd_translate(
     // `fastapi` names a framework and not a language. The translation into it reads the
     // file's *path* as well as its text, since a Next.js route's URL is where the file
     // sits on disk. So it gets a target of its own instead of a flavour of Python.
+    // An OpenAPI document names either framework as a target. The document declares
+    // what it is by its `openapi` key, so nothing else is mistaken for one.
+    let scaffolds = language.eq_ignore_ascii_case("fastapi")
+        || language.eq_ignore_ascii_case("nextjs")
+        || language.eq_ignore_ascii_case("next.js");
+    if scaffolds && crate::transpile::scaffold::is_openapi_document(&path) {
+        let target = match language.eq_ignore_ascii_case("fastapi") {
+            true => crate::transpile::scaffold::Target::FastApi,
+            false => crate::transpile::scaffold::Target::NextJs,
+        };
+        return cmd_scaffold(cli, &path, target, write, out, force);
+    }
     if language.eq_ignore_ascii_case("fastapi") {
         return cmd_translate_fastapi(cli, &path, write, out, force);
     }
@@ -2513,12 +2525,17 @@ fn cmd_translate_fastapi(
         );
     }
     {
+        // One entry per URL. A route file serves one, and a server module one per export.
+        let served: Vec<String> = plan
+            .endpoints
+            .iter()
+            .map(|(method, route)| format!("{method} {route}"))
+            .collect();
         println!(
-            "{} -> {} serving {} ({})",
+            "{} -> {} serving {}",
             plan.source.display(),
             plan.destination.display(),
-            plan.route,
-            plan.methods.join(", ")
+            served.join(", ")
         );
         let f = &plan.fidelity;
         println!(
@@ -2549,6 +2566,74 @@ fn cmd_translate_fastapi(
         plan.source.display(),
         plan.destination.display()
     );
+    present(cli, None, &plan.edits, &summary, write)
+}
+
+/// `fr translate <openapi.yaml> fastapi|nextjs`, a service skeleton from a contract.
+fn cmd_scaffold(
+    cli: &Cli,
+    path: &std::path::Path,
+    target: crate::transpile::scaffold::Target,
+    write: bool,
+    out: Option<&std::path::Path>,
+    force: bool,
+) -> Result<()> {
+    let plan = crate::transpile::scaffold::plan_to(path, target, out, force)?;
+    let summary = format!(
+        "{} scaffolded into {} file(s)",
+        plan.source.display(),
+        plan.files.len()
+    );
+    if cli.json {
+        let files: Vec<serde_json::Value> = plan
+            .files
+            .iter()
+            .map(|file| {
+                serde_json::json!({
+                    "file": file.destination.display().to_string(),
+                    "endpoints": file.endpoints,
+                })
+            })
+            .collect();
+        let outcomes = crate::edit::plan(&plan.edits, crate::edit::Validation::ReparseStrict)?;
+        let changes: Vec<_> = outcomes
+            .iter()
+            .map(|o| {
+                serde_json::json!({
+                    "file": o.path,
+                    "diff": workspace_diff(cli, o),
+                })
+            })
+            .collect();
+        let report = serde_json::json!({
+            "summary": summary,
+            "source": plan.source.display().to_string(),
+            "target": format!("{target:?}"),
+            "files": files,
+            "notes": plan.notes,
+            "files_changed": outcomes.len(),
+            "applied": write,
+            "changes": changes,
+        });
+        println!("{}", serde_json::to_string_pretty(&report)?);
+        if write {
+            crate::edit::commit(&outcomes)?;
+        }
+        return Ok(());
+    }
+    println!("{} -> {} file(s)", plan.source.display(), plan.files.len());
+    for file in &plan.files {
+        let served: Vec<String> = file
+            .endpoints
+            .iter()
+            .map(|(method, route)| format!("{method} {route}"))
+            .collect();
+        println!("  {} ({})", file.destination.display(), served.join(", "));
+    }
+    for note in &plan.notes {
+        println!("  {note}");
+    }
+    println!();
     present(cli, None, &plan.edits, &summary, write)
 }
 

@@ -611,9 +611,8 @@ that:
   must keep.
 - The **contract**, an OpenAPI document that says what a service promises.
 
-Two things this tool is for are not built. Each is written here before it is started, so
-the claim stays checkable against the tree. The first of the three is now done, and its
-entry says what it does.
+Each capability was written here before it was started, so the claim stays checkable
+against the tree. All three are now built, and each entry says what it does.
 
 ### Translating a service back the way it came
 
@@ -635,17 +634,37 @@ one out of the TypeScript it became. The two name the same URLs and the same met
 
 ### React server functions
 
-`"use server"` is understood as an entry point and no further. An exported async function
-under that marker is an endpoint the framework generates for it. So it answers to a route
-on one side and to a FastAPI handler on the other, and neither translation knows it.
+**Built.** `"use server"` at the top of a file makes every exported async function
+callable from a browser, over a request the framework generates. There is no URL on disk
+to read, so each function is reached by its own name: `createPet` answers `/create-pet`.
+
+That gives the function the method and the URL, the two facts a route file keeps
+elsewhere. The ordinary machinery takes it from there. `fr translate <module> fastapi`
+writes one POST handler per export, whose parameters are the function's own. `fr openapi`
+puts each on its own path. The arguments travel in the framework's wire encoding. A JSON
+body in the document would misstate that, so the contract names the gap in its notes.
+`tests/server_functions.rs` pins all of it, and the negative half too. A helper is not an
+endpoint, and the directive in a comment or a string is not a directive.
 
 ### Code from an OpenAPI document
 
-`fr openapi` derives a document from a route tree, and stops there. A document names
-paths, methods, parameters and schemas. That is enough to write a Next.js route tree or a
-FastAPI app, with the handler bodies left to a person. The rule that governs the
-derivation governs the writing: invent nothing, and report every place the document left
-undetermined.
+**Built.** `fr translate <openapi.yaml> fastapi` writes a FastAPI module, and
+`fr translate <openapi.yaml> nextjs` writes an App Router tree under `app/api`. The
+document declares what it is by its `openapi` key, in JSON or YAML, so nothing else is
+mistaken for one.
+
+Paths, methods, parameters and schemas come from the document. A handler body is in no
+document, so every generated handler answers 501 out loud, in the target's own idiom. A
+service that answers `[]` looks finished; one that answers 501 says where the work is.
+Whatever the document leaves undetermined lands in the notes beside the plan.
+
+One detail earned a test of its own. FastAPI binds a path parameter by name, so
+`{petId}` over `pet_id: int` never binds and the route answers 422 for every request.
+The decorator's path spells the parameter the way the signature does.
+
+`tests/scaffold_from_openapi.rs` closes the loop both ways: the contract read back out
+of each scaffold, by `openapi::from_routes` and `openapi::from_fastapi`, names the same
+endpoints the document declared.
 
 ## Progress log
 
