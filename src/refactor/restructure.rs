@@ -434,7 +434,7 @@ fn compile_shapes<'a>(shapes: &'a [Shape], display: &str) -> Result<Vec<Pattern<
         .filter(|pattern| {
             let span = Span::from(pattern.root);
             seen.insert((
-                pattern.root.to_sexp(),
+                shape_signature(pattern.root),
                 span.text(pattern.source).to_string(),
                 pattern.trim_trailing,
                 pattern.separator,
@@ -449,6 +449,28 @@ fn compile_shapes<'a>(shapes: &'a [Shape], display: &str) -> Result<Vec<Pattern<
         .into());
     }
     Ok(compiled)
+}
+
+/// A tree written out as the kinds it is made of.
+///
+/// Two shapes with the same signature over the same text match the same nodes.
+/// `Node::to_sexp` says this already, and says it in C. The string it returns is
+/// allocated by the parser and freed by the caller. That is one allocation and one
+/// crossing of the boundary per shape. Walking the nodes here costs neither.
+fn shape_signature(node: Node<'_>) -> String {
+    let mut signature = String::new();
+    write_signature(node, &mut signature);
+    signature
+}
+
+fn write_signature(node: Node<'_>, out: &mut String) {
+    out.push('(');
+    out.push_str(node.kind());
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        write_signature(child, out);
+    }
+    out.push(')');
 }
 
 /// The fragment inside the first wrapper that accepts it.

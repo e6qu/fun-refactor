@@ -51,6 +51,21 @@ shows the patch additive. What is left below is one limit of this tool's own ana
 
 ## Fixed
 
+- [x] B734: **the browser build freed memory with the wrong allocator.** The grammars' C
+  has no libc on `wasm32-unknown-unknown`, so `crates/wasm-libc` supplies one.
+  tree-sitter's core is pointed at Rust's allocator, through the C hook alone. The Rust
+  binding keeps its own copy of the free function, and uses it for every buffer the C side
+  hands back. That copy still pointed at the scanners' bump arena.
+
+  So a string the parser allocated and the binding freed crossed two heaps.
+  `Node::to_sexp` is the call that does it. One use of it in `restructure` reached the
+  playground sweep as `assertion failed: psize >= size + min_overhead`, raised by the
+  arena's own `free`. The allocator goes through `tree_sitter::set_allocator` now, which
+  sets both halves of the pairing.
+
+  No `cargo test` can see this. `src/wasm.rs` compiles only for wasm32, and the sweep that
+  caught it needs a wasm toolchain and a Node run.
+
 - [x] B733: **`fr` could not write the changes it is made of.** A pattern had to
   be an expression, a statement or an item. A variant of an enum, a field of a
   struct, an arm of a match and the pattern on its left are none of those. Adding a
