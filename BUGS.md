@@ -51,6 +51,39 @@ shows the patch additive. What is left below is one limit of this tool's own ana
 
 ## Fixed
 
+- [x] B731: **a stylesheet variable crossed no file boundary.** One declared in
+  `_theme.scss` and used in `style.scss` reached nothing. Sass splits a codebase into
+  files and gives each one a namespace, and none of that was read. `@use "theme" as t` bound no name and `t.$brand` resolved to nothing.
+  `fr rename` rewrote the declaration and reported every use site as an occurrence it
+  could not place. Both syntaxes, and the same for a mixin and a function reached the same
+  way.
+
+  What the module system makes visible now resolves, and what it does not stays
+  unresolved. `@use "theme"` binds the namespace `theme`, `as t` renames it, and a name
+  reached through either is import-qualified. `@use ... as *` and the older `@import` bind
+  every name with no namespace at all, which is a glob import. A bare `$brand` reaches the
+  file through one of those. Under a plain `@use` it still reaches nothing, because that
+  is an undefined variable in Sass, and a guess would be worse than the report.
+  `@forward` hands a name on, so a namespace reaches through the file that forwards it.
+
+  Three things stood in the way. A partial is written `_theme.scss` and named `"theme"`,
+  so no import ever spelled the file it named. The resolver puts the underscore back and
+  tries each stylesheet extension. The braced grammar's plain-value token matched
+  `theme.$brand` and won the tie against the variable token. So the use site was not a
+  variable at all. The variable token outranks it now. And the namespace had to reach
+  resolution as the receiver. The indented syntax gives it a node of its own; the braced
+  one writes it into the same token. So the name is read from after the last dot, and a
+  rename rewrites that and leaves the namespace alone.
+
+- [x] B732: **the fact cache did not notice a grammar change.** Entries are keyed by the
+  file's bytes and the query set. The namespace they live in is fingerprinted from the
+  sources that decide what a fact means, and the grammars were not among them. So a
+  patched grammar changed what the tree looks like, and every file already scanned kept
+  the answer from the old one. Raising one token's precedence moved `theme.$brand` from a
+  plain value to a variable. The cache went on reporting a file with no variable in it. That reads like a fix that did not work. `build.rs` hashes what each grammar
+  is generated from. A change moves every entry to a new namespace, and the stale ones are
+  never looked up again.
+
 - [x] B283: **the indented Sass syntax, which is a language of its own.** `.sass` mapped
   to `Language::Scss` and could not be parsed. The SCSS grammar reads the braced syntax
   only, and the two differ in how every block and every statement ends. So this needed a

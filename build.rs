@@ -11,6 +11,13 @@
 //! So the key includes a hash of the sources that define extraction. Editing any of
 //! them moves every entry to a new namespace, and the stale ones are simply never
 //! looked up again.
+//!
+//! The grammars under `grammars/` are in it for the same reason. A patched grammar
+//! changes what the tree looks like, and a fact written from the old tree says nothing
+//! about that: raising one token's precedence moved `theme.$brand` from a plain value to
+//! a variable, and every file already scanned kept the answer that had no variable in it.
+//! What is hashed is what the parse is generated *from*. `src/parser.c` is left out: it
+//! is derived from `grammar.js`, and it is a megabyte of table per language.
 
 use std::fmt::Write as _;
 use std::path::Path;
@@ -35,6 +42,24 @@ fn main() {
             Err(e) => panic!("cache fingerprint input {input} is unreadable: {e}"),
         }
     }
+    // Every grammar this project compiles itself: its rules, its scanner, the patch
+    // applied to it and the release it was taken from.
+    let grammars = Path::new("grammars");
+    println!("cargo:rerun-if-changed=grammars");
+    let mut sources: Vec<String> = Vec::new();
+    collect(grammars, &mut sources);
+    sources.sort();
+    for source in &sources {
+        if source.ends_with("parser.c") || source.contains("tree_sitter/") {
+            continue;
+        }
+        println!("cargo:rerun-if-changed={source}");
+        match std::fs::read(source) {
+            Ok(bytes) => hasher.write(&bytes),
+            Err(e) => panic!("cache fingerprint input {source} is unreadable: {e}"),
+        }
+    }
+
     // The query files are hashed at runtime already, but a renamed or deleted one
     // must move the namespace too.
     let queries = Path::new("queries");

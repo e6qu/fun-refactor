@@ -103,11 +103,29 @@
 
 ; `@import "other"`, `@use "buttons"` and `@forward "buttons"`. The engine strips the
 ; quotes from an import path.
+;
+; What each one makes visible differs, and resolution reads it from these captures. A
+; `@use` binds one namespace: `theme.$brand`, or `t.$brand` after `as t`. `@use ... as *`
+; and the older `@import` bind every name the other file declares, with no namespace at
+; all, which is what a glob import is.
 (import_statement
-  (string_value) @import.path) @import
+  (string_value) @import.path) @import.glob @import
+
+; `as t` binds one namespace and `as *` binds none. This grammar spells both as a
+; `use_alias`, so the star is told from a name by what it says.
+(use_statement
+  (string_value) @import.path
+  (as_clause
+    (use_alias) @import.alias)?
+  (#not-eq? @import.alias "*")) @import
 
 (use_statement
-  (string_value) @import.path) @import
+  (string_value) @import.path
+  (as_clause
+    (use_alias) @import.glob)
+  (#eq? @import.glob "*")) @import
 
+; `@forward "buttons"` re-exports what that file declares: a third file that `@use`s
+; this one reaches them through this file's namespace.
 (forward_statement
-  (string_value) @import.path) @import
+  (string_value) @import.path) @import.re-export @import

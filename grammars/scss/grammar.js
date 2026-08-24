@@ -429,7 +429,7 @@ module.exports = grammar(CSS, {
 
     identifier: _ => /(--|-?[a-zA-Z_]|\\.)([a-zA-Z0-9-_]|\\.)*/,
 
-    variable: _ => /([a-zA-Z_]+\.)?\$[a-zA-Z-_][a-zA-Z0-9-_]*/,
+    variable: _ => token(prec(1, /([a-zA-Z_]+\.)?\$[a-zA-Z-_][a-zA-Z0-9-_]*/)),
 
     negated_variable: _ => token(seq('-', /([a-zA-Z_]+\.)?\$[a-zA-Z-_][a-zA-Z0-9-_]*/)),
 
