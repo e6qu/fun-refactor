@@ -611,18 +611,27 @@ that:
   must keep.
 - The **contract**, an OpenAPI document that says what a service promises.
 
-Three things this tool is for are not built. Each is written here before it is started,
-so the claim stays checkable against the tree.
+Two things this tool is for are not built. Each is written here before it is started, so
+the claim stays checkable against the tree. The first of the three is now done, and its
+entry says what it does.
 
 ### Translating a service back the way it came
 
-`fr translate <route.ts> fastapi` writes a FastAPI module from a Next.js App Router
-route. The other direction is refused today: `fastapi reads a route file's path as well
-as its text, so routes translate one at a time.` Going that way, the URL has to be
-written *into* the file path, so the output is a whole route tree. The check for it
-exists already. `openapi::from_fastapi` reads a FastAPI tree into the same baseline
-`fr openapi` derives from Next.js. So either rewrite can be diffed against the contract
-it started from.
+**Built.** `fr translate <app.py> nextjs` writes a Next.js App Router tree from a FastAPI
+application. One module becomes a tree, because a Next.js route's URL is where its file
+sits. `/pets` and `/pets/{pet_id}` are two directories, and two handlers on one URL are
+two exports of one `route.ts`.
+
+Each parameter becomes a line at the top of the body. FastAPI declares its inputs, and
+Next.js hands the handler a request to read them from. A name in the URL comes from
+`context.params`, converted where the handler declared a number. A parameter typed as a
+model is the body, read with `await request.json()`. Anything else is a query parameter.
+Every `return` becomes `Response.json(...)`, because FastAPI serialises what a handler
+returns and a Next.js handler answers with the response itself.
+
+`tests/translate_nextjs_routes.rs` holds the rules, and the check that matters.
+`openapi::from_fastapi` reads a document out of the Python. `openapi::from_routes` reads
+one out of the TypeScript it became. The two name the same URLs and the same methods.
 
 ### React server functions
 

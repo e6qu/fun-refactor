@@ -13,6 +13,24 @@ use tree_sitter::Node;
 /// `file_stem` is the source file's own name, and only Zig wants it. The
 /// file-as-struct idiom names its type `Self`, and everyone else calls the type by
 /// the file's name.
+/// One function, read from its own `function_definition` node.
+///
+/// The module reader hands a decorated definition to `Unsupported`, because a decorator
+/// changes behaviour and no target carries the same one. A reader that knows what a
+/// particular decorator means reads the function under it with this. `fastapi.rs` knows
+/// what `@router.get("/users")` means, and the handler beneath it is ordinary Python.
+pub(crate) fn function_at(language: Language, source: &str, node: Node<'_>) -> Result<Function> {
+    let lines = LineIndex::new(source);
+    let cx = Cx {
+        source,
+        lines: &lines,
+    };
+    match language {
+        Language::Python => Ok(python::function(&cx, node, None)),
+        other => bail!("no reader takes a single {other} function"),
+    }
+}
+
 pub fn read(
     language: Language,
     source: &str,
@@ -1929,7 +1947,7 @@ mod python {
             .retain(|item| !matches!(item, Item::Record(r) if consumed.contains(&r.name)));
     }
 
-    fn function(cx: &Cx, node: Node<'_>, receiver: Option<String>) -> Function {
+    pub(super) fn function(cx: &Cx, node: Node<'_>, receiver: Option<String>) -> Function {
         let mut params = Vec::new();
         // Python names the receiver in the parameter list. So what it is called is the author's
         // choice, `self` by convention, `cls` on a classmethod, anything at all if they felt

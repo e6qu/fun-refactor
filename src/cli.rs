@@ -464,7 +464,8 @@ enum Command {
     Translate {
         /// File to rewrite, or a directory to sweep file by file.
         file: PathBuf,
-        /// Target language, or `fastapi` for a Next.js API route.
+        /// Target language, `fastapi` for a Next.js API route, or `nextjs` for a
+        /// FastAPI application.
         language: Option<String>,
         /// Apply the change instead of printing a diff.
         #[arg(long)]
@@ -2188,6 +2189,12 @@ fn cmd_translate(
     if language.eq_ignore_ascii_case("fastapi") {
         return cmd_translate_fastapi(cli, &path, write, out, force);
     }
+    // The other direction, which is one file to a *tree*. A Next.js route's URL is where
+    // the file sits, so the endpoints of one FastAPI module land in as many files as it
+    // declares URLs.
+    if language.eq_ignore_ascii_case("nextjs") || language.eq_ignore_ascii_case("next.js") {
+        return cmd_translate_nextjs(cli, &path, write, out, force);
+    }
 
     let to = crate::lang::Language::from_name(language)
         .ok_or_else(|| anyhow::anyhow!("unknown language '{language}'"))?;
@@ -2542,6 +2549,84 @@ fn cmd_translate_fastapi(
         plan.source.display(),
         plan.destination.display()
     );
+    present(cli, None, &plan.edits, &summary, write)
+}
+
+/// `fr translate <app.py> nextjs`, a FastAPI application as a Next.js route tree.
+fn cmd_translate_nextjs(
+    cli: &Cli,
+    path: &std::path::Path,
+    write: bool,
+    out: Option<&std::path::Path>,
+    force: bool,
+) -> Result<()> {
+    let plan = crate::transpile::fastapi::plan_to(path, out, force)?;
+    let summary = format!(
+        "{} translated to {} Next.js route(s)",
+        plan.source.display(),
+        plan.routes.len()
+    );
+    if cli.json {
+        let routes: Vec<serde_json::Value> = plan
+            .routes
+            .iter()
+            .map(|route| {
+                serde_json::json!({
+                    "file": route.destination.display().to_string(),
+                    "route": route.route,
+                    "methods": route.methods,
+                })
+            })
+            .collect();
+        return present_translation(
+            cli,
+            &plan.edits,
+            &plan.fidelity,
+            &summary,
+            write,
+            |report| {
+                report["target"] = serde_json::json!("nextjs");
+                report["routes"] = serde_json::json!(routes);
+                report["notes"] = serde_json::json!(plan.notes);
+            },
+        );
+    }
+    println!(
+        "{} -> {} route file(s)",
+        plan.source.display(),
+        plan.routes.len()
+    );
+    for route in &plan.routes {
+        println!(
+            "  {} serving {} ({})",
+            route.destination.display(),
+            route.route,
+            route.methods.join(", ")
+        );
+    }
+    let f = &plan.fidelity;
+    println!(
+        "  {} handler(s), {} model(s) across {} file(s)",
+        f.functions,
+        f.records,
+        plan.routes.len()
+    );
+    if f.carried_verbatim > 0 {
+        println!(
+            "  {} construct(s) had no counterpart and are in the output as comments:",
+            f.carried_verbatim
+        );
+        for note in f.notes.iter().take(10) {
+            println!("    {note}");
+        }
+        if f.notes.len() > 10 {
+            println!("    and {} more", f.notes.len() - 10);
+        }
+    }
+    for note in &plan.notes {
+        println!("  {note}");
+    }
+    println!();
     present(cli, None, &plan.edits, &summary, write)
 }
 
