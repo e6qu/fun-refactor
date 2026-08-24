@@ -809,7 +809,7 @@ pub fn why_not_organizable(language: Language) -> Option<&'static str> {
         return None;
     }
     Some(match language {
-        Language::Css | Language::Scss => {
+        Language::Css | Language::Scss | Language::Sass => {
             "CSS @import order is semantic. A later import's rules beat an earlier \
              one's in the cascade, and @import must precede all other rules, so \
              sorting or removing them would change which styles apply"

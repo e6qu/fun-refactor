@@ -1,0 +1,36 @@
+// The dashboard's print stylesheet, in Sass's indented syntax.
+//
+// Same language as theme.scss, written the older way: blocks are indentation and
+// statements end at the line. The names it uses are the ones theme.scss and
+// dashboard.css declare, so a rename crosses all three files.
+
+$page-ink: #000
+$page-rule: #999
+$page-gap: 12px
+
+@mixin page-surface
+  border: 1px solid $page-rule
+  padding: $page-gap
+
+@media print
+  .theme-dark
+    color: $page-ink
+    background: #fff
+
+  .masthead
+    border-bottom-color: $page-rule
+
+  .panel
+    @include page-surface
+
+  .panel-title
+    color: $page-ink
+
+  .sensor-table
+    th,
+    td
+      border-bottom-color: $page-rule
+
+  .nav-link,
+  .footer
+    display: none

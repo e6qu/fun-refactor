@@ -40,7 +40,7 @@ import "./style.css";
 // `editor.worker.start.js`; the old path resolves to nothing and fails at build.
 self.MonacoEnvironment = { getWorker: () => new editorWorker() };
 
-// The bundled sample: a small service in all sixteen languages, so every capability
+// The bundled sample: a small service in all seventeen languages, so every capability
 // can be tried before deciding whether to wait for a repository to download — and so
 // the page still works when GitHub rate-limits an anonymous browser.
 const SAMPLE = import.meta.glob("../sample/**/*", {
@@ -72,7 +72,7 @@ const PRESETS: { label: string; target: string }[] = [
   { label: "Helm — ingress-nginx chart", target: "kubernetes/ingress-nginx/tree/main/charts/ingress-nginx" },
   { label: "CSS and HTML — normalize.css", target: "necolas/normalize.css" },
   { label: "Markdown — the Rust book (src)", target: "rust-lang/book/tree/main/src" },
-  { label: "All sixteen languages — bundled sample", target: "sample" },
+  { label: "All seventeen languages — bundled sample", target: "sample" },
 ];
 
 const el = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
@@ -795,7 +795,7 @@ function loadSample() {
   }
   say(`Indexing the bundled sample (${Object.keys(loaded).length} files)…`, "busy");
   adopt(loaded, "bundled sample");
-  say("Bundled sample — sixteen languages, no network needed.");
+  say("Bundled sample — seventeen languages, no network needed.");
 }
 
 const presetSelect = el<HTMLSelectElement>("preset");

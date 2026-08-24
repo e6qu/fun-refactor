@@ -57,6 +57,8 @@ impl Parsers {
             // SCSS is a superset of CSS, and its own grammar knows the extra half.
             #[cfg(feature = "lang-scss")]
             Language::Scss => Some(fun_refactor_scss_grammar::LANGUAGE.into()),
+            #[cfg(feature = "lang-sass")]
+            Language::Sass => Some(fun_refactor_sass_grammar::LANGUAGE.into()),
             #[cfg(feature = "lang-hcl")]
             Language::Hcl => Some(tree_sitter_hcl::LANGUAGE.into()),
             #[cfg(feature = "lang-yaml")]

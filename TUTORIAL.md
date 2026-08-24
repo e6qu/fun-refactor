@@ -526,7 +526,7 @@ and the tool refuses so much.
 
 ## Where to go next
 
-- `fr capabilities` prints what each of the 16 languages supports, with the reason
+- `fr capabilities` prints what each of the 17 languages supports, with the reason
   attached to every cell that is not. The code derives it, and nobody maintains it by
   hand.
 - `fr <command> --help` for the flags each command takes.

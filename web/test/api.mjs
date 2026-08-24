@@ -89,8 +89,8 @@ check("stats", () => {
 
 // Every grammar the tool has must be represented, or the sample is not a test of it.
 const EXPECTED_LANGUAGES = [
-  "rust", "go", "zig", "typescript", "tsx", "python", "bash", "html",
-  "css", "scss", "hcl", "yaml", "helm", "xml", "markdown",
+  "rust", "go", "zig", "java", "typescript", "tsx", "python", "bash", "html",
+  "css", "scss", "sass", "hcl", "yaml", "helm", "xml", "markdown",
 ];
 
 check("every language is present", () => {

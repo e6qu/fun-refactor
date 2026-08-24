@@ -79,11 +79,23 @@ fn no_reason_describes_a_different_language() {
                 // Markup may name a stylesheet: that is where the value belongs instead.
                 (
                     "stylesheet",
-                    &[Language::Css, Language::Scss, Language::Html, Language::Xml][..],
+                    &[
+                        Language::Css,
+                        Language::Scss,
+                        Language::Sass,
+                        Language::Html,
+                        Language::Xml,
+                    ][..],
                 ),
                 (
                     "CSS custom property",
-                    &[Language::Css, Language::Scss, Language::Html, Language::Xml][..],
+                    &[
+                        Language::Css,
+                        Language::Scss,
+                        Language::Sass,
+                        Language::Html,
+                        Language::Xml,
+                    ][..],
                 ),
                 (
                     "markup",

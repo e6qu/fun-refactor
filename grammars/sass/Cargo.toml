@@ -1,0 +1,20 @@
+[package]
+name = "fun-refactor-sass-grammar"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "The indented Sass grammar, patched to read the Sass the published one rejects"
+publish = false
+build = "build.rs"
+
+# The analysis crate forbids unsafe outright, and that is worth keeping. A tree-sitter
+# language is a C function pointer, so the exception lives here, in the ten lines that
+# hand it over.
+[lints.rust]
+unsafe_code = "allow"
+
+[dependencies]
+tree-sitter-language = "0.1"
+
+[build-dependencies]
+cc = "1"

@@ -1,0 +1,249 @@
+--- a/grammar.js	2026-08-24 02:36:28
++++ b/grammar.js	2026-08-24 02:47:47
+@@ -18,6 +18,7 @@
+     $._dedent,
+     $._newline,
+     $._string_content,
++    $._descendant_operator,
+     $._error_sentinel,
+   ],
+ 
+@@ -411,7 +412,10 @@
+     rule_set: ($) => prec.right(seq($.selectors, $._newline, optional($.block))),
+ 
+     selectors: ($) =>
+-      sep1(',', choice($._selector, $._block_direct_selector)),
++      sep1(
++        seq(',', optional($._newline)),
++        choice($._selector, $._block_direct_selector),
++      ),
+ 
+     block: ($) =>
+       seq($._indent, repeat($._block_item), $._dedent),
+@@ -600,7 +604,11 @@
+ 
+     descendant_selector: ($) =>
+       prec.left(
+-        seq(field('left', $._selector), /[ \t]+/, field('right', $._selector)),
++        seq(
++          field('left', $._selector),
++          $._descendant_operator,
++          field('right', $._selector),
++        ),
+       ),
+ 
+     sibling_selector: ($) =>
+@@ -772,7 +780,13 @@
+       ),
+ 
+     list_value: ($) =>
+-      prec.right(-1, seq('[', sep(',', $._value), ']')),
++      prec.right(
++        -1,
++        choice(
++          seq('[', sep(',', $._value), ']'),
++          seq('(', sep2(',', repeat1($._value)), optional(','), ')'),
++        ),
++      ),
+ 
+     unicode_range: (_) =>
+       token(
+@@ -787,42 +801,6 @@
+       ),
+ 
+     color_value: (_) => seq('#', token.immediate(/[0-9a-fA-F]{3,8}/)),
+-
+-    color_function: ($) =>
+-      seq(
+-        field(
+-          'name',
+-          alias(
+-            token(prec(1, /rgba?|hsla?|hwb|lab|lch|oklch|oklab|color(-mix)?/)),
+-            $.function_name,
+-          ),
+-        ),
+-        field('arguments', $.arguments),
+-      ),
+-
+-    gradient_function: ($) =>
+-      seq(
+-        field(
+-          'name',
+-          alias(
+-            token(prec(1, /(repeating-)?(linear|radial|conic)-gradient/)),
+-            $.function_name,
+-          ),
+-        ),
+-        field('arguments', $.arguments),
+-      ),
+-
+-    math_function: ($) =>
+-      seq(
+-        field(
+-          'name',
+-          alias(
+-            token(prec(1, /calc|min|max|clamp|abs|sign|round|mod|rem|sin|cos|tan|asin|acos|atan2?|pow|sqrt|hypot|log|exp/)),
+-            $.function_name,
+-          ),
+-        ),
+-        field('arguments', $.arguments),
+-      ),
+ 
+     var_function: ($) =>
+       seq(
+@@ -889,9 +867,6 @@
+ 
+     call_expression: ($) =>
+       choice(
+-        $.color_function,
+-        $.gradient_function,
+-        $.math_function,
+         $.var_function,
+         seq(
+           field('name', alias('url', $.function_name)),
+@@ -934,13 +909,19 @@
+       seq(
+         token.immediate('('),
+         choice(
+-          sep(choice(',', ';'), repeat($._value)),
+-          seq(sep1(choice(',', ';'), repeat($._value)), ',', $.rest_argument),
++          sep(choice(',', ';'), $._argument),
++          seq(sep1(choice(',', ';'), $._argument), ',', $.rest_argument),
+           $.rest_argument,
+         ),
+         ')',
+       ),
+ 
++    _argument: ($) =>
++      choice(
++        seq(alias($.variable_identifier, $.argument_name), ':', repeat($._value)),
++        repeat1($._value),
++      ),
++
+     rest_argument: ($) =>
+       seq(alias($.variable_identifier, $.variable_value), $._spread),
+ 
+@@ -997,11 +978,16 @@
+     interpolation: ($) => seq('#{', choice($._value, $.binary_expression), '}'),
+ 
+     _identifier_with_interpolation: ($) =>
+-      prec.left(1, repeat1(choice($._identifier, $.interpolation))),
++      prec.left(
++        1,
++        repeat1(choice($._identifier, $.interpolation, $._joining_characters)),
++      ),
+ 
+     _plain_value_with_interpolation: ($) =>
+-      repeat1(choice($._plain_value, $.interpolation)),
++      repeat1(choice($._plain_value, $.interpolation, $._joining_characters)),
+ 
++    _joining_characters: (_) => token.immediate(/[-_0-9][a-zA-Z0-9\-_]*/),
++
+     _plain_value: (_) =>
+       token(seq(repeat(/[-_]/), /[a-zA-Z]/, repeat(/[a-zA-Z0-9_-]/))),
+   },
+@@ -1014,3 +1000,15 @@
+ function sep1(separator, rule) {
+   return seq(rule, repeat(seq(separator, rule)));
+ }
++
++/**
++ * Two or more of `rule`, separated by `separator`. One value in brackets is that value,
++ * and a list needs a comma to be one.
++ *
++ * @param {RuleOrLiteral} separator
++ * @param {RuleOrLiteral} rule
++ * @return {SeqRule}
++ */
++function sep2(separator, rule) {
++  return seq(rule, repeat1(seq(separator, rule)));
++}
+--- a/src/scanner.c	2026-08-24 02:36:28
++++ b/src/scanner.c	2026-08-24 02:47:47
+@@ -14,7 +14,14 @@
+ #include <string.h>
+ #include <wctype.h>
+ 
+-enum TokenType { INDENT, DEDENT, NEWLINE, STRING_CONTENT, ERROR_SENTINEL };
++enum TokenType {
++  INDENT,
++  DEDENT,
++  NEWLINE,
++  STRING_CONTENT,
++  DESCENDANT_OPERATOR,
++  ERROR_SENTINEL
++};
+ 
+ #define MAX_INDENT_DEPTH 100
+ 
+@@ -103,6 +110,31 @@
+       scanner->stack_size--;
+     lexer->result_symbol = DEDENT;
+     return true;
++  }
++
++  // A run of spaces joins two selectors, unless what follows joins them itself or ends
++  // the selector.
++  if (valid_symbols[DESCENDANT_OPERATOR] &&
++      (lexer->lookahead == ' ' || lexer->lookahead == '\t')) {
++    while (lexer->lookahead == ' ' || lexer->lookahead == '\t') {
++      skip(lexer);
++    }
++    lexer->mark_end(lexer);
++    switch (lexer->lookahead) {
++      case '>':
++      case '+':
++      case '~':
++      case ',':
++      case '\n':
++      case '\r':
++        return false;
++      default:
++        if (lexer->eof(lexer)) {
++          return false;
++        }
++        lexer->result_symbol = DESCENDANT_OPERATOR;
++        return true;
++    }
+   }
+ 
+   if (valid_symbols[STRING_CONTENT]) {
+@@ -182,8 +214,6 @@
+     lexer->mark_end(lexer);
+     lexer->result_symbol = NEWLINE;
+ 
+-    uint16_t current = current_indent(scanner);
+-
+     if (lexer->eof(lexer)) {
+       scanner->dedent_count = scanner->stack_size;
+     }
+--- a/queries/highlights.scm	2026-08-24 02:36:28
++++ b/queries/highlights.scm	2026-08-24 02:47:47
+@@ -108,18 +108,16 @@
+ (call_expression
+   (function_name) @function.call)
+ 
+-; Color functions
+-(color_function
+-  (function_name) @function.builtin)
++; The CSS colour, gradient and maths functions, which are ordinary calls with
++; well-known names.
++((function_name) @function.builtin
++  (#any-of? @function.builtin
++    "rgb" "rgba" "hsl" "hsla" "hwb" "lab" "lch" "oklch" "oklab" "color" "color-mix"
++    "linear-gradient" "radial-gradient" "conic-gradient" "repeating-linear-gradient"
++    "repeating-radial-gradient" "repeating-conic-gradient"
++    "calc" "min" "max" "clamp" "abs" "sign" "round" "mod" "rem" "sin" "cos" "tan"
++    "asin" "acos" "atan" "atan2" "pow" "sqrt" "hypot" "log" "exp"))
+ 
+-; Gradient functions
+-(gradient_function
+-  (function_name) @function.builtin)
+-
+-; Math functions
+-(math_function
+-  (function_name) @function.builtin)
+-
+ ; var() function
+ (var_function
+   (function_name) @function.builtin)

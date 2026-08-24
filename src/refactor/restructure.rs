@@ -362,6 +362,12 @@ fn fragment_wrappers(language: Language) -> &'static [(&'static str, &'static st
             ("__fr_pattern {\n", ";\n}\n"),
             ("", " { __fr_pattern: 0 }\n"),
         ],
+        // The same three shapes, written the way the indented syntax writes them.
+        Language::Sass => &[
+            ("", "\n"),
+            ("__fr_pattern\n  ", "\n"),
+            ("", "\n  __fr_pattern: 0\n"),
+        ],
         // An element is a document on its own; several siblings need a root.
         Language::Html => &[("", "\n"), ("<html><body>", "</body></html>\n")],
         Language::Xml => &[("", "\n"), ("<__fr_pattern>", "</__fr_pattern>\n")],

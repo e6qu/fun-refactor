@@ -43,6 +43,29 @@ parameter takes an optional `= type`. Checked over `psf/requests` and `pallets/f
 119 files and 136,341 nodes: the patched parser returns the same tree as the stock one
 everywhere the stock one parses.
 
+## sass
+
+Sass has two syntaxes, and this is the older one: blocks are indentation and statements
+end at the line. It is a different language from the braced syntax in `.scss` files, so
+it needs a grammar of its own, and no crate publishes one. `bajrangCoder/tree-sitter-sass`
+is unreleased, so the pin here is a commit and the archive checksum is what makes it
+checkable.
+
+Six forms of ordinary Sass failed. The CSS colour, gradient and maths functions had name
+tokens that outranked the identifier token, so `transition: color 0.2s` failed and so did
+`color.adjust(…)`. A call took no named argument. A list in parentheses read as a value in
+brackets. A selector list could not be written down the page. A hyphen could not join two
+interpolations, `.#{$abbrev}-#{$size}`. And a combinator with spaces around it, `li + li`,
+lost its left-hand selector to the descendant combinator, which is a run of spaces.
+
+The last of those is the scanner's to decide, as it is in `tree-sitter-css`. A run of
+spaces is the descendant combinator only when a selector follows it. The rest are rules.
+
+Measured over `iv-org/invidious`, `peer-calls/peer-calls`, `HBM/jet` and the grammar's own
+examples, 17 files: the published grammar fails on 8 and this one on 1. That one is a
+Jekyll asset whose first line is YAML front matter. The grammar's own corpus passes whole,
+42 of 42, with three trees regenerated for the rules the patch removes.
+
 ## go
 
 `new` and `make` are predeclared identifiers in Go, not keywords, so a package may define

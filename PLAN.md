@@ -355,21 +355,18 @@ figures below were measured on this branch.
 Every cell that `fr capabilities` marks `n/a` carries the reason the tool refuses. That
 keeps the column a commitment.
 
-### The two open defects
+### The one open defect
 
-Each one was re-triaged against this branch, still reproduces, and is pinned by a test
-that fails when it stops being true.
+It was re-triaged against this branch, still reproduces, and is pinned by a test that
+fails when it stops being true.
 
 - **Where a published grammar could not read the language, this build compiles its own
-  copy.** `grammars/` holds a patched Go, Python, SCSS, TypeScript and Zig, each with its
-  upstream tag, licence, patch and the corpus measurement showing the patch additive.
-  That closed the eight grammar entries that stood here: B11 and B233/B234 and B15 and
-  B231/B232 and B133. `tests/known_grammar_gaps.rs` pins every patched form from both
-  sides: the form that failed, and the neighbouring forms that always worked. A fix that
-  over-corrects fails there too.
-- **B283 is the one language left with no grammar of its own.** Sass's indented syntax is
-  not SCSS and the failure is visible in `fr parse`. The entry names what taking the one
-  third-party grammar would cost.
+  copy.** `grammars/` holds a patched Go, Python, Sass, SCSS, TypeScript and Zig, each
+  with its upstream pin, licence, patch and the corpus measurement showing the patch
+  additive. That closed the nine grammar entries that stood here: B11, B233/B234, B15,
+  B231/B232, B133 and B283. `tests/known_grammar_gaps.rs` pins every patched form from
+  both sides: the form that failed, and the neighbouring forms that always worked. A fix
+  that over-corrects fails there too.
 - **B5 is an incomplete answer that the tool reports.** It states what dispatch can be
   known without types: what the source declares, and what it assigns.
   `tests/open_defects.rs` asserts both halves. A call that quietly skipped the value edge
@@ -605,7 +602,7 @@ unknown type, written inside a macro, or matched by name alone.
 ## Progress log
 
 Every stage is complete except the optional LSP delegation backend. Every
-capability a language can meaningfully support is built: **273 of 384 capability ×
+capability a language can meaningfully support is built: **286 of 408 capability ×
 language pairs supported, 115 not applicable, none refused.**
 
 Nobody maintains the matrix by hand any more. `src/capabilities.rs` computes it by
@@ -614,7 +611,7 @@ attached to every non-supported cell. A test asserts the README matches. The
 hand-written version drifted twice, once hiding 27 unbuilt cells and once publishing six
 working ones as refused.
 
-The compile gate drives six of the sixteen languages: Rust, TypeScript, Go, Python, Zig
+The compile gate drives six of the seventeen languages: Rust, TypeScript, Go, Python, Zig
 and Java. It names the other ten on every run. Those ten have no compiler to run. A
 stylesheet, a manifest and a document are checked by parsing, which the edit engine
 already does.
@@ -915,7 +912,7 @@ outside are the same type spelled differently.
 
 ### The log
 
-Build-out, in order: sixteen languages; six transpiler readers and writers, thirty ordered
+Build-out, in order: seventeen languages; six transpiler readers and writers, thirty ordered
 pairs; the recipe language; the entry-point catalogues. Then the published site and its
 WebAssembly playground; the refactoring catalogue page; the API-contract invariant; the
 types tutorial. BUGS.md records each one with what it broke on the way.
@@ -1240,11 +1237,11 @@ one line; the choice worth recording is not adding `Language::JavaScript` beside
 Twelve `matches!(lang, TypeScript | Tsx)` arms exist across eight files, and each would
 have become a place to forget the new variant (B282).
 
-The same sweep found the inverse: `.sass` is named by the table and cannot be parsed,
-because Sass's indented syntax is not SCSS (B283). That one stays as it is, the failure
-is visible in `fr parse`. Removing the mapping would make those files disappear the way
-the `.js` ones did. JavaScript is a subset of TypeScript; the indented syntax is a
-different language. It would need a grammar, a query set and a column of its own.
+The same sweep found the inverse: `.sass` was named by the table and could not be parsed,
+because Sass's indented syntax is not SCSS (B283). JavaScript is a subset of TypeScript
+and needed no variant. The indented syntax is a different language, so it got one:
+`Language::Sass`, `grammars/sass`, `queries/sass/facts.scm` and a column of its own. A
+name declared in one syntax and used in the other resolves across the two.
 
 ### Fragments nobody could resolve
 

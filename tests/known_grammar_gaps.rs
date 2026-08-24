@@ -153,26 +153,105 @@ fn typescript_reads_the_in_operator_across_a_line_break() {
     }
 }
 
-/// `.sass` maps to `Language::Scss`, and the indented syntax is not SCSS.
+/// The indented Sass syntax, which is a language of its own and has a grammar of its own.
 ///
-/// Sass has two syntaxes: the braced one in `.scss` files, and the older
-/// whitespace-significant one in `.sass` files. `tree-sitter-scss` implements the
-/// first. The extension table names both, so a `.sass` file is scanned and then fails
-/// to parse, visible in `fr parse`, unlike an extension that maps to nothing at all,
-/// but still a claim of support the grammar cannot meet.
+/// `grammars/sass` carries it. Every case here is ordinary indented Sass, and the six the
+/// patch is for are marked. Measured over `iv-org/invidious`, `peer-calls/peer-calls`,
+/// `HBM/jet` and the grammar's own examples: the published grammar fails on 8 of the 17
+/// files and this one on one, a Jekyll asset whose first line is YAML front matter.
 #[test]
-fn the_indented_sass_syntax_is_not_scss() {
-    assert!(error_nodes(Language::Scss, ".button\n  color: red\n") > 0);
-    assert_eq!(error_nodes(Language::Scss, ".button { color: red; }\n"), 0);
+fn sass_reads_the_indented_syntax() {
+    let cases = [
+        ("a rule", ".button\n  color: red\n"),
+        ("a nested rule", ".a\n  .b\n    color: red\n"),
+        ("a parent selector", ".a\n  &:hover\n    color: blue\n"),
+        ("a variable", "$primary: #3498db\n"),
+        ("`!default`", "$x: 1rem !default\n"),
+        ("an interpolated selector", ".a-#{$x}\n  color: red\n"),
+        ("an interpolated value", ".a\n  color: #{$v}\n"),
+        ("a mixin", "@mixin m($a, $b: 2)\n  margin: $a\n"),
+        ("a variadic mixin", "@mixin m($shadow...)\n  color: red\n"),
+        ("an include", ".a\n  @include m(1)\n"),
+        (
+            "a namespaced include",
+            "@use \"x\" as t\n\n.a\n  @include t.m(2)\n",
+        ),
+        ("a function", "@function f($x)\n  @return $x * 2\n"),
+        (
+            "an `@if` with `and`",
+            "@if $a == 1 and $b == 2\n  .a\n    color: red\n",
+        ),
+        (
+            "an `@each`",
+            "@each $k, $v in $m\n  .e-#{$k}\n    width: $v\n",
+        ),
+        (
+            "a `@for`",
+            "@for $i from 1 through 3\n  .c-#{$i}\n    width: $i\n",
+        ),
+        ("`@use ... with`", "@use \"x\" with ($a: 1)\n"),
+        ("`@forward ... as`", "@forward \"x\" as t-*\n"),
+        ("a placeholder", "%p\n  color: red\n\n.a\n  @extend %p\n"),
+        (
+            "a media query",
+            "@media (min-width: 1px)\n  .a\n    color: red\n",
+        ),
+        (
+            "a keyframes block",
+            "@keyframes slide\n  0%\n    opacity: 0\n",
+        ),
+        ("a custom property", ".a\n  --gap: 4px\n"),
+        ("`var()`", ".a\n  margin: var(--gap)\n"),
+        ("a negated variable", ".a\n  margin: -$x\n"),
+        // The six the patch is for.
+        (
+            "a colour word in a value",
+            ".a\n  transition: color 0.2s ease\n",
+        ),
+        (
+            "a namespaced call",
+            ".a\n  color: color.adjust($c, $lightness: -10%)\n",
+        ),
+        (
+            "a named argument",
+            ".a\n  color: adjust($c, $lightness: 1)\n",
+        ),
+        ("a list in parentheses", "$d: (none, inline, block)\n"),
+        (
+            "an `@each` over a list",
+            "@each $s in (0, 1, 2)\n  .c-#{$s}\n    width: $s\n",
+        ),
+        ("a selector list over two lines", ".a,\n.b\n  color: red\n"),
+        ("two interpolations joined", ".#{$a}-#{$b}\n  color: red\n"),
+        ("a combinator with spaces", "li + li\n  color: red\n"),
+        ("a nested combinator", ".a\n  & + li\n    color: red\n"),
+    ];
+    for (what, source) in cases {
+        assert_eq!(
+            error_nodes(Language::Sass, source),
+            0,
+            "{what} is ordinary Sass: {source}"
+        );
+    }
+}
 
-    // The failure has a name, and `fr parse` prints it beside the positions. The
-    // reader is not sent hunting for a syntax error that is not there.
-    let cause = fun_refactor::lang::known_parse_gap(std::path::Path::new("style.sass"))
-        .expect("a named cause");
-    assert!(cause.contains("indented"), "got: {cause}");
-    assert!(
-        fun_refactor::lang::known_parse_gap(std::path::Path::new("style.scss")).is_none(),
-        "the braced syntax parses; naming a cause for it would be a lie."
+/// And the braced syntax stays SCSS's, which is a different grammar reading a different
+/// file extension.
+#[test]
+fn the_two_sass_syntaxes_keep_their_own_grammars() {
+    assert_eq!(error_nodes(Language::Scss, ".button { color: red; }\n"), 0);
+    assert_eq!(error_nodes(Language::Sass, ".button\n  color: red\n"), 0);
+    // Neither reads the other: the braced syntax has no meaning in a `.sass` file, and
+    // the indented one has none in a `.scss` file.
+    assert!(error_nodes(Language::Scss, ".button\n  color: red\n") > 0);
+    assert!(error_nodes(Language::Sass, ".button { color: red; }\n") > 0);
+    assert_eq!(
+        fun_refactor::lang::detect(std::path::Path::new("style.sass")),
+        Some(Language::Sass)
+    );
+    assert_eq!(
+        fun_refactor::lang::detect(std::path::Path::new("style.scss")),
+        Some(Language::Scss)
     );
 }
 

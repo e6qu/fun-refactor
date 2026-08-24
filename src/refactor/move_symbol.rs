@@ -140,7 +140,7 @@ pub fn to_file(index: &Index, symbol: SymbolId, destination: &Path) -> Result<Mo
         Language::Rust => move_rust(index, sym, destination),
         Language::Go => move_go(index, sym, destination),
         Language::Hcl => move_hcl(index, sym, destination),
-        Language::Css | Language::Scss => move_css(index, sym, destination),
+        Language::Css | Language::Scss | Language::Sass => move_css(index, sym, destination),
         Language::Markdown => move_markdown(index, sym, destination),
         Language::Zig => move_zig(index, sym, destination),
         Language::Bash => move_bash(index, sym, destination),
@@ -4323,7 +4323,7 @@ pub fn movable(index: &Index, file: &Path) -> Vec<SymbolId> {
                     SymbolKind::Block | SymbolKind::Variable | SymbolKind::Module
                 ) && (s.container.is_none() || enclosing_locals_block(index, s).is_some())
             }
-            Language::Css | Language::Scss => {
+            Language::Css | Language::Scss | Language::Sass => {
                 matches!(s.kind, SymbolKind::Selector | SymbolKind::ElementId)
             }
             Language::Markdown => s.kind == SymbolKind::Heading,

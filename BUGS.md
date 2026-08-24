@@ -19,31 +19,11 @@ away.
 
 ## Open
 
-Re-triaged against this branch. Both entries below still reproduce. Where a published
+Re-triaged against this branch. The entry below still reproduces. Where a published
 grammar could not read source the language accepts, this build compiles a patched copy
-instead of recording the gap: `grammars/` holds one for Go, Python, SCSS, TypeScript and
-Zig, each with its upstream tag, licence, patch and the measurement that shows the patch
-additive. What is left below is one language with no grammar of its own and one limit of
-this tool's own analysis.
-
-- [ ] B283: `.sass` maps to `Language::Scss`, and the indented syntax is not SCSS. Sass
-  has two syntaxes, the braced one in `.scss` files and the older whitespace-significant
-  one in `.sass` files, and the SCSS grammar implements the first. So a `.sass` file is
-  scanned and then fails to parse. The failure is visible and not silent, so the mapping
-  stays. Removing it would make those files vanish the way `.js` files did. `fr parse`
-  prints the cause beside the positions, in text and in `--json` as `known_cause`. Pinned
-  in `tests/known_grammar_gaps.rs`.
-
-  This needs a grammar of its own and not a change to the SCSS one. The two syntaxes
-  differ in how every block and every statement ends. One grammar exists,
-  `bajrangCoder/tree-sitter-sass`, MIT and unreleased. Measured here at commit
-  `fb280c41`: it reads its own corpus whole, 42 of 42, and reads a file of ordinary
-  indented Sass. Eleven error nodes remain in the showcase file its own author wrote.
-  What it cannot read is a namespaced call (`color.adjust(…)`), a named argument, and a
-  list literal. So taking it means patching it the way `grammars/scss` was patched.
-  Then `.sass` needs a language of its own: a fact query written against its node names,
-  and its own column in the capability matrix. That is the work, and none of it is
-  blocked.
+instead of recording the gap: `grammars/` holds one for Go, Python, Sass, SCSS,
+TypeScript and Zig, each with its upstream pin, licence, patch and the measurement that
+shows the patch additive. What is left below is one limit of this tool's own analysis.
 
 - [ ] B5: `find_unused` and the call graph follow what the source shows, and no further.
   A call that names no definition is fanned out to the definitions the workspace admits.
@@ -70,6 +50,34 @@ this tool's own analysis.
   neither has a hierarchy to read.
 
 ## Fixed
+
+- [x] B283: **the indented Sass syntax, which is a language of its own.** `.sass` mapped
+  to `Language::Scss` and could not be parsed. The SCSS grammar reads the braced syntax
+  only, and the two differ in how every block and every statement ends. So this needed a
+  grammar and not a rule.
+
+  `grammars/sass` carries one, from `bajrangCoder/tree-sitter-sass`. Nothing upstream is
+  released, so the pin is a commit, under an archive checksum. Six forms of
+  ordinary Sass failed it. The CSS colour, gradient and maths functions had name tokens
+  that outranked the identifier token, so `transition: color 0.2s` failed and so did
+  `color.adjust(…)`. A call took no named argument. A list in parentheses read as a value
+  in brackets. A selector list could not be written down the page. A hyphen could not join
+  two interpolations. And `li + li` lost its left-hand selector to the descendant
+  combinator, which is a run of spaces and is now the scanner's to decide.
+
+  `.sass` is `Language::Sass` now, with `queries/sass/facts.scm` reading its nodes into
+  the same kinds and the same spellings `queries/scss/facts.scm` uses. A name declared in
+  one syntax and used in the other resolves across the two. The matrix has a column for
+  it: 13 capabilities of the 24, against SCSS's 14. The one that differs is `fr translate`,
+  which rewrites a file only where one grammar contains another, and neither syntax
+  contains the other.
+
+  Measured over `iv-org/invidious`, `peer-calls/peer-calls`, `HBM/jet` and the grammar's
+  own examples, 17 files: the published grammar fails on 8 and this one on 1. That one is
+  a Jekyll asset whose first line is YAML front matter. Two defects in the braced syntax
+  turned up while writing the indented one, and both are fixed for both. `fr extract`
+  wrote a new `$variable` above the declarations it reads, and it wrote a `@mixin` above
+  the `@use` rules. Sass rejects each.
 
 - [x] B11: **the Sass a stylesheet is written in.** `tree-sitter-scss` 1.0.0
   failed on 203 of the 276 stylesheets in `twbs/bootstrap` and `jgthms/bulma`. Its gaps

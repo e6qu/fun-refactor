@@ -32,6 +32,7 @@ pub enum Language {
     Html,
     Css,
     Scss,
+    Sass,
     Hcl,
     Yaml,
     Helm,
@@ -62,6 +63,7 @@ impl Language {
         Language::Html,
         Language::Css,
         Language::Scss,
+        Language::Sass,
         Language::Hcl,
         Language::Yaml,
         Language::Helm,
@@ -82,6 +84,7 @@ impl Language {
             Language::Html => "html",
             Language::Css => "css",
             Language::Scss => "scss",
+            Language::Sass => "sass",
             Language::Hcl => "hcl",
             Language::Yaml => "yaml",
             Language::Helm => "helm",
@@ -103,6 +106,7 @@ impl Language {
             Language::Html
             | Language::Css
             | Language::Scss
+            | Language::Sass
             | Language::Hcl
             | Language::Yaml
             | Language::Helm
@@ -127,7 +131,10 @@ impl Language {
             Language::Bash => &["sh", "bash"],
             Language::Html => &["html", "htm"],
             Language::Css => &["css"],
-            Language::Scss => &["scss", "sass"],
+            Language::Scss => &["scss"],
+            // The indented syntax, which is not SCSS: every block and every statement
+            // ends differently, so it has a grammar of its own.
+            Language::Sass => &["sass"],
             Language::Hcl => &["tf", "tfvars", "hcl"],
             Language::Yaml => &["yaml", "yml"],
             // Helm shares YAML extensions and is otherwise distinguished by chart
@@ -377,25 +384,6 @@ fn has_sibling_chart_yaml(path: &Path) -> bool {
     false
 }
 
-/// A known reason a whole file fails to parse, told from its name alone.
-///
-/// `.sass` is the indented Sass syntax. It maps to [`Language::Scss`] so the file
-/// stays visible in scans instead of vanishing. The grammar reads only the braced
-/// syntax, so nearly every line comes back as an error node. A parse report that
-/// names this beside the positions is one the reader can act on. A bare count sends
-/// them hunting for a syntax error that is not there.
-pub fn known_parse_gap(path: &Path) -> Option<&'static str> {
-    let extension = path.extension().and_then(|e| e.to_str())?;
-    match extension {
-        "sass" => Some(
-            "`.sass` holds the indented Sass syntax, and the grammar here reads only the \
-             braced syntax of `.scss` files. The whole file reads as errors until it is \
-             rewritten in the braced syntax.",
-        ),
-        _ => None,
-    }
-}
-
 /// Which language boundaries a reference may resolve across.
 ///
 /// Resolution matches candidates by name across the whole workspace. Without this it ignored
@@ -424,11 +412,11 @@ pub fn may_resolve_across(from: Language, to: Language, t: crate::model::SymbolK
 
         // SCSS compiles to CSS and the two share a selector namespace: a class
         // declared in a theme is the same class the stylesheet declares.
-        (Css, Scss) | (Scss, Css) => true,
+        (Css, Scss) | (Scss, Css) | (Css, Sass) | (Sass, Css) | (Scss, Sass) | (Sass, Scss) => true,
 
         // Markup names a style rule by class or id. This is the edge that makes
         // renaming a CSS class across an HTML template worth having.
-        (Html | Xml | Tsx | TypeScript | Markdown, Css | Scss) => {
+        (Html | Xml | Tsx | TypeScript | Markdown, Css | Scss | Sass) => {
             matches!(t, K::Selector | K::Property)
         }
 
