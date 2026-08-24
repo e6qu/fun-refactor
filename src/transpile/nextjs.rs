@@ -547,16 +547,6 @@ fn models_of(module: &Module) -> Vec<Model> {
 /// A reader that only looks at declarations finds none of them, and the contract then
 /// claims the endpoint takes no query.
 fn read_queries(module: &Module) -> Vec<(String, String)> {
-    /// Does this expression reach through `searchParams`?
-    fn from_search_params(e: &Expr) -> bool {
-        match e {
-            Expr::Name(name) => name == "searchParams",
-            Expr::Field { of, name } => name == "searchParams" || from_search_params(of),
-            Expr::Call { callee, .. } => from_search_params(callee),
-            _ => false,
-        }
-    }
-
     fn in_expr(e: &Expr, found: &mut Vec<String>) {
         if let Expr::Call { callee, args } = e {
             if let Expr::Field { of, name } = callee.as_ref() {
@@ -645,6 +635,16 @@ fn read_queries(module: &Module) -> Vec<(String, String)> {
         }
     }
     out
+}
+
+/// Does this expression reach through `searchParams`?
+fn from_search_params(e: &Expr) -> bool {
+    match e {
+        Expr::Name(name) => name == "searchParams",
+        Expr::Field { of, name } => name == "searchParams" || from_search_params(of),
+        Expr::Call { callee, .. } => from_search_params(callee),
+        _ => false,
+    }
 }
 
 /// Which schema each handler parses its body with.
@@ -1496,19 +1496,10 @@ fn binds_itself(stmt: &Stmt) -> Option<String> {
 /// route, so every use of it has to follow. `req.nextUrl` is a Next.js object that
 /// Starlette's `Request` does not have, so a read left in place would not run.
 fn supply_query_parameters(stmt: Stmt, declared: &[String]) -> Stmt {
-    fn reaches_search_params(e: &Expr) -> bool {
-        match e {
-            Expr::Name(name) => name == "searchParams",
-            Expr::Field { of, name } => name == "searchParams" || reaches_search_params(of),
-            Expr::Call { callee, .. } => reaches_search_params(callee),
-            _ => false,
-        }
-    }
-
     fn in_expr(e: Expr, declared: &[String]) -> Expr {
         if let Expr::Call { callee, args } = &e {
             if let Expr::Field { of, name } = callee.as_ref() {
-                if name == "get" && reaches_search_params(of) {
+                if name == "get" && from_search_params(of) {
                     if let Some(Expr::Str(key)) = args.first() {
                         let supplied = super::snake_always(key);
                         if declared.contains(&supplied) {

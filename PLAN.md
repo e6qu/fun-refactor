@@ -2100,3 +2100,29 @@ tokens where the source holds an or-pattern. This source is 1876
 covered much of it. A pattern's own tokens are compared against
 runs of macro tokens, counting brackets. `$X` binds
 `item.name()` whole rather than stopping at the comma inside it.
+
+### The pass where the tool reviewed its own pull request
+
+The review ran through `fr` itself, and what `fr` could not do became the work.
+
+`fr unused` found `Fidelity::absorb` dead, and `fr delete` took it away. `fr duplicates`
+found the same helper written twice, nested inside two functions of one file, and no
+command could hoist one. `fr rewrite` grew `hoist-function` for it. Rust only: a nested `fn` is an item the
+compiler already keeps away from the enclosing locals. A Python or TypeScript inner
+function can capture them, and is refused with that reason.
+The dedup then ran as three commands: one hoist, one `restructure` repointing the calls,
+one `restructure` with an empty template deleting the twin.
+
+`fr unused` also reported `provenance::applies_to` dead, and a recipe was written to
+delete it. The recipe was wrong, and being wrong is what it was for: the delete step
+warned about "unresolved occurrences" in `tests/provenance.rs`. Those are calls through
+`use fun_refactor::{analysis::{flow, provenance as prov}}`. The aliased entry of a
+use-group was not among the query's shapes. And a stem two files share resolved to
+nothing, instead of letting `analysis.provenance` decide. Both fixed; the recipe now
+refuses the deletion and names the two call sites.
+
+The review also read the scaffolder against its own rule and found it inventing. A
+schema property is the JSON key every request carries, and the generated model re-cased
+it. Wire names stay as the document spells them now. `fr signature` threaded the notes
+channel the fix needed, and `fr restructure` swapped every call site. One of them was a
+whole match arm, which the member shapes from this branch made a matchable unit.

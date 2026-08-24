@@ -138,7 +138,13 @@ pub fn plan_to(
     };
 
     let files = match target {
-        Target::FastApi => vec![write_fastapi(path, &operations, &schemas, &root)],
+        Target::FastApi => vec![write_fastapi(
+            path,
+            &operations,
+            &schemas,
+            &root,
+            &mut notes,
+        )],
         Target::NextJs => write_nextjs(path, &operations, &schemas, &root),
     };
 
@@ -318,6 +324,44 @@ fn read_operations(document: &Value, notes: &mut Vec<String>) -> Result<Vec<Oper
     Ok(operations)
 }
 
+/// A schema's property name, kept as the document spells it.
+///
+/// The name is the wire contract: `petName` in the document is the key every request
+/// carries, and re-casing it to `pet_name` would change the JSON. A name Python cannot
+/// declare is reported and left out, which shrinks the model out loud instead of
+/// serving a different one.
+fn python_name(name: &str, owner: &str, notes: &mut Vec<String>) -> Option<String> {
+    if is_identifier(name) {
+        return Some(name.to_string());
+    }
+    notes.push(format!(
+        "{owner}: `{name}` is not a name Python can declare, so it is left out; \
+         the wire key would change if it were re-spelled"
+    ));
+    None
+}
+
+/// A schema's property name as a TypeScript key, quoted where it has to be.
+///
+/// TypeScript can spell any property name, so nothing is left out: `pet-name` becomes
+/// `"pet-name"` and the wire contract holds.
+fn ts_key(name: &str) -> String {
+    if is_identifier(name) {
+        name.to_string()
+    } else {
+        format!("{name:?}")
+    }
+}
+
+/// Is this a name both targets can write bare?
+fn is_identifier(name: &str) -> bool {
+    let mut chars = name.chars();
+    chars
+        .next()
+        .is_some_and(|c| c.is_ascii_alphabetic() || c == '_')
+        && chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
+}
+
 /// `pet_id`, whatever the document called it.
 fn snake(name: &str) -> String {
     super::snake_always(name)
@@ -388,6 +432,7 @@ fn write_fastapi(
     operations: &[Operation],
     schemas: &[Schema],
     root: &Path,
+    notes: &mut Vec<String>,
 ) -> ScaffoldFile {
     let mut out = String::new();
     out.push_str(&format!(
@@ -415,9 +460,12 @@ fn write_fastapi(
         }
         for (field, ty, required) in &schema.fields {
             let spelled = python_field_type(ty);
+            let Some(key) = python_name(field, &schema.name, notes) else {
+                continue;
+            };
             match required {
-                true => out.push_str(&format!("    {}: {spelled}\n", snake(field))),
-                false => out.push_str(&format!("    {}: {spelled} | None = None\n", snake(field))),
+                true => out.push_str(&format!("    {key}: {spelled}\n")),
+                false => out.push_str(&format!("    {key}: {spelled} | None = None\n")),
             }
         }
     }
@@ -438,9 +486,11 @@ fn write_fastapi(
             signature.push(format!("body: {body}"));
         }
         for (name, ty) in &operation.query_params {
+            let Some(key) = python_name(name, &operation.path, notes) else {
+                continue;
+            };
             signature.push(format!(
-                "{}: {} | None = None",
-                snake(name),
+                "{key}: {} | None = None",
                 python_parameter_type(ty)
             ));
         }
@@ -544,7 +594,7 @@ fn write_nextjs(
                 let marker = if *required { "" } else { "?" };
                 out.push_str(&format!(
                     "    {}{marker}: {};\n",
-                    super::write::camel(field),
+                    ts_key(field),
                     typescript_field_type(ty)
                 ));
             }
