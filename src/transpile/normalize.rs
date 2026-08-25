@@ -1161,19 +1161,15 @@ fn rewrite_error_reads(body: &mut Vec<Stmt>, err: &str) {
 /// source never had.
 fn strip_lowering_helpers(module: &mut Module) {
     let ours = |name: &str| matches!(name, "frShow" | "frPrint" | "frFormat");
-    let had: Vec<String> = module
-        .items
-        .iter()
-        .filter_map(|item| match item {
-            Item::Function(f) if ours(&f.name) => Some(f.name.clone()),
-            _ => None,
-        })
-        .collect();
-    if had.is_empty() {
-        return;
-    }
-    module.items.retain(|item| {
-        !matches!(item, Item::Function(f) if ours(&f.name))
+    // The definition may not even have parsed as a function: Zig's `comptime format`
+    // parameter reads as no function at all, and the helper then sits carried. Either
+    // way it is furniture, recognised by its name.
+    module.items.retain(|item| match item {
+        Item::Function(f) => !ours(&f.name),
+        Item::Unsupported(u) => !["frShow", "frPrint", "frFormat"]
+            .iter()
+            .any(|name| u.source.trim_start().starts_with(&format!("fn {name}("))),
+        _ => true,
     });
     fn fix(e: &mut Expr) {
         let walk = |e: &mut Expr| fix(e);
@@ -1201,10 +1197,43 @@ fn strip_lowering_helpers(module: &mut Module) {
             Expr::Field { of, .. } | Expr::Index { of, .. } => walk(of),
             _ => {}
         }
-        // `frShow(x)` displays `x`; the value is `x` itself.
+        // `frShow(x)` displays `x`; the value is `x` itself. `frPrint` is the
+        // canonical print, and `frFormat` a template as a value.
         if let Expr::Call { callee, args } = e {
-            if matches!(&**callee, Expr::Name(n) if n == "frShow") && args.len() == 1 {
-                *e = args.remove(0);
+            match &**callee {
+                Expr::Name(n) if n == "frShow" && args.len() == 1 => {
+                    *e = args.remove(0);
+                }
+                Expr::Name(n) if n == "frPrint" || n == "frFormat" => {
+                    let printing = n == "frPrint";
+                    let values = match args.get(1) {
+                        Some(Expr::Tuple(items)) => items.clone(),
+                        None => Vec::new(),
+                        _ => return,
+                    };
+                    let Some(Expr::Str(format)) = args.first() else {
+                        return;
+                    };
+                    let Some(mut parts) = zig_format(format, &values) else {
+                        return;
+                    };
+                    if !printing {
+                        // The format helper implies no newline; `zig_format`
+                        // trimmed one that print implies, so it goes back.
+                        if let Some(TemplatePart::Text(t)) = parts.last_mut() {
+                            if !format.ends_with('\n') {
+                            } else {
+                                t.push('\n');
+                            }
+                        }
+                    }
+                    let value = flatten_template(parts);
+                    *e = match printing {
+                        true => print_call(vec![value]),
+                        false => value,
+                    };
+                }
+                _ => {}
             }
         }
     }

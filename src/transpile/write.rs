@@ -56,6 +56,31 @@ fn contains_failing_call(out: &Out, e: &Expr) -> bool {
     }
 }
 
+/// Can any statement in this body leave the enclosing scope early?
+fn exits_anywhere(body: &[Stmt]) -> bool {
+    fn expr_fails(e: &Expr) -> bool {
+        match e {
+            Expr::Propagate(_) => true,
+            Expr::Call { callee, args } | Expr::New { callee, args } => {
+                expr_fails(callee) || args.iter().any(expr_fails)
+            }
+            Expr::Binary { left, right, .. } => expr_fails(left) || expr_fails(right),
+            Expr::Unary { operand, .. } | Expr::Await(operand) => expr_fails(operand),
+            _ => false,
+        }
+    }
+    body.iter().any(|stmt| {
+        matches!(
+            stmt,
+            Stmt::Return(_) | Stmt::Throw(_) | Stmt::Break | Stmt::Continue
+        ) || match stmt {
+            Stmt::Expr(e) | Stmt::Return(Some(e)) => expr_fails(e),
+            Stmt::Let { value: Some(e), .. } | Stmt::Assign { value: e, .. } => expr_fails(e),
+            _ => false,
+        } || sub_bodies(stmt).into_iter().any(|b| exits_anywhere(b))
+    })
+}
+
 /// Does any statement in this body return, at any depth?
 fn returns_anywhere(body: &[Stmt]) -> bool {
     body.iter().any(|stmt| {
@@ -2910,6 +2935,14 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 out.close();
                 out.line("}");
             }
+            Stmt::Defer(cleanup) if !exits_anywhere(&body[at..]) => {
+                // Nothing between here and the end of the scope can leave it, so
+                // the deferral is a plain reordering: the rest runs, then the
+                // cleanup. Recursion keeps several defers last-in first-out.
+                rust_block(out, &body[at..], returns);
+                rust_block(out, cleanup, None);
+                return;
+            }
             Stmt::ErrDefer(cleanup) | Stmt::Defer(cleanup) => {
                 // Rust has no scope-exit hook short of inventing a guard type,
                 // so the body is rendered as Rust and carried as a comment. The
@@ -3088,6 +3121,13 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 source,
                 line,
             } => {
+                if catches.is_empty() && !finally.is_empty() && !exits_anywhere(tried) {
+                    // A try that only ever finishes runs its body and then its
+                    // finally; there is nothing to catch.
+                    rust_block(out, tried, None);
+                    rust_block(out, finally, None);
+                    return;
+                }
                 if returns_anywhere(tried) || catches.is_empty() {
                     carry(
                         out,
@@ -6146,6 +6186,17 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 source,
                 line,
             } => {
+                if catches.is_empty() && !finally.is_empty() {
+                    // A finally with nothing to catch is this language's own
+                    // `defer`: it runs however the body leaves.
+                    out.line("defer func() {");
+                    out.open();
+                    go_block(out, finally, None);
+                    out.close();
+                    out.line("}()");
+                    go_block(out, tried, None);
+                    return;
+                }
                 if returns_anywhere(tried) || catches.is_empty() {
                     carry(
                         out,
@@ -9975,6 +10026,26 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
             source,
             line,
         } => {
+            if catches.is_empty() && !finally.is_empty() {
+                // A finally with nothing to catch is this language's own `defer`.
+                out.line("{");
+                out.open();
+                out.line("defer {");
+                out.open();
+                let finally_mutated = zig_mutated(finally);
+                for stmt in finally {
+                    zig_stmt(out, stmt, &finally_mutated);
+                }
+                out.close();
+                out.line("}");
+                let tried_mutated = zig_mutated(tried);
+                for stmt in tried {
+                    zig_stmt(out, stmt, &tried_mutated);
+                }
+                out.close();
+                out.line("}");
+                return;
+            }
             if returns_anywhere(tried) || catches.is_empty() {
                 carry(
                     out,

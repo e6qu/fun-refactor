@@ -42,7 +42,7 @@ const CARRIED: &[(&str, usize)] = &[
     ("comptime_declaration", 5),
     ("comptime_statement", 20),
     ("conditional expression", 6),
-    ("defer", 61),
+    ("defer", 33),
     ("errdefer", 22),
     ("comptime_expression", 6),
     ("error propagation", 13),
