@@ -66,6 +66,7 @@ fn normalize_language(module: &mut Module, language: Language) {
                     map_stmt(s, rewrite);
                 }
             }
+            Item::Constant(c) => map_expr(&mut c.value, rewrite),
             _ => {}
         }
     }

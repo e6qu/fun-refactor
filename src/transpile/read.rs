@@ -5986,6 +5986,21 @@ mod zig {
                 // `test "name" { … }` is a named test. The form that names a
                 // declaration instead of a string reruns that declaration's
                 // tests, and carries.
+                // `comptime { … }` runs its checks when the compiler does;
+                // a test that runs them is when these targets check things.
+                "comptime_declaration" => {
+                    let body = cx
+                        .children(child)
+                        .iter()
+                        .find(|c| c.kind() == "block")
+                        .map(|b| block(cx, *b))
+                        .unwrap_or_default();
+                    module.items.push(Item::Test {
+                        doc: vec!["ran at compile time in the source".to_string()],
+                        name: "comptime checks".to_string(),
+                        body,
+                    });
+                }
                 "test_declaration" => module.items.push(match test_block(cx, child) {
                     Some(t) => t,
                     None => Item::Unsupported(cx.unsupported(child)),
@@ -6346,7 +6361,7 @@ mod zig {
         }
         if value.kind() == "union_declaration" {
             if cx.text(value).trim_start().starts_with("union(enum") {
-                return tagged_union(cx, node, name, exported, value).map(Item::Sum);
+                return tagged_union(cx, node, name, exported, value, carried).map(Item::Sum);
             }
             return None;
         }
@@ -6358,11 +6373,17 @@ mod zig {
             return Some(Item::Sum(error_set(cx, node, name, exported, value)));
         }
 
+        // A dot literal in the value resolves against the annotation, the
+        // same way a binding's would.
+        let mut read = expr(cx, value);
+        if let Some(annotated) = after(&parts, ":", "=") {
+            read = qualify_dot_literal(read, cx.text(annotated).trim());
+        }
         Some(Item::Constant(Constant {
             doc: doc_above(cx, node, &["///", "//"]),
             name,
             ty: after(&parts, ":", "=").map(|t| ty_of(cx, t)),
-            value: expr(cx, value),
+            value: read,
             exported,
         }))
     }
@@ -6430,6 +6451,7 @@ mod zig {
         name: String,
         exported: bool,
         body: Node<'_>,
+        carried: &mut Vec<Item>,
     ) -> Option<Sum> {
         let mut variants = Vec::new();
         for member in cx.children(body) {
@@ -6467,9 +6489,18 @@ mod zig {
                     });
                 }
                 "comment" => {}
-                // A declaration inside the union, a method or a nested type, has no
-                // slot in a sum. Refusing the whole union keeps it carried verbatim
-                // instead of half-translated.
+                // A method on the union has no slot in a sum; it goes beside
+                // the type as a free function taking the union first, which is
+                // how its body already reads it.
+                "function_declaration" => match function(cx, member) {
+                    Some(f) => carried.push(Item::Function(f)),
+                    None => carried.push(Item::Unsupported(cx.unsupported(member))),
+                },
+                // A nested declaration goes beside the type too.
+                "variable_declaration" => match declaration(cx, member, carried) {
+                    Some(item) => carried.push(item),
+                    None => carried.push(Item::Unsupported(cx.unsupported(member))),
+                },
                 _ => return None,
             }
         }
@@ -6521,6 +6552,20 @@ mod zig {
                 // reader here ended its member loop with `_ => {}`. A `@staticmethod`
                 // disappeared from a class that way, while the report said every signature
                 // had carried across intact.
+                // A test declared inside the struct is still a test; it goes
+                // beside the type like a method the record cannot keep.
+                "test_declaration" => carried.push(match test_block(cx, member) {
+                    Some(t) => t,
+                    None => Item::Unsupported(cx.unsupported(member)),
+                }),
+                // A nested declaration — a type, a constant, an error set —
+                // goes beside the record; the file shares one namespace there.
+                "variable_declaration" if !binds_this(cx, member) => {
+                    match declaration(cx, member, carried) {
+                        Some(item) => carried.push(item),
+                        None => carried.push(Item::Unsupported(cx.unsupported(member))),
+                    }
+                }
                 _ => carried.push(Item::Unsupported(cx.unsupported(member))),
             }
         }
@@ -7102,6 +7147,12 @@ mod zig {
     /// call runs inside it, a return returns from it.
     fn catch_lowering(cx: &Cx, node: Node<'_>) -> Option<Vec<Stmt>> {
         // Find the catch expression this statement is built around.
+        #[derive(Clone)]
+        enum Shape {
+            Bind(String),
+            Run,
+            Return,
+        }
         let (catch_node, shape) = match node.kind() {
             "variable_declaration" => {
                 let text = cx.text(node);
@@ -7119,14 +7170,23 @@ mod zig {
                     .iter()
                     .find(|c| c.kind() == "identifier")
                     .map(|c| cx.text(*c))?;
-                (value, Some(name))
+                (value, Shape::Bind(name))
             }
             "expression_statement" => {
                 let inner = cx.children(node).into_iter().next()?;
-                if inner.kind() != "catch_expression" {
-                    return None;
+                match inner.kind() {
+                    "catch_expression" => (inner, Shape::Run),
+                    // `return X catch handler;`: try to return X; on failure
+                    // the handler answers instead.
+                    "return_expression" => {
+                        let value = cx.children(inner).into_iter().next()?;
+                        if value.kind() != "catch_expression" {
+                            return None;
+                        }
+                        (value, Shape::Return)
+                    }
+                    _ => return None,
                 }
-                (inner, None)
             }
             _ => return None,
         };
@@ -7172,8 +7232,13 @@ mod zig {
         }
         let source = cx.text(node);
         let line = cx.line(node);
+        let catches = vec![Catch {
+            binding,
+            ty: None,
+            body: handler,
+        }];
         Some(match shape {
-            Some(name) => vec![
+            Shape::Bind(name) => vec![
                 Stmt::Let {
                     name: name.clone(),
                     ty: None,
@@ -7185,23 +7250,22 @@ mod zig {
                         target: Expr::Name(name),
                         value: attempted,
                     }],
-                    catches: vec![Catch {
-                        binding,
-                        ty: None,
-                        body: handler,
-                    }],
+                    catches,
                     finally: Vec::new(),
                     source,
                     line,
                 },
             ],
-            None => vec![Stmt::Try {
+            Shape::Run => vec![Stmt::Try {
                 body: vec![Stmt::Expr(attempted)],
-                catches: vec![Catch {
-                    binding,
-                    ty: None,
-                    body: handler,
-                }],
+                catches,
+                finally: Vec::new(),
+                source,
+                line,
+            }],
+            Shape::Return => vec![Stmt::Try {
+                body: vec![Stmt::Return(Some(attempted))],
+                catches,
                 finally: Vec::new(),
                 source,
                 line,
@@ -8015,6 +8079,16 @@ mod zig {
                 Some(check) => check,
                 None => Stmt::Expr(expr(cx, node)),
             },
+            // `comptime stmt` runs at compile time there; the translation has
+            // only runtime, so it runs then. The check still checks.
+            "comptime_statement" | "comptime_expression" => match cx.children(node).first() {
+                Some(inner) => stmt(cx, *inner),
+                None if cx.text(node).contains("unreachable") => {
+                    Stmt::Throw(Expr::Str("unreachable".to_string()))
+                }
+                None => Stmt::Unsupported(cx.unsupported(node)),
+            },
+            "unreachable" => Stmt::Throw(Expr::Str("unreachable".to_string())),
             "field_expression" | "identifier" | "try_expression" | "catch_expression" => {
                 Stmt::Expr(expr(cx, node))
             }
@@ -8094,15 +8168,70 @@ mod zig {
                     _ => Expr::Unsupported(cx.unsupported(node)),
                 }
             }
+            // `comptime e` evaluates there at compile time; here it is the value.
+            "comptime_expression" => match cx.children(node).first() {
+                Some(inner) => expr(cx, *inner),
+                None => Expr::Unsupported(cx.unsupported(node)),
+            },
             "integer" => Expr::Int(cx.text(node)),
             "float" => Expr::Float(cx.text(node)),
             "true" => Expr::Bool(true),
             "false" => Expr::Bool(false),
             // The grammar wraps the keyword in a `boolean` node.
             "boolean" => Expr::Bool(cx.text(node) == "true"),
+            // `'@'` is a number there; the character is what it names, and the
+            // one-character string is what every target can compare.
+            "character" => Expr::Str(super::unquote(&cx.text(node)).replace("\\n", "\n")),
             "null" | "undefined" => Expr::Null,
             "string" => Expr::Str(super::unquote(&cx.text(node))),
             "identifier" | "builtin_type" => Expr::Name(cx.text(node)),
+            // `X{ .field = v }` builds X by naming its fields;
+            // `[_]u32{ 1, 2, 3 }` over an array type is a list.
+            "struct_initializer" => {
+                let parts = cx.children(node);
+                if let [ty, items] = parts.as_slice() {
+                    if ty.kind() == "array_type" && items.kind() == "initializer_list" {
+                        return Expr::ListLit(
+                            cx.children(*items).iter().map(|i| expr(cx, *i)).collect(),
+                        );
+                    }
+                }
+                let named = parts
+                    .first()
+                    .filter(|c| matches!(c.kind(), "identifier" | "field_expression"))
+                    .map(|c| cx.text(*c));
+                let Some(named) = named else {
+                    return Expr::Unsupported(cx.unsupported(node));
+                };
+                let fields: Vec<(String, Expr)> = parts
+                    .iter()
+                    .find(|c| c.kind() == "initializer_list")
+                    .map(|list| {
+                        cx.children(*list)
+                            .into_iter()
+                            .filter(|c| c.kind() == "assignment_expression")
+                            .filter_map(|a| variant_field(cx, a))
+                            .map(|(name, value)| (name, expr(cx, value)))
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                Expr::New {
+                    callee: Box::new(Expr::Name(named)),
+                    args: fields
+                        .into_iter()
+                        .map(|(name, value)| Expr::Keyword {
+                            name,
+                            value: Box::new(value),
+                        })
+                        .collect(),
+                }
+            }
+            // A type in argument position names itself; the pointer wrapper
+            // has nothing to add where every value is a reference.
+            "pointer_type" => match cx.children(node).first() {
+                Some(inner) => expr(cx, *inner),
+                None => Expr::Unsupported(cx.unsupported(node)),
+            },
             "field_expression" => {
                 let parts = cx.children(node);
                 match (parts.first(), parts.last()) {
@@ -8148,12 +8277,19 @@ mod zig {
             // `a * b` has two of those and the `*` is between them.
             "binary_expression" => {
                 let parts = all(node);
+                // The word operators (`and`, `or`, `orelse`) are named nodes in
+                // this grammar; the symbol ones are punctuation.
+                let word_op = |c: &Node| matches!(c.kind(), "and" | "or" | "orelse");
                 let operator = parts
                     .iter()
-                    .find(|c| !c.is_named())
+                    .find(|c| !c.is_named() || word_op(c))
                     .map(|c| cx.text(*c))
                     .unwrap_or_default();
-                let operands: Vec<Node> = parts.iter().filter(|c| c.is_named()).copied().collect();
+                let operands: Vec<Node> = parts
+                    .iter()
+                    .filter(|c| c.is_named() && !word_op(c))
+                    .copied()
+                    .collect();
                 // `a orelse b` is Zig's word for exactly the question `??` asks.
                 // `a orelse return`/`break`/`continue` guards instead: the
                 // fallback is control flow, encoded for the statement builder
@@ -8267,19 +8403,6 @@ mod zig {
                         of: Box::new(expr(cx, *of)),
                         index: Box::new(expr(cx, *index)),
                     },
-                    _ => Expr::Unsupported(cx.unsupported(node)),
-                }
-            }
-            // `[_]u32{ 1, 2, 3 }` over an array type is a list, the same value
-            // every target spells as its own literal.
-            "struct_initializer" => {
-                let parts = cx.children(node);
-                match parts.as_slice() {
-                    [ty, items]
-                        if ty.kind() == "array_type" && items.kind() == "initializer_list" =>
-                    {
-                        Expr::ListLit(cx.children(*items).iter().map(|i| expr(cx, *i)).collect())
-                    }
                     _ => Expr::Unsupported(cx.unsupported(node)),
                 }
             }
@@ -11086,7 +11209,7 @@ fn scalar(text: &str) -> Option<Type> {
         | "uint32" | "uint64" => Type::Int,
         "f32" | "f64" | "float" | "float32" | "float64" => Type::Float,
         "String" | "str" | "string" => Type::String,
-        "()" | "None" | "void" => Type::Unit,
+        "()" | "None" | "void" | "struct{}" => Type::Unit,
         // TypeScript's `number` is a float, and saying so is more honest than
         // pretending an integer type it does not have.
         "number" => Type::Float,

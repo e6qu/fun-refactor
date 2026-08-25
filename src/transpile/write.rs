@@ -424,6 +424,24 @@ fn throwing_functions(module: &Module) -> std::collections::BTreeSet<String> {
     }
 }
 
+/// Insert `disarm` before every `return` under these statements, nested loops
+/// included: a `return` anywhere leaves the function, and the guard it turns
+/// off must be off first.
+fn disarm_before_returns(body: &mut Vec<Stmt>, disarm: &Stmt) {
+    let mut at = 0;
+    while at < body.len() {
+        if matches!(body[at], Stmt::Return(_)) {
+            body.insert(at, disarm.clone());
+            at += 2;
+            continue;
+        }
+        for inner in sub_bodies_mut(&mut body[at]) {
+            disarm_before_returns(inner, disarm);
+        }
+        at += 1;
+    }
+}
+
 /// A function with its nested-block bindings hoisted to the top.
 ///
 /// Python binds a name by assigning it, wherever that happens, and the name lives to
@@ -2588,6 +2606,26 @@ fn rust(out: &mut Out, module: &Module) {
         }
     }
 
+    if out.zig_helpers.contains("rust_defer") {
+        out.blank();
+        out.line("/// Runs its closure when dropped: a scope-exit hook. `defer` arrives");
+        out.line("/// this way, and `errdefer` disarms it on the successful path.");
+        out.line("struct FrDefer<F: FnMut()>(Option<F>);");
+        out.line("impl<F: FnMut()> Drop for FrDefer<F> {");
+        out.open();
+        out.line("fn drop(&mut self) {");
+        out.open();
+        out.line("if let Some(mut run) = self.0.take() {");
+        out.open();
+        out.line("run();");
+        out.close();
+        out.line("}");
+        out.close();
+        out.line("}");
+        out.close();
+        out.line("}");
+        out.blank();
+    }
     if out.needs_floor_div {
         let name = floor_div_name(out);
         out.blank();
@@ -3056,36 +3094,34 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 return;
             }
             Stmt::ErrDefer(cleanup) | Stmt::Defer(cleanup) => {
-                // Rust has no scope-exit hook short of inventing a guard type,
-                // so the body is rendered as Rust and carried as a comment. The
-                // failure-path variant carries the same way; the guard it would
-                // need is the same guard.
+                // A guard runs the cleanup when the scope exits, however it
+                // exits. The failure-only variant disarms itself on the
+                // successful path, so it fires only when the scope leaves
+                // early through `?` or a panic.
                 let failure_only = matches!(stmt, Stmt::ErrDefer(_));
-                let mut scratch = Out::new(out.language);
-                scratch.names = out.names.clone();
-                scratch.fields = out.fields.clone();
-                scratch.declared_types = out.declared_types.clone();
-                rust_block(&mut scratch, cleanup, None);
-                let rendered = scratch.finish();
-                out.carried(&Unsupported {
-                    construct: match failure_only {
-                        true => "errdefer".into(),
-                        false => "defer".into(),
-                    },
-                    source: rendered.trim().to_string(),
-                    line: 0,
-                });
-                let header = match failure_only {
-                    true => out.comment(&format!(
-                        "{MARKER}: an errdefer runs this when the scope fails:"
-                    )),
-                    false => out.comment(&format!("{MARKER}: a defer runs this at scope exit:")),
-                };
-                out.line(&header);
-                for line in rendered.lines() {
-                    let commented = out.comment(line);
-                    out.line(&commented);
+                out.zig_helpers.insert("rust_defer");
+                out.lowering_names += 1;
+                let guard = format!("__fr_guard{}", out.lowering_names);
+                out.line(&format!("let mut {guard} = FrDefer(Some(|| {{"));
+                out.open();
+                rust_block(out, cleanup, None);
+                out.close();
+                out.line("}));");
+                out.line(&format!("let _ = &mut {guard};"));
+                let mut rest: Vec<Stmt> = body[at..].to_vec();
+                if failure_only {
+                    let disarm = Stmt::Assign {
+                        target: Expr::Field {
+                            of: Box::new(Expr::Name(guard.clone())),
+                            name: "0".to_string(),
+                        },
+                        value: Expr::Null,
+                    };
+                    disarm_before_returns(&mut rest, &disarm);
+                    rest.push(disarm);
                 }
+                rust_block(out, &rest, returns);
+                return;
             }
             Stmt::WhilePresent {
                 binding,
@@ -6044,7 +6080,7 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
         }
         return;
     }
-    for stmt in body {
+    for (at, stmt) in body.iter().enumerate() {
         if go_result_stmt(out, stmt) {
             continue;
         }
@@ -6313,17 +6349,31 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     out.line("}()");
                 }
             },
-            // Go has no failure path a block can watch, so the failure-only
-            // cleanup is carried, visibly, rather than run on every exit.
-            Stmt::ErrDefer(_) => {
-                out.fidelity.carried_verbatim += 1;
-                out.fidelity
-                    .notes
-                    .push("on the failure path: errdefer carried over unchanged".to_string());
-                let header = out.comment(&format!(
-                    "{MARKER}: an errdefer runs this when the scope fails"
-                ));
-                out.line(&header);
+            // The failure-only cleanup arms a flag that the successful path
+            // turns off before returning; the failure paths the error idiom
+            // writes leave it armed, and the defer fires.
+            Stmt::ErrDefer(cleanup) => {
+                out.lowering_names += 1;
+                let flag = format!("frFailed{}", out.lowering_names);
+                out.line(&format!("{flag} := true"));
+                out.line("defer func() {");
+                out.open();
+                out.line(&format!("if {flag} {{"));
+                out.open();
+                go_block(out, cleanup, None);
+                out.close();
+                out.line("}");
+                out.close();
+                out.line("}()");
+                let mut rest: Vec<Stmt> = body[at + 1..].to_vec();
+                let disarm = Stmt::Assign {
+                    target: Expr::Name(flag),
+                    value: Expr::Bool(false),
+                };
+                disarm_before_returns(&mut rest, &disarm);
+                rest.push(disarm);
+                go_block(out, &rest, returns);
+                return;
             }
             Stmt::WhilePresent {
                 binding,
