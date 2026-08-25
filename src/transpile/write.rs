@@ -38,6 +38,524 @@ enum Kind {
     Value,
 }
 
+/// Does this expression call one of the module's failing functions anywhere?
+fn contains_failing_call(out: &Out, e: &Expr) -> bool {
+    match e {
+        Expr::Call { callee, args } => {
+            matches!(&**callee, Expr::Name(n) if out.throwing.contains(n.as_str()))
+                || contains_failing_call(out, callee)
+                || args.iter().any(|a| contains_failing_call(out, a))
+        }
+        Expr::Binary { left, right, .. } => {
+            contains_failing_call(out, left) || contains_failing_call(out, right)
+        }
+        Expr::Unary { operand, .. } | Expr::Await(operand) | Expr::Propagate(operand) => {
+            contains_failing_call(out, operand)
+        }
+        _ => false,
+    }
+}
+
+/// Does any statement in this body return, at any depth?
+fn returns_anywhere(body: &[Stmt]) -> bool {
+    body.iter().any(|stmt| {
+        matches!(stmt, Stmt::Return(_))
+            || sub_bodies(stmt).into_iter().any(|b| returns_anywhere(b))
+    })
+}
+
+/// A throwing function, restated in the Result idiom the Go and Zig writers speak.
+///
+/// The canonical form is the exception one: plain returns, `Throw`, calls that just
+/// call. These two targets spell failure in the signature and at every call, so the
+/// inverse runs here: returns wrap `Ok`, throws become `Err` returns, and every call
+/// to a failing function is hoisted to its own binding and marked propagating.
+fn with_failure_idiom(
+    f: &Function,
+    throwing: &std::collections::BTreeSet<String>,
+) -> Function {
+    let mut out = f.clone();
+    let throws = f.receiver.is_none() && throwing.contains(&f.name);
+
+    let mut counter = 0usize;
+    extract_failing_calls(&mut out.body, throwing, &mut counter);
+
+    if !throws {
+        return out;
+    }
+    out.returns = Some(Type::Named {
+        name: "Result".to_string(),
+        args: vec![out.returns.take().unwrap_or(Type::Unit), Type::String],
+    });
+    fn wrap(body: &mut Vec<Stmt>) {
+        for stmt in body.iter_mut() {
+            for inner in sub_bodies_mut(stmt) {
+                wrap(inner);
+            }
+            match stmt {
+                Stmt::Return(value) => {
+                    let inner = match value.take() {
+                        Some(v) => v,
+                        None => Expr::Tuple(Vec::new()),
+                    };
+                    *value = Some(Expr::Call {
+                        callee: Box::new(Expr::Name("Ok".to_string())),
+                        args: vec![inner],
+                    });
+                }
+                Stmt::Throw(e) => {
+                    let payload = std::mem::replace(e, Expr::Null);
+                    *stmt = Stmt::Return(Some(Expr::Call {
+                        callee: Box::new(Expr::Name("Err".to_string())),
+                        args: vec![payload],
+                    }));
+                }
+                _ => {}
+            }
+        }
+    }
+    wrap(&mut out.body);
+    if !matches!(out.body.last(), Some(Stmt::Return(_))) {
+        out.body.push(Stmt::Return(Some(Expr::Call {
+            callee: Box::new(Expr::Name("Ok".to_string())),
+            args: vec![Expr::Tuple(Vec::new())],
+        })));
+    }
+    out
+}
+
+/// Hoist every call to a failing function out of nested expressions.
+///
+/// Afterwards a failing call stands only as the whole value of a `let` or an
+/// expression statement, wrapped in `Propagate`, which is the one shape the Go and
+/// Zig emitters spell checks around.
+fn extract_failing_calls(
+    body: &mut Vec<Stmt>,
+    throwing: &std::collections::BTreeSet<String>,
+    counter: &mut usize,
+) {
+    fn hoist(
+        e: &mut Expr,
+        throwing: &std::collections::BTreeSet<String>,
+        counter: &mut usize,
+        lifted: &mut Vec<Stmt>,
+        root_call: bool,
+    ) {
+        // Children first, so the innermost call binds first.
+        match e {
+            Expr::Call { callee, args } | Expr::New { callee, args } => {
+                hoist(callee, throwing, counter, lifted, false);
+                for a in args {
+                    hoist(a, throwing, counter, lifted, false);
+                }
+            }
+            Expr::Binary { left, right, .. } => {
+                hoist(left, throwing, counter, lifted, false);
+                hoist(right, throwing, counter, lifted, false);
+            }
+            Expr::Unary { operand, .. } | Expr::Await(operand) => {
+                hoist(operand, throwing, counter, lifted, false);
+            }
+            Expr::Propagate(inner) => {
+                // The propagated call is one unit; only its arguments can hide
+                // further failing calls.
+                if let Expr::Call { callee, args } | Expr::New { callee, args } =
+                    inner.as_mut()
+                {
+                    hoist(callee, throwing, counter, lifted, false);
+                    for a in args {
+                        hoist(a, throwing, counter, lifted, false);
+                    }
+                } else {
+                    hoist(inner, throwing, counter, lifted, false);
+                }
+                // A propagation over anything but the failing call itself is
+                // vacuous once the call is hoisted: `try (f(x) + 1)` fails only at
+                // `f`, and `f` is bound above by now.
+                let direct = matches!(inner.as_ref(), Expr::Call { callee, .. }
+                    if matches!(&**callee, Expr::Name(n) if throwing.contains(n.as_str())));
+                if !direct {
+                    let unwrapped = std::mem::replace(inner.as_mut(), Expr::Null);
+                    *e = unwrapped;
+                    return;
+                }
+                // Already marked: the source spelled the propagation itself.
+                if root_call {
+                    return;
+                }
+                *counter += 1;
+                let temp = format!("__fr_value{counter}");
+                let inner = std::mem::replace(e, Expr::Name(temp.clone()));
+                lifted.push(Stmt::Let {
+                    name: temp,
+                    ty: None,
+                    value: Some(inner),
+                    mutable: false,
+                });
+                return;
+            }
+            Expr::Template(parts) => {
+                for part in parts.iter_mut() {
+                    if let TemplatePart::Expr(e) = part {
+                        hoist(e, throwing, counter, lifted, false);
+                    }
+                }
+            }
+            _ => {}
+        }
+        let failing = matches!(e, Expr::Call { callee, .. }
+            if matches!(&**callee, Expr::Name(n) if throwing.contains(n.as_str())));
+        if failing {
+            let call = std::mem::replace(e, Expr::Null);
+            if root_call {
+                *e = Expr::Propagate(Box::new(call));
+                return;
+            }
+            *counter += 1;
+            let temp = format!("__fr_value{counter}");
+            *e = Expr::Name(temp.clone());
+            lifted.push(Stmt::Let {
+                name: temp,
+                ty: None,
+                value: Some(Expr::Propagate(Box::new(call))),
+                mutable: false,
+            });
+        }
+    }
+
+    let mut rebuilt = Vec::with_capacity(body.len());
+    for mut stmt in body.drain(..) {
+        for inner in sub_bodies_mut(&mut stmt) {
+            extract_failing_calls(inner, throwing, counter);
+        }
+        let mut lifted = Vec::new();
+        match &mut stmt {
+            Stmt::Let { value: Some(v), .. } => hoist(v, throwing, counter, &mut lifted, true),
+            Stmt::Expr(e) => hoist(e, throwing, counter, &mut lifted, true),
+            Stmt::Return(Some(v)) => hoist(v, throwing, counter, &mut lifted, false),
+            Stmt::Assign { value, .. } => hoist(value, throwing, counter, &mut lifted, false),
+            Stmt::Throw(e) => hoist(e, throwing, counter, &mut lifted, false),
+            Stmt::If { condition, .. } | Stmt::While { condition, .. } => {
+                hoist(condition, throwing, counter, &mut lifted, false)
+            }
+            _ => {}
+        }
+        rebuilt.extend(lifted);
+        rebuilt.push(stmt);
+    }
+    *body = rebuilt;
+}
+
+/// The functions of this module that can fail, transitively.
+///
+/// A function throws if its body throws outside every `try`, propagates with `?`, or
+/// calls a thrower in either position. The set closes over calls until it stops
+/// growing, so `double`, which only calls `check`, is in it beside `check`.
+fn throwing_functions(module: &Module) -> std::collections::BTreeSet<String> {
+    fn direct_throw(body: &[Stmt]) -> bool {
+        body.iter().any(|stmt| match stmt {
+            Stmt::Throw(_) => true,
+            Stmt::Expr(e) | Stmt::Return(Some(e)) => propagates(e),
+            Stmt::Let { value: Some(e), .. } | Stmt::Assign { value: e, .. } => propagates(e),
+            // A throw inside a `try` is caught there, unless a catch rethrows.
+            Stmt::Try { catches, .. } => catches.iter().any(|c| direct_throw(&c.body)),
+            _ => false,
+        }) || sub_walk(body, &direct_throw)
+    }
+    fn propagates(e: &Expr) -> bool {
+        match e {
+            Expr::Propagate(_) => true,
+            Expr::Call { callee, args } | Expr::New { callee, args } => {
+                propagates(callee) || args.iter().any(propagates)
+            }
+            Expr::Binary { left, right, .. } => propagates(left) || propagates(right),
+            Expr::Unary { operand, .. } | Expr::Await(operand) => propagates(operand),
+            Expr::Template(parts) => parts.iter().any(|p| match p {
+                TemplatePart::Expr(e) => propagates(e),
+                TemplatePart::Text(_) => false,
+            }),
+            _ => false,
+        }
+    }
+    fn sub_walk(body: &[Stmt], test: &dyn Fn(&[Stmt]) -> bool) -> bool {
+        body.iter().any(|stmt| match stmt {
+            // A `try` body's throws are caught; only what escapes it counts, and the
+            // catch arms are checked above.
+            Stmt::Try { .. } => false,
+            other => sub_bodies(other).into_iter().any(|b| test(b)),
+        })
+    }
+    fn calls_any(body: &[Stmt], set: &std::collections::BTreeSet<String>) -> bool {
+        fn expr_calls(e: &Expr, set: &std::collections::BTreeSet<String>) -> bool {
+            match e {
+                Expr::Call { callee, args } => {
+                    matches!(&**callee, Expr::Name(n) if set.contains(n.as_str()))
+                        || expr_calls(callee, set)
+                        || args.iter().any(|a| expr_calls(a, set))
+                }
+                Expr::New { callee, args } => {
+                    expr_calls(callee, set) || args.iter().any(|a| expr_calls(a, set))
+                }
+                Expr::Binary { left, right, .. } => {
+                    expr_calls(left, set) || expr_calls(right, set)
+                }
+                Expr::Unary { operand, .. } | Expr::Await(operand) | Expr::Propagate(operand) => {
+                    expr_calls(operand, set)
+                }
+                Expr::Template(parts) => parts.iter().any(|p| match p {
+                    TemplatePart::Expr(e) => expr_calls(e, set),
+                    TemplatePart::Text(_) => false,
+                }),
+                _ => false,
+            }
+        }
+        body.iter().any(|stmt| match stmt {
+            Stmt::Try { catches, .. } => catches.iter().any(|c| calls_any(&c.body, set)),
+            Stmt::Expr(e) | Stmt::Return(Some(e)) | Stmt::Throw(e) => expr_calls(e, set),
+            Stmt::Let { value: Some(e), .. } | Stmt::Assign { value: e, .. } => {
+                expr_calls(e, set)
+            }
+            other => sub_bodies(other)
+                .into_iter()
+                .any(|b| calls_any(b, set)),
+        })
+    }
+
+    let functions: Vec<(&String, &Vec<Stmt>)> = module
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Function(f) => Some((&f.name, &f.body)),
+            _ => None,
+        })
+        .collect();
+    let mut set: std::collections::BTreeSet<String> = functions
+        .iter()
+        .filter(|(_, body)| direct_throw(body))
+        .map(|(name, _)| (*name).clone())
+        .collect();
+    loop {
+        let before = set.len();
+        for (name, body) in &functions {
+            if !set.contains(name.as_str()) && calls_any(body, &set) {
+                set.insert((*name).clone());
+            }
+        }
+        if set.len() == before {
+            return set;
+        }
+    }
+}
+
+/// A function with its nested-block bindings hoisted to the top.
+///
+/// Python binds a name by assigning it, wherever that happens, and the name lives to
+/// the end of the function. A `let` in TypeScript or an `int` in Java declared inside
+/// a `try` dies at its brace. So a binding first made inside a block, or made in
+/// several blocks, becomes one declaration at the top and plain assignments below,
+/// which is what the source meant all along.
+fn with_hoisted_bindings(f: &Function, returns_of: &BTreeMap<String, Type>) -> Function {
+    #[derive(Default)]
+    struct Seen {
+        count: usize,
+        min_depth: usize,
+        ty: Option<Type>,
+        order: usize,
+    }
+    fn walk(body: &[Stmt], depth: usize, seen: &mut Vec<(String, Seen)>) {
+        for stmt in body {
+            if let Stmt::Let {
+                name, ty, value, ..
+            } = stmt
+            {
+                match seen.iter_mut().find(|(n, _)| n == name) {
+                    Some((_, entry)) => {
+                        entry.count += 1;
+                        entry.min_depth = entry.min_depth.min(depth);
+                    }
+                    None => {
+                        let order = seen.len();
+                        seen.push((
+                            name.clone(),
+                            Seen {
+                                count: 1,
+                                min_depth: depth,
+                                ty: ty.clone().or_else(|| value.as_ref().and_then(value_type)),
+                                order,
+                            },
+                        ));
+                    }
+                }
+            }
+            for inner in sub_bodies(stmt) {
+                walk(inner, depth + 1, seen);
+            }
+        }
+    }
+    fn value_type(_: &Expr) -> Option<Type> {
+        None
+    }
+    fn rewrite(body: &mut Vec<Stmt>, hoisted: &[String]) {
+        for stmt in body.iter_mut() {
+            if let Stmt::Let { name, value, .. } = stmt {
+                if hoisted.contains(name) {
+                    let value = value.take().unwrap_or(Expr::Null);
+                    *stmt = Stmt::Assign {
+                        target: Expr::Name(name.clone()),
+                        value,
+                    };
+                }
+            }
+            for inner in sub_bodies_mut(stmt) {
+                rewrite(inner, hoisted);
+            }
+        }
+    }
+
+    let mut seen: Vec<(String, Seen)> = Vec::new();
+    walk(&f.body, 0, &mut seen);
+    let mut hoist: Vec<(String, Seen)> = seen
+        .into_iter()
+        .filter(|(_, entry)| entry.count > 1 || entry.min_depth > 0)
+        .collect();
+    if hoist.is_empty() {
+        return f.clone();
+    }
+    hoist.sort_by_key(|(_, entry)| entry.order);
+    let names: Vec<String> = hoist.iter().map(|(n, _)| n.clone()).collect();
+
+    let mut out = f.clone();
+    rewrite(&mut out.body, &names);
+    // The declared type, or the return type of the call first assigned to it: the
+    // block-scoped targets have to write one, and `Object` says less than the module
+    // already said.
+    let first_type = |name: &str| -> Option<Type> {
+        fn first_value<'a>(body: &'a [Stmt], name: &str) -> Option<&'a Expr> {
+            for stmt in body {
+                if let Stmt::Assign {
+                    target: Expr::Name(n),
+                    value,
+                } = stmt
+                {
+                    if n == name {
+                        return Some(value);
+                    }
+                }
+                for inner in sub_bodies(stmt) {
+                    if let Some(found) = first_value(inner, name) {
+                        return Some(found);
+                    }
+                }
+            }
+            None
+        }
+        match first_value(&out.body, name)? {
+            Expr::Call { callee, .. } => match callee.as_ref() {
+                Expr::Name(f) => returns_of.get(f.as_str()).cloned(),
+                _ => None,
+            },
+            Expr::Int(_) => Some(Type::Int),
+            Expr::Float(_) => Some(Type::Float),
+            Expr::Str(_) | Expr::Template(_) => Some(Type::String),
+            Expr::Bool(_) => Some(Type::Bool),
+            _ => None,
+        }
+    };
+    let declarations: Vec<Stmt> = hoist
+        .iter()
+        .map(|(name, entry)| Stmt::Let {
+            name: name.clone(),
+            ty: entry.ty.clone().or_else(|| first_type(name)),
+            value: None,
+            mutable: true,
+        })
+        .collect();
+    out.body.splice(0..0, declarations);
+    out
+}
+
+/// The statement bodies nested under one statement.
+fn sub_bodies(stmt: &Stmt) -> Vec<&Vec<Stmt>> {
+    match stmt {
+        Stmt::If {
+            then, otherwise, ..
+        }
+        | Stmt::IfPresent {
+            then, otherwise, ..
+        } => vec![then, otherwise],
+        Stmt::While { body, .. }
+        | Stmt::CountedFor { body, .. }
+        | Stmt::ForEach { body, .. }
+        | Stmt::ForEachIndexed { body, .. }
+        | Stmt::WhilePresent { body, .. }
+        | Stmt::Defer(body)
+        | Stmt::ErrDefer(body) => vec![body],
+        Stmt::Switch { arms, default, .. } => {
+            let mut all: Vec<&Vec<Stmt>> = arms.iter().map(|(_, arm)| arm).collect();
+            all.push(default);
+            all
+        }
+        Stmt::MatchVariants { arms, default, .. } => {
+            let mut all: Vec<&Vec<Stmt>> = arms.iter().map(|arm| &arm.body).collect();
+            all.push(default);
+            all
+        }
+        Stmt::Try {
+            body,
+            catches,
+            finally,
+            ..
+        } => {
+            let mut all = vec![body];
+            all.extend(catches.iter().map(|c| &c.body));
+            all.push(finally);
+            all
+        }
+        _ => Vec::new(),
+    }
+}
+
+fn sub_bodies_mut(stmt: &mut Stmt) -> Vec<&mut Vec<Stmt>> {
+    match stmt {
+        Stmt::If {
+            then, otherwise, ..
+        }
+        | Stmt::IfPresent {
+            then, otherwise, ..
+        } => vec![then, otherwise],
+        Stmt::While { body, .. }
+        | Stmt::CountedFor { body, .. }
+        | Stmt::ForEach { body, .. }
+        | Stmt::ForEachIndexed { body, .. }
+        | Stmt::WhilePresent { body, .. }
+        | Stmt::Defer(body)
+        | Stmt::ErrDefer(body) => vec![body],
+        Stmt::Switch { arms, default, .. } => {
+            let mut all: Vec<&mut Vec<Stmt>> = arms.iter_mut().map(|(_, arm)| arm).collect();
+            all.push(default);
+            all
+        }
+        Stmt::MatchVariants { arms, default, .. } => {
+            let mut all: Vec<&mut Vec<Stmt>> =
+                arms.iter_mut().map(|arm| &mut arm.body).collect();
+            all.push(default);
+            all
+        }
+        Stmt::Try {
+            body,
+            catches,
+            finally,
+            ..
+        } => {
+            let mut all = vec![body];
+            all.extend(catches.iter_mut().map(|c| &mut c.body));
+            all.push(finally);
+            all
+        }
+        _ => Vec::new(),
+    }
+}
+
 /// How every name this module declares is spelled in the target language.
 ///
 /// Only its own. A name absent from this map is foreign, a library, a builtin,
@@ -649,6 +1167,7 @@ pub fn write_in_context(
             _ => None,
         })
         .collect();
+    out.throwing = throwing_functions(context);
     out.function_returns = context
         .items
         .iter()
@@ -855,6 +1374,19 @@ struct Out {
     function_param_types: std::collections::BTreeMap<String, Vec<Option<Type>>>,
     /// The declared return types, for the format spec a call's value takes.
     function_returns: std::collections::BTreeMap<String, Type>,
+    /// This module's functions that can fail: a throw in the body, or a call to one
+    /// that can, transitively. The targets that spell failure in the signature read it.
+    throwing: std::collections::BTreeSet<String>,
+    /// Whether the statement being written may propagate a failure outward: inside a
+    /// throwing function, or inside the closure a `try` lowers to.
+    can_propagate: bool,
+    /// Whether the function being written returns `Result`, so its returns wrap `Ok`.
+    fn_throws: bool,
+    /// One counter for the names a lowering has to invent.
+    lowering_names: usize,
+    /// The `try` block the Zig writer is inside: its label, the catch binding, and
+    /// the catch body every failing call repeats before breaking out.
+    zig_try: Option<(String, String, Vec<Stmt>)>,
     /// Text a writer could not put where the expression it replaced stood.
     ///
     /// Zig is the only target here with no block comment. Its `//` runs to the end of the
@@ -962,6 +1494,11 @@ impl Out {
             functions: std::collections::BTreeMap::new(),
             function_param_types: std::collections::BTreeMap::new(),
             function_returns: std::collections::BTreeMap::new(),
+            throwing: std::collections::BTreeSet::new(),
+            can_propagate: false,
+            fn_throws: false,
+            lowering_names: 0,
+            zig_try: None,
             pending: Vec::new(),
             binding_types: std::collections::BTreeMap::new(),
             field_types: std::collections::BTreeMap::new(),
@@ -1985,6 +2522,10 @@ fn rust(out: &mut Out, module: &Module) {
 }
 
 fn rust_function(out: &mut Out, f: &Function, method: bool) {
+    // Bindings made inside blocks die at their brace here too, and the closures a
+    // `try` lowers to cannot capture an uninitialized slot, so the hoisted `let`s
+    // initialize to the type's default.
+    let f = &with_hoisted_bindings(f, &out.function_returns);
     out.binding_types = declared_bindings(f);
     // The source's word for the receiver, spelled this target's way for as long as
     // this body is being written. Outside a method there is nothing to bind.
@@ -2032,7 +2573,24 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
         };
         params.push(format!("{spelled}: {ty}"));
     }
+    // A function that can fail says so in its signature here: `Result<T, String>`,
+    // with the message as the error the way every thrown message crossed.
+    let throws = f.receiver.is_none() && out.throwing.contains(&f.name);
+    out.can_propagate = throws;
+    out.fn_throws = throws;
     let returns = match &f.returns {
+        _ if throws => {
+            let ok = match &f.returns {
+                None | Some(Type::Unit) => "()".to_string(),
+                Some(t) => {
+                    if out.is_foreign(t) {
+                        foreign = true;
+                    }
+                    rust_type(t)
+                }
+            };
+            format!(" -> Result<{ok}, String>")
+        }
         Some(Type::Unit) => String::new(),
         // A source that annotated nothing still hands a value back, and this
         // target has to name its type. Without one the body did not compile.
@@ -2060,8 +2618,19 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
     ));
     out.open();
     rust_block(out, &f.body, f.returns.as_ref());
+    // The success path a body falls off the end of still has to be said.
+    if throws
+        && !matches!(
+            f.body.last(),
+            Some(Stmt::Return(_)) | Some(Stmt::Throw(_))
+        )
+    {
+        out.line("Ok(())");
+    }
     out.close();
     out.line("}");
+    out.can_propagate = false;
+    out.fn_throws = false;
 
     out.leave_method(scope);
     out.fidelity.functions += 1;
@@ -2173,6 +2742,13 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 // everywhere else and a type error here.
                 if matches!(returns, Some(Type::String)) && matches!(value, Some(Expr::Str(_))) {
                     text.push_str(".to_string()");
+                }
+                // A throwing function returns `Result`, so its successes wrap.
+                if out.fn_throws {
+                    text = match text.is_empty() {
+                        true => "Ok(())".to_string(),
+                        false => format!("Ok({text})"),
+                    };
                 }
                 out.line(&format!("return {text};"));
             }
@@ -2469,7 +3045,6 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 out.close();
                 out.line("}");
             }
-            Stmt::Expr(Expr::Null) => {}
             Stmt::Expr(e) => {
                 let text = rust_expr(out, e);
                 out.line(&format!("{text};"));
@@ -2502,16 +3077,68 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
             Stmt::Continue => out.line("continue;"),
             // Rust models failure in the return type; there is no catch block to
             // translate a catch block into, so it is carried whole.
-            Stmt::Try { source, line, .. } => carry(
-                out,
-                &Unsupported {
-                    construct: "try".into(),
-                    source: source.clone(),
-                    line: *line,
-                },
-            ),
+            // `try/catch`, lowered through a closure: the body runs to its first
+            // failure, and the failure lands in the catch as the message. A `return`
+            // inside the body would leave the closure instead of the function, so a
+            // body that returns stays carried.
+            Stmt::Try {
+                body: tried,
+                catches,
+                finally,
+                source,
+                line,
+            } => {
+                if returns_anywhere(tried) || catches.is_empty() {
+                    carry(
+                        out,
+                        &Unsupported {
+                            construct: "try".into(),
+                            source: source.clone(),
+                            line: *line,
+                        },
+                    );
+                } else {
+                    out.lowering_names += 1;
+                    let caught = format!("__fr_caught{}", out.lowering_names);
+                    out.line(&format!(
+                        "let {caught}: Result<(), String> = (|| {{"
+                    ));
+                    out.open();
+                    let was = out.can_propagate;
+                    out.can_propagate = true;
+                    rust_block(out, tried, None);
+                    out.line("Ok(())");
+                    out.can_propagate = was;
+                    out.close();
+                    out.line("})();");
+                    let first = &catches[0];
+                    if catches.len() > 1 {
+                        out.fidelity.notes.push(format!(
+                            "a try with {} catch arms folded into one: the arms \
+                             selected by exception class, and the classes did not cross",
+                            catches.len()
+                        ));
+                    }
+                    let binding = first
+                        .binding
+                        .as_deref()
+                        .map(|b| out.name(b))
+                        .unwrap_or_else(|| "_".to_string());
+                    out.line(&format!("if let Err({binding}) = {caught} {{"));
+                    out.open();
+                    rust_block(out, &first.body, None);
+                    out.close();
+                    out.line("}");
+                    if !finally.is_empty() {
+                        rust_block(out, finally, None);
+                    }
+                }
+            }
             Stmt::Throw(value) => {
-                let rendered = rust_expr(out, value);
+                let rendered = match value {
+                    Expr::Str(_) => format!("{}.to_string()", rust_expr(out, value)),
+                    other => rust_expr(out, other),
+                };
                 out.line(&format!("return Err({rendered});"));
             }
             Stmt::Comment(text) => {
@@ -2719,6 +3346,16 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             }
             let settled = resolve_keywords(out, callee, args);
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
+            // A call that can fail must say what happens then. Where the failure can
+            // move outward it propagates; anywhere else it stops the program with the
+            // message, which is what an uncaught exception did in the source.
+            let failing = matches!(callee.as_ref(), Expr::Name(n)
+                if out.throwing.contains(n.as_str()));
+            let suffix = match (failing, out.can_propagate) {
+                (true, true) => "?",
+                (true, false) => ".expect(\"unhandled failure\")",
+                (false, _) => "",
+            };
             let mut rendered: Vec<String> = args.iter().map(|a| rust_expr(out, a)).collect();
             // An integer literal where the signature declared a float: Go and the
             // dynamic sources coerce, Rust refuses. The declared types are this
@@ -2749,7 +3386,7 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                     .collect();
                 return format!("{target} {{ {} }}", pairs.join(", "));
             }
-            format!("{}({})", rust_expr(out, callee), rendered.join(", "))
+            format!("{}({}){suffix}", rust_expr(out, callee), rendered.join(", "))
         }
         // Floor division rounds toward negative infinity, and Rust has no
         // integer method that does. `div_euclid` keeps the remainder positive
@@ -2822,8 +3459,7 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             // literal, Rust refuses the comparison. The binding's declared
             // type is on record, so the literal takes the spelling it needs.
             fn float_side(out: &Out, e: &Expr) -> bool {
-                matches!(e, Expr::Name(n)
-                    if matches!(out.binding_types.get(n.as_str()), Some(Type::Float)))
+                matches!(static_type(out, e), Some(Type::Float))
             }
             fn rendered(out: &mut Out, e: &Expr, other: &Expr) -> String {
                 let floats = matches!(e, Expr::Int(_)) && float_side(out, other);
@@ -2844,7 +3480,13 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
         }
         // Rust puts it after; the other two put it in front.
         Expr::Await(inner) => format!("{}.await", rust_expr(out, inner)),
-        Expr::Propagate(inner) => format!("{}?", rust_expr(out, inner)),
+        // `try (check(n) + 1)` propagates the failure of the call inside; the call
+        // arm already writes that `?` for every failing callee, so an outer
+        // propagate over a wider expression adds nothing but a misplaced operator.
+        Expr::Propagate(inner) => match contains_failing_call(out, inner) {
+            true => rust_expr(out, inner),
+            false => format!("{}?", rust_expr(out, inner)),
+        },
         // Rust has no universal spelling for construction: `X::new`, `X { .. }` and
         // a builder are all idiomatic and which one applies is a fact about the type.
         Expr::New { callee, args } => {
@@ -3784,7 +4426,14 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
                 }
             }
             Stmt::Throw(value) => {
-                let rendered = python_expr(out, value);
+                // A bare message is not raisable here; the plainest exception class
+                // carries it, and `str(e)` in every catch reads it back out.
+                let rendered = match value {
+                    Expr::Str(_) | Expr::Template(_) => {
+                        format!("Exception({})", python_expr(out, value))
+                    }
+                    other => python_expr(out, other),
+                };
                 python_line(out, &format!("raise {rendered}"));
             }
             Stmt::Comment(text) => {
@@ -4068,6 +4717,7 @@ fn static_type(out: &Out, e: &Expr) -> Option<Type> {
             .get(name)
             .or_else(|| out.field_types.get(name))
             .cloned(),
+        Expr::Propagate(inner) => static_type(out, inner),
         // `+` with a string on either side is concatenation, and the whole of it
         // is a string however the other side is typed. Answering "no idea" here
         // left `"x" + 1 + 2` as `"x" + str(1) + 2`, which raises. Only the first
@@ -4083,6 +4733,8 @@ fn static_type(out: &Out, e: &Expr) -> Option<Type> {
             (Expr::Name(name), 1) if name == "int" => Some(Type::Int),
             (Expr::Name(name), 1) if name == "float" => Some(Type::Float),
             (Expr::Name(name), 1) if name == "bool" => Some(Type::Bool),
+            // Otherwise a call's static type is the callee's declared return.
+            (Expr::Name(f), _) => out.function_returns.get(f.as_str()).cloned(),
             _ => None,
         },
         Expr::Binary {
@@ -4727,6 +5379,11 @@ fn go_name(name: &str, exported: bool) -> String {
 }
 
 fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
+    // Bindings made inside blocks die at their brace here too.
+    let f = &with_hoisted_bindings(f, &out.function_returns);
+    // A function that can fail takes this target's failure idiom back: the pair
+    // return, the error checks, the hoisted calls.
+    let f = &with_failure_idiom(f, &out.throwing.clone());
     // The source's word for the receiver, spelled this target's way for as long as
     // this body is being written. Outside a method there is nothing to bind.
     let scope = out.enter_method(f);
@@ -5478,17 +6135,84 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
             Stmt::Continue => out.line("continue"),
             // Go returns an error value. A catch block has no counterpart and
             // inventing one would change where the failure is handled.
-            Stmt::Try { source, line, .. } => carry(
-                out,
-                &Unsupported {
-                    construct: "try".into(),
-                    source: source.clone(),
-                    line: *line,
-                },
-            ),
+            // `try/catch`, lowered through a closure returning `error`: the body
+            // runs to its first failure, and the catch reads the message. A `return`
+            // inside the body would leave the closure instead of the function, so a
+            // body that returns stays carried.
+            Stmt::Try {
+                body: tried,
+                catches,
+                finally,
+                source,
+                line,
+            } => {
+                if returns_anywhere(tried) || catches.is_empty() {
+                    carry(
+                        out,
+                        &Unsupported {
+                            construct: "try".into(),
+                            source: source.clone(),
+                            line: *line,
+                        },
+                    );
+                } else {
+                    let err = out.fresh_go_error();
+                    out.line(&format!("{err} := func() error {{"));
+                    out.open();
+                    let outer = out.go_result.take();
+                    out.go_result = Some(Type::Unit);
+                    let mut counter = out.lowering_names;
+                    let mut tried = tried.clone();
+                    extract_failing_calls(&mut tried, &out.throwing.clone(), &mut counter);
+                    out.lowering_names = counter;
+                    go_block(out, &tried, None);
+                    out.line("return nil");
+                    out.go_result = outer;
+                    out.close();
+                    out.line("}()");
+                    if catches.len() > 1 {
+                        out.fidelity.notes.push(format!(
+                            "a try with {} catch arms folded into one: the arms \
+                             selected by exception class, and the classes did not cross",
+                            catches.len()
+                        ));
+                    }
+                    let first = &catches[0];
+                    out.line(&format!("if {err} != nil {{"));
+                    out.open();
+                    if let Some(binding) = &first.binding {
+                        let bound = out.name(binding);
+                        out.line(&format!("{bound} := {err}.Error()"));
+                        // The read may not survive into every catch body; Go
+                        // refuses an unused binding.
+                        out.line(&format!("_ = {bound}"));
+                    }
+                    go_block(out, &first.body, None);
+                    out.close();
+                    out.line("}");
+                    if !finally.is_empty() {
+                        go_block(out, finally, None);
+                    }
+                }
+            }
             Stmt::Throw(value) => {
-                let rendered = go_expr(out, value);
-                out.line(&format!("panic({rendered})"));
+                // Where the failure can move outward it becomes the error return;
+                // anywhere else it stops the program, which is what an uncaught
+                // exception did in the source.
+                match out.go_result.clone() {
+                    Some(ok_ty) => {
+                        let err = go_error_value(out, value);
+                        let line = match &ok_ty {
+                            Type::Unit => format!("return {err}"),
+                            ty => format!("return {}, {err}", go_zero(ty)),
+                        };
+                        out.line(&line);
+                    }
+                    None => {
+                        let rendered = go_expr(out, value);
+                        out.line(&format!("panic({rendered})"));
+                    }
+                }
             }
             Stmt::Comment(text) => {
                 let line = out.comment(text);
@@ -6253,6 +6977,8 @@ fn discriminator(s: &Sum) -> String {
 /// receiver, a class holds `static empty()` beside `label()`. One `bool` answering both put
 /// `export function` inside a class body.
 fn ts_function(out: &mut Out, f: &Function, inside_class: bool) {
+    // Bindings made inside blocks die at their brace here; the source's did not.
+    let f = &with_hoisted_bindings(f, &out.function_returns);
     // The source's word for the receiver, spelled this target's way for as long as
     // this body is being written. Outside a method there is nothing to bind.
     let scope = out.enter_method(f);
@@ -6411,12 +7137,16 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
                     (None, _) => String::new(),
                 };
                 let keyword = if *mutable { "let" } else { "const" };
-                let v = value
-                    .as_ref()
-                    .map(|v| ts_expr(out, v))
-                    .unwrap_or_else(|| "undefined".to_string());
                 let bound = out.name(name);
-                out.line(&format!("{keyword} {bound}{annotation} = {v};"));
+                match value {
+                    Some(v) => {
+                        let v = ts_expr(out, v);
+                        out.line(&format!("{keyword} {bound}{annotation} = {v};"));
+                    }
+                    // A hoisted slot: declared here, assigned where the source
+                    // assigned it.
+                    None => out.line(&format!("{keyword} {bound}{annotation};")),
+                }
             }
             Stmt::Assign { target, value } => {
                 let t = ts_expr(out, target);
@@ -6767,7 +7497,18 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
                 out.line("}");
             }
             Stmt::Throw(value) => {
-                let rendered = ts_thrown(out, value).unwrap_or_else(|| ts_expr(out, value));
+                // A bare message throws wrapped, so `(e as Error).message` and every
+                // other catch-side read stays true. Rethrowing a caught binding
+                // throws the object itself.
+                let rendered = match value {
+                    Expr::Str(_) | Expr::Template(_) => {
+                        format!("new Error({})", ts_expr(out, value))
+                    }
+                    Expr::Name(n) if out.catch_bindings.iter().any(|b| b == n) => {
+                        out.value_name(n)
+                    }
+                    other => ts_thrown(out, other).unwrap_or_else(|| ts_expr(out, other)),
+                };
                 out.line(&format!("throw {rendered};"));
             }
             Stmt::Comment(text) => {
@@ -6839,6 +7580,11 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
         // name to re-case or escape. `super(m)` and `super.m()` fall out of the
         // ordinary call and field arms once the word survives.
         Expr::Name(n) if n == "super" && !shadows_builtin(out, "super") => "super".to_string(),
+        // A caught exception read as a value is read for its words: the message is
+        // what every other language's binding holds.
+        Expr::Name(n) if out.catch_bindings.iter().any(|b| b == n) => {
+            format!("({} as Error).message", out.value_name(n))
+        }
         Expr::Name(n) => out.value_name(n),
         Expr::Field { of, name } => {
             let object = receiver(ts_expr(out, of), of);
@@ -7196,6 +7942,21 @@ fn java(out: &mut Out, module: &Module) {
             out.blank();
         }
     }
+    // The number-display helper, when a template needed it: a whole double shows
+    // whole, the way the dynamic sources displayed it.
+    if out.zig_helpers.contains("java_show") {
+        out.blank();
+        out.line("static String frShow(double value) {");
+        out.open();
+        out.line("if (value == Math.rint(value) && !Double.isInfinite(value)) {");
+        out.open();
+        out.line("return String.valueOf((long) value);");
+        out.close();
+        out.line("}");
+        out.line("return String.valueOf(value);");
+        out.close();
+        out.line("}");
+    }
     out.close();
     out.line("}");
 }
@@ -7293,6 +8054,8 @@ fn java_sum(out: &mut Out, module: &Module, s: &Sum, public: bool) {
 }
 
 fn java_function(out: &mut Out, f: &Function, is_static: bool) {
+    // Bindings made inside blocks die at their brace here; the source's did not.
+    let f = &with_hoisted_bindings(f, &out.function_returns);
     // The source's word for the receiver, spelled this target's way for as long as
     // this body is being written. Outside a method there is nothing to bind.
     let scope = out.enter_method(f);
@@ -7491,7 +8254,15 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
             out.line(&format!("return{text};"));
         }
         Stmt::Throw(value) => {
-            let rendered = java_expr(out, value);
+            // A bare message throws wrapped, and `getMessage()` reads it back.
+            // Rethrowing a caught binding throws the object itself.
+            let rendered = match value {
+                Expr::Str(_) | Expr::Template(_) => {
+                    format!("new RuntimeException({})", java_expr(out, value))
+                }
+                Expr::Name(n) if out.catch_bindings.iter().any(|b| b == n) => out.value_name(n),
+                other => java_expr(out, other),
+            };
             out.line(&format!("throw {rendered};"));
         }
         Stmt::Let {
@@ -7510,7 +8281,11 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
                 _ => "var".to_string(),
             });
             let bound = out.name(name);
-            out.line(&format!("{declared} {bound} = {rendered};"));
+            match value {
+                // A hoisted slot: declared here, assigned where the source assigned it.
+                None => out.line(&format!("{declared} {bound};")),
+                Some(_) => out.line(&format!("{declared} {bound} = {rendered};")),
+            }
         }
         Stmt::Assign { target, value } => {
             // `d[k] = v` is `d.put(k, v)` here. Java has no assignable subscript on a
@@ -8046,6 +8821,11 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
         // name to re-case or escape. `super(m)` and `super.m()` fall out of the
         // ordinary call and field arms once the word survives.
         Expr::Name(n) if n == "super" && !shadows_builtin(out, "super") => "super".to_string(),
+        // A caught exception read as a value is read for its words: the message is
+        // what every other language's binding holds.
+        Expr::Name(n) if out.catch_bindings.iter().any(|b| b == n) => {
+            format!("{}.getMessage()", out.value_name(n))
+        }
         Expr::Name(n) => out.value_name(n),
         Expr::Field { of, name } => {
             let object = receiver(java_expr(out, of), of);
@@ -8218,6 +8998,15 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
                 .iter()
                 .map(|part| match part {
                     TemplatePart::Text(text) => quoted(Language::Java, text),
+                    // A double concatenated as text prints `10.0` here where every
+                    // other target prints `10`. The helper shows a whole number
+                    // whole, the way the source displayed it.
+                    TemplatePart::Expr(e)
+                        if matches!(static_type(out, e), Some(Type::Float)) =>
+                    {
+                        out.zig_helpers.insert("java_show");
+                        format!("frShow({})", java_expr(out, e))
+                    }
                     TemplatePart::Expr(e) => java_expr(out, e),
                 })
                 .collect();
@@ -8634,6 +9423,11 @@ fn uses_the_standard_library(module: &Module) -> bool {
 }
 
 fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
+    // Bindings made inside blocks die at their brace here too.
+    let f = &with_hoisted_bindings(f, &out.function_returns);
+    // A function that can fail takes this target's failure idiom back: the error
+    // union in the signature, `try` at every failing call.
+    let f = &with_failure_idiom(f, &out.throwing.clone());
     // The source's word for the receiver, spelled this target's way for as long as
     // this body is being written. Outside a method there is nothing to bind.
     let scope = out.enter_method(f);
@@ -8848,8 +9642,19 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
         }
         Stmt::Return(value) => {
             // A returned Result is native here: the coercion at the `return` decides
-            // success or failure by the value, so both sides return bare.
-            if let Some((_, payload)) = value.as_ref().and_then(|v| result_call(out, v)) {
+            // success or failure by the value. A success returns bare; a failure
+            // returns the error value its message names.
+            if let Some((ok, payload)) = value.as_ref().and_then(|v| result_call(out, v)) {
+                if !ok {
+                    let rendered = match payload {
+                        Some(Expr::Str(message)) => format!("error.{}", zig_error_name(message)),
+                        // A caught binding rethrows as the error value it is.
+                        Some(other) => zig_expr(out, other),
+                        None => "error.Failure".to_string(),
+                    };
+                    zig_line(out, &format!("return {rendered};"));
+                    return;
+                }
                 let text = payload
                     .map(|p| format!(" {}", zig_expr(out, p)))
                     .unwrap_or_default();
@@ -8890,6 +9695,12 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
             } else {
                 "const"
             };
+            if let Some(Expr::Propagate(inner)) = value {
+                let call = zig_failing_call(out, inner);
+                let bound = out.name(name);
+                zig_line(out, &format!("{keyword} {bound} = {call};"));
+                return;
+            }
             let annotation = match (ty.as_ref(), keyword, value.as_ref()) {
                 (Some(t), _, _) => format!(": {}", zig_type(t)),
                 // A `var` must carry a fixed-size type; a comptime-known integer
@@ -9149,14 +9960,69 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
             out.close();
             out.line("}");
         }
-        Stmt::Try { source, line, .. } => carry(
-            out,
-            &Unsupported {
-                construct: "try/catch".into(),
-                source: source.clone(),
-                line: *line,
-            },
-        ),
+        // `try/catch`, lowered to a labeled block: each failing call catches, runs
+        // the handler, and breaks out. The extraction pass has already hoisted every
+        // failing call to its own binding, so the catch clause has a place to sit.
+        // A propagated call whose value the source discards.
+        Stmt::Expr(Expr::Propagate(inner)) => {
+            let call = zig_failing_call(out, inner);
+            zig_line(out, &format!("_ = {call};"));
+        }
+        Stmt::Try {
+            body: tried,
+            catches,
+            finally,
+            source,
+            line,
+        } => {
+            if returns_anywhere(tried) || catches.is_empty() {
+                carry(
+                    out,
+                    &Unsupported {
+                        construct: "try/catch".into(),
+                        source: source.clone(),
+                        line: *line,
+                    },
+                );
+                return;
+            }
+            out.lowering_names += 1;
+            let label = format!("frTry{}", out.lowering_names);
+            if catches.len() > 1 {
+                out.fidelity.notes.push(format!(
+                    "a try with {} catch arms folded into one: the arms selected by \
+                     exception class, and the classes did not cross",
+                    catches.len()
+                ));
+            }
+            let first = catches[0].clone();
+            let binding = first.binding.clone().unwrap_or_else(|| "_".to_string());
+            let mut tried = tried.clone();
+            let mut counter = out.lowering_names;
+            extract_failing_calls(&mut tried, &out.throwing.clone(), &mut counter);
+            out.lowering_names = counter;
+            out.line(&format!("{label}: {{"));
+            out.open();
+            out.zig_try = Some((label.clone(), binding.clone(), first.body.clone()));
+            if binding != "_" {
+                out.catch_bindings.push(binding);
+            }
+            let inner_mutated = zig_mutated(&tried);
+            for stmt in &tried {
+                zig_stmt(out, stmt, &inner_mutated);
+            }
+            if out.zig_try.take().is_some() && first.binding.is_some() {
+                out.catch_bindings.pop();
+            }
+            out.close();
+            out.line("}");
+            if !finally.is_empty() {
+                let finally_mutated = zig_mutated(finally);
+                for stmt in finally {
+                    zig_stmt(out, stmt, &finally_mutated);
+                }
+            }
+        }
         Stmt::Expr(Expr::Null) => {}
         // Zig has no bare expression statement: a value has to go somewhere. A call is
         // the one exception, and everything else is discarded into `_`, which is what
@@ -9297,6 +10163,11 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Str(v) => quoted(Language::Zig, v),
         Expr::Bool(v) => v.to_string(),
         Expr::Null => "null".to_string(),
+        // A caught error read as a value is read for its words: the name is
+        // the message here.
+        Expr::Name(n) if out.catch_bindings.iter().any(|b| b == n) => {
+            format!("@errorName({})", out.value_name(n))
+        }
         Expr::Name(n) => out.value_name(n),
         Expr::Field { of, name } => {
             let object = receiver(zig_expr(out, of), of);
@@ -10175,8 +11046,14 @@ fn zig_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
         (None, "len", [x]) => format!("{}.len", zig_expr(out, x)),
         // `str` of something already text is the text: a Zig string is a slice of
         // bytes, and a literal is one from birth. Of a number it is a formatted
-        // string, which the format helper owns.
+        // string, which the format helper owns. Of a caught error it is the name,
+        // which is where the message lives here.
         (None, "str", [x @ (Expr::Str(_) | Expr::Template(_))]) => zig_expr(out, x),
+        (None, "str", [Expr::Name(bound)])
+            if out.catch_bindings.iter().any(|b| b == bound) =>
+        {
+            format!("@errorName({})", out.value_name(bound))
+        }
         (None, "str", [x]) => {
             out.zig_helpers.insert("format");
             let spec = zig_hole_spec(out, x);
@@ -10184,6 +11061,60 @@ fn zig_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
         }
         _ => return None,
     })
+}
+
+/// The message as an error identifier: Zig's errors are names, not strings.
+///
+/// A message that is a name already is used as one, so `@errorName` gives it back
+/// exactly. Anything else is slugged, and the slug is what the catch will read.
+fn zig_error_name(message: &str) -> String {
+    let mut name: String = message
+        .chars()
+        .map(|c| if c.is_alphanumeric() || c == '_' { c } else { '_' })
+        .collect();
+    if name.is_empty() || name.starts_with(|c: char| c.is_ascii_digit()) {
+        name.insert(0, '_');
+    }
+    name
+}
+
+/// One failing call as Zig spells it: `try` where the failure moves outward, or a
+/// `catch` that runs the handler and leaves the block where a `try/catch` stands.
+fn zig_failing_call(out: &mut Out, inner: &Expr) -> String {
+    let call = zig_expr(out, inner);
+    match out.zig_try.clone() {
+        Some((label, binding, handler)) => {
+            let mut text = format!("{call} catch |{binding}| {{");
+            let mut body = Out::new(Language::Zig);
+            body.names = out.names.clone();
+            body.fields = out.fields.clone();
+            body.zig_helpers = std::mem::take(&mut out.zig_helpers);
+            body.catch_bindings = out.catch_bindings.clone();
+            body.binding_types = out.binding_types.clone();
+            body.function_returns = out.function_returns.clone();
+            body.indent = out.indent + 1;
+            let mutated = zig_mutated(&handler);
+            for stmt in &handler {
+                zig_stmt(&mut body, stmt, &mutated);
+            }
+            out.zig_helpers = std::mem::take(&mut body.zig_helpers);
+            out.fidelity.notes.extend(body.fidelity.notes);
+            out.fidelity.carried_verbatim += body.fidelity.carried_verbatim;
+            text.push('\n');
+            text.push_str(&body.text);
+            for _ in 0..out.indent + 1 {
+                text.push_str("    ");
+            }
+            text.push_str(&format!("break :{label};"));
+            text.push('\n');
+            for _ in 0..out.indent {
+                text.push_str("    ");
+            }
+            text.push('}');
+            text
+        }
+        None => format!("try {call}"),
+    }
 }
 
 /// A template's format string and its comma-joined hole expressions, Zig-spelled.
@@ -10224,13 +11155,17 @@ fn zig_hole_spec(out: &Out, e: &Expr) -> &'static str {
         Expr::Int(_) | Expr::Float(_) => "d",
         Expr::Str(_) | Expr::Template(_) => "s",
         Expr::Name(name) => match out.binding_types.get(name.as_str()) {
+            _ if out.catch_bindings.iter().any(|b| b == name) => "s",
             Some(Type::Int) | Some(Type::Float) => "d",
             Some(Type::String) => "s",
             _ if out.zig_strings.contains(name.as_str()) => "s",
             _ => "any",
         },
-        // A call's value formats by the callee's declared return.
+        // A call's value formats by the callee's declared return; the canonical
+        // conversions have one answer each.
         Expr::Call { callee, .. } => match callee.as_ref() {
+            Expr::Name(name) if name == "str" => "s",
+            Expr::Name(name) if name == "int" || name == "len" => "d",
             Expr::Name(name) => match out.function_returns.get(name.as_str()) {
                 Some(Type::Int) | Some(Type::Float) => "d",
                 Some(Type::String) => "s",

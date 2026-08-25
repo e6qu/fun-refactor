@@ -15,12 +15,31 @@ use crate::lang::Language;
 
 /// Rewrite `module`'s expressions into the canonical vocabulary for `language`.
 pub fn normalize(module: &mut Module, language: Language) {
+    strip_lowering_helpers(module);
     let rewrite: fn(Expr) -> Expr = match language {
-        Language::Go => go,
-        Language::TypeScript | Language::Tsx => typescript,
-        Language::Java => java,
+        Language::Go => {
+            go_module(module);
+            go
+        }
+        Language::TypeScript | Language::Tsx => {
+            settle_exception_classes(module);
+            typescript
+        }
+        Language::Java => {
+            settle_exception_classes(module);
+            java
+        }
+        Language::Python => {
+            settle_exception_classes(module);
+            return;
+        }
+        Language::Rust => {
+            settle_result_idiom(module);
+            return;
+        }
         Language::Zig => {
             zig_module(module);
+            settle_result_idiom(module);
             return;
         }
         _ => return,
@@ -764,5 +783,453 @@ fn collect_names(e: &Expr, out: &mut Vec<String>) {
             }
         }
         _ => {}
+    }
+}
+
+// -------------------------------------------------------- the Result idiom
+
+/// A function returning `Result<T, message>`, said the way the exception languages
+/// say it: the return type is `T`, `Err` is a throw, `Ok` unwraps, and `?` re-throws.
+///
+/// The IR keeps one canonical form for failure, and it is the exception one: three of
+/// the six writers spell it natively, and the other three lower it back. A module
+/// that mixes idioms is its own worst reader.
+fn settle_result_idiom(module: &mut Module) {
+    for item in &mut module.items {
+        let functions: Vec<&mut Function> = match item {
+            Item::Function(f) => vec![f],
+            Item::Record(r) => r.methods.iter_mut().collect(),
+            _ => continue,
+        };
+        for f in functions {
+            let Some(Type::Named { name, args }) = &f.returns else {
+                continue;
+            };
+            if name != "Result" || args.len() != 2 {
+                continue;
+            }
+            // Only a message-shaped failure side: a typed error enum is a real type
+            // the target has to hear about, and stays as written.
+            if !matches!(args[1], Type::String) && !error_name(&args[1]) {
+                continue;
+            }
+            let ok = args[0].clone();
+            f.returns = match ok {
+                Type::Unit => None,
+                other => Some(other),
+            };
+            settle_result_statements(&mut f.body);
+        }
+    }
+}
+
+/// Is this the `error`-flavoured type Zig's reader spells for an error set?
+fn error_name(ty: &Type) -> bool {
+    matches!(ty, Type::Named { name, args } if args.is_empty() && name.contains("error"))
+}
+
+fn settle_result_statements(body: &mut Vec<Stmt>) {
+    for stmt in body.iter_mut() {
+        for inner in substatements(stmt) {
+            settle_result_statements(inner);
+        }
+        if let Stmt::Return(value) = stmt {
+            match value.take() {
+                Some(Expr::Call { callee, mut args })
+                    if matches!(&*callee, Expr::Name(n) if n == "Ok") && args.len() == 1 =>
+                {
+                    let inner = args.remove(0);
+                    *value = match inner {
+                        Expr::Tuple(items) if items.is_empty() => None,
+                        other => Some(other),
+                    };
+                }
+                Some(Expr::Call { callee, mut args })
+                    if matches!(&*callee, Expr::Name(n) if n == "Err") && args.len() == 1 =>
+                {
+                    // Zig's failure value is `error.negative`, and the name after
+                    // the dot is the message every other language throws.
+                    let payload = match args.remove(0) {
+                        Expr::Field { of, name }
+                            if matches!(&*of, Expr::Name(n) if n == "error") =>
+                        {
+                            Expr::Str(name)
+                        }
+                        other => unwrap_str_call(other),
+                    };
+                    *stmt = Stmt::Throw(payload);
+                }
+                other => *value = other,
+            }
+        }
+    }
+}
+
+/// `str("negative")` is `"negative"`: the conversion of a literal is the literal.
+fn unwrap_str_call(e: Expr) -> Expr {
+    match e {
+        Expr::Call { callee, mut args }
+            if matches!(&*callee, Expr::Name(n) if n == "str") && args.len() == 1 =>
+        {
+            match args.remove(0) {
+                literal @ (Expr::Str(_) | Expr::Template(_)) => literal,
+                other => Expr::Call {
+                    callee: Box::new(Expr::Name("str".into())),
+                    args: vec![other],
+                },
+            }
+        }
+        other => other,
+    }
+}
+
+// ------------------------------------------------- builtin exception classes
+
+/// `ValueError("x")`, `new Error("x")`, `new RuntimeException("x")`: the class is the
+/// language's furniture and the message is the meaning.
+///
+/// A throw of a builtin class around one message becomes a throw of the message, and a
+/// catch filtered on a builtin class becomes the plain catch. A class this module
+/// declares stays: that one is the program's own type, not furniture.
+fn settle_exception_classes(module: &mut Module) {
+    let declared: Vec<String> = module
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Record(r) => Some(r.name.clone()),
+            _ => None,
+        })
+        .collect();
+    let builtin = |name: &str| {
+        (name.ends_with("Error") || name.ends_with("Exception") || name == "Error")
+            && !declared.iter().any(|d| d == name)
+    };
+
+    fn walk(body: &mut Vec<Stmt>, builtin: &dyn Fn(&str) -> bool) {
+        for stmt in body.iter_mut() {
+            for inner in substatements(stmt) {
+                walk(inner, builtin);
+            }
+            match stmt {
+                Stmt::Throw(value) => {
+                    if let Expr::Call { callee, args } | Expr::New { callee, args } = value {
+                        if let (Expr::Name(name), [message @ (Expr::Str(_) | Expr::Template(_))]) =
+                            (&**callee, args.as_slice())
+                        {
+                            if builtin(name) {
+                                *value = message.clone();
+                            }
+                        }
+                    }
+                }
+                Stmt::Try { catches, .. } => {
+                    for catch in catches {
+                        if let Some(Type::Named { name, .. }) = &catch.ty {
+                            if builtin(name) {
+                                catch.ty = None;
+                            }
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    for item in &mut module.items {
+        match item {
+            Item::Function(f) => walk(&mut f.body, &builtin),
+            Item::Record(r) => {
+                for method in &mut r.methods {
+                    walk(&mut method.body, &builtin);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+// ------------------------------------------------------- the Go error idiom
+
+/// `(T, error)` returns and `if err != nil` checks, said as the canonical failure.
+///
+/// A function returning the pair returns `T` and throws. `return v, nil` is a plain
+/// return, `return 0, errors.New("x")` is a throw, and the bind-then-check pair is
+/// either a propagation or, when both branches carry on, a try/catch.
+fn go_module(module: &mut Module) {
+    for item in &mut module.items {
+        let functions: Vec<&mut Function> = match item {
+            Item::Function(f) => vec![f],
+            Item::Record(r) => r.methods.iter_mut().collect(),
+            _ => continue,
+        };
+        for f in functions {
+            let pair = matches!(&f.returns, Some(Type::Tuple(parts))
+                if parts.len() == 2
+                    && matches!(&parts[1], Type::Named { name, args } if name == "error" && args.is_empty()));
+            if pair {
+                let Some(Type::Tuple(mut parts)) = f.returns.take() else {
+                    unreachable!("the guard said so");
+                };
+                f.returns = match parts.remove(0) {
+                    Type::Unit => None,
+                    other => Some(other),
+                };
+                settle_go_returns(&mut f.body);
+            }
+            settle_go_checks(&mut f.body);
+        }
+    }
+}
+
+fn settle_go_returns(body: &mut Vec<Stmt>) {
+    for stmt in body.iter_mut() {
+        for inner in substatements(stmt) {
+            settle_go_returns(inner);
+        }
+        let Stmt::Return(value) = stmt else { continue };
+        let Some(Expr::Tuple(items)) = value else {
+            continue;
+        };
+        if items.len() != 2 {
+            continue;
+        }
+        let error = items.pop().expect("two items");
+        let ok = items.pop().expect("one left");
+        match error {
+            Expr::Null => *value = Some(ok),
+            other => {
+                *stmt = Stmt::Throw(go_error_message(other));
+            }
+        }
+    }
+}
+
+/// The message inside `errors.New("x")` or a one-verb `fmt.Errorf`; anything else
+/// throws as itself.
+fn go_error_message(e: Expr) -> Expr {
+    if let Some((path, args)) = call_parts(&e) {
+        if path.as_slice() == ["errors", "New"] && args.len() == 1 {
+            return args[0].clone();
+        }
+        if path.as_slice() == ["fmt", "Errorf"] {
+            if let Some(template) = sprintf_template(args) {
+                return template;
+            }
+        }
+    }
+    e
+}
+
+fn settle_go_checks(body: &mut Vec<Stmt>) {
+    for stmt in body.iter_mut() {
+        for inner in substatements(stmt) {
+            settle_go_checks(inner);
+        }
+    }
+    let mut rebuilt: Vec<Stmt> = Vec::with_capacity(body.len());
+    let mut stmts = std::mem::take(body).into_iter().peekable();
+    while let Some(stmt) = stmts.next() {
+        // The pair: `v, err := f(x)` and the `if err != nil` right under it.
+        let Stmt::TupleAssign { names, value, .. } = &stmt else {
+            rebuilt.push(stmt);
+            continue;
+        };
+        let [bound, err] = names.as_slice() else {
+            rebuilt.push(stmt);
+            continue;
+        };
+        let err = err.clone();
+        let checks = matches!(stmts.peek(), Some(Stmt::If { condition, .. })
+            if matches!(condition, Expr::Binary { op: BinaryOp::Ne, left, right }
+                if matches!(&**left, Expr::Name(n) if *n == err)
+                    && matches!(&**right, Expr::Null)));
+        if !checks {
+            rebuilt.push(stmt);
+            continue;
+        }
+        let (bound, call) = (bound.clone(), value.clone());
+        let Some(Stmt::If {
+            then, otherwise, ..
+        }) = stmts.next()
+        else {
+            unreachable!("the peek said so");
+        };
+        let bind = |value| match bound.as_str() {
+            "_" => Stmt::Expr(value),
+            name => Stmt::Let {
+                name: name.to_string(),
+                ty: None,
+                value: Some(value),
+                mutable: false,
+            },
+        };
+        // `if err != nil { return _, err }` alone is a propagation. The return pass
+        // has already turned that return into a rethrow when the function's own
+        // signature was the pair.
+        let rethrows = otherwise.is_empty()
+            && match then.as_slice() {
+                [Stmt::Return(Some(Expr::Tuple(items)))] => {
+                    matches!(items.last(), Some(Expr::Name(n)) if *n == err)
+                }
+                [Stmt::Throw(Expr::Name(n))] => *n == err,
+                _ => false,
+            };
+        if rethrows {
+            rebuilt.push(bind(Expr::Propagate(Box::new(call))));
+            continue;
+        }
+        // Otherwise both branches carry on: the else is the success path and the
+        // check is the catch.
+        let mut caught = then;
+        rewrite_error_reads(&mut caught, &err);
+        let mut tried = vec![bind(call)];
+        tried.extend(otherwise);
+        rebuilt.push(Stmt::Try {
+            body: tried,
+            catches: vec![Catch {
+                binding: Some(err.clone()),
+                ty: None,
+                body: caught,
+            }],
+            finally: Vec::new(),
+            source: String::new(),
+            line: 0,
+        });
+    }
+    *body = rebuilt;
+}
+
+/// `err.Error()` inside a catch is the message read the canonical way: `str(err)`.
+fn rewrite_error_reads(body: &mut Vec<Stmt>, err: &str) {
+    fn in_expr(e: &mut Expr, err: &str) {
+        let fix = |e: &mut Expr| in_expr(e, err);
+        match e {
+            Expr::Call { callee, args } | Expr::New { callee, args } => {
+                fix(callee);
+                for a in args {
+                    fix(a);
+                }
+            }
+            Expr::Binary { left, right, .. } => {
+                fix(left);
+                fix(right);
+            }
+            Expr::Unary { operand, .. } | Expr::Await(operand) | Expr::Propagate(operand) => {
+                fix(operand)
+            }
+            Expr::Template(parts) => {
+                for part in parts {
+                    if let TemplatePart::Expr(e) = part {
+                        fix(e);
+                    }
+                }
+            }
+            Expr::Field { of, .. } | Expr::Index { of, .. } => fix(of),
+            _ => {}
+        }
+        let is_read = matches!(e, Expr::Call { callee, args }
+            if args.is_empty()
+                && matches!(&**callee, Expr::Field { of, name }
+                    if name == "Error" && matches!(&**of, Expr::Name(n) if n == err)));
+        if is_read {
+            *e = Expr::Call {
+                callee: Box::new(Expr::Name("str".to_string())),
+                args: vec![Expr::Name(err.to_string())],
+            };
+        }
+    }
+    for stmt in body.iter_mut() {
+        for inner in substatements(stmt) {
+            rewrite_error_reads(inner, err);
+        }
+        match stmt {
+            Stmt::Expr(e) | Stmt::Throw(e) | Stmt::Return(Some(e)) => in_expr(e, err),
+            Stmt::Let { value: Some(e), .. } | Stmt::Assign { value: e, .. } => in_expr(e, err),
+            Stmt::If { condition, .. } | Stmt::While { condition, .. } => in_expr(condition, err),
+            _ => {}
+        }
+    }
+}
+
+// ---------------------------------------------------------- our own furniture
+
+/// The helpers this tool's writers emit, folded back out on the way in.
+///
+/// `frShow`, `frPrint` and `frFormat` are lowerings, not program: a translated file
+/// read back must yield the program alone, or a round trip grows a function the
+/// source never had.
+fn strip_lowering_helpers(module: &mut Module) {
+    let ours = |name: &str| matches!(name, "frShow" | "frPrint" | "frFormat");
+    let had: Vec<String> = module
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Function(f) if ours(&f.name) => Some(f.name.clone()),
+            _ => None,
+        })
+        .collect();
+    if had.is_empty() {
+        return;
+    }
+    module.items.retain(|item| {
+        !matches!(item, Item::Function(f) if ours(&f.name))
+    });
+    fn fix(e: &mut Expr) {
+        let walk = |e: &mut Expr| fix(e);
+        match e {
+            Expr::Call { callee, args } | Expr::New { callee, args } => {
+                walk(callee);
+                for a in args {
+                    walk(a);
+                }
+            }
+            Expr::Binary { left, right, .. } => {
+                walk(left);
+                walk(right);
+            }
+            Expr::Unary { operand, .. } | Expr::Await(operand) | Expr::Propagate(operand) => {
+                walk(operand)
+            }
+            Expr::Template(parts) => {
+                for part in parts {
+                    if let TemplatePart::Expr(e) = part {
+                        walk(e);
+                    }
+                }
+            }
+            Expr::Field { of, .. } | Expr::Index { of, .. } => walk(of),
+            _ => {}
+        }
+        // `frShow(x)` displays `x`; the value is `x` itself.
+        if let Expr::Call { callee, args } = e {
+            if matches!(&**callee, Expr::Name(n) if n == "frShow") && args.len() == 1 {
+                *e = args.remove(0);
+            }
+        }
+    }
+    fn walk_stmts(body: &mut Vec<Stmt>) {
+        for stmt in body.iter_mut() {
+            for inner in substatements(stmt) {
+                walk_stmts(inner);
+            }
+            match stmt {
+                Stmt::Expr(e) | Stmt::Throw(e) | Stmt::Return(Some(e)) => fix(e),
+                Stmt::Let { value: Some(e), .. } | Stmt::Assign { value: e, .. } => fix(e),
+                Stmt::If { condition, .. } | Stmt::While { condition, .. } => fix(condition),
+                _ => {}
+            }
+        }
+    }
+    for item in &mut module.items {
+        match item {
+            Item::Function(f) => walk_stmts(&mut f.body),
+            Item::Record(r) => {
+                for method in &mut r.methods {
+                    walk_stmts(&mut method.body);
+                }
+            }
+            _ => {}
+        }
     }
 }

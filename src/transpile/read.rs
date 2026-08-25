@@ -878,6 +878,11 @@ mod rust {
     fn match_switch(cx: &Cx, node: Node<'_>) -> Option<Stmt> {
         let subject = cx.field(node, "value")?;
         let body = cx.field(node, "body")?;
+        // `match f(x) { Ok(v) => ..., Err(e) => ... }` is this language's try/catch,
+        // and the IR's `Try` is what every other language spells it with.
+        if let Some(handled) = match_result(cx, subject, body) {
+            return Some(handled);
+        }
         let as_return = node.parent().is_some_and(|p| {
             p.kind() == "expression_statement"
                 && p.next_named_sibling().is_none()
@@ -944,6 +949,70 @@ mod rust {
             }
             _ => None,
         }
+    }
+
+    /// A match over `Ok`/`Err`, as the try/catch it spells.
+    ///
+    /// The success arm's binding becomes an ordinary `let` of the call, and the
+    /// failure arm becomes the catch. Order is free and either side may be `_`.
+    fn match_result(cx: &Cx, subject: Node<'_>, body: Node<'_>) -> Option<Stmt> {
+        let mut ok: Option<(String, Vec<Stmt>)> = None;
+        let mut err: Option<(String, Vec<Stmt>)> = None;
+        for arm in cx.children(body) {
+            if arm.kind() != "match_arm" {
+                continue;
+            }
+            if cx.field(arm, "condition").is_some() {
+                return None;
+            }
+            let pattern = cx.field(arm, "pattern")?;
+            let text = cx.text(pattern);
+            let (name, binding) = text
+                .trim()
+                .split_once('(')
+                .map(|(n, rest)| (n.trim(), rest.trim_end_matches(')').trim()))?;
+            if !binding.chars().all(|c| c.is_alphanumeric() || c == '_') {
+                return None;
+            }
+            let value = cx.field(arm, "value")?;
+            let arm_body = if value.kind() == "block" {
+                block(cx, value)
+            } else {
+                vec![stmt(cx, value)]
+            };
+            match name {
+                "Ok" => ok = Some((binding.to_string(), arm_body)),
+                "Err" => err = Some((binding.to_string(), arm_body)),
+                _ => return None,
+            }
+        }
+        let (ok, err) = (ok?, err?);
+        let mut tried = Vec::new();
+        let value = expr(cx, subject);
+        match ok.0.as_str() {
+            "_" => tried.push(Stmt::Expr(value)),
+            bound => tried.push(Stmt::Let {
+                name: bound.to_string(),
+                ty: None,
+                value: Some(value),
+                mutable: false,
+            }),
+        }
+        tried.extend(ok.1);
+        Some(Stmt::Try {
+            body: tried,
+            catches: vec![Catch {
+                binding: match err.0.as_str() {
+                    "_" => None,
+                    bound => Some(bound.to_string()),
+                },
+                ty: None,
+                body: err.1,
+            }],
+            finally: Vec::new(),
+            source: cx.text(subject),
+            line: cx.line(subject),
+        })
     }
 
     /// A variant pattern taken apart: the sum, the variant, and the payload
@@ -6729,11 +6798,46 @@ mod zig {
                         .filter(|c| c.kind() == "identifier")
                         .collect();
                     let by_pointer = all(*payload).iter().any(|c| c.kind() == "*");
-                    let else_binds = else_clause.is_some_and(|e| {
+                    let else_payload = else_clause.and_then(|e| {
                         let mut cursor = e.walk();
-                        let found = e.children(&mut cursor).any(|c| c.kind() == "payload");
+                        let found = e.children(&mut cursor).find(|c| c.kind() == "payload");
                         found
                     });
+                    // `if (f(x)) |v| { … } else |e| { … }` branches on an error
+                    // union, which is this language's try/catch.
+                    if let (Some(else_payload), [binding], false) =
+                        (else_payload, bindings.as_slice(), by_pointer)
+                    {
+                        let caught = cx
+                            .children(else_payload)
+                            .into_iter()
+                            .find(|c| c.kind() == "identifier")
+                            .map(|c| cx.text(c));
+                        let value =
+                            children.first().map(|c| expr(cx, *c)).unwrap_or(Expr::Null);
+                        let mut tried = vec![match cx.text(*binding).as_str() {
+                            "_" => Stmt::Expr(value),
+                            bound => Stmt::Let {
+                                name: bound.to_string(),
+                                ty: None,
+                                value: Some(value),
+                                mutable: false,
+                            },
+                        }];
+                        tried.extend(then);
+                        return Stmt::Try {
+                            body: tried,
+                            catches: vec![Catch {
+                                binding: caught,
+                                ty: None,
+                                body: otherwise,
+                            }],
+                            finally: Vec::new(),
+                            source: cx.text(node),
+                            line: cx.line(node),
+                        };
+                    }
+                    let else_binds = else_payload.is_some();
                     if let ([binding], false, false) = (bindings.as_slice(), by_pointer, else_binds)
                     {
                         return Stmt::IfPresent {
@@ -7157,6 +7261,11 @@ mod zig {
                         callee: Box::new(Expr::Name(name.trim_start_matches('@').to_string())),
                         args: args.iter().map(|a| expr(cx, *a)).collect(),
                     },
+                    // The error's name is its message everywhere else.
+                    ("@errorName", [value]) => Expr::Call {
+                        callee: Box::new(Expr::Name("str".to_string())),
+                        args: vec![expr(cx, *value)],
+                    },
                     // Zig spells the division and remainder the other five spell as
                     // operators. `@mod` is Euclidean where `%` truncates; they agree
                     // wherever the operands are non-negative, and a program for which
@@ -7182,6 +7291,17 @@ mod zig {
                     None => Expr::Unsupported(cx.unsupported(node)),
                 }
             }
+            // `error.x` is the failure value itself, spelled as the field the
+            // settle pass reads: `Err` when it crosses a `return`.
+            "error_type" => Expr::Field {
+                of: Box::new(Expr::Name("error".to_string())),
+                name: cx
+                    .children(node)
+                    .into_iter()
+                    .find(|c| c.kind() == "identifier")
+                    .map(|c| cx.text(c))
+                    .unwrap_or_default(),
+            },
             // `catch`, `orelse` and `comptime` are how Zig says what the others
             // say with exceptions and generics, and none of them has a counterpart.
             _ => Expr::Unsupported(cx.unsupported(node)),
