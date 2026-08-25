@@ -547,6 +547,11 @@ pub enum Stmt {
     /// under a "not translated" marker. It inflates the count of real gaps with things
     /// that were never gaps.
     Comment(String),
+    /// A function declared inside another: Zig's `const f = struct { fn f… }.f;`
+    /// idiom, Python's nested `def`. Every target has a local spelling —
+    /// nested functions, function literals, or an anonymous object holding
+    /// one method — and the binding's name is the function's.
+    LocalFunction(Box<Function>),
     /// A braced block: its statements, scoped where the target scopes blocks.
     ///
     /// Zig writes one for scoping alone, and several lowerings group the
@@ -803,6 +808,8 @@ pub enum BinaryOp {
     Ge,
     And,
     Or,
+    /// `a ^ b`, the exclusive or, which all six spell the same way.
+    Xor,
 }
 
 impl BinaryOp {
@@ -829,6 +836,7 @@ impl BinaryOp {
             BinaryOp::Ge => ">=",
             BinaryOp::And => "&&",
             BinaryOp::Or => "||",
+            BinaryOp::Xor => "^",
         }
     }
 
@@ -858,6 +866,9 @@ impl BinaryOp {
             | BinaryOp::TrueDiv
             | BinaryOp::Rem => 6,
             BinaryOp::Add | BinaryOp::Sub => 5,
+            // C gives xor its own tier between arithmetic and comparison;
+            // parenthesised operands keep every target agreeing.
+            BinaryOp::Xor => 4,
             BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge => 4,
             BinaryOp::Eq | BinaryOp::Ne => 3,
             BinaryOp::And => 2,

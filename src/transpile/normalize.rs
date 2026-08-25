@@ -98,6 +98,10 @@ fn map_stmt(stmt: &mut Stmt, rewrite: fn(Expr) -> Expr) {
             }
             return;
         }
+        Stmt::LocalFunction(f) => {
+            map_function(f, rewrite);
+            return;
+        }
         Stmt::Let { value, .. } => {
             if let Some(value) = value {
                 map_expr(value, rewrite);

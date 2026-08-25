@@ -1956,6 +1956,9 @@ fn bound_names(body: &[Stmt], into: &mut std::collections::BTreeSet<String>) {
     for stmt in body {
         match stmt {
             Stmt::BreakWith { .. } => {}
+            Stmt::LocalFunction(f) => {
+                into.insert(f.name.clone());
+            }
             Stmt::Let { name, .. } => {
                 into.insert(name.clone());
             }
@@ -2908,6 +2911,9 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 rust_block(out, stmts, None);
                 out.close();
                 out.line("}");
+            }
+            Stmt::LocalFunction(f) => {
+                rust_function(out, f, false);
             }
             Stmt::BreakWith { label, value } => {
                 let rendered = value
@@ -4431,6 +4437,7 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
         match stmt {
             // No block scope here: the statements stand in place.
             Stmt::Block(stmts) => python_block(out, stmts),
+            Stmt::LocalFunction(f) => python_function(out, f, false),
             Stmt::BreakWith { label, value } => {
                 let rendered = value
                     .as_ref()
@@ -5216,7 +5223,8 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
                 .collect();
             format!("{}({})", out.name(ty), rendered.join(", "))
         }
-        // Python has to name the value twice, and naming a call twice calls it twice.
+        // Python has to name the value twice; a value that cannot be named
+        // twice gets a name from the walrus, evaluated once.
         Expr::Coalesce { value, fallback } => match nameable(value) {
             true => format!(
                 "{} if {} is not None else {}",
@@ -5225,18 +5233,13 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
                 python_expr(out, fallback)
             ),
             false => {
-                let source = format!(
-                    "{} ?? {}",
+                out.lowering_names += 1;
+                let bound = format!("fr_opt_{}", out.lowering_names);
+                return format!(
+                    "{bound} if ({bound} := {}) is not None else {}",
                     python_expr(out, value),
                     python_expr(out, fallback)
                 );
-                out.carried(&Unsupported {
-                    construct: "?? on a value that cannot be named twice".into(),
-                    source: source.clone(),
-                    line: 0,
-                });
-                out.pending.push(format!("{MARKER}: {source}"));
-                "None".to_string()
             }
         },
         // Python puts the condition in the middle, which is the only thing that
@@ -5288,6 +5291,16 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
                         "{} in {}",
                         python_expr(out, needle),
                         python_expr(out, &of.clone())
+                    );
+                }
+            }
+            // The unsigned right shift, through the 64-bit unsigned view.
+            if let (Expr::Name(name), [x, n]) = (callee.as_ref(), args.as_slice()) {
+                if name == "ushr" {
+                    return format!(
+                        "((({}) & 0xFFFFFFFFFFFFFFFF) >> ({}))",
+                        python_expr(out, x),
+                        python_expr(out, n)
                     );
                 }
             }
@@ -6037,6 +6050,107 @@ fn go_error_value(out: &mut Out, e: &Expr) -> String {
 /// the call's error checks and leaves the way the context leaves — `t.Fatal`
 /// in a test, the enclosing error return where there is one, a panic
 /// otherwise.
+/// Lift every propagated call out of this statement's expressions: each
+/// becomes a binding rendered before the statement, and the statement reads
+/// the binding. None when there is nothing to lift.
+fn go_lift_propagates(out: &mut Out, stmt: &Stmt) -> Option<(Vec<(String, String)>, Stmt)> {
+    fn lift(e: &mut Expr, out: &mut Out, found: &mut Vec<(String, String)>) {
+        if let Expr::Propagate(inner) = e {
+            let call = go_expr(out, inner);
+            let name = format!("frProp{}", out.lowering_names + found.len() + 1);
+            found.push((name.clone(), call));
+            *e = Expr::Name(name);
+            return;
+        }
+        match e {
+            Expr::Field { of, .. } => lift(of, out, found),
+            Expr::Index { of, index } => {
+                lift(of, out, found);
+                lift(index, out, found);
+            }
+            Expr::Call { callee, args } | Expr::New { callee, args } => {
+                lift(callee, out, found);
+                for a in args {
+                    lift(a, out, found);
+                }
+            }
+            Expr::Binary { left, right, .. } => {
+                lift(left, out, found);
+                lift(right, out, found);
+            }
+            Expr::Unary { operand, .. } | Expr::Await(operand) => lift(operand, out, found),
+            Expr::Coalesce { value, fallback } => {
+                lift(value, out, found);
+                lift(fallback, out, found);
+            }
+            Expr::Ternary {
+                condition,
+                then,
+                otherwise,
+            } => {
+                lift(condition, out, found);
+                lift(then, out, found);
+                lift(otherwise, out, found);
+            }
+            Expr::Tuple(items) | Expr::ListLit(items) => {
+                for item in items {
+                    lift(item, out, found);
+                }
+            }
+            Expr::MapLit(entries) => {
+                for (k, v) in entries {
+                    lift(k, out, found);
+                    lift(v, out, found);
+                }
+            }
+            Expr::Keyword { value, .. } => lift(value, out, found),
+            Expr::Variant { fields, .. } | Expr::RecordLit { fields, .. } => {
+                for (_, v) in fields {
+                    lift(v, out, found);
+                }
+            }
+            Expr::Template(parts) => {
+                for part in parts {
+                    if let TemplatePart::Expr(e) = part {
+                        lift(e, out, found);
+                    }
+                }
+            }
+            Expr::Cast { value, ty } => {
+                lift(value, out, found);
+                lift(ty, out, found);
+            }
+            _ => {}
+        }
+    }
+    let mut rewritten = stmt.clone();
+    let mut found = Vec::new();
+    {
+        let mut visit = |e: &mut Expr| lift(e, out, &mut found);
+        match &mut rewritten {
+            Stmt::Return(Some(e)) | Stmt::Expr(e) | Stmt::Throw(e) => visit(e),
+            Stmt::Let { value: Some(e), .. } => visit(e),
+            Stmt::Assign { target, value } => {
+                visit(target);
+                visit(value);
+            }
+            Stmt::TupleAssign { value, .. } => visit(value),
+            Stmt::If { condition, .. } | Stmt::While { condition, .. } => visit(condition),
+            Stmt::IfPresent { value, .. } | Stmt::WhilePresent { value, .. } => visit(value),
+            Stmt::Switch { subject, .. } => visit(subject),
+            Stmt::ForEach { iterable, .. } | Stmt::ForEachIndexed { iterable, .. } => {
+                visit(iterable)
+            }
+            _ => {}
+        }
+    }
+    if found.is_empty() {
+        return None;
+    }
+    out.lowering_names += found.len();
+    Some((found, rewritten))
+}
+
 fn go_propagate_stmt(out: &mut Out, stmt: &Stmt) -> bool {
     let (bound, inner) = match stmt {
         Stmt::Expr(Expr::Propagate(inner)) => (None, inner),
@@ -6247,6 +6361,26 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
         if go_propagate_stmt(out, stmt) {
             continue;
         }
+        // A propagated call buried inside the statement's expressions lifts
+        // out first: bind, check, and let the statement read the binding.
+        if out.go_result.is_none() {
+            if let Some((lifted, rewritten)) = go_lift_propagates(out, stmt) {
+                for (name, call) in lifted {
+                    let err = out.fresh_go_error();
+                    out.line(&format!("{name}, {err} := {call}"));
+                    out.line(&format!("if {err} != nil {{"));
+                    out.open();
+                    match out.in_test {
+                        true => out.line(&format!("t.Fatal({err})")),
+                        false => out.line(&format!("panic({err})")),
+                    }
+                    out.close();
+                    out.line("}");
+                }
+                go_block(out, std::slice::from_ref(&rewritten), returns);
+                continue;
+            }
+        }
         match stmt {
             Stmt::Block(stmts) => {
                 out.line("{");
@@ -6254,6 +6388,36 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 go_block(out, stmts, None);
                 out.close();
                 out.line("}");
+            }
+            // A function literal bound to the name; the header writes the
+            // binding, so the body renders under a `:=`.
+            Stmt::LocalFunction(f) => {
+                let bound = out.name(&f.name);
+                let params: Vec<String> = f
+                    .params
+                    .iter()
+                    .map(|p| {
+                        let ty =
+                            p.ty.as_ref()
+                                .map(go_type)
+                                .unwrap_or_else(|| "any".to_string());
+                        format!("{} {ty}", out.name(&p.name))
+                    })
+                    .collect();
+                let answer = f
+                    .returns
+                    .as_ref()
+                    .map(|t| format!(" {}", go_type(t)))
+                    .unwrap_or_default();
+                out.line(&format!(
+                    "{bound} := func({}){answer} {{",
+                    params.join(", ")
+                ));
+                out.open();
+                go_block(out, &f.body, f.returns.as_ref());
+                out.close();
+                out.line("}");
+                out.line(&format!("_ = {bound}"));
             }
             Stmt::BreakWith { label, value } => {
                 let rendered = value.as_ref().map(|v| go_expr(out, v)).unwrap_or_default();
@@ -6543,10 +6707,32 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 value,
                 body,
             } => {
-                let v = go_expr(out, value);
                 let bound = out.name(binding);
                 out.line("for {");
                 out.open();
+                // A propagated call in the test re-tries every pass, and its
+                // failure leaves the way this function's failures leave.
+                let v = match value {
+                    Expr::Propagate(inner) => {
+                        let call = go_expr(out, inner);
+                        let err = out.fresh_go_error();
+                        out.line(&format!("{bound}Try, {err} := {call}"));
+                        out.line(&format!("if {err} != nil {{"));
+                        out.open();
+                        match out.go_result.clone() {
+                            Some(Type::Unit) => out.line(&format!("return {err}")),
+                            Some(ty) => out.line(&format!("return {}, {err}", go_zero(&ty))),
+                            None => match out.in_test {
+                                true => out.line(&format!("t.Fatal({err})")),
+                                false => out.line(&format!("panic({err})")),
+                            },
+                        }
+                        out.close();
+                        out.line("}");
+                        format!("{bound}Try")
+                    }
+                    _ => go_expr(out, value),
+                };
                 out.line(&format!("{bound}Ptr := {v}"));
                 out.line(&format!("if {bound}Ptr == nil {{"));
                 out.open();
@@ -6868,35 +7054,34 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
         // Go has nothing for this: not an operator, not a standard function. Writing
         // the `if` it would take needs somewhere to put the result, which does not
         // exist inside an argument list.
+        // The value binds once inside a closure, and the nil test decides.
         Expr::Coalesce { value, fallback } => {
-            let source = format!("{} ?? {}", go_expr(out, value), go_expr(out, fallback));
-            out.carried(&Unsupported {
-                construct: "??".into(),
-                source: source.clone(),
-                line: 0,
-            });
-            format!("any(nil) /* {MARKER}: {} */", source.replace("*/", "* /"))
+            out.lowering_names += 1;
+            let bound = format!("frOpt{}", out.lowering_names);
+            format!(
+                "func() any {{ {bound} := any({}); if {bound} != nil {{ return {bound} }}; return {} }}()",
+                go_expr(out, value),
+                go_expr(out, fallback)
+            )
         }
-        // Go is the one language here with no conditional expression. Turning one into an `if`
-        // statement needs somewhere to put the result, which does not exist inside an argument
-        // list.
+        // Go has no conditional expression; a closure gives the `if` somewhere
+        // to put its result. The branches' shared type keeps a typed context
+        // typed; branches that disagree answer `any`.
         Expr::Ternary {
             condition,
             then,
             otherwise,
         } => {
-            let source = format!(
-                "{} ? {} : {}",
+            let answer = match (static_type(out, then), static_type(out, otherwise)) {
+                (Some(a), Some(b)) if a == b => go_type(&a),
+                _ => "any".to_string(),
+            };
+            format!(
+                "func() {answer} {{ if {} {{ return {} }}; return {} }}()",
                 go_expr(out, condition),
                 go_expr(out, then),
                 go_expr(out, otherwise)
-            );
-            out.carried(&Unsupported {
-                construct: "conditional expression".into(),
-                source: source.clone(),
-                line: 0,
-            });
-            format!("any(nil) /* {MARKER}: {} */", source.replace("*/", "* /"))
+            )
         }
         Expr::Int(v) => v.clone(),
         Expr::Float(v) => v.clone(),
@@ -7682,6 +7867,11 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
                 ts_block(out, stmts);
                 out.close();
                 out.line("}");
+            }
+            Stmt::LocalFunction(f) => {
+                let mut local = (**f).clone();
+                local.exported = false;
+                ts_function(out, &local, false);
             }
             Stmt::BreakWith { label, value } => {
                 let rendered = value.as_ref().map(|v| ts_expr(out, v)).unwrap_or_default();
@@ -8826,6 +9016,14 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
             out.close();
             out.line("}");
         }
+        Stmt::LocalFunction(f) => {
+            let bound = out.name(&f.name);
+            out.line(&format!("var {bound} = new Object() {{"));
+            out.open();
+            java_function(out, f, false);
+            out.close();
+            out.line("};");
+        }
         Stmt::BreakWith { label, value } => {
             let rendered = value
                 .as_ref()
@@ -8928,14 +9126,21 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
         }
         // Java has no tuple and no multiple return, so there is no line to
         // write. Carried whole, the names it binds are at least in the file.
-        Stmt::TupleAssign { source, line, .. } => carry(
-            out,
-            &Unsupported {
-                construct: "multiple assignment".to_string(),
-                source: source.clone(),
-                line: *line,
-            },
-        ),
+        // The value binds once, and the names take its parts by position —
+        // the List a tuple travels as answers get().
+        Stmt::TupleAssign { names, value, .. } => {
+            out.lowering_names += 1;
+            let bound = format!("frTup{}", out.lowering_names);
+            let v = java_expr(out, value);
+            out.line(&format!("var {bound} = {v};"));
+            for (at, name) in names.iter().enumerate() {
+                if name == "_" {
+                    continue;
+                }
+                let named = out.name(name);
+                out.line(&format!("var {named} = {bound}.get({at});"));
+            }
+        }
         Stmt::If {
             condition,
             then,
@@ -9432,15 +9637,13 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
                 java_expr(out, value),
                 java_expr(out, fallback)
             ),
-            false => {
-                let source = format!("{} ?? {}", java_expr(out, value), java_expr(out, fallback));
-                out.carried(&Unsupported {
-                    construct: "?? on a value that cannot be named twice".into(),
-                    source: source.clone(),
-                    line: 0,
-                });
-                format!("null /* {MARKER}: {} */", source.replace("*/", "* /"))
-            }
+            // A value that cannot be named twice goes through Optional,
+            // evaluated once.
+            false => format!(
+                "java.util.Optional.ofNullable({}).orElse({})",
+                java_expr(out, value),
+                java_expr(out, fallback)
+            ),
         },
         Expr::Ternary {
             condition,
@@ -10307,6 +10510,14 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
             out.close();
             out.line("}");
         }
+        Stmt::LocalFunction(f) => {
+            let bound = out.name(&f.name);
+            zig_line(out, &format!("const {bound} = struct {{"));
+            out.open();
+            zig_function(out, f, None);
+            out.close();
+            out.line(&format!("}}.{};", out.name(&f.name)));
+        }
         Stmt::BreakWith { label, value } => {
             let rendered = value.as_ref().map(|v| zig_expr(out, v)).unwrap_or_default();
             let source = format!("break :{label} {rendered}");
@@ -10351,16 +10562,22 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
         }
         // Zig has no exceptions: a failure is a value in the return type. Which error it is
         // belongs to an error set this has no way to name.
+        // A throw with no failure channel stops the program, which is what
+        // the uncaught exception did. The message is the panic's.
         Stmt::Throw(value) => {
-            let rendered = zig_expr(out, value);
-            let source = format!("throw {rendered}");
-            out.carried(&Unsupported {
-                construct: "throw".into(),
-                source: source.clone(),
-                line: 0,
-            });
-            out.pending.push(format!("{MARKER}: {source}"));
-            zig_line(out, "unreachable;");
+            let message = match value {
+                Expr::Str(_) => zig_expr(out, value),
+                Expr::New { callee, args } => args
+                    .iter()
+                    .find(|a| matches!(a, Expr::Str(_)))
+                    .map(|m| zig_expr(out, m))
+                    .unwrap_or_else(|| {
+                        let named = zig_expr(out, callee);
+                        format!("\"{}\"", named.replace('"', ""))
+                    }),
+                other => zig_expr(out, other),
+            };
+            zig_line(out, &format!("@panic({message});"));
         }
         Stmt::Let {
             name,
@@ -10417,14 +10634,26 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
             zig_line(out, &format!("{left} = {right};"));
         }
         // Zig returns one value, so a pair has nothing to come from here.
-        Stmt::TupleAssign { source, line, .. } => carry(
-            out,
-            &Unsupported {
-                construct: "multiple assignment".to_string(),
-                source: source.clone(),
-                line: *line,
-            },
-        ),
+        // The value binds once, and the names index its parts.
+        Stmt::TupleAssign {
+            names,
+            value,
+            declares,
+            ..
+        } => {
+            out.lowering_names += 1;
+            let bound = format!("frTup{}", out.lowering_names);
+            let v = zig_expr(out, value);
+            zig_line(out, &format!("const {bound} = {v};"));
+            let keyword = if *declares { "const " } else { "" };
+            for (at, name) in names.iter().enumerate() {
+                if name == "_" {
+                    continue;
+                }
+                let named = out.name(name);
+                out.line(&format!("{keyword}{named} = {bound}[{at}];"));
+            }
+        }
         Stmt::If {
             condition,
             then,
@@ -11719,6 +11948,12 @@ fn rust_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
         return None;
     }
     Some(match (receiver, name, args) {
+        // The unsigned right shift, spelled through the unsigned view.
+        (None, "ushr", [x, n]) => format!(
+            "((({}) as u64) >> ({})) as i64",
+            rust_expr(out, x),
+            rust_expr(out, n)
+        ),
         // The try-with-returns closure's own channel: a return inside the
         // tried body travels out as `Ok(Some(v))`.
         (None, "__fr_ok_some", []) => "Ok(Some(()))".to_string(),
@@ -11771,6 +12006,8 @@ fn ts_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
         return None;
     }
     Some(match (receiver, name, args) {
+        // The unsigned right shift; the operator here is 32-bit.
+        (None, "ushr", [x, n]) => format!("({}) >>> ({})", ts_expr(out, x), ts_expr(out, n)),
         (None, "slice", [of, from, to]) => format!(
             "{}.slice({}, {})",
             ts_expr(out, of),
@@ -11815,6 +12052,12 @@ fn go_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
         return None;
     }
     Some(match (receiver, name, args) {
+        // The unsigned right shift, spelled through the unsigned view.
+        (None, "ushr", [x, n]) => format!(
+            "int64(uint64({}) >> uint({}))",
+            go_expr(out, x),
+            go_expr(out, n)
+        ),
         (None, "slice", [of, from, to]) => format!(
             "{}[{}:{}]",
             go_expr(out, of),
@@ -11869,6 +12112,10 @@ fn java_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
         return None;
     }
     Some(match (receiver, name, args) {
+        // The unsigned right shift is native here.
+        (None, "ushr", [x, n]) => {
+            format!("({}) >>> ({})", java_expr(out, x), java_expr(out, n))
+        }
         (None, "slice", [of, from, to]) => format!(
             "{}.substring({}, {})",
             java_expr(out, of),
@@ -11921,6 +12168,12 @@ fn zig_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
         return None;
     }
     Some(match (receiver, name, args) {
+        // The unsigned right shift, spelled through the unsigned view.
+        (None, "ushr", [x, n]) => format!(
+            "@as(i64, @bitCast(@as(u64, @bitCast({})) >> @as(u6, @intCast({}))))",
+            zig_expr(out, x),
+            zig_expr(out, n)
+        ),
         (None, "slice", [of, from, to]) => format!(
             "{}[{}..{}]",
             zig_expr(out, of),

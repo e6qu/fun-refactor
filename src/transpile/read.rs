@@ -4718,6 +4718,100 @@ mod go {
 mod java {
     use super::*;
 
+    /// A Java enum: the sum of its constants. A method a constant overrides
+    /// becomes one function switching on the constant's name; the members
+    /// after the `;` cross the way class members do.
+    fn java_enum(cx: &Cx, node: Node<'_>, carried: &mut Vec<Item>) -> Option<Sum> {
+        let name = cx.field_text(node, "name")?;
+        let body = cx.field(node, "body")?;
+        let mut variants = Vec::new();
+        let mut overrides: Vec<(String, String, Function)> = Vec::new();
+        for member in cx.children(body) {
+            match member.kind() {
+                "enum_constant" => {
+                    let constant = cx.field_text(member, "name").or_else(|| {
+                        cx.children(member)
+                            .into_iter()
+                            .find(|c| c.kind() == "identifier")
+                            .map(|c| cx.text(c))
+                    })?;
+                    variants.push(Variant {
+                        doc: doc_above(cx, member, &["/**", "*", "//"]),
+                        name: constant.clone(),
+                        tag: None,
+                        fields: Vec::new(),
+                    });
+                    if let Some(class_body) = cx
+                        .children(member)
+                        .into_iter()
+                        .find(|c| c.kind() == "class_body")
+                    {
+                        for inner in cx.children(class_body) {
+                            if inner.kind() == "method_declaration" {
+                                overrides.push((
+                                    constant.clone(),
+                                    cx.field_text(inner, "name").unwrap_or_default(),
+                                    function(cx, inner),
+                                ));
+                            }
+                        }
+                    }
+                }
+                "enum_body_declarations" => {
+                    for inner in cx.children(member) {
+                        if inner.kind() == "method_declaration" {
+                            carried.push(Item::Function(function(cx, inner)));
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+        // One function per overridden method name, selecting by constant.
+        let mut names: Vec<String> = Vec::new();
+        for (_, method, _) in &overrides {
+            if !names.contains(method) {
+                names.push(method.clone());
+            }
+        }
+        for method in names {
+            let mut arms: Vec<(Vec<Expr>, Vec<Stmt>)> = Vec::new();
+            let mut template: Option<Function> = None;
+            for (constant, named, f) in &overrides {
+                if named != &method {
+                    continue;
+                }
+                template.get_or_insert_with(|| f.clone());
+                arms.push((vec![Expr::Str(constant.clone())], f.body.clone()));
+            }
+            let mut dispatch = template?;
+            dispatch.body = vec![Stmt::Switch {
+                subject: Expr::Name("it".to_string()),
+                arms,
+                default: Vec::new(),
+            }];
+            dispatch.params.insert(
+                0,
+                Param {
+                    name: "it".to_string(),
+                    ty: Some(Type::Named {
+                        name: name.clone(),
+                        args: Vec::new(),
+                    }),
+                    default: None,
+                    kind: ParamKind::Normal,
+                },
+            );
+            carried.push(Item::Function(dispatch));
+        }
+        Some(Sum {
+            doc: doc_above(cx, node, &["/**", "*", "//"]),
+            name,
+            variants,
+            exported: modifier_text(cx, node).contains("public"),
+        })
+    }
+
     pub fn module(cx: &Cx, root: Node<'_>) -> Module {
         let mut module = Module::default();
         // A member a record cannot keep still has to reach the reader.
@@ -4759,6 +4853,14 @@ mod java {
                         _ => {}
                     }
                 }
+                // An enum is a closed choice. Constant bodies override
+                // methods per constant: inheritance said as dispatch, so each
+                // overridden method crosses as one function switching on the
+                // constant's name.
+                "enum_declaration" => match java_enum(cx, child, &mut carried) {
+                    Some(sum) => module.items.push(Item::Sum(sum)),
+                    None => module.items.push(Item::Unsupported(cx.unsupported(child))),
+                },
                 _ => module.items.push(Item::Unsupported(cx.unsupported(child))),
             }
         }
@@ -5339,17 +5441,22 @@ mod java {
                     .into_iter()
                     .filter(|c| c.kind() == "variable_declarator")
                     .collect();
-                // `int a = 1, b = 2;` is two bindings in one statement and the IR has a place
-                // for one. Carrying it whole keeps the source in front of the reader and not
-                // silently dropping the second.
-                match declarators.as_slice() {
-                    [only] => Stmt::Let {
-                        name: cx.field_text(*only, "name").unwrap_or_default(),
+                // `int a = 1, b = 2;` is two bindings in one statement and the
+                // IR holds one per Let: they group.
+                let mutable = !cx.text(node).trim_start().starts_with("final");
+                let lets: Vec<Stmt> = declarators
+                    .iter()
+                    .map(|d| Stmt::Let {
+                        name: cx.field_text(*d, "name").unwrap_or_default(),
                         ty: cx.field(node, "type").map(|t| ty_of(cx, t)),
-                        value: cx.field(*only, "value").map(|v| expr(cx, v)),
-                        mutable: !cx.text(node).trim_start().starts_with("final"),
-                    },
-                    _ => Stmt::Unsupported(cx.unsupported(node)),
+                        value: cx.field(*d, "value").map(|v| expr(cx, v)),
+                        mutable,
+                    })
+                    .collect();
+                match lets.len() {
+                    0 => Stmt::Unsupported(cx.unsupported(node)),
+                    1 => lets.into_iter().next().expect("one"),
+                    _ => Stmt::Block(lets),
                 }
             }
             // One node covers `=` and `+=` alike, and reading them alike turned
@@ -5396,8 +5503,26 @@ mod java {
                 if init.len() > 1 || update.len() > 1 {
                     return Stmt::Unsupported(cx.unsupported(node));
                 }
+                // `for (int i = 0, n = …; …)` declares twice in one clause;
+                // the bindings hoist just before the loop, in their order.
+                let read_init = init.first().map(|i| header_stmt(cx, *i));
+                if let Some(Stmt::Block(lets)) = read_init {
+                    let mut grouped = lets;
+                    grouped.push(Stmt::CountedFor {
+                        init: None,
+                        condition: cx.field(node, "condition").map(|c| condition(cx, c)),
+                        update: update.first().map(|u| Box::new(header_stmt(cx, *u))),
+                        body: cx
+                            .field(node, "body")
+                            .map(|b| branch(cx, b))
+                            .unwrap_or_default(),
+                        source: cx.text(node),
+                        line: cx.line(node),
+                    });
+                    return Stmt::Block(grouped);
+                }
                 Stmt::CountedFor {
-                    init: init.first().map(|i| Box::new(header_stmt(cx, *i))),
+                    init: read_init.map(Box::new),
                     condition: cx.field(node, "condition").map(|c| condition(cx, c)),
                     update: update.first().map(|u| Box::new(header_stmt(cx, *u))),
                     body: cx
@@ -5767,7 +5892,23 @@ mod java {
                 ),
             },
             "binary_expression" => {
-                match super::binary_op(&cx.field_text(node, "operator").unwrap_or_default()) {
+                let operator = cx.field_text(node, "operator").unwrap_or_default();
+                // `>>>` shifts as unsigned bits; every target spells that its
+                // own way, so it settles to a canonical call.
+                if operator.trim() == ">>>" {
+                    return Expr::Call {
+                        callee: Box::new(Expr::Name("ushr".to_string())),
+                        args: vec![
+                            cx.field(node, "left")
+                                .map(|l| expr(cx, l))
+                                .unwrap_or(Expr::Null),
+                            cx.field(node, "right")
+                                .map(|r| expr(cx, r))
+                                .unwrap_or(Expr::Null),
+                        ],
+                    };
+                }
+                match super::binary_op(&operator) {
                     Some(op) => Expr::Binary {
                         op,
                         left: Box::new(
@@ -5979,6 +6120,15 @@ mod zig {
                         None => carried.push(Item::Unsupported(cx.unsupported(child))),
                     }
                 }
+                // `fn F(comptime T: type) type { return struct { … }; }` is a
+                // generic record; the comptime parameters erase, and the struct
+                // takes the function's name.
+                "function_declaration" if returns_type(cx, child) => {
+                    match generic_record(cx, child, &mut carried) {
+                        Some(item) => module.items.push(item),
+                        None => module.items.push(Item::Unsupported(cx.unsupported(child))),
+                    }
+                }
                 "function_declaration" => module.items.push(match function(cx, child) {
                     Some(f) => Item::Function(f),
                     None => Item::Unsupported(cx.unsupported(child)),
@@ -6041,6 +6191,20 @@ mod zig {
                 .insert(at.min(module.items.len()), Item::Record(record));
         }
         module.items.extend(carried);
+        // A called dot literal is a decl-literal call, not a variant build:
+        // settled here by the member's name, before variant attribution can
+        // claim it for a sum that happens to share the name.
+        for item in module.items.iter_mut() {
+            super::each_expr_in_item(item, &mut |e| {
+                if let Expr::Call { callee, .. } = e {
+                    if let Expr::Variant { sum, name, fields } = callee.as_ref() {
+                        if sum.is_empty() && fields.is_empty() {
+                            *callee = Box::new(Expr::Name(name.clone()));
+                        }
+                    }
+                }
+            });
+        }
         settle_builtins(&mut module);
         settle_error_returns(&mut module, &error_sets);
         super::settle_variants(&mut module);
@@ -6222,6 +6386,42 @@ mod zig {
                 .copied();
             let mut body = match body_node {
                 Some(body_node) if is_body(body_node) => body_of(cx, body_node),
+                // `=> X catch |e| handler` tries for the arm's value.
+                Some(body_node) if body_node.kind() == "catch_expression" => {
+                    match catch_pieces(cx, body_node) {
+                        Some((attempted, binding, handler)) => vec![Stmt::Try {
+                            body: vec![Stmt::Expr(attempted)],
+                            catches: vec![Catch {
+                                binding,
+                                ty: None,
+                                body: handler,
+                            }],
+                            finally: Vec::new(),
+                            source: cx.text(body_node),
+                            line: cx.line(body_node),
+                        }],
+                        None => vec![Stmt::Expr(expr(cx, body_node))],
+                    }
+                }
+                // `=> blk: { … break :blk v; }` runs once; a valued break is
+                // the arm's value, which the let-position lowering assigns.
+                Some(body_node) if body_node.kind() == "labeled_type_expression" => {
+                    let inner = cx
+                        .children(body_node)
+                        .into_iter()
+                        .find(|c| c.kind() == "block");
+                    match inner {
+                        Some(inner) => {
+                            let mut stmts = body_of(cx, inner);
+                            stmts.push(Stmt::Break);
+                            vec![Stmt::While {
+                                condition: Expr::Bool(true),
+                                body: stmts,
+                            }]
+                        }
+                        None => vec![Stmt::Unsupported(cx.unsupported(body_node))],
+                    }
+                }
                 // A statement arm as itself; an expression arm as the value it
                 // is, which the let-position lowering then assigns.
                 Some(body_node) => match stmt(cx, body_node) {
@@ -6320,6 +6520,54 @@ mod zig {
             name,
             body,
         })
+    }
+
+    /// Does this function declare that it answers a type?
+    fn returns_type(cx: &Cx, node: Node<'_>) -> bool {
+        // The return type is the last named child before the body block.
+        let parts = cx.children(node);
+        let block_at = parts.iter().position(|c| c.kind() == "block");
+        match block_at {
+            Some(at) if at > 0 => parts[..at]
+                .last()
+                .is_some_and(|c| cx.text(*c).trim() == "type"),
+            _ => false,
+        }
+    }
+
+    /// The struct a type-returning function builds, read as a record named
+    /// after the function.
+    fn generic_record(cx: &Cx, node: Node<'_>, carried: &mut Vec<Item>) -> Option<Item> {
+        let name = cx
+            .children(node)
+            .into_iter()
+            .find(|c| c.kind() == "identifier")
+            .map(|c| cx.text(c))?;
+        let body = cx
+            .children(node)
+            .into_iter()
+            .find(|c| c.kind() == "block")?;
+        // In statement position the return arrives wrapped.
+        let returned = cx
+            .children(body)
+            .into_iter()
+            .filter_map(|c| match c.kind() {
+                "return_expression" => Some(c),
+                "expression_statement" => cx
+                    .children(c)
+                    .into_iter()
+                    .find(|inner| inner.kind() == "return_expression"),
+                _ => None,
+            })
+            .next()?;
+        let built = cx
+            .children(returned)
+            .into_iter()
+            .find(|c| c.kind() == "struct_declaration")?;
+        let exported = cx.text(node).trim_start().starts_with("pub");
+        Some(Item::Record(record(
+            cx, node, name, exported, built, carried,
+        )))
     }
 
     /// Is this declaration `const X = @This();`?
@@ -6548,6 +6796,12 @@ mod zig {
                     Some(field) => record.fields.push(field),
                     None => carried.push(Item::Unsupported(cx.unsupported(member))),
                 },
+                "function_declaration" if returns_type(cx, member) => {
+                    match generic_record(cx, member, carried) {
+                        Some(item) => carried.push(item),
+                        None => carried.push(Item::Unsupported(cx.unsupported(member))),
+                    }
+                }
                 "function_declaration" => match function(cx, member) {
                     Some(mut f) => {
                         f.is_constructor = super::constructs(
@@ -6571,6 +6825,8 @@ mod zig {
                     Some(t) => t,
                     None => Item::Unsupported(cx.unsupported(member)),
                 }),
+                // The binding that names the record itself adds nothing.
+                "variable_declaration" if binds_this(cx, member) => {}
                 // A nested declaration — a type, a constant, an error set —
                 // goes beside the record; the file shares one namespace there.
                 "variable_declaration" if !binds_this(cx, member) => {
@@ -7080,6 +7336,18 @@ mod zig {
                 out.extend(lowered);
                 continue;
             }
+            if let Some(local) = local_function(cx, n) {
+                out.push(local);
+                continue;
+            }
+            if let Some(lowered) = value_if_guard(cx, n) {
+                out.extend(lowered);
+                continue;
+            }
+            if let Some(lowered) = return_if_payload(cx, n) {
+                out.push(lowered);
+                continue;
+            }
             if let Some(switch) = return_switch(cx, n) {
                 out.push(switch);
                 continue;
@@ -7159,54 +7427,10 @@ mod zig {
     /// declare the binding, then a switch whose every arm assigns it. Every writer
     /// already writes that shape, and the Rust writer folds the pair back into a
     /// `match` expression.
-    /// `X catch |e| handler`, with a real handler, lowered to try/catch around
-    /// the statement that holds it: a binding assigns inside the try, a bare
-    /// call runs inside it, a return returns from it.
-    fn catch_lowering(cx: &Cx, node: Node<'_>) -> Option<Vec<Stmt>> {
-        // Find the catch expression this statement is built around.
-        #[derive(Clone)]
-        enum Shape {
-            Bind(String),
-            Run,
-            Return,
-        }
-        let (catch_node, shape) = match node.kind() {
-            "variable_declaration" => {
-                let text = cx.text(node);
-                let declares = text.trim_start().starts_with("var ")
-                    || text.trim_start().starts_with("const ");
-                if !declares {
-                    return None;
-                }
-                let parts = all(node);
-                let value = after(&parts, "=", ";")?;
-                if value.kind() != "catch_expression" {
-                    return None;
-                }
-                let name = parts
-                    .iter()
-                    .find(|c| c.kind() == "identifier")
-                    .map(|c| cx.text(*c))?;
-                (value, Shape::Bind(name))
-            }
-            "expression_statement" => {
-                let inner = cx.children(node).into_iter().next()?;
-                match inner.kind() {
-                    "catch_expression" => (inner, Shape::Run),
-                    // `return X catch handler;`: try to return X; on failure
-                    // the handler answers instead.
-                    "return_expression" => {
-                        let value = cx.children(inner).into_iter().next()?;
-                        if value.kind() != "catch_expression" {
-                            return None;
-                        }
-                        (value, Shape::Return)
-                    }
-                    _ => return None,
-                }
-            }
-            _ => return None,
-        };
+    /// The pieces of `X catch |e| handler`: the attempted value, the error
+    /// binding, and the handler's statements. None for the dismissing forms
+    /// and for anything that does not read whole.
+    fn catch_pieces(cx: &Cx, catch_node: Node<'_>) -> Option<(Expr, Option<String>, Vec<Stmt>)> {
         let parts = cx.children(catch_node);
         let left = parts.first().copied()?;
         // The dismissing forms read as the value; the expression arm has them.
@@ -7247,6 +7471,60 @@ mod zig {
         if matches!(attempted, Expr::Unsupported(_)) {
             return None;
         }
+        Some((attempted, binding, handler))
+    }
+
+    /// `X catch |e| handler`, with a real handler, lowered to try/catch around
+    /// the statement that holds it: a binding assigns inside the try, a bare
+    /// call runs inside it, a return returns from it.
+    fn catch_lowering(cx: &Cx, node: Node<'_>) -> Option<Vec<Stmt>> {
+        // Find the catch expression this statement is built around.
+        #[derive(Clone)]
+        enum Shape {
+            Bind(String),
+            Run,
+            Return,
+        }
+        let (catch_node, shape) = match node.kind() {
+            "variable_declaration" => {
+                let text = cx.text(node);
+                let declares = text.trim_start().starts_with("var ")
+                    || text.trim_start().starts_with("const ");
+                let parts = all(node);
+                let value = after(&parts, "=", ";")?;
+                if value.kind() != "catch_expression" {
+                    return None;
+                }
+                let name = parts
+                    .iter()
+                    .find(|c| c.kind() == "identifier")
+                    .map(|c| cx.text(*c))?;
+                match (declares, name.as_str()) {
+                    (true, _) => (value, Shape::Bind(name)),
+                    // `_ = X catch handler;` runs the try for its effect.
+                    (false, "_") => (value, Shape::Run),
+                    _ => return None,
+                }
+            }
+            "expression_statement" => {
+                let inner = cx.children(node).into_iter().next()?;
+                match inner.kind() {
+                    "catch_expression" => (inner, Shape::Run),
+                    // `return X catch handler;`: try to return X; on failure
+                    // the handler answers instead.
+                    "return_expression" => {
+                        let value = cx.children(inner).into_iter().next()?;
+                        if value.kind() != "catch_expression" {
+                            return None;
+                        }
+                        (value, Shape::Return)
+                    }
+                    _ => return None,
+                }
+            }
+            _ => return None,
+        };
+        let (attempted, binding, handler) = catch_pieces(cx, catch_node)?;
         let source = cx.text(node);
         let line = cx.line(node);
         let catches = vec![Catch {
@@ -7384,23 +7662,30 @@ mod zig {
             else {
                 return None;
             };
-            let assign_tail = |body: &mut Vec<Stmt>| {
+            fn assign_tail(body: &mut Vec<Stmt>, name: &str) {
                 if let Some(last) = body.last_mut() {
-                    if let Stmt::Expr(_) = last {
-                        let Stmt::Expr(e) = std::mem::replace(last, Stmt::Break) else {
-                            unreachable!("just matched");
-                        };
-                        *last = Stmt::Assign {
-                            target: Expr::Name(name.clone()),
-                            value: e,
-                        };
+                    match last {
+                        Stmt::Expr(_) => {
+                            let Stmt::Expr(e) = std::mem::replace(last, Stmt::Break) else {
+                                unreachable!("just matched");
+                            };
+                            *last = Stmt::Assign {
+                                target: Expr::Name(name.to_string()),
+                                value: e,
+                            };
+                        }
+                        // A try's own value sits at the end of its body.
+                        Stmt::Try { body: tried, .. } => assign_tail(tried, name),
+                        _ => {}
                     }
                 }
-            };
-            for (_, body) in arms.iter_mut() {
-                assign_tail(body);
             }
-            assign_tail(&mut default);
+            for (_, body) in arms.iter_mut() {
+                assign_tail(body, &name);
+                settle_any_labeled_breaks(body, &name);
+            }
+            assign_tail(&mut default, &name);
+            settle_any_labeled_breaks(&mut default, &name);
             return Some(vec![
                 declared,
                 Stmt::Switch {
@@ -7416,6 +7701,342 @@ mod zig {
     /// `const x = while (it) |v| { … break e; … } else fallback;`: the loop
     /// produces a value by breaking with one, or the fallback on exhaustion.
     /// The lowering binds the fallback first and each valued break assigns.
+    /// `const a, const b = value;`: the value binds once, and the names take
+    /// its parts by position. The value may be a call, a labeled block, a
+    /// switch, or an optional guarded by `orelse` control flow.
+    fn tuple_let(cx: &Cx, node: Node<'_>) -> Option<Vec<Stmt>> {
+        let parts = all(node);
+        let assign_at = parts.iter().position(|c| cx.text(*c) == "=")?;
+        let names: Vec<String> = parts[..assign_at]
+            .iter()
+            .filter(|c| c.kind() == "identifier")
+            .map(|c| cx.text(*c))
+            .collect();
+        if names.len() < 2 {
+            return None;
+        }
+        let value = after(&parts, "=", ";")?;
+        let tmp = "fr_tup".to_string();
+        let mut lowered: Vec<Stmt> = match value.kind() {
+            // A labeled block runs once and breaks with the tuple.
+            "labeled_type_expression" => {
+                let inner = cx
+                    .children(value)
+                    .into_iter()
+                    .find(|c| c.kind() == "block")?;
+                let mut stmts = body_of(cx, inner);
+                stmts.push(Stmt::Break);
+                let mut once = vec![
+                    Stmt::Let {
+                        name: tmp.clone(),
+                        ty: None,
+                        value: None,
+                        mutable: true,
+                    },
+                    Stmt::While {
+                        condition: Expr::Bool(true),
+                        body: stmts,
+                    },
+                ];
+                settle_any_labeled_breaks(&mut once, &tmp);
+                once
+            }
+            // A switch selects the tuple; each arm assigns it.
+            "switch_expression" => {
+                let Stmt::Switch {
+                    subject,
+                    mut arms,
+                    mut default,
+                } = switch_stmt(cx, value)?
+                else {
+                    return None;
+                };
+                let retail = |body: &mut Vec<Stmt>| {
+                    if let Some(Stmt::Expr(_)) = body.last() {
+                        let Some(Stmt::Expr(e)) = body.pop() else {
+                            unreachable!("just matched");
+                        };
+                        body.push(Stmt::Assign {
+                            target: Expr::Name(tmp.clone()),
+                            value: e,
+                        });
+                    }
+                };
+                for (_, body) in arms.iter_mut() {
+                    retail(body);
+                    settle_any_labeled_breaks(body, &tmp);
+                }
+                retail(&mut default);
+                settle_any_labeled_breaks(&mut default, &tmp);
+                vec![
+                    Stmt::Let {
+                        name: tmp.clone(),
+                        ty: None,
+                        value: None,
+                        mutable: true,
+                    },
+                    Stmt::Switch {
+                        subject,
+                        arms,
+                        default,
+                    },
+                ]
+            }
+            // Anything else — a call, an optional with an `orelse` guard —
+            // binds directly; the guard settles like any other.
+            _ => {
+                let read = expr(cx, value);
+                if matches!(read, Expr::Unsupported(_)) {
+                    return None;
+                }
+                let mut guards = 0usize;
+                vec![settle_orelse_controls(
+                    Stmt::Let {
+                        name: tmp.clone(),
+                        ty: None,
+                        value: Some(read),
+                        mutable: false,
+                    },
+                    &mut guards,
+                )]
+            }
+        };
+        if lowered.iter().any(has_unsupported_stmt) {
+            return None;
+        }
+        lowered.push(Stmt::TupleAssign {
+            names,
+            value: Expr::Name(tmp),
+            declares: true,
+            source: cx.text(node),
+            line: cx.line(node),
+        });
+        Some(lowered)
+    }
+
+    /// `return if (opt) |v| e else { … };`: test, bind, and return on the
+    /// present path; the else block speaks for itself.
+    fn return_if_payload(cx: &Cx, node: Node<'_>) -> Option<Stmt> {
+        if node.kind() != "expression_statement" {
+            return None;
+        }
+        let returned = cx.children(node).into_iter().next()?;
+        if returned.kind() != "return_expression" {
+            return None;
+        }
+        let value = cx.children(returned).into_iter().next()?;
+        if value.kind() != "if_expression" {
+            return None;
+        }
+        let children = cx.children(value);
+        let payload = children.iter().find(|c| c.kind() == "payload")?;
+        let binding = cx
+            .children(*payload)
+            .into_iter()
+            .find(|c| c.kind() == "identifier")
+            .map(|c| cx.text(c))?;
+        let condition = expr(cx, *children.first()?);
+        if matches!(condition, Expr::Unsupported(_)) {
+            return None;
+        }
+        let then_node = children
+            .iter()
+            .skip(1)
+            .find(|c| !matches!(c.kind(), "payload" | "else_clause" | "comment"))?;
+        let then = match is_body(*then_node) {
+            true => body_of(cx, *then_node),
+            false => vec![Stmt::Return(Some(expr(cx, *then_node)))],
+        };
+        let otherwise = children
+            .iter()
+            .find(|c| c.kind() == "else_clause")
+            .and_then(|e| {
+                cx.children(*e)
+                    .into_iter()
+                    .find(|c| !matches!(c.kind(), "payload" | "comment"))
+            })
+            .map(|b| match is_body(b) {
+                true => body_of(cx, b),
+                false => vec![Stmt::Return(Some(expr(cx, b)))],
+            })
+            .unwrap_or_default();
+        let lowered = Stmt::IfPresent {
+            binding,
+            value: condition,
+            then,
+            otherwise,
+        };
+        (!has_unsupported_stmt(&lowered)).then_some(lowered)
+    }
+
+    /// `const x = if (opt) |v| e else fallback orelse control;`: bind through
+    /// an if-present, the else settles into the binding, and the trailing
+    /// orelse guards on null.
+    fn value_if_guard(cx: &Cx, node: Node<'_>) -> Option<Vec<Stmt>> {
+        if node.kind() != "variable_declaration" {
+            return None;
+        }
+        let text = cx.text(node);
+        if !(text.trim_start().starts_with("var ") || text.trim_start().starts_with("const ")) {
+            return None;
+        }
+        let parts = all(node);
+        let value = after(&parts, "=", ";")?;
+        // The optional trailing `orelse control` wraps the if.
+        let (if_node, control) = match value.kind() {
+            "if_expression" => (value, None),
+            "binary_expression" if all(value).iter().any(|c| c.kind() == "orelse") => {
+                let operands: Vec<Node> = cx
+                    .children(value)
+                    .into_iter()
+                    .filter(|c| c.kind() != "orelse")
+                    .collect();
+                let [left, right] = operands.as_slice() else {
+                    return None;
+                };
+                if left.kind() != "if_expression" {
+                    return None;
+                }
+                let control = match right.kind() {
+                    "break_expression" => Stmt::Break,
+                    "continue_expression" => Stmt::Continue,
+                    "return_expression" => {
+                        Stmt::Return(cx.children(*right).first().map(|v| expr(cx, *v)))
+                    }
+                    _ => return None,
+                };
+                (*left, Some(control))
+            }
+            _ => return None,
+        };
+        let children = cx.children(if_node);
+        let payload = children.iter().find(|c| c.kind() == "payload")?;
+        let binding = cx
+            .children(*payload)
+            .into_iter()
+            .find(|c| c.kind() == "identifier")
+            .map(|c| cx.text(c))?;
+        let name = parts
+            .iter()
+            .find(|c| c.kind() == "identifier")
+            .map(|c| cx.text(*c))?;
+        let condition = expr(cx, *children.first()?);
+        if matches!(condition, Expr::Unsupported(_)) {
+            return None;
+        }
+        let assign = |value: Expr| Stmt::Assign {
+            target: Expr::Name(name.clone()),
+            value,
+        };
+        let then_node = children
+            .iter()
+            .skip(1)
+            .find(|c| !matches!(c.kind(), "payload" | "else_clause" | "comment"))?;
+        let then = match is_body(*then_node) {
+            true => return None,
+            false => vec![assign(expr(cx, *then_node))],
+        };
+        let otherwise = children
+            .iter()
+            .find(|c| c.kind() == "else_clause")
+            .and_then(|e| {
+                cx.children(*e)
+                    .into_iter()
+                    .find(|c| !matches!(c.kind(), "payload" | "comment"))
+            })
+            .map(|b| match b.kind() {
+                // A labeled block runs once; its valued breaks settle into
+                // the binding.
+                "labeled_type_expression" => {
+                    let inner = cx.children(b).into_iter().find(|c| c.kind() == "block");
+                    match inner {
+                        Some(inner) => {
+                            let mut stmts = body_of(cx, inner);
+                            stmts.push(Stmt::Break);
+                            let mut once = vec![Stmt::While {
+                                condition: Expr::Bool(true),
+                                body: stmts,
+                            }];
+                            settle_any_labeled_breaks(&mut once, &name);
+                            once
+                        }
+                        None => vec![Stmt::Unsupported(cx.unsupported(b))],
+                    }
+                }
+                _ if is_body(b) => body_of(cx, b),
+                _ => vec![assign(expr(cx, b))],
+            })
+            .unwrap_or_default();
+        let mut lowered = vec![
+            Stmt::Let {
+                name: name.clone(),
+                ty: None,
+                value: None,
+                mutable: true,
+            },
+            Stmt::IfPresent {
+                binding,
+                value: condition,
+                then,
+                otherwise,
+            },
+        ];
+        if let Some(control) = control {
+            lowered.push(Stmt::If {
+                condition: Expr::Binary {
+                    op: BinaryOp::Eq,
+                    left: Box::new(Expr::Name(name)),
+                    right: Box::new(Expr::Null),
+                },
+                then: vec![control],
+                otherwise: Vec::new(),
+            });
+        }
+        if lowered.iter().any(has_unsupported_stmt) {
+            return None;
+        }
+        Some(lowered)
+    }
+
+    /// `const f = struct { fn f(…) … }.f;` declares a local function; the
+    /// binding's name is the function's.
+    fn local_function(cx: &Cx, node: Node<'_>) -> Option<Stmt> {
+        if node.kind() != "variable_declaration" {
+            return None;
+        }
+        let text = cx.text(node);
+        if !text.trim_start().starts_with("const ") {
+            return None;
+        }
+        let parts = all(node);
+        let value = after(&parts, "=", ";")?;
+        if value.kind() != "field_expression" {
+            return None;
+        }
+        let pieces = cx.children(value);
+        let [container, member] = pieces.as_slice() else {
+            return None;
+        };
+        if container.kind() != "struct_declaration" {
+            return None;
+        }
+        let wanted = cx.text(*member);
+        let declared = cx
+            .children(*container)
+            .into_iter()
+            .find(|c| c.kind() == "function_declaration")?;
+        let mut f = function(cx, declared)?;
+        if f.name != wanted {
+            return None;
+        }
+        let bound = parts
+            .iter()
+            .find(|c| c.kind() == "identifier")
+            .map(|c| cx.text(*c))?;
+        f.name = bound;
+        Some(Stmt::LocalFunction(Box::new(f)))
+    }
+
     /// `const x = v orelse { …; return; };`: bind the optional, and on null
     /// run the block, which leaves the scope.
     fn orelse_block_guard(cx: &Cx, node: Node<'_>) -> Option<Vec<Stmt>> {
@@ -7568,7 +8189,112 @@ mod zig {
         })
     }
 
-    /// `std.debug.assert(c)`, read as the check it is.
+    /// A switch in expression position, said as the ternary chain it selects:
+    /// equality tests per label, comparisons per range, the else last.
+    fn switch_value_expr(cx: &Cx, node: Node<'_>) -> Option<Expr> {
+        let children = cx.children(node);
+        let subject = expr(cx, *children.first()?);
+        if matches!(subject, Expr::Unsupported(_)) {
+            return None;
+        }
+        let mut arms: Vec<(Expr, Expr)> = Vec::new();
+        let mut fallback: Option<Expr> = None;
+        for case in children.iter().skip(1) {
+            if case.kind() == "comment" {
+                continue;
+            }
+            if case.kind() != "switch_case" {
+                return None;
+            }
+            let parts = all(*case);
+            let arrow = parts.iter().position(|c| c.kind() == "=>")?;
+            if parts[arrow + 1..].iter().any(|c| c.kind() == "payload") {
+                return None;
+            }
+            let value_node = parts[arrow + 1..].iter().find(|c| c.is_named())?;
+            let value = expr(cx, *value_node);
+            if matches!(value, Expr::Unsupported(_)) {
+                return None;
+            }
+            if parts[..arrow].iter().any(|c| c.kind() == "else") {
+                fallback = Some(value);
+                continue;
+            }
+            // The labels: literals, variant tags, and `a...b` ranges.
+            let mut test: Option<Expr> = None;
+            let mut at = 0;
+            let labels: Vec<&Node> = parts[..arrow].iter().collect();
+            while at < labels.len() {
+                let this = labels[at];
+                if !this.is_named() {
+                    at += 1;
+                    continue;
+                }
+                let ranged = labels
+                    .get(at + 1)
+                    .is_some_and(|c| c.kind() == "..." || c.kind() == "..");
+                let one = if ranged {
+                    let low = label_value(cx, *this)?;
+                    let high = label_value(cx, **labels.get(at + 2)?)?;
+                    at += 3;
+                    Expr::Binary {
+                        op: BinaryOp::And,
+                        left: Box::new(Expr::Binary {
+                            op: BinaryOp::Ge,
+                            left: Box::new(subject.clone()),
+                            right: Box::new(low),
+                        }),
+                        right: Box::new(Expr::Binary {
+                            op: BinaryOp::Le,
+                            left: Box::new(subject.clone()),
+                            right: Box::new(high),
+                        }),
+                    }
+                } else {
+                    let label = label_value(cx, *this)?;
+                    at += 1;
+                    Expr::Binary {
+                        op: BinaryOp::Eq,
+                        left: Box::new(subject.clone()),
+                        right: Box::new(label),
+                    }
+                };
+                test = Some(match test {
+                    None => one,
+                    Some(prior) => Expr::Binary {
+                        op: BinaryOp::Or,
+                        left: Box::new(prior),
+                        right: Box::new(one),
+                    },
+                });
+            }
+            arms.push((test?, value));
+        }
+        let mut answer = fallback?;
+        for (test, value) in arms.into_iter().rev() {
+            answer = Expr::Ternary {
+                condition: Box::new(test),
+                then: Box::new(value),
+                otherwise: Box::new(answer),
+            };
+        }
+        Some(answer)
+    }
+
+    /// One switch label as the value it compares against.
+    fn label_value(cx: &Cx, node: Node<'_>) -> Option<Expr> {
+        match node.kind() {
+            "integer" | "float" | "string" | "char_literal" | "character" => Some(expr(cx, node)),
+            "field_expression" => dot_literal(cx, node).map(Expr::Str),
+            "error_type" => match expr(cx, node) {
+                Expr::Field { name, .. } => Some(Expr::Str(name)),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+
+    /// `std.debug.assert(c)`, read as the check it is.    /// `std.debug.assert(c)`, read as the check it is.
     ///
     /// A condition the reader cannot take whole leaves the call as an ordinary
     /// expression, which the enclosing statement then carries.
@@ -7603,84 +8329,199 @@ mod zig {
     }
 
     /// The statements inside a `block_expression`, or the one statement without braces.
+    /// Rewrite every labeled break under these statements, whatever its label:
+    /// a valued one assigns `target` and breaks; a bare one breaks. Used where
+    /// an arm-local label has no other consumer.
+    fn settle_any_labeled_breaks(stmts: &mut Vec<Stmt>, target: &str) {
+        settle_labeled_breaks(stmts, "*", Some(target));
+    }
+
     /// Rewrite every `break :label v` under these statements: into `target = v`
     /// followed by `break` when a target is given, a plain `break` otherwise.
     /// Other labels stay for their own blocks to consume.
     fn settle_labeled_breaks(stmts: &mut Vec<Stmt>, label: &str, target: Option<&str>) {
-        for stmt in stmts.iter_mut() {
-            let matches_label = matches!(
-                stmt,
-                Stmt::BreakWith { label: l, .. } if l == label
-            );
-            if matches_label {
-                let Stmt::BreakWith { value, .. } = std::mem::replace(stmt, Stmt::Break) else {
-                    unreachable!("just matched");
-                };
-                if let (Some(target), Some(value)) = (target, value) {
-                    *stmt = Stmt::Block(vec![
-                        Stmt::Assign {
-                            target: Expr::Name(target.to_string()),
-                            value: *value,
-                        },
-                        Stmt::Break,
-                    ]);
-                }
-                continue;
-            }
-            match stmt {
+        /// Does anything under here break with this label?
+        fn breaks_with(stmts: &[Stmt], label: &str) -> bool {
+            stmts.iter().any(|stmt| match stmt {
+                Stmt::BreakWith { label: l, .. } => l == label || label == "*",
                 Stmt::If {
                     then, otherwise, ..
                 }
                 | Stmt::IfPresent {
                     then, otherwise, ..
-                } => {
-                    settle_labeled_breaks(then, label, target);
-                    settle_labeled_breaks(otherwise, label, target);
-                }
-                // A nested loop keeps its own `break` meaning, but a labeled
-                // break through it still refers to the outer block, and the
-                // loop lowering cannot say "leave two levels". It stays for
-                // the writer to carry, loudly.
-                Stmt::While { .. }
-                | Stmt::WhilePresent { .. }
-                | Stmt::ForEach { .. }
-                | Stmt::ForEachIndexed { .. }
-                | Stmt::CountedFor { .. } => {}
-                Stmt::Block(body) | Stmt::Defer(body) | Stmt::ErrDefer(body) => {
-                    settle_labeled_breaks(body, label, target);
-                }
+                } => breaks_with(then, label) || breaks_with(otherwise, label),
+                Stmt::While { body, .. }
+                | Stmt::WhilePresent { body, .. }
+                | Stmt::ForEach { body, .. }
+                | Stmt::ForEachIndexed { body, .. }
+                | Stmt::Block(body)
+                | Stmt::Defer(body)
+                | Stmt::ErrDefer(body) => breaks_with(body, label),
                 Stmt::Try {
                     body,
                     catches,
                     finally,
                     ..
                 } => {
-                    settle_labeled_breaks(body, label, target);
-                    for catch in catches.iter_mut() {
-                        settle_labeled_breaks(&mut catch.body, label, target);
-                    }
-                    settle_labeled_breaks(finally, label, target);
+                    breaks_with(body, label)
+                        || catches.iter().any(|c| breaks_with(&c.body, label))
+                        || breaks_with(finally, label)
                 }
-                // A `break` inside a switch arm would leave the switch where
-                // the target writes one natively, not the lowered loop. A
-                // labeled break under a switch stays for the writer to carry.
-                Stmt::Switch { .. } => {}
-                _ => {}
+                Stmt::Switch { arms, default, .. } => {
+                    arms.iter().any(|(_, b)| breaks_with(b, label)) || breaks_with(default, label)
+                }
+                _ => false,
+            })
+        }
+        /// Rewrite matches; `flag` is raised beside each so an enclosing loop
+        /// can be left too.
+        fn rewrite(stmts: &mut Vec<Stmt>, label: &str, target: Option<&str>, flag: Option<&str>) {
+            for stmt in stmts.iter_mut() {
+                let matches_label = matches!(
+                    stmt,
+                    Stmt::BreakWith { label: l, .. } if l == label || label == "*"
+                );
+                if matches_label {
+                    let Stmt::BreakWith { value, .. } = std::mem::replace(stmt, Stmt::Break) else {
+                        unreachable!("just matched");
+                    };
+                    let mut routed = Vec::new();
+                    if let (Some(target), Some(value)) = (target, value) {
+                        routed.push(Stmt::Assign {
+                            target: Expr::Name(target.to_string()),
+                            value: *value,
+                        });
+                    }
+                    if let Some(flag) = flag {
+                        routed.push(Stmt::Assign {
+                            target: Expr::Name(flag.to_string()),
+                            value: Expr::Bool(true),
+                        });
+                    }
+                    if !routed.is_empty() {
+                        routed.push(Stmt::Break);
+                        *stmt = Stmt::Block(routed);
+                    }
+                    continue;
+                }
+                match stmt {
+                    Stmt::If {
+                        then, otherwise, ..
+                    }
+                    | Stmt::IfPresent {
+                        then, otherwise, ..
+                    } => {
+                        rewrite(then, label, target, flag);
+                        rewrite(otherwise, label, target, flag);
+                    }
+                    // A nested loop's own `break` only leaves the loop, so the
+                    // labeled break raises a flag the caller tests after it.
+                    Stmt::While { .. }
+                    | Stmt::WhilePresent { .. }
+                    | Stmt::ForEach { .. }
+                    | Stmt::ForEachIndexed { .. }
+                    | Stmt::CountedFor { .. } => {}
+                    Stmt::Block(body) | Stmt::Defer(body) | Stmt::ErrDefer(body) => {
+                        rewrite(body, label, target, flag);
+                    }
+                    Stmt::Try {
+                        body,
+                        catches,
+                        finally,
+                        ..
+                    } => {
+                        rewrite(body, label, target, flag);
+                        for catch in catches.iter_mut() {
+                            rewrite(&mut catch.body, label, target, flag);
+                        }
+                        rewrite(finally, label, target, flag);
+                    }
+                    // A `break` inside a switch arm would leave the switch where
+                    // the target writes one natively; it stays for the writer.
+                    Stmt::Switch { .. } => {}
+                    _ => {}
+                }
+            }
+            // Loops whose bodies break with the label: the break becomes a
+            // flag raise, and the flag leaves the enclosing scope after.
+            let mut at = 0;
+            while at < stmts.len() {
+                let looped = matches!(
+                    &stmts[at],
+                    Stmt::While { body, .. }
+                    | Stmt::WhilePresent { body, .. }
+                    | Stmt::ForEach { body, .. }
+                    | Stmt::ForEachIndexed { body, .. }
+                        if breaks_with(body, label)
+                ) || matches!(
+                    &stmts[at],
+                    Stmt::CountedFor { body, .. } if breaks_with(body, label)
+                );
+                if looped {
+                    let flag_name = format!("fr_broke_{label}");
+                    let body = match &mut stmts[at] {
+                        Stmt::While { body, .. }
+                        | Stmt::WhilePresent { body, .. }
+                        | Stmt::ForEach { body, .. }
+                        | Stmt::ForEachIndexed { body, .. }
+                        | Stmt::CountedFor { body, .. } => body,
+                        _ => unreachable!("just matched"),
+                    };
+                    rewrite(body, label, target, Some(&flag_name));
+                    stmts.insert(
+                        at,
+                        Stmt::Let {
+                            name: flag_name.clone(),
+                            ty: None,
+                            value: Some(Expr::Bool(false)),
+                            mutable: true,
+                        },
+                    );
+                    stmts.insert(
+                        at + 2,
+                        Stmt::If {
+                            condition: Expr::Name(flag_name),
+                            then: vec![Stmt::Break],
+                            otherwise: Vec::new(),
+                        },
+                    );
+                    at += 3;
+                    continue;
+                }
+                at += 1;
             }
         }
+        rewrite(stmts, label, target, None);
     }
 
     fn body_of(cx: &Cx, node: Node<'_>) -> Vec<Stmt> {
         match node.kind() {
             // A braced body arrives wrapped, and an `else { … }` arrives wrapped twice. The
             // grammar treats every block as labelable whether or not it carries a label.
-            "block_expression" | "labeled_statement" => cx
-                .children(node)
-                .into_iter()
-                .find(|c| c.kind() == "block")
-                .map(|b| block(cx, b))
-                .unwrap_or_default(),
             "block" => block(cx, node),
+            // A labeled body — `if (c) blk: { … break :blk; … }` — runs once,
+            // and each `break :blk` leaves it early: the run-once loop.
+            "block_expression" | "labeled_statement" | "labeled_type_expression" => {
+                let label = cx
+                    .children(node)
+                    .iter()
+                    .find(|c| c.kind() == "block_label")
+                    .and_then(|l| cx.children(*l).first().map(|id| cx.text(*id)));
+                let inner = cx.children(node).into_iter().find(|c| c.kind() == "block");
+                match (label, inner) {
+                    (Some(label), Some(inner)) => {
+                        let mut stmts = block(cx, inner);
+                        settle_labeled_breaks(&mut stmts, &label, None);
+                        stmts.push(Stmt::Break);
+                        vec![Stmt::While {
+                            condition: Expr::Bool(true),
+                            body: stmts,
+                        }]
+                    }
+                    (None, Some(inner)) => block(cx, inner),
+                    _ => vec![keep_whole(cx, node, stmt(cx, node))],
+                }
+            }
             _ => vec![keep_whole(cx, node, stmt(cx, node))],
         }
     }
@@ -7746,7 +8587,9 @@ mod zig {
                 // Reading the first and dropping the rest kept `const a = pair;` and
                 // lost `b` without a word.
                 if parts.iter().any(|c| c.kind() == ",") {
-                    return Stmt::Unsupported(cx.unsupported(node));
+                    return tuple_let(cx, node)
+                        .map(Stmt::Block)
+                        .unwrap_or_else(|| Stmt::Unsupported(cx.unsupported(node)));
                 }
                 let Some(target) = parts.iter().find(|c| c.is_named()).copied() else {
                     return Stmt::Unsupported(cx.unsupported(node));
@@ -7965,8 +8808,7 @@ mod zig {
                         };
                     }
                     let else_binds = else_payload.is_some();
-                    if let ([binding], false, false) = (bindings.as_slice(), by_pointer, else_binds)
-                    {
+                    if let ([binding], false) = (bindings.as_slice(), else_binds) {
                         return Stmt::IfPresent {
                             binding: cx.text(*binding),
                             value: children.first().map(|c| expr(cx, *c)).unwrap_or(Expr::Null),
@@ -8252,9 +9094,28 @@ mod zig {
                             otherwise: Box::new(expr(cx, *otherwise)),
                         }
                     }
+                    // `if (c) t else null`: the null is a keyword, not a named
+                    // child, so the else operand is on the side.
+                    [condition, then]
+                        if !is_body(*then)
+                            && all(node)
+                                .iter()
+                                .any(|c| !c.is_named() && cx.text(*c) == "null") =>
+                    {
+                        Expr::Ternary {
+                            condition: Box::new(expr(cx, *condition)),
+                            then: Box::new(expr(cx, *then)),
+                            otherwise: Box::new(Expr::Null),
+                        }
+                    }
                     _ => Expr::Unsupported(cx.unsupported(node)),
                 }
             }
+            // A switch used as a value selects by comparison.
+            "switch_expression" => match switch_value_expr(cx, node) {
+                Some(selected) => selected,
+                None => Expr::Unsupported(cx.unsupported(node)),
+            },
             // `comptime e` evaluates there at compile time; here it is the value.
             "comptime_expression" => match cx.children(node).first() {
                 Some(inner) => expr(cx, *inner),
@@ -8384,6 +9245,13 @@ mod zig {
                 // `a orelse return`/`break`/`continue` guards instead: the
                 // fallback is control flow, encoded for the statement builder
                 // to unfold into a binding and an if.
+                if operator == "++" && operands.len() == 2 {
+                    return Expr::Binary {
+                        op: BinaryOp::Add,
+                        left: Box::new(expr(cx, operands[0])),
+                        right: Box::new(expr(cx, operands[1])),
+                    };
+                }
                 if operator == "orelse" && operands.len() == 2 {
                     let fallback = match operands[1].kind() {
                         "return_expression" => {
@@ -8512,10 +9380,53 @@ mod zig {
             "index_expression" => {
                 let parts = cx.children(node);
                 match parts.as_slice() {
-                    [of, index] if index.kind() != "range_expression" => Expr::Index {
-                        of: Box::new(expr(cx, *of)),
-                        index: Box::new(expr(cx, *index)),
-                    },
+                    [of, index]
+                        if index.kind() != "range_expression"
+                            && !(index.kind() == "binary_expression"
+                                && cx
+                                    .children(*index)
+                                    .first()
+                                    .is_some_and(|c| c.kind() == "range_expression")) =>
+                    {
+                        Expr::Index {
+                            of: Box::new(expr(cx, *of)),
+                            index: Box::new(expr(cx, *index)),
+                        }
+                    }
+                    [of, index]
+                        if index.kind() == "binary_expression"
+                            && cx
+                                .children(*index)
+                                .first()
+                                .is_some_and(|c| c.kind() == "range_expression") =>
+                    {
+                        let of_expr = expr(cx, *of);
+                        let pieces = cx.children(*index);
+                        let [range, rhs] = pieces.as_slice() else {
+                            return Expr::Unsupported(cx.unsupported(node));
+                        };
+                        let op = all(*index)
+                            .iter()
+                            .find(|c| !c.is_named())
+                            .map(|c| cx.text(*c))
+                            .and_then(|op| super::binary_op(&op));
+                        let bounds = cx.children(*range);
+                        let ([from, to], Some(op)) = (bounds.as_slice(), op) else {
+                            return Expr::Unsupported(cx.unsupported(node));
+                        };
+                        Expr::Call {
+                            callee: Box::new(Expr::Name("slice".to_string())),
+                            args: vec![
+                                of_expr,
+                                expr(cx, *from),
+                                Expr::Binary {
+                                    op,
+                                    left: Box::new(expr(cx, *to)),
+                                    right: Box::new(expr(cx, *rhs)),
+                                },
+                            ],
+                        }
+                    }
                     // `s[a .. b]` is the canonical slice; an open end runs to
                     // the length.
                     [of, range] if range.kind() == "range_expression" => {
@@ -10165,11 +11076,46 @@ mod typescript {
             // read as the ordinary call and field shapes over this name. That
             // canonical form is one every writer spells its own way.
             "identifier" | "property_identifier" | "this" | "super" => Expr::Name(cx.text(node)),
-            // `a?.b` is not `a.b`. Neither Python, Rust nor Go has optional chaining. Writing
-            // the plain access drops the null check silently, the translation would compile,
-            // run, and throw where the original returned undefined. Carried instead.
+            // `a?.b` is not `a.b`: the null check must survive. Where the
+            // object is a name or a path — evaluating it twice is reading it
+            // twice — the conditional spells the check in every target. An
+            // object with effects stays carried.
             "member_expression" if has_optional_chain(node) => {
-                Expr::Unsupported(cx.unsupported(node))
+                let object = cx.field(node, "object").map(|o| expr(cx, o));
+                let name = cx.field_text(node, "property").unwrap_or_default();
+                fn path_only(e: &Expr) -> bool {
+                    match e {
+                        Expr::Name(_) => true,
+                        Expr::Field { of, .. } => path_only(of),
+                        Expr::Ternary {
+                            condition,
+                            then,
+                            otherwise,
+                        } => {
+                            // A nested `?.` already lowered to a conditional
+                            // over a path.
+                            path_only(condition) || (path_only(then) && path_only(otherwise))
+                        }
+                        Expr::Null => true,
+                        Expr::Binary { left, right, .. } => path_only(left) && path_only(right),
+                        _ => false,
+                    }
+                }
+                match object {
+                    Some(object) if path_only(&object) => Expr::Ternary {
+                        condition: Box::new(Expr::Binary {
+                            op: BinaryOp::Eq,
+                            left: Box::new(object.clone()),
+                            right: Box::new(Expr::Null),
+                        }),
+                        then: Box::new(Expr::Null),
+                        otherwise: Box::new(Expr::Field {
+                            of: Box::new(object),
+                            name,
+                        }),
+                    },
+                    _ => Expr::Unsupported(cx.unsupported(node)),
+                }
             }
             "member_expression" => Expr::Field {
                 of: Box::new(
@@ -10419,6 +11365,7 @@ fn each_expr_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Expr)) {
                     each_expr(value, visit);
                 }
             }
+            Stmt::LocalFunction(f) => each_expr_in_stmts(&mut f.body, visit),
             Stmt::Let { value, .. } => {
                 if let Some(value) = value {
                     each_expr(value, visit);
@@ -10541,6 +11488,7 @@ fn each_stmt_in_stmts(stmts: &mut [Stmt], visit: &mut dyn FnMut(&mut Stmt)) {
         visit(stmt);
         match stmt {
             Stmt::BreakWith { .. } => {}
+            Stmt::LocalFunction(f) => each_stmt_in_stmts(&mut f.body, visit),
             Stmt::If {
                 then, otherwise, ..
             }
@@ -11402,6 +12350,7 @@ fn binary_op(text: &str) -> Option<BinaryOp> {
         ">=" => BinaryOp::Ge,
         "&&" | "and" => BinaryOp::And,
         "||" | "or" => BinaryOp::Or,
+        "^" => BinaryOp::Xor,
         _ => return None,
     })
 }
