@@ -1536,6 +1536,8 @@ struct Out {
     /// here because a `return Err(...)` sits inside nested blocks that know nothing
     /// of the signature. Each needs the ok side's zero to return beside the error.
     go_result: Option<Type>,
+    /// Whether the statements being written sit inside a `func TestX(t *testing.T)`.
+    in_test: bool,
     /// How many error bindings the Go body being written has introduced.
     ///
     /// `:=` needs a new name on its left, and a body with two propagated calls
@@ -1612,6 +1614,7 @@ impl Out {
             fields: BTreeMap::new(),
             receiver_fields: BTreeMap::new(),
             go_result: None,
+            in_test: false,
             go_errors: 0,
             result_returns: BTreeMap::new(),
             sums: std::collections::BTreeSet::new(),
@@ -3774,16 +3777,12 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Cast { ty, value } => {
             format!("({} as {})", rust_expr(out, value), rust_expr(out, ty))
         }
+        // Rust asks this of a type-erased value through `Any`; the downcast
+        // probe is the language's own spelling of the question.
         Expr::InstanceOf { value, ty } => {
             let rendered = rust_expr(out, value);
-            let named = rust_expr(out, ty);
-            let source = format!("{rendered} instanceof {named}");
-            out.carried(&Unsupported {
-                construct: "instanceof".into(),
-                source: source.clone(),
-                line: 0,
-            });
-            format!("todo!(/* {MARKER}: {} */)", source.replace("*/", "* /"))
+            let named = rust_path(out, ty);
+            format!("(&{rendered} as &dyn std::any::Any).is::<{named}>()")
         }
         // A named argument passes by position: the value crosses, and the
         // name is a fact about the source's parameter list, noted once.
@@ -5523,7 +5522,9 @@ fn go(out: &mut Out, module: &Module) {
                 ));
                 out.open();
                 out.line("_ = t");
+                out.in_test = true;
                 go_block(out, body, None);
+                out.in_test = false;
                 out.close();
                 out.line("}");
                 out.fidelity.functions += 1;
@@ -5912,6 +5913,45 @@ fn go_error_value(out: &mut Out, e: &Expr) -> String {
 /// checked and returned. Only inside a function whose declared return is the shared
 /// Result. Anywhere else `Ok` is a name like any other, and the statement falls
 /// through to the ordinary arms.
+/// `try f(x);` and `const v = try f(x);` outside the settled result idiom:
+/// the call's error checks and leaves the way the context leaves — `t.Fatal`
+/// in a test, the enclosing error return where there is one, a panic
+/// otherwise.
+fn go_propagate_stmt(out: &mut Out, stmt: &Stmt) -> bool {
+    let (bound, inner) = match stmt {
+        Stmt::Expr(Expr::Propagate(inner)) => (None, inner),
+        Stmt::Let {
+            name,
+            value: Some(Expr::Propagate(inner)),
+            ..
+        } => (Some(name.clone()), inner),
+        _ => return false,
+    };
+    // The settled idiom already writes these where the function returns an
+    // error; this covers the contexts it cannot.
+    if out.go_result.is_some() {
+        return false;
+    }
+    let call = go_expr(out, inner);
+    let err = out.fresh_go_error();
+    match &bound {
+        Some(name) => {
+            let target = out.name(name);
+            out.line(&format!("{target}, {err} := {call}"));
+        }
+        None => out.line(&format!("{err} := {call}")),
+    }
+    out.line(&format!("if {err} != nil {{"));
+    out.open();
+    match out.in_test {
+        true => out.line(&format!("t.Fatal({err})")),
+        false => out.line(&format!("panic({err})")),
+    }
+    out.close();
+    out.line("}");
+    true
+}
+
 fn go_result_stmt(out: &mut Out, stmt: &Stmt) -> bool {
     let Some(ok_ty) = out.go_result.clone() else {
         return false;
@@ -6082,6 +6122,9 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
     }
     for (at, stmt) in body.iter().enumerate() {
         if go_result_stmt(out, stmt) {
+            continue;
+        }
+        if go_propagate_stmt(out, stmt) {
             continue;
         }
         match stmt {
@@ -6875,16 +6918,12 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Cast { ty, value } => {
             format!("{}({})", go_expr(out, ty), go_expr(out, value))
         }
+        // Go asks this with a type assertion; the two-value form as a closure
+        // makes it an expression.
         Expr::InstanceOf { value, ty } => {
             let rendered = go_expr(out, value);
             let named = go_expr(out, ty);
-            let source = format!("{rendered} instanceof {named}");
-            out.carried(&Unsupported {
-                construct: "instanceof".into(),
-                source: source.clone(),
-                line: 0,
-            });
-            format!("false /* {MARKER}: {} */", source.replace("*/", "* /"))
+            format!("func() bool {{ _, frOk := any({rendered}).({named}); return frOk }}()")
         }
         // A named argument passes by position: the value crosses, and the
         // name is a fact about the source's parameter list, noted once.
@@ -6914,16 +6953,12 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
             // block could follow: `if x == Go{}` reads the brace as the body.
             format!("({}{{{rendered}}})", variant_spelling(out, sum, name))
         }
-        // Outside a return Go has no way to say several-values-as-one, and the return
-        // is handled where returns are written. What lands here is carried, visibly.
-        // An element may carry a marker of its own, and comments do not nest.
+        // Outside a return Go has no several-values-as-one; the slice of the
+        // elements is what it can hold of the shape, noted once.
         Expr::Tuple(items) => {
-            let rendered = joined(items, |i| go_expr(out, i)).replace("*/", "* /");
-            out.fidelity.carried_verbatim += 1;
-            out.fidelity
-                .notes
-                .push("outside a return: tuple carried over unchanged".to_string());
-            format!("any(nil) /* {MARKER}: tuple ({rendered}) */")
+            out.note_once("a tuple outside a return travels as a slice here.");
+            let rendered: Vec<String> = items.iter().map(|i| go_expr(out, i)).collect();
+            format!("[]any{{{}}}", rendered.join(", "))
         }
         Expr::ListLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| go_expr(out, i)).collect();
@@ -9431,13 +9466,12 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
         // Java has no tuple value. `List.of` would erase the types and claim a
         // collection the source never had, so the tuple is carried, visibly.
         // An element may carry a marker of its own, and comments do not nest.
+        // No tuple here; the list of the elements is what Java can hold of
+        // the shape, noted once.
         Expr::Tuple(items) => {
-            let rendered = joined(items, |i| java_expr(out, i)).replace("*/", "* /");
-            out.fidelity.carried_verbatim += 1;
-            out.fidelity
-                .notes
-                .push("no tuple here: tuple carried over unchanged".to_string());
-            format!("null /* {MARKER}: tuple ({rendered}) */")
+            out.note_once("a tuple travels as a List here.");
+            let rendered: Vec<String> = items.iter().map(|i| java_expr(out, i)).collect();
+            format!("java.util.List.of({})", rendered.join(", "))
         }
         Expr::ListLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| java_expr(out, i)).collect();
@@ -10733,6 +10767,15 @@ fn zig_carry(out: &mut Out, construct: &str, source: String) -> String {
     "undefined".to_string()
 }
 
+/// A map key that is not a string literal, flattened to a field-name spelling.
+fn zig_expr_immut_placeholder(e: &Expr) -> String {
+    match e {
+        Expr::Int(v) => v.clone(),
+        Expr::Name(n) => n.clone(),
+        _ => "key".to_string(),
+    }
+}
+
 fn zig_expr(out: &mut Out, e: &Expr) -> String {
     match e {
         // Zig names its fields with a leading dot, in any order.
@@ -10978,13 +11021,28 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             let rendered: Vec<String> = items.iter().map(|i| zig_expr(out, i)).collect();
             format!("[_]{element}{{ {} }}", rendered.join(", "))
         }
-        // Zig's maps are built at run time through an allocator; there is no literal.
+        // Zig's runtime maps go through an allocator, but a literal of known
+        // keys is an anonymous struct: `.{ .k = v }`, keys quoted where they
+        // must be.
         Expr::MapLit(entries) => {
-            let rendered: Vec<String> = entries
-                .iter()
-                .map(|(k, v)| format!("{}: {}", zig_expr(out, k), zig_expr(out, v)))
-                .collect();
-            zig_carry(out, "map literal", format!("{{ {} }}", rendered.join(", ")))
+            let field = |k: &Expr| match k {
+                Expr::Str(text)
+                    if !text.is_empty()
+                        && text.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+                        && !text.starts_with(|c: char| c.is_ascii_digit()) =>
+                {
+                    format!(".{text}")
+                }
+                Expr::Str(text) => format!(".@\"{}\"", text.replace('"', "\\\"")),
+                other => format!(".@\"{}\"", zig_expr_immut_placeholder(other)),
+            };
+            let mut rendered: Vec<String> = Vec::new();
+            for (k, v) in entries {
+                let key = field(k);
+                let value = zig_expr(out, v);
+                rendered.push(format!("{key} = {value}"));
+            }
+            format!(".{{ {} }}", rendered.join(", "))
         }
         Expr::Template(parts) => {
             // A template with nothing in it but text is a string, and saying otherwise
@@ -11036,11 +11094,16 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Cast { ty, value } => {
             format!("@as({}, {})", zig_expr(out, ty), zig_expr(out, value))
         }
+        // Zig types are compile-time facts; asking a value's type compares
+        // at comptime, which is as close as the language comes to the
+        // runtime question, noted once.
         Expr::InstanceOf { value, ty } => {
+            out.note_once(
+                "an `instanceof` compares types at compile time here: Zig has no runtime type test.",
+            );
             let rendered = zig_expr(out, value);
             let named = zig_expr(out, ty);
-            zig_carry(out, "instanceof", format!("{rendered} instanceof {named}"));
-            "false".to_string()
+            format!("@TypeOf({rendered}) == {named}")
         }
         // Zig removed `async` in 0.11. The defined lowering is blocking: the
         // suspension point runs to completion in place, noted once so the

@@ -8348,6 +8348,29 @@ mod zig {
                     _ => Expr::Unsupported(cx.unsupported(node)),
                 }
             }
+            // The grammar reads `!x` in value position as an error-union
+            // type; with one operand it is the negation it looks like.
+            "error_union_type" => {
+                let named: Vec<Node> = cx.children(node);
+                let bang = all(node).first().map(|c| c.kind() == "!").unwrap_or(false);
+                match (named.as_slice(), bang) {
+                    ([operand], true) => Expr::Unary {
+                        op: UnaryOp::Not,
+                        operand: Box::new(expr(cx, *operand)),
+                    },
+                    _ => Expr::Unsupported(cx.unsupported(node)),
+                }
+            }
+            // `?T` in value position: the type it wraps, said plainly.
+            "optional_type" => match cx.children(node).first() {
+                Some(inner) => expr(cx, *inner),
+                None => Expr::Unsupported(cx.unsupported(node)),
+            },
+            // A parenthesised expression is its inside.
+            "parenthesized_expression" => match cx.children(node).first() {
+                Some(inner) => expr(cx, *inner),
+                None => Expr::Unsupported(cx.unsupported(node)),
+            },
             // `p.*` reads the value the pointer holds; targets without
             // pointers hold the value itself.
             "dereference_expression" => match cx.children(node).first() {
@@ -8504,10 +8527,20 @@ mod zig {
                     .map(|a| cx.children(*a))
                     .unwrap_or_default();
                 match (name.as_str(), args.as_slice()) {
-                    ("@as" | "@intCast" | "@floatCast" | "@truncate", [ty, value]) => Expr::Cast {
-                        ty: Box::new(expr(cx, *ty)),
-                        value: Box::new(expr(cx, *value)),
-                    },
+                    ("@as" | "@intCast" | "@floatCast" | "@truncate", [ty, value]) => {
+                        let ty = expr(cx, *ty);
+                        let value = expr(cx, *value);
+                        match ty {
+                            // A type spelling with no expression form: the
+                            // value stands alone, its type re-asserted by the
+                            // context that already knows it.
+                            Expr::Unsupported(_) => value,
+                            ty => Expr::Cast {
+                                ty: Box::new(ty),
+                                value: Box::new(value),
+                            },
+                        }
+                    }
                     ("@min" | "@max", _) => Expr::Call {
                         callee: Box::new(Expr::Name(name.trim_start_matches('@').to_string())),
                         args: args.iter().map(|a| expr(cx, *a)).collect(),
