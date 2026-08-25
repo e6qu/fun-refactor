@@ -26,9 +26,11 @@ fn gos_inline_marker_asserts_the_type_a_bare_nil_has_not() {
                   const merged = a ?? b;\n    console.log(merged);\n}\n";
     let (_tmp, root) = workspace(&[("pick.ts", source)]);
     let plan = transpile::plan(&root.join("pick.ts"), Language::Go).expect("a draft");
+    // The coalesce lowers to a closure that binds the value once and tests
+    // it; nothing carries, and no bare `nil` binding remains either.
     assert!(
-        plan.output.contains("merged := any(nil) /*"),
-        "`x := nil` is not Go; the stand-in asserts a type.\n{}",
+        plan.output.contains("merged := func() any {"),
+        "the coalesce binds through a closure:\n{}",
         plan.output
     );
     assert!(
@@ -40,10 +42,11 @@ fn gos_inline_marker_asserts_the_type_a_bare_nil_has_not() {
 
 #[test]
 fn rusts_todo_marker_doubles_the_braces_the_source_carried() {
-    // A Zig `catch` block carries verbatim, braces included, and those braces ride
-    // inside `todo!`'s format string.
-    let source = "fn caught() usize {\n    const n = parseLen(\"\") catch |err| {\n        \
-                  return 0;\n    };\n    return n;\n}\n";
+    // A builtin nothing translates carries verbatim, braces included, and
+    // those braces ride inside `todo!`'s format string.
+    let source =
+        "fn caught() usize {\n    const n = @cmpxchgWeak(usize, p, .{ .a = 1 }, v, o, o);\n    \
+                  return n;\n}\n";
     let (_tmp, root) = workspace(&[("caught.zig", source)]);
     let plan = transpile::plan(&root.join("caught.zig"), Language::Rust).expect("a draft");
     assert!(
@@ -54,21 +57,22 @@ fn rusts_todo_marker_doubles_the_braces_the_source_carried() {
 }
 
 #[test]
-fn a_constant_whose_value_cannot_translate_carries_whole_in_rust() {
-    // `error{A} || B` is a composed error set with no counterpart; written as a
-    // `const` with a todo body it would stop the build at compile-time evaluation.
+fn a_composed_error_set_keeps_its_spelling_as_text() {
+    // `error{A} || B` composes error sets, which no target's error model can
+    // hold; the alias keeps the set's spelling as a string, which every
+    // target compiles and nothing carries.
     let source = "const LoadError = error{Unsupported} || SomethingElse;\n\n\
                   pub fn answer() i64 {\n    return 7;\n}\n";
     let (_tmp, root) = workspace(&[("sets.zig", source)]);
     let plan = transpile::plan(&root.join("sets.zig"), Language::Rust).expect("a draft");
     assert!(
-        plan.output.contains(transpile::MARKER) && plan.output.contains("// const LoadError ="),
-        "the constant carries whole as a comment, name and all.\n{}",
+        plan.output.contains("error{Unsupported} || SomethingElse"),
+        "the set's own spelling is the value:\n{}",
         plan.output
     );
     assert!(
-        !plan.output.contains("const LOAD_ERROR"),
-        "no const declaration with an unevaluable body remains.\n{}",
+        !plan.output.contains(transpile::MARKER),
+        "nothing carries:\n{}",
         plan.output
     );
 }

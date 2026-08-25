@@ -382,13 +382,13 @@ fn go(expr: Expr) -> Expr {
             } else {
                 Expr::Null
             };
-            return Expr::Call {
+            Expr::Call {
                 callee: Box::new(Expr::Field {
                     of: Box::new(receiver),
                     name: method.to_string(),
                 }),
                 args,
-            };
+            }
         }
         ["fmt", "Println"] => {
             let Expr::Call { args, .. } = expr else {
@@ -595,13 +595,28 @@ fn java(expr: Expr) -> Expr {
 /// or `Sprintf`. A chain with no literal stays as written, since `+` on two unknowns
 /// may be arithmetic.
 fn fold_concat(expr: &Expr) -> Option<Expr> {
+    /// Does any part of this `+` chain say string?
+    fn stringy(expr: &Expr) -> bool {
+        match expr {
+            Expr::Str(_) | Expr::Template(_) => true,
+            Expr::Binary {
+                op: BinaryOp::Add,
+                left,
+                right,
+            } => stringy(left) || stringy(right),
+            _ => false,
+        }
+    }
+    // A subtree with no string in it is arithmetic the source runs first:
+    // `1 + 2 + "x"` prints `3x`, so the numeric prefix stays one leaf and
+    // one interpolation instead of flattening into digits.
     fn leaves<'a>(expr: &'a Expr, out: &mut Vec<&'a Expr>) {
         match expr {
             Expr::Binary {
                 op: BinaryOp::Add,
                 left,
                 right,
-            } => {
+            } if stringy(expr) => {
                 leaves(left, out);
                 leaves(right, out);
             }
@@ -950,6 +965,18 @@ fn collect_names(e: &Expr, out: &mut Vec<String>) {
 /// the six writers spell it natively, and the other three lower it back. A module
 /// that mixes idioms is its own worst reader.
 fn settle_result_idiom(module: &mut Module) {
+    // A declared error enum's variants are failure names, and a name is a
+    // message: `Err(ParseError::Empty)` throws "Empty", the same lowering the
+    // error sets take. The enum declaration itself stays for the code that
+    // names it elsewhere.
+    let declared_sums: Vec<String> = module
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Sum(s) => Some(s.name.clone()),
+            _ => None,
+        })
+        .collect();
     for item in &mut module.items {
         let functions: Vec<&mut Function> = match item {
             Item::Function(f) => vec![f],
@@ -963,17 +990,30 @@ fn settle_result_idiom(module: &mut Module) {
             if name != "Result" || args.len() != 2 {
                 continue;
             }
-            // Only a message-shaped failure side: a typed error enum is a real type
-            // the target has to hear about, and stays as written.
-            if !matches!(args[1], Type::String) && !error_name(&args[1]) {
-                continue;
-            }
+            // Whatever names the failure side, the failure is the channel:
+            // the canonical model carries its message, and a typed error's
+            // variants dissolve into the names they throw. Preserving a
+            // foreign error type here left half-settled signatures no target
+            // could compile.
             let ok = args[0].clone();
             f.returns = match ok {
                 Type::Unit => None,
                 other => Some(other),
             };
             settle_result_statements(&mut f.body);
+        }
+    }
+    // A throw of a qualified failure name throws the name: the canonical
+    // failure is its message. After the Ok/Err settling, which is what makes
+    // the throws.
+    for item in module.items.iter_mut() {
+        let functions: Vec<&mut Function> = match item {
+            Item::Function(f) => vec![f],
+            Item::Record(r) => r.methods.iter_mut().collect(),
+            _ => continue,
+        };
+        for f in functions {
+            settle_thrown_names(&mut f.body, &declared_sums);
         }
     }
 }
@@ -983,7 +1023,33 @@ fn error_name(ty: &Type) -> bool {
     matches!(ty, Type::Named { name, args } if args.is_empty() && name.contains("error"))
 }
 
-fn settle_result_statements(body: &mut Vec<Stmt>) {
+/// `throw ParseError.Empty` throws "Empty": the qualified failure name of a
+/// declared set dissolves into the message it is everywhere else.
+fn settle_thrown_names(body: &mut [Stmt], declared_sums: &[String]) {
+    for stmt in body.iter_mut() {
+        for inner in substatements(stmt) {
+            settle_thrown_names(inner, declared_sums);
+        }
+        if let Stmt::Throw(value) = stmt {
+            let named = match value {
+                Expr::Field { of, name } if matches!(&**of, Expr::Name(n) if declared_sums.contains(n)) => {
+                    Some(name.clone())
+                }
+                Expr::Variant { sum, name, fields }
+                    if fields.is_empty() && declared_sums.contains(sum) =>
+                {
+                    Some(name.clone())
+                }
+                _ => None,
+            };
+            if let Some(name) = named {
+                *value = Expr::Str(name);
+            }
+        }
+    }
+}
+
+fn settle_result_statements(body: &mut [Stmt]) {
     for stmt in body.iter_mut() {
         for inner in substatements(stmt) {
             settle_result_statements(inner);
@@ -1008,6 +1074,8 @@ fn settle_result_statements(body: &mut Vec<Stmt>) {
                         Expr::Field { of, name } if matches!(&*of, Expr::Name(n) if n == "error") => {
                             Expr::Str(name)
                         }
+                        // `Err(ParseError::Empty)`: the variant names the failure.
+                        Expr::Variant { name, fields, .. } if fields.is_empty() => Expr::Str(name),
                         other => unwrap_str_call(other),
                     };
                     *stmt = Stmt::Throw(payload);
@@ -1058,7 +1126,7 @@ fn settle_exception_classes(module: &mut Module) {
             && !declared.iter().any(|d| d == name)
     };
 
-    fn walk(body: &mut Vec<Stmt>, builtin: &dyn Fn(&str) -> bool) {
+    fn walk(body: &mut [Stmt], builtin: &dyn Fn(&str) -> bool) {
         for stmt in body.iter_mut() {
             for inner in substatements(stmt) {
                 walk(inner, builtin);
@@ -1136,7 +1204,7 @@ fn go_module(module: &mut Module) {
     }
 }
 
-fn settle_go_returns(body: &mut Vec<Stmt>) {
+fn settle_go_returns(body: &mut [Stmt]) {
     for stmt in body.iter_mut() {
         for inner in substatements(stmt) {
             settle_go_returns(inner);
@@ -1176,7 +1244,7 @@ fn go_error_message(e: Expr) -> Expr {
 }
 
 /// `x = append(x, v)`, said the way every other list grows: a method call.
-fn settle_go_appends(body: &mut Vec<Stmt>) {
+fn settle_go_appends(body: &mut [Stmt]) {
     for stmt in body.iter_mut() {
         for inner in substatements(stmt) {
             settle_go_appends(inner);
@@ -1286,7 +1354,7 @@ fn settle_go_checks(body: &mut Vec<Stmt>) {
 }
 
 /// `err.Error()` inside a catch is the message read the canonical way: `str(err)`.
-fn rewrite_error_reads(body: &mut Vec<Stmt>, err: &str) {
+fn rewrite_error_reads(body: &mut [Stmt], err: &str) {
     fn in_expr(e: &mut Expr, err: &str) {
         let fix = |e: &mut Expr| in_expr(e, err);
         match e {
@@ -1422,7 +1490,7 @@ fn strip_lowering_helpers(module: &mut Module) {
             }
         }
     }
-    fn walk_stmts(body: &mut Vec<Stmt>) {
+    fn walk_stmts(body: &mut [Stmt]) {
         for stmt in body.iter_mut() {
             for inner in substatements(stmt) {
                 walk_stmts(inner);
@@ -1456,7 +1524,7 @@ fn zig_exprs(expr: Expr) -> Expr {
     // fields.
     match expr {
         Expr::Variant { sum, name, fields } if sum.is_empty() && fields.is_empty() => {
-            return Expr::Str(name);
+            Expr::Str(name)
         }
         // The rewrite runs bottom-up, so a dot-literal callee arrives already
         // settled into its tag string: `.fromPath(a)` is `"fromPath"(a)` by
@@ -1469,20 +1537,18 @@ fn zig_exprs(expr: Expr) -> Expr {
                     args,
                 });
             }
-            return zig_exprs_tail(Expr::Call { callee, args });
+            zig_exprs_tail(Expr::Call { callee, args })
         }
         Expr::Variant { sum, name, fields } if sum.is_empty() => {
-            return Expr::MapLit(vec![(Expr::Str(name), single_variant_value(fields))]);
+            Expr::MapLit(vec![(Expr::Str(name), single_variant_value(fields))])
         }
-        Expr::RecordLit { ty, fields } if ty.is_empty() => {
-            return Expr::MapLit(
-                fields
-                    .into_iter()
-                    .map(|(name, value)| (Expr::Str(name), value))
-                    .collect(),
-            );
-        }
-        other => return zig_exprs_tail(other),
+        Expr::RecordLit { ty, fields } if ty.is_empty() => Expr::MapLit(
+            fields
+                .into_iter()
+                .map(|(name, value)| (Expr::Str(name), value))
+                .collect(),
+        ),
+        other => zig_exprs_tail(other),
     }
 }
 
@@ -1658,7 +1724,7 @@ fn substatements_ref(stmt: &Stmt) -> Vec<&Vec<Stmt>> {
     }
 }
 
-fn rewrite_java_lists(body: &mut Vec<Stmt>, lists: &[String]) {
+fn rewrite_java_lists(body: &mut [Stmt], lists: &[String]) {
     fn empty_construction(e: &Expr) -> bool {
         matches!(e, Expr::New { callee, args } | Expr::Call { callee, args }
             if args.is_empty()
@@ -1855,7 +1921,7 @@ fn observe_appends(body: &[Stmt], name: &str, observed: &mut Option<Type>, settl
     }
 }
 
-fn retype_list(body: &mut Vec<Stmt>, name: &str, element: Type) {
+fn retype_list(body: &mut [Stmt], name: &str, element: Type) {
     for stmt in body.iter_mut() {
         for inner in substatements(stmt) {
             retype_list(inner, name, element.clone());
@@ -1876,7 +1942,7 @@ fn retype_list(body: &mut Vec<Stmt>, name: &str, element: Type) {
 /// `.empty` initializes an empty list, `append` takes an allocator no other language
 /// has a slot for, and the elements live behind `.items`. The canonical list has a
 /// literal, a two-place append, and is its own elements.
-fn zig_lists(body: &mut Vec<Stmt>) {
+fn zig_lists(body: &mut [Stmt]) {
     let mut lists: Vec<String> = Vec::new();
     collect_zig_lists(body, &mut lists);
     if lists.is_empty() {
@@ -1906,7 +1972,7 @@ fn collect_zig_lists(body: &[Stmt], lists: &mut Vec<String>) {
     }
 }
 
-fn rewrite_zig_lists(body: &mut Vec<Stmt>, lists: &[String]) {
+fn rewrite_zig_lists(body: &mut [Stmt], lists: &[String]) {
     fn element_of(ty: &Option<Type>) -> Type {
         match ty {
             Some(Type::List(inner)) => (**inner).clone(),

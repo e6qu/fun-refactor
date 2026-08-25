@@ -24,16 +24,18 @@ const FETCH_GO: &str = "package main\n\nimport \"fmt\"\n\n\
     \treturn len(url) * 10, nil\n}\n";
 
 #[test]
-fn a_go_multiple_return_keeps_both_values_in_typescript() {
+fn a_go_error_pair_becomes_typescripts_own_throw() {
+    // `(int, error)` is Go's word for a function that can fail; TypeScript's
+    // is a throw. The value side is the return type and the failure flies.
     let tmp = tempfile::tempdir().unwrap();
     let out = translated(tmp.path(), "fetch.go", FETCH_GO, Language::TypeScript);
     assert!(
-        out.contains("): [number, error]"),
-        "the result type crosses as a tuple type.\n{out}"
+        out.contains("fetch(url: string): number {"),
+        "the value side is the return type.\n{out}"
     );
     assert!(
-        out.contains("return [0, fmt.Errorf(\"empty\")];"),
-        "the failure payload survives:\n{out}"
+        out.contains("throw new Error(`empty`);"),
+        "the failure payload survives as the thrown message:\n{out}"
     );
     assert!(
         !out.contains("return;"),
@@ -42,35 +44,36 @@ fn a_go_multiple_return_keeps_both_values_in_typescript() {
 }
 
 #[test]
-fn a_go_multiple_return_is_a_rust_tuple() {
+fn a_go_error_pair_is_a_rust_result() {
     let tmp = tempfile::tempdir().unwrap();
     let out = translated(tmp.path(), "fetch.go", FETCH_GO, Language::Rust);
     assert!(
-        out.contains("-> (i64, error)"),
-        "the result type is a tuple there too.\n{out}"
+        out.contains("-> Result<i64, String>"),
+        "the pair is the Result it means.\n{out}"
     );
     assert!(
-        out.contains("return (0, fmt.Errorf(\"empty\"));"),
-        "the values stay paired:\n{out}"
+        out.contains("return Err(\"empty\".to_string());"),
+        "the failure crosses as the Err it is:\n{out}"
     );
 }
 
 #[test]
-fn a_writer_with_no_tuple_says_so_instead_of_dropping_it() {
+fn a_go_error_pair_throws_in_java() {
     let tmp = tempfile::tempdir().unwrap();
     let path = tmp.path().join("fetch.go");
     std::fs::write(&path, FETCH_GO).unwrap();
     let out_path = tmp.path().join("Fetch.java");
     let plan = transpile::plan_to(&path, Language::Java, Some(&out_path), false).unwrap();
     assert!(
-        plan.output.contains("fun-refactor: not translated: tuple"),
-        "Java carries the tuple visibly:\n{}",
+        plan.output
+            .contains("throw new RuntimeException(\"empty\");"),
+        "the failure flies:\n{}",
         plan.output
     );
     assert!(
-        plan.fidelity.notes.iter().any(|n| n.contains("tuple")),
-        "and the fidelity report names it: {:?}",
-        plan.fidelity.notes
+        !plan.output.contains(transpile::MARKER),
+        "nothing carries:\n{}",
+        plan.output
     );
 }
 

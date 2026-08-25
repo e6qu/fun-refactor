@@ -49,13 +49,17 @@ fn an_assigned_ternary_branches_the_assignment() {
 }
 
 #[test]
-fn a_ternary_inside_an_argument_list_still_carries() {
+fn a_ternary_inside_an_argument_list_runs_in_a_closure() {
+    // There is no statement to unfold it into, so a closure gives the `if`
+    // somewhere to put its result, right in the argument list.
     let source = "def send(flag: bool) -> int:\n    return post(1 if flag else 2)\n";
     let (_tmp, root) = workspace(&[("c.py", source)]);
     let plan = transpile::plan(&root.join("c.py"), Language::Go).expect("a draft");
     assert!(
-        plan.output.contains(transpile::MARKER),
-        "there is no statement to unfold it into:\n{}",
+        plan.output
+            .contains("func() int { if flag { return 1 }; return 2 }()"),
+        "the closure carries the branch into the argument:\n{}",
         plan.output
     );
+    assert!(!plan.output.contains(transpile::MARKER), "{}", plan.output);
 }

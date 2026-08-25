@@ -39,21 +39,23 @@ fn the_everyday_forms_cross() {
 }
 
 #[test]
-fn a_dot_literal_qualifies_with_the_declared_type() {
+fn a_dot_literal_settles_into_the_empty_list_it_is() {
+    // `var list: std.ArrayList(u8) = .empty;` is an empty growable list, and
+    // the whole idiom settles: the binding is a typed empty array.
     let out = to_typescript(FORMS_ZIG);
     assert!(
-        out.contains(".empty;")
-            && !out.contains("not translated: variable_declaration from line 5"),
-        "`.empty` reads as a member of the annotation's type.\n{out}"
+        out.contains("let list: number[] = [];"),
+        "`.empty` reads all the way to the empty list.\n{out}"
     );
 }
 
 #[test]
-fn a_failed_initializer_keeps_its_binding() {
+fn a_source_location_is_its_line() {
+    // `@src()` describes a place; the line is the part every target can hold.
     let out = to_typescript(FORMS_ZIG);
     assert!(
-        out.contains("const src: any = null /* fun-refactor: not translated: @src() */;"),
-        "the name stays declared as `any`, so strict TypeScript accepts it.\n{out}"
+        out.contains("const src = \"line 12\";"),
+        "the location crosses as its line.\n{out}"
     );
 }
 

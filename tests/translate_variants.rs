@@ -49,13 +49,15 @@ fn rust_variants_reach_every_target_as_constructions() {
 }
 
 #[test]
-fn a_path_naming_no_sum_of_the_module_still_carries() {
+fn vec_new_is_the_empty_list_it_builds() {
+    // `Vec::new()` used to carry as a path call; it is the empty list, and
+    // the annotation keeps the element type where the target wants one.
     let source = "pub fn build() -> Vec<i64> {\n    let mut items = Vec::new();\n    \
         items.push(1);\n    items\n}\n";
     let out = translated(source, "build.rs", Language::Python);
     assert!(
-        out.contains("items = None") && out.contains("Vec::new"),
-        "the binding stays and the call is carried, never called as a marker:\n{out}"
+        out.contains("items: list[int] = []"),
+        "the binding is the empty list, typed:\n{out}"
     );
     assert!(!out.contains("None()"), "a marker must not run:\n{out}");
 }

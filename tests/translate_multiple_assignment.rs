@@ -91,12 +91,14 @@ fn a_python_swap_crosses_the_other_way() {
 }
 
 #[test]
-fn java_carries_the_line_whole_instead_of_dropping_the_names() {
+fn java_binds_the_value_once_and_takes_its_parts() {
+    // Java has no tuple statement; the value binds once and the names take
+    // its parts by position, which is how the List a tuple travels as answers.
     let tmp = tempfile::tempdir().expect("a temporary directory");
     let out = translated(tmp.path(), "pair.go", PAIR_GO, Language::Java);
     assert!(
-        out.contains(MARKER) && out.contains("a, b := Pair(3)"),
-        "Java has no tuple, and says so with the line in front of the reader.\n{out}"
+        out.contains("var frTup1 = ") && out.contains("var a = frTup1.get(0);"),
+        "the names take the parts by position.\n{out}"
     );
 }
 

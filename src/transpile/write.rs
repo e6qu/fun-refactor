@@ -172,7 +172,7 @@ fn with_failure_idiom(f: &Function, throwing: &std::collections::BTreeSet<String
         name: "Result".to_string(),
         args: vec![out.returns.take().unwrap_or(Type::Unit), Type::String],
     });
-    fn wrap(body: &mut Vec<Stmt>) {
+    fn wrap(body: &mut [Stmt]) {
         for stmt in body.iter_mut() {
             for inner in sub_bodies_mut(stmt) {
                 wrap(inner);
@@ -252,11 +252,13 @@ fn extract_failing_calls(
                 } else {
                     hoist(inner, throwing, counter, lifted, false);
                 }
-                // A propagation over anything but the failing call itself is
-                // vacuous once the call is hoisted: `try (f(x) + 1)` fails only at
-                // `f`, and `f` is bound above by now.
-                let direct = matches!(inner.as_ref(), Expr::Call { callee, .. }
-                    if matches!(&**callee, Expr::Name(n) if throwing.contains(n.as_str())));
+                // A propagation over anything but a call is vacuous once the
+                // calls inside are hoisted: `try (f(x) + 1)` fails only at `f`,
+                // and `f` is bound above by now. A call keeps its propagation
+                // whether or not the callee is known here — a foreign callee's
+                // failure is still the source's claim, and dropping the `try`
+                // would silence it.
+                let direct = matches!(inner.as_ref(), Expr::Call { .. } | Expr::New { .. });
                 if !direct {
                     let unwrapped = std::mem::replace(inner.as_mut(), Expr::Null);
                     *e = unwrapped;
@@ -426,7 +428,7 @@ fn throwing_functions(module: &Module) -> std::collections::BTreeSet<String> {
 
 /// Rewrite every `return v` under these statements to store the value, raise
 /// the flag, and leave the closure empty-handed.
-fn route_returns_through_flag(body: &mut Vec<Stmt>, ret: &str, flag: &str) {
+fn route_returns_through_flag(body: &mut [Stmt], ret: &str, flag: &str) {
     for stmt in body.iter_mut() {
         if let Stmt::Return(value) = stmt {
             let mut routed = Vec::new();
@@ -453,7 +455,7 @@ fn route_returns_through_flag(body: &mut Vec<Stmt>, ret: &str, flag: &str) {
 /// Rewrite every `return v` under these statements into the try-closure's
 /// success channel: `return Ok(Some(v))`, spelled through a builtin the rust
 /// writer alone recognises.
-fn route_returns_through_some(body: &mut Vec<Stmt>) {
+fn route_returns_through_some(body: &mut [Stmt]) {
     for stmt in body.iter_mut() {
         if let Stmt::Return(value) = stmt {
             let args = value.take().map(|v| vec![v]).unwrap_or_default();
@@ -535,7 +537,7 @@ fn with_hoisted_bindings(f: &Function, returns_of: &BTreeMap<String, Type>) -> F
     fn value_type(_: &Expr) -> Option<Type> {
         None
     }
-    fn rewrite(body: &mut Vec<Stmt>, hoisted: &[String]) {
+    fn rewrite(body: &mut [Stmt], hoisted: &[String]) {
         for stmt in body.iter_mut() {
             if let Stmt::Let { name, value, .. } = stmt {
                 if hoisted.contains(name) {
@@ -2287,22 +2289,6 @@ fn assigns_to(body: &[Stmt], name: &str) -> bool {
     })
 }
 
-/// A field's starting value, where the target declares no such thing.
-///
-/// Rust and Go write fields without initializers. The value goes beside the
-/// field as a comment, and is counted. A field that quietly lost its starting
-/// value is a record every caller has to construct differently.
-fn carried_default(out: &mut Out, field: &str, rendered: &str) {
-    out.fidelity.carried_verbatim += 1;
-    out.fidelity.notes.push(format!(
-        "`{field}` started at `{rendered}`, and {} declares no value in a field; \
-         every construction of the record has to set it",
-        out.language
-    ));
-    let note = out.comment(&format!("{MARKER}: `{field}` started at `{rendered}`"));
-    out.line(&note);
-}
-
 /// The counted loop as its own source, for a writer that cannot spell it.
 fn counted_original(source: &str, line: usize) -> Unsupported {
     Unsupported {
@@ -2543,16 +2529,37 @@ fn rust(out: &mut Out, module: &Module) {
                             .unwrap_or_else(|| unknown(out, &f.name));
                     let field_visibility = if f.exported { "pub " } else { "" };
                     let field_name = out.field(&f.name);
-                    if let Some(value) = &f.default {
-                        let rendered = rust_expr(out, value);
-                        carried_default(out, &field_name, &rendered);
-                    }
                     out.line(&format!("{field_visibility}{field_name}: {ty},"));
                 }
                 out.close();
                 out.line("}");
                 out.fidelity.records += 1;
                 out.blank();
+                // Field defaults have no slot in a struct; `Default` is where
+                // Rust keeps a record's starting values.
+                if r.fields.iter().any(|f| f.default.is_some()) {
+                    out.line(&format!("impl Default for {type_name} {{"));
+                    out.open();
+                    out.line("fn default() -> Self {");
+                    out.open();
+                    out.line("Self {");
+                    out.open();
+                    for f in &r.fields {
+                        let field_name = out.field(&f.name);
+                        let value = match &f.default {
+                            Some(value) => rust_expr(out, value),
+                            None => "Default::default()".to_string(),
+                        };
+                        out.line(&format!("{field_name}: {value},"));
+                    }
+                    out.close();
+                    out.line("}");
+                    out.close();
+                    out.line("}");
+                    out.close();
+                    out.line("}");
+                    out.blank();
+                }
 
                 if !r.methods.is_empty() {
                     // Rust declares methods apart from the type, which the
@@ -2994,7 +3001,7 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 ..
             } => {
                 let v = rust_expr(out, value);
-                let bound = joined(names, |n| match declares {
+                let bound = joined(names, |n| match *declares && n != "_" {
                     true => format!("mut {}", out.name(n)),
                     false => out.name(n),
                 });
@@ -3662,6 +3669,24 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                 return mapped;
             }
             let settled = resolve_keywords(out, callee, args);
+            if keywords_must_carry(out, callee, args, settled.is_some()) {
+                let rendered = joined(args, |a| match a {
+                    Expr::Keyword { name, value } => {
+                        format!("{name}={}", expr_hint(value))
+                    }
+                    _ => expr_hint(a),
+                });
+                let named = match callee.as_ref() {
+                    Expr::Name(n) => n.clone(),
+                    _ => "the call".to_string(),
+                };
+                out.carried(&Unsupported {
+                    construct: "keyword argument".into(),
+                    source: format!("{named}({rendered})"),
+                    line: 0,
+                });
+                return carried_expr_filler(out);
+            }
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
             // A call that can fail must say what happens then. Where the failure can
             // move outward it propagates; anywhere else it stops the program with the
@@ -4433,7 +4458,10 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
         // Whether a statement was produced is a property of the statement, asked once here
         // and not set inside each arm. An arm that forgets leaves a stray `raise
         // NotImplementedError` after a working body. How the next one would have.
-        wrote |= !matches!(stmt, Stmt::Unsupported(_) | Stmt::Expr(Expr::Null));
+        wrote |= !matches!(
+            stmt,
+            Stmt::Unsupported(_) | Stmt::Expr(Expr::Null) | Stmt::Comment(_)
+        );
         match stmt {
             // No block scope here: the statements stand in place.
             Stmt::Block(stmts) => python_block(out, stmts),
@@ -5235,11 +5263,11 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
             false => {
                 out.lowering_names += 1;
                 let bound = format!("fr_opt_{}", out.lowering_names);
-                return format!(
+                format!(
                     "{bound} if ({bound} := {}) is not None else {}",
                     python_expr(out, value),
                     python_expr(out, fallback)
-                );
+                )
             }
         },
         // Python puts the condition in the middle, which is the only thing that
@@ -5601,16 +5629,31 @@ fn go(out: &mut Out, module: &Module) {
                             .map(go_type)
                             .unwrap_or_else(|| unknown(out, &f.name));
                     let field_name = out.field(&f.name);
-                    if let Some(value) = &f.default {
-                        let rendered = go_expr(out, value);
-                        carried_default(out, &field_name, &rendered);
-                    }
                     out.line(&format!("{field_name} {ty}"));
                 }
                 out.close();
                 out.line("}");
                 out.fidelity.records += 1;
                 out.blank();
+                // Field defaults have no slot in a struct; the `New` constructor
+                // is where Go keeps a record's starting values.
+                if r.fields.iter().any(|f| f.default.is_some()) {
+                    out.line(&format!("func New{name}() {name} {{"));
+                    out.open();
+                    let pairs: Vec<String> = r
+                        .fields
+                        .iter()
+                        .filter_map(|f| {
+                            f.default.as_ref().map(|value| {
+                                format!("{}: {}", out.field(&f.name), go_expr(out, value))
+                            })
+                        })
+                        .collect();
+                    out.line(&format!("return {name}{{{}}}", pairs.join(", ")));
+                    out.close();
+                    out.line("}");
+                    out.blank();
+                }
                 for m in &methods_of(out, r, false) {
                     go_function(
                         out,
@@ -5769,6 +5812,40 @@ fn positional_record(out: &Out, callee: &Expr, arity: usize) -> Option<Vec<Strin
 /// keywords can be. The callee must be a function declared in this module.
 /// Each keyword must name one of its parameters, and every position left
 /// unfilled must have a declared default to fill it.
+/// The placeholder each target parses where a carried expression stood.
+fn carried_expr_filler(out: &Out) -> String {
+    match out.language {
+        Language::Rust => "todo!()".to_string(),
+        Language::Python => "None".to_string(),
+        Language::Go => "any(nil)".to_string(),
+        Language::TypeScript => "undefined".to_string(),
+        Language::Java => "null".to_string(),
+        Language::Zig => "undefined".to_string(),
+        _ => "null".to_string(),
+    }
+}
+
+/// A short spelling of an argument for a carry message.
+fn expr_hint(e: &Expr) -> String {
+    match e {
+        Expr::Str(s) => format!("{s:?}"),
+        Expr::Int(v) | Expr::Float(v) => v.clone(),
+        Expr::Name(n) => n.clone(),
+        _ => "..".to_string(),
+    }
+}
+
+/// A keyword call on a callee this module declares that still would not
+/// settle: the name or the arity is wrong, and positions would bind the wrong
+/// parameter. Such a call carries; a foreign callee's keywords pass by
+/// position instead, since nothing here can check them.
+fn keywords_must_carry(out: &Out, callee: &Expr, args: &[Expr], settled: bool) -> bool {
+    if settled || !args.iter().any(|a| matches!(a, Expr::Keyword { .. })) {
+        return false;
+    }
+    matches!(callee, Expr::Name(name) if out.functions.contains_key(name))
+}
+
 fn resolve_keywords(out: &Out, callee: &Expr, args: &[Expr]) -> Option<Vec<Expr>> {
     if !args.iter().any(|a| matches!(a, Expr::Keyword { .. })) {
         return None;
@@ -7122,6 +7199,24 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
                 return mapped;
             }
             let settled = resolve_keywords(out, callee, args);
+            if keywords_must_carry(out, callee, args, settled.is_some()) {
+                let rendered = joined(args, |a| match a {
+                    Expr::Keyword { name, value } => {
+                        format!("{name}={}", expr_hint(value))
+                    }
+                    _ => expr_hint(a),
+                });
+                let named = match callee.as_ref() {
+                    Expr::Name(n) => n.clone(),
+                    _ => "the call".to_string(),
+                };
+                out.carried(&Unsupported {
+                    construct: "keyword argument".into(),
+                    source: format!("{named}({rendered})"),
+                    line: 0,
+                });
+                return carried_expr_filler(out);
+            }
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
             let rendered: Vec<String> = args.iter().map(|a| go_expr(out, a)).collect();
             // A call to a declared record is a construction; Go's conversion
@@ -8396,6 +8491,24 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
                 return mapped;
             }
             let settled = resolve_keywords(out, callee, args);
+            if keywords_must_carry(out, callee, args, settled.is_some()) {
+                let rendered = joined(args, |a| match a {
+                    Expr::Keyword { name, value } => {
+                        format!("{name}={}", expr_hint(value))
+                    }
+                    _ => expr_hint(a),
+                });
+                let named = match callee.as_ref() {
+                    Expr::Name(n) => n.clone(),
+                    _ => "the call".to_string(),
+                };
+                out.carried(&Unsupported {
+                    construct: "keyword argument".into(),
+                    source: format!("{named}({rendered})"),
+                    line: 0,
+                });
+                return carried_expr_filler(out);
+            }
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
             let rendered: Vec<String> = args.iter().map(|a| ts_expr(out, a)).collect();
             format!("{}({})", ts_expr(out, callee), rendered.join(", "))
@@ -9693,6 +9806,24 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
                 return mapped;
             }
             let settled = resolve_keywords(out, callee, args);
+            if keywords_must_carry(out, callee, args, settled.is_some()) {
+                let rendered = joined(args, |a| match a {
+                    Expr::Keyword { name, value } => {
+                        format!("{name}={}", expr_hint(value))
+                    }
+                    _ => expr_hint(a),
+                });
+                let named = match callee.as_ref() {
+                    Expr::Name(n) => n.clone(),
+                    _ => "the call".to_string(),
+                };
+                out.carried(&Unsupported {
+                    construct: "keyword argument".into(),
+                    source: format!("{named}({rendered})"),
+                    line: 0,
+                });
+                return carried_expr_filler(out);
+            }
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
             let rendered: Vec<String> = args.iter().map(|a| java_expr(out, a)).collect();
             if let Expr::Name(name) = callee.as_ref() {
@@ -10009,12 +10140,26 @@ fn zig(out: &mut Out, module: &Module) {
                         .unwrap_or_default();
                     out.line(&format!("{field_name}: {ty}{default},"));
                 }
+                // Java overloads share a name; a Zig container refuses two
+                // members spelled alike, so later overloads take a numbered
+                // name, noted once.
+                let mut spelled: std::collections::BTreeMap<String, usize> =
+                    std::collections::BTreeMap::new();
                 for m in &methods_of(out, r, false) {
                     out.blank();
+                    let seen = spelled.entry(m.name.clone()).or_insert(0);
+                    *seen += 1;
+                    let mut renamed = m.clone();
+                    if *seen > 1 {
+                        out.note_once(
+                            "overloads share a name the target refuses to repeat;                              later overloads take a numbered name.",
+                        );
+                        renamed.name = format!("{}{}", m.name, *seen);
+                    }
                     zig_function(
                         out,
-                        m,
-                        m.receiver_binding.is_some().then_some(name.as_str()),
+                        &renamed,
+                        renamed.receiver_binding.is_some().then_some(name.as_str()),
                     );
                 }
                 out.close();
@@ -10344,12 +10489,19 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     let returns = match &f.returns {
         Some(Type::Unit) => "void".to_string(),
         // `void` over a body that returns a value does not compile, and a
-        // source that annotates nothing still returns one.
+        // source that annotates nothing still returns one. `anytype` is a
+        // parameter's word; a return whose type nothing names says it is
+        // undecided the only way a return position can.
         None if returns_a_value(f) => {
             unannotated = true;
             match inferred_return(out, f) {
                 Some(ty) => zig_type(&ty),
-                None => unknown(out, &f.name),
+                None => {
+                    out.fidelity
+                        .notes
+                        .push(format!("`{}` had no declared type in the source", f.name));
+                    "@TypeOf(undefined)".to_string()
+                }
             }
         }
         None => "void".to_string(),
@@ -11227,6 +11379,24 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
                 return mapped;
             }
             let settled = resolve_keywords(out, callee, args);
+            if keywords_must_carry(out, callee, args, settled.is_some()) {
+                let rendered = joined(args, |a| match a {
+                    Expr::Keyword { name, value } => {
+                        format!("{name}={}", expr_hint(value))
+                    }
+                    _ => expr_hint(a),
+                });
+                let named = match callee.as_ref() {
+                    Expr::Name(n) => n.clone(),
+                    _ => "the call".to_string(),
+                };
+                out.carried(&Unsupported {
+                    construct: "keyword argument".into(),
+                    source: format!("{named}({rendered})"),
+                    line: 0,
+                });
+                return carried_expr_filler(out);
+            }
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
             let rendered: Vec<String> = args.iter().map(|a| zig_expr(out, a)).collect();
             if let Some(fields) = positional_record(out, callee, args.len()) {
@@ -12370,18 +12540,21 @@ fn zig_hole_spec(out: &Out, e: &Expr) -> &'static str {
             }
             _ => "any",
         },
-        Expr::Binary { op, left, right } => match op {
-            BinaryOp::Add
-            | BinaryOp::Sub
-            | BinaryOp::Mul
-            | BinaryOp::Div
-            | BinaryOp::FloorDiv
-            | BinaryOp::Rem => match (zig_hole_spec(out, left), zig_hole_spec(out, right)) {
-                ("d", _) | (_, "d") => "d",
-                _ => "any",
-            },
+        Expr::Binary {
+            op:
+                BinaryOp::Add
+                | BinaryOp::Sub
+                | BinaryOp::Mul
+                | BinaryOp::Div
+                | BinaryOp::FloorDiv
+                | BinaryOp::Rem,
+            left,
+            right,
+        } => match (zig_hole_spec(out, left), zig_hole_spec(out, right)) {
+            ("d", _) | (_, "d") => "d",
             _ => "any",
         },
+        Expr::Binary { .. } => "any",
         _ => "any",
     }
 }

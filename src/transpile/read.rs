@@ -3561,8 +3561,7 @@ mod python {
                                         node.child(node.child_count().saturating_sub(1) as u32)
                                     })
                                     .map(|r| expr(cx, r))
-                                    .unwrap_or(Expr::Null)
-                                    .into(),
+                                    .unwrap_or(Expr::Null),
                             ),
                             name: "contains".to_string(),
                         }),
@@ -3639,6 +3638,70 @@ mod python {
 
 mod go {
     use super::*;
+
+    /// `func NewX() X { return X{F: v} }` is how a Go record keeps its field
+    /// defaults — the lowering this tool writes, and an idiom on its own. Read
+    /// back, the values return to the fields and the constructor disappears,
+    /// so a record with defaults survives the round trip.
+    fn settle_default_constructors(module: &mut Module) {
+        let mut defaults: Vec<(String, Vec<(String, Expr)>)> = Vec::new();
+        module.items.retain(|item| {
+            let Item::Function(m) = item else {
+                return true;
+            };
+            if !m.is_constructor || !m.params.is_empty() {
+                return true;
+            }
+            let Some(owner) = m.receiver.clone() else {
+                return true;
+            };
+            let [Stmt::Return(Some(value))] = m.body.as_slice() else {
+                return true;
+            };
+            let pairs: Option<Vec<(String, Expr)>> = match value {
+                Expr::New { callee, args }
+                    if matches!(callee.as_ref(), Expr::Name(n) if *n == owner) =>
+                {
+                    args.iter()
+                        .map(|a| match a {
+                            Expr::Keyword { name, value } => {
+                                Some((name.clone(), (**value).clone()))
+                            }
+                            _ => None,
+                        })
+                        .collect()
+                }
+                Expr::RecordLit { ty, fields } if *ty == owner => Some(fields.clone()),
+                // At this point in the read the literal is still a variant
+                // candidate; the settle that would rename it to the record
+                // runs later, so the candidate's own shape is matched here.
+                Expr::Variant { sum, name, fields } if sum.is_empty() && *name == owner => {
+                    Some(fields.clone())
+                }
+                _ => None,
+            };
+            match pairs {
+                Some(pairs) => {
+                    defaults.push((owner, pairs));
+                    false
+                }
+                None => true,
+            }
+        });
+        for (owner, pairs) in defaults {
+            let record = module.items.iter_mut().find_map(|item| match item {
+                Item::Record(r) if r.name == owner => Some(r),
+                _ => None,
+            });
+            if let Some(record) = record {
+                for (name, value) in pairs {
+                    if let Some(field) = record.fields.iter_mut().find(|f| f.name == name) {
+                        field.default = Some(value);
+                    }
+                }
+            }
+        }
+    }
 
     pub fn module(cx: &Cx, root: Node<'_>) -> Module {
         let mut module = Module::default();
@@ -3745,6 +3808,7 @@ mod go {
                 module.items.push(Item::Function(method));
             }
         }
+        settle_default_constructors(&mut module);
         settle_sums(&mut module);
         settle_builtins(&mut module);
         settle_variants(&mut module);
@@ -6199,7 +6263,7 @@ mod zig {
                 if let Expr::Call { callee, .. } = e {
                     if let Expr::Variant { sum, name, fields } = callee.as_ref() {
                         if sum.is_empty() && fields.is_empty() {
-                            *callee = Box::new(Expr::Name(name.clone()));
+                            **callee = Expr::Name(name.clone());
                         }
                     }
                 }
@@ -6469,10 +6533,10 @@ mod zig {
                         expr(cx, *value)
                     }
                     // `.tag` selects a variant; its tag string is the label.
-                    "field_expression" => match dot_literal(cx, *value) {
-                        Some(tag) => Expr::Str(tag),
-                        None => return None,
-                    },
+                    "field_expression" => {
+                        let tag = dot_literal(cx, *value)?;
+                        Expr::Str(tag)
+                    }
                     // `error.X` selects a failure by name.
                     "error_type" => match expr(cx, *value) {
                         Expr::Field { name, .. } => Expr::Str(name),
@@ -6836,6 +6900,19 @@ mod zig {
                     }
                 }
                 _ => carried.push(Item::Unsupported(cx.unsupported(member))),
+            }
+        }
+        // The overload lowering numbers later overloads — `add`, `add2` — and
+        // reading the numbered name back beside its base restores the overload,
+        // so a container of them survives the round trip.
+        let bases: Vec<String> = record.methods.iter().map(|m| m.name.clone()).collect();
+        for method in record.methods.iter_mut() {
+            let trimmed = method.name.trim_end_matches(|c: char| c.is_ascii_digit());
+            if trimmed.len() < method.name.len()
+                && !trimmed.is_empty()
+                && bases.iter().any(|b| b == trimmed)
+            {
+                method.name = trimmed.to_string();
             }
         }
         record
@@ -7662,7 +7739,7 @@ mod zig {
             else {
                 return None;
             };
-            fn assign_tail(body: &mut Vec<Stmt>, name: &str) {
+            fn assign_tail(body: &mut [Stmt], name: &str) {
                 if let Some(last) = body.last_mut() {
                     match last {
                         Stmt::Expr(_) => {
@@ -7682,10 +7759,10 @@ mod zig {
             }
             for (_, body) in arms.iter_mut() {
                 assign_tail(body, &name);
-                settle_any_labeled_breaks(body, &name);
+                settle_arm_breaks(body, &name);
             }
             assign_tail(&mut default, &name);
-            settle_any_labeled_breaks(&mut default, &name);
+            settle_arm_breaks(&mut default, &name);
             return Some(vec![
                 declared,
                 Stmt::Switch {
@@ -7725,8 +7802,11 @@ mod zig {
                     .into_iter()
                     .find(|c| c.kind() == "block")?;
                 let mut stmts = body_of(cx, inner);
+                // Settled before the run-once wrapper goes on, so the wrapper
+                // is the break's consumer and not a loop to route around.
+                settle_any_labeled_breaks(&mut stmts, &tmp);
                 stmts.push(Stmt::Break);
-                let mut once = vec![
+                vec![
                     Stmt::Let {
                         name: tmp.clone(),
                         ty: None,
@@ -7737,9 +7817,7 @@ mod zig {
                         condition: Expr::Bool(true),
                         body: stmts,
                     },
-                ];
-                settle_any_labeled_breaks(&mut once, &tmp);
-                once
+                ]
             }
             // A switch selects the tuple; each arm assigns it.
             "switch_expression" => {
@@ -7764,10 +7842,10 @@ mod zig {
                 };
                 for (_, body) in arms.iter_mut() {
                     retail(body);
-                    settle_any_labeled_breaks(body, &tmp);
+                    settle_arm_breaks(body, &tmp);
                 }
                 retail(&mut default);
-                settle_any_labeled_breaks(&mut default, &tmp);
+                settle_arm_breaks(&mut default, &tmp);
                 vec![
                     Stmt::Let {
                         name: tmp.clone(),
@@ -7952,13 +8030,12 @@ mod zig {
                     match inner {
                         Some(inner) => {
                             let mut stmts = body_of(cx, inner);
+                            settle_any_labeled_breaks(&mut stmts, &name);
                             stmts.push(Stmt::Break);
-                            let mut once = vec![Stmt::While {
+                            vec![Stmt::While {
                                 condition: Expr::Bool(true),
                                 body: stmts,
-                            }];
-                            settle_any_labeled_breaks(&mut once, &name);
-                            once
+                            }]
                         }
                         None => vec![Stmt::Unsupported(cx.unsupported(b))],
                     }
@@ -8334,6 +8411,21 @@ mod zig {
     /// an arm-local label has no other consumer.
     fn settle_any_labeled_breaks(stmts: &mut Vec<Stmt>, target: &str) {
         settle_labeled_breaks(stmts, "*", Some(target));
+    }
+
+    /// Settle a switch arm's labeled breaks. An arm that is a run-once loop —
+    /// the labeled-block lowering — settles inside the loop, which is the
+    /// break's consumer; anything else settles as written.
+    fn settle_arm_breaks(body: &mut Vec<Stmt>, target: &str) {
+        if let [Stmt::While {
+            condition: Expr::Bool(true),
+            body: inner,
+        }] = body.as_mut_slice()
+        {
+            settle_any_labeled_breaks(inner, target);
+            return;
+        }
+        settle_any_labeled_breaks(body, target);
     }
 
     /// Rewrite every `break :label v` under these statements: into `target = v`

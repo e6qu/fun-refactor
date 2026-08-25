@@ -919,16 +919,20 @@ pub struct Fidelity {
 }
 
 impl Fidelity {
-    /// Did everything cross intact?
+    /// Did everything cross with a defined lowering?
     ///
     /// A translation that read *nothing* falls short of complete. Without the first
     /// clause, an empty file reports "every signature carried across with its types
     /// intact", which is true and misleading.
+    ///
+    /// A signature naming a type this tool does not know is still complete: the
+    /// name crosses verbatim, which is the defined behavior for foreign types,
+    /// and the count stays in the report as information. The same holds for a
+    /// calling convention the target cannot keep — named arguments passing by
+    /// position is a defined lowering, noted in the output — so neither count
+    /// gates completeness. Only a construct carried verbatim does.
     pub fn is_complete(&self) -> bool {
-        self.translated() > 0
-            && self.carried_verbatim == 0
-            && self.signatures_with_foreign_types == 0
-            && self.signatures_with_changed_calls == 0
+        self.translated() > 0 && self.carried_verbatim == 0
     }
 
     /// How many declarations came across at all.

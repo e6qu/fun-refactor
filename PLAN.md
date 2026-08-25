@@ -726,6 +726,36 @@ The `CARRIED` ledger reaches all zeros and is replaced by a hard assertion.
 `fidelity.is_complete()` becomes a gate for every corpus file and every target. Site
 data regenerates; BUGS.md records what the phases found.
 
+### The completion of translation, done
+
+All five phases landed on one branch. The conformance suite holds eight groups —
+bindings, control, errors, cleanup, dispatch, collections, strings, asynchrony — six
+programs each, and all 240 translated cells compile, run, and print the transcript
+byte-identical to their source's. The corpus sweep's CARRIED ledger went from 1,756
+carried constructs to zero and became a hard assertion: nothing on the corpora is
+carried verbatim, every construct has a defined lowering, and `fidelity.is_complete()`
+gates every corpus file × target. A new `corpus_compile` test hands every translated
+corpus file to its target's real toolchain — `py_compile`, `tsc --noCheck`, `gofmt -e`,
+`zig ast-check`, `rustfmt`, `javac` with only foreign-symbol errors excused — and a
+toolchain that is absent is named in the output, never skipped silently.
+
+The lowerings that got it there, in the order the ledger surfaced them: the error-model
+triangle in all directions; `.?`/`x!` as an Unwrap unary; Zig dot literals resolved by
+annotation, return type or module sums with a tag-string fallback; labeled blocks and
+valued breaks as declare-loop-once-assign with flags routed through intervening loops;
+`orelse` control flow as bind-then-guard; switches with payloads, variant tags,
+characters and ranges in statement, binding and expression position; `catch` handlers
+as try/catch around the statement; defer as a Drop guard in Rust and errdefer as a
+disarmed one (an armed flag in Go); comptime run at runtime and `comptime { }` as a
+test; `fn F(comptime T: type) type` as the generic record it builds; local functions
+(a new `Stmt::LocalFunction`) in all six spellings; tuple bindings destructured through
+a bound temporary; `await` blocking in the four targets without async; keyword
+arguments by position (an options object in TypeScript); `instanceof` via Any-downcast,
+type assertion or comptime comparison; Java enums with constant bodies as a sum plus
+one dispatch function per overridden method; field defaults as `impl Default` and a
+`New` constructor; TypeScript optional chaining as the null-testing conditional; and
+the unsigned shift, xor, slices and `++` concatenation.
+
 ## Progress log
 
 Every stage is complete except the optional LSP delegation backend. Every

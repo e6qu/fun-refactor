@@ -280,13 +280,14 @@ fn a_comment_is_translated_rather_than_reported_as_a_failure() {
 
 #[test]
 fn what_does_not_translate_is_in_the_output_verbatim_and_counted() {
-    // Destructuring used to be the example here, until it learned to lower. The
-    // promises stand: what still carries is *there*, counted, and marked, and what
-    // stopped carrying is translated, and never both at once.
+    // Destructuring was the example here until it learned to lower, and then
+    // everything else did too: the corpus carries nothing now, and the sweep
+    // holds that at zero. The promise that stands here is the accounting one:
+    // the carried count and the markers in the file agree — both zero — and
+    // what stopped carrying is translated.
     let (_tmp, root) = corpus("nextjs");
     let plan = nextjs::plan(&root.join("app/api/posts/[postId]/route.ts")).unwrap();
 
-    assert!(plan.fidelity.carried_verbatim > 0);
     assert_eq!(
         plan.fidelity.carried_verbatim,
         plan.output.matches(transpile::MARKER).count(),
@@ -306,6 +307,9 @@ fn optional_chaining_is_never_written_away() {
     // `session?.user.id` is not `session.user.id`. No target here has optional
     // chaining, and the plain access compiles, runs, and throws where the original
     // returned undefined, a silent wrong answer, the one outcome worse than a gap.
+    // The lowering keeps the question: the object is tested against null before
+    // the access, and only a path — a value reading twice is reading it twice —
+    // lowers at all.
     let (_tmp, root) = corpus("nextjs");
     let plan = nextjs::plan(&root.join("app/api/posts/[postId]/route.ts")).unwrap();
 
@@ -315,8 +319,9 @@ fn optional_chaining_is_never_written_away() {
         plan.output
     );
     assert!(
-        plan.output.contains("session?.user.id"),
-        "it has to be carried, with the original:\n{}",
+        plan.output
+            .contains("None if session is None else session.user"),
+        "the null test has to survive the lowering:\n{}",
         plan.output
     );
 }

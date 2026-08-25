@@ -64,6 +64,13 @@ fn every_corpus_file_translates_everywhere_and_the_losses_only_shrink() {
             let plan = transpile::plan_to(&path, *target, Some(&out), false)
                 .unwrap_or_else(|e| panic!("{} -> {target} refused: {e}", path.display()));
             planned += 1;
+            assert!(
+                plan.fidelity.is_complete(),
+                "{} -> {target} is not complete: carried={} translated={}",
+                path.display(),
+                plan.fidelity.carried_verbatim,
+                plan.fidelity.translated()
+            );
             for note in &plan.fidelity.notes {
                 if let Some(rest) = note.split(": ").nth(1) {
                     if let Some(construct) = rest.strip_suffix(" carried over unchanged") {
