@@ -2624,6 +2624,8 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
     // initialize to the type's default.
     let f = &with_hoisted_bindings(f, &out.function_returns);
     out.binding_types = declared_bindings(f);
+    let known_returns = out.function_returns.clone();
+    settle_call_bindings(f, &known_returns, &mut out.binding_types);
     out.rust_mutated = rust_mutated_names(&f.body);
     // The source's word for the receiver, spelled this target's way for as long as
     // this body is being written. Outside a method there is nothing to bind.
@@ -4101,6 +4103,8 @@ fn python_function(out: &mut Out, f: &Function, method: bool) {
     // this body is being written. Outside a method there is nothing to bind.
     let scope = out.enter_method(f);
     out.binding_types = declared_bindings(f);
+    let known_returns = out.function_returns.clone();
+    settle_call_bindings(f, &known_returns, &mut out.binding_types);
 
     let mut changed = false;
     let mut params: Vec<String> = Vec::new();
@@ -4728,6 +4732,38 @@ fn declared_bindings(f: &Function) -> std::collections::BTreeMap<String, Type> {
     types
 }
 
+/// Type the unannotated bindings whose value is a call to a function with a
+/// declared return. `declared_bindings` reads one function and cannot see the
+/// module's signatures; this pass can, so `var result = total(10, 20)` knows
+/// what it holds. An `await` around the call is the same value, later.
+fn settle_call_bindings(
+    f: &Function,
+    returns: &std::collections::BTreeMap<String, Type>,
+    types: &mut std::collections::BTreeMap<String, Type>,
+) {
+    each_stmt(&f.body, &mut |stmt| {
+        if let Stmt::Let {
+            name,
+            ty: None,
+            value: Some(value),
+            ..
+        } = stmt
+        {
+            let mut value = value;
+            while let Expr::Await(inner) | Expr::Propagate(inner) = value {
+                value = inner;
+            }
+            if let Expr::Call { callee, .. } = value {
+                if let Expr::Name(called) = callee.as_ref() {
+                    if let Some(ty) = returns.get(called.as_str()) {
+                        types.entry(name.clone()).or_insert_with(|| ty.clone());
+                    }
+                }
+            }
+        }
+    });
+}
+
 /// Whether this method's body assigns to a field of its receiver.
 fn assigns_to_receiver(f: &Function, word: &str) -> bool {
     fn is_receiver_field(target: &Expr, word: &str) -> bool {
@@ -4906,7 +4942,7 @@ fn static_type(out: &Out, e: &Expr) -> Option<Type> {
             .get(name)
             .or_else(|| out.field_types.get(name))
             .cloned(),
-        Expr::Propagate(inner) => static_type(out, inner),
+        Expr::Propagate(inner) | Expr::Await(inner) => static_type(out, inner),
         // `+` with a string on either side is concatenation, and the whole of it
         // is a string however the other side is typed. Answering "no idea" here
         // left `"x" + 1 + 2` as `"x" + str(1) + 2`, which raises. Only the first
@@ -5588,6 +5624,8 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     let scope = out.enter_method(f);
     // What the body declared, for the return type a Python source never wrote.
     out.binding_types = declared_bindings(f);
+    let known_returns = out.function_returns.clone();
+    settle_call_bindings(f, &known_returns, &mut out.binding_types);
 
     let name = out.function_name(f);
     for line in &f.doc {
@@ -7192,6 +7230,8 @@ fn ts_function(out: &mut Out, f: &Function, inside_class: bool) {
     // TypeScript has one number type, so `/` needs to know which of them the
     // source declared: an integer division truncates and this one does not.
     out.binding_types = declared_bindings(f);
+    let known_returns = out.function_returns.clone();
+    settle_call_bindings(f, &known_returns, &mut out.binding_types);
 
     for line in &f.doc {
         out.line(&format!("/** {} */", block_comment_safe(line)));
@@ -8267,6 +8307,8 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
     // this body is being written. Outside a method there is nothing to bind.
     let scope = out.enter_method(f);
     out.binding_types = declared_bindings(f);
+    let known_returns = out.function_returns.clone();
+    settle_call_bindings(f, &known_returns, &mut out.binding_types);
 
     for line in &f.doc {
         out.line(&format!("/** {} */", block_comment_safe(line)));
@@ -9660,6 +9702,8 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     // this body is being written. Outside a method there is nothing to bind.
     let scope = out.enter_method(f);
     out.binding_types = declared_bindings(f);
+    let known_returns = out.function_returns.clone();
+    settle_call_bindings(f, &known_returns, &mut out.binding_types);
 
     for line in &f.doc {
         out.line(&format!("/// {line}"));

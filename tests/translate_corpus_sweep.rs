@@ -28,7 +28,6 @@ use std::path::PathBuf;
 /// clause now carries whole instead of quietly losing its step, which is the
 /// `while_statement` line.
 const CARRIED: &[(&str, usize)] = &[
-    ("await", 26),
     ("an anonymous variant", 25),
     ("anonymous_struct_initializer", 45),
     ("boolean", 10),

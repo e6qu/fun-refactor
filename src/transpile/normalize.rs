@@ -1897,6 +1897,19 @@ fn python(expr: Expr) -> Expr {
     if let Some(folded) = fold_concat(&expr) {
         return folded;
     }
+    // `asyncio.run(main())` is how an async entry says "call main". The run
+    // wrapper is the event loop, not the program: the canonical entry is the
+    // call itself.
+    if let Expr::Call { callee, args } = &expr {
+        if let Expr::Field { of, name } = callee.as_ref() {
+            if matches!(of.as_ref(), Expr::Name(n) if n == "asyncio")
+                && name == "run"
+                && args.len() == 1
+            {
+                return args[0].clone();
+            }
+        }
+    }
     expr
 }
 
