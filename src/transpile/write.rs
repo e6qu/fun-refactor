@@ -424,6 +424,51 @@ fn throwing_functions(module: &Module) -> std::collections::BTreeSet<String> {
     }
 }
 
+/// Rewrite every `return v` under these statements to store the value, raise
+/// the flag, and leave the closure empty-handed.
+fn route_returns_through_flag(body: &mut Vec<Stmt>, ret: &str, flag: &str) {
+    for stmt in body.iter_mut() {
+        if let Stmt::Return(value) = stmt {
+            let mut routed = Vec::new();
+            if let Some(value) = value.take() {
+                routed.push(Stmt::Assign {
+                    target: Expr::Name(ret.to_string()),
+                    value,
+                });
+            }
+            routed.push(Stmt::Assign {
+                target: Expr::Name(flag.to_string()),
+                value: Expr::Bool(true),
+            });
+            routed.push(Stmt::Return(None));
+            *stmt = Stmt::Block(routed);
+            continue;
+        }
+        for inner in sub_bodies_mut(stmt) {
+            route_returns_through_flag(inner, ret, flag);
+        }
+    }
+}
+
+/// Rewrite every `return v` under these statements into the try-closure's
+/// success channel: `return Ok(Some(v))`, spelled through a builtin the rust
+/// writer alone recognises.
+fn route_returns_through_some(body: &mut Vec<Stmt>) {
+    for stmt in body.iter_mut() {
+        if let Stmt::Return(value) = stmt {
+            let args = value.take().map(|v| vec![v]).unwrap_or_default();
+            *stmt = Stmt::Return(Some(Expr::Call {
+                callee: Box::new(Expr::Name("__fr_ok_some".to_string())),
+                args,
+            }));
+            continue;
+        }
+        for inner in sub_bodies_mut(stmt) {
+            route_returns_through_some(inner);
+        }
+    }
+}
+
 /// Insert `disarm` before every `return` under these statements, nested loops
 /// included: a `return` anywhere leaves the function, and the guard it turns
 /// off must be off first.
@@ -3267,14 +3312,13 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
             // translate a catch block into, so it is carried whole.
             // `try/catch`, lowered through a closure: the body runs to its first
             // failure, and the failure lands in the catch as the message. A `return`
-            // inside the body would leave the closure instead of the function, so a
-            // body that returns stays carried.
+            // inside the body travels out through an Option and returns here.
             Stmt::Try {
                 body: tried,
                 catches,
                 finally,
-                source,
-                line,
+                source: _,
+                line: _,
             } => {
                 if catches.is_empty() && !finally.is_empty() && !exits_anywhere(tried) {
                     // A try that only ever finishes runs its body and then its
@@ -3283,16 +3327,74 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     rust_block(out, finally, None);
                     return;
                 }
-                if returns_anywhere(tried) || catches.is_empty() {
-                    carry(
-                        out,
-                        &Unsupported {
-                            construct: "try".into(),
-                            source: source.clone(),
-                            line: *line,
-                        },
-                    );
-                } else {
+                // A finally that must survive early exits is the same guard a
+                // defer needs.
+                if catches.is_empty() {
+                    out.zig_helpers.insert("rust_defer");
+                    out.lowering_names += 1;
+                    let guard = format!("__fr_guard{}", out.lowering_names);
+                    out.line(&format!("let mut {guard} = FrDefer(Some(|| {{"));
+                    out.open();
+                    rust_block(out, finally, None);
+                    out.close();
+                    out.line("}));");
+                    out.line(&format!("let _ = &mut {guard};"));
+                    rust_block(out, tried, returns);
+                    return;
+                }
+                if returns_anywhere(tried) {
+                    // The closure that catches also swallows returns, so a
+                    // return inside travels out through an Option and returns
+                    // here.
+                    out.lowering_names += 1;
+                    let caught = format!("__fr_caught{}", out.lowering_names);
+                    let ret_ty = returns.map(rust_type).unwrap_or_else(|| "()".to_string());
+                    out.line(&format!(
+                        "let {caught}: Result<Option<{ret_ty}>, String> = (|| {{"
+                    ));
+                    out.open();
+                    let was = out.can_propagate;
+                    out.can_propagate = true;
+                    let mut wrapped = tried.clone();
+                    route_returns_through_some(&mut wrapped);
+                    rust_block(out, &wrapped, None);
+                    out.line("Ok(None)");
+                    out.can_propagate = was;
+                    out.close();
+                    out.line("})();");
+                    if !finally.is_empty() {
+                        rust_block(out, finally, None);
+                    }
+                    let first = &catches[0];
+                    if catches.len() > 1 {
+                        out.fidelity.notes.push(format!(
+                            "a try with {} catch arms folded into one: the arms \
+                             selected by exception class, and the classes did not cross",
+                            catches.len()
+                        ));
+                    }
+                    let binding = first
+                        .binding
+                        .as_deref()
+                        .map(|b| out.name(b))
+                        .unwrap_or_else(|| "_".to_string());
+                    out.line(&format!("match {caught} {{"));
+                    out.open();
+                    out.line(&format!("Err({binding}) => {{"));
+                    out.open();
+                    rust_block(out, &first.body, returns);
+                    out.close();
+                    out.line("}");
+                    match returns.is_some() {
+                        true => out.line("Ok(Some(__fr_ret)) => return __fr_ret,"),
+                        false => out.line("Ok(Some(())) => return,"),
+                    }
+                    out.line("Ok(None) => {}");
+                    out.close();
+                    out.line("}");
+                    return;
+                }
+                {
                     out.lowering_names += 1;
                     let caught = format!("__fr_caught{}", out.lowering_names);
                     out.line(&format!("let {caught}: Result<(), String> = (|| {{"));
@@ -3468,9 +3570,16 @@ fn receiver(text: String, of: &Expr) -> String {
 /// A construction target is a path, and a dotted name from another language
 /// walks that path with `::`.
 fn rust_path(out: &mut Out, callee: &Expr) -> String {
-    match callee {
-        Expr::Name(name) if name.contains('.') => name.replace('.', "::"),
-        _ => rust_expr(out, callee),
+    fn dotted(e: &Expr) -> Option<String> {
+        match e {
+            Expr::Name(name) => Some(name.replace('.', "::")),
+            Expr::Field { of, name } => Some(format!("{}::{name}", dotted(of)?)),
+            _ => None,
+        }
+    }
+    match dotted(callee) {
+        Some(path) => path,
+        None => rust_expr(out, callee),
     }
 }
 
@@ -5182,6 +5291,17 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
                     );
                 }
             }
+            // The canonical slice is this language's own subscript.
+            if let (Expr::Name(name), [of, from, to]) = (callee.as_ref(), args.as_slice()) {
+                if name == "slice" {
+                    return format!(
+                        "{}[{}:{}]",
+                        receiver(python_expr(out, of), of),
+                        python_expr(out, from),
+                        python_expr(out, to)
+                    );
+                }
+            }
             let rendered: Vec<String> = args.iter().map(|a| python_expr(out, a)).collect();
             // The canonical call to `super` is the base constructor, which this
             // language spells `super().__init__`.
@@ -6571,7 +6691,7 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     go_block(out, tried, None);
                     return;
                 }
-                if returns_anywhere(tried) || catches.is_empty() {
+                if catches.is_empty() {
                     carry(
                         out,
                         &Unsupported {
@@ -6581,6 +6701,19 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                         },
                     );
                 } else {
+                    // A return inside the closure would only leave the closure,
+                    // so it stores what it returns and leaves; the tail returns
+                    // it from the function itself.
+                    let routed = returns_anywhere(tried);
+                    let ret = format!("frRet{}", out.lowering_names + 1);
+                    let flag = format!("frReturned{}", out.lowering_names + 1);
+                    if routed {
+                        let declared = returns.map(go_type).unwrap_or_else(|| "any".to_string());
+                        out.line(&format!("var {ret} {declared}"));
+                        out.line(&format!("_ = {ret}"));
+                        out.line(&format!("{flag} := false"));
+                        out.line(&format!("_ = {flag}"));
+                    }
                     let err = out.fresh_go_error();
                     out.line(&format!("{err} := func() error {{"));
                     out.open();
@@ -6588,6 +6721,9 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     out.go_result = Some(Type::Unit);
                     let mut counter = out.lowering_names;
                     let mut tried = tried.clone();
+                    if routed {
+                        route_returns_through_flag(&mut tried, &ret, &flag);
+                    }
                     extract_failing_calls(&mut tried, &out.throwing.clone(), &mut counter);
                     out.lowering_names = counter;
                     go_block(out, &tried, None);
@@ -6617,6 +6753,19 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     out.line("}");
                     if !finally.is_empty() {
                         go_block(out, finally, None);
+                    }
+                    if routed {
+                        // The stored return leaves the function, coerced the
+                        // way any return here is.
+                        let tail = Stmt::If {
+                            condition: Expr::Name(flag.clone()),
+                            then: vec![match returns.is_some() {
+                                true => Stmt::Return(Some(Expr::Name(ret.clone()))),
+                                false => Stmt::Return(None),
+                            }],
+                            otherwise: Vec::new(),
+                        };
+                        go_block(out, std::slice::from_ref(&tail), returns);
                     }
                 }
             }
@@ -10611,7 +10760,10 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                 out.line("}");
                 return;
             }
-            if returns_anywhere(tried) || catches.is_empty() {
+            // A `return` inside the labeled block leaves the function, the
+            // way the source's `return` inside the `try` did; only a try with
+            // nothing to catch has no lowering here.
+            if catches.is_empty() {
                 carry(
                     out,
                     &Unsupported {
@@ -11567,6 +11719,16 @@ fn rust_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
         return None;
     }
     Some(match (receiver, name, args) {
+        // The try-with-returns closure's own channel: a return inside the
+        // tried body travels out as `Ok(Some(v))`.
+        (None, "__fr_ok_some", []) => "Ok(Some(()))".to_string(),
+        (None, "__fr_ok_some", [v]) => format!("Ok(Some({}))", rust_expr(out, v)),
+        (None, "slice", [of, from, to]) => format!(
+            "{}[{}..{}].to_owned()",
+            rust_expr(out, of),
+            rust_expr(out, from),
+            rust_expr(out, to)
+        ),
         (None, "print", _) => {
             let holes = vec!["{}"; args.len()].join(" ");
             format!(
@@ -11609,6 +11771,12 @@ fn ts_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
         return None;
     }
     Some(match (receiver, name, args) {
+        (None, "slice", [of, from, to]) => format!(
+            "{}.slice({}, {})",
+            ts_expr(out, of),
+            ts_expr(out, from),
+            ts_expr(out, to)
+        ),
         (None, "print", _) => {
             let rendered = joined(args, |a| ts_expr(out, a));
             format!("console.log({rendered})")
@@ -11647,6 +11815,12 @@ fn go_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
         return None;
     }
     Some(match (receiver, name, args) {
+        (None, "slice", [of, from, to]) => format!(
+            "{}[{}:{}]",
+            go_expr(out, of),
+            go_expr(out, from),
+            go_expr(out, to)
+        ),
         (None, "print", _) => {
             out.go_imports.insert("fmt");
             let rendered = joined(args, |a| go_expr(out, a));
@@ -11695,6 +11869,12 @@ fn java_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
         return None;
     }
     Some(match (receiver, name, args) {
+        (None, "slice", [of, from, to]) => format!(
+            "{}.substring({}, {})",
+            java_expr(out, of),
+            java_expr(out, from),
+            java_expr(out, to)
+        ),
         (None, "print", _) => {
             let rendered = args
                 .iter()
@@ -11741,6 +11921,12 @@ fn zig_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
         return None;
     }
     Some(match (receiver, name, args) {
+        (None, "slice", [of, from, to]) => format!(
+            "{}[{}..{}]",
+            zig_expr(out, of),
+            zig_expr(out, from),
+            zig_expr(out, to)
+        ),
         // Into a helper over stdout rather than `std.debug.print`, which writes to
         // stderr: a translated program has to say what the source said, on the stream
         // the source said it on.

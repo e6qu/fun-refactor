@@ -6265,7 +6265,9 @@ mod zig {
             let mut literals = Vec::new();
             for value in parts[..arrow].iter().filter(|c| c.is_named()) {
                 let literal = match value.kind() {
-                    "integer" | "float" | "string" | "char_literal" => expr(cx, *value),
+                    "integer" | "float" | "string" | "char_literal" | "character" => {
+                        expr(cx, *value)
+                    }
                     // `.tag` selects a variant; its tag string is the label.
                     "field_expression" => match dot_literal(cx, *value) {
                         Some(tag) => Expr::Str(tag),
@@ -6371,6 +6373,17 @@ mod zig {
         // as an unwritable type.
         if value.kind() == "error_set_declaration" {
             return Some(Item::Sum(error_set(cx, node, name, exported, value)));
+        }
+        // `const E = A || error{X};` unions sets; the alias keeps the union's
+        // spelling as text, which is all a target without error sets can hold.
+        if contains_error_set(value) {
+            return Some(Item::Constant(Constant {
+                doc: doc_above(cx, node, &["///", "//"]),
+                name,
+                ty: None,
+                value: Expr::Str(cx.text(value)),
+                exported,
+            }));
         }
 
         // A dot literal in the value resolves against the annotation, the
@@ -7063,6 +7076,10 @@ mod zig {
                 out.extend(lowered);
                 continue;
             }
+            if let Some(lowered) = orelse_block_guard(cx, n) {
+                out.extend(lowered);
+                continue;
+            }
             if let Some(switch) = return_switch(cx, n) {
                 out.push(switch);
                 continue;
@@ -7399,6 +7416,70 @@ mod zig {
     /// `const x = while (it) |v| { … break e; … } else fallback;`: the loop
     /// produces a value by breaking with one, or the fallback on exhaustion.
     /// The lowering binds the fallback first and each valued break assigns.
+    /// `const x = v orelse { …; return; };`: bind the optional, and on null
+    /// run the block, which leaves the scope.
+    fn orelse_block_guard(cx: &Cx, node: Node<'_>) -> Option<Vec<Stmt>> {
+        if node.kind() != "variable_declaration" {
+            return None;
+        }
+        let text = cx.text(node);
+        if !(text.trim_start().starts_with("var ") || text.trim_start().starts_with("const ")) {
+            return None;
+        }
+        let parts = all(node);
+        let value = after(&parts, "=", ";")?;
+        if value.kind() != "binary_expression" {
+            return None;
+        }
+        if !all(value).iter().any(|c| c.kind() == "orelse") {
+            return None;
+        }
+        let operands: Vec<Node> = cx
+            .children(value)
+            .into_iter()
+            .filter(|c| c.kind() != "orelse")
+            .collect();
+        let [left, right] = operands.as_slice() else {
+            return None;
+        };
+        if !matches!(right.kind(), "block" | "block_expression") {
+            return None;
+        }
+        let name = parts
+            .iter()
+            .find(|c| c.kind() == "identifier")
+            .map(|c| cx.text(*c))?;
+        let bound = expr(cx, *left);
+        if matches!(bound, Expr::Unsupported(_)) {
+            return None;
+        }
+        let block_node = match right.kind() {
+            "block" => *right,
+            _ => cx.children(*right).first().copied()?,
+        };
+        let fallback = body_of(cx, block_node);
+        if fallback.iter().any(has_unsupported_stmt) {
+            return None;
+        }
+        Some(vec![
+            Stmt::Let {
+                name: name.clone(),
+                ty: None,
+                value: Some(bound),
+                mutable: false,
+            },
+            Stmt::If {
+                condition: Expr::Binary {
+                    op: BinaryOp::Eq,
+                    left: Box::new(Expr::Name(name)),
+                    right: Box::new(Expr::Null),
+                },
+                then: fallback,
+                otherwise: Vec::new(),
+            },
+        ])
+    }
+
     fn value_while(cx: &Cx, node: Node<'_>) -> Option<Vec<Stmt>> {
         if node.kind() != "variable_declaration" {
             return None;
@@ -7417,11 +7498,14 @@ mod zig {
             .find(|c| c.kind() == "identifier")
             .map(|c| cx.text(*c))?;
         let children = cx.children(value);
-        let fallback = children
+        // The `else` is a bare keyword here, and the fallback is the named
+        // node after it.
+        let every = all(value);
+        let at_else = every.iter().position(|c| c.kind() == "else")?;
+        let fallback = every[at_else + 1..]
             .iter()
-            .find(|c| c.kind() == "else_clause")
-            .and_then(|e| cx.children(*e).first().copied())
-            .map(|e| expr(cx, e))?;
+            .find(|c| c.is_named())
+            .map(|e| expr(cx, *e))?;
         if matches!(fallback, Expr::Unsupported(_)) {
             return None;
         }
@@ -7705,7 +7789,10 @@ mod zig {
                             .first()
                             .is_some_and(|inner| cx.text(*inner) == "self")
                     {
-                        return Stmt::Unsupported(cx.unsupported(node));
+                        return Stmt::Comment(format!(
+                            "{} — the debug poison has nothing to mark here",
+                            cx.text(node).trim_end_matches(';')
+                        ));
                     }
                     return Stmt::Assign {
                         target: expr(cx, target),
@@ -8196,10 +8283,13 @@ mod zig {
                         );
                     }
                 }
-                let named = parts
-                    .first()
-                    .filter(|c| matches!(c.kind(), "identifier" | "field_expression"))
-                    .map(|c| cx.text(*c));
+                let named = parts.first().and_then(|c| match c.kind() {
+                    "identifier" | "field_expression" => Some(cx.text(*c)),
+                    // `lsp.T(?void){ … }`: the comptime arguments are type
+                    // syntax no target can hold; the path names the type.
+                    "call_expression" => cx.children(*c).first().map(|f| cx.text(*f)),
+                    _ => None,
+                });
                 let Some(named) = named else {
                     return Expr::Unsupported(cx.unsupported(node));
                 };
@@ -8426,6 +8516,31 @@ mod zig {
                         of: Box::new(expr(cx, *of)),
                         index: Box::new(expr(cx, *index)),
                     },
+                    // `s[a .. b]` is the canonical slice; an open end runs to
+                    // the length.
+                    [of, range] if range.kind() == "range_expression" => {
+                        let of_expr = expr(cx, *of);
+                        let bounds = cx.children(*range);
+                        let text = cx.text(*range);
+                        let (from, to) = match bounds.as_slice() {
+                            [a, b] => (expr(cx, *a), expr(cx, *b)),
+                            [one] if text.trim_start().starts_with("..") => {
+                                (Expr::Int("0".to_string()), expr(cx, *one))
+                            }
+                            [one] => (
+                                expr(cx, *one),
+                                Expr::Call {
+                                    callee: Box::new(Expr::Name("len".to_string())),
+                                    args: vec![of_expr.clone()],
+                                },
+                            ),
+                            _ => return Expr::Unsupported(cx.unsupported(node)),
+                        };
+                        Expr::Call {
+                            callee: Box::new(Expr::Name("slice".to_string())),
+                            args: vec![of_expr, from, to],
+                        }
+                    }
                     _ => Expr::Unsupported(cx.unsupported(node)),
                 }
             }
@@ -8527,6 +8642,9 @@ mod zig {
                     .map(|a| cx.children(*a))
                     .unwrap_or_default();
                 match (name.as_str(), args.as_slice()) {
+                    ("@as", [_ty]) if cx.text(node).replace(' ', "").ends_with(",null)") => {
+                        Expr::Null
+                    }
                     ("@as" | "@intCast" | "@floatCast" | "@truncate", [ty, value]) => {
                         let ty = expr(cx, *ty);
                         let value = expr(cx, *value);
