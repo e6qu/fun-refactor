@@ -13,7 +13,6 @@ use common::{require_on_ci, Toolchain};
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
-use fun_refactor::transpile::MARKER;
 use std::path::Path;
 use std::process::Command;
 
@@ -91,15 +90,14 @@ fn a_java_field_keeps_the_value_it_was_declared_with() {
 }
 
 #[test]
-fn rust_says_the_value_it_has_nowhere_to_put() {
-    // A struct field declares no value in Rust. Dropping it silently would
-    // change how every construction of the record has to be written.
+fn rust_keeps_the_value_in_a_default_impl() {
+    // A struct field declares no value in Rust. `Default` is where the language keeps a
+    // record's starting values, so the defaults live there and a `..Default::default()`
+    // construction gets them all.
     let tmp = tempfile::tempdir().expect("a temporary directory");
     let out = translated(tmp.path(), "policy.py", POLICY_PY, Language::Rust);
-    assert!(
-        out.contains(&format!("{MARKER}: `retries` started at `3`")),
-        "{out}"
-    );
+    assert!(out.contains("impl Default for Policy {"), "{out}");
+    assert!(out.contains("retries: 3,"), "{out}");
 }
 
 #[test]

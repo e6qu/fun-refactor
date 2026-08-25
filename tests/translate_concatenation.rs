@@ -1,13 +1,9 @@
-//! A chain of `+` with a string in it builds a string, all the way along.
-//!
-//! Java and TypeScript turn the number into text at every `+`. Python raises
-//! instead, so the writer says the coercion out loud. It only said it once.
-//! `"x" + 1 + 2` came out as `"x" + str(1) + 2`, and the second number then
-//! raised a TypeError at run time.
-//!
-//! The chain is left-associative, so the outer `+` has the inner one on its
-//! left. Its type is what was missing. A `+` with a string on either side is a
-//! string, whatever the other side is, and the whole chain follows from that.
+//! A chain of `+` with a string in it builds a string, all the way along. Java and TypeScript
+//! turn the number into text at every `+`; Python raises instead. The chain settles into a
+//! template at the read, so every target writes its own interpolation and no coercion can be
+//! forgotten. The chain is left-associative and the fold respects it: a string-free subtree on
+//! the left is arithmetic the source runs first. So `1 + 2 + "x"` interpolates `1 + 2` as one
+//! expression and prints `3x`, the way Java does.
 
 mod common;
 use common::{require_on_ci, Toolchain};
@@ -54,9 +50,9 @@ fn said(output: &std::process::Output) -> String {
 fn every_number_in_the_chain_is_coerced() {
     let tmp = tempfile::tempdir().expect("a temporary directory");
     let out = translated(tmp.path(), "Concat.java", CONCAT_JAVA, Language::Python);
-    assert!(out.contains(r#"print("x" + str(1) + str(2))"#), "{out}");
+    assert!(out.contains(r#"print(f"x{1}{2}")"#), "{out}");
     assert!(
-        out.contains(r#"print("a" + str(1) + "b" + str(2))"#),
+        out.contains(r#"print(f"a{1}b{2}")"#),
         "a string later in the chain does not stop it.\n{out}"
     );
 }
@@ -64,17 +60,17 @@ fn every_number_in_the_chain_is_coerced() {
 #[test]
 fn a_number_on_the_left_still_takes_the_one_coercion_it_needs() {
     // `1 + 2 + "x"` adds first and concatenates second, which is what Java
-    // does. Coercing the first operand alone would print "12x".
+    // does. Flattening the sum into the template would print "12x".
     let tmp = tempfile::tempdir().expect("a temporary directory");
     let out = translated(tmp.path(), "Concat.java", CONCAT_JAVA, Language::Python);
-    assert!(out.contains(r#"print(str(1 + 2) + "x")"#), "{out}");
+    assert!(out.contains(r#"print(f"{1 + 2}x")"#), "{out}");
 }
 
 #[test]
 fn a_declared_binding_in_the_chain_is_coerced_too() {
     let tmp = tempfile::tempdir().expect("a temporary directory");
     let out = translated(tmp.path(), "Concat.java", CONCAT_JAVA, Language::Python);
-    assert!(out.contains(r#"print("n=" + str(n) + "!")"#), "{out}");
+    assert!(out.contains(r#"print(f"n={n}!")"#), "{out}");
 }
 
 #[test]

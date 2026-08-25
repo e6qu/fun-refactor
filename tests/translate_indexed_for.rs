@@ -63,15 +63,22 @@ fn a_python_enumerate_reads_and_zig_writes_it_back() {
 }
 
 #[test]
-fn two_real_sequences_in_step_still_carry() {
-    // `for (xs, ys) |x, y|` walks two iterables at once; the IR binds one.
+fn two_real_sequences_walk_by_one_index() {
+    // `for (xs, ys) |x, y|` walks two iterables at once. The lowering walks the first by an
+    // index and reads the second by the same index.
     let source = "fn pair(xs: []const i64, ys: []const i64) void {\n    \
                   for (xs, ys) |x, y| {\n        use(x, y);\n    }\n}\n";
     let (_tmp, root) = workspace(&[("z.zig", source)]);
     let plan = transpile::plan(&root.join("z.zig"), Language::Python).expect("a draft");
     assert!(
-        plan.output.contains(transpile::MARKER),
-        "a two-sequence loop has no crossing and must say so:\n{}",
+        plan.output.contains("for fr_i, x in enumerate(xs):")
+            && plan.output.contains("y = ys[fr_i]"),
+        "the second sequence reads by the shared index:\n{}",
+        plan.output
+    );
+    assert!(
+        !plan.output.contains(transpile::MARKER),
+        "nothing carries:\n{}",
         plan.output
     );
 }

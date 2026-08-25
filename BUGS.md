@@ -51,6 +51,51 @@ shows the patch additive. What is left below is one limit of this tool's own ana
 
 ## Fixed
 
+- [x] B738: **normalize walked half the tree.** `map_expr` recursed into
+  calls, fields, binaries and templates and stopped there. A tuple, list, map,
+  variant, record, keyword, cast, ternary, coalesce, lambda or comprehension
+  hid its insides. Nothing inside one was ever normalized. Zig format arguments inside `.{ … }` reached the writers
+  raw and Rust printed `::identifier` where a tag belonged. Every composite
+  expression walks now.
+
+- [x] B739: **the Zig reader dropped every null comparison.** tree-sitter-zig
+  spells `null` as a keyword, not a named node, so `x != null` reached the binary
+  arm with one operand and carried whole, along with every `if` that tested one.
+  The keyword side now reads as the null it is.
+
+- [x] B740: **`!x` in value position read as a type.** The grammar parses a
+  bang before an expression as an error-union type. The reader believed it.
+  So `if (!is_ok)` carried whole everywhere it appeared. A one-operand error-union
+  node is the negation it looks like.
+
+- [x] B741: **Go's `struct{}` did not survive the round trip.** The go writer
+  spells a unit parameter `struct{}` and the reader read that back as a foreign
+  named type, so a zig `_: void` parameter changed type crossing go and back.
+  `struct{}` reads as the unit it spells.
+
+- [x] B742: **Rust destructured a hole mutably.** A tuple binding with `_` in it
+  wrote `let (mut _, mut loc) = …`. rustc refuses that: `mut` must be followed
+  by a named binding. The hole takes no `mut`.
+
+- [x] B743: **a Python branch of only comments had no body.** Comments are not
+  statements in Python. An `else:` whose lowered body was one comment emitted no
+  `pass` and the file stopped compiling. Comment-only branches count as unwritten
+  and take their `pass`.
+
+- [x] B744: **the Zig writer returned `anytype`.** `anytype` is a parameter's
+  word; in return position `zig ast-check` refuses it. An inferred-nothing return
+  spells `@TypeOf(undefined)` and stays counted as unannotated.
+
+- [x] B745: **Java overloads collided in a Zig container.** Four constructors
+  named `JsonPrimitive` became four container members spelled alike, which Zig
+  refuses. Later overloads take a numbered name, noted once in the output.
+
+- [x] B746: **a labeled break's flag test escaped its loop.** Lowering
+  `break :blk v` through an intervening loop plants a flag. The flag is tested
+  after the loop. But when the run-once wrapper itself was scanned as "an
+  intervening loop", the test landed outside any loop at all. Python refused
+  the bare `break`. The wrapper's own breaks settle before it goes on.
+
 - [x] B735: **a Rust module alias resolved to nothing.** `use a::{b, c as d};` recorded
   only `b`. The aliased entry in a use-group was not among the query's shapes, so `d::f()`
   resolved to nothing, `fr unused` called `f` dead, and `fr delete` planned a deletion

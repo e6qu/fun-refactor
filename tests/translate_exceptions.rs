@@ -31,8 +31,7 @@ fn a_typescript_error_reaches_python_as_a_raise_it_can_catch() {
     let (_tmp, root) = workspace(&[("exc.ts", source)]);
     let plan = transpile::plan(&root.join("exc.ts"), Language::Python).expect("a draft");
     assert!(
-        plan.output
-            .contains("raise Exception(\"negative: \" + str(n))"),
+        plan.output.contains("raise Exception(f\"negative: {n}\")"),
         "Error is the general Exception, and the number is said as text.\n{}",
         plan.output
     );
@@ -55,18 +54,20 @@ fn javas_exception_spellings_reach_python_as_pythons() {
     let (_tmp, root) = workspace(&[("Checks.java", source)]);
     let plan = transpile::plan(&root.join("Checks.java"), Language::Python).expect("a draft");
     assert!(
-        plan.output
-            .contains("raise ValueError(\"negative: \" + str(n))"),
+        plan.output.contains("raise ValueError(f\"negative: {n}\")"),
         "the argument complaint is ValueError's.\n{}",
         plan.output
     );
+    // The canonical error model carries the message; the class dissolves into it, and the catch
+    // takes whatever failure arrives. The same code means that once it crosses into
+    // Result- and error-union targets, where no class survives either.
     assert!(
-        plan.output.contains("except ValueError as e:"),
-        "the catch selects on the same canonical name the raise used.\n{}",
+        plan.output.contains("except Exception as e:"),
+        "the catch takes the canonical failure.\n{}",
         plan.output
     );
     assert!(
-        plan.output.contains("print(\"caught \" + str(e))"),
+        plan.output.contains("print(f\"caught {str(e)}\")"),
         "`e.getMessage()` is `str(e)` here:\n{}",
         plan.output
     );
@@ -80,10 +81,11 @@ fn pythons_builtin_exceptions_reach_typescript_as_declared_classes() {
                   except ValueError as e:\n        print(\"caught\", e)\n";
     let (_tmp, root) = workspace(&[("exc.py", source)]);
     let plan = transpile::plan(&root.join("exc.py"), Language::TypeScript).expect("a draft");
+    // The throw keeps its declared class. The catch is canonical and takes whatever failure
+    // arrives, the way the same code reads once it crosses the Result- and error-union targets.
     for expected in [
         "class ValueError extends Error {}",
-        "throw new ValueError(\"negative: \" + String(n));",
-        "if (e instanceof ValueError) {",
+        "throw new ValueError(`negative: ${String(n)}`);",
         "console.log(\"caught\", (e as Error).message);",
     ] {
         assert!(

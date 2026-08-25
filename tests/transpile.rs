@@ -6,7 +6,6 @@
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
-use fun_refactor::transpile::MARKER;
 use std::path::PathBuf;
 
 fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, PathBuf) {
@@ -102,7 +101,7 @@ def total(values: list[int]) -> int:
     let (rust, fidelity) = translate(&[("a.py", source)], "a.py", Language::Rust);
     for wanted in [
         "fn total(values: Vec<i64>) -> i64 {",
-        "for value in values {",
+        "for value in &values {",
         "if value > 0 {",
         "} else {",
         "continue;",
@@ -324,9 +323,9 @@ fn every_output_parses_as_the_language_it_claims_to_be() {
 
 #[test]
 fn the_real_sample_files_translate_into_something_that_parses() {
-    // Toy inputs prove very little. These are the files the playground ships, and one
-    // of them is what found `-> Result<(), String>` being written into a Python
-    // annotation that Python cannot read.
+    // Toy inputs prove very little. These are the files the playground ships. And one of them
+    // is what found `-> Result<(), String>` being written into a Python annotation that Python
+    // cannot read.
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("web/sample");
     let sources = [
         "src/ingest.rs",
@@ -455,7 +454,7 @@ fn the_receiver_is_spelled_the_way_the_target_spells_it() {
 fn a_typescript_class_member_is_public_unless_it_says_otherwise() {
     // The opposite of what a free function does. Reading both the same way made every
     // translated method private in Java and unreachable everywhere else, while making every
-    // `private` field public, which is the same mistake pointing the other way.
+    // `private` field public. That is the same mistake pointing the other way.
     let source = "export class Guard {\n  private secret: string;\n  token: string;\n\n  \
                   check(t: string): boolean {\n    return t === this.secret;\n  }\n\n  \
                   private hash(t: string): string {\n    return t;\n  }\n}\n";
@@ -480,10 +479,9 @@ fn a_typescript_class_member_is_public_unless_it_says_otherwise() {
 
 #[test]
 fn zig_says_var_only_where_something_writes() {
-    // Zig rejects a `var` nothing writes to, and only the Rust reader records
-    // mutability at all, every other one says "mutable" because it has nothing better
-    // to say. Taking that at its word turned a `const` file into one that will not
-    // build.
+    // Zig rejects a `var` nothing writes to. And only the Rust reader records mutability at
+    // all, every other one says "mutable" because it has nothing better to say. Taking that at
+    // its word turned a `const` file into one that will not build.
     let source = "def tally(xs: list[int]) -> int:\n    total = 0\n    label = \"n\"\n    \
                   for x in xs:\n        total = total + x\n    return total\n";
     let (output, _) = translate(&[("t.py", source)], "t.py", Language::Zig);
@@ -504,18 +502,13 @@ fn zig_carries_what_it_cannot_say_above_the_statement() {
     // semicolon included.
     let source = "def greet(name: str) -> str:\n    line = f\"hi {name}\"\n    return line\n";
     let (output, fidelity) = translate(&[("g.py", source)], "g.py", Language::Zig);
-    assert_eq!(fidelity.carried_verbatim, 1, "{output}");
-    let at = output
-        .find("const line")
-        .unwrap_or_else(|| panic!("no binding:\n{output}"));
-    let before = output[..at].trim_end();
+    // The f-string crosses whole now, through the formatting helper. The statement-level carry
+    // this test once pinned is gone, and the comment discipline it guarded is exercised by the
+    // marker tests.
+    assert_eq!(fidelity.carried_verbatim, 0, "{output}");
     assert!(
-        before.lines().last().unwrap().trim().starts_with("//"),
-        "the carried text belongs on its own line above:\n{output}"
-    );
-    assert!(
-        output.contains("const line = undefined;"),
-        "the statement has to survive whole:\n{output}"
+        output.contains("frFormat(\"hi {s}\", .{ name })"),
+        "the format crosses as the helper call:\n{output}"
     );
 }
 
@@ -738,9 +731,9 @@ const TERNARY: &[(&str, &str)] = &[
 
 #[test]
 fn a_conditional_expression_crosses_between_the_five_that_have_one() {
-    // One expression that chooses between two. Go is the only target here without it,
-    // and turning one into an `if` statement needs somewhere to put the result, which
-    // does not exist inside an argument list, so Go says so instead.
+    // One expression that chooses between two. Go is the only target here without it, and
+    // turning one into an `if` statement needs somewhere to put the result. That does not exist
+    // inside an argument list, so Go says so instead.
     for (name, source) in TERNARY {
         // TypeScript's `number` is a float. Rust refuses to compare a float
         // against a bare integer literal, so that literal gains its point on
@@ -813,9 +806,9 @@ fn a_base_class_is_carried_where_it_can_be_and_reported_where_it_cannot() {
 
 #[test]
 fn zig_pointers_and_optionals_are_read_as_what_they_are() {
-    // The grammar calls `?T` a `nullable_type`, which is not what it looks like it
-    // should be called, so the arm written for `optional_type` matched nothing and
-    // every optional in every Zig file crossed as a foreign type spelled `?T`.
+    // The grammar calls `?T` a `nullable_type`, which is not what it looks like it should be
+    // called. So the arm written for `optional_type` matched nothing and every optional in
+    // every Zig file crossed as a foreign type spelled `?T`.
     let source = "pub const Store = struct {\n    n: i64,\n};\n\n\
                   pub fn find(store: *Store, key: ?[]const u8) ?i64 {\n    return 1;\n}\n";
     let (output, fidelity) = translate(&[("p.zig", source)], "p.zig", Language::TypeScript);
@@ -843,23 +836,26 @@ fn a_zig_comptime_parameter_is_refused_rather_than_read_as_a_value() {
 }
 
 #[test]
-fn a_zig_destructuring_binds_more_names_than_the_ir_has() {
-    // `const a, const b = pair;` binds two and the IR binds one. Reading the first and
-    // dropping the rest kept `const a = pair;` and lost `b` without a word.
+fn a_zig_destructuring_binds_every_name() {
+    // `const a, const b = pair;` binds two names. The value binds once and
+    // the names take its parts, hoisted, so they survive the lowering's own
+    // block and nothing carries.
     let source = "fn f(pair: T) void {\n    const a, const b = pair;\n    _ = a;\n    _ = b;\n}\n";
     let (output, fidelity) = translate(&[("d.zig", source)], "d.zig", Language::TypeScript);
-    assert!(fidelity.carried_verbatim > 0, "{output}");
+    assert_eq!(fidelity.carried_verbatim, 0, "{output}");
     assert!(
-        output.contains("const a, const b = pair;"),
-        "the source has to be in the output:\n{output}"
+        output.contains("[a, b] = frTup;")
+            && output.contains("let a;")
+            && output.contains("let b;"),
+        "both names bind and outlive the block:\n{output}"
     );
 }
 
 #[test]
 fn an_underscore_is_not_a_name_to_re_case() {
-    // `_` is the word for "no name" in four of these languages, and putting it through
-    // a naming convention asked what the empty word is called in `camelCase`. The
-    // answer was the empty string, so `_ = x;` came out as ` = x;`.
+    // `_` is the word for "no name" in four of these languages. And putting it through a naming
+    // convention asked what the empty word is called in `camelCase`. The answer was the empty
+    // string, so `_ = x;` came out as ` = x;`.
     let source = "fn f(_: *Analyser, value: i64) void {\n    _ = value;\n}\n";
     for target in [Language::Go, Language::Java, Language::TypeScript] {
         let (output, _) = translate(&[("u.zig", source)], "u.zig", target);
@@ -950,9 +946,9 @@ fn a_module_level_parameter_called_self_is_still_a_parameter() {
 
 #[test]
 fn a_constructor_is_spelled_the_way_each_target_spells_one() {
-    // Three of these six languages have a constructor and three have a habit. What
-    // carries is that it *is* one, the name is the type's in Java, a fixed word in
-    // Python and TypeScript, and `new`/`NewThing`/`init` in the other three.
+    // Three of these six languages have a constructor and three have a habit. What carries is
+    // that it *is* one, the name is the type's in Java, a fixed word in Python and TypeScript.
+    // And `new`/`NewThing`/`init` in the other three.
     let source = "public class Store {\n    int n;\n    public Store(int n) { this.n = n; }\n}\n";
     for (target, expected) in [
         (Language::Python, "def __init__(self, n: int):"),
@@ -969,7 +965,7 @@ fn a_constructor_is_spelled_the_way_each_target_spells_one() {
 #[test]
 fn a_constructor_body_that_assigns_through_a_receiver_says_so() {
     // Rust, Go and Zig build a value and return it. A body that assigns through a receiver has
-    // nowhere to run there, and writing `self.n = n` inside a function that binds no `self`
+    // nowhere to run there. And writing `self.n = n` inside a function that binds no `self`
     // would be worse than saying nothing was carried.
     let source = "public class Store {\n    int n;\n    public Store(int n) { this.n = n; }\n}\n";
     for target in [Language::Rust, Language::Go, Language::Zig] {
@@ -1016,9 +1012,9 @@ fn a_generic_impl_still_belongs_to_its_type() {
 
 #[test]
 fn a_container_passed_by_reference_is_still_a_container() {
-    // The reference has to come off *first*. Checking the containers before stripping
-    // the `&` meant every map, list and option passed by reference, which in Rust is
-    // most of them, was read as a name instead of as what it is.
+    // The reference has to come off *first*. Checking the containers before stripping the `&`
+    // meant every map, list and option passed by reference. That in Rust is most of them, was
+    // read as a name instead of as what it is.
     let source =
         "pub fn f(by_name: &HashMap<String, Vec<i64>>, xs: &[i64], s: &'a str) -> i64 {\n    \
                   return 1;\n}\n";
@@ -1119,9 +1115,16 @@ fn a_coalesce_crosses_as_the_question_it_asks() {
         let (output, _) = translate(&[("c.ts", source)], "c.ts", target);
         assert!(output.contains(expected), "{target}:\n{output}");
     }
+    // Go says it through a closure: the value binds once, and the nil test
+    // decides. Nothing carries.
     let (output, fidelity) = translate(&[("c.ts", source)], "c.ts", Language::Go);
-    assert!(output.contains(&format!("{MARKER}: x ?? 5")), "{output}");
-    assert!(fidelity.carried_verbatim > 0, "{output}");
+    assert!(
+        output.contains(
+            "func() any { frOpt1 := any(x); if frOpt1 != nil { return frOpt1 }; return 5 }()"
+        ),
+        "{output}"
+    );
+    assert_eq!(fidelity.carried_verbatim, 0, "{output}");
 }
 
 #[test]
@@ -1129,15 +1132,20 @@ fn a_value_that_cannot_be_named_twice_is_not_named_twice() {
     // Python and Java can only ask "is this absent" by naming the value. Naming a call twice
     // calls it twice, which would make the program do more than it did.
     let source = "export function f(): number {\n  const a = get(\"x\") ?? 5;\n  return a;\n}\n";
-    for target in [Language::Python, Language::Java] {
-        let (output, fidelity) = translate(&[("d.ts", source)], "d.ts", target);
-        assert!(fidelity.carried_verbatim > 0, "{target}:\n{output}");
-        assert!(
-            !output.contains("get(\"x\") is not None")
-                && !output.contains("requireNonNullElse(get"),
-            "{target} named the call twice:\n{output}"
-        );
-    }
+    // Python binds the call once through the walrus; Java through Optional.
+    // Neither writes the call a second time, and nothing carries.
+    let (output, fidelity) = translate(&[("d.ts", source)], "d.ts", Language::Python);
+    assert_eq!(fidelity.carried_verbatim, 0, "python:\n{output}");
+    assert!(
+        output.contains("fr_opt_1 if (fr_opt_1 := get(\"x\")) is not None else 5"),
+        "the walrus names the value once:\n{output}"
+    );
+    let (output, fidelity) = translate(&[("d.ts", source)], "d.ts", Language::Java);
+    assert_eq!(fidelity.carried_verbatim, 0, "java:\n{output}");
+    assert!(
+        output.contains("java.util.Optional.ofNullable(get(\"x\")).orElse(5)"),
+        "Optional names the value once:\n{output}"
+    );
     // Zig's operator evaluates the left side once, so it has nothing to refuse.
     let (output, _) = translate(&[("d.ts", source)], "d.ts", Language::Zig);
     assert!(output.contains("get(\"x\") orelse 5"), "{output}");

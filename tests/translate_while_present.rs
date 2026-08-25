@@ -65,15 +65,22 @@ fn a_zig_while_payload_becomes_while_let() {
 }
 
 #[test]
-fn a_while_with_a_continue_expression_carries() {
-    // `while (c) |v| : (i += 1)` steps something the IR has no slot for.
+fn a_while_with_a_continue_expression_steps_at_the_bottom() {
+    // `while (c) |v| : (i += 1)` runs the step after each pass. The lowering runs it at the
+    // bottom of the body, and before each `continue`.
     let source = "fn walk(it: Iter) void {\n    var i: usize = 0;\n    \
                   while (it.next()) |v| : (i += 1) {\n        use(v, i);\n    }\n}\n";
     let (_tmp, root) = workspace(&[("c.zig", source)]);
     let plan = transpile::plan(&root.join("c.zig"), Language::Rust).expect("a draft");
     assert!(
-        plan.output.contains(transpile::MARKER),
-        "a stepped while has no crossing and must say so.\n{}",
+        plan.output.contains("while let Some(v) = it.next() {")
+            && plan.output.contains("i = i + 1;"),
+        "the loop binds and the step runs at the bottom.\n{}",
+        plan.output
+    );
+    assert!(
+        !plan.output.contains(transpile::MARKER),
+        "nothing carries:\n{}",
         plan.output
     );
 }

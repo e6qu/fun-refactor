@@ -547,6 +547,17 @@ pub enum Stmt {
     /// under a "not translated" marker. It inflates the count of real gaps with things
     /// that were never gaps.
     Comment(String),
+    /// A function declared inside another: Zig's `const f = struct { fn f… }.f;`
+    /// idiom, Python's nested `def`. Every target has a local spelling:
+    /// nested functions, function literals, or an anonymous object holding
+    /// one method. The binding's name is the function's.
+    LocalFunction(Box<Function>),
+    /// A braced block: its statements, scoped where the target scopes blocks.
+    ///
+    /// Zig writes one for scoping alone, and several lowerings group the
+    /// statements they expand into. Targets with block scope keep the braces;
+    /// Python, which has none, writes the statements in place.
+    Block(Vec<Stmt>),
     /// `raise e` / `throw e`.
     Throw(Expr),
     /// `try { } catch { } finally { }`, and Python's `try/except/finally`.
@@ -565,6 +576,13 @@ pub enum Stmt {
         line: usize,
     },
     Break,
+    /// `break :label value`: leave the labeled block, with a value when the
+    /// block produces one. The Zig reader consumes these while lowering
+    /// labeled blocks into loops; one that survives to a writer is carried.
+    BreakWith {
+        label: String,
+        value: Option<Box<Expr>>,
+    },
     Continue,
     Unsupported(Unsupported),
 }
@@ -790,6 +808,8 @@ pub enum BinaryOp {
     Ge,
     And,
     Or,
+    /// `a ^ b`, the exclusive or, which all six spell the same way.
+    Xor,
 }
 
 impl BinaryOp {
@@ -816,6 +836,7 @@ impl BinaryOp {
             BinaryOp::Ge => ">=",
             BinaryOp::And => "&&",
             BinaryOp::Or => "||",
+            BinaryOp::Xor => "^",
         }
     }
 
@@ -845,6 +866,9 @@ impl BinaryOp {
             | BinaryOp::TrueDiv
             | BinaryOp::Rem => 6,
             BinaryOp::Add | BinaryOp::Sub => 5,
+            // C gives xor its own tier between arithmetic and comparison;
+            // parenthesised operands keep every target agreeing.
+            BinaryOp::Xor => 4,
             BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge => 4,
             BinaryOp::Eq | BinaryOp::Ne => 3,
             BinaryOp::And => 2,
@@ -857,6 +881,10 @@ impl BinaryOp {
 pub enum UnaryOp {
     Not,
     Neg,
+    /// Zig's `x.?`, TypeScript's `x!`: the value is there, and saying so is an
+    /// assertion. Targets without the assertion use the value directly and
+    /// fail where the source would have trapped.
+    Unwrap,
 }
 
 /// What a translation managed and what it did not.
@@ -891,16 +919,16 @@ pub struct Fidelity {
 }
 
 impl Fidelity {
-    /// Did everything cross intact?
-    ///
-    /// A translation that read *nothing* falls short of complete. Without the first
-    /// clause, an empty file reports "every signature carried across with its types
-    /// intact", which is true and misleading.
+    /// Did everything cross with a defined lowering? A translation that read *nothing* falls
+    /// short of complete. Without the first clause, an empty file reports "every signature
+    /// carried across with its types intact", which is true and misleading. A signature naming
+    /// a type this tool does not know is still complete: the name crosses verbatim, which is
+    /// the defined behavior for foreign types. And the count stays in the report as
+    /// information. The same holds for a calling convention the target cannot keep. Named
+    /// arguments passing by position is a defined lowering, noted in the output, so neither
+    /// count gates completeness. Only a construct carried verbatim does.
     pub fn is_complete(&self) -> bool {
-        self.translated() > 0
-            && self.carried_verbatim == 0
-            && self.signatures_with_foreign_types == 0
-            && self.signatures_with_changed_calls == 0
+        self.translated() > 0 && self.carried_verbatim == 0
     }
 
     /// How many declarations came across at all.

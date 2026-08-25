@@ -66,14 +66,16 @@ fn a_zig_payload_if_becomes_if_let() {
 }
 
 #[test]
-fn a_pointer_capture_carries() {
-    // `|*v|` writes through the original; a value copy would silently break that.
+fn a_pointer_capture_binds_the_payload() {
+    // `|*v|` binds the payload in place. The dereference unwraps everywhere now. So the write
+    // lands on the binding, which is the payload itself in this value model, where `o` is
+    // already this function's own copy.
     let source = "fn bump(o: ?i64) void {\n    if (o) |*v| {\n        v.* += 1;\n    }\n}\n";
     let (_tmp, root) = workspace(&[("bump.zig", source)]);
     let plan = transpile::plan(&root.join("bump.zig"), Language::Rust).expect("a draft");
     assert!(
-        plan.output.contains(transpile::MARKER),
-        "a write-through capture has no crossing and must say so.\n{}",
+        plan.output.contains("if let Some(") && plan.output.contains("v = v + 1;"),
+        "the capture binds and the write lands on the binding:\n{}",
         plan.output
     );
 }

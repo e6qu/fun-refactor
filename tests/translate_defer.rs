@@ -80,19 +80,21 @@ fn stacked_defers_nest_and_keep_their_order() {
 }
 
 #[test]
-fn a_go_defer_reads_and_rust_carries_it_as_rendered_rust() {
+fn a_go_defer_reads_and_rust_runs_it_from_a_drop_guard() {
+    // Rust has no scope-exit statement; the guard type is where it keeps one.
+    // The cleanup is inside the guard's closure, runnable, not a comment.
     let source = "package main\n\nfunc readAll(path string) int {\n\tfile := open(path)\n\t\
                   defer file.Close()\n\treturn parse(file)\n}\n";
     let (_tmp, root) = workspace(&[("d.go", source)]);
     let plan = transpile::plan(&root.join("d.go"), Language::Rust).expect("a draft");
     assert!(
-        plan.output.contains("a defer runs this at scope exit:"),
-        "{}",
+        plan.output.contains("FrDefer(Some(|| {"),
+        "the defer arms a guard:\n{}",
         plan.output
     );
     assert!(
-        plan.output.contains("// file.close();") || plan.output.contains("// file.Close();"),
-        "the carried body is the body, rendered:\n{}",
+        plan.output.contains("file.Close();") && plan.output.contains("impl<F: FnMut()> Drop"),
+        "the cleanup is code inside the guard, and the guard type is declared:\n{}",
         plan.output
     );
 }
@@ -123,15 +125,17 @@ fn a_positional_construction_names_the_declared_records_fields() {
 }
 
 #[test]
-fn a_construction_with_the_wrong_arity_carries() {
-    // Two fields, one argument: mapping positions would invent a default.
+fn a_construction_with_the_wrong_arity_calls_the_convention() {
+    // Two fields, one argument: mapping positions would invent a default. So the construction
+    // goes through the constructor convention instead of a field literal, and the argument it
+    // has is the argument it passes.
     let source = "from dataclasses import dataclass\n\n\n@dataclass\nclass Point:\n    \
                   x: int\n    y: int\n\n\ndef partial() -> Point:\n    return Point(1)\n";
     let (_tmp, root) = workspace(&[("pp.py", source)]);
     let plan = transpile::plan(&root.join("pp.py"), Language::Rust).expect("a draft");
     assert!(
-        plan.output.contains("Point(1)"),
-        "an arity mismatch stays a call for the reader to resolve:\n{}",
+        plan.output.contains("Point::new(1)"),
+        "an arity mismatch goes through the constructor convention:\n{}",
         plan.output
     );
 }
@@ -192,7 +196,11 @@ fn errdefer_cleans_up_only_on_the_failure_path() {
         .unwrap()
         .output;
     assert!(
-        go.contains("errdefer runs this when the scope fails"),
-        "Go has no failure path a block can watch, and says so:\n{go}"
+        go.contains("frFailed1 := true") && go.contains("if frFailed1 {"),
+        "Go arms a flag the successful path turns off, and the defer tests it:\n{go}"
+    );
+    assert!(
+        go.contains("frFailed1 = false"),
+        "the successful path disarms the flag:\n{go}"
     );
 }
