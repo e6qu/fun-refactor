@@ -56,6 +56,70 @@ fn contains_failing_call(out: &Out, e: &Expr) -> bool {
     }
 }
 
+/// Every name this body assigns to, indexes into, or grows through a method.
+fn rust_mutated_names(body: &[Stmt]) -> std::collections::BTreeSet<String> {
+    fn root(e: &Expr) -> Option<&str> {
+        match e {
+            Expr::Name(n) => Some(n),
+            Expr::Field { of, .. } | Expr::Index { of, .. } => root(of),
+            _ => None,
+        }
+    }
+    fn in_expr(e: &Expr, found: &mut std::collections::BTreeSet<String>) {
+        match e {
+            Expr::Call { callee, args } => {
+                if let Expr::Field { of, name } = &**callee {
+                    if matches!(name.as_str(), "append" | "push" | "add" | "insert" | "pop") {
+                        if let Some(n) = root(of) {
+                            found.insert(n.to_string());
+                        }
+                    }
+                }
+                in_expr(callee, found);
+                for a in args {
+                    in_expr(a, found);
+                }
+            }
+            Expr::Binary { left, right, .. } => {
+                in_expr(left, found);
+                in_expr(right, found);
+            }
+            Expr::Unary { operand, .. } | Expr::Await(operand) | Expr::Propagate(operand) => {
+                in_expr(operand, found)
+            }
+            Expr::Template(parts) => {
+                for part in parts {
+                    if let TemplatePart::Expr(e) = part {
+                        in_expr(e, found);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    fn walk(body: &[Stmt], found: &mut std::collections::BTreeSet<String>) {
+        for stmt in body {
+            match stmt {
+                Stmt::Assign { target, value } => {
+                    if let Some(n) = root(target) {
+                        found.insert(n.to_string());
+                    }
+                    in_expr(value, found);
+                }
+                Stmt::Expr(e) | Stmt::Return(Some(e)) | Stmt::Throw(e) => in_expr(e, found),
+                Stmt::Let { value: Some(e), .. } => in_expr(e, found),
+                _ => {}
+            }
+            for inner in sub_bodies(stmt) {
+                walk(inner, found);
+            }
+        }
+    }
+    let mut found = std::collections::BTreeSet::new();
+    walk(body, &mut found);
+    found
+}
+
 /// Can any statement in this body leave the enclosing scope early?
 fn exits_anywhere(body: &[Stmt]) -> bool {
     fn expr_fails(e: &Expr) -> bool {
@@ -1409,9 +1473,15 @@ struct Out {
     fn_throws: bool,
     /// One counter for the names a lowering has to invent.
     lowering_names: usize,
+    /// The names the Rust body writes to or grows, which must bind `mut` whatever
+    /// the source's own mutability said. A `const` list in TypeScript still grows.
+    rust_mutated: std::collections::BTreeSet<String>,
     /// The `try` block the Zig writer is inside: its label, the catch binding, and
     /// the catch body every failing call repeats before breaking out.
     zig_try: Option<(String, String, Vec<Stmt>)>,
+    /// The growable lists of the Zig function being written: bound to an empty
+    /// literal, spelled as `std.ArrayList`, reached through `.items`.
+    zig_dyn: std::collections::BTreeSet<String>,
     /// Text a writer could not put where the expression it replaced stood.
     ///
     /// Zig is the only target here with no block comment. Its `//` runs to the end of the
@@ -1523,7 +1593,9 @@ impl Out {
             can_propagate: false,
             fn_throws: false,
             lowering_names: 0,
+            rust_mutated: std::collections::BTreeSet::new(),
             zig_try: None,
+            zig_dyn: std::collections::BTreeSet::new(),
             pending: Vec::new(),
             binding_types: std::collections::BTreeMap::new(),
             field_types: std::collections::BTreeMap::new(),
@@ -2552,6 +2624,7 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
     // initialize to the type's default.
     let f = &with_hoisted_bindings(f, &out.function_returns);
     out.binding_types = declared_bindings(f);
+    out.rust_mutated = rust_mutated_names(&f.body);
     // The source's word for the receiver, spelled this target's way for as long as
     // this body is being written. Outside a method there is nothing to bind.
     let scope = out.enter_method(f);
@@ -2787,7 +2860,11 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     .as_ref()
                     .map(|t| format!(": {}", rust_type(t)))
                     .unwrap_or_default();
-                let m = if *mutable { "mut " } else { "" };
+                let m = if *mutable || out.rust_mutated.contains(name) {
+                    "mut "
+                } else {
+                    ""
+                };
                 let v = value
                     .as_ref()
                     .map(|v| rust_expr(out, v))
@@ -3087,7 +3164,11 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 iterable,
                 body,
             } => {
-                let it = rust_expr(out, iterable);
+                let mut it = rust_expr(out, iterable);
+                // A named collection iterates by reference, or the first loop eats it.
+                if matches!(iterable, Expr::Name(_)) && !it.starts_with('&') {
+                    it = format!("&{it}");
+                }
                 let bound = out.name(binding);
                 out.line(&format!("for {bound} in {it} {{"));
                 out.open();
@@ -8368,10 +8449,12 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
             // collection. `d.get(k) = v`, which rendering the target as an expression
             // produces, is not a statement in the language at all.
             if let Expr::Index { of, index } = target {
+                let listish = matches!(static_type(out, of), Some(Type::List(_)));
                 let object = java_expr(out, of);
                 let at = java_expr(out, index);
                 let right = java_expr(out, value);
-                out.line(&format!("{object}.put({at}, {right});"));
+                let verb = if listish { "set" } else { "put" };
+                out.line(&format!("{object}.{verb}({at}, {right});"));
                 return;
             }
             let left = java_expr(out, target);
@@ -8612,8 +8695,14 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
         } => {
             let it = java_expr(out, iterable);
             let bound = out.name(binding);
-            // The element type is the collection's, which this does not track.
-            out.line(&format!("for (var {bound} : {it}) {{"));
+            // The element type is the collection's, where the collection's is known;
+            // `var` binds a boxed `Object` over an `ArrayList` and arithmetic on the
+            // element then refuses to compile.
+            let element = match static_type(out, iterable) {
+                Some(Type::List(inner)) => java_type(&inner),
+                _ => "var".to_string(),
+            };
+            out.line(&format!("for ({element} {bound} : {it}) {{"));
             out.open();
             java_block(out, body, None);
             out.close();
@@ -8720,6 +8809,7 @@ fn java_utilities(module: &Module) -> std::collections::BTreeSet<&'static str> {
             // `List.of(…)` and `Map.of(…)` are how this writer spells a literal.
             Expr::ListLit(items) => {
                 needed.insert("List");
+                needed.insert("ArrayList");
                 items.iter().for_each(|i| in_expr(i, needed));
             }
             Expr::MapLit(entries) => {
@@ -9067,7 +9157,12 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
         }
         Expr::ListLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| java_expr(out, i)).collect();
-            format!("List.of({})", rendered.join(", "))
+            // `List.of` is immutable, and a source that wrote a list literal is free
+            // to grow it a line later. `ArrayList` behaves like everyone's list.
+            match rendered.is_empty() {
+                true => "new ArrayList<>()".to_string(),
+                false => format!("new ArrayList<>(List.of({}))", rendered.join(", ")),
+            }
         }
         Expr::MapLit(entries) => {
             let rendered: Vec<String> = entries
@@ -9510,6 +9605,7 @@ fn uses_the_standard_library(module: &Module) -> bool {
 fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     // Bindings made inside blocks die at their brace here too.
     let f = &with_hoisted_bindings(f, &out.function_returns);
+    out.zig_dyn = zig_growable_lists(&f.body);
     // A function that can fail takes this target's failure idiom back: the error
     // union in the signature, `try` at every failing call.
     let f = &with_failure_idiom(f, &out.throwing.clone());
@@ -9627,6 +9723,25 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     } else if !changed && !unannotated {
         out.fidelity.signatures_complete += 1;
     }
+}
+
+/// The names bound to an empty list literal: the lists this function grows.
+fn zig_growable_lists(body: &[Stmt]) -> std::collections::BTreeSet<String> {
+    fn walk(body: &[Stmt], found: &mut std::collections::BTreeSet<String>) {
+        for stmt in body {
+            if let Stmt::Let { name, value, .. } = stmt {
+                if matches!(value, Some(Expr::ListLit(items)) if items.is_empty()) {
+                    found.insert(name.clone());
+                }
+            }
+            for inner in sub_bodies(stmt) {
+                walk(inner, found);
+            }
+        }
+    }
+    let mut found = std::collections::BTreeSet::new();
+    walk(body, &mut found);
+    found
 }
 
 /// Every name this body writes to, including through a field or an index.
@@ -9784,6 +9899,20 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                 let call = zig_failing_call(out, inner);
                 let bound = out.name(name);
                 zig_line(out, &format!("{keyword} {bound} = {call};"));
+                return;
+            }
+            // An empty list that grows is `std.ArrayList`; a fixed array cannot
+            // append.
+            if out.zig_dyn.contains(name) {
+                let element = match ty.as_ref() {
+                    Some(Type::List(inner)) => zig_type(inner),
+                    _ => "i64".to_string(),
+                };
+                let bound = out.name(name);
+                zig_line(
+                    out,
+                    &format!("var {bound}: std.ArrayList({element}) = .empty;"),
+                );
                 return;
             }
             let annotation = match (ty.as_ref(), keyword, value.as_ref()) {
@@ -10086,7 +10215,10 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
             iterable,
             body,
         } => {
-            let it = zig_expr(out, iterable);
+            let mut it = zig_expr(out, iterable);
+            if matches!(iterable, Expr::Name(n) if out.zig_dyn.contains(n.as_str())) {
+                it.push_str(".items");
+            }
             let i = out.name(index);
             let bound = out.name(binding);
             zig_line(out, &format!("for ({it}, 0..) |{bound}, {i}| {{"));
@@ -10100,7 +10232,11 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
             iterable,
             body,
         } => {
-            let it = zig_expr(out, iterable);
+            let mut it = zig_expr(out, iterable);
+            // A growable list iterates its elements.
+            if matches!(iterable, Expr::Name(n) if out.zig_dyn.contains(n.as_str())) {
+                it.push_str(".items");
+            }
             let bound = out.name(binding);
             zig_line(out, &format!("for ({it}) |{bound}| {{"));
             out.open();
@@ -10351,7 +10487,11 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
         // `[…]` on a slice or an array and `.get(…)` on a map, and which this is
         // depends on a type nothing here tracks. Zig's indexable is the slice.
         Expr::Index { of, index } => {
-            let object = receiver(zig_expr(out, of), of);
+            let mut object = receiver(zig_expr(out, of), of);
+            // A growable list's elements live behind `.items`.
+            if matches!(&**of, Expr::Name(n) if out.zig_dyn.contains(n.as_str())) {
+                object.push_str(".items");
+            }
             let at = zig_expr(out, index);
             format!("{object}[{at}]")
         }
@@ -11054,11 +11194,14 @@ fn rust_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
         (None, "len", [x]) => format!("{}.len()", rust_expr(out, x)),
         (None, "str", [x]) => format!("{}.to_string()", rust_expr(out, x)),
         (Some(of), "append", [x]) => {
-            format!(
-                "{}.push({})",
-                rust_expr(out, &of.clone()),
-                rust_expr(out, x)
-            )
+            let mut pushed = rust_expr(out, x);
+            // An integer literal into a float list takes the float spelling.
+            if matches!(static_type(out, of), Some(Type::List(inner)) if *inner == Type::Float)
+                && matches!(x, Expr::Int(_))
+            {
+                pushed.push_str(".0");
+            }
+            format!("{}.push({pushed})", rust_expr(out, &of.clone()))
         }
         (Some(of), "upper", []) => format!("{}.to_uppercase()", rust_expr(out, &of.clone())),
         (Some(of), "lower", []) => format!("{}.to_lowercase()", rust_expr(out, &of.clone())),
@@ -11166,6 +11309,15 @@ fn java_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
             format!("{}.getMessage()", out.name(bound))
         }
         (None, "str", [x]) => format!("String.valueOf({})", java_expr(out, x)),
+        // `len` is spelled by what it measures: a list answers `size()`, text
+        // answers `length()`.
+        (None, "len", [x]) => {
+            let spelled = match static_type(out, x) {
+                Some(Type::String) => "length()",
+                _ => "size()",
+            };
+            format!("{}.{spelled}", java_expr(out, &x.clone()))
+        }
         (Some(of), "append", [x]) => {
             format!("{}.add({})", java_expr(out, &of.clone()), java_expr(out, x))
         }
@@ -11211,7 +11363,20 @@ fn zig_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
                 specs.join(" ")
             )
         }
+        (None, "len", [Expr::Name(n)]) if out.zig_dyn.contains(n.as_str()) => {
+            format!("{}.items.len", out.value_name(n))
+        }
         (None, "len", [x]) => format!("{}.len", zig_expr(out, x)),
+        // A growable list appends through the allocator the lowering owns; the
+        // failure a real allocator can raise stops the program, loudly, which is
+        // what the sources that never name an allocator mean.
+        (Some(of), "append", [x]) => {
+            let target = zig_expr(out, &of.clone());
+            format!(
+                "{target}.append(std.heap.page_allocator, {}) catch unreachable",
+                zig_expr(out, x)
+            )
+        }
         // `str` of something already text is the text: a Zig string is a slice of
         // bytes, and a literal is one from birth. Of a number it is a formatted
         // string, which the format helper owns. Of a caught error it is the name,

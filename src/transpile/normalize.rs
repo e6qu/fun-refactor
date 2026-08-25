@@ -16,6 +16,13 @@ use crate::lang::Language;
 /// Rewrite `module`'s expressions into the canonical vocabulary for `language`.
 pub fn normalize(module: &mut Module, language: Language) {
     strip_lowering_helpers(module);
+    normalize_language(module, language);
+    // After the per-language pass, so Go's `x = append(x, v)` is already the method
+    // call this reads.
+    settle_list_element_types(module);
+}
+
+fn normalize_language(module: &mut Module, language: Language) {
     let rewrite: fn(Expr) -> Expr = match language {
         Language::Go => {
             go_module(module);
@@ -27,6 +34,7 @@ pub fn normalize(module: &mut Module, language: Language) {
         }
         Language::Java => {
             settle_exception_classes(module);
+            settle_java_lists(module);
             java
         }
         Language::Python => {
@@ -509,6 +517,7 @@ fn zig_module(module: &mut Module) {
 }
 
 fn zig_function(f: &mut Function) {
+    zig_lists(&mut f.body);
     // The writer aliases: bound to stdout machinery, or to a field of one.
     let mut writers: Vec<String> = Vec::new();
     // The names the writer machinery consumed: its buffer, the process `init`.
@@ -977,6 +986,7 @@ fn go_module(module: &mut Module) {
                 };
                 settle_go_returns(&mut f.body);
             }
+            settle_go_appends(&mut f.body);
             settle_go_checks(&mut f.body);
         }
     }
@@ -1019,6 +1029,37 @@ fn go_error_message(e: Expr) -> Expr {
         }
     }
     e
+}
+
+/// `x = append(x, v)`, said the way every other list grows: a method call.
+fn settle_go_appends(body: &mut Vec<Stmt>) {
+    for stmt in body.iter_mut() {
+        for inner in substatements(stmt) {
+            settle_go_appends(inner);
+        }
+        let Stmt::Assign { target, value } = stmt else {
+            continue;
+        };
+        let Expr::Name(bound) = target else { continue };
+        let Expr::Call { callee, args } = value else {
+            continue;
+        };
+        if !matches!(&**callee, Expr::Name(n) if n == "append") || args.len() != 2 {
+            continue;
+        }
+        if !matches!(&args[0], Expr::Name(n) if n == bound) {
+            continue;
+        }
+        let pushed = args.pop().expect("two args");
+        let list = bound.clone();
+        *stmt = Stmt::Expr(Expr::Call {
+            callee: Box::new(Expr::Field {
+                of: Box::new(Expr::Name(list)),
+                name: "append".to_string(),
+            }),
+            args: vec![pushed],
+        });
+    }
 }
 
 fn settle_go_checks(body: &mut Vec<Stmt>) {
@@ -1281,4 +1322,445 @@ fn zig_exprs(expr: Expr) -> Expr {
         };
     }
     expr
+}
+
+// --------------------------------------------------------------- Java lists
+
+/// `ArrayList` spoken canonically: `add` is `append`, `size` is `len`, `get` is an
+/// index and `set` an index assignment.
+///
+/// Only on bindings the function shows to be lists — declared `ArrayList`/`List`, or
+/// initialized from a list literal or an `ArrayList` construction. `add` on anything
+/// else keeps its name.
+fn settle_java_lists(module: &mut Module) {
+    for item in &mut module.items {
+        let functions: Vec<&mut Function> = match item {
+            Item::Function(f) => vec![f],
+            Item::Record(r) => r.methods.iter_mut().collect(),
+            _ => continue,
+        };
+        for f in functions {
+            let mut lists: Vec<String> = f
+                .params
+                .iter()
+                .filter(|p| is_list_type(&p.ty))
+                .map(|p| p.name.clone())
+                .collect();
+            collect_list_bindings(&f.body, &mut lists);
+            if lists.is_empty() {
+                continue;
+            }
+            rewrite_java_lists(&mut f.body, &lists);
+        }
+    }
+}
+
+fn is_list_type(ty: &Option<Type>) -> bool {
+    matches!(ty, Some(Type::List(_)))
+        || matches!(ty, Some(Type::Named { name, .. })
+            if name == "ArrayList" || name == "List" || name == "LinkedList")
+}
+
+fn collect_list_bindings(body: &[Stmt], lists: &mut Vec<String>) {
+    for stmt in body {
+        for inner in substatements_ref(stmt) {
+            collect_list_bindings(inner, lists);
+        }
+        if let Stmt::Let {
+            name, ty, value, ..
+        } = stmt
+        {
+            let listish = is_list_type(ty)
+                || matches!(value, Some(Expr::ListLit(_)))
+                || matches!(value, Some(Expr::New { callee, .. } | Expr::Call { callee, .. })
+                    if matches!(&**callee, Expr::Name(n)
+                        if n == "ArrayList" || n == "LinkedList"));
+            if listish && !lists.contains(name) {
+                lists.push(name.clone());
+            }
+        }
+    }
+}
+
+/// The read-only view of the nested bodies, for the collectors.
+fn substatements_ref(stmt: &Stmt) -> Vec<&Vec<Stmt>> {
+    match stmt {
+        Stmt::If {
+            then, otherwise, ..
+        }
+        | Stmt::IfPresent {
+            then, otherwise, ..
+        } => vec![then, otherwise],
+        Stmt::While { body, .. }
+        | Stmt::CountedFor { body, .. }
+        | Stmt::ForEach { body, .. }
+        | Stmt::ForEachIndexed { body, .. }
+        | Stmt::WhilePresent { body, .. }
+        | Stmt::Defer(body)
+        | Stmt::ErrDefer(body) => vec![body],
+        Stmt::Switch { arms, default, .. } => {
+            let mut all: Vec<&Vec<Stmt>> = arms.iter().map(|(_, arm)| arm).collect();
+            all.push(default);
+            all
+        }
+        Stmt::Try {
+            body,
+            catches,
+            finally,
+            ..
+        } => {
+            let mut all = vec![body];
+            all.extend(catches.iter().map(|c| &c.body));
+            all.push(finally);
+            all
+        }
+        _ => Vec::new(),
+    }
+}
+
+fn rewrite_java_lists(body: &mut Vec<Stmt>, lists: &[String]) {
+    fn empty_construction(e: &Expr) -> bool {
+        matches!(e, Expr::New { callee, args } | Expr::Call { callee, args }
+            if args.is_empty()
+                && matches!(&**callee, Expr::Name(n)
+                    if n == "ArrayList" || n == "LinkedList"))
+    }
+    fn on_list(e: &Expr, lists: &[String]) -> Option<String> {
+        match e {
+            Expr::Name(n) if lists.iter().any(|l| l == n) => Some(n.clone()),
+            _ => None,
+        }
+    }
+    fn fix(e: &mut Expr, lists: &[String]) {
+        let each = |e: &mut Expr| fix(e, lists);
+        match e {
+            Expr::Call { callee, args } | Expr::New { callee, args } => {
+                each(callee);
+                for a in args {
+                    each(a);
+                }
+            }
+            Expr::Binary { left, right, .. } => {
+                each(left);
+                each(right);
+            }
+            Expr::Unary { operand, .. } | Expr::Await(operand) | Expr::Propagate(operand) => {
+                each(operand)
+            }
+            Expr::Template(parts) => {
+                for part in parts {
+                    if let TemplatePart::Expr(e) = part {
+                        each(e);
+                    }
+                }
+            }
+            Expr::Field { of, .. } | Expr::Index { of, .. } => each(of),
+            _ => {}
+        }
+        let Expr::Call { callee, args } = e else {
+            return;
+        };
+        let Expr::Field { of, name } = &**callee else {
+            return;
+        };
+        let Some(list) = on_list(of, lists) else {
+            return;
+        };
+        match (name.as_str(), args.len()) {
+            ("add", 1) => {
+                let value = args.remove(0);
+                *e = Expr::Call {
+                    callee: Box::new(Expr::Field {
+                        of: Box::new(Expr::Name(list)),
+                        name: "append".to_string(),
+                    }),
+                    args: vec![value],
+                };
+            }
+            ("size", 0) => {
+                *e = Expr::Call {
+                    callee: Box::new(Expr::Name("len".to_string())),
+                    args: vec![Expr::Name(list)],
+                };
+            }
+            ("get", 1) => {
+                let index = args.remove(0);
+                *e = Expr::Index {
+                    of: Box::new(Expr::Name(list)),
+                    index: Box::new(index),
+                };
+            }
+            _ => {}
+        }
+    }
+    for stmt in body.iter_mut() {
+        for inner in substatements(stmt) {
+            rewrite_java_lists(inner, lists);
+        }
+        // `list.set(i, v)` as a statement is an index assignment.
+        if let Stmt::Expr(Expr::Call { callee, args }) = stmt {
+            if let Expr::Field { of, name } = &**callee {
+                if name == "set" && args.len() == 2 {
+                    if let Some(list) = on_list(of, lists) {
+                        let value = args.pop().expect("two args");
+                        let index = args.pop().expect("one left");
+                        *stmt = Stmt::Assign {
+                            target: Expr::Index {
+                                of: Box::new(Expr::Name(list)),
+                                index: Box::new(index),
+                            },
+                            value,
+                        };
+                        continue;
+                    }
+                }
+            }
+        }
+        if let Stmt::Let { value: Some(v), .. } = stmt {
+            if empty_construction(v) {
+                *v = Expr::ListLit(Vec::new());
+            }
+        }
+        match stmt {
+            Stmt::Expr(e) | Stmt::Throw(e) | Stmt::Return(Some(e)) => fix(e, lists),
+            Stmt::Let { value: Some(e), .. } | Stmt::Assign { value: e, .. } => fix(e, lists),
+            Stmt::If { condition, .. } | Stmt::While { condition, .. } => fix(condition, lists),
+            Stmt::ForEach { iterable, .. } | Stmt::ForEachIndexed { iterable, .. } => {
+                fix(iterable, lists)
+            }
+            _ => {}
+        }
+    }
+}
+
+// ------------------------------------------------------ list element types
+
+/// The element type of a list, read off what the function puts into it.
+///
+/// `nums = []` says nothing, and neither does TypeScript's `number[]` about whether
+/// the numbers are whole. Every value appended being an integer literal is the
+/// function saying so, and the targets that must choose a type get the one the
+/// values chose.
+fn settle_list_element_types(module: &mut Module) {
+    for item in &mut module.items {
+        let functions: Vec<&mut Function> = match item {
+            Item::Function(f) => vec![f],
+            Item::Record(r) => r.methods.iter_mut().collect(),
+            _ => continue,
+        };
+        for f in functions {
+            let mut names: Vec<String> = Vec::new();
+            collect_untyped_lists(&f.body, &mut names);
+            for name in names {
+                let mut observed: Option<Type> = None;
+                let mut settled = true;
+                observe_appends(&f.body, &name, &mut observed, &mut settled);
+                if let (Some(element), true) = (observed, settled) {
+                    retype_list(&mut f.body, &name, element);
+                }
+            }
+        }
+    }
+}
+
+fn collect_untyped_lists(body: &[Stmt], names: &mut Vec<String>) {
+    for stmt in body {
+        for inner in substatements_ref(stmt) {
+            collect_untyped_lists(inner, names);
+        }
+        if let Stmt::Let {
+            name, ty, value, ..
+        } = stmt
+        {
+            let empty_list = matches!(value, Some(Expr::ListLit(items)) if items.is_empty());
+            let loose = matches!(ty, None | Some(Type::List(_)));
+            if empty_list && loose && !names.contains(name) {
+                names.push(name.clone());
+            }
+        }
+    }
+}
+
+fn observe_appends(body: &[Stmt], name: &str, observed: &mut Option<Type>, settled: &mut bool) {
+    fn literal_type(e: &Expr) -> Option<Type> {
+        match e {
+            Expr::Int(_) => Some(Type::Int),
+            Expr::Float(_) => Some(Type::Float),
+            Expr::Str(_) | Expr::Template(_) => Some(Type::String),
+            Expr::Bool(_) => Some(Type::Bool),
+            _ => None,
+        }
+    }
+    for stmt in body {
+        for inner in substatements_ref(stmt) {
+            observe_appends(inner, name, observed, settled);
+        }
+        let Stmt::Expr(Expr::Call { callee, args }) = stmt else {
+            continue;
+        };
+        let Expr::Field { of, name: method } = &**callee else {
+            continue;
+        };
+        if method != "append" || !matches!(&**of, Expr::Name(n) if n == name) {
+            continue;
+        }
+        match args.first().and_then(literal_type) {
+            Some(ty) => match observed {
+                None => *observed = Some(ty),
+                Some(seen) if *seen == ty => {}
+                Some(_) => *settled = false,
+            },
+            None => *settled = false,
+        }
+    }
+}
+
+fn retype_list(body: &mut Vec<Stmt>, name: &str, element: Type) {
+    for stmt in body.iter_mut() {
+        for inner in substatements(stmt) {
+            retype_list(inner, name, element.clone());
+        }
+        if let Stmt::Let {
+            name: bound, ty, ..
+        } = stmt
+        {
+            if bound == name {
+                *ty = Some(Type::List(Box::new(element.clone())));
+            }
+        }
+    }
+}
+
+/// Zig's ArrayList idiom, folded to the canonical list.
+///
+/// `.empty` initializes an empty list, `append` takes an allocator no other language
+/// has a slot for, and the elements live behind `.items`. The canonical list has a
+/// literal, a two-place append, and is its own elements.
+fn zig_lists(body: &mut Vec<Stmt>) {
+    let mut lists: Vec<String> = Vec::new();
+    collect_zig_lists(body, &mut lists);
+    if lists.is_empty() {
+        return;
+    }
+    rewrite_zig_lists(body, &lists);
+}
+
+fn collect_zig_lists(body: &[Stmt], lists: &mut Vec<String>) {
+    for stmt in body {
+        for inner in substatements_ref(stmt) {
+            collect_zig_lists(inner, lists);
+        }
+        let Stmt::Let {
+            name, ty, value, ..
+        } = stmt
+        else {
+            continue;
+        };
+        let list_typed = matches!(ty, Some(Type::Named { name, .. }) if name.contains("ArrayList"))
+            || matches!(ty, Some(Type::List(_)));
+        let empty_init = matches!(value, Some(Expr::Field { name, .. }) if name == "empty")
+            || matches!(value, Some(Expr::ListLit(items)) if items.is_empty());
+        if list_typed && empty_init && !lists.contains(name) {
+            lists.push(name.clone());
+        }
+    }
+}
+
+fn rewrite_zig_lists(body: &mut Vec<Stmt>, lists: &[String]) {
+    fn element_of(ty: &Option<Type>) -> Type {
+        match ty {
+            Some(Type::List(inner)) => (**inner).clone(),
+            Some(Type::Named { name, .. }) if name.contains("ArrayList") => {
+                let inner = name
+                    .split(['(', ')'])
+                    .nth(1)
+                    .unwrap_or("")
+                    .trim()
+                    .to_string();
+                match inner.as_str() {
+                    "i8" | "i16" | "i32" | "i64" | "u8" | "u16" | "u32" | "u64" | "usize"
+                    | "isize" => Type::Int,
+                    "f32" | "f64" => Type::Float,
+                    "[]const u8" => Type::String,
+                    other if !other.is_empty() => Type::named(other),
+                    _ => Type::named("anytype"),
+                }
+            }
+            _ => Type::named("anytype"),
+        }
+    }
+    fn fix(e: &mut Expr, lists: &[String]) {
+        let each = |e: &mut Expr| fix(e, lists);
+        match e {
+            Expr::Call { callee, args } | Expr::New { callee, args } => {
+                each(callee);
+                for a in args {
+                    each(a);
+                }
+            }
+            Expr::Binary { left, right, .. } => {
+                each(left);
+                each(right);
+            }
+            Expr::Unary { operand, .. } | Expr::Await(operand) | Expr::Propagate(operand) => {
+                each(operand)
+            }
+            Expr::Template(parts) => {
+                for part in parts {
+                    if let TemplatePart::Expr(e) = part {
+                        each(e);
+                    }
+                }
+            }
+            Expr::Field { of, .. } | Expr::Index { of, .. } => each(of),
+            _ => {}
+        }
+        // `nums.items` is `nums`; the elements are the list.
+        if let Expr::Field { of, name } = e {
+            if name == "items" && matches!(&**of, Expr::Name(n) if lists.iter().any(|l| l == n)) {
+                let inner = std::mem::replace(of.as_mut(), Expr::Null);
+                *e = inner;
+                return;
+            }
+        }
+        // `nums.append(alloc, x)` sheds the allocator.
+        if let Expr::Call { callee, args } = e {
+            if let Expr::Field { of, name } = &**callee {
+                if name == "append"
+                    && args.len() == 2
+                    && matches!(&**of, Expr::Name(n) if lists.iter().any(|l| l == n))
+                {
+                    args.remove(0);
+                }
+            }
+        }
+    }
+    for stmt in body.iter_mut() {
+        for inner in substatements(stmt) {
+            rewrite_zig_lists(inner, lists);
+        }
+        if let Stmt::Let {
+            name, ty, value, ..
+        } = stmt
+        {
+            if lists.contains(name) {
+                let element = element_of(ty);
+                *ty = Some(Type::List(Box::new(element)));
+                *value = Some(Expr::ListLit(Vec::new()));
+            }
+        }
+        match stmt {
+            Stmt::Expr(e) | Stmt::Throw(e) | Stmt::Return(Some(e)) => fix(e, lists),
+            Stmt::Let { value: Some(e), .. } => fix(e, lists),
+            Stmt::Assign { target, value } => {
+                fix(target, lists);
+                fix(value, lists);
+            }
+            Stmt::If { condition, .. } | Stmt::While { condition, .. } => fix(condition, lists),
+            Stmt::ForEach { iterable, .. } | Stmt::ForEachIndexed { iterable, .. } => {
+                fix(iterable, lists)
+            }
+            _ => {}
+        }
+    }
 }

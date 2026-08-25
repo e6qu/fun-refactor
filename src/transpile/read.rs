@@ -606,6 +606,38 @@ mod rust {
     fn format_macro(cx: &Cx, node: Node<'_>) -> Option<Expr> {
         let name = cx.field_text(node, "macro")?;
         let printing = matches!(name.as_str(), "println" | "print" | "eprintln" | "eprint");
+        // `vec![a, b]` is the list literal every target spells.
+        if name == "vec" {
+            let tokens = cx
+                .children(node)
+                .into_iter()
+                .find(|c| c.kind() == "token_tree")?;
+            let mut cursor = tokens.walk();
+            let children: Vec<Node> = tokens.children(&mut cursor).collect();
+            let inner = children.get(1..children.len().saturating_sub(1))?;
+            let mut items = Vec::new();
+            let mut group: Vec<Node> = Vec::new();
+            for child in inner.iter().chain(std::iter::empty()) {
+                match child.kind() {
+                    "," => {
+                        if let [only] = group.as_slice() {
+                            items.push(expr(cx, *only));
+                        } else if !group.is_empty() {
+                            return None;
+                        }
+                        group.clear();
+                    }
+                    _ if child.is_named() => group.push(*child),
+                    _ => {}
+                }
+            }
+            match group.as_slice() {
+                [] => {}
+                [only] => items.push(expr(cx, *only)),
+                _ => return None,
+            }
+            return Some(Expr::ListLit(items));
+        }
         if !printing && name != "format" {
             return None;
         }
@@ -1729,6 +1761,13 @@ mod rust {
                 Expr::Str(super::unquote(&cx.text(node)))
             }
             "identifier" | "self" => Expr::Name(plain(cx.text(node))),
+            // A borrow is Rust bookkeeping; the value is what crosses.
+            "reference_expression" => cx
+                .children(node)
+                .into_iter()
+                .find(|c| c.is_named() && !c.kind().contains("comment"))
+                .map(|inner| expr(cx, inner))
+                .unwrap_or(Expr::Null),
             // `()` is the unit value, and the IR calls that a tuple with nothing in
             // it. Left unread, `Ok(())` carried the whole statement around it.
             "unit_expression" => Expr::Tuple(Vec::new()),
@@ -1768,16 +1807,26 @@ mod rust {
                     index: Box::new(parts.get(1).map(|n| expr(cx, *n)).unwrap_or(Expr::Null)),
                 }
             }
-            "call_expression" => call_or_carry(
-                cx,
-                node,
-                cx.field(node, "function")
-                    .map(|f| expr(cx, f))
-                    .unwrap_or(Expr::Null),
-                cx.field(node, "arguments")
-                    .map(|a| cx.children(a).iter().map(|n| expr(cx, *n)).collect())
-                    .unwrap_or_default(),
-            ),
+            "call_expression" => {
+                // `Vec::new()` and `String::new()` build the empty values every
+                // target spells as literals.
+                let callee_text = cx.field(node, "function").map(|f| cx.text(f));
+                match callee_text.as_deref() {
+                    Some("Vec::new") => return Expr::ListLit(Vec::new()),
+                    Some("String::new") => return Expr::Str(String::new()),
+                    _ => {}
+                }
+                call_or_carry(
+                    cx,
+                    node,
+                    cx.field(node, "function")
+                        .map(|f| expr(cx, f))
+                        .unwrap_or(Expr::Null),
+                    cx.field(node, "arguments")
+                        .map(|a| cx.children(a).iter().map(|n| expr(cx, *n)).collect())
+                        .unwrap_or_default(),
+                )
+            }
             // `Shape::Point` read as a value: a variant candidate, kept only where
             // the settle pass finds the sum among this module's own.
             "scoped_identifier" => match cx.text(node).rsplit_once("::") {
@@ -7153,7 +7202,9 @@ mod zig {
                 Some(check) => check,
                 None => Stmt::Expr(expr(cx, node)),
             },
-            "field_expression" | "identifier" | "try_expression" => Stmt::Expr(expr(cx, node)),
+            "field_expression" | "identifier" | "try_expression" | "catch_expression" => {
+                Stmt::Expr(expr(cx, node))
+            }
             "switch_expression" => match switch_stmt(cx, node) {
                 Some(switch) => switch,
                 None => Stmt::Unsupported(cx.unsupported(node)),
@@ -7468,6 +7519,17 @@ mod zig {
                 match inner {
                     Some(inner) => Expr::Propagate(Box::new(expr(cx, inner))),
                     None => Expr::Unsupported(cx.unsupported(node)),
+                }
+            }
+            // `X catch unreachable` and `X catch {}` assert the failure away; the
+            // value is X. A catch with a real handler stays carried for now.
+            "catch_expression" => {
+                let text = cx.text(node);
+                let handler = text.rsplit("catch").next().unwrap_or("").trim();
+                let dismissed = handler == "unreachable" || handler == "{}";
+                match (cx.children(node).first(), dismissed) {
+                    (Some(left), true) => expr(cx, *left),
+                    _ => Expr::Unsupported(cx.unsupported(node)),
                 }
             }
             // `error.x` is the failure value itself, spelled as the field the
