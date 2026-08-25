@@ -576,6 +576,8 @@ mod rust {
             match (name.as_str(), args.as_slice()) {
                 ("len", []) => *e = call("len", vec![of.as_ref().clone()]),
                 ("to_string" | "to_owned", []) => *e = call("str", vec![of.as_ref().clone()]),
+                // A view of the same text is the text, everywhere but here.
+                ("as_str" | "as_ref", []) => *e = of.as_ref().clone(),
                 // `is_empty` is a length compared with zero, which is the one way
                 // every target here can say it.
                 ("is_empty", []) => {
@@ -3102,6 +3104,60 @@ mod python {
                     otherwise,
                 }
             }
+            // `match x:` with literal cases is the value dispatch every target has.
+            // A destructuring pattern is a different thing and carries whole.
+            "match_statement" => {
+                let subject = cx
+                    .field(node, "subject")
+                    .map(|s| expr(cx, s))
+                    .unwrap_or(Expr::Null);
+                let Some(body) = cx.field(node, "body") else {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                };
+                let mut arms: Vec<(Vec<Expr>, Vec<Stmt>)> = Vec::new();
+                let mut default: Vec<Stmt> = Vec::new();
+                for clause in cx.children(body) {
+                    if clause.kind() != "case_clause" {
+                        continue;
+                    }
+                    let patterns: Vec<Node> = cx
+                        .children(clause)
+                        .into_iter()
+                        .filter(|c| c.kind() == "case_pattern")
+                        .collect();
+                    let consequence = cx
+                        .field(clause, "consequence")
+                        .map(|b| block(cx, b))
+                        .unwrap_or_default();
+                    let texts: Vec<String> =
+                        patterns.iter().map(|p| cx.text(*p).trim().to_string()).collect();
+                    if texts.iter().any(|t| t == "_") {
+                        default = consequence;
+                        continue;
+                    }
+                    let mut literals = Vec::new();
+                    for pattern in &patterns {
+                        let inner = cx
+                            .children(*pattern)
+                            .into_iter()
+                            .find(|c| c.is_named())
+                            .unwrap_or(*pattern);
+                        let read = expr(cx, inner);
+                        match read {
+                            Expr::Int(_) | Expr::Float(_) | Expr::Str(_) | Expr::Bool(_) => {
+                                literals.push(read)
+                            }
+                            _ => return Stmt::Unsupported(cx.unsupported(node)),
+                        }
+                    }
+                    arms.push((literals, consequence));
+                }
+                Stmt::Switch {
+                    subject,
+                    arms,
+                    default,
+                }
+            }
             "while_statement" => Stmt::While {
                 condition: cx
                     .field(node, "condition")
@@ -4242,6 +4298,71 @@ mod go {
             // `for` is Go's only loop keyword and it has four spellings. Three of
             // them were carried as comments, which lost the loop and left every
             // name its header bound undeclared.
+            // `switch x { case a: ... default: ... }`, the value dispatch every
+            // target has. Go's cases break by themselves, which is the IR's rule too.
+            "expression_switch_statement" => {
+                let children = cx.children(node);
+                let subject = children
+                    .iter()
+                    .find(|c| !matches!(c.kind(), "expression_case" | "default_case" | "comment"))
+                    .map(|c| expr(cx, *c))
+                    .unwrap_or(Expr::Null);
+                let mut arms: Vec<(Vec<Expr>, Vec<Stmt>)> = Vec::new();
+                let mut default: Vec<Stmt> = Vec::new();
+                for child in &children {
+                    match child.kind() {
+                        "expression_case" => {
+                            let patterns = cx
+                                .field(*child, "value")
+                                .map(|v| match v.kind() {
+                                    "expression_list" => cx
+                                        .children(v)
+                                        .into_iter()
+                                        .map(|p| expr(cx, p))
+                                        .collect(),
+                                    _ => vec![expr(cx, v)],
+                                })
+                                .unwrap_or_default();
+                            // The grammar wraps the arm's statements in one list.
+                            let body: Vec<Stmt> = cx
+                                .children(*child)
+                                .into_iter()
+                                .skip(1)
+                                .filter(|c| c.kind() != "expression_list")
+                                .flat_map(|c| match c.kind() {
+                                    "statement_list" => cx
+                                        .children(c)
+                                        .into_iter()
+                                        .map(|inner| stmt(cx, inner))
+                                        .collect(),
+                                    _ => vec![stmt(cx, c)],
+                                })
+                                .collect();
+                            arms.push((patterns, body));
+                        }
+                        "default_case" => {
+                            default = cx
+                                .children(*child)
+                                .into_iter()
+                                .flat_map(|c| match c.kind() {
+                                    "statement_list" => cx
+                                        .children(c)
+                                        .into_iter()
+                                        .map(|inner| stmt(cx, inner))
+                                        .collect(),
+                                    _ => vec![stmt(cx, c)],
+                                })
+                                .collect();
+                        }
+                        _ => {}
+                    }
+                }
+                Stmt::Switch {
+                    subject,
+                    arms,
+                    default,
+                }
+            }
             "for_statement" => {
                 let body = cx
                     .field(node, "body")
@@ -5210,6 +5331,64 @@ mod java {
             }
             // `for (X x : xs)` is the loop every language here has. A C-style `for` is
             // not, and is carried.
+            // `switch (x) { case a: ... default: ... }`. Fallthrough is the one
+            // thing the IR's switch does not model, so a group that falls into the
+            // next carries whole.
+            "switch_expression" | "switch_statement" => {
+                let subject = cx
+                    .field(node, "condition")
+                    .map(|c| {
+                        let inner = cx
+                            .children(c)
+                            .into_iter()
+                            .find(|n| n.is_named())
+                            .unwrap_or(c);
+                        expr(cx, inner)
+                    })
+                    .unwrap_or(Expr::Null);
+                let Some(block) = cx.field(node, "body") else {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                };
+                let mut arms: Vec<(Vec<Expr>, Vec<Stmt>)> = Vec::new();
+                let mut default: Vec<Stmt> = Vec::new();
+                for group in cx.children(block) {
+                    if group.kind() != "switch_block_statement_group" {
+                        continue;
+                    }
+                    let mut patterns: Vec<Expr> = Vec::new();
+                    let mut is_default = false;
+                    let mut body: Vec<Stmt> = Vec::new();
+                    for piece in cx.children(group) {
+                        match piece.kind() {
+                            "switch_label" => {
+                                match cx.children(piece).into_iter().find(|c| c.is_named()) {
+                                    Some(value) => patterns.push(expr(cx, value)),
+                                    None => is_default = true,
+                                }
+                            }
+                            _ => body.push(stmt(cx, piece)),
+                        }
+                    }
+                    // `break` closes a group the way the IR already assumes.
+                    if matches!(body.last(), Some(Stmt::Break)) {
+                        body.pop();
+                    } else if !matches!(body.last(), Some(Stmt::Return(_)) | Some(Stmt::Throw(_)))
+                    {
+                        // Anything else falls through into the next group, which the
+                        // shared switch has no way to say.
+                        return Stmt::Unsupported(cx.unsupported(node));
+                    }
+                    match is_default {
+                        true => default = body,
+                        false => arms.push((patterns, body)),
+                    }
+                }
+                Stmt::Switch {
+                    subject,
+                    arms,
+                    default,
+                }
+            }
             "enhanced_for_statement" => Stmt::ForEach {
                 binding: cx.field_text(node, "name").unwrap_or_default(),
                 iterable: cx

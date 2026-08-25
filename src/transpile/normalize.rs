@@ -40,7 +40,7 @@ pub fn normalize(module: &mut Module, language: Language) {
         Language::Zig => {
             zig_module(module);
             settle_result_idiom(module);
-            return;
+            zig_exprs
         }
         _ => return,
     };
@@ -1261,4 +1261,24 @@ fn strip_lowering_helpers(module: &mut Module) {
             _ => {}
         }
     }
+}
+
+/// `std.mem.eql(u8, a, b)` is the string equality every other language spells `==`.
+fn zig_exprs(expr: Expr) -> Expr {
+    let Some((path, args)) = call_parts(&expr) else {
+        return expr;
+    };
+    if path.as_slice() == ["std", "mem", "eql"] && args.len() == 3 {
+        let Expr::Call { mut args, .. } = expr else {
+            unreachable!("call_parts said so");
+        };
+        let right = args.pop().expect("three args");
+        let left = args.pop().expect("two left");
+        return Expr::Binary {
+            op: BinaryOp::Eq,
+            left: Box::new(left),
+            right: Box::new(right),
+        };
+    }
+    expr
 }

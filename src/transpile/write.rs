@@ -2910,7 +2910,24 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 arms,
                 default,
             } => {
-                let s = rust_expr(out, subject);
+                let mut s = rust_expr(out, subject);
+                // A `String` subject matches `&str` literals only through its view,
+                // and a float subject with integer labels matches on the integer the
+                // source meant: a float has no literal patterns worth writing.
+                let stringly = arms
+                    .iter()
+                    .flat_map(|(literals, _)| literals)
+                    .any(|l| matches!(l, Expr::Str(_)));
+                if stringly && matches!(static_type(out, subject), Some(Type::String)) {
+                    s = format!("{s}.as_str()");
+                }
+                let integral_labels = arms
+                    .iter()
+                    .flat_map(|(literals, _)| literals)
+                    .all(|l| matches!(l, Expr::Int(_)));
+                if integral_labels && matches!(static_type(out, subject), Some(Type::Float)) {
+                    s = format!("({s}) as i64");
+                }
                 out.line(&format!("match {s} {{"));
                 out.open();
                 for (literals, body) in arms {
@@ -3409,6 +3426,14 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                                 if !text.contains('.') && text.chars().all(|c| c.is_ascii_digit() || c == '-') {
                                     text.push_str(".0");
                                 }
+                            }
+                        }
+                        // A literal where the signature declared `String` is a `&str`
+                        // everywhere else and a type error here.
+                        let string = matches!(param_types.get(at), Some(Some(Type::String)));
+                        if string && matches!(arg, Expr::Str(_)) {
+                            if let Some(text) = rendered.get_mut(at) {
+                                text.push_str(".to_string()");
                             }
                         }
                     }
@@ -8447,7 +8472,16 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
             arms,
             default,
         } => {
-            let s = java_expr(out, subject);
+            let mut s = java_expr(out, subject);
+            // A `number` from TypeScript is a double here, and a double cannot select
+            // a switch. Every label being an integer says what the source meant.
+            let integral_labels = arms
+                .iter()
+                .flat_map(|(literals, _)| literals)
+                .all(|l| matches!(l, Expr::Int(_)));
+            if integral_labels && matches!(static_type(out, subject), Some(Type::Float)) {
+                s = format!("(int) ({s})");
+            }
             out.line(&format!("switch ({s}) {{"));
             out.open();
             for (literals, body) in arms {
@@ -9873,6 +9907,69 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
             arms,
             default,
         } => {
+            // Zig cannot switch on strings; an `eql` chain says the same thing.
+            // A float subject with integer labels switches on the integer the
+            // source meant; Zig refuses to switch on a float at all.
+            let integral_labels = arms
+                .iter()
+                .flat_map(|(literals, _)| literals)
+                .all(|l| matches!(l, Expr::Int(_)));
+            if integral_labels && matches!(static_type(out, subject), Some(Type::Float)) {
+                let s = zig_expr(out, subject);
+                let cast = format!("@as(i64, @intFromFloat({s}))");
+                zig_line(out, &format!("switch ({cast}) {{"));
+                out.open();
+                for (literals, body) in arms {
+                    let pattern: Vec<String> =
+                        literals.iter().map(|l| zig_expr(out, l)).collect();
+                    out.line(&format!("{} => {{", pattern.join(", ")));
+                    out.open();
+                    zig_block(out, body, None, mutated);
+                    out.close();
+                    out.line("},");
+                }
+                match default.is_empty() {
+                    true => out.line("else => {},"),
+                    false => {
+                        out.line("else => {");
+                        out.open();
+                        zig_block(out, default, None, mutated);
+                        out.close();
+                        out.line("},");
+                    }
+                }
+                out.close();
+                out.line("}");
+                return;
+            }
+            let stringly = arms
+                .iter()
+                .flat_map(|(literals, _)| literals)
+                .any(|l| matches!(l, Expr::Str(_)));
+            if stringly {
+                let s = zig_expr(out, subject);
+                for (at, (literals, body)) in arms.iter().enumerate() {
+                    let tests: Vec<String> = literals
+                        .iter()
+                        .map(|l| format!("std.mem.eql(u8, {s}, {})", zig_expr(out, l)))
+                        .collect();
+                    let keyword = if at == 0 { "if" } else { "} else if" };
+                    zig_line(out, &format!("{keyword} ({}) {{", tests.join(" or ")));
+                    out.open();
+                    zig_block(out, body, None, mutated);
+                    out.close();
+                }
+                if default.is_empty() {
+                    out.line("}");
+                } else {
+                    out.line("} else {");
+                    out.open();
+                    zig_block(out, default, None, mutated);
+                    out.close();
+                    out.line("}");
+                }
+                return;
+            }
             let s = zig_expr(out, subject);
             zig_line(out, &format!("switch ({s}) {{"));
             out.open();
