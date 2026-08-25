@@ -39,7 +39,7 @@ fn normalize_language(module: &mut Module, language: Language) {
         }
         Language::Python => {
             settle_exception_classes(module);
-            return;
+            python
         }
         Language::Rust => {
             settle_result_idiom(module);
@@ -301,6 +301,33 @@ fn go(expr: Expr) -> Expr {
         return expr;
     };
     match path.as_slice() {
+        // The `strings` package spells what other languages put on the value.
+        ["strings", "ToUpper" | "ToLower" | "TrimSpace" | "Contains"] => {
+            let Expr::Call { callee, mut args } = expr else {
+                unreachable!("call_parts said so");
+            };
+            let Expr::Field { name, .. } = *callee else {
+                unreachable!("the path had two parts");
+            };
+            let (method, receiver_first) = match name.as_str() {
+                "ToUpper" => ("upper", true),
+                "ToLower" => ("lower", true),
+                "TrimSpace" => ("strip", true),
+                _ => ("contains", true),
+            };
+            let receiver = if receiver_first && !args.is_empty() {
+                args.remove(0)
+            } else {
+                Expr::Null
+            };
+            return Expr::Call {
+                callee: Box::new(Expr::Field {
+                    of: Box::new(receiver),
+                    name: method.to_string(),
+                }),
+                args,
+            };
+        }
         ["fmt", "Println"] => {
             let Expr::Call { args, .. } = expr else {
                 unreachable!("call_parts said so");
@@ -389,6 +416,31 @@ fn typescript(expr: Expr) -> Expr {
     if let Some(folded) = fold_concat(&expr) {
         return folded;
     }
+    // `x.length` measures, whatever x is.
+    if let Expr::Field { of, name } = &expr {
+        if name == "length" {
+            return Expr::Call {
+                callee: Box::new(Expr::Name("len".to_string())),
+                args: vec![(**of).clone()],
+            };
+        }
+    }
+    let expr = match rename_method(expr, "includes", "contains", 1) {
+        Ok(done) => return done,
+        Err(back) => back,
+    };
+    let expr = match rename_method(expr, "toUpperCase", "upper", 0) {
+        Ok(done) => return done,
+        Err(back) => back,
+    };
+    let expr = match rename_method(expr, "toLowerCase", "lower", 0) {
+        Ok(done) => return done,
+        Err(back) => back,
+    };
+    let expr = match rename_method(expr, "trim", "strip", 0) {
+        Ok(done) => return done,
+        Err(back) => back,
+    };
     let Some((path, args)) = call_parts(&expr) else {
         return expr;
     };
@@ -399,6 +451,8 @@ fn typescript(expr: Expr) -> Expr {
             };
             print_call(args)
         }
+        // `word.includes(x)` and the case methods, under their canonical names.
+        (["console", "error"], _) => expr,
         // `Math.trunc(a / b)` is how this language spells the division every other
         // target truncates natively. `Math.floor` says the same thing for the
         // non-negative operands real code feeds it, and both read back as the
@@ -428,6 +482,31 @@ fn java(expr: Expr) -> Expr {
     if let Some(folded) = fold_concat(&expr) {
         return folded;
     }
+    // `x.length()` on text measures it; the collections pass already spoke for lists.
+    if let Expr::Call { callee, args } = &expr {
+        if args.is_empty() {
+            if let Expr::Field { of, name } = &**callee {
+                if name == "length" {
+                    return Expr::Call {
+                        callee: Box::new(Expr::Name("len".to_string())),
+                        args: vec![(**of).clone()],
+                    };
+                }
+            }
+        }
+    }
+    let expr = match rename_method(expr, "toUpperCase", "upper", 0) {
+        Ok(done) => return done,
+        Err(back) => back,
+    };
+    let expr = match rename_method(expr, "toLowerCase", "lower", 0) {
+        Ok(done) => return done,
+        Err(back) => back,
+    };
+    let expr = match rename_method(expr, "trim", "strip", 0) {
+        Ok(done) => return done,
+        Err(back) => back,
+    };
     let Some((path, _)) = call_parts(&expr) else {
         return expr;
     };
@@ -1306,9 +1385,57 @@ fn strip_lowering_helpers(module: &mut Module) {
 
 /// `std.mem.eql(u8, a, b)` is the string equality every other language spells `==`.
 fn zig_exprs(expr: Expr) -> Expr {
+    // `std.mem.indexOf(u8, hay, needle) != null` is containment.
+    if let Expr::Binary {
+        op: BinaryOp::Ne,
+        left,
+        right,
+    } = &expr
+    {
+        if matches!(&**right, Expr::Null) {
+            if let Some((path, args)) = call_parts(left) {
+                if path.as_slice() == ["std", "mem", "indexOf"] && args.len() == 3 {
+                    return Expr::Call {
+                        callee: Box::new(Expr::Field {
+                            of: Box::new(args[1].clone()),
+                            name: "contains".to_string(),
+                        }),
+                        args: vec![args[2].clone()],
+                    };
+                }
+            }
+        }
+    }
+    // `word.len` measures; the list pass already folded `.items`.
+    if let Expr::Field { of, name } = &expr {
+        if name == "len" {
+            return Expr::Call {
+                callee: Box::new(Expr::Name("len".to_string())),
+                args: vec![(**of).clone()],
+            };
+        }
+    }
     let Some((path, args)) = call_parts(&expr) else {
         return expr;
     };
+    // The allocating case conversions, canonical and allocator-free.
+    if let ["std", "ascii", conversion @ ("allocUpperString" | "allocLowerString")] =
+        path.as_slice()
+    {
+        if args.len() == 2 {
+            let method = match *conversion {
+                "allocUpperString" => "upper",
+                _ => "lower",
+            };
+            return Expr::Call {
+                callee: Box::new(Expr::Field {
+                    of: Box::new(args[1].clone()),
+                    name: method.to_string(),
+                }),
+                args: Vec::new(),
+            };
+        }
+    }
     if path.as_slice() == ["std", "mem", "eql"] && args.len() == 3 {
         let Expr::Call { mut args, .. } = expr else {
             unreachable!("call_parts said so");
@@ -1762,5 +1889,33 @@ fn rewrite_zig_lists(body: &mut Vec<Stmt>, lists: &[String]) {
             }
             _ => {}
         }
+    }
+}
+
+/// Python's own idioms that are not already the canonical spelling.
+fn python(expr: Expr) -> Expr {
+    if let Some(folded) = fold_concat(&expr) {
+        return folded;
+    }
+    expr
+}
+
+/// Rename one method on a receiver, keeping everything else.
+fn rename_method(expr: Expr, from: &str, to: &str, argc: usize) -> Result<Expr, Expr> {
+    match expr {
+        Expr::Call { callee, args } if args.len() == argc => match *callee {
+            Expr::Field { of, name } if name == from => Ok(Expr::Call {
+                callee: Box::new(Expr::Field {
+                    of,
+                    name: to.to_string(),
+                }),
+                args,
+            }),
+            other => Err(Expr::Call {
+                callee: Box::new(other),
+                args,
+            }),
+        },
+        other => Err(other),
     }
 }

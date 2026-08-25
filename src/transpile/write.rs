@@ -2865,10 +2865,14 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 } else {
                     ""
                 };
-                let v = value
+                let mut v = value
                     .as_ref()
                     .map(|v| rust_expr(out, v))
                     .unwrap_or_else(|| "Default::default()".to_string());
+                // A literal under a `String` annotation is a `&str` everywhere else.
+                if matches!((ty, value.as_ref()), (Some(Type::String), Some(Expr::Str(_)))) {
+                    v.push_str(".to_string()");
+                }
                 let bound = out.name(name);
                 out.line(&format!("let {m}{bound}{annotation} = {v};"));
             }
@@ -3624,8 +3628,15 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                 binary_operand(right_text, right, *op, true)
             )
         }
-        // Rust puts it after; the other two put it in front.
-        Expr::Await(inner) => format!("{}.await", rust_expr(out, inner)),
+        // Standard Rust has async syntax but no executor. The defined lowering
+        // for an async source is blocking: the suspension point runs to
+        // completion in place, noted once so the change is not silent.
+        Expr::Await(inner) => {
+            out.note_once(
+                "an `await` runs blocking here: standard Rust has no executor to suspend on.",
+            );
+            rust_expr(out, inner)
+        }
         // `try (check(n) + 1)` propagates the failure of the call inside; the call
         // arm already writes that `?` for every failing callee, so an outer
         // propagate over a wider expression adds nothing but a misplaced operator.
@@ -4631,6 +4642,38 @@ fn declared_bindings(f: &Function) -> std::collections::BTreeMap<String, Type> {
         for stmt in stmts {
             match stmt {
                 Stmt::Let {
+                    name,
+                    ty: None,
+                    value: Some(value),
+                    ..
+                } => {
+                    // No annotation, but a literal says what it is.
+                    let inferred = match value {
+                        Expr::Str(_) | Expr::Template(_) => Some(Type::String),
+                        Expr::Int(_) => Some(Type::Int),
+                        Expr::Float(_) => Some(Type::Float),
+                        Expr::Bool(_) => Some(Type::Bool),
+                        // The canonical conversions and string methods answer text.
+                        Expr::Call { callee, .. } => match callee.as_ref() {
+                            Expr::Name(n) if n == "str" => Some(Type::String),
+                            Expr::Name(n) if n == "len" || n == "int" => Some(Type::Int),
+                            Expr::Field { name, .. }
+                                if matches!(
+                                    name.as_str(),
+                                    "upper" | "lower" | "strip" | "join"
+                                ) =>
+                            {
+                                Some(Type::String)
+                            }
+                            _ => None,
+                        },
+                        _ => None,
+                    };
+                    if let Some(ty) = inferred {
+                        types.entry(name.clone()).or_insert(ty);
+                    }
+                }
+                Stmt::Let {
                     name, ty: Some(ty), ..
                 } => {
                     types.insert(name.clone(), ty.clone());
@@ -5000,6 +5043,16 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
             )
         }
         Expr::Call { callee, args } => {
+            // The canonical containment is this language's own operator.
+            if let (Expr::Field { of, name }, [needle]) = (callee.as_ref(), args.as_slice()) {
+                if name == "contains" {
+                    return format!(
+                        "{} in {}",
+                        python_expr(out, needle),
+                        python_expr(out, &of.clone())
+                    );
+                }
+            }
             let rendered: Vec<String> = args.iter().map(|a| python_expr(out, a)).collect();
             // The canonical call to `super` is the base constructor, which this
             // language spells `super().__init__`.
@@ -6583,17 +6636,14 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
             op.c_like(),
             binary_operand(go_expr(out, right), right, *op, true)
         ),
-        // Go has no `await`. Writing the inner expression alone would turn a suspension point
-        // into a plain call, which is the kind of silent change this exists to avoid. So it is
-        // carried like any other construct with no counterpart.
+        // Go has no `await`. The defined lowering is blocking: the suspension
+        // point runs to completion in place, noted once so the change is not
+        // silent.
         Expr::Await(inner) => {
-            let source = format!("await {}", go_expr(out, inner));
-            out.carried(&Unsupported {
-                construct: "await".into(),
-                source: source.clone(),
-                line: 0,
-            });
-            format!("any(nil) /* {MARKER}: {} */", source.replace("*/", "* /"))
+            out.note_once(
+                "an `await` runs blocking here: Go suspends by parking a goroutine, not by awaiting.",
+            );
+            go_expr(out, inner)
         }
         // Go propagates nothing: an error is a value somebody must return. Writing
         // the expression bare would turn an early return into a plain call.
@@ -9219,17 +9269,14 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
             };
             format!("{it}.stream(){filter}{map}.toList()")
         }
-        // Java has no `await`: a suspension point is a `CompletableFuture.join()` or a
-        // virtual thread, and which one is a fact about the program.
+        // Java has no `await`. The defined lowering is blocking: the suspension
+        // point runs to completion in place, noted once so the change is not
+        // silent.
         Expr::Await(inner) => {
-            let rendered = java_expr(out, inner);
-            let source = format!("await {rendered}");
-            out.carried(&Unsupported {
-                construct: "await".into(),
-                source: source.clone(),
-                line: 0,
-            });
-            format!("null /* {MARKER}: {} */", source.replace("*/", "* /"))
+            out.note_once(
+                "an `await` runs blocking here: Java suspends on a virtual thread, not by awaiting.",
+            );
+            java_expr(out, inner)
         }
         Expr::Propagate(inner) => {
             out.note_once(
@@ -10727,9 +10774,14 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             zig_carry(out, "instanceof", format!("{rendered} instanceof {named}"));
             "false".to_string()
         }
+        // Zig removed `async` in 0.11. The defined lowering is blocking: the
+        // suspension point runs to completion in place, noted once so the
+        // change is not silent.
         Expr::Await(inner) => {
-            let rendered = zig_expr(out, inner);
-            zig_carry(out, "await", format!("await {rendered}"))
+            out.note_once(
+                "an `await` runs blocking here: Zig has no async to suspend on.",
+            );
+            zig_expr(out, inner)
         }
         Expr::Propagate(inner) => format!("try {}", zig_expr(out, inner)),
         // Zig calls positionally and has nothing that names an argument.
@@ -11238,6 +11290,13 @@ fn ts_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
         (Some(of), "append", [x]) => {
             format!("{}.push({})", ts_expr(out, &of.clone()), ts_expr(out, x))
         }
+        (Some(of), "contains", [x]) => {
+            format!(
+                "{}.includes({})",
+                ts_expr(out, &of.clone()),
+                ts_expr(out, x)
+            )
+        }
         (Some(of), "upper", []) => format!("{}.toUpperCase()", ts_expr(out, &of.clone())),
         (Some(of), "lower", []) => format!("{}.toLowerCase()", ts_expr(out, &of.clone())),
         (Some(of), "strip", []) => format!("{}.trim()", ts_expr(out, &of.clone())),
@@ -11282,6 +11341,14 @@ fn go_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
                 "strings.Join({}, {})",
                 go_expr(out, xs),
                 go_expr(out, &of.clone())
+            )
+        }
+        (Some(of), "contains", [x]) => {
+            out.go_imports.insert("strings");
+            format!(
+                "strings.Contains({}, {})",
+                go_expr(out, &of.clone()),
+                go_expr(out, x)
             )
         }
         _ => return None,
@@ -11375,6 +11442,25 @@ fn zig_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
             format!(
                 "{target}.append(std.heap.page_allocator, {}) catch unreachable",
                 zig_expr(out, x)
+            )
+        }
+        (Some(of), "contains", [x]) => {
+            format!(
+                "std.mem.indexOf(u8, {}, {}) != null",
+                zig_expr(out, &of.clone()),
+                zig_expr(out, x)
+            )
+        }
+        (Some(of), "upper", []) => {
+            format!(
+                "std.ascii.allocUpperString(std.heap.page_allocator, {}) catch unreachable",
+                zig_expr(out, &of.clone())
+            )
+        }
+        (Some(of), "lower", []) => {
+            format!(
+                "std.ascii.allocLowerString(std.heap.page_allocator, {}) catch unreachable",
+                zig_expr(out, &of.clone())
             )
         }
         // `str` of something already text is the text: a Zig string is a slice of
@@ -11504,6 +11590,11 @@ fn zig_hole_spec(out: &Out, e: &Expr) -> &'static str {
                 Some(Type::String) => "s",
                 _ => "any",
             },
+            Expr::Field { name, .. }
+                if matches!(name.as_str(), "upper" | "lower" | "strip" | "join") =>
+            {
+                "s"
+            }
             _ => "any",
         },
         Expr::Binary { op, left, right } => match op {

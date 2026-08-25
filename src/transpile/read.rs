@@ -3548,6 +3548,34 @@ mod python {
                 // truncates. One spelling, two operations, and reading both as
                 // the same one made `cents / 100` an integer division in every
                 // target whose `/` is C's.
+                // `needle in hay` and `not in` are the containment every target
+                // spells as a method.
+                if matches!(operator.trim(), "in" | "not in") {
+                    let contains = Expr::Call {
+                        callee: Box::new(Expr::Field {
+                            of: Box::new(
+                                cx.field(node, "right")
+                                    .or_else(|| node.child(node.child_count().saturating_sub(1) as u32))
+                                    .map(|r| expr(cx, r))
+                                    .unwrap_or(Expr::Null)
+                                    .into(),
+                            ),
+                            name: "contains".to_string(),
+                        }),
+                        args: vec![cx
+                            .field(node, "left")
+                            .or_else(|| node.child(0))
+                            .map(|l| expr(cx, l))
+                            .unwrap_or(Expr::Null)],
+                    };
+                    return match operator.trim() {
+                        "in" => contains,
+                        _ => Expr::Unary {
+                            op: UnaryOp::Not,
+                            operand: Box::new(contains),
+                        },
+                    };
+                }
                 let op = super::binary_op(&operator).map(|op| match op {
                     BinaryOp::Div => BinaryOp::TrueDiv,
                     other => other,
@@ -7332,11 +7360,21 @@ mod zig {
                         fallback: Box::new(expr(cx, operands[1])),
                     };
                 }
+                // `null` is a keyword here, not a named node, so a null
+                // comparison has one named operand and the keyword on the side.
+                let null_side = parts
+                    .iter()
+                    .any(|c| !c.is_named() && cx.text(*c) == "null");
                 match super::binary_op(&operator) {
                     Some(op) if operands.len() == 2 => Expr::Binary {
                         op,
                         left: Box::new(expr(cx, operands[0])),
                         right: Box::new(expr(cx, operands[1])),
+                    },
+                    Some(op) if operands.len() == 1 && null_side => Expr::Binary {
+                        op,
+                        left: Box::new(expr(cx, operands[0])),
+                        right: Box::new(Expr::Null),
                     },
                     _ => Expr::Unsupported(cx.unsupported(node)),
                 }
