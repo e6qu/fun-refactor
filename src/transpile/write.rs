@@ -649,6 +649,29 @@ pub fn write_in_context(
             _ => None,
         })
         .collect();
+    out.function_returns = context
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Function(f) => f.returns.clone().map(|t| (f.name.clone(), t)),
+            _ => None,
+        })
+        .collect();
+    out.function_param_types = context
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Function(f) => Some((
+                f.name.clone(),
+                f.params
+                    .iter()
+                    .filter(|p| p.kind == ParamKind::Normal)
+                    .map(|p| p.ty.clone())
+                    .collect(),
+            )),
+            _ => None,
+        })
+        .collect();
     out.result_returns = context
         .items
         .iter()
@@ -773,6 +796,16 @@ struct Out {
     /// discovers these while it writes the body, then inserts them under the package clause.
     /// Go refuses to compile a file that names a package it never imported.
     go_imports: std::collections::BTreeSet<&'static str>,
+    /// The lowering helpers the Zig this writer produced turned out to need.
+    ///
+    /// Discovered while the body is written, like `go_imports`, and appended to the
+    /// file afterwards: `frPrint` for the canonical `print`, `frFormat` for a template
+    /// used as a value.
+    zig_helpers: std::collections::BTreeSet<&'static str>,
+    /// Bindings whose value the Zig writer knows to be text, by watching the `let`s
+    /// it writes. The declared types answer for the rest; these are the inferred ones,
+    /// `const label = frFormat(...)`, that a format hole must spell `{s}`.
+    zig_strings: std::collections::BTreeSet<String>,
     /// The distinct types this module declares, name to base.
     ///
     /// A call to one is a construction. Two targets spell that their own way:
@@ -815,6 +848,13 @@ struct Out {
     /// keywords settle into their declared positions, defaults filling any
     /// gap; otherwise the argument carries.
     functions: std::collections::BTreeMap<String, Vec<(String, Option<Expr>)>>,
+    /// The declared parameter types of this module's functions, by name.
+    ///
+    /// For the coercions a call site needs: a target that refuses `f(-5)` against a
+    /// float parameter has to know the parameter was a float.
+    function_param_types: std::collections::BTreeMap<String, Vec<Option<Type>>>,
+    /// The declared return types, for the format spec a call's value takes.
+    function_returns: std::collections::BTreeMap<String, Type>,
     /// Text a writer could not put where the expression it replaced stood.
     ///
     /// Zig is the only target here with no block comment. Its `//` runs to the end of the
@@ -911,6 +951,8 @@ impl Out {
             escaped: std::cell::RefCell::new(std::collections::BTreeSet::new()),
             declared_types: std::collections::BTreeSet::new(),
             go_imports: std::collections::BTreeSet::new(),
+            zig_helpers: std::collections::BTreeSet::new(),
+            zig_strings: std::collections::BTreeSet::new(),
             newtypes: std::collections::BTreeMap::new(),
             records: std::collections::BTreeMap::new(),
             properties: std::collections::BTreeSet::new(),
@@ -918,6 +960,8 @@ impl Out {
             variant_spellings: std::collections::BTreeMap::new(),
             methods: std::collections::BTreeSet::new(),
             functions: std::collections::BTreeMap::new(),
+            function_param_types: std::collections::BTreeMap::new(),
+            function_returns: std::collections::BTreeMap::new(),
             pending: Vec::new(),
             binding_types: std::collections::BTreeMap::new(),
             field_types: std::collections::BTreeMap::new(),
@@ -2125,6 +2169,11 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 if matches!(returns, Some(Type::Float)) && matches!(value, Some(Expr::Int(_))) {
                     text.push_str(".0");
                 }
+                // A literal under a signature that promised `String` is a `&str`
+                // everywhere else and a type error here.
+                if matches!(returns, Some(Type::String)) && matches!(value, Some(Expr::Str(_))) {
+                    text.push_str(".to_string()");
+                }
                 out.line(&format!("return {text};"));
             }
             Stmt::Let {
@@ -2670,7 +2719,24 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             }
             let settled = resolve_keywords(out, callee, args);
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
-            let rendered: Vec<String> = args.iter().map(|a| rust_expr(out, a)).collect();
+            let mut rendered: Vec<String> = args.iter().map(|a| rust_expr(out, a)).collect();
+            // An integer literal where the signature declared a float: Go and the
+            // dynamic sources coerce, Rust refuses. The declared types are this
+            // module's own, so the coercion is read straight off them.
+            if let Expr::Name(name) = callee.as_ref() {
+                if let Some(param_types) = out.function_param_types.get(name.as_str()) {
+                    for (at, arg) in args.iter().enumerate() {
+                        let float = matches!(param_types.get(at), Some(Some(Type::Float)));
+                        if float && matches!(arg, Expr::Int(_) | Expr::Unary { .. }) {
+                            if let Some(text) = rendered.get_mut(at) {
+                                if !text.contains('.') && text.chars().all(|c| c.is_ascii_digit() || c == '-') {
+                                    text.push_str(".0");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             // `Point(0, 0)` from a language whose classes are called is a
             // construction, and this struct's fields are named, so calling it
             // would not compile.
@@ -8412,6 +8478,55 @@ fn zig(out: &mut Out, module: &Module) {
             }
         }
     }
+
+    // The helpers the body turned out to need, appended where declaration order does
+    // not matter, with the `std` binding patched in when nothing else brought it.
+    if !out.zig_helpers.is_empty() {
+        if !out.text.contains("const std = @import(\"std\");") {
+            let import = "const std = @import(\"std\");\n\n";
+            let at = out
+                .text
+                .find(|c: char| c != '\n')
+                .filter(|_| !out.text.starts_with("//"))
+                .unwrap_or(0);
+            let at = match out.text.starts_with("//") {
+                // Header comments stay on top; the import goes after the first blank.
+                true => out.text.find("\n\n").map(|i| i + 2).unwrap_or(0),
+                false => at,
+            };
+            out.text.insert_str(at, import);
+        }
+        out.blank();
+        if out.zig_helpers.contains("print") {
+            out.line("/// The canonical `print`: formatted, to stdout, one line.");
+            out.line("fn frPrint(comptime format: []const u8, args: anytype) void {");
+            out.open();
+            out.line("var buffer: [4096]u8 = undefined;");
+            out.line(
+                "var writer = std.Io.File.stdout().writerStreaming(std.Options.debug_io, &buffer);",
+            );
+            out.line("writer.interface.print(format, args) catch unreachable;");
+            out.line("writer.interface.flush() catch unreachable;");
+            out.close();
+            out.line("}");
+            out.blank();
+        }
+        if out.zig_helpers.contains("format") {
+            out.line("/// A formatted string as a value.");
+            out.line("///");
+            out.line("/// Allocated from the page allocator and never freed: the source language");
+            out.line("/// managed this memory, and a draft that must not leak would have to");
+            out.line("/// invent an owner the source never named.");
+            out.line("fn frFormat(comptime format: []const u8, args: anytype) []u8 {");
+            out.open();
+            out.line(
+                "return std.fmt.allocPrint(std.heap.page_allocator, format, args) catch unreachable;",
+            );
+            out.close();
+            out.line("}");
+            out.blank();
+        }
+    }
 }
 
 /// Will this module's Zig need `std`?
@@ -8604,7 +8719,10 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
         }
     };
 
-    let visibility = if f.exported { "pub " } else { "" };
+    // `main` must be `pub` whatever the source said: the entry point is the one
+    // function the language itself calls.
+    let entry = receiver.is_none() && f.name == "main";
+    let visibility = if f.exported || entry { "pub " } else { "" };
     out.line(&format!(
         "{visibility}fn {}({}) {returns} {{",
         out.function_name(f),
@@ -8767,15 +8885,22 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                 .as_ref()
                 .map(|v| zig_expr(out, v))
                 .unwrap_or_else(|| "undefined".to_string());
-            let annotation = ty
-                .as_ref()
-                .map(|t| format!(": {}", zig_type(t)))
-                .unwrap_or_default();
-            let keyword = if *mutable && mutated.contains(name) {
+    let keyword = if *mutable && mutated.contains(name) {
                 "var"
             } else {
                 "const"
             };
+            let annotation = match (ty.as_ref(), keyword, value.as_ref()) {
+                (Some(t), _, _) => format!(": {}", zig_type(t)),
+                // A `var` must carry a fixed-size type; a comptime-known integer
+                // stays comptime and will not compile as one. The widest ordinary
+                // integer is the type every other source language means.
+                (None, "var", Some(v)) if zig_hole_spec(out, v) == "d" => ": i64".to_string(),
+                _ => String::new(),
+            };
+            if matches!(value.as_ref(), Some(Expr::Str(_) | Expr::Template(_))) {
+                out.zig_strings.insert(name.clone());
+            }
             let bound = out.name(name);
             zig_line(out, &format!("{keyword} {bound}{annotation} = {rendered};"));
         }
@@ -9254,6 +9379,15 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             zig_expr(out, left),
             zig_expr(out, right)
         ),
+        // `%` on signed integers is refused outright: the language makes the caller
+        // choose a rounding. `@rem` truncates, which is what `%` means in the four
+        // languages that have it. Python floors instead, and negative operands there
+        // are a difference the draft carries visibly by behaving as the others do.
+        Expr::Binary {
+            op: BinaryOp::Rem,
+            left,
+            right,
+        } => format!("@rem({}, {})", zig_expr(out, left), zig_expr(out, right)),
         // Zig refuses `/` on signed integers outright, and the source divided
         // as floats anyway.
         Expr::Binary {
@@ -9338,11 +9472,17 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
         },
         // Zig's anonymous struct literal is its tuple: `.{ a, b }`.
         Expr::Tuple(items) => format!(".{{ {} }}", joined(items, |i| zig_expr(out, i))),
-        // An anonymous list is `.{ … }`, and what it coerces to is decided by where it
-        // is used and not by the literal.
+        // A list literal is an array whose length the compiler counts. The anonymous
+        // `.{ … }` is a tuple, which will not iterate at run time, so the element type
+        // is read off the elements and spelled.
         Expr::ListLit(items) => {
+            let element = match items.first().map(|first| zig_hole_spec(out, first)) {
+                Some("d") => "i64",
+                Some("s") => "[]const u8",
+                _ => "i64",
+            };
             let rendered: Vec<String> = items.iter().map(|i| zig_expr(out, i)).collect();
-            format!(".{{ {} }}", rendered.join(", "))
+            format!("[_]{element}{{ {} }}", rendered.join(", "))
         }
         // Zig's maps are built at run time through an allocator; there is no literal.
         Expr::MapLit(entries) => {
@@ -9358,16 +9498,11 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             if let Some(text) = literal_text(parts) {
                 return quoted(Language::Zig, &text);
             }
-            let rendered: Vec<String> = parts
-                .iter()
-                .map(|part| match part {
-                    TemplatePart::Text(text) => quoted(Language::Zig, text),
-                    TemplatePart::Expr(e) => zig_expr(out, e),
-                })
-                .collect();
-            // Zig formats at run time, into a writer or an allocator, and choosing one
-            // is a decision about the program.
-            zig_carry(out, "interpolated string", rendered.join(" ++ "))
+            // Zig formats at run time into an allocator, so a template used as a
+            // value goes through a helper that owns that decision once.
+            out.zig_helpers.insert("format");
+            let (format, holes) = zig_template(out, parts);
+            format!("frFormat(\"{format}\", .{{ {holes} }})")
         }
         // Zig writes no closure without every type spelled, and the source
         // spelled none; inventing them would be a guess about the call sites.
@@ -10015,14 +10150,108 @@ fn zig_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
         return None;
     }
     Some(match (receiver, name, args) {
+        // Into a helper over stdout rather than `std.debug.print`, which writes to
+        // stderr: a translated program has to say what the source said, on the stream
+        // the source said it on.
         (None, "print", _) => {
-            let holes = vec!["{any}"; args.len()].join(" ");
+            out.zig_helpers.insert("print");
+            // A lone template arg spreads into the format string; anything else
+            // becomes one hole per argument, space-separated the way every other
+            // target's print separates them.
+            if let [Expr::Template(parts)] = args {
+                let (format, holes) = zig_template(out, parts);
+                return Some(format!("frPrint(\"{format}\\n\", .{{ {holes} }})"));
+            }
+            let specs: Vec<String> = args
+                .iter()
+                .map(|a| format!("{{{}}}", zig_hole_spec(out, a)))
+                .collect();
             let rendered = joined(args, |a| zig_expr(out, a));
-            format!("std.debug.print(\"{holes}\\n\", .{{ {rendered} }})")
+            format!(
+                "frPrint(\"{}\\n\", .{{ {rendered} }})",
+                specs.join(" ")
+            )
         }
         (None, "len", [x]) => format!("{}.len", zig_expr(out, x)),
+        // `str` of something already text is the text: a Zig string is a slice of
+        // bytes, and a literal is one from birth. Of a number it is a formatted
+        // string, which the format helper owns.
+        (None, "str", [x @ (Expr::Str(_) | Expr::Template(_))]) => zig_expr(out, x),
+        (None, "str", [x]) => {
+            out.zig_helpers.insert("format");
+            let spec = zig_hole_spec(out, x);
+            format!("frFormat(\"{{{spec}}}\", .{{ {} }})", zig_expr(out, x))
+        }
         _ => return None,
     })
+}
+
+/// A template's format string and its comma-joined hole expressions, Zig-spelled.
+fn zig_template(out: &mut Out, parts: &[TemplatePart]) -> (String, String) {
+    let mut format = String::new();
+    let mut holes: Vec<String> = Vec::new();
+    for part in parts {
+        match part {
+            TemplatePart::Text(text) => {
+                // Braces are format syntax and escape by doubling; the rest escapes
+                // the way any Zig string does, minus the quotes `quoted` adds.
+                let text = text.replace('{', "{{").replace('}', "}}");
+                let quoted = quoted(Language::Zig, &text);
+                // Exactly the two delimiters. `trim_matches` would also eat the `"`
+                // of a trailing escaped quote, leaving its backslash to eat the real one.
+                let inner = quoted
+                    .strip_prefix('"')
+                    .and_then(|q| q.strip_suffix('"'))
+                    .unwrap_or(&quoted);
+                format.push_str(inner);
+            }
+            TemplatePart::Expr(e) => {
+                format.push_str(&format!("{{{}}}", zig_hole_spec(out, e)));
+                holes.push(zig_expr(out, e));
+            }
+        }
+    }
+    (format, holes.join(", "))
+}
+
+/// The format spec one hole takes: `d` for a number, `s` for text, `any` otherwise.
+///
+/// Zig formats by spec where every other target formats by value, so the spec is read
+/// off what the expression is. `any` is the honest fallback, and a transcript that
+/// needed better says so by differing.
+fn zig_hole_spec(out: &Out, e: &Expr) -> &'static str {
+    match e {
+        Expr::Int(_) | Expr::Float(_) => "d",
+        Expr::Str(_) | Expr::Template(_) => "s",
+        Expr::Name(name) => match out.binding_types.get(name.as_str()) {
+            Some(Type::Int) | Some(Type::Float) => "d",
+            Some(Type::String) => "s",
+            _ if out.zig_strings.contains(name.as_str()) => "s",
+            _ => "any",
+        },
+        // A call's value formats by the callee's declared return.
+        Expr::Call { callee, .. } => match callee.as_ref() {
+            Expr::Name(name) => match out.function_returns.get(name.as_str()) {
+                Some(Type::Int) | Some(Type::Float) => "d",
+                Some(Type::String) => "s",
+                _ => "any",
+            },
+            _ => "any",
+        },
+        Expr::Binary { op, left, right } => match op {
+            BinaryOp::Add
+            | BinaryOp::Sub
+            | BinaryOp::Mul
+            | BinaryOp::Div
+            | BinaryOp::FloorDiv
+            | BinaryOp::Rem => match (zig_hole_spec(out, left), zig_hole_spec(out, right)) {
+                ("d", _) | (_, "d") => "d",
+                _ => "any",
+            },
+            _ => "any",
+        },
+        _ => "any",
+    }
 }
 
 /// The type this record extends, where the target can express one.

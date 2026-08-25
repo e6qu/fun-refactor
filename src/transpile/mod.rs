@@ -29,6 +29,7 @@
 pub mod fastapi;
 pub mod ir;
 pub mod nextjs;
+mod normalize;
 mod read;
 pub mod scaffold;
 mod write;
@@ -636,4 +637,19 @@ fn banner(
     }
     out.push('\n');
     out
+}
+
+/// Test-only taps under the reparse gate, for inspecting a draft a plan refuses.
+#[doc(hidden)]
+pub fn debug_read(
+    language: Language,
+    source: &str,
+    root: tree_sitter::Node<'_>,
+) -> anyhow::Result<ir::Module> {
+    read::read(language, source, root, None)
+}
+
+#[doc(hidden)]
+pub fn debug_write(language: Language, module: &ir::Module) -> anyhow::Result<String> {
+    Ok(write::write(language, module)?.0)
 }

@@ -666,6 +666,66 @@ The decorator's path spells the parameter the way the signature does.
 of each scaffold, by `openapi::from_routes` and `openapi::from_fastapi`, names the same
 endpoints the document declared.
 
+## The completion of translation
+
+The goal, in force: every one of the 30 directed pairs among Rust, Go, Java, Python,
+TypeScript and Zig translates the corpora and a conformance suite with nothing carried
+verbatim, every output compiling under its target's real compiler, and conformance
+programs printing byte-identical transcripts in all six renderings. One branch, one PR.
+
+Completeness is measured against the suites and ratcheted at zero, never asserted about
+all programs. Arbitrary `comptime` and proc macros are Turing-complete metaprogramming;
+outside the suites they carry loudly, and that stays. Rust as a target uses a defined
+ownership dialect: owned values, clone over borrow. Dependencies never cross; the
+conformance programs are dependency-free by construction, which is what makes execution
+equality checkable.
+
+### Phase 0: measurement first
+
+A differential-execution harness under `tests/conformance/`: one program per language
+per construct group (bindings, control flow, errors, cleanup, dispatch, collections,
+strings, async), each printing a deterministic transcript. The harness translates each
+program to the other five languages, compiles what it can, runs what it compiled, and
+diffs stdout. A compiler this machine lacks is named in the output; green never means
+unchecked. The corpus sweep additionally prints its per-pair, per-construct table, so
+every later phase shows its delta as a number.
+
+### Phase 1: the two aggregate counts
+
+`expression_statement` (600) and `variable_declaration` (415) are symptoms: a statement
+carries because one expression inside it failed. The failures are mostly the Zig
+reader's: builtins, `catch`, `orelse`, anonymous struct literals, labeled blocks.
+Fixing the expressions collapses the statement counts.
+
+### Phase 2: the error-model triangle
+
+Exceptions (Java, Python, TypeScript), `Result` and `?` (Rust), error unions with `try`
+and `catch` (Zig), and `(T, error)` returns (Go), translated in every direction:
+`throw` becomes an error return, `try/catch` becomes a match or an err-check chain,
+error sets become enums or exception classes, and propagation is inserted where the
+target requires it to be spelled.
+
+### Phase 3: cleanup, dispatch, construction
+
+`defer` and `errdefer` become Go's `defer`, try/finally, or a Drop guard. `instanceof`
+becomes `isinstance`, a type switch, or a match. `new` and anonymous struct literals
+become constructors and synthesized named records. Switch expressions, labeled
+statements and stepped loops get their lowerings.
+
+### Phase 4: the surface layer
+
+`await` becomes the target's async where it has one and a blocking call where it does
+not, with the lowering documented. Multiline strings, string joining, tuples, multiple
+assignment, keyword arguments and map literals cross. A bounded stdlib mapping table
+covers exactly the calls the suites use: print, format, length, append, error
+construction. Bounded and ratcheted like everything else.
+
+### Phase 5: zero, then delete
+
+The `CARRIED` ledger reaches all zeros and is replaced by a hard assertion.
+`fidelity.is_complete()` becomes a gate for every corpus file and every target. Site
+data regenerates; BUGS.md records what the phases found.
+
 ## Progress log
 
 Every stage is complete except the optional LSP delegation backend. Every

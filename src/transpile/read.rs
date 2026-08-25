@@ -55,6 +55,9 @@ pub fn read(
         ),
     };
     settle_methods(&mut module);
+    // Each language's spelling of the shared builtins, folded to the canonical one the
+    // writers' tables spell back out. See `normalize.rs`.
+    super::normalize::normalize(&mut module, language);
     // Only for the languages that run `main` implicitly. Python and TypeScript run a
     // module top to bottom. A file of theirs without the call genuinely never runs
     // it, and inventing one would change what importing does.
@@ -633,13 +636,23 @@ mod rust {
         }
         let mut args = Vec::new();
         for group in rest {
-            let [only] = group.as_slice() else {
-                return None;
+            let read = match group.as_slice() {
+                [] => return None,
+                // One node is an expression already parsed; a run of several is an
+                // expression the macro kept as loose tokens. Its source text is
+                // right there between the first and last of them, and parsing that
+                // text asks the real parser instead of guessing at precedence.
+                [only] if only.is_named() && !only.kind().contains("comment") => expr(cx, *only),
+                [only] => {
+                    let _ = only;
+                    return None;
+                }
+                run => {
+                    let start = run.first()?.start_byte();
+                    let end = run.last()?.end_byte();
+                    reparse_expression(&cx.source[start..end])?
+                }
             };
-            if !only.is_named() || only.kind().contains("comment") {
-                return None;
-            }
-            let read = expr(cx, *only);
             if matches!(read, Expr::Unsupported(_)) {
                 return None;
             }
@@ -658,6 +671,41 @@ mod rust {
             },
             false => value,
         })
+    }
+
+    /// A run of macro tokens, parsed as the expression its text spells.
+    ///
+    /// The macro's grammar keeps arguments as loose tokens; their source text is a
+    /// whole expression, and the parser that reads every other expression reads it.
+    fn reparse_expression(text: &str) -> Option<Expr> {
+        let wrapped = format!("fn __fr_reparse() {{ ({text}); }}");
+        let parsed = crate::parse::Parsers::new()
+            .parse(crate::lang::Language::Rust, &wrapped)
+            .ok()?;
+        if parsed.has_errors() {
+            return None;
+        }
+        let lines = LineIndex::new(&wrapped);
+        let cx = Cx {
+            source: &wrapped,
+            lines: &lines,
+        };
+        let mut found = None;
+        let mut stack = vec![parsed.root()];
+        while let Some(node) = stack.pop() {
+            if node.kind() == "parenthesized_expression" {
+                found = cx.children(node).into_iter().find(|c| c.is_named());
+                break;
+            }
+            let mut cursor = node.walk();
+            stack.extend(node.children(&mut cursor));
+        }
+        let inner = found?;
+        let read = expr(&cx, inner);
+        match read {
+            Expr::Unsupported(_) => None,
+            other => Some(other),
+        }
     }
 
     /// A format string's pieces, with each hole filled by its argument.
@@ -1391,6 +1439,9 @@ mod rust {
                     | "if_expression"
                     | "while_expression"
                     | "for_expression"
+                    | "loop_expression"
+                    | "break_expression"
+                    | "continue_expression"
                     | "assignment_expression"
                     | "compound_assignment_expr"
                     | "match_expression" => stmt(cx, *inner),
@@ -1610,6 +1661,14 @@ mod rust {
             // `()` is the unit value, and the IR calls that a tuple with nothing in
             // it. Left unread, `Ok(())` carried the whole statement around it.
             "unit_expression" => Expr::Tuple(Vec::new()),
+            // `[3, 1, 2]` is the list literal every target spells.
+            "array_expression" => Expr::ListLit(
+                cx.children(node)
+                    .iter()
+                    .filter(|c| c.is_named() && !c.kind().contains("comment"))
+                    .map(|n| expr(cx, *n))
+                    .collect(),
+            ),
             "macro_invocation" => match format_macro(cx, node) {
                 Some(read) => read,
                 None => Expr::Unsupported(cx.unsupported(node)),
@@ -4302,6 +4361,32 @@ mod go {
             // instead makes it a construction; nothing answering carries it. A
             // slice or map literal names no bare type and stays carried.
             "composite_literal" => {
+                // `[]int{3, 1, 2}` is the list literal every target spells.
+                if cx
+                    .field(node, "type")
+                    .is_some_and(|t| t.kind() == "slice_type" || t.kind() == "array_type")
+                {
+                    let elements = cx
+                        .field(node, "body")
+                        .map(|body| {
+                            cx.children(body)
+                                .into_iter()
+                                .filter(|c| c.is_named() && c.kind() != "comment")
+                                // The grammar wraps each value in `literal_element`.
+                                .map(|c| match c.kind() {
+                                    "literal_element" => cx
+                                        .children(c)
+                                        .into_iter()
+                                        .find(|inner| inner.is_named())
+                                        .unwrap_or(c),
+                                    _ => c,
+                                })
+                                .map(|c| expr(cx, c))
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    return Expr::ListLit(elements);
+                }
                 let named = cx
                     .field(node, "type")
                     .filter(|t| t.kind() == "type_identifier");
@@ -5284,6 +5369,29 @@ mod java {
                     .map(|a| cx.children(a).into_iter().map(|n| expr(cx, n)).collect())
                     .unwrap_or_default();
                 call_or_carry(cx, node, callee, args)
+            }
+            // `new int[] { 3, 1, 2 }` is the list literal every target spells; the
+            // initializer alone appears where the type is inferred.
+            "array_creation_expression" | "array_initializer" => {
+                let elements = match node.kind() {
+                    "array_initializer" => Some(node),
+                    _ => cx
+                        .children(node)
+                        .into_iter()
+                        .find(|c| c.kind() == "array_initializer"),
+                };
+                match elements {
+                    Some(list) => Expr::ListLit(
+                        cx.children(list)
+                            .into_iter()
+                            .filter(|c| c.is_named() && c.kind() != "comment")
+                            .map(|c| expr(cx, c))
+                            .collect(),
+                    ),
+                    // `new int[5]` sizes without contents, which no other target
+                    // spells as a literal.
+                    None => Expr::Unsupported(cx.unsupported(node)),
+                }
             }
             "object_creation_expression" => Expr::New {
                 callee: Box::new(
@@ -6968,6 +7076,23 @@ mod zig {
                     })
                     .unwrap_or_default();
 
+                // `.{ a, b }`: no assignments, only positions. The tuple of its
+                // values, which is how a Zig format call carries its arguments.
+                let positional: Vec<Node> = cx
+                    .children(node)
+                    .iter()
+                    .find(|c| c.kind() == "initializer_list")
+                    .map(|list| {
+                        cx.children(*list)
+                            .into_iter()
+                            .filter(|c| c.is_named() && !c.kind().contains("comment"))
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                if assignments.is_empty() {
+                    return Expr::Tuple(positional.iter().map(|v| expr(cx, *v)).collect());
+                }
+
                 match assignments.as_slice() {
                     [one] => match variant_field(cx, *one) {
                         Some((name, value)) => {
@@ -7031,6 +7156,20 @@ mod zig {
                     ("@min" | "@max", _) => Expr::Call {
                         callee: Box::new(Expr::Name(name.trim_start_matches('@').to_string())),
                         args: args.iter().map(|a| expr(cx, *a)).collect(),
+                    },
+                    // Zig spells the division and remainder the other five spell as
+                    // operators. `@mod` is Euclidean where `%` truncates; they agree
+                    // wherever the operands are non-negative, and a program for which
+                    // that differs is telling every target something Zig-shaped.
+                    ("@divTrunc" | "@divFloor", [left, right]) => Expr::Binary {
+                        op: BinaryOp::FloorDiv,
+                        left: Box::new(expr(cx, *left)),
+                        right: Box::new(expr(cx, *right)),
+                    },
+                    ("@mod" | "@rem", [left, right]) => Expr::Binary {
+                        op: BinaryOp::Rem,
+                        left: Box::new(expr(cx, *left)),
+                        right: Box::new(expr(cx, *right)),
                     },
                     _ => Expr::Unsupported(cx.unsupported(node)),
                 }
