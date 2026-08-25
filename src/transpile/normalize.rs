@@ -91,6 +91,12 @@ fn map_stmt(stmt: &mut Stmt, rewrite: fn(Expr) -> Expr) {
             }
             return;
         }
+        Stmt::BreakWith { value, .. } => {
+            if let Some(value) = value {
+                map_expr(value, rewrite);
+            }
+            return;
+        }
         Stmt::Let { value, .. } => {
             if let Some(value) = value {
                 map_expr(value, rewrite);
@@ -157,7 +163,7 @@ fn map_stmt(stmt: &mut Stmt, rewrite: fn(Expr) -> Expr) {
             map_expr(value, rewrite);
             vec![body]
         }
-        Stmt::Defer(body) | Stmt::ErrDefer(body) => vec![body],
+        Stmt::Defer(body) | Stmt::ErrDefer(body) | Stmt::Block(body) => vec![body],
         Stmt::Switch {
             subject,
             arms,
@@ -752,7 +758,8 @@ fn substatements(stmt: &mut Stmt) -> Vec<&mut Vec<Stmt>> {
         | Stmt::ForEachIndexed { body, .. }
         | Stmt::WhilePresent { body, .. }
         | Stmt::Defer(body)
-        | Stmt::ErrDefer(body) => vec![body],
+        | Stmt::ErrDefer(body)
+        | Stmt::Block(body) => vec![body],
         Stmt::Switch { arms, default, .. } => {
             let mut all: Vec<&mut Vec<Stmt>> = arms.iter_mut().map(|(_, arm)| arm).collect();
             all.push(default);
@@ -1624,7 +1631,8 @@ fn substatements_ref(stmt: &Stmt) -> Vec<&Vec<Stmt>> {
         | Stmt::ForEachIndexed { body, .. }
         | Stmt::WhilePresent { body, .. }
         | Stmt::Defer(body)
-        | Stmt::ErrDefer(body) => vec![body],
+        | Stmt::ErrDefer(body)
+        | Stmt::Block(body) => vec![body],
         Stmt::Switch { arms, default, .. } => {
             let mut all: Vec<&Vec<Stmt>> = arms.iter().map(|(_, arm)| arm).collect();
             all.push(default);

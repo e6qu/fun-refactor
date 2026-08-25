@@ -566,7 +566,8 @@ fn sub_bodies(stmt: &Stmt) -> Vec<&Vec<Stmt>> {
         | Stmt::ForEachIndexed { body, .. }
         | Stmt::WhilePresent { body, .. }
         | Stmt::Defer(body)
-        | Stmt::ErrDefer(body) => vec![body],
+        | Stmt::ErrDefer(body)
+        | Stmt::Block(body) => vec![body],
         Stmt::Switch { arms, default, .. } => {
             let mut all: Vec<&Vec<Stmt>> = arms.iter().map(|(_, arm)| arm).collect();
             all.push(default);
@@ -606,7 +607,8 @@ fn sub_bodies_mut(stmt: &mut Stmt) -> Vec<&mut Vec<Stmt>> {
         | Stmt::ForEachIndexed { body, .. }
         | Stmt::WhilePresent { body, .. }
         | Stmt::Defer(body)
-        | Stmt::ErrDefer(body) => vec![body],
+        | Stmt::ErrDefer(body)
+        | Stmt::Block(body) => vec![body],
         Stmt::Switch { arms, default, .. } => {
             let mut all: Vec<&mut Vec<Stmt>> = arms.iter_mut().map(|(_, arm)| arm).collect();
             all.push(default);
@@ -743,7 +745,9 @@ fn spellings(language: Language, module: &Module) -> Spellings {
                     }
                     walk_stmts(default, add);
                 }
-                Stmt::Defer(cleanup) | Stmt::ErrDefer(cleanup) => walk_stmts(cleanup, add),
+                Stmt::Defer(cleanup) | Stmt::ErrDefer(cleanup) | Stmt::Block(cleanup) => {
+                    walk_stmts(cleanup, add)
+                }
                 Stmt::ForEachIndexed {
                     index,
                     binding,
@@ -1885,6 +1889,7 @@ struct MethodScope {
 fn bound_names(body: &[Stmt], into: &mut std::collections::BTreeSet<String>) {
     for stmt in body {
         match stmt {
+            Stmt::BreakWith { .. } => {}
             Stmt::Let { name, .. } => {
                 into.insert(name.clone());
             }
@@ -1936,7 +1941,7 @@ fn bound_names(body: &[Stmt], into: &mut std::collections::BTreeSet<String>) {
                 into.insert(binding.clone());
                 bound_names(body, into);
             }
-            Stmt::Defer(body) | Stmt::ErrDefer(body) => bound_names(body, into),
+            Stmt::Defer(body) | Stmt::ErrDefer(body) | Stmt::Block(body) => bound_names(body, into),
             Stmt::Switch { arms, default, .. } => {
                 for (_, body) in arms {
                     bound_names(body, into);
@@ -2072,7 +2077,7 @@ fn continues_here(body: &[Stmt]) -> bool {
         | Stmt::IfPresent {
             then, otherwise, ..
         } => continues_here(then) || continues_here(otherwise),
-        Stmt::Defer(body) | Stmt::ErrDefer(body) => continues_here(body),
+        Stmt::Defer(body) | Stmt::ErrDefer(body) | Stmt::Block(body) => continues_here(body),
         Stmt::Switch { arms, default, .. } => {
             arms.iter().any(|(_, body)| continues_here(body)) || continues_here(default)
         }
@@ -2181,7 +2186,8 @@ fn assigns_to(body: &[Stmt], name: &str) -> bool {
         | Stmt::ForEach { body, .. }
         | Stmt::ForEachIndexed { body, .. }
         | Stmt::Defer(body)
-        | Stmt::ErrDefer(body) => assigns_to(body, name),
+        | Stmt::ErrDefer(body)
+        | Stmt::Block(body) => assigns_to(body, name),
         Stmt::CountedFor {
             init, update, body, ..
         } => {
@@ -2810,6 +2816,27 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
         let stmt = &body[at];
         at += 1;
         match stmt {
+            Stmt::Block(stmts) => {
+                out.line("{");
+                out.open();
+                rust_block(out, stmts, None);
+                out.close();
+                out.line("}");
+            }
+            Stmt::BreakWith { label, value } => {
+                let rendered = value
+                    .as_ref()
+                    .map(|v| rust_expr(out, v))
+                    .unwrap_or_default();
+                let source = format!("break :{label} {rendered}");
+                out.carried(&Unsupported {
+                    construct: "a labeled break".into(),
+                    source: source.clone(),
+                    line: 0,
+                });
+                let commented = out.comment(&format!("{MARKER}: {source}"));
+                out.line(&commented);
+            }
             Stmt::Return(value) => {
                 let mut text = value
                     .as_ref()
@@ -4258,6 +4285,22 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
         // NotImplementedError` after a working body. How the next one would have.
         wrote |= !matches!(stmt, Stmt::Unsupported(_) | Stmt::Expr(Expr::Null));
         match stmt {
+            // No block scope here: the statements stand in place.
+            Stmt::Block(stmts) => python_block(out, stmts),
+            Stmt::BreakWith { label, value } => {
+                let rendered = value
+                    .as_ref()
+                    .map(|v| python_expr(out, v))
+                    .unwrap_or_default();
+                let source = format!("break :{label} {rendered}");
+                out.carried(&Unsupported {
+                    construct: "a labeled break".into(),
+                    source: source.clone(),
+                    line: 0,
+                });
+                let commented = out.comment(&format!("{MARKER}: {source}"));
+                out.line(&commented);
+            }
             Stmt::Return(value) => {
                 // A returned Result speaks this language's own failure handling: the
                 // ok value returns bare, and the Err raises. A propagated call's
@@ -4709,7 +4752,8 @@ fn declared_bindings(f: &Function) -> std::collections::BTreeMap<String, Type> {
                 | Stmt::ForEach { body, .. }
                 | Stmt::ForEachIndexed { body, .. }
                 | Stmt::Defer(body)
-                | Stmt::ErrDefer(body) => walk(body, types),
+                | Stmt::ErrDefer(body)
+                | Stmt::Block(body) => walk(body, types),
                 // `for (int i = 0; ...)` declares the counter in the header,
                 // and a body dividing by it asks what type it is.
                 Stmt::CountedFor { init, body, .. } => {
@@ -4814,7 +4858,8 @@ fn each_stmt(stmts: &[Stmt], visit: &mut dyn FnMut(&Stmt)) {
             | Stmt::ForEach { body, .. }
             | Stmt::ForEachIndexed { body, .. }
             | Stmt::Defer(body)
-            | Stmt::ErrDefer(body) => each_stmt(body, visit),
+            | Stmt::ErrDefer(body)
+            | Stmt::Block(body) => each_stmt(body, visit),
             Stmt::CountedFor { init, body, .. } => {
                 if let Some(init) = init {
                     each_stmt(std::slice::from_ref(init.as_ref()), visit);
@@ -6004,6 +6049,24 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
             continue;
         }
         match stmt {
+            Stmt::Block(stmts) => {
+                out.line("{");
+                out.open();
+                go_block(out, stmts, None);
+                out.close();
+                out.line("}");
+            }
+            Stmt::BreakWith { label, value } => {
+                let rendered = value.as_ref().map(|v| go_expr(out, v)).unwrap_or_default();
+                let source = format!("break :{label} {rendered}");
+                out.carried(&Unsupported {
+                    construct: "a labeled break".into(),
+                    source: source.clone(),
+                    line: 0,
+                });
+                let commented = out.comment(&format!("{MARKER}: {source}"));
+                out.line(&commented);
+            }
             // Go has no ternary. One that is the whole of a return, an
             // assignment, or a typed binding is an `if`/`else` said shorter, so
             // Go writes the `if`/`else`. Each arm renders inside its own
@@ -7379,6 +7442,24 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
     }
     for (at, stmt) in body.iter().enumerate() {
         match stmt {
+            Stmt::Block(stmts) => {
+                out.line("{");
+                out.open();
+                ts_block(out, stmts);
+                out.close();
+                out.line("}");
+            }
+            Stmt::BreakWith { label, value } => {
+                let rendered = value.as_ref().map(|v| ts_expr(out, v)).unwrap_or_default();
+                let source = format!("break :{label} {rendered}");
+                out.carried(&Unsupported {
+                    construct: "a labeled break".into(),
+                    source: source.clone(),
+                    line: 0,
+                });
+                let commented = out.comment(&format!("{MARKER}: {source}"));
+                out.line(&commented);
+            }
             Stmt::Return(value) => {
                 // A returned Result speaks this language's own failure handling: the
                 // ok value returns bare, and the Err becomes a throw.
@@ -8504,6 +8585,27 @@ fn java_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
 
 fn java_stmt(out: &mut Out, stmt: &Stmt) {
     match stmt {
+        Stmt::Block(stmts) => {
+            out.line("{");
+            out.open();
+            java_block(out, stmts, None);
+            out.close();
+            out.line("}");
+        }
+        Stmt::BreakWith { label, value } => {
+            let rendered = value
+                .as_ref()
+                .map(|v| java_expr(out, v))
+                .unwrap_or_default();
+            let source = format!("break :{label} {rendered}");
+            out.carried(&Unsupported {
+                construct: "a labeled break".into(),
+                source: source.clone(),
+                line: 0,
+            });
+            let commented = out.comment(&format!("{MARKER}: {source}"));
+            out.line(&commented);
+        }
         Stmt::Comment(text) => {
             let line = out.comment(text);
             out.line(&line);
@@ -9689,7 +9791,9 @@ fn uses_the_standard_library(module: &Module) -> bool {
                 body,
                 ..
             } => in_expr(types, value) || body.iter().any(|s| in_stmt(types, s)),
-            Stmt::Defer(body) | Stmt::ErrDefer(body) => body.iter().any(|s| in_stmt(types, s)),
+            Stmt::Defer(body) | Stmt::ErrDefer(body) | Stmt::Block(body) => {
+                body.iter().any(|s| in_stmt(types, s))
+            }
             Stmt::Switch {
                 subject,
                 arms,
@@ -9963,6 +10067,24 @@ fn zig_line(out: &mut Out, text: &str) {
 
 fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<String>) {
     match stmt {
+        Stmt::Block(stmts) => {
+            zig_line(out, "{");
+            out.open();
+            zig_block(out, stmts, None, mutated);
+            out.close();
+            out.line("}");
+        }
+        Stmt::BreakWith { label, value } => {
+            let rendered = value.as_ref().map(|v| zig_expr(out, v)).unwrap_or_default();
+            let source = format!("break :{label} {rendered}");
+            out.carried(&Unsupported {
+                construct: "a labeled break".into(),
+                source: source.clone(),
+                line: 0,
+            });
+            let commented = out.comment(&format!("{MARKER}: {source}"));
+            out.line(&commented);
+        }
         Stmt::Comment(text) => {
             let line = out.comment(text);
             out.line(&line);
@@ -11952,7 +12074,8 @@ fn returned_values(f: &Function) -> Vec<&Expr> {
                 | Stmt::ForEach { body, .. }
                 | Stmt::ForEachIndexed { body, .. }
                 | Stmt::Defer(body)
-                | Stmt::ErrDefer(body) => walk(body, into),
+                | Stmt::ErrDefer(body)
+                | Stmt::Block(body) => walk(body, into),
                 Stmt::CountedFor { body, .. } => walk(body, into),
                 Stmt::Switch { arms, default, .. } => {
                     for (_, body) in arms {

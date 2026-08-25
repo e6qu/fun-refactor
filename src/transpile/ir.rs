@@ -547,6 +547,12 @@ pub enum Stmt {
     /// under a "not translated" marker. It inflates the count of real gaps with things
     /// that were never gaps.
     Comment(String),
+    /// A braced block: its statements, scoped where the target scopes blocks.
+    ///
+    /// Zig writes one for scoping alone, and several lowerings group the
+    /// statements they expand into. Targets with block scope keep the braces;
+    /// Python, which has none, writes the statements in place.
+    Block(Vec<Stmt>),
     /// `raise e` / `throw e`.
     Throw(Expr),
     /// `try { } catch { } finally { }`, and Python's `try/except/finally`.
@@ -565,6 +571,13 @@ pub enum Stmt {
         line: usize,
     },
     Break,
+    /// `break :label value`: leave the labeled block, with a value when the
+    /// block produces one. The Zig reader consumes these while lowering
+    /// labeled blocks into loops; one that survives to a writer is carried.
+    BreakWith {
+        label: String,
+        value: Option<Box<Expr>>,
+    },
     Continue,
     Unsupported(Unsupported),
 }
