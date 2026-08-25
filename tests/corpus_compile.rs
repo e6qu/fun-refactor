@@ -191,7 +191,7 @@ fn every_translated_corpus_file_is_accepted_by_its_toolchain() {
     let mut checked = 0usize;
     for (path, from) in corpus_files() {
         let module = transpile::read_file(&path).expect("the corpus reads");
-        for target in transpile::SUPPORTED {
+        for target in transpile::COMPLETE {
             if *target == from || absent.contains(target) {
                 continue;
             }

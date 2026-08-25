@@ -19,7 +19,50 @@ use crate::parse::{Parsed, Parsers};
 use crate::span::Span;
 use anyhow::Result;
 use serde::Serialize;
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+use std::rc::Rc;
 use tree_sitter::Node;
+
+/// One entry of the parse cache: a file's text and its tree, shared.
+type SharedParse = Rc<(String, Parsed)>;
+
+thread_local! {
+    /// One parse per file per index generation per thread. A derivation chain
+    /// re-reads its file at every hop, and a dispatch scan asks about thousands of
+    /// receivers. Parsing the same unchanged file once per hop turned a scan into
+    /// an hour of parser work. The generation key ties every entry to the index that read the
+    /// file, so a rebuilt index never sees the previous build's tree.
+    static PARSES: RefCell<HashMap<(u64, PathBuf), SharedParse>> =
+        RefCell::new(HashMap::new());
+    /// [`held_by`]'s answers, for the same reason. One receiver name is asked
+    /// about once per call site, and the walk over its scope's assignments is the
+    /// same every time.
+    static HELD: RefCell<HashMap<(u64, SymbolId), Held>> = RefCell::new(HashMap::new());
+}
+
+/// The file's source and tree as this index read them, from the cache or parsed into it.
+fn parsed_source(index: &Index, file: &Path, language: Language) -> Option<SharedParse> {
+    let key = (index.generation, file.to_path_buf());
+    PARSES.with(|cache| {
+        if let Some(hit) = cache.borrow().get(&key) {
+            return Some(hit.clone());
+        }
+        let source = crate::vfs::read_to_string(file).ok()?;
+        let parsed = Parsers::new().parse(language, &source).ok()?;
+        let entry = Rc::new((source, parsed));
+        let mut cache = cache.borrow_mut();
+        // A long session builds many indexes, and every generation has its own
+        // entries. The cap empties the map rather than ranking entries: the next
+        // chain refills what it walks.
+        if cache.len() >= 512 {
+            cache.clear();
+        }
+        cache.insert(key, entry.clone());
+        Some(entry)
+    })
+}
 
 /// Why an inferred type is believed.
 ///
@@ -43,6 +86,10 @@ pub enum Basis {
     ElementOfIterable,
     /// The value is an arithmetic expression, and both its operands have the same type.
     BothOperands,
+    /// The value is `self` or `this`, and the enclosing declaration names its type.
+    EnclosingType,
+    /// The value picks one of two branches, and both branches have the same type.
+    AgreeingBranches,
 }
 
 impl Basis {
@@ -58,6 +105,8 @@ impl Basis {
             Basis::FieldOfRecord => "from the field's declaration",
             Basis::ElementOfIterable => "from the sequence's element type",
             Basis::BothOperands => "from the operands, which share a type",
+            Basis::EnclosingType => "from the declaration enclosing self",
+            Basis::AgreeingBranches => "from the branches, which share a type",
         }
     }
 }
@@ -139,6 +188,17 @@ pub fn supports_declared_type(language: Language) -> bool {
 }
 
 pub fn of(index: &Index, symbol: SymbolId) -> Result<Declared> {
+    of_at(index, symbol, 0)
+}
+
+/// [`of`], from partway along a derivation chain.
+///
+/// The depth rides along so `x = y` above `y = x` runs out of chain instead of
+/// stack. Every route back into a symbol's answer counts the hop, and
+/// [`MAX_CHAIN`] ends it.
+/// The first version restarted at zero on each hop, and two bindings assigned from
+/// each other recursed until the stack went.
+fn of_at(index: &Index, symbol: SymbolId, depth: usize) -> Result<Declared> {
     if let Some(language) = index.symbol(symbol).map(|s| s.language) {
         crate::capabilities::record(crate::capabilities::Capability::DeclaredType, language);
         if !supports_declared_type(language) {
@@ -154,19 +214,20 @@ pub fn of(index: &Index, symbol: SymbolId) -> Result<Declared> {
     let sym = index
         .symbol(symbol)
         .ok_or_else(|| anyhow::anyhow!("no symbol with that id"))?;
-    let source = crate::vfs::read_to_string(&sym.file)?;
-    let parsed = Parsers::new().parse(sym.language, &source)?;
+    let shared = parsed_source(index, &sym.file, sym.language)
+        .ok_or_else(|| anyhow::anyhow!("the file would not read or parse"))?;
+    let (source, parsed) = (&shared.0, &shared.1);
 
     let declared = match sym.kind.is_callable() {
-        true => signature(&parsed, &source, sym),
+        true => signature(parsed, source, sym),
         // `var` and `auto` are the keyword for "not stated". So a binding written with one has
         // no declared type and falls through to what can be worked out. Reporting the keyword
         // answered the question with the question.
-        false => binding_type(&parsed, &source, sym.full_span)
+        false => binding_type(parsed, source, sym.full_span)
             .filter(|written| !crate::parse::is_an_inferred_type(written)),
     };
     let parameters = match sym.kind.is_callable() {
-        true => parameters_of(&parsed, &source, sym),
+        true => parameters_of(parsed, source, sym),
         false => Vec::new(),
     };
     // The named type, where the answer is one name and not a signature.
@@ -177,7 +238,7 @@ pub fn of(index: &Index, symbol: SymbolId) -> Result<Declared> {
     // derivation; where both exist the contract is the answer. A disagreement between them is a
     // defect in the code and not a choice for this to make.
     let inferred = match (&declared, sym.kind.is_callable()) {
-        (None, false) => infer(index, sym, &parsed, &source, 0),
+        (None, false) => infer(index, sym, parsed, source, depth),
         _ => None,
     };
 
@@ -209,6 +270,22 @@ pub enum Held {
 
 /// What the source says this binding holds, over the whole scope.
 pub fn held_by(index: &Index, symbol: SymbolId) -> Held {
+    let key = (index.generation, symbol);
+    if let Some(hit) = HELD.with(|cache| cache.borrow().get(&key).cloned()) {
+        return hit;
+    }
+    let answer = held_by_uncached(index, symbol);
+    HELD.with(|cache| {
+        let mut cache = cache.borrow_mut();
+        if cache.len() >= 4096 {
+            cache.clear();
+        }
+        cache.insert(key, answer.clone());
+    });
+    answer
+}
+
+fn held_by_uncached(index: &Index, symbol: SymbolId) -> Held {
     let Some(sym) = index.symbol(symbol) else {
         return Held::Unwritten;
     };
@@ -223,18 +300,16 @@ pub fn held_by(index: &Index, symbol: SymbolId) -> Held {
     let Some(inferred) = answer.inferred else {
         return Held::Unwritten;
     };
-    let Ok(source) = crate::vfs::read_to_string(&sym.file) else {
+    let Some(shared) = parsed_source(index, &sym.file, sym.language) else {
         return Held::Unwritten;
     };
+    let (source, parsed) = (&shared.0, &shared.1);
     let scope = scope_span(index, sym);
-    let Ok(parsed) = Parsers::new().parse(sym.language, &source) else {
-        return Held::Unwritten;
-    };
     let mut bound = Vec::new();
-    collect_assignments(parsed.root(), sym, &source, scope, &mut bound);
+    collect_assignments(parsed.root(), sym, source, scope, &mut bound);
     let types: Vec<Option<String>> = bound
         .iter()
-        .map(|b| infer_bound(index, sym, &source, *b, 0).map(|i| i.ty))
+        .map(|b| infer_bound(index, sym, source, *b, 0).map(|i| i.ty))
         .collect();
     match types.split_first() {
         None | Some((_, [])) => Held::Settled(inferred.ty),
@@ -348,6 +423,15 @@ fn infer_bound(
     match bound {
         Bound::Value(node) => infer_expression(index, sym, source, node, depth),
         Bound::Element(node) => {
+            // Zig's `0..` capture counts as it goes, and the counter is a `usize` by
+            // the language's own rule.
+            if sym.language == Language::Zig && node.kind() == "range_expression" {
+                return Some(Inferred {
+                    ty: "usize".to_string(),
+                    basis: Basis::ElementOfIterable,
+                    from: None,
+                });
+            }
             let sequence = infer_expression(index, sym, source, node, depth)?;
             // A sequence whose element type is not written down says nothing about
             // the loop variable. Its own name is the container's and never the
@@ -398,6 +482,11 @@ fn assigned_value<'a>(
 /// this one name whole. `for k, v in pairs` takes the pair apart, and which piece
 /// each name gets is a question this does not answer.
 fn bound_expression<'a>(language: Language, node: Node<'a>, name: Span) -> Option<Bound<'a>> {
+    // Zig binds loop names in a payload, `for (xs, ys) |x, y|`, one name per sequence
+    // in order, so the name's own position picks its sequence.
+    if language == Language::Zig && node.kind() == "for_statement" {
+        return zig_for_element(node, name);
+    }
     if let Some(sequence) = iterated_sequence(language, node) {
         let target = ["left", "name", "pattern"]
             .iter()
@@ -405,6 +494,28 @@ fn bound_expression<'a>(language: Language, node: Node<'a>, name: Span) -> Optio
         return (Span::from(target) == name).then_some(Bound::Element(sequence));
     }
     crate::parse::declaration_value(node).map(Bound::Value)
+}
+
+/// The sequence a Zig `for` walks with this name, matched by position in the payload.
+fn zig_for_element<'a>(node: Node<'a>, name: Span) -> Option<Bound<'a>> {
+    let mut cursor = node.walk();
+    let children: Vec<Node<'a>> = node.named_children(&mut cursor).collect();
+    let payload = children.iter().find(|c| c.kind() == "payload")?;
+    let sequences: Vec<Node<'a>> = children
+        .iter()
+        .take_while(|c| c.kind() != "payload")
+        .copied()
+        .collect();
+    let mut inside = payload.walk();
+    let bindings: Vec<Node<'a>> = payload
+        .named_children(&mut inside)
+        .filter(|c| c.kind() == "identifier")
+        .collect();
+    let at = bindings.iter().position(|b| Span::from(*b) == name)?;
+    (sequences.len() == bindings.len())
+        .then(|| sequences.get(at).copied())
+        .flatten()
+        .map(Bound::Element)
 }
 
 /// The sequence a loop walks, for the loop forms that bind a name to each element.
@@ -467,6 +578,10 @@ fn element_type(written: &str) -> Option<String> {
             true => inside,
             false => after,
         };
+        // Zig writes the pointer's constness before the element, `[]const u8`; the
+        // element is `u8` and the `const` binds to the slice.
+        let element = element.trim();
+        let element = element.strip_prefix("const ").unwrap_or(element);
         return bare_name(element).map(str::to_string);
     }
     // TypeScript writes it first: `Box[]`.
@@ -510,6 +625,18 @@ fn infer_expression(
         });
     }
 
+    // `self` and `this` are the one value whose type is never a guess: the declaration
+    // this code is written in names it.
+    if matches!(kind, "self" | "this") || (kind == "identifier" && matches!(text, "self" | "this"))
+    {
+        let (ty, owner) = enclosing_type(index, from)?;
+        return Some(Inferred {
+            ty,
+            basis: Basis::EnclosingType,
+            from: owner,
+        });
+    }
+
     match kind {
         // `avg * 2`, where both sides are the same type. Arithmetic in every language here
         // preserves that type, so the result is it. Where the two sides disagree, or either
@@ -546,7 +673,8 @@ fn infer_expression(
                 .iter()
                 .find_map(|field| node.child_by_field_name(field))?;
             let name = last_segment(Span::from(callee).text(source).trim());
-            let target = resolve_in_workspace(index, from, name)?;
+            let target = resolve_in_workspace(index, from, name)
+                .or_else(|| method_of_receiver(index, from, source, node, callee, name, depth))?;
             let resolved = index.symbol(target)?;
             if is_type_like(resolved.kind) {
                 return Some(Inferred {
@@ -556,7 +684,9 @@ fn infer_expression(
                 });
             }
             // A function states what it returns, or it does not and nothing follows.
-            let returns = of(index, target).ok()?.parameters_free_return()?;
+            let returns = of_at(index, target, depth + 1)
+                .ok()?
+                .parameters_free_return()?;
             Some(Inferred {
                 ty: returns,
                 basis: Basis::ReturnOfCall,
@@ -570,19 +700,15 @@ fn infer_expression(
                 return None;
             }
             let other = index.symbol(target)?;
-            let answer = of(index, target).ok()?;
-            let ty = answer.declared.or_else(|| {
-                // Follow one more link, bounded, and only through the same file: a
-                // chain that leaves the file is a chain a reader cannot see.
-                (other.file == from.file)
-                    .then(|| {
-                        let other_source = crate::vfs::read_to_string(&other.file).ok()?;
-                        let other_parsed =
-                            Parsers::new().parse(other.language, &other_source).ok()?;
-                        infer(index, other, &other_parsed, &other_source, depth + 1).map(|i| i.ty)
-                    })
-                    .flatten()
-            })?;
+            let answer = of_at(index, target, depth + 1).ok()?;
+            // A derived answer is followed only through the same file: a chain that
+            // leaves the file is a chain a reader cannot see.
+            let ty = match answer.declared {
+                Some(ty) => Some(ty),
+                None => (other.file == from.file)
+                    .then_some(answer.inferred.map(|i| i.ty))
+                    .flatten(),
+            }?;
             Some(Inferred {
                 ty,
                 basis: Basis::SameBinding,
@@ -596,24 +722,152 @@ fn infer_expression(
                 .or_else(|| node.child_by_field_name("property"))
                 .or_else(|| node.child_by_field_name("field"))?;
             let field_name = Span::from(field).text(source).trim();
-            let target = index
-                .symbols
-                .iter()
-                .find(|s| {
-                    s.name == field_name
-                        && s.language == language
+            let candidates: Vec<&Symbol> = index
+                .find_symbols(field_name, None)
+                .into_iter()
+                .filter(|s| {
+                    s.language == language
                         && matches!(s.kind, SymbolKind::Field | SymbolKind::Property)
                 })
-                .map(|s| s.id)?;
-            let ty = of(index, target).ok()?.declared?;
+                .collect();
+            // Several records may declare a field of this name, and the receiver's type
+            // says whose field this is. Without the receiver, one candidate is the answer
+            // and several are none: an answer picked by indexing order is not an answer.
+            let target = match candidates.as_slice() {
+                [] => return None,
+                [only] => only.id,
+                _ => {
+                    let object = ["object", "value", "operand"]
+                        .iter()
+                        .find_map(|f| node.child_by_field_name(f))?;
+                    let receiver = infer_expression(index, from, source, object, depth)?;
+                    let owner = base_type_name(&receiver.ty);
+                    let matching: Vec<&&Symbol> = candidates
+                        .iter()
+                        .filter(|s| s.qualifier.as_deref() == Some(owner.as_str()))
+                        .collect();
+                    match matching.as_slice() {
+                        [only] => only.id,
+                        _ => return None,
+                    }
+                }
+            };
+            let ty = of_at(index, target, depth + 1).ok()?.declared?;
             Some(Inferred {
                 ty,
                 basis: Basis::FieldOfRecord,
                 from: Some(target),
             })
         }
+        // `flag ? a : b` and `a if flag else b`: one of two branches. Where both
+        // branches have the same type, the whole expression has it. Where they disagree
+        // or either is unknown, nothing follows and nothing is claimed.
+        "ternary_expression" | "conditional_expression" => {
+            let (then, otherwise) = ternary_branches(language, node)?;
+            let then = infer_expression(index, from, source, then, depth)?;
+            let otherwise = infer_expression(index, from, source, otherwise, depth)?;
+            (then.ty == otherwise.ty).then_some(Inferred {
+                ty: then.ty,
+                basis: Basis::AgreeingBranches,
+                from: None,
+            })
+        }
         _ => None,
     }
+}
+
+/// The two branch expressions of a conditional expression.
+///
+/// TypeScript and Java write `flag ? a : b` and name the fields. Python writes the value
+/// first, `a if flag else b`, so its three children arrive then-condition-otherwise.
+fn ternary_branches<'a>(language: Language, node: Node<'a>) -> Option<(Node<'a>, Node<'a>)> {
+    if let (Some(then), Some(otherwise)) = (
+        node.child_by_field_name("consequence"),
+        node.child_by_field_name("alternative"),
+    ) {
+        return Some((then, otherwise));
+    }
+    let mut cursor = node.walk();
+    let parts: Vec<Node<'a>> = node.named_children(&mut cursor).collect();
+    match (language, parts.as_slice()) {
+        (Language::Python, [then, _, otherwise]) => Some((*then, *otherwise)),
+        (_, [_, then, otherwise]) => Some((*then, *otherwise)),
+        _ => None,
+    }
+}
+
+/// The type of the declaration enclosing this symbol: what `self` and `this` hold there.
+///
+/// The innermost symbol containing the asking one that carries a qualifier is a method,
+/// and its qualifier is the type it is written in.
+fn enclosing_type(index: &Index, from: &Symbol) -> Option<(String, Option<SymbolId>)> {
+    let info = index.file(&from.file)?;
+    let method = info
+        .symbols
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .filter(|s| s.full_span.contains(from.full_span) && s.qualifier.is_some())
+        .min_by_key(|s| s.full_span.end - s.full_span.start)?;
+    Some((method.qualifier.clone()?, Some(method.id)))
+}
+
+/// The method a member call reaches, found through its receiver's type.
+///
+/// `payment.total()` with several `total`s in the workspace resolves by name to none of
+/// them. The receiver's own type says which one: the `total` it is the owner of.
+fn method_of_receiver(
+    index: &Index,
+    from: &Symbol,
+    source: &str,
+    call: Node<'_>,
+    callee: Node<'_>,
+    name: &str,
+    depth: usize,
+) -> Option<SymbolId> {
+    // The receiver hangs off the callee in most grammars, `a.b` being the callee
+    // of `a.b()`. In Java it hangs off the call itself, where `object` and `name`
+    // are siblings.
+    let object = ["object", "value", "operand"]
+        .iter()
+        .find_map(|field| callee.child_by_field_name(field))
+        .or_else(|| {
+            ["object", "value", "operand"]
+                .iter()
+                .find_map(|field| call.child_by_field_name(field))
+        })?;
+    let receiver = infer_expression(index, from, source, object, depth)?;
+    let owner = base_type_name(&receiver.ty);
+    let candidates: Vec<&Symbol> = index
+        .find_symbols(name, None)
+        .into_iter()
+        .filter(|s| {
+            s.language == from.language
+                && s.kind.is_callable()
+                && s.qualifier.as_deref() == Some(owner.as_str())
+        })
+        .collect();
+    match candidates.as_slice() {
+        [only] => Some(only.id),
+        _ => None,
+    }
+}
+
+/// The bare name of a written type: generics, sigils and the qualifying path taken off.
+///
+/// `List<Order>` names `List`; `&Facts`, `*Buffer` and `?Handle` name the types their
+/// sigils borrow, point at or make optional; `models.PaymentId` names its last segment.
+pub(crate) fn base_type_name(written: &str) -> String {
+    let base = written.split(['<', '[']).next().unwrap_or(written).trim();
+    let last = base.rsplit(['.', ':']).next().unwrap_or(base);
+    // `&dyn Shape` and `impl Shape` both name `Shape`: the keyword says how the
+    // value arrives, the name says what answers.
+    last.trim_start_matches(['&', '*', '?'])
+        .trim_start_matches("mut ")
+        .trim()
+        .trim_start_matches("dyn ")
+        .trim_start_matches("impl ")
+        .trim()
+        .to_string()
 }
 
 impl Declared {
@@ -634,10 +888,12 @@ impl Declared {
 /// described it. A list literal is the same shape of non-answer.
 ///
 /// Go and Java are here because each fixes the type at the declaration. `total := 0` is an
-/// `int` and `var s = "a"` is a `String`, whatever the code does later. Rust is absent for the
-/// opposite reason. There `let x = 0;` takes its type from a later use, so `i32` would be a
-/// guess dressed as an answer. Zig's `0` is a `comptime_int`. No parameter can be written
-/// with that.
+/// `int` and `var s = "a"` is a `String`, whatever the code does later. Rust's numbers are
+/// absent for the opposite reason. There `let x = 0;` takes its type from a later use, so
+/// `i32` would be a guess dressed as an answer. Its strings, booleans and characters have no
+/// later use to wait for: `"a"` is `&str` however it is used, so those three answer. Zig's
+/// `0` is a `comptime_int` and its `"a"` a pointer to a sized array, neither a
+/// type a parameter is written with. So only its booleans answer.
 fn literal_type(language: Language, kind: &str, text: &str) -> Option<String> {
     let python = matches!(language, Language::Python);
     let ts = matches!(language, Language::TypeScript | Language::Tsx);
@@ -677,9 +933,19 @@ fn literal_type(language: Language, kind: &str, text: &str) -> Option<String> {
     Some(answer.to_string())
 }
 
-/// The type a Go or Java literal has by the language's own default rule.
+/// The type a literal has by the language's own fixed rule.
 fn fixed_literal_type(language: Language, kind: &str) -> Option<&'static str> {
     match language {
+        Language::Rust => match kind {
+            "string_literal" | "raw_string_literal" => Some("&str"),
+            "boolean_literal" => Some("bool"),
+            "char_literal" => Some("char"),
+            _ => None,
+        },
+        Language::Zig => match kind {
+            "boolean" | "true" | "false" => Some("bool"),
+            _ => None,
+        },
         Language::Go => match kind {
             "int_literal" => Some("int"),
             "float_literal" => Some("float64"),
@@ -725,12 +991,17 @@ fn last_segment(text: &str) -> &str {
 /// An answer picked by indexing order is not an answer.
 fn resolve_in_workspace(index: &Index, from: &Symbol, name: &str) -> Option<SymbolId> {
     let candidates: Vec<&Symbol> = index
-        .symbols
-        .iter()
-        .filter(|s| s.name == name && s.language == from.language && s.id != from.id)
+        .find_symbols(name, None)
+        .into_iter()
+        .filter(|s| s.language == from.language && s.id != from.id)
         .collect();
-    if let Some(here) = candidates.iter().find(|s| s.file == from.file) {
-        return Some(here.id);
+    let here: Vec<&&Symbol> = candidates.iter().filter(|s| s.file == from.file).collect();
+    match here.as_slice() {
+        [only] => return Some(only.id),
+        [] => {}
+        // Two methods of this name in one file are as ambiguous as two anywhere.
+        // The first written version returned whichever was indexed first.
+        _ => return None,
     }
     match candidates.as_slice() {
         [only] => Some(only.id),
@@ -750,9 +1021,9 @@ fn resolve_in_workspace(index: &Index, from: &Symbol, name: &str) -> Option<Symb
 /// A definition the reader is sent to is a claim, and a coin toss is not one.
 fn type_named(index: &Index, name: &str, from: &Symbol) -> Option<SymbolId> {
     let candidates: Vec<&Symbol> = index
-        .symbols
-        .iter()
-        .filter(|s| s.name == name && is_type_like(s.kind) && s.language == from.language)
+        .find_symbols(name, None)
+        .into_iter()
+        .filter(|s| is_type_like(s.kind) && s.language == from.language)
         .collect();
     if let Some(here) = candidates.iter().find(|s| s.file == from.file) {
         return Some(here.id);

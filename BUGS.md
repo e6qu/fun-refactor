@@ -26,8 +26,8 @@ TypeScript and Zig, each with its upstream pin, licence, patch and the measureme
 shows the patch additive. What is left below is one limit of this tool's own analysis.
 
 - [ ] B5: `find_unused` and the call graph follow what the source shows, and no further.
-  A call that names no definition is fanned out to the definitions the workspace admits.
-  Four declarations each fan an unresolved method call out to every implementation:
+  A call whose receiver nothing types is fanned out to the definitions the workspace
+  admits. Four declarations each fan such a call out to every implementation:
 
   * a Rust `impl Trait for Type`, supertraits included;
   * a Go interface whose method set a type covers by name and arity;
@@ -37,12 +37,21 @@ shows the patch additive. What is left below is one limit of this tool's own ana
   A fifth reaches through a value. A function is assigned to a name,
   `Held { run: candidate }`, and called through it, `(h.run)()`. Every such edge carries
   the tag `field-based`. `fr graph` counts it apart from resolved edges, and the report
-  names it as the reason a symbol was spared. The value edge is keyed by the name, so a
-  call through `run` reaches every function assigned to a `run` anywhere. It is labelled
-  `function-value` and not passed off as resolved. TypeScript also falls back to matching
+  names it as the reason a symbol was spared. TypeScript also falls back to matching
   a method name alone where no `implements` is written, under the label `method-name`.
 
-  What remains is undecidable from the source: a function this workspace never names.
+  A receiver the source settles narrows all five. An annotation, an initializer, a
+  loop over a typed sequence, `self` and `this`: `held_by` works the type out with its
+  evidence. The fan-out keeps only that type's kin. A settled member resolves in
+  the index, and a stranger sharing the name gets no edge. A value called through a
+  typed record reaches only that record's bindings. An edge the receiver itself
+  licenses is labelled `receiver-type`. The tier stays `field-based`: which body runs is still
+  the program's choice, and an inferred type is evidence, never a rewrite licence.
+
+  What remains is what no evidence settles. A `dyn` object or interface-typed value
+  arriving from outside. An untyped parameter, or one assigned two types. A type
+  the workspace never declares, and a generic parameter. And what remains undecidable is
+  undecidable from the source: a function this workspace never names.
   Either a caller outside it supplies the value, or the name is assembled at runtime from
   pieces no string literal spells. A symbol used only from a file that failed to parse is
   invisible for a third reason. `delete::plan` reports that file as possibly hiding
@@ -50,6 +59,41 @@ shows the patch additive. What is left below is one limit of this tool's own ana
   neither has a hierarchy to read.
 
 ## Fixed
+
+- [x] B747: **two bindings assigned from each other overflowed the stack.** The
+  derivation chain in `analysis/types.rs` counted its hops, but every route back into
+  a symbol's answer restarted the count at zero: `x = y` above `y = x` recursed until
+  the process died. It surfaced the day the dispatch layer began asking about every
+  receiver in the workspace. `of` now threads the depth through every route,
+  `MAX_CHAIN` ends the loop, and the cycle answers nothing instead of aborting.
+  Pinned in `tests/types.rs`.
+
+- [x] B748: **two type answers picked by indexing order.** `resolve_in_workspace`
+  answered with the first of several same-file candidates. The field arm of
+  `infer_expression` answered with the first same-named field anywhere in the
+  workspace. Both are the shape this file's own comments ban: an answer picked by
+  indexing order is not an answer. Both are unique-or-none now, and where several
+  candidates share the name, the receiver's own type picks or nothing does. Pinned in
+  `tests/types.rs`.
+
+- [x] B749: **whole-workspace questions re-did whole-workspace work per ask.**
+  Four spellings of one shape. The type analysis re-read and re-parsed a file at
+  every derivation hop. `fr usages` re-scanned the hierarchy, a parse of every
+  family file, once per symbol asked about. `fr impact` rebuilt the call graph per
+  analysis. `Index::find_symbols` scanned every symbol despite the name buckets
+  built for that scan. An index now carries a generation number, the parses,
+  scans, graphs and receiver answers are cached against it, and `find_symbols` reads
+  the buckets. The repository-sized test file dropped from minutes per question to
+  one build per index.
+
+- [x] B750: **the namesake widening ate the receiver's answer.** `find_unused`
+  widens any name matched at field-based confidence to every same-named symbol.
+  The resolver's pick of the nearer twin is a guess that must not kill the
+  other twin. A member picked because the receiver's settled type owns it is not a
+  guess. Widening it marked every same-named stranger live again, which would
+  have undone the narrowing the same week it landed. Receiver-picked members keep
+  their definition group and widen no further. Pinned in
+  `tests/hierarchy_reachability.rs`.
 
 - [x] B738: **normalize walked half the tree.** `map_expr` recursed into
   calls, fields, binaries and templates and stopped there. A tuple, list, map,
@@ -315,9 +359,9 @@ shows the patch additive. What is left below is one limit of this tool's own ana
   `type A[T = int] = float` failed, which PEP 696 added in Python 3.13.
   `grammars/python` gives `expression_list` the choice Python's own
   star_expressions has, and gives each type parameter an optional
-  `= type`. Over 102 Python files, 50,399 nodes, the patched parser
-  returns the tree the stock one returns, and the five forms that used to
-  fail now parse.
+  `= type`. Over 102 Python files and 50,399 nodes, the patched parser
+  returns the tree the stock one returns. The five forms that used to fail
+  now parse.
 
 - [x] B133: **an empty Zig container came back holding a field that is not
   written.** `const Foo = struct {};` is ordinary Zig. Its four container

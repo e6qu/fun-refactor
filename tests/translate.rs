@@ -96,7 +96,8 @@ fn an_imperative_pair_is_never_a_rewrite_and_the_refusal_points_at_the_draft() {
         ("a.rs", Language::Python, "as a draft"),
         ("b.py", Language::Go, "as a draft"),
         ("c.go", Language::Rust, "as a draft"),
-        ("a.rs", Language::Bash, "a writer for bash"),
+        // Bash grew a reader and a writer, so it points at the draft path too.
+        ("a.rs", Language::Bash, "as a draft"),
     ] {
         let error = translate::plan(&root.join(file), to).expect_err("never a rewrite");
         let message = error.to_string();

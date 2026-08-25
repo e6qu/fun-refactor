@@ -110,9 +110,9 @@ fn a_call_to_a_function_in_the_same_file_is_still_exact() {
 
 /// The same overclaim, one branch up.
 ///
-/// Lexical scope settles a name when the definition encloses the use. It was also letting
-/// itself settle a *member* access whenever only one member in the workspace had that name, on
-/// the reasoning that there is then "nothing to be wrong about". There is: the workspace does
+/// Lexical scope settles a name when the definition encloses the use. It was also
+/// letting itself settle a *member* access whenever one member in the workspace had
+/// that name. The reasoning was that there is then "nothing to be wrong about". There is: the workspace does
 /// not contain every type. Fixing the branch below this one left this one untouched, which is
 /// what a rule kept at its use sites does.
 #[test]
@@ -230,5 +230,58 @@ fn an_unresolved_reference_never_claims_a_rewritable_tier() {
     assert!(
         liars.is_empty(),
         "resolved to nothing, yet safe to rewrite: {liars:?}"
+    );
+}
+
+/// Two classes each declare a `size`. The receiver's declared type picks whose member
+/// the call names, so the reference carries a target. The tier stays below the
+/// rewrite line: a type worked out from a binding is evidence and not a licence.
+#[test]
+fn a_typed_receiver_resolves_the_member_it_owns() {
+    let tmp = tempfile::tempdir().expect("a temporary directory");
+    let java = "class A {\n    int size(int n) { return n; }\n}\n\
+                class B {\n    int size(int n) { return n + 1; }\n}\n\
+                class Use {\n    int go() {\n        B b = new B();\n        return b.size(2);\n    }\n}\n";
+    std::fs::write(tmp.path().join("A.java"), java).expect("the file");
+    let index = Index::build(tmp.path(), &ScanOptions::default()).expect("an index");
+    let call = index
+        .references
+        .iter()
+        .find(|r| r.name == "size" && r.receiver.as_deref() == Some("b"))
+        .expect("the call through `b`");
+    let target = call.target.expect("a typed receiver names its member");
+    let owner = index.symbol(target).and_then(|s| s.qualifier.clone());
+    assert_eq!(
+        owner.as_deref(),
+        Some("B"),
+        "the receiver's own class answers"
+    );
+    assert!(
+        !call.confidence.is_safe_to_rewrite(),
+        "known target, uncrossed rewrite line: {:?}",
+        call.confidence
+    );
+}
+
+/// The same call through a receiver nothing types stays unresolved: several members
+/// share the name and no evidence picks one.
+#[test]
+fn an_untyped_receiver_still_resolves_no_shared_member() {
+    let tmp = tempfile::tempdir().expect("a temporary directory");
+    let java = "class A {\n    int size(int n) { return n; }\n}\n\
+                class B {\n    int size(int n) { return n + 1; }\n}\n\
+                class Use {\n    int go(Object anything) {\n        \
+                return ((B) anything).size(2);\n    }\n}\n";
+    std::fs::write(tmp.path().join("A.java"), java).expect("the file");
+    let index = Index::build(tmp.path(), &ScanOptions::default()).expect("an index");
+    let call = index
+        .references
+        .iter()
+        .find(|r| r.name == "size")
+        .expect("the call");
+    assert!(
+        call.target.is_none(),
+        "a cast is not a binding this reads, so no member is picked: {:?}",
+        call.target
     );
 }

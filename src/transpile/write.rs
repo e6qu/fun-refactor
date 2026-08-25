@@ -1413,6 +1413,7 @@ pub fn write_in_context(
         Language::Java => java(&mut out, module),
         Language::Zig => zig(&mut out, module),
         Language::TypeScript | Language::Tsx => typescript(&mut out, module),
+        Language::Bash => bash(&mut out, module),
         other => bail!(
             "there is no writer for {other}: it has no functions or records to write \
              these into"
@@ -1937,7 +1938,7 @@ impl Out {
     /// every source.
     fn comment(&self, text: &str) -> String {
         let marker = match self.language {
-            Language::Python => "#",
+            Language::Python | Language::Bash => "#",
             _ => "//",
         };
         // Zig rejects a tab inside a comment, and carried source brings the
@@ -4097,6 +4098,12 @@ fn python(out: &mut Out, module: &Module) {
 
     for item in &module.items {
         match item {
+            // A comment is not part of the program, so it needs no guard; guarded,
+            // its block would hold nothing and raise instead.
+            Item::Statement(Stmt::Comment(text)) => {
+                out.line(&format!("# {text}"));
+                out.blank();
+            }
             // The module runs top to bottom here too. The guard is Python's own
             // idiom for "this part is the program". Written bare, the statement
             // would also run on import, and the source's entry never did.
@@ -12875,5 +12882,811 @@ fn unknown(out: &mut Out, of: &str) -> String {
         // true of a parameter whose type the source never wrote down.
         Language::Zig => "anytype".to_string(),
         _ => "unknown".to_string(),
+    }
+}
+
+/// What the bash writer tracks beside [`Out`].
+///
+/// Bash separates arrays from scalars at every use site, `"${xs[@]}"` against
+/// `"$x"`, and a function that produces a value produces it on stdout. Neither
+/// fact is written at a use, so both are collected from the declarations first.
+struct BashCx {
+    /// Functions whose body returns a value: their calls capture `$(f …)`, and a
+    /// call in statement position discards `>/dev/null`.
+    value_fns: std::collections::BTreeSet<String>,
+    /// Names bound to arrays, spelled `"${xs[@]}"` where a sequence is wanted.
+    arrays: std::collections::BTreeSet<String>,
+    /// Names holding text. `line + word` on one of these is concatenation, and
+    /// writing it `$(( line + word ))` printed 0 where the source printed words.
+    strings: std::collections::BTreeSet<String>,
+}
+
+/// Does any path through these statements return a value?
+fn bash_returns_value(body: &[Stmt]) -> bool {
+    body.iter().any(|s| match s {
+        Stmt::Return(value) => value.is_some(),
+        Stmt::If {
+            then, otherwise, ..
+        } => bash_returns_value(then) || bash_returns_value(otherwise),
+        Stmt::While { body, .. }
+        | Stmt::ForEach { body, .. }
+        | Stmt::ForEachIndexed { body, .. }
+        | Stmt::WhilePresent { body, .. }
+        | Stmt::Block(body) => bash_returns_value(body),
+        Stmt::CountedFor { body, .. } => bash_returns_value(body),
+        Stmt::Switch { arms, default, .. } => {
+            arms.iter().any(|(_, b)| bash_returns_value(b)) || bash_returns_value(default)
+        }
+        _ => false,
+    })
+}
+
+fn bash(out: &mut Out, module: &Module) {
+    let mut bx = BashCx {
+        value_fns: std::collections::BTreeSet::new(),
+        arrays: std::collections::BTreeSet::new(),
+        strings: std::collections::BTreeSet::new(),
+    };
+    for item in &module.items {
+        if let Item::Function(f) = item {
+            // `-> None` and `void` announce that nothing comes back; only a
+            // real type or a returned value makes the function a value source.
+            let announces_value = match &f.returns {
+                None | Some(Type::Unit) => false,
+                Some(Type::Named { name, .. }) => !matches!(name.as_str(), "None" | "void"),
+                Some(_) => true,
+            };
+            if announces_value || bash_returns_value(&f.body) {
+                bx.value_fns.insert(f.name.clone());
+            }
+        }
+    }
+    out.blank();
+    for item in &module.items {
+        match item {
+            Item::Function(f) => {
+                bash_function(out, &mut bx, f);
+                out.blank();
+            }
+            Item::Constant(c) => {
+                for line in &c.doc {
+                    out.line(&format!("# {line}"));
+                }
+                let name = c.name.clone();
+                match bash_value(out, &mut bx, &c.value, &name) {
+                    Some(rendered) => {
+                        out.line(&format!("readonly {name}={rendered}"));
+                        out.fidelity.constants += 1;
+                    }
+                    None => bash_carry_stmt(
+                        out,
+                        "a constant this subset cannot spell",
+                        &format!("{} = …", c.name),
+                    ),
+                }
+            }
+            Item::Statement(stmt) => bash_block(out, &mut bx, std::slice::from_ref(stmt), false),
+            Item::Import { text, .. } => {
+                out.fidelity.imports_listed += 1;
+                let commented = out.comment(&format!("import: {text}"));
+                out.line(&commented);
+            }
+            Item::Record(r) => bash_carry_stmt(
+                out,
+                "a record declaration; bash has no data types to declare",
+                &r.name.clone(),
+            ),
+            Item::Sum(s) => bash_carry_stmt(
+                out,
+                "a sum declaration; bash has no data types to declare",
+                &s.name.clone(),
+            ),
+            Item::Newtype(n) => bash_carry_stmt(
+                out,
+                "a distinct type; bash has no types to distinguish",
+                &n.name.clone(),
+            ),
+            Item::Test { name, .. } => {
+                bash_carry_stmt(out, "a test; bash has no runner to hand it to", name)
+            }
+            Item::Unsupported(u) => carry(out, u),
+        }
+    }
+}
+
+/// A construct with no bash counterpart: counted, named, and left visible.
+fn bash_carry_stmt(out: &mut Out, construct: &str, source: &str) {
+    out.carried(&Unsupported {
+        construct: construct.to_string(),
+        source: source.to_string(),
+        line: 0,
+    });
+    let header = out.comment(&format!("{MARKER}: {construct}"));
+    out.line(&header);
+    for line in source.lines() {
+        let commented = out.comment(line);
+        out.line(&commented);
+    }
+}
+
+fn bash_function(out: &mut Out, bx: &mut BashCx, f: &Function) {
+    for line in &f.doc {
+        out.line(&format!("# {line}"));
+    }
+    let typed = f.params.iter().any(|p| p.ty.is_some()) || f.returns.is_some();
+    if typed {
+        out.note_once(
+            "bash writes no types: parameters and returns keep their names and lose \
+             their annotations",
+        );
+        out.fidelity.signatures_with_foreign_types += 1;
+    } else {
+        out.fidelity.signatures_complete += 1;
+    }
+    if f.is_async {
+        out.note_once("bash has no async: the function runs when called");
+    }
+    out.fidelity.functions += 1;
+    out.line(&format!("{}() {{", f.name));
+    out.open();
+    for (i, p) in f.params.iter().enumerate() {
+        out.line(&format!("local {}=\"${}\"", p.name, i + 1));
+    }
+    bash_guarded_block(out, bx, &f.body, true);
+    out.close();
+    out.line("}");
+}
+
+fn bash_block(out: &mut Out, bx: &mut BashCx, body: &[Stmt], local: bool) {
+    for stmt in body {
+        bash_stmt(out, bx, stmt, local);
+    }
+}
+
+fn bash_stmt(out: &mut Out, bx: &mut BashCx, stmt: &Stmt, local: bool) {
+    match stmt {
+        Stmt::Comment(text) => {
+            let commented = out.comment(text);
+            out.line(&commented);
+        }
+        Stmt::Unsupported(u) => carry(out, u),
+        Stmt::Block(stmts) => bash_block(out, bx, stmts, local),
+        Stmt::LocalFunction(f) => bash_function(out, bx, f),
+        Stmt::Break => out.line("break"),
+        Stmt::Continue => out.line("continue"),
+        Stmt::Return(None) => out.line("return"),
+        Stmt::Return(Some(value)) => {
+            // A bash function's value is its stdout: the caller captures `$(f …)`.
+            // `return` carries only an exit status, so the value prints and the
+            // status says it went well.
+            match bash_word(out, bx, value) {
+                Some(word) => {
+                    out.note_once(
+                        "a bash function returns its value on stdout; callers \
+                         capture it with command substitution",
+                    );
+                    out.line(&format!("printf '%s\\n' {word}"));
+                    out.line("return 0");
+                }
+                None => bash_carry_rendered(out, stmt),
+            }
+        }
+        Stmt::Let {
+            name,
+            value: Some(Expr::ListLit(elements)),
+            ..
+        } => {
+            let words: Option<Vec<String>> =
+                elements.iter().map(|e| bash_word(out, bx, e)).collect();
+            match words {
+                Some(words) => {
+                    bx.arrays.insert(name.clone());
+                    let keyword = if local { "local " } else { "" };
+                    out.line(&format!("{keyword}{name}=({})", words.join(" ")));
+                }
+                None => bash_carry_rendered(out, stmt),
+            }
+        }
+        Stmt::Let { name, value, .. } => {
+            let rendered = match value {
+                Some(v) => bash_value(out, bx, v, name),
+                None => Some("\"\"".to_string()),
+            };
+            match rendered {
+                Some(rendered) => {
+                    let keyword = if local { "local " } else { "" };
+                    out.line(&format!("{keyword}{name}={rendered}"));
+                    match value.as_ref().is_some_and(|v| bash_texty_in(bx, v)) {
+                        true => {
+                            bx.strings.insert(name.clone());
+                        }
+                        false => {
+                            bx.strings.remove(name);
+                        }
+                    }
+                }
+                None => bash_carry_rendered(out, stmt),
+            }
+        }
+        Stmt::Assign {
+            target: Expr::Name(name),
+            value: Expr::ListLit(elements),
+        } => {
+            let words: Option<Vec<String>> =
+                elements.iter().map(|e| bash_word(out, bx, e)).collect();
+            match words {
+                Some(words) => {
+                    bx.arrays.insert(name.clone());
+                    out.line(&format!("{name}=({})", words.join(" ")));
+                }
+                None => bash_carry_rendered(out, stmt),
+            }
+        }
+        Stmt::Assign {
+            target: Expr::Name(name),
+            value,
+        } => match bash_value(out, bx, value, name) {
+            Some(rendered) => {
+                out.line(&format!("{name}={rendered}"));
+                if bash_texty_in(bx, value) {
+                    bx.strings.insert(name.clone());
+                }
+            }
+            None => bash_carry_rendered(out, stmt),
+        },
+        Stmt::Assign {
+            target: Expr::Index { of, index },
+            value,
+        } => {
+            let assigned = (|| {
+                let Expr::Name(array) = of.as_ref() else {
+                    return None;
+                };
+                let at = bash_arith(out, bx, index)?;
+                let word = bash_word(out, bx, value)?;
+                Some(format!("{array}[{at}]={word}"))
+            })();
+            match assigned {
+                Some(line) => out.line(&line),
+                None => bash_carry_rendered(out, stmt),
+            }
+        }
+        Stmt::If {
+            condition,
+            then,
+            otherwise,
+        } => match bash_cond(out, bx, condition) {
+            Some(cond) => {
+                out.line(&format!("if {cond}; then"));
+                out.open();
+                bash_guarded_block(out, bx, then, local);
+                out.close();
+                if !otherwise.is_empty() {
+                    out.line("else");
+                    out.open();
+                    bash_guarded_block(out, bx, otherwise, local);
+                    out.close();
+                }
+                out.line("fi");
+            }
+            None => bash_carry_rendered(out, stmt),
+        },
+        Stmt::While { condition, body } => match bash_cond(out, bx, condition) {
+            Some(cond) => {
+                out.line(&format!("while {cond}; do"));
+                out.open();
+                bash_guarded_block(out, bx, body, local);
+                out.close();
+                out.line("done");
+            }
+            None => bash_carry_rendered(out, stmt),
+        },
+        Stmt::ForEach {
+            binding,
+            iterable,
+            body,
+        } => {
+            let sequence = match iterable {
+                Expr::Name(name) => Some(format!("\"${{{name}[@]}}\"")),
+                Expr::ListLit(elements) => {
+                    let words: Option<Vec<String>> =
+                        elements.iter().map(|e| bash_word(out, bx, e)).collect();
+                    words.map(|w| w.join(" "))
+                }
+                Expr::Call { .. } => bash_word(out, bx, iterable),
+                _ => None,
+            };
+            match sequence {
+                Some(sequence) => {
+                    out.line(&format!("for {binding} in {sequence}; do"));
+                    out.open();
+                    bash_guarded_block(out, bx, body, local);
+                    out.close();
+                    out.line("done");
+                }
+                None => bash_carry_rendered(out, stmt),
+            }
+        }
+        Stmt::ForEachIndexed {
+            index,
+            binding,
+            iterable,
+            body,
+        } => {
+            // No indexed form over a sequence: a counter walks beside the loop.
+            let keyword = if local { "local " } else { "" };
+            out.line(&format!("{keyword}{index}=0"));
+            let counted = Stmt::ForEach {
+                binding: binding.clone(),
+                iterable: iterable.clone(),
+                body: {
+                    let mut with_step = body.clone();
+                    with_step.push(Stmt::Assign {
+                        target: Expr::Name(index.clone()),
+                        value: Expr::Binary {
+                            op: BinaryOp::Add,
+                            left: Box::new(Expr::Name(index.clone())),
+                            right: Box::new(Expr::Int("1".to_string())),
+                        },
+                    });
+                    with_step
+                },
+            };
+            bash_stmt(out, bx, &counted, local);
+        }
+        Stmt::CountedFor {
+            init,
+            condition,
+            update,
+            body,
+            ..
+        } => {
+            let header = (|| {
+                let init = match init {
+                    Some(s) => bash_arith_assign(out, bx, s)?,
+                    None => String::new(),
+                };
+                let cond = match condition {
+                    Some(c) => bash_arith(out, bx, c)?,
+                    None => String::new(),
+                };
+                let update = match update {
+                    Some(s) => bash_arith_assign(out, bx, s)?,
+                    None => String::new(),
+                };
+                Some(format!("for (( {init}; {cond}; {update} )); do"))
+            })();
+            match header {
+                Some(header) => {
+                    out.line(&header);
+                    out.open();
+                    bash_guarded_block(out, bx, body, local);
+                    out.close();
+                    out.line("done");
+                }
+                None => bash_carry_rendered(out, stmt),
+            }
+        }
+        Stmt::Switch {
+            subject,
+            arms,
+            default,
+        } => {
+            let written = (|| {
+                let subject = bash_word(out, bx, subject)?;
+                let mut rendered: Vec<(String, &Vec<Stmt>)> = Vec::new();
+                for (selectors, body) in arms {
+                    let words: Option<Vec<String>> = selectors
+                        .iter()
+                        .map(|s| match s {
+                            Expr::Str(text) => Some(bash_quote(text)),
+                            Expr::Int(text) => Some(text.clone()),
+                            _ => None,
+                        })
+                        .collect();
+                    rendered.push((words?.join("|"), body));
+                }
+                Some((subject, rendered))
+            })();
+            match written {
+                Some((subject, rendered)) => {
+                    out.line(&format!("case {subject} in"));
+                    out.open();
+                    for (selector, body) in rendered {
+                        out.line(&format!("{selector})"));
+                        out.open();
+                        bash_guarded_block(out, bx, body, local);
+                        out.line(";;");
+                        out.close();
+                    }
+                    if !default.is_empty() {
+                        out.line("*)");
+                        out.open();
+                        bash_guarded_block(out, bx, default, local);
+                        out.line(";;");
+                        out.close();
+                    }
+                    out.close();
+                    out.line("esac");
+                }
+                None => bash_carry_rendered(out, stmt),
+            }
+        }
+        Stmt::Assert { condition, message } => {
+            // The check every target can make: test, complain on stderr, stop.
+            match bash_cond(out, bx, condition) {
+                Some(cond) => {
+                    let said = message
+                        .as_ref()
+                        .and_then(|m| bash_word(out, bx, m))
+                        .unwrap_or_else(|| "\"assertion failed\"".to_string());
+                    out.line(&format!("if ! {cond}; then"));
+                    out.open();
+                    out.line(&format!("printf '%s\\n' {said} >&2"));
+                    out.line("exit 1");
+                    out.close();
+                    out.line("fi");
+                }
+                None => bash_carry_rendered(out, stmt),
+            }
+        }
+        Stmt::Expr(Expr::Call { callee, args }) => {
+            let command = (|| {
+                // `nums.append(3)` arrives as a member call; bash grows the array.
+                if let Expr::Field { of, name } = callee.as_ref() {
+                    let Expr::Name(array) = of.as_ref() else {
+                        return None;
+                    };
+                    if !matches!(name.as_str(), "append" | "push" | "add") {
+                        return None;
+                    }
+                    let [element] = args.as_slice() else {
+                        return None;
+                    };
+                    let word = bash_word(out, bx, element)?;
+                    bx.arrays.insert(array.clone());
+                    return Some(format!("{array}+=({word})"));
+                }
+                let Expr::Name(name) = callee.as_ref() else {
+                    return None;
+                };
+                if name == "print" {
+                    let [one] = args.as_slice() else { return None };
+                    let word = bash_word(out, bx, one)?;
+                    return Some(format!("printf '%s\\n' {word}"));
+                }
+                if name == "append" || name == "push" {
+                    let [Expr::Name(array), element] = args.as_slice() else {
+                        return None;
+                    };
+                    let word = bash_word(out, bx, element)?;
+                    bx.arrays.insert(array.clone());
+                    return Some(format!("{array}+=({word})"));
+                }
+                if !out.functions.contains_key(name) {
+                    return None;
+                }
+                let words: Option<Vec<String>> =
+                    args.iter().map(|a| bash_word(out, bx, a)).collect();
+                let mut line = name.clone();
+                for word in words? {
+                    line.push(' ');
+                    line.push_str(&word);
+                }
+                // A value-returning function prints; a statement call is not
+                // reading, so the value goes nowhere instead of onto stdout.
+                if bx.value_fns.contains(name) {
+                    line.push_str(" > /dev/null");
+                }
+                Some(line)
+            })();
+            match command {
+                Some(line) => out.line(&line),
+                None => bash_carry_rendered(out, stmt),
+            }
+        }
+        other => bash_carry_rendered(out, other),
+    }
+}
+
+/// Write a branch body, and `:` after it when nothing in it became a command.
+///
+/// `then` followed by nothing but comments is a syntax error, not a body. A
+/// statement can turn out to be all comments only while it renders: a carry is
+/// comments by design. So the question is asked of what was written, not of what
+/// was about to be.
+fn bash_guarded_block(out: &mut Out, bx: &mut BashCx, body: &[Stmt], local: bool) {
+    let before = out.text.len();
+    bash_block(out, bx, body, local);
+    let has_command = out.text[before..].lines().any(|l| {
+        let t = l.trim();
+        !t.is_empty() && !t.starts_with('#')
+    });
+    if !has_command {
+        out.line(":");
+    }
+}
+
+/// Carry a statement this subset cannot spell, rendered so the reader sees it.
+fn bash_carry_rendered(out: &mut Out, stmt: &Stmt) {
+    let rendered = render_rust_stmts(std::slice::from_ref(stmt));
+    bash_carry_stmt(
+        out,
+        "a statement outside bash's subset",
+        rendered.trim_end(),
+    );
+}
+
+/// A string as one safely quoted bash word.
+fn bash_quote(text: &str) -> String {
+    format!("\"{}\"", text.replace('\\', "\\\\").replace('"', "\\\""))
+}
+
+/// The right-hand side of `name=…`, which is a word with one extra option: an
+/// arithmetic value writes `$(( … ))` outright.
+fn bash_value(out: &mut Out, bx: &mut BashCx, e: &Expr, _name: &str) -> Option<String> {
+    bash_word(out, bx, e)
+}
+
+/// One word: usable as a command argument, a test operand, or the right of `=`.
+fn bash_word(out: &mut Out, bx: &mut BashCx, e: &Expr) -> Option<String> {
+    match e {
+        Expr::Int(text) | Expr::Float(text) => Some(text.clone()),
+        Expr::Str(text) => Some(bash_quote(text)),
+        Expr::Bool(true) => Some("1".to_string()),
+        Expr::Bool(false) => Some("0".to_string()),
+        Expr::Name(name) => Some(format!("\"${{{name}}}\"")),
+        Expr::Index { of, index } => {
+            let Expr::Name(array) = of.as_ref() else {
+                return None;
+            };
+            let at = bash_arith(out, bx, index)?;
+            Some(format!("\"${{{array}[{at}]}}\""))
+        }
+        Expr::Call { callee, args } => {
+            // `"negative".to_string()` and `x.toString()`: bash values are text
+            // already, so the conversion is the value itself.
+            if let Expr::Field { of, name } = callee.as_ref() {
+                if matches!(name.as_str(), "to_string" | "toString") && args.is_empty() {
+                    return bash_word(out, bx, of);
+                }
+                return None;
+            }
+            let Expr::Name(name) = callee.as_ref() else {
+                return None;
+            };
+            // The canonical `str(x)`: bash values are text already, so the
+            // conversion is the value itself.
+            if name == "str" {
+                let [one] = args.as_slice() else { return None };
+                return bash_word(out, bx, one);
+            }
+            if name == "len" {
+                let [of] = args.as_slice() else { return None };
+                let Expr::Name(of) = of else { return None };
+                return match bx.arrays.contains(of) {
+                    true => Some(format!("\"${{#{of}[@]}}\"")),
+                    false => Some(format!("\"${{#{of}}}\"")),
+                };
+            }
+            if !out.functions.contains_key(name) {
+                return None;
+            }
+            let words: Option<Vec<String>> = args.iter().map(|a| bash_word(out, bx, a)).collect();
+            let mut call = format!("\"$({name}");
+            for word in words? {
+                call.push(' ');
+                call.push_str(&word);
+            }
+            call.push_str(")\"");
+            Some(call)
+        }
+        Expr::Binary { op, .. } => {
+            if *op == BinaryOp::Add && bash_texty_in(bx, e) {
+                let mut text = String::from("\"");
+                bash_concat_into(out, bx, e, &mut text)?;
+                text.push('"');
+                return Some(text);
+            }
+            let inside = bash_arith(out, bx, e)?;
+            Some(format!("$(( {inside} ))"))
+        }
+        Expr::Unary {
+            op: UnaryOp::Neg, ..
+        } => {
+            let inside = bash_arith(out, bx, e)?;
+            Some(format!("$(( {inside} ))"))
+        }
+        Expr::Template(parts) => {
+            let mut text = String::from("\"");
+            for part in parts {
+                match part {
+                    TemplatePart::Text(t) => {
+                        text.push_str(&t.replace('\\', "\\\\").replace('"', "\\\""))
+                    }
+                    TemplatePart::Expr(e) => match e {
+                        Expr::Name(name) => text.push_str(&format!("${{{name}}}")),
+                        Expr::Index { of, index } => {
+                            let Expr::Name(array) = of.as_ref() else {
+                                return None;
+                            };
+                            let at = bash_arith(out, bx, index)?;
+                            text.push_str(&format!("${{{array}[{at}]}}"));
+                        }
+                        other => {
+                            let word = bash_word(out, bx, other)?;
+                            let inner = word
+                                .strip_prefix('"')
+                                .and_then(|w| w.strip_suffix('"'))
+                                .map(|w| w.to_string())
+                                .unwrap_or(word);
+                            text.push_str(&inner);
+                        }
+                    },
+                }
+            }
+            text.push('"');
+            Some(text)
+        }
+        _ => None,
+    }
+}
+
+/// An expression inside `(( … ))`, where names go bare and text has no place.
+fn bash_arith(out: &mut Out, bx: &mut BashCx, e: &Expr) -> Option<String> {
+    match e {
+        Expr::Int(text) => Some(text.clone()),
+        Expr::Bool(true) => Some("1".to_string()),
+        Expr::Bool(false) => Some("0".to_string()),
+        Expr::Name(name) => Some(name.clone()),
+        Expr::Index { of, index } => {
+            let Expr::Name(array) = of.as_ref() else {
+                return None;
+            };
+            let at = bash_arith(out, bx, index)?;
+            Some(format!("${{{array}[{at}]}}"))
+        }
+        Expr::Call { .. } => bash_word(out, bx, e),
+        Expr::Binary { op, left, right } => {
+            let spelled = match op {
+                BinaryOp::FloorDiv => "/",
+                BinaryOp::TrueDiv => return None,
+                other => other.c_like(),
+            };
+            let left = bash_arith(out, bx, left)?;
+            let right = bash_arith(out, bx, right)?;
+            Some(format!("{left} {spelled} {right}"))
+        }
+        Expr::Unary { op, operand } => {
+            let inner = bash_arith(out, bx, operand)?;
+            match op {
+                UnaryOp::Neg => Some(format!("-({inner})")),
+                UnaryOp::Not => Some(format!("!({inner})")),
+                UnaryOp::Unwrap => None,
+            }
+        }
+        _ => None,
+    }
+}
+
+/// `i=0` or `i=i+1` as the inside of a `for (( … ))` header.
+fn bash_arith_assign(out: &mut Out, bx: &mut BashCx, stmt: &Stmt) -> Option<String> {
+    match stmt {
+        Stmt::Assign {
+            target: Expr::Name(name),
+            value,
+        }
+        | Stmt::Let {
+            name,
+            value: Some(value),
+            ..
+        } => {
+            let rendered = bash_arith(out, bx, value)?;
+            Some(format!("{name}={rendered}"))
+        }
+        _ => None,
+    }
+}
+
+/// A condition after `if` or `while`.
+///
+/// Numeric comparisons test inside `(( … ))`, equality on text inside `[[ … ]]`.
+/// The operands say which: a string or template on either side is text.
+fn bash_cond(out: &mut Out, bx: &mut BashCx, e: &Expr) -> Option<String> {
+    match e {
+        Expr::Bool(true) => Some("true".to_string()),
+        Expr::Bool(false) => Some("false".to_string()),
+        Expr::Unary {
+            op: UnaryOp::Not,
+            operand,
+        } => {
+            let inner = bash_cond(out, bx, operand)?;
+            Some(format!("! {inner}"))
+        }
+        Expr::Binary { op, left, right } => match op {
+            BinaryOp::And => {
+                let l = bash_cond(out, bx, left)?;
+                let r = bash_cond(out, bx, right)?;
+                Some(format!("{l} && {r}"))
+            }
+            BinaryOp::Or => {
+                let l = bash_cond(out, bx, left)?;
+                let r = bash_cond(out, bx, right)?;
+                Some(format!("{{ {l} || {r}; }}"))
+            }
+            BinaryOp::Eq | BinaryOp::Ne if bash_texty(left) || bash_texty(right) => {
+                let l = bash_word(out, bx, left)?;
+                let r = bash_word(out, bx, right)?;
+                let spelled = if *op == BinaryOp::Eq { "==" } else { "!=" };
+                Some(format!("[[ {l} {spelled} {r} ]]"))
+            }
+            BinaryOp::Eq
+            | BinaryOp::Ne
+            | BinaryOp::Lt
+            | BinaryOp::Le
+            | BinaryOp::Gt
+            | BinaryOp::Ge => {
+                let inside = bash_arith(out, bx, e)?;
+                Some(format!("(( {inside} ))"))
+            }
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
+/// Is this expression text rather than a number, as far as the writer can see?
+fn bash_texty(e: &Expr) -> bool {
+    matches!(e, Expr::Str(_) | Expr::Template(_))
+}
+
+/// [`bash_texty`], with the writer's knowledge of which names hold text.
+fn bash_texty_in(bx: &BashCx, e: &Expr) -> bool {
+    match e {
+        Expr::Str(_) | Expr::Template(_) => true,
+        Expr::Name(name) => bx.strings.contains(name),
+        Expr::Binary {
+            op: BinaryOp::Add,
+            left,
+            right,
+        } => bash_texty_in(bx, left) || bash_texty_in(bx, right),
+        _ => false,
+    }
+}
+
+/// Write a concatenation's pieces into one double-quoted bash word.
+fn bash_concat_into(out: &mut Out, bx: &mut BashCx, e: &Expr, text: &mut String) -> Option<()> {
+    match e {
+        Expr::Binary {
+            op: BinaryOp::Add,
+            left,
+            right,
+        } => {
+            bash_concat_into(out, bx, left, text)?;
+            bash_concat_into(out, bx, right, text)
+        }
+        Expr::Str(t) => {
+            text.push_str(&t.replace('\\', "\\\\").replace('"', "\\\""));
+            Some(())
+        }
+        Expr::Int(t) => {
+            text.push_str(t);
+            Some(())
+        }
+        Expr::Name(name) => {
+            text.push_str(&format!("${{{name}}}"));
+            Some(())
+        }
+        Expr::Template(_) | Expr::Call { .. } | Expr::Index { .. } => {
+            let word = bash_word(out, bx, e)?;
+            let inner = word
+                .strip_prefix('"')
+                .and_then(|w| w.strip_suffix('"'))
+                .map(|w| w.to_string())
+                .unwrap_or(word);
+            text.push_str(&inner);
+            Some(())
+        }
+        _ => None,
     }
 }

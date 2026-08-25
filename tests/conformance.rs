@@ -21,6 +21,42 @@ use std::process::Command;
 
 /// Every cell that holds: `group source->target`, sorted.
 const PASSING: &[&str] = &[
+    "bindings bash->go",
+    "bindings go->bash",
+    "bindings bash->java",
+    "bindings java->bash",
+    "bindings bash->python",
+    "bindings python->bash",
+    "bindings bash->rust",
+    "bindings rust->bash",
+    "bindings bash->typescript",
+    "bindings typescript->bash",
+    "bindings bash->zig",
+    "bindings zig->bash",
+    "collections bash->go",
+    "collections go->bash",
+    "collections bash->java",
+    "collections java->bash",
+    "collections bash->python",
+    "collections python->bash",
+    "collections bash->rust",
+    "collections rust->bash",
+    "collections bash->typescript",
+    "collections typescript->bash",
+    "collections bash->zig",
+    "collections zig->bash",
+    "control bash->go",
+    "control go->bash",
+    "control bash->java",
+    "control java->bash",
+    "control bash->python",
+    "control python->bash",
+    "control bash->rust",
+    "control rust->bash",
+    "control bash->typescript",
+    "control typescript->bash",
+    "control bash->zig",
+    "control zig->bash",
     "asynchrony rust->go",
     "asynchrony rust->java",
     "asynchrony rust->python",
@@ -271,6 +307,7 @@ const LANGUAGES: &[Language] = &[
     Language::Python,
     Language::TypeScript,
     Language::Zig,
+    Language::Bash,
 ];
 
 fn extension(language: Language) -> &'static str {
@@ -281,6 +318,7 @@ fn extension(language: Language) -> &'static str {
         Language::Python => "py",
         Language::TypeScript => "ts",
         Language::Zig => "zig",
+        Language::Bash => "sh",
         other => panic!("{other} is not in the suite"),
     }
 }
@@ -305,6 +343,7 @@ fn toolchain(language: Language) -> (&'static str, &'static [&'static str]) {
         Language::Python => ("python3", &["--version"]),
         Language::TypeScript => ("tsc", &["--version"]),
         Language::Zig => ("zig", &["version"]),
+        Language::Bash => ("bash", &["--version"]),
         other => panic!("{other} is not in the suite"),
     }
 }
@@ -410,6 +449,13 @@ fn run_program(language: Language, file: &Path, scratch: &Path) -> Result<String
                 .output()
                 .map_err(|e| e.to_string())?,
         ),
+        Language::Bash => finish(
+            "bash",
+            Command::new("bash")
+                .arg(file)
+                .output()
+                .map_err(|e| e.to_string())?,
+        ),
         other => panic!("{other} is not in the suite"),
     }
 }
@@ -458,11 +504,18 @@ fn every_translation_still_prints_the_same_transcript() {
             let file = group
                 .join(stem(*language))
                 .with_extension(extension(*language));
-            assert!(
-                file.exists(),
-                "{name}: no {language} program at {}",
-                file.display()
-            );
+            // Bash writes its computational subset and sits the other groups out,
+            // out loud. The complete six must all be present in every group.
+            if !file.exists() {
+                assert_eq!(
+                    *language,
+                    Language::Bash,
+                    "{name}: no {language} program at {}",
+                    file.display()
+                );
+                println!("conformance: {name} has no {language} native; it sits this group out");
+                continue;
+            }
             if !have.contains(language) {
                 continue;
             }
@@ -484,8 +537,18 @@ fn every_translation_still_prints_the_same_transcript() {
         // Every translation of every source, against that transcript.
         for source in LANGUAGES {
             let file = group.join(stem(*source)).with_extension(extension(*source));
+            if !file.exists() {
+                continue;
+            }
             for target in LANGUAGES {
                 if target == source || !have.contains(target) {
+                    continue;
+                }
+                // A group bash sat out is not asked of it as a target either: the
+                // programs use what the subset does not have.
+                if *target == Language::Bash
+                    && !group.join(stem(*target)).with_extension("sh").exists()
+                {
                     continue;
                 }
                 let cell = format!("{name} {source}->{target}");

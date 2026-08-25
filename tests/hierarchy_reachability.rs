@@ -158,12 +158,12 @@ fn rust_a_dyn_call_reaches_every_impl_of_the_trait() {
         );
     }
     // The trait's own declaration is named by the call too, and stays live with it.
-    assert_dispatches(
-        &index,
-        &graph,
-        report,
-        method(&index, "Shape", "area"),
-        HierarchyBasis::ImplementedTrait,
+    // The receiver typed `&dyn Shape` resolves the site to the declaration outright,
+    // so its edge is a weak resolution and not a hierarchy candidate.
+    assert_eq!(
+        edge(&graph, report, method(&index, "Shape", "area")),
+        Some((Confidence::FieldBased, EdgeOrigin::Resolved)),
+        "the settled receiver names the trait's own declaration"
     );
 }
 
@@ -316,7 +316,7 @@ fn go_an_interface_call_reaches_every_type_whose_method_set_covers_it() {
     let graph = CallGraph::build(&index);
     let report = only(&index, "Report");
 
-    for owner in ["Circle", "Square", "Shape"] {
+    for owner in ["Circle", "Square"] {
         assert_dispatches(
             &index,
             &graph,
@@ -325,6 +325,13 @@ fn go_an_interface_call_reaches_every_type_whose_method_set_covers_it() {
             HierarchyBasis::InterfaceMethodSet,
         );
     }
+    // The interface's own declaration: the receiver typed `Shape` resolves the site
+    // to it, so its edge is a weak resolution and not a hierarchy candidate.
+    assert_eq!(
+        edge(&graph, report, method(&index, "Shape", "Area")),
+        Some((Confidence::FieldBased, EdgeOrigin::Resolved)),
+        "the settled receiver names the interface's own declaration"
+    );
 }
 
 #[test]
@@ -429,8 +436,17 @@ fn typescript_an_unrelated_class_is_reached_by_name_alone_and_labelled_that_way(
     // TypeScript never writes `implements` at all. Bucketing call sites by method name is
     // what buys the recall (~66-80% precision, >=85% recall. Feldthaus et al., ICSE'13). The
     // edge exists, and it says out loud that it rests on the method name alone. A real
-    // `implements` clause says so instead.
-    let (_tmp, index) = workspace(&ts_shapes());
+    // `implements` clause says so instead, and a typed receiver drops the bucket
+    // entirely. The receiver below is an untyped parameter, which is the case the
+    // name-only tier exists to cover.
+    let mut files = ts_shapes();
+    files.retain(|(name, _)| *name != "report.ts");
+    files.push((
+        "report.ts",
+        "import { Circle } from './circle';\nexport function report(s): number {\n  \
+         return s.area();\n}\nexport function main(): void {\n  report(new Circle());\n}\n",
+    ));
+    let (_tmp, index) = workspace(&files);
     let graph = CallGraph::build(&index);
 
     assert_dispatches(
@@ -441,6 +457,38 @@ fn typescript_an_unrelated_class_is_reached_by_name_alone_and_labelled_that_way(
         HierarchyBasis::MethodName,
     );
     assert_never_exact(&graph, method(&index, "Ledger", "area"));
+}
+
+#[test]
+fn typescript_a_typed_receiver_leaves_the_same_named_stranger_out() {
+    // `report(s: Shape)` settles the receiver. `Ledger.area` matches the name and
+    // nothing else, so the edge that used to rest on the name alone is gone. The
+    // interface's own declaration is reached on the receiver's word instead.
+    let (_tmp, index) = workspace(&ts_shapes());
+    let graph = CallGraph::build(&index);
+    let report = only(&index, "report");
+
+    let stranger = method(&index, "Ledger", "area");
+    assert!(
+        edge(&graph, report, stranger).is_none(),
+        "a settled receiver reaches no stranger"
+    );
+    // The interface's own declaration resolves through the receiver's type; the
+    // classes that declare `implements Shape` stay hierarchy candidates.
+    assert_eq!(
+        edge(&graph, report, method(&index, "Shape", "area")),
+        Some((Confidence::FieldBased, EdgeOrigin::Resolved)),
+        "the settled receiver names the interface's own declaration"
+    );
+    for owner in ["Circle", "Square"] {
+        assert_dispatches(
+            &index,
+            &graph,
+            report,
+            method(&index, owner, "area"),
+            HierarchyBasis::DeclaredSupertype,
+        );
+    }
 }
 
 #[test]
@@ -569,20 +617,20 @@ fn dispatch_edges_are_counted_apart_from_resolved_ones() {
     let origins = graph.origin_breakdown();
     assert_eq!(
         origins.get("implemented-trait").copied().unwrap_or(0),
-        3,
-        "Circle, Square and the trait's own declaration: {origins:?}"
+        2,
+        "Circle and Square; the declaration resolves by receiver type: {origins:?}"
     );
     assert!(
-        origins.get("resolved").copied().unwrap_or(0) >= 1,
-        "main -> report is a resolved call: {origins:?}"
+        origins.get("resolved").copied().unwrap_or(0) >= 2,
+        "two resolved calls, one of them by receiver type: {origins:?}"
     );
-    assert_eq!(graph.hierarchy_edge_count(), 3);
+    assert_eq!(graph.hierarchy_edge_count(), 2);
 
     let confidence = graph.confidence_breakdown();
     assert_eq!(
         confidence.get("field-based").copied().unwrap_or(0),
         3,
-        "every dispatch candidate is field-based: {confidence:?}"
+        "the two dispatch candidates and the weakly resolved declaration: {confidence:?}"
     );
 }
 

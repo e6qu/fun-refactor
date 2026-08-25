@@ -280,7 +280,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
     // A method in declared dispatch changes as one family. A trait method
     // with one more parameter than its implementations is a family answering
     // two shapes, and the callers compile against neither.
-    let family = crate::analysis::call_graph::Hierarchy::scan(index).method_group(index, symbol);
+    let family = crate::analysis::call_graph::Hierarchy::scanned(index).method_group(index, symbol);
     let dispatched = !family.is_empty();
     let members: Vec<SymbolId> = if dispatched { family } else { vec![symbol] };
 

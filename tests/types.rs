@@ -384,3 +384,122 @@ fn a_binding_does_not_borrow_the_enclosing_function_type() {
     assert_eq!(found.declared, None, "the source wrote no type for `width`");
     assert_eq!(found.inferred, None, "and nothing derives one");
 }
+
+/// Rust's strings, booleans and characters have no later use to wait for: `"a"` is
+/// `&str` however the code uses it. Its numbers do wait, so they stay open.
+#[test]
+fn rusts_fixed_literals_answer_and_its_numbers_stay_open() {
+    let rust = "fn run() {\n    let name = \"a\";\n    let flag = true;\n    let mark = 'x';\n    \
+                let count = 0;\n    let _ = (name, flag, mark, count);\n}\n";
+    for (symbol, expected) in [("name", "&str"), ("flag", "bool"), ("mark", "char")] {
+        let found = describe(&[("a.rs", rust)], symbol);
+        let inferred = found.inferred.as_ref().expect("nothing inferred");
+        assert_eq!(inferred.ty, expected, "{symbol}");
+        assert_eq!(inferred.basis, types::Basis::Literal);
+    }
+    let count = describe(&[("a.rs", rust)], "count");
+    assert_eq!(count.inferred, None, "`0` takes its type from a later use");
+}
+
+/// Zig's booleans are `bool` and nothing else. Its numbers are comptime values no
+/// parameter can be written with, so they stay open.
+#[test]
+fn zigs_boolean_answers_and_its_numbers_stay_open() {
+    let zig = "fn run() void {\n    const flag = true;\n    const count = 7;\n    \
+               _ = flag;\n    _ = count;\n}\n";
+    let flag = describe(&[("a.zig", zig)], "flag");
+    let inferred = flag.inferred.as_ref().expect("nothing inferred");
+    assert_eq!(inferred.ty, "bool");
+    let count = describe(&[("a.zig", zig)], "count");
+    assert_eq!(count.inferred, None, "a comptime_int is not a written type");
+}
+
+/// `self` and `this` hold the type of the declaration they are written in.
+#[test]
+fn self_takes_the_type_of_the_declaration_enclosing_it() {
+    let py = "class Money:\n    def snapshot(self):\n        keep = self\n        return keep\n";
+    let ts = "class Money {\n  snapshot() {\n    const keep = this;\n    return keep;\n  }\n}\n";
+    for files in [&[("a.py", py)][..], &[("a.ts", ts)][..]] {
+        let found = describe(files, "keep");
+        let inferred = found.inferred.as_ref().expect("nothing inferred");
+        assert_eq!(inferred.ty, "Money", "{files:?}");
+        assert_eq!(inferred.basis, types::Basis::EnclosingType);
+    }
+}
+
+/// A conditional expression whose branches share a type has that type. Where the
+/// branches disagree, nothing is claimed.
+#[test]
+fn a_ternary_whose_branches_agree_has_their_type() {
+    let ts = "const flag = true;\nconst label = flag ? \"a\" : \"b\";\n\
+              const mixed = flag ? \"a\" : 0;\n";
+    let py = "flag = True\nlabel = \"a\" if flag else \"b\"\nmixed = \"a\" if flag else 0\n";
+    for (files, expected) in [
+        (&[("a.ts", ts)][..], "string"),
+        (&[("a.py", py)][..], "str"),
+    ] {
+        let label = describe(files, "label");
+        let inferred = label.inferred.as_ref().expect("nothing inferred");
+        assert_eq!(inferred.ty, expected, "{files:?}");
+        assert_eq!(inferred.basis, types::Basis::AgreeingBranches);
+        let mixed = describe(files, "mixed");
+        assert_eq!(mixed.inferred, None, "disagreeing branches claim nothing");
+    }
+}
+
+/// A Zig loop name takes the walked sequence's element type, and a `0..` capture
+/// is a `usize` by the language's own rule.
+#[test]
+fn a_zig_loop_name_takes_the_sequences_element_type() {
+    let zig = "fn tally(xs: []const i64) i64 {\n    var total: i64 = 0;\n    \
+               for (xs, 0..) |x, i| {\n        total = total + x * @as(i64, @intCast(i));\n    }\n    \
+               return total;\n}\n";
+    let x = describe(&[("a.zig", zig)], "x");
+    let inferred = x.inferred.as_ref().expect("nothing inferred for `x`");
+    assert_eq!(inferred.ty, "i64");
+    assert_eq!(inferred.basis, types::Basis::ElementOfIterable);
+    let i = describe(&[("a.zig", zig)], "i");
+    let inferred = i.inferred.as_ref().expect("nothing inferred for `i`");
+    assert_eq!(inferred.ty, "usize");
+}
+
+/// Two classes each declare a `total`. The call resolves through the receiver's
+/// declared type to the one it owns, and the binding takes that return type.
+#[test]
+fn a_member_call_resolves_through_its_receivers_type() {
+    let py = "class Basket:\n    def total(self) -> int:\n        return 0\n\n\
+              class Journal:\n    def total(self) -> str:\n        return \"\"\n\n\
+              def read(basket: Basket):\n    amount = basket.total()\n    return amount\n";
+    let found = describe(&[("a.py", py)], "amount");
+    let inferred = found.inferred.as_ref().expect("nothing inferred");
+    assert_eq!(inferred.ty, "int");
+    assert_eq!(inferred.basis, types::Basis::ReturnOfCall);
+}
+
+/// Two records each declare an `amount`. The read reaches the receiver's own field;
+/// a receiver nothing types answers nothing rather than either field.
+#[test]
+fn a_field_shared_by_two_records_answers_only_through_the_receiver() {
+    let py = "class Ledger:\n    amount: int\n\nclass Journal:\n    amount: str\n\n\
+              def read(ledger: Ledger, anything):\n    got = ledger.amount\n    \
+              blind = anything.amount\n    return (got, blind)\n";
+    let got = describe(&[("a.py", py)], "got");
+    let inferred = got.inferred.as_ref().expect("nothing inferred");
+    assert_eq!(inferred.ty, "int");
+    assert_eq!(inferred.basis, types::Basis::FieldOfRecord);
+    let blind = describe(&[("a.py", py)], "blind");
+    assert_eq!(blind.inferred, None, "an untyped receiver picks no field");
+}
+
+/// Two bindings assigned from each other run out of chain, not stack. The first
+/// version restarted the hop count at zero on every route back into a symbol's
+/// answer, and this shape recursed until the process died.
+#[test]
+fn a_cyclic_assignment_answers_nothing_instead_of_overflowing() {
+    let py = "def go():\n    x = y\n    y = x\n    return (x, y)\n";
+    let found = describe(&[("a.py", py)], "x");
+    assert_eq!(
+        found.inferred, None,
+        "no evidence settles a cycle: {found:?}"
+    );
+}

@@ -76,7 +76,7 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
     // without its implementations leaves the family answering two names, and the
     // callers compiling against neither.
     let mut group = index.definition_group(symbol_id);
-    let hierarchy = crate::analysis::call_graph::Hierarchy::scan(index);
+    let hierarchy = crate::analysis::call_graph::Hierarchy::scanned(index);
     let family = hierarchy.method_group(index, symbol_id);
     let dispatched = !family.is_empty();
     // An instance attribute is one entity across its class chain the same way a

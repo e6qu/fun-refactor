@@ -49,6 +49,7 @@ pub fn read(
         Language::Java => java::module(&cx, root),
         Language::Zig => zig::module(&cx, root, file_stem),
         Language::TypeScript | Language::Tsx => typescript::module(&cx, root),
+        Language::Bash => bash::module(&cx, root),
         other => bail!(
             "there is no reader for {other}: translating out of it would mean inventing \
              what its constructs mean."
@@ -12581,4 +12582,1339 @@ fn unescape(text: &str) -> String {
         }
     }
     out
+}
+
+mod bash {
+    //! Bash into the shared form.
+    //!
+    //! A script is statements top to bottom, functions among them, which is Python's
+    //! shape. What crosses is the computational subset: variables, arithmetic,
+    //! strings, tests, the four loop forms, `case`, and functions with the calls
+    //! between them. An `echo` is the canonical print, and `$(f …)` over an
+    //! in-module function is a call.
+    //!
+    //! A pipeline, a redirection, an external command: none of these has a
+    //! counterpart the six targets share. Each carries loudly as the construct
+    //! it is.
+    //!
+    //! Positional parameters become named ones: a function reading `$1` and `$2`
+    //! declares `a1` and `a2`. Every target requires parameters to have names, and
+    //! `$1` is bash's way of not writing one.
+
+    use super::*;
+
+    pub fn module(cx: &Cx, root: Node<'_>) -> Module {
+        let mut module = read_items(cx, root);
+        settle_types(&mut module);
+        module
+    }
+
+    fn read_items(cx: &Cx, root: Node<'_>) -> Module {
+        let mut module = Module::default();
+        let names = function_names(cx, root);
+        // A comment right above a function is its doc, the way every target
+        // understands one. A comment above anything else stands where it is.
+        let mut pending: Vec<String> = Vec::new();
+        for child in cx.children_with_comments(root) {
+            match child.kind() {
+                "comment" => {
+                    let text = cx.text(child);
+                    // The interpreter line is a fact about bash, not a statement.
+                    if text.starts_with("#!") {
+                        continue;
+                    }
+                    pending.push(text.trim_start_matches('#').trim().to_string());
+                }
+                "function_definition" => {
+                    let mut f = function(cx, child, &names);
+                    f.doc = std::mem::take(&mut pending);
+                    module.items.push(Item::Function(f));
+                }
+                _ => {
+                    for line in pending.drain(..) {
+                        module.items.push(Item::Statement(Stmt::Comment(line)));
+                    }
+                    module.items.push(Item::Statement(stmt(cx, child, &names)));
+                }
+            }
+        }
+        for line in pending {
+            module.items.push(Item::Statement(Stmt::Comment(line)));
+        }
+        module
+    }
+
+    /// The types the source states without writing any down.
+    ///
+    /// Bash has no annotations, and the six targets want them. Two places state a
+    /// type anyway: the literals a function's own callers pass, and the literals
+    /// its body returns. Where every statement agrees, the parameter or return
+    /// takes that type. Where any disagrees, nothing is claimed, and the target's
+    /// own settling has the same untyped draft Python gives it.
+    fn settle_types(module: &mut Module) {
+        use std::collections::BTreeMap;
+        let mut arguments: BTreeMap<(String, usize), Vec<Type>> = BTreeMap::new();
+        let mut note_call = |e: &Expr| {
+            let Expr::Call { callee, args } = e else {
+                return;
+            };
+            let Expr::Name(name) = callee.as_ref() else {
+                return;
+            };
+            for (at, arg) in args.iter().enumerate() {
+                if let Some(ty) = literal_ty(arg) {
+                    arguments.entry((name.clone(), at)).or_default().push(ty);
+                }
+            }
+        };
+        for item in &module.items {
+            match item {
+                Item::Function(f) => walk_stmts(&f.body, &mut note_call),
+                Item::Statement(stmt) => walk_stmts(std::slice::from_ref(stmt), &mut note_call),
+                _ => {}
+            }
+        }
+        for item in &mut module.items {
+            let Item::Function(f) = item else { continue };
+            for (at, param) in f.params.iter_mut().enumerate() {
+                if param.ty.is_some() {
+                    continue;
+                }
+                if let Some(seen) = arguments.get(&(f.name.clone(), at)) {
+                    if let Some(first) = seen.first() {
+                        if seen.iter().all(|t| t == first) {
+                            param.ty = Some(first.clone());
+                        }
+                    }
+                }
+            }
+            if f.returns.is_none() {
+                let mut returned: Vec<Type> = Vec::new();
+                collect_returns(&f.body, &mut returned);
+                if let Some(first) = returned.first() {
+                    if !returned.is_empty() && returned.iter().all(|t| t == first) {
+                        f.returns = Some(first.clone());
+                    }
+                }
+            }
+        }
+    }
+
+    /// The type a literal argument states.
+    fn literal_ty(e: &Expr) -> Option<Type> {
+        match e {
+            Expr::Int(_) => Some(Type::Int),
+            Expr::Float(_) => Some(Type::Float),
+            Expr::Str(_) | Expr::Template(_) => Some(Type::String),
+            Expr::Bool(_) => Some(Type::Bool),
+            Expr::Unary {
+                op: UnaryOp::Neg,
+                operand,
+            } => literal_ty(operand),
+            _ => None,
+        }
+    }
+
+    /// Every call expression in these statements, visited once.
+    fn walk_stmts(stmts: &[Stmt], note: &mut impl FnMut(&Expr)) {
+        for stmt in stmts {
+            match stmt {
+                Stmt::Let { value: Some(v), .. } => walk_expr(v, note),
+                Stmt::Assign { target, value } => {
+                    walk_expr(target, note);
+                    walk_expr(value, note);
+                }
+                Stmt::Return(Some(v)) | Stmt::Expr(v) => walk_expr(v, note),
+                Stmt::If {
+                    condition,
+                    then,
+                    otherwise,
+                } => {
+                    walk_expr(condition, note);
+                    walk_stmts(then, note);
+                    walk_stmts(otherwise, note);
+                }
+                Stmt::While { condition, body } => {
+                    walk_expr(condition, note);
+                    walk_stmts(body, note);
+                }
+                Stmt::ForEach { iterable, body, .. } => {
+                    walk_expr(iterable, note);
+                    walk_stmts(body, note);
+                }
+                Stmt::CountedFor {
+                    init,
+                    condition,
+                    update,
+                    body,
+                    ..
+                } => {
+                    if let Some(init) = init {
+                        walk_stmts(std::slice::from_ref(init), note);
+                    }
+                    if let Some(condition) = condition {
+                        walk_expr(condition, note);
+                    }
+                    if let Some(update) = update {
+                        walk_stmts(std::slice::from_ref(update), note);
+                    }
+                    walk_stmts(body, note);
+                }
+                Stmt::Switch {
+                    subject,
+                    arms,
+                    default,
+                } => {
+                    walk_expr(subject, note);
+                    for (selectors, arm) in arms {
+                        for s in selectors {
+                            walk_expr(s, note);
+                        }
+                        walk_stmts(arm, note);
+                    }
+                    walk_stmts(default, note);
+                }
+                Stmt::Block(inner) => walk_stmts(inner, note),
+                _ => {}
+            }
+        }
+    }
+
+    fn walk_expr(e: &Expr, note: &mut impl FnMut(&Expr)) {
+        note(e);
+        match e {
+            Expr::Call { callee, args } => {
+                walk_expr(callee, note);
+                for a in args {
+                    walk_expr(a, note);
+                }
+            }
+            Expr::Binary { left, right, .. } => {
+                walk_expr(left, note);
+                walk_expr(right, note);
+            }
+            Expr::Unary { operand, .. } => walk_expr(operand, note),
+            Expr::Index { of, index } => {
+                walk_expr(of, note);
+                walk_expr(index, note);
+            }
+            Expr::Field { of, .. } => walk_expr(of, note),
+            Expr::Template(parts) => {
+                for part in parts {
+                    if let TemplatePart::Expr(inner) = part {
+                        walk_expr(inner, note);
+                    }
+                }
+            }
+            Expr::ListLit(items) => {
+                for item in items {
+                    walk_expr(item, note);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// The types of the values these statements return, structure walked whole.
+    fn collect_returns(stmts: &[Stmt], out: &mut Vec<Type>) {
+        for stmt in stmts {
+            match stmt {
+                Stmt::Return(Some(v)) => {
+                    if let Some(ty) = returned_ty(v) {
+                        out.push(ty);
+                    }
+                }
+                Stmt::If {
+                    then, otherwise, ..
+                } => {
+                    collect_returns(then, out);
+                    collect_returns(otherwise, out);
+                }
+                Stmt::While { body, .. }
+                | Stmt::ForEach { body, .. }
+                | Stmt::CountedFor { body, .. }
+                | Stmt::Block(body) => collect_returns(body, out),
+                Stmt::Switch { arms, default, .. } => {
+                    for (_, arm) in arms {
+                        collect_returns(arm, out);
+                    }
+                    collect_returns(default, out);
+                }
+                _ => {}
+            }
+        }
+    }
+
+    /// The type a returned expression states, one step deeper than a literal:
+    /// arithmetic returns numbers.
+    fn returned_ty(e: &Expr) -> Option<Type> {
+        if let Some(ty) = literal_ty(e) {
+            return Some(ty);
+        }
+        match e {
+            Expr::Binary {
+                op:
+                    BinaryOp::Add
+                    | BinaryOp::Sub
+                    | BinaryOp::Mul
+                    | BinaryOp::Div
+                    | BinaryOp::FloorDiv
+                    | BinaryOp::Rem,
+                ..
+            } => Some(Type::Int),
+            _ => None,
+        }
+    }
+
+    fn function_names(cx: &Cx, root: Node<'_>) -> Vec<String> {
+        cx.children(root)
+            .into_iter()
+            .filter(|c| c.kind() == "function_definition")
+            .filter_map(|c| cx.field_text(c, "name"))
+            .collect()
+    }
+
+    /// The highest positional parameter a body reads.
+    ///
+    /// `$1` counts one digit, because `$10` is `${1}0` to bash itself; `${10}`
+    /// counts them all, because the braces are how bash writes the tenth.
+    fn arity(source: &str) -> usize {
+        let mut highest = 0usize;
+        for (at, c) in source.char_indices() {
+            if c != '$' {
+                continue;
+            }
+            let rest = &source[at + 1..];
+            let digits: String = match rest.strip_prefix('{') {
+                Some(braced) => braced.chars().take_while(|d| d.is_ascii_digit()).collect(),
+                None => rest
+                    .chars()
+                    .take(1)
+                    .filter(|d| d.is_ascii_digit())
+                    .collect(),
+            };
+            if let Ok(n) = digits.parse::<usize>() {
+                highest = highest.max(n);
+            }
+        }
+        highest
+    }
+
+    /// The name a positional parameter crosses under.
+    fn positional(n: usize) -> String {
+        format!("a{n}")
+    }
+
+    fn function(cx: &Cx, node: Node<'_>, names: &[String]) -> Function {
+        let name = cx.field_text(node, "name").unwrap_or_default();
+        let body_node = cx.field(node, "body").or_else(|| {
+            cx.children(node)
+                .into_iter()
+                .find(|c| c.kind() == "compound_statement")
+        });
+        let params: Vec<Param> = body_node
+            .map(|b| arity(&cx.text(b)))
+            .map(|n| {
+                (1..=n)
+                    .map(|i| Param {
+                        name: positional(i),
+                        ty: None,
+                        default: None,
+                        kind: ParamKind::Normal,
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        let mut body = body_node.map(|b| block(cx, b, names)).unwrap_or_default();
+        // A bash function's value is its stdout, and the caller captures `$(f …)`.
+        // An echo directly above a bare status return is the value leaving the
+        // function, and so is an echo standing last in the body. Both read as the
+        // return they are. An echo along the way is printing, and stays printing.
+        settle_value_prints(&mut body);
+        let prints = |s: &Stmt| {
+            matches!(s, Stmt::Expr(Expr::Call { callee, .. })
+                if matches!(callee.as_ref(), Expr::Name(n) if n == "print"))
+        };
+        let already_returns = body.iter().any(|s| matches!(s, Stmt::Return(Some(_))));
+        let one_print_at_the_end = body.last().is_some_and(prints)
+            && (already_returns || body.iter().filter(|s| prints(s)).count() == 1);
+        if one_print_at_the_end {
+            if let Some(Stmt::Expr(Expr::Call { mut args, .. })) = body.pop() {
+                body.push(Stmt::Return(Some(args.remove(0))));
+            }
+        }
+        Function {
+            doc: Vec::new(),
+            name,
+            receiver: None,
+            receiver_binding: None,
+            params,
+            returns: None,
+            body,
+            exported: true,
+            is_async: false,
+            is_property: false,
+            is_constructor: false,
+        }
+    }
+
+    /// Turn `echo value` above a bare `return` into the return it is.
+    ///
+    /// The pair is bash's spelling of "leave with this value". The caller reads
+    /// the echo through `$(f …)`, and the status return carries no value of its own. A
+    /// status of 0 counts as bare; any other status is a real exit code and the
+    /// pair is left alone.
+    fn settle_value_prints(body: &mut Vec<Stmt>) {
+        let prints = |s: &Stmt| {
+            matches!(s, Stmt::Expr(Expr::Call { callee, .. })
+                if matches!(callee.as_ref(), Expr::Name(n) if n == "print"))
+        };
+        let bare_return = |s: &Stmt| match s {
+            Stmt::Return(None) => true,
+            Stmt::Return(Some(Expr::Int(text))) => text == "0",
+            _ => false,
+        };
+        let mut at = 0;
+        while at < body.len() {
+            match &mut body[at] {
+                Stmt::If {
+                    then, otherwise, ..
+                } => {
+                    settle_value_prints(then);
+                    settle_value_prints(otherwise);
+                }
+                Stmt::Switch { arms, default, .. } => {
+                    for (_, arm) in arms.iter_mut() {
+                        settle_value_prints(arm);
+                    }
+                    settle_value_prints(default);
+                }
+                _ => {}
+            }
+            if prints(&body[at]) && body.get(at + 1).is_some_and(bare_return) {
+                let Stmt::Expr(Expr::Call { mut args, .. }) = body.remove(at) else {
+                    unreachable!("just matched a print");
+                };
+                body[at] = Stmt::Return(Some(args.remove(0)));
+            }
+            at += 1;
+        }
+    }
+
+    /// The statements of a `{ … }`, `do … done` or `then … fi` body.
+    fn block(cx: &Cx, node: Node<'_>, names: &[String]) -> Vec<Stmt> {
+        cx.children_with_comments(node)
+            .into_iter()
+            .map(|c| match c.kind() {
+                "comment" => Stmt::Comment(cx.text(c).trim_start_matches('#').trim().to_string()),
+                _ => stmt(cx, c, names),
+            })
+            .collect()
+    }
+
+    fn stmt(cx: &Cx, node: Node<'_>, names: &[String]) -> Stmt {
+        match node.kind() {
+            "variable_assignment" => assignment(cx, node, names),
+            "declaration_command" => declaration(cx, node, names),
+            "command" => command_stmt(cx, node, names),
+            "if_statement" => if_stmt(cx, node, names),
+            "while_statement" => while_stmt(cx, node, names),
+            "for_statement" => for_stmt(cx, node, names),
+            "c_style_for_statement" => counted_for(cx, node, names),
+            "case_statement" => case_stmt(cx, node, names),
+            _ => Stmt::Unsupported(cx.unsupported(node)),
+        }
+    }
+
+    /// `x=5`: bash declares by assigning, so the first spelling and every later one
+    /// are the same statement. The writers that separate the two settle it the way
+    /// they settle Python's assignments.
+    fn assignment(cx: &Cx, node: Node<'_>, names: &[String]) -> Stmt {
+        let Some(name) = cx.field_text(node, "name") else {
+            return Stmt::Unsupported(cx.unsupported(node));
+        };
+        let value_node = cx.field(node, "value");
+        let value = match value_node {
+            Some(v) => word_expr(cx, v, names),
+            None => Expr::Str(String::new()),
+        };
+        if matches!(value, Expr::Unsupported(_)) {
+            return Stmt::Unsupported(cx.unsupported(node));
+        }
+        // The `+=` between name and value is an anonymous token; the text shows it.
+        let appending = value_node.is_some_and(|v| {
+            cx.text(node)[name.len()..v.start_byte() - node.start_byte()].contains("+=")
+        });
+        // `arr[i]=v` assigns one element; the name field carries the subscript.
+        if let Some((array, index)) = name.split_once('[') {
+            if appending {
+                return Stmt::Unsupported(cx.unsupported(node));
+            }
+            let index = index.trim_end_matches(']').trim_start_matches('$');
+            let index = if index.chars().all(|c| c.is_ascii_digit()) {
+                Expr::Int(index.to_string())
+            } else if index.chars().all(|c| c.is_alphanumeric() || c == '_') {
+                Expr::Name(index.to_string())
+            } else {
+                return Stmt::Unsupported(cx.unsupported(node));
+            };
+            return Stmt::Assign {
+                target: Expr::Index {
+                    of: Box::new(Expr::Name(array.to_string())),
+                    index: Box::new(index),
+                },
+                value,
+            };
+        }
+        if appending {
+            // `xs+=(v)` grows the array; `n+=2` grows the number; text grows text.
+            return match value {
+                Expr::ListLit(elements) => {
+                    let appends: Vec<Stmt> = elements
+                        .into_iter()
+                        .map(|element| {
+                            Stmt::Expr(Expr::Call {
+                                callee: Box::new(Expr::Field {
+                                    of: Box::new(Expr::Name(name.clone())),
+                                    name: "append".to_string(),
+                                }),
+                                args: vec![element],
+                            })
+                        })
+                        .collect();
+                    match appends.len() {
+                        1 => appends.into_iter().next().expect("one"),
+                        _ => Stmt::Block(appends),
+                    }
+                }
+                value => Stmt::Assign {
+                    target: Expr::Name(name.clone()),
+                    value: Expr::Binary {
+                        op: BinaryOp::Add,
+                        left: Box::new(Expr::Name(name)),
+                        right: Box::new(value),
+                    },
+                },
+            };
+        }
+        Stmt::Assign {
+            target: Expr::Name(name),
+            value,
+        }
+    }
+
+    /// `local x=5`, `readonly N=3`, `declare x`: a declaration with bash's own
+    /// keywords. `export` also reaches the environment, which no target has; the
+    /// binding crosses and the export is noted by the carry.
+    fn declaration(cx: &Cx, node: Node<'_>, names: &[String]) -> Stmt {
+        let children = cx.children(node);
+        // The keyword is an anonymous token, so it is read from the raw first child
+        // and never appears among the named ones.
+        let keyword = node.child(0).map(|c| cx.text(c)).unwrap_or_default();
+        let assignments: Vec<Node<'_>> = children
+            .iter()
+            .filter(|c| c.kind() == "variable_assignment")
+            .copied()
+            .collect();
+        let plain: Vec<Node<'_>> = children
+            .iter()
+            .filter(|c| c.kind() == "variable_name")
+            .copied()
+            .collect();
+        match (keyword.as_str(), assignments.as_slice(), plain.as_slice()) {
+            ("local" | "declare" | "readonly", [one], []) => {
+                let Some(name) = cx.field_text(*one, "name") else {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                };
+                let value = cx.field(*one, "value").map(|v| word_expr(cx, v, names));
+                if matches!(value, Some(Expr::Unsupported(_))) {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                }
+                Stmt::Let {
+                    name,
+                    ty: None,
+                    value,
+                    mutable: keyword != "readonly",
+                }
+            }
+            ("local" | "declare", [], [one]) => Stmt::Let {
+                name: cx.text(*one),
+                ty: None,
+                value: None,
+                mutable: true,
+            },
+            _ => Stmt::Unsupported(cx.unsupported(node)),
+        }
+    }
+
+    /// A command in statement position: `echo`, `return`, a call to a function this
+    /// file declares. Anything else is a program outside this file, and carries.
+    fn command_stmt(cx: &Cx, node: Node<'_>, names: &[String]) -> Stmt {
+        let Some(name) = cx.field(node, "name") else {
+            return Stmt::Unsupported(cx.unsupported(node));
+        };
+        let command = cx.text(name);
+        let args: Vec<Node<'_>> = cx
+            .children(node)
+            .into_iter()
+            .skip_while(|c| c.start_byte() <= name.start_byte())
+            .collect();
+        match command.as_str() {
+            "break" if args.is_empty() => Stmt::Break,
+            "continue" if args.is_empty() => Stmt::Continue,
+            "echo" => {
+                let mut parts: Vec<Expr> = Vec::new();
+                for arg in &args {
+                    // `-n` and friends change how echo prints, which no print does.
+                    if cx.text(*arg).starts_with('-') {
+                        return Stmt::Unsupported(cx.unsupported(node));
+                    }
+                    parts.push(word_expr(cx, *arg, names));
+                }
+                if parts.iter().any(|p| matches!(p, Expr::Unsupported(_))) {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                }
+                // `echo one two` prints its arguments joined by single spaces.
+                let printed = match parts.len() {
+                    0 => Expr::Str(String::new()),
+                    1 => parts.remove(0),
+                    _ => {
+                        let mut joined: Vec<TemplatePart> = Vec::new();
+                        for (i, part) in parts.into_iter().enumerate() {
+                            if i > 0 {
+                                joined.push(TemplatePart::Text(" ".to_string()));
+                            }
+                            match part {
+                                Expr::Str(text) => joined.push(TemplatePart::Text(text)),
+                                other => joined.push(TemplatePart::Expr(other)),
+                            }
+                        }
+                        Expr::Template(joined)
+                    }
+                };
+                Stmt::Expr(Expr::Call {
+                    callee: Box::new(Expr::Name("print".to_string())),
+                    args: vec![printed],
+                })
+            }
+            "return" => {
+                let value = args.first().map(|a| word_expr(cx, *a, names));
+                if matches!(value, Some(Expr::Unsupported(_))) {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                }
+                Stmt::Return(value)
+            }
+            _ if names.iter().any(|n| n == &command) => {
+                let args: Vec<Expr> = args.iter().map(|a| word_expr(cx, *a, names)).collect();
+                if args.iter().any(|a| matches!(a, Expr::Unsupported(_))) {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                }
+                Stmt::Expr(Expr::Call {
+                    callee: Box::new(Expr::Name(command)),
+                    args,
+                })
+            }
+            _ => Stmt::Unsupported(cx.unsupported(node)),
+        }
+    }
+
+    fn if_stmt(cx: &Cx, node: Node<'_>, names: &[String]) -> Stmt {
+        let children = cx.children(node);
+        let Some((head, rest)) = children.split_first() else {
+            return Stmt::Unsupported(cx.unsupported(node));
+        };
+        let Some(cond) = condition(cx, *head, names) else {
+            return Stmt::Unsupported(cx.unsupported(node));
+        };
+        let mut then: Vec<Stmt> = Vec::new();
+        let mut clauses: Vec<Node<'_>> = Vec::new();
+        for c in rest {
+            match c.kind() {
+                "elif_clause" | "else_clause" => clauses.push(*c),
+                "comment" => then.push(Stmt::Comment(
+                    cx.text(*c).trim_start_matches('#').trim().to_string(),
+                )),
+                _ => then.push(stmt(cx, *c, names)),
+            }
+        }
+        let mut otherwise: Vec<Stmt> = Vec::new();
+        for clause in clauses.iter().rev() {
+            match clause.kind() {
+                "else_clause" => {
+                    otherwise = cx
+                        .children(*clause)
+                        .into_iter()
+                        .map(|c| stmt(cx, c, names))
+                        .collect();
+                }
+                "elif_clause" => {
+                    let kids = cx.children(*clause);
+                    let Some((chead, cbody)) = kids.split_first() else {
+                        return Stmt::Unsupported(cx.unsupported(node));
+                    };
+                    let Some(ccond) = condition(cx, *chead, names) else {
+                        return Stmt::Unsupported(cx.unsupported(node));
+                    };
+                    let inner: Vec<Stmt> = cbody.iter().map(|c| stmt(cx, *c, names)).collect();
+                    otherwise = vec![Stmt::If {
+                        condition: ccond,
+                        then: inner,
+                        otherwise: std::mem::take(&mut otherwise),
+                    }];
+                }
+                _ => {}
+            }
+        }
+        Stmt::If {
+            condition: cond,
+            then,
+            otherwise,
+        }
+    }
+
+    fn while_stmt(cx: &Cx, node: Node<'_>, names: &[String]) -> Stmt {
+        let children = cx.children(node);
+        let Some((head, rest)) = children.split_first() else {
+            return Stmt::Unsupported(cx.unsupported(node));
+        };
+        let Some(cond) = condition(cx, *head, names) else {
+            return Stmt::Unsupported(cx.unsupported(node));
+        };
+        let body: Vec<Stmt> = rest
+            .iter()
+            .filter(|c| c.kind() == "do_group")
+            .flat_map(|group| block(cx, *group, names))
+            .collect();
+        Stmt::While {
+            condition: cond,
+            body,
+        }
+    }
+
+    /// `for x in one two three`: each word in turn. `for x in "${xs[@]}"`: each
+    /// element of the array, which is the same loop over a named sequence.
+    fn for_stmt(cx: &Cx, node: Node<'_>, names: &[String]) -> Stmt {
+        let Some(binding) = cx.field_text(node, "variable") else {
+            return Stmt::Unsupported(cx.unsupported(node));
+        };
+        let children = cx.children(node);
+        let values: Vec<Node<'_>> = children
+            .iter()
+            .filter(|c| !matches!(c.kind(), "variable_name" | "do_group" | "comment"))
+            .copied()
+            .collect();
+        let iterable = match values.as_slice() {
+            [one] => match whole_array(cx, *one) {
+                Some(name) => Expr::Name(name),
+                None => {
+                    let element = word_expr(cx, *one, names);
+                    match element {
+                        Expr::Unsupported(_) => return Stmt::Unsupported(cx.unsupported(node)),
+                        one => Expr::ListLit(vec![one]),
+                    }
+                }
+            },
+            several => {
+                let elements: Vec<Expr> =
+                    several.iter().map(|v| word_expr(cx, *v, names)).collect();
+                if elements.iter().any(|e| matches!(e, Expr::Unsupported(_))) {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                }
+                Expr::ListLit(elements)
+            }
+        };
+        let body: Vec<Stmt> = children
+            .iter()
+            .filter(|c| c.kind() == "do_group")
+            .flat_map(|group| block(cx, *group, names))
+            .collect();
+        Stmt::ForEach {
+            binding,
+            iterable,
+            body,
+        }
+    }
+
+    /// `"${xs[@]}"`: the whole array, one element per pass, spaces preserved.
+    fn whole_array(cx: &Cx, node: Node<'_>) -> Option<String> {
+        let text = cx.text(node);
+        let inner = text
+            .trim_matches('"')
+            .strip_prefix("${")?
+            .strip_suffix("[@]}")?;
+        let plain = !inner.is_empty() && inner.chars().all(|c| c.is_alphanumeric() || c == '_');
+        plain.then(|| inner.to_string())
+    }
+
+    fn counted_for(cx: &Cx, node: Node<'_>, names: &[String]) -> Stmt {
+        // The header's first clause declares the counter, in every target's spelling
+        // of this loop, so the assignment bash writes reads as the binding it is.
+        let init = cx
+            .field(node, "initializer")
+            .map(|n| match arith_stmt(cx, n, names) {
+                Stmt::Assign {
+                    target: Expr::Name(name),
+                    value,
+                } => Stmt::Let {
+                    name,
+                    ty: None,
+                    value: Some(value),
+                    mutable: true,
+                },
+                other => other,
+            })
+            .map(Box::new);
+        let condition = cx.field(node, "condition").map(|n| arith(cx, n, names));
+        let update = cx
+            .field(node, "update")
+            .map(|n| Box::new(arith_stmt(cx, n, names)));
+        let carried = init
+            .as_deref()
+            .is_some_and(|s| matches!(s, Stmt::Unsupported(_)))
+            || matches!(condition, Some(Expr::Unsupported(_)))
+            || update
+                .as_deref()
+                .is_some_and(|s| matches!(s, Stmt::Unsupported(_)));
+        if carried {
+            return Stmt::Unsupported(cx.unsupported(node));
+        }
+        let body: Vec<Stmt> = cx
+            .children(node)
+            .into_iter()
+            .filter(|c| c.kind() == "do_group")
+            .flat_map(|group| block(cx, group, names))
+            .collect();
+        Stmt::CountedFor {
+            init,
+            condition,
+            update,
+            body,
+            source: cx.text(node),
+            line: cx.line(node),
+        }
+    }
+
+    fn case_stmt(cx: &Cx, node: Node<'_>, names: &[String]) -> Stmt {
+        let Some(value) = cx.field(node, "value") else {
+            return Stmt::Unsupported(cx.unsupported(node));
+        };
+        let subject = word_expr(cx, value, names);
+        if matches!(subject, Expr::Unsupported(_)) {
+            return Stmt::Unsupported(cx.unsupported(node));
+        }
+        let mut arms: Vec<(Vec<Expr>, Vec<Stmt>)> = Vec::new();
+        let mut default: Vec<Stmt> = Vec::new();
+        for item in cx
+            .children(node)
+            .into_iter()
+            .filter(|c| c.kind() == "case_item")
+        {
+            let kids = cx.children(item);
+            let (patterns, body): (Vec<Node<'_>>, Vec<Node<'_>>) =
+                kids.into_iter().partition(|c| {
+                    matches!(
+                        c.kind(),
+                        "word" | "string" | "raw_string" | "number" | "extglob_pattern"
+                    )
+                });
+            let body: Vec<Stmt> = body.into_iter().map(|c| stmt(cx, c, names)).collect();
+            let texts: Vec<String> = patterns.iter().map(|p| cx.text(*p)).collect();
+            if texts.iter().any(|t| t == "*") {
+                default = body;
+                continue;
+            }
+            // A glob selects by shape, and no target's switch does. The whole
+            // statement carries rather than matching fewer strings than the source.
+            if texts.iter().any(|t| t.contains(['*', '?', '['])) {
+                return Stmt::Unsupported(cx.unsupported(node));
+            }
+            // `two|three)` arrives as one pattern; the alternatives are its pieces.
+            let mut selectors: Vec<Expr> = Vec::new();
+            for text in &texts {
+                for piece in text.split('|') {
+                    let piece = piece.trim();
+                    let unquoted = piece
+                        .strip_prefix('"')
+                        .and_then(|p| p.strip_suffix('"'))
+                        .or_else(|| piece.strip_prefix('\'').and_then(|p| p.strip_suffix('\'')))
+                        .unwrap_or(piece);
+                    if unquoted.is_empty() {
+                        return Stmt::Unsupported(cx.unsupported(node));
+                    }
+                    if unquoted.chars().all(|c| c.is_ascii_digit()) {
+                        selectors.push(Expr::Int(unquoted.to_string()));
+                    } else {
+                        selectors.push(Expr::Str(unquoted.to_string()));
+                    }
+                }
+            }
+            arms.push((selectors, body));
+        }
+        Stmt::Switch {
+            subject,
+            arms,
+            default,
+        }
+    }
+
+    /// The condition a loop or branch tests: `[ … ]`, `[[ … ]]`, `(( … ))`, or a
+    /// negation of one. A condition that is a command's exit status has no
+    /// counterpart the targets share, so the whole construct carries.
+    fn condition(cx: &Cx, node: Node<'_>, names: &[String]) -> Option<Expr> {
+        match node.kind() {
+            "test_command" => {
+                let inner = cx.children(node);
+                match inner.as_slice() {
+                    [one] => test_expr(cx, *one, names),
+                    _ => None,
+                }
+            }
+            "arithmetic_expansion" | "compound_statement" => {
+                let inner = cx.children(node);
+                match inner.as_slice() {
+                    [one] => {
+                        Some(arith(cx, *one, names)).filter(|e| !matches!(e, Expr::Unsupported(_)))
+                    }
+                    _ => None,
+                }
+            }
+            "negated_command" => {
+                let inner = cx.children(node);
+                match inner.as_slice() {
+                    [one] => condition(cx, *one, names).map(|c| Expr::Unary {
+                        op: UnaryOp::Not,
+                        operand: Box::new(c),
+                    }),
+                    _ => None,
+                }
+            }
+            "list" => {
+                // `[ a ] && [ b ]`: both must hold; `||`: either.
+                let kids = cx.children(node);
+                if kids.len() != 2 {
+                    return None;
+                }
+                let text = cx.text(node);
+                let op = if text.contains("&&") {
+                    BinaryOp::And
+                } else if text.contains("||") {
+                    BinaryOp::Or
+                } else {
+                    return None;
+                };
+                let left = condition(cx, kids[0], names)?;
+                let right = condition(cx, kids[1], names)?;
+                Some(Expr::Binary {
+                    op,
+                    left: Box::new(left),
+                    right: Box::new(right),
+                })
+            }
+            _ => None,
+        }
+    }
+
+    /// The inside of `[ … ]` and `[[ … ]]`.
+    fn test_expr(cx: &Cx, node: Node<'_>, names: &[String]) -> Option<Expr> {
+        match node.kind() {
+            "binary_expression" => {
+                let left = cx.field(node, "left")?;
+                let right = cx.field(node, "right")?;
+                let operator = cx.field_text(node, "operator")?;
+                let op = match operator.as_str() {
+                    "-eq" | "=" | "==" => BinaryOp::Eq,
+                    "-ne" | "!=" => BinaryOp::Ne,
+                    "-lt" | "<" => BinaryOp::Lt,
+                    "-le" => BinaryOp::Le,
+                    "-gt" | ">" => BinaryOp::Gt,
+                    "-ge" => BinaryOp::Ge,
+                    "&&" => BinaryOp::And,
+                    "||" => BinaryOp::Or,
+                    _ => return None,
+                };
+                let (left, right) = match (op, ()) {
+                    (BinaryOp::And | BinaryOp::Or, ()) => {
+                        (test_expr(cx, left, names)?, test_expr(cx, right, names)?)
+                    }
+                    _ => (word_expr(cx, left, names), word_expr(cx, right, names)),
+                };
+                if matches!(left, Expr::Unsupported(_)) || matches!(right, Expr::Unsupported(_)) {
+                    return None;
+                }
+                Some(Expr::Binary {
+                    op,
+                    left: Box::new(left),
+                    right: Box::new(right),
+                })
+            }
+            "unary_expression" => {
+                let text = cx.text(node);
+                let inner = cx.children(node);
+                let [operand] = inner.as_slice() else {
+                    return None;
+                };
+                let value = word_expr(cx, *operand, names);
+                if matches!(value, Expr::Unsupported(_)) {
+                    return None;
+                }
+                // `-z`: empty; `-n`: not empty. Both are a comparison with the
+                // empty string, which every target can spell.
+                if text.starts_with("-z") {
+                    return Some(Expr::Binary {
+                        op: BinaryOp::Eq,
+                        left: Box::new(value),
+                        right: Box::new(Expr::Str(String::new())),
+                    });
+                }
+                if text.starts_with("-n") {
+                    return Some(Expr::Binary {
+                        op: BinaryOp::Ne,
+                        left: Box::new(value),
+                        right: Box::new(Expr::Str(String::new())),
+                    });
+                }
+                if text.starts_with('!') {
+                    return test_expr(cx, *operand, names).map(|e| Expr::Unary {
+                        op: UnaryOp::Not,
+                        operand: Box::new(e),
+                    });
+                }
+                None
+            }
+            "parenthesized_expression" => {
+                let inner = cx.children(node);
+                match inner.as_slice() {
+                    [one] => test_expr(cx, *one, names),
+                    _ => None,
+                }
+            }
+            _ => None,
+        }
+    }
+
+    /// A statement inside `(( … ))`: an assignment, a step, or a bare expression.
+    fn arith_stmt(cx: &Cx, node: Node<'_>, names: &[String]) -> Stmt {
+        match node.kind() {
+            "variable_assignment" => assignment(cx, node, names),
+            "binary_expression" => {
+                // `i+=2` and `i=i+2` both arrive as binary expressions here.
+                let text = cx.text(node);
+                let Some(operator) = cx.field_text(node, "operator") else {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                };
+                let (Some(left), Some(right)) = (cx.field(node, "left"), cx.field(node, "right"))
+                else {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                };
+                let target = arith(cx, left, names);
+                let value = arith(cx, right, names);
+                if matches!(target, Expr::Unsupported(_)) || matches!(value, Expr::Unsupported(_)) {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                }
+                let combined = |op: BinaryOp| Stmt::Assign {
+                    target: target.clone(),
+                    value: Expr::Binary {
+                        op,
+                        left: Box::new(target.clone()),
+                        right: Box::new(value.clone()),
+                    },
+                };
+                match operator.as_str() {
+                    "=" => Stmt::Assign { target, value },
+                    "+=" => combined(BinaryOp::Add),
+                    "-=" => combined(BinaryOp::Sub),
+                    "*=" => combined(BinaryOp::Mul),
+                    "/=" => combined(BinaryOp::Div),
+                    "%=" => combined(BinaryOp::Rem),
+                    _ => {
+                        let _ = text;
+                        Stmt::Unsupported(cx.unsupported(node))
+                    }
+                }
+            }
+            "postfix_expression" => {
+                // `i++` and `i--`.
+                let text = cx.text(node);
+                let name = text.trim_end_matches(['+', '-']).trim().to_string();
+                let op = if text.ends_with("++") {
+                    BinaryOp::Add
+                } else if text.ends_with("--") {
+                    BinaryOp::Sub
+                } else {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                };
+                Stmt::Assign {
+                    target: Expr::Name(name.clone()),
+                    value: Expr::Binary {
+                        op,
+                        left: Box::new(Expr::Name(name)),
+                        right: Box::new(Expr::Int("1".to_string())),
+                    },
+                }
+            }
+            _ => {
+                let value = arith(cx, node, names);
+                match value {
+                    Expr::Unsupported(_) => Stmt::Unsupported(cx.unsupported(node)),
+                    value => Stmt::Expr(value),
+                }
+            }
+        }
+    }
+
+    /// An expression inside `(( … ))`, where a bare name is a variable and `$x`
+    /// says the same thing.
+    fn arith(cx: &Cx, node: Node<'_>, names: &[String]) -> Expr {
+        match node.kind() {
+            "number" => Expr::Int(cx.text(node)),
+            "word" => {
+                let text = cx.text(node);
+                if text.chars().all(|c| c.is_ascii_digit()) {
+                    Expr::Int(text)
+                } else if text.chars().all(|c| c.is_alphanumeric() || c == '_') {
+                    Expr::Name(text)
+                } else {
+                    Expr::Unsupported(cx.unsupported(node))
+                }
+            }
+            "variable_name" => Expr::Name(cx.text(node)),
+            "simple_expansion" | "expansion" => word_expr(cx, node, names),
+            "binary_expression" => {
+                let (Some(left), Some(right), Some(operator)) = (
+                    cx.field(node, "left"),
+                    cx.field(node, "right"),
+                    cx.field_text(node, "operator"),
+                ) else {
+                    return Expr::Unsupported(cx.unsupported(node));
+                };
+                let op = match operator.as_str() {
+                    "+" => BinaryOp::Add,
+                    "-" => BinaryOp::Sub,
+                    "*" => BinaryOp::Mul,
+                    "/" => BinaryOp::Div,
+                    "%" => BinaryOp::Rem,
+                    "==" => BinaryOp::Eq,
+                    "!=" => BinaryOp::Ne,
+                    "<" => BinaryOp::Lt,
+                    "<=" => BinaryOp::Le,
+                    ">" => BinaryOp::Gt,
+                    ">=" => BinaryOp::Ge,
+                    "&&" => BinaryOp::And,
+                    "||" => BinaryOp::Or,
+                    _ => return Expr::Unsupported(cx.unsupported(node)),
+                };
+                let left = arith(cx, left, names);
+                let right = arith(cx, right, names);
+                if matches!(left, Expr::Unsupported(_)) || matches!(right, Expr::Unsupported(_)) {
+                    return Expr::Unsupported(cx.unsupported(node));
+                }
+                Expr::Binary {
+                    op,
+                    left: Box::new(left),
+                    right: Box::new(right),
+                }
+            }
+            "unary_expression" => {
+                let inner = cx.children(node);
+                let [operand] = inner.as_slice() else {
+                    return Expr::Unsupported(cx.unsupported(node));
+                };
+                let value = arith(cx, *operand, names);
+                if matches!(value, Expr::Unsupported(_)) {
+                    return Expr::Unsupported(cx.unsupported(node));
+                }
+                let text = cx.text(node);
+                if text.starts_with('-') {
+                    Expr::Unary {
+                        op: UnaryOp::Neg,
+                        operand: Box::new(value),
+                    }
+                } else if text.starts_with('!') {
+                    Expr::Unary {
+                        op: UnaryOp::Not,
+                        operand: Box::new(value),
+                    }
+                } else {
+                    Expr::Unsupported(cx.unsupported(node))
+                }
+            }
+            "parenthesized_expression" => {
+                let inner = cx.children(node);
+                match inner.as_slice() {
+                    [one] => arith(cx, *one, names),
+                    _ => Expr::Unsupported(cx.unsupported(node)),
+                }
+            }
+            _ => Expr::Unsupported(cx.unsupported(node)),
+        }
+    }
+
+    /// A word in command or test position. A literal, a variable, a string with
+    /// expansions, an arithmetic expansion, or a substitution over a function this
+    /// file declares.
+    fn word_expr(cx: &Cx, node: Node<'_>, names: &[String]) -> Expr {
+        match node.kind() {
+            "word" => {
+                let text = cx.text(node);
+                let numeric = !text.is_empty()
+                    && text
+                        .strip_prefix('-')
+                        .unwrap_or(&text)
+                        .chars()
+                        .all(|c| c.is_ascii_digit());
+                if numeric {
+                    Expr::Int(text)
+                } else {
+                    Expr::Str(text)
+                }
+            }
+            "number" => Expr::Int(cx.text(node)),
+            "raw_string" => Expr::Str(cx.text(node).trim_matches('\'').to_string()),
+            "string" => string_expr(cx, node, names),
+            "concatenation" => {
+                let parts: Vec<Expr> = cx
+                    .children(node)
+                    .into_iter()
+                    .map(|c| word_expr(cx, c, names))
+                    .collect();
+                if parts.iter().any(|p| matches!(p, Expr::Unsupported(_))) {
+                    return Expr::Unsupported(cx.unsupported(node));
+                }
+                let mut joined: Vec<TemplatePart> = Vec::new();
+                for part in parts {
+                    match part {
+                        Expr::Str(text) => joined.push(TemplatePart::Text(text)),
+                        other => joined.push(TemplatePart::Expr(other)),
+                    }
+                }
+                Expr::Template(joined)
+            }
+            "simple_expansion" => {
+                let inner = cx.text(node);
+                let name = inner.trim_start().trim_start_matches('$');
+                expansion_name(cx, node, name)
+            }
+            "expansion" => {
+                // The grammar folds whitespace between two expansions into the
+                // second one's span; the name starts at the `$`.
+                let inner = cx.text(node);
+                let name = inner
+                    .trim_start()
+                    .trim_start_matches('$')
+                    .trim_start_matches('{')
+                    .trim_end_matches('}');
+                // `${#xs[@]}` is the array's length, which every target spells.
+                if let Some(counted) = name.strip_prefix('#') {
+                    if let Some(array) = counted.strip_suffix("[@]") {
+                        return Expr::Call {
+                            callee: Box::new(Expr::Name("len".to_string())),
+                            args: vec![Expr::Name(array.to_string())],
+                        };
+                    }
+                    return Expr::Call {
+                        callee: Box::new(Expr::Name("len".to_string())),
+                        args: vec![Expr::Name(counted.to_string())],
+                    };
+                }
+                // `${xs[i]}` reads one element.
+                if let Some((array, index)) = name.split_once('[') {
+                    let index = index.trim_end_matches(']');
+                    if index == "@" || index == "*" {
+                        return Expr::Name(array.to_string());
+                    }
+                    let index_expr = if index.chars().all(|c| c.is_ascii_digit()) {
+                        Expr::Int(index.to_string())
+                    } else if index.chars().all(|c| c.is_alphanumeric() || c == '_') {
+                        Expr::Name(index.to_string())
+                    } else {
+                        return Expr::Unsupported(cx.unsupported(node));
+                    };
+                    return Expr::Index {
+                        of: Box::new(Expr::Name(array.to_string())),
+                        index: Box::new(index_expr),
+                    };
+                }
+                expansion_name(cx, node, name)
+            }
+            "arithmetic_expansion" => {
+                let inner = cx.children(node);
+                match inner.as_slice() {
+                    [one] => arith(cx, *one, names),
+                    _ => Expr::Unsupported(cx.unsupported(node)),
+                }
+            }
+            "command_substitution" => {
+                let inner = cx.children(node);
+                let [command] = inner.as_slice() else {
+                    return Expr::Unsupported(cx.unsupported(node));
+                };
+                if command.kind() != "command" {
+                    return Expr::Unsupported(cx.unsupported(node));
+                }
+                match command_stmt(cx, *command, names) {
+                    Stmt::Expr(call @ Expr::Call { .. }) => call,
+                    _ => Expr::Unsupported(cx.unsupported(node)),
+                }
+            }
+            "array" => {
+                let elements: Vec<Expr> = cx
+                    .children(node)
+                    .into_iter()
+                    .map(|c| word_expr(cx, c, names))
+                    .collect();
+                if elements.iter().any(|e| matches!(e, Expr::Unsupported(_))) {
+                    return Expr::Unsupported(cx.unsupported(node));
+                }
+                Expr::ListLit(elements)
+            }
+            _ => Expr::Unsupported(cx.unsupported(node)),
+        }
+    }
+
+    /// A variable read by name: `$x`, `${x}`, or a positional that crosses under
+    /// the name its parameter declares.
+    fn expansion_name(cx: &Cx, node: Node<'_>, name: &str) -> Expr {
+        if let Ok(n) = name.parse::<usize>() {
+            if n >= 1 {
+                return Expr::Name(positional(n));
+            }
+        }
+        let plain = !name.is_empty() && name.chars().all(|c| c.is_alphanumeric() || c == '_');
+        match plain {
+            true => Expr::Name(name.to_string()),
+            false => Expr::Unsupported(cx.unsupported(node)),
+        }
+    }
+
+    /// A double-quoted string: text and expansions interleaved.
+    fn string_expr(cx: &Cx, node: Node<'_>, names: &[String]) -> Expr {
+        let inner = cx.children(node);
+        if inner.is_empty() {
+            return Expr::Str(cx.text(node).trim_matches('"').to_string());
+        }
+        let mut parts: Vec<TemplatePart> = Vec::new();
+        for piece in inner {
+            match piece.kind() {
+                "string_content" => parts.push(TemplatePart::Text(cx.text(piece))),
+                _ => {
+                    // Whitespace the grammar folded into this piece's span is text
+                    // of the string, and dropping it would join two words.
+                    let raw = cx.text(piece);
+                    if let Some(at) = raw.find('$').filter(|at| *at > 0) {
+                        parts.push(TemplatePart::Text(raw[..at].to_string()));
+                    }
+                    match word_expr(cx, piece, names) {
+                        Expr::Unsupported(_) => return Expr::Unsupported(cx.unsupported(node)),
+                        Expr::Str(text) => parts.push(TemplatePart::Text(text)),
+                        other => parts.push(TemplatePart::Expr(other)),
+                    }
+                }
+            }
+        }
+        match parts.as_slice() {
+            [TemplatePart::Text(text)] => Expr::Str(text.clone()),
+            [TemplatePart::Expr(e)] => e.clone(),
+            _ => Expr::Template(parts),
+        }
+    }
 }

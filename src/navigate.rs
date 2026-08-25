@@ -171,7 +171,7 @@ pub fn definitions_at(index: &Index, file: &Path, offset: usize) -> Option<Defin
 
 /// Every definition of a known symbol.
 pub fn definitions_of(index: &Index, symbol_id: SymbolId) -> Definitions {
-    definitions_with(&Hierarchy::scan(index), index, symbol_id)
+    definitions_with(&Hierarchy::scanned(index), index, symbol_id)
 }
 
 /// [`definitions_of`] against an already-scanned hierarchy.
@@ -227,7 +227,7 @@ pub fn definitions_with(hierarchy: &Hierarchy, index: &Index, symbol_id: SymbolI
 /// Scanning the hierarchy costs a parse per file, so a caller answering many
 /// questions should scan once and use [`implementations_with`].
 pub fn implementations_of(index: &Index, symbol_id: SymbolId) -> Vec<SymbolId> {
-    implementations_with(&Hierarchy::scan(index), index, symbol_id)
+    implementations_with(&Hierarchy::scanned(index), index, symbol_id)
 }
 
 /// [`implementations_of`] against an already-scanned hierarchy.

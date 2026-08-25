@@ -78,6 +78,10 @@ impl EdgeOrigin {
 /// implementation: a declared relationship beats a bare name match.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum HierarchyBasis {
+    /// The receiver's type is settled, by an annotation or by the inference behind
+    /// `held_by`, and it names this owner. The strongest tier: the edge stands on
+    /// what the source says the receiver holds, not on the method's name alone.
+    ReceiverType,
     /// Rust: an `impl Trait for Type` block names the trait outright.
     ImplementedTrait,
     /// Go: the type's method set covers the interface's. Go has no `implements`
@@ -96,6 +100,7 @@ pub enum HierarchyBasis {
 impl HierarchyBasis {
     pub fn as_str(&self) -> &'static str {
         match self {
+            HierarchyBasis::ReceiverType => "receiver-type",
             HierarchyBasis::ImplementedTrait => "implemented-trait",
             HierarchyBasis::InterfaceMethodSet => "interface-method-set",
             HierarchyBasis::DeclaredSupertype => "declared-supertype",
@@ -172,8 +177,32 @@ impl CallGraph {
     /// `impl Trait for T` or an `implements` clause. The index keeps a method's
     /// owning type and not the abstraction that type answers to.
     pub fn build(index: &Index) -> Self {
-        let hierarchy = Hierarchy::scan(index);
+        let hierarchy = Hierarchy::scanned(index);
         Self::build_with(index, &hierarchy)
+    }
+
+    /// [`CallGraph::build`], answered once per index.
+    ///
+    /// `fr impact` builds the graph per analysis and asks many analyses of one
+    /// index. The graph depends on nothing but the index, so the second build is
+    /// the first one's answer.
+    pub fn built(index: &Index) -> std::rc::Rc<Self> {
+        thread_local! {
+            static GRAPHS: std::cell::RefCell<HashMap<u64, std::rc::Rc<CallGraph>>> =
+                std::cell::RefCell::new(HashMap::new());
+        }
+        GRAPHS.with(|cache| {
+            if let Some(hit) = cache.borrow().get(&index.generation) {
+                return hit.clone();
+            }
+            let graph = std::rc::Rc::new(Self::build(index));
+            let mut cache = cache.borrow_mut();
+            if cache.len() >= 16 {
+                cache.clear();
+            }
+            cache.insert(index.generation, graph.clone());
+            graph
+        })
     }
 
     /// Build against a hierarchy that has already been scanned.
@@ -239,7 +268,27 @@ impl CallGraph {
                     // The dispatch layer below only looks at sites that resolved to
                     // *nothing*, which is the other half of the same problem. This is
                     // the half where the answer was right and incomplete.
-                    for implementation in hierarchy.implementations_of(index, callee.id) {
+                    let implementations = hierarchy.implementations_of(index, callee.id);
+                    // The same narrowing as the dispatch layer below. A receiver whose
+                    // type is settled arrives at that type's kin, not at every
+                    // implementation of the abstraction.
+                    let kin = match implementations.is_empty() {
+                        true => None,
+                        false => Family::of(callee.language).and_then(|family| {
+                            crate::refactor::receiver_known_type(index, reference)
+                                .filter(|ty| hierarchy.knows(family, ty))
+                                .map(|ty| hierarchy.kin_of(family, &ty))
+                        }),
+                    };
+                    for implementation in implementations {
+                        if let Some(kin) = &kin {
+                            let owner = index
+                                .symbol(implementation)
+                                .and_then(|s| s.qualifier.as_deref());
+                            if !owner.is_some_and(|q| kin.contains(q)) {
+                                continue;
+                            }
+                        }
                         if !edges.insert((caller_id, implementation, reference.span.start)) {
                             continue;
                         }
@@ -292,17 +341,22 @@ impl CallGraph {
 
         // Resolve each binding once. A name is bound in a handful of places and called
         // in thousands, so the work belongs on the small side of that.
-        let mut behind: HashMap<&str, Vec<SymbolId>> = HashMap::new();
+        let mut behind: HashMap<&str, Vec<(SymbolId, Option<&str>)>> = HashMap::new();
         for (name, sites) in &hierarchy.function_values {
-            let mut callees: Vec<SymbolId> = sites
+            let mut callees: Vec<(SymbolId, Option<&str>)> = sites
                 .iter()
                 .filter_map(|(file, offset)| {
-                    index
+                    let callee = index
                         .reference_at(file, *offset)
                         .and_then(|r| r.target)
                         .and_then(|t| index.symbol(t))
                         .filter(|s| s.kind.is_callable())
-                        .map(|s| s.id)
+                        .map(|s| s.id)?;
+                    let owner = hierarchy
+                        .function_value_owners
+                        .get(&(file.clone(), *offset))
+                        .map(|owner| owner.as_str());
+                    Some((callee, owner))
                 })
                 .collect();
             callees.sort();
@@ -345,7 +399,23 @@ impl CallGraph {
                 let Some(caller_id) = enclosing_callable(index, path, *at) else {
                     continue;
                 };
-                for callee in callees {
+                // The receiver's settled type keeps only its own record's bindings.
+                // A call through `a.run` with `a` typed `A` cannot reach the `run` a
+                // `B` literal named. A binding whose record the syntax never stated stays
+                // matchable from every call, and an unsettled receiver changes nothing.
+                let settled = starts.get(at).and_then(|r| {
+                    crate::refactor::receiver_known_type(index, r)
+                        .filter(|ty| index.names_a_type(ty, r.language))
+                        .map(|ty| (ty, Family::of(r.language)))
+                });
+                for (callee, owner) in callees {
+                    if let (Some((ty, family)), Some(owner)) = (&settled, owner) {
+                        let related = owner == ty
+                            || family.is_some_and(|f| hierarchy.kin_of(f, ty).contains(*owner));
+                        if !related {
+                            continue;
+                        }
+                    }
                     if !edges.insert((caller_id, *callee, *at)) {
                         continue;
                     }
@@ -429,8 +499,27 @@ impl CallGraph {
                     .entry((site.family, site.name.clone()))
                     .or_insert_with(|| hierarchy.dispatch_targets(site.family, &site.name));
 
+                // The receiver's settled type, where an annotation or the inference
+                // behind `held_by` states one, keeps only its own kin as targets. A
+                // receiver nothing settles fans out as before, and so does one
+                // settled to a type the hierarchy never met.
+                let kin = crate::refactor::receiver_known_type(index, reference)
+                    .filter(|ty| hierarchy.knows(site.family, ty))
+                    .map(|ty| hierarchy.kin_of(site.family, &ty));
+
                 let mut candidates = 0usize;
                 for (owner, basis) in targets.iter() {
+                    if let Some(kin) = &kin {
+                        if !kin.contains(owner) {
+                            continue;
+                        }
+                    }
+                    // A name-only match that survives the receiver's type is not a
+                    // name-only match any more: the receiver itself licenses it.
+                    let basis = match (&kin, basis) {
+                        (Some(_), HierarchyBasis::MethodName) => HierarchyBasis::ReceiverType,
+                        _ => *basis,
+                    };
                     let key = (site.family, owner.clone(), site.name.clone());
                     let Some(implementations) = methods.get(&key) else {
                         continue;
@@ -452,7 +541,7 @@ impl CallGraph {
                                 // The program picks the implementation while it runs,
                                 // so this edge is possible and unproven.
                                 confidence: Confidence::FieldBased,
-                                origin: EdgeOrigin::Hierarchy(*basis),
+                                origin: EdgeOrigin::Hierarchy(basis),
                             },
                         );
                         seen_sites.insert((file.clone(), site.offset));
@@ -1028,6 +1117,11 @@ pub struct Hierarchy {
     /// assigns a bare function name to. Held as the site of the *value*, so the index
     /// resolves it the same way it resolves any other reference.
     function_values: BTreeMap<String, BTreeSet<(PathBuf, usize)>>,
+    /// The record a bound name belongs to, for value sites where the syntax states
+    /// one. `Held { run: candidate }` states `Held`; `self.run = f` states the
+    /// enclosing class. A site with no stated record is absent, and stays matchable
+    /// from every call.
+    function_value_owners: HashMap<(PathBuf, usize), String>,
     /// Every call site, as the last name in the expression that is being called and the
     /// offset that name stands at. A call whose name resolves to a function is answered
     /// elsewhere; the rest are the calls that go through a value.
@@ -1251,6 +1345,31 @@ impl Hierarchy {
     }
 
     /// Read every file in the index that belongs to a family with a hierarchy.
+    /// [`Hierarchy::scan`], answered once per index.
+    ///
+    /// The scan parses every family file in the workspace, and `fr usages` asked
+    /// for it once per symbol. A whole-repository question re-parsed the repository
+    /// thousands of times. The index's generation keys the cache, so a rebuilt index
+    /// is scanned afresh and a previous build's answer is unfindable.
+    pub fn scanned(index: &Index) -> std::rc::Rc<Self> {
+        thread_local! {
+            static SCANS: std::cell::RefCell<HashMap<u64, std::rc::Rc<Hierarchy>>> =
+                std::cell::RefCell::new(HashMap::new());
+        }
+        SCANS.with(|cache| {
+            if let Some(hit) = cache.borrow().get(&index.generation) {
+                return hit.clone();
+            }
+            let scanned = std::rc::Rc::new(Self::scan(index));
+            let mut cache = cache.borrow_mut();
+            if cache.len() >= 64 {
+                cache.clear();
+            }
+            cache.insert(index.generation, scanned.clone());
+            scanned
+        })
+    }
+
     pub fn scan(index: &Index) -> Self {
         let parsers = Parsers::new();
         let mut hierarchy = Hierarchy::default();
@@ -1282,7 +1401,7 @@ impl Hierarchy {
                 .map(|name| (name.local.clone(), name.original.clone()))
                 .collect();
             let mut sites: Vec<CallSite> = Vec::new();
-            let mut bindings: Vec<(String, usize)> = Vec::new();
+            let mut bindings: Vec<(String, usize, Option<String>)> = Vec::new();
             let mut calls: Vec<(String, usize)> = Vec::new();
             let mut visit = |node: Node| {
                 // A leaf is neither a binding nor a call, and most nodes are leaves.
@@ -1302,12 +1421,17 @@ impl Hierarchy {
             if !sites.is_empty() {
                 hierarchy.call_sites.insert(path.clone(), sites);
             }
-            for (name, offset) in bindings {
+            for (name, offset, owner) in bindings {
                 hierarchy
                     .function_values
                     .entry(name)
                     .or_default()
                     .insert((path.clone(), offset));
+                if let Some(owner) = owner {
+                    hierarchy
+                        .function_value_owners
+                        .insert((path.clone(), offset), owner);
+                }
             }
             if !calls.is_empty() {
                 hierarchy.calls.insert(path.clone(), calls);
@@ -1426,6 +1550,58 @@ impl Hierarchy {
             .filter(|s| s.qualifier.as_deref().is_some_and(|q| related.contains(q)))
             .map(|s| s.id)
             .collect()
+    }
+
+    /// Does the hierarchy know this type at all?
+    ///
+    /// A receiver settled to a name the scan never met, a generic parameter, a
+    /// foreign type, licenses no narrowing. An unknown type is an unsettled
+    /// receiver, not an empty kin.
+    pub(crate) fn knows(&self, family: Family, name: &str) -> bool {
+        let key = (family, name.to_string());
+        self.declares.contains_key(&key)
+            || self.method_sets.contains_key(&key)
+            || self.direct_subtypes.contains_key(&key)
+            || self
+                .direct_subtypes
+                .iter()
+                .any(|((f, _), children)| *f == family && children.contains(name))
+    }
+
+    /// The owners a receiver of this settled type can dispatch to: the type itself,
+    /// everything below it, and the ancestors of all of those.
+    ///
+    /// Below, because a receiver typed as the abstraction runs whichever subtype the
+    /// value supplies. Above, because a type without its own body runs the one it
+    /// inherits, and a subtype may inherit from a parent outside this chain. A type
+    /// related in neither direction is not a target, and that is the narrowing: the
+    /// same-named method on a stranger stops being one. Go's relation is structural,
+    /// so its two directions are the method-set question asked both ways.
+    pub(crate) fn kin_of(&self, family: Family, name: &str) -> BTreeSet<String> {
+        let mut kin: BTreeSet<String> = BTreeSet::new();
+        kin.insert(name.to_string());
+        kin.extend(self.subtypes(family, name));
+        if family == Family::Go {
+            kin.extend(self.go_implementors(&(family, name.to_string())));
+            for key in self.declares.keys().filter(|(f, _)| *f == family) {
+                if kin.iter().any(|t| self.go_implementors(key).contains(t)) {
+                    kin.insert(key.1.clone());
+                }
+            }
+            return kin;
+        }
+        let mut frontier: Vec<String> = kin.iter().cloned().collect();
+        while let Some(current) = frontier.pop() {
+            for ((f, parent), children) in &self.direct_subtypes {
+                if *f != family || !children.contains(&current) {
+                    continue;
+                }
+                if kin.insert(parent.clone()) {
+                    frontier.push(parent.clone());
+                }
+            }
+        }
+        kin
     }
 
     /// Types that name `abstraction` as a supertype, transitively.
@@ -1820,7 +1996,7 @@ fn collect_function_value(
     node: Node,
     family: Family,
     source: &str,
-    out: &mut Vec<(String, usize)>,
+    out: &mut Vec<(String, usize, Option<String>)>,
 ) {
     const VALUE_FIELDS: [&str; 2] = ["value", "right"];
     const NAME_FIELDS: [&str; 5] = ["name", "left", "key", "field", "pattern"];
@@ -1875,7 +2051,81 @@ fn collect_function_value(
     if !is_plain_name(last) {
         return;
     }
-    out.push((last.to_string(), value.start_byte()));
+    out.push((
+        last.to_string(),
+        value.start_byte(),
+        owning_record(node, source),
+    ));
+}
+
+/// The record a bound name belongs to, where the syntax states one.
+///
+/// `Held { run: candidate }` and `Held{run: candidate}` state `Held`. A TypeScript
+/// object literal under `const h: Held = { … }` states it in the annotation.
+/// `self.run = f` and `this.run = f` state the enclosing class.
+///
+/// An object literal with no written type states nothing. A binding through a
+/// value of unknown type (`h.run = f`) states nothing either: it is typed
+/// elsewhere or not at all.
+fn owning_record(node: Node, source: &str) -> Option<String> {
+    let type_name = |n: Node| -> Option<String> {
+        let written = text(n, source).trim();
+        let last = written
+            .rsplit(['.', ':'])
+            .next()
+            .unwrap_or(written)
+            .trim_start_matches(['&', '*'])
+            .trim();
+        is_plain_name(last).then(|| last.to_string())
+    };
+    // A record literal with its type written on it. Rust and Go spell the type as
+    // a field of the construction expression one or two levels up.
+    let mut here = node;
+    for _ in 0..3 {
+        let Some(parent) = here.parent() else { break };
+        if matches!(parent.kind(), "struct_expression" | "composite_literal") {
+            let named = ["name", "type"]
+                .iter()
+                .find_map(|field| parent.child_by_field_name(field));
+            return named.and_then(type_name);
+        }
+        // `const h: Held = { run: f }`: the annotation on the declarator names it.
+        if parent.kind() == "variable_declarator" {
+            return parent.child_by_field_name("type").and_then(|annotation| {
+                let written = text(annotation, source);
+                type_name_of_annotation(written)
+            });
+        }
+        here = parent;
+    }
+    // `self.run = f` / `this.run = f`: the enclosing class is the record.
+    let target = ["left", "name"]
+        .iter()
+        .find_map(|field| node.child_by_field_name(field))?;
+    let receiver = text(target, source);
+    let object = receiver.split(['.', ':']).next().unwrap_or("").trim();
+    if !matches!(object, "self" | "this") {
+        return None;
+    }
+    let mut at = node;
+    while let Some(parent) = at.parent() {
+        if parent.kind().contains("class") {
+            if let Some(name) = parent.child_by_field_name("name") {
+                return type_name(name);
+            }
+        }
+        at = parent;
+    }
+    None
+}
+
+/// The bare type a written annotation names, `": Held"` giving `Held`.
+fn type_name_of_annotation(written: &str) -> Option<String> {
+    let bare = written.trim().trim_start_matches(':').trim();
+    let base = bare.split(['<', '[']).next().unwrap_or(bare).trim();
+    let last = base.rsplit(['.', ':']).next().unwrap_or(base).trim();
+    (!last.is_empty() && last.chars().all(|c| c.is_alphanumeric() || c == '_'))
+        .then(|| last.to_string())
 }
 
 /// The name a call goes through: the last identifier of whatever is being called.
@@ -2329,16 +2579,15 @@ mod tests {
         let cg = CallGraph::build(&index);
         assert_eq!(
             cg.hierarchy_edge_count(),
-            3,
-            "two impls and the declaration"
+            2,
+            "the two impls; the declaration resolves through the receiver's type"
         );
         for (_, edge) in cg.callees(id_of(&index, "go")) {
             assert_eq!(edge.confidence, Confidence::FieldBased);
-            assert!(edge.origin.is_hierarchy());
         }
         assert_eq!(
             cg.origin_breakdown().get("implemented-trait"),
-            Some(&3),
+            Some(&2),
             "{:?}",
             cg.origin_breakdown()
         );
