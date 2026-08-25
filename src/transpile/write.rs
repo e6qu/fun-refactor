@@ -148,8 +148,7 @@ fn exits_anywhere(body: &[Stmt]) -> bool {
 /// Does any statement in this body return, at any depth?
 fn returns_anywhere(body: &[Stmt]) -> bool {
     body.iter().any(|stmt| {
-        matches!(stmt, Stmt::Return(_))
-            || sub_bodies(stmt).into_iter().any(|b| returns_anywhere(b))
+        matches!(stmt, Stmt::Return(_)) || sub_bodies(stmt).into_iter().any(|b| returns_anywhere(b))
     })
 }
 
@@ -159,10 +158,7 @@ fn returns_anywhere(body: &[Stmt]) -> bool {
 /// call. These two targets spell failure in the signature and at every call, so the
 /// inverse runs here: returns wrap `Ok`, throws become `Err` returns, and every call
 /// to a failing function is hoisted to its own binding and marked propagating.
-fn with_failure_idiom(
-    f: &Function,
-    throwing: &std::collections::BTreeSet<String>,
-) -> Function {
+fn with_failure_idiom(f: &Function, throwing: &std::collections::BTreeSet<String>) -> Function {
     let mut out = f.clone();
     let throws = f.receiver.is_none() && throwing.contains(&f.name);
 
@@ -248,9 +244,7 @@ fn extract_failing_calls(
             Expr::Propagate(inner) => {
                 // The propagated call is one unit; only its arguments can hide
                 // further failing calls.
-                if let Expr::Call { callee, args } | Expr::New { callee, args } =
-                    inner.as_mut()
-                {
+                if let Expr::Call { callee, args } | Expr::New { callee, args } = inner.as_mut() {
                     hoist(callee, throwing, counter, lifted, false);
                     for a in args {
                         hoist(a, throwing, counter, lifted, false);
@@ -385,9 +379,7 @@ fn throwing_functions(module: &Module) -> std::collections::BTreeSet<String> {
                 Expr::New { callee, args } => {
                     expr_calls(callee, set) || args.iter().any(|a| expr_calls(a, set))
                 }
-                Expr::Binary { left, right, .. } => {
-                    expr_calls(left, set) || expr_calls(right, set)
-                }
+                Expr::Binary { left, right, .. } => expr_calls(left, set) || expr_calls(right, set),
                 Expr::Unary { operand, .. } | Expr::Await(operand) | Expr::Propagate(operand) => {
                     expr_calls(operand, set)
                 }
@@ -401,12 +393,8 @@ fn throwing_functions(module: &Module) -> std::collections::BTreeSet<String> {
         body.iter().any(|stmt| match stmt {
             Stmt::Try { catches, .. } => catches.iter().any(|c| calls_any(&c.body, set)),
             Stmt::Expr(e) | Stmt::Return(Some(e)) | Stmt::Throw(e) => expr_calls(e, set),
-            Stmt::Let { value: Some(e), .. } | Stmt::Assign { value: e, .. } => {
-                expr_calls(e, set)
-            }
-            other => sub_bodies(other)
-                .into_iter()
-                .any(|b| calls_any(b, set)),
+            Stmt::Let { value: Some(e), .. } | Stmt::Assign { value: e, .. } => expr_calls(e, set),
+            other => sub_bodies(other).into_iter().any(|b| calls_any(b, set)),
         })
     }
 
@@ -625,8 +613,7 @@ fn sub_bodies_mut(stmt: &mut Stmt) -> Vec<&mut Vec<Stmt>> {
             all
         }
         Stmt::MatchVariants { arms, default, .. } => {
-            let mut all: Vec<&mut Vec<Stmt>> =
-                arms.iter_mut().map(|arm| &mut arm.body).collect();
+            let mut all: Vec<&mut Vec<Stmt>> = arms.iter_mut().map(|arm| &mut arm.body).collect();
             all.push(default);
             all
         }
@@ -2719,12 +2706,7 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
     out.open();
     rust_block(out, &f.body, f.returns.as_ref());
     // The success path a body falls off the end of still has to be said.
-    if throws
-        && !matches!(
-            f.body.last(),
-            Some(Stmt::Return(_)) | Some(Stmt::Throw(_))
-        )
-    {
+    if throws && !matches!(f.body.last(), Some(Stmt::Return(_)) | Some(Stmt::Throw(_))) {
         out.line("Ok(())");
     }
     out.close();
@@ -2872,7 +2854,10 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     .map(|v| rust_expr(out, v))
                     .unwrap_or_else(|| "Default::default()".to_string());
                 // A literal under a `String` annotation is a `&str` everywhere else.
-                if matches!((ty, value.as_ref()), (Some(Type::String), Some(Expr::Str(_)))) {
+                if matches!(
+                    (ty, value.as_ref()),
+                    (Some(Type::String), Some(Expr::Str(_)))
+                ) {
                     v.push_str(".to_string()");
                 }
                 let bound = out.name(name);
@@ -3244,9 +3229,7 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 } else {
                     out.lowering_names += 1;
                     let caught = format!("__fr_caught{}", out.lowering_names);
-                    out.line(&format!(
-                        "let {caught}: Result<(), String> = (|| {{"
-                    ));
+                    out.line(&format!("let {caught}: Result<(), String> = (|| {{"));
                     out.open();
                     let was = out.can_propagate;
                     out.can_propagate = true;
@@ -3416,6 +3399,15 @@ fn receiver(text: String, of: &Expr) -> String {
     }
 }
 
+/// A construction target is a path, and a dotted name from another language
+/// walks that path with `::`.
+fn rust_path(out: &mut Out, callee: &Expr) -> String {
+    match callee {
+        Expr::Name(name) if name.contains('.') => name.replace('.', "::"),
+        _ => rust_expr(out, callee),
+    }
+}
+
 fn rust_expr(out: &mut Out, e: &Expr) -> String {
     match e {
         Expr::RecordLit { ty, fields } => {
@@ -3510,7 +3502,9 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                         let float = matches!(param_types.get(at), Some(Some(Type::Float)));
                         if float && matches!(arg, Expr::Int(_) | Expr::Unary { .. }) {
                             if let Some(text) = rendered.get_mut(at) {
-                                if !text.contains('.') && text.chars().all(|c| c.is_ascii_digit() || c == '-') {
+                                if !text.contains('.')
+                                    && text.chars().all(|c| c.is_ascii_digit() || c == '-')
+                                {
                                     text.push_str(".0");
                                 }
                             }
@@ -3538,7 +3532,11 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                     .collect();
                 return format!("{target} {{ {} }}", pairs.join(", "));
             }
-            format!("{}({}){suffix}", rust_expr(out, callee), rendered.join(", "))
+            format!(
+                "{}({}){suffix}",
+                rust_expr(out, callee),
+                rendered.join(", ")
+            )
         }
         // Floor division rounds toward negative infinity, and Rust has no
         // integer method that does. `div_euclid` keeps the remainder positive
@@ -3659,7 +3657,7 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                     _ => None,
                 })
                 .collect();
-            if let Some(pairs) = keywords {
+            if let Some(pairs) = &keywords {
                 let named = match callee.as_ref() {
                     Expr::Name(n) => out.records.contains_key(n),
                     _ => false,
@@ -3678,6 +3676,21 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                     };
                 }
             }
+            // A construction whose arguments all name fields is a struct
+            // literal whatever the type: the fields are the constructor. A
+            // dotted foreign path is spelled the way Rust spells paths.
+            if let Some(pairs) = keywords {
+                if !args.is_empty() {
+                    let target = rust_path(out, callee);
+                    let rendered: Vec<String> = pairs
+                        .iter()
+                        .map(|(field, value)| {
+                            format!("{}: {}", out.field(field), rust_expr(out, value))
+                        })
+                        .collect();
+                    return format!("{target} {{ {} }}", rendered.join(", "));
+                }
+            }
             let rendered: Vec<String> = args.iter().map(|a| rust_expr(out, a)).collect();
             if let Some(fields) = positional_record(out, callee, args.len()) {
                 let target = rust_expr(out, callee);
@@ -3688,14 +3701,10 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                     .collect();
                 return format!("{target} {{ {} }}", pairs.join(", "));
             }
-            let target = rust_expr(out, callee);
-            let source = format!("new {target}({})", rendered.join(", "));
-            out.carried(&Unsupported {
-                construct: "new".into(),
-                source: source.clone(),
-                line: 0,
-            });
-            format!("todo!(/* {MARKER}: {} */)", source.replace("*/", "* /"))
+            // A positional construction of a type this file does not declare:
+            // the convention every Rust type spells its constructor by.
+            let target = rust_path(out, callee);
+            format!("{target}::new({})", rendered.join(", "))
         }
         // Rust asks this with a `match` on an enum or with `Any::downcast`. The type decides
         // which one applies, and the surrounding code does not.
@@ -3713,20 +3722,24 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             });
             format!("todo!(/* {MARKER}: {} */)", source.replace("*/", "* /"))
         }
-        Expr::Keyword { name, value } => {
-            let rendered = rust_expr(out, value);
-            let source = format!("{name}={rendered}");
-            out.carried(&Unsupported {
-                construct: "keyword argument".into(),
-                source: source.clone(),
-                line: 0,
-            });
-            format!("todo!(/* {MARKER}: {} */)", source.replace("*/", "* /"))
+        // A named argument passes by position: the value crosses, and the
+        // name is a fact about the source's parameter list, noted once.
+        Expr::Keyword { name: _, value } => {
+            out.note_once(
+                "a named argument passes by position here: the target does not name arguments.",
+            );
+            rust_expr(out, value)
         }
         Expr::Unary { op, operand } => {
             let sign = match op {
                 UnaryOp::Not => "!",
                 UnaryOp::Neg => "-",
+                UnaryOp::Unwrap => {
+                    return format!(
+                        "{}.unwrap()",
+                        unary_operand(rust_expr(out, operand), operand)
+                    );
+                }
             };
             format!("{sign}{}", unary_operand(rust_expr(out, operand), operand))
         }
@@ -5197,6 +5210,9 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
             match op {
                 UnaryOp::Not => format!("not {rendered}"),
                 UnaryOp::Neg => format!("-{rendered}"),
+                // The value stands for itself: using None where a value was
+                // promised raises at the same spot the source would trap.
+                UnaryOp::Unwrap => python_expr(out, operand),
             }
         }
         // A variant is its own dataclass here, and the sum only an alias over
@@ -6097,7 +6113,12 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     _ => go_expr(out, value),
                 };
                 let bound = out.name(name);
-                out.line(&format!("{bound} := {v}"));
+                // `x := nil` has no type to infer; `any` is the type an
+                // absent-by-default binding takes here.
+                match v == "nil" {
+                    true => out.line(&format!("var {bound} any = nil")),
+                    false => out.line(&format!("{bound} := {v}")),
+                }
             }
             Stmt::Assign { target, value } => {
                 let t = go_expr(out, target);
@@ -6709,14 +6730,33 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
                     .collect();
                 return format!("{target}{{{}}}", pairs.join(", "));
             }
-            let target = go_expr(out, callee);
-            let source = format!("new {target}({})", rendered.join(", "));
-            out.carried(&Unsupported {
-                construct: "new".into(),
-                source: source.clone(),
-                line: 0,
-            });
-            format!("any(nil) /* {MARKER}: {} */", source.replace("*/", "* /"))
+            // A composite literal names at most `pkg.Type`; a deeper foreign
+            // path keeps its last two steps, which is all Go can say of it.
+            let target = match callee.as_ref() {
+                Expr::Name(name) if name.matches('.').count() > 1 => {
+                    let steps: Vec<&str> = name.rsplit('.').take(2).collect();
+                    format!("{}.{}", steps[1], steps[0])
+                }
+                _ => go_expr(out, callee),
+            };
+            let named: Option<Vec<String>> = args
+                .iter()
+                .map(|a| match a {
+                    Expr::Keyword { name, value } => {
+                        Some(format!("{}: {}", out.field(name), go_expr(out, value)))
+                    }
+                    _ => None,
+                })
+                .collect();
+            match named {
+                // Named arguments are the composite literal's fields.
+                Some(pairs) if !pairs.is_empty() => {
+                    format!("{target}{{{}}}", pairs.join(", "))
+                }
+                // Positional ones fill the composite in declaration order,
+                // which is what a Go literal without field names means.
+                _ => format!("{target}{{{}}}", rendered.join(", ")),
+            }
         }
         // Go spells this as a two-value type assertion, which is a statement.
         Expr::Cast { ty, value } => {
@@ -6733,20 +6773,21 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
             });
             format!("false /* {MARKER}: {} */", source.replace("*/", "* /"))
         }
-        Expr::Keyword { name, value } => {
-            let rendered = go_expr(out, value);
-            let source = format!("{name}={rendered}");
-            out.carried(&Unsupported {
-                construct: "keyword argument".into(),
-                source: source.clone(),
-                line: 0,
-            });
-            format!("any(nil) /* {MARKER}: {} */", source.replace("*/", "* /"))
+        // A named argument passes by position: the value crosses, and the
+        // name is a fact about the source's parameter list, noted once.
+        Expr::Keyword { name: _, value } => {
+            out.note_once(
+                "a named argument passes by position here: the target does not name arguments.",
+            );
+            go_expr(out, value)
         }
         Expr::Unary { op, operand } => {
             let sign = match op {
                 UnaryOp::Not => "!",
                 UnaryOp::Neg => "-",
+                UnaryOp::Unwrap => {
+                    return go_expr(out, operand);
+                }
             };
             format!("{sign}{}", unary_operand(go_expr(out, operand), operand))
         }
@@ -7751,9 +7792,7 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
                     Expr::Str(_) | Expr::Template(_) => {
                         format!("new Error({})", ts_expr(out, value))
                     }
-                    Expr::Name(n) if out.catch_bindings.iter().any(|b| b == n) => {
-                        out.value_name(n)
-                    }
+                    Expr::Name(n) if out.catch_bindings.iter().any(|b| b == n) => out.value_name(n),
                     other => ts_thrown(out, other).unwrap_or_else(|| ts_expr(out, other)),
                 };
                 out.line(&format!("throw {rendered};"));
@@ -7916,20 +7955,18 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
             }
             format!("{rendered} instanceof {}", ts_expr(out, ty))
         }
+        // A named argument becomes the options-object idiom: one property,
+        // named what the source named it.
         Expr::Keyword { name, value } => {
-            let rendered = ts_expr(out, value);
-            let source = format!("{name}={rendered}");
-            out.carried(&Unsupported {
-                construct: "keyword argument".into(),
-                source: source.clone(),
-                line: 0,
-            });
-            format!("undefined /* {MARKER}: {} */", source.replace("*/", "* /"))
+            format!("{{ {name}: {} }}", ts_expr(out, value))
         }
         Expr::Unary { op, operand } => {
             let sign = match op {
                 UnaryOp::Not => "!",
                 UnaryOp::Neg => "-",
+                UnaryOp::Unwrap => {
+                    return format!("{}!", unary_operand(ts_expr(out, operand), operand));
+                }
             };
             format!("{sign}{}", unary_operand(ts_expr(out, operand), operand))
         }
@@ -9212,6 +9249,9 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
             let sign = match op {
                 UnaryOp::Not => "!",
                 UnaryOp::Neg => "-",
+                UnaryOp::Unwrap => {
+                    return java_expr(out, operand);
+                }
             };
             format!("{sign}{}", unary_operand(java_expr(out, operand), operand))
         }
@@ -9273,9 +9313,7 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
                     // A double concatenated as text prints `10.0` here where every
                     // other target prints `10`. The helper shows a whole number
                     // whole, the way the source displayed it.
-                    TemplatePart::Expr(e)
-                        if matches!(static_type(out, e), Some(Type::Float)) =>
-                    {
+                    TemplatePart::Expr(e) if matches!(static_type(out, e), Some(Type::Float)) => {
                         out.zig_helpers.insert("java_show");
                         format!("frShow({})", java_expr(out, e))
                     }
@@ -9327,15 +9365,13 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
             );
             java_expr(out, inner)
         }
-        Expr::Keyword { name, value } => {
-            let rendered = java_expr(out, value);
-            let source = format!("{name}={rendered}");
-            out.carried(&Unsupported {
-                construct: "keyword argument".into(),
-                source: source.clone(),
-                line: 0,
-            });
-            format!("null /* {MARKER}: {} */", source.replace("*/", "* /"))
+        // A named argument passes by position: the value crosses, and the
+        // name is a fact about the source's parameter list, noted once.
+        Expr::Keyword { name: _, value } => {
+            out.note_once(
+                "a named argument passes by position here: the target does not name arguments.",
+            );
+            java_expr(out, value)
         }
         Expr::Unsupported(u) => {
             out.carried(u);
@@ -9981,7 +10017,7 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                 .as_ref()
                 .map(|v| zig_expr(out, v))
                 .unwrap_or_else(|| "undefined".to_string());
-    let keyword = if *mutable && mutated.contains(name) {
+            let keyword = if *mutable && mutated.contains(name) {
                 "var"
             } else {
                 "const"
@@ -10140,8 +10176,7 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                 zig_line(out, &format!("switch ({cast}) {{"));
                 out.open();
                 for (literals, body) in arms {
-                    let pattern: Vec<String> =
-                        literals.iter().map(|l| zig_expr(out, l)).collect();
+                    let pattern: Vec<String> = literals.iter().map(|l| zig_expr(out, l)).collect();
                     out.line(&format!("{} => {{", pattern.join(", ")));
                     out.open();
                     zig_block(out, body, None, mutated);
@@ -10636,7 +10671,21 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
                 return format!("{target}{{ {} }}", pairs.join(", "));
             }
             let target = zig_expr(out, callee);
-            zig_carry(out, "new", format!("new {target}({})", rendered.join(", ")))
+            let named: Option<Vec<String>> = args
+                .iter()
+                .map(|a| match a {
+                    Expr::Keyword { name, value } => {
+                        Some(format!(".{} = {}", out.field(name), zig_expr(out, value)))
+                    }
+                    _ => None,
+                })
+                .collect();
+            match named {
+                Some(pairs) if !pairs.is_empty() => {
+                    format!("{target}{{ {} }}", pairs.join(", "))
+                }
+                _ => format!("{target}.init({})", rendered.join(", ")),
+            }
         }
         // Floor division is a builtin here, and the builtin rounds the way the
         // source's operator did.
@@ -10723,6 +10772,9 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             let sign = match op {
                 UnaryOp::Not => "!",
                 UnaryOp::Neg => "-",
+                UnaryOp::Unwrap => {
+                    return format!("{}.?", unary_operand(zig_expr(out, operand), operand));
+                }
             };
             format!("{sign}{}", unary_operand(zig_expr(out, operand), operand))
         }
@@ -10822,16 +10874,18 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
         // suspension point runs to completion in place, noted once so the
         // change is not silent.
         Expr::Await(inner) => {
-            out.note_once(
-                "an `await` runs blocking here: Zig has no async to suspend on.",
-            );
+            out.note_once("an `await` runs blocking here: Zig has no async to suspend on.");
             zig_expr(out, inner)
         }
         Expr::Propagate(inner) => format!("try {}", zig_expr(out, inner)),
         // Zig calls positionally and has nothing that names an argument.
-        Expr::Keyword { name, value } => {
-            let rendered = zig_expr(out, value);
-            zig_carry(out, "keyword argument", format!("{name}={rendered}"))
+        // A named argument passes by position: the value crosses, and the
+        // name is a fact about the source's parameter list, noted once.
+        Expr::Keyword { name: _, value } => {
+            out.note_once(
+                "a named argument passes by position here: the target does not name arguments.",
+            );
+            zig_expr(out, value)
         }
         Expr::Unsupported(u) => {
             out.carried(u);
@@ -11469,10 +11523,7 @@ fn zig_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
                 .map(|a| format!("{{{}}}", zig_hole_spec(out, a)))
                 .collect();
             let rendered = joined(args, |a| zig_expr(out, a));
-            format!(
-                "frPrint(\"{}\\n\", .{{ {rendered} }})",
-                specs.join(" ")
-            )
+            format!("frPrint(\"{}\\n\", .{{ {rendered} }})", specs.join(" "))
         }
         (None, "len", [Expr::Name(n)]) if out.zig_dyn.contains(n.as_str()) => {
             format!("{}.items.len", out.value_name(n))
@@ -11512,9 +11563,7 @@ fn zig_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
         // string, which the format helper owns. Of a caught error it is the name,
         // which is where the message lives here.
         (None, "str", [x @ (Expr::Str(_) | Expr::Template(_))]) => zig_expr(out, x),
-        (None, "str", [Expr::Name(bound)])
-            if out.catch_bindings.iter().any(|b| b == bound) =>
-        {
+        (None, "str", [Expr::Name(bound)]) if out.catch_bindings.iter().any(|b| b == bound) => {
             format!("@errorName({})", out.value_name(bound))
         }
         (None, "str", [x]) => {
@@ -11533,7 +11582,13 @@ fn zig_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
 fn zig_error_name(message: &str) -> String {
     let mut name: String = message
         .chars()
-        .map(|c| if c.is_alphanumeric() || c == '_' { c } else { '_' })
+        .map(|c| {
+            if c.is_alphanumeric() || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
         .collect();
     if name.is_empty() || name.starts_with(|c: char| c.is_ascii_digit()) {
         name.insert(0, '_');

@@ -253,6 +253,57 @@ fn map_expr(expr: &mut Expr, rewrite: fn(Expr) -> Expr) {
                 }
             }
         }
+        Expr::Tuple(items) | Expr::ListLit(items) => {
+            for item in items {
+                walk(item);
+            }
+        }
+        Expr::MapLit(entries) => {
+            for (key, value) in entries {
+                walk(key);
+                walk(value);
+            }
+        }
+        Expr::Variant { fields, .. } | Expr::RecordLit { fields, .. } => {
+            for (_, value) in fields {
+                walk(value);
+            }
+        }
+        Expr::Keyword { value, .. } => walk(value),
+        Expr::Cast { value, ty } => {
+            walk(value);
+            walk(ty);
+        }
+        Expr::InstanceOf { value, ty } => {
+            walk(value);
+            walk(ty);
+        }
+        Expr::Coalesce { value, fallback } => {
+            walk(value);
+            walk(fallback);
+        }
+        Expr::Ternary {
+            condition,
+            then,
+            otherwise,
+        } => {
+            walk(condition);
+            walk(then);
+            walk(otherwise);
+        }
+        Expr::Lambda { body, .. } => walk(body),
+        Expr::Comprehension {
+            element,
+            iterable,
+            condition,
+            ..
+        } => {
+            walk(element);
+            walk(iterable);
+            if let Some(condition) = condition {
+                walk(condition);
+            }
+        }
         _ => {}
     }
     let owned = std::mem::replace(expr, Expr::Null);
@@ -457,7 +508,12 @@ fn typescript(expr: Expr) -> Expr {
         // target truncates natively. `Math.floor` says the same thing for the
         // non-negative operands real code feeds it, and both read back as the
         // operator, so a round trip is the identity.
-        (["Math", "trunc" | "floor"], [Expr::Binary { op: BinaryOp::Div, .. }]) => {
+        (
+            ["Math", "trunc" | "floor"],
+            [Expr::Binary {
+                op: BinaryOp::Div, ..
+            }],
+        ) => {
             let Expr::Call { args, .. } = expr else {
                 unreachable!("call_parts said so");
             };
@@ -610,9 +666,7 @@ fn zig_function(f: &mut Function) {
                 writers.push(name);
             }
             Stmt::Let { name, value, .. }
-                if value
-                    .as_ref()
-                    .is_some_and(|v| mentions_any(v, &writers)) =>
+                if value.as_ref().is_some_and(|v| mentions_any(v, &writers)) =>
             {
                 writers.push(name);
             }
@@ -634,9 +688,9 @@ fn zig_function(f: &mut Function) {
     // and its error-union return is the same plumbing. The canonical main takes
     // nothing and returns nothing.
     if f.name == "main" && f.receiver.is_none() {
-        f.params.retain(|p| {
-            !matches!(&p.ty, Some(Type::Named { name, .. }) if name.contains("process.Init"))
-        });
+        f.params.retain(
+            |p| !matches!(&p.ty, Some(Type::Named { name, .. }) if name.contains("process.Init")),
+        );
         f.returns = None;
         // The `return Ok(())` the reader synthesised for an error-union main has
         // nothing to say once main returns nothing.
@@ -733,7 +787,10 @@ fn zig_print(e: &Expr, writers: &[String]) -> Option<Expr> {
     };
     let through_writer = matches!(&**callee, Expr::Field { of, name }
         if name == "print" && matches!(&**of, Expr::Name(n) if writers.contains(n)));
-    let through_debug = matches!(call_path(callee).as_deref(), Some(["std", "debug", "print"]));
+    let through_debug = matches!(
+        call_path(callee).as_deref(),
+        Some(["std", "debug", "print"])
+    );
     if !through_writer && !through_debug {
         return None;
     }
@@ -836,9 +893,7 @@ fn call_path(callee: &Expr) -> Option<Vec<&str>> {
 fn mentions_stdout(e: &Expr) -> bool {
     match e {
         Expr::Field { of, name } => name == "stdout" || mentions_stdout(of),
-        Expr::Call { callee, args } => {
-            mentions_stdout(callee) || args.iter().any(mentions_stdout)
-        }
+        Expr::Call { callee, args } => mentions_stdout(callee) || args.iter().any(mentions_stdout),
         Expr::Name(name) => name == "getStdOut",
         Expr::Unary { operand, .. } => mentions_stdout(operand),
         _ => false,
@@ -938,9 +993,7 @@ fn settle_result_statements(body: &mut Vec<Stmt>) {
                     // Zig's failure value is `error.negative`, and the name after
                     // the dot is the message every other language throws.
                     let payload = match args.remove(0) {
-                        Expr::Field { of, name }
-                            if matches!(&*of, Expr::Name(n) if n == "error") =>
-                        {
+                        Expr::Field { of, name } if matches!(&*of, Expr::Name(n) if n == "error") => {
                             Expr::Str(name)
                         }
                         other => unwrap_str_call(other),
@@ -1385,6 +1438,53 @@ fn strip_lowering_helpers(module: &mut Module) {
 
 /// `std.mem.eql(u8, a, b)` is the string equality every other language spells `==`.
 fn zig_exprs(expr: Expr) -> Expr {
+    // A bare tag no sum answered for: the tag's name is what the value says,
+    // and a string of it is what every target can hold. A call through one is
+    // a plain call by the member's name; an anonymous record is a map of its
+    // fields.
+    match expr {
+        Expr::Variant { sum, name, fields } if sum.is_empty() && fields.is_empty() => {
+            return Expr::Str(name);
+        }
+        // The rewrite runs bottom-up, so a dot-literal callee arrives already
+        // settled into its tag string: `.fromPath(a)` is `"fromPath"(a)` by
+        // now, and no legal Zig calls a string literal, so the string can only
+        // be that tag. The call goes by the member's name.
+        Expr::Call { callee, args } => {
+            if let Expr::Str(name) = callee.as_ref() {
+                return zig_exprs_tail(Expr::Call {
+                    callee: Box::new(Expr::Name(name.clone())),
+                    args,
+                });
+            }
+            return zig_exprs_tail(Expr::Call { callee, args });
+        }
+        Expr::Variant { sum, name, fields } if sum.is_empty() => {
+            return Expr::MapLit(vec![(Expr::Str(name), single_variant_value(fields))]);
+        }
+        Expr::RecordLit { ty, fields } if ty.is_empty() => {
+            return Expr::MapLit(
+                fields
+                    .into_iter()
+                    .map(|(name, value)| (Expr::Str(name), value))
+                    .collect(),
+            );
+        }
+        other => return zig_exprs_tail(other),
+    }
+}
+
+/// The one payload a settle-candidate variant carries, unwrapped from its
+/// `value` slot.
+fn single_variant_value(fields: Vec<(String, Expr)>) -> Expr {
+    fields
+        .into_iter()
+        .next()
+        .map(|(_, value)| value)
+        .unwrap_or(Expr::Null)
+}
+
+fn zig_exprs_tail(expr: Expr) -> Expr {
     // `std.mem.indexOf(u8, hay, needle) != null` is containment.
     if let Expr::Binary {
         op: BinaryOp::Ne,

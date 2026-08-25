@@ -857,6 +857,10 @@ impl BinaryOp {
 pub enum UnaryOp {
     Not,
     Neg,
+    /// Zig's `x.?`, TypeScript's `x!`: the value is there, and saying so is an
+    /// assertion. Targets without the assertion use the value directly and
+    /// fail where the source would have trapped.
+    Unwrap,
 }
 
 /// What a translation managed and what it did not.

@@ -483,9 +483,7 @@ fn every_translation_still_prints_the_same_transcript() {
 
         // Every translation of every source, against that transcript.
         for source in LANGUAGES {
-            let file = group
-                .join(stem(*source))
-                .with_extension(extension(*source));
+            let file = group.join(stem(*source)).with_extension(extension(*source));
             for target in LANGUAGES {
                 if target == source || !have.contains(target) {
                     continue;
@@ -544,12 +542,16 @@ fn every_translation_still_prints_the_same_transcript() {
                 .find(|f| f.starts_with(cell))
                 .cloned()
                 .unwrap_or_default();
-            wrong.push(format!("{cell}: pinned as passing and no longer does. {detail}"));
+            wrong.push(format!(
+                "{cell}: pinned as passing and no longer does. {detail}"
+            ));
         }
     }
     for cell in &passing {
         if !pinned.contains(cell) {
-            wrong.push(format!("{cell}: passes and is not pinned; add it to PASSING."));
+            wrong.push(format!(
+                "{cell}: passes and is not pinned; add it to PASSING."
+            ));
         }
     }
     assert!(

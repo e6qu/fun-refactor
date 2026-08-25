@@ -3178,8 +3178,10 @@ mod python {
                         .field(clause, "consequence")
                         .map(|b| block(cx, b))
                         .unwrap_or_default();
-                    let texts: Vec<String> =
-                        patterns.iter().map(|p| cx.text(*p).trim().to_string()).collect();
+                    let texts: Vec<String> = patterns
+                        .iter()
+                        .map(|p| cx.text(*p).trim().to_string())
+                        .collect();
                     if texts.iter().any(|t| t == "_") {
                         default = consequence;
                         continue;
@@ -3555,7 +3557,9 @@ mod python {
                         callee: Box::new(Expr::Field {
                             of: Box::new(
                                 cx.field(node, "right")
-                                    .or_else(|| node.child(node.child_count().saturating_sub(1) as u32))
+                                    .or_else(|| {
+                                        node.child(node.child_count().saturating_sub(1) as u32)
+                                    })
                                     .map(|r| expr(cx, r))
                                     .unwrap_or(Expr::Null)
                                     .into(),
@@ -4392,11 +4396,9 @@ mod go {
                             let patterns = cx
                                 .field(*child, "value")
                                 .map(|v| match v.kind() {
-                                    "expression_list" => cx
-                                        .children(v)
-                                        .into_iter()
-                                        .map(|p| expr(cx, p))
-                                        .collect(),
+                                    "expression_list" => {
+                                        cx.children(v).into_iter().map(|p| expr(cx, p)).collect()
+                                    }
                                     _ => vec![expr(cx, v)],
                                 })
                                 .unwrap_or_default();
@@ -5449,8 +5451,7 @@ mod java {
                     // `break` closes a group the way the IR already assumes.
                     if matches!(body.last(), Some(Stmt::Break)) {
                         body.pop();
-                    } else if !matches!(body.last(), Some(Stmt::Return(_)) | Some(Stmt::Throw(_)))
-                    {
+                    } else if !matches!(body.last(), Some(Stmt::Return(_)) | Some(Stmt::Throw(_))) {
                         // Anything else falls through into the next group, which the
                         // shared switch has no way to say.
                         return Stmt::Unsupported(cx.unsupported(node));
@@ -5874,6 +5875,52 @@ mod zig {
         Some((name, value))
     }
 
+    /// Does this value's tree hold an `error{...}` set declaration?
+    fn contains_error_set(node: Node<'_>) -> bool {
+        if node.kind() == "error_set_declaration" {
+            return true;
+        }
+        let mut cursor = node.walk();
+        let children: Vec<Node> = node.children(&mut cursor).collect();
+        children.into_iter().any(contains_error_set)
+    }
+
+    /// Qualify a dot literal against the annotation that names its type.
+    fn qualify_dot_literal(read: Expr, annotation: &str) -> Expr {
+        let owner = || Box::new(Expr::Name(annotation.to_string()));
+        match read {
+            Expr::Variant { sum, name, fields } if sum.is_empty() && fields.is_empty() => {
+                Expr::Field { of: owner(), name }
+            }
+            Expr::Call { callee, args } => match *callee {
+                Expr::Variant { sum, name, fields } if sum.is_empty() && fields.is_empty() => {
+                    Expr::Call {
+                        callee: Box::new(Expr::Field { of: owner(), name }),
+                        args,
+                    }
+                }
+                other => Expr::Call {
+                    callee: Box::new(other),
+                    args,
+                },
+            },
+            Expr::RecordLit { ty, fields } if ty.is_empty() => Expr::New {
+                callee: owner(),
+                args: fields
+                    .into_iter()
+                    .map(|(name, value)| Expr::Keyword {
+                        name,
+                        value: Box::new(value),
+                    })
+                    .collect(),
+            },
+            Expr::Propagate(inner) => {
+                Expr::Propagate(Box::new(qualify_dot_literal(*inner, annotation)))
+            }
+            other => other,
+        }
+    }
+
     /// `.empty`: a field expression with no object, only the leading dot.
     fn dot_literal(cx: &Cx, node: Node<'_>) -> Option<String> {
         if node.kind() != "field_expression" {
@@ -6221,7 +6268,8 @@ mod zig {
         let value = after(&parts, "=", ";")?;
 
         // `const std = @import("std");` is a dependency. It is not a constant.
-        if value.kind() == "builtin_function" && cx.text(value).starts_with("@import") {
+        // Neither is `const X = @import("m.zig").X;`, which reaches into one.
+        if cx.text(value).starts_with("@import") {
             return Some(Item::Import {
                 text: cx.text(node),
                 line: cx.line(node),
@@ -6938,6 +6986,11 @@ mod zig {
             "comment" => Stmt::Comment(super::uncomment(&cx.text(node))),
             "expression_statement" => match cx.children(node).first().copied() {
                 Some(inner) => stmt(cx, inner),
+                // `unreachable;` has no children: the statement is the claim
+                // itself, and reaching it is the failure it throws everywhere.
+                None if cx.text(node).starts_with("unreachable") => {
+                    Stmt::Throw(Expr::Str("unreachable".to_string()))
+                }
                 None => Stmt::Unsupported(cx.unsupported(node)),
             },
             "return_expression" => Stmt::Return(cx.children(node).first().map(|e| expr(cx, *e))),
@@ -6999,20 +7052,25 @@ mod zig {
                         value: expr(cx, value),
                     };
                 }
+                // An error set has no value to bind; the alias keeps the set's
+                // spelling as text, which is all a target without error sets can
+                // hold of it.
+                if contains_error_set(value) {
+                    return Stmt::Let {
+                        name: cx.text(target),
+                        ty: None,
+                        value: Some(Expr::Str(cx.text(value))),
+                        mutable: false,
+                    };
+                }
                 let mut read = expr(cx, value);
-                // `.empty` names a member of the declared type, written with the
-                // type left to inference: `var list: ArrayList(u8) = .empty;` means
-                // `ArrayList(u8).empty`. The annotation says what to qualify it
-                // with; without one there is nothing to say, and it stays carried.
-                if matches!(read, Expr::Unsupported(_)) {
-                    if let (Some(member), Some(annotated)) =
-                        (dot_literal(cx, value), after(&parts, ":", "="))
-                    {
-                        read = Expr::Field {
-                            of: Box::new(Expr::Name(cx.text(annotated).trim().to_string())),
-                            name: member,
-                        };
-                    }
+                // A dot literal names a member of the declared type, written with
+                // the type left to inference: `var list: ArrayList(u8) = .empty;`
+                // means `ArrayList(u8).empty`, `.init(x)` means the type's `init`,
+                // and `.{ .a = 1 }` builds the type by naming its fields. The
+                // annotation says what to qualify each with.
+                if let Some(annotated) = after(&parts, ":", "=") {
+                    read = qualify_dot_literal(read, cx.text(annotated).trim());
                 }
                 Stmt::Let {
                     name: cx.text(target),
@@ -7069,8 +7127,7 @@ mod zig {
                             .into_iter()
                             .find(|c| c.kind() == "identifier")
                             .map(|c| cx.text(c));
-                        let value =
-                            children.first().map(|c| expr(cx, *c)).unwrap_or(Expr::Null);
+                        let value = children.first().map(|c| expr(cx, *c)).unwrap_or(Expr::Null);
                         let mut tried = vec![match cx.text(*binding).as_str() {
                             "_" => Stmt::Expr(value),
                             bound => Stmt::Let {
@@ -7323,6 +7380,20 @@ mod zig {
                         of: Box::new(expr(cx, *of)),
                         name: cx.text(*name),
                     },
+                    // `.foo` with no object: a member of whatever the position
+                    // expects. The settle pass attributes it to a sum where one
+                    // answers; unattributed it stays a bare tag.
+                    (Some(member), _)
+                        if parts.len() == 1
+                            && member.kind() == "identifier"
+                            && cx.text(node).starts_with('.') =>
+                    {
+                        Expr::Variant {
+                            sum: String::new(),
+                            name: cx.text(*member),
+                            fields: Vec::new(),
+                        }
+                    }
                     _ => Expr::Unsupported(cx.unsupported(node)),
                 }
             }
@@ -7362,9 +7433,7 @@ mod zig {
                 }
                 // `null` is a keyword here, not a named node, so a null
                 // comparison has one named operand and the keyword on the side.
-                let null_side = parts
-                    .iter()
-                    .any(|c| !c.is_named() && cx.text(*c) == "null");
+                let null_side = parts.iter().any(|c| !c.is_named() && cx.text(*c) == "null");
                 match super::binary_op(&operator) {
                     Some(op) if operands.len() == 2 => Expr::Binary {
                         op,
@@ -7379,6 +7448,25 @@ mod zig {
                     _ => Expr::Unsupported(cx.unsupported(node)),
                 }
             }
+            // `x.?` asserts the optional holds a value and uses it.
+            "null_coercion_expression" => match cx.children(node).first() {
+                Some(inner) => Expr::Unary {
+                    op: UnaryOp::Unwrap,
+                    operand: Box::new(expr(cx, *inner)),
+                },
+                None => Expr::Unsupported(cx.unsupported(node)),
+            },
+            // `\\line` continuation lines, joined by the newlines they imply.
+            "multiline_string" => {
+                let text = cx.text(node);
+                let joined: Vec<&str> = text
+                    .lines()
+                    .map(|l| l.trim_start().trim_start_matches("\\\\"))
+                    .collect();
+                Expr::Str(joined.join("\n"))
+            }
+            // `{}` in value position is the void value.
+            "block" if cx.children(node).is_empty() => Expr::Null,
             "unary_expression" => {
                 let parts = all(node);
                 let operand = parts
@@ -7499,9 +7587,17 @@ mod zig {
                         }
                         None => Expr::Unsupported(cx.unsupported(node)),
                     },
-                    // Several assignments are a record built anonymously; the
-                    // settle pass has nothing to attribute one to, so it carries.
-                    _ => Expr::Unsupported(cx.unsupported(node)),
+                    // Several assignments are a record built anonymously. The
+                    // annotation on the binding names its type; without one it
+                    // settles to a map of its fields.
+                    many => Expr::RecordLit {
+                        ty: String::new(),
+                        fields: many
+                            .iter()
+                            .filter_map(|a| variant_field(cx, *a))
+                            .map(|(name, value)| (name, expr(cx, value)))
+                            .collect(),
+                    },
                 }
             }
             // The cast family reasserts a type over a value, which every language
@@ -7548,6 +7644,38 @@ mod zig {
                         left: Box::new(expr(cx, *left)),
                         right: Box::new(expr(cx, *right)),
                     },
+                    // The single-argument casts reassert a type the annotation
+                    // already names; the value itself is what crosses.
+                    (
+                        "@intCast" | "@truncate" | "@enumFromInt" | "@intFromEnum" | "@intFromBool"
+                        | "@errorCast" | "@ptrCast" | "@constCast",
+                        [value],
+                    ) => expr(cx, *value),
+                    ("@intFromFloat", [value]) => Expr::Call {
+                        callee: Box::new(Expr::Name("int".to_string())),
+                        args: vec![expr(cx, *value)],
+                    },
+                    ("@floatFromInt", [value]) => Expr::Call {
+                        callee: Box::new(Expr::Name("float".to_string())),
+                        args: vec![expr(cx, *value)],
+                    },
+                    // A source location is a description of a place; the line is
+                    // the part every target can hold.
+                    ("@src", []) => Expr::Str(format!("line {}", cx.line(node))),
+                    ("@typeName", [ty]) => Expr::Str(cx.text(*ty)),
+                    // `@import("x").Y` reaches into a module by its stem, and the
+                    // stem is how the other languages name an imported module.
+                    ("@import", [path]) => {
+                        let stem = cx
+                            .text(*path)
+                            .trim_matches('"')
+                            .rsplit('/')
+                            .next()
+                            .unwrap_or_default()
+                            .trim_end_matches(".zig")
+                            .to_string();
+                        Expr::Name(stem)
+                    }
                     _ => Expr::Unsupported(cx.unsupported(node)),
                 }
             }
@@ -9175,11 +9303,19 @@ mod typescript {
                     .map(|a| cx.children(a).into_iter().map(|n| expr(cx, n)).collect())
                     .unwrap_or_default(),
             },
-            "as_expression" | "satisfies_expression" | "non_null_expression" => cx
+            "as_expression" | "satisfies_expression" => cx
                 .children(node)
                 .first()
                 .map(|n| expr(cx, *n))
                 .unwrap_or(Expr::Null),
+            // `x!` asserts the value is there and uses it.
+            "non_null_expression" => match cx.children(node).first() {
+                Some(inner) => Expr::Unary {
+                    op: UnaryOp::Unwrap,
+                    operand: Box::new(expr(cx, *inner)),
+                },
+                None => Expr::Null,
+            },
             // `(x) => e`, the one-expression arrow. A block body is a function
             // that wants a name. A type, a default or a pattern in the parameter
             // list is more than the shared shape. All of those stay carried.
@@ -9972,6 +10108,9 @@ fn settle_variants(module: &mut Module) {
                 // only the callee left the marker being called, and `None()` ran in
                 // Python. The whole call carries.
                 let path_callee = match callee.as_ref() {
+                    // An anonymous candidate (`.init(x)`, sum still empty) is a
+                    // dot-literal call; normalize settles it by member name.
+                    Expr::Variant { sum, .. } if sum.is_empty() => None,
                     Expr::Variant { sum, name, .. } => Some(format!("{sum}::{name}")),
                     Expr::Unsupported(u) if u.construct == "a name reached through a path" => {
                         Some(u.source.clone())
@@ -10060,16 +10199,8 @@ fn settle_variants(module: &mut Module) {
                         .filter(|(_, variants)| variants.contains(name.as_str()))
                         .map(|(owner, _)| owner)
                         .collect();
-                    match answering.as_slice() {
-                        [only] => *sum = (*only).clone(),
-                        _ => {
-                            let source = format!(".{{ .{name} = .. }}");
-                            *e = Expr::Unsupported(Unsupported {
-                                construct: "an anonymous variant".to_string(),
-                                source,
-                                line: 0,
-                            });
-                        }
+                    if let [only] = answering.as_slice() {
+                        *sum = (*only).clone();
                     }
                     return;
                 }
