@@ -548,9 +548,9 @@ pub enum Stmt {
     /// that were never gaps.
     Comment(String),
     /// A function declared inside another: Zig's `const f = struct { fn f… }.f;`
-    /// idiom, Python's nested `def`. Every target has a local spelling —
+    /// idiom, Python's nested `def`. Every target has a local spelling:
     /// nested functions, function literals, or an anonymous object holding
-    /// one method — and the binding's name is the function's.
+    /// one method. The binding's name is the function's.
     LocalFunction(Box<Function>),
     /// A braced block: its statements, scoped where the target scopes blocks.
     ///
@@ -919,18 +919,14 @@ pub struct Fidelity {
 }
 
 impl Fidelity {
-    /// Did everything cross with a defined lowering?
-    ///
-    /// A translation that read *nothing* falls short of complete. Without the first
-    /// clause, an empty file reports "every signature carried across with its types
-    /// intact", which is true and misleading.
-    ///
-    /// A signature naming a type this tool does not know is still complete: the
-    /// name crosses verbatim, which is the defined behavior for foreign types,
-    /// and the count stays in the report as information. The same holds for a
-    /// calling convention the target cannot keep — named arguments passing by
-    /// position is a defined lowering, noted in the output — so neither count
-    /// gates completeness. Only a construct carried verbatim does.
+    /// Did everything cross with a defined lowering? A translation that read *nothing* falls
+    /// short of complete. Without the first clause, an empty file reports "every signature
+    /// carried across with its types intact", which is true and misleading. A signature naming
+    /// a type this tool does not know is still complete: the name crosses verbatim, which is
+    /// the defined behavior for foreign types. And the count stays in the report as
+    /// information. The same holds for a calling convention the target cannot keep. Named
+    /// arguments passing by position is a defined lowering, noted in the output, so neither
+    /// count gates completeness. Only a construct carried verbatim does.
     pub fn is_complete(&self) -> bool {
         self.translated() > 0 && self.carried_verbatim == 0
     }

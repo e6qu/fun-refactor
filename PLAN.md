@@ -668,23 +668,23 @@ endpoints the document declared.
 
 ## The completion of translation
 
-The goal, in force: every one of the 30 directed pairs among Rust, Go, Java, Python,
-TypeScript and Zig translates the corpora and a conformance suite with nothing carried
-verbatim, every output compiling under its target's real compiler, and conformance
-programs printing byte-identical transcripts in all six renderings. One branch, one PR.
+The goal, in force: all 30 directed pairs among Rust, Go, Java, Python, TypeScript
+and Zig translate the corpora and a conformance suite. Nothing is carried
+verbatim. Every output compiles under its target's real compiler. The conformance
+programs print byte-identical transcripts in all six renderings. One branch, one PR.
 
 Completeness is measured against the suites and ratcheted at zero, never asserted about
 all programs. Arbitrary `comptime` and proc macros are Turing-complete metaprogramming;
 outside the suites they carry loudly, and that stays. Rust as a target uses a defined
 ownership dialect: owned values, clone over borrow. Dependencies never cross; the
-conformance programs are dependency-free by construction, which is what makes execution
+conformance programs are dependency-free by construction, which makes execution
 equality checkable.
 
 ### Phase 0: measurement first
 
 A differential-execution harness under `tests/conformance/`: one program per language
-per construct group (bindings, control flow, errors, cleanup, dispatch, collections,
-strings, async), each printing a deterministic transcript. The harness translates each
+per construct group, each printing a deterministic transcript. The groups: bindings,
+control flow, errors, cleanup, dispatch, collections, strings, async. The harness translates each
 program to the other five languages, compiles what it can, runs what it compiled, and
 diffs stdout. A compiler this machine lacks is named in the output; green never means
 unchecked. The corpus sweep additionally prints its per-pair, per-construct table, so
@@ -728,16 +728,16 @@ data regenerates; BUGS.md records what the phases found.
 
 ### The completion of translation, done
 
-All five phases landed on one branch. The conformance suite holds eight groups —
-bindings, control, errors, cleanup, dispatch, collections, strings, asynchrony — six
-programs each, and all 240 translated cells compile, run, and print the transcript
+All five phases landed on one branch. The conformance suite holds eight groups
+(bindings, control, errors, cleanup, dispatch, collections, strings, asynchrony), six
+programs each. All 240 translated cells compile, run, and print the transcript
 byte-identical to their source's. The corpus sweep's CARRIED ledger went from 1,756
-carried constructs to zero and became a hard assertion: nothing on the corpora is
+carried constructs to zero and became a hard assertion. Nothing on the corpora is
 carried verbatim, every construct has a defined lowering, and `fidelity.is_complete()`
 gates every corpus file × target. A new `corpus_compile` test hands every translated
-corpus file to its target's real toolchain — `py_compile`, `tsc --noCheck`, `gofmt -e`,
-`zig ast-check`, `rustfmt`, `javac` with only foreign-symbol errors excused — and a
-toolchain that is absent is named in the output, never skipped silently.
+corpus file to its target's real toolchain. The gates: `py_compile`, `tsc --noCheck`,
+`gofmt -e`, `zig ast-check`, `rustfmt`, and `javac` with only foreign-symbol errors
+excused. A toolchain that is absent is named in the output, never skipped silently.
 
 The lowerings that got it there, in the order the ledger surfaced them: the error-model
 triangle in all directions; `.?`/`x!` as an Unwrap unary; Zig dot literals resolved by

@@ -1,11 +1,9 @@
-//! A chain of `+` with a string in it builds a string, all the way along.
-//!
-//! Java and TypeScript turn the number into text at every `+`; Python raises
-//! instead. The chain settles into a template at the read, so every target
-//! writes its own interpolation and no coercion can be forgotten. The chain is
-//! left-associative and the fold respects it: a string-free subtree on the
-//! left is arithmetic the source runs first, so `1 + 2 + "x"` interpolates
-//! `1 + 2` as one expression and prints `3x`, the way Java does.
+//! A chain of `+` with a string in it builds a string, all the way along. Java and TypeScript
+//! turn the number into text at every `+`; Python raises instead. The chain settles into a
+//! template at the read, so every target writes its own interpolation and no coercion can be
+//! forgotten. The chain is left-associative and the fold respects it: a string-free subtree on
+//! the left is arithmetic the source runs first. So `1 + 2 + "x"` interpolates `1 + 2` as one
+//! expression and prints `3x`, the way Java does.
 
 mod common;
 use common::{require_on_ci, Toolchain};

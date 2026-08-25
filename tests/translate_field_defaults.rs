@@ -91,9 +91,9 @@ fn a_java_field_keeps_the_value_it_was_declared_with() {
 
 #[test]
 fn rust_keeps_the_value_in_a_default_impl() {
-    // A struct field declares no value in Rust; `Default` is where the
-    // language keeps a record's starting values, so the defaults live there
-    // and a `..Default::default()` construction gets them all.
+    // A struct field declares no value in Rust. `Default` is where the language keeps a
+    // record's starting values, so the defaults live there and a `..Default::default()`
+    // construction gets them all.
     let tmp = tempfile::tempdir().expect("a temporary directory");
     let out = translated(tmp.path(), "policy.py", POLICY_PY, Language::Rust);
     assert!(out.contains("impl Default for Policy {"), "{out}");

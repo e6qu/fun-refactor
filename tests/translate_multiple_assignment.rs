@@ -92,8 +92,8 @@ fn a_python_swap_crosses_the_other_way() {
 
 #[test]
 fn java_binds_the_value_once_and_takes_its_parts() {
-    // Java has no tuple statement; the value binds once and the names take
-    // its parts by position, which is how the List a tuple travels as answers.
+    // Java has no tuple statement. The value binds once and the names take its parts by
+    // position, which is how the List a tuple travels as answers.
     let tmp = tempfile::tempdir().expect("a temporary directory");
     let out = translated(tmp.path(), "pair.go", PAIR_GO, Language::Java);
     assert!(

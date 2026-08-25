@@ -1,18 +1,18 @@
 //! Every translated corpus file, accepted by its target's real toolchain.
 //!
-//! The corpora import worlds this repository does not hold — SQLAlchemy, the
-//! Zig standard library, Gson's neighbours — so full semantic compilation is
+//! The corpora import worlds this repository does not hold: SQLAlchemy, the
+//! Zig standard library, Gson's neighbours. Full semantic compilation is
 //! not on the table for any target that resolves names at compile time. What
 //! this holds instead is the strongest check each real toolchain can make of a
 //! file whose dependencies live elsewhere:
 //!
-//! - Python: `py_compile`, the complete compiler — Python resolves at run time.
+//! - Python: `py_compile`, the complete compiler, since Python resolves at run time.
 //! - TypeScript: `tsc --noEmit --noCheck`, the real front end without the type
-//!   checker — the checker would demand the foreign modules.
+//!   checker, which would demand the foreign modules.
 //! - Go: `gofmt -e`, the toolchain's own parser with every error reported.
 //! - Zig: `zig ast-check`, the compiler's AST-level semantic pass.
 //! - Rust: `rustfmt`, which parses with the compiler's grammar.
-//! - Java: `javac`, accepting only resolution errors — a missing symbol names
+//! - Java: `javac`, accepting only resolution errors. A missing symbol names
 //!   the foreign world; anything else names a defect in the writer.
 //!
 //! A toolchain that is not installed is named loudly in the output and

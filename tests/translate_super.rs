@@ -52,7 +52,7 @@ fn a_python_super_method_call_is_typescripts_super_dot() {
     let tmp = tempfile::tempdir().unwrap();
     let out = translated(tmp.path(), "labels.py", source, Language::TypeScript);
     assert!(
-        out.contains("super.label() + \"!\""),
+        out.contains("`${super.label()}!`"),
         "a base method is reached through the keyword.\n{out}"
     );
 }
@@ -112,7 +112,7 @@ fn a_typescript_super_method_call_comes_home_as_pythons() {
     let tmp = tempfile::tempdir().unwrap();
     let out = translated(tmp.path(), "labels.ts", source, Language::Python);
     assert!(
-        out.contains("super().label() + \"!\""),
+        out.contains("f\"{super().label()}!\""),
         "the reach through the base keeps its meaning.\n{out}"
     );
 }

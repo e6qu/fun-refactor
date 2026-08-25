@@ -1,14 +1,11 @@
-//! Each language's spelling of the shared builtins, folded into one canonical form.
-//!
-//! The IR speaks one small vocabulary for the operations every language has: `print`,
-//! `len`, `str`, and the rest of the names the writers' builtin tables spell out per
-//! target. The Rust reader already folds `println!` into that vocabulary. This pass
-//! does the same for the languages whose print is an ordinary call: `fmt.Println` and
-//! its family, `console.log`, `System.out.println`.
-//!
-//! Folding happens here, after the read, rather than inside each reader: the readers
-//! stay faithful to their grammars, and the vocabulary lives in one place beside the
-//! table of what it contains.
+//! Each language's spelling of the shared builtins, folded into one canonical form. The IR
+//! speaks one small vocabulary for the operations every language has: `print`, `len`, `str`.
+//! And the rest of the names the writers' builtin tables spell out per target. The Rust reader
+//! already folds `println!` into that vocabulary. This pass does the same for the languages
+//! whose print is an ordinary call: `fmt.Println` and its family, `console.log`,
+//! `System.out.println`. Folding happens here, after the read, rather than inside each reader:
+//! the readers stay faithful to their grammars. And the vocabulary lives in one place beside
+//! the table of what it contains.
 
 use super::ir::*;
 use crate::lang::Language;
@@ -515,10 +512,10 @@ fn typescript(expr: Expr) -> Expr {
         }
         // `word.includes(x)` and the case methods, under their canonical names.
         (["console", "error"], _) => expr,
-        // `Math.trunc(a / b)` is how this language spells the division every other
-        // target truncates natively. `Math.floor` says the same thing for the
-        // non-negative operands real code feeds it, and both read back as the
-        // operator, so a round trip is the identity.
+        // `Math.trunc(a / b)` is how this language spells the division every other target
+        // truncates natively. `Math.floor` says the same thing for the non-negative operands
+        // real code feeds it, and both read back as the operator. So a round trip is the
+        // identity.
         (
             ["Math", "trunc" | "floor"],
             [Expr::Binary {
@@ -588,12 +585,10 @@ fn java(expr: Expr) -> Expr {
     }
 }
 
-/// A `+` chain with a string literal in it, as a template.
-///
-/// `"n " + n` concatenates by converting in Java and TypeScript, and a template says
-/// that portably: the writers spell it as an f-string, a template literal, `format!`,
-/// or `Sprintf`. A chain with no literal stays as written, since `+` on two unknowns
-/// may be arithmetic.
+/// A `+` chain with a string literal in it, as a template. `"n " + n` concatenates by
+/// converting in Java and TypeScript. And a template says that portably: the writers spell it
+/// as an f-string, a template literal, `format!`, or `Sprintf`. A chain with no literal stays
+/// as written, since `+` on two unknowns may be arithmetic.
 fn fold_concat(expr: &Expr) -> Option<Expr> {
     /// Does any part of this `+` chain say string?
     fn stringy(expr: &Expr) -> bool {
@@ -607,9 +602,9 @@ fn fold_concat(expr: &Expr) -> Option<Expr> {
             _ => false,
         }
     }
-    // A subtree with no string in it is arithmetic the source runs first:
-    // `1 + 2 + "x"` prints `3x`, so the numeric prefix stays one leaf and
-    // one interpolation instead of flattening into digits.
+    // A subtree with no string in it is arithmetic the source runs first: `1 + 2 + "x"` prints
+    // `3x`. So the numeric prefix stays one leaf and one interpolation instead of flattening
+    // into digits.
     fn leaves<'a>(expr: &'a Expr, out: &mut Vec<&'a Expr>) {
         match expr {
             Expr::Binary {
@@ -631,8 +626,8 @@ fn fold_concat(expr: &Expr) -> Option<Expr> {
     };
     let mut flat = Vec::new();
     leaves(expr, &mut flat);
-    // A template in the chain is a string too: the fold runs bottom-up, so the inner
-    // half of `"q " + q + " r " + r` is already a template when the outer `+` arrives.
+    // A template in the chain is a string too: the fold runs bottom-up. So the inner half of
+    // `"q " + q + " r " + r` is already a template when the outer `+` arrives.
     if !flat
         .iter()
         .any(|leaf| matches!(leaf, Expr::Str(_) | Expr::Template(_)))
@@ -656,13 +651,11 @@ fn fold_concat(expr: &Expr) -> Option<Expr> {
 
 // ------------------------------------------------------------------------ Zig
 
-/// Zig's printing, folded to `print`, with the writer plumbing it runs on dropped.
-///
-/// A Zig program prints through a writer it has to build: a buffer, a writer over
-/// stdout, an interface pointer, a flush. None of that is what the program *says*; it
-/// is how Zig says it. The bindings that exist only to carry the writer are dropped,
-/// the `print` calls through them become the canonical `print`, and `std.debug.print`
-/// folds the same way.
+/// Zig's printing, folded to `print`, with the writer plumbing it runs on dropped. A Zig
+/// program prints through a writer it has to build: a buffer, a writer over stdout, an
+/// interface pointer, a flush. The program does not *say* any of that; it is how Zig says it.
+/// The bindings that exist only to carry the writer are dropped, the `print` calls through them
+/// become the canonical `print`. And `std.debug.print` folds the same way.
 fn zig_module(module: &mut Module) {
     for item in &mut module.items {
         match item {
@@ -956,14 +949,13 @@ fn collect_names(e: &Expr, out: &mut Vec<String>) {
     }
 }
 
-// -------------------------------------------------------- the Result idiom
+// -------------------------------------------------------- the Result idiom.
 
-/// A function returning `Result<T, message>`, said the way the exception languages
-/// say it: the return type is `T`, `Err` is a throw, `Ok` unwraps, and `?` re-throws.
-///
-/// The IR keeps one canonical form for failure, and it is the exception one: three of
-/// the six writers spell it natively, and the other three lower it back. A module
-/// that mixes idioms is its own worst reader.
+/// A function returning `Result<T, message>`, said the way the exception languages say it: the
+/// return type is `T`, `Err` is a throw, `Ok` unwraps. And `?` re-throws. The IR keeps one
+/// canonical form for failure, and it is the exception one: three of the six writers spell it
+/// natively. And the other three lower it back. A module that mixes idioms is its own worst
+/// reader.
 fn settle_result_idiom(module: &mut Module) {
     // A declared error enum's variants are failure names, and a name is a
     // message: `Err(ParseError::Empty)` throws "Empty", the same lowering the
@@ -990,11 +982,10 @@ fn settle_result_idiom(module: &mut Module) {
             if name != "Result" || args.len() != 2 {
                 continue;
             }
-            // Whatever names the failure side, the failure is the channel:
-            // the canonical model carries its message, and a typed error's
-            // variants dissolve into the names they throw. Preserving a
-            // foreign error type here left half-settled signatures no target
-            // could compile.
+            // Whatever names the failure side, the failure is the channel: the canonical model
+            // carries its message. And a typed error's variants dissolve into the names they
+            // throw. Preserving a foreign error type here left half-settled signatures no
+            // target could compile.
             let ok = args[0].clone();
             f.returns = match ok {
                 Type::Unit => None,
@@ -1004,7 +995,7 @@ fn settle_result_idiom(module: &mut Module) {
         }
     }
     // A throw of a qualified failure name throws the name: the canonical
-    // failure is its message. After the Ok/Err settling, which is what makes
+    // failure is its message. It runs after the Ok/Err settling, because
     // the throws.
     for item in module.items.iter_mut() {
         let functions: Vec<&mut Function> = match item {
@@ -1016,11 +1007,6 @@ fn settle_result_idiom(module: &mut Module) {
             settle_thrown_names(&mut f.body, &declared_sums);
         }
     }
-}
-
-/// Is this the `error`-flavoured type Zig's reader spells for an error set?
-fn error_name(ty: &Type) -> bool {
-    matches!(ty, Type::Named { name, args } if args.is_empty() && name.contains("error"))
 }
 
 /// `throw ParseError.Empty` throws "Empty": the qualified failure name of a
@@ -1107,11 +1093,10 @@ fn unwrap_str_call(e: Expr) -> Expr {
 // ------------------------------------------------- builtin exception classes
 
 /// `ValueError("x")`, `new Error("x")`, `new RuntimeException("x")`: the class is the
-/// language's furniture and the message is the meaning.
-///
-/// A throw of a builtin class around one message becomes a throw of the message, and a
-/// catch filtered on a builtin class becomes the plain catch. A class this module
-/// declares stays: that one is the program's own type, not furniture.
+/// language's furniture and the message is the meaning. A throw of a builtin class around one
+/// message becomes a throw of the message. And a catch filtered on a builtin class becomes the
+/// plain catch. A class this module declares stays: that one is the program's own type, not
+/// furniture.
 fn settle_exception_classes(module: &mut Module) {
     let declared: Vec<String> = module
         .items
@@ -1172,11 +1157,10 @@ fn settle_exception_classes(module: &mut Module) {
 
 // ------------------------------------------------------- the Go error idiom
 
-/// `(T, error)` returns and `if err != nil` checks, said as the canonical failure.
-///
-/// A function returning the pair returns `T` and throws. `return v, nil` is a plain
-/// return, `return 0, errors.New("x")` is a throw, and the bind-then-check pair is
-/// either a propagation or, when both branches carry on, a try/catch.
+/// `(T, error)` returns and `if err != nil` checks, said as the canonical failure. A function
+/// returning the pair returns `T` and throws. `return v, nil` is a plain return, `return 0,
+/// errors.New("x")` is a throw. And the bind-then-check pair is either a propagation or, when
+/// both branches carry on, a try/catch.
 fn go_module(module: &mut Module) {
     for item in &mut module.items {
         let functions: Vec<&mut Function> = match item {
@@ -1409,14 +1393,14 @@ fn rewrite_error_reads(body: &mut [Stmt], err: &str) {
 
 /// The helpers this tool's writers emit, folded back out on the way in.
 ///
-/// `frShow`, `frPrint` and `frFormat` are lowerings, not program: a translated file
+/// `frShow`, `frPrint` and `frFormat` are lowerings, not program. A translated file
 /// read back must yield the program alone, or a round trip grows a function the
 /// source never had.
 fn strip_lowering_helpers(module: &mut Module) {
     let ours = |name: &str| matches!(name, "frShow" | "frPrint" | "frFormat");
-    // The definition may not even have parsed as a function: Zig's `comptime format`
-    // parameter reads as no function at all, and the helper then sits carried. Either
-    // way it is furniture, recognised by its name.
+    // The definition may not even have parsed as a function: Zig's `comptime format` parameter
+    // reads as no function at all. And the helper then sits carried. Either way it is
+    // furniture, recognised by its name.
     module.items.retain(|item| match item {
         Item::Function(f) => !ours(&f.name),
         Item::Unsupported(u) => !["frShow", "frPrint", "frFormat"]
@@ -1518,7 +1502,7 @@ fn strip_lowering_helpers(module: &mut Module) {
 
 /// `std.mem.eql(u8, a, b)` is the string equality every other language spells `==`.
 fn zig_exprs(expr: Expr) -> Expr {
-    // A bare tag no sum answered for: the tag's name is what the value says,
+    // A bare tag no sum answered for: the value says the tag's name,
     // and a string of it is what every target can hold. A call through one is
     // a plain call by the member's name; an anonymous record is a map of its
     // fields.
@@ -1526,10 +1510,9 @@ fn zig_exprs(expr: Expr) -> Expr {
         Expr::Variant { sum, name, fields } if sum.is_empty() && fields.is_empty() => {
             Expr::Str(name)
         }
-        // The rewrite runs bottom-up, so a dot-literal callee arrives already
-        // settled into its tag string: `.fromPath(a)` is `"fromPath"(a)` by
-        // now, and no legal Zig calls a string literal, so the string can only
-        // be that tag. The call goes by the member's name.
+        // The rewrite runs bottom-up, so a dot-literal callee arrives already settled into its
+        // tag string: `.fromPath(a)` is `"fromPath"(a)` by now. And no legal Zig calls a string
+        // literal, so the string can only be that tag. The call goes by the member's name.
         Expr::Call { callee, args } => {
             if let Expr::Str(name) = callee.as_ref() {
                 return zig_exprs_tail(Expr::Call {
@@ -1634,7 +1617,7 @@ fn zig_exprs_tail(expr: Expr) -> Expr {
 /// `ArrayList` spoken canonically: `add` is `append`, `size` is `len`, `get` is an
 /// index and `set` an index assignment.
 ///
-/// Only on bindings the function shows to be lists — declared `ArrayList`/`List`, or
+/// Only on bindings the function shows to be lists: declared `ArrayList`/`List`, or
 /// initialized from a list literal or an `ArrayList` construction. `add` on anything
 /// else keeps its name.
 fn settle_java_lists(module: &mut Module) {
@@ -1841,12 +1824,10 @@ fn rewrite_java_lists(body: &mut [Stmt], lists: &[String]) {
 
 // ------------------------------------------------------ list element types
 
-/// The element type of a list, read off what the function puts into it.
-///
-/// `nums = []` says nothing, and neither does TypeScript's `number[]` about whether
-/// the numbers are whole. Every value appended being an integer literal is the
-/// function saying so, and the targets that must choose a type get the one the
-/// values chose.
+/// The element type of a list, read off what the function puts into it. `nums = []` says
+/// nothing, and neither does TypeScript's `number[]` about whether the numbers are whole. Every
+/// value appended being an integer literal is the function saying so. And the targets that must
+/// choose a type get the one the values chose.
 fn settle_list_element_types(module: &mut Module) {
     for item in &mut module.items {
         let functions: Vec<&mut Function> = match item {

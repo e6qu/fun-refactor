@@ -126,9 +126,9 @@ fn a_positional_construction_names_the_declared_records_fields() {
 
 #[test]
 fn a_construction_with_the_wrong_arity_calls_the_convention() {
-    // Two fields, one argument: mapping positions would invent a default, so
-    // the construction goes through the constructor convention instead of a
-    // field literal, and the argument it has is the argument it passes.
+    // Two fields, one argument: mapping positions would invent a default. So the construction
+    // goes through the constructor convention instead of a field literal, and the argument it
+    // has is the argument it passes.
     let source = "from dataclasses import dataclass\n\n\n@dataclass\nclass Point:\n    \
                   x: int\n    y: int\n\n\ndef partial() -> Point:\n    return Point(1)\n";
     let (_tmp, root) = workspace(&[("pp.py", source)]);

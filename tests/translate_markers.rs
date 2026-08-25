@@ -58,9 +58,8 @@ fn rusts_todo_marker_doubles_the_braces_the_source_carried() {
 
 #[test]
 fn a_composed_error_set_keeps_its_spelling_as_text() {
-    // `error{A} || B` composes error sets, which no target's error model can
-    // hold; the alias keeps the set's spelling as a string, which every
-    // target compiles and nothing carries.
+    // `error{A} || B` composes error sets, which no target's error model can hold. The alias
+    // keeps the set's spelling as a string, which every target compiles and nothing carries.
     let source = "const LoadError = error{Unsupported} || SomethingElse;\n\n\
                   pub fn answer() i64 {\n    return 7;\n}\n";
     let (_tmp, root) = workspace(&[("sets.zig", source)]);

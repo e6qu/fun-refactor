@@ -1,20 +1,15 @@
-//! Translation against code somebody shipped.
-//!
-//! `tests/transpile.rs` and `tests/nextjs.rs` use fixtures, and a fixture is written by the
-//! same person who writes the assertion, so they passed while `def create_user(*, session,
-//! user_create)` produced `export function createUser(*. Unknown, …)`, a file TypeScript will
-//! not parse.
-//!
-//! The corpus is four projects, vendored unmodified and pinned; see
-//! `tests/corpus/PROVENANCE.md`. What is asserted here is deliberately not "the output equals
-//! this string". That would freeze today's translation and break on every improvement. It is
-//! the three properties that must hold for any translation to be worth reading:
-//!
-//! 1. **It parses as what it claims to be.** Anything else is a defect in this tool.
-//! 2. **It adopts the target's conventions.** `user_create` is `userCreate` in TypeScript, and
-//!    a file that says otherwise reads as converted and not written.
-//! 3. **Nothing goes missing quietly.** Every construct that did not translate is in the output
-//!    verbatim and counted.
+//! Translation against code somebody shipped. `tests/transpile.rs` and `tests/nextjs.rs` use
+//! fixtures, and a fixture is written by the same person who writes the assertion. So they
+//! passed while `def create_user(*, session, user_create)` produced `export function
+//! createUser(*. Unknown, …)`, a file TypeScript will not parse. The corpus is four projects,
+//! vendored unmodified and pinned; see `tests/corpus/PROVENANCE.md`. What is asserted here is
+//! deliberately not "the output equals this string". That would freeze today's translation and
+//! break on every improvement. It is the three properties that must hold for any translation to
+//! be worth reading: 1. **It parses as what it claims to be.** Anything else is a defect in
+//! this tool. 2. **It adopts the target's conventions.** `user_create` is `userCreate` in
+//! TypeScript, and a file that says otherwise reads as converted and not written. 3. **Nothing
+//! goes missing quietly.** Every construct that did not translate is in the output verbatim and
+//! counted.
 
 use fun_refactor::lang::Language;
 use fun_refactor::parse::Parsers;
@@ -281,10 +276,10 @@ fn a_comment_is_translated_rather_than_reported_as_a_failure() {
 #[test]
 fn what_does_not_translate_is_in_the_output_verbatim_and_counted() {
     // Destructuring was the example here until it learned to lower, and then
-    // everything else did too: the corpus carries nothing now, and the sweep
-    // holds that at zero. The promise that stands here is the accounting one:
-    // the carried count and the markers in the file agree — both zero — and
-    // what stopped carrying is translated.
+    // everything else did too. The corpus carries nothing now, and the sweep
+    // holds that at zero. The promise that stands here is the accounting one.
+    // The carried count and the markers in the file agree, both zero, and what
+    // stopped carrying is translated.
     let (_tmp, root) = corpus("nextjs");
     let plan = nextjs::plan(&root.join("app/api/posts/[postId]/route.ts")).unwrap();
 
@@ -305,11 +300,11 @@ fn what_does_not_translate_is_in_the_output_verbatim_and_counted() {
 #[test]
 fn optional_chaining_is_never_written_away() {
     // `session?.user.id` is not `session.user.id`. No target here has optional
-    // chaining, and the plain access compiles, runs, and throws where the original
-    // returned undefined, a silent wrong answer, the one outcome worse than a gap.
-    // The lowering keeps the question: the object is tested against null before
-    // the access, and only a path — a value reading twice is reading it twice —
-    // lowers at all.
+    // chaining. The plain access compiles, runs, and throws where the original
+    // returned undefined: a silent wrong answer, the one outcome worse than a
+    // gap. The lowering keeps the question, testing the object against null
+    // before the access. Only a path lowers at all, since reading a path twice
+    // is just reading it twice.
     let (_tmp, root) = corpus("nextjs");
     let plan = nextjs::plan(&root.join("app/api/posts/[postId]/route.ts")).unwrap();
 

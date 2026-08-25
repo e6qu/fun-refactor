@@ -672,10 +672,10 @@ mod rust {
         for group in rest {
             let read = match group.as_slice() {
                 [] => return None,
-                // One node is an expression already parsed; a run of several is an
-                // expression the macro kept as loose tokens. Its source text is
-                // right there between the first and last of them, and parsing that
-                // text asks the real parser instead of guessing at precedence.
+                // One node is an expression already parsed; a run of several is an expression
+                // the macro kept as loose tokens. Its source text is right there between the
+                // first and last of them. And parsing that text asks the real parser instead of
+                // guessing at precedence.
                 [only] if only.is_named() && !only.kind().contains("comment") => expr(cx, *only),
                 [only] => {
                     let _ = only;
@@ -3639,10 +3639,10 @@ mod python {
 mod go {
     use super::*;
 
-    /// `func NewX() X { return X{F: v} }` is how a Go record keeps its field
-    /// defaults — the lowering this tool writes, and an idiom on its own. Read
-    /// back, the values return to the fields and the constructor disappears,
-    /// so a record with defaults survives the round trip.
+    /// `func NewX() X { return X{F: v} }` is how a Go record keeps its field defaults: the
+    /// lowering this tool writes. And an idiom on its own. Read back, the values return to the
+    /// fields and the constructor disappears, so a record with defaults survives the round
+    /// trip.
     fn settle_default_constructors(module: &mut Module) {
         let mut defaults: Vec<(String, Vec<(String, Expr)>)> = Vec::new();
         module.items.retain(|item| {
@@ -3672,9 +3672,9 @@ mod go {
                         .collect()
                 }
                 Expr::RecordLit { ty, fields } if *ty == owner => Some(fields.clone()),
-                // At this point in the read the literal is still a variant
-                // candidate; the settle that would rename it to the record
-                // runs later, so the candidate's own shape is matched here.
+                // At this point in the read the literal is still a variant candidate. The
+                // settle that would rename it to the record runs later, so the candidate's own
+                // shape is matched here.
                 Expr::Variant { sum, name, fields } if sum.is_empty() && *name == owner => {
                     Some(fields.clone())
                 }
@@ -6184,9 +6184,8 @@ mod zig {
                         None => carried.push(Item::Unsupported(cx.unsupported(child))),
                     }
                 }
-                // `fn F(comptime T: type) type { return struct { … }; }` is a
-                // generic record; the comptime parameters erase, and the struct
-                // takes the function's name.
+                // `fn F(comptime T: type) type { return struct { … }. }` is a generic record.
+                // The comptime parameters erase, and the struct takes the function's name.
                 "function_declaration" if returns_type(cx, child) => {
                     match generic_record(cx, child, &mut carried) {
                         Some(item) => module.items.push(item),
@@ -6255,8 +6254,8 @@ mod zig {
                 .insert(at.min(module.items.len()), Item::Record(record));
         }
         module.items.extend(carried);
-        // A called dot literal is a decl-literal call, not a variant build:
-        // settled here by the member's name, before variant attribution can
+        // A called dot literal is a decl-literal call, not a variant build.
+        // It settles here by the member's name, before variant attribution can
         // claim it for a sum that happens to share the name.
         for item in module.items.iter_mut() {
             super::each_expr_in_item(item, &mut |e| {
@@ -6686,8 +6685,8 @@ mod zig {
         if value.kind() == "error_set_declaration" {
             return Some(Item::Sum(error_set(cx, node, name, exported, value)));
         }
-        // `const E = A || error{X};` unions sets; the alias keeps the union's
-        // spelling as text, which is all a target without error sets can hold.
+        // `const E = A || error{X};` unions sets. The alias keeps the union's spelling as text,
+        // which is all a target without error sets can hold.
         if contains_error_set(value) {
             return Some(Item::Constant(Constant {
                 doc: doc_above(cx, node, &["///", "//"]),
@@ -6814,9 +6813,8 @@ mod zig {
                     });
                 }
                 "comment" => {}
-                // A method on the union has no slot in a sum; it goes beside
-                // the type as a free function taking the union first, which is
-                // how its body already reads it.
+                // A method on the union has no slot in a sum. It goes beside the type as a free
+                // function taking the union first, which is how its body already reads it.
                 "function_declaration" => match function(cx, member) {
                     Some(f) => carried.push(Item::Function(f)),
                     None => carried.push(Item::Unsupported(cx.unsupported(member))),
@@ -6891,7 +6889,7 @@ mod zig {
                 }),
                 // The binding that names the record itself adds nothing.
                 "variable_declaration" if binds_this(cx, member) => {}
-                // A nested declaration — a type, a constant, an error set —
+                // A nested declaration, a type, a constant, an error set,
                 // goes beside the record; the file shares one namespace there.
                 "variable_declaration" if !binds_this(cx, member) => {
                     match declaration(cx, member, carried) {
@@ -6902,9 +6900,9 @@ mod zig {
                 _ => carried.push(Item::Unsupported(cx.unsupported(member))),
             }
         }
-        // The overload lowering numbers later overloads — `add`, `add2` — and
-        // reading the numbered name back beside its base restores the overload,
-        // so a container of them survives the round trip.
+        // The overload lowering numbers later overloads, `add`, `add2`, and reading the
+        // numbered name back beside its base restores the overload. So a container of them
+        // survives the round trip.
         let bases: Vec<String> = record.methods.iter().map(|m| m.name.clone()).collect();
         for method in record.methods.iter_mut() {
             let trimmed = method.name.trim_end_matches(|c: char| c.is_ascii_digit());
@@ -6999,10 +6997,10 @@ mod zig {
             .filter(|c| c.kind() != "block")
             .map(|t| ty_of(cx, *t));
 
-        // A `comptime` parameter is a *type*, supplied where another language writes
-        // `<T>`. The IR has no generic parameters, and reading one as an ordinary
-        // parameter produced `func Lazy(comptime type, comptime type) type`, a
-        // signature that means something else in every target.
+        // A `comptime` parameter is a *type*, supplied where another language writes `<T>`. The
+        // IR has no generic parameters. And reading one as an ordinary parameter produced `func
+        // Lazy(comptime type, comptime type) type`, a signature that means something else in
+        // every target.
         if comptime {
             return None;
         }
@@ -7220,9 +7218,9 @@ mod zig {
         })
     }
 
-    /// Unfold each `x orelse return/break/continue` in this statement: bind
-    /// the optional, guard on null with the control flow the source named, and
-    /// let the statement read the bound value.
+    /// Unfold each `x orelse return/break/continue` in this statement: bind the optional, guard
+    /// on null with the control flow the source named. And let the statement read the bound
+    /// value.
     fn settle_orelse_controls(mut built: Stmt, guards: &mut usize) -> Stmt {
         fn control_of(callee: &str, args: &[Expr]) -> Option<Stmt> {
             match callee {
@@ -7775,11 +7773,10 @@ mod zig {
         None
     }
 
-    /// `const x = while (it) |v| { … break e; … } else fallback;`: the loop
-    /// produces a value by breaking with one, or the fallback on exhaustion.
-    /// The lowering binds the fallback first and each valued break assigns.
-    /// `const a, const b = value;`: the value binds once, and the names take
-    /// its parts by position. The value may be a call, a labeled block, a
+    /// `const x = while (it) |v| { … break e. … } else fallback;`: the loop produces a value by
+    /// breaking with one, or the fallback on exhaustion. The lowering binds the fallback first
+    /// and each valued break assigns. `const a, const b = value;`: the value binds once, and
+    /// the names take its parts by position. The value may be a call, a labeled block, a
     /// switch, or an optional guarded by `orelse` control flow.
     fn tuple_let(cx: &Cx, node: Node<'_>) -> Option<Vec<Stmt>> {
         let parts = all(node);
@@ -7860,7 +7857,7 @@ mod zig {
                     },
                 ]
             }
-            // Anything else — a call, an optional with an `orelse` guard —
+            // Anything else, a call or an optional with an `orelse` guard,
             // binds directly; the guard settles like any other.
             _ => {
                 let read = expr(cx, value);
@@ -7947,9 +7944,8 @@ mod zig {
         (!has_unsupported_stmt(&lowered)).then_some(lowered)
     }
 
-    /// `const x = if (opt) |v| e else fallback orelse control;`: bind through
-    /// an if-present, the else settles into the binding, and the trailing
-    /// orelse guards on null.
+    /// `const x = if (opt) |v| e else fallback orelse control;`: bind through an if-present,
+    /// the else settles into the binding. And the trailing orelse guards on null.
     fn value_if_guard(cx: &Cx, node: Node<'_>) -> Option<Vec<Stmt>> {
         if node.kind() != "variable_declaration" {
             return None;
@@ -8413,8 +8409,8 @@ mod zig {
         settle_labeled_breaks(stmts, "*", Some(target));
     }
 
-    /// Settle a switch arm's labeled breaks. An arm that is a run-once loop —
-    /// the labeled-block lowering — settles inside the loop, which is the
+    /// Settle a switch arm's labeled breaks. An arm that is a run-once loop,
+    /// the labeled-block lowering, settles inside the loop, which is the
     /// break's consumer; anything else settles as written.
     fn settle_arm_breaks(body: &mut Vec<Stmt>, target: &str) {
         if let [Stmt::While {
@@ -8591,7 +8587,7 @@ mod zig {
             // A braced body arrives wrapped, and an `else { … }` arrives wrapped twice. The
             // grammar treats every block as labelable whether or not it carries a label.
             "block" => block(cx, node),
-            // A labeled body — `if (c) blk: { … break :blk; … }` — runs once,
+            // A labeled body, `if (c) blk: { … break :blk; … }`, runs once,
             // and each `break :blk` leaves it early: the run-once loop.
             "block_expression" | "labeled_statement" | "labeled_type_expression" => {
                 let label = cx
@@ -8713,11 +8709,10 @@ mod zig {
                     };
                 }
                 if !declares {
-                    // A write through a pointer lands on what it points at:
-                    // the dereference unwraps, and a pointer capture in a loop
-                    // has already been rewritten to the element it walks. The
-                    // receiver itself cannot be rebound in half the targets, so
-                    // `self.* = …` stays carried.
+                    // A write through a pointer lands on what it points at: the dereference
+                    // unwraps. And a pointer capture in a loop has already been rewritten to
+                    // the element it walks. The receiver itself cannot be rebound in half the
+                    // targets, so `self.* = …` stays carried.
                     if target.kind() == "dereference_expression"
                         && cx
                             .children(target)
@@ -8725,7 +8720,7 @@ mod zig {
                             .is_some_and(|inner| cx.text(*inner) == "self")
                     {
                         return Stmt::Comment(format!(
-                            "{} — the debug poison has nothing to mark here",
+                            "{}: the debug poison has nothing to mark here",
                             cx.text(node).trim_end_matches(';')
                         ));
                     }
@@ -8764,9 +8759,8 @@ mod zig {
                     }
                     return Stmt::Unsupported(cx.unsupported(node));
                 }
-                // An error set has no value to bind; the alias keeps the set's
-                // spelling as text, which is all a target without error sets can
-                // hold of it.
+                // An error set has no value to bind. The alias keeps the set's spelling as
+                // text, which is all a target without error sets can hold of it.
                 if contains_error_set(value) {
                     return Stmt::Let {
                         name: cx.text(target),
@@ -8850,10 +8844,10 @@ mod zig {
                     })
                     .map(|b| body_of(cx, b))
                     .unwrap_or_default();
-                // `if (maybe) |value| { … }` tests an optional and binds its
-                // payload. A `|*value|` pointer capture writes through the
-                // original, and an error union's `else |err|` binds a second
-                // payload; neither has a crossing, so both carry whole.
+                // `if (maybe) |value| { … }` tests an optional and binds its payload. A
+                // `|*value|` pointer capture writes through the original, and an error union's
+                // `else |err|` binds a second payload. Neither has a crossing, so both carry
+                // whole.
                 if let Some(payload) = children.iter().find(|c| c.kind() == "payload") {
                     let bindings: Vec<Node> = cx
                         .children(*payload)
@@ -8934,12 +8928,11 @@ mod zig {
                     })
                     .map(|b| body_of(cx, *b))
                     .unwrap_or_default();
-                // `while (it.next()) |item|` loops on an optional's payload. A
-                // `|*item|` pointer capture writes through the original, a
-                // continue-expression (`: (i += 1)`) has no slot, and an `else`
-                // here runs on exhaustion; none of the three crosses.
-                // `: (i += 1)` runs after each pass. The lowering runs it at
-                // the bottom of the body and before each continue.
+                // `while (it.next()) |item|` loops on an optional's payload. A `|*item|`
+                // pointer capture writes through the original, a continue-expression (`: (i +=
+                // 1)`) has no slot, and an `else` here runs on exhaustion. None of the three
+                // crosses. `: (i += 1)` runs after each pass. The lowering runs it at the
+                // bottom of the body and before each continue.
                 let mut body = body;
                 if stepped {
                     let all_parts = all(node);
@@ -9029,10 +9022,10 @@ mod zig {
                         body,
                     };
                 }
-                // The general zip: walk the first sequence by an index — the
-                // `0..` capture's name when there is one — and read the others
-                // by the same index. A pointer capture's name rewrites to the
-                // element it walks, so writes land in the sequence.
+                // The general zip: walk the first sequence by an index, the `0..` capture's
+                // name when there is one. And read the others by the same index. A pointer
+                // capture's name rewrites to the element it walks, so writes land in the
+                // sequence.
                 if sequences.len() == captures.len() && !sequences.is_empty() {
                     let index = sequences
                         .iter()
@@ -9671,10 +9664,10 @@ mod zig {
                         callee: Box::new(Expr::Name("str".to_string())),
                         args: vec![expr(cx, *value)],
                     },
-                    // Zig spells the division and remainder the other five spell as
-                    // operators. `@mod` is Euclidean where `%` truncates; they agree
-                    // wherever the operands are non-negative, and a program for which
-                    // that differs is telling every target something Zig-shaped.
+                    // Zig spells the division and remainder the other five spell as operators.
+                    // `@mod` is Euclidean where `%` truncates. They agree wherever the operands
+                    // are non-negative, and a program for which that differs is telling every
+                    // target something Zig-shaped.
                     ("@divTrunc" | "@divFloor", [left, right]) => Expr::Binary {
                         op: BinaryOp::FloorDiv,
                         left: Box::new(expr(cx, *left)),
@@ -10716,10 +10709,10 @@ mod typescript {
                         }
                         methods.push(method);
                     }
-                    // A member this does not recognise is not a member that is not
-                    // there. Every reader here ended its member loop with `_ => {}`,
-                    // which is how a `@staticmethod` disappeared from a class while the
-                    // report said every signature had carried across intact.
+                    // A member this does not recognise is not a member that is not there. Every
+                    // reader here ended its member loop with `_ => {}`. A
+                    // `@staticmethod` disappeared from a class while the report said every
+                    // signature had carried across intact.
                     _ => carried.push(Item::Unsupported(cx.unsupported(member))),
                 }
             }
@@ -11169,8 +11162,8 @@ mod typescript {
             // canonical form is one every writer spells its own way.
             "identifier" | "property_identifier" | "this" | "super" => Expr::Name(cx.text(node)),
             // `a?.b` is not `a.b`: the null check must survive. Where the
-            // object is a name or a path — evaluating it twice is reading it
-            // twice — the conditional spells the check in every target. An
+            // object is a name or a path, so evaluating it twice is reading it
+            // twice, the conditional spells the check in every target. An
             // object with effects stays carried.
             "member_expression" if has_optional_chain(node) => {
                 let object = cx.field(node, "object").map(|o| expr(cx, o));
@@ -11324,7 +11317,7 @@ mod typescript {
                         .unwrap_or(Expr::Null)
                 };
                 let operator = cx.field_text(node, "operator").unwrap_or_default();
-                // `a ?? b` asks whether the left side is absent, which is a question instead of
+                // `a ?? b` asks whether the left side is absent. That is a question instead of
                 // an arithmetic operator, half these languages spell it with a word or a
                 // method. One cannot spell it at all.
                 if operator == "??" {

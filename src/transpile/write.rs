@@ -152,12 +152,11 @@ fn returns_anywhere(body: &[Stmt]) -> bool {
     })
 }
 
-/// A throwing function, restated in the Result idiom the Go and Zig writers speak.
-///
-/// The canonical form is the exception one: plain returns, `Throw`, calls that just
-/// call. These two targets spell failure in the signature and at every call, so the
-/// inverse runs here: returns wrap `Ok`, throws become `Err` returns, and every call
-/// to a failing function is hoisted to its own binding and marked propagating.
+/// A throwing function, restated in the Result idiom the Go and Zig writers speak. The
+/// canonical form is the exception one: plain returns, `Throw`, calls that just call. These two
+/// targets spell failure in the signature and at every call, so the inverse runs here: returns
+/// wrap `Ok`, throws become `Err` returns. And every call to a failing function is hoisted to
+/// its own binding and marked propagating.
 fn with_failure_idiom(f: &Function, throwing: &std::collections::BTreeSet<String>) -> Function {
     let mut out = f.clone();
     let throws = f.receiver.is_none() && throwing.contains(&f.name);
@@ -209,11 +208,9 @@ fn with_failure_idiom(f: &Function, throwing: &std::collections::BTreeSet<String
     out
 }
 
-/// Hoist every call to a failing function out of nested expressions.
-///
-/// Afterwards a failing call stands only as the whole value of a `let` or an
-/// expression statement, wrapped in `Propagate`, which is the one shape the Go and
-/// Zig emitters spell checks around.
+/// Hoist every call to a failing function out of nested expressions. Afterwards a failing call
+/// stands only as the whole value of a `let` or an expression statement, wrapped in
+/// `Propagate`. That is the one shape the Go and Zig emitters spell checks around.
 fn extract_failing_calls(
     body: &mut Vec<Stmt>,
     throwing: &std::collections::BTreeSet<String>,
@@ -252,12 +249,11 @@ fn extract_failing_calls(
                 } else {
                     hoist(inner, throwing, counter, lifted, false);
                 }
-                // A propagation over anything but a call is vacuous once the
-                // calls inside are hoisted: `try (f(x) + 1)` fails only at `f`,
-                // and `f` is bound above by now. A call keeps its propagation
-                // whether or not the callee is known here — a foreign callee's
-                // failure is still the source's claim, and dropping the `try`
-                // would silence it.
+                // A propagation over anything but a call is vacuous once the calls inside are
+                // hoisted: `try (f(x) + 1)` fails only at `f`. And `f` is bound above by now. A
+                // call keeps its propagation whether or not the callee is known here. A foreign
+                // callee's failure is still the source's claim, and dropping the `try` would
+                // silence it.
                 let direct = matches!(inner.as_ref(), Expr::Call { .. } | Expr::New { .. });
                 if !direct {
                     let unwrapped = std::mem::replace(inner.as_mut(), Expr::Null);
@@ -471,9 +467,8 @@ fn route_returns_through_some(body: &mut [Stmt]) {
     }
 }
 
-/// Insert `disarm` before every `return` under these statements, nested loops
-/// included: a `return` anywhere leaves the function, and the guard it turns
-/// off must be off first.
+/// Insert `disarm` before every `return` under these statements, nested loops included: a
+/// `return` anywhere leaves the function. And the guard it turns off must be off first.
 fn disarm_before_returns(body: &mut Vec<Stmt>, disarm: &Stmt) {
     let mut at = 0;
     while at < body.len() {
@@ -489,13 +484,11 @@ fn disarm_before_returns(body: &mut Vec<Stmt>, disarm: &Stmt) {
     }
 }
 
-/// A function with its nested-block bindings hoisted to the top.
-///
-/// Python binds a name by assigning it, wherever that happens, and the name lives to
-/// the end of the function. A `let` in TypeScript or an `int` in Java declared inside
-/// a `try` dies at its brace. So a binding first made inside a block, or made in
-/// several blocks, becomes one declaration at the top and plain assignments below,
-/// which is what the source meant all along.
+/// A function with its nested-block bindings hoisted to the top. Python binds a name by
+/// assigning it, wherever that happens, and the name lives to the end of the function. A `let`
+/// in TypeScript or an `int` in Java declared inside a `try` dies at its brace. So a binding
+/// first made inside a block, or made in several blocks, becomes one declaration at the top and
+/// plain assignments below. That says what the source meant all along.
 fn with_hoisted_bindings(f: &Function, returns_of: &BTreeMap<String, Type>) -> Function {
     #[derive(Default)]
     struct Seen {
@@ -504,30 +497,52 @@ fn with_hoisted_bindings(f: &Function, returns_of: &BTreeMap<String, Type>) -> F
         ty: Option<Type>,
         order: usize,
     }
+    fn note(name: &str, ty: Option<Type>, depth: usize, seen: &mut Vec<(String, Seen)>) {
+        match seen.iter_mut().find(|(n, _)| n == name) {
+            Some((_, entry)) => {
+                entry.count += 1;
+                entry.min_depth = entry.min_depth.min(depth);
+            }
+            None => {
+                let order = seen.len();
+                seen.push((
+                    name.to_string(),
+                    Seen {
+                        count: 1,
+                        min_depth: depth,
+                        ty,
+                        order,
+                    },
+                ));
+            }
+        }
+    }
     fn walk(body: &[Stmt], depth: usize, seen: &mut Vec<(String, Seen)>) {
         for stmt in body {
-            if let Stmt::Let {
-                name, ty, value, ..
-            } = stmt
-            {
-                match seen.iter_mut().find(|(n, _)| n == name) {
-                    Some((_, entry)) => {
-                        entry.count += 1;
-                        entry.min_depth = entry.min_depth.min(depth);
-                    }
-                    None => {
-                        let order = seen.len();
-                        seen.push((
-                            name.clone(),
-                            Seen {
-                                count: 1,
-                                min_depth: depth,
-                                ty: ty.clone().or_else(|| value.as_ref().and_then(value_type)),
-                                order,
-                            },
-                        ));
+            match stmt {
+                Stmt::Let {
+                    name, ty, value, ..
+                } => note(
+                    name,
+                    ty.clone().or_else(|| value.as_ref().and_then(value_type)),
+                    depth,
+                    seen,
+                ),
+                // A destructuring declares its names too; unhoisted they die
+                // at the brace of whatever block a lowering wrapped around
+                // them.
+                Stmt::TupleAssign {
+                    names,
+                    declares: true,
+                    ..
+                } => {
+                    for name in names {
+                        if name != "_" {
+                            note(name, None, depth, seen);
+                        }
                     }
                 }
+                _ => {}
             }
             for inner in sub_bodies(stmt) {
                 walk(inner, depth + 1, seen);
@@ -546,6 +561,14 @@ fn with_hoisted_bindings(f: &Function, returns_of: &BTreeMap<String, Type>) -> F
                         target: Expr::Name(name.clone()),
                         value,
                     };
+                }
+            }
+            if let Stmt::TupleAssign {
+                names, declares, ..
+            } = stmt
+            {
+                if *declares && names.iter().any(|n| hoisted.contains(n)) {
+                    *declares = false;
                 }
             }
             for inner in sub_bodies_mut(stmt) {
@@ -568,9 +591,8 @@ fn with_hoisted_bindings(f: &Function, returns_of: &BTreeMap<String, Type>) -> F
 
     let mut out = f.clone();
     rewrite(&mut out.body, &names);
-    // The declared type, or the return type of the call first assigned to it: the
-    // block-scoped targets have to write one, and `Object` says less than the module
-    // already said.
+    // The declared type, or the return type of the call first assigned to it: the block-scoped
+    // targets have to write one. And `Object` says less than the module already said.
     let first_type = |name: &str| -> Option<Type> {
         fn first_value<'a>(body: &'a [Stmt], name: &str) -> Option<&'a Expr> {
             for stmt in body {
@@ -1419,19 +1441,14 @@ struct Out {
     text: String,
     indent: usize,
     fidelity: Fidelity,
-    /// How this module's own names are spelled in the target language.
-    ///
-    /// Every language here has a convention and they disagree: TypeScript writes `userName`,
-    /// Python writes `user_name`, Go says "exported" with a capital letter. Adopting the
-    /// target's convention is most of what makes a translated file look written and not
-    /// converted.
-    ///
-    /// It is one map, built once from the declarations and consulted at every declaration *and*
-    /// every use, because the alternative, re-casing at each site with whichever helper was to
-    /// hand, is how `interface User { userName }` became `class User. User_name` whose bodies
-    /// still said `.userName`.
-    ///
-    /// A name it does not contain is **foreign** and is left as written: `db.users.find`,
+    /// How this module's own names are spelled in the target language. Every language here has
+    /// a convention and they disagree: TypeScript writes `userName`, Python writes `user_name`,
+    /// Go says "exported" with a capital letter. Adopting the target's convention is most of
+    /// what makes a translated file look written and not converted. It is one map, built once
+    /// from the declarations and consulted at every declaration *and* every use. The
+    /// alternative, re-casing at each site with whichever helper was to hand, is how `interface
+    /// User { userName }` became `class User. User_name` whose bodies still said `.userName`. A
+    /// name it does not contain is **foreign** and is left as written: `db.users.find`,
     /// `NextResponse`, a library function. Re-casing those would rename somebody else's API,
     /// which is the one thing a translation must not do.
     names: BTreeMap<String, String>,
@@ -1460,11 +1477,9 @@ struct Out {
     /// discovers these while it writes the body, then inserts them under the package clause.
     /// Go refuses to compile a file that names a package it never imported.
     go_imports: std::collections::BTreeSet<&'static str>,
-    /// The lowering helpers the Zig this writer produced turned out to need.
-    ///
-    /// Discovered while the body is written, like `go_imports`, and appended to the
-    /// file afterwards: `frPrint` for the canonical `print`, `frFormat` for a template
-    /// used as a value.
+    /// The lowering helpers the Zig this writer produced turned out to need. Discovered while
+    /// the body is written, like `go_imports`. And appended to the file afterwards: `frPrint`
+    /// for the canonical `print`, `frFormat` for a template used as a value.
     zig_helpers: std::collections::BTreeSet<&'static str>,
     /// Bindings whose value the Zig writer knows to be text, by watching the `let`s
     /// it writes. The declared types answer for the rest; these are the inferred ones,
@@ -2356,10 +2371,9 @@ fn variant_spelling(out: &Out, sum: &str, variant: &str) -> String {
         .unwrap_or_else(|| out.name(variant))
 }
 
-/// `snake_case`, for Rust and Python.
-///
-/// A name that already starts with a capital is a type, a class or an imported
-/// binding in every one of these languages, and is left alone: `NextResponse.json(x)`
+/// `snake_case`, for Rust and Python. A name that already starts with a capital is a type, a
+/// class or an imported binding in every one of these languages. And is left alone:
+/// `NextResponse.json(x)`.
 pub(super) fn snake_always(name: &str) -> String {
     // A separator goes before an uppercase letter only where a word starts:
     // after a lowercase or a digit, or at the end of a run of capitals that is
@@ -2708,9 +2722,9 @@ fn rust(out: &mut Out, module: &Module) {
 }
 
 fn rust_function(out: &mut Out, f: &Function, method: bool) {
-    // Bindings made inside blocks die at their brace here too, and the closures a
-    // `try` lowers to cannot capture an uninitialized slot, so the hoisted `let`s
-    // initialize to the type's default.
+    // Bindings made inside blocks die at their brace here too, and the closures a `try` lowers
+    // to cannot capture an uninitialized slot. So the hoisted `let`s initialize to the type's
+    // default.
     let f = &with_hoisted_bindings(f, &out.function_returns);
     out.binding_types = declared_bindings(f);
     let known_returns = out.function_returns.clone();
@@ -3105,9 +3119,9 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 default,
             } => {
                 let mut s = rust_expr(out, subject);
-                // A `String` subject matches `&str` literals only through its view,
-                // and a float subject with integer labels matches on the integer the
-                // source meant: a float has no literal patterns worth writing.
+                // A `String` subject matches `&str` literals only through its view. And a float
+                // subject with integer labels matches on the integer the source meant: a float
+                // has no literal patterns worth writing.
                 let stringly = arms
                     .iter()
                     .flat_map(|(literals, _)| literals)
@@ -3519,17 +3533,13 @@ fn rust_type(ty: &Type) -> String {
 }
 
 /// One side of a binary expression, bracketed when the enclosing operator would bind into it.
-///
 /// The writers rendered `left op right` and nothing else. So a group the source wrote was a
-/// group the translation lost. Every one of them turned `(a + b) * c` into `a + b * c`, and
-/// `a - (b - c)` into `a - b - c`. Neither is the same number.
-///
-/// Brackets are decided from precedence and not copied from the source. So the result is right
-/// even where the two languages disagree about binding. A group that was never needed does not
-/// survive the trip either.
-///
-/// The right-hand side takes brackets at *equal* precedence as well, because every operator
-/// here associates to the left. `a - (b - c)` needs them and `(a - b) - c` does not.
+/// group the translation lost. Every one of them turned `(a + b) * c` into `a + b * c`. And `a
+/// - (b - c)` into `a - b - c`. Neither is the same number. Brackets are decided from
+/// precedence and not copied from the source. So the result is right even where the two
+/// languages disagree about binding. A group that was never needed does not survive the trip
+/// either. The right-hand side takes brackets at *equal* precedence as well, because every
+/// operator here associates to the left. `a - (b - c)` needs them and `(a - b) - c` does not.
 fn binary_operand(text: String, operand: &Expr, enclosing: BinaryOp, on_the_right: bool) -> String {
     let inner = match operand {
         Expr::Binary { op, .. } => op.precedence(),
@@ -3688,9 +3698,9 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                 return carried_expr_filler(out);
             }
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
-            // A call that can fail must say what happens then. Where the failure can
-            // move outward it propagates; anywhere else it stops the program with the
-            // message, which is what an uncaught exception did in the source.
+            // A call that can fail must say what happens then. Where the failure can move
+            // outward it propagates. Anywhere else it stops the program with the message, which
+            // is what an uncaught exception did in the source.
             let failing = matches!(callee.as_ref(), Expr::Name(n)
                 if out.throwing.contains(n.as_str()));
             let suffix = match (failing, out.can_propagate) {
@@ -3843,9 +3853,9 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             );
             rust_expr(out, inner)
         }
-        // `try (check(n) + 1)` propagates the failure of the call inside; the call
-        // arm already writes that `?` for every failing callee, so an outer
-        // propagate over a wider expression adds nothing but a misplaced operator.
+        // `try (check(n) + 1)` propagates the failure of the call inside. The call arm already
+        // writes that `?` for every failing callee, so an outer propagate over a wider
+        // expression adds nothing but a misplaced operator.
         Expr::Propagate(inner) => match contains_failing_call(out, inner) {
             true => rust_expr(out, inner),
             false => format!("{}?", rust_expr(out, inner)),
@@ -5835,10 +5845,9 @@ fn expr_hint(e: &Expr) -> String {
     }
 }
 
-/// A keyword call on a callee this module declares that still would not
-/// settle: the name or the arity is wrong, and positions would bind the wrong
-/// parameter. Such a call carries; a foreign callee's keywords pass by
-/// position instead, since nothing here can check them.
+/// A keyword call on a callee this module declares that still would not settle: the name or the
+/// arity is wrong. And positions would bind the wrong parameter. Such a call carries; a foreign
+/// callee's keywords pass by position instead, since nothing here can check them.
 fn keywords_must_carry(out: &Out, callee: &Expr, args: &[Expr], settled: bool) -> bool {
     if settled || !args.iter().any(|a| matches!(a, Expr::Keyword { .. })) {
         return false;
@@ -6123,10 +6132,10 @@ fn go_error_value(out: &mut Out, e: &Expr) -> String {
 /// checked and returned. Only inside a function whose declared return is the shared
 /// Result. Anywhere else `Ok` is a name like any other, and the statement falls
 /// through to the ordinary arms.
-/// `try f(x);` and `const v = try f(x);` outside the settled result idiom:
-/// the call's error checks and leaves the way the context leaves — `t.Fatal`
-/// in a test, the enclosing error return where there is one, a panic
-/// otherwise.
+/// `try f(x);` and `const v = try f(x);` outside the settled result idiom.
+/// The call's error checks and leaves the way the context leaves. That is
+/// `t.Fatal` in a test, the enclosing error return where there is one, a
+/// panic otherwise.
 /// Lift every propagated call out of this statement's expressions: each
 /// becomes a binding rendered before the statement, and the statement reads
 /// the binding. None when there is nothing to lift.
@@ -6753,9 +6762,9 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     out.line("}()");
                 }
             },
-            // The failure-only cleanup arms a flag that the successful path
-            // turns off before returning; the failure paths the error idiom
-            // writes leave it armed, and the defer fires.
+            // The failure-only cleanup arms a flag that the successful path turns off before
+            // returning. The failure paths the error idiom writes leave it armed, and the defer
+            // fires.
             Stmt::ErrDefer(cleanup) => {
                 out.lowering_names += 1;
                 let flag = format!("frFailed{}", out.lowering_names);
@@ -6964,9 +6973,8 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                         },
                     );
                 } else {
-                    // A return inside the closure would only leave the closure,
-                    // so it stores what it returns and leaves; the tail returns
-                    // it from the function itself.
+                    // A return inside the closure would only leave the closure, so it stores
+                    // what it returns and leaves. The tail returns it from the function itself.
                     let routed = returns_anywhere(tried);
                     let ret = format!("frRet{}", out.lowering_names + 1);
                     let flag = format!("frReturned{}", out.lowering_names + 1);
@@ -7033,9 +7041,8 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 }
             }
             Stmt::Throw(value) => {
-                // Where the failure can move outward it becomes the error return;
-                // anywhere else it stops the program, which is what an uncaught
-                // exception did in the source.
+                // Where the failure can move outward it becomes the error return. Anywhere else
+                // it stops the program, which is what an uncaught exception did in the source.
                 match out.go_result.clone() {
                     Some(ok_ty) => {
                         let err = go_error_value(out, value);
@@ -9239,7 +9246,7 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
         }
         // Java has no tuple and no multiple return, so there is no line to
         // write. Carried whole, the names it binds are at least in the file.
-        // The value binds once, and the names take its parts by position —
+        // The value binds once, and the names take its parts by position;
         // the List a tuple travels as answers get().
         Stmt::TupleAssign { names, value, .. } => {
             out.lowering_names += 1;
@@ -9478,9 +9485,9 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
         } => {
             let it = java_expr(out, iterable);
             let bound = out.name(binding);
-            // The element type is the collection's, where the collection's is known;
-            // `var` binds a boxed `Object` over an `ArrayList` and arithmetic on the
-            // element then refuses to compile.
+            // The element type is the collection's, where the collection's is known. `var`
+            // binds a boxed `Object` over an `ArrayList` and arithmetic on the element then
+            // refuses to compile.
             let element = match static_type(out, iterable) {
                 Some(Type::List(inner)) => java_type(&inner),
                 _ => "var".to_string(),
@@ -11141,9 +11148,9 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                 out.line("}");
                 return;
             }
-            // A `return` inside the labeled block leaves the function, the
-            // way the source's `return` inside the `try` did; only a try with
-            // nothing to catch has no lowering here.
+            // A `return` inside the labeled block leaves the function, the way the source's
+            // `return` inside the `try` did. Only a try with nothing to catch has no lowering
+            // here.
             if catches.is_empty() {
                 carry(
                     out,
@@ -11560,9 +11567,9 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
         },
         // Zig's anonymous struct literal is its tuple: `.{ a, b }`.
         Expr::Tuple(items) => format!(".{{ {} }}", joined(items, |i| zig_expr(out, i))),
-        // A list literal is an array whose length the compiler counts. The anonymous
-        // `.{ … }` is a tuple, which will not iterate at run time, so the element type
-        // is read off the elements and spelled.
+        // A list literal is an array whose length the compiler counts. The anonymous `.{ … }`
+        // is a tuple, which will not iterate at run time. So the element type is read off the
+        // elements and spelled.
         Expr::ListLit(items) => {
             let element = match items.first().map(|first| zig_hole_spec(out, first)) {
                 Some("d") => "i64",
@@ -11572,7 +11579,7 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             let rendered: Vec<String> = items.iter().map(|i| zig_expr(out, i)).collect();
             format!("[_]{element}{{ {} }}", rendered.join(", "))
         }
-        // Zig's runtime maps go through an allocator, but a literal of known
+        // Zig's runtime maps go through an allocator. A literal of known
         // keys is an anonymous struct: `.{ .k = v }`, keys quoted where they
         // must be.
         Expr::MapLit(entries) => {
@@ -11645,9 +11652,8 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Cast { ty, value } => {
             format!("@as({}, {})", zig_expr(out, ty), zig_expr(out, value))
         }
-        // Zig types are compile-time facts; asking a value's type compares
-        // at comptime, which is as close as the language comes to the
-        // runtime question, noted once.
+        // Zig types are compile-time facts. Asking a value's type compares at comptime, which
+        // is as close as the language comes to the runtime question, noted once.
         Expr::InstanceOf { value, ty } => {
             out.note_once(
                 "an `instanceof` compares types at compile time here: Zig has no runtime type test.",
@@ -12350,9 +12356,9 @@ fn zig_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
             zig_expr(out, from),
             zig_expr(out, to)
         ),
-        // Into a helper over stdout rather than `std.debug.print`, which writes to
-        // stderr: a translated program has to say what the source said, on the stream
-        // the source said it on.
+        // Into a helper over stdout rather than `std.debug.print`. That writes to stderr: a
+        // translated program has to say what the source said, on the stream the source said it
+        // on.
         (None, "print", _) => {
             out.zig_helpers.insert("print");
             // A lone template arg spreads into the format string; anything else
@@ -12373,9 +12379,9 @@ fn zig_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
             format!("{}.items.len", out.value_name(n))
         }
         (None, "len", [x]) => format!("{}.len", zig_expr(out, x)),
-        // A growable list appends through the allocator the lowering owns; the
-        // failure a real allocator can raise stops the program, loudly, which is
-        // what the sources that never name an allocator mean.
+        // A growable list appends through the allocator the lowering owns. The failure a real
+        // allocator can raise stops the program, loudly, which matches the sources that never
+        // name an allocator mean.
         (Some(of), "append", [x]) => {
             let target = zig_expr(out, &of.clone());
             format!(
@@ -12422,7 +12428,7 @@ fn zig_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
 /// The message as an error identifier: Zig's errors are names, not strings.
 ///
 /// A message that is a name already is used as one, so `@errorName` gives it back
-/// exactly. Anything else is slugged, and the slug is what the catch will read.
+/// exactly. Anything else is slugged, and the catch will read the slug.
 fn zig_error_name(message: &str) -> String {
     let mut name: String = message
         .chars()

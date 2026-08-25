@@ -66,8 +66,8 @@ fn a_zig_while_payload_becomes_while_let() {
 
 #[test]
 fn a_while_with_a_continue_expression_steps_at_the_bottom() {
-    // `while (c) |v| : (i += 1)` runs the step after each pass; the lowering
-    // runs it at the bottom of the body, and before each `continue`.
+    // `while (c) |v| : (i += 1)` runs the step after each pass. The lowering runs it at the
+    // bottom of the body, and before each `continue`.
     let source = "fn walk(it: Iter) void {\n    var i: usize = 0;\n    \
                   while (it.next()) |v| : (i += 1) {\n        use(v, i);\n    }\n}\n";
     let (_tmp, root) = workspace(&[("c.zig", source)]);
