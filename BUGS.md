@@ -59,21 +59,29 @@ a translation surface it has not written yet.
   uses. Zig (comptime duck typing) and Bash declare no implements-relationship at all, so
   neither has a hierarchy to read.
 
-- [ ] B755: **a map reached through its methods does not cross.** Written the
-  way Python writes one, a map crosses whole. The literal, `d[k] = v`, `d[k]`
-  and `len(d)` all arrive in every target. Written the way the other five write one,
-  it does not. `HashMap::new()` has no counterpart the readers know, and it
-  carries loudly as an untranslated construct, which is the honest half. The
-  methods are the other half. `ages.insert(k, v)`, `contains_key`, Java's `put` and
-  `containsKey`, TypeScript's `Map.set` and `has`, Zig's `put` and `contains`
-  all reach a type with no such member. The output parses and does not run.
+- [ ] B755: **a map crosses to Go and to nowhere else.** Neither half of the
+  round trip works. The sweeps never caught it: no corpus file and no
+  conformance program writes to a map.
 
-  Measured: a Python map translates to Go and to Rust and runs. A Rust map
-  reaches Python as `ages.insert(str("ada"), 36)` against a `dict`. The
-  canonical form exists for the literal and the index; the constructor and the
-  five method vocabularies have none. The work is one canonicalisation per
-  reader and one spelling per writer, the shape the list operations already
-  have. Pinned in `tests/open_defects.rs`.
+  Reading. Python's spelling is the only one the readers canonicalise: the
+  literal, `d[k] = v`, `d[k]` and `len(d)`. `HashMap::new()` has no counterpart
+  and carries loudly, which is the honest part. The method vocabularies have
+  none and do not carry. `insert`, `contains_key`, Java's `put` and
+  `containsKey`, TypeScript's `set` and `has`, Zig's `put` and `contains` are
+  written through. A Rust map reaches Python as `ages.insert(str("ada"), 36)`
+  against a `dict`.
+
+  Writing. Only Go is right. Rust is given `ages["alan"] = 41`, which is
+  `E0594: cannot assign to data in an index of HashMap`. Java is given
+  `Map.of(…)`, which is immutable, and then `.put` on it. It compiles and
+  throws when it runs. TypeScript is given an object literal and reads
+  `.length` off it, which is `undefined`. Zig is given an anonymous struct and
+  then indexes it with a string.
+
+  The work has the shape the list operations already have. One canonicalisation
+  per reader, and one spelling per writer. The writer keeps its record of which
+  bindings hold a map, so a map's `contains` is told from a string's. Pinned in
+  `tests/open_defects.rs`.
 
 ## Fixed
 

@@ -903,11 +903,16 @@ harness prints and the gate passes over. That is the silence this suite exists
 to prevent. What it measured is B755, held by a test
 from both sides.
 
-Written the way Python writes one, a map crosses whole and runs: the literal,
-`d[k] = v`, `d[k]`, and `len(d)`. Written the way the other five write one, it
-does not. `HashMap::new()` carries loudly, which is the honest half. The method
-vocabularies are the other half. `insert`, `contains_key`, `put`, `containsKey`,
-`set`, `has` and `get` reach a type with none of them.
+Neither half of the round trip works. Reading, Python's spelling is the only one
+the readers canonicalise. `HashMap::new()` carries loudly, which is the honest
+part. The method vocabularies do not carry at all: `insert`, `contains_key`,
+`put`, `containsKey`, `set`, `has` and `get` reach a type with none of them.
+
+Writing is worse, and the sweeps never caught it. No corpus file and no
+conformance program writes to a map. Only Go is right. Rust is given an index
+assignment `HashMap` refuses to compile. Java is given an immutable `Map.of` and
+then a `put` on it. TypeScript is given an object literal and reads `.length`
+off it. Zig is given an anonymous struct and then indexes it with a string.
 
 The work has the shape the list operations already have. One canonicalisation
 per reader, and one spelling per writer. The writer keeps its own record of
