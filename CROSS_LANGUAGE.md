@@ -206,13 +206,19 @@ another language's file, and reading them needs a template grammar per target.
 
 ### 7. Markdown to the code it documents
 
-A link to `src/ingest.rs#L20`, or a fenced block naming a function somebody has since
+A link to `src/ingest.rs`, or a fenced block naming a function somebody has since
 renamed. Documentation drifts from code more reliably than anything else in a
 repository.
 
-**Cost.** The link half is small and genuinely useful. The tool already covers prose
-mentioning a symbol, as a *textual occurrence*, reported and never rewritten, which is
-the right answer.
+**The link half crosses now**, through the same reader as edges 5 and 6.
+`fr stitch --files` reports a link to a file the workspace no longer holds,
+which is where the drift shows first. A fragment comes off the destination:
+`guide.md#intro` names the file, and the heading inside it is the anchor edge
+the tool already followed.
+
+**The prose half is already answered.** A paragraph mentioning a symbol is a
+*textual occurrence*, reported and never rewritten. Nothing proves the word in a
+sentence is the function rather than the English word.
 
 ## Rewriting a file as another language
 

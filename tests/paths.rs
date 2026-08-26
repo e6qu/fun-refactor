@@ -138,3 +138,53 @@ fn a_path_beside_the_file_is_found_before_one_at_the_root() {
         "{rendered:?}"
     );
 }
+
+#[test]
+fn a_markdown_link_finds_the_file_it_documents() {
+    // Documentation drifts from code more reliably than anything else in a
+    // repository, and a link to a file somebody moved is where it shows first.
+    let (_tmp, found) = links(&[
+        (
+            "README.md",
+            "See [the ingest module](src/ingest.rs) and [the gone one](src/gone.rs).\n",
+        ),
+        ("src/ingest.rs", "pub fn ingest() {}\n"),
+    ]);
+    let kept = found
+        .iter()
+        .find(|l| l.written.contains("ingest.rs"))
+        .unwrap_or_else(|| panic!("no link: {found:?}"));
+    assert!(!kept.is_dangling(), "{kept:?}");
+
+    let moved = found
+        .iter()
+        .find(|l| l.written.contains("gone.rs"))
+        .unwrap_or_else(|| panic!("no link: {found:?}"));
+    assert!(moved.is_dangling(), "{moved:?}");
+}
+
+#[test]
+fn a_markdown_link_to_another_site_names_no_file_here() {
+    let (_tmp, found) = links(&[(
+        "README.md",
+        "See [the docs](https://example.com/guide.md) for more.\n",
+    )]);
+    assert!(found.is_empty(), "a URL names another host: {found:?}");
+}
+
+#[test]
+fn a_markdown_link_keeps_the_file_and_drops_the_heading() {
+    // `guide.md#intro` names a file and a heading inside it. The heading is a
+    // separate edge the anchor resolution already follows, so this half takes
+    // the file alone.
+    let (_tmp, found) = links(&[
+        ("README.md", "See [the guide](docs/guide.md#intro).\n"),
+        ("docs/guide.md", "# Guide\n\n## Intro\n"),
+    ]);
+    let link = found
+        .iter()
+        .find(|l| l.written.contains("guide.md"))
+        .unwrap_or_else(|| panic!("no link: {found:?}"));
+    assert_eq!(link.written, "docs/guide.md", "{link:?}");
+    assert!(!link.is_dangling(), "{link:?}");
+}

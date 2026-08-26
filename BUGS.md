@@ -100,10 +100,11 @@ a translation surface it has not written yet.
   script looked unused. A step running one nobody kept broke on the next push
   and not before.
 
-  `fr stitch --files` reads them. A path either exists in the workspace or it
-  does not, so the edge is exact and never name-only. A command is not a path:
-  `make` names no file, and reporting one as dangling would be noise. The flags
-  after the path are a separate question and are not claimed.
+  `fr stitch --files` reads them, and a Markdown link to a file besides. A path
+  either exists in the workspace or it does not, so the edge is exact and never
+  name-only. A command is not a path: `make` names no file, and reporting one as
+  dangling would be noise. The flags after the path are a separate question and
+  are not claimed.
 
 - [x] B775: **an element id named from code reached nothing.** The tool
   resolved ids within markup already, `<label for>` to `<input id>`. From code

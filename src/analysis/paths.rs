@@ -61,7 +61,11 @@ pub fn links(index: &Index, root: &Path) -> Result<Vec<PathLink>> {
         // edge would report every log message that mentions a directory.
         if !matches!(
             language,
-            Language::Yaml | Language::Helm | Language::Hcl | Language::Json
+            Language::Yaml
+                | Language::Helm
+                | Language::Hcl
+                | Language::Json
+                | Language::Markdown
         ) {
             continue;
         }
@@ -108,6 +112,16 @@ fn written_paths(source: &str, language: Language) -> Vec<(usize, String)> {
                     }
                 }
             }
+            // `[the ingest module](src/ingest.rs)`. Documentation drifts from
+            // code more reliably than anything else in a repository. A link to
+            // a file somebody moved is where the drift shows first.
+            Language::Markdown => {
+                for written in markdown_destinations(line) {
+                    if let Some(path) = as_a_path(&written) {
+                        out.push((number, path));
+                    }
+                }
+            }
             // `templatefile("${path.module}/init.sh", …)` and `file(…)`, the
             // two Terraform functions that name a file.
             Language::Hcl => {
@@ -125,6 +139,31 @@ fn written_paths(source: &str, language: Language) -> Vec<(usize, String)> {
     }
     out.sort();
     out.dedup();
+    out
+}
+
+/// Every `(destination)` an inline link on this line names.
+///
+/// The fragment comes off. `guide.md#intro` names `guide.md`, and the heading
+/// inside it is a separate edge the anchor resolution already follows.
+fn markdown_destinations(line: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut at = 0;
+    while at < line.len() {
+        // A destination follows `](`, the one shape both an inline link and an
+        // inline image write.
+        let Some(found) = line[at..].find("](") else { break };
+        let start = at + found + 2;
+        let Some(end) = line[start..].find(')') else { break };
+        let inside = &line[start..start + end];
+        // A title may follow the destination: `[x](a.md "Title")`.
+        let destination = inside.split_whitespace().next().unwrap_or(inside);
+        let destination = destination.split('#').next().unwrap_or(destination);
+        if !destination.is_empty() {
+            out.push(destination.to_string());
+        }
+        at = start + end + 1;
+    }
     out
 }
 
