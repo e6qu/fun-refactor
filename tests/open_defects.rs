@@ -213,3 +213,52 @@ fn an_untyped_receiver_still_reaches_every_function_behind_the_name() {
         "nothing types `pair.0`, so the name reaches both: {reached:?}"
     );
 }
+
+#[test]
+fn a_map_reached_through_its_methods_does_not_cross() {
+    // B755. Written the way Python writes one, a map crosses whole. Written
+    // the way the other five write one, the constructor carries loudly. The
+    // methods reach a type with no such member.
+    use fun_refactor::lang::Language;
+    use fun_refactor::transpile;
+
+    let (_tmp, root) = workspace(&[(
+        "m.py",
+        "def main() -> None:\n    ages = {\"ada\": 36}\n    ages[\"alan\"] = 41\n    \
+         print(len(ages))\n    print(ages[\"ada\"])\n\n\nmain()\n",
+    )]);
+    let out = transpile::plan(&root.join("m.py"), Language::Go).expect("a draft");
+    assert!(
+        out.output.contains("ages := map[string]any{\"ada\": 36}")
+            && out.output.contains("ages[\"alan\"] = 41")
+            && out.output.contains("len(ages)"),
+        "the literal, the index and the length cross:\n{}",
+        out.output
+    );
+    assert!(
+        !out.output.contains(transpile::MARKER),
+        "and nothing about them carries:\n{}",
+        out.output
+    );
+
+    // The other direction is the entry. `HashMap::new()` is carried, named as
+    // untranslated. `insert` is not: it reaches Python as a method call a
+    // `dict` does not answer. When this stops being true, update B755.
+    let (_tmp2, root2) = workspace(&[(
+        "m.rs",
+        "use std::collections::HashMap;\n\nfn main() {\n    \
+         let mut ages: HashMap<String, i64> = HashMap::new();\n    \
+         ages.insert(\"ada\".to_string(), 36);\n}\n",
+    )]);
+    let back = transpile::plan(&root2.join("m.rs"), Language::Python).expect("a draft");
+    assert!(
+        back.output.contains(transpile::MARKER) && back.output.contains("HashMap::new"),
+        "the constructor carries and says so:\n{}",
+        back.output
+    );
+    assert!(
+        back.output.contains("ages.insert("),
+        "and the method is written through, which is the half that is wrong:\n{}",
+        back.output
+    );
+}

@@ -896,6 +896,27 @@ declares and nothing recognises is a refusal naming the file.
 A step reports the files it created apart from the files it changed, in the JSON
 and in the human report.
 
+### What the maps group measured
+
+A conformance group for maps was written and taken out again. A group whose every cell fails is a gap the
+harness prints and the gate passes over. That is the silence this suite exists
+to prevent. What it measured is B755, held by a test
+from both sides.
+
+Written the way Python writes one, a map crosses whole and runs: the literal,
+`d[k] = v`, `d[k]`, and `len(d)`. Written the way the other five write one, it
+does not. `HashMap::new()` carries loudly, which is the honest half. The method
+vocabularies are the other half. `insert`, `contains_key`, `put`, `containsKey`,
+`set`, `has` and `get` reach a type with none of them.
+
+The work has the shape the list operations already have. One canonicalisation
+per reader, and one spelling per writer. The writer keeps its own record of
+which bindings hold a map, so a map's `contains` is told from a string's.
+Until that lands the group stays out of the harness rather than sitting in it
+green.
+
+## Progress log
+
 Every stage is complete except the optional LSP delegation backend. Every
 capability a language can meaningfully support is built: **288 of 408 capability ×
 language pairs supported, 120 not applicable, none refused.**

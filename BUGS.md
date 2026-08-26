@@ -19,11 +19,12 @@ away.
 
 ## Open
 
-Re-triaged against this branch. The entry below still reproduces. Where a published
+Re-triaged against this branch. The entries below still reproduce. Where a published
 grammar could not read source the language accepts, this build compiles a patched copy
 instead of recording the gap: `grammars/` holds one for Go, Python, Sass, SCSS,
 TypeScript and Zig, each with its upstream pin, licence, patch and the measurement that
-shows the patch additive. What is left below is one limit of this tool's own analysis.
+shows the patch additive. What is left below is a limit of this tool's own analysis and
+a translation surface it has not written yet.
 
 - [ ] B5: `find_unused` and the call graph follow what the source shows, and no further.
   A call whose receiver nothing types is fanned out to the definitions the workspace
@@ -57,6 +58,22 @@ shows the patch additive. What is left below is one limit of this tool's own ana
   invisible for a third reason. `delete::plan` reports that file as possibly hiding
   uses. Zig (comptime duck typing) and Bash declare no implements-relationship at all, so
   neither has a hierarchy to read.
+
+- [ ] B755: **a map reached through its methods does not cross.** Written the
+  way Python writes one, a map crosses whole. The literal, `d[k] = v`, `d[k]`
+  and `len(d)` all arrive in every target. Written the way the other five write one,
+  it does not. `HashMap::new()` has no counterpart the readers know, and it
+  carries loudly as an untranslated construct, which is the honest half. The
+  methods are the other half. `ages.insert(k, v)`, `contains_key`, Java's `put` and
+  `containsKey`, TypeScript's `Map.set` and `has`, Zig's `put` and `contains`
+  all reach a type with no such member. The output parses and does not run.
+
+  Measured: a Python map translates to Go and to Rust and runs. A Rust map
+  reaches Python as `ages.insert(str("ada"), 36)` against a `dict`. The
+  canonical form exists for the literal and the index; the constructor and the
+  five method vocabularies have none. The work is one canonicalisation per
+  reader and one spelling per writer, the shape the list operations already
+  have. Pinned in `tests/open_defects.rs`.
 
 ## Fixed
 
