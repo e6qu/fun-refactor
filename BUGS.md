@@ -60,6 +60,19 @@ shows the patch additive. What is left below is one limit of this tool's own ana
 
 ## Fixed
 
+- [x] B751: **the fact cache outlived the resolver.** Its namespace is keyed by
+  a fingerprint of the files that decide a cached fact. That list held the
+  extractor and left the resolver out. The
+  cache stores the resolution snapshot too, the target and tier of every
+  reference, and skips resolving when it hits. A change to how a member access
+  resolves was therefore invisible on any machine that had run the tool
+  before. The receiver-typed member resolution landed and the local gate stayed
+  green against answers computed by the previous build. CI starts cold, and
+  disagreed about the same commit. `src/index.rs` is in the fingerprint
+  now, and so are the two files the resolver asks about a receiver's type,
+  `src/analysis/types.rs` and `src/refactor/mod.rs`. A stale answer is
+  unreachable rather than unlikely.
+
 - [x] B747: **two bindings assigned from each other overflowed the stack.** The
   derivation chain in `analysis/types.rs` counted its hops, but every route back into
   a symbol's answer restarted the count at zero: `x = y` above `y = x` recursed until
