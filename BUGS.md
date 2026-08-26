@@ -53,6 +53,14 @@ a translation surface it has not written yet.
   arriving from outside. An untyped parameter, or one assigned two types. A type
   the workspace never declares, and a generic parameter. And what remains undecidable is
   undecidable from the source: a function this workspace never names.
+
+  Measured against this crate's own source, the function-value layer draws 100
+  edges from 58 call sites, and those sites reach 6 functions between them. 24
+  of the 58 reach exactly one, so most sites are not a fan-out at all. The
+  workspace admits one answer and the layer gives it. 28 reach two, 5 reach
+  three, and one reaches five. The tier stays `field-based` for all of them,
+  because which body runs is the program's choice and not the source's.
+
   Either a caller outside it supplies the value, or the name is assembled at runtime from
   pieces no string literal spells. A symbol used only from a file that failed to parse is
   invisible for a third reason. `delete::plan` reports that file as possibly hiding
