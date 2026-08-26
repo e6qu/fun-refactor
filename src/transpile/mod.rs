@@ -33,6 +33,7 @@ mod normalize;
 mod read;
 pub mod routes;
 pub mod scaffold;
+pub mod tfjson;
 mod write;
 
 /// What a file says, in the form no one language owns.

@@ -978,9 +978,20 @@ and `strings.ToUpper` is not a gin one.
 
 ### The eighteenth language
 
-HCL and JSON are one language in two official syntaxes, and the pair was
-declined last time because this build has no JSON. It gets one: grammar,
-queries, capability rows, and the pair translating loss-free both ways.
+JSON is in: grammar, fact queries, capability rows, provenance. A JSON document
+is a tree of keys and a key path is an address, the same as a values file's. So
+the keyed walk that answers for YAML answers for JSON. It is named for what it
+walks rather than for one of its callers.
+
+HCL and JSON are one configuration in two official syntaxes, and Terraform
+reads both. Moving a file between them is a conversion and not a rename: a
+block header becomes nesting, one level per label. `src/transpile/tfjson.rs`
+does it either way, and `fr translate main.tf json` is how a caller asks.
+
+The one ambiguity is named rather than papered over. `acl = "private"` and
+`type = bool` are the same string in JSON, and Terraform tells them apart by
+where they sit. Coming back, a lone word is text, a dotted path under one of
+Terraform's own heads is a reference, and the type words are types.
 
 ### The edges
 
@@ -1039,8 +1050,8 @@ groups had never touched:
 ## Progress log
 
 Every stage is complete except the optional LSP delegation backend. Every
-capability a language can meaningfully support is built: **288 of 408 capability ×
-language pairs supported, 120 not applicable, none refused.**
+capability a language can meaningfully support is built: **299 of 432 capability ×
+language pairs supported, 133 not applicable, none refused.**
 
 Nobody maintains the matrix by hand any more. `src/capabilities.rs` computes it by
 asking each refactoring's own predicate, and `fr capabilities` prints it with the reason

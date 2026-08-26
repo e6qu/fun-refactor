@@ -42,6 +42,11 @@ pub fn targets(from: Language) -> &'static [Language] {
         // A manifest is a template with no actions in it.
         Yaml => &[Helm],
         Helm => &[Yaml],
+        // Terraform reads both, and they are two encodings of one
+        // configuration. The bytes change, so this is a conversion and not a
+        // rename; `transpile::tfjson` performs it.
+        Hcl => &[Json],
+        Json => &[Hcl],
         // XHTML is the intersection; the parse decides whether this file is in it.
         Html => &[Xml],
         Xml => &[Html],
@@ -323,6 +328,45 @@ pub fn plan_to(
         bail!("this build has no {to} grammar, so it cannot check the result");
     }
 
+    // Terraform's two syntaxes. The bytes change, so the output is what has to
+    // satisfy the target's grammar, the same way the render pair below works.
+    if matches!(
+        (from, to),
+        (Language::Hcl, Language::Json) | (Language::Json, Language::Hcl)
+    ) {
+        let converted = match to {
+            Language::Json => crate::transpile::tfjson::to_json(&source)?,
+            _ => crate::transpile::tfjson::to_hcl(&source)?,
+        };
+        let check = parsers.parse(to, &converted)?;
+        if check.has_errors() {
+            bail!(
+                "the {to} this conversion produced does not parse. That is a defect in \
+                 the converter and not in your file; the output is not written."
+            );
+        }
+        let existing = crate::vfs::read_to_string(&destination)
+            .map(|s| s.len())
+            .unwrap_or(0);
+        let mut edits = EditSet::new();
+        edits.add(
+            destination.clone(),
+            Edit::new(
+                crate::span::Span::new(0, existing),
+                &converted,
+                format!("convert {} to {to}", path.display()),
+            ),
+        );
+        edits.declare_language(destination.clone(), to);
+        return Ok(TranslatePlan {
+            from,
+            to,
+            source: path.to_path_buf(),
+            destination,
+            edits,
+        });
+    }
+
     // The render pair: the bytes change, so the source parses under its own grammar
     // and the *output* is what has to satisfy the target's.
     if from == Language::Markdown && to == Language::Html {
@@ -367,9 +411,9 @@ pub fn plan_to(
         );
     }
 
-    // The bytes are unchanged; what changes is which grammar reads them. Writing the
-    // whole text as one edit lets the engine's own reparse check see the new file in
-    // its new language, which is the same proof again from the other side.
+    // The bytes are unchanged; what changes is which grammar reads them. Writing
+    // the whole text as one edit lets the engine's own reparse check see the new
+    // file in its new language. That is the same proof from the other side.
     // Overwriting is replacing; see the same edit in `transpile::plan_to`.
     let existing = crate::vfs::read_to_string(&destination)
         .map(|s| s.len())

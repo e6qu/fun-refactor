@@ -67,6 +67,8 @@ impl Parsers {
             Language::Xml => Some(tree_sitter_xml::LANGUAGE_XML.into()),
             #[cfg(feature = "lang-markdown")]
             Language::Markdown => Some(tree_sitter_md_025::LANGUAGE.into()),
+            #[cfg(feature = "lang-json")]
+            Language::Json => Some(tree_sitter_json::LANGUAGE.into()),
             #[allow(unreachable_patterns)]
             _ => None,
         }

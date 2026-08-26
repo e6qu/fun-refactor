@@ -43,6 +43,7 @@ fn query_source(lang: Language) -> Option<&'static str> {
         Language::Java => include_str!("../queries/java/facts.scm"),
         Language::Bash => include_str!("../queries/bash/facts.scm"),
         Language::Hcl => include_str!("../queries/hcl/facts.scm"),
+        Language::Json => include_str!("../queries/json/facts.scm"),
         Language::Css => include_str!("../queries/css/facts.scm"),
         Language::Scss => include_str!("../queries/scss/facts.scm"),
         Language::Sass => include_str!("../queries/sass/facts.scm"),

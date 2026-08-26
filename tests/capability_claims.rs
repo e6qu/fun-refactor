@@ -117,6 +117,11 @@ fn fixture(language: Language) -> (&'static str, &'static str) {
             "<?xml version=\"1.0\"?>\n<!DOCTYPE cfg [\n  <!ENTITY brand \"Acme\">\n]>\n<cfg>\n  \
              <section id=\"limits\">&brand;</section>\n  <link href=\"#limits\">go</link>\n</cfg>\n",
         ),
+        Language::Json => (
+            "package.json",
+            "{\n  \"name\": \"demo\",\n  \"image\": {\n    \"repository\": \"acme/demo\",\n    \
+             \"tag\": \"v1\"\n  },\n  \"replicas\": 2\n}\n",
+        ),
         Language::Markdown => (
             "doc.md",
             "# Title\n\nSome text with a [link][ref] in it.\n\n## Section\n\n\

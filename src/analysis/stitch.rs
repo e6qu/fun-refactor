@@ -530,6 +530,7 @@ fn accessors_for(language: Language) -> &'static [Accessor] {
         | Language::Yaml
         | Language::Helm
         | Language::Xml
+        | Language::Json
         | Language::Markdown => &[],
     }
 }

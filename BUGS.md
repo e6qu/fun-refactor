@@ -93,6 +93,20 @@ a translation surface it has not written yet.
   gained what it should have preserved. Each language's widest type reads as the
   nothing it stands for.
 
+- [x] B774: **this build could not read JSON at all.** Every configuration
+  format here has a JSON neighbour. Terraform reads `.tf` and `.tf.json` as two
+  spellings of one language. Without the grammar, a workspace holding both
+  could not follow a reference out of either.
+
+  JSON is the eighteenth language: grammar, fact queries, capability rows and
+  provenance. Its keys are addresses the way a values file's are, so the walk
+  that answers for YAML answers for it. The matrix is 299 of 432 now.
+
+  `src/transpile/tfjson.rs` converts between the two Terraform syntaxes both
+  ways. `acl = "private"` and `type = bool` are the same string in JSON. Coming
+  back, a lone word is text, a dotted path under one of Terraform's own heads
+  is a reference, and the type words are types.
+
 - [x] B773: **a contract could only be built from one shape of tree.** `fr
   openapi` read a Next.js `app/api` directory. A service written with Express,
   Flask, axum, gin or Spring was invisible to it. All five declare the same

@@ -1892,7 +1892,10 @@ mod rust {
             ("Vec" | "VecDeque", [inner]) => Type::List(Box::new(ty_text(inner))),
             ("HashSet" | "BTreeSet", [inner]) => Type::Set(Box::new(ty_text(inner))),
             ("Option", [inner]) => Type::Optional(Box::new(ty_text(inner))),
-            ("HashMap" | "BTreeMap", [key, value]) => {
+            // `Map<K, V>` is a map whichever crate wrote it. Read as a plain
+            // named type, `serde_json::Map<String, Value>` crossed into Java as
+            // the map it is and came back as something else.
+            ("HashMap" | "BTreeMap" | "Map" | "IndexMap", [key, value]) => {
                 Type::Map(Box::new(ty_text(key)), Box::new(ty_text(value)))
             }
             (_, []) => Type::named(base),

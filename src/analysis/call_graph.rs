@@ -1048,6 +1048,7 @@ impl Family {
             Language::Java => Some(Family::Java),
             Language::Python => Some(Family::Python),
             Language::Zig
+            | Language::Json
             | Language::Bash
             | Language::Html
             | Language::Css
