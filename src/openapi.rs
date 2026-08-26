@@ -294,6 +294,11 @@ fn json_type(ty: &Type) -> Value {
         Type::Bool => json!({ "type": "boolean" }),
         Type::Unit => json!({ "type": "null" }),
         Type::List(inner) => json!({ "type": "array", "items": json_type(inner) }),
+        // JSON Schema has no set. An array whose members are unique is the
+        // nearest thing it says, and it says it.
+        Type::Set(inner) => {
+            json!({ "type": "array", "items": json_type(inner), "uniqueItems": true })
+        }
         Type::Map(_, value) => {
             json!({ "type": "object", "additionalProperties": json_type(value) })
         }
@@ -319,8 +324,8 @@ fn json_type(ty: &Type) -> Value {
 /// The point of a baseline is to be diffed against the finished service, and doing that
 /// properly means running the service. This is the check you can make without one. The
 /// decorators and the signatures say what the router will answer. Comparing them with the
-/// Next.js baseline catches the failure that matters: an endpoint that did not survive the
-/// crossing, or a path that quietly changed shape.
+/// Next.js baseline catches the failure that matters. An endpoint may not survive the
+/// crossing, or a path may quietly change shape.
 ///
 /// It reads what is written. It is not what will happen. A route added at run time, a router mounted
 /// under a prefix, a dependency that rejects the request: none of those are here. The document

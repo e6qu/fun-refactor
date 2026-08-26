@@ -17,8 +17,322 @@ pub fn normalize(module: &mut Module, language: Language) {
     // After the per-language pass, so Go's `x = append(x, v)` is already the method
     // call this reads.
     settle_list_element_types(module);
+    settle_sets(module, language);
+    sets_from_maps(module);
+    membership_into_conditions(module);
+    if matches!(language, Language::Zig) {
+        discards_are_calls(module);
+    }
     settle_constructors(module);
     settle_boolean_switches(module);
+}
+
+/// A membership question asked into a binding the next `if` reads, asked inline.
+///
+/// Go scopes an `if` initialiser to its own statement, so `if _, ok := m[k]; ok`
+/// twice binds `ok` twice. Hoisted, the second binding assigned to the first,
+/// which the targets that make a binding constant refused. The question is what
+/// the condition wanted, so the condition asks it.
+fn membership_into_conditions(module: &mut Module) {
+    fn asks_membership(e: &Expr) -> bool {
+        matches!(e, Expr::Call { callee, args }
+            if args.len() == 1
+                && matches!(callee.as_ref(), Expr::Field { name, .. } if name == "contains"))
+    }
+    fn walk(body: &mut Vec<Stmt>) {
+        for stmt in body.iter_mut() {
+            for inner in super::write::sub_bodies_mut(stmt) {
+                walk(inner);
+            }
+        }
+        let mut at = 0;
+        while at + 1 < body.len() {
+            // The binding, however it was written. A second `if` initialiser
+            // binding the same word arrives as an assignment, because an
+            // earlier pass saw the word was already taken.
+            let asked = match &body[at] {
+                Stmt::Let {
+                    name,
+                    value: Some(value),
+                    ..
+                } if asks_membership(value) => Some((name.clone(), value.clone())),
+                Stmt::Assign {
+                    target: Expr::Name(name),
+                    value,
+                } if asks_membership(value) => Some((name.clone(), value.clone())),
+                _ => None,
+            };
+            let Some((name, value)) = asked else {
+                at += 1;
+                continue;
+            };
+            let reads_it = matches!(&body[at + 1], Stmt::If { condition, .. }
+                if matches!(condition, Expr::Name(n) if *n == name));
+            if !reads_it {
+                at += 1;
+                continue;
+            }
+            if let Stmt::If { condition, .. } = &mut body[at + 1] {
+                *condition = value;
+            }
+            body.remove(at);
+        }
+    }
+    for item in module.items.iter_mut() {
+        match item {
+            Item::Function(f) => walk(&mut f.body),
+            Item::Record(r) => {
+                for m in r.methods.iter_mut() {
+                    walk(&mut m.body);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// `_ = f(x)` is the call, and the discard is Zig asking to be let off.
+///
+/// Zig refuses an ignored result, so every call made for its effect is written
+/// this way. Read as an assignment to a binding named `_`, Go emitted
+/// `_ = delete(m, k)` against a function that returns nothing. Java got a name
+/// it will not accept.
+fn discards_are_calls(module: &mut Module) {
+    fn walk(body: &mut [Stmt]) {
+        for stmt in body.iter_mut() {
+            if let Stmt::Assign {
+                target: Expr::Name(bound),
+                value,
+            } = stmt
+            {
+                if bound == "_" && matches!(value, Expr::Call { .. }) {
+                    *stmt = Stmt::Expr(value.clone());
+                    continue;
+                }
+            }
+            for inner in super::write::sub_bodies_mut(stmt) {
+                walk(inner);
+            }
+        }
+    }
+    for item in module.items.iter_mut() {
+        match item {
+            Item::Function(f) => walk(&mut f.body),
+            Item::Record(r) => {
+                for m in r.methods.iter_mut() {
+                    walk(&mut m.body);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// A map whose values carry nothing is a set, and its stores are adds.
+///
+/// Two of these languages have no set and spell one as a map to nothing: Go
+/// writes `map[T]struct{}` and Zig `HashMap(K, void)`. Read as maps, `seen.add`
+/// became a store of `None` and every target that has a set built the wrong
+/// thing.
+fn sets_from_maps(module: &mut Module) {
+    fn carries_nothing(e: &Expr) -> bool {
+        match e {
+            Expr::Null => true,
+            Expr::RecordLit { fields, .. } => fields.is_empty(),
+            _ => false,
+        }
+    }
+    fn stores_into<'a>(body: &'a [Stmt], name: &str, found: &mut Vec<&'a Expr>) {
+        for stmt in body {
+            if let Stmt::Assign {
+                target: Expr::Index { of, .. },
+                value,
+            } = stmt
+            {
+                if matches!(of.as_ref(), Expr::Name(n) if n == name) {
+                    found.push(value);
+                }
+            }
+            for inner in super::write::sub_bodies(stmt) {
+                stores_into(inner, name, found);
+            }
+        }
+    }
+    fn rewrite(body: &mut [Stmt], name: &str) {
+        for stmt in body.iter_mut() {
+            if let Stmt::Assign {
+                target: Expr::Index { of, index },
+                value,
+            } = stmt
+            {
+                if matches!(of.as_ref(), Expr::Name(n) if n == name) && carries_nothing(value) {
+                    *stmt = Stmt::Expr(Expr::Call {
+                        callee: Box::new(Expr::Field {
+                            of: of.clone(),
+                            name: "add".to_string(),
+                        }),
+                        args: vec![(**index).clone()],
+                    });
+                    continue;
+                }
+            }
+            for inner in super::write::sub_bodies_mut(stmt) {
+                rewrite(inner, name);
+            }
+        }
+    }
+    fn settle(f: &mut Function) {
+        let mut names = Vec::new();
+        for stmt in &f.body {
+            let Stmt::Let { name, ty, value, .. } = stmt else {
+                continue;
+            };
+            let empty_map = matches!(value, Some(Expr::MapLit(entries)) if entries.is_empty());
+            let says_set = matches!(ty, Some(Type::Set(_)))
+                || matches!(ty, Some(Type::Map(_, v)) if **v == Type::Unit);
+            if !empty_map && !says_set {
+                continue;
+            }
+            let mut stored = Vec::new();
+            stores_into(&f.body, name, &mut stored);
+            // A map with nothing stored in it says nothing either way, and the
+            // declaration is the only evidence there is.
+            if !says_set && (stored.is_empty() || !stored.iter().all(|v| carries_nothing(v))) {
+                continue;
+            }
+            names.push(name.clone());
+        }
+        for name in &names {
+            let mut body = std::mem::take(&mut f.body);
+            rewrite(&mut body, name);
+            for stmt in body.iter_mut() {
+                let Stmt::Let {
+                    name: bound,
+                    ty,
+                    value,
+                    ..
+                } = stmt
+                else {
+                    continue;
+                };
+                if bound != name {
+                    continue;
+                }
+                if let Some(Expr::MapLit(entries)) = value {
+                    let keys = entries.iter().map(|(k, _)| k.clone()).collect();
+                    *value = Some(Expr::SetLit(keys));
+                }
+                if let Some(Type::Map(key, _)) = ty {
+                    *ty = Some(Type::Set(key.clone()));
+                }
+            }
+            f.body = body;
+        }
+    }
+    for item in module.items.iter_mut() {
+        match item {
+            Item::Function(f) => settle(f),
+            Item::Record(r) => {
+                for m in r.methods.iter_mut() {
+                    settle(m);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// Every construction that builds a set, read as the set it builds.
+fn settle_sets(module: &mut Module, language: Language) {
+    // The three set words each language spells its own way, onto the canonical
+    // `add`, `remove` and `contains`. A map uses the same three words, and each
+    // of these spellings means the same thing there, so no distinction is
+    // needed between the two.
+    // A word whose value the source uses is a different question. Rust's
+    // `insert` answers whether the member was new and `delete` in TypeScript
+    // whether it was there; no other language's `add` or `remove` answers
+    // anything. So those two are renamed only where the statement is the whole
+    // of it, and asking in an expression carries instead.
+    let statement_words: &[(&str, &str, usize)] = match language {
+        Language::Rust => &[("insert", "add", 1)],
+        Language::TypeScript | Language::Tsx => &[("delete", "remove", 1)],
+        Language::Zig => &[("put", "add", 2)],
+        _ => &[],
+    };
+    let words: &[(&str, &str, usize)] = match language {
+        Language::TypeScript | Language::Tsx => &[("has", "contains", 1)],
+        _ => &[],
+    };
+    fn rename_statements(module: &mut Module, words: &[(&str, &str, usize)]) {
+        fn walk(body: &mut [Stmt], words: &[(&str, &str, usize)]) {
+            for stmt in body.iter_mut() {
+                if let Stmt::Expr(e) = stmt {
+                    for (from, to, argc) in words {
+                        let taken = std::mem::replace(e, Expr::Null);
+                        *e = match rename_method(taken, from, to, *argc) {
+                            Ok(renamed) => renamed,
+                            Err(unchanged) => unchanged,
+                        };
+                    }
+                }
+                for inner in super::write::sub_bodies_mut(stmt) {
+                    walk(inner, words);
+                }
+            }
+        }
+        for item in module.items.iter_mut() {
+            match item {
+                Item::Function(f) => walk(&mut f.body, words),
+                Item::Record(r) => {
+                    for m in r.methods.iter_mut() {
+                        walk(&mut m.body, words);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    rename_statements(module, statement_words);
+    super::read::each_expr_in_module(module, &mut |e| {
+        if let Some(built) = built_set(e) {
+            *e = built;
+            return;
+        }
+        // Go's `delete(m, k)` is a builtin taking the collection first, where
+        // the other five call a method on it.
+        if matches!(language, Language::Go) {
+            if let Expr::Call { callee, args } = e {
+                let deletes = matches!(callee.as_ref(), Expr::Name(n) if n == "delete");
+                if deletes && args.len() == 2 {
+                    let of = args[0].clone();
+                    let key = args[1].clone();
+                    *e = Expr::Call {
+                        callee: Box::new(Expr::Field {
+                            of: Box::new(of),
+                            name: "remove".to_string(),
+                        }),
+                        args: vec![key],
+                    };
+                    return;
+                }
+            }
+        }
+        for (from, to, argc) in words {
+            let taken = std::mem::replace(e, Expr::Null);
+            *e = match rename_method(taken, from, to, *argc) {
+                Ok(renamed) => renamed,
+                Err(unchanged) => unchanged,
+            };
+        }
+        // Zig's `put(k, {})` adds a member and carries no value with it.
+        if let Expr::Call { callee, args } = e {
+            let adds = matches!(callee.as_ref(), Expr::Field { name, .. } if name == "add");
+            if adds && args.len() == 2 && matches!(args[1], Expr::RecordLit { ref fields, .. } if fields.is_empty())
+            {
+                args.truncate(1);
+            }
+        }
+    });
 }
 
 /// A branch on `true` and `false` is an `if`, not a `switch`.
@@ -598,9 +912,9 @@ fn typescript(expr: Expr) -> Expr {
     if let Some(folded) = fold_concat(&expr) {
         return folded;
     }
-    // `x.length` measures, whatever x is.
+    // `x.length` measures, whatever x is, and a set and a map answer `.size`.
     if let Expr::Field { of, name } = &expr {
-        if name == "length" {
+        if name == "length" || name == "size" {
             return Expr::Call {
                 callee: Box::new(Expr::Name("len".to_string())),
                 args: vec![(**of).clone()],
@@ -689,11 +1003,12 @@ fn java(expr: Expr) -> Expr {
     if let Some(folded) = fold_concat(&expr) {
         return folded;
     }
-    // `x.length()` on text measures it; the collections pass already spoke for lists.
+    // `x.length()` on text measures it, and `x.size()` a collection. The
+    // collections pass already spoke for lists; a set reaches here.
     if let Expr::Call { callee, args } = &expr {
         if args.is_empty() {
             if let Expr::Field { of, name } = &**callee {
-                if name == "length" {
+                if name == "length" || name == "size" {
                     return Expr::Call {
                         callee: Box::new(Expr::Name("len".to_string())),
                         args: vec![(**of).clone()],
@@ -2227,6 +2542,35 @@ fn substatements_ref(stmt: &Stmt) -> Vec<&Vec<Stmt>> {
             all
         }
         _ => Vec::new(),
+    }
+}
+
+/// The set a construction stands for, in the words each language uses.
+///
+/// `set()`, `new Set()`, `new HashSet<>()` and `HashSet::new()` all build the
+/// same empty set. Read as calls, each named a function the other five have
+/// not got.
+fn built_set(e: &Expr) -> Option<Expr> {
+    let (Expr::Call { callee, args } | Expr::New { callee, args }) = e else {
+        return None;
+    };
+    let named = match callee.as_ref() {
+        Expr::Name(n) => n.rsplit(['.', ':']).next().unwrap_or(n).to_string(),
+        Expr::Field { name, .. } => name.clone(),
+        _ => return None,
+    };
+    let builds = matches!(
+        named.as_str(),
+        "set" | "Set" | "HashSet" | "TreeSet" | "LinkedHashSet" | "BTreeSet" | "frozenset"
+    );
+    if !builds {
+        return None;
+    }
+    match args.as_slice() {
+        [] => Some(Expr::SetLit(Vec::new())),
+        // `new Set([a, b])` and `set([a, b])` take the members as one list.
+        [Expr::ListLit(items)] => Some(Expr::SetLit(items.clone())),
+        _ => None,
     }
 }
 

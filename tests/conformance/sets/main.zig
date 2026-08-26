@@ -9,10 +9,10 @@ fn frPrint(comptime format: []const u8, args: anytype) void {
 
 pub fn main() void {
     frPrint("start\n", .{});
-    var seen = std.StringHashMap(bool).init(std.heap.page_allocator);
-    seen.put("ada", true) catch unreachable;
-    seen.put("alan", true) catch unreachable;
-    seen.put("ada", true) catch unreachable;
+    var seen = std.StringHashMap(void).init(std.heap.page_allocator);
+    seen.put("ada", {}) catch unreachable;
+    seen.put("alan", {}) catch unreachable;
+    seen.put("ada", {}) catch unreachable;
     frPrint("size {d}\n", .{seen.count()});
     if (seen.contains("ada")) {
         frPrint("has-ada yes\n", .{});

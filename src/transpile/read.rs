@@ -679,6 +679,7 @@ fn has_unsupported_expr(stmt: &Stmt) -> bool {
             Expr::Index { of, index } => bad(of) || bad(index),
             Expr::Call { callee, args } => bad(callee) || args.iter().any(bad),
             Expr::Binary { left, right, .. } => bad(left) || bad(right),
+            Expr::SetLit(items) => items.iter().any(bad),
             Expr::Unary { operand, .. } => bad(operand),
             Expr::Await(inner) | Expr::Propagate(inner) => bad(inner),
             Expr::New { callee, args } => bad(callee) || args.iter().any(bad),
@@ -1889,6 +1890,7 @@ mod rust {
             .collect();
         match (base, arguments.as_slice()) {
             ("Vec" | "VecDeque", [inner]) => Type::List(Box::new(ty_text(inner))),
+            ("HashSet" | "BTreeSet", [inner]) => Type::Set(Box::new(ty_text(inner))),
             ("Option", [inner]) => Type::Optional(Box::new(ty_text(inner))),
             ("HashMap" | "BTreeMap", [key, value]) => {
                 Type::Map(Box::new(ty_text(key)), Box::new(ty_text(value)))
@@ -2378,6 +2380,12 @@ mod rust {
                 let callee_text = cx.field(node, "function").map(|f| cx.text(f));
                 match callee_text.as_deref() {
                     Some("Vec::new") => return Expr::ListLit(Vec::new()),
+                    Some(
+                        "HashSet::new"
+                        | "BTreeSet::new"
+                        | "std::collections::HashSet::new"
+                        | "std::collections::BTreeSet::new",
+                    ) => return Expr::SetLit(Vec::new()),
                     Some("String::new") => return Expr::Str(String::new()),
                     _ => {}
                 }
@@ -3509,6 +3517,14 @@ mod python {
                     .collect(),
                 returns: Box::new(ty_text(answer)),
             };
+        }
+        for prefix in ["set[", "Set[", "frozenset["] {
+            if let Some(inner) = trimmed
+                .strip_prefix(prefix)
+                .and_then(|s| s.strip_suffix(']'))
+            {
+                return Type::Set(Box::new(ty_text(inner)));
+            }
         }
         for (prefix, build) in [
             ("list[", 0usize),
@@ -4790,6 +4806,11 @@ mod go {
         }
         if let Some(inner) = trimmed.strip_prefix("map[") {
             if let Some((key, value)) = inner.split_once(']') {
+                // A map whose values carry nothing is a set: membership is all
+                // it can answer, and `map[T]struct{}` is how Go spells one.
+                if value.trim() == "struct{}" {
+                    return Type::Set(Box::new(ty_text(key)));
+                }
                 return Type::Map(Box::new(ty_text(key)), Box::new(ty_text(value)));
             }
         }
@@ -4918,8 +4939,19 @@ mod go {
         if has_unsupported_expr(&Stmt::Expr(value.clone())) {
             return Stmt::Unsupported(cx.unsupported(node));
         }
+        let bound: Vec<String> = names.iter().map(|n| cx.text(*n)).collect();
+        // `_, ok := m[k]` is the membership question, and Go has no other way
+        // to ask it. The pair it binds means nothing to any other target.
+        if let Some((present, asks)) = super::comma_ok_membership(&bound, &value) {
+            return Stmt::Let {
+                name: present,
+                ty: Some(Type::Bool),
+                value: Some(asks),
+                mutable: false,
+            };
+        }
         Stmt::TupleAssign {
-            names: names.iter().map(|n| cx.text(*n)).collect(),
+            names: bound,
             value,
             declares,
             source: cx.text(node),
@@ -5433,6 +5465,15 @@ mod go {
                         }
                     }
                     return Expr::MapLit(entries);
+                }
+                // `struct{}{}` is the value Go writes where nothing is
+                // carried, and it is what a set stores under each member.
+                if cx
+                    .field(node, "type")
+                    .is_some_and(|t| t.kind() == "struct_type")
+                    && cx.text(node).replace(char::is_whitespace, "") == "struct{}{}"
+                {
+                    return Expr::Null;
                 }
                 let named = cx
                     .field(node, "type")
@@ -6137,7 +6178,10 @@ mod java {
             .map(|a| cx.children(a).into_iter().map(|t| ty_of(cx, t)).collect())
             .unwrap_or_default();
         match (base.as_str(), arguments.as_slice()) {
-            ("List" | "ArrayList" | "Collection" | "Iterable" | "Set", [inner]) => {
+            ("Set" | "HashSet" | "TreeSet" | "LinkedHashSet", [inner]) => {
+                Type::Set(Box::new(inner.clone()))
+            }
+            ("List" | "ArrayList" | "Collection" | "Iterable", [inner]) => {
                 Type::List(Box::new(inner.clone()))
             }
             ("Map" | "HashMap", [key, value]) => {
@@ -7160,7 +7204,9 @@ mod zig {
                         in_type(arg, from, to);
                     }
                 }
-                Type::List(inner) | Type::Optional(inner) => in_type(inner, from, to),
+                Type::List(inner) | Type::Set(inner) | Type::Optional(inner) => {
+                    in_type(inner, from, to)
+                }
                 Type::Fn { params, returns } => {
                     for param in params {
                         in_type(param, from, to);
@@ -7992,6 +8038,10 @@ mod zig {
                     // never come home.
                     let base = head.rsplit('.').next().unwrap_or(head);
                     return match (base, arguments.as_slice()) {
+                        // A hash map whose values carry nothing is a set:
+                        // membership is all it can answer.
+                        ("StringHashMap", [Type::Unit]) => Type::Set(Box::new(Type::String)),
+                        ("AutoHashMap", [key, Type::Unit]) => Type::Set(Box::new(key.clone())),
                         ("StringHashMap", [value]) => {
                             Type::Map(Box::new(Type::String), Box::new(value.clone()))
                         }
@@ -11638,6 +11688,14 @@ mod typescript {
         if let Some(element) = trimmed.strip_suffix("[]") {
             return Type::List(Box::new(named_or_scalar(element)));
         }
+        for prefix in ["Set<", "ReadonlySet<"] {
+            if let Some(inner) = trimmed
+                .strip_prefix(prefix)
+                .and_then(|s| s.strip_suffix('>'))
+            {
+                return Type::Set(Box::new(ty_text(inner)));
+            }
+        }
         // `[A, B]` between brackets is TypeScript's tuple type, one element included.
         if let Some(inside) = trimmed.strip_prefix('[').and_then(|s| s.strip_suffix(']')) {
             let parts = super::comma_parts(inside);
@@ -12541,6 +12599,11 @@ pub(super) fn parse_import(language: Language, text: &str) -> Option<ImportTarge
 
 pub(super) fn each_expr(e: &mut Expr, visit: &mut dyn FnMut(&mut Expr)) {
     match e {
+        Expr::SetLit(items) => {
+            for item in items {
+                each_expr(item, visit);
+            }
+        }
         Expr::Field { of, .. } => each_expr(of, visit),
         Expr::Index { of, index } => {
             each_expr(of, visit);
@@ -12684,7 +12747,7 @@ pub(crate) fn promote_constructions(
     });
 }
 
-fn each_expr_in_module(module: &mut Module, visit: &mut dyn FnMut(&mut Expr)) {
+pub(super) fn each_expr_in_module(module: &mut Module, visit: &mut dyn FnMut(&mut Expr)) {
     for item in module.items.iter_mut() {
         each_expr_in_item(item, visit);
     }
@@ -13235,6 +13298,29 @@ fn only_returned(body: &[Stmt]) -> Option<Expr> {
         [Stmt::Return(Some(e))] => Some(e.clone()),
         _ => None,
     }
+}
+
+/// `_, ok := m[k]` asks whether a key is there, and Go has no other way to.
+///
+/// Read as a two-value assignment, the `ok` it binds meant nothing to any other
+/// target and the membership question crossed as a tuple nobody had.
+fn comma_ok_membership(names: &[String], value: &Expr) -> Option<(String, Expr)> {
+    let [_, present] = names else {
+        return None;
+    };
+    let Expr::Index { of, index } = value else {
+        return None;
+    };
+    Some((
+        present.clone(),
+        Expr::Call {
+            callee: Box::new(Expr::Field {
+                of: of.clone(),
+                name: "contains".to_string(),
+            }),
+            args: vec![(**index).clone()],
+        },
+    ))
 }
 
 /// A lambda parameter, named and typed where the source typed it.

@@ -127,7 +127,7 @@ pub struct Function {
     /// Did the source say `private` in so many words?
     ///
     /// Three of these six languages have a private keyword and three have a
-    /// convention: a Rust `fn` without `pub` and a Zig one without it are the
+    /// convention. A Rust `fn` without `pub` and a Zig one without it are the
     /// module's own, which Java spells package-private. Held as one bit with
     /// `exported`, a Zig method came out `private` in Java and the file's own
     /// class could not call it. Held apart, an explicit `private` still crosses
@@ -311,6 +311,13 @@ pub enum Type {
     Float,
     String,
     List(Box<Type>),
+    /// `set[str]`, `HashSet<String>`, `Set<string>`: membership without order.
+    ///
+    /// Its own type rather than a list, because the question a set answers is
+    /// the one a list answers slowly and differently. Adding a value twice
+    /// leaves one, and asking whether a value is in it is the point. Read as a
+    /// list, `seen.add(x)` twice put two in and every size was wrong.
+    Set(Box<Type>),
     Map(Box<Type>, Box<Type>),
     Optional(Box<Type>),
     /// `(int, error)`, `tuple[int, str]`, `[number, string]`: several types as one.
@@ -391,6 +398,7 @@ impl fmt::Display for Type {
             Type::Float => write!(f, "float"),
             Type::String => write!(f, "string"),
             Type::List(inner) => write!(f, "list<{inner}>"),
+            Type::Set(inner) => write!(f, "set<{inner}>"),
             Type::Map(k, v) => write!(f, "map<{k}, {v}>"),
             Type::Optional(inner) => write!(f, "optional<{inner}>"),
             Type::Tuple(parts) => {
@@ -801,6 +809,12 @@ pub enum Expr {
         returns: Option<Type>,
         body: Box<Expr>,
     },
+    /// `{a, b}`, `set()`, `new Set()`, `HashSet::new()`: a set built in place.
+    ///
+    /// Its own node rather than a call, because each language names the
+    /// construction differently and none of the names cross. Read as a call,
+    /// `set()` in Python became a call to a function named `set` in Rust.
+    SetLit(Vec<Expr>),
     /// `[f(x) for x in xs if p(x)]`, and `xs.filter(p).map(f)`.
     ///
     /// The same idea spelled two ways: Python builds it with a comprehension,

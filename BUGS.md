@@ -93,6 +93,21 @@ a translation surface it has not written yet.
   gained what it should have preserved. Each language's widest type reads as the
   nothing it stands for.
 
+- [x] B772: **the IR had no set.** Every one of these six languages spells a
+  set. Rust, Python, Java and TypeScript name one. Go and Zig spell one as a
+  map whose values carry nothing: `map[T]struct{}` and `HashMap(K, void)`.
+  Without the type, all thirty cells of the `sets` group failed.
+
+  `Type::Set` and `Expr::SetLit` go in. Each reader reads its own spelling and
+  each writer writes one. The four collection words settle onto `add`,
+  `remove`, `contains` and `len`. So `insert`, `delete`, `has`, `put`, `size`
+  and Go's `delete(m, k)` builtin all arrive as the same question. A map to
+  nothing is recognised as the set it is, from the type and from what is stored
+  in it. Go's `_, ok := m[k]` is that language's only way to ask about
+  membership, and it crossed as a pair nobody had. It is the question now,
+  asked in the condition that wanted it. Zig's `_ = f(x)` is the call, not an
+  assignment to a binding named `_`.
+
 - [x] B771: **arithmetic answered different numbers in different targets.**
   The `numbers` group compares whole-number division and remainder across the
   matrix, including negative operands. Five things were wrong. `Math.trunc` and

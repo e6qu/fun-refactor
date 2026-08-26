@@ -997,10 +997,9 @@ of this source can settle it, and the entry says that and no more.
 
 ### What the five groups found
 
-Four of the five groups are in and pass every cell of their matrix:
-comprehensions, closures, generics and numbers, 120 pinned cells. The sets
-group is written and every cell fails, because the IR has no set type at all.
-That is the next thing built.
+All five groups are in and pass every cell of their matrix: comprehensions,
+closures, generics, numbers and sets. 150 pinned cells, and the ledger holds
+456.
 
 The groups earned their place. Each one found defects that nine existing
 groups had never touched:
@@ -1023,6 +1022,10 @@ groups had never touched:
   `@divTrunc` and `@divFloor`. Every negative quotient was wrong.
 - Python's `%` was written as `%` everywhere, and every negative remainder was
   wrong. The report said so instead of the file being right.
+- The IR had no set. Every one of the six spells one, two of them as a map
+  whose values carry nothing, and none of the thirty cells worked.
+- Go's `_, ok := m[k]` is the only way that language asks whether a key is
+  there. It crossed as a pair nobody had.
 - A comparison inside a comparison lost its brackets. Python read the result as
   a chain and meant something else by it. Rust refused to read it at all.
 

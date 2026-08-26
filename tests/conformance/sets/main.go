@@ -4,17 +4,17 @@ import "fmt"
 
 func main() {
 	fmt.Println("start")
-	seen := map[string]bool{}
-	seen["ada"] = true
-	seen["alan"] = true
-	seen["ada"] = true
+	seen := map[string]struct{}{}
+	seen["ada"] = struct{}{}
+	seen["alan"] = struct{}{}
+	seen["ada"] = struct{}{}
 	fmt.Println("size", len(seen))
-	if seen["ada"] {
+	if _, ok := seen["ada"]; ok {
 		fmt.Println("has-ada yes")
 	} else {
 		fmt.Println("has-ada no")
 	}
-	if seen["grace"] {
+	if _, ok := seen["grace"]; ok {
 		fmt.Println("has-grace yes")
 	} else {
 		fmt.Println("has-grace no")

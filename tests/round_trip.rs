@@ -2,8 +2,8 @@
 //!
 //! "The output parses" is the weakest objective bar and it found nine defects. This is the next
 //! one up, and it asks a question parsing cannot. **did anything go missing on the way?** A
-//! translation that drops a parameter, or invents one, or loses a function altogether, produces
-//! a file the target's grammar is perfectly happy with.
+//! translation may drop a parameter, invent one, or lose a function altogether. The target's
+//! grammar is perfectly happy with the file either way.
 //!
 //! The check is a round trip. Read the source into the IR, translate it, read the *result* back
 //! into the IR, and compare. The IR is the only place two files written in different languages
@@ -92,6 +92,7 @@ fn shape(ty: Option<&Type>) -> String {
         Some(Type::Int) | Some(Type::Float) => "number".to_string(),
         Some(Type::String) => "string".to_string(),
         Some(Type::List(inner)) => format!("list<{}>", shape(Some(inner))),
+        Some(Type::Set(inner)) => format!("set<{}>", shape(Some(inner))),
         Some(Type::Map(key, value)) => {
             format!("map<{},{}>", shape(Some(key)), shape(Some(value)))
         }
@@ -172,6 +173,7 @@ fn fields(module: &Module) -> Vec<(String, String)> {
 fn untranslatable(e: &Expr) -> bool {
     match e {
         Expr::Variant { fields, .. } => fields.iter().any(|(_, v)| untranslatable(v)),
+        Expr::SetLit(items) => items.iter().any(untranslatable),
         Expr::Unsupported(_) => true,
         Expr::Field { of, .. } => untranslatable(of),
         Expr::Index { of, index } => untranslatable(of) || untranslatable(index),
@@ -346,8 +348,8 @@ fn nothing_goes_missing(files: &[PathBuf], least: usize) {
                 .collect();
             gained.retain(|(name, params)| !(params.is_empty() && degraded.contains(&plain(name))));
             // Java and TypeScript build a record by calling a constructor and
-            // have no literal to build it with, so a record that crosses into
-            // one arrives with the constructor its fields imply. Coming back,
+            // have no literal to build it with. A record that crosses into one
+            // arrives with the constructor its fields imply. Coming back,
             // that constructor is the record's own shape and not a function the
             // source lacked. A constructor the source *did* declare and that
             // went missing still fails, because losses are checked apart.

@@ -639,7 +639,7 @@ fn with_hoisted_bindings(f: &Function, returns_of: &BTreeMap<String, Type>) -> F
 }
 
 /// The statement bodies nested under one statement.
-fn sub_bodies(stmt: &Stmt) -> Vec<&Vec<Stmt>> {
+pub(super) fn sub_bodies(stmt: &Stmt) -> Vec<&Vec<Stmt>> {
     match stmt {
         Stmt::If {
             then, otherwise, ..
@@ -2450,6 +2450,15 @@ fn holds_a_map(out: &Out, of: &Expr) -> bool {
     matches!(out.binding_types.get(name), Some(Type::Map(_, _)))
 }
 
+/// Does this name hold a set? The four canonical collection words are spelled
+/// differently for one, and two of the targets have no set at all.
+fn holds_a_set(out: &Out, of: &Expr) -> bool {
+    let Expr::Name(name) = of else {
+        return false;
+    };
+    matches!(out.binding_types.get(name), Some(Type::Set(_)))
+}
+
 /// The type a literal states about itself, where it states one.
 ///
 /// A map literal is the only place several writers have to name what a map
@@ -2550,9 +2559,9 @@ fn variant_spelling(out: &Out, sum: &str, variant: &str) -> String {
 /// class or an imported binding in every one of these languages. And is left alone:
 /// `NextResponse.json(x)`.
 pub(super) fn snake_always(name: &str) -> String {
-    // A separator goes before an uppercase letter only where a word starts:
-    // after a lowercase or a digit, or at the end of a run of capitals
-    // followed by a lowercase one. Splitting before *every* capital turns
+    // A separator goes before an uppercase letter only where a word starts.
+    // A word starts after a lowercase or a digit, or at the end of a run of
+    // capitals followed by a lowercase one. Splitting before *every* capital turns
     // `HTTPServer` into `h_t_t_p_server` and `MAX_RETRY` into `m_a_x__r_e_t_r_y`.
     // Real code is full of acronyms.
     let chars: Vec<char> = name.chars().collect();
@@ -2967,6 +2976,7 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
     let f = &with_hoisted_bindings(f, &out.function_returns);
     out.binding_types = declared_bindings(f);
     settle_list_element_types(f, out);
+    settle_set_element_types(f, out);
     settle_inferred_bindings(f, out);
     let known_returns = out.function_returns.clone();
     settle_call_bindings(f, &known_returns, &mut out.binding_types);
@@ -3884,6 +3894,7 @@ fn rust_type(ty: &Type) -> String {
         Type::Float => "f64".to_string(),
         Type::String => "String".to_string(),
         Type::List(inner) => format!("Vec<{}>", rust_type(inner)),
+        Type::Set(inner) => format!("std::collections::HashSet<{}>", rust_type(inner)),
         Type::Map(k, v) => format!(
             "std::collections::HashMap<{}, {}>",
             rust_type(k),
@@ -4387,6 +4398,18 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             let rendered: Vec<String> = items.iter().map(|i| rust_expr(out, i)).collect();
             format!("vec![{}]", rendered.join(", "))
         }
+        // A set built in place. `from` takes the members; an empty one has none
+        // to take and says so.
+        Expr::SetLit(items) => {
+            let rendered: Vec<String> = items.iter().map(|i| rust_expr(out, i)).collect();
+            match rendered.is_empty() {
+                true => "std::collections::HashSet::new()".to_string(),
+                false => format!(
+                    "std::collections::HashSet::from([{}])",
+                    rendered.join(", ")
+                ),
+            }
+        }
         Expr::MapLit(entries) => {
             let rendered: Vec<String> = entries
                 .iter()
@@ -4853,6 +4876,7 @@ fn python_function(out: &mut Out, f: &Function, method: bool) {
     let scope = out.enter_method(f);
     out.binding_types = declared_bindings(f);
     settle_list_element_types(f, out);
+    settle_set_element_types(f, out);
     settle_inferred_bindings(f, out);
     let known_returns = out.function_returns.clone();
     settle_call_bindings(f, &known_returns, &mut out.binding_types);
@@ -5419,6 +5443,7 @@ pub(super) fn python_type(ty: &Type) -> String {
         Type::Float => "float".to_string(),
         Type::String => "str".to_string(),
         Type::List(inner) => format!("list[{}]", python_type(inner)),
+        Type::Set(inner) => format!("set[{}]", python_type(inner)),
         Type::Tuple(parts) => format!("tuple[{}]", joined(parts, python_type)),
         Type::Map(k, v) => format!("dict[{}, {}]", python_type(k), python_type(v)),
         Type::Optional(inner) => format!("{} | None", python_type(inner)),
@@ -5604,6 +5629,70 @@ fn settle_inferred_bindings(f: &Function, out: &mut Out) {
         }
     }
     walk(&f.body, out);
+}
+
+/// The element type of a set built empty and filled by adding.
+///
+/// A set literal with nothing in it says nothing about what it holds. The four
+/// targets that name their element types had nothing to name. The adds say
+/// what goes in, so they say what the set is.
+fn settle_set_element_types(f: &Function, out: &mut Out) {
+    fn added<'a>(body: &'a [Stmt], name: &str, found: &mut Vec<&'a Expr>) {
+        for stmt in body {
+            if let Stmt::Expr(Expr::Call { callee, args }) = stmt {
+                let onto = match callee.as_ref() {
+                    Expr::Field { of, name: verb } if verb == "add" => match of.as_ref() {
+                        Expr::Name(n) => Some(n.as_str()),
+                        _ => None,
+                    },
+                    _ => None,
+                };
+                if onto == Some(name) {
+                    if let Some(first) = args.first() {
+                        found.push(first);
+                    }
+                }
+            }
+            for inner in sub_bodies(stmt) {
+                added(inner, name, found);
+            }
+        }
+    }
+    fn sets(body: &[Stmt], names: &mut Vec<(String, bool)>) {
+        for stmt in body {
+            if let Stmt::Let {
+                name,
+                ty: None,
+                value: Some(Expr::SetLit(items)),
+                ..
+            } = stmt
+            {
+                names.push((name.clone(), items.is_empty()));
+            }
+            for inner in sub_bodies(stmt) {
+                sets(inner, names);
+            }
+        }
+    }
+    let mut names = Vec::new();
+    sets(&f.body, &mut names);
+    for (name, empty) in names {
+        let element = match empty {
+            false => None,
+            true => {
+                let mut found = Vec::new();
+                added(&f.body, &name, &mut found);
+                found
+                    .first()
+                    .and_then(|first| static_type(out, first))
+                    .or_else(|| found.first().and_then(|first| literal_type_of(first)))
+            }
+        };
+        if let Some(element) = element {
+            out.binding_types
+                .insert(name, Type::Set(Box::new(element)));
+        }
+    }
 }
 
 fn settle_list_element_types(f: &Function, out: &mut Out) {
@@ -5864,6 +5953,10 @@ fn returns_name(stmts: &[Stmt], name: &str) -> bool {
 /// What this expression holds, as far as the source said so.
 fn static_type(out: &Out, e: &Expr) -> Option<Type> {
     match e {
+        Expr::SetLit(items) => items
+            .first()
+            .and_then(|first| static_type(out, first))
+            .map(|element| Type::Set(Box::new(element))),
         Expr::Int(_) => Some(Type::Int),
         Expr::Float(_) => Some(Type::Float),
         Expr::Str(_) => Some(Type::String),
@@ -6183,6 +6276,14 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
         Expr::ListLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| python_expr(out, i)).collect();
             format!("[{}]", rendered.join(", "))
+        }
+        // `{}` is an empty dict here, so an empty set is spelled `set()`.
+        Expr::SetLit(items) => {
+            let rendered: Vec<String> = items.iter().map(|i| python_expr(out, i)).collect();
+            match rendered.is_empty() {
+                true => "set()".to_string(),
+                false => format!("{{{}}}", rendered.join(", ")),
+            }
         }
         Expr::MapLit(entries) => {
             let rendered: Vec<String> = entries
@@ -6663,6 +6764,7 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     // What the body declared, for the return type a Python source never wrote.
     out.binding_types = declared_bindings(f);
     settle_list_element_types(f, out);
+    settle_set_element_types(f, out);
     settle_inferred_bindings(f, out);
     let known_returns = out.function_returns.clone();
     settle_call_bindings(f, &known_returns, &mut out.binding_types);
@@ -7430,7 +7532,28 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 then,
                 otherwise,
             } => {
-                let c = go_expr(out, condition);
+                // `if _, ok := m[k]; ok` is how Go asks whether a key is
+                // there. The header is the only place with room for it.
+                let asks = match condition {
+                    Expr::Call { callee, args } => match (callee.as_ref(), args.as_slice()) {
+                        (Expr::Field { of, name }, [key]) if name == "contains" => {
+                            match holds_a_set(out, of) {
+                                true => Some((of.clone(), key.clone())),
+                                false => None,
+                            }
+                        }
+                        _ => None,
+                    },
+                    _ => None,
+                };
+                let c = match asks {
+                    Some((of, key)) => format!(
+                        "_, frOk := {}[{}]; frOk",
+                        go_expr(out, &of),
+                        go_expr(out, &key)
+                    ),
+                    None => go_expr(out, condition),
+                };
                 out.line(&format!("if {c} {{"));
                 out.open();
                 go_block(out, then, None);
@@ -7853,6 +7976,10 @@ fn go_type(ty: &Type) -> String {
         Type::Float => "float64".to_string(),
         Type::String => "string".to_string(),
         Type::List(inner) => format!("[]{}", go_type(inner)),
+        // Go has no set. A map whose values carry nothing is the idiom, and
+        // the one that says so. `map[T]bool` is a map of booleans as much as it
+        // is a set, and a round trip could not tell them apart.
+        Type::Set(inner) => format!("map[{}]struct{{}}", go_type(inner)),
         Type::Map(k, v) => format!("map[{}]{}", go_type(k), go_type(v)),
         Type::Optional(inner) => format!("*{}", go_type(inner)),
         // Go can only say several-types-as-one in a function's results, and the
@@ -7896,7 +8023,7 @@ fn go_zero(ty: &Type) -> String {
         Type::Int => "0".to_string(),
         Type::Float => "0".to_string(),
         Type::String => "\"\"".to_string(),
-        Type::List(_) | Type::Map(_, _) | Type::Optional(_) => "nil".to_string(),
+        Type::List(_) | Type::Set(_) | Type::Map(_, _) | Type::Optional(_) => "nil".to_string(),
         Type::Unit => String::new(),
         Type::Fn { .. } => "nil".to_string(),
         // The zero of several results is each one's zero, which only a return can say.
@@ -7907,6 +8034,23 @@ fn go_zero(ty: &Type) -> String {
 
 fn go_expr(out: &mut Out, e: &Expr) -> String {
     match e {
+        // Go has no set. A map to `bool` is the idiom that reads as one, and
+        // `m[k]` is then the membership question every target asks.
+        Expr::SetLit(items) => {
+            let element = items
+                .first()
+                .and_then(|first| static_type(out, first))
+                .unwrap_or(Type::String);
+            let rendered: Vec<String> = items
+                .iter()
+                .map(|i| format!("{}: {{}}", go_expr(out, i)))
+                .collect();
+            format!(
+                "map[{}]struct{{}}{{{}}}",
+                go_type(&element),
+                rendered.join(", ")
+            )
+        }
         // Go names its fields in a literal, in any order, like the source did.
         Expr::RecordLit { ty, fields } => {
             let rendered: Vec<String> = fields
@@ -8746,6 +8890,7 @@ fn ts_function(out: &mut Out, f: &Function, inside_class: bool) {
     // source declared: an integer division truncates and this one does not.
     out.binding_types = declared_bindings(f);
     settle_list_element_types(f, out);
+    settle_set_element_types(f, out);
     settle_inferred_bindings(f, out);
     let known_returns = out.function_returns.clone();
     settle_call_bindings(f, &known_returns, &mut out.binding_types);
@@ -9363,6 +9508,7 @@ fn ts_type(ty: &Type) -> String {
         Type::Int | Type::Float => "number".to_string(),
         Type::String => "string".to_string(),
         Type::List(inner) => format!("{}[]", ts_type(inner)),
+        Type::Set(inner) => format!("Set<{}>", ts_type(inner)),
         Type::Map(k, v) => format!("Record<{}, {}>", ts_type(k), ts_type(v)),
         Type::Optional(inner) => format!("{} | null", ts_type(inner)),
         Type::Fn { params, returns } => {
@@ -9581,6 +9727,13 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
         Expr::ListLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| ts_expr(out, i)).collect();
             format!("[{}]", rendered.join(", "))
+        }
+        Expr::SetLit(items) => {
+            let rendered: Vec<String> = items.iter().map(|i| ts_expr(out, i)).collect();
+            match rendered.is_empty() {
+                true => "new Set()".to_string(),
+                false => format!("new Set([{}])", rendered.join(", ")),
+            }
         }
         Expr::MapLit(entries) => {
             let rendered: Vec<String> = entries
@@ -9997,6 +10150,7 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
     let scope = out.enter_method(f);
     out.binding_types = declared_bindings(f);
     settle_list_element_types(f, out);
+    settle_set_element_types(f, out);
     settle_inferred_bindings(f, out);
     let known_returns = out.function_returns.clone();
     settle_call_bindings(f, &known_returns, &mut out.binding_types);
@@ -10659,6 +10813,10 @@ fn java_utilities(module: &Module) -> std::collections::BTreeSet<&'static str> {
                 in_type(k, needed);
                 in_type(v, needed);
             }
+            Type::Set(inner) => {
+                needed.insert("Set");
+                in_type(inner, needed);
+            }
             Type::Optional(inner) => {
                 needed.insert("Optional");
                 in_type(inner, needed);
@@ -10673,6 +10831,12 @@ fn java_utilities(module: &Module) -> std::collections::BTreeSet<&'static str> {
             Expr::ListLit(items) => {
                 needed.insert("List");
                 needed.insert("ArrayList");
+                items.iter().for_each(|i| in_expr(i, needed));
+            }
+            // `new HashSet<>(Set.of(…))` is how this writer spells a set.
+            Expr::SetLit(items) => {
+                needed.insert("Set");
+                needed.insert("HashSet");
                 items.iter().for_each(|i| in_expr(i, needed));
             }
             Expr::MapLit(entries) => {
@@ -10793,6 +10957,7 @@ fn java_type(ty: &Type) -> String {
         Type::Float => "double".to_string(),
         Type::String => "String".to_string(),
         Type::List(inner) => format!("List<{}>", java_boxed(inner)),
+        Type::Set(inner) => format!("Set<{}>", java_boxed(inner)),
         Type::Map(k, v) => format!("Map<{}, {}>", java_boxed(k), java_boxed(v)),
         // Java's `Optional<T>` is the closest thing it has, and it is a real type
         // instead of a nullable annotation.
@@ -11116,6 +11281,15 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
             out.note_once("a tuple travels as a List here.");
             let rendered: Vec<String> = items.iter().map(|i| java_expr(out, i)).collect();
             format!("java.util.List.of({})", rendered.join(", "))
+        }
+        // `Set.of` is immutable. A source that wrote a set literal is free to
+        // add to it a line later, which is why the list below wraps too.
+        Expr::SetLit(items) => {
+            let rendered: Vec<String> = items.iter().map(|i| java_expr(out, i)).collect();
+            match rendered.is_empty() {
+                true => "new HashSet<>()".to_string(),
+                false => format!("new HashSet<>(Set.of({}))", rendered.join(", ")),
+            }
         }
         Expr::ListLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| java_expr(out, i)).collect();
@@ -11598,6 +11772,7 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     let scope = out.enter_method(f);
     out.binding_types = declared_bindings(f);
     settle_list_element_types(f, out);
+    settle_set_element_types(f, out);
     settle_inferred_bindings(f, out);
     out.fn_returns = f.returns.clone();
     let known_returns = out.function_returns.clone();
@@ -11976,6 +12151,32 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                     let k = zig_expr(out, key);
                     let v = zig_expr(out, value);
                     zig_line(out, &format!("{bound}.put({k}, {v}) catch unreachable;"));
+                }
+                return;
+            }
+            // A set goes through an allocator here, the same as a map, and its
+            // members become the puts that fill it.
+            if let Some(Expr::SetLit(items)) = value.as_ref() {
+                let element = match ty.as_ref() {
+                    Some(Type::Set(inner)) => zig_type(inner),
+                    _ => items
+                        .first()
+                        .and_then(|first| static_type(out, first))
+                        .map(|t| zig_type(&t))
+                        .unwrap_or_else(|| "[]const u8".to_string()),
+                };
+                let bound = out.name(name);
+                let built = match element.as_str() {
+                    "[]const u8" => "std.StringHashMap(void)".to_string(),
+                    other => format!("std.AutoHashMap({other}, void)"),
+                };
+                zig_line(
+                    out,
+                    &format!("var {bound} = {built}.init(std.heap.page_allocator);"),
+                );
+                for item in items {
+                    let member = zig_expr(out, item);
+                    zig_line(out, &format!("{bound}.put({member}, {{}}) catch unreachable;"));
                 }
                 return;
             }
@@ -12480,6 +12681,12 @@ fn zig_type(ty: &Type) -> String {
         // describes a literal.
         Type::String => "[]const u8".to_string(),
         Type::List(inner) => format!("[]const {}", zig_type(inner)),
+        // Zig has no set either. Its hash maps take a value type, and the empty
+        // struct is the value that says "nothing but the key matters".
+        Type::Set(inner) => match inner.as_ref() {
+            Type::String => "std.StringHashMap(void)".to_string(),
+            other => format!("std.AutoHashMap({}, void)", zig_type(other)),
+        },
         // Hashing a slice by its contents and hashing it by its address are different maps in
         // Zig. The standard library makes you pick: `AutoHashMap` cannot take a string key at
         // all.
@@ -12567,6 +12774,13 @@ fn zig_expr_immut_placeholder(e: &Expr) -> String {
 
 fn zig_expr(out: &mut Out, e: &Expr) -> String {
     match e {
+        // Zig's sets go through an allocator, so a literal only makes sense
+        // where a binding can hold it. The statement writer builds it there;
+        // reaching here means a set was written where no binding takes it.
+        Expr::SetLit(items) => {
+            let rendered: Vec<String> = items.iter().map(|i| zig_expr(out, i)).collect();
+            zig_carry(out, "set literal", format!("{{{}}}", rendered.join(", ")))
+        }
         // Zig names its fields with a leading dot, in any order.
         Expr::RecordLit { ty, fields } => {
             let rendered: Vec<String> = fields
@@ -13094,6 +13308,7 @@ fn result_ok(declared: &std::collections::BTreeSet<String>, ty: Option<&Type>) -
 fn contains_unsupported(e: &Expr) -> bool {
     match e {
         Expr::Unsupported(_) => true,
+        Expr::SetLit(items) => items.iter().any(contains_unsupported),
         Expr::Variant { fields, .. } => fields.iter().any(|(_, v)| contains_unsupported(v)),
         Expr::Field { of, .. } => contains_unsupported(of),
         Expr::Index { of, index } => contains_unsupported(of) || contains_unsupported(index),
@@ -13441,6 +13656,38 @@ fn rust_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
             _ => rust_expr(out, x),
         },
         (None, "str", [x]) => format!("{}.to_string()", rust_expr(out, x)),
+        // A set spells the four collection words its own way, and `insert` is
+        // the one that differs from every other target's.
+        (Some(of), "add", [x]) if holds_a_set(out, of) => {
+            // A set of `String` takes an owned one, and a literal is a `&str`.
+            let owns = matches!(
+                out.binding_types.get(match of {
+                    Expr::Name(n) => n.as_str(),
+                    _ => "",
+                }),
+                Some(Type::Set(inner)) if **inner == Type::String
+            );
+            let member = match (owns, x) {
+                (true, Expr::Str(_)) => format!("{}.to_string()", rust_expr(out, x)),
+                _ => rust_expr(out, x),
+            };
+            format!("{}.insert({member})", rust_expr(out, &of.clone()))
+        }
+        (Some(of), "remove", [x]) if holds_a_set(out, of) => {
+            // `remove` takes a borrow of what the set can be looked up by. A
+            // string literal is already one; a number is not.
+            let borrows = !matches!(x, Expr::Str(_));
+            let member = match borrows {
+                true => format!("&{}", rust_expr(out, x)),
+                false => rust_expr(out, x),
+            };
+            format!("{}.remove({member})", rust_expr(out, &of.clone()))
+        }
+        (Some(of), "contains", [x]) if holds_a_set(out, of) => format!(
+            "{}.contains({})",
+            rust_expr(out, &of.clone()),
+            rust_expr(out, x)
+        ),
         (Some(of), "append", [x]) => {
             let mut pushed = rust_expr(out, x);
             // An integer literal into a float list takes the float spelling.
@@ -13489,6 +13736,7 @@ fn ts_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
         (None, "len", [x]) if holds_a_map(out, x) => {
             format!("Object.keys({}).length", ts_expr(out, x))
         }
+        (None, "len", [x]) if holds_a_set(out, x) => format!("{}.size", ts_expr(out, x)),
         (None, "len", [x]) => format!("{}.length", ts_expr(out, x)),
         (None, "int", [x]) => format!("Math.trunc({})", ts_expr(out, x)),
         (None, "trunc", [x]) => format!("Math.trunc({})", ts_expr(out, x)),
@@ -13500,6 +13748,15 @@ fn ts_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
         (None, "str", [x]) => format!("String({})", ts_expr(out, x)),
         (Some(of), "append", [x]) => {
             format!("{}.push({})", ts_expr(out, &of.clone()), ts_expr(out, x))
+        }
+        (Some(of), "add", [x]) if holds_a_set(out, of) => {
+            format!("{}.add({})", ts_expr(out, &of.clone()), ts_expr(out, x))
+        }
+        (Some(of), "remove", [x]) if holds_a_set(out, of) => {
+            format!("{}.delete({})", ts_expr(out, &of.clone()), ts_expr(out, x))
+        }
+        (Some(of), "contains", [x]) if holds_a_set(out, of) => {
+            format!("{}.has({})", ts_expr(out, &of.clone()), ts_expr(out, x))
         }
         (Some(of), "contains", [x]) => {
             format!(
@@ -13574,6 +13831,34 @@ fn go_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
                 go_expr(out, &of.clone())
             )
         }
+        // A Go set is a map to `bool`. Adding writes `true`, removing deletes
+        // the key, and the membership question is the map read itself.
+        (Some(of), "add", [x]) if holds_a_set(out, of) => format!(
+            "{}[{}] = struct{{}}{{}}",
+            go_expr(out, &of.clone()),
+            go_expr(out, x)
+        ),
+        (Some(of), "remove", [x]) if holds_a_set(out, of) => format!(
+            "delete({}, {})",
+            go_expr(out, &of.clone()),
+            go_expr(out, x)
+        ),
+        // Membership needs the two-value read, which only an `if` header has
+        // room for. The statement writer puts it there; reaching here means the
+        // question was asked where Go cannot ask it.
+        (Some(of), "contains", [x]) if holds_a_set(out, of) => {
+            let asked = format!(
+                "{}[{}]",
+                go_expr(out, &of.clone()),
+                go_expr(out, x)
+            );
+            out.carried(&Unsupported {
+                construct: "asking about membership outside an `if`".into(),
+                source: asked.clone(),
+                line: 0,
+            });
+            format!("false /* {MARKER}: {asked} */")
+        }
         (Some(of), "contains", [x]) => {
             out.go_imports.insert("strings");
             format!(
@@ -13631,6 +13916,8 @@ fn java_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
             format!("{}.getMessage()", out.name(bound))
         }
         (None, "str", [x]) => format!("String.valueOf({})", java_expr(out, x)),
+        // A set answers Java's own four words, so only `len` needs saying.
+        (None, "len", [x]) if holds_a_set(out, x) => format!("{}.size()", java_expr(out, x)),
         // `len` is spelled by what it measures: a list answers `size()`, text
         // answers `length()`.
         (None, "len", [x]) => {
@@ -13711,6 +13998,9 @@ fn zig_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
         (None, "len", [x]) if holds_a_map(out, x) => {
             format!("@as(i64, @intCast({}.count()))", zig_expr(out, x))
         }
+        (None, "len", [x]) if holds_a_set(out, x) => {
+            format!("@as(i64, @intCast({}.count()))", zig_expr(out, x))
+        }
         (None, "len", [x]) => format!("@as(i64, @intCast({}.len))", zig_expr(out, x)),
         // Zig names the conversion by what it converts from, and it truncates.
         (None, "int", [x]) => match static_type(out, x) {
@@ -13731,6 +14021,22 @@ fn zig_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
                 zig_expr(out, x)
             )
         }
+        // A Zig set is a hash map whose values carry nothing.
+        (Some(of), "add", [x]) if holds_a_set(out, of) => format!(
+            "{}.put({}, {{}}) catch unreachable",
+            zig_expr(out, &of.clone()),
+            zig_expr(out, x)
+        ),
+        (Some(of), "remove", [x]) if holds_a_set(out, of) => format!(
+            "_ = {}.remove({})",
+            zig_expr(out, &of.clone()),
+            zig_expr(out, x)
+        ),
+        (Some(of), "contains", [x]) if holds_a_set(out, of) => format!(
+            "{}.contains({})",
+            zig_expr(out, &of.clone()),
+            zig_expr(out, x)
+        ),
         (Some(of), "contains", [x]) => {
             format!(
                 "std.mem.indexOf(u8, {}, {}) != null",
@@ -14411,9 +14717,9 @@ fn numbers_as_declared(module: &Module) -> Module {
 /// Zig is the one target with no closure at all. A lambda bound to a name
 /// becomes a function with that name, which is the same declaration under the
 /// same word. A lambda written inline has no name to take, and inventing one
-/// would add a declaration the source never had: a round trip back found it and
-/// said so. A lambda that reads a local is not liftable either, because lifting
-/// it would silently drop what it read. Both stay carried.
+/// adds a declaration the source never had. A round trip back found it and said
+/// so. A lambda that reads a local is not liftable either, because lifting it
+/// would silently drop what it read. Both stay carried.
 fn functions_for_lambdas(module: &Module) -> Module {
     let mut lifted = module.clone();
     let mut made: Vec<Item> = Vec::new();
