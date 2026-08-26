@@ -995,6 +995,37 @@ Every decidable case narrowed, the name-keyed function-value layer above all.
 What is left after that is a function the workspace never names. No analysis
 of this source can settle it, and the entry says that and no more.
 
+### What the five groups found
+
+Four of the five groups are in and pass every cell of their matrix:
+comprehensions, closures, generics and numbers, 120 pinned cells. The sets
+group is written and every cell fails, because the IR has no set type at all.
+That is the next thing built.
+
+The groups earned their place. Each one found defects that nine existing
+groups had never touched:
+
+- A Rust iterator chain was not a comprehension, so `xs.iter().map(f).collect()`
+  crossed as a comment.
+- Reading `*x` was not supported, so every borrowed operand in a Rust body
+  crossed as a comment.
+- Assigning through a dereference produced a target no language can assign to,
+  and the file did not parse.
+- The IR had no function type. `(n: number) => number` ran together into one
+  unwritable name and the parameter took a type nothing could call.
+- A lambda could not carry the types its source declared, and a typed parameter
+  made the whole lambda unreadable.
+- Java and TypeScript wrote a class with no constructor and then built it
+  positionally, so neither compiled.
+- A Rust record carried no derives, and an untyped field produced a struct that
+  did not parse.
+- `Math.trunc` and `Math.floor` were read as one operator, and so were
+  `@divTrunc` and `@divFloor`. Every negative quotient was wrong.
+- Python's `%` was written as `%` everywhere, and every negative remainder was
+  wrong. The report said so instead of the file being right.
+- A comparison inside a comparison lost its brackets. Python read the result as
+  a chain and meant something else by it. Rust refused to read it at all.
+
 ## Progress log
 
 Every stage is complete except the optional LSP delegation backend. Every

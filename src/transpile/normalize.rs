@@ -17,6 +17,124 @@ pub fn normalize(module: &mut Module, language: Language) {
     // After the per-language pass, so Go's `x = append(x, v)` is already the method
     // call this reads.
     settle_list_element_types(module);
+    settle_constructors(module);
+    settle_boolean_switches(module);
+}
+
+/// A branch on `true` and `false` is an `if`, not a `switch`.
+///
+/// Rust writes `match cond { true => …, false => … }` and reads as a switch on
+/// a boolean. Java has no such switch outside a preview feature, and the other
+/// four spell it with an `if` anyway. The `if` is the shape all six have.
+fn settle_boolean_switches(module: &mut Module) {
+    fn walk(body: &mut [Stmt]) {
+        for stmt in body.iter_mut() {
+            for inner in super::write::sub_bodies_mut(stmt) {
+                walk(inner);
+            }
+            let Stmt::Switch {
+                subject,
+                arms,
+                default,
+            } = stmt
+            else {
+                continue;
+            };
+            // `true` and `false` name every value a boolean has, so a `default`
+            // beside them is unreachable and there is nothing to lose.
+            let mut then = None;
+            let mut otherwise = None;
+            let mut only_booleans = !arms.is_empty();
+            for (literals, taken) in arms.iter() {
+                match literals.as_slice() {
+                    [Expr::Bool(true)] => then = Some(taken.clone()),
+                    [Expr::Bool(false)] => otherwise = Some(taken.clone()),
+                    _ => {
+                        only_booleans = false;
+                        break;
+                    }
+                }
+            }
+            if !only_booleans || then.is_none() {
+                continue;
+            }
+            *stmt = Stmt::If {
+                condition: subject.clone(),
+                then: then.unwrap_or_default(),
+                otherwise: otherwise.unwrap_or_else(|| std::mem::take(default)),
+            };
+        }
+    }
+    for item in module.items.iter_mut() {
+        match item {
+            Item::Function(f) => walk(&mut f.body),
+            Item::Record(r) => {
+                for m in r.methods.iter_mut() {
+                    walk(&mut m.body);
+                }
+            }
+            Item::Test { body, .. } => walk(body),
+            Item::Statement(stmt) => {
+                let mut one = vec![stmt.clone()];
+                walk(&mut one);
+                *stmt = one.remove(0);
+            }
+            _ => {}
+        }
+    }
+}
+
+/// A constructor that only fills fields is the record literal it builds.
+///
+/// Java, Python and TypeScript write a constructor as a body of assignments to
+/// the receiver. Rust, Go and Zig have no receiver to assign to yet: they build
+/// the value and hand it back. The literal is the shape all six can write, and
+/// the three that assign write the assignments back out.
+fn settle_constructors(module: &mut Module) {
+    for item in module.items.iter_mut() {
+        let Item::Record(record) = item else { continue };
+        let name = record.name.clone();
+        for method in record.methods.iter_mut() {
+            if !method.is_constructor {
+                continue;
+            }
+            // Already a literal, which is how three of the six write one.
+            if matches!(
+                method.body.as_slice(),
+                [Stmt::Return(Some(Expr::RecordLit { .. }))]
+            ) {
+                continue;
+            }
+            let Some(receiver) = method.receiver_binding.clone() else {
+                continue;
+            };
+            let mut fields = Vec::new();
+            let mut only_assigns = !method.body.is_empty();
+            for stmt in &method.body {
+                let Stmt::Assign {
+                    target: Expr::Field { of, name: field },
+                    value,
+                } = stmt
+                else {
+                    only_assigns = false;
+                    break;
+                };
+                if !matches!(of.as_ref(), Expr::Name(n) if *n == receiver) {
+                    only_assigns = false;
+                    break;
+                }
+                fields.push((field.clone(), value.clone()));
+            }
+            if !only_assigns {
+                continue;
+            }
+            method.body = vec![Stmt::Return(Some(Expr::RecordLit {
+                ty: name.clone(),
+                fields,
+            }))];
+            method.returns = Some(Type::named(&name));
+        }
+    }
 }
 
 fn normalize_language(module: &mut Module, language: Language) {
@@ -517,26 +635,46 @@ fn typescript(expr: Expr) -> Expr {
         }
         // `word.includes(x)` and the case methods, under their canonical names.
         (["console", "error"], _) => expr,
-        // `Math.trunc(a / b)` is how this language spells the division every other target
-        // truncates natively. `Math.floor` says the same thing for the non-negative operands
-        // real code feeds it, and both read back as the operator. So a round trip is the
-        // identity.
+        // `Math.trunc(a / b)` is how this language spells the division the other
+        // five truncate natively. `Math.floor(a / b)` is the one that rounds
+        // toward negative infinity. The two answer differently for every pair of
+        // operands with different signs, and reading both as flooring made every
+        // negative quotient wrong. Each writer spells them apart, so a round
+        // trip is still the identity.
         (
-            ["Math", "trunc" | "floor"],
+            ["Math", rounding @ ("trunc" | "floor")],
             [Expr::Binary {
                 op: BinaryOp::Div, ..
             }],
         ) => {
+            let floors = *rounding == "floor";
             let Expr::Call { args, .. } = expr else {
                 unreachable!("call_parts said so");
             };
             let Some(Expr::Binary { left, right, .. }) = args.into_iter().next() else {
                 unreachable!("the guard said so");
             };
-            Expr::Binary {
-                op: BinaryOp::FloorDiv,
-                left,
-                right,
+            match floors {
+                true => Expr::Binary {
+                    op: BinaryOp::FloorDiv,
+                    left,
+                    right,
+                },
+                // Truncation is the canonical `trunc` applied to the quotient,
+                // and no operator at all. Held as the source's `/`, a float
+                // division came out whole in a target whose `/` truncates and
+                // fractional in one whose `/` does not. `trunc` and not `int`:
+                // this language's `Math.trunc` answers a number, and narrowing
+                // it to an integer would change the type of everything it
+                // reaches.
+                false => Expr::Call {
+                    callee: Box::new(Expr::Name("trunc".to_string())),
+                    args: vec![Expr::Binary {
+                        op: BinaryOp::Div,
+                        left,
+                        right,
+                    }],
+                },
             }
         }
         _ => expr,
@@ -2092,6 +2230,75 @@ fn substatements_ref(stmt: &Stmt) -> Vec<&Vec<Stmt>> {
     }
 }
 
+/// The literal an immutable collection factory stands for.
+fn immutable_collection(e: &Expr) -> Option<Expr> {
+    let Expr::Call { callee, args } = e else {
+        return None;
+    };
+    let Expr::Field { of, name } = callee.as_ref() else {
+        return None;
+    };
+    if name != "of" {
+        return None;
+    }
+    let Expr::Name(holder) = of.as_ref() else {
+        return None;
+    };
+    match holder.rsplit('.').next().unwrap_or(holder) {
+        "List" | "Set" => Some(Expr::ListLit(args.clone())),
+        "Map" => {
+            let mut entries = Vec::new();
+            for pair in args.chunks(2) {
+                if let [k, v] = pair {
+                    entries.push((k.clone(), v.clone()));
+                }
+            }
+            Some(Expr::MapLit(entries))
+        }
+        _ => None,
+    }
+}
+
+/// The literal inside a mutable collection built around an immutable one.
+fn wrapped_collection(e: &Expr) -> Option<Expr> {
+    let (Expr::New { callee, args } | Expr::Call { callee, args }) = e else {
+        return None;
+    };
+    let built = match callee.as_ref() {
+        Expr::Name(n) => n.rsplit('.').next().unwrap_or(n),
+        Expr::Field { name, .. } => name.as_str(),
+        _ => return None,
+    };
+    let [inside] = args.as_slice() else {
+        return None;
+    };
+    let Expr::Call { callee, args } = inside else {
+        return None;
+    };
+    let Expr::Field { of, name } = callee.as_ref() else {
+        return None;
+    };
+    if name != "of" {
+        return None;
+    }
+    let holder = match of.as_ref() {
+        Expr::Name(n) => n.rsplit('.').next().unwrap_or(n),
+        _ => return None,
+    };
+    match (built, holder) {
+        ("ArrayList" | "LinkedList", "List") => Some(Expr::ListLit(args.clone())),
+        ("HashMap" | "TreeMap" | "LinkedHashMap", "Map") => {
+            let mut entries = Vec::new();
+            let mut pairs = args.chunks(2);
+            while let Some([k, v]) = pairs.next() {
+                entries.push((k.clone(), v.clone()));
+            }
+            Some(Expr::MapLit(entries))
+        }
+        _ => None,
+    }
+}
+
 fn rewrite_java_lists(body: &mut [Stmt], lists: &[String]) {
     fn empty_construction(e: &Expr) -> bool {
         matches!(e, Expr::New { callee, args } | Expr::Call { callee, args }
@@ -2193,6 +2400,18 @@ fn rewrite_java_lists(body: &mut [Stmt], lists: &[String]) {
         if let Stmt::Let { value: Some(v), .. } = stmt {
             if empty_construction(v) {
                 *v = Expr::ListLit(Vec::new());
+            }
+            // `new ArrayList<>(List.of(…))` is the mutable list this writer
+            // emits for a list literal, and `new HashMap<>(Map.of(…))` the map.
+            // Unread, the tool could not take back what it had just written. A
+            // round trip through Java named a class the target had never heard
+            // of.
+            if let Some(unwrapped) = wrapped_collection(v) {
+                *v = unwrapped;
+            }
+            // A bare `List.of(…)` or `Map.of(…)` is the literal itself.
+            if let Some(unwrapped) = immutable_collection(v) {
+                *v = unwrapped;
             }
         }
         match stmt {
@@ -2441,6 +2660,21 @@ fn rewrite_zig_lists(body: &mut [Stmt], lists: &[String]) {
 fn python(expr: Expr) -> Expr {
     if let Some(folded) = fold_concat(&expr) {
         return folded;
+    }
+    // Python's `%` rounds with its division, toward negative infinity. The
+    // other five truncate. Read as one operator, `-7 % 2` crossed as `-1` where
+    // the source said `1`, and nothing said so.
+    if let Expr::Binary {
+        op: BinaryOp::Rem,
+        left,
+        right,
+    } = expr
+    {
+        return Expr::Binary {
+            op: BinaryOp::FloorRem,
+            left,
+            right,
+        };
     }
     // `asyncio.run(main())` is how an async entry says "call main". The run
     // wrapper is the event loop, not the program: the canonical entry is the

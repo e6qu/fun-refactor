@@ -56,6 +56,12 @@ pub fn read(
         ),
     };
     settle_widest_types(&mut module, language);
+    settle_called_parameters(&mut module);
+    settle_lambda_types(&mut module);
+    settle_passed_bindings(&mut module);
+    if matches!(language, Language::Java) {
+        settle_java_applications(&mut module);
+    }
     settle_methods(&mut module);
     // Each language's spelling of the shared builtins, folded to the canonical one the
     // writers' tables spell back out. See `normalize.rs`.
@@ -133,6 +139,325 @@ fn settle_widest_types(module: &mut Module, language: Language) {
             Item::Record(r) => {
                 for method in r.methods.iter_mut() {
                     clear(method, widest);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// A parameter the body calls holds a function, and this says which one.
+///
+/// The type is read off the call rather than guessed. Each argument's type
+/// comes from the typed parameter passed there. The answer comes from the
+/// return the enclosing function declares. Left untyped, Go wrote `f any` and Zig wrote
+/// `anytype`, and neither can be called.
+fn settle_called_parameters(module: &mut Module) {
+    fn calls_of(body: &mut [Stmt], name: &str) -> Vec<Vec<Expr>> {
+        let mut found = Vec::new();
+        each_expr_in_stmts(body, &mut |e| {
+            if let Expr::Call { callee, args } = e {
+                if matches!(callee.as_ref(), Expr::Name(n) if n == name) {
+                    found.push(args.clone());
+                }
+            }
+        });
+        found
+    }
+    fn settle(f: &mut Function) {
+        let known: Vec<(String, Option<Type>)> = f
+            .params
+            .iter()
+            .map(|p| (p.name.clone(), p.ty.clone()))
+            .collect();
+        let mut body = f.body.clone();
+        let answers = f.returns.clone();
+        for p in f.params.iter_mut() {
+            if p.ty.is_some() {
+                continue;
+            }
+            let calls = calls_of(&mut body, &p.name);
+            let Some(first) = calls.first() else { continue };
+            // One arity or none: two different call shapes is not one function.
+            if calls.iter().any(|c| c.len() != first.len()) {
+                continue;
+            }
+            let Some(answers) = answers.clone() else {
+                continue;
+            };
+            // Every argument has to say what it is. `f(x)` where nothing knows
+            // `x` says only that `f` is callable, which is what was already
+            // known.
+            let mut taken = Vec::new();
+            for argument in first {
+                let told = match argument {
+                    Expr::Name(n) => known
+                        .iter()
+                        .find(|(name, _)| name == n)
+                        .and_then(|(_, ty)| ty.clone()),
+                    // `f(f(n))`: the inner call answers what this one answers.
+                    Expr::Call { callee, .. }
+                        if matches!(callee.as_ref(), Expr::Name(n) if *n == p.name) =>
+                    {
+                        Some(answers.clone())
+                    }
+                    _ => None,
+                };
+                match told {
+                    Some(t) => taken.push(t),
+                    None => {
+                        taken.clear();
+                        break;
+                    }
+                }
+            }
+            if taken.len() != first.len() {
+                continue;
+            }
+            p.ty = Some(Type::Fn {
+                params: taken,
+                returns: Box::new(answers),
+            });
+        }
+    }
+    for item in &mut module.items {
+        match item {
+            Item::Function(f) => settle(f),
+            Item::Record(r) => {
+                for method in r.methods.iter_mut() {
+                    settle(method);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// A binding takes the type of the slot it is passed to.
+///
+/// `numbers = [4, 5, 6]` says a list of whole numbers. Passed to a parameter
+/// declared `number[]`, which TypeScript's one numeric type makes a list of
+/// floats, that is the type it holds. Left alone, Go declared `[]int` and
+/// refused the call. What each writer spells the literals as is its own
+/// business, and the value is untouched: rewriting `4` to `4.0` here changed
+/// what Python printed.
+fn settle_passed_bindings(module: &mut Module) {
+    let declared: std::collections::BTreeMap<String, (Vec<Option<Type>>, Option<Type>)> = module
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Function(f) => Some((
+                f.name.clone(),
+                (
+                    f.params.iter().map(|p| p.ty.clone()).collect(),
+                    f.returns.clone(),
+                ),
+            )),
+            _ => None,
+        })
+        .collect();
+    fn settle(
+        f: &mut Function,
+        declared: &std::collections::BTreeMap<String, (Vec<Option<Type>>, Option<Type>)>,
+    ) {
+        // A binding passed to a fractional slot holds fractional values.
+        let mut wanted: std::collections::BTreeMap<String, Type> =
+            std::collections::BTreeMap::new();
+        let mut body = std::mem::take(&mut f.body);
+        each_expr_in_stmts(&mut body, &mut |e| {
+            let Expr::Call { callee, args } = e else {
+                return;
+            };
+            let Expr::Name(name) = callee.as_ref() else {
+                return;
+            };
+            let Some((params, _)) = declared.get(name) else {
+                return;
+            };
+            for (argument, param) in args.iter().zip(params) {
+                let Some(param) = param else { continue };
+                if let Expr::Name(bound) = argument {
+                    wanted.insert(bound.clone(), param.clone());
+                }
+            }
+        });
+        for stmt in body.iter_mut() {
+            let Stmt::Let { name, ty, .. } = stmt else {
+                continue;
+            };
+            let Some(asked) = wanted.get(name) else {
+                continue;
+            };
+            if ty.is_none() {
+                *ty = Some(asked.clone());
+            }
+        }
+        f.body = body;
+    }
+    let known = declared.clone();
+    for item in &mut module.items {
+        match item {
+            Item::Function(f) => settle(f, &known),
+            Item::Record(r) => {
+                for method in r.methods.iter_mut() {
+                    settle(method, &known);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// `f.apply(x)` on a function-typed name is `f(x)`.
+///
+/// Java has no call syntax for a function value; it calls the interface's one
+/// method. Read literally, every target got `f.apply(n)`, a method of something
+/// they do not have. The Java writer puts the `.apply` back.
+fn settle_java_applications(module: &mut Module) {
+    fn settle(f: &mut Function) {
+        let holds: std::collections::BTreeSet<String> = f
+            .params
+            .iter()
+            .filter(|p| matches!(p.ty, Some(Type::Fn { .. })))
+            .map(|p| p.name.clone())
+            .collect();
+        if holds.is_empty() {
+            return;
+        }
+        let mut body = std::mem::take(&mut f.body);
+        each_expr_in_stmts(&mut body, &mut |e| {
+            let Expr::Call { callee, args } = e else {
+                return;
+            };
+            let Expr::Field { of, name } = callee.as_ref() else {
+                return;
+            };
+            if name != "apply" {
+                return;
+            }
+            let Expr::Name(held) = of.as_ref() else {
+                return;
+            };
+            if !holds.contains(held) {
+                return;
+            }
+            *e = Expr::Call {
+                callee: Box::new(Expr::Name(held.clone())),
+                args: std::mem::take(args),
+            };
+        });
+        f.body = body;
+    }
+    for item in &mut module.items {
+        match item {
+            Item::Function(f) => settle(f),
+            Item::Record(r) => {
+                for method in r.methods.iter_mut() {
+                    settle(method);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// A lambda takes the type of the slot it goes into.
+///
+/// `lambda n: n + 1` says nothing about `n`. Passed to a parameter declared
+/// `func(int) int`, it says everything: that is the only type the call admits.
+/// Without this, Go wrote a carried comment where a closure belonged, because a
+/// closure there needs every type spelled.
+fn settle_lambda_types(module: &mut Module) {
+    let mut declared: std::collections::BTreeMap<String, Vec<Option<Type>>> =
+        std::collections::BTreeMap::new();
+    for item in &module.items {
+        if let Item::Function(f) = item {
+            declared.insert(
+                f.name.clone(),
+                f.params.iter().map(|p| p.ty.clone()).collect(),
+            );
+        }
+    }
+    /// Give a lambda the shape a function type asks of it.
+    fn shape(lambda: &mut Expr, wanted: &Type) {
+        let (Expr::Lambda {
+            params,
+            returns,
+            ..
+        }, Type::Fn {
+            params: taken,
+            returns: answers,
+        }) = (&mut *lambda, wanted)
+        else {
+            return;
+        };
+        if params.len() != taken.len() {
+            return;
+        }
+        for (p, t) in params.iter_mut().zip(taken) {
+            if p.ty.is_none() {
+                p.ty = Some(t.clone());
+            }
+        }
+        if returns.is_none() {
+            *returns = Some((**answers).clone());
+        }
+    }
+    fn settle(f: &mut Function, declared: &std::collections::BTreeMap<String, Vec<Option<Type>>>) {
+        // Which local names hold a lambda, so an argument that names one can be
+        // followed back to where it was bound.
+        let mut wanted: std::collections::BTreeMap<String, Type> =
+            std::collections::BTreeMap::new();
+        let mut body = std::mem::take(&mut f.body);
+        each_expr_in_stmts(&mut body, &mut |e| {
+            let Expr::Call { callee, args } = e else {
+                return;
+            };
+            let Expr::Name(name) = callee.as_ref() else {
+                return;
+            };
+            let Some(params) = declared.get(name) else {
+                return;
+            };
+            for (argument, param) in args.iter_mut().zip(params) {
+                let Some(param) = param else { continue };
+                if !matches!(param, Type::Fn { .. }) {
+                    continue;
+                }
+                match argument {
+                    Expr::Lambda { .. } => shape(argument, param),
+                    Expr::Name(bound) => {
+                        wanted.insert(bound.clone(), param.clone());
+                    }
+                    _ => {}
+                }
+            }
+        });
+        for stmt in body.iter_mut() {
+            let Stmt::Let { name, ty, value, .. } = stmt else {
+                continue;
+            };
+            let Some(asked) = wanted.get(name) else {
+                continue;
+            };
+            if let Some(value) = value {
+                if matches!(value, Expr::Lambda { .. }) {
+                    shape(value, asked);
+                    if ty.is_none() {
+                        *ty = Some(asked.clone());
+                    }
+                }
+            }
+        }
+        f.body = body;
+    }
+    let known = declared.clone();
+    for item in &mut module.items {
+        match item {
+            Item::Function(f) => settle(f, &known),
+            Item::Record(r) => {
+                for method in r.methods.iter_mut() {
+                    settle(method, &known);
                 }
             }
             _ => {}
@@ -675,27 +1000,32 @@ mod rust {
             let mut cursor = tokens.walk();
             let children: Vec<Node> = tokens.children(&mut cursor).collect();
             let inner = children.get(1..children.len().saturating_sub(1))?;
+            // A macro body is tokens, not a tree: `"a".to_string()` arrives as
+            // four of them and no expression. Each element between the commas is
+            // read by parsing its own text, which is how it would have been read
+            // anywhere else in the file.
             let mut items = Vec::new();
             let mut group: Vec<Node> = Vec::new();
-            for child in inner.iter().chain(std::iter::empty()) {
-                match child.kind() {
-                    "," => {
-                        if let [only] = group.as_slice() {
-                            items.push(expr(cx, *only));
-                        } else if !group.is_empty() {
-                            return None;
-                        }
-                        group.clear();
+            let mut take = |group: &mut Vec<Node>| -> Option<()> {
+                match group.as_slice() {
+                    [] => {}
+                    [only] => items.push(expr(cx, *only)),
+                    [first, .., last] => {
+                        let text = &cx.source[first.start_byte()..last.end_byte()];
+                        items.push(super::reparsed(text, Language::Rust)?);
                     }
+                }
+                group.clear();
+                Some(())
+            };
+            for child in inner.iter() {
+                match child.kind() {
+                    "," => take(&mut group)?,
                     _ if child.is_named() => group.push(*child),
                     _ => {}
                 }
             }
-            match group.as_slice() {
-                [] => {}
-                [only] => items.push(expr(cx, *only)),
-                _ => return None,
-            }
+            take(&mut group)?;
             return Some(Expr::ListLit(items));
         }
         if !printing && name != "format" {
@@ -1291,6 +1621,7 @@ mod rust {
             is_async: cx.text(node).starts_with("async ") || cx.text(node).contains("async fn"),
             is_property: false,
             is_constructor: false,
+            is_private: false,
         }
     }
 
@@ -1455,6 +1786,39 @@ mod rust {
         super::scalar(&text).unwrap_or_else(|| ty_text(text.trim()))
     }
 
+    /// `Fn(A) -> R` in any of the wrappers Rust puts around it.
+    fn callable(text: &str) -> Option<Type> {
+        let mut bare = text.trim();
+        // A boxed one is still one; the box says where it lives.
+        for outer in ["Box<", "std::boxed::Box<", "Rc<", "Arc<"] {
+            if let Some(inner) = bare.strip_prefix(outer).and_then(|s| s.strip_suffix('>')) {
+                bare = inner.trim();
+            }
+        }
+        let bare = bare
+            .trim_start_matches('&')
+            .trim_start()
+            .trim_start_matches("impl ")
+            .trim_start_matches("dyn ")
+            .trim_start();
+        let after = ["Fn", "FnMut", "FnOnce", "fn"]
+            .iter()
+            .find_map(|word| bare.strip_prefix(word))
+            .filter(|rest| rest.trim_start().starts_with('('))?;
+        let (inside, rest) = super::parenthesised(after.trim_start())?;
+        let params = super::parameter_types(&inside, ty_text);
+        // `Fn(A)` with nothing after it returns nothing.
+        let returns = match rest.trim().strip_prefix("->") {
+            Some(answer) => ty_text(answer),
+            None if rest.trim().is_empty() => Type::Unit,
+            None => return None,
+        };
+        Some(Type::Fn {
+            params,
+            returns: Box::new(returns),
+        })
+    }
+
     /// A Rust type from its text.
     ///
     /// The reference comes off **first**. `&HashMap<K, V>` is a `HashMap`. Checking the
@@ -1477,6 +1841,14 @@ mod rust {
         let bare = bare.trim_start_matches("mut ").trim();
         if let Some(t) = super::scalar(bare) {
             return t;
+        }
+
+        // `impl Fn(i64) -> i64`, `fn(i64) -> i64`, `Box<dyn Fn(i64) -> i64>`: the
+        // several ways Rust names a callable. Every one of them is the same
+        // question to the other five languages, and the answer is their own
+        // function type.
+        if let Some(built) = callable(bare) {
+            return built;
         }
 
         // `&[T]` is a list, and so is `[T; N]`.
@@ -1634,16 +2006,22 @@ mod rust {
                 },
                 None => Stmt::Unsupported(cx.unsupported(node)),
             },
-            "assignment_expression" => Stmt::Assign {
-                target: cx
+            "assignment_expression" => {
+                let target = cx
                     .field(node, "left")
                     .map(|l| expr(cx, l))
-                    .unwrap_or(Expr::Null),
-                value: cx
-                    .field(node, "right")
-                    .map(|r| expr(cx, r))
-                    .unwrap_or(Expr::Null),
-            },
+                    .unwrap_or(Expr::Null);
+                match target.is_assignable() {
+                    false => Stmt::Unsupported(cx.unsupported(node)),
+                    true => Stmt::Assign {
+                        target,
+                        value: cx
+                            .field(node, "right")
+                            .map(|r| expr(cx, r))
+                            .unwrap_or(Expr::Null),
+                    },
+                }
+            }
             "match_expression" => match match_switch(cx, node) {
                 Some(switch) => switch,
                 None => Stmt::Unsupported(cx.unsupported(node)),
@@ -1658,6 +2036,9 @@ mod rust {
                     .map(|r| expr(cx, r))
                     .unwrap_or(Expr::Null);
                 let operator = cx.field_text(node, "operator").unwrap_or_default();
+                if !target.is_assignable() {
+                    return Stmt::Unsupported(cx.unsupported(node));
+                }
                 match super::desugar_compound(target, &operator, value) {
                     Some(assign) => assign,
                     None => Stmt::Unsupported(cx.unsupported(node)),
@@ -1779,10 +2160,109 @@ mod rust {
                 | "unit_expression"
                 | "struct_expression"
                 | "scoped_identifier"
+                // A tail expression may be a cast, a reference, a closure or a
+                // parenthesised expression. Left off, a body ending in one had
+                // no value and the whole function crossed as a comment.
+                | "type_cast_expression"
+                | "reference_expression"
+                | "closure_expression"
+                | "parenthesized_expression"
+                | "array_expression"
+                | "tuple_expression"
+                | "self"
         )
     }
 
-    fn expr(cx: &Cx, node: Node<'_>) -> Expr {
+    /// The receiver, name and arguments of `x.f(…)`, turbofish or not.
+    fn method_call<'t>(cx: &Cx, node: Node<'t>) -> Option<(Node<'t>, String, Vec<Node<'t>>)> {
+        if node.kind() != "call_expression" {
+            return None;
+        }
+        let mut callee = cx.field(node, "function")?;
+        if callee.kind() == "generic_function" {
+            callee = cx.field(callee, "function")?;
+        }
+        if callee.kind() != "field_expression" {
+            return None;
+        }
+        let name = cx.field_text(callee, "field")?;
+        let receiver = cx.field(callee, "value")?;
+        let args = cx
+            .field(node, "arguments")
+            .map(|a| cx.children(a))
+            .unwrap_or_default();
+        Some((receiver, name, args))
+    }
+
+    /// The parameter and body of a one-argument closure, `|x| e`.
+    fn one_argument_closure<'t>(cx: &Cx, node: Node<'t>) -> Option<(String, Node<'t>)> {
+        if node.kind() != "closure_expression" {
+            return None;
+        }
+        let parameters = cx.children(cx.field(node, "parameters")?);
+        let [only] = parameters.as_slice() else {
+            return None;
+        };
+        // `|&n|` and `|n|` bind the same element; the pattern says how it is
+        // taken, and no target has a way to take it differently.
+        let bound = cx.text(*only);
+        let name = bound.trim_start_matches(['&', '*']).to_string();
+        if name.is_empty() || !name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+            return None;
+        }
+        Some((name, cx.field(node, "body")?))
+    }
+
+    /// `xs.iter().filter(p).map(f).collect()`, the comprehension Rust spells as a chain.
+    fn chain(cx: &Cx, node: Node<'_>) -> Option<Expr> {
+        let (mut receiver, method, args) = method_call(cx, node)?;
+        if method != "collect" || !args.is_empty() {
+            return None;
+        }
+        let mut element: Option<(String, Node<'_>)> = None;
+        let mut condition: Option<(String, Node<'_>)> = None;
+        while let Some((inner, name, args)) = method_call(cx, receiver) {
+            match (name.as_str(), args.as_slice()) {
+                ("map", [only]) if element.is_none() => {
+                    element = Some(one_argument_closure(cx, *only)?)
+                }
+                ("filter", [only]) if condition.is_none() => {
+                    condition = Some(one_argument_closure(cx, *only)?)
+                }
+                // These say how the elements are handed over, which is a
+                // question only Rust asks. The elements are the same either way.
+                ("iter" | "into_iter" | "cloned" | "copied", []) => {}
+                // Anything else in the chain does something this shape cannot
+                // say. Reading the rest and dropping it would lose it silently.
+                _ => return None,
+            }
+            receiver = inner;
+        }
+        let (binding, element) = match (element, &condition) {
+            (Some(pair), _) => pair,
+            // A bare `.filter(p).collect()` keeps the element it tested.
+            (None, Some((bound, _))) => (bound.clone(), receiver),
+        (None, None) => return None,
+        };
+        let condition = match condition {
+            // Two names is two scopes, and this shape holds one.
+            Some((bound, _)) if bound != binding => return None,
+            Some((_, predicate)) => Some(Box::new(expr(cx, predicate))),
+            None => None,
+        };
+        let element = match element.id() == receiver.id() {
+            true => Expr::Name(binding.clone()),
+            false => expr(cx, element),
+        };
+        Some(Expr::Comprehension {
+            element: Box::new(element),
+            binding,
+            iterable: Box::new(expr(cx, receiver)),
+            condition,
+        })
+    }
+
+    pub(super) fn expr(cx: &Cx, node: Node<'_>) -> Expr {
         match node.kind() {
             "tuple_expression" => {
                 Expr::Tuple(cx.children(node).iter().map(|n| expr(cx, *n)).collect())
@@ -1886,6 +2366,13 @@ mod rust {
                 }
             }
             "call_expression" => {
+                // `xs.iter().filter(p).map(f).collect()` is a comprehension
+                // written the way Rust writes one. Read as an ordinary call, it
+                // named `iter`, `map` and `collect`, none of which the target
+                // has. The whole binding came out as a comment.
+                if let Some(built) = chain(cx, node) {
+                    return built;
+                }
                 // `Vec::new()` and `String::new()` build the empty values every
                 // target spells as literals.
                 let callee_text = cx.field(node, "function").map(|f| cx.text(f));
@@ -2006,27 +2493,65 @@ mod rust {
                         op,
                         operand: Box::new(expr(cx, *inner)),
                     },
+                    // `*x` reads the value behind a reference. No language here
+                    // has references to read behind, so the value is what
+                    // crosses. Left unread, every borrowed operand in a body
+                    // came out as a comment.
+                    (None, Some(inner)) if text.starts_with('*') => expr(cx, *inner),
                     _ => Expr::Unsupported(cx.unsupported(node)),
                 }
             }
-            // `|x| e`, the one-expression closure. A block body is a function that
-            // wants a name, and a typed parameter is Rust's own annotation with
-            // nowhere to cross; both stay carried.
+            // `items.len() as i64` converts between two of Rust's integer
+            // widths. No other language here has widths to convert between, so
+            // the value crosses and the cast does not. Unread, every length in
+            // a signature that declared one came out as a comment.
+            "type_cast_expression" => match cx.field(node, "value") {
+                Some(value) => expr(cx, value),
+                None => Expr::Unsupported(cx.unsupported(node)),
+            },
+            // `|x| e` and `|x: T| e`, the one-expression closure. A block body is
+            // a function that wants a name and stays carried.
             "closure_expression" => {
-                let params: Option<Vec<String>> = cx
+                let params: Option<Vec<Param>> = cx
                     .field(node, "parameters")
                     .map(|list| {
                         cx.children(list)
                             .into_iter()
-                            .map(|p| (p.kind() == "identifier").then(|| plain(cx.text(p))))
+                            .map(|p| match p.kind() {
+                                "identifier" => {
+                                    Some(super::lambda_param(plain(cx.text(p)), None))
+                                }
+                                // `|n: i64|`: the grammar gives the name and the
+                                // type as siblings under the parameter.
+                                "parameter" => {
+                                    let name = cx.field(p, "pattern").filter(|n| {
+                                        n.kind() == "identifier"
+                                    })?;
+                                    Some(super::lambda_param(
+                                        plain(cx.text(name)),
+                                        cx.field(p, "type").map(|t| ty(cx, t)),
+                                    ))
+                                }
+                                _ => None,
+                            })
                             .collect()
                     })
                     .unwrap_or_else(|| Some(Vec::new()));
                 match (params, cx.field(node, "body")) {
-                    (Some(params), Some(body)) if body.kind() != "block" => Expr::Lambda {
-                        params,
-                        body: Box::new(expr(cx, body)),
-                    },
+                    (Some(params), Some(body)) => {
+                        let value = match body.kind() {
+                            "block" => super::only_returned(&block(cx, body)),
+                            _ => Some(expr(cx, body)),
+                        };
+                        match value {
+                            Some(value) => Expr::Lambda {
+                                params,
+                                returns: cx.field(node, "return_type").map(|t| ty(cx, t)),
+                                body: Box::new(value),
+                            },
+                            None => Expr::Unsupported(cx.unsupported(node)),
+                        }
+                    }
                     _ => Expr::Unsupported(cx.unsupported(node)),
                 }
             }
@@ -2306,6 +2831,7 @@ mod python {
             is_async: cx.text(node).starts_with("async "),
             is_property: false,
             is_constructor: cx.field_text(node, "name").as_deref() == Some("__init__"),
+            is_private: false,
         }
     }
 
@@ -2873,7 +3399,7 @@ mod python {
                         Expr::Name(factory) if factory == "list" => Expr::ListLit(Vec::new()),
                         Expr::Name(factory) if factory == "dict" => Expr::MapLit(Vec::new()),
                         // `default_factory=lambda: [1, 2]` builds that value.
-                        Expr::Lambda { params, body } if params.is_empty() => (**body).clone(),
+                        Expr::Lambda { params, body, .. } if params.is_empty() => (**body).clone(),
                         // Any other factory is called once per instance, and
                         // the other languages write a call in that slot too.
                         other => Expr::Call {
@@ -2958,6 +3484,31 @@ mod python {
                     return Type::Tuple(parts.iter().map(|p| named_or_scalar(p)).collect());
                 }
             }
+        }
+        // `Callable[[int], int]`, the one function type Python spells.
+        for prefix in ["Callable[", "typing.Callable[", "collections.abc.Callable["] {
+            let Some(inside) = trimmed
+                .strip_prefix(prefix)
+                .and_then(|s| s.strip_suffix(']'))
+            else {
+                continue;
+            };
+            let parts = super::comma_parts(inside);
+            let [taken, answer] = parts.as_slice() else {
+                continue;
+            };
+            let Some(taken) = taken.trim().strip_prefix('[').and_then(|s| s.strip_suffix(']'))
+            else {
+                continue;
+            };
+            return Type::Fn {
+                params: super::comma_parts(taken)
+                    .iter()
+                    .filter(|p| !p.is_empty())
+                    .map(|p| ty_text(p))
+                    .collect(),
+                returns: Box::new(ty_text(answer)),
+            };
         }
         for (prefix, build) in [
             ("list[", 0usize),
@@ -3548,18 +4099,22 @@ mod python {
             // pattern in the parameter list is more than the shared shape and
             // carries whole.
             "lambda" => {
-                let params: Option<Vec<String>> = cx
+                let params: Option<Vec<Param>> = cx
                     .field(node, "parameters")
                     .map(|list| {
                         cx.children(list)
                             .into_iter()
-                            .map(|p| (p.kind() == "identifier").then(|| cx.text(p)))
+                            .map(|p| {
+                                (p.kind() == "identifier")
+                                    .then(|| super::lambda_param(cx.text(p), None))
+                            })
                             .collect()
                     })
                     .unwrap_or_else(|| Some(Vec::new()));
                 match (params, cx.field(node, "body")) {
                     (Some(params), Some(body)) => Expr::Lambda {
                         params,
+                        returns: None,
                         body: Box::new(expr(cx, body)),
                     },
                     _ => Expr::Unsupported(cx.unsupported(node)),
@@ -4138,6 +4693,7 @@ mod go {
             is_async: false,
             is_property: false,
             is_constructor: false,
+            is_private: false,
         }
     }
 
@@ -4235,6 +4791,21 @@ mod go {
         if let Some(inner) = trimmed.strip_prefix("map[") {
             if let Some((key, value)) = inner.split_once(']') {
                 return Type::Map(Box::new(ty_text(key)), Box::new(ty_text(value)));
+            }
+        }
+        // `func(int) int`, Go's function type. A pointer check must not come
+        // first: `func(*T) T` starts with neither.
+        if let Some(after) = trimmed.strip_prefix("func") {
+            if let Some((inside, rest)) = super::parenthesised(after.trim_start()) {
+                let params = super::parameter_types(&inside, ty_text);
+                let returns = match rest.trim().is_empty() {
+                    true => Type::Unit,
+                    false => ty_text(&rest),
+                };
+                return Type::Fn {
+                    params,
+                    returns: Box::new(returns),
+                };
             }
         }
         // A pointer is Go's way of saying a value may be absent.
@@ -4694,6 +5265,35 @@ mod go {
             "nil" => Expr::Null,
             "interpreted_string_literal" | "raw_string_literal" => {
                 Expr::Str(super::unquote(&cx.text(node)))
+            }
+            // `func(n int) int { return n + 1 }`, Go's function value. Its body is
+            // a block, and a block whose only statement returns is the one
+            // expression a lambda holds.
+            "func_literal" => {
+                let params: Vec<Param> = cx
+                    .field(node, "parameters")
+                    .map(|list| {
+                        cx.children(list)
+                            .into_iter()
+                            .filter(|p| p.kind() == "parameter_declaration")
+                            .filter_map(|p| {
+                                Some(super::lambda_param(
+                                    cx.field_text(p, "name")?,
+                                    cx.field(p, "type").map(|t| ty(cx, t)),
+                                ))
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                let body = cx.field(node, "body").map(|b| block(cx, b)).unwrap_or_default();
+                match super::only_returned(&body) {
+                    Some(value) => Expr::Lambda {
+                        params,
+                        returns: cx.field(node, "result").map(|t| ty(cx, t)),
+                        body: Box::new(value),
+                    },
+                    None => Expr::Unsupported(cx.unsupported(node)),
+                }
             }
             "identifier" | "field_identifier" | "type_identifier" => Expr::Name(cx.text(node)),
             "selector_expression" => Expr::Field {
@@ -5485,6 +6085,7 @@ mod java {
             is_async: false,
             is_property: false,
             is_constructor: node.kind() == "constructor_declaration",
+            is_private: modifier_text(cx, node).contains("private"),
         }
     }
 
@@ -5500,6 +6101,10 @@ mod java {
                 .unwrap_or_else(|| Type::named("Object")),
             "generic_type" => generic(cx, node),
             _ => match cx.text(node).as_str() {
+                "Runnable" => Type::Fn {
+                    params: Vec::new(),
+                    returns: Box::new(Type::Unit),
+                },
                 "String" | "CharSequence" => Type::String,
                 "Integer" | "Long" | "Short" | "Byte" => Type::Int,
                 "Double" | "Float" => Type::Float,
@@ -5512,11 +6117,18 @@ mod java {
 
     /// `List<String>`, `Map<String, Integer>`, the two containers that correspond.
     fn generic(cx: &Cx, node: Node<'_>) -> Type {
+        // `java.util.function.Predicate<T>` names the same interface as
+        // `Predicate<T>`, and this writer spells it in full. Read as an
+        // unnamed generic, a function type came back from a round trip with
+        // its arity and nothing else.
         let base = cx
             .children(node)
             .into_iter()
-            .find(|c| c.kind() == "type_identifier")
-            .map(|c| cx.text(c))
+            .find(|c| matches!(c.kind(), "type_identifier" | "scoped_type_identifier"))
+            .map(|c| {
+                let text = cx.text(c);
+                text.rsplit('.').next().unwrap_or(&text).to_string()
+            })
             .unwrap_or_default();
         let arguments: Vec<Type> = cx
             .children(node)
@@ -5532,6 +6144,36 @@ mod java {
                 Type::Map(Box::new(key.clone()), Box::new(value.clone()))
             }
             ("Optional", [inner]) => Type::Optional(Box::new(inner.clone())),
+            // Java names one interface per function shape. Each is the same
+            // question the other five spell with a function type.
+            ("Function", [takes, answers]) => Type::Fn {
+                params: vec![takes.clone()],
+                returns: Box::new(answers.clone()),
+            },
+            ("UnaryOperator", [both]) => Type::Fn {
+                params: vec![both.clone()],
+                returns: Box::new(both.clone()),
+            },
+            ("BiFunction", [first, second, answers]) => Type::Fn {
+                params: vec![first.clone(), second.clone()],
+                returns: Box::new(answers.clone()),
+            },
+            ("Supplier", [answers]) => Type::Fn {
+                params: Vec::new(),
+                returns: Box::new(answers.clone()),
+            },
+            ("Consumer", [takes]) => Type::Fn {
+                params: vec![takes.clone()],
+                returns: Box::new(Type::Unit),
+            },
+            ("BiConsumer", [first, second]) => Type::Fn {
+                params: vec![first.clone(), second.clone()],
+                returns: Box::new(Type::Unit),
+            },
+            ("Predicate", [takes]) => Type::Fn {
+                params: vec![takes.clone()],
+                returns: Box::new(Type::Bool),
+            },
             _ => Type::Named {
                 name: base,
                 args: arguments,
@@ -6120,25 +6762,50 @@ mod java {
                     _ => Expr::Unsupported(cx.unsupported(node)),
                 }
             }
-            // `x -> e`, the one-expression lambda. A block body or a typed
-            // parameter list is more than the shared shape and stays carried.
+            // `x -> e` and `(int x) -> e`, the one-expression lambda. A block
+            // body is more than the shared shape and stays carried.
             "lambda_expression" => {
-                let params: Option<Vec<String>> =
+                let params: Option<Vec<Param>> =
                     cx.field(node, "parameters")
                         .and_then(|list| match list.kind() {
-                            "identifier" => Some(vec![cx.text(list)]),
+                            "identifier" => Some(vec![super::lambda_param(cx.text(list), None)]),
                             "inferred_parameters" => cx
                                 .children(list)
                                 .into_iter()
-                                .map(|p| (p.kind() == "identifier").then(|| cx.text(p)))
+                                .map(|p| {
+                                    (p.kind() == "identifier")
+                                        .then(|| super::lambda_param(cx.text(p), None))
+                                })
+                                .collect(),
+                            "formal_parameters" => cx
+                                .children(list)
+                                .into_iter()
+                                .filter(|p| p.kind() == "formal_parameter")
+                                .map(|p| {
+                                    let name = cx.field_text(p, "name")?;
+                                    Some(super::lambda_param(
+                                        name,
+                                        cx.field(p, "type").map(|t| ty_of(cx, t)),
+                                    ))
+                                })
                                 .collect(),
                             _ => None,
                         });
                 match (params, cx.field(node, "body")) {
-                    (Some(params), Some(body)) if body.kind() != "block" => Expr::Lambda {
-                        params,
-                        body: Box::new(expr(cx, body)),
-                    },
+                    (Some(params), Some(body)) => {
+                        let value = match body.kind() {
+                            "block" => super::only_returned(&block(cx, body)),
+                            _ => Some(expr(cx, body)),
+                        };
+                        match value {
+                            Some(value) => Expr::Lambda {
+                                params,
+                                returns: None,
+                                body: Box::new(value),
+                            },
+                            None => Expr::Unsupported(cx.unsupported(node)),
+                        }
+                    }
                     _ => Expr::Unsupported(cx.unsupported(node)),
                 }
             }
@@ -6223,15 +6890,26 @@ mod zig {
                     args,
                 },
             },
-            Expr::RecordLit { ty, fields } if ty.is_empty() => Expr::New {
-                callee: owner(),
-                args: fields
-                    .into_iter()
-                    .map(|(name, value)| Expr::Keyword {
-                        name,
-                        value: Box::new(value),
-                    })
-                    .collect(),
+            // `.{ .value = 9 }` under a `Box` annotation builds a `Box`. Named
+            // as a call taking keywords, the targets that build a record
+            // through a constructor got an object literal instead of arguments.
+            Expr::RecordLit { ty, fields } if ty.is_empty() => match *owner() {
+                // A dotted name belongs to another module, and this file
+                // declares no fields for it, so only a plain one builds a
+                // record here.
+                Expr::Name(named) if !named.contains('.') => {
+                    Expr::RecordLit { ty: named, fields }
+                }
+                other => Expr::New {
+                    callee: Box::new(other),
+                    args: fields
+                        .into_iter()
+                        .map(|(name, value)| Expr::Keyword {
+                            name,
+                            value: Box::new(value),
+                        })
+                        .collect(),
+                },
             },
             Expr::Propagate(inner) => {
                 Expr::Propagate(Box::new(qualify_dot_literal(*inner, annotation)))
@@ -6483,6 +7161,12 @@ mod zig {
                     }
                 }
                 Type::List(inner) | Type::Optional(inner) => in_type(inner, from, to),
+                Type::Fn { params, returns } => {
+                    for param in params {
+                        in_type(param, from, to);
+                    }
+                    in_type(returns, from, to);
+                }
                 Type::Tuple(parts) => {
                     for part in parts {
                         in_type(part, from, to);
@@ -7135,6 +7819,7 @@ mod zig {
             is_async: false,
             is_property: false,
             is_constructor: false,
+            is_private: false,
         })
     }
 
@@ -7258,6 +7943,26 @@ mod zig {
                 "u8" => Type::String,
                 other => Type::List(Box::new(from_text(other))),
             };
+        }
+        // `fn (i64) i64`, and the pointer to one this tool's own writer emits.
+        // Zig has no closure, so a function value is always one of these.
+        let callable = text
+            .trim_start_matches('*')
+            .trim_start()
+            .trim_start_matches("const ")
+            .trim_start();
+        if let Some(after) = callable.strip_prefix("fn") {
+            if let Some((inside, rest)) = super::parenthesised(after.trim_start()) {
+                let params = super::parameter_types(&inside, from_text);
+                let returns = match rest.trim().is_empty() {
+                    true => Type::Unit,
+                    false => from_text(&rest),
+                };
+                return Type::Fn {
+                    params,
+                    returns: Box::new(returns),
+                };
+            }
         }
         // `struct { A, B }` with only types inside is Zig's tuple, and it is what this
         // tool's own writer emits for one. A `:` inside names a field, a real struct.
@@ -9365,15 +10070,24 @@ mod zig {
                             .collect()
                     })
                     .unwrap_or_default();
-                Expr::New {
-                    callee: Box::new(Expr::Name(named)),
-                    args: fields
-                        .into_iter()
-                        .map(|(name, value)| Expr::Keyword {
-                            name,
-                            value: Box::new(value),
-                        })
-                        .collect(),
+                // `Box{ .value = 9 }` builds a record, which the IR has a node
+                // for. Written as a call taking keywords, the targets that
+                // build a record through a constructor got an object literal
+                // where an argument list belonged. A dotted name belongs to
+                // another module and this file declares no fields for it, so
+                // it carries as the construction it is.
+                match named.contains('.') {
+                    false => Expr::RecordLit { ty: named, fields },
+                    true => Expr::New {
+                        callee: Box::new(Expr::Name(named)),
+                        args: fields
+                            .into_iter()
+                            .map(|(name, value)| Expr::Keyword {
+                                name,
+                                value: Box::new(value),
+                            })
+                            .collect(),
+                    },
                 }
             }
             // A type in argument position names itself; the pointer wrapper
@@ -9782,17 +10496,28 @@ mod zig {
                     // `@mod` is Euclidean where `%` truncates. They agree wherever the operands
                     // are non-negative, and a program for which that differs is telling every
                     // target something Zig-shaped.
-                    ("@divTrunc" | "@divFloor", [left, right]) => Expr::Binary {
+                    // The two roundings are different operators, and reading
+                    // both as one made every negative quotient wrong.
+                    ("@divTrunc", [left, right]) => Expr::Binary {
+                        op: BinaryOp::Div,
+                        left: Box::new(expr(cx, *left)),
+                        right: Box::new(expr(cx, *right)),
+                    },
+                    ("@divFloor", [left, right]) => Expr::Binary {
                         op: BinaryOp::FloorDiv,
                         left: Box::new(expr(cx, *left)),
                         right: Box::new(expr(cx, *right)),
                     },
-                    ("@mod" | "@rem", [left, right]) => Expr::Binary {
+                    ("@rem", [left, right]) => Expr::Binary {
                         op: BinaryOp::Rem,
                         left: Box::new(expr(cx, *left)),
                         right: Box::new(expr(cx, *right)),
                     },
-                    // The single-argument casts reassert a type the annotation
+                    ("@mod", [left, right]) => Expr::Binary {
+                        op: BinaryOp::FloorRem,
+                        left: Box::new(expr(cx, *left)),
+                        right: Box::new(expr(cx, *right)),
+                    },                    // The single-argument casts reassert a type the annotation
                     // already names; the value itself is what crosses.
                     (
                         "@intCast" | "@truncate" | "@enumFromInt" | "@intFromEnum" | "@intFromBool"
@@ -10620,6 +11345,7 @@ mod typescript {
             is_async,
             is_property: false,
             is_constructor: cx.field_text(node, "name").as_deref() == Some("constructor"),
+            is_private: false,
         }
     }
 
@@ -10809,6 +11535,9 @@ mod typescript {
                     "method_definition" | "method_signature" => {
                         let mut method = function(cx, member, Some(name.clone()));
                         method.exported = is_visible(cx, member);
+                        // This language says `private` in so many words, and
+                        // the two that also do carry the word across.
+                        method.is_private = !method.exported;
                         // `get total()` is read as data at its use sites, which is
                         // a fact about every accessor and not about this body.
                         let mut cursor = member.walk();
@@ -10894,6 +11623,17 @@ mod typescript {
             .trim();
         if let Some(t) = super::scalar(trimmed) {
             return t;
+        }
+        // `(n: number) => number`, TypeScript's function type. Left unread it
+        // ran together into one unwritable name, and a parameter holding a
+        // function took a type nothing could call.
+        if let Some((inside, rest)) = super::parenthesised(trimmed) {
+            if let Some(answer) = rest.strip_prefix("=>") {
+                return Type::Fn {
+                    params: super::parameter_types(&inside, ty_text),
+                    returns: Box::new(ty_text(answer)),
+                };
+            }
         }
         if let Some(element) = trimmed.strip_suffix("[]") {
             return Type::List(Box::new(named_or_scalar(element)));
@@ -11148,14 +11888,33 @@ mod typescript {
     ///
     /// Anything else, a destructured parameter, a block body, a named callback, is
     /// not the shape a comprehension has, and pretending otherwise would invent one.
+    /// The expression a `{ return e; }` block returns, as a node.
+    fn returned_node<'t>(cx: &Cx, block: Node<'t>) -> Option<Node<'t>> {
+        let statements = cx.children(block);
+        let [only] = statements.as_slice() else {
+            return None;
+        };
+        if only.kind() != "return_statement" {
+            return None;
+        }
+        cx.children(*only).into_iter().find(|c| c.is_named())
+    }
+
     fn one_arg_arrow<'t>(cx: &Cx, node: Node<'t>) -> Option<(String, Node<'t>)> {
         if node.kind() != "arrow_function" {
             return None;
         }
+        // A block whose only statement returns holds one expression, and that is
+        // the shape a comprehension takes. Refused, `xs.map((x) => { return
+        // x * 2; })` crossed as a method the target has not got.
         let body = cx.field(node, "body")?;
-        if body.kind() == "statement_block" {
-            return None;
-        }
+        let body = match body.kind() {
+            "statement_block" => match super::only_returned(&block(cx, body)) {
+                Some(_) => returned_node(cx, body)?,
+                None => return None,
+            },
+            _ => body,
+        };
         let parameter = match cx.field(node, "parameter") {
             Some(p) => cx.text(p),
             None => {
@@ -11505,22 +12264,27 @@ mod typescript {
             // that wants a name. A type, a default or a pattern in the parameter
             // list is more than the shared shape. All of those stay carried.
             "arrow_function" => {
-                let params: Option<Vec<String>> = match cx.field(node, "parameter") {
-                    Some(p) => Some(vec![cx.text(p)]),
+                let params: Option<Vec<Param>> = match cx.field(node, "parameter") {
+                    Some(p) => Some(vec![super::lambda_param(cx.text(p), None)]),
                     None => cx
                         .field(node, "parameters")
                         .map(|list| {
                             cx.children(list)
                                 .into_iter()
                                 .map(|p| match p.kind() {
-                                    "identifier" => Some(cx.text(p)),
-                                    "required_parameter"
-                                        if cx.field(p, "type").is_none()
-                                            && cx.field(p, "value").is_none() =>
-                                    {
-                                        cx.field(p, "pattern")
-                                            .filter(|n| n.kind() == "identifier")
-                                            .map(|n| cx.text(n))
+                                    "identifier" => Some(super::lambda_param(cx.text(p), None)),
+                                    // A default value is more than the shared
+                                    // shape. A type is not. Refusing one meant
+                                    // `(n: number) => n + 1` could not be read
+                                    // at all.
+                                    "required_parameter" if cx.field(p, "value").is_none() => {
+                                        let name = cx
+                                            .field(p, "pattern")
+                                            .filter(|n| n.kind() == "identifier")?;
+                                        Some(super::lambda_param(
+                                            cx.text(name),
+                                            cx.field(p, "type").map(|t| ty(cx, t)),
+                                        ))
                                     }
                                     _ => None,
                                 })
@@ -11529,10 +12293,18 @@ mod typescript {
                         .unwrap_or_else(|| Some(Vec::new())),
                 };
                 match (params, cx.field(node, "body")) {
-                    (Some(params), Some(body)) if body.kind() != "statement_block" => {
-                        Expr::Lambda {
-                            params,
-                            body: Box::new(expr(cx, body)),
+                    (Some(params), Some(body)) => {
+                        let value = match body.kind() {
+                            "statement_block" => super::only_returned(&block(cx, body)),
+                            _ => Some(expr(cx, body)),
+                        };
+                        match value {
+                            Some(value) => Expr::Lambda {
+                                params,
+                                returns: cx.field(node, "return_type").map(|t| ty(cx, t)),
+                                body: Box::new(value),
+                            },
+                            None => Expr::Unsupported(cx.unsupported(node)),
                         }
                     }
                     _ => Expr::Unsupported(cx.unsupported(node)),
@@ -12378,16 +13150,13 @@ fn settle_variants(module: &mut Module) {
                     let build_record = records.contains(name.as_str())
                         && (!also_variant || returning.as_deref() == Some(name.as_str()));
                     if build_record {
-                        let args = std::mem::take(fields)
-                            .into_iter()
-                            .map(|(field, value)| Expr::Keyword {
-                                name: field,
-                                value: Box::new(value),
-                            })
-                            .collect();
-                        *e = Expr::New {
-                            callee: Box::new(Expr::Name(name.clone())),
-                            args,
+                        // The IR has a node for building a record.
+                        // Written as a call taking keywords, the two targets
+                        // that build a record through a constructor got an
+                        // object literal where an argument list belonged.
+                        *e = Expr::RecordLit {
+                            ty: name.clone(),
+                            fields: std::mem::take(fields),
                         };
                         return;
                     }
@@ -12420,6 +13189,101 @@ fn settle_variants(module: &mut Module) {
 /// What the tuple spellings share: Rust and Go put types between `(` and `)`,
 /// TypeScript between `[` and `]`, Zig between `struct {` and `}`. Each reader
 /// strips its own brackets and splits the inside here.
+/// One expression, read from its own text.
+///
+/// A macro body is a token tree and not a syntax tree. An element of `vec![…]`
+/// more involved than a literal has no node to read. Parsing the text on its
+/// own gives the tree the enclosing parse never built.
+fn reparsed(text: &str, language: Language) -> Option<Expr> {
+    let wrapped = match language {
+        Language::Rust => format!("fn frOne() {{ let frOne = {text}; }}"),
+        _ => return None,
+    };
+    let parsed = crate::parse::Parsers::new().parse(language, &wrapped).ok()?;
+    if parsed.has_errors() {
+        return None;
+    }
+    let lines = LineIndex::new(&wrapped);
+    let cx = Cx {
+        source: &wrapped,
+        lines: &lines,
+    };
+    let mut found = None;
+    fn hunt(cx: &Cx, node: Node<'_>, found: &mut Option<Expr>) {
+        if node.kind() == "let_declaration" {
+            if let Some(value) = cx.field(node, "value") {
+                *found = Some(rust::expr(cx, value));
+            }
+            return;
+        }
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            hunt(cx, child, found);
+        }
+    }
+    hunt(&cx, parsed.tree.root_node(), &mut found);
+    found.filter(|e| !matches!(e, Expr::Unsupported(_)))
+}
+
+/// The one expression a `{ return e }` body stands for.
+///
+/// A function value written with a block whose only statement returns is the
+/// same function value written as an expression. Refused, every Go `func(n int)
+/// int { return n + 1 }` and every Rust `|n| { n + 1 }` crossed as a comment.
+fn only_returned(body: &[Stmt]) -> Option<Expr> {
+    match body {
+        [Stmt::Return(Some(e))] => Some(e.clone()),
+        _ => None,
+    }
+}
+
+/// A lambda parameter, named and typed where the source typed it.
+fn lambda_param(name: String, ty: Option<Type>) -> Param {
+    Param {
+        name,
+        ty,
+        default: None,
+        kind: ParamKind::Normal,
+    }
+}
+
+/// The inside of a leading `(…)` and the text after it, brackets balanced.
+///
+/// `(a: A, b: B) => R` gives `("a: A, b: B", "=> R")`. Splitting on the first
+/// `)` instead read `(f: (n: number) => number)` as ending in the middle.
+fn parenthesised(text: &str) -> Option<(String, String)> {
+    let text = text.trim();
+    if !text.starts_with('(') {
+        return None;
+    }
+    let mut depth = 0usize;
+    for (at, c) in text.char_indices() {
+        match c {
+            '(' | '[' | '<' | '{' => depth += 1,
+            ')' | ']' | '>' | '}' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some((text[1..at].to_string(), text[at + 1..].trim().to_string()));
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+/// A parameter list where each entry may carry a name: `a: A` or just `A`.
+fn parameter_types(inside: &str, of: impl Fn(&str) -> Type) -> Vec<Type> {
+    comma_parts(inside)
+        .iter()
+        .filter(|p| !p.is_empty())
+        .map(|p| match p.split_once(':') {
+            Some((_, ty)) => of(ty.trim()),
+            None => of(p),
+        })
+        .collect()
+}
+
 fn comma_parts(inside: &str) -> Vec<String> {
     let mut parts = Vec::new();
     let mut depth = 0i32;
@@ -13070,6 +13934,7 @@ mod bash {
             is_async: false,
             is_property: false,
             is_constructor: false,
+            is_private: false,
         }
     }
 

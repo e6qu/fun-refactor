@@ -49,9 +49,9 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
     //
     // A real Next.js application keeps its zod schemas in a module the routes import,
     // `@/lib/schemas` here. Reading only the route file found none of them. The contract came
-    // out with an empty `components` section, which says the endpoints take no body at all: a
-    // smaller contract than the one it stands in for, and exactly the failure this document
-    // exists to catch.
+    // out with an empty `components` section. That says the endpoints take no body at all,
+    // a smaller contract than the one it stands in for. This document exists to catch
+    // that failure.
     let mut declared: std::collections::BTreeMap<String, Model> = std::collections::BTreeMap::new();
     for file in files {
         for model in nextjs::models_in(file).unwrap_or_default() {
@@ -298,6 +298,9 @@ fn json_type(ty: &Type) -> Value {
             json!({ "type": "object", "additionalProperties": json_type(value) })
         }
         Type::Optional(inner) => json_type(inner),
+        // JSON Schema describes data, and a function is not data. A route
+        // taking or returning one has no body this can describe.
+        Type::Fn { .. } => json!({}),
         Type::Tuple(parts) => json!({
             "type": "array",
             "prefixItems": parts.iter().map(json_type).collect::<Vec<_>>(),
@@ -315,8 +318,8 @@ fn json_type(ty: &Type) -> Value {
 ///
 /// The point of a baseline is to be diffed against the finished service, and doing that
 /// properly means running the service. This is the check you can make without one. The
-/// decorators and the signatures say what the router will answer, and comparing them with the
-/// Next.js baseline catches the failure that matters, an endpoint that did not survive the
+/// decorators and the signatures say what the router will answer. Comparing them with the
+/// Next.js baseline catches the failure that matters: an endpoint that did not survive the
 /// crossing, or a path that quietly changed shape.
 ///
 /// It reads what is written. It is not what will happen. A route added at run time, a router mounted

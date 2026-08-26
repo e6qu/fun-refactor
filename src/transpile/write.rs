@@ -680,7 +680,7 @@ fn sub_bodies(stmt: &Stmt) -> Vec<&Vec<Stmt>> {
     }
 }
 
-fn sub_bodies_mut(stmt: &mut Stmt) -> Vec<&mut Vec<Stmt>> {
+pub(super) fn sub_bodies_mut(stmt: &mut Stmt) -> Vec<&mut Vec<Stmt>> {
     match stmt {
         Stmt::If {
             then, otherwise, ..
@@ -1268,6 +1268,23 @@ pub fn write_in_context(
             _ => None,
         })
         .collect();
+    // A literal may name a subset of the fields, and the rest take the values
+    // the record declares. A constructor takes them all, so the defaults have
+    // to be to hand.
+    out.record_field_defaults = context
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Record(r) => Some((
+                r.name.clone(),
+                r.fields
+                    .iter()
+                    .filter_map(|f| f.default.clone().map(|d| (f.name.clone(), d)))
+                    .collect(),
+            )),
+            _ => None,
+        })
+        .collect();
     out.record_field_types = context
         .items
         .iter()
@@ -1335,12 +1352,25 @@ pub fn write_in_context(
         })
         .collect();
     out.throwing = throwing_functions(context);
+    // A record's methods declare returns as much as a loose function does.
+    // Left out, a call through a receiver had no type, and the writers that
+    // decide a spelling by type could not decide.
     out.function_returns = context
         .items
         .iter()
-        .filter_map(|item| match item {
-            Item::Function(f) => f.returns.clone().map(|t| (f.name.clone(), t)),
-            _ => None,
+        .flat_map(|item| match item {
+            Item::Function(f) => f
+                .returns
+                .clone()
+                .map(|t| (f.name.clone(), t))
+                .into_iter()
+                .collect::<Vec<_>>(),
+            Item::Record(r) => r
+                .methods
+                .iter()
+                .filter_map(|m| m.returns.clone().map(|t| (m.name.clone(), t)))
+                .collect(),
+            _ => Vec::new(),
         })
         .collect();
     out.function_param_types = context
@@ -1405,6 +1435,32 @@ pub fn write_in_context(
         _ => None,
     };
     let module = flattened.as_ref().unwrap_or(module);
+    // Go and Zig have no expression that builds a collection. They have the
+    // loop that does, and so does every other language here, so the
+    // comprehension becomes one before either writer sees it. Carried instead,
+    // the binding it filled was left holding nothing and the file did not
+    // compile.
+    let looped = match language {
+        Language::Go | Language::Zig => Some(loops_for_comprehensions(module)),
+        _ => None,
+    };
+    let module = looped.as_ref().unwrap_or(module);
+    // Zig has no closure: a function value is a function, declared at the top
+    // of the file. A lambda that captures nothing is that same function under
+    // a name, so it is given one.
+    let lifted = match language {
+        Language::Zig => Some(functions_for_lambdas(module)),
+        _ => None,
+    };
+    let module = lifted.as_ref().unwrap_or(module);
+    // Rust and Java will not read a whole number as a fractional one. Go and
+    // Zig read an untyped constant either way, and Python and TypeScript have
+    // nothing to declare.
+    let spelled = match language {
+        Language::Rust | Language::Java => Some(numbers_as_declared(module)),
+        _ => None,
+    };
+    let module = spelled.as_ref().unwrap_or(module);
 
     match language {
         Language::Rust => rust(&mut out, module),
@@ -1488,6 +1544,13 @@ struct Out {
     /// written `Function<..>`, and a call through it goes by `apply`. Written
     /// `f(x)`, javac looked for a method named `f` on the class.
     functional_params: std::collections::BTreeSet<String>,
+    /// Inside a record's `impl`, the type parameters the struct already declares,
+    /// by the field each stands for. A method taking a field's value takes the
+    /// struct's parameter, not one of its own.
+    record_generics: Vec<(String, String)>,
+    /// The record whose `impl` is being written, so a method returning it can
+    /// say `Self` rather than name it without its arguments.
+    record_written: Option<String>,
     /// Bindings whose value the Zig writer knows to be text, by watching the `let`s
     /// it writes. The declared types answer for the rest; these are the inferred ones,
     /// `const label = frFormat(...)`, that a format hole must spell `{s}`.
@@ -1504,6 +1567,8 @@ struct Out {
     /// matches, the positions map onto these; otherwise the construction
     /// carries.
     records: std::collections::BTreeMap<String, Vec<String>>,
+    /// The value each record field starts at, where the record declares one.
+    record_field_defaults: std::collections::BTreeMap<String, Vec<(String, Expr)>>,
     /// The module's own choices, whole, for building a variant of one.
     ///
     /// The name set in `sums` answers "is this a choice". Making a value of
@@ -1549,6 +1614,12 @@ struct Out {
     can_propagate: bool,
     /// Whether the function being written returns `Result`, so its returns wrap `Ok`.
     fn_throws: bool,
+    /// What the function being written answers, for the targets that convert
+    /// between their own number types only when told to.
+    fn_returns: Option<Type>,
+    /// Is a loop's own header being written? Go declares a binding there with
+    /// `:=` and nothing else; `var` is a statement and has no place in one.
+    in_loop_header: bool,
     /// One counter for the names a lowering has to invent.
     lowering_names: usize,
     /// The names the Rust body writes to or grows, which must bind `mut` whatever
@@ -1660,9 +1731,12 @@ impl Out {
             go_imports: std::collections::BTreeSet::new(),
             zig_helpers: std::collections::BTreeSet::new(),
             functional_params: std::collections::BTreeSet::new(),
+            record_generics: Vec::new(),
+            record_written: None,
             zig_strings: std::collections::BTreeSet::new(),
             newtypes: std::collections::BTreeMap::new(),
             records: std::collections::BTreeMap::new(),
+            record_field_defaults: std::collections::BTreeMap::new(),
             properties: std::collections::BTreeSet::new(),
             sum_items: std::collections::BTreeMap::new(),
             variant_spellings: std::collections::BTreeMap::new(),
@@ -1673,6 +1747,8 @@ impl Out {
             throwing: std::collections::BTreeSet::new(),
             can_propagate: false,
             fn_throws: false,
+            fn_returns: None,
+            in_loop_header: false,
             lowering_names: 0,
             rust_mutated: std::collections::BTreeSet::new(),
             zig_try: None,
@@ -2475,10 +2551,10 @@ fn variant_spelling(out: &Out, sum: &str, variant: &str) -> String {
 /// `NextResponse.json(x)`.
 pub(super) fn snake_always(name: &str) -> String {
     // A separator goes before an uppercase letter only where a word starts:
-    // after a lowercase or a digit, or at the end of a run of capitals that is
+    // after a lowercase or a digit, or at the end of a run of capitals
     // followed by a lowercase one. Splitting before *every* capital turns
-    // `HTTPServer` into `h_t_t_p_server` and `MAX_RETRY` into `m_a_x__r_e_t_r_y`,
-    // and real code is full of acronyms.
+    // `HTTPServer` into `h_t_t_p_server` and `MAX_RETRY` into `m_a_x__r_e_t_r_y`.
+    // Real code is full of acronyms.
     let chars: Vec<char> = name.chars().collect();
     let mut out = String::with_capacity(name.len() + 4);
     for (i, c) in chars.iter().enumerate() {
@@ -2629,17 +2705,41 @@ fn rust(out: &mut Out, module: &Module) {
                 }
                 let visibility = if r.exported { "pub " } else { "" };
                 let type_name = out.name(&r.name);
+                // A field the source never typed is a field whose type the
+                // caller picks, which in Rust is a parameter on the struct. The
+                // widest-type marker means nothing here, and spelling it gave a
+                // struct that did not parse.
+                let mut undeclared = Vec::new();
+                out.record_generics.clear();
+                for f in &r.fields {
+                    if f.ty.is_none() {
+                        let parameter = format!("T{}", undeclared.len());
+                        out.record_generics
+                            .push((f.name.clone(), parameter.clone()));
+                        undeclared.push(parameter);
+                    }
+                }
+                let generics = match undeclared.is_empty() {
+                    true => String::new(),
+                    false => format!("<{}>", undeclared.join(", ")),
+                };
                 inherited_base(out, r, false);
-                out.line(&format!("{visibility}struct {type_name} {{"));
+                // What every other language hands a record for free: copying it,
+                // printing it, and comparing two of them.
+                if r.fields.iter().all(|f| derivable(f.ty.as_ref())) {
+                    out.line("#[derive(Clone, Debug, PartialEq)]");
+                }
+                out.line(&format!("{visibility}struct {type_name}{generics} {{"));
                 out.open();
+                let mut taken = undeclared.iter();
                 for f in &r.fields {
                     for line in &f.doc {
                         out.line(&format!("/// {line}"));
                     }
-                    let ty =
-                        f.ty.as_ref()
-                            .map(rust_type)
-                            .unwrap_or_else(|| unknown(out, &f.name));
+                    let ty = match &f.ty {
+                        Some(t) => rust_type(t),
+                        None => taken.next().cloned().unwrap_or_else(|| "()".to_string()),
+                    };
                     let field_visibility = if f.exported { "pub " } else { "" };
                     let field_name = out.field(&f.name);
                     out.line(&format!("{field_visibility}{field_name}: {ty},"));
@@ -2651,7 +2751,9 @@ fn rust(out: &mut Out, module: &Module) {
                 // Field defaults have no slot in a struct; `Default` is where
                 // Rust keeps a record's starting values.
                 if r.fields.iter().any(|f| f.default.is_some()) {
-                    out.line(&format!("impl Default for {type_name} {{"));
+                    out.line(&format!(
+                        "impl{generics} Default for {type_name}{generics} {{"
+                    ));
                     out.open();
                     out.line("fn default() -> Self {");
                     out.open();
@@ -2678,11 +2780,14 @@ fn rust(out: &mut Out, module: &Module) {
                     // Rust declares methods apart from the type, which the
                     // record's method list becomes.
                     let type_name = out.name(&r.name);
-                    out.line(&format!("impl {type_name} {{"));
+                    out.line(&format!("impl{generics} {type_name}{generics} {{"));
                     out.open();
+                    out.record_written = Some(r.name.clone());
                     for m in &methods_of(out, r, false) {
                         rust_function(out, m, m.receiver_binding.is_some());
                     }
+                    out.record_written = None;
+                    out.record_generics.clear();
                     out.close();
                     out.line("}");
                     out.blank();
@@ -2797,6 +2902,23 @@ fn rust(out: &mut Out, module: &Module) {
         out.line("}");
         out.blank();
     }
+    if out.zig_helpers.contains("rust_floor_rem") {
+        out.blank();
+        out.line("/// The remainder that goes with division rounding toward negative");
+        out.line("/// infinity: `%` truncates and `rem_euclid` never goes negative.");
+        out.line("fn fr_floor_rem(dividend: i64, divisor: i64) -> i64 {");
+        out.open();
+        out.line("let remainder = dividend % divisor;");
+        out.line("match remainder != 0 && (remainder < 0) != (divisor < 0) {");
+        out.open();
+        out.line("true => remainder + divisor,");
+        out.line("false => remainder,");
+        out.close();
+        out.line("}");
+        out.close();
+        out.line("}");
+        out.blank();
+    }
     if out.needs_floor_div {
         let name = floor_div_name(out);
         out.blank();
@@ -2820,12 +2942,32 @@ fn rust(out: &mut Out, module: &Module) {
     }
 }
 
+/// Can Rust derive the ordinary traits over a field of this type?
+///
+/// A type the reader could not spell has no guarantee behind it. A field the
+/// source never typed becomes a parameter whose bounds the derive writes
+/// itself.
+fn derivable(ty: Option<&Type>) -> bool {
+    match ty {
+        None => true,
+        Some(Type::Named { name, args }) => {
+            Type::is_writable_name(name) && args.iter().all(|a| derivable(Some(a)))
+        }
+        Some(Type::List(inner) | Type::Optional(inner)) => derivable(Some(inner)),
+        Some(Type::Map(k, v)) => derivable(Some(k)) && derivable(Some(v)),
+        Some(Type::Tuple(parts)) => parts.iter().all(|p| derivable(Some(p))),
+        Some(_) => true,
+    }
+}
+
 fn rust_function(out: &mut Out, f: &Function, method: bool) {
     // Bindings made inside blocks die at their brace here too, and the closures a `try` lowers
     // to cannot capture an uninitialized slot. So the hoisted `let`s initialize to the type's
     // default.
     let f = &with_hoisted_bindings(f, &out.function_returns);
     out.binding_types = declared_bindings(f);
+    settle_list_element_types(f, out);
+    settle_inferred_bindings(f, out);
     let known_returns = out.function_returns.clone();
     settle_call_bindings(f, &known_returns, &mut out.binding_types);
     out.rust_mutated = rust_mutated_names(&f.body);
@@ -2909,7 +3051,16 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
             if out.is_foreign(t) {
                 foreign = true;
             }
-            format!(" -> {}", rust_type(t))
+            // A method that hands back the record it lives on names it without
+            // the arguments the struct declares. `Self` carries them.
+            let names_its_own = match (t, &out.record_written) {
+                (Type::Named { name, args }, Some(record)) => name == record && args.is_empty(),
+                _ => false,
+            };
+            match names_its_own {
+                true => " -> Self".to_string(),
+                false => format!(" -> {}", rust_type(t)),
+            }
         }
     };
     let visibility = if f.exported { "pub " } else { "" };
@@ -2940,9 +3091,25 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
                     param.replace_range(at..at + TYPE_THE_CALLER_DECIDES.len(), &spelled);
                 }
                 None => {
-                    let name = format!("T{}", generics.len());
-                    param.replace_range(at..at + TYPE_THE_CALLER_DECIDES.len(), &name);
-                    generics.push(name);
+                    let held = f.params.get(at_param).and_then(|p| {
+                        out.record_generics
+                            .iter()
+                            .find(|(field, _)| *field == p.name)
+                            .map(|(_, parameter)| parameter.clone())
+                    });
+                    match held {
+                        // The struct already declares this one; a second
+                        // declaration here would shadow it and take a different
+                        // type than the field it is stored in.
+                        Some(name) => {
+                            param.replace_range(at..at + TYPE_THE_CALLER_DECIDES.len(), &name)
+                        }
+                        None => {
+                            let name = format!("T{}", generics.len());
+                            param.replace_range(at..at + TYPE_THE_CALLER_DECIDES.len(), &name);
+                            generics.push(name);
+                        }
+                    }
                 }
             }
         }
@@ -3045,10 +3212,7 @@ fn switch_binding_expression(out: &mut Out, body: &[Stmt], at: usize) -> Option<
         ));
     }
     rendered.push(format!("_ => {}", rust_expr(out, &default_value)));
-    let annotation = ty
-        .as_ref()
-        .map(|t| format!(": {}", rust_type(t)))
-        .unwrap_or_default();
+    let annotation = rust_binding_annotation(ty);
     Some(format!(
         "let {}{annotation} = match {} {{ {} }};",
         out.name(name),
@@ -3111,6 +3275,18 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 if matches!(returns, Some(Type::String)) && matches!(value, Some(Expr::Str(_))) {
                     text.push_str(".to_string()");
                 }
+                // Rust converts between its number types only when told to. A
+                // length is an integer, and returned under a float it did not
+                // compile. A written number took the float spelling above and
+                // needs no conversion on top of it.
+                let widens = matches!(returns, Some(Type::Float))
+                    && !matches!(value, Some(Expr::Int(_)))
+                    && value
+                        .as_ref()
+                        .is_some_and(|v| matches!(static_type(out, v), Some(Type::Int)));
+                if widens {
+                    text = format!("({text}) as f64");
+                }
                 // A throwing function returns `Result`, so its successes wrap.
                 if out.fn_throws {
                     text = match text.is_empty() {
@@ -3126,10 +3302,7 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 value,
                 mutable,
             } => {
-                let annotation = ty
-                    .as_ref()
-                    .map(|t| format!(": {}", rust_type(t)))
-                    .unwrap_or_default();
+                let annotation = rust_binding_annotation(ty);
                 let m = if *mutable || out.rust_mutated.contains(name) {
                     "mut "
                 } else {
@@ -3145,6 +3318,20 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     (Some(Type::String), Some(Expr::Str(_)))
                 ) {
                     v.push_str(".to_string()");
+                }
+                // The same inside a list: `vec!["a"]` under `Vec<String>` is a
+                // list of `&str` and will not compile.
+                if let (Some(Type::List(element)), Some(Expr::ListLit(items))) =
+                    (ty, value.as_ref())
+                {
+                    if **element == Type::String && items.iter().all(|i| matches!(i, Expr::Str(_)))
+                    {
+                        let owned: Vec<String> = items
+                            .iter()
+                            .map(|i| format!("{}.to_string()", rust_expr(out, i)))
+                            .collect();
+                        v = format!("vec![{}]", owned.join(", "));
+                    }
                 }
                 let bound = out.name(name);
                 out.line(&format!("let {m}{bound}{annotation} = {v};"));
@@ -3458,9 +3645,13 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 body,
             } => {
                 let mut it = rust_expr(out, iterable);
-                // A named collection iterates by reference, or the first loop eats it.
+                // A named collection iterates by reference, or the first loop
+                // eats it. Cloning each element as it comes keeps the list and
+                // still binds a value. A borrowed `n` compares against no
+                // literal and adds to no total. Anything pushed from the body
+                // would land in a list of references.
                 if matches!(iterable, Expr::Name(_)) && !it.starts_with('&') {
-                    it = format!("&{it}");
+                    it = format!("{it}.iter().cloned()");
                 }
                 let bound = out.name(binding);
                 out.line(&format!("for {bound} in {it} {{"));
@@ -3673,6 +3864,18 @@ fn rust_literal_type(value: &Expr) -> Option<String> {
     })
 }
 
+/// The `: T` on a binding, where Rust lets a binding carry one.
+///
+/// A function type is spelled `impl Fn(..)`, which Rust allows in a signature
+/// and nowhere else. On a binding it does not compile, and the closure it stands
+/// for has a type inference already knows.
+fn rust_binding_annotation(ty: &Option<Type>) -> String {
+    match ty {
+        Some(Type::Fn { .. }) | None => String::new(),
+        Some(t) => format!(": {}", rust_type(t)),
+    }
+}
+
 fn rust_type(ty: &Type) -> String {
     match ty {
         Type::Unit => "()".to_string(),
@@ -3685,6 +3888,14 @@ fn rust_type(ty: &Type) -> String {
             "std::collections::HashMap<{}, {}>",
             rust_type(k),
             rust_type(v)
+        ),
+        // A parameter position wants `impl Fn`; a field or a binding wants a
+        // boxed one. `impl Fn` is what a signature means, and this spells types
+        // for signatures.
+        Type::Fn { params, returns } => format!(
+            "impl Fn({}) -> {}",
+            joined(params, rust_type),
+            rust_type(returns)
         ),
         Type::Optional(inner) => format!("Option<{}>", rust_type(inner)),
         // `(A,)` and not `(A)`: without the comma the parentheses are grouping.
@@ -3714,6 +3925,26 @@ fn binary_operand(text: String, operand: &Expr, enclosing: BinaryOp, on_the_righ
         _ => return text,
     };
     let outer = enclosing.precedence();
+    // A comparison inside a comparison is bracketed whatever the table says.
+    // Python reads `a < 0 != b < 0` as a chain and means something else by it.
+    // Rust refuses to read it at all. `(a < 0) != (b < 0)` is the one spelling
+    // all six agree on.
+    let compares = |op: BinaryOp| {
+        matches!(
+            op,
+            BinaryOp::Lt
+                | BinaryOp::Le
+                | BinaryOp::Gt
+                | BinaryOp::Ge
+                | BinaryOp::Eq
+                | BinaryOp::Ne
+        )
+    };
+    if let Expr::Binary { op, .. } = operand {
+        if compares(*op) && compares(enclosing) {
+            return format!("({text})");
+        }
+    }
     match inner < outer || (on_the_right && inner == outer) {
         true => format!("({text})"),
         false => text,
@@ -3777,7 +4008,10 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                 .iter()
                 .map(|(name, value)| format!("{}: {}", out.field(name), rust_expr(out, value)))
                 .collect();
-            format!("{} {{ {} }}", out.name(ty), rendered.join(", "))
+            match rendered.is_empty() {
+                true => format!("{} {{}}", out.name(ty)),
+                false => format!("{} {{ {} }}", out.name(ty), rendered.join(", ")),
+            }
         }
         // `Option::unwrap_or`, which a Rust reader expects and what the IR's
         // `Optional` becomes.
@@ -3984,6 +4218,19 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             out.needs_floor_div = true;
             format!("{}({dividend}, {divisor})", floor_div_name(out))
         }
+        // The remainder that goes with that division. Rust's `%` truncates and
+        // `rem_euclid` keeps the answer positive; neither is what a source that
+        // floors meant when the divisor is negative.
+        Expr::Binary {
+            op: BinaryOp::FloorRem,
+            left,
+            right,
+        } => {
+            let dividend = rust_expr(out, left);
+            let divisor = rust_expr(out, right);
+            out.zig_helpers.insert("rust_floor_rem");
+            format!("fr_floor_rem({dividend}, {divisor})")
+        }
         Expr::Binary { op, left, right } => {
             // `n <= 0` with `n: f64`: Go and the others coerce the untyped
             // literal, Rust refuses the comparison. The binding's declared
@@ -4172,9 +4419,39 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                 )
             }
         }
-        Expr::Lambda { params, body } => {
-            let rendered: Vec<String> = params.iter().map(|p| out.name(p)).collect();
-            format!("|{}| {}", rendered.join(", "), rust_expr(out, body))
+        Expr::Lambda { params, body, .. } => {
+            let rendered: Vec<String> = params
+                .iter()
+                .map(|p| match &p.ty {
+                    Some(t) => format!("{}: {}", out.name(&p.name), rust_type(t)),
+                    None => out.name(&p.name),
+                })
+                .collect();
+            // The body is written knowing what the parameters are, the same way
+            // it would know a binding. Without it, `|n: f64| n + 1` wrote an
+            // integer literal against a float and would not compile.
+            let outer: Vec<(String, Option<Type>)> = params
+                .iter()
+                .map(|p| (p.name.clone(), out.binding_types.get(&p.name).cloned()))
+                .collect();
+            for p in params {
+                match &p.ty {
+                    Some(t) => {
+                        out.binding_types.insert(p.name.clone(), t.clone());
+                    }
+                    None => {
+                        out.binding_types.remove(&p.name);
+                    }
+                }
+            }
+            let value = rust_expr(out, body);
+            for (name, held) in outer {
+                match held {
+                    Some(t) => out.binding_types.insert(name, t),
+                    None => out.binding_types.remove(&name),
+                };
+            }
+            format!("|{}| {value}", rendered.join(", "))
         }
         Expr::Comprehension {
             element,
@@ -4184,17 +4461,24 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
         } => {
             let it = rust_expr(out, iterable);
             let name = out.name(binding);
+            // `filter` hands the closure a reference, so a condition written
+            // against the element compared a `&T` with a `T`. The pattern takes
+            // the reference apart, the question the source's condition asked.
             let filter = condition
                 .as_ref()
-                .map(|c| format!(".filter(|{name}| {})", rust_expr(out, c)))
+                .map(|c| format!(".filter(|&{name}| {})", rust_expr(out, c)))
                 .unwrap_or_default();
             // `collect` is generic over what it builds, and a bare one leaves
             // the type to be inferred from a later use. There is often none, so
             // `E0282` where the source had a list. The turbofish names the
             // collection and leaves the element to inference, and it works in
             // expression position where annotating a binding would not.
+            // Borrowed and cloned rather than consumed: a source that builds two
+            // lists from one reads it twice, and `into_iter` moved it on the
+            // first. Cloning is the ownership dialect this writer uses
+            // throughout.
             format!(
-                "{it}.into_iter(){filter}.map(|{name}| {}).collect::<Vec<_>>()",
+                "{it}.iter().cloned(){filter}.map(|{name}| {}).collect::<Vec<_>>()",
                 rust_expr(out, element)
             )
         }
@@ -4247,6 +4531,12 @@ fn python(out: &mut Out, module: &Module) {
         out.line("from typing import NewType");
         out.blank();
     }
+    // `typing.Callable` is how this writer spells a function type, and an
+    // annotation naming a module the file never imported raises on the way in.
+    if module_mentions_a_function_type(module) {
+        out.line("import typing");
+        out.blank();
+    }
     // The guarded entry may need a module of its own. `asyncio.run` starts an async
     // main, and `sys.argv` holds the arguments a main that takes them receives.
     let entry = module.items.iter().find_map(|item| match item {
@@ -4262,6 +4552,28 @@ fn python(out: &mut Out, module: &Module) {
             out.line("import sys");
             out.blank();
         }
+    }
+
+    // A helper called from `main` has to be defined before the statement that
+    // runs it, and that statement stands at the end of the file. So the need is
+    // decided by looking at the module rather than by what the body has asked
+    // for so far.
+    if python_needs_truncating_remainder(module) {
+        out.line("def fr_trunc_rem(dividend: int, divisor: int) -> int:");
+        out.open();
+        out.line("\"\"\"The remainder that goes with division truncating toward zero.");
+        out.blank();
+        out.line("Python's own `%` rounds with `//`, toward negative infinity, and the");
+        out.line("two answer differently whenever the operands have different signs.");
+        out.line("\"\"\"");
+        out.line("remainder = dividend % divisor");
+        out.line("if remainder != 0 and (remainder < 0) != (dividend < 0):");
+        out.open();
+        out.line("return remainder - divisor");
+        out.close();
+        out.line("return remainder");
+        out.close();
+        out.blank();
     }
 
     for item in &module.items {
@@ -4495,6 +4807,43 @@ fn python(out: &mut Out, module: &Module) {
             }
         }
     }
+
+}
+
+/// Does any body here take a remainder the source truncated?
+fn python_needs_truncating_remainder(module: &Module) -> bool {
+    fn in_expr(e: &Expr) -> bool {
+        let mut e = e.clone();
+        fn walk(e: &mut Expr) -> bool {
+            if matches!(
+                e,
+                Expr::Binary {
+                    op: BinaryOp::Rem,
+                    ..
+                }
+            ) {
+                return true;
+            }
+            subexpressions_mut(e).into_iter().any(walk)
+        }
+        walk(&mut e)
+    }
+    fn in_body(body: &[Stmt]) -> bool {
+        let mut body = body.to_vec();
+        body.iter_mut().any(|stmt| {
+            statement_expressions_mut(stmt)
+                .into_iter()
+                .any(|e| in_expr(e))
+                || sub_bodies_mut(stmt).into_iter().any(|inner| in_body(inner))
+        })
+    }
+    module.items.iter().any(|item| match item {
+        Item::Function(f) => in_body(&f.body),
+        Item::Record(r) => r.methods.iter().any(|m| in_body(&m.body)),
+        Item::Test { body, .. } => in_body(body),
+        Item::Statement(stmt) => in_body(std::slice::from_ref(stmt)),
+        _ => false,
+    })
 }
 
 fn python_function(out: &mut Out, f: &Function, method: bool) {
@@ -4503,6 +4852,8 @@ fn python_function(out: &mut Out, f: &Function, method: bool) {
     // this body is being written. Outside a method there is nothing to bind.
     let scope = out.enter_method(f);
     out.binding_types = declared_bindings(f);
+    settle_list_element_types(f, out);
+    settle_inferred_bindings(f, out);
     let known_returns = out.function_returns.clone();
     settle_call_bindings(f, &known_returns, &mut out.binding_types);
 
@@ -5033,6 +5384,33 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
     }
 }
 
+/// Does any signature or field in this module carry a function type?
+fn module_mentions_a_function_type(module: &Module) -> bool {
+    fn in_type(ty: &Type) -> bool {
+        match ty {
+            Type::Fn { .. } => true,
+            Type::List(inner) | Type::Optional(inner) => in_type(inner),
+            Type::Map(k, v) => in_type(k) || in_type(v),
+            Type::Tuple(parts) => parts.iter().any(in_type),
+            Type::Named { args, .. } => args.iter().any(in_type),
+            _ => false,
+        }
+    }
+    fn in_function(f: &Function) -> bool {
+        f.params.iter().any(|p| p.ty.as_ref().is_some_and(in_type))
+            || f.returns.as_ref().is_some_and(in_type)
+    }
+    module.items.iter().any(|item| match item {
+        Item::Function(f) => in_function(f),
+        Item::Record(r) => {
+            r.fields.iter().any(|f| f.ty.as_ref().is_some_and(in_type))
+                || r.methods.iter().any(in_function)
+        }
+        Item::Constant(c) => c.ty.as_ref().is_some_and(in_type),
+        _ => false,
+    })
+}
+
 pub(super) fn python_type(ty: &Type) -> String {
     match ty {
         Type::Unit => "None".to_string(),
@@ -5044,6 +5422,11 @@ pub(super) fn python_type(ty: &Type) -> String {
         Type::Tuple(parts) => format!("tuple[{}]", joined(parts, python_type)),
         Type::Map(k, v) => format!("dict[{}, {}]", python_type(k), python_type(v)),
         Type::Optional(inner) => format!("{} | None", python_type(inner)),
+        Type::Fn { params, returns } => format!(
+            "typing.Callable[[{}], {}]",
+            joined(params, python_type),
+            python_type(returns)
+        ),
         // Python spells generics with brackets, so the arguments are kept
         // apart: `Result<(), String>` written literally is not a Python annotation.
         Type::Named { name, args } => generic(name, args, "[", "]", ".", python_type),
@@ -5087,6 +5470,11 @@ fn declared_bindings(f: &Function) -> std::collections::BTreeMap<String, Type> {
                             Box::new(Type::named("")),
                             Box::new(Type::named("")),
                         )),
+                        // A list literal says what it holds by holding it.
+                        Expr::ListLit(items) => items
+                            .first()
+                            .and_then(literal_type_of)
+                            .map(|element| Type::List(Box::new(element))),
                         // The canonical conversions and string methods answer text.
                         Expr::Call { callee, .. } => match callee.as_ref() {
                             Expr::Name(n) if n == "str" => Some(Type::String),
@@ -5121,9 +5509,24 @@ fn declared_bindings(f: &Function) -> std::collections::BTreeMap<String, Type> {
                     walk(then, types);
                     walk(otherwise, types);
                 }
+                // A loop over a list of a known element type binds a name of
+                // that type, and the body asks what it is. A sum over the walk
+                // does not compile where the answer is the widest type.
+                Stmt::ForEach {
+                    binding,
+                    iterable,
+                    body,
+                } => {
+                    if let Expr::Name(over) = iterable {
+                        if let Some(Type::List(element)) = types.get(over) {
+                            let element = (**element).clone();
+                            types.insert(binding.clone(), element);
+                        }
+                    }
+                    walk(body, types);
+                }
                 Stmt::While { body, .. }
                 | Stmt::WhilePresent { body, .. }
-                | Stmt::ForEach { body, .. }
                 | Stmt::ForEachIndexed { body, .. }
                 | Stmt::Defer(body)
                 | Stmt::ErrDefer(body)
@@ -5167,6 +5570,107 @@ fn declared_bindings(f: &Function) -> std::collections::BTreeMap<String, Type> {
 /// declared return. `declared_bindings` reads one function and cannot see the
 /// module's signatures; this pass can, so `var result = total(10, 20)` knows
 /// what it holds. An `await` around the call is the same value, later.
+/// The element type of a list built empty and filled by appending.
+///
+/// A list literal with nothing in it says nothing about what it holds. The
+/// targets that name their element types wrote their widest, `[]any` in Go, and
+/// arithmetic on what came back out did not compile. The appends say what goes
+/// in, so they say what the list is.
+/// A binding the source did not annotate takes the type of its value.
+///
+/// `const quotient = Math.trunc(a / b)` says nothing, and `a` and `b` say
+/// everything. Without it, Rust wrote an integer literal against a float and
+/// would not compile.
+fn settle_inferred_bindings(f: &Function, out: &mut Out) {
+    fn walk(body: &[Stmt], out: &mut Out) {
+        for stmt in body {
+            if let Stmt::Let {
+                name,
+                ty: None,
+                value: Some(value),
+                ..
+            } = stmt
+            {
+                if !out.binding_types.contains_key(name) {
+                    if let Some(told) = static_type(out, value) {
+                        out.binding_types.insert(name.clone(), told);
+                    }
+                }
+            }
+            let mut stmt = stmt.clone();
+            for inner in sub_bodies_mut(&mut stmt) {
+                walk(inner, out);
+            }
+        }
+    }
+    walk(&f.body, out);
+}
+
+fn settle_list_element_types(f: &Function, out: &mut Out) {
+    fn appended<'a>(body: &'a [Stmt], name: &str, found: &mut Vec<&'a Expr>) {
+        for stmt in body {
+            if let Stmt::Expr(Expr::Call { callee, args }) = stmt {
+                let onto = match callee.as_ref() {
+                    Expr::Field { of, name: verb } if verb == "append" => match of.as_ref() {
+                        Expr::Name(n) => Some(n.as_str()),
+                        _ => None,
+                    },
+                    _ => None,
+                };
+                if onto == Some(name) {
+                    if let Some(first) = args.first() {
+                        found.push(first);
+                    }
+                }
+            }
+            for inner in sub_bodies(stmt) {
+                appended(inner, name, found);
+            }
+        }
+    }
+    fn empty_lists(body: &[Stmt], names: &mut Vec<String>) {
+        for stmt in body {
+            if let Stmt::Let {
+                name,
+                ty: None,
+                value: Some(Expr::ListLit(items)),
+                ..
+            } = stmt
+            {
+                if items.is_empty() {
+                    names.push(name.clone());
+                }
+            }
+            for inner in sub_bodies(stmt) {
+                empty_lists(inner, names);
+            }
+        }
+    }
+    let mut names = Vec::new();
+    empty_lists(&f.body, &mut names);
+    for name in names {
+        let mut values = Vec::new();
+        appended(&f.body, &name, &mut values);
+        let mut settled: Option<Type> = None;
+        for value in values {
+            match (static_type(out, value), &settled) {
+                (Some(ty), None) => settled = Some(ty),
+                (Some(ty), Some(first)) if ty == *first => {}
+                // Appends that disagree describe no one element type, and a
+                // guess would be worse than the widest type.
+                _ => {
+                    settled = None;
+                    break;
+                }
+            }
+        }
+        if let Some(ty) = settled {
+            out.binding_types
+                .insert(name, Type::List(Box::new(ty)));
+        }
+    }
+}
+
 fn settle_call_bindings(
     f: &Function,
     returns: &std::collections::BTreeMap<String, Type>,
@@ -5388,10 +5892,13 @@ fn static_type(out: &Out, e: &Expr) -> Option<Type> {
             (Expr::Name(name), 1) if name == "len" => Some(Type::Int),
             (Expr::Name(name), 1) if name == "str" => Some(Type::String),
             (Expr::Name(name), 1) if name == "int" => Some(Type::Int),
+            (Expr::Name(name), 1) if name == "trunc" => static_type(out, &args[0]),
             (Expr::Name(name), 1) if name == "float" => Some(Type::Float),
             (Expr::Name(name), 1) if name == "bool" => Some(Type::Bool),
             // Otherwise a call's static type is the callee's declared return.
             (Expr::Name(f), _) => out.function_returns.get(f.as_str()).cloned(),
+            // `b.get()` answers what `get` declares.
+            (Expr::Field { name, .. }, _) => out.function_returns.get(name.as_str()).cloned(),
             _ => None,
         },
         Expr::Binary {
@@ -5409,7 +5916,12 @@ fn static_type(out: &Out, e: &Expr) -> Option<Type> {
         // Arithmetic keeps the type of its operands where both agree. Division is
         // deliberately absent: in Python it is the one operation that does not.
         Expr::Binary {
-            op: BinaryOp::Sub | BinaryOp::Mul | BinaryOp::FloorDiv | BinaryOp::Rem,
+            op: BinaryOp::Sub
+                | BinaryOp::Mul
+                | BinaryOp::FloorDiv
+                | BinaryOp::Rem
+                | BinaryOp::FloorRem
+                | BinaryOp::Div,
             left,
             right,
         } => {
@@ -5517,6 +6029,13 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
                     );
                 }
             }
+            // The canonical `trunc` cuts toward zero, and so does `int`. Python
+            // names no other truncation without an import.
+            if let (Expr::Name(name), [x]) = (callee.as_ref(), args.as_slice()) {
+                if name == "trunc" {
+                    return format!("int({})", python_expr(out, &x.clone()));
+                }
+            }
             // The unsigned right shift, through the 64-bit unsigned view.
             if let (Expr::Name(name), [x, n]) = (callee.as_ref(), args.as_slice()) {
                 if name == "ushr" {
@@ -5567,21 +6086,18 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
             // is arithmetic nobody would read twice. So the idiomatic operator is kept and the
             // difference is reported instead of being left for someone to find with a negative
             // number.
+            // Python's `%` takes its sign from the divisor and every other
+            // language here from the dividend. So `-7 % 2` is `1` in Python and
+            // `-1` in the source. A helper says the source's answer exactly.
+            // Writing `%` and reporting the difference left a wrong number in
+            // the file, for someone to find with a negative operand.
             if *op == BinaryOp::Rem && holds_an_integer(out, left) && holds_an_integer(out, right) {
-                let rendered = format!(
-                    "{} % {}",
-                    binary_operand(python_expr(out, left), left, *op, false),
-                    binary_operand(python_expr(out, right), right, *op, true)
+                out.zig_helpers.insert("python_trunc_rem");
+                return format!(
+                    "fr_trunc_rem({}, {})",
+                    python_expr(out, left),
+                    python_expr(out, right)
                 );
-                let note = format!(
-                    "`{rendered}` takes its sign from the divisor in Python and from the \
-                     dividend in the source language, so the two differ whenever the \
-                     operands have different signs"
-                );
-                if !out.fidelity.notes.contains(&note) {
-                    out.fidelity.notes.push(note);
-                }
-                return rendered;
             }
             if *op == BinaryOp::Div && holds_an_integer(out, left) && holds_an_integer(out, right) {
                 return format!(
@@ -5722,8 +6238,10 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
                 .collect::<Vec<_>>()
                 .join(" + ")
         }
-        Expr::Lambda { params, body } => {
-            let rendered: Vec<String> = params.iter().map(|p| out.name(p)).collect();
+        // A Python lambda takes no annotations, so a typed parameter crosses
+        // by name. The type is in the binding's own annotation.
+        Expr::Lambda { params, body, .. } => {
+            let rendered: Vec<String> = params.iter().map(|p| out.name(&p.name)).collect();
             match rendered.is_empty() {
                 true => format!("lambda: {}", python_expr(out, body)),
                 false => format!("lambda {}: {}", rendered.join(", "), python_expr(out, body)),
@@ -5944,6 +6462,24 @@ fn go(out: &mut Out, module: &Module) {
     }
 
     // The packages the body needs, inserted under the package clause where Go requires them,
+    if out.zig_helpers.contains("go_floor_rem") {
+        out.blank();
+        out.line("// The remainder that goes with division rounding toward negative");
+        out.line("// infinity. Go's own `%` takes its sign from the dividend.");
+        out.line("func frFloorRem(dividend int, divisor int) int {");
+        out.open();
+        out.line("remainder := dividend % divisor");
+        out.line("if remainder != 0 && (remainder < 0) != (divisor < 0) {");
+        out.open();
+        out.line("return remainder + divisor");
+        out.close();
+        out.line("}");
+        out.line("return remainder");
+        out.close();
+        out.line("}");
+        out.blank();
+    }
+
     // once the body has named them.
     if !out.go_imports.is_empty() {
         let block: String = out
@@ -6126,6 +6662,8 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     let scope = out.enter_method(f);
     // What the body declared, for the return type a Python source never wrote.
     out.binding_types = declared_bindings(f);
+    settle_list_element_types(f, out);
+    settle_inferred_bindings(f, out);
     let known_returns = out.function_returns.clone();
     settle_call_bindings(f, &known_returns, &mut out.binding_types);
 
@@ -6779,7 +7317,18 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     Some(Expr::Tuple(items)) => {
                         format!(" {}", joined(items, |i| go_expr(out, i)))
                     }
-                    Some(v) => format!(" {}", go_expr(out, v)),
+                    // Go converts between its number types only when told to,
+                    // and a length is an `int`. Returned under a `float64`, it
+                    // did not compile.
+                    Some(v) => {
+                        let widens = matches!(returns, Some(Type::Float))
+                            && matches!(static_type(out, v), Some(Type::Int));
+                        let rendered = go_expr(out, v);
+                        match widens {
+                            true => format!(" float64({rendered})"),
+                            false => format!(" {rendered}"),
+                        }
+                    }
                     None => String::new(),
                 };
                 out.line(&format!("return{text}"));
@@ -6806,7 +7355,8 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
             } => {
                 // `[]any{}` under a signature promising `[]Point` is a file Go
                 // refuses. Where the element type settled, the literal names it.
-                let v = match (value, out.binding_types.get(name)) {
+                let declared = out.binding_types.get(name).cloned();
+                let v = match (value, declared.as_ref()) {
                     (Expr::ListLit(items), Some(ty)) if items.is_empty() => {
                         format!("{}{{}}", go_type(ty))
                     }
@@ -6815,14 +7365,44 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     (Expr::MapLit(entries), Some(ty @ Type::Map(_, _))) if entries.is_empty() => {
                         format!("{}{{}}", go_type(ty))
                     }
+                    // A list of whole numbers passed where a list of floats is
+                    // declared is a list of floats. Go infers `[]int` from the
+                    // literal alone and then refuses the call.
+                    (Expr::ListLit(items), Some(ty @ Type::List(_))) => {
+                        let rendered: Vec<String> =
+                            items.iter().map(|i| go_expr(out, i)).collect();
+                        format!("{}{{{}}}", go_type(ty), rendered.join(", "))
+                    }
                     _ => go_expr(out, value),
                 };
                 let bound = out.name(name);
-                // `x := nil` has no type to infer; `any` is the type an
+                // A written number infers `int`, and the declaration may say
+                // `float64`. Go converts between the two only when told to, so
+                // such a binding is declared rather than inferred. `x := nil`
+                // has no type to infer either; `any` is the type an
                 // absent-by-default binding takes here.
-                match v == "nil" {
-                    true => out.line(&format!("var {bound} any = nil")),
-                    false => out.line(&format!("{bound} := {v}")),
+                // `-7` is a negated `7`, and it is a written number too.
+                let written_number = |e: &Expr| {
+                    matches!(
+                        e,
+                        Expr::Int(_)
+                            | Expr::Float(_)
+                            | Expr::Unary {
+                                op: UnaryOp::Neg,
+                                ..
+                            }
+                    )
+                };
+                let spelled_number = !out.in_loop_header
+                    && matches!(declared.as_ref(), Some(Type::Float | Type::Int))
+                    && written_number(value);
+                match (spelled_number, v == "nil") {
+                    (true, _) => {
+                        let told = go_type(declared.as_ref().expect("the guard said so"));
+                        out.line(&format!("var {bound} {told} = {v}"));
+                    }
+                    (_, true) => out.line(&format!("var {bound} any = nil")),
+                    _ => out.line(&format!("{bound} := {v}")),
                 }
             }
             Stmt::Assign { target, value } => {
@@ -7041,6 +7621,7 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 source,
                 line,
             } => {
+                out.in_loop_header = true;
                 let parts = counted_header(
                     out,
                     init.as_deref(),
@@ -7049,6 +7630,7 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     &|out, stmt| go_block(out, std::slice::from_ref(stmt), None),
                     &|out, e| go_expr(out, e),
                 );
+                out.in_loop_header = false;
                 match parts {
                     Some((start, test, step)) => {
                         // Go writes the bare loop as `for {` and the one-clause
@@ -7277,6 +7859,10 @@ fn go_type(ty: &Type) -> String {
         // signature writer spells that itself. In any other position, a field or
         // an argument, the name will not compile, which is honest. `[](A, B)` from
         // a Rust `Vec<(A, B)>` field did not compile either, unreadably.
+        Type::Fn { params, returns } => match returns.as_ref() {
+            Type::Unit => format!("func({})", joined(params, go_type)),
+            _ => format!("func({}) {}", joined(params, go_type), go_type(returns)),
+        },
         Type::Tuple(parts) => format!("Unwritable_tuple_{}", parts.len()),
         Type::Named { name, args } => go_named(name, args),
     }
@@ -7312,6 +7898,7 @@ fn go_zero(ty: &Type) -> String {
         Type::String => "\"\"".to_string(),
         Type::List(_) | Type::Map(_, _) | Type::Optional(_) => "nil".to_string(),
         Type::Unit => String::new(),
+        Type::Fn { .. } => "nil".to_string(),
         // The zero of several results is each one's zero, which only a return can say.
         Type::Tuple(parts) => joined(parts, go_zero),
         Type::Named { name, .. } => format!("{}{{}}", go_named(name, &[])),
@@ -7442,6 +8029,32 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
             out.go_imports.insert("math");
             format!(
                 "int(math.Floor(float64({}) / float64({})))",
+                go_expr(out, left),
+                go_expr(out, right)
+            )
+        }
+        // Go's `%` is integers only. A remainder on two floats is a library
+        // call, and the source asked for one.
+        Expr::Binary {
+            op: BinaryOp::Rem,
+            left,
+            right,
+        } if matches!(static_type(out, left), Some(Type::Float))
+            || matches!(static_type(out, right), Some(Type::Float)) =>
+        {
+            out.go_imports.insert("math");
+            format!("math.Mod({}, {})", go_expr(out, left), go_expr(out, right))
+        }
+        // The remainder that goes with that division. Go's `%` takes its sign
+        // from the dividend, and a source that floors takes it from the divisor.
+        Expr::Binary {
+            op: BinaryOp::FloorRem,
+            left,
+            right,
+        } => {
+            out.zig_helpers.insert("go_floor_rem");
+            format!(
+                "frFloorRem({}, {})",
                 go_expr(out, left),
                 go_expr(out, right)
             )
@@ -7640,10 +8253,30 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
                 )
             }
         }
-        // Go writes no closure without every type spelled, and the source
-        // spelled none; inventing them would be a guess about the call sites.
-        Expr::Lambda { params, body } => {
-            let rendered: Vec<String> = params.iter().map(|p| out.name(p)).collect();
+        // Go writes no closure without every type spelled. Where the source
+        // spelled them, this writes the closure; where it did not, inventing
+        // them would be a guess about the call sites.
+        Expr::Lambda {
+            params,
+            returns,
+            body,
+        } => {
+            let typed: Option<Vec<String>> = params
+                .iter()
+                .map(|p| {
+                    p.ty.as_ref()
+                        .map(|t| format!("{} {}", out.name(&p.name), go_type(t)))
+                })
+                .collect();
+            if let (Some(typed), Some(answers)) = (typed, returns) {
+                let value = go_expr(out, body);
+                return format!(
+                    "func({}) {} {{ return {value} }}",
+                    typed.join(", "),
+                    go_type(answers)
+                );
+            }
+            let rendered: Vec<String> = params.iter().map(|p| out.name(&p.name)).collect();
             let source = format!("({}) => {}", rendered.join(", "), go_expr(out, body));
             out.carried(&Unsupported {
                 construct: "closure".into(),
@@ -7751,7 +8384,35 @@ fn typescript(out: &mut Out, module: &Module) {
                             .unwrap_or_default();
                         out.line(&format!("{field_name}: {ty}{default};"));
                     }
-                    for m in &methods_of(out, r, false) {
+                    // Under `strictPropertyInitialization` a field with no
+                    // starting value has to be assigned in a constructor. A
+                    // record built from a literal elsewhere has no constructor
+                    // to carry. The fields, in order, are one.
+                    let methods = methods_of(out, r, false);
+                    let already = methods.iter().any(|m| m.is_constructor);
+                    if !r.fields.is_empty() && !already {
+                        out.blank();
+                        let taken: Vec<String> = r
+                            .fields
+                            .iter()
+                            .map(|f| {
+                                let ty =
+                                    f.ty.as_ref()
+                                        .map(ts_type)
+                                        .unwrap_or_else(|| "unknown".to_string());
+                                format!("{}: {ty}", out.field(&f.name))
+                            })
+                            .collect();
+                        out.line(&format!("constructor({}) {{", taken.join(", ")));
+                        out.open();
+                        for f in &r.fields {
+                            let field = out.field(&f.name);
+                            out.line(&format!("this.{field} = {field};"));
+                        }
+                        out.close();
+                        out.line("}");
+                    }
+                    for m in &methods {
                         out.blank();
                         ts_function(out, m, true);
                     }
@@ -7893,6 +8554,24 @@ fn typescript(out: &mut Out, module: &Module) {
 
     // The exception classes the bodies turned out to throw or catch, declared once
     // at the top. Every thrown name is then a class the file has. Hoisting after the
+    if out.zig_helpers.contains("ts_floor_rem") {
+        out.blank();
+        out.line("// The remainder that goes with division rounding toward negative");
+        out.line("// infinity. TypeScript's own `%` takes its sign from the dividend.");
+        out.line("function frFloorRem(dividend: number, divisor: number): number {");
+        out.open();
+        out.line("const remainder = dividend % divisor;");
+        out.line("if (remainder !== 0 && (remainder < 0) !== (divisor < 0)) {");
+        out.open();
+        out.line("return remainder + divisor;");
+        out.close();
+        out.line("}");
+        out.line("return remainder;");
+        out.close();
+        out.line("}");
+        out.blank();
+    }
+
     // fact is the same move the Go writer makes with its imports.
     if !out.ts_exceptions.is_empty() {
         let block: String = out
@@ -8066,6 +8745,8 @@ fn ts_function(out: &mut Out, f: &Function, inside_class: bool) {
     // TypeScript has one number type, so `/` needs to know which of them the
     // source declared: an integer division truncates and this one does not.
     out.binding_types = declared_bindings(f);
+    settle_list_element_types(f, out);
+    settle_inferred_bindings(f, out);
     let known_returns = out.function_returns.clone();
     settle_call_bindings(f, &known_returns, &mut out.binding_types);
 
@@ -8648,6 +9329,31 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
     }
 }
 
+/// A record literal's values in the order the record declares its fields.
+///
+/// `None` where the file does not declare that record, or where the literal
+/// names a field it has not got. Guessing an order there would build a value
+/// the source never wrote.
+fn constructor_order(out: &Out, ty: &str, fields: &[(String, Expr)]) -> Option<Vec<Expr>> {
+    let declared = out.records.get(ty)?;
+    let defaults = out.record_field_defaults.get(ty);
+    let mut taken = Vec::new();
+    for name in declared {
+        // The literal's value, or the one the record declares for a field the
+        // literal left out. A field with neither has no value to pass.
+        let given = fields.iter().find(|(f, _)| f == name).map(|(_, v)| v);
+        let held = given.or_else(|| {
+            defaults.and_then(|d| d.iter().find(|(f, _)| f == name).map(|(_, v)| v))
+        })?;
+        taken.push(held.clone());
+    }
+    // A literal naming something the record has not got is not this record.
+    match fields.iter().all(|(f, _)| declared.contains(f)) {
+        true => Some(taken),
+        false => None,
+    }
+}
+
 fn ts_type(ty: &Type) -> String {
     match ty {
         Type::Unit => "void".to_string(),
@@ -8659,6 +9365,15 @@ fn ts_type(ty: &Type) -> String {
         Type::List(inner) => format!("{}[]", ts_type(inner)),
         Type::Map(k, v) => format!("Record<{}, {}>", ts_type(k), ts_type(v)),
         Type::Optional(inner) => format!("{} | null", ts_type(inner)),
+        Type::Fn { params, returns } => {
+            let named = params
+                .iter()
+                .enumerate()
+                .map(|(at, p)| format!("a{at}: {}", ts_type(p)))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("({named}) => {}", ts_type(returns))
+        }
         Type::Tuple(parts) => format!("[{}]", joined(parts, ts_type)),
         Type::Named { name, args } => generic(name, args, "<", ">", ".", ts_type),
     }
@@ -8666,26 +9381,32 @@ fn ts_type(ty: &Type) -> String {
 
 fn ts_expr(out: &mut Out, e: &Expr) -> String {
     match e {
-        // TypeScript and Java build a record by calling a constructor, which takes its
-        // arguments in an order the class decides. This writer emits a class with fields and no
-        // constructor. So there is no order to put them in. One assembled from the source's
-        // declaration order would be a fact about the source and not about anything a caller
-        // will call.
-        Expr::RecordLit { ty, fields } => {
-            let rendered: Vec<String> = fields
-                .iter()
-                .map(|(name, value)| format!("{}: {}", out.field(name), ts_expr(out, value)))
-                .collect();
-            let source = format!("{} {{ {} }}", out.name(ty), rendered.join(", "));
-            out.carried(&Unsupported {
-                construct: "building a record by naming its fields, which needs a \
-                            constructor here"
-                    .into(),
-                source: source.clone(),
-                line: 0,
-            });
-            format!("null /* {MARKER}: {} */", source.replace("*/", "* /"))
-        }
+        // TypeScript builds a record by calling a constructor, which takes its
+        // arguments in the order the class declares its fields. This writer
+        // emits that constructor, so the same order fills it.
+        Expr::RecordLit { ty, fields } => match constructor_order(out, ty, fields) {
+            Some(taken) => {
+                let rendered: Vec<String> =
+                    taken.iter().map(|value| ts_expr(out, value)).collect();
+                format!("new {}({})", out.name(ty), rendered.join(", "))
+            }
+            // A literal naming a subset of the fields, or a record this file
+            // does not declare, has no order to fill a constructor with. It
+            // crosses as the construction it is, with each field named.
+            None => ts_expr(
+                out,
+                &Expr::New {
+                    callee: Box::new(Expr::Name(ty.clone())),
+                    args: fields
+                        .iter()
+                        .map(|(name, value)| Expr::Keyword {
+                            name: name.clone(),
+                            value: Box::new(value.clone()),
+                        })
+                        .collect(),
+                },
+            ),
+        },
         Expr::Coalesce { value, fallback } => {
             format!("{} ?? {}", ts_expr(out, value), ts_expr(out, fallback))
         }
@@ -8766,6 +9487,17 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
             binary_operand(ts_expr(out, left), left, BinaryOp::Div, false),
             binary_operand(ts_expr(out, right), right, BinaryOp::Div, true)
         ),
+        // The remainder that goes with that division. TypeScript's `%` takes its
+        // sign from the dividend, and a source that floors takes it from the
+        // divisor.
+        Expr::Binary {
+            op: BinaryOp::FloorRem,
+            left,
+            right,
+        } => {
+            out.zig_helpers.insert("ts_floor_rem");
+            format!("frFloorRem({}, {})", ts_expr(out, left), ts_expr(out, right))
+        }
         Expr::Binary { op, left, right } => {
             // TypeScript has one number type and `/` on it never truncates, so
             // `half(7)` answered 3.5 where the source said 3. Java and the rest
@@ -8886,14 +9618,25 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
             }
             format!("`{body}`")
         }
-        Expr::Lambda { params, body } => {
-            // The source typed none of these, and an implicit `any` is the
-            // one thing strict TypeScript refuses. Written out, it says what
-            // the source said: nothing.
+        Expr::Lambda {
+            params,
+            returns,
+            body,
+        } => {
+            // A parameter the source typed keeps its type. An implicit `any` is
+            // the one thing strict TypeScript refuses, so an untyped one is
+            // written `any`: what the source said, which is nothing.
             let rendered: Vec<String> = params
                 .iter()
-                .map(|p| format!("{}: any", out.name(p)))
+                .map(|p| match &p.ty {
+                    Some(t) => format!("{}: {}", out.name(&p.name), ts_type(t)),
+                    None => format!("{}: any", out.name(&p.name)),
+                })
                 .collect();
+            let answers = match returns {
+                Some(t) => format!(": {}", ts_type(t)),
+                None => String::new(),
+            };
             let value = ts_expr(out, body);
             // An object literal standing bare after `=>` reads as a block, so it
             // takes the brackets that keep it a value.
@@ -8901,7 +9644,7 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
                 Expr::MapLit(_) => format!("({value})"),
                 _ => value,
             };
-            format!("({}) => {value}", rendered.join(", "))
+            format!("({}){answers} => {value}", rendered.join(", "))
         }
         Expr::Comprehension {
             element,
@@ -9146,10 +9889,39 @@ fn java_record(out: &mut Out, record: &Record, public: bool) {
             .unwrap_or_default();
         out.line(&format!("{field_visibility} {ty} {field_name}{default};"));
     }
+    // Three of these six languages build a record from a literal and have no
+    // constructor to carry. Java has no literal, so `new Box(9)` needed one
+    // that was never written and the class would not compile. The fields, in
+    // the order the record declares them, are that constructor.
+    let methods = methods_of(out, record, true);
+    let already = methods.iter().any(|m| m.is_constructor);
+    if !record.fields.is_empty() && !already {
+        out.blank();
+        let taken: Vec<String> = record
+            .fields
+            .iter()
+            .map(|f| {
+                let ty = f
+                    .ty
+                    .as_ref()
+                    .map(java_type)
+                    .unwrap_or_else(|| "Object".to_string());
+                format!("{ty} {}", out.field(&f.name))
+            })
+            .collect();
+        out.line(&format!("{name}({}) {{", taken.join(", ")));
+        out.open();
+        for f in &record.fields {
+            let field = out.field(&f.name);
+            out.line(&format!("this.{field} = {field};"));
+        }
+        out.close();
+        out.line("}");
+    }
     if !record.fields.is_empty() && !record.methods.is_empty() {
         out.blank();
     }
-    for (index, method) in methods_of(out, record, true).iter().enumerate() {
+    for (index, method) in methods.iter().enumerate() {
         if index > 0 {
             out.blank();
         }
@@ -9205,10 +9977,17 @@ fn java_sum(out: &mut Out, module: &Module, s: &Sum, public: bool) {
 
 fn java_function(out: &mut Out, f: &Function, is_static: bool) {
     let called = called_parameters(f);
+    // A parameter that holds a function is invoked through the interface Java
+    // wrapped it in: `f.apply(n)`, never `f(n)`, which names a method of the
+    // class. Both the typed and the untyped kind arrive here.
     out.functional_params = f
         .params
         .iter()
-        .filter(|p| p.ty.is_none() && called.get(&p.name) == Some(&1))
+        .filter(|p| match &p.ty {
+            Some(Type::Fn { params, .. }) => params.len() == 1,
+            Some(_) => false,
+            None => called.get(&p.name) == Some(&1),
+        })
         .map(|p| p.name.clone())
         .collect();
     // Bindings made inside blocks die at their brace here; the source's did not.
@@ -9217,6 +9996,8 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
     // this body is being written. Outside a method there is nothing to bind.
     let scope = out.enter_method(f);
     out.binding_types = declared_bindings(f);
+    settle_list_element_types(f, out);
+    settle_inferred_bindings(f, out);
     let known_returns = out.function_returns.clone();
     settle_call_bindings(f, &known_returns, &mut out.binding_types);
 
@@ -9299,10 +10080,14 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
     // source: Go's `main` is lower-case and Python's is a plain function. A
     // private one here answers "Main method not found in class".
     let entry = is_static && !f.is_constructor && f.name == "main";
-    let visibility = if f.exported || entry {
-        "public"
-    } else {
-        "private"
+    // A source that said `private` says it here. A source that said nothing
+    // meant "this module's own", which Java spells package-private. Written
+    // `private`, a method on a record could not be called from the file's own
+    // class, which is where the source called it.
+    let visibility = match (f.exported || entry, f.is_private) {
+        (true, _) => "public ",
+        (false, true) => "private ",
+        (false, false) => "",
     };
     // A constructor writes no return type at all. `void` would make it a method that
     // happens to have the class's name, which compiles, and is not a constructor.
@@ -9311,9 +10096,9 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
         false => format!("{returns} "),
     };
     let modifier = if is_static && !f.is_constructor {
-        " static "
+        "static "
     } else {
-        " "
+        ""
     };
     // A niladic `main` runs only on the JDKs that finalised instance main
     // methods. A draft that ran here died on the ordinary ones. The parameter
@@ -9493,6 +10278,19 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
                     2 => "java.util.function.BiFunction<Integer, Integer, Integer>".to_string(),
                     _ => "Object".to_string(),
                 },
+                // An empty collection tells `var` nothing, and the diamond it
+                // is written with fills in `Object`. What later goes into it
+                // says what it holds, and that is the type to declare.
+                Some(Expr::ListLit(items)) if items.is_empty() => out
+                    .binding_types
+                    .get(name)
+                    .map(java_type)
+                    .unwrap_or_else(|| "var".to_string()),
+                Some(Expr::MapLit(entries)) if entries.is_empty() => out
+                    .binding_types
+                    .get(name)
+                    .map(java_type)
+                    .unwrap_or_else(|| "var".to_string()),
                 _ => "var".to_string(),
             });
             let bound = out.name(name);
@@ -9967,6 +10765,26 @@ fn java_utilities(module: &Module) -> std::collections::BTreeSet<&'static str> {
     needed
 }
 
+/// An argument, with the one thing Java cannot pass by name turned into a value.
+///
+/// A function is not a value in Java. `applyTo(addOne, 6)` names a variable that
+/// was never declared, because `addOne` is a method. A lambda that calls it is
+/// the value the interface asks for.
+fn java_argument(out: &mut Out, e: &Expr) -> String {
+    let Expr::Name(name) = e else {
+        return java_expr(out, e);
+    };
+    let Some(params) = out.functions.get(name).cloned() else {
+        return java_expr(out, e);
+    };
+    let called = out.name(name);
+    let bound: Vec<String> = (0..params.len()).map(|at| format!("a{at}")).collect();
+    match bound.as_slice() {
+        [only] => format!("{only} -> {called}({only})"),
+        _ => format!("({}) -> {called}({})", bound.join(", "), bound.join(", ")),
+    }
+}
+
 fn java_type(ty: &Type) -> String {
     match ty {
         Type::Unit => "void".to_string(),
@@ -9979,6 +10797,37 @@ fn java_type(ty: &Type) -> String {
         // Java's `Optional<T>` is the closest thing it has, and it is a real type
         // instead of a nullable annotation.
         Type::Optional(inner) => format!("Optional<{}>", java_boxed(inner)),
+        // Java has no function type of its own. `java.util.function` names one
+        // interface per shape, and these are the shapes it names.
+        Type::Fn { params, returns } => match (params.as_slice(), returns.as_ref()) {
+            ([], Type::Unit) => "Runnable".to_string(),
+            ([], answer) => format!("java.util.function.Supplier<{}>", java_boxed(answer)),
+            ([one], Type::Unit) => {
+                format!("java.util.function.Consumer<{}>", java_boxed(one))
+            }
+            ([one], Type::Bool) => {
+                format!("java.util.function.Predicate<{}>", java_boxed(one))
+            }
+            ([one], answer) => format!(
+                "java.util.function.Function<{}, {}>",
+                java_boxed(one),
+                java_boxed(answer)
+            ),
+            ([first, second], Type::Unit) => format!(
+                "java.util.function.BiConsumer<{}, {}>",
+                java_boxed(first),
+                java_boxed(second)
+            ),
+            ([first, second], answer) => format!(
+                "java.util.function.BiFunction<{}, {}, {}>",
+                java_boxed(first),
+                java_boxed(second),
+                java_boxed(answer)
+            ),
+            // Past two arguments Java names no interface, and inventing one
+            // would declare a type the source never had.
+            (many, _) => format!("Unwritable_function_{}", many.len()),
+        },
         // Java has no tuple type. The name will not compile, which is the point:
         // an invented Pair class would compile and claim a shape the source never had.
         Type::Tuple(parts) => format!("Unwritable_tuple_{}", parts.len()),
@@ -10010,21 +10859,32 @@ fn java_inferred(value: &Expr) -> String {
 
 fn java_expr(out: &mut Out, e: &Expr) -> String {
     match e {
-        Expr::RecordLit { ty, fields } => {
-            let rendered: Vec<String> = fields
-                .iter()
-                .map(|(name, value)| format!("{}: {}", out.field(name), java_expr(out, value)))
-                .collect();
-            let source = format!("{} {{ {} }}", out.name(ty), rendered.join(", "));
-            out.carried(&Unsupported {
-                construct: "building a record by naming its fields, which needs a \
-                            constructor here"
-                    .into(),
-                source: source.clone(),
-                line: 0,
-            });
-            format!("null /* {MARKER}: {} */", source.replace("*/", "* /"))
-        }
+        // Java builds a record by calling a constructor, which takes its
+        // arguments in the order the class declares its fields. This writer
+        // emits that constructor, so the same order fills it.
+        Expr::RecordLit { ty, fields } => match constructor_order(out, ty, fields) {
+            Some(taken) => {
+                let rendered: Vec<String> =
+                    taken.iter().map(|value| java_expr(out, value)).collect();
+                format!("new {}({})", out.name(ty), rendered.join(", "))
+            }
+            // A literal naming a subset of the fields, or a record this file
+            // does not declare, has no order to fill a constructor with. It
+            // crosses as the construction it is, with each field named.
+            None => java_expr(
+                out,
+                &Expr::New {
+                    callee: Box::new(Expr::Name(ty.clone())),
+                    args: fields
+                        .iter()
+                        .map(|(name, value)| Expr::Keyword {
+                            name: name.clone(),
+                            value: Box::new(value.clone()),
+                        })
+                        .collect(),
+                },
+            ),
+        },
         // Java spells it as a static call, and has to name the value twice to do it.
         Expr::Coalesce { value, fallback } => match nameable(value) {
             true => format!(
@@ -10116,7 +10976,7 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
                 return carried_expr_filler(out);
             }
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
-            let rendered: Vec<String> = args.iter().map(|a| java_expr(out, a)).collect();
+            let rendered: Vec<String> = args.iter().map(|a| java_argument(out, a)).collect();
             if let Expr::Name(name) = callee.as_ref() {
                 if out.newtypes.contains_key(name) {
                     return format!("new {}({})", out.name(name), rendered.join(", "));
@@ -10176,6 +11036,16 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
             right,
         } => format!(
             "Math.floorDiv({}, {})",
+            java_expr(out, left),
+            java_expr(out, right)
+        ),
+        // The remainder that goes with that division, which Java names too.
+        Expr::Binary {
+            op: BinaryOp::FloorRem,
+            left,
+            right,
+        } => format!(
+            "Math.floorMod({}, {})",
             java_expr(out, left),
             java_expr(out, right)
         ),
@@ -10284,6 +11154,11 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
                         out.zig_helpers.insert("java_show");
                         format!("frShow({})", java_expr(out, e))
                     }
+                    // `"diff " + a - b` subtracts from a string. Every part of a
+                    // concatenation that is itself an operation takes brackets.
+                    TemplatePart::Expr(e @ Expr::Binary { .. }) => {
+                        format!("({})", java_expr(out, e))
+                    }
                     TemplatePart::Expr(e) => java_expr(out, e),
                 })
                 .collect();
@@ -10292,8 +11167,8 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
                 false => rendered.join(" + "),
             }
         }
-        Expr::Lambda { params, body } => {
-            let rendered: Vec<String> = params.iter().map(|p| out.name(p)).collect();
+        Expr::Lambda { params, body, .. } => {
+            let rendered: Vec<String> = params.iter().map(|p| out.name(&p.name)).collect();
             format!("({}) -> {}", rendered.join(", "), java_expr(out, body))
         }
         Expr::Comprehension {
@@ -10554,8 +11429,9 @@ fn zig(out: &mut Out, module: &Module) {
         }
     }
 
-    // The helpers the body turned out to need, appended where declaration order does
-    // not matter, with the `std` binding patched in when nothing else brought it.
+    // The helpers the body turned out to need, appended where declaration order
+    // does not matter. The `std` binding is patched in when nothing else
+    // brought it.
     if !out.zig_helpers.is_empty() {
         if !out.text.contains("const std = @import(\"std\");") {
             let import = "const std = @import(\"std\");\n\n";
@@ -10721,6 +11597,9 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     // this body is being written. Outside a method there is nothing to bind.
     let scope = out.enter_method(f);
     out.binding_types = declared_bindings(f);
+    settle_list_element_types(f, out);
+    settle_inferred_bindings(f, out);
+    out.fn_returns = f.returns.clone();
     let known_returns = out.function_returns.clone();
     settle_call_bindings(f, &known_returns, &mut out.binding_types);
 
@@ -11001,15 +11880,38 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                     zig_line(out, &format!("return {rendered};"));
                     return;
                 }
+                // Zig converts between its number types only when told to, and
+                // a length is an integer. Returned under a float, it did not
+                // compile.
+                let widens = matches!(out.fn_returns, Some(Type::Float))
+                    && payload.is_some_and(|p| matches!(static_type(out, p), Some(Type::Int)));
                 let text = payload
-                    .map(|p| format!(" {}", zig_expr(out, p)))
+                    .map(|p| {
+                        let rendered = zig_expr(out, p);
+                        match widens {
+                            true => format!(" @as(f64, @floatFromInt({rendered}))"),
+                            false => format!(" {rendered}"),
+                        }
+                    })
                     .unwrap_or_default();
                 zig_line(out, &format!("return{text};"));
                 return;
             }
+            // Zig converts between its number types only when told to, and a
+            // length is an integer. Returned under a float, it did not compile.
+            let widens = matches!(out.fn_returns, Some(Type::Float))
+                && value
+                    .as_ref()
+                    .is_some_and(|e| matches!(static_type(out, e), Some(Type::Int)));
             let text = value
                 .as_ref()
-                .map(|e| format!(" {}", zig_expr(out, e)))
+                .map(|e| {
+                    let rendered = zig_expr(out, e);
+                    match widens {
+                        true => format!(" @as(f64, @floatFromInt({rendered}))"),
+                        false => format!(" {rendered}"),
+                    }
+                })
                 .unwrap_or_default();
             zig_line(out, &format!("return{text};"));
         }
@@ -11091,6 +11993,20 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                 );
                 return;
             }
+            // An array literal is not a slice. Declared as one, Zig asks for
+            // the address of the array. The whole file then fails to build over
+            // a binding that says precisely what it holds.
+            let rendered = match (ty.as_ref(), value.as_ref()) {
+                // The element type comes from the declaration rather than the
+                // items. `[_]i64{ 4, 5, 6 }` under `[]const f64` is a different
+                // array, and Zig says so.
+                (Some(Type::List(element)), Some(Expr::ListLit(items))) if !items.is_empty() => {
+                    let written: Vec<String> =
+                        items.iter().map(|i| zig_expr(out, i)).collect();
+                    format!("&[_]{}{{ {} }}", zig_type(element), written.join(", "))
+                }
+                _ => rendered,
+            };
             let annotation = match (ty.as_ref(), keyword, value.as_ref()) {
                 (Some(t), _, _) => format!(": {}", zig_type(t)),
                 // A `var` must carry a fixed-size type; a comptime-known integer
@@ -11572,6 +12488,12 @@ fn zig_type(ty: &Type) -> String {
             other => format!("std.AutoHashMap({}, {})", zig_type(other), zig_type(value)),
         },
         Type::Optional(inner) => format!("?{}", zig_type(inner)),
+        // Zig has no closures, so a function value is a pointer to a function.
+        Type::Fn { params, returns } => format!(
+            "*const fn ({}) {}",
+            joined(params, zig_type),
+            zig_type(returns)
+        ),
         Type::Tuple(parts) => format!("struct {{ {} }}", joined(parts, zig_type)),
         // The shared `Result<T, E>` is this language's own error union, `E!T`. Only a
         // named error side can stand before the `!`. A Rust `Result<T, String>`
@@ -11806,6 +12728,26 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             zig_expr(out, left),
             zig_expr(out, right)
         ),
+        // `@mod` is the remainder that goes with `@divFloor`, and `@rem` the one
+        // that goes with `@divTrunc`. Zig is the only language here that makes
+        // the caller say which.
+        Expr::Binary {
+            op: BinaryOp::FloorRem,
+            left,
+            right,
+        } => format!("@mod({}, {})", zig_expr(out, left), zig_expr(out, right)),
+        // Zig refuses `/` and `%` on signed integers outright: the caller has to
+        // say which rounding. These are the truncating pair, the meaning the
+        // four languages that spell them with operators give.
+        Expr::Binary {
+            op: BinaryOp::Div,
+            left,
+            right,
+        } if holds_an_integer(out, left) && holds_an_integer(out, right) => format!(
+            "@divTrunc({}, {})",
+            zig_expr(out, left),
+            zig_expr(out, right)
+        ),
         // `%` on signed integers is refused outright: the language makes the caller
         // choose a rounding. `@rem` truncates, which is what `%` means in the four
         // languages that have it. Python floors instead, and negative operands there
@@ -11951,8 +12893,8 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
         }
         // Zig writes no closure without every type spelled, and the source
         // spelled none; inventing them would be a guess about the call sites.
-        Expr::Lambda { params, body } => {
-            let rendered: Vec<String> = params.iter().map(|p| out.name(p)).collect();
+        Expr::Lambda { params, body, .. } => {
+            let rendered: Vec<String> = params.iter().map(|p| out.name(&p.name)).collect();
             let value = zig_expr(out, body);
             zig_carry(
                 out,
@@ -12484,7 +13426,20 @@ fn rust_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
                     .collect::<String>()
             )
         }
-        (None, "len", [x]) => format!("{}.len()", rust_expr(out, x)),
+        // A length is a `usize` here and an ordinary integer everywhere else.
+        // Returned or compared as one, it did not compile.
+        // Bracketed: `a.len() as i64 < 1` reads the `<` as the start of a
+        // generic argument list on `i64`, and Rust says so.
+        (None, "len", [x]) => format!("({}.len() as i64)", rust_expr(out, x)),
+        // The canonical `int(x)`: a number cut toward zero, which is what `as`
+        // does between Rust's own number types.
+        (None, "int", [x]) => format!("(({}) as i64)", rust_expr(out, x)),
+        // `trunc` cuts toward zero and answers the same kind of number. An
+        // integer is already cut, and `i64` has no such method.
+        (None, "trunc", [x]) => match static_type(out, x) {
+            Some(Type::Float) => format!("({}).trunc()", rust_expr(out, x)),
+            _ => rust_expr(out, x),
+        },
         (None, "str", [x]) => format!("{}.to_string()", rust_expr(out, x)),
         (Some(of), "append", [x]) => {
             let mut pushed = rust_expr(out, x);
@@ -12535,6 +13490,8 @@ fn ts_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
             format!("Object.keys({}).length", ts_expr(out, x))
         }
         (None, "len", [x]) => format!("{}.length", ts_expr(out, x)),
+        (None, "int", [x]) => format!("Math.trunc({})", ts_expr(out, x)),
+        (None, "trunc", [x]) => format!("Math.trunc({})", ts_expr(out, x)),
         // Inside a catch, the exception as text is its message: `String(e)` leads
         // with the class name, which is not what the source printed.
         (None, "str", [Expr::Name(bound)]) if out.catch_bindings.iter().any(|b| b == bound) => {
@@ -12585,6 +13542,14 @@ fn go_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
             let rendered = joined(args, |a| go_expr(out, a));
             format!("fmt.Println({rendered})")
         }
+        (None, "int", [x]) => format!("int({})", go_expr(out, x)),
+        (None, "trunc", [x]) => match static_type(out, x) {
+            Some(Type::Float) => {
+                out.go_imports.insert("math");
+                format!("math.Trunc({})", go_expr(out, x))
+            }
+            _ => go_expr(out, x),
+        },
         (None, "str", [x]) => {
             out.go_imports.insert("fmt");
             format!("fmt.Sprint({})", go_expr(out, x))
@@ -12648,9 +13613,14 @@ fn java_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
             java_expr(out, to)
         ),
         (None, "print", _) => {
+            // Every argument that is itself an operation takes brackets: joined
+            // bare, `"diff" + " " + a - b` subtracts from a string.
             let rendered = args
                 .iter()
-                .map(|a| java_expr(out, a))
+                .map(|a| match a {
+                    Expr::Binary { .. } => format!("({})", java_expr(out, a)),
+                    _ => java_expr(out, a),
+                })
                 .collect::<Vec<_>>()
                 .join(" + \" \" + ");
             format!("System.out.println({rendered})")
@@ -12670,6 +13640,14 @@ fn java_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
             };
             format!("{}.{spelled}", java_expr(out, &x.clone()))
         }
+        // A narrowing cast in Java cuts toward zero, which is what this means.
+        (None, "int", [x]) => format!("(int) ({})", java_expr(out, x)),
+        // Through `long` and back: the cast cuts toward zero and the result
+        // stays the kind of number the source had. An integer is already cut.
+        (None, "trunc", [x]) => match static_type(out, x) {
+            Some(Type::Float) => format!("(double) (long) ({})", java_expr(out, x)),
+            _ => java_expr(out, x),
+        },
         (Some(of), "append", [x]) => {
             format!("{}.add({})", java_expr(out, &of.clone()), java_expr(out, x))
         }
@@ -12725,11 +13703,24 @@ fn zig_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
             format!("frPrint(\"{}\\n\", .{{ {rendered} }})", specs.join(" "))
         }
         (None, "len", [Expr::Name(n)]) if out.zig_dyn.contains(n.as_str()) => {
-            format!("{}.items.len", out.value_name(n))
+            format!("@as(i64, @intCast({}.items.len))", out.value_name(n))
         }
         // A hash map answers `count()`; `len` is a field only a slice has.
-        (None, "len", [x]) if holds_a_map(out, x) => format!("{}.count()", zig_expr(out, x)),
-        (None, "len", [x]) => format!("{}.len", zig_expr(out, x)),
+        // A length is a `usize` here and an ordinary integer everywhere else,
+        // and Zig converts between the two only when told to.
+        (None, "len", [x]) if holds_a_map(out, x) => {
+            format!("@as(i64, @intCast({}.count()))", zig_expr(out, x))
+        }
+        (None, "len", [x]) => format!("@as(i64, @intCast({}.len))", zig_expr(out, x)),
+        // Zig names the conversion by what it converts from, and it truncates.
+        (None, "int", [x]) => match static_type(out, x) {
+            Some(Type::Float) => format!("@as(i64, @intFromFloat({}))", zig_expr(out, x)),
+            _ => format!("@as(i64, @intCast({}))", zig_expr(out, x)),
+        },
+        (None, "trunc", [x]) => match static_type(out, x) {
+            Some(Type::Float) => format!("@trunc({})", zig_expr(out, x)),
+            _ => zig_expr(out, x),
+        },
         // A growable list appends through the allocator the lowering owns. The failure a real
         // allocator can raise stops the program, loudly, which matches the sources that never
         // name an allocator mean.
@@ -13235,6 +14226,472 @@ fn unknown(out: &mut Out, of: &str) -> String {
         Language::Java => "Object".to_string(),
         _ => "unknown".to_string(),
     }
+}
+
+/// The expressions a statement holds directly, to be rewritten in place.
+fn statement_expressions_mut(stmt: &mut Stmt) -> Vec<&mut Expr> {
+    match stmt {
+        Stmt::Expr(e) | Stmt::Throw(e) | Stmt::Return(Some(e)) => vec![e],
+        Stmt::Let { value: Some(e), .. } => vec![e],
+        Stmt::Assign { target, value } => vec![target, value],
+        Stmt::If { condition, .. } | Stmt::While { condition, .. } => vec![condition],
+        Stmt::ForEach { iterable, .. } | Stmt::ForEachIndexed { iterable, .. } => vec![iterable],
+        Stmt::WhilePresent { value, .. } | Stmt::IfPresent { value, .. } => vec![value],
+        Stmt::Switch { subject, .. } | Stmt::MatchVariants { subject, .. } => vec![subject],
+        Stmt::TupleAssign { value, .. } => vec![value],
+        Stmt::Assert { condition, message } => match message {
+            Some(m) => vec![condition, m],
+            None => vec![condition],
+        },
+        _ => Vec::new(),
+    }
+}
+
+/// The expressions an expression holds, to be rewritten in place.
+fn subexpressions_mut(e: &mut Expr) -> Vec<&mut Expr> {
+    match e {
+        Expr::Call { callee, args } | Expr::New { callee, args } => {
+            let mut out = vec![&mut **callee];
+            out.extend(args.iter_mut());
+            out
+        }
+        Expr::Binary { left, right, .. } => vec![&mut **left, &mut **right],
+        Expr::Unary { operand, .. } | Expr::Await(operand) | Expr::Propagate(operand) => {
+            vec![&mut **operand]
+        }
+        Expr::Field { of, .. } => vec![&mut **of],
+        Expr::Index { of, index } => vec![&mut **of, &mut **index],
+        Expr::Cast { value, .. } => vec![&mut **value],
+        Expr::InstanceOf { value, .. } => vec![&mut **value],
+        Expr::Keyword { value, .. } => vec![&mut **value],
+        Expr::Ternary {
+            condition,
+            then,
+            otherwise,
+        } => vec![&mut **condition, &mut **then, &mut **otherwise],
+        Expr::ListLit(items) | Expr::Tuple(items) => items.iter_mut().collect(),
+        Expr::MapLit(entries) => entries.iter_mut().flat_map(|(k, v)| [k, v]).collect(),
+        Expr::RecordLit { fields, .. } => fields.iter_mut().map(|(_, v)| v).collect(),
+        Expr::Template(parts) => parts
+            .iter_mut()
+            .filter_map(|p| match p {
+                TemplatePart::Expr(inner) => Some(inner),
+                TemplatePart::Text(_) => None,
+            })
+            .collect(),
+        _ => Vec::new(),
+    }
+}
+
+/// Every comprehension in this module, written as the loop that builds it.
+///
+/// `[f(x) for x in xs if p(x)]` is an empty list, a walk over `xs`, and an
+/// append under a condition. Each of those is a node every writer already
+/// spells, so the languages with no comprehension of their own get one for
+/// free, and the ones that have it never see this.
+/// Whole-number literals spelled fractional where the binding says fractional.
+///
+/// `let numbers: Vec<f64> = vec![4, 5, 6]` does not compile, and neither does
+/// `List<Double> numbers = List.of(4, 5, 6)`. The value is the same number; only
+/// its spelling changes, and only where a declaration asks for it.
+fn numbers_as_declared(module: &Module) -> Module {
+    fn spell(e: &mut Expr, wanted: &Type) {
+        match (&mut *e, wanted) {
+            (Expr::Int(n), Type::Float) => *e = Expr::Float(format!("{n}.0")),
+            // `-7` is a negated `7`, and it is the `7` that carries the spelling.
+            (
+                Expr::Unary {
+                    op: UnaryOp::Neg,
+                    operand,
+                },
+                Type::Float,
+            ) => spell(operand, wanted),
+            (Expr::ListLit(items), Type::List(element)) => {
+                for item in items {
+                    spell(item, element);
+                }
+            }
+            (Expr::MapLit(entries), Type::Map(_, value)) => {
+                for (_, held) in entries {
+                    spell(held, value);
+                }
+            }
+            _ => {}
+        }
+    }
+    fn walk(
+        body: &mut [Stmt],
+        fields_of: &std::collections::BTreeMap<String, Vec<(String, Type)>>,
+    ) {
+        for stmt in body.iter_mut() {
+            if let Stmt::Let {
+                ty: Some(ty),
+                value: Some(value),
+                ..
+            } = stmt
+            {
+                spell(value, ty);
+            }
+            // A field declared fractional takes a fractional literal, wherever
+            // in the body the record is built.
+            for e in statement_expressions_mut(stmt) {
+                in_record_literals(e, fields_of);
+            }
+            for inner in sub_bodies_mut(stmt) {
+                walk(inner, fields_of);
+            }
+        }
+    }
+    fn in_record_literals(
+        e: &mut Expr,
+        fields_of: &std::collections::BTreeMap<String, Vec<(String, Type)>>,
+    ) {
+        match e {
+            Expr::RecordLit { ty, fields } => {
+                if let Some(declared) = fields_of.get(ty) {
+                    for (name, value) in fields.iter_mut() {
+                        if let Some((_, wanted)) = declared.iter().find(|(f, _)| f == name) {
+                            spell(value, wanted);
+                        }
+                    }
+                }
+            }
+            // `new Box(9)` fills the fields in the order they are declared.
+            Expr::New { callee, args } | Expr::Call { callee, args } => {
+                if let Expr::Name(ty) = callee.as_ref() {
+                    if let Some(declared) = fields_of.get(ty) {
+                        for (argument, (_, wanted)) in args.iter_mut().zip(declared) {
+                            spell(argument, wanted);
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+        for inner in subexpressions_mut(e) {
+            in_record_literals(inner, fields_of);
+        }
+    }
+    let fields_of: std::collections::BTreeMap<String, Vec<(String, Type)>> = module
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Record(r) => Some((
+                r.name.clone(),
+                r.fields
+                    .iter()
+                    .filter_map(|f| f.ty.clone().map(|ty| (f.name.clone(), ty)))
+                    .collect(),
+            )),
+            _ => None,
+        })
+        .collect();
+    let mut spelled = module.clone();
+    for item in spelled.items.iter_mut() {
+        match item {
+            Item::Function(f) => walk(&mut f.body, &fields_of),
+            Item::Record(r) => {
+                for m in r.methods.iter_mut() {
+                    walk(&mut m.body, &fields_of);
+                }
+            }
+            Item::Statement(stmt) => {
+                let mut one = vec![stmt.clone()];
+                walk(&mut one, &fields_of);
+                *stmt = one.remove(0);
+            }
+            _ => {}
+        }
+    }
+    spelled
+}
+
+/// Every named lambda that captures nothing, lifted to a function of its own.
+///
+/// Zig is the one target with no closure at all. A lambda bound to a name
+/// becomes a function with that name, which is the same declaration under the
+/// same word. A lambda written inline has no name to take, and inventing one
+/// would add a declaration the source never had: a round trip back found it and
+/// said so. A lambda that reads a local is not liftable either, because lifting
+/// it would silently drop what it read. Both stay carried.
+fn functions_for_lambdas(module: &Module) -> Module {
+    let mut lifted = module.clone();
+    let mut made: Vec<Item> = Vec::new();
+    for item in lifted.items.iter_mut() {
+        let Item::Function(f) = item else { continue };
+        let bound: std::collections::BTreeSet<String> = f
+            .params
+            .iter()
+            .map(|p| p.name.clone())
+            .chain(declared_names(&f.body))
+            .collect();
+        lift_in(&mut f.body, &bound, &mut made);
+    }
+    // A lifted function has to stand before the entry statement that runs the
+    // program, or Zig sees a call to a name declared nowhere yet.
+    let at = lifted
+        .items
+        .iter()
+        .position(|i| matches!(i, Item::Statement(_)))
+        .unwrap_or(lifted.items.len());
+    for (offset, made) in made.into_iter().enumerate() {
+        lifted.items.insert(at + offset, made);
+    }
+    lifted
+}
+
+/// Every name these statements bind, so a lambda reading one is known to capture.
+fn declared_names(body: &[Stmt]) -> Vec<String> {
+    let mut found = Vec::new();
+    for stmt in body {
+        match stmt {
+            Stmt::Let { name, .. } => found.push(name.clone()),
+            Stmt::ForEach { binding, .. } => found.push(binding.clone()),
+            _ => {}
+        }
+        for inner in sub_bodies(stmt) {
+            found.extend(declared_names(inner));
+        }
+    }
+    found
+}
+
+/// Replace each liftable lambda in these statements with the name of a function.
+fn lift_in(
+    body: &mut Vec<Stmt>,
+    bound: &std::collections::BTreeSet<String>,
+    made: &mut Vec<Item>,
+) {
+    // The owned vector is taken because the marker statements are dropped at
+    // the end, and `retain` needs one.
+    for stmt in body.iter_mut() {
+        // A binding whose whole value is a lambda keeps its name: `add_one`
+        // becomes `fn addOne`, which is what a reader of the source expects.
+        if let Stmt::Let {
+            name,
+            value: Some(value),
+            ..
+        } = stmt
+        {
+            if let Some(f) = liftable(value, name, bound) {
+                made.push(Item::Function(f));
+                *stmt = Stmt::Comment(format!("{name} is a function below"));
+                continue;
+            }
+        }
+        for inner in sub_bodies_mut(stmt) {
+            lift_in(inner, bound, made);
+        }
+    }
+    // The comments left where a binding stood say nothing Zig needs.
+    body.retain(|s| !matches!(s, Stmt::Comment(text) if text.ends_with("is a function below")));
+}
+
+/// The function a lambda stands for, when it reads nothing from around it.
+fn liftable(
+    e: &Expr,
+    name: &str,
+    bound: &std::collections::BTreeSet<String>,
+) -> Option<Function> {
+    let Expr::Lambda {
+        params,
+        returns,
+        body,
+    } = e
+    else {
+        return None;
+    };
+    // Every type spelled, or the function has no signature to write.
+    if params.iter().any(|p| p.ty.is_none()) || returns.is_none() {
+        return None;
+    }
+    let its_own: std::collections::BTreeSet<&str> =
+        params.iter().map(|p| p.name.as_str()).collect();
+    let mut reads = Vec::new();
+    names_read(body, &mut reads);
+    if reads
+        .iter()
+        .any(|n| bound.contains(n) && !its_own.contains(n.as_str()))
+    {
+        return None;
+    }
+    Some(Function {
+        doc: Vec::new(),
+        name: name.to_string(),
+        receiver: None,
+        receiver_binding: None,
+        params: params.clone(),
+        returns: returns.clone(),
+        body: vec![Stmt::Return(Some((**body).clone()))],
+        exported: false,
+        is_async: false,
+        is_property: false,
+        is_constructor: false,
+        is_private: false,
+    })
+}
+
+/// Every name this expression reads.
+fn names_read(e: &Expr, found: &mut Vec<String>) {
+    let mut e = e.clone();
+    fn walk(e: &mut Expr, found: &mut Vec<String>) {
+        if let Expr::Name(n) = e {
+            found.push(n.clone());
+        }
+        for inner in subexpressions_mut(e) {
+            walk(inner, found);
+        }
+    }
+    walk(&mut e, found);
+}
+
+fn loops_for_comprehensions(module: &Module) -> Module {
+    fn lower(body: &[Stmt], next: &mut usize) -> Vec<Stmt> {
+        let mut out: Vec<Stmt> = Vec::new();
+        for stmt in body {
+            let mut before: Vec<Stmt> = Vec::new();
+            let mut stmt = stmt.clone();
+            // The bodies first, so a comprehension nested in a loop is lowered
+            // inside the loop it belongs to.
+            for inner in sub_bodies_mut(&mut stmt) {
+                *inner = lower(inner, next);
+            }
+            // A binding whose whole value is a comprehension is built in place,
+            // with no name in between. The alias was a second binding, and the
+            // one target that tells a growable list from an array by the name it
+            // was declared under lost track of it.
+            if let Stmt::Let {
+                name,
+                value: Some(Expr::Comprehension { .. }),
+                ..
+            } = &stmt
+            {
+                let name = name.clone();
+                let Stmt::Let { value, .. } = &mut stmt else {
+                    unreachable!("just matched a binding");
+                };
+                let built = value.take().expect("just matched a value");
+                let mut filled: Vec<Stmt> = Vec::new();
+                let mut placed = Expr::Null;
+                fill_into(&name, built, &mut filled);
+                let _ = &mut placed;
+                out.push(Stmt::Let {
+                    name,
+                    ty: None,
+                    value: Some(Expr::ListLit(Vec::new())),
+                    mutable: true,
+                });
+                out.extend(filled);
+                continue;
+            }
+            for e in statement_expressions_mut(&mut stmt) {
+                hoist(e, &mut before, next);
+            }
+            out.extend(before);
+            out.push(stmt);
+        }
+        out
+    }
+    /// The loop that fills `name` from this comprehension.
+    fn fill_into(name: &str, built: Expr, into: &mut Vec<Stmt>) {
+        let Expr::Comprehension {
+            element,
+            binding,
+            iterable,
+            condition,
+        } = built
+        else {
+            return;
+        };
+        let appended = Stmt::Expr(Expr::Call {
+            callee: Box::new(Expr::Field {
+                of: Box::new(Expr::Name(name.to_string())),
+                name: "append".to_string(),
+            }),
+            args: vec![*element],
+        });
+        let step = match condition {
+            Some(c) => Stmt::If {
+                condition: *c,
+                then: vec![appended],
+                otherwise: Vec::new(),
+            },
+            None => appended,
+        };
+        into.push(Stmt::ForEach {
+            binding,
+            iterable: *iterable,
+            body: vec![step],
+        });
+    }
+
+    /// Replace each comprehension with a name, and say how to fill it.
+    fn hoist(e: &mut Expr, before: &mut Vec<Stmt>, next: &mut usize) {
+        for inner in subexpressions_mut(e) {
+            hoist(inner, before, next);
+        }
+        let Expr::Comprehension {
+            element,
+            binding,
+            iterable,
+            condition,
+        } = e
+        else {
+            return;
+        };
+        let name = format!("frBuilt{next}");
+        *next += 1;
+        let appended = Stmt::Expr(Expr::Call {
+            callee: Box::new(Expr::Field {
+                of: Box::new(Expr::Name(name.clone())),
+                name: "append".to_string(),
+            }),
+            args: vec![(**element).clone()],
+        });
+        let step = match condition {
+            Some(c) => Stmt::If {
+                condition: (**c).clone(),
+                then: vec![appended],
+                otherwise: Vec::new(),
+            },
+            None => appended,
+        };
+        before.push(Stmt::Let {
+            name: name.clone(),
+            ty: None,
+            value: Some(Expr::ListLit(Vec::new())),
+            mutable: true,
+        });
+        before.push(Stmt::ForEach {
+            binding: binding.clone(),
+            iterable: (**iterable).clone(),
+            body: vec![step],
+        });
+        *e = Expr::Name(name);
+    }
+    let mut next = 0usize;
+    let mut lowered = module.clone();
+    for item in &mut lowered.items {
+        match item {
+            Item::Function(f) => f.body = lower(&f.body, &mut next),
+            Item::Record(r) => {
+                for method in r.methods.iter_mut() {
+                    method.body = lower(&method.body, &mut next);
+                }
+            }
+            Item::Statement(stmt) => {
+                let mut lowered = lower(std::slice::from_ref(stmt), &mut next);
+                *stmt = match lowered.len() {
+                    1 => lowered.remove(0),
+                    // The loop and the statement it feeds are one statement's
+                    // worth of work, and a block is how the IR holds several.
+                    _ => Stmt::Block(lowered),
+                };
+            }
+            _ => {}
+        }
+    }
+    lowered
 }
 
 /// The parameters this body calls, and how many arguments each call passes.
@@ -13903,6 +15360,11 @@ fn bash_word(out: &mut Out, bx: &mut BashCx, e: &Expr) -> Option<String> {
                 let [one] = args.as_slice() else { return None };
                 return bash_word(out, bx, one);
             }
+            // Bash arithmetic is integers only, so it is already cut toward zero.
+            if name == "trunc" {
+                let [one] = args.as_slice() else { return None };
+                return bash_word(out, bx, one);
+            }
             if name == "len" {
                 let [of] = args.as_slice() else { return None };
                 let Expr::Name(of) = of else { return None };
@@ -13990,6 +15452,23 @@ fn bash_arith(out: &mut Out, bx: &mut BashCx, e: &Expr) -> Option<String> {
         }
         Expr::Call { .. } => bash_word(out, bx, e),
         Expr::Binary { op, left, right } => {
+            // Bash's `%` truncates, and a source that floors answers a
+            // different number whenever the operands have different signs.
+            // `((a % b) + b) % b` is that answer. It names the divisor twice,
+            // so only a divisor that can be named twice may take it.
+            if *op == BinaryOp::FloorRem {
+                if !matches!(
+                    right.as_ref(),
+                    Expr::Name(_) | Expr::Int(_) | Expr::Index { .. }
+                ) {
+                    return None;
+                }
+                let dividend = bash_arith(out, bx, left)?;
+                let divisor = bash_arith(out, bx, right)?;
+                return Some(format!(
+                    "((({dividend}) % ({divisor})) + ({divisor})) % ({divisor})"
+                ));
+            }
             let spelled = match op {
                 BinaryOp::FloorDiv => "/",
                 BinaryOp::TrueDiv => return None,

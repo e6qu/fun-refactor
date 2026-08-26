@@ -101,7 +101,9 @@ def total(values: list[int]) -> int:
     let (rust, fidelity) = translate(&[("a.py", source)], "a.py", Language::Rust);
     for wanted in [
         "fn total(values: Vec<i64>) -> i64 {",
-        "for value in &values {",
+        // Cloning each element keeps the list and binds a value: a borrowed
+        // element compares against no literal and adds to no total.
+        "for value in values.iter().cloned() {",
         "if value > 0 {",
         "} else {",
         "continue;",
@@ -967,7 +969,7 @@ fn a_constructor_is_spelled_the_way_each_target_spells_one() {
     for (target, expected) in [
         (Language::Python, "def __init__(self, n: int):"),
         (Language::TypeScript, "constructor(n: number) {"),
-        (Language::Rust, "pub fn new(n: i64) -> Store {"),
+        (Language::Rust, "pub fn new(n: i64) -> Self {"),
         (Language::Go, "func NewStore(n int) Store {"),
         (Language::Zig, "pub fn init(n: i64) Store {"),
     ] {
@@ -977,21 +979,19 @@ fn a_constructor_is_spelled_the_way_each_target_spells_one() {
 }
 
 #[test]
-fn a_constructor_body_that_assigns_through_a_receiver_says_so() {
-    // Rust, Go and Zig build a value and return it. A body that assigns through a receiver has
-    // nowhere to run there. And writing `self.n = n` inside a function that binds no `self`
-    // would be worse than saying nothing was carried.
+fn a_constructor_body_that_assigns_through_a_receiver_builds_the_value() {
+    // Rust, Go and Zig build a value and return it. A body that assigns through a
+    // receiver has nowhere to run there, and writing `self.n = n` inside a
+    // function that binds no `self` would be worse than saying nothing carried.
+    // The assignments are the fields of the value, so the value is what crosses.
     let source = "public class Store {\n    int n;\n    public Store(int n) { this.n = n; }\n}\n";
-    for target in [Language::Rust, Language::Go, Language::Zig] {
-        let (output, fidelity) = translate(&[("Store.java", source)], "Store.java", target);
-        assert!(
-            fidelity
-                .notes
-                .iter()
-                .any(|note| note.contains("assigns through a receiver")),
-            "{target}:\n{output}\n{:?}",
-            fidelity.notes
-        );
+    for (target, expected) in [
+        (Language::Rust, "Store { n: n }"),
+        (Language::Go, "return Store{n: n}"),
+        (Language::Zig, "return Store{ .n = n }"),
+    ] {
+        let (output, _) = translate(&[("Store.java", source)], "Store.java", target);
+        assert!(output.contains(expected), "{target}:\n{output}");
         assert!(!output.contains("self.n = n"), "{target}:\n{output}");
     }
 }

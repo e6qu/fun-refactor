@@ -93,6 +93,62 @@ a translation surface it has not written yet.
   gained what it should have preserved. Each language's widest type reads as the
   nothing it stands for.
 
+- [x] B771: **arithmetic answered different numbers in different targets.**
+  The `numbers` group compares whole-number division and remainder across the
+  matrix, including negative operands. Five things were wrong. `Math.trunc` and
+  `Math.floor` were read as one operator, and so were Zig's `@divTrunc` and
+  `@divFloor`. Every negative quotient came out one away from the source's.
+  Python's `%` rounds with its division, toward negative infinity. It was
+  written as `%` in the four languages that round the other way. The report
+  said so; the file was still wrong. A comparison inside a comparison lost its
+  brackets. Python reads that as a chain and Rust refuses it outright. Java
+  subtracted from a string, because a concatenated operand kept no brackets.
+
+  A floor remainder is now its own operator. Java and Zig name one. Rust, Go,
+  TypeScript and bash spell it. `trunc` joins `int` as a canonical operation,
+  so a truncation crosses as a truncation whatever the numeric type. All thirty
+  cells pass.
+
+- [x] B770: **a record could not be built in Java or TypeScript.** Both write a
+  record as a class. A class is built by calling a constructor, and neither
+  writer emitted one. So `new Box(9)` named a constructor the class had not
+  got, and TypeScript refused an uninitialised field besides. Both write the
+  constructor their fields imply. A record literal fills it in declaration
+  order. A constructor body that only assigns fields is canonicalised to that
+  literal. So the three languages that build a value and the three that assign
+  to a receiver read each other.
+
+- [x] B769: **a Rust record carried nothing.** An emitted struct had no derives.
+  A translated record could not be copied, printed or compared, all of which
+  its source gave for free. A field the source never typed spelled the
+  widest-type marker verbatim and the file did not parse. Fields with no type
+  become parameters on the struct, and the ordinary derives go on.
+
+- [x] B768: **the IR had no function type.** `(n: number) => number` ran
+  together into `Unwritable_n__number_____number`. The parameter then took a
+  type nothing could call. All six languages spell a function type, so the IR
+  has one and each reader and writer spells it. A lambda carries the types its
+  source declared. A parameter the body calls is typed from the call, and a
+  lambda takes the type of the slot it is passed to. Zig has no closure at all,
+  so a lambda that captures nothing is lifted to a function of its own.
+
+- [x] B767: **a Rust iterator chain crossed as a comment.**
+  `xs.iter().filter(p).map(f).collect()` is the comprehension Rust spells as a
+  chain, and nothing read it. Reading `*x` was missing too, so every borrowed
+  operand in a body crossed the same way. Both are read now. An assignment
+  whose target is a call carries whole, rather than producing a line no
+  language can parse.
+
+- [x] B766: **a `vec![…]` element more involved than a literal was refused.** A
+  macro body is a token tree and not a syntax tree. `vec!["a".to_string()]` had
+  no node to read. Each element is parsed from its own text.
+
+- [x] B765: **Java could not read back what this writer had just written.**
+  `new ArrayList<>(List.of(…))` is the mutable list the writer emits. The
+  reader crossed it verbatim, as a construction of a class no target has heard
+  of. Both wrappers, and the bare `List.of` and `Map.of` besides, read as the
+  literals they stand for.
+
 - [x] B764: **two Java shapes did not compile.** A lambda bound with `var` has
   no target type to take, which javac refuses. It is declared with the
   functional interface for its arity now. And `xs.sort()` sorts by natural order

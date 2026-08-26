@@ -65,14 +65,17 @@ fn a_typescript_arrow_is_a_python_lambda() {
 
 #[test]
 fn a_rust_closure_in_an_iterator_chain_crosses() {
+    // The chain is a comprehension written the way Rust writes one, so it
+    // arrives as the comprehension the target spells rather than as a call to
+    // `map` with a lambda in it.
     let source = "pub fn shout(names: Vec<String>) -> Vec<String> {\n    \
         let loud: Vec<String> = names.iter().map(|n| n.to_uppercase()).collect();\n    \
         return loud;\n}\n";
     let tmp = tempfile::tempdir().unwrap();
     let out = translated(tmp.path(), "shout.rs", source, Language::Python);
     assert!(
-        out.contains("lambda n: n.upper()"),
-        "the closure crosses and its body speaks the target's library.\n{out}"
+        out.contains("[n.upper() for n in names]"),
+        "the chain crosses and its body speaks the target's library.\n{out}"
     );
 }
 
@@ -92,13 +95,28 @@ fn go_and_zig_carry_the_lambda_visibly() {
 }
 
 #[test]
-fn a_block_bodied_arrow_stays_carried() {
+fn a_block_bodied_arrow_holding_one_return_crosses() {
+    // A block whose only statement returns holds one expression, which is the
+    // shape a lambda and a comprehension both take. Refused, the chain around
+    // it crossed as a call to a method the target has not got.
     let source = "export function run(xs: number[]): number[] {\n    \
         return xs.map((x) => { return x * 2; });\n}\n";
     let tmp = tempfile::tempdir().unwrap();
     let out = translated(tmp.path(), "blocks.ts", source, Language::Python);
     assert!(
+        out.contains("[x * 2 for x in xs]"),
+        "the one expression the block returns is the comprehension's.\n{out}"
+    );
+}
+
+#[test]
+fn a_block_bodied_arrow_doing_more_stays_carried() {
+    let source = "export function run(xs: number[]): number[] {\n    \
+        return xs.map((x) => { const y = x * 2; return y + 1; });\n}\n";
+    let tmp = tempfile::tempdir().unwrap();
+    let out = translated(tmp.path(), "steps.ts", source, Language::Python);
+    assert!(
         out.contains("fun-refactor: not translated"),
-        "a block body is a function that wants a name, and it carries whole.\n{out}"
+        "a body with steps in it is a function that wants a name.\n{out}"
     );
 }

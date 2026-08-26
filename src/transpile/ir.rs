@@ -124,6 +124,15 @@ pub struct Function {
     /// so this flag carries the fact instead. Without it a Java constructor is a class member
     /// nothing recognises, and the writer drops it.
     pub is_constructor: bool,
+    /// Did the source say `private` in so many words?
+    ///
+    /// Three of these six languages have a private keyword and three have a
+    /// convention: a Rust `fn` without `pub` and a Zig one without it are the
+    /// module's own, which Java spells package-private. Held as one bit with
+    /// `exported`, a Zig method came out `private` in Java and the file's own
+    /// class could not call it. Held apart, an explicit `private` still crosses
+    /// as one.
+    pub is_private: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -320,6 +329,32 @@ pub enum Type {
         name: String,
         args: Vec<Type>,
     },
+    /// `(n: number) => number`, `func(int) int`, `Callable[[int], int]`.
+    ///
+    /// Every one of these six languages spells a function type, and each spells
+    /// it differently enough that no name crosses. Held as a name, the pieces
+    /// ran together into `Unwritable_n__number_____number` and the parameter
+    /// took a type nothing could call.
+    Fn {
+        params: Vec<Type>,
+        returns: Box<Type>,
+    },
+}
+
+impl Expr {
+    /// Can this stand on the left of `=` in any of these languages?
+    ///
+    /// A name, a field of one, or a place in a collection. Rust also assigns
+    /// through a reference, and what it dereferences may be a call:
+    /// `*m.entry(k).or_default() += 1`. No target here can assign to a call,
+    /// and writing one produced a file that would not parse.
+    pub fn is_assignable(&self) -> bool {
+        match self {
+            Expr::Name(_) => true,
+            Expr::Field { of, .. } | Expr::Index { of, .. } => of.is_assignable(),
+            _ => false,
+        }
+    }
 }
 
 impl Type {
@@ -361,6 +396,10 @@ impl fmt::Display for Type {
             Type::Tuple(parts) => {
                 let rendered: Vec<String> = parts.iter().map(|p| p.to_string()).collect();
                 write!(f, "tuple<{}>", rendered.join(", "))
+            }
+            Type::Fn { params, returns } => {
+                let rendered: Vec<String> = params.iter().map(|p| p.to_string()).collect();
+                write!(f, "fn<({}) -> {returns}>", rendered.join(", "))
             }
             Type::Named { name, args } if args.is_empty() => write!(f, "{name}"),
             Type::Named { name, args } => {
@@ -751,7 +790,15 @@ pub enum Expr {
     /// carry this too, visibly. Without it, every `sorted(key=...)` callback crosses
     /// as a runnable `null`.
     Lambda {
-        params: Vec<String>,
+        /// The same [`Param`] a declaration uses, so a lambda whose parameters
+        /// the source typed keeps those types. Held as bare names, a TypeScript
+        /// `(n: number) => n + 1` could not be read at all. Every target that
+        /// needs the type had to guess it back.
+        params: Vec<Param>,
+        /// What it answers, where the source said. TypeScript writes
+        /// `(n: number): number => …`, and Go and Zig cannot write a function
+        /// value at all without knowing it.
+        returns: Option<Type>,
         body: Box<Expr>,
     },
     /// `[f(x) for x in xs if p(x)]`, and `xs.filter(p).map(f)`.
@@ -800,6 +847,14 @@ pub enum BinaryOp {
     /// silently answered 5 where the source answered 5.34.
     TrueDiv,
     Rem,
+    /// `%` in Python: the remainder that goes with division rounding toward
+    /// negative infinity.
+    ///
+    /// Its own operator because the two disagree on every negative operand.
+    /// `-7 % 2` is `1` in Python and `-1` in the other five. One spelling
+    /// carrying both meanings made every translation of a negative remainder
+    /// quietly wrong.
+    FloorRem,
     Eq,
     Ne,
     Lt,
@@ -828,6 +883,12 @@ impl BinaryOp {
             // this. The rest coerce an operand before they render the operator.
             BinaryOp::TrueDiv => "/",
             BinaryOp::Rem => "%",
+            // Only Python's `%` floors, and Python is not a C-family language.
+            // Every other writer says it with its own call before reaching this
+            // table. Asking here is a bug in the writer, said out loud.
+            BinaryOp::FloorRem => {
+                unreachable!("a floor remainder has no shared operator spelling")
+            }
             BinaryOp::Eq => "==",
             BinaryOp::Ne => "!=",
             BinaryOp::Lt => "<",
@@ -845,6 +906,8 @@ impl BinaryOp {
             BinaryOp::And => "and",
             BinaryOp::Or => "or",
             BinaryOp::FloorDiv => "//",
+            // The remainder Python's `%` already gives.
+            BinaryOp::FloorRem => "%",
             other => other.c_like(),
         }
     }
@@ -864,7 +927,8 @@ impl BinaryOp {
             | BinaryOp::Div
             | BinaryOp::FloorDiv
             | BinaryOp::TrueDiv
-            | BinaryOp::Rem => 6,
+            | BinaryOp::Rem
+            | BinaryOp::FloorRem => 6,
             BinaryOp::Add | BinaryOp::Sub => 5,
             // C gives xor its own tier between arithmetic and comparison;
             // parenthesised operands keep every target agreeing.

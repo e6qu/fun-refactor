@@ -22,8 +22,9 @@ use std::path::{Path, PathBuf};
 
 /// Every function in a module, wherever it is written.
 ///
-/// Java has no top level below the type and Zig writes methods inside their struct, so
-/// the same function is a module item in one language and a record's method in another.
+/// Java has no top level below the type and Zig writes methods inside their struct.
+/// So the same function is a module item in one language and a record's method in
+/// another.
 /// Where it sits is the translation working; what it is called is the promise.
 fn functions(module: &Module) -> Vec<&Function> {
     let mut found = Vec::new();
@@ -80,8 +81,8 @@ fn signatures(module: &Module) -> Vec<(String, Vec<String>)> {
 ///
 /// Which scalar is not compared: TypeScript has one numeric type. So an `i64` that goes through
 /// it comes back a `number` and there is nothing wrong with that. What is compared is the
-/// *shape*, a list stays a list, an optional stays optional, a named type keeps its name,
-/// because none of those can change for a good reason.
+/// *shape*. A list stays a list, an optional stays optional, a named type keeps its name.
+/// None of those can change for a good reason.
 fn shape(ty: Option<&Type>) -> String {
     match ty {
         // Go writes nothing at all for a function that returns nothing, so "returns
@@ -95,6 +96,12 @@ fn shape(ty: Option<&Type>) -> String {
             format!("map<{},{}>", shape(Some(key)), shape(Some(value)))
         }
         Some(Type::Optional(inner)) => format!("option<{}>", shape(Some(inner))),
+        // A function type keeps its arity and the shape of each part. What it
+        // is spelled with is each language's own business.
+        Some(Type::Fn { params, returns }) => {
+            let taken: Vec<String> = params.iter().map(|p| shape(Some(p))).collect();
+            format!("fn<({}),{}>", taken.join(","), shape(Some(returns)))
+        }
         Some(Type::Tuple(parts)) => {
             let inner: Vec<String> = parts.iter().map(|p| shape(Some(p))).collect();
             format!("tuple<{}>", inner.join(","))
@@ -280,8 +287,8 @@ fn nothing_goes_missing(files: &[PathBuf], least: usize) {
             // different functions and calls the difference a defect. A placeholder stands for a
             // type that could not be written, so it compares equal to whatever it replaced. A
             // parameter's name always has to match. Its type has to match unless one side holds
-            // a placeholder for something this tool cannot write, a tuple, a closure, a union,
-            // because the placeholder *is* the loss. The fidelity report is where it is stated.
+            // a placeholder for something this tool cannot write: a tuple, a closure, a union.
+            // The placeholder *is* the loss, and the fidelity report states it.
             let same_parameters = |a: &[String], b: &[String]| {
                 a.len() == b.len()
                     && a.iter().zip(b.iter()).all(|(x, y)| {
@@ -308,7 +315,7 @@ fn nothing_goes_missing(files: &[PathBuf], least: usize) {
             // languages "constructor" *is* a naming convention. Java overloads them and nobody
             // else does, so a second one written elsewhere keeps its source's name and the
             // report says so. And a Rust `new_handle` that returns a `Handle` is written
-            // `NewHandle` in Go, which is how Go spells a constructor, so it comes back as
+            // `NewHandle` in Go, the way Go spells a constructor, so it comes back as
             // `Handle::new`. Both are the signature surviving under the target's own
             // convention, which is the promise. What is never allowed is the parameters
             // changing.
@@ -338,6 +345,19 @@ fn nothing_goes_missing(files: &[PathBuf], least: usize) {
                 })
                 .collect();
             gained.retain(|(name, params)| !(params.is_empty() && degraded.contains(&plain(name))));
+            // Java and TypeScript build a record by calling a constructor and
+            // have no literal to build it with, so a record that crosses into
+            // one arrives with the constructor its fields imply. Coming back,
+            // that constructor is the record's own shape and not a function the
+            // source lacked. A constructor the source *did* declare and that
+            // went missing still fails, because losses are checked apart.
+            let builds_a_record = |params: &Vec<String>| {
+                source.items.iter().any(|item| match item {
+                    Item::Record(r) => r.fields.len() == params.len(),
+                    _ => false,
+                })
+            };
+            gained.retain(|(name, params)| name != "<constructor>" || !builds_a_record(params));
             assert!(
                 missing.is_empty() && gained.is_empty(),
                 "{} -> {to} -> {from} did not come back the same\n  lost:   {missing:?}\n  gained: {gained:?}",
