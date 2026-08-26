@@ -620,11 +620,18 @@ fn banner(
             "Nothing was found to translate: no function, record or constant. If the \
              source has any, this tool did not recognise them.",
         ));
-    } else if fidelity.is_complete() {
+    } else if fidelity.is_complete() && fidelity.signatures_untyped == 0 {
         out.push_str(&comment(
             "Every signature carried across with its types intact.",
         ));
     } else {
+        if fidelity.signatures_untyped > 0 {
+            out.push_str(&comment(&format!(
+                "{} signature(s) have a parameter or a return the source never typed; \
+                 the widest type this language has stands in.",
+                fidelity.signatures_untyped
+            )));
+        }
         if fidelity.signatures_with_foreign_types > 0 {
             out.push_str(&comment(&format!(
                 "{} signature(s) mention a type this tool does not know; they were \

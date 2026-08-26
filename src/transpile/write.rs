@@ -1482,6 +1482,12 @@ struct Out {
     /// the body is written, like `go_imports`. And appended to the file afterwards: `frPrint`
     /// for the canonical `print`, `frFormat` for a template used as a value.
     zig_helpers: std::collections::BTreeSet<&'static str>,
+    /// Parameters this Java method takes as a functional interface.
+    ///
+    /// Java has no callable `Object`, so an untyped parameter the body calls is
+    /// written `Function<..>`, and a call through it goes by `apply`. Written
+    /// `f(x)`, javac looked for a method named `f` on the class.
+    functional_params: std::collections::BTreeSet<String>,
     /// Bindings whose value the Zig writer knows to be text, by watching the `let`s
     /// it writes. The declared types answer for the rest; these are the inferred ones,
     /// `const label = frFormat(...)`, that a format hole must spell `{s}`.
@@ -1653,6 +1659,7 @@ impl Out {
             declared_types: std::collections::BTreeSet::new(),
             go_imports: std::collections::BTreeSet::new(),
             zig_helpers: std::collections::BTreeSet::new(),
+            functional_params: std::collections::BTreeSet::new(),
             zig_strings: std::collections::BTreeSet::new(),
             newtypes: std::collections::BTreeMap::new(),
             records: std::collections::BTreeMap::new(),
@@ -2906,8 +2913,52 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
         }
     };
     let visibility = if f.exported { "pub " } else { "" };
+    // Each parameter the source left untyped becomes a type of its own, named in
+    // order. Rust has no widest type to reach for, so "whatever the caller
+    // brings" is what a type parameter means.
+    let called = called_parameters(f);
+    let mut generics: Vec<String> = Vec::new();
+    for (at_param, param) in params.iter_mut().enumerate() {
+        while let Some(at) = param.find(TYPE_THE_CALLER_DECIDES) {
+            // A parameter the body calls is a function, and no widest type is
+            // callable. `impl Fn(..) -> ..` says what the body already assumes,
+            // with the argument types the call site shows and the return this
+            // function declares.
+            let calls = f
+                .params
+                .get(at_param)
+                .and_then(|p| called.get(&p.name).copied());
+            match calls {
+                Some(arity) => {
+                    let arguments = vec!["i64".to_string(); arity].join(", ");
+                    let answers = f
+                        .returns
+                        .as_ref()
+                        .map(rust_type)
+                        .unwrap_or_else(|| "i64".to_string());
+                    let spelled = format!("impl Fn({arguments}) -> {answers}");
+                    param.replace_range(at..at + TYPE_THE_CALLER_DECIDES.len(), &spelled);
+                }
+                None => {
+                    let name = format!("T{}", generics.len());
+                    param.replace_range(at..at + TYPE_THE_CALLER_DECIDES.len(), &name);
+                    generics.push(name);
+                }
+            }
+        }
+    }
+    let mut returns = returns;
+    while let Some(at) = returns.find(TYPE_THE_CALLER_DECIDES) {
+        let name = format!("T{}", generics.len());
+        returns.replace_range(at..at + TYPE_THE_CALLER_DECIDES.len(), &name);
+        generics.push(name);
+    }
+    let bound = match generics.is_empty() {
+        true => String::new(),
+        false => format!("<{}>", generics.join(", ")),
+    };
     out.line(&format!(
-        "{visibility}fn {}({}){returns} {{",
+        "{visibility}fn {}{bound}({}){returns} {{",
         out.function_name(f),
         params.join(", ")
     ));
@@ -2931,6 +2982,9 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
              spelling for; the types carried but callers write the call differently",
             f.name, out.language
         ));
+    }
+    if unannotated {
+        out.fidelity.signatures_untyped += 1;
     }
     if foreign {
         out.fidelity.signatures_with_foreign_types += 1;
@@ -4134,8 +4188,13 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                 .as_ref()
                 .map(|c| format!(".filter(|{name}| {})", rust_expr(out, c)))
                 .unwrap_or_default();
+            // `collect` is generic over what it builds, and a bare one leaves
+            // the type to be inferred from a later use. There is often none, so
+            // `E0282` where the source had a list. The turbofish names the
+            // collection and leaves the element to inference, and it works in
+            // expression position where annotating a binding would not.
             format!(
-                "{it}.into_iter(){filter}.map(|{name}| {}).collect()",
+                "{it}.into_iter(){filter}.map(|{name}| {}).collect::<Vec<_>>()",
                 rust_expr(out, element)
             )
         }
@@ -4549,6 +4608,9 @@ fn python_function(out: &mut Out, f: &Function, method: bool) {
              spelling for; the types carried but callers write the call differently",
             f.name, out.language
         ));
+    }
+    if unannotated {
+        out.fidelity.signatures_untyped += 1;
     }
     if foreign {
         out.fidelity.signatures_with_foreign_types += 1;
@@ -6187,6 +6249,9 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
              spelling for; the types carried but callers write the call differently",
             f.name, out.language
         ));
+    }
+    if unannotated {
+        out.fidelity.signatures_untyped += 1;
     }
     if foreign {
         out.fidelity.signatures_with_foreign_types += 1;
@@ -7992,6 +8057,7 @@ fn discriminator(s: &Sum) -> String {
 /// receiver, a class holds `static empty()` beside `label()`. One `bool` answering both put
 /// `export function` inside a class body.
 fn ts_function(out: &mut Out, f: &Function, inside_class: bool) {
+    let called = called_parameters(f);
     // Bindings made inside blocks die at their brace here; the source's did not.
     let f = &with_hoisted_bindings(f, &out.function_returns);
     // The source's word for the receiver, spelled this target's way for as long as
@@ -8023,7 +8089,22 @@ fn ts_function(out: &mut Out, f: &Function, inside_class: bool) {
                 }
                 None => {
                     unannotated = true;
-                    ": unknown".to_string()
+                    // `unknown` is a type here, and a correct one for a value
+                    // nothing describes. It is not callable, so a parameter the
+                    // body calls is written as the function it is.
+                    match called.get(&p.name).copied() {
+                        Some(arity) => {
+                            let answers = f
+                                .returns
+                                .as_ref()
+                                .map(ts_type)
+                                .unwrap_or_else(|| "unknown".to_string());
+                            let taken: Vec<String> =
+                                (0..arity).map(|at| format!("a{at}: {answers}")).collect();
+                            format!(": ({}) => {answers}", taken.join(", "))
+                        }
+                        None => ": unknown".to_string(),
+                    }
                 }
             };
             let default = p
@@ -8093,6 +8174,9 @@ fn ts_function(out: &mut Out, f: &Function, inside_class: bool) {
              spelling for; the types carried but callers write the call differently",
             f.name, out.language
         ));
+    }
+    if unannotated {
+        out.fidelity.signatures_untyped += 1;
     }
     if foreign {
         out.fidelity.signatures_with_foreign_types += 1;
@@ -8803,7 +8887,13 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
             format!("`{body}`")
         }
         Expr::Lambda { params, body } => {
-            let rendered: Vec<String> = params.iter().map(|p| out.name(p)).collect();
+            // The source typed none of these, and an implicit `any` is the
+            // one thing strict TypeScript refuses. Written out, it says what
+            // the source said: nothing.
+            let rendered: Vec<String> = params
+                .iter()
+                .map(|p| format!("{}: any", out.name(p)))
+                .collect();
             let value = ts_expr(out, body);
             // An object literal standing bare after `=>` reads as a block, so it
             // takes the brackets that keep it a value.
@@ -9114,6 +9204,13 @@ fn java_sum(out: &mut Out, module: &Module, s: &Sum, public: bool) {
 }
 
 fn java_function(out: &mut Out, f: &Function, is_static: bool) {
+    let called = called_parameters(f);
+    out.functional_params = f
+        .params
+        .iter()
+        .filter(|p| p.ty.is_none() && called.get(&p.name) == Some(&1))
+        .map(|p| p.name.clone())
+        .collect();
     // Bindings made inside blocks die at their brace here; the source's did not.
     let f = &with_hoisted_bindings(f, &out.function_returns);
     // The source's word for the receiver, spelled this target's way for as long as
@@ -9154,7 +9251,23 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
                 }
                 None => {
                     unannotated = true;
-                    unknown(out, &p.name)
+                    // A parameter the body calls is a function, and `Object` has
+                    // no `apply`. Java spells one with the interface for its
+                    // arity, and the call site reaches it through `apply`.
+                    match called.get(&p.name).copied() {
+                        Some(1) => {
+                            let answers = f
+                                .returns
+                                .as_ref()
+                                .map(java_boxed)
+                                .unwrap_or_else(|| "Object".to_string());
+                            out.fidelity
+                                .notes
+                                .push(format!("`{}` had no declared type in the source", p.name));
+                            format!("java.util.function.Function<{answers}, {answers}>")
+                        }
+                        _ => unknown(out, &p.name),
+                    }
                 }
             };
             Some(format!("{ty} {spelled}"))
@@ -9223,6 +9336,9 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
     out.fidelity.functions += 1;
     if changed {
         out.fidelity.signatures_with_changed_calls += 1;
+    }
+    if unannotated {
+        out.fidelity.signatures_untyped += 1;
     }
     if foreign {
         out.fidelity.signatures_with_foreign_types += 1;
@@ -9369,6 +9485,14 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
             // gives `var` nothing to infer, so it is declared `Object`.
             let declared = ty.as_ref().map(java_type).unwrap_or_else(|| match value {
                 Some(Expr::Unsupported(_)) | None => "Object".to_string(),
+                // A lambda has no type of its own here: it takes the one the
+                // context asks for, and `var` asks for nothing. Written that
+                // way, javac said the expression needed an explicit target type.
+                Some(Expr::Lambda { params, .. }) => match params.len() {
+                    1 => "java.util.function.Function<Integer, Integer>".to_string(),
+                    2 => "java.util.function.BiFunction<Integer, Integer, Integer>".to_string(),
+                    _ => "Object".to_string(),
+                },
                 _ => "var".to_string(),
             });
             let bound = out.name(name);
@@ -9960,6 +10084,15 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
             format!("{object}.get({at})")
         }
         Expr::Call { callee, args } => {
+            // A functional-interface parameter is invoked through `apply`.
+            // Written `f(x)`, javac looked for a method of that name on the class.
+            if let Expr::Name(name) = callee.as_ref() {
+                if out.functional_params.contains(name) && args.len() == 1 {
+                    let spelled = out.name(name);
+                    let argument = java_expr(out, &args[0]);
+                    return format!("{spelled}.apply({argument})");
+                }
+            }
             if let Some(mapped) = java_builtin(out, callee, args) {
                 return mapped;
             }
@@ -10701,6 +10834,9 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     out.fidelity.functions += 1;
     if changed {
         out.fidelity.signatures_with_changed_calls += 1;
+    }
+    if unannotated {
+        out.fidelity.signatures_untyped += 1;
     }
     if foreign {
         out.fidelity.signatures_with_foreign_types += 1;
@@ -12492,6 +12628,15 @@ fn java_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
         return None;
     }
     Some(match (receiver, name, args) {
+        // `xs.sort()` sorts in place by natural order. Java's `List.sort` takes
+        // a comparator and refuses to be called without one, so the ordering is
+        // named through `Collections`.
+        (Some(of), "sort", []) => {
+            format!(
+                "java.util.Collections.sort({})",
+                java_expr(out, &of.clone())
+            )
+        }
         // The unsigned right shift is native here.
         (None, "ushr", [x, n]) => {
             format!("({}) >>> ({})", java_expr(out, x), java_expr(out, n))
@@ -13074,15 +13219,113 @@ fn unknown(out: &mut Out, of: &str) -> String {
         .notes
         .push(format!("`{of}` had no declared type in the source"));
     match out.language {
-        Language::Rust => "()".to_string(),
+        // `()` is the type of no value, not of an unknown one. A parameter
+        // written that way could not be called, indexed or added to.
+        // Rust says "the caller decides" with a type parameter, which the
+        // signature writer adds.
+        Language::Rust => TYPE_THE_CALLER_DECIDES.to_string(),
         Language::Python => "object".to_string(),
         Language::Go => "any".to_string(),
         // Zig has no dynamic type; `anytype` says the caller decides, which is exactly
         // true of a parameter whose type the source never wrote down.
         Language::Zig => "anytype".to_string(),
+        // `unknown` is a type in TypeScript and a word in Java, where the widest
+        // one is `Object`. Written through, `unknown f` was a class javac had
+        // never heard of.
+        Language::Java => "Object".to_string(),
         _ => "unknown".to_string(),
     }
 }
+
+/// The parameters this body calls, and how many arguments each call passes.
+///
+/// A parameter the source never typed is usually just a value, and the widest
+/// type the target has will hold it. One that is *called* is a function, and no
+/// widest type is callable: Rust's type parameter and Java's `Object` both
+/// refuse. The body says which, so the signature can say so too.
+fn called_parameters(f: &Function) -> std::collections::BTreeMap<String, usize> {
+    fn walk(
+        stmts: &[Stmt],
+        untyped: &std::collections::BTreeSet<String>,
+        found: &mut std::collections::BTreeMap<String, usize>,
+    ) {
+        fn in_expr(
+            e: &Expr,
+            untyped: &std::collections::BTreeSet<String>,
+            found: &mut std::collections::BTreeMap<String, usize>,
+        ) {
+            if let Expr::Call { callee, args } = e {
+                if let Expr::Name(name) = callee.as_ref() {
+                    if untyped.contains(name) {
+                        found.insert(name.clone(), args.len());
+                    }
+                }
+                in_expr(callee, untyped, found);
+                for a in args {
+                    in_expr(a, untyped, found);
+                }
+                return;
+            }
+            for inner in [e] {
+                match inner {
+                    Expr::Binary { left, right, .. } => {
+                        in_expr(left, untyped, found);
+                        in_expr(right, untyped, found);
+                    }
+                    Expr::Unary { operand, .. }
+                    | Expr::Await(operand)
+                    | Expr::Propagate(operand) => in_expr(operand, untyped, found),
+                    Expr::Field { of, .. } => in_expr(of, untyped, found),
+                    Expr::Index { of, index } => {
+                        in_expr(of, untyped, found);
+                        in_expr(index, untyped, found);
+                    }
+                    Expr::Template(parts) => {
+                        for part in parts {
+                            if let TemplatePart::Expr(x) = part {
+                                in_expr(x, untyped, found);
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+        for stmt in stmts {
+            match stmt {
+                Stmt::Expr(e) | Stmt::Return(Some(e)) | Stmt::Throw(e) => {
+                    in_expr(e, untyped, found)
+                }
+                Stmt::Let { value: Some(e), .. } => in_expr(e, untyped, found),
+                Stmt::Assign { value, .. } => in_expr(value, untyped, found),
+                Stmt::If { condition, .. } | Stmt::While { condition, .. } => {
+                    in_expr(condition, untyped, found)
+                }
+                _ => {}
+            }
+            for inner in sub_bodies(stmt) {
+                walk(inner, untyped, found);
+            }
+        }
+    }
+    let untyped: std::collections::BTreeSet<String> = f
+        .params
+        .iter()
+        .filter(|p| p.ty.is_none())
+        .map(|p| p.name.clone())
+        .collect();
+    let mut found = std::collections::BTreeMap::new();
+    if !untyped.is_empty() {
+        walk(&f.body, &untyped, &mut found);
+    }
+    found
+}
+
+/// The stand-in Rust uses for a type the source never wrote.
+///
+/// A marker rather than a type. The signature writer turns each one into its
+/// own parameter: two untyped parameters are two unknowns and not one.
+const TYPE_THE_CALLER_DECIDES: &str = "\u{0}caller-decides";
 
 /// What the bash writer tracks beside [`Out`].
 ///

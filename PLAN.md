@@ -938,6 +938,63 @@ which bindings hold a map, so a map's `contains` is told from a string's.
 Until that lands the group stays out of the harness rather than sitting in it
 green.
 
+## Everything that was left
+
+One branch and one pull request. Nothing here is deferred to a later one, and
+nothing is skipped. Where something turns out to be undecidable rather than
+large, it is named as undecidable with the evidence. That is a category
+and not an excuse.
+
+### The three the probe found
+
+A Rust comprehension collects without a target type, so `E0282`, with no marker
+saying anything went wrong. An untyped parameter that holds a function becomes
+`f: ()` in Rust, whose unit type cannot be called. In Java it becomes
+`unknown f`, which is not a type at all. The header of a generated file claims every signature
+carried its types across, while the report under it lists a parameter that had
+none.
+
+### The constructs nothing measured
+
+Nine conformance groups run at their full matrix, and the two bugs above lived
+in the space between them. Five more groups go in: comprehensions, closures,
+generics, sets and numbers. Every cell that fails is fixed rather than pinned
+around. The numbers group holds the arithmetic each language decides
+differently: integer against float division, the floor, and what a literal
+means.
+
+### The route trees
+
+`fr openapi` reads a Next.js tree and a FastAPI router. Express, Flask, axum, gin and
+Spring join them. That also gives the framework-to-framework translations the
+contract layer already knows how to build.
+
+### The eighteenth language
+
+HCL and JSON are one language in two official syntaxes, and the pair was
+declined last time because this build has no JSON. It gets one: grammar,
+queries, capability rows, and the pair translating loss-free both ways.
+
+### The edges
+
+Every reference in CROSS_LANGUAGE.md that this tool does not follow yet.
+`getElementById("panel")` to the id in the markup, a manifest's environment
+variables to the `getenv` that reads them, bash flags to the program that
+declares them, a CI file to the scripts it runs, Terraform to the templates it
+renders, and a Markdown link to the code it points at.
+
+### The compile gate, all the way down
+
+The corpus gate stops at the front end for Go, Rust, Java and Zig. A corpus
+file imports a world the translation does not carry. Generated stubs for
+exactly the foreign names each file uses let the real compiler finish the job.
+
+### B5, said exactly
+
+Every decidable case narrowed, the name-keyed function-value layer above all.
+What is left after that is a function the workspace never names. No analysis
+of this source can settle it, and the entry says that and no more.
+
 ## Progress log
 
 Every stage is complete except the optional LSP delegation backend. Every

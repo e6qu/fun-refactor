@@ -61,6 +61,44 @@ a translation surface it has not written yet.
 
 ## Fixed
 
+- [x] B760: **a Rust comprehension collected into nothing.** `collect` is
+  generic over what it builds. A bare one waits for a later use to say which. There
+  is often none, so `E0282` where the source had a list, with no marker saying
+  anything had gone wrong. The turbofish names the collection and leaves the
+  element to inference, and it works in expression position where annotating the
+  binding would not.
+
+- [x] B761: **an untyped parameter took a type that is not one.** Rust was
+  given `()`, the type of no value and not of an unknown one. It could not
+  be called or added to. Java was given the word `unknown`. That is a type
+  in TypeScript and a class javac has never heard of. Rust takes a type
+  parameter now, Java takes `Object`, and each says the caller decides, which is
+  what the source said by saying nothing.
+
+  A parameter the body *calls* is a function, and no widest type is callable.
+  The body says which parameters those are, so the signature says so
+  too. Rust writes `impl Fn(..) -> ..`, Java a `Function<..>` reached through
+  `apply`, and TypeScript the arrow. A lambda's own parameters are written
+  `any`, the annotation strict TypeScript needs written down.
+
+- [x] B762: **the header contradicted the report under it.** A file claimed
+  every signature carried its types across. The report beneath listed a
+  parameter that had none. An unannotated signature was counted in neither
+  bucket, so completeness never saw it. It has a count of its own now, and the
+  header names it.
+
+- [x] B763: **the widest type came back as a type.** A parameter left
+  unannotated is written with the target's widest type. Read again,
+  the annotation the source never wrote came back as one, and a round trip
+  gained what it should have preserved. Each language's widest type reads as the
+  nothing it stands for.
+
+- [x] B764: **two Java shapes did not compile.** A lambda bound with `var` has
+  no target type to take, which javac refuses. It is declared with the
+  functional interface for its arity now. And `xs.sort()` sorts by natural order
+  in the source, where Java's `List.sort` demands a comparator, so the ordering
+  is named through `Collections`.
+
 - [x] B755: **a map's key and value types did not cross.** The vocabularies
   read and the writers spelled them. Fifteen of the thirty map cells ran.
   The other fifteen shared one cause: the type the map holds. Go was given

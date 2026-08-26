@@ -28,7 +28,9 @@ fn a_python_lambda_is_a_typescript_arrow() {
     let tmp = tempfile::tempdir().unwrap();
     let out = translated(tmp.path(), "double.py", DOUBLE_PY, Language::TypeScript);
     assert!(
-        out.contains("(x) => x * 2"),
+        // The parameter carries the type the source gave it, which was none.
+        // Strict TypeScript refuses an implicit `any` and accepts a written one.
+        out.contains("(x: any) => x * 2"),
         "the callback is live code, no longer a runnable null.\n{out}"
     );
     assert!(

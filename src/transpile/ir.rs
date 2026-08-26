@@ -910,6 +910,15 @@ pub struct Fidelity {
     /// Closed choices carried across: an enum with payloads, a tagged union, a
     /// discriminated union.
     pub sums: usize,
+    /// Signatures with a parameter or a return the source never typed.
+    ///
+    /// The target has to write something, and each one reaches for its widest
+    /// type: `object`, `any`, `anytype`, `Object`, a Rust type parameter. That
+    /// is a defined lowering and not a carry, so it does not stop a translation
+    /// being complete. But a file whose header said every signature carried its
+    /// types intact, over a report naming a parameter that had none, was
+    /// contradicting itself. Counted here, the header says both.
+    pub signatures_untyped: usize,
     /// Signatures whose *types* carried but whose calling convention did not: a
     /// keyword-only marker, `*args` or `**kwargs` with no counterpart in the target.
     /// A caller of the translated function writes the call differently.

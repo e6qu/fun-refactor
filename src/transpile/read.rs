@@ -55,6 +55,7 @@ pub fn read(
              what its constructs mean."
         ),
     };
+    settle_widest_types(&mut module, language);
     settle_methods(&mut module);
     // Each language's spelling of the shared builtins, folded to the canonical one the
     // writers' tables spell back out. See `normalize.rs`.
@@ -99,6 +100,44 @@ fn settle_entry(module: &mut Module) {
         callee: Box::new(Expr::Name("main".to_string())),
         args: Vec::new(),
     })));
+}
+
+/// The widest type a language has, read back as the nothing it stands for.
+///
+/// A source that annotates a parameter with nothing is written out with whatever
+/// the target's widest type is: `object`, `any`, `unknown`, `Object`, `anytype`.
+/// Read again as a type of that name, the annotation the source never wrote
+/// came back as one. A round trip gained what it should have preserved. The
+/// widest type is how each language spells "the caller decides", and that is
+/// what an unannotated parameter said.
+fn settle_widest_types(module: &mut Module, language: Language) {
+    let widest = match language {
+        Language::Python => "object",
+        Language::Go => "any",
+        Language::Java => "Object",
+        Language::TypeScript | Language::Tsx => "unknown",
+        Language::Zig => "anytype",
+        _ => return,
+    };
+    fn clear(f: &mut Function, widest: &str) {
+        for p in f.params.iter_mut() {
+            let names_it = matches!(&p.ty, Some(Type::Named { name, args }) if name == widest && args.is_empty());
+            if names_it {
+                p.ty = None;
+            }
+        }
+    }
+    for item in &mut module.items {
+        match item {
+            Item::Function(f) => clear(f, widest),
+            Item::Record(r) => {
+                for method in r.methods.iter_mut() {
+                    clear(method, widest);
+                }
+            }
+            _ => {}
+        }
+    }
 }
 
 /// Put every method with the type it belongs to, and bind the receiver of any that has nowhere
@@ -1195,6 +1234,21 @@ mod rust {
 
     fn function(cx: &Cx, node: Node<'_>, receiver: Option<String>) -> Function {
         let name = plain(cx.field_text(node, "name").unwrap_or_default());
+        // A type this function declares for itself says the caller decides what
+        // it is, which is what a source that annotated nothing said. Read as a
+        // type name, it crossed to the other languages as a type they had
+        // never heard of. A round trip gained a type the source lacked.
+        let decides: std::collections::BTreeSet<String> = cx
+            .field(node, "type_parameters")
+            .map(|list| {
+                cx.children(list)
+                    .into_iter()
+                    .flat_map(|p| cx.children(p))
+                    .filter(|c| c.kind() == "type_identifier")
+                    .map(|c| cx.text(c))
+                    .collect()
+            })
+            .unwrap_or_default();
         let mut params = Vec::new();
         let mut receiver_name = None;
         if let Some(list) = cx.field(node, "parameters") {
@@ -1204,7 +1258,10 @@ mod rust {
                     "self_parameter" => receiver_name = Some("self".to_string()),
                     "parameter" => params.push(Param {
                         name: plain(cx.field_text(p, "pattern").unwrap_or_default()),
-                        ty: cx.field(p, "type").map(|t| ty(cx, t)),
+                        ty: cx
+                            .field(p, "type")
+                            .filter(|t| !decides.contains(cx.text(*t).trim()))
+                            .map(|t| ty(cx, t)),
                         default: None,
                         kind: ParamKind::Normal,
                     }),
