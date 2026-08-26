@@ -202,12 +202,15 @@ fn tsx_is_a_target_only_where_the_source_is_already_typescript() {
 
 #[test]
 fn a_language_with_nowhere_to_go_says_so() {
+    // Bash used to be the example here, then it grew a reader and a writer. The
+    // indented Sass syntax is the one left: no other grammar contains it.
     let tmp = workspace();
-    let shell = tmp.path().join("h.sh");
+    let sass = tmp.path().join("h.sass");
+    std::fs::write(&sass, ".panel\n  color: red\n").expect("the file");
     assert!(
-        translate::options_for(&shell).is_empty(),
-        "shell has no containing grammar and no reader"
+        translate::options_for(&sass).is_empty(),
+        "indented sass has no containing grammar and no reader"
     );
-    let why = translate::why_nothing(Language::Bash);
+    let why = translate::why_nothing(Language::Sass);
     assert!(!why.is_empty(), "the reason has to be sayable");
 }

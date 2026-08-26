@@ -268,7 +268,7 @@ fn nothing_goes_missing(files: &[PathBuf], least: usize) {
         let before = signatures(&source);
         let fields_before = fields(&source);
         let from = fun_refactor::lang::detect(file).expect("a language");
-        for to in transpile::SUPPORTED {
+        for to in transpile::COMPLETE {
             if *to == from {
                 continue;
             }

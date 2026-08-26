@@ -159,7 +159,7 @@ pub fn analyse(index: &Index, symbol: SymbolId, caller_depth: usize) -> Result<I
     // Transitive callers, when the symbol is callable.
     let mut callers_beyond_the_depth_limit = 0;
     if caller_depth > 0 && sym.kind.is_callable() {
-        let graph = CallGraph::build(index);
+        let graph = CallGraph::built(index);
         let walk = tainted_callers(&graph, symbol, caller_depth);
         callers_beyond_the_depth_limit = walk.stopped_short;
         for (id, confidence, depth) in walk.callers {

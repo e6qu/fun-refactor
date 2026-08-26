@@ -287,6 +287,11 @@ fn every_output_parses_as_the_language_it_claims_to_be() {
             "f.zig",
             "/// Add two things.\npub fn add(a: i64, b: i64) i64 {\n    return a + b;\n}\n",
         ),
+        (
+            "g.sh",
+            "# Add two things.\nadd() {\n    local a=\"$1\"\n    local b=\"$2\"\n    \
+             echo $(( a + b ))\n}\n",
+        ),
     ];
     let (_tmp, root) = workspace(&sources);
     let parsers = fun_refactor::parse::Parsers::new();
@@ -423,6 +428,15 @@ fn the_receiver_is_spelled_the_way_the_target_spells_it() {
                 continue;
             }
             let (output, _) = translate(&[(name, source)], name, *to);
+            // Bash has no records: the declaration carries loudly instead of a
+            // receiver being spelled at all.
+            if *to == Language::Bash {
+                assert!(
+                    output.contains(transpile::MARKER),
+                    "{name} -> {to} must carry the record it cannot declare:\n{output}"
+                );
+                continue;
+            }
             // Go capitalises an exported field, so the search has to be about the
             // word instead of its spelling.
             let body = output

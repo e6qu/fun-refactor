@@ -340,6 +340,37 @@ pub(crate) fn receiver_known_type(
     index: &crate::index::Index,
     reference: &crate::model::Reference,
 ) -> Option<String> {
+    thread_local! {
+        /// One answer per call site per index. The dispatch layer asks about every
+        /// member call in the workspace, and a graph is built more than once per
+        /// session. The binding walk behind the answer is the same every time.
+        static RECEIVERS: std::cell::RefCell<
+            std::collections::HashMap<(u64, std::path::PathBuf, usize), Option<String>>,
+        > = std::cell::RefCell::new(std::collections::HashMap::new());
+    }
+    let key = (
+        index.generation,
+        reference.file.clone(),
+        reference.span.start,
+    );
+    if let Some(hit) = RECEIVERS.with(|cache| cache.borrow().get(&key).cloned()) {
+        return hit;
+    }
+    let answer = receiver_known_type_uncached(index, reference);
+    RECEIVERS.with(|cache| {
+        let mut cache = cache.borrow_mut();
+        if cache.len() >= 65536 {
+            cache.clear();
+        }
+        cache.insert(key, answer.clone());
+    });
+    answer
+}
+
+fn receiver_known_type_uncached(
+    index: &crate::index::Index,
+    reference: &crate::model::Reference,
+) -> Option<String> {
     let receiver = reference.receiver.as_deref()?;
     if matches!(receiver, "this" | "self") {
         let info = index.file(&reference.file)?;
@@ -397,15 +428,7 @@ fn receiver_binding_type(
         crate::analysis::types::Held::Reassigned => return ReceiverType::Reassigned,
         crate::analysis::types::Held::Unwritten => return ReceiverType::Unwritten,
     };
-    // `List<Order>` names `List`, and the last plain segment is the type's own
-    // name. `&Facts`, `*Buffer` and `?Handle` name the types their sigils borrow,
-    // point at or make optional. A receiver declared `&Facts` reaches what one
-    // declared `Facts` reaches, so strip the sigil.
-    let base = written.split(['<', '[']).next().unwrap_or(&written).trim();
-    let last = base.rsplit(['.', ':']).next().unwrap_or(base);
-    let bare = last
-        .trim_start_matches(['&', '*', '?'])
-        .trim_start_matches("mut ")
-        .trim();
-    ReceiverType::Settled(bare.to_string())
+    // A receiver declared `&Facts` reaches what one declared `Facts` reaches, so the
+    // generics, sigils and path come off and the bare name answers.
+    ReceiverType::Settled(crate::analysis::types::base_type_name(&written))
 }

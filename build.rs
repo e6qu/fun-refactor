@@ -23,12 +23,24 @@ use std::fmt::Write as _;
 use std::path::Path;
 
 /// Files whose contents change the meaning of a cached fact.
+///
+/// A cached fact is not only what extraction read out of a file. The cache also
+/// holds the resolution snapshot, the target and tier of every reference, and
+/// skips resolving at all when it hits. So the resolver belongs here beside the
+/// extractor, and so does everything the resolver asks: a receiver's type comes
+/// from the type analysis, through the bridge in `refactor`. Without them, a
+/// change to how a member access resolves is invisible on any machine that has
+/// run the tool before, which is every machine except a fresh clone. That is how
+/// a green local gate and a red one in CI came to disagree about the same commit.
 const INPUTS: &[&str] = &[
     "src/extract.rs",
     "src/model.rs",
     "src/parse.rs",
     "src/helm.rs",
     "src/lang.rs",
+    "src/index.rs",
+    "src/analysis/types.rs",
+    "src/refactor/mod.rs",
 ];
 
 fn main() {

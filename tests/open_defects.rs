@@ -1,13 +1,13 @@
 //! The open entries in BUGS.md, held to what they say.
 //!
 //! Eight of the thirteen are limits of the published grammars, and
-//! `tests/known_grammar_gaps.rs` pins every one of those from both sides. The rest are this
-//! tool's own behaviour, and until now they were prose: a description of what happens, with
-//! nothing to notice when it stopped happening. B11 said `@content` was a gap after it had
+//! `tests/known_grammar_gaps.rs` pins every one of those from both sides. The rest are
+//! this tool's own behaviour, and they used to be prose. A description of what happens,
+//! with nothing to notice when it stopped happening. B11 said `@content` was a gap after it had
 //! stopped being one, and nothing noticed for months.
 //!
-//! Each test here asserts the *whole* of its entry, both what the tool does not do and what it
-//! does instead, because every one of these stands on the second half. An incomplete answer
+//! Each test here asserts the *whole* of its entry: what the tool does not do, and what
+//! it does instead. Every one of these stands on the second half. An incomplete answer
 //! that says so is a different thing from a wrong one. A test that checked only the
 //! incompleteness would pass just as well if the report went away.
 //!
@@ -162,12 +162,43 @@ fn a_values_answer_names_the_channel_it_was_never_told_about() {
 #[test]
 fn a_call_through_a_name_reaches_every_function_put_behind_that_name() {
     // The edge is keyed by the name, and two types may hold a field of the same name.
-    // So a call through `run` reaches both functions assigned to a `run` anywhere. That
-    // is unsound by design, in the same way class-hierarchy fan-out is. The edge carries
-    // the label that says so, and does not pass itself off as resolved.
+    // A receiver whose type is settled reaches only its own record's binding.
+    // `call` takes `a: &A`, so `(a.run)()` reaches `one` and not the `run` a `B`
+    // literal named. Through a receiver nothing types, the name-keyed fan-out remains, and
+    // the edge carries the label that says so.
     let (_tmp, root) = workspace(&[(
         "a.rs",
-        "pub struct A {\n    pub run: fn() -> f64,\n}\npub struct B {\n    pub run: fn() -> f64,\n}\n         pub fn one() -> f64 {\n    1.0\n}\npub fn two() -> f64 {\n    2.0\n}\n         pub fn build() -> (A, B) {\n    (A { run: one }, B { run: two })\n}\n         pub fn call(a: &A) -> f64 {\n    (a.run)()\n}\n",
+        "pub struct A {\n    pub run: fn() -> f64,\n}\npub struct B {\n    pub run: fn() -> f64,\n}\n         pub fn one() -> f64 {\n    1.0\n}\npub fn two() -> f64 {\n    2.0\n}\n         pub fn build() -> (A, B) {\n    (A { run: one }, B { run: two })\n}\n         pub fn call(a: &A) -> f64 {\n    (a.run)()\n}\n         pub fn blind<T>(h: &T, pick: fn(&T) -> fn() -> f64) -> f64 {\n    (pick(h))()\n}\n",
+    )]);
+    let index = index_of(&root);
+    let graph = fun_refactor::analysis::call_graph::CallGraph::build(&index);
+    let reached: Vec<SymbolId> = graph
+        .callees(symbol(&index, "call"))
+        .into_iter()
+        .map(|(id, _)| id)
+        .collect();
+    assert!(
+        reached.contains(&symbol(&index, "one")),
+        "`A`'s own binding is reached: {reached:?}"
+    );
+    assert!(
+        !reached.contains(&symbol(&index, "two")),
+        "the `run` a `B` literal named is not `a`'s: {reached:?}"
+    );
+    for (_, edge) in graph.callees(symbol(&index, "call")) {
+        assert_eq!(edge.origin.as_str(), "function-value");
+        assert!(edge.origin.is_dispatch(), "not a resolved call");
+    }
+}
+
+#[test]
+fn an_untyped_receiver_still_reaches_every_function_behind_the_name() {
+    // The same two records, called through a field read the tool cannot type. The
+    // name-keyed fan-out stays, unsound by design in the same way class-hierarchy
+    // fan-out is, and labelled as a candidate.
+    let (_tmp, root) = workspace(&[(
+        "a.rs",
+        "pub struct A {\n    pub run: fn() -> f64,\n}\npub struct B {\n    pub run: fn() -> f64,\n}\n         pub fn one() -> f64 {\n    1.0\n}\npub fn two() -> f64 {\n    2.0\n}\n         pub fn build() -> (A, B) {\n    (A { run: one }, B { run: two })\n}\n         pub fn call(pair: &(A, B)) -> f64 {\n    (pair.0.run)()\n}\n",
     )]);
     let index = index_of(&root);
     let graph = fun_refactor::analysis::call_graph::CallGraph::build(&index);
@@ -179,10 +210,6 @@ fn a_call_through_a_name_reaches_every_function_put_behind_that_name() {
     assert!(reached.contains(&symbol(&index, "one")), "{reached:?}");
     assert!(
         reached.contains(&symbol(&index, "two")),
-        "the other `run` is reached too, and the label says the edge is a candidate: {reached:?}"
+        "nothing types `pair.0`, so the name reaches both: {reached:?}"
     );
-    for (_, edge) in graph.callees(symbol(&index, "call")) {
-        assert_eq!(edge.origin.as_str(), "function-value");
-        assert!(edge.origin.is_dispatch(), "not a resolved call");
-    }
 }

@@ -756,11 +756,110 @@ one dispatch function per overridden method; field defaults as `impl Default` an
 `New` constructor; TypeScript optional chaining as the null-testing conditional; and
 the unsigned shift, xor, slices and `++` concatenation.
 
+## Type inference finished, then the translations that remain
+
+The goal, in force: the inference in `analysis/types.rs` answers everywhere a
+supported language gives it evidence, and every consumer of resolution uses the
+answer. A method call through a receiver whose type is settled reaches that type's
+method and nothing else. The fan-out stays only where the source genuinely leaves
+the receiver open: a `dyn` object, an untyped parameter, a value from outside the
+workspace. B5 shrinks to that residue and names it. After that, the translation
+pairs that make sense and do not exist yet. Bash both ways with the six, HCL with
+JSON, Markdown rendered to HTML. One branch, one PR.
+
+### Phase 0: measurement first
+
+A count per family of dispatch edges by origin and confidence, on fixtures and on
+this repository's own web assets, printed by the existing breakdowns. Every later
+phase shows its delta as a number. The pinned over-approximations
+(`tests/hierarchy_reachability.rs`, `tests/open_defects.rs`, `tests/hierarchy_java.rs`)
+are the before picture.
+
+### Phase 1: the engine answers everywhere the source speaks
+
+`held_by` and `infer_expression` complete their per-language coverage: Zig's loop
+forms and its unambiguous literals, the Rust literals whose type the language fixes,
+`self` and `this` typed by the enclosing declaration, a member call typed by the
+member's declared return, branches of a conditional that agree. Each addition is one
+`Basis` with its evidence, pinned in the types tests. A guess never ships: where the
+language leaves a literal open, the answer stays open.
+
+### Phase 2: the call graph consults the engine
+
+`add_dispatch_edges` reads the receiver the reference already carries and asks
+`receiver_known_type` with the binding route behind it. It filters
+`dispatch_targets` to the settled type and its subtypes. The same filter narrows
+the implementation edges hung off an exactly resolved abstraction call. The
+method-name tier survives only for receivers no evidence settles. Rename already
+resolves receivers this way; after this phase the graph and rename agree.
+
+### Phase 3: the index resolves members by type
+
+A member access whose receiver's type is settled resolves to that type's member,
+instead of one-candidate luck or `(None, field-based)`. The confidence honors what
+`receiver_confidence.rs` pins: a receiver nothing settles stays below the rewrite
+line. `fr refs`, `fr flow`, `fr impact` and `fr delete` sharpen without changing,
+because they read the tiers.
+
+### Phase 4: a value called through a field knows its record
+
+The function-value layer keys on the bound name alone, so a call through `a.run`
+reaches every function assigned to any `run`. Where the receiver's type is settled
+and the binding site sits in a record literal of a known type, only that record's
+edge remains. The name-keyed fan-out stays for the rest, labelled as it is today.
+
+### Phase 5: Bash crosses
+
+A `mod bash` in the transpiler's reader and writer. Functions, conditionals, loops,
+`case`, variables, arithmetic, command substitution and exit-status checks read into
+the canonical form; the six languages write out of it. Toward Bash, the defined
+subset writes and everything outside it carries loudly, because a language without
+data structures cannot pretend to have them. Conformance programs cover the pairs
+both ways; the corpus and compile gates take `bash -n`.
+
+### Phase 6: the render
+
+Markdown renders to HTML as a defined one-way write; the reverse refuses with the
+reason. HCL and JSON are one language in two official syntaxes, but this build has
+no JSON grammar. The pair earns nothing until JSON earns its whole column:
+grammar, queries, capabilities and tests. The matrix's reason for HCL stands as
+written. The capability matrix, B5, PLAN.md and BUGS.md close out in the same PR.
+
+### Type inference finished, then the translations that remain, done
+
+Phases 0 through 4 landed. The engine answers everywhere the source speaks:
+`self` and `this` from the enclosing declaration, ternaries whose branches agree,
+Rust's and Zig's fixed literals, Zig's loop payloads with the `0..` counter a
+`usize`, member calls and shared fields resolved through the receiver's own type,
+and every answer once picked by indexing order now unique or refused. The call
+graph consults the engine: a settled receiver keeps only its kin, the surviving
+name-only edge is labelled `receiver-type`, the index resolves a settled member to
+a target below the rewrite line, and a value called through a typed record reaches
+only that record's bindings. On the gson corpus the dispatch layer went from 80
+hierarchy edges to 70, the strangers gone. The residue is named: receivers typed
+by foreign classes, untyped parameters, `dyn` objects. Four defects fell out and
+are recorded as B747 through B750. One is a cycle that overflowed the stack, and
+three are whole-workspace work re-done per question. The caches that fixed the
+last are keyed by an index generation number, so a stale answer is unfindable.
+
+Phase 5 gave Bash both directions. A `mod bash` reader and writer translate the
+computational subset: functions with positional parameters crossing under names,
+`local`, arithmetic, strings with expansions, arrays, `case`, the four loop
+forms, `break` and `continue`, and the stdout-return idiom read and written as
+the value channel it is. Types the source never writes are settled from the
+calls the file itself makes. What bash cannot say carries loudly both ways.
+`COMPLETE` keeps the six-language zero-carried gates meaning what they meant;
+`SUPPORTED` gained the seventh column. The conformance suite runs bash in three
+groups, bindings, control and collections. Every direction against every other
+language runs, 36 new cells pinned green. The strings group needs case conversion
+bash 3.2 does not have, and sits out by name. Phase 6 added the Markdown to
+HTML render with its own pins.
+
 ## Progress log
 
 Every stage is complete except the optional LSP delegation backend. Every
-capability a language can meaningfully support is built: **286 of 408 capability ×
-language pairs supported, 115 not applicable, none refused.**
+capability a language can meaningfully support is built: **288 of 408 capability ×
+language pairs supported, 120 not applicable, none refused.**
 
 Nobody maintains the matrix by hand any more. `src/capabilities.rs` computes it by
 asking each refactoring's own predicate, and `fr capabilities` prints it with the reason

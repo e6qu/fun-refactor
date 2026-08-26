@@ -42,7 +42,7 @@ fn every_corpus_file_translates_everywhere_and_the_losses_only_shrink() {
     let mut planned = 0usize;
 
     for (path, from) in corpus_files() {
-        for target in transpile::SUPPORTED {
+        for target in transpile::COMPLETE {
             if *target == from {
                 continue;
             }

@@ -1040,7 +1040,7 @@ fn gather(step: &Step, index: &Index, options: &Options) -> Result<Facts> {
     }
 
     if let Some(name) = argument(&step.selector, "implements") {
-        let hierarchy = crate::analysis::call_graph::Hierarchy::scan(index);
+        let hierarchy = crate::analysis::call_graph::Hierarchy::scanned(index);
         for abstraction in named(index, name) {
             for concrete in hierarchy.implementations_of(index, abstraction) {
                 facts.implements.insert(concrete);

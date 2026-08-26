@@ -70,7 +70,7 @@ the `tsx` grammar reads `.jsx`.
 | config→code stitch | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | n/a | n/a | n/a | n/a | n/a | ✓ | ✓ | n/a | n/a |
 | duplicate code | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | dead code | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| write as another language | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | n/a | ✓ | ✓ | ✓ | n/a | n/a | ✓ | ✓ | ✓ | n/a |
+| write as another language | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | n/a | n/a | ✓ | ✓ | ✓ | ✓ |
 | declared HTTP contract | n/a | n/a | n/a | n/a | ✓ | ✓ | ✓ | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 | declared type | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 
@@ -198,7 +198,7 @@ more: a patched copy under `grammars/`, which that directory's README explains.
 
 Only one stage of [PLAN.md](PLAN.md) remains open, the optional LSP delegation
 backend. The tool builds every capability a language can meaningfully support:
-**286 of 408 capability × language pairs supported, 122 not applicable, none refused.**
+**288 of 408 capability × language pairs supported, 120 not applicable, none refused.**
 The code generates the matrix above, and `fr capabilities` prints the reason behind
 every cell that is not a ✓.
 

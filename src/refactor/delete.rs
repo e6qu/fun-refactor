@@ -54,7 +54,8 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
     // dispatch goes as one family for the same reason. A trait declaration
     // without its implementations, or the reverse, is code that cannot compile.
     let mut group = index.definition_group(symbol);
-    for member in crate::analysis::call_graph::Hierarchy::scan(index).method_group(index, symbol) {
+    for member in crate::analysis::call_graph::Hierarchy::scanned(index).method_group(index, symbol)
+    {
         group.extend(index.definition_group(member));
     }
     group.sort();
@@ -536,7 +537,14 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
         if symbol.file == reference.file && symbol.full_span.contains(reference.span) {
             continue;
         }
-        if reference.confidence >= Confidence::FieldBased {
+        // The widening is for guesses: the resolver picking the nearer twin at
+        // field-based confidence. A member picked because the receiver's settled
+        // type owns it is not a guess; its tier is capped for the rewrite line
+        // only. Widening it would mark every same-named stranger live again.
+        let picked_by_receiver = reference.receiver.is_some()
+            && crate::refactor::receiver_known_type(index, reference)
+                .is_some_and(|ty| symbol.qualifier.as_deref() == Some(ty.as_str()));
+        if reference.confidence >= Confidence::FieldBased && !picked_by_receiver {
             if let Some(group) = namesakes.get(&(symbol.name.as_str(), symbol.kind)) {
                 referenced.extend(group.iter().copied());
                 continue;

@@ -92,7 +92,24 @@ use anyhow::{bail, Result};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
+/// The languages whose pairwise translation is complete: nothing carried on the
+/// corpora, and execution equality across every conformance group.
+pub const COMPLETE: &[Language] = &[
+    Language::Rust,
+    Language::Go,
+    Language::Java,
+    Language::Python,
+    Language::TypeScript,
+    Language::Zig,
+];
+
 /// The languages a file can be translated into.
+///
+/// Bash is here and not in [`COMPLETE`]. It translates its computational subset:
+/// functions, control flow, arithmetic, strings and arrays. It carries loudly what
+/// it has no way to say, a record, a pipeline, an external command. The corpora
+/// gates that demand zero carried measure the complete six; bash's cells are held
+/// by the conformance groups it can run.
 pub const SUPPORTED: &[Language] = &[
     Language::Rust,
     Language::Go,
@@ -100,6 +117,7 @@ pub const SUPPORTED: &[Language] = &[
     Language::Python,
     Language::TypeScript,
     Language::Zig,
+    Language::Bash,
 ];
 
 /// Whether a file written in this language can be read into the shared representation.
@@ -573,7 +591,7 @@ fn banner(
     sweep_notes: &[String],
 ) -> String {
     let comment = |line: &str| match to {
-        Language::Python => format!("# {line}\n"),
+        Language::Python | Language::Bash => format!("# {line}\n"),
         _ => format!("// {line}\n"),
     };
     let mut out = String::new();

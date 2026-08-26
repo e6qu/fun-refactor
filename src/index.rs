@@ -92,6 +92,12 @@ pub struct Index {
     files_by_stem: HashMap<String, Vec<PathBuf>>,
     /// `pkg/__init__.py` files by the name of `pkg`, for the same reason.
     inits_by_dir: HashMap<String, Vec<PathBuf>>,
+    /// A number no two built indexes share, stamped when the buckets rebuild.
+    ///
+    /// The type analysis memoizes per-symbol answers and parses across calls, and a
+    /// symbol id only means something inside one index. Keying those caches by this
+    /// number makes an answer from a previous index unfindable rather than stale.
+    pub generation: u64,
 }
 
 /// The hash [`Index::content_hash`] answers with, for callers comparing fresh text.
@@ -475,6 +481,8 @@ impl Index {
 
     /// Fill the by-name buckets [`Index::definition_group`] reads.
     fn rebuild_name_buckets(&mut self) {
+        static GENERATION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+        self.generation = GENERATION.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         self.name_buckets.clear();
         for symbol in &self.symbols {
             self.name_buckets
@@ -701,7 +709,7 @@ impl Index {
     ///
     /// A receiver is a path when it names a type, whatever punctuation the language uses.
     /// Rust writes `Type::m` and Java writes `Type.m`. Both say which type owns the member.
-    fn names_a_type(&self, name: &str, language: Language) -> bool {
+    pub(crate) fn names_a_type(&self, name: &str, language: Language) -> bool {
         self.named_like(name).any(|s| {
             s.name == name
                 && s.language == language
@@ -1439,6 +1447,19 @@ impl Index {
                 return (Some(members[0].id), Confidence::FieldBased);
             }
             if !members.is_empty() {
+                // Several members share the name, and the receiver's settled type says
+                // whose member this is. The tier stays where the cap puts a value
+                // receiver: the target is known, the rewrite line is not crossed.
+                // A type worked out by inference is evidence and not a licence.
+                if let Some(ty) = crate::refactor::receiver_known_type(self, reference) {
+                    let owned: Vec<&&Symbol> = members
+                        .iter()
+                        .filter(|s| s.qualifier.as_deref() == Some(ty.as_str()))
+                        .collect();
+                    if let [only] = owned.as_slice() {
+                        return (Some(only.id), Confidence::FieldBased);
+                    }
+                }
                 return (None, Confidence::FieldBased);
             }
         }
@@ -2035,8 +2056,10 @@ impl Index {
 
     /// Find a symbol by name, optionally narrowed to a file.
     pub fn find_symbols(&self, name: &str, in_file: Option<&Path>) -> Vec<&Symbol> {
-        self.symbols
-            .iter()
+        // Through the buckets: the whole-workspace scan this used to be is the shape
+        // the bucket comment above warns about. The name filter stays because the
+        // bucket fallback answers with every symbol.
+        self.named_like(name)
             .filter(|s| s.name == name)
             .filter(|s| in_file.is_none_or(|f| s.file == f))
             .collect()

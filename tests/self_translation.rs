@@ -48,7 +48,7 @@ fn every_target(files: &[PathBuf], what: &str, least: usize) {
     let mut checked = 0;
     for file in files {
         let from = fun_refactor::lang::detect(file).expect("a language");
-        for to in transpile::SUPPORTED {
+        for to in transpile::COMPLETE {
             if *to == from {
                 continue;
             }
@@ -66,7 +66,7 @@ fn every_target(files: &[PathBuf], what: &str, least: usize) {
             checked += 1;
         }
     }
-    assert_eq!(checked, files.len() * (transpile::SUPPORTED.len() - 1));
+    assert_eq!(checked, files.len() * (transpile::COMPLETE.len() - 1));
 }
 
 #[test]
