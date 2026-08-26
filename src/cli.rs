@@ -568,6 +568,9 @@ enum Command {
         /// runs, the template a Terraform resource renders.
         #[arg(long)]
         files: bool,
+        /// Trace the `--flags` scripts pass to the programs that declare them.
+        #[arg(long)]
+        flags: bool,
     },
     /// Show everything a change to a symbol could affect.
     Impact {
@@ -982,7 +985,8 @@ fn dispatch(cli: &Cli) -> Result<()> {
             env,
             orphaned,
             files,
-        } => cmd_stitch(cli, env.as_deref(), *orphaned, *files),
+            flags,
+        } => cmd_stitch(cli, env.as_deref(), *orphaned, *files, *flags),
         Command::Impact {
             target,
             caller_depth,
@@ -3477,7 +3481,13 @@ fn report_values_inputs(
     }
 }
 
-fn cmd_stitch(cli: &Cli, env: Option<&str>, orphaned_only: bool, files: bool) -> Result<()> {
+fn cmd_stitch(
+    cli: &Cli,
+    env: Option<&str>,
+    orphaned_only: bool,
+    files: bool,
+    flags: bool,
+) -> Result<()> {
     use crate::analysis::stitch;
 
     let index = build_index(cli, &[])?;
@@ -3486,6 +3496,11 @@ fn cmd_stitch(cli: &Cli, env: Option<&str>, orphaned_only: bool, files: bool) ->
     // a template ask the same question twice.
     if files {
         return report_path_links(cli, &index);
+    }
+    // And the third thing configuration names: a flag on a command line, which
+    // some program declares.
+    if flags {
+        return report_flags(cli, &index);
     }
     let mut chains = match env {
         Some(name) => stitch::for_variable(&index, name)?,
@@ -3578,6 +3593,58 @@ fn report_path_links(cli: &Cli, index: &crate::index::Index) -> Result<()> {
         "{} path(s), {dangling} naming nothing. A path either exists or it \n\
          does not. So these are exact, and not name-only.",
         links.len()
+    );
+    Ok(())
+}
+
+/// Every flag this workspace declares or passes, and where each is.
+fn report_flags(cli: &Cli, index: &crate::index::Index) -> Result<()> {
+    let flags = crate::analysis::flags::flags(index)?;
+
+    if cli.json {
+        let payload: Vec<_> = flags
+            .iter()
+            .map(|f| {
+                serde_json::json!({
+                    "flag": f.flag,
+                    "declared": f.declared.iter().map(|d| serde_json::json!({
+                        "file": d.file,
+                        "line": d.line,
+                        "language": d.language.name(),
+                    })).collect::<Vec<_>>(),
+                    "passed": f.passed.iter().map(|p| serde_json::json!({
+                        "file": p.file,
+                        "line": p.line,
+                        "language": p.language.name(),
+                    })).collect::<Vec<_>>(),
+                    "undeclared": f.is_undeclared(),
+                })
+            })
+            .collect();
+        println!("{}", serde_json::to_string_pretty(&payload)?);
+        return Ok(());
+    }
+
+    if flags.is_empty() {
+        println!("No command-line flag is declared or passed in this workspace.");
+        return Ok(());
+    }
+    for flag in &flags {
+        let where_ = match flag.declared.first() {
+            Some(d) => format!("{}:{}", d.file.display(), d.line),
+            None => "nothing declares it".to_string(),
+        };
+        println!(
+            "--{} declared {where_}, passed {} time(s)",
+            flag.flag,
+            flag.passed.len()
+        );
+    }
+    let undeclared = flags.iter().filter(|f| f.is_undeclared()).count();
+    println!(
+        "{} flag(s), {undeclared} passed and declared nowhere. The link is the \n\
+         flag's name, a string on both sides, so every hop is name-only.",
+        flags.len()
     );
     Ok(())
 }

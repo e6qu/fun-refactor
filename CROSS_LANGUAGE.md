@@ -163,14 +163,19 @@ environment variable name is a runtime string that other systems also read.
 Go or Rust declares the flag as a struct field or a clap attribute. Rename that flag
 and scripts and CI break silently.
 
-**What it needs.** Each framework declares a flag recognisably (clap attributes,
-Go's `flag` package, `argparse`). On the shell side, look for a word starting with
-`--`. Keep it `NameOnly`, always. The catalogs are the natural home for the
-per-framework rules; they already encode "what a test looks like" per language in this
-shape.
+**This crosses now**, through `fr stitch --flags`. Four frameworks declare a
+flag recognisably: clap, Go's `flag` package, `argparse` and commander. clap
+writes `#[arg(long = "…")]`, and the bare `#[arg(long)]` kebab-cases the field
+under it. On the shell side a word starting with `--` is a flag, in the
+languages that write a command line and nowhere else.
 
-**Cost.** Moderate, and it grows with every framework. The catalog format keeps that
-growth out of the code.
+The failure worth reporting is a flag a script passes and nothing declares.
+Renaming a declaration is what usually causes one, and the script fails at run
+time and not before.
+
+The link is the flag's name, a string on both sides, so every hop is name-only.
+Nothing proves a `--retention-days` in a script reaches *this* program rather
+than another on the path.
 
 ### 5. CI configuration to the scripts it runs
 

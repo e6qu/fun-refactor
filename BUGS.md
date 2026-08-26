@@ -93,6 +93,18 @@ a translation surface it has not written yet.
   gained what it should have preserved. Each language's widest type reads as the
   nothing it stands for.
 
+- [x] B777: **a renamed flag silently broke every script passing it.** A script
+  writes `./collector --retention-days 30`, and a program declares that flag
+  somewhere. The two never met. The flag was a word in a shell command and
+  the declaration a string in another language.
+
+  `fr stitch --flags` reads both sides. clap, Go's `flag` package, `argparse`
+  and commander declare one recognisably. clap's bare `#[arg(long)]` takes the
+  field's name kebab-cased, which is the commonest form there is. A word
+  starting with `--` is a flag only in the languages that write a command line,
+  so a Rust comment marker is not one. A flag passed and declared nowhere is
+  reported, and the link stays name-only.
+
 - [x] B776: **a path in configuration named nothing.** A CI step runs
   `./scripts/deploy.sh` and a Terraform resource renders
   `templatefile("${path.module}/init.sh", …)`. Each is a path written as a
