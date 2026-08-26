@@ -69,7 +69,7 @@ pub fn endpoints_in(path: &Path) -> Result<Option<(Framework, Vec<Endpoint>)>> {
     let Some(language) = crate::lang::detect(path) else {
         return Ok(None);
     };
-    let source = std::fs::read_to_string(path)?;
+    let source = crate::vfs::read_to_string(path)?;
     Ok(endpoints_of(&source, language))
 }
 
