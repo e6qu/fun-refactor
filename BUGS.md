@@ -19,11 +19,12 @@ away.
 
 ## Open
 
-Re-triaged against this branch. The entry below still reproduces. Where a published
+Re-triaged against this branch. The entries below still reproduce. Where a published
 grammar could not read source the language accepts, this build compiles a patched copy
 instead of recording the gap: `grammars/` holds one for Go, Python, Sass, SCSS,
 TypeScript and Zig, each with its upstream pin, licence, patch and the measurement that
-shows the patch additive. What is left below is one limit of this tool's own analysis.
+shows the patch additive. What is left below is a limit of this tool's own analysis and
+a translation surface it has not written yet.
 
 - [ ] B5: `find_unused` and the call graph follow what the source shows, and no further.
   A call whose receiver nothing types is fanned out to the definitions the workspace
@@ -59,6 +60,92 @@ shows the patch additive. What is left below is one limit of this tool's own ana
   neither has a hierarchy to read.
 
 ## Fixed
+
+- [x] B755: **a map's key and value types did not cross.** The vocabularies
+  read and the writers spelled them. Fifteen of the thirty map cells ran.
+  The other fifteen shared one cause: the type the map holds. Go was given
+  `map[string]any` and could not add what it read. Java was given `Object`. Zig
+  guessed a key type from an empty literal. Rust was given a `&str` key for a
+  map of `String`. A Go map literal with its type written on it was carried
+  whole, so the binding it initialised held nothing.
+
+  The types come from the entries. Where the literal is empty, they come from
+  the first key stored, which is how five of these languages build a map. Go names
+  its slices by their elements for the same reason: a loop over `[]any` bound an
+  `any`, and a map index needs a string. Go reads `map[string]int64{…}` as the
+  map literal it is. All thirty map cells run now.
+
+- [x] B759: **the TypeScript check inherited each machine's `tsc` defaults.**
+  The harness compiled with `--target` and `--module`, and said nothing about
+  strictness. This machine checked one thing
+  and CI checked another, so the maps group passed here and failed there.
+  The harness asks for `--strict` now, which is the stricter of the two, and
+  every cell still holds.
+
+  It held after one fix. An object literal types as the keys it was written
+  with. A map built from one refused every key added later, and every read
+  through a variable. A map literal is annotated `Record<string, T>` now. The
+  FastAPI corpus gained the same annotation on a dictionary it builds empty and
+  fills under a condition.
+
+- [x] B758: **a TypeScript assertion took the whole expression to its left.**
+  `x!` says the value is there. It is postfix and binds tighter than any binary
+  operator, so `total + m.get(k)!` asserts about the call. The grammar hands
+  the `non_null_expression` its whole left-hand side. It arrived as
+  `(total + m.get(k))!` and reached Rust as `.unwrap()` on a sum, which is
+  `E0599`. Nothing said a word: the shape parsed and the meaning had moved. The
+  assertion travels down the right spine to the term it was written on now.
+  Found by the maps conformance group, and true of any `a + b!`.
+
+- [x] B757: **a map reached through its methods did not read.** Python's
+  spelling was the only one the readers canonicalised. A map written the way its
+  own language writes one arrived as method calls against a type with no such
+  member. A Rust map reached Python as `ages.insert(str("ada"), 36)` on a
+  `dict`. Each language now has its four words read onto the one shape the
+  writers already spell: an index assignment, an index, `len` and `contains`.
+  `insert`, `put`, `set`, `get`, `contains_key`, `containsKey`, `has`,
+  `contains`, `size` and `count` all cross. A constructor the reader could not
+  place folds into the empty literal when the binding's type says it is a map. Fifteen map cells run in the conformance suite where none did.
+
+- [x] B756: **a map crossed to Go and to nowhere else.** Neither sweep saw it.
+  No corpus file and no conformance program writes to a map. Rust was
+  given `ages["alan"] = 41`, which is `E0594`: `HashMap` has no `IndexMut`.
+  Java was given an immutable `Map.of` and then a `put` on it, so it compiled
+  and threw where it ran. TypeScript was given an object literal and read
+  `.length` off it, which is `undefined`. Zig was given an anonymous struct and
+  then indexed with a string. None of the four said a word about any of it.
+
+  A map binding is known by its declared type or its literal, and each writer
+  spells the three operations its own way now. Rust inserts, and Java wraps
+  `Map.of` in a `HashMap` the way the list literal already wrapped `List.of`.
+  TypeScript counts with `Object.keys`. Zig builds a `StringHashMap` on the page
+  allocator, puts into it, and reads through `get(k).?`. All six targets
+  compile and print what the source prints. The reading half is B755.
+
+- [x] B754: **renaming a class rewrote other stylesheets.** A CSS class has no
+  canonical declaration, so its identity is every site declaring the name. That is right for a plain stylesheet:
+  two files styling `.banner` style the same elements. A CSS module is the
+  opposite. `.primary` in `Button.module.css` is local, compiled to a name
+  nobody writes, and reached through the object the import binds. The
+  neighbouring module's `.primary` is a different class. `fr rename primary`
+  edited both files and reported success. A module's selectors group within
+  their file now, the way a chart's values group within their chart. Two
+  modules declaring one name are two entities, and the tool asks between them.
+
+- [x] B752: **a file a recipe created went in under the wrong grammar.** The
+  runner keeps the workspace as path to language and text. A step that wrote a
+  path the map did not have guessed the language from the extension. Where the guess failed it inserted Markdown and carried
+  on, which is the silent fallback this project bans. The file was then
+  extracted under a grammar that was never going to read it. A plan already declares what a file it creates is written
+  in. That declaration was dropped at all three places the runner rebuilds an
+  edit set. The declaration travels now, and a destination nothing can place is
+  a refusal naming the file.
+
+- [x] B753: **a recipe refusal named flags the grammar has not got.** A
+  translation whose destination exists refused in the words `fr translate` uses.
+  Those name `--force` and `--out`. A recipe can write neither.
+  It says what a recipe can do instead: remove the file, narrow the selector, or
+  let the run continue with `on-refusal allow`.
 
 - [x] B751: **the fact cache outlived the resolver.** Its namespace is keyed by
   a fingerprint of the files that decide a cached fact. That list held the

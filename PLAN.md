@@ -855,6 +855,89 @@ language runs, 36 new cells pinned green. The strings group needs case conversio
 bash 3.2 does not have, and sits out by name. Phase 6 added the Markdown to
 HTML render with its own pins.
 
+## The recipe that translates
+
+The recipe DSL runs ten verbs and cannot ask for a translation. This tool has two halves: the refactorings that edit a
+file, and the translation that rewrites it as another language. Both are
+reachable from the command line, and only one from the declarative surface. A recipe can tidy a module and cannot say what the
+module should become.
+
+`translate to python where lang=go` closes that. The verb is file-oriented, like
+`imports` and `rewrite`, and selects with the same predicates. Every promise the
+DSL already makes holds. A pair that cannot be written refuses per file and the
+refusal names it. `on-refusal` decides whether the run stops, and nothing
+reaches disk unless the whole recipe held.
+
+### Phase 0: what a created file breaks
+
+A translation writes a file that did not exist. Three things in the runner assume
+a step edits what it selected. The language of a new file is guessed from its
+extension, and falls back to Markdown where the guess fails. That is the silent
+fallback this project bans. The `EditSet` carries a declaration saying what the
+destination is written in, and every rebuild of one drops it. The runner
+rebuilds twice. And a report that says one file changed says
+nothing about a file having been created.
+
+### Phase 1: the verb
+
+`Operation::Translate { to }`, its reserved word, its signature, its arm in the
+parser, its place in the file-oriented list, and its arm in `act`. The target is
+named the way the command names it, so `fr translate x.go python` and
+`translate to python` agree.
+
+### Phase 2: the language, carried
+
+An `EditSet` already declares what a file it creates is written in. The runner
+reads that declaration instead of guessing from the path. A destination nothing
+declares and nothing recognises is a refusal naming the file.
+
+### Phase 3: created, said out loud
+
+A step reports the files it created apart from the files it changed, in the JSON
+and in the human report.
+
+### What the maps group measured
+
+A conformance group for maps was written and taken out again. A group whose every cell fails is a gap the
+harness prints and the gate passes over. That is the silence this suite exists
+to prevent. What it measured is B755, held by a test
+from both sides.
+
+Neither half of the round trip works. Reading, Python's spelling is the only one
+the readers canonicalise. `HashMap::new()` carries loudly, which is the honest
+part. The method vocabularies do not carry at all: `insert`, `contains_key`,
+`put`, `containsKey`, `set`, `has` and `get` reach a type with none of them.
+
+Writing was worse, and the sweeps never caught it. No corpus file and no
+conformance program writes to a map. Only Go was right. Rust was given an index
+assignment `HashMap` refuses to compile. Java was given an immutable `Map.of`
+and then a `put` on it. TypeScript was given an object literal and read
+`.length` off it. Zig was given an anonymous struct and then indexed it with a
+string.
+
+Both halves are done now. The writing one is B756. A map binding is known by its declared type or its
+literal, and each writer spells the three operations its own way: Rust inserts,
+Java wraps `Map.of` the way it already wrapped `List.of`, TypeScript counts with
+`Object.keys`, and Zig builds a `StringHashMap` on the page allocator. All six
+targets compile and print what the source prints.
+
+The reading one is B757. Each language's four words read onto the one shape
+the writers already spell.
+
+The types are B755. They come from the entries. Where the literal is empty they
+come from the first key stored, which is how five of these languages build one.
+Go names its slices by their elements for the same reason, and reads
+`map[string]int64{…}` as the map literal it is.
+
+All thirty map cells run. The group went into the harness when there was
+something for it to ratchet, and it holds the whole matrix now.
+
+The work had the shape the list operations already have. One canonicalisation
+per reader, and one spelling per writer. The writer keeps its own record of
+which bindings hold a map, so a map's `contains` is told from a string's.
+Until that lands the group stays out of the harness rather than sitting in it
+green.
+
 ## Progress log
 
 Every stage is complete except the optional LSP delegation backend. Every

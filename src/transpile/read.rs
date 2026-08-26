@@ -231,6 +231,26 @@ impl Cx<'_> {
     }
 }
 
+/// The assertion `x!` applied where it belongs: the rightmost operand.
+///
+/// The grammar gives a `non_null_expression` the whole expression to its left,
+/// so an assertion on the last term of a sum arrives wrapping the sum. The
+/// operator is postfix and binds tighter than any binary one. So the assertion
+/// travels down the right spine to the term it was written on.
+fn assert_the_last_operand(e: Expr) -> Expr {
+    match e {
+        Expr::Binary { op, left, right } => Expr::Binary {
+            op,
+            left,
+            right: Box::new(assert_the_last_operand(*right)),
+        },
+        other => Expr::Unary {
+            op: UnaryOp::Unwrap,
+            operand: Box::new(other),
+        },
+    }
+}
+
 /// A Rust number without the type written into it.
 ///
 /// `0usize` and `1.5f64` put the width in the literal, which is a spelling only Rust has. Every
@@ -4720,6 +4740,42 @@ mod go {
                         })
                         .unwrap_or_default();
                     return Expr::ListLit(elements);
+                }
+                // `map[string]int64{…}` is the map literal every target spells.
+                // Carried, the binding it initialised was left with nothing in
+                // it, and the first key stored raised.
+                if cx
+                    .field(node, "type")
+                    .is_some_and(|t| t.kind() == "map_type")
+                {
+                    let mut entries = Vec::new();
+                    if let Some(body) = cx.field(node, "body") {
+                        for element in cx.children(body) {
+                            if !element.is_named() || element.kind() == "comment" {
+                                continue;
+                            }
+                            if element.kind() != "keyed_element" {
+                                return Expr::Unsupported(cx.unsupported(node));
+                            }
+                            let mut parts =
+                                cx.children(element).into_iter().filter(|c| c.is_named());
+                            let (Some(key), Some(value)) = (parts.next(), parts.next()) else {
+                                return Expr::Unsupported(cx.unsupported(node));
+                            };
+                            fn unwrap<'t>(cx: &Cx, n: Node<'t>) -> Node<'t> {
+                                match n.kind() {
+                                    "literal_element" => cx
+                                        .children(n)
+                                        .into_iter()
+                                        .find(|c| c.is_named())
+                                        .unwrap_or(n),
+                                    _ => n,
+                                }
+                            }
+                            entries.push((expr(cx, unwrap(cx, key)), expr(cx, unwrap(cx, value))));
+                        }
+                    }
+                    return Expr::MapLit(entries);
                 }
                 let named = cx
                     .field(node, "type")
@@ -11379,11 +11435,13 @@ mod typescript {
                 .map(|n| expr(cx, *n))
                 .unwrap_or(Expr::Null),
             // `x!` asserts the value is there and uses it.
+            // `x!` asserts the value is there. The grammar hands back the whole
+            // expression to its left as the operand, so `a + b!` arrives as
+            // `(a + b)!`, which is not what TypeScript means and not what it
+            // does: the assertion is postfix and binds to `b` alone. Read that
+            // way, `total + m.get(k)!` became `.unwrap()` on a sum.
             "non_null_expression" => match cx.children(node).first() {
-                Some(inner) => Expr::Unary {
-                    op: UnaryOp::Unwrap,
-                    operand: Box::new(expr(cx, *inner)),
-                },
+                Some(inner) => assert_the_last_operand(expr(cx, *inner)),
                 None => Expr::Null,
             },
             // `(x) => e`, the one-expression arrow. A block body is a function

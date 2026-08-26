@@ -2315,6 +2315,97 @@ fn counted_original(source: &str, line: usize) -> Unsupported {
 }
 
 /// Write a carried-over fragment as a comment, whole, so nothing is lost.
+/// The hash map a Zig binding needs, and what it holds.
+///
+/// Keys that are text want `StringHashMap`, which compares them by content.
+/// Anything else wants `AutoHashMap`, which takes the key type as well.
+fn zig_map_shape(out: &Out, ty: Option<&Type>, entries: &[(Expr, Expr)]) -> (String, String) {
+    let declared = match ty {
+        Some(Type::Map(k, v)) => Some((zig_type(k), zig_type(v))),
+        _ => None,
+    };
+    let from_entries = |pick: fn(&(Expr, Expr)) -> &Expr| -> String {
+        match entries.first().map(pick) {
+            Some(Expr::Str(_) | Expr::Template(_)) => "[]const u8".to_string(),
+            Some(Expr::Float(_)) => "f64".to_string(),
+            Some(Expr::Bool(_)) => "bool".to_string(),
+            _ => "i64".to_string(),
+        }
+    };
+    let keys = declared
+        .as_ref()
+        .map(|(k, _)| k.clone())
+        .unwrap_or_else(|| from_entries(|(k, _)| k));
+    let values = declared
+        .map(|(_, v)| v)
+        .unwrap_or_else(|| from_entries(|(_, v)| v));
+    let _ = out;
+    match keys == "[]const u8" {
+        true => ("std.StringHashMap".to_string(), values),
+        false => ("std.AutoHashMap".to_string(), format!("{keys}, {values}")),
+    }
+}
+
+/// Does this map hold owned strings as its keys?
+fn owned_keys(out: &Out, of: &Expr) -> bool {
+    let Expr::Name(name) = of else {
+        return false;
+    };
+    matches!(out.binding_types.get(name), Some(Type::Map(k, _)) if **k == Type::String)
+}
+
+/// Does this expression name a binding the writer knows to hold a map?
+///
+/// The question every target asks before spelling an index, because a map's
+/// index and a list's are the same node and different code. The answer comes
+/// from the declared type where the source wrote one, and from a map literal
+/// where it did not.
+fn holds_a_map(out: &Out, of: &Expr) -> bool {
+    let Expr::Name(name) = of else {
+        return false;
+    };
+    matches!(out.binding_types.get(name), Some(Type::Map(_, _)))
+}
+
+/// The type a literal states about itself, where it states one.
+///
+/// A map literal is the only place several writers have to name what a map
+/// holds. The entries are the only evidence there is. Anything that is not
+/// a literal says nothing, and the writers fall back to their own widest type.
+fn literal_type_of(e: &Expr) -> Option<Type> {
+    match e {
+        Expr::Int(_) => Some(Type::Int),
+        Expr::Float(_) => Some(Type::Float),
+        Expr::Str(_) | Expr::Template(_) => Some(Type::String),
+        Expr::Bool(_) => Some(Type::Bool),
+        _ => None,
+    }
+}
+
+/// What a map literal's keys and values are, from its first entry.
+///
+/// The first, because a literal whose entries disagree is not a map any one
+/// annotation could describe. Guessing from a later entry would be picking.
+fn map_literal_types(entries: &[(Expr, Expr)]) -> (Option<Type>, Option<Type>) {
+    match entries.first() {
+        Some((k, v)) => (literal_type_of(k), literal_type_of(v)),
+        None => (None, None),
+    }
+}
+
+/// What a map literal holds, as TypeScript spells it.
+///
+/// From the first entry, because a literal whose values disagree is not a map
+/// any annotation here could describe.
+fn ts_map_values(entries: &[(Expr, Expr)]) -> &'static str {
+    match entries.first().map(|(_, v)| v) {
+        Some(Expr::Int(_) | Expr::Float(_)) => "number",
+        Some(Expr::Str(_) | Expr::Template(_)) => "string",
+        Some(Expr::Bool(_)) => "boolean",
+        _ => "any",
+    }
+}
+
 fn carry(out: &mut Out, what: &Unsupported) {
     out.carried(what);
     let header = out.comment(&format!(
@@ -3005,6 +3096,24 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 out.line(&format!("let {m}{bound}{annotation} = {v};"));
             }
             Stmt::Assign { target, value } => {
+                // `m[k] = v` on a map is an insert here: `HashMap` has no
+                // `IndexMut`, so the index form is `E0594` and does not compile.
+                if let Expr::Index { of, index } = target {
+                    if holds_a_map(out, of) {
+                        let map = rust_expr(out, of);
+                        // A map declared to hold `String` keys takes owned ones,
+                        // and a literal is a `&str` until it is told otherwise.
+                        let key = match (owned_keys(out, of), index.as_ref()) {
+                            (true, Expr::Str(_)) => {
+                                format!("{}.to_string()", rust_expr(out, index))
+                            }
+                            _ => rust_expr(out, index),
+                        };
+                        let v = rust_expr(out, value);
+                        out.line(&format!("{map}.insert({key}, {v});"));
+                        continue;
+                    }
+                }
                 let t = rust_expr(out, target);
                 let v = rust_expr(out, value);
                 out.line(&format!("{t} = {v};"));
@@ -4909,6 +5018,13 @@ fn declared_bindings(f: &Function) -> std::collections::BTreeMap<String, Type> {
                         Expr::Int(_) => Some(Type::Int),
                         Expr::Float(_) => Some(Type::Float),
                         Expr::Bool(_) => Some(Type::Bool),
+                        // A map literal makes a map, whatever it holds. The
+                        // writers ask this to tell an index into a map from an
+                        // index into a list, which they spell differently.
+                        Expr::MapLit(_) => Some(Type::Map(
+                            Box::new(Type::named("")),
+                            Box::new(Type::named("")),
+                        )),
                         // The canonical conversions and string methods answer text.
                         Expr::Call { callee, .. } => match callee.as_ref() {
                             Expr::Name(n) if n == "str" => Some(Type::String),
@@ -6629,6 +6745,11 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     (Expr::ListLit(items), Some(ty)) if items.is_empty() => {
                         format!("{}{{}}", go_type(ty))
                     }
+                    // The same for a map built empty and filled afterwards. Left
+                    // `map[string]any{}`, every read of it was an `any`.
+                    (Expr::MapLit(entries), Some(ty @ Type::Map(_, _))) if entries.is_empty() => {
+                        format!("{}{{}}", go_type(ty))
+                    }
                     _ => go_expr(out, value),
                 };
                 let bound = out.name(name);
@@ -7404,15 +7525,32 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
             format!("[]any{{{}}}", rendered.join(", "))
         }
         Expr::ListLit(items) => {
+            // The element type comes from the elements, the way a map's does.
+            // Written `[]any`, a loop over the list bound an `any`, and using
+            // one as a map key or a number needs an assertion nobody wrote.
+            let element = items
+                .first()
+                .and_then(literal_type_of)
+                .as_ref()
+                .map(go_type)
+                .unwrap_or_else(|| "any".into());
             let rendered: Vec<String> = items.iter().map(|i| go_expr(out, i)).collect();
-            format!("[]any{{{}}}", rendered.join(", "))
+            format!("[]{element}{{{}}}", rendered.join(", "))
         }
         Expr::MapLit(entries) => {
+            // The value type comes from the entries. Written `any`, every read
+            // of the map was an `any` and arithmetic on one does not compile.
+            let (keys, values) = map_literal_types(entries);
+            let keys = keys
+                .as_ref()
+                .map(go_type)
+                .unwrap_or_else(|| "string".into());
+            let values = values.as_ref().map(go_type).unwrap_or_else(|| "any".into());
             let rendered: Vec<String> = entries
                 .iter()
                 .map(|(k, v)| format!("{}: {}", go_expr(out, k), go_expr(out, v)))
                 .collect();
-            format!("map[string]any{{{}}}", rendered.join(", "))
+            format!("map[{keys}]{values}{{{}}}", rendered.join(", "))
         }
         Expr::Template(parts) => {
             // Go has no interpolation; `fmt.Sprintf` is how it says this.
@@ -8036,6 +8174,12 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
                 let annotation = match (ty, value) {
                     (Some(t), _) => format!(": {}", ts_type(t)),
                     (None, Some(Expr::Unsupported(_))) => ": any".to_string(),
+                    // An object literal types as the keys it was written
+                    // with. A map built from one refused every key added later,
+                    // and every read through a variable. A map is a `Record`.
+                    (None, Some(Expr::MapLit(entries))) => {
+                        format!(": Record<string, {}>", ts_map_values(entries))
+                    }
                     (None, _) => String::new(),
                 };
                 let keyword = if *mutable { "let" } else { "const" };
@@ -9980,11 +10124,18 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
             }
         }
         Expr::MapLit(entries) => {
+            // `Map.of` is immutable, and the source puts keys into this after
+            // building it. Written bare, the translation compiled and threw
+            // `UnsupportedOperationException` at the first assignment. The list
+            // literal above wraps for the same reason.
             let rendered: Vec<String> = entries
                 .iter()
                 .map(|(k, v)| format!("{}, {}", java_expr(out, k), java_expr(out, v)))
                 .collect();
-            format!("Map.of({})", rendered.join(", "))
+            match rendered.is_empty() {
+                true => "new java.util.HashMap<>()".to_string(),
+                false => format!("new java.util.HashMap<>(Map.of({}))", rendered.join(", ")),
+            }
         }
         // Java's text blocks and `formatted` are neither of these, and `+` is what a
         // reader will recognise.
@@ -10766,6 +10917,30 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                 zig_line(out, &format!("{keyword} {bound} = {call};"));
                 return;
             }
+            // A map is a runtime hash map here, and it goes through an
+            // allocator. Written as the anonymous struct a literal suggests,
+            // every later `m[k] = v` and `m.len` was invalid, and nothing said
+            // so. The literal's entries become the puts that fill it.
+            if holds_a_map(out, &Expr::Name(name.clone()))
+                || matches!(value.as_ref(), Some(Expr::MapLit(_)))
+            {
+                let entries: &[(Expr, Expr)] = match value.as_ref() {
+                    Some(Expr::MapLit(entries)) => entries,
+                    _ => &[],
+                };
+                let bound = out.name(name);
+                let (kind, values) = zig_map_shape(out, ty.as_ref(), entries);
+                zig_line(
+                    out,
+                    &format!("var {bound} = {kind}({values}).init(std.heap.page_allocator);"),
+                );
+                for (key, value) in entries {
+                    let k = zig_expr(out, key);
+                    let v = zig_expr(out, value);
+                    zig_line(out, &format!("{bound}.put({k}, {v}) catch unreachable;"));
+                }
+                return;
+            }
             // An empty list that grows is `std.ArrayList`; a fixed array cannot
             // append.
             if out.zig_dyn.contains(name) {
@@ -10795,6 +10970,15 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
             zig_line(out, &format!("{keyword} {bound}{annotation} = {rendered};"));
         }
         Stmt::Assign { target, value } => {
+            if let Expr::Index { of, index } = target {
+                if holds_a_map(out, of) {
+                    let map = zig_expr(out, of);
+                    let key = zig_expr(out, index);
+                    let v = zig_expr(out, value);
+                    zig_line(out, &format!("{map}.put({key}, {v}) catch unreachable;"));
+                    return;
+                }
+            }
             let left = zig_expr(out, target);
             let right = zig_expr(out, value);
             zig_line(out, &format!("{left} = {right};"));
@@ -11375,6 +11559,14 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
         // `[…]` on a slice or an array and `.get(…)` on a map, and which this is
         // depends on a type nothing here tracks. Zig's indexable is the slice.
         Expr::Index { of, index } => {
+            // A hash map is read through `get`, which answers an optional. The
+            // source indexed it and expects the value to be there, so `.?` traps
+            // where the source would have raised.
+            if holds_a_map(out, of) {
+                let map = receiver(zig_expr(out, of), of);
+                let at = zig_expr(out, index);
+                return format!("{map}.get({at}).?");
+            }
             let mut object = receiver(zig_expr(out, of), of);
             // A growable list's elements live behind `.items`.
             if matches!(&**of, Expr::Name(n) if out.zig_dyn.contains(n.as_str())) {
@@ -12201,6 +12393,11 @@ fn ts_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
             let rendered = joined(args, |a| ts_expr(out, a));
             format!("console.log({rendered})")
         }
+        // An object has no `.length`. Written that way, a map's size printed
+        // `undefined` and nothing said so.
+        (None, "len", [x]) if holds_a_map(out, x) => {
+            format!("Object.keys({}).length", ts_expr(out, x))
+        }
         (None, "len", [x]) => format!("{}.length", ts_expr(out, x)),
         // Inside a catch, the exception as text is its message: `String(e)` leads
         // with the class name, which is not what the source printed.
@@ -12385,6 +12582,8 @@ fn zig_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
         (None, "len", [Expr::Name(n)]) if out.zig_dyn.contains(n.as_str()) => {
             format!("{}.items.len", out.value_name(n))
         }
+        // A hash map answers `count()`; `len` is a field only a slice has.
+        (None, "len", [x]) if holds_a_map(out, x) => format!("{}.count()", zig_expr(out, x)),
         (None, "len", [x]) => format!("{}.len", zig_expr(out, x)),
         // A growable list appends through the allocator the lowering owns. The failure a real
         // allocator can raise stops the program, loudly, which matches the sources that never

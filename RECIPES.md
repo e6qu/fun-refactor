@@ -141,7 +141,8 @@ operation   = "rename"      , "to" , STRING
             | "signature"   , STRING
             | "remove-flag" , STRING , "=" , BOOL
             | "restructure" , IDENT , STRING , "=>" , STRING
-            | "rewrite"     , IDENT ;
+            | "rewrite"     , IDENT
+            | "translate"   , "to" , IDENT ;
 
 selector    = "where" , predicate , { predicate } ;
 predicate   = IDENT , "=" , value        (* kind=function      *)
@@ -195,8 +196,17 @@ than with a bigger grammar:
 | `remove-flag` | STRING `=` BOOL | **rejected** | acts on the whole workspace |
 | `restructure` | IDENT STRING `=>` STRING | **rejected** | the pattern *is* the selector |
 | `rewrite` | IDENT | required | |
+| `translate` | `to IDENT` | required | writes a new file beside each source |
 
 "Rejected" means an error naming the operation and why, never a silent ignore.
+
+`translate` is the one operation that writes a file the workspace did not have.
+It writes beside the source and never over it, so a destination that is already
+there is a refusal. The step reports what it created apart from what it changed.
+A construct the target has no counterpart for is a warning against the line of
+the source it came from. That is the shape a rename uses for a use it left.
+The language is checked while the recipe is read. A target nothing can be
+written as is a mistake in the recipe, not a fault of the file it reaches.
 
 Two more things the prototype argued for:
 

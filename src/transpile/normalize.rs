@@ -20,6 +20,11 @@ pub fn normalize(module: &mut Module, language: Language) {
 }
 
 fn normalize_language(module: &mut Module, language: Language) {
+    // Every language but Python and Go reaches a map through methods, and each
+    // has its own words for the same four things. Read onto the index forms
+    // first, so the passes below see one shape.
+    settle_maps(module, language);
+    settle_map_types(module);
     let rewrite: fn(Expr) -> Expr = match language {
         Language::Go => {
             go_module(module);
@@ -1617,6 +1622,386 @@ fn zig_exprs_tail(expr: Expr) -> Expr {
 /// `ArrayList` spoken canonically: `add` is `append`, `size` is `len`, `get` is an
 /// index and `set` an index assignment.
 ///
+/// The words each language uses for the four things anyone does with a map.
+///
+/// Only the spellings differ. Written as its own language writes it, a map
+/// crossed to Go and nowhere else, because the readers canonicalised Python's
+/// index form and nothing else. These are the other five vocabularies, read
+/// onto the same forms: an index assignment, an index, `len`, and `contains`.
+struct MapWords {
+    /// What the language calls putting a value under a key.
+    set: &'static str,
+    /// Reading one back.
+    get: &'static str,
+    /// Asking whether a key is there.
+    has: &'static str,
+    /// How many keys there are.
+    size: &'static str,
+    /// The head of a constructor call: an empty map of that language's kind.
+    made_by: &'static [&'static str],
+}
+
+fn map_words(language: Language) -> Option<MapWords> {
+    let words = match language {
+        Language::Rust => MapWords {
+            set: "insert",
+            get: "get",
+            has: "contains_key",
+            size: "len",
+            made_by: &["HashMap::new", "BTreeMap::new", "HashMap::with_capacity"],
+        },
+        Language::Java => MapWords {
+            set: "put",
+            get: "get",
+            has: "containsKey",
+            size: "size",
+            made_by: &["HashMap", "TreeMap", "LinkedHashMap"],
+        },
+        Language::TypeScript | Language::Tsx => MapWords {
+            set: "set",
+            get: "get",
+            has: "has",
+            size: "size",
+            made_by: &["Map"],
+        },
+        Language::Zig => MapWords {
+            set: "put",
+            get: "get",
+            has: "contains",
+            size: "count",
+            made_by: &["StringHashMap", "AutoHashMap"],
+        },
+        _ => return None,
+    };
+    Some(words)
+}
+
+/// The type an empty map holds, taken from the first key stored in it.
+///
+/// A map built empty and filled afterwards is the ordinary shape in five of
+/// these languages, and its literal says nothing about what it holds. Left
+/// unsaid, every writer reached for its widest type: Go wrote `map[string]any`
+/// and could not add what it read back.
+fn settle_map_types(module: &mut Module) {
+    fn literal_type(e: &Expr) -> Option<Type> {
+        match e {
+            Expr::Int(_) => Some(Type::Int),
+            Expr::Float(_) => Some(Type::Float),
+            Expr::Str(_) | Expr::Template(_) => Some(Type::String),
+            Expr::Bool(_) => Some(Type::Bool),
+            _ => None,
+        }
+    }
+    /// The first key and value stored into this map, anywhere below.
+    fn first_stored(body: &[Stmt], name: &str) -> Option<(Type, Type)> {
+        for stmt in body {
+            if let Stmt::Assign {
+                target: Expr::Index { of, index },
+                value,
+            } = stmt
+            {
+                if matches!(of.as_ref(), Expr::Name(n) if n == name) {
+                    if let (Some(k), Some(v)) = (literal_type(index), literal_type(value)) {
+                        return Some((k, v));
+                    }
+                }
+            }
+            for inner in substatements_ref(stmt) {
+                if let Some(found) = first_stored(inner, name) {
+                    return Some(found);
+                }
+            }
+        }
+        None
+    }
+    fn walk(body: &mut [Stmt]) {
+        for at in 0..body.len() {
+            for inner in substatements(&mut body[at]) {
+                walk(inner);
+            }
+            let (name, empty) = match &body[at] {
+                Stmt::Let {
+                    name,
+                    ty: None,
+                    value: Some(Expr::MapLit(entries)),
+                    ..
+                } => (name.clone(), entries.is_empty()),
+                _ => continue,
+            };
+            if !empty {
+                continue;
+            }
+            let Some((keys, values)) = first_stored(&body[at + 1..], &name) else {
+                continue;
+            };
+            if let Stmt::Let { ty, .. } = &mut body[at] {
+                *ty = Some(Type::Map(Box::new(keys), Box::new(values)));
+            }
+        }
+    }
+    for item in &mut module.items {
+        let functions: Vec<&mut Function> = match item {
+            Item::Function(f) => vec![f],
+            Item::Record(r) => r.methods.iter_mut().collect(),
+            _ => continue,
+        };
+        for f in functions {
+            walk(&mut f.body);
+        }
+    }
+}
+
+/// A map's own vocabulary, read onto the canonical index forms.
+fn settle_maps(module: &mut Module, language: Language) {
+    let Some(words) = map_words(language) else {
+        return;
+    };
+    for item in &mut module.items {
+        let functions: Vec<&mut Function> = match item {
+            Item::Function(f) => vec![f],
+            Item::Record(r) => r.methods.iter_mut().collect(),
+            _ => continue,
+        };
+        for f in functions {
+            let mut maps: Vec<String> = f
+                .params
+                .iter()
+                .filter(|p| matches!(p.ty, Some(Type::Map(_, _))))
+                .map(|p| p.name.clone())
+                .collect();
+            collect_map_bindings(&mut f.body, &words, &mut maps);
+            if maps.is_empty() {
+                continue;
+            }
+            rewrite_map_calls(&mut f.body, &words, &maps);
+        }
+    }
+}
+
+/// The bindings this function shows to be maps, and their constructors made
+/// into the empty literal every writer already spells.
+fn collect_map_bindings(body: &mut [Stmt], words: &MapWords, maps: &mut Vec<String>) {
+    for stmt in body.iter_mut() {
+        for inner in substatements(stmt) {
+            collect_map_bindings(inner, words, maps);
+        }
+        let Stmt::Let {
+            name, ty, value, ..
+        } = stmt
+        else {
+            continue;
+        };
+        if matches!(ty, Some(Type::Map(_, _))) {
+            maps.push(name.clone());
+        }
+        let Some(built) = value else { continue };
+        if !made_by(built, words) && !carried_constructor(built, words) {
+            continue;
+        }
+        maps.push(name.clone());
+        *built = Expr::MapLit(Vec::new());
+        // The type is the literal's now, and an `ArrayList`-shaped annotation
+        // would send the writers looking for a list.
+        if !matches!(ty, Some(Type::Map(_, _))) {
+            *ty = None;
+        }
+    }
+}
+
+/// A constructor the reader could not place, whose text names a map.
+///
+/// `HashMap::new()` reaches here already carried: the readers have no rule for
+/// a path call. The binding's own type says it is a map, so the text is enough
+/// to say which. Carrying it would leave the binding empty.
+fn carried_constructor(e: &Expr, words: &MapWords) -> bool {
+    let Expr::Unsupported(what) = e else {
+        return false;
+    };
+    let text = what.source.trim();
+    words
+        .made_by
+        .iter()
+        .any(|head| text.starts_with(head) || text.contains(&format!("{head}::")))
+}
+
+/// Is this expression one of the ways the language makes an empty map?
+fn made_by(e: &Expr, words: &MapWords) -> bool {
+    let (Expr::Call { callee, .. } | Expr::New { callee, .. }) = e else {
+        return false;
+    };
+    let named = |name: &str| {
+        words
+            .made_by
+            .iter()
+            .any(|head| name == *head || name.starts_with(&format!("{head}<")))
+    };
+    match callee.as_ref() {
+        Expr::Name(name) => named(name.trim_end_matches("<>")),
+        // Zig writes `std.StringHashMap(V).init(allocator)`, so the head is a
+        // field of the call that named the type.
+        Expr::Field { of, name } if name == "init" => match of.as_ref() {
+            Expr::Call { callee, .. } => {
+                matches!(callee.as_ref(), Expr::Field { name, .. } | Expr::Name(name) if named(name))
+            }
+            _ => false,
+        },
+        Expr::Field { name, .. } => named(name),
+        _ => false,
+    }
+}
+
+/// Every call on a known map, written as the index form the writers spell.
+fn rewrite_map_calls(body: &mut [Stmt], words: &MapWords, maps: &[String]) {
+    fn on_map(e: &Expr, maps: &[String]) -> Option<String> {
+        match e {
+            Expr::Name(n) if maps.iter().any(|m| m == n) => Some(n.clone()),
+            _ => None,
+        }
+    }
+    fn fix(e: &mut Expr, words: &MapWords, maps: &[String]) {
+        let each = |e: &mut Expr| fix(e, words, maps);
+        match e {
+            Expr::Call { callee, args } | Expr::New { callee, args } => {
+                // Not into a member of a map: `m.count()` is one thing, and
+                // rewriting the `m.count` half first left `len(m)()`.
+                let member_of_a_map = matches!(callee.as_ref(), Expr::Field { of, .. }
+                    if on_map(of, maps).is_some());
+                if !member_of_a_map {
+                    each(callee);
+                }
+                for a in args {
+                    each(a);
+                }
+            }
+            Expr::Binary { left, right, .. } => {
+                each(left);
+                each(right);
+            }
+            Expr::Unary { operand, .. } | Expr::Await(operand) | Expr::Propagate(operand) => {
+                each(operand)
+            }
+            Expr::Index { of, index } => {
+                each(of);
+                each(index);
+            }
+            Expr::Field { of, .. } => each(of),
+            Expr::Template(parts) => {
+                for part in parts {
+                    if let TemplatePart::Expr(inner) = part {
+                        each(inner);
+                    }
+                }
+            }
+            Expr::Ternary {
+                condition,
+                then,
+                otherwise,
+            } => {
+                each(condition);
+                each(then);
+                each(otherwise);
+            }
+            _ => {}
+        }
+        // `m.get(k)!` asserts the key is there, and a map index already says
+        // that in every target: Zig writes `.?`, the rest index directly. Kept,
+        // the assertion became `.unwrap()` on a value that is not an option.
+        if let Expr::Unary {
+            op: UnaryOp::Unwrap,
+            operand,
+        } = e
+        {
+            let redundant = matches!(operand.as_ref(), Expr::Index { of, .. }
+                if on_map(of, maps).is_some());
+            if redundant {
+                *e = std::mem::replace(operand.as_mut(), Expr::Null);
+            }
+            return;
+        }
+        // TypeScript asks a map its size through a property rather than a call,
+        // so the count is a field access and not one.
+        if let Expr::Field { of, name } = e {
+            if name == words.size {
+                if let Some(map) = on_map(of, maps) {
+                    *e = Expr::Call {
+                        callee: Box::new(Expr::Name("len".to_string())),
+                        args: vec![Expr::Name(map)],
+                    };
+                }
+            }
+            return;
+        }
+        let Expr::Call { callee, args } = e else {
+            return;
+        };
+        let Expr::Field { of, name } = callee.as_ref() else {
+            return;
+        };
+        let Some(map) = on_map(of, maps) else {
+            return;
+        };
+        if name == words.get && args.len() == 1 {
+            *e = Expr::Index {
+                of: Box::new(Expr::Name(map)),
+                index: Box::new(args.remove(0)),
+            };
+        } else if name == words.has && args.len() == 1 {
+            *e = Expr::Call {
+                callee: Box::new(Expr::Field {
+                    of: Box::new(Expr::Name(map)),
+                    name: "contains".to_string(),
+                }),
+                args: vec![args.remove(0)],
+            };
+        } else if name == words.size && args.is_empty() {
+            *e = Expr::Call {
+                callee: Box::new(Expr::Name("len".to_string())),
+                args: vec![Expr::Name(map)],
+            };
+        }
+    }
+
+    for stmt in body.iter_mut() {
+        for inner in substatements(stmt) {
+            rewrite_map_calls(inner, words, maps);
+        }
+        // `m.insert(k, v)` standing alone is an assignment into the map.
+        if let Stmt::Expr(Expr::Call { callee, args }) = stmt {
+            if let Expr::Field { of, name } = callee.as_ref() {
+                if name == words.set && args.len() == 2 {
+                    if let Some(map) = on_map(of, maps) {
+                        let value = args.pop().expect("two arguments");
+                        let key = args.pop().expect("one left");
+                        *stmt = Stmt::Assign {
+                            target: Expr::Index {
+                                of: Box::new(Expr::Name(map)),
+                                index: Box::new(key),
+                            },
+                            value,
+                        };
+                        continue;
+                    }
+                }
+            }
+        }
+        match stmt {
+            Stmt::Expr(e) | Stmt::Throw(e) | Stmt::Return(Some(e)) => fix(e, words, maps),
+            Stmt::Let { value: Some(e), .. } => fix(e, words, maps),
+            Stmt::Assign { target, value } => {
+                fix(target, words, maps);
+                fix(value, words, maps);
+            }
+            Stmt::If { condition, .. } | Stmt::While { condition, .. } => {
+                fix(condition, words, maps)
+            }
+            Stmt::ForEach { iterable, .. } | Stmt::ForEachIndexed { iterable, .. } => {
+                fix(iterable, words, maps)
+            }
+            _ => {}
+        }
+    }
+}
+
 /// Only on bindings the function shows to be lists: declared `ArrayList`/`List`, or
 /// initialized from a list literal or an `ArrayList` construction. `add` on anything
 /// else keeps its name.

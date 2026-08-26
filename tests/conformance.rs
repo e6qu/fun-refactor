@@ -21,6 +21,36 @@ use std::process::Command;
 
 /// Every cell that holds: `group source->target`, sorted.
 const PASSING: &[&str] = &[
+    "maps java->rust",
+    "maps python->go",
+    "maps typescript->java",
+    "maps typescript->zig",
+    "maps zig->java",
+    "maps go->java",
+    "maps go->python",
+    "maps go->rust",
+    "maps go->typescript",
+    "maps go->zig",
+    "maps java->go",
+    "maps rust->go",
+    "maps typescript->go",
+    "maps zig->go",
+    "maps java->python",
+    "maps java->typescript",
+    "maps java->zig",
+    "maps python->java",
+    "maps python->rust",
+    "maps python->typescript",
+    "maps python->zig",
+    "maps rust->java",
+    "maps rust->python",
+    "maps rust->typescript",
+    "maps rust->zig",
+    "maps typescript->python",
+    "maps typescript->rust",
+    "maps zig->python",
+    "maps zig->rust",
+    "maps zig->typescript",
     "bindings bash->go",
     "bindings go->bash",
     "bindings bash->java",
@@ -422,7 +452,7 @@ fn run_program(language: Language, file: &Path, scratch: &Path) -> Result<String
                 std::fs::copy(file, &copied).map_err(|e| e.to_string())?;
             }
             let compile = Command::new("tsc")
-                .args(["--target", "es2020", "--module", "commonjs"])
+                .args(["--target", "es2020", "--module", "commonjs", "--strict"])
                 .arg(&copied)
                 .output()
                 .map_err(|e| e.to_string())?;
