@@ -71,6 +71,13 @@ pub struct StepReport {
     /// flat prose here, and an agent reading both surfaces had to parse one of them.
     pub warnings: Vec<StepWarning>,
     pub files_changed: usize,
+    /// Files this step wrote that the workspace did not have.
+    ///
+    /// A translation writes beside its source rather than over it, so a count of
+    /// files changed says one and means one that did not exist. Counted apart
+    /// because reading a diff is how anyone notices otherwise, and a reader who
+    /// skips the diff should not have to.
+    pub files_created: Vec<PathBuf>,
 }
 
 /// A warning in the shape the standalone commands emit: place, kind, prose.
@@ -288,12 +295,26 @@ fn apply(sources: &mut Sources, edits: &EditSet) -> Result<()> {
         let Some(list) = edits.edits_for(path) else {
             continue;
         };
-        let entry = sources.entry(path.clone()).or_insert_with(|| {
-            (
-                crate::lang::detect(path).unwrap_or(Language::Markdown),
-                String::new(),
-            )
-        });
+        // A step that creates a file says what it wrote, and the plan carries the
+        // answer. Guessing from the path and calling everything unrecognised
+        // Markdown put generated files through the wrong grammar in silence.
+        let entry = match sources.entry(path.clone()) {
+            std::collections::btree_map::Entry::Occupied(entry) => entry.into_mut(),
+            std::collections::btree_map::Entry::Vacant(entry) => {
+                let language = edits
+                    .language(path)
+                    .or_else(|| crate::lang::detect(path))
+                    .with_context(|| {
+                        format!(
+                            "{} would be created, and nothing says what language \
+                             it is written in. The step declared none. The name does \
+                             not say",
+                            path.display()
+                        )
+                    })?;
+                entry.insert((language, String::new()))
+            }
+        };
         entry.1 = crate::edit::apply_to_string(&entry.1, list)
             .with_context(|| format!("applying edits to {}", path.display()))?;
     }
@@ -551,7 +572,9 @@ fn run_step(
 
             // The step's edit is the difference it made, whole-file: the individual
             // spans were measured against intermediate text that no longer exists.
-            for (path, (_, text)) in &running {
+            // The language travels with it: a file this step created is named by
+            // nothing else, and the engine refuses a file it cannot place.
+            for (path, (language, text)) in &running {
                 let before = sources.get(path).map(|(_, t)| t.as_str()).unwrap_or("");
                 if before != text {
                     edits.add(
@@ -562,6 +585,7 @@ fn run_step(
                             step.operation.describe(),
                         ),
                     );
+                    edits.declare_language(path.clone(), *language);
                 }
             }
             total
@@ -586,6 +610,15 @@ fn run_step(
             matched,
             applied,
             files_changed: edits.file_count(),
+            files_created: edits
+                .paths()
+                .filter(|path| !sources.contains_key(path.as_path()))
+                .map(|path| {
+                    path.strip_prefix(options.root)
+                        .unwrap_or(path)
+                        .to_path_buf()
+                })
+                .collect(),
             refusals,
             warnings,
         },
@@ -599,6 +632,12 @@ fn merge(into: &mut EditSet, from: &EditSet) {
             for edit in list {
                 into.add(path.clone(), edit.clone());
             }
+        }
+        // What a plan says a file it creates is written in travels with the edits.
+        // Dropped here, the merged set named a language for nothing, and the engine
+        // fell back to reading the extension.
+        if let Some(language) = from.language(path) {
+            into.declare_language(path.clone(), language);
         }
     }
 }
@@ -681,6 +720,10 @@ fn act(operation: &Operation, index: &Index, subject: &Subject, root: &Path) -> 
                 let (edits, sites) = rewrite_file(index, path, name)?;
                 Ok((edits, Vec::new(), sites))
             }
+            Operation::Translate { to } => {
+                let (edits, warnings) = translate_file(path, to, root)?;
+                Ok((edits, warnings, 1))
+            }
             other => bail!("`{}` acts on a symbol, not a file", other.describe()),
         };
     }
@@ -752,6 +795,81 @@ fn act(operation: &Operation, index: &Index, subject: &Subject, root: &Path) -> 
 /// The most dangerous statement in the language: `guard-clause` was once wrong at
 /// 1,258 of 1,498 sites in helm/helm. It is the one that most needs `limit`, the dry
 /// run and an `expect`.
+/// One file, written in another language, beside the original.
+///
+/// The two routes `fr translate` takes, and for the same reasons. A pair where
+/// one grammar contains the other is the same bytes under another extension. A
+/// pair of programming languages is a draft whose losses are counted. What the
+/// draft could not carry is reported as warnings, so a recipe reads its fidelity
+/// the way it reads a rename's unrewritten uses.
+fn translate_file(path: &Path, to: &str, root: &Path) -> Result<(EditSet, Vec<StepWarning>)> {
+    let Some(language) = crate::lang::Language::from_name(to) else {
+        bail!("{to} is not a language this build knows");
+    };
+    let from = crate::lang::detect(path)
+        .with_context(|| format!("{} is not a language this build knows", path.display()))?;
+    if from == language {
+        bail!("{} is already {language}", path.display());
+    }
+
+    // The standalone command offers `--force` and `--out` here, and a recipe can
+    // spell neither. So the refusal names what a recipe can do instead of naming
+    // flags it has no grammar for.
+    let destination = crate::translate::destination_for(path, language)?;
+    if crate::vfs::exists(&destination) {
+        bail!(
+            "{} is already there. A recipe writes a translation beside its source and \
+             never over one: remove it, narrow the selector, or write `on-refusal \
+             allow` to let the rest of the run proceed",
+            destination
+                .strip_prefix(root)
+                .unwrap_or(&destination)
+                .display()
+        );
+    }
+
+    // Containment first: it is the same bytes and loses nothing, so where it
+    // applies it is the better answer.
+    if crate::translate::targets(from).contains(&language) {
+        let plan = crate::translate::plan(path, language)?;
+        return Ok((plan.edits, Vec::new()));
+    }
+    let plan = crate::transpile::plan(path, language)?;
+    // A note is a loss the reader has to see, and most of them name the line of
+    // the source they came from. That line is where the work is, so the warning
+    // points there rather than at the draft it produced.
+    let warnings = plan
+        .fidelity
+        .notes
+        .iter()
+        .map(|note| {
+            let (line, detail) = match note.strip_prefix("line ") {
+                Some(rest) => match rest.split_once(": ") {
+                    Some((number, text)) => match number.parse::<usize>() {
+                        Ok(line) => (line, text.to_string()),
+                        Err(_) => (0, note.clone()),
+                    },
+                    None => (0, note.clone()),
+                },
+                None => (0, note.clone()),
+            };
+            StepWarning {
+                file: relative_to(path, root),
+                line,
+                col: 0,
+                kind: "translation-loss".to_string(),
+                detail,
+            }
+        })
+        .collect();
+    Ok((plan.edits, warnings))
+}
+
+/// A path as the report should show it: under the workspace root where it is.
+fn relative_to(path: &Path, root: &Path) -> PathBuf {
+    path.strip_prefix(root).unwrap_or(path).to_path_buf()
+}
+
 fn rewrite_file(index: &Index, path: &Path, name: &str) -> Result<(EditSet, usize)> {
     use crate::refactor::rewrite::{self, Rewrite};
     let Some(rewrite) = Rewrite::from_name(name) else {
@@ -933,10 +1051,11 @@ fn select(
         }
     }
 
-    // `imports` and `rewrite` act on files; everything else acts on symbols.
+    // `imports`, `rewrite` and `translate` act on files; everything else acts on
+    // symbols.
     let by_file = matches!(
         step.operation,
-        Operation::Imports | Operation::Rewrite { .. }
+        Operation::Imports | Operation::Rewrite { .. } | Operation::Translate { .. }
     );
 
     let facts = gather(step, index, options)?;

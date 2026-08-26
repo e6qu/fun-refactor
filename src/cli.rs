@@ -2844,7 +2844,7 @@ fn cmd_recipe(
         // The recipe is one transaction, so the diff covers the whole run and never a
         // single step.
         let mut edits = crate::edit::EditSet::new();
-        for (path, (_, text)) in &after {
+        for (path, (language, text)) in &after {
             let before = sources.get(path).map(|(_, t)| t.as_str()).unwrap_or("");
             if before != text {
                 edits.add(
@@ -2855,6 +2855,8 @@ fn cmd_recipe(
                         format!("recipe {}", report.recipe),
                     ),
                 );
+                // A file the run created is placed by this and by nothing else.
+                edits.declare_language(path.clone(), *language);
             }
         }
         // A failed expectation rolls the transaction back the same way a refusal
@@ -3077,6 +3079,9 @@ fn print_recipe_report(report: &crate::recipe::Report) {
             "     matched {}, applied {}, {} file(s) changed",
             step.matched, step.applied, step.files_changed
         );
+        for created in &step.files_created {
+            println!("       created  {}", created.display());
+        }
         for refusal in &step.refusals {
             println!("       refused  {}: {}", refusal.subject, refusal.reason);
         }

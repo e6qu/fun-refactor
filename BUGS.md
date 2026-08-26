@@ -60,6 +60,21 @@ shows the patch additive. What is left below is one limit of this tool's own ana
 
 ## Fixed
 
+- [x] B752: **a file a recipe created went in under the wrong grammar.** The
+  runner keeps the workspace as path to language and text. A step that wrote a
+  path the map did not have guessed the language from the extension. Where the guess failed it inserted Markdown and carried
+  on, which is the silent fallback this project bans. The file was then
+  extracted under a grammar that was never going to read it. A plan already declares what a file it creates is written
+  in. That declaration was dropped at all three places the runner rebuilds an
+  edit set. The declaration travels now, and a destination nothing can place is
+  a refusal naming the file.
+
+- [x] B753: **a recipe refusal named flags the grammar has not got.** A
+  translation whose destination exists refused in the words `fr translate` uses.
+  Those name `--force` and `--out`. A recipe can write neither.
+  It says what a recipe can do instead: remove the file, narrow the selector, or
+  let the run continue with `on-refusal allow`.
+
 - [x] B751: **the fact cache outlived the resolver.** Its namespace is keyed by
   a fingerprint of the files that decide a cached fact. That list held the
   extractor and left the resolver out. The

@@ -98,6 +98,7 @@ recipe <em>name</em> {
       <tr><td><code>inline variable</code> / <code>inline call</code></td><td>which</td><td>required</td></tr>
       <tr><td><code>signature "add:1:x: int:0"</code></td><td>the change</td><td>required</td></tr>
       <tr><td><code>rewrite guard-clause</code></td><td>the transformation</td><td>required, and it chooses <em>files</em></td></tr>
+      <tr><td><code>translate to python</code></td><td>the target language</td><td>required, and it chooses <em>files</em></td></tr>
       <tr><td><code>extract function at "…" as "…"</code></td><td>a range and a name</td><td><strong>rejected</strong>: nothing selects a range</td></tr>
       <tr><td><code>remove-flag "F" = false</code></td><td>the flag and its value</td><td><strong>rejected</strong>: it acts on the whole workspace</td></tr>
       <tr><td><code>restructure go 'a($X)' =&gt; 'b($X)'</code></td><td>a shape and a template</td><td><strong>rejected</strong>: the pattern <em>is</em> the selector</td></tr>

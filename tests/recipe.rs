@@ -650,3 +650,132 @@ fn a_restructure_step_counts_occurrences_rather_than_a_constant_one() {
         "{text}"
     );
 }
+
+const GO_LIB: &str = "package main\n\nimport \"fmt\"\n\n\
+                      func Helper(a int) int {\n\treturn a * 2\n}\n\n\
+                      func main() {\n\tfmt.Println(Helper(4))\n}\n";
+
+#[test]
+fn a_translate_step_writes_the_file_beside_its_source() {
+    // The verb that closes the gap between the two halves of this tool. A recipe
+    // could tidy a module and could not say what the module should become.
+    let (tmp, report, after) = run(
+        &[("lib.go", GO_LIB)],
+        "schema 1\nrecipe port {\n  translate to python where lang=go\n}\n",
+    );
+    assert!(report.ok, "{report:?}");
+    let step = &report.steps[0];
+    assert_eq!(step.matched, 1);
+    assert_eq!(
+        step.files_created,
+        vec![PathBuf::from("lib.py")],
+        "a created file counts apart from a changed one."
+    );
+    let written = after
+        .get(&tmp.path().join("lib.py"))
+        .expect("the destination is in what the run left");
+    assert_eq!(written.0, fun_refactor::lang::Language::Python);
+    assert!(
+        written.1.contains("def helper(a: int) -> int:"),
+        "{}",
+        written.1
+    );
+    // The source is untouched: a translation is written beside it, never over it.
+    assert_eq!(
+        after.get(&tmp.path().join("lib.go")).map(|f| f.1.as_str()),
+        Some(GO_LIB)
+    );
+}
+
+#[test]
+fn a_later_step_acts_on_what_the_translation_created() {
+    // The point of putting translation in the DSL rather than beside it. The
+    // index is rebuilt from what the step left, so the next selector sees a file
+    // that did not exist when the recipe started.
+    let (tmp, report, after) = run(
+        &[("lib.go", GO_LIB)],
+        "schema 1\nrecipe port {\n  translate to python where lang=go\n  \
+         rename to \"doubled\" where name=\"helper\" kind=function\n}\n",
+    );
+    assert!(report.ok, "{report:?}");
+    assert_eq!(report.steps[1].matched, 1, "the rename found the new file");
+    let written = &after
+        .get(&tmp.path().join("lib.py"))
+        .expect("the destination")
+        .1;
+    assert!(
+        written.contains("def doubled(") && written.contains("print(doubled(4))"),
+        "the declaration and its call both moved:\n{written}"
+    );
+}
+
+#[test]
+fn a_translation_that_is_already_there_refuses_and_says_what_a_recipe_can_do() {
+    // The standalone command offers `--force` and `--out`. A recipe can spell
+    // neither, so the refusal names what it can say instead.
+    let (_tmp, report, _after) = run(
+        &[
+            ("lib.go", GO_LIB),
+            ("lib.py", "def helper(a):\n    return a\n"),
+        ],
+        "schema 1\nrecipe port {\n  translate to python where lang=go\n}\n",
+    );
+    assert!(!report.ok);
+    let reason = &report.steps[0].refusals[0].reason;
+    assert!(
+        reason.contains("already there") && reason.contains("on-refusal"),
+        "the refusal points at the grammar, not at flags it does not have: {reason}"
+    );
+}
+
+#[test]
+fn what_a_translation_could_not_carry_is_a_warning_against_its_source() {
+    // A fidelity note is the same kind of fact as a reference too weak to
+    // rewrite: the step succeeded and left something for a person. The note
+    // names the line of the *source*, which is where the work is.
+    let (_tmp, report, _after) = run(
+        &[("pipe.sh", "count() {\n    ls | wc -l\n}\n")],
+        "schema 1\nrecipe port {\n  translate to python where lang=bash\n}\n",
+    );
+    assert!(report.ok, "{report:?}");
+    let warning = report.steps[0]
+        .warnings
+        .iter()
+        .find(|w| w.kind == "translation-loss")
+        .expect("the pipeline is a loss and is reported");
+    assert_eq!(warning.file, PathBuf::from("pipe.sh"));
+    assert_eq!(warning.line, 2, "the line the pipeline is written on");
+}
+
+#[test]
+fn a_language_nothing_can_be_written_as_is_refused_while_the_recipe_is_read() {
+    // Before a file is touched. A recipe naming an impossible target is a
+    // mistake in the recipe. Finding it at the first file would report it as
+    // though the file were at fault.
+    let error = recipe::parse("schema 1\nrecipe port {\n  translate to sass where lang=go\n}\n")
+        .expect_err("nothing can be written as sass");
+    let said = error.to_string();
+    assert!(
+        said.contains("nothing can be written as sass"),
+        "the refusal names the target: {said}"
+    );
+
+    let unknown = recipe::parse("schema 1\nrecipe port {\n  translate to cobol where lang=go\n}\n")
+        .expect_err("cobol is not in this build");
+    assert!(
+        unknown
+            .to_string()
+            .contains("is not a language this build knows"),
+        "{unknown}"
+    );
+}
+
+#[test]
+fn translate_needs_a_selector_like_every_other_operation_that_takes_one() {
+    let error = recipe::parse("schema 1\nrecipe port {\n  translate to python\n}\n")
+        .expect_err("a step with no selector acts on everything");
+    assert!(
+        error.to_string().contains("needs a `where` clause"),
+        "{error}"
+    );
+}

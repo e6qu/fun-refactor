@@ -195,6 +195,39 @@ pub fn why_nothing(from: Language) -> String {
     }
 }
 
+/// The languages a file could be written *as*, the question asked backwards.
+///
+/// [`targets`] answers "what can this file become". A recipe naming a target asks
+/// the other one, "can anything become this", and it asks before it has a file in
+/// hand. Both answers come from the same two tables, so neither can drift.
+pub fn sources_for(to: Language) -> Vec<Language> {
+    Language::ALL
+        .iter()
+        .copied()
+        .filter(|from| *from != to)
+        .filter(|from| targets(*from).contains(&to) || crate::transpile::can_be_written(to))
+        .collect()
+}
+
+/// Why nothing at all can be written as this language.
+pub fn why_nothing_into(to: Language) -> String {
+    use crate::lang::LanguageClass;
+    if to.class() == LanguageClass::Imperative {
+        format!(
+            "{to} is a programming language, and there is no writer for it here. \
+             Translating into a programming language needs one, and this build has \
+             writers for {}. See `src/transpile/`.",
+            crate::transpile::SUPPORTED
+                .iter()
+                .map(|language| language.to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    } else {
+        format!("no grammar this build has is contained by {to}, and nothing renders to it")
+    }
+}
+
 /// The one reason a listing shows a target it cannot produce.
 pub const BLOCKED_BY_EXISTING: &str =
     "the destination already exists. --force overwrites it, --out chooses another path.";

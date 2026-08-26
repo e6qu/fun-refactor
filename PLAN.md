@@ -855,7 +855,46 @@ language runs, 36 new cells pinned green. The strings group needs case conversio
 bash 3.2 does not have, and sits out by name. Phase 6 added the Markdown to
 HTML render with its own pins.
 
-## Progress log
+## The recipe that translates
+
+The recipe DSL runs ten verbs and cannot ask for a translation. This tool has two halves: the refactorings that edit a
+file, and the translation that rewrites it as another language. Both are
+reachable from the command line, and only one from the declarative surface. A recipe can tidy a module and cannot say what the
+module should become.
+
+`translate to python where lang=go` closes that. The verb is file-oriented, like
+`imports` and `rewrite`, and selects with the same predicates. Every promise the
+DSL already makes holds. A pair that cannot be written refuses per file and the
+refusal names it. `on-refusal` decides whether the run stops, and nothing
+reaches disk unless the whole recipe held.
+
+### Phase 0: what a created file breaks
+
+A translation writes a file that did not exist. Three things in the runner assume
+a step edits what it selected. The language of a new file is guessed from its
+extension, and falls back to Markdown where the guess fails. That is the silent
+fallback this project bans. The `EditSet` carries a declaration saying what the
+destination is written in, and every rebuild of one drops it. The runner
+rebuilds twice. And a report that says one file changed says
+nothing about a file having been created.
+
+### Phase 1: the verb
+
+`Operation::Translate { to }`, its reserved word, its signature, its arm in the
+parser, its place in the file-oriented list, and its arm in `act`. The target is
+named the way the command names it, so `fr translate x.go python` and
+`translate to python` agree.
+
+### Phase 2: the language, carried
+
+An `EditSet` already declares what a file it creates is written in. The runner
+reads that declaration instead of guessing from the path. A destination nothing
+declares and nothing recognises is a refusal naming the file.
+
+### Phase 3: created, said out loud
+
+A step reports the files it created apart from the files it changed, in the JSON
+and in the human report.
 
 Every stage is complete except the optional LSP delegation backend. Every
 capability a language can meaningfully support is built: **288 of 408 capability ×

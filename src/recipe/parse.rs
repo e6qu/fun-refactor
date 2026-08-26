@@ -34,6 +34,7 @@ pub const RESERVED: &[&str] = &[
     "remove-flag",
     "restructure",
     "rewrite",
+    "translate",
 ];
 
 #[derive(Debug, Clone)]
@@ -104,6 +105,14 @@ pub enum Operation {
     Rewrite {
         name: String,
     },
+    /// Rewrite the selected files in another language.
+    ///
+    /// The one operation that writes a file the workspace did not have. The
+    /// destination is the source's own name under the target's extension, which
+    /// is what `fr translate` writes when nothing says otherwise.
+    Translate {
+        to: String,
+    },
 }
 
 impl Operation {
@@ -131,6 +140,7 @@ impl Operation {
                 template,
             } => format!("restructure {language} '{pattern}' => '{template}'"),
             Operation::Rewrite { name } => format!("rewrite {name}"),
+            Operation::Translate { to } => format!("translate to {to}"),
         }
     }
 
@@ -690,9 +700,37 @@ impl Parser {
             return Ok(Operation::Rewrite { name });
         }
 
+        if self.eat_word("translate") {
+            self.want_word("to", "`translate`")?;
+            let to = self.want_ident("`translate to`")?;
+            // Named here rather than at the first file. A recipe asking for a
+            // language this build never heard of says so before it touches
+            // anything.
+            let Some(language) = crate::lang::Language::from_name(&to) else {
+                bail!(
+                    "line {}: `translate to {to}`: {to} is not a language this build \
+                     knows. The languages are {}.",
+                    self.line(),
+                    crate::lang::Language::ALL
+                        .iter()
+                        .map(|l| l.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                );
+            };
+            if crate::translate::sources_for(language).is_empty() {
+                bail!(
+                    "line {}: `translate to {to}`: nothing can be written as {to}. {}",
+                    self.line(),
+                    crate::translate::why_nothing_into(language)
+                );
+            }
+            return Ok(Operation::Translate { to });
+        }
         bail!(
             "line {}: {} does not begin a step. The steps are rename, delete, move, \
-             imports, inline, extract, signature, remove-flag, restructure and rewrite.",
+             imports, inline, extract, signature, remove-flag, restructure, rewrite \
+             and translate.",
             self.line(),
             self.found()
         )
