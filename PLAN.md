@@ -908,11 +908,19 @@ the readers canonicalise. `HashMap::new()` carries loudly, which is the honest
 part. The method vocabularies do not carry at all: `insert`, `contains_key`,
 `put`, `containsKey`, `set`, `has` and `get` reach a type with none of them.
 
-Writing is worse, and the sweeps never caught it. No corpus file and no
-conformance program writes to a map. Only Go is right. Rust is given an index
-assignment `HashMap` refuses to compile. Java is given an immutable `Map.of` and
-then a `put` on it. TypeScript is given an object literal and reads `.length`
-off it. Zig is given an anonymous struct and then indexes it with a string.
+Writing was worse, and the sweeps never caught it. No corpus file and no
+conformance program writes to a map. Only Go was right. Rust was given an index
+assignment `HashMap` refuses to compile. Java was given an immutable `Map.of`
+and then a `put` on it. TypeScript was given an object literal and read
+`.length` off it. Zig was given an anonymous struct and then indexed it with a
+string.
+
+That half is done, as B756. A map binding is known by its declared type or its
+literal, and each writer spells the three operations its own way: Rust inserts,
+Java wraps `Map.of` the way it already wrapped `List.of`, TypeScript counts with
+`Object.keys`, and Zig builds a `StringHashMap` on the page allocator. All six
+targets compile and print what the source prints. The reading half stays open as
+B755, and the conformance group goes in with it.
 
 The work has the shape the list operations already have. One canonicalisation
 per reader, and one spelling per writer. The writer keeps its own record of

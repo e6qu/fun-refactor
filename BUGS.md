@@ -59,31 +59,35 @@ a translation surface it has not written yet.
   uses. Zig (comptime duck typing) and Bash declare no implements-relationship at all, so
   neither has a hierarchy to read.
 
-- [ ] B755: **a map crosses to Go and to nowhere else.** Neither half of the
-  round trip works. The sweeps never caught it: no corpus file and no
-  conformance program writes to a map.
+- [ ] B755: **a map reached through its methods does not read.** The writing half
+  is done; this is what is left.
 
-  Reading. Python's spelling is the only one the readers canonicalise: the
-  literal, `d[k] = v`, `d[k]` and `len(d)`. `HashMap::new()` has no counterpart
-  and carries loudly, which is the honest part. The method vocabularies have
-  none and do not carry. `insert`, `contains_key`, Java's `put` and
-  `containsKey`, TypeScript's `set` and `has`, Zig's `put` and `contains` are
-  written through. A Rust map reaches Python as `ages.insert(str("ada"), 36)`
-  against a `dict`.
+  Python's spelling is the only one the readers canonicalise: the literal,
+  `d[k] = v`, `d[k]` and `len(d)`. `HashMap::new()` has no counterpart and
+  carries loudly, which is the honest part. The method vocabularies have none
+  and do not carry. `insert`, `contains_key`, Java's `put` and `containsKey`,
+  TypeScript's `set` and `has`, Zig's `put` and `contains` are written through.
+  A Rust map reaches Python as `ages.insert(str("ada"), 36)` against a `dict`.
 
-  Writing. Only Go is right. Rust is given `ages["alan"] = 41`, which is
-  `E0594: cannot assign to data in an index of HashMap`. Java is given
-  `Map.of(…)`, which is immutable, and then `.put` on it. It compiles and
-  throws when it runs. TypeScript is given an object literal and reads
-  `.length` off it, which is `undefined`. Zig is given an anonymous struct and
-  then indexes it with a string.
-
-  The work has the shape the list operations already have. One canonicalisation
-  per reader, and one spelling per writer. The writer keeps its record of which
-  bindings hold a map, so a map's `contains` is told from a string's. Pinned in
-  `tests/open_defects.rs`.
+  What is needed is one canonicalisation per reader, onto the forms the writers
+  already spell. Pinned in `tests/open_defects.rs`.
 
 ## Fixed
+
+- [x] B756: **a map crossed to Go and to nowhere else.** Neither sweep saw it.
+  No corpus file and no conformance program writes to a map. Rust was
+  given `ages["alan"] = 41`, which is `E0594`: `HashMap` has no `IndexMut`.
+  Java was given an immutable `Map.of` and then a `put` on it, so it compiled
+  and threw where it ran. TypeScript was given an object literal and read
+  `.length` off it, which is `undefined`. Zig was given an anonymous struct and
+  then indexed with a string. None of the four said a word about any of it.
+
+  A map binding is known by its declared type or its literal, and each writer
+  spells the three operations its own way now. Rust inserts, and Java wraps
+  `Map.of` in a `HashMap` the way the list literal already wrapped `List.of`.
+  TypeScript counts with `Object.keys`. Zig builds a `StringHashMap` on the page
+  allocator, puts into it, and reads through `get(k).?`. All six targets
+  compile and print what the source prints. The reading half is B755.
 
 - [x] B754: **renaming a class rewrote other stylesheets.** A CSS class has no
   canonical declaration, so its identity is every site declaring the name. That is right for a plain stylesheet:

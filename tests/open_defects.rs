@@ -262,29 +262,20 @@ fn a_map_reached_through_its_methods_does_not_cross() {
         back.output
     );
 
-    // Writing is the other half, and only Go is right. Each of these is the
-    // shape the target is given today. When one stops being true, B755 is what
-    // to update.
-    let broken = [
-        // `HashMap` has no `IndexMut`: E0594, cannot assign to data in an index.
-        (Language::Rust, "ages[\"alan\"] = 41"),
-        // `Map.of` is immutable, so the `put` throws where it runs.
-        (Language::Java, "Map.of("),
-        // An object literal has no `.length`, so the count prints `undefined`.
-        (Language::TypeScript, "ages.length"),
-        // An anonymous struct, then indexed with a string.
-        (Language::Zig, "ages[\"alan\"]"),
+    // Writing is the other half. It was wrong in four targets and is right in
+    // all six now: each of these compiles and prints what the source prints.
+    let writes = [
+        (Language::Rust, "ages.insert(\"alan\", 41)"),
+        (Language::Java, "new java.util.HashMap<>(Map.of("),
+        (Language::TypeScript, "Object.keys(ages).length"),
+        (Language::Zig, "ages.put(\"alan\", 41) catch unreachable"),
+        (Language::Go, "ages[\"alan\"] = 41"),
     ];
-    for (target, shape) in broken {
+    for (target, shape) in writes {
         let plan = transpile::plan(&root.join("m.py"), target).expect("a draft");
         assert!(
             plan.output.contains(shape),
-            "{target} is still given `{shape}`:\n{}",
-            plan.output
-        );
-        assert!(
-            !plan.output.contains(transpile::MARKER),
-            "{target} says nothing about it, and B755 stays open.\n{}",
+            "{target} spells the write as `{shape}`:\n{}",
             plan.output
         );
     }
