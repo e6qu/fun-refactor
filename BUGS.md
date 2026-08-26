@@ -77,6 +77,19 @@ a translation surface it has not written yet.
 
 ## Fixed
 
+- [x] B759: **the TypeScript check inherited each machine's `tsc` defaults.**
+  The harness compiled with `--target` and `--module`, and said nothing about
+  strictness. This machine checked one thing
+  and CI checked another, so the maps group passed here and failed there.
+  The harness asks for `--strict` now, which is the stricter of the two, and
+  every cell still holds.
+
+  It held after one fix. An object literal types as the keys it was written
+  with. A map built from one refused every key added later, and every read
+  through a variable. A map literal is annotated `Record<string, T>` now. The
+  FastAPI corpus gained the same annotation on a dictionary it builds empty and
+  fills under a condition.
+
 - [x] B758: **a TypeScript assertion took the whole expression to its left.**
   `x!` says the value is there. It is postfix and binds tighter than any binary
   operator, so `total + m.get(k)!` asserts about the call. The grammar hands

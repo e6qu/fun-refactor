@@ -438,7 +438,7 @@ fn run_program(language: Language, file: &Path, scratch: &Path) -> Result<String
                 std::fs::copy(file, &copied).map_err(|e| e.to_string())?;
             }
             let compile = Command::new("tsc")
-                .args(["--target", "es2020", "--module", "commonjs"])
+                .args(["--target", "es2020", "--module", "commonjs", "--strict"])
                 .arg(&copied)
                 .output()
                 .map_err(|e| e.to_string())?;

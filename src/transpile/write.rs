@@ -2359,6 +2359,19 @@ fn holds_a_map(out: &Out, of: &Expr) -> bool {
     matches!(out.binding_types.get(name), Some(Type::Map(_, _)))
 }
 
+/// What a map literal holds, as TypeScript spells it.
+///
+/// From the first entry, because a literal whose values disagree is not a map
+/// any annotation here could describe.
+fn ts_map_values(entries: &[(Expr, Expr)]) -> &'static str {
+    match entries.first().map(|(_, v)| v) {
+        Some(Expr::Int(_) | Expr::Float(_)) => "number",
+        Some(Expr::Str(_) | Expr::Template(_)) => "string",
+        Some(Expr::Bool(_)) => "boolean",
+        _ => "any",
+    }
+}
+
 fn carry(out: &mut Out, what: &Unsupported) {
     out.carried(what);
     let header = out.comment(&format!(
@@ -8098,6 +8111,12 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
                 let annotation = match (ty, value) {
                     (Some(t), _) => format!(": {}", ts_type(t)),
                     (None, Some(Expr::Unsupported(_))) => ": any".to_string(),
+                    // An object literal types as the keys it was written
+                    // with. A map built from one refused every key added later,
+                    // and every read through a variable. A map is a `Record`.
+                    (None, Some(Expr::MapLit(entries))) => {
+                        format!(": Record<string, {}>", ts_map_values(entries))
+                    }
                     (None, _) => String::new(),
                 };
                 let keyword = if *mutable { "let" } else { "const" };
