@@ -285,3 +285,72 @@ fn a_variable_used_only_from_another_file_is_not_dead() {
         "and one nothing reads is still listed: {dead:?}"
     );
 }
+
+/// A CSS module's selectors are its own, the way a chart's values are.
+///
+/// `.primary` in `Button.module.css` compiles to a name nobody writes, and the
+/// component reaches it through the object its import binds. So the `.primary` a
+/// neighbouring module declares is a different class. Grouped by name across
+/// files, renaming one component's class rewrote every other component's
+/// stylesheet that happened to use the word.
+#[test]
+fn a_css_module_keeps_its_selectors_to_itself() {
+    let (_dir, root, index) = workspace(&[
+        ("Button.module.css", ".primary {\n  color: red;\n}\n"),
+        ("Other.module.css", ".primary {\n  color: green;\n}\n"),
+        (
+            "Button.tsx",
+            "import styles from \"./Button.module.css\";\n\n\
+             export function Button() {\n  \
+             return <button className={styles.primary} />;\n}\n",
+        ),
+    ]);
+
+    let mine: Vec<SymbolId> = index
+        .symbols
+        .iter()
+        .filter(|s| s.name == "primary" && s.file.ends_with("Button.module.css"))
+        .map(|s| s.id)
+        .collect();
+    let [mine] = mine.as_slice() else {
+        panic!("one `.primary` in Button.module.css");
+    };
+    let group = index.definition_group(*mine);
+    assert_eq!(group.len(), 1, "a module's class is its own entity");
+    assert!(index
+        .symbol(group[0])
+        .is_some_and(|s| s.file.ends_with("Button.module.css")));
+
+    // And the component's use reaches the module it imported, not the other one.
+    let plan = fun_refactor::refactor::rename::plan(&index, *mine, "lead").expect("a rename");
+    let files: Vec<String> = plan
+        .edits
+        .paths()
+        .map(|p| p.strip_prefix(&root).unwrap_or(p).display().to_string())
+        .collect();
+    assert_eq!(
+        files,
+        vec!["Button.module.css".to_string(), "Button.tsx".to_string()],
+        "the module and its component, and nothing else"
+    );
+}
+
+/// A plain stylesheet is the opposite: two files declaring `.banner` style the
+/// same elements, so the rename has to take both.
+#[test]
+fn a_plain_stylesheets_classes_stay_global() {
+    let (_dir, _root, index) = workspace(&[
+        ("a.css", ".banner {\n  color: red;\n}\n"),
+        ("b.css", ".banner {\n  font-weight: bold;\n}\n"),
+    ]);
+    let first = index
+        .symbols
+        .iter()
+        .find(|s| s.name == "banner")
+        .expect("a `.banner`");
+    assert_eq!(
+        index.definition_group(first.id).len(),
+        2,
+        "both declarations are the one class"
+    );
+}

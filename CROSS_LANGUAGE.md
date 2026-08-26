@@ -96,10 +96,15 @@ The single most common unsupported edge in modern frontend code.
 
 ```tsx
 import styles from "./Button.module.css";
-<button className={styles.primary} />          // resolves to nothing today
+<button className={styles.primary} />          // resolves, and to the imported file
 ```
 
-Measured: plain `class="primary"` in HTML resolves; `styles.primary` does not.
+Measured again since this was written: it resolves, import-qualified, and to
+the selector in the file the import names. A member the imported module does
+not declare reaches nothing, rather than a same-named selector elsewhere.
+
+What was wrong was the identity. Two modules declaring `.primary` were one class,
+so a rename took both. B754 scoped a module's selectors to their file.
 
 **What it needs.** The default import of a `*.module.css` binds an object whose
 members are that file's selectors. The import path names the file, a real declared

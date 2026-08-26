@@ -60,6 +60,16 @@ shows the patch additive. What is left below is one limit of this tool's own ana
 
 ## Fixed
 
+- [x] B754: **renaming a class rewrote other stylesheets.** A CSS class has no
+  canonical declaration, so its identity is every site declaring the name. That is right for a plain stylesheet:
+  two files styling `.banner` style the same elements. A CSS module is the
+  opposite. `.primary` in `Button.module.css` is local, compiled to a name
+  nobody writes, and reached through the object the import binds. The
+  neighbouring module's `.primary` is a different class. `fr rename primary`
+  edited both files and reported success. A module's selectors group within
+  their file now, the way a chart's values group within their chart. Two
+  modules declaring one name are two entities, and the tool asks between them.
+
 - [x] B752: **a file a recipe created went in under the wrong grammar.** The
   runner keeps the workspace as path to language and text. A step that wrote a
   path the map did not have guessed the language from the extension. Where the guess failed it inserted Markdown and carried

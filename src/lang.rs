@@ -337,6 +337,28 @@ fn holds_template_action(text: &str) -> bool {
 
 /// The chart directory a Helm file belongs to: the nearest ancestor with a Chart.yaml.
 ///
+/// Is this stylesheet a CSS module, whose selector names are its own?
+///
+/// The bundlers all key on the same thing: a file named `*.module.css`, and the
+/// SCSS and Sass spellings of it. Inside one, `.primary` is local. It is compiled
+/// to a name nobody writes, and the component reaches it through the object its
+/// import binds. So a neighbouring module's `.primary` is a different class, the
+/// way a neighbouring chart's `replicaCount` is a different value.
+///
+/// A plain stylesheet is the opposite. Two files declaring `.primary` style the
+/// same elements, and a rename taking one of them would leave the other
+/// answering the old name.
+pub fn is_css_module(path: &Path) -> bool {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| {
+            let lower = name.to_ascii_lowercase();
+            [".module.css", ".module.scss", ".module.sass"]
+                .iter()
+                .any(|suffix| lower.ends_with(suffix))
+        })
+}
+
 /// A chart's values are its own. Two charts in one workspace routinely declare the
 /// same key, `image`, `name`, `replicaCount`, and a `.Values.image` in one of them
 /// says nothing about the other. Resolution needs the boundary to avoid pointing a

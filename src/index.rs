@@ -1996,8 +1996,23 @@ impl Index {
             }
             return vec![symbol];
         }
+        // A CSS module's selectors are its own. `.primary` there compiles to a name
+        // nobody writes, reached through the object its import binds. A neighbouring
+        // module declaring `.primary` is a different class.
+        // Grouped by name across files, a rename of one component's class rewrote
+        // every other component's stylesheet that happened to use the word.
+        if sym.kind == SymbolKind::Selector && crate::lang::is_css_module(&sym.file) {
+            return self
+                .named_like(&sym.name)
+                .filter(|s| s.name == sym.name && s.kind == sym.kind && s.file == sym.file)
+                .map(|s| s.id)
+                .collect();
+        }
         self.named_like(&sym.name)
             .filter(|s| s.name == sym.name && s.kind == sym.kind)
+            // A plain stylesheet's classes are global and group across files. One
+            // written in a module is not theirs to join.
+            .filter(|s| !crate::lang::is_css_module(&s.file))
             .map(|s| s.id)
             .collect()
     }
