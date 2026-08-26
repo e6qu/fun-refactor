@@ -24,6 +24,7 @@ fn normalize_language(module: &mut Module, language: Language) {
     // has its own words for the same four things. Read onto the index forms
     // first, so the passes below see one shape.
     settle_maps(module, language);
+    settle_map_types(module);
     let rewrite: fn(Expr) -> Expr = match language {
         Language::Go => {
             go_module(module);
@@ -1673,6 +1674,81 @@ fn map_words(language: Language) -> Option<MapWords> {
         _ => return None,
     };
     Some(words)
+}
+
+/// The type an empty map holds, taken from the first key stored in it.
+///
+/// A map built empty and filled afterwards is the ordinary shape in five of
+/// these languages, and its literal says nothing about what it holds. Left
+/// unsaid, every writer reached for its widest type: Go wrote `map[string]any`
+/// and could not add what it read back.
+fn settle_map_types(module: &mut Module) {
+    fn literal_type(e: &Expr) -> Option<Type> {
+        match e {
+            Expr::Int(_) => Some(Type::Int),
+            Expr::Float(_) => Some(Type::Float),
+            Expr::Str(_) | Expr::Template(_) => Some(Type::String),
+            Expr::Bool(_) => Some(Type::Bool),
+            _ => None,
+        }
+    }
+    /// The first key and value stored into this map, anywhere below.
+    fn first_stored(body: &[Stmt], name: &str) -> Option<(Type, Type)> {
+        for stmt in body {
+            if let Stmt::Assign {
+                target: Expr::Index { of, index },
+                value,
+            } = stmt
+            {
+                if matches!(of.as_ref(), Expr::Name(n) if n == name) {
+                    if let (Some(k), Some(v)) = (literal_type(index), literal_type(value)) {
+                        return Some((k, v));
+                    }
+                }
+            }
+            for inner in substatements_ref(stmt) {
+                if let Some(found) = first_stored(inner, name) {
+                    return Some(found);
+                }
+            }
+        }
+        None
+    }
+    fn walk(body: &mut [Stmt]) {
+        for at in 0..body.len() {
+            for inner in substatements(&mut body[at]) {
+                walk(inner);
+            }
+            let (name, empty) = match &body[at] {
+                Stmt::Let {
+                    name,
+                    ty: None,
+                    value: Some(Expr::MapLit(entries)),
+                    ..
+                } => (name.clone(), entries.is_empty()),
+                _ => continue,
+            };
+            if !empty {
+                continue;
+            }
+            let Some((keys, values)) = first_stored(&body[at + 1..], &name) else {
+                continue;
+            };
+            if let Stmt::Let { ty, .. } = &mut body[at] {
+                *ty = Some(Type::Map(Box::new(keys), Box::new(values)));
+            }
+        }
+    }
+    for item in &mut module.items {
+        let functions: Vec<&mut Function> = match item {
+            Item::Function(f) => vec![f],
+            Item::Record(r) => r.methods.iter_mut().collect(),
+            _ => continue,
+        };
+        for f in functions {
+            walk(&mut f.body);
+        }
+    }
 }
 
 /// A map's own vocabulary, read onto the canonical index forms.

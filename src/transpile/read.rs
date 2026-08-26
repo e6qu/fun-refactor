@@ -4741,6 +4741,42 @@ mod go {
                         .unwrap_or_default();
                     return Expr::ListLit(elements);
                 }
+                // `map[string]int64{…}` is the map literal every target spells.
+                // Carried, the binding it initialised was left with nothing in
+                // it, and the first key stored raised.
+                if cx
+                    .field(node, "type")
+                    .is_some_and(|t| t.kind() == "map_type")
+                {
+                    let mut entries = Vec::new();
+                    if let Some(body) = cx.field(node, "body") {
+                        for element in cx.children(body) {
+                            if !element.is_named() || element.kind() == "comment" {
+                                continue;
+                            }
+                            if element.kind() != "keyed_element" {
+                                return Expr::Unsupported(cx.unsupported(node));
+                            }
+                            let mut parts =
+                                cx.children(element).into_iter().filter(|c| c.is_named());
+                            let (Some(key), Some(value)) = (parts.next(), parts.next()) else {
+                                return Expr::Unsupported(cx.unsupported(node));
+                            };
+                            fn unwrap<'t>(cx: &Cx, n: Node<'t>) -> Node<'t> {
+                                match n.kind() {
+                                    "literal_element" => cx
+                                        .children(n)
+                                        .into_iter()
+                                        .find(|c| c.is_named())
+                                        .unwrap_or(n),
+                                    _ => n,
+                                }
+                            }
+                            entries.push((expr(cx, unwrap(cx, key)), expr(cx, unwrap(cx, value))));
+                        }
+                    }
+                    return Expr::MapLit(entries);
+                }
                 let named = cx
                     .field(node, "type")
                     .filter(|t| t.kind() == "type_identifier");

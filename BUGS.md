@@ -59,23 +59,21 @@ a translation surface it has not written yet.
   uses. Zig (comptime duck typing) and Bash declare no implements-relationship at all, so
   neither has a hierarchy to read.
 
-- [ ] B755: **a map's key and value types do not cross.** The vocabularies do
-  now, and fifteen of the thirty map cells run. The other fifteen share one
-  cause: the type the map holds, not the words that reach it.
-
-  Go as a source carries `map[string]int64{…}` whole: a composite literal with
-  its type written on it is not read as a map literal. Go as a target writes
-  `map[string]any`, so `total + ages[name]` is `int` plus `any` and does not
-  compile. Java is given `Object` and cannot add it. Zig is given a
-  `StringHashMap` whose key type was guessed from an empty literal. Rust is
-  given a `&str` key where the map holds `String`.
-
-  One cause under all of them. The map literal's own key and value types are
-  not carried on `Type::Map`, so every writer picks a default and the defaults
-  disagree. The conformance group is in the harness with its fifteen cells
-  pinned, so the rest are measured rather than described.
-
 ## Fixed
+
+- [x] B755: **a map's key and value types did not cross.** The vocabularies
+  read and the writers spelled them. Fifteen of the thirty map cells ran.
+  The other fifteen shared one cause: the type the map holds. Go was given
+  `map[string]any` and could not add what it read. Java was given `Object`. Zig
+  guessed a key type from an empty literal. Rust was given a `&str` key for a
+  map of `String`. A Go map literal with its type written on it was carried
+  whole, so the binding it initialised held nothing.
+
+  The types come from the entries. Where the literal is empty, they come from
+  the first key stored, which is how five of these languages build a map. Go names
+  its slices by their elements for the same reason: a loop over `[]any` bound an
+  `any`, and a map index needs a string. Go reads `map[string]int64{…}` as the
+  map literal it is. All thirty map cells run now.
 
 - [x] B759: **the TypeScript check inherited each machine's `tsc` defaults.**
   The harness compiled with `--target` and `--module`, and said nothing about

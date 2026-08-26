@@ -2346,6 +2346,14 @@ fn zig_map_shape(out: &Out, ty: Option<&Type>, entries: &[(Expr, Expr)]) -> (Str
     }
 }
 
+/// Does this map hold owned strings as its keys?
+fn owned_keys(out: &Out, of: &Expr) -> bool {
+    let Expr::Name(name) = of else {
+        return false;
+    };
+    matches!(out.binding_types.get(name), Some(Type::Map(k, _)) if **k == Type::String)
+}
+
 /// Does this expression name a binding the writer knows to hold a map?
 ///
 /// The question every target asks before spelling an index, because a map's
@@ -2357,6 +2365,32 @@ fn holds_a_map(out: &Out, of: &Expr) -> bool {
         return false;
     };
     matches!(out.binding_types.get(name), Some(Type::Map(_, _)))
+}
+
+/// The type a literal states about itself, where it states one.
+///
+/// A map literal is the only place several writers have to name what a map
+/// holds. The entries are the only evidence there is. Anything that is not
+/// a literal says nothing, and the writers fall back to their own widest type.
+fn literal_type_of(e: &Expr) -> Option<Type> {
+    match e {
+        Expr::Int(_) => Some(Type::Int),
+        Expr::Float(_) => Some(Type::Float),
+        Expr::Str(_) | Expr::Template(_) => Some(Type::String),
+        Expr::Bool(_) => Some(Type::Bool),
+        _ => None,
+    }
+}
+
+/// What a map literal's keys and values are, from its first entry.
+///
+/// The first, because a literal whose entries disagree is not a map any one
+/// annotation could describe. Guessing from a later entry would be picking.
+fn map_literal_types(entries: &[(Expr, Expr)]) -> (Option<Type>, Option<Type>) {
+    match entries.first() {
+        Some((k, v)) => (literal_type_of(k), literal_type_of(v)),
+        None => (None, None),
+    }
 }
 
 /// What a map literal holds, as TypeScript spells it.
@@ -3067,7 +3101,14 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 if let Expr::Index { of, index } = target {
                     if holds_a_map(out, of) {
                         let map = rust_expr(out, of);
-                        let key = rust_expr(out, index);
+                        // A map declared to hold `String` keys takes owned ones,
+                        // and a literal is a `&str` until it is told otherwise.
+                        let key = match (owned_keys(out, of), index.as_ref()) {
+                            (true, Expr::Str(_)) => {
+                                format!("{}.to_string()", rust_expr(out, index))
+                            }
+                            _ => rust_expr(out, index),
+                        };
                         let v = rust_expr(out, value);
                         out.line(&format!("{map}.insert({key}, {v});"));
                         continue;
@@ -6704,6 +6745,11 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     (Expr::ListLit(items), Some(ty)) if items.is_empty() => {
                         format!("{}{{}}", go_type(ty))
                     }
+                    // The same for a map built empty and filled afterwards. Left
+                    // `map[string]any{}`, every read of it was an `any`.
+                    (Expr::MapLit(entries), Some(ty @ Type::Map(_, _))) if entries.is_empty() => {
+                        format!("{}{{}}", go_type(ty))
+                    }
                     _ => go_expr(out, value),
                 };
                 let bound = out.name(name);
@@ -7479,15 +7525,32 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
             format!("[]any{{{}}}", rendered.join(", "))
         }
         Expr::ListLit(items) => {
+            // The element type comes from the elements, the way a map's does.
+            // Written `[]any`, a loop over the list bound an `any`, and using
+            // one as a map key or a number needs an assertion nobody wrote.
+            let element = items
+                .first()
+                .and_then(literal_type_of)
+                .as_ref()
+                .map(go_type)
+                .unwrap_or_else(|| "any".into());
             let rendered: Vec<String> = items.iter().map(|i| go_expr(out, i)).collect();
-            format!("[]any{{{}}}", rendered.join(", "))
+            format!("[]{element}{{{}}}", rendered.join(", "))
         }
         Expr::MapLit(entries) => {
+            // The value type comes from the entries. Written `any`, every read
+            // of the map was an `any` and arithmetic on one does not compile.
+            let (keys, values) = map_literal_types(entries);
+            let keys = keys
+                .as_ref()
+                .map(go_type)
+                .unwrap_or_else(|| "string".into());
+            let values = values.as_ref().map(go_type).unwrap_or_else(|| "any".into());
             let rendered: Vec<String> = entries
                 .iter()
                 .map(|(k, v)| format!("{}: {}", go_expr(out, k), go_expr(out, v)))
                 .collect();
-            format!("map[string]any{{{}}}", rendered.join(", "))
+            format!("map[{keys}]{values}{{{}}}", rendered.join(", "))
         }
         Expr::Template(parts) => {
             // Go has no interpolation; `fmt.Sprintf` is how it says this.

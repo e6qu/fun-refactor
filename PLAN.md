@@ -922,13 +922,17 @@ Java wraps `Map.of` the way it already wrapped `List.of`, TypeScript counts with
 targets compile and print what the source prints.
 
 The reading one is B757. Each language's four words read onto the one shape
-the writers already spell. The conformance group is in the harness now, with
-fifteen of its thirty cells pinned.
-One thing holds the other fifteen back, and B755 names it. A map's key and
-value types are not carried, so each writer picks a default and the defaults
-disagree.
+the writers already spell.
 
-The work has the shape the list operations already have. One canonicalisation
+The types are B755. They come from the entries. Where the literal is empty they
+come from the first key stored, which is how five of these languages build one.
+Go names its slices by their elements for the same reason, and reads
+`map[string]int64{…}` as the map literal it is.
+
+All thirty map cells run. The group went into the harness when there was
+something for it to ratchet, and it holds the whole matrix now.
+
+The work had the shape the list operations already have. One canonicalisation
 per reader, and one spelling per writer. The writer keeps its own record of
 which bindings hold a map, so a map's `contains` is told from a string's.
 Until that lands the group stays out of the harness rather than sitting in it
