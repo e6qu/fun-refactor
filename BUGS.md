@@ -93,6 +93,12 @@ a translation surface it has not written yet.
   gained what it should have preserved. Each language's widest type reads as the
   nothing it stands for.
 
+- [x] B773: **a contract could only be built from one shape of tree.** `fr
+  openapi` read a Next.js `app/api` directory. A service written with Express,
+  Flask, axum, gin or Spring was invisible to it. All five declare the same
+  pair, a method and a URL. Each is read now, and each is held to what it must
+  not read as well: `cache.get(k)` is not a route.
+
 - [x] B772: **the IR had no set.** Every one of these six languages spells a
   set. Rust, Python, Java and TypeScript name one. Go and Zig spell one as a
   map whose values carry nothing: `map[T]struct{}` and `HashMap(K, void)`.

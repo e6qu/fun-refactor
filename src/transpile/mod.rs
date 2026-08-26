@@ -31,6 +31,7 @@ pub mod ir;
 pub mod nextjs;
 mod normalize;
 mod read;
+pub mod routes;
 pub mod scaffold;
 mod write;
 

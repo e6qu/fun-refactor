@@ -965,9 +965,16 @@ means.
 
 ### The route trees
 
-`fr openapi` reads a Next.js tree and a FastAPI router. Express, Flask, axum, gin and
-Spring join them. That also gives the framework-to-framework translations the
-contract layer already knows how to build.
+`fr openapi` reads a Next.js tree and a FastAPI router. Express, Flask, axum, gin
+and Spring join them, in `src/transpile/routes.rs`. Each declares the same pair,
+a method and a URL. Each says it its own way: a call on a router, a decorator,
+an annotation, a chain of `.route` calls. Path parameters differ too:
+`:id` against `<int:id>` against `{id}`. Every reader spells its own into the
+one a contract uses.
+
+A reader that finds routes nobody serves is worse than one that finds none, so
+each is held to what it must *not* read. `cache.get(k)` is not an Express route
+and `strings.ToUpper` is not a gin one.
 
 ### The eighteenth language
 
