@@ -35,6 +35,7 @@ const PASSING: &[&str] = &[
     "maps typescript->python",
     "maps typescript->rust",
     "maps zig->python",
+    "maps zig->rust",
     "maps zig->typescript",
     "bindings bash->go",
     "bindings go->bash",

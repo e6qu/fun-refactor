@@ -1827,6 +1827,21 @@ fn rewrite_map_calls(body: &mut [Stmt], words: &MapWords, maps: &[String]) {
             }
             _ => {}
         }
+        // `m.get(k)!` asserts the key is there, and a map index already says
+        // that in every target: Zig writes `.?`, the rest index directly. Kept,
+        // the assertion became `.unwrap()` on a value that is not an option.
+        if let Expr::Unary {
+            op: UnaryOp::Unwrap,
+            operand,
+        } = e
+        {
+            let redundant = matches!(operand.as_ref(), Expr::Index { of, .. }
+                if on_map(of, maps).is_some());
+            if redundant {
+                *e = std::mem::replace(operand.as_mut(), Expr::Null);
+            }
+            return;
+        }
         // TypeScript asks a map its size through a property rather than a call,
         // so the count is a field access and not one.
         if let Expr::Field { of, name } = e {

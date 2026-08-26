@@ -77,6 +77,15 @@ a translation surface it has not written yet.
 
 ## Fixed
 
+- [x] B758: **a TypeScript assertion took the whole expression to its left.**
+  `x!` says the value is there. It is postfix and binds tighter than any binary
+  operator, so `total + m.get(k)!` asserts about the call. The grammar hands
+  the `non_null_expression` its whole left-hand side. It arrived as
+  `(total + m.get(k))!` and reached Rust as `.unwrap()` on a sum, which is
+  `E0599`. Nothing said a word: the shape parsed and the meaning had moved. The
+  assertion travels down the right spine to the term it was written on now.
+  Found by the maps conformance group, and true of any `a + b!`.
+
 - [x] B757: **a map reached through its methods did not read.** Python's
   spelling was the only one the readers canonicalised. A map written the way its
   own language writes one arrived as method calls against a type with no such
