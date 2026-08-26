@@ -215,68 +215,54 @@ fn an_untyped_receiver_still_reaches_every_function_behind_the_name() {
 }
 
 #[test]
-fn a_map_reached_through_its_methods_does_not_cross() {
-    // B755. Written the way Python writes one, a map crosses whole. Written
-    // the way the other five write one, the constructor carries loudly. The
-    // methods reach a type with no such member.
+fn a_maps_key_and_value_types_do_not_cross() {
+    // B755. The vocabularies read and the writers spell them, so a map written
+    // the way its own language writes one crosses and runs. What does not cross
+    // is the type it holds, and every remaining failure is that one thing.
     use fun_refactor::lang::Language;
     use fun_refactor::transpile;
 
     let (_tmp, root) = workspace(&[(
-        "m.py",
-        "def main() -> None:\n    ages = {\"ada\": 36}\n    ages[\"alan\"] = 41\n    \
-         print(len(ages))\n    print(ages[\"ada\"])\n\n\nmain()\n",
-    )]);
-    let out = transpile::plan(&root.join("m.py"), Language::Go).expect("a draft");
-    assert!(
-        out.output.contains("ages := map[string]any{\"ada\": 36}")
-            && out.output.contains("ages[\"alan\"] = 41")
-            && out.output.contains("len(ages)"),
-        "the literal, the index and the length cross:\n{}",
-        out.output
-    );
-    assert!(
-        !out.output.contains(transpile::MARKER),
-        "and nothing about them carries:\n{}",
-        out.output
-    );
-
-    // The other direction is the entry. `HashMap::new()` is carried, named as
-    // untranslated. `insert` is not: it reaches Python as a method call a
-    // `dict` does not answer. When this stops being true, update B755.
-    let (_tmp2, root2) = workspace(&[(
         "m.rs",
         "use std::collections::HashMap;\n\nfn main() {\n    \
          let mut ages: HashMap<String, i64> = HashMap::new();\n    \
-         ages.insert(\"ada\".to_string(), 36);\n}\n",
+         ages.insert(\"ada\".to_string(), 36);\n    \
+         println!(\"{}\", ages.len());\n}\n",
     )]);
-    let back = transpile::plan(&root2.join("m.rs"), Language::Python).expect("a draft");
+    let out = transpile::plan(&root.join("m.rs"), Language::Python).expect("a draft");
     assert!(
-        back.output.contains(transpile::MARKER) && back.output.contains("HashMap::new"),
-        "the constructor carries and says so:\n{}",
-        back.output
-    );
-    assert!(
-        back.output.contains("ages.insert("),
-        "the method is written through. That is the wrong half.\n{}",
-        back.output
+        out.output.contains("ages: dict[str, int] = {}")
+            && out.output.contains("ages[str(\"ada\")] = 36")
+            && out.output.contains("len(ages)"),
+        "the constructor, the insert and the count all cross:\n{}",
+        out.output
     );
 
-    // Writing is the other half. It was wrong in four targets and is right in
-    // all six now: each of these compiles and prints what the source prints.
-    let writes = [
-        (Language::Rust, "ages.insert(\"alan\", 41)"),
-        (Language::Java, "new java.util.HashMap<>(Map.of("),
-        (Language::TypeScript, "Object.keys(ages).length"),
-        (Language::Zig, "ages.put(\"alan\", 41) catch unreachable"),
-        (Language::Go, "ages[\"alan\"] = 41"),
-    ];
-    for (target, shape) in writes {
-        let plan = transpile::plan(&root.join("m.py"), target).expect("a draft");
-        assert!(
-            plan.output.contains(shape),
-            "{target} spells the write as `{shape}`:\n{}",
-            plan.output
-        );
-    }
+    // The value type is what is left. Go is given `any`, so arithmetic on a
+    // read does not compile. A Go map literal with its type written on it is
+    // not read as a map at all.
+    let (_tmp2, root2) = workspace(&[(
+        "m.py",
+        "def main() -> None:\n    ages = {\"ada\": 36}\n    total = 0\n    \
+         for name in [\"ada\"]:\n        total = total + ages[name]\n    \
+         print(total)\n\n\nmain()\n",
+    )]);
+    let go = transpile::plan(&root2.join("m.py"), Language::Go).expect("a draft");
+    assert!(
+        go.output.contains("map[string]any"),
+        "the value type is `any`, which is why the arithmetic fails:\n{}",
+        go.output
+    );
+
+    let (_tmp3, root3) = workspace(&[(
+        "m.go",
+        "package main\n\nfunc main() {\n\tages := map[string]int64{\"ada\": 36}\n\t\
+         _ = ages\n}\n",
+    )]);
+    let back = transpile::plan(&root3.join("m.go"), Language::Python).expect("a draft");
+    assert!(
+        back.output.contains(transpile::MARKER),
+        "a typed composite literal is carried, not read as a map:\n{}",
+        back.output
+    );
 }

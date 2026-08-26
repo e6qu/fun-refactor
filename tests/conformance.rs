@@ -21,6 +21,21 @@ use std::process::Command;
 
 /// Every cell that holds: `group source->target`, sorted.
 const PASSING: &[&str] = &[
+    "maps java->python",
+    "maps java->typescript",
+    "maps java->zig",
+    "maps python->java",
+    "maps python->rust",
+    "maps python->typescript",
+    "maps python->zig",
+    "maps rust->java",
+    "maps rust->python",
+    "maps rust->typescript",
+    "maps rust->zig",
+    "maps typescript->python",
+    "maps typescript->rust",
+    "maps zig->python",
+    "maps zig->typescript",
     "bindings bash->go",
     "bindings go->bash",
     "bindings bash->java",

@@ -915,12 +915,18 @@ and then a `put` on it. TypeScript was given an object literal and read
 `.length` off it. Zig was given an anonymous struct and then indexed it with a
 string.
 
-That half is done, as B756. A map binding is known by its declared type or its
+Both halves are done now. The writing one is B756. A map binding is known by its declared type or its
 literal, and each writer spells the three operations its own way: Rust inserts,
 Java wraps `Map.of` the way it already wrapped `List.of`, TypeScript counts with
 `Object.keys`, and Zig builds a `StringHashMap` on the page allocator. All six
-targets compile and print what the source prints. The reading half stays open as
-B755, and the conformance group goes in with it.
+targets compile and print what the source prints.
+
+The reading one is B757. Each language's four words read onto the one shape
+the writers already spell. The conformance group is in the harness now, with
+fifteen of its thirty cells pinned.
+One thing holds the other fifteen back, and B755 names it. A map's key and
+value types are not carried, so each writer picks a default and the defaults
+disagree.
 
 The work has the shape the list operations already have. One canonicalisation
 per reader, and one spelling per writer. The writer keeps its own record of

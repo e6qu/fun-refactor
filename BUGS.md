@@ -59,20 +59,33 @@ a translation surface it has not written yet.
   uses. Zig (comptime duck typing) and Bash declare no implements-relationship at all, so
   neither has a hierarchy to read.
 
-- [ ] B755: **a map reached through its methods does not read.** The writing half
-  is done; this is what is left.
+- [ ] B755: **a map's key and value types do not cross.** The vocabularies do
+  now, and fifteen of the thirty map cells run. The other fifteen share one
+  cause: the type the map holds, not the words that reach it.
 
-  Python's spelling is the only one the readers canonicalise: the literal,
-  `d[k] = v`, `d[k]` and `len(d)`. `HashMap::new()` has no counterpart and
-  carries loudly, which is the honest part. The method vocabularies have none
-  and do not carry. `insert`, `contains_key`, Java's `put` and `containsKey`,
-  TypeScript's `set` and `has`, Zig's `put` and `contains` are written through.
-  A Rust map reaches Python as `ages.insert(str("ada"), 36)` against a `dict`.
+  Go as a source carries `map[string]int64{…}` whole: a composite literal with
+  its type written on it is not read as a map literal. Go as a target writes
+  `map[string]any`, so `total + ages[name]` is `int` plus `any` and does not
+  compile. Java is given `Object` and cannot add it. Zig is given a
+  `StringHashMap` whose key type was guessed from an empty literal. Rust is
+  given a `&str` key where the map holds `String`.
 
-  What is needed is one canonicalisation per reader, onto the forms the writers
-  already spell. Pinned in `tests/open_defects.rs`.
+  One cause under all of them. The map literal's own key and value types are
+  not carried on `Type::Map`, so every writer picks a default and the defaults
+  disagree. The conformance group is in the harness with its fifteen cells
+  pinned, so the rest are measured rather than described.
 
 ## Fixed
+
+- [x] B757: **a map reached through its methods did not read.** Python's
+  spelling was the only one the readers canonicalised. A map written the way its
+  own language writes one arrived as method calls against a type with no such
+  member. A Rust map reached Python as `ages.insert(str("ada"), 36)` on a
+  `dict`. Each language now has its four words read onto the one shape the
+  writers already spell: an index assignment, an index, `len` and `contains`.
+  `insert`, `put`, `set`, `get`, `contains_key`, `containsKey`, `has`,
+  `contains`, `size` and `count` all cross. A constructor the reader could not
+  place folds into the empty literal when the binding's type says it is a map. Fifteen map cells run in the conformance suite where none did.
 
 - [x] B756: **a map crossed to Go and to nowhere else.** Neither sweep saw it.
   No corpus file and no conformance program writes to a map. Rust was
