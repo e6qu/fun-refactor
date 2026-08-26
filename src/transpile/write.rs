@@ -2792,8 +2792,24 @@ fn rust(out: &mut Out, module: &Module) {
                     out.line(&format!("impl{generics} {type_name}{generics} {{"));
                     out.open();
                     out.record_written = Some(r.name.clone());
+                    // Java overloads share a name and Rust has no overloading,
+                    // so two `fn add` in one `impl` do not compile. Later ones
+                    // take a numbered name, the way the Zig writer does, and the
+                    // report says so once.
+                    let mut spelled: std::collections::BTreeMap<String, usize> =
+                        std::collections::BTreeMap::new();
                     for m in &methods_of(out, r, false) {
-                        rust_function(out, m, m.receiver_binding.is_some());
+                        let seen = spelled.entry(m.name.clone()).or_insert(0);
+                        *seen += 1;
+                        let mut renamed = m.clone();
+                        if *seen > 1 {
+                            out.note_once(
+                                "overloads share a name the target refuses to repeat; \
+                                 later overloads take a numbered name.",
+                            );
+                            renamed.name = format!("{}{}", m.name, *seen);
+                        }
+                        rust_function(out, &renamed, renamed.receiver_binding.is_some());
                     }
                     out.record_written = None;
                     out.record_generics.clear();

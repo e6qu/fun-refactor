@@ -995,17 +995,40 @@ Terraform's own heads is a reference, and the type words are types.
 
 ### The edges
 
-Every reference in CROSS_LANGUAGE.md that this tool does not follow yet.
-`getElementById("panel")` to the id in the markup, a manifest's environment
-variables to the `getenv` that reads them, bash flags to the program that
-declares them, a CI file to the scripts it runs, Terraform to the templates it
-renders, and a Markdown link to the code it points at.
+Every reference in CROSS_LANGUAGE.md that this tool did not follow. All seven
+are answered now, and where half of one is not, the half is named.
+
+- **CSS modules** already resolved, import-qualified, and were measured again to
+  say so.
+- **`getElementById("panel")`** and the `querySelector` family reach the id or
+  the class that markup and stylesheets declare.
+- **Environment variables** already crossed, end to end.
+- **`--flags`** reach the clap, `flag`, `argparse` or commander declaration that
+  names them, through `fr stitch --flags`.
+- **A CI step** reaches the script it runs, through `fr stitch --files`.
+- **Terraform** reaches the template it renders, through the same reader. The
+  *variables* substituted into that template do not. Reading those needs a
+  template grammar per target, which is a grammar question and not this one.
+- **A Markdown link** reaches the file it documents. Prose mentioning a symbol
+  stays a textual occurrence, reported and never rewritten. Nothing proves a
+  word in a sentence is the function rather than the English word.
 
 ### The compile gate, all the way down
 
-The corpus gate stops at the front end for Go, Rust, Java and Zig. A corpus
-file imports a world the translation does not carry. Generated stubs for
-exactly the foreign names each file uses let the real compiler finish the job.
+`tests/corpus_semantic.rs` takes the Rust half past the front end. The compiler
+is asked what it cannot find, a stub is written declaring exactly those names,
+and the file is compiled again against it. The stub is the assumption made
+visible: it says which names were taken on trust.
+
+The first thing the gate found was four `fn add` in one `impl`. Java overloads
+its methods, Rust does not, and every other gate here passed the file. Later
+overloads take a numbered name now, the way the Zig writer already spelled
+them.
+
+What is left is a ratchet, 1223 diagnostics across eleven files. Two of those
+files carry three quarters of it, and both import the Zig standard library
+whose surface a stub cannot describe. The number may fall and may not rise.
+Every fall is a bug parsing could not have found.
 
 ### B5, said exactly
 

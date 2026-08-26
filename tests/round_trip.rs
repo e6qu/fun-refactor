@@ -347,6 +347,36 @@ fn nothing_goes_missing(files: &[PathBuf], least: usize) {
                 })
                 .collect();
             gained.retain(|(name, params)| !(params.is_empty() && degraded.contains(&plain(name))));
+            // Java overloads its methods, and Rust and Zig refuse two members
+            // spelled alike. So later overloads take a numbered name, and the
+            // writer's note says so. Coming back, `add2` is the `add` that was
+            // lost and not a method the source lacked. The pair moves together:
+            // a numbered name is only forgiven where the name it was made from
+            // went missing, so a real loss still fails.
+            let numbered: Vec<(String, Vec<String>)> = gained
+                .iter()
+                .filter(|(name, params)| {
+                    let bare = plain(name);
+                    let Some(root) = bare.strip_suffix(|c: char| c.is_ascii_digit()) else {
+                        return false;
+                    };
+                    missing
+                        .iter()
+                        .any(|(lost, held)| plain(lost) == root && held == params)
+                })
+                .map(|pair| (*pair).clone())
+                .collect();
+            for (name, params) in numbered {
+                let root = plain(&name);
+                let root = root.trim_end_matches(|c: char| c.is_ascii_digit()).to_string();
+                if let Some(at) = missing
+                    .iter()
+                    .position(|(lost, held)| plain(lost) == root && *held == params)
+                {
+                    missing.remove(at);
+                }
+                gained.retain(|(n, p)| !(*n == name && *p == params));
+            }
             // Java and TypeScript build a record by calling a constructor and
             // have no literal to build it with. A record that crosses into one
             // arrives with the constructor its fields imply. Coming back,

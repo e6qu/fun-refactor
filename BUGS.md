@@ -93,6 +93,17 @@ a translation surface it has not written yet.
   gained what it should have preserved. Each language's widest type reads as the
   nothing it stands for.
 
+- [x] B778: **four `fn add` in one `impl`.** Java overloads its methods and
+  Rust does not. A class with four `add` overloads translated into a file that
+  could not compile, and every gate here passed it. The corpus gate stops at the
+  front end, and `rustfmt` parses a duplicate method happily.
+
+  The Zig writer already numbered later overloads and said so in its report.
+  The Rust writer does the same now. `tests/corpus_semantic.rs` is what found
+  it. The foreign world a corpus file imports is stubbed from the compiler's
+  own "cannot find" list. What the type checker says after that is a ratchet,
+  standing at 1223.
+
 - [x] B777: **a renamed flag silently broke every script passing it.** A script
   writes `./collector --retention-days 30`, and a program declares that flag
   somewhere. The two never met. The flag was a word in a shell command and
