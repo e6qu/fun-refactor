@@ -93,6 +93,18 @@ a translation surface it has not written yet.
   gained what it should have preserved. Each language's widest type reads as the
   nothing it stands for.
 
+- [x] B775: **an element id named from code reached nothing.** The tool
+  resolved ids within markup already, `<label for>` to `<input id>`. From code
+  the id arrives as a string literal, and `document.getElementById("panel")`
+  resolved to nothing.
+
+  A string argument to a known DOM accessor is a reference now, and the receiver
+  is checked so `cache.get(k)` is not one. The name comes from what the markup
+  or the stylesheet declares, so a selector's `#` and `.` come off. A compound
+  selector is left alone: splitting one needs a selector parser. Reporting the
+  whole string as a name would reach nothing while claiming to have looked.
+  The confidence stays name-only, so nothing rewrites it.
+
 - [x] B774: **this build could not read JSON at all.** Every configuration
   format here has a JSON neighbour. Terraform reads `.tf` and `.tf.json` as two
   spellings of one language. Without the grammar, a workspace holding both

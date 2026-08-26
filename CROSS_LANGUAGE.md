@@ -118,19 +118,22 @@ treats a stylesheet as a module with an export list.
 ### 2. Element ids named from code, `getElementById("panel")`
 
 ```ts
-document.getElementById("open-path")           // a string, resolving to nothing
+document.getElementById("open-path")           // resolves, name-only
+document.querySelector("#panel")               // the id, without the `#`
+document.querySelectorAll(".card")             // the class, without the `.`
 ```
 
-The tool already resolves ids *within* markup (`<label for>` → `<input id>`). From
-code, the id arrives as a string literal.
+**This crosses now.** The trigger is a string argument to a known DOM accessor,
+and the receiver is checked: `cache.get(k)` is not a DOM lookup. The name is the
+one the markup or the stylesheet declares. So the selector's `#` and `.` come
+off, the same way a link's fragment marker does.
 
-**What it needs.** String-keyed resolution already exists, and Helm values and some
-config keys resolve through it. The same mechanism takes a narrower trigger here: a
-string argument to a known DOM accessor. Keep it `NameOnly`. Nothing proves the string
-names an id rather than matching by coincidence, so the tool should report it and leave
-it alone.
+A compound selector is left alone. `div.card > a` names several things at once
+and splitting it needs a selector parser. Reporting the whole string as one name
+would reach nothing and claim to have looked.
 
-**Cost.** Small. Report it and do not rewrite it.
+The confidence stays `NameOnly`. Nothing proves the string names an id rather
+than matching one by coincidence, so the tool reports it and does not rewrite it.
 
 ### 3. Environment variables, manifest to `os.getenv`
 
