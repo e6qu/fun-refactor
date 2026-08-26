@@ -564,6 +564,10 @@ enum Command {
         /// Only variables nothing in the workspace reads.
         #[arg(long)]
         orphaned: bool,
+        /// Trace the *files* configuration names instead: the script a CI step
+        /// runs, the template a Terraform resource renders.
+        #[arg(long)]
+        files: bool,
     },
     /// Show everything a change to a symbol could affect.
     Impact {
@@ -974,7 +978,11 @@ fn dispatch(cli: &Cli) -> Result<()> {
             change,
             write,
         } => cmd_signature(cli, target, change, *write),
-        Command::Stitch { env, orphaned } => cmd_stitch(cli, env.as_deref(), *orphaned),
+        Command::Stitch {
+            env,
+            orphaned,
+            files,
+        } => cmd_stitch(cli, env.as_deref(), *orphaned, *files),
         Command::Impact {
             target,
             caller_depth,
@@ -3469,10 +3477,16 @@ fn report_values_inputs(
     }
 }
 
-fn cmd_stitch(cli: &Cli, env: Option<&str>, orphaned_only: bool) -> Result<()> {
+fn cmd_stitch(cli: &Cli, env: Option<&str>, orphaned_only: bool, files: bool) -> Result<()> {
     use crate::analysis::stitch;
 
     let index = build_index(cli, &[])?;
+    // The other half of what configuration names: a file, rather than a value a
+    // program reads. A CI step naming a script and a Terraform resource naming
+    // a template ask the same question twice.
+    if files {
+        return report_path_links(cli, &index);
+    }
     let mut chains = match env {
         Some(name) => stitch::for_variable(&index, name)?,
         None => stitch::chains(&index)?,
@@ -3516,6 +3530,54 @@ fn cmd_stitch(cli: &Cli, env: Option<&str>, orphaned_only: bool) -> Result<()> {
          which is a string on both sides -- nothing can prove the two refer to the \n\
          same variable, so those hops are reported as name-only.",
         chains.len()
+    );
+    Ok(())
+}
+
+/// Every path a configuration file writes, and the file it names.
+fn report_path_links(cli: &Cli, index: &crate::index::Index) -> Result<()> {
+    let root = workspace_root(cli);
+    let links = crate::analysis::paths::links(index, &root)?;
+
+    if cli.json {
+        let payload: Vec<_> = links
+            .iter()
+            .map(|l| {
+                serde_json::json!({
+                    "from": l.from,
+                    "line": l.line,
+                    "language": l.language.name(),
+                    "written": l.written,
+                    "names": l.names,
+                    "dangling": l.is_dangling(),
+                })
+            })
+            .collect();
+        println!("{}", serde_json::to_string_pretty(&payload)?);
+        return Ok(());
+    }
+
+    if links.is_empty() {
+        println!("No configuration file names a path in this workspace.");
+        return Ok(());
+    }
+    for link in &links {
+        let names = match &link.names {
+            Some(file) => file.display().to_string(),
+            None => "nothing in this workspace".to_string(),
+        };
+        println!(
+            "{}:{} runs {} -> {names}",
+            link.from.display(),
+            link.line,
+            link.written
+        );
+    }
+    let dangling = links.iter().filter(|l| l.is_dangling()).count();
+    println!(
+        "{} path(s), {dangling} naming nothing. A path either exists or it \n\
+         does not. So these are exact, and not name-only.",
+        links.len()
     );
     Ok(())
 }

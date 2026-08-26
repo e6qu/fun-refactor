@@ -5,6 +5,7 @@ pub mod duplicates;
 pub mod entrypoints;
 pub mod flow;
 pub mod impact;
+pub mod paths;
 pub mod provenance;
 pub mod stitch;
 pub mod types;

@@ -178,13 +178,17 @@ growth out of the code.
 - run: ./scripts/deploy.sh --namespace signals
 ```
 
-A path in a YAML `run:` step naming a file, and flags naming a script's options.
+**The path half crosses now**, through `fr stitch --files`. A path either exists
+in the workspace or it does not, so the edge is exact and never name-only. A
+step running a script nobody kept is reported as naming nothing. That is a build
+which breaks on the next push and not before.
 
-**What it needs.** Resolving a path-valued string to a file is a small,
-high-confidence edge. The path either exists in the workspace or it does not. It
-answers "what runs this?" as much as it serves a rename.
+A command is not a path. `make` and `cargo test` name no file, and reporting one
+as dangling would be noise. Noise teaches a reader to ignore the real ones.
 
-**Cost.** Small.
+**The flag half does not.** `--namespace signals` names an option the script
+declares. Matching one to the other means reading the script's own argument
+parsing, which is edge 4 and still open.
 
 ### 6. Terraform to the scripts and templates it renders
 
@@ -192,11 +196,13 @@ answers "what runs this?" as much as it serves a rename.
 user_data = templatefile("${path.module}/init.sh", { port = var.port })
 ```
 
-The file reference is a path, and the substituted names are template variables inside
-another language's file.
+**The path half crosses now**, through the same reader as edge 5.
+`templatefile`, `file` and `filebase64` each name a file, and `${path.module}`
+is the directory the `.tf` sits in. A path beside the file wins over one at the
+root, which is how Terraform itself resolves one.
 
-**Cost.** The path half is small. The variable half needs a template grammar per
-target and is probably not worth it.
+**The variable half does not.** The substituted names are variables inside
+another language's file, and reading them needs a template grammar per target.
 
 ### 7. Markdown to the code it documents
 
