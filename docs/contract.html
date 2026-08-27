@@ -138,11 +138,10 @@
       with the parameter</em>. The behaviour redistributes itself while the URL it
       answers stays the same:
     </p>
-<pre class="term-body"><code>// Next.js
-const pet = await db.pet.findUnique({ where: { id: context.params.petId } })
-
-# FastAPI
-pet = await db.pet.findUnique({"where": {"id": pet_id}})</code></pre>
+    <p class="note prose">Next.js:</p>
+<pre class="term-body"><code>const pet = await db.pet.findUnique({ where: { id: context.params.petId } })</code></pre>
+    <p class="note prose">FastAPI:</p>
+<pre class="term-body"><code>pet = await db.pet.findUnique({"where": {"id": pet_id}})</code></pre>
     <p>
       Rewriting the declaration and leaving <code>context.params.petId</code> in the
       body would produce a file that parses, imports and starts, then answers every

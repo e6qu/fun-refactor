@@ -2,7 +2,7 @@
 //!
 //! Layering (see PLAN.md):
 //! - [`span`] / [`lang`]: byte-native positions and language identity
-//! - [`parse`]: tree-sitter parsing for 12 languages
+//! - [`parse`]: tree-sitter parsing for every language in [`lang::Language`]
 //! - [`scan`]: workspace discovery
 //! - [`edit`]: lossless byte-splice edit engine
 //! - [`cli`]: command surface

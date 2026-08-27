@@ -37,7 +37,7 @@ feature is missing or present when it is not:
 
 Measured on the bundled sample, the only corpus that exercises many languages at once:
 
-    web/sample (24 files, 15 languages, 574 resolved references)
+    web/sample (27 files, 17 languages, 596 resolved references)
             html -> css          18   selector
              tsx -> css           2   selector
              tsx -> typescript    8   function 6, interface 2
@@ -342,10 +342,10 @@ these languages "constructor" *is* a naming convention.
 ### What real code has that a fixture does not
 
 The output parsing as the language it claims to be is the strongest check available
-without six compilers. Run it over this repository's own source: twenty thousand lines
-of Rust, thirteen files of TypeScript, three of Go, and the vendored Python. That run
-failed 97 of 235 translations, and every failure was a thing nobody thinks to put in a
-fixture:
+without six compilers. It was first run over this repository's own source. That source
+then held twenty thousand lines of Rust, thirteen files of TypeScript, three of Go, and
+the vendored Python. The run failed 97 of 235 translations. Every failure was a thing
+nobody thinks to put in a fixture:
 
 - **A comment between two parameters.** A comment is an *extra* in every one of these
   grammars: it can appear between any two nodes anywhere. A reader that walks a

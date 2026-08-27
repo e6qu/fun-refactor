@@ -340,27 +340,32 @@ A silent guard-clause moved code out from under its condition. A dead-code repor
 - **Helm templating is text-level YAML**: `{{ }}` breaks YAML parsing. Mitigation: parse
   templates with the funveil approach (tree-sitter YAML + template-token layer); treat
   render-dependent structures as unresolved, loudly.
-- **Scope creep across 12 × 17 features**: each cell of the matrix commits the tool to
+- **Scope creep across the whole matrix**: each cell of it commits the tool to
   refuse. None is a gap to fill. An open decision resolves a tbd cell, and drift never
   does.
 
 ## Where this stands
 
-Stages 0 to 8 are complete, and so are the five pull requests this plan sequenced. The
-figures below were measured on this branch.
+Stages 0 to 8 are complete, and so are the five pull requests this plan sequenced.
+
+The lower half of this table is derived from the code and asserted by
+`tests/capability_matrix.rs`. The earlier version said sixteen languages and 269
+supported pairs long after both had moved, because nothing checked it. The upper half
+counts things no test can pin without failing on every commit. It is a snapshot, and
+says which commit it was taken at.
 
 | | |
 |---|---|
-| Commits | 149 |
-| Merged pull requests | 99 |
-| Rust source | 55,839 lines |
-| Tests | 1,914 in 98 files |
-| Query sets | 14 |
+| Commits | 246, at `632276e` |
+| Merged pull requests | 164, at `632276e` |
+| Rust source | 97,377 lines, at `632276e` |
+| Tests | 2,227 in 189 files, at `632276e` |
+| Query sets | 16 |
 | Entry-point catalogs | 10 |
-| Capabilities × languages | 24 × 16 |
-| Supported pairs | 269 of 384, every other one carrying its reason |
-| Defects fixed | 311 |
-| Defects open | 12 |
+| Capabilities × languages | 24 × 18 |
+| Supported pairs | 299 of 432, every other one carrying its reason |
+| Defects fixed | 631 |
+| Defects open | 1 |
 
 Every cell that `fr capabilities` marks `n/a` carries the reason the tool refuses. That
 keeps the column a commitment.
@@ -1147,11 +1152,11 @@ listing, `--out` and `--force`.
 
 `fr capabilities` computes the matrix from each refactoring's own predicate. So a `✓` means
 "this command would accept this language" and not "this has ever worked". Nothing had ever
-asked which of the 269 supported cells the tests reach.
+asked which of the supported cells the tests reach.
 
 Measure it instead of arguing about it: every capability records the language it ran
 against when `FR_CAPABILITY_LOG` is set. The first run answered **205 of 270, 75%**. It
-is **269 of 269** now, and `tools/check.sh` measures it on the test run it already does,
+is **299 of 299** now, and `tools/check.sh` measures it on the test run it already does,
 so every run defends the figure. `tools/capability-audit.sh` asks the same question on
 its own, through the same reporter, so the two cannot drift apart.
 
@@ -2579,3 +2584,58 @@ applied to the rest of the list. Terraform 1.9.8 to 1.16.0, Helm 3.16.3 to 4.2.4
 24 to 26. Go is pinned at 1.27 where it had been taking the runner's default. Terraform
 and Helm carry their published checksums now. Zig already did, and the two beside it did
 not, so the gate ran whatever those hosts served.
+
+### The pass where the figures started counting themselves
+
+The pass before this one fixed the numbers the documents got wrong. This one goes after
+the reason they were wrong. A figure written by hand is a figure nobody measures again.
+
+The status table under "Where this stands" was the worst of them. Every row had been
+measured once. 269 of 384 supported pairs against 299 of 432. Sixteen languages against
+eighteen. Twelve defects open against the one BUGS.md holds.
+`tests/capability_matrix.rs` counts every countable row now. The rows no test can pin
+without failing on each commit say which commit they came from.
+
+`tests/docs_census.rs` is the same idea for the measurements. It indexes `web/sample`
+and computes the census `CROSS_LANGUAGE.md` opens with. That census was three files and
+two languages behind. The crossings table under it was still right, so the line read as
+checked. The same test counts the conformance groups, the languages the catalogs name,
+and the pet store's route files, each against the sentence stating it.
+
+The measurements taken on other repositories stay as they are. Reproducing them needs
+helm, ripgrep and requests, which this repository does not hold. So each says what it
+measured and when. The first run of the parse gate over this repository's own source is
+one of those. It reads as the historical run it was now, rather than as a description of
+a source tree three times the size.
+
+Two contradictions fell out of the sweep. The README called the LSP delegation backend
+an open stage. PLAN.md had closed it with the measurement behind the decision. And
+`src/lib.rs` said the parser reads twelve languages. It names `lang::Language` now,
+because the count was never the point.
+
+### The pass where the examples stopped narrating
+
+An example on a page is explained by the paragraph beside it. A comment inside it says
+the same thing twice, in the place a reader is looking for the code. That rule was
+enforced for the type-safety examples and nowhere else, so everything written before it
+kept its comments.
+
+Eleven went from the fixtures the generator holds. The Python docstring over
+`readings_above` and the `/** … */` over `readingsAbove`. The Go, Rust and Zig doc
+comments over a struct called `Reading` and a function called `warmer`. And a
+`"""The distance around a circle."""` over `circ` in two catalogue samples. Each said
+what its own signature said.
+
+Four more went from the blocks the pages hold in their own source. The `requires` guard
+in the recipe shape. The two language labels on the handler pair. The status annotations
+on the FastAPI decorator, and the three questions beside the first commands to run.
+Every one of those moved into the paragraph under its block, and in three of the four
+that paragraph already said it.
+
+`tests/docs_examples.rs` reads both halves. It scans every fixture constant in the
+generator and every `<pre>` on every page, with the tags stripped. A comment wrapped in
+`<em>` is still a comment a reader sees.
+
+Two kinds of comment do reach these pages and stay. What `fr` writes into a translation
+is the tool speaking, and the translation page exists to show it. What a vendored corpus
+file carries is somebody else's code, held to a checksum. Neither was authored here.
