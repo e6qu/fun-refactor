@@ -1,9 +1,4 @@
 //! The call graph leaves the tool as data, not only as a summary.
-//!
-//! `fr graph --json` printed six counts and kept every node and edge to itself,
-//! so a caller who wanted the graph had to parse DOT. The JSON now carries the
-//! graph: each node with its file and line, each edge with how it resolved.
-//! The counts stay beside them for anyone already reading those.
 
 use assert_cmd::Command;
 use predicates::str::contains;
@@ -113,10 +108,7 @@ fn dot_labels_carry_the_file_under_the_name() {
 
 #[test]
 fn a_call_at_file_scope_is_counted_apart_from_an_unresolved_one() {
-    // A shell script calls its own function at the top level. The callee resolves,
-    // and the caller is no function, so the graph has no node to hang it off.
-    // Counting it as unresolved said the call could not be resolved, while
-    // `fr usages` resolved it in the same workspace.
+    // A shell script calls its own function at the top level.
     let tmp = workspace(&[(
         "lib.sh",
         "#!/usr/bin/env bash\ndeploy() {\n  target=prod\n}\n\ndeploy\n",
@@ -129,9 +121,7 @@ fn a_call_at_file_scope_is_counted_apart_from_an_unresolved_one() {
 
 #[test]
 fn a_language_with_no_call_graph_refuses_instead_of_answering_nothing() {
-    // The matrix says `n/a` for SCSS, and the caller pointed at one symbol. The
-    // command printed the name and exited 0, which reads as "nothing calls this"
-    // while `fr usages` lists two `@include` sites.
+    // The matrix says `n/a` for SCSS, and the caller pointed at one symbol.
     let tmp = workspace(&[(
         "m.scss",
         "@mixin flex { display: flex; }\n.a { @include flex; }\n.b { @include flex; }\n",

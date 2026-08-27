@@ -1,12 +1,4 @@
 //! Exceptions cross under the target's own names, and their text stays their text.
-//!
-//! `throw new Error(m)` named a class no Python file declares, and `raise
-//! ValueError(m)` named one no TypeScript file has. Each reader crosses its
-//! everyday exception names into the canonical (Python) ones. The TypeScript
-//! writer declares one-line classes for the names it does not have. A throw, a
-//! catch and an `instanceof` then all name the same class. The exception used as text
-//! is its message everywhere: `e.message`, `e.getMessage()` and Python's `str(e)`
-//! print the same words.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -59,8 +51,7 @@ fn javas_exception_spellings_reach_python_as_pythons() {
         plan.output
     );
     // The canonical error model carries the message; the class dissolves into it, and the catch
-    // takes whatever failure arrives. The same code means that once it crosses into
-    // Result- and error-union targets, where no class survives either.
+    // takes whatever failure arrives.
     assert!(
         plan.output.contains("except Exception as e:"),
         "the catch takes the canonical failure.\n{}",
@@ -81,8 +72,7 @@ fn pythons_builtin_exceptions_reach_typescript_as_declared_classes() {
                   except ValueError as e:\n        print(\"caught\", e)\n";
     let (_tmp, root) = workspace(&[("exc.py", source)]);
     let plan = transpile::plan(&root.join("exc.py"), Language::TypeScript).expect("a draft");
-    // The throw keeps its declared class. The catch is canonical and takes whatever failure
-    // arrives, the way the same code reads once it crosses the Result- and error-union targets.
+    // The throw keeps its declared class.
     for expected in [
         "class ValueError extends Error {}",
         "throw new ValueError(`negative: ${String(n)}`);",

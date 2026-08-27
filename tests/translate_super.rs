@@ -1,10 +1,4 @@
 //! `super` and the exception bases speak the target, both ways.
-//!
-//! `super().__init__(m)` crossed as a call to a function named `super_` that
-//! no target declares. A class extending `Exception` extended a name no
-//! TypeScript file has. Coming the other way, `super(m)` carried as a comment
-//! and the constructor around it gained a `raise NotImplementedError`.
-//! Constructing the translated exception then raised before it began.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -119,9 +113,8 @@ fn a_typescript_super_method_call_comes_home_as_pythons() {
 
 #[test]
 fn the_no_inheritance_targets_carry_the_super_call_visibly() {
-    // The override shadows the base's method when the base lays flat, so the
-    // reach through `super` has no method left to land on. Writing the word
-    // through named nothing in Go; the call carries instead.
+    // The override shadows the base's method when the base lays flat, so the reach through
+    // `super` has no method left to land on.
     let source = "class Base:\n    def label(self) -> str:\n        return \"base\"\n\n\n\
         class Child(Base):\n    def label(self) -> str:\n        \
         return super().label() + \"!\"\n";

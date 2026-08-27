@@ -1,10 +1,4 @@
 //! Which Go types implement which Go interfaces.
-//!
-//! Go decides this by signature. The hierarchy pass compared method *name and arity*,
-//! under a comment claiming a covered method set "is the whole of what implementing an
-//! interface means there", which is true of Go and was not true of the code. In
-//! helm/helm that produced 7,179 dispatch edges between types that do not implement each
-//! other, 35% of the layer.
 
 use fun_refactor::analysis::call_graph::CallGraph;
 use fun_refactor::index::Index;
@@ -29,8 +23,7 @@ fn reaches(source: &str, from: &str) -> Vec<String> {
 
 #[test]
 fn a_different_return_type_is_not_an_implementation() {
-    // `Report.Run() string` does not satisfy `Run() error`. Go says so; the tool said
-    // they were both candidates because both are called `Run` and take nothing.
+    // `Report.Run() string` does not satisfy `Run() error`.
     let source = "\
 package main
 
@@ -89,9 +82,7 @@ func save(s Store) error {
 
 #[test]
 fn a_parameter_name_is_not_part_of_the_question() {
-    // Go compares types, not names. Refusing an implementation because it called its parameter
-    // something else would drop a true edge. A dropped edge here becomes a live method reported
-    // as dead code.
+    // Go compares types, not names.
     let source = "\
 package main
 
@@ -144,10 +135,8 @@ func use(b Both) error {
 
 #[test]
 fn the_package_a_type_is_written_from_is_not_part_of_the_question() {
-    // `kube.ResourceList` from outside the package and `ResourceList` from inside are
-    // the same type. Comparing the signatures as written refused
-    // `PrintingKubeClient` as an implementation of an interface it plainly satisfies,
-    // seven of them in helm, each one a live method that would have been reported dead.
+    // `kube.ResourceList` from outside the package and `ResourceList` from inside are the same
+    // type.
     let tmp = tempfile::tempdir().expect("a temporary directory");
     std::fs::create_dir_all(tmp.path().join("kube")).expect("the directory");
     std::fs::write(

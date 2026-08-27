@@ -1,10 +1,4 @@
 //! Bash crosses as its computational subset.
-//!
-//! A bash function's value is its stdout. An `echo` at the end of a body reads as
-//! the return it is. The writer spells a returned value `printf` beside
-//! `return 0`, with callers capturing `$(f …)`. Positional parameters become
-//! named ones. What bash cannot say, a record, a pipeline, an external command,
-//! carries loudly in both directions and is never dropped.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;

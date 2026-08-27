@@ -1,8 +1,4 @@
 //! Micro-rewrites, exercised on real source.
-//!
-//! These are the transformations rust-analyzer and gopls offer as code actions. The
-//! interesting property is that each one must preserve meaning exactly while changing
-//! shape, so the tests compare whole files and not fragments.
 
 use fun_refactor::edit::apply_to_string;
 use fun_refactor::index::Index;
@@ -295,11 +291,6 @@ fn bash_rewrites_still_parse() {
 }
 
 /// Every language `rewrite::supported` claims, with an if/else and a guardable if.
-///
-/// The gap these close: for a long time only Rust, Python and Bash were exercised, and the
-/// matrix published the rest on the strength of the language list alone. TypeScript and Zig
-/// were both broken, a negated condition lost the brackets those grammars require. Nothing said
-/// so until the tool was run on real code.
 const EVERY_LANGUAGE: &[(&str, &str, &str)] = &[
     (
         "a.rs",
@@ -372,9 +363,7 @@ fn guard_clause_produces_parseable_code_in_every_supported_language() {
 
 #[test]
 fn a_negated_condition_keeps_the_brackets_its_grammar_requires() {
-    // Zig and the C family fold the parentheses into the condition node. Negating
-    // that node whole yields `if !(a)`, which is valid Rust and invalid everywhere
-    // that needs the brackets.
+    // Zig and the C family fold the parentheses into the condition node.
     for (name, src, _) in EVERY_LANGUAGE {
         if !name.ends_with(".ts") && !name.ends_with(".tsx") && !name.ends_with(".zig") {
             continue;
@@ -418,9 +407,7 @@ fn invert_if_refuses_an_else_if_chain() {
 
 #[test]
 fn de_morgan_keeps_the_grouping_the_result_needs() {
-    // `!(a && b)` is one operand of the outer `&&`; `!a || !b` is two. Without new
-    // brackets the outer operator rebinds and the meaning changes silently. This
-    // one parses cleanly, so no reparse check would catch it.
+    // `!(a && b)` is one operand of the outer `&&`; `!a || !b` is two.
     let src = "fn f(a: bool, b: bool, x: bool) -> bool {\n    x && !(a && b)\n}\n";
     let (tmp, index) = workspace(&[("a.rs", src)]);
     let path = tmp.path().join("a.rs");
@@ -444,7 +431,6 @@ fn de_morgan_leaves_a_standalone_negation_unbracketed() {
 
 #[test]
 fn guard_clause_indents_the_way_the_file_does() {
-    // Two-space TypeScript and tab-indented Go both used to receive four spaces.
     let ts = "function f(a: boolean) {\n  if (a) {\n    go();\n  }\n}\n";
     let (tmp, index) = workspace(&[("a.ts", ts)]);
     let path = tmp.path().join("a.ts");
@@ -484,11 +470,7 @@ fn available_only_offers_rewrites_that_survive_a_reparse() {
 
 #[test]
 fn guard_clause_refuses_when_the_if_is_not_last_in_a_go_block() {
-    // Go puts a `statement_list` between a block and its statements. Mistaking that wrapper for
-    // a statement made every block look like a block of one. So the "is the `if` last?" check
-    // passed for an `if` with code after it and the guard hoisted that code out from under the
-    // condition. The result parses, so no reparse check would have caught it, only the meaning
-    // changes.
+    // Go puts a `statement_list` between a block and its statements.
     let src = "package p\n\nfunc f(a bool) {\n\tif a {\n\t\tgo1()\n\t}\n\tafter()\n}\n";
     let (tmp, index) = workspace(&[("a.go", src)]);
     let path = tmp.path().join("a.go");
@@ -527,9 +509,7 @@ fn guard_clause_still_applies_to_a_trailing_go_if() {
 
 #[test]
 fn a_guard_at_the_end_of_a_loop_body_continues_rather_than_returns() {
-    // ripgrep's `find_program` ends a `for` body with an `if`. Rewriting that to
-    // `return` leaves the loop entirely, a different program, and leaves it with no
-    // value in a function returning `Result<PathBuf>`.
+    // ripgrep's `find_program` ends a `for` body with an `if`.
     let src = "fn f(paths: Vec<i32>) {\n    for p in paths {\n        if p > 0 {\n            use_it(p);\n        }\n    }\n}\n";
     let (tmp, index) = workspace(&[("a.rs", src)]);
     let path = tmp.path().join("a.rs");

@@ -1,11 +1,4 @@
 //! A signature change and a delete follow the dispatch family.
-//!
-//! A trait method with one more parameter than its implementations is a
-//! family answering two shapes, and the callers compile against neither. So
-//! `fr signature` changes the declaration, every implementation, and the
-//! dispatch sites that resolve to no single one of them. `fr delete`
-//! removes the family whole. The receiver is not an addressable parameter:
-//! a call never passes it, and counting it put every position out by one.
 
 use fun_refactor::index::Index;
 use fun_refactor::refactor::{delete, signature};
@@ -132,10 +125,8 @@ fn two_unrelated_methods_sharing_a_name_stay_apart() {
 
 #[test]
 fn a_function_held_as_a_value_refuses_the_change() {
-    // `let f: fn(i32, i32) -> i32 = add;` has no argument list to rewrite, and a
-    // changed `add` no longer matches the binding's type. This site was silently
-    // skipped once, and the command reported one clean call site while the build
-    // broke on the binding.
+    // `let f: fn(i32, i32) -> i32 = add;` has no argument list to rewrite, and a changed `add`
+    // no longer matches the binding's type.
     let source = "fn add(a: i32, _unused: i32) -> i32 {\n    a\n}\n\n\
         pub fn run() -> i32 {\n    let f: fn(i32, i32) -> i32 = add;\n    \
         let direct = add(1, 2);\n    f(3, 4) + direct\n}\n";
@@ -150,10 +141,6 @@ fn a_function_held_as_a_value_refuses_the_change() {
 
 #[test]
 fn a_call_naming_its_arguments_loses_only_the_one_being_removed() {
-    // Position says nothing about which argument is which once a call names
-    // them. Removing parameter 1 took `loud=True` out of `greet("b",
-    // loud=True)`. The refusal for the same shape blamed "the body of
-    // `greet`" while pointing at a call site.
     let source = "def greet(name: str, punct: str = \"!\", loud: bool = False) -> str:\n    \
         text = name\n    return text.upper() if loud else text\n\n\n\
         print(greet(\"a\"))\nprint(greet(\"b\", loud=True))\n\
@@ -194,9 +181,7 @@ fn a_body_that_reads_the_parameter_still_refuses() {
 
 #[test]
 fn adding_a_parameter_twice_is_refused() {
-    // The grammar parses `def scale(v, factor, factor)` and Python refuses it
-    // at import. Every other operation declines a repeat; this one applied it
-    // again, so a retried command broke the file it had just changed.
+    // The grammar parses `def scale(v, factor, factor)` and Python refuses it at import.
     let source = "def scale(v: int) -> int:\n    return v\n\n\nprint(scale(3))\n";
     let (tmp, index) = workspace(&[("m.py", source)]);
     let _ = &tmp;
@@ -223,8 +208,7 @@ fn adding_a_parameter_twice_is_refused() {
 
 #[test]
 fn a_go_parameter_is_named_by_its_first_word() {
-    // Go writes `name type` and Java writes `type name`. Reading the wrong end
-    // answered `float64` when asked what `price float64` is called.
+    // Go writes `name type` and Java writes `type name`.
     let source = "package main\n\nfunc WithTax(price float64, rate float64) float64 {\n\t\
         return price\n}\n";
     let (tmp, index) = workspace(&[("m.go", source)]);

@@ -1,8 +1,4 @@
 //! Inline call: the strictest refactoring in the set.
-//!
-//! Every precondition here exists because breaking it changes behaviour while still
-//! compiling, the worst possible failure for a refactoring tool. Each one is a
-//! refusal that names what blocked it.
 
 use fun_refactor::edit::apply_to_string;
 use fun_refactor::index::Index;
@@ -169,8 +165,6 @@ fn the_result_still_parses() {
 
 #[test]
 fn works_for_go_despite_its_statement_list_wrapper() {
-    // tree-sitter-go interposes a `statement_list` between a block and its
-    // statements, which once made every Go function look multi-statement.
     let src = "package main\n\nfunc double(x int) int { return x * 2 }\n\nfunc main() { y := double(3); _ = y }\n";
     let (tmp, index) = workspace(&[("a.go", src)]);
     let path = tmp.path().join("a.go");
@@ -205,9 +199,7 @@ fn works_for_zig() {
 
 #[test]
 fn a_callee_reading_its_own_modules_global_refuses_to_cross_files() {
-    // `clamp` reads `LIMIT` from beside itself. Pasted into another file the
-    // name means nothing there, and the paste compiled, ran, and raised
-    // NameError with no warning.
+    // `clamp` reads `LIMIT` from beside itself.
     let (tmp, index) = workspace(&[
         (
             "lib.py",
@@ -229,8 +221,7 @@ fn a_callee_reading_its_own_modules_global_refuses_to_cross_files() {
 
 #[test]
 fn a_callee_reading_its_own_modules_import_refuses_to_cross_files() {
-    // `home_dir` reads `os` from its own file's imports. The paste ran and
-    // raised NameError exactly the way the module global did.
+    // `home_dir` reads `os` from its own file's imports.
     let (tmp, index) = workspace(&[
         (
             "helpers.py",
@@ -273,10 +264,7 @@ fn a_callee_import_also_present_at_the_call_site_inlines() {
 
 #[test]
 fn what_extract_function_writes_is_refused_and_the_refusal_says_so() {
-    // The two were documented as a pair whose intersection is empty. `--call` takes
-    // only a one-expression callee, and `extract --function` writes several statements
-    // by construction, so nothing it produces can come back this way. The docs now say
-    // it, and so does the refusal, which is where a reader who tried it is standing.
+    // The two were documented as a pair whose intersection is empty.
     let src = "def total(items):\n    running = accumulate(items)\n    return running\n\n\
         def accumulate(items):\n    running = 0\n    for i in items:\n        \
         running = running + i\n    return running\n";

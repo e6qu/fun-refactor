@@ -1,10 +1,4 @@
 //! Go resolves by package, and a package is a directory.
-//!
-//! These exist because `fr refs` returned nothing for symbols that helm/helm calls from the
-//! file next door. Everything downstream believed it: `fr unused` reported 238 internal Go
-//! symbols as dead where 50 are. A rename would have rewritten a definition while reporting the
-//! call sites it could not see. The rules below are Go's, and each test names the real symbol
-//! that exposed its absence.
 
 use fun_refactor::analysis::entrypoints::Entrypoints;
 use fun_refactor::index::Index;
@@ -88,9 +82,8 @@ fn a_package_is_a_directory_and_not_the_whole_tree() {
 
 #[test]
 fn a_method_call_is_not_a_package_level_call_of_the_same_name() {
-    // helm: `statuswait.go` declares both a `statusWaiter.contextWithTimeout` method
-    // and a package-level `contextWithTimeout`. Resolving `w.contextWithTimeout(…)`
-    // to the function left the method looking dead.
+    // helm: `statuswait.go` declares both a `statusWaiter.contextWithTimeout` method and a
+    // package-level `contextWithTimeout`.
     let (_tmp, index) = workspace(&[(
         "a.go",
         "package p\n\ntype waiter struct{}\n\n\
@@ -118,8 +111,7 @@ fn a_method_call_is_not_a_package_level_call_of_the_same_name() {
 
 #[test]
 fn a_binding_is_not_in_scope_inside_its_own_initialiser() {
-    // helm: `templatesDirExists := run(…, templatesDirExists(path))`. The call names
-    // the package function; the variable only exists from the next statement on.
+    // helm: `templatesDirExists := run(…, templatesDirExists(path))`.
     let (_tmp, index) = workspace(&[(
         "a.go",
         "package p\n\nfunc check(p string) bool {\n\treturn p != \"\"\n}\n\n\
@@ -139,7 +131,6 @@ fn a_binding_is_not_in_scope_inside_its_own_initialiser() {
 #[test]
 fn a_use_binds_to_the_declaration_above_it_not_the_nearer_one_below() {
     // helm: `var ret map[string]any` … `return ret` … `ret, err := convert(m)`.
-    // The early return reads the first binding even though the second is closer.
     let (_tmp, index) = workspace(&[(
         "a.go",
         "package p\n\nfunc convert(m int) (int, error) {\n\treturn m, nil\n}\n\n\
@@ -161,7 +152,6 @@ fn a_use_binds_to_the_declaration_above_it_not_the_nearer_one_below() {
 #[test]
 fn one_package_may_declare_a_name_twice_under_opposite_build_tags() {
     // helm: `renameFallback` in rename.go (!windows) and rename_windows.go (windows).
-    // Picking one would rewrite half a pair and break the other build.
     let (_tmp, index) = workspace(&[
         (
             "rename.go",
@@ -191,7 +181,7 @@ fn one_package_may_declare_a_name_twice_under_opposite_build_tags() {
 #[test]
 fn everything_an_exported_symbol_reaches_is_live() {
     // helm is a library: `performInstall` <- `performInstallCtx` <- the exported
-    // `RunWithContext`. With no `main` to start from, the whole chain read as dead.
+    // `RunWithContext`.
     let (_tmp, index) = workspace(&[(
         "a.go",
         "package p\n\nfunc helper() int {\n\treturn 1\n}\n\n\
@@ -215,11 +205,7 @@ fn everything_an_exported_symbol_reaches_is_live() {
 
 #[test]
 fn two_types_sharing_a_private_method_name_both_stay_live() {
-    // helm: `Configuration.recordRelease` and `Install.recordRelease`. `cfg.record…`
-    // resolves to neither, and a list that invites deleting one of them is worse than
-    // one that says it does not know.
-    // The receiver is an expression. It is not a typed name, so nothing here says which
-    // `record` runs, the same position helm is in with `cfg.recordRelease(rl)`.
+    // helm: `Configuration.recordRelease` and `Install.recordRelease`.
     let (_tmp, index) = workspace(&[(
         "a.go",
         "package p\n\ntype A struct{}\ntype B struct{}\n\n\

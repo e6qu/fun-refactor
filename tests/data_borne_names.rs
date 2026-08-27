@@ -1,9 +1,4 @@
 //! Names that reach the code through data instead of through references.
-//!
-//! serde constructs `ThreatModel::Remote` from a catalog writing `remote`;
-//! a page's `data-quiz="a,b,c"` names three hooks its script reads one at a
-//! time. Every one of them was reported dead, because a wire format's spelling
-//! and a comma-separated value both defeated a verbatim comparison.
 
 use fun_refactor::index::Index;
 use fun_refactor::scan::{scan, ScanOptions};

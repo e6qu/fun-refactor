@@ -1,28 +1,4 @@
 //! Every command, run for real, and a check that this file keeps up.
-//!
-//! ## The layers
-//!
-//! 1. **Unit**, `#[cfg(test)] mod tests` beside the code, for the pieces whose correctness is
-//!    local: span arithmetic, negation, import liveness, the hash of a subtree.
-//! 2. **Integration**, `tests/*.rs` against the library. Most of the suite. A workspace is
-//!    written to a temp directory, indexed, and a refactoring is planned and applied. So the
-//!    assertion is about the resulting bytes instead of an intermediate.
-//! 3. **End-to-end**, `tests/cli.rs` and this file, running the binary. Argument parsing, path
-//!    resolution, exit codes and the text a person reads. This layer did not exist until two
-//!    bugs were found living in it: `--path` filters built by joining the default root `.`,
-//!    which matched nothing and reported that as nothing found. Target paths read from the
-//!    shell's directory instead of the workspace `-C` names.
-//! 4. **Real repositories**, helm/helm and grafana/grafana, run by hand and recorded in
-//!    TUTORIAL.md and BUGS.md with the measurements. Not automated here: pinning a 500 MB clone
-//!    into CI buys less than the numbers in BUGS.md already do. The bugs it found were found by
-//!    *reading* the output, which a test cannot do.
-//!
-//! ## What this file asserts
-//!
-//! Every subcommand runs against a small polyglot workspace without panicking. Every one is
-//! named by at least one end-to-end test. The second half is the part that keeps the layer
-//! honest. A new command with no coverage fails the build here instead of shipping untested,
-//! which is how the CLI layer came to have no tests at all.
 
 use std::path::Path;
 use std::process::Command;
@@ -93,10 +69,6 @@ fn run(root: &Path, cache: &Path, args: &[&str]) -> Outcome {
 }
 
 /// One representative invocation per subcommand.
-///
-/// Some of these are expected to refuse, deleting a symbol four things use, inlining
-/// a function. A refusal is a fine outcome; a panic is not, and neither is a message
-/// that does not say what went wrong.
 fn invocations() -> Vec<(&'static str, Vec<&'static str>)> {
     vec![
         ("capabilities", vec!["capabilities"]),
@@ -165,8 +137,7 @@ fn every_command_runs_without_panicking() {
             failures.push(format!("`fr {}` was killed by a signal", args.join(" ")));
             continue;
         }
-        // A refusal has to say something. An empty failure is indistinguishable from
-        // a crash to whoever is reading the terminal.
+        // A refusal has to say something.
         if outcome.code != Some(0) && outcome.text.trim().is_empty() {
             failures.push(format!("`fr {name}` failed silently"));
         }
@@ -217,8 +188,7 @@ fn snapshot(root: &Path) -> Vec<(String, Vec<u8>)> {
 
 #[test]
 fn no_subcommand_is_left_without_an_end_to_end_test() {
-    // The check that keeps this layer from decaying the way it started. `fr --help`
-    // is the real surface; anything it lists has to be exercised somewhere here.
+    // The check that keeps this layer from decaying the way it started.
     let output = Command::new(FR)
         .arg("--help")
         .output()

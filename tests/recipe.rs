@@ -1,8 +1,4 @@
 //! The recipe language: what it accepts, what it refuses, and what running one does.
-//!
-//! The design argued that a grammar alone is too permissive for these operations, `rewrite
-//! where lang=go` has no transformation, `remove-flag "F" = false where unused` has a selector
-//! it cannot use. So the interesting half of these tests is the refusals.
 
 use fun_refactor::recipe::{self, Operation, Options};
 use std::collections::BTreeMap;
@@ -168,9 +164,7 @@ fn a_mistyped_predicate_suggests_the_one_that_was_meant() {
 
 #[test]
 fn reserved_words_and_predicates_do_not_overlap() {
-    // The invariant the whole layout-free grammar rests on. A statement ends when a token
-    // appears that can only begin a new one, which is only decidable if no predicate is spelled
-    // like a step keyword.
+    // The invariant the whole layout-free grammar rests on.
     for predicate in recipe::PREDICATES {
         assert!(
             !recipe::RESERVED.contains(predicate),
@@ -205,9 +199,7 @@ fn run(
 
 #[test]
 fn each_step_sees_what_the_previous_one_left() {
-    // The whole reason a recipe is more than a shell loop. Nothing is `unused` until the flag
-    // has gone. So step two can only match if step one has already happened *and* the index was
-    // rebuilt from its result.
+    // The whole reason a recipe is more than a shell loop.
     let (tmp, report, after) = run(
         &[("src/auth.py", AUTH)],
         "schema 1\n\
@@ -234,9 +226,8 @@ fn each_step_sees_what_the_previous_one_left() {
 
 #[test]
 fn two_symbols_in_one_file_do_not_produce_conflicting_edits() {
-    // Each subject is planned against a freshly built index over the text the previous
-    // one left. Planning them all against one snapshot produced
-    // `conflicting edits: 0..396 overlaps 26..170`.
+    // Each subject is planned against a freshly built index over the text the previous one
+    // left.
     let (tmp, report, after) = run(
         &[(
             "a.py",
@@ -255,10 +246,8 @@ fn two_symbols_in_one_file_do_not_produce_conflicting_edits() {
 
 #[test]
 fn a_file_the_rewrite_does_not_apply_to_is_not_a_refusal() {
-    // `rewrite`'s selector chooses *files*, and a file with no wrapping `if` in it
-    // had nothing to do. Counting that as a refusal made `on-refusal stop`,
-    // the default, abandon the run on the first ordinary file: over one package of
-    // helm, three files of five.
+    // `rewrite`'s selector chooses *files*, and a file with no wrapping `if` in it had nothing
+    // to do.
     let (_tmp, report, _after) = run(
         &[
             (
@@ -490,7 +479,7 @@ fn no_new_unused_notices_what_a_change_orphaned() {
 #[test]
 fn a_refusal_stops_the_run_and_writes_nothing() {
     // `stop` is the default because a step that refused has not done what the recipe says it
-    // does. The steps after it were written expecting that it had.
+    // does.
     let (tmp, report, after) = run(
         &[(
             "a.py",
@@ -508,9 +497,6 @@ fn a_refusal_stops_the_run_and_writes_nothing() {
 
 #[test]
 fn a_stopped_run_counts_only_the_steps_that_ran() {
-    // The stop used to ride along as one more step report, so a two-step recipe whose
-    // second step refused presented itself as three steps. The stop is a verdict on the
-    // run and is reported apart from the steps.
     let (_tmp, report, _after) = run(
         &[(
             "a.py",
@@ -530,10 +516,8 @@ fn a_stopped_run_counts_only_the_steps_that_ran() {
 
 #[test]
 fn a_stopped_run_still_reports_the_length_of_the_recipe() {
-    // The report headed itself with the steps the run reached, so a three-step recipe
-    // that stopped at the second announced itself as a two-step recipe. `--explain` on
-    // the same file said three. A recipe is a reviewable artifact. Its length is a fact
-    // about the file, and how far the run got is a fact about the run.
+    // The report headed itself with the steps the run reached, so a three-step recipe that
+    // stopped at the second announced itself as a two-step recipe.
     let (_tmp, report, _after) = run(
         &[(
             "a.py",
@@ -551,12 +535,6 @@ fn a_stopped_run_still_reports_the_length_of_the_recipe() {
 }
 
 /// A misspelled predicate *value* blamed the repository.
-///
-/// `kind=functoin` matched nothing, and the step failed saying it had matched nothing.
-/// "That is not success", which is true and unhelpful: nothing in the workspace was
-/// wrong. The predicate's own name has been checked with a suggestion all along, and
-/// its value now is too. The kind vocabulary comes from parsing the value into
-/// `SymbolKind`, so it cannot drift from the kinds that exist.
 #[test]
 fn a_misspelled_predicate_value_names_itself() {
     let cases = [
@@ -594,9 +572,7 @@ fn a_misspelled_predicate_value_names_itself() {
 
 #[test]
 fn a_restructure_pattern_that_matches_nothing_stops_the_run() {
-    // The pattern is the step's selector, and a selector that chooses nothing stops
-    // the recipe. This step used to report "matched 1, applied 0" and carry on, a
-    // silent no-op wearing a success flag.
+    // The pattern is the step's selector, and a selector that chooses nothing stops the recipe.
     let (tmp, sources) = workspace(&[("a.py", "def entry():\n    return modern()\n")]);
     let file =
         recipe::parse("schema 1\nrecipe r { restructure python 'legacy($X)' => 'modern($X)' }")
@@ -633,8 +609,7 @@ fn allow_empty_lets_a_conditional_restructure_match_nothing() {
 
 #[test]
 fn a_restructure_step_counts_occurrences_rather_than_a_constant_one() {
-    // Two call sites in one file. The step used to say "matched 1" for both of them
-    // together, so the report disagreed with the diff right underneath it.
+    // Two call sites in one file.
     let (_tmp, report, after) = run(
         &[(
             "a.py",
@@ -657,8 +632,7 @@ const GO_LIB: &str = "package main\n\nimport \"fmt\"\n\n\
 
 #[test]
 fn a_translate_step_writes_the_file_beside_its_source() {
-    // The verb that closes the gap between the two halves of this tool. A recipe
-    // could tidy a module and could not say what the module should become.
+    // The verb that closes the gap between the two halves of this tool.
     let (tmp, report, after) = run(
         &[("lib.go", GO_LIB)],
         "schema 1\nrecipe port {\n  translate to python where lang=go\n}\n",
@@ -689,9 +663,7 @@ fn a_translate_step_writes_the_file_beside_its_source() {
 
 #[test]
 fn a_later_step_acts_on_what_the_translation_created() {
-    // The point of putting translation in the DSL rather than beside it. The
-    // index is rebuilt from what the step left, so the next selector sees a file
-    // that did not exist when the recipe started.
+    // The point of putting translation in the DSL rather than beside it.
     let (tmp, report, after) = run(
         &[("lib.go", GO_LIB)],
         "schema 1\nrecipe port {\n  translate to python where lang=go\n  \
@@ -711,8 +683,7 @@ fn a_later_step_acts_on_what_the_translation_created() {
 
 #[test]
 fn a_translation_that_is_already_there_refuses_and_says_what_a_recipe_can_do() {
-    // The standalone command offers `--force` and `--out`. A recipe can spell
-    // neither, so the refusal names what it can say instead.
+    // The standalone command offers `--force` and `--out`.
     let (_tmp, report, _after) = run(
         &[
             ("lib.go", GO_LIB),
@@ -730,9 +701,8 @@ fn a_translation_that_is_already_there_refuses_and_says_what_a_recipe_can_do() {
 
 #[test]
 fn what_a_translation_could_not_carry_is_a_warning_against_its_source() {
-    // A fidelity note is the same kind of fact as a reference too weak to
-    // rewrite: the step succeeded and left something for a person. The note
-    // names the line of the *source*, which is where the work is.
+    // A fidelity note is the same kind of fact as a reference too weak to rewrite: the step
+    // succeeded and left something for a person.
     let (_tmp, report, _after) = run(
         &[("pipe.sh", "count() {\n    ls | wc -l\n}\n")],
         "schema 1\nrecipe port {\n  translate to python where lang=bash\n}\n",
@@ -749,9 +719,7 @@ fn what_a_translation_could_not_carry_is_a_warning_against_its_source() {
 
 #[test]
 fn a_language_nothing_can_be_written_as_is_refused_while_the_recipe_is_read() {
-    // Before a file is touched. A recipe naming an impossible target is a
-    // mistake in the recipe. Finding it at the first file would report it as
-    // though the file were at fault.
+    // Before a file is touched.
     let error = recipe::parse("schema 1\nrecipe port {\n  translate to sass where lang=go\n}\n")
         .expect_err("nothing can be written as sass");
     let said = error.to_string();

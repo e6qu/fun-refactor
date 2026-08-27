@@ -1,11 +1,4 @@
 //! `a, b = b, a` and `x, err := f()`, settled in one line.
-//!
-//! Go returns pairs and binds them this way. Python has the same syntax to the
-//! character, and both crossed as carried comments. So the swap never happened
-//! and the pair left both its names undeclared.
-//!
-//! Four targets write the form. Java and Zig have no tuple at all, and carry
-//! the line whole rather than drop the names it binds.
 
 mod common;
 use common::{require_on_ci, Toolchain};
@@ -92,8 +85,7 @@ fn a_python_swap_crosses_the_other_way() {
 
 #[test]
 fn java_binds_the_value_once_and_takes_its_parts() {
-    // Java has no tuple statement. The value binds once and the names take its parts by
-    // position, which is how the List a tuple travels as answers.
+    // Java has no tuple statement.
     let tmp = tempfile::tempdir().expect("a temporary directory");
     let out = translated(tmp.path(), "pair.go", PAIR_GO, Language::Java);
     assert!(

@@ -1,9 +1,4 @@
 //! Rename a symbol and every reference that provably points at it.
-//!
-//! Resolution confidence decides what the plan rewrites, never a name match. The
-//! plan edits `exact` and `import-qualified` references and warns about anything
-//! weaker, for a human to check. Occurrences in strings and comments only warn,
-//! because no syntax analysis resolves them.
 
 use super::{Refusal, Warning, WarningKind};
 use crate::edit::{Edit, EditSet};
@@ -27,11 +22,6 @@ pub struct RenamePlan {
 }
 
 /// The reference spans a rename of `symbol` would rewrite.
-///
-/// The confidence tiers under-answer: a field-based `s.pending` whose receiver
-/// is declared `*BatchSink` rewrites too, and only the rename logic knows it. A
-/// reader predicting a rename from `fr refs` needs the answer the rename acts
-/// on. This builds the plan itself, under a throwaway name.
 pub fn rewritable_spans(
     index: &Index,
     symbol_id: SymbolId,
@@ -47,9 +37,6 @@ pub fn rewritable_spans(
 }
 
 /// Work out how to rename `symbol` to `new_name`.
-///
-/// Returns a [`Refusal`] instead of a partial rename. A collision with an existing
-/// name refuses, and so does a name the language rejects.
 pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<RenamePlan> {
     if let Some(language) = index.symbol(symbol_id).map(|s| s.language) {
         crate::capabilities::record(crate::capabilities::Capability::Rename, language);
@@ -70,11 +57,8 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
     let mut edits = EditSet::new();
     let mut warnings = Vec::new();
 
-    // Some entities have several definition sites, such as a CSS class declared by
-    // both `.btn` and `.btn:hover`, and all of them change together. A method under
-    // declared dispatch is one entity with its whole family. A trait method renamed
-    // without its implementations leaves the family answering two names, and the
-    // callers compiling against neither.
+    // Some entities have several definition sites, such as a CSS class declared by both `.btn`
+    // and `.btn:hover`, and all of them change together.
     let mut group = index.definition_group(symbol_id);
     let hierarchy = crate::analysis::call_graph::Hierarchy::scanned(index);
     let family = hierarchy.method_group(index, symbol_id);
@@ -101,9 +85,7 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
         );
     }
 
-    // Go's doc-comment convention heads the comment above a declaration with the
-    // declared name. That one textual occurrence is unambiguous and renames with
-    // the definition. Every other comment mention still only warns.
+    // Go's doc-comment convention heads the comment above a declaration with the declared name.
     for id in &group {
         if let Some(edit) = go_doc_head_edit(index, *id, new_name) {
             let (file, head) = edit;
@@ -111,20 +93,14 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
         }
     }
 
-    // A heading's references are `#anchor` links, and an anchor is a slug of the
-    // heading instead of the heading itself. Writing the new name into one would
-    // produce a link to nothing, `## Two Words` renamed to `Three Words` needs
-    // `#three-words`.
+    // A heading's references are `#anchor` links, and an anchor is a slug of the heading
+    // instead of the heading itself.
     let reference_text = match symbol.kind {
         SymbolKind::Heading => anchor_slug(new_name),
         _ => new_name.to_string(),
     };
 
     // References that resolved strongly enough to rewrite.
-    // Java's overloads are one entity: the group holds every `size` the class
-    // declares, and they rename together. A call that matched by name alone can then
-    // only reach a renamed declaration, provided nothing outside the group answers
-    // to the name. Leaving such a call behind would call a name nothing declares.
     let overload_peers = group
         .iter()
         .filter_map(|id| index.symbol(*id))
@@ -136,9 +112,8 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
             .iter()
             .all(|s| group.contains(&s.id));
 
-    // The types that can reach this entity through a declared receiver: the
-    // group's own containers and everything below them. `b: Box` reaches the
-    // property `Box` declares, and `s: Sub2` reaches the method `Base` does.
+    // The types that can reach this entity through a declared receiver: the group's own
+    // containers and everything below them.
     let owners: std::collections::BTreeSet<String> = {
         let mut owners: std::collections::BTreeSet<String> = group
             .iter()
@@ -168,11 +143,8 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
                 continue;
             }
             if reference.confidence.is_safe_to_rewrite() || declared_receiver_reaches(reference) {
-                // `Facts { count }` reads the local and writes the field in one
-                // identifier, so rewriting that identifier renames both. The
-                // shorthand expands instead, in the direction the reference's kind
-                // dictates. The field keeps its half when the local goes, and the
-                // local keeps its half when the field goes.
+                // `Facts { count }` reads the local and writes the field in one identifier, so
+                // rewriting that identifier renames both.
                 let written = match shorthand_field(&reference.file, reference.span, &symbol.name) {
                     Some(old) if reference.kind == ReferenceKind::Field => {
                         format!("{reference_text}: {old}")
@@ -224,16 +196,11 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
         }
     }
 
-    // Dispatch reaches call sites that never resolve: `s.area()` on a trait object
-    // names no single implementation, so the family renames as a unit. Once the
-    // family is renamed, such a site calls a name nothing answers to, so it renames
-    // too and reports at its own confidence.
+    // Dispatch reaches call sites that never resolve: `s.area()` on a trait object names no
+    // single implementation, so the family renames as a unit.
     if dispatched {
         let family_of = crate::analysis::call_graph::Family::of;
-        // The types the family belongs to. A receiver whose declared type sits
-        // outside them cannot reach the family. `b.size(2)` with `b` declared `B`
-        // stays put when `B` holds its own `size`, since javac rejects the
-        // alternative.
+        // The types the family belongs to.
         for reference in index.unresolved_matching(symbol_id) {
             if reference.target.is_some() {
                 continue;
@@ -273,11 +240,7 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
         }
     }
 
-    // A weak member reference whose receiver's declared type owns the renamed
-    // entity. Proximity attributes `var b = new B(); b.size(2)` to a same-named
-    // method elsewhere, and the declaration already says which one dispatch
-    // reaches. This rewrites only when nothing outside the group answers the name
-    // on that type, because which overload a call takes is another question.
+    // A weak member reference whose receiver's declared type owns the renamed entity.
     for reference in index.unresolved_matching(symbol_id) {
         if reference.confidence.is_safe_to_rewrite() {
             continue;
@@ -321,13 +284,7 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
         ));
     }
 
-    // Same-named references that resolved somewhere else, or nowhere. The rename
-    // leaves them alone and asks a human to confirm the resolution.
-    //
-    // "Somewhere else *weakly*" counts. Java overloads `add(int)` beside
-    // `add(String)`, and a bare `add(1)` is name-only against both. Proximity picks
-    // the winner there, and a weak resolution is a guess wherever it lands, so the
-    // warning goes out.
+    // Same-named references that resolved somewhere else, or nowhere.
     for reference in index.unresolved_matching(symbol_id) {
         let confidently_elsewhere =
             reference.target.is_some() && reference.confidence.is_safe_to_rewrite();
@@ -347,9 +304,8 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
         }
     }
 
-    // Strings and comments defeat every analysis, so report every hit except the
-    // ones already being rewritten. A resolved `class="btn"` lives inside a string
-    // literal, and reporting it as unhandled after editing it would mislead.
+    // Strings and comments defeat every analysis, so report every hit except the ones already
+    // being rewritten.
     let edited: Vec<(PathBuf, Span)> = edits
         .iter()
         .flat_map(|(path, file_edits)| file_edits.iter().map(|e| (path.clone(), e.span)))
@@ -392,12 +348,8 @@ fn validate_name(name: &str, language: Language, kind: SymbolKind) -> Result<(),
         });
     }
 
-    // Config and markup languages allow far more in a name: CSS classes take dashes
-    // and YAML keys take almost anything. Only the imperative languages get
-    // identifier rules. A `data-*` hook is a string the markup and the component
-    // agree on, so it takes a dash wherever it is written. The index reports its
-    // language as whichever file held it first, and the TSX spelling of
-    // `data-testid="submit-btn"` matches the HTML one.
+    // Config and markup languages allow far more in a name: CSS classes take dashes and YAML
+    // keys take almost anything.
     let strict = kind != SymbolKind::DataAttribute
         && matches!(
             language,
@@ -432,9 +384,7 @@ fn validate_name(name: &str, language: Language, kind: SymbolKind) -> Result<(),
             });
         }
     } else if kind == SymbolKind::Heading {
-        // A heading is prose, so the space in `## Getting Started` is ordinary. A
-        // line ending stays banned: it would end the heading and leave the rest as
-        // a paragraph.
+        // A heading is prose, so the space in `## Getting Started` is ordinary.
         if name.trim().is_empty() || name.contains(['\n', '\r']) {
             return Err(Refusal::InvalidName {
                 name: name.into(),
@@ -551,14 +501,7 @@ fn is_keyword(name: &str, language: Language) -> bool {
 fn check_collision(index: &Index, symbol: &Symbol, new_name: &str) -> Result<(), Refusal> {
     let existing = index.find_symbols(new_name, Some(&symbol.file));
     for other in existing {
-        // A collision matters when the two could be visible at the same point. That
-        // means the same scope *and* the same enclosing symbol, or either one at
-        // file level.
-        //
-        // The container carries weight here. A parameter is written outside the body
-        // it belongs to, so its scope is the one *around* its function, which is the
-        // file. Comparing scopes alone makes every parameter in a file collide with
-        // every other.
+        // A collision matters when the two could be visible at the same point.
         let same_scope = other.scope == symbol.scope && other.container == symbol.container;
         let either_top_level = other.container.is_none() || symbol.container.is_none();
         if same_scope || (either_top_level && other.kind == symbol.kind) {
@@ -572,10 +515,6 @@ fn check_collision(index: &Index, symbol: &Symbol, new_name: &str) -> Result<(),
 }
 
 /// The field a shorthand at this span writes, when the span sits in one.
-///
-/// `Facts { count }` in Rust and `{ count }` in TypeScript bind a field of the
-/// enclosing literal to a local of one name. The field's name is the text at the
-/// span itself, which the edit is about to overwrite, so this reads it first.
 fn shorthand_field(file: &std::path::Path, span: crate::span::Span, name: &str) -> Option<String> {
     const SHORTHANDS: &[&str] = &[
         "shorthand_field_initializer",   // Rust
@@ -595,11 +534,6 @@ fn shorthand_field(file: &std::path::Path, span: crate::span::Span, name: &str) 
 }
 
 /// Refuse when the rename would move a use under a different declaration.
-///
-/// `check_collision` compares scopes and misses the nested case. A declaration of
-/// the new name between the renamed symbol and one of its uses wins that use, and
-/// the file still compiles. Both directions matter. The renamed use can fall to an
-/// inner declaration, and a use of an outer binding can fall to the renamed one.
 fn check_capture(index: &Index, symbol: &Symbol, new_name: &str) -> Result<(), Refusal> {
     let Some(info) = index.file(&symbol.file) else {
         return Ok(());
@@ -621,8 +555,7 @@ fn check_capture(index: &Index, symbol: &Symbol, new_name: &str) -> Result<(), R
         false
     };
     let span_of = |id| info.scopes.iter().find(|s| s.id == id).map(|s| s.span);
-    // Only a declaration a bare name resolves to can win a bare use. A field or a
-    // method is reached through a receiver, and a receiver keeps its meaning.
+    // Only a declaration a bare name resolves to can win a bare use.
     let binds_bare = |kind| {
         matches!(
             kind,
@@ -696,11 +629,6 @@ fn check_capture(index: &Index, symbol: &Symbol, new_name: &str) -> Result<(), R
 }
 
 /// The edit renaming the head word of a Go definition's doc comment, if it is due.
-///
-/// The gofmt convention heads the comment block above a declaration with the
-/// declared name. When the first word of that block matches the old name, the
-/// pairing is unambiguous and the edit renames it with the definition. Any other
-/// spelling, and any other language, stays a textual-occurrence warning.
 fn go_doc_head_edit(index: &Index, id: SymbolId, new_name: &str) -> Option<(PathBuf, Edit)> {
     let symbol = index.symbol(id)?;
     if symbol.language != Language::Go {
@@ -753,9 +681,6 @@ fn go_doc_head_edit(index: &Index, id: SymbolId, new_name: &str) -> Option<(Path
 }
 
 /// Find the old name inside string literals and comments across the workspace.
-///
-/// They defeat syntax analysis and language servers alike, so the plan reports them
-/// for review and never edits them.
 fn textual_sweep(
     index: &Index,
     name: &str,
@@ -783,9 +708,7 @@ fn textual_sweep(
 }
 
 fn why_it_was_left(index: &Index, reference: &crate::model::Reference) -> String {
-    // A Terraform module argument names a variable of the configuration `source` points
-    // at. A registry address, a Git URL or an expression names a configuration outside
-    // this workspace, whose variables are unreadable from here.
+    // A Terraform module argument names a variable of the configuration `source` points at.
     if let Some(call) = reference
         .receiver
         .as_deref()
@@ -798,9 +721,8 @@ fn why_it_was_left(index: &Index, reference: &crate::model::Reference) -> String
         );
     }
     if reference.receiver.is_some() && !reference.receiver_is_path {
-        // A receiver whose declaration names its type gets the real reason: the
-        // named type belongs to something other than the renamed symbol. "Type not
-        // known" would read as a defect here.
+        // A receiver whose declaration names its type gets the real reason: the named type
+        // belongs to something other than the renamed symbol.
         match super::receiver_type(index, reference) {
             super::ReceiverType::Settled(declared) => {
                 return format!(
@@ -885,9 +807,8 @@ mod tests {
 
     #[test]
     fn a_go_doc_comments_head_word_renames_with_its_definition() {
-        // The gofmt convention heads the comment above a declaration with its name,
-        // so that one occurrence is unambiguous and edits instead of warning. The
-        // rest of the comment, and the body of a later line, stay untouched.
+        // The gofmt convention heads the comment above a declaration with its name, so that one
+        // occurrence is unambiguous and edits instead of warning.
         let (tmp, index) = workspace(&[(
             "a.go",
             "package p\n\n// Helper builds the Helper report.\n// Helper is safe.\n\
@@ -1045,8 +966,7 @@ mod tests {
             .collect();
         assert_eq!(textual.len(), 1, "got {textual:?}");
 
-        // Which one matters. Counting alone passes if the sweep matched `helperful`
-        // and missed the bare `helper`, with the same number of findings.
+        // Which one matters.
         let found = textual[0];
         let column = src
             .lines()

@@ -1,12 +1,4 @@
 //! The everyday library calls cross as the target's own spelling.
-//!
-//! `print`, `len`, `str`, `.append`, `.upper`, `.lower`, `.strip` and
-//! `sep.join(xs)` have exact counterparts in every language here. Written
-//! through unchanged, each was a compile error in every direction.
-//! `console.log` reached Python, `.push` reached Rust, `print` reached
-//! TypeScript. The readers
-//! rewrite their spellings into the canonical ones and the writers rewrite them
-//! out, so one language pair costs two edits and not thirty.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;

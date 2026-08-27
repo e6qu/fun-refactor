@@ -1,14 +1,4 @@
 //! End-to-end tests: the binary, invoked the way a person invokes it.
-//!
-//! Every other test in this suite calls the library directly, which leaves the layer between a
-//! command line and that library untested. Two real bugs lived there and neither was visible
-//! from below. `--path` filters were built by joining the default root `.`, so they never
-//! matched the absolute paths in the index and every filtered report came back empty, a clean
-//! bill of health that meant "the filter matched nothing". A refactoring tool that reports "no
-//! findings" when it means "I looked in the wrong place" is worse than one that crashes.
-//!
-//! So these run `fr` itself: argument parsing, path resolution, exit codes and the text a
-//! person reads.
 
 use std::path::Path;
 use std::process::Command;
@@ -83,9 +73,7 @@ fn workspace() -> Workspace {
 
 #[test]
 fn a_path_filter_actually_narrows_the_report() {
-    // The regression this file exists for. `--path` was joined onto the default root
-    // `.`, producing `./keep`, which starts_with-matches no absolute path, so the
-    // report was empty and read as "no duplication".
+    // The regression this file exists for.
     let ws = workspace();
 
     let (all, ok) = ws.run(&["duplicates", "--language", "go", "--min-tokens", "40"]);
@@ -283,10 +271,8 @@ fn the_capability_matrix_is_printable_and_totals_add_up() {
 
 #[test]
 fn a_long_unused_report_says_what_it_is_mostly_made_of() {
-    // `spring-petclinic` answers this with 3,554 findings, of which 3,395 are CSS
-    // selectors in one vendored stylesheet. True, and useless as read: the fourteen
-    // methods somebody came for are somewhere in the scroll, and the count alone does
-    // not say so. Below fifty findings the list is its own summary and this stays quiet.
+    // `spring-petclinic` answers this with 3,554 findings, of which 3,395 are CSS selectors in
+    // one vendored stylesheet.
     let mut css = String::new();
     for i in 0..80 {
         css.push_str(&format!(".unused-{i} {{ color: red; }}\n"));
@@ -318,10 +304,7 @@ fn a_long_unused_report_says_what_it_is_mostly_made_of() {
 
 #[test]
 fn what_unused_reports_can_be_given_to_delete() {
-    // The next command after `fr unused` is `fr delete`. A name is not enough to name a symbol
-    // with: in `helm/helm`, 34 of the first 40 candidates are defined twice. So `fr delete
-    // <name>` answered "defined 2 times; give a position", which the list had no way to
-    // provide. It reports `file:line:col` now, in both renderings.
+    // The next command after `fr unused` is `fr delete`.
     let ws = Workspace::new(&[
         ("a/one.go", "package a\n\nfunc Shared() int {\n\treturn 1\n}\n"),
         (
@@ -363,10 +346,6 @@ fn what_unused_reports_can_be_given_to_delete() {
 
 #[test]
 fn a_closed_stdout_ends_the_run_quietly_instead_of_panicking() {
-    // `fr symbols --json | head -c 100` used to panic with a broken-pipe abort once
-    // `head` had taken its fill. A reader closing the pipe early is an ordinary end
-    // of the run. The fixture is large enough that the pipe buffer cannot hide the
-    // closed read end from the writer.
     let mut source = String::new();
     for i in 0..900 {
         source.push_str(&format!("pub fn generated_{i}() -> i64 {{\n    {i}\n}}\n"));
@@ -394,9 +373,7 @@ fn a_closed_stdout_ends_the_run_quietly_instead_of_panicking() {
 
 #[test]
 fn a_name_nothing_declares_lists_the_sites_that_write_it() {
-    // `<a href="#section-two">` with no element carrying that id had no report
-    // anywhere. "no symbol named" reads as a typo in the question, so the sites
-    // that write the name ride with it.
+    // `<a href="#section-two">` with no element carrying that id had no report anywhere.
     let ws = Workspace::new(&[(
         "index.html",
         "<html><body>\n<a href=\"#section-two\">Jump</a>\n</body></html>\n",
@@ -410,8 +387,8 @@ fn a_name_nothing_declares_lists_the_sites_that_write_it() {
 
 #[test]
 fn a_signature_change_that_would_strand_a_read_is_a_refusal() {
-    // These printed a considered refusal under exit 1, the code for a crash, while
-    // `fr --help` promised 5 for one. Both languages route through the same type now.
+    // These printed a considered refusal under exit 1, the code for a crash, while `fr --help`
+    // promised 5 for one.
     let ws = Workspace::new(&[
         (
             "m.scss",
@@ -448,9 +425,6 @@ fn a_signature_change_that_would_strand_a_read_is_a_refusal() {
 
 #[test]
 fn each_kind_of_domain_failure_has_its_own_exit_code() {
-    // Every domain failure used to exit 1. A script had to parse prose to tell
-    // "no such symbol" from "two symbols answer to that name". The codes are in
-    // `fr --help`; this pins them.
     let ws = Workspace::new(&[
         (
             "one/a.go",
@@ -487,15 +461,13 @@ fn each_kind_of_domain_failure_has_its_own_exit_code() {
         Some(5),
         "a refusal is 5"
     );
-    // Deleting a symbol something still calls is a refusal too. It used to exit 1
-    // because the message was raised as a plain error instead of a Refusal.
+    // Deleting a symbol something still calls is a refusal too.
     assert_eq!(
         code(&["delete", "one/a.go:3:6"]),
         Some(5),
         "a blocked delete is a refusal."
     );
-    // A position naming a file that does not exist was not found. Nor was a
-    // place past the end of one that does. Both leaked exit 1.
+    // A position naming a file that does not exist was not found.
     assert_eq!(
         code(&["def", "one/missing.go:3:6"]),
         Some(3),
@@ -506,9 +478,8 @@ fn each_kind_of_domain_failure_has_its_own_exit_code() {
         Some(3),
         "a position past the end of the file is not found."
     );
-    // A required position left out, and a position that does not parse, are faults
-    // in the command line. Both used to leak exit 1, and the second was silently
-    // reinterpreted as a symbol name.
+    // A required position left out, and a position that does not parse, are faults in the
+    // command line.
     assert_eq!(
         code(&["rewrite", "invert-if", "--write"]),
         Some(2),
@@ -541,8 +512,8 @@ fn each_kind_of_domain_failure_has_its_own_exit_code() {
 
 #[test]
 fn a_pattern_that_matches_nothing_is_not_found() {
-    // `fr restructure` reported a typed pattern as a finished job: it printed one line
-    // and exited 0. A caller looping over rewrites could not tell that from "done".
+    // `fr restructure` reported a typed pattern as a finished job: it printed one line and
+    // exited 0.
     let ws = Workspace::new(&[("m.py", "def f(x):\n    return x\n")]);
     let output = Command::new(FR)
         .arg("-C")
@@ -587,8 +558,7 @@ fn a_pattern_that_matches_nothing_is_not_found() {
 
 #[test]
 fn a_match_the_template_cannot_be_written_over_is_json_and_not_prose() {
-    // The skipped occurrences were printed to stdout in `--json` mode as well. They
-    // landed in front of the report, so nothing downstream could parse the output.
+    // The skipped occurrences were printed to stdout in `--json` mode as well.
     let ws = Workspace::new(&[(
         "m.py",
         "def g(x):\n    return x\n\n\ny = g(1)\nz = g(  # keep\n    2\n)\n",
@@ -613,8 +583,6 @@ fn a_match_the_template_cannot_be_written_over_is_json_and_not_prose() {
 
 #[test]
 fn a_run_and_an_explain_agree_on_how_long_the_recipe_is() {
-    // The run headed itself with the steps it reached. So a recipe stopped at its second
-    // step said "2 step(s)" where `--explain` of the same file said three.
     let ws = Workspace::new(&[
         ("m.py", "def a(x):\n    return x\n\n\ndef b(x):\n    return a(x)\n"),
         (
@@ -644,8 +612,8 @@ fn a_run_and_an_explain_agree_on_how_long_the_recipe_is() {
 
 #[test]
 fn an_import_kept_for_a_reason_says_what_the_reason_was() {
-    // The planner works the reason out for every import it holds back, and the command
-    // threw all of them away. "removed 0 import(s)" was the whole answer.
+    // The planner works the reason out for every import it holds back, and the command threw
+    // all of them away.
     let ws = Workspace::new(&[(
         "pk/__init__.py",
         "import json\n\n\ndef f():\n    return 1\n",
@@ -682,8 +650,6 @@ fn an_import_kept_for_a_reason_says_what_the_reason_was() {
 
 #[test]
 fn an_inverted_range_is_refused_with_both_ends_named() {
-    // `fr extract "a.go:8:20-8:5"` used to panic in the span constructor, which
-    // reported byte offsets instead of the typo.
     let ws = workspace();
     let output = Command::new(FR)
         .arg("-C")
@@ -706,8 +672,6 @@ fn an_inverted_range_is_refused_with_both_ends_named() {
 
 #[test]
 fn a_zero_column_is_told_that_columns_start_at_one() {
-    // Column 0 used to be read quietly as column 1, which shifts every answer by
-    // one for a caller counting from 0.
     let ws = workspace();
     let output = Command::new(FR)
         .arg("-C")
@@ -723,8 +687,8 @@ fn a_zero_column_is_told_that_columns_start_at_one() {
 
 #[test]
 fn human_listings_print_workspace_relative_paths() {
-    // The docs quote relative paths and the diff headers already print them; the
-    // listings printed absolute ones. JSON keeps the absolute spelling.
+    // The docs quote relative paths and the diff headers already print them; the listings
+    // printed absolute ones.
     let ws = Workspace::new(&[(
         "one/a.go",
         "package one\n\nfunc Handle() int {\n\treturn 1\n}\n\nfunc use() int {\n\treturn Handle()\n}\n",
@@ -794,7 +758,6 @@ fn translating_a_file_into_its_own_language_points_at_the_listing() {
 
 #[test]
 fn a_diff_header_is_workspace_relative_so_git_apply_accepts_it() {
-    // Headers used to read `--- a//absolute/path`, which `git apply -p1` refuses.
     let ws = Workspace::new(&[(
         "src/a.go",
         "package p\n\nfunc helper() int {\n\treturn 1\n}\n\nfunc caller() int {\n\treturn helper()\n}\n",
@@ -813,10 +776,8 @@ fn a_diff_header_is_workspace_relative_so_git_apply_accepts_it() {
 
 #[test]
 fn the_language_filter_has_one_name() {
-    // Five commands took `--lang` and two took `--language`, for the same filter, with
-    // nothing to say which was which. It cost two mistyped invocations while writing
-    // these tests. `--lang` is the name; `--language` stays as an alias so anything
-    // already written keeps working.
+    // Five commands took `--lang` and two took `--language`, for the same filter, with nothing
+    // to say which was which.
     let ws = workspace();
     for command in [
         vec!["symbols", "--lang", "go"],
@@ -837,12 +798,6 @@ fn the_language_filter_has_one_name() {
 }
 
 /// Asked from a subdirectory, `fr` used to answer about that subdirectory.
-///
-/// `fr usages` reported "0 use(s)" of a function the file above it calls.
-/// `fr delete` offered to remove it. `fr rename` renamed the definition and
-/// left the caller reading a name nothing declares. Every one of them reported
-/// success. Where `-C` is not stated, the root is the project the shell's
-/// directory sits in.
 mod from_a_subdirectory {
     use super::*;
 
@@ -924,12 +879,6 @@ mod from_a_subdirectory {
 }
 
 /// An ignored file was unreachable, and the refusal blamed the cursor.
-///
-/// `fr usages build/g.py:1:5` answered "no symbol or resolved reference" over a
-/// declaration sitting plainly on that line. The file was excluded by
-/// .gitignore and never indexed, and no flag existed to bring it in. Generated
-/// trees, vendored copies and build output are refactoring targets like any
-/// other.
 mod ignored_files {
     use super::*;
 
@@ -1013,9 +962,7 @@ fn symbols_narrows_to_the_paths_it_is_given() {
     );
 }
 
-/// Deleting the only user of an import leaves the import, when caution about
-/// traits keeps it. The reader deleting under `-D warnings` hears it from the
-/// command instead of the compiler.
+/// Deleting the only user of an import leaves the import, when caution about traits keeps it.
 #[test]
 fn delete_names_the_import_it_kept() {
     let ws = Workspace::new(&[(
@@ -1032,10 +979,6 @@ fn delete_names_the_import_it_kept() {
 }
 
 /// `fr refs --json` says which sites a rename would rewrite.
-///
-/// The tiers alone under-answer: a field-based use through a receiver declared
-/// `*BatchSink` rewrites too, and only the rename logic knows it. An agent
-/// predicting a rename needs the rename's own answer.
 #[test]
 fn refs_json_marks_what_a_rename_would_rewrite() {
     let ws = Workspace::new(&[(

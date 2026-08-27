@@ -1,10 +1,4 @@
 //! The program's own entry crosses, and so do the shapes around it.
-//!
-//! `main();` at the bottom of a TypeScript file is the program. Dropped as an
-//! unsupported construct, the translated file parsed, ran and printed
-//! nothing. A field's initializer and a returned object literal belong to the
-//! same story. Without them the dataclass could not construct, and the caller
-//! read attributes off a plain dict.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -87,9 +81,7 @@ fn a_java_main_reaches_python_with_the_programs_arguments() {
 
 #[test]
 fn a_java_main_that_ignores_its_arguments_takes_none() {
-    // `main(String[] args)` is the one signature the runtime looks for. A body
-    // that never reads `args` says nothing about what the program takes.
-    // Carried as data, it came back out as a parameter the source never wrote.
+    // `main(String[] args)` is the one signature the runtime looks for.
     let source = "public class App {\n    public static void main(String[] args) {\n        \
                   System.out.println(\"run\");\n    }\n}\n";
     let tmp = tempfile::tempdir().unwrap();

@@ -1,11 +1,4 @@
 //! `RECIPES.md` documents every word the recipe parser accepts.
-//!
-//! A verb or a predicate the parser takes and the document never mentions is a
-//! feature only its author knows about. The grammar in the document is the whole
-//! interface, since a recipe is written by hand.
-//!
-//! `src/recipe/parse.rs` is the authority, read as text. The parser compares
-//! against string literals, so the literals are the vocabulary.
 
 use std::collections::BTreeSet;
 
@@ -13,10 +6,6 @@ const PARSER: &str = include_str!("../src/recipe/parse.rs");
 const DOC: &str = include_str!("../RECIPES.md");
 
 /// Every lowercase word the parser compares an input token against.
-///
-/// A keyword is at least three characters and holds only lowercase letters and
-/// hyphens. Shorter literals are punctuation and separators, and anything with a
-/// capital or a space is a message rather than a word of the language.
 fn keywords() -> BTreeSet<String> {
     let mut found = BTreeSet::new();
     let mut rest = PARSER;
@@ -64,9 +53,7 @@ fn the_check_read_the_vocabulary() {
 
 #[test]
 fn every_verb_is_in_the_grammar_and_the_table() {
-    // The verbs are the shape of the language. The document states each twice,
-    // in the grammar block and in the table of what each takes. A verb missing
-    // from either is one a reader cannot write.
+    // The verbs are the shape of the language.
     let head = PARSER
         .find("fn parse_step")
         .or_else(|| PARSER.find("fn step"))

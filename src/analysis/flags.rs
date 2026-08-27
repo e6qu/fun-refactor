@@ -1,26 +1,4 @@
 //! A `--flag` a script passes, and the program that declares it.
-//!
-//! ```bash
-//! ./collector --retention-days 30
-//! ```
-//!
-//! Go, Rust, Python and Node each declare that flag somewhere, and renaming the
-//! declaration breaks every script and CI step that passes it. Nothing said so:
-//! the flag was a word in a shell command and the declaration a string in
-//! another language, and the two never met.
-//!
-//! The link is the flag's own name, a string on both sides. Nothing proves a
-//! `--retention-days` written in a script reaches *this* program rather than
-//! another one on the path. So the edge is name-only, and the tool reports it
-//! without rewriting it.
-//!
-//! What each framework declares:
-//!
-//! * clap: `#[arg(long = "retention-days")]`, or `#[arg(long)]` on a field whose
-//!   name is kebab-cased into the flag.
-//! * Go's `flag`: `flag.Int("retention-days", …)` and the `Var` forms.
-//! * argparse: `parser.add_argument("--retention-days", …)`.
-//! * commander: `.option("--retention-days <n>")`.
 
 use crate::index::Index;
 use crate::lang::Language;
@@ -55,18 +33,11 @@ pub struct FlagUse {
 
 impl FlagUse {
     /// Is this flag passed by a script and declared by no program here?
-    ///
-    /// The failure worth reporting. A script passing a flag nobody declares
-    /// fails at run time, and a rename of the declaration is what usually did
-    /// it.
     pub fn is_undeclared(&self) -> bool {
         self.declared.is_empty() && !self.passed.is_empty()
     }
 
     /// Is this flag declared and passed by nothing here?
-    ///
-    /// Weaker evidence: a flag may be passed by a human, by a deployment this
-    /// workspace does not hold, or by a README. Reported, never acted on.
     pub fn is_unpassed(&self) -> bool {
         self.passed.is_empty() && !self.declared.is_empty()
     }
@@ -134,8 +105,7 @@ fn declarations(source: &str, language: Language) -> Vec<(usize, String)> {
                     out.push((number, named));
                     continue;
                 }
-                // `#[arg(long)]` takes the field's own name, kebab-cased. The
-                // field is the next line that declares one.
+                // `#[arg(long)]` takes the field's own name, kebab-cased.
                 let bare = (line.contains("#[arg(") || line.contains("#[clap("))
                     && has_bare_word(line, "long");
                 if bare {
@@ -193,8 +163,7 @@ fn declarations(source: &str, language: Language) -> Vec<(usize, String)> {
 
 /// The flags one file passes, with the line each sits on.
 fn uses(source: &str, language: Language) -> Vec<(usize, String)> {
-    // Only where a command line is written. A `--` in Rust is a comment marker
-    // or a range, and in Markdown it is punctuation.
+    // Only where a command line is written.
     if !matches!(
         language,
         Language::Bash | Language::Yaml | Language::Helm | Language::Json

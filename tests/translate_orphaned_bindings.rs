@@ -1,12 +1,4 @@
 //! A header that binds names must not be dropped under the branch it guards.
-//!
-//! Go's `if` may run a statement in its header. `if m, ok := t.Min(); ok { }`
-//! lost the whole header with no marker. The branch then tested `ok` and
-//! printed `m`, neither of which the output bound. `for i, x := range xs` lost
-//! the index the same way while the body still read it.
-//!
-//! The header goes on the line before the branch now. That widens the scope of
-//! what it binds, and every target here already scopes it that way.
 
 mod common;
 use common::{require_on_ci, Toolchain};
@@ -79,8 +71,7 @@ fn the_header_of_an_if_is_written_before_it() {
 
 #[test]
 fn a_second_header_of_the_same_names_settles_them_again() {
-    // Each header was its own scope in Go. Side by side in one scope, only the
-    // first declares; a second `let` of the same names is a redeclaration.
+    // Each header was its own scope in Go.
     let tmp = tempfile::tempdir().expect("a temporary directory");
     let out = translated(tmp.path(), "lookup.go", LOOKUP_GO, Language::TypeScript);
     assert!(out.contains("let [m, ok] = best(4);"), "{out}");

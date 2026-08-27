@@ -118,7 +118,7 @@ fn const_struct_is_a_single_struct_definition() {
     assert!(p.exported);
     // The name a rename rewrites is the const's identifier.
     assert_eq!(p.name_span.text(src), "Point");
-    // …and the definition is the whole statement. It is not just the struct body.
+    // …and the definition is the whole statement.
     assert!(p.full_span.text(src).starts_with("pub const Point"));
     assert!(p.full_span.text(src).ends_with(';'));
 }
@@ -172,8 +172,7 @@ fn qualified_container_forms_are_still_single_definitions() {
 
 #[test]
 fn an_error_set_merge_stays_an_ordinary_constant() {
-    // `error{A} || error{B}` is a binary expression. It is not an error-set declaration.
-    // It must not be swallowed by the container rules nor lost between them.
+    // `error{A} || error{B}` is a binary expression.
     let src = "const A = error{One};\nconst B = error{Two};\nconst Both = A || B;\nconst Inline = error{X} || error{Y};\n";
     let f = zig(src);
     assert_eq!(sym(&f, "A").kind, SymbolKind::Enum);
@@ -239,7 +238,6 @@ fn functions_inside_a_container_become_qualified_methods() {
     assert_eq!(hidden.qualified_name(), "Point::hidden");
     assert!(!hidden.exported);
 
-    // The container reuses the type's own definition; `Point` is declared once.
     let point = sym(&f, "Point");
     assert_eq!(point.kind, SymbolKind::Struct);
 }
@@ -496,9 +494,7 @@ test "clamp caps at MAX" {
     assert_eq!(sym(&f, "sum").qualified_name(), "Point::sum");
     assert_eq!(f.imports.len(), 2);
 
-    // `MAX` is defined once and used twice.
     assert_eq!(f.references.iter().filter(|r| r.name == "MAX").count(), 2);
-    // Calls survive the whole pass.
     assert_eq!(
         f.references
             .iter()

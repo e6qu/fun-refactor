@@ -1,14 +1,4 @@
 //! Go's `for` in every spelling, and Java's counted one.
-//!
-//! `for` is the only loop keyword Go has, and it has four spellings. Only the
-//! `range` one crossed. The other three became comments. That took their
-//! bodies with them and left every name the header bound undeclared. Java's
-//! counted `for` went the same way.
-//!
-//! Three targets write the whole header. Zig writes the step as a continue
-//! expression. Rust and Python have neither. Both walk a range where the
-//! header walks one, say the rest longhand, and carry the loop whole where
-//! the longhand would move a `continue`.
 
 mod common;
 use common::{require_on_ci, Toolchain};
@@ -148,8 +138,8 @@ fn zig_writes_the_step_as_a_continue_expression() {
 
 #[test]
 fn a_step_python_cannot_put_in_a_range_carries_with_its_continue() {
-    // Doubling is not a range, so the longhand is all Python has, and the
-    // longhand moves where the `continue` lands. The loop carries instead.
+    // Doubling is not a range, so the longhand is all Python has, and the longhand moves where
+    // the `continue` lands.
     let source = "package main\n\nfunc Double(n int) int {\n\tseen := 0\n\n\t\
                   for i := 1; i < n; i = i * 2 {\n\t\tif i == 4 {\n\t\t\tcontinue\n\t\t}\n\t\t\
                   seen += 1\n\t}\n\n\treturn seen\n}\n";

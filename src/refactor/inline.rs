@@ -1,9 +1,4 @@
 //! Inline a variable: replace its uses with its value and remove the binding.
-//!
-//! Inlining is only safe when the answer is provably the same afterwards. So the preconditions
-//! are checked and refused, not assumed: the binding must be assigned exactly once, every use
-//! must resolve to it. No name inside its value may mean something different at a use site
-//! (PLAN.md D8).
 
 use super::Refusal;
 use crate::edit::{full_line_span, Edit, EditSet};
@@ -52,8 +47,7 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         (Language::Bash, SymbolKind::Variable | SymbolKind::Constant) => {
             return bash_variable(index, symbol)
         }
-        // XML's binding form is the internal-subset entity. See `xml_entity` for why
-        // this arm is not reachable from the CLI yet.
+        // XML's binding form is the internal-subset entity.
         (Language::Xml, SymbolKind::Constant) => return xml_entity(&sym.file, &sym.name),
         _ => {}
     }
@@ -120,10 +114,6 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         );
     }
 
-    // Substituting the value more than once evaluates it more than once. That only
-    // matters when evaluating can *do* something: `let v = effect(); v + v` inlined
-    // is `effect() + effect()`, the effect twice. `a + b` twice is arithmetic
-    // twice, and refusing it swallowed most ordinary inlines.
     if references.len() > 1 && may_run_code(&value_text) {
         anyhow::bail!(
             "'{}' is used {} times and `{}` is not a simple value; \
@@ -144,9 +134,7 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         .into());
     }
 
-    // A compound value is wrapped only where the use site needs it. Each use sits in
-    // its own file and its own expression, so the decision is made per site against
-    // that file's parse tree.
+    // A compound value is wrapped only where the use site needs it.
     let mut trees: std::collections::HashMap<std::path::PathBuf, (String, crate::parse::Parsed)> =
         std::collections::HashMap::new();
     let mut edits = EditSet::new();
@@ -178,15 +166,8 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     }
 
     // Remove the binding, taking its whole line when nothing else is on it.
-    //
-    // A Java declarator is the symbol and the `int` in front of it is not, so removing the
-    // symbol's own span left `int ;` behind. The statement goes too, but only where this
-    // declarator stands alone in it. `int a = 1, b = 2, c = 3;` declares three, and inlining
-    // one must leave the other two alone.
     let binding = sole_declarator_statement(&parsed, sym.full_span).unwrap_or(sym.full_span);
-    // The whole lines go when nothing else sits on them. Comparing only the
-    // first line meant a wrapped binding was cut from its `let` to its `;`.
-    // The first line's indentation stayed behind as trailing whitespace.
+    // The whole lines go when nothing else sits on them.
     let first = full_line_span(&source, binding.start);
     let last = full_line_span(&source, binding.end.saturating_sub(1));
     let whole = Span::new(first.start, last.end.max(binding.end));
@@ -207,25 +188,6 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
 }
 
 /// The value as it must read at a use site.
-///
-/// `b = a + 1; return b * 2` inlined to `return a + 1 * 2` computes `a + 2`. Every
-/// language with an expression grammar had this.
-///
-/// The rule errs toward a parenthesis, because a pair around an expression never changes its
-/// meaning. Deciding precedence properly needs a per-grammar operator table, and such a table
-/// would be wrong somewhere without saying so. Left bare: the things no surrounding operator
-/// can split, a name, a literal, a call, a field, an index, and anything already wrapped. A
-/// use site that is itself delimited is also left bare, because `total = value` holds the
-/// whole value however it associates. See [`shielded`].
-///
-/// Languages without an expression grammar are untouched. A YAML value is not an
-/// expression, and `(true)` is not the same scalar as `true`.
-/// Does this language group a sub-expression by writing it in parentheses?
-///
-/// [`substitution`] used to ask whether the language supported extract-variable, whose
-/// answer only mostly overlaps. Java groups with parentheses like every C-shaped
-/// language here but is absent from that list, having no inferred declaration to
-/// extract into. Bash supports the extraction, but `( … )` there opens a subshell.
 pub(crate) fn groups_with_parentheses(language: Language) -> bool {
     matches!(
         language,
@@ -278,13 +240,6 @@ fn atomic(value: tree_sitter::Node<'_>) -> bool {
 }
 
 /// Does the surrounding syntax already hold the whole substituted expression?
-///
-/// `total = value`, `f(value)`, `return value` and a list element between commas are
-/// delimited by their own punctuation. A compound value keeps its meaning there bare,
-/// and a parenthesis is noise. `value * 2` is not delimited; the multiplication
-/// would bind into the value, so the wrap stays. The words match tree-sitter node
-/// kinds across all seven grammars. A parent this list does not recognise keeps
-/// the parenthesis, which at worst reads as noise and never changes what runs.
 fn shielded(parent_kind: &str) -> bool {
     const SHIELDS: &[&str] = &[
         "statement",
@@ -330,10 +285,7 @@ fn other_assignment(
     name: &str,
 ) -> Option<usize> {
     let sym = index.symbol(symbol)?;
-    // A later definition of the same name *in the same scope* is a rebinding. In a different
-    // scope it is a different variable that happens to share a name, which is most of them.
-    // 6,166 of this repository's 9,147 locals share a name with another local in the same
-    // file. Refusing on all of them refused nearly every inline anyone would want.
+    // A later definition of the same name *in the same scope* is a rebinding.
     let rebound = index
         .find_symbols(name, Some(&sym.file))
         .into_iter()
@@ -361,10 +313,6 @@ fn other_assignment(
 }
 
 /// Which symbol does this name mean, read from inside this scope?
-///
-/// The innermost enclosing scope that declares it wins, which "lexical scope" means.
-/// `None` says no scope on the chain declares it, a module-level name, an import, a builtin.
-/// Two `None`s agree with each other: the name means whatever it means everywhere in the file.
 fn meaning_of(
     index: &Index,
     info: &crate::index::FileInfo,
@@ -386,16 +334,6 @@ fn meaning_of(
 }
 
 /// A name inside the value that would mean something else at a use site.
-///
-/// Substituting an expression moves every name in it to wherever the variable was used. A name
-/// that resolves to a different binding there is a silent change of behaviour.
-///
-/// Asked of the lexical scopes the index already records. It used to ask about whichever
-/// same-named reference came first within two hundred bytes of the use site. Proximity says
-/// nothing about scope. In a seven-line file every reference is within two hundred bytes. So
-/// inlining `total = price_of(order)` was refused because the *other* function's parameter is
-/// also called `order`. The scope-aware answer was computed on the line above and thrown
-/// away.
 fn shadowed_name(
     index: &Index,
     value_span: &Span,
@@ -438,11 +376,6 @@ fn shadowed_name(
 }
 
 /// The declaration statement a lone declarator belongs to.
-///
-/// Java and the C family write the type once and the bindings after it. So the symbol is `total
-/// = g()` and the statement is `int total = g();`. Removing the symbol alone leaves the type
-/// stranded. Where the statement declares more than one name the symbol is all that may go, and
-/// this answers `None`.
 fn sole_declarator_statement(parsed: &crate::parse::Parsed, symbol: Span) -> Option<Span> {
     let node = parsed
         .root()
@@ -559,8 +492,7 @@ mod tests {
         let id = var_at(&index, &path, src.find("let n").unwrap() + 4);
 
         let plan = variable(&index, id).unwrap();
-        // The argument list protects the first use. The second sits under a `*`
-        // that would otherwise pull `b` into the multiplication.
+        // The argument list protects the first use.
         assert_eq!(
             apply(&plan, &path),
             "fn f() {\n    p(a + b);\n    let m = (a + b) * 2;\n}\n"
@@ -659,9 +591,7 @@ mod tests {
             apply_to_string(&after_extract, inlined.edits.edits_for(&path).unwrap()).unwrap();
 
         // Not byte-for-byte: what comes back is the original with the substituted expression in
-        // parentheses. That is the price of not having a precedence table, it never changes
-        // what the code does. It is worth saying out loud instead of hiding behind a comparison
-        // that strips them.
+        // parentheses.
         assert_eq!(
             after_inline,
             "fn f() {\n    let total = (price * quantity) + 10;\n}\n"
@@ -690,11 +620,6 @@ pub struct InlineCallPlan {
 }
 
 /// Replace the call at `offset` with the callee's body.
-///
-/// Only calls whose result is provably identical are inlined. gopls's inliner exists to
-/// preserve evaluation order, effects and shadowing across arbitrary bodies. This one takes the
-/// conservative half of that problem, a single-expression callee whose arguments cannot be
-/// duplicated unsafely, and refuses everything else by name.
 pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<InlineCallPlan> {
     if let Some(info) = index.file(file) {
         crate::capabilities::record(crate::capabilities::Capability::InlineCall, info.language);
@@ -756,10 +681,7 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
 
     let parameters = parameter_names(declaration, &callee_source);
 
-    // The body may read names from the callee's own module, a constant two lines
-    // above it. Pasted into another file those names mean nothing there, or
-    // something else; the paste compiled, ran, and raised NameError. Visible at
-    // the call site is the bar, and an import of the name counts.
+    // The body may read names from the callee's own module, a constant two lines above it.
     if callee.file != *file {
         if let (Some(callee_info), Some(caller_info)) = (index.file(&callee.file), index.file(file))
         {
@@ -772,9 +694,8 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
                 if parameters.iter().any(|p| p == word) {
                     continue;
                 }
-                // A name the callee's own file imported travels the same way
-                // a module global does. `os.environ` pasted where nothing
-                // imports `os` raised NameError just as `LIMIT` did.
+                // A name the callee's own file imported travels the same way a module global
+                // does.
                 let defined_beside_callee = callee_info
                     .symbols
                     .iter()
@@ -829,7 +750,6 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
         );
     }
 
-    // Substituting an argument more than once would evaluate it more than once.
     let body_text = body_expression.text(&callee_source);
     for (parameter, argument) in parameters.iter().zip(arguments.iter()) {
         let uses = count_word(body_text, parameter);
@@ -843,13 +763,11 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
         }
     }
 
-    // The body may bind an argument more tightly than the caller wrote it. Substituting `x +
-    // 1` for `n` in `n * 2` gives `x + 1 * 2`, a different number.
+    // The body may bind an argument more tightly than the caller wrote it.
     let grouped: Vec<String> = arguments.iter().map(|a| a.grouped.clone()).collect();
     let mut expansion = substitute_words(body_text, &parameters, &grouped);
-    // The body was an expression in its own right; parenthesise it so it keeps its
-    // meaning inside whatever expression the call sat in. When the call site's own
-    // delimiters already hold it, `x = (a + b)` is only noise, so the pair stays off.
+    // The body was an expression in its own right; parenthesise it so it keeps its meaning
+    // inside whatever expression the call sat in.
     let exposed = match call_node.parent() {
         Some(parent) => !shielded(parent.kind()),
         None => false,
@@ -878,9 +796,8 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
 /// The single expression a function body evaluates to, if that is all it does.
 fn single_expression_body<'a>(declaration: tree_sitter::Node<'a>, source: &str) -> Option<Span> {
     let body = declaration.child_by_field_name("body")?;
-    // Some grammars interpose a list node between a block and its statements, as
-    // tree-sitter-go does with `statement_list`. Descend through it, or the wrapper itself
-    // looks like the single statement.
+    // Some grammars interpose a list node between a block and its statements, as tree-sitter-go
+    // does with `statement_list`.
     let mut block = body;
     loop {
         let mut cursor = block.walk();
@@ -903,11 +820,7 @@ fn single_expression_body<'a>(declaration: tree_sitter::Node<'a>, source: &str) 
         return None;
     }
 
-    // Peel the wrappers grammars put between a block and the value it yields. Those are an
-    // expression statement, a return statement, or a return expression nested inside one,
-    // which Zig spells `expression_statement > return_expression`. Doing this in a loop
-    // instead of a fixed order keeps the `return` keyword from being inlined along with the
-    // value.
+    // Peel the wrappers grammars put between a block and the value it yields.
     let mut node = statements[0];
     for _ in 0..4 {
         let kind = node.kind();
@@ -965,7 +878,6 @@ fn parameter_names(declaration: tree_sitter::Node<'_>, source: &str) -> Vec<Stri
 }
 
 /// Argument texts of a call, in order.
-/// One argument at a call site, in the two forms this needs it.
 struct Argument {
     /// As written, for reporting and for deciding whether it may be duplicated.
     text: String,
@@ -1020,9 +932,7 @@ fn enclosing_call<'a>(
         .descendant_for_byte_range(span.start, span.end)?;
     for _ in 0..8 {
         // Every grammar in the set spells it with "call" except Java, which says
-        // `method_invocation`. Matching on "call" alone meant the capability table
-        // claimed `inline --call` for Java while the operation could not find a single
-        // call in the language.
+        // `method_invocation`.
         let kind = node.kind();
         if kind.contains("call") || kind.contains("invocation") {
             return Some(node);
@@ -1033,10 +943,6 @@ fn enclosing_call<'a>(
 }
 
 /// Can a call be inlined in this language?
-///
-/// A predicate the capability table asks, instead of a guess from the language's class.
-/// `InlineCall` was the one cell derived from "is it imperative". Adding a language to the
-/// enum claimed the capability for it before anyone wrote a line.
 pub fn supports_call(language: crate::lang::Language) -> bool {
     use crate::lang::Language as L;
     matches!(
@@ -1060,11 +966,6 @@ fn is_duplicable(argument: &str) -> bool {
 }
 
 /// Could evaluating this text run something, rather than only read values?
-///
-/// A `(` that follows a name, an index or another call is a call about to
-/// happen. A macro's `!(`, an `await`, a `new` and the mutating `++`/`--` are
-/// the same hazard in other spellings. A `(` after an operator is only grouping. Text inside a
-/// string literal does not run, so one whole literal is exempt before any of this.
 fn may_run_code(value: &str) -> bool {
     let trimmed = value.trim();
     if whole_string_literal(trimmed) {
@@ -1086,10 +987,6 @@ fn may_run_code(value: &str) -> bool {
 }
 
 /// One double-quoted literal and nothing after it.
-///
-/// `"hello world"` repeats safely; the character test above rejects its space, and a
-/// message string is the most ordinary constant there is. `"a" + f()` also begins and
-/// ends with a quote, so the interior has to prove the first literal runs to the end.
 fn whole_string_literal(text: &str) -> bool {
     let Some(interior) = text
         .strip_prefix('"')
@@ -1152,12 +1049,7 @@ fn word_boundary(haystack: &str, offset: usize, len: usize) -> bool {
     before && after
 }
 
-/// Does the expansion need wrapping to survive its new context? Is the whole expression inside
-/// one pair of brackets?
-///
-/// `(a + b)` is. `(a + 1) / (b - 1)` is not. Reading only the first and last character says
-/// it is. That left `2 * scale(p + 1, q - 1)` expanding to `2 * (p + 1) / (q - 1)`. For `p =
-/// 1, q = 4` the call returns 0 and the expansion is 1.
+/// Does the expansion need wrapping to survive its new context?
 fn wrapped_in_one_group(text: &str) -> bool {
     if !text.starts_with('(') || !text.ends_with(')') {
         return false;
@@ -1200,10 +1092,7 @@ fn needs_parentheses(expansion: &str) -> bool {
     needs_grouping(trimmed)
 }
 
-//
-// Each of these inverts the corresponding extraction. Substitute the named value at every use
-// site and delete the declaration, and take the container the extraction created when nothing
-// else remains in it. Everything else in the file keeps its bytes.
+// Each of these inverts the corresponding extraction.
 
 /// The node whose byte range is exactly, or most closely, the given span.
 fn node_covering<'a>(parsed: &'a Parsed, span: Span) -> Option<Node<'a>> {
@@ -1228,11 +1117,8 @@ fn named_children_of_kind<'a>(node: Node<'a>, kind: &str) -> Vec<Node<'a>> {
         .collect()
 }
 
-/// The span to delete for a construct that owns whole lines: the lines it covers,
-/// plus the blank lines directly after it.
-///
-/// This makes an extraction reversible. The blank line it wrote to separate the new block
-/// from the rest of the file goes away with the block.
+/// The span to delete for a construct that owns whole lines: the lines it covers, plus the
+/// blank lines directly after it.
 fn block_removal_span(source: &str, inner: Span) -> Span {
     let first = full_line_span(source, inner.start);
     let last_offset = inner.end.saturating_sub(1).max(inner.start);
@@ -1259,12 +1145,7 @@ fn block_removal_span(source: &str, inner: Span) -> Span {
 }
 
 /// For a construct sharing its line with other code, delete the construct plus the whitespace
-/// directly before it. Otherwise a double space remains.
-///
-/// A construct need not fit on one line. An HCL local holding a multi-line object
-/// begins on the line its name is on and ends several lines below, so the line before
-/// it and the line after it are two different lines, reading both from `inner.start`
-/// asked for `source[end..start]` and panicked.
+/// directly before it.
 fn tight_removal_span(source: &str, inner: Span) -> Span {
     let end = inner.end.min(source.len());
     let first = full_line_span(source, inner.start);
@@ -1281,8 +1162,7 @@ fn tight_removal_span(source: &str, inner: Span) -> Span {
     Span::new(start, inner.end)
 }
 
-/// Does substituting this text into a larger expression need parentheses to keep its
-/// meaning? True when it contains an operator that could re-associate.
+/// Does substituting this text into a larger expression need parentheses to keep its meaning?
 fn needs_grouping(value: &str) -> bool {
     let bytes = value.as_bytes();
     let mut depth = 0i32;
@@ -1315,8 +1195,7 @@ fn needs_grouping(value: &str) -> bool {
     false
 }
 
-/// Inline a `locals` entry. Substitute its expression at every `local.<name>`, delete the
-/// entry, and take the `locals` block with it when the block becomes empty.
+/// Inline a `locals` entry.
 fn hcl_local(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     let sym = index
         .symbol(symbol)
@@ -1386,9 +1265,7 @@ fn hcl_local(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         }
     }
 
-    // A local belongs to one module, which in Terraform is one directory. A use of the same
-    // name from another directory belongs to a different module. This tool cannot tell
-    // whether the author meant this value.
+    // A local belongs to one module, which in Terraform is one directory.
     let foreign = hcl_foreign_local_uses(index, &sym.file, &sym.name);
     if !foreign.is_empty() {
         anyhow::bail!(
@@ -1451,7 +1328,7 @@ fn hcl_local(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         }
 
         // Terraform has no operator precedence rescue: an inlined sum inside a product would
-        // bind differently. So it is grouped when it is not the whole expression.
+        // bind differently.
         let enclosing = node_covering(site_parsed, traversal)
             .and_then(|n| ancestor_of_kind(n, "expression"))
             .map(Span::from);
@@ -1678,8 +1555,7 @@ fn css_custom_property(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         );
     }
 
-    // An SCSS `$variable` is used bare. It is not wrapped in `var()`. So its uses are the reference
-    // spans themselves and the declaration is a plain top-level statement.
+    // An SCSS `$variable` is used bare.
     if sym.name.starts_with('$') {
         let mut edits = EditSet::new();
         for reference in &references {
@@ -1694,7 +1570,6 @@ fn css_custom_property(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         }
         let line = full_line_span(&source, sym.full_span.start);
         let removal = if line.text(&source).trim() == sym.full_span.text(&source).trim() {
-            // Take the blank line the declaration left behind with it.
             let mut end = line.end;
             if end < source.len() {
                 let next = full_line_span(&source, end);
@@ -1877,9 +1752,6 @@ fn markdown_link_definition(index: &Index, symbol: SymbolId) -> Result<InlinePla
 }
 
 /// The innermost Markdown link enclosing `node`.
-///
-/// A reference link is a node of the inline grammar, and it has one kind per
-/// spelling: `[t][label]`, `[label][]` and `[label]` are three different nodes.
 fn markdown_link_ancestor(node: Node<'_>) -> Option<Node<'_>> {
     const KINDS: [&str; 4] = [
         "inline_link",
@@ -1896,8 +1768,7 @@ fn markdown_link_ancestor(node: Node<'_>) -> Option<Node<'_>> {
     }
 }
 
-/// Delete the lines a link reference definition occupies. Take the blank line before it too
-/// when the definition ends the document, because an extraction wrote that separator.
+/// Delete the lines a link reference definition occupies.
 fn markdown_definition_removal(source: &str, definition: Span) -> Span {
     let line = full_line_span(source, definition.start);
     let mut start = line.start;
@@ -1938,20 +1809,6 @@ fn strict_ancestor_of_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
 
 /// Inline a shell variable: substitute its value at every `$name` / `${name}` and delete the
 /// assignment.
-///
-/// Three shapes refuse here that other languages' inlining accepts:
-///
-/// * Shell has no block scope, so a second assignment anywhere in the file changes what every
-///   later use sees; one substitution cannot serve both.
-/// * Every child process this script starts reads an `export`ed variable, and nothing in the
-///   workspace shows whether one wants it.
-/// * `'$name'` inside single quotes is not a use, the shell expands nothing there. So deleting
-///   the assignment would leave text that looks like a use. Reported.
-///
-/// Quoting decides the substitution, mirroring the extraction: a use inside double quotes
-/// takes a quoted value's contents. An unquoted use takes a quoted value only when its
-/// contents form a single plain word. Otherwise the shell word-splits and glob-expands it
-/// where `$name` never was.
 fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     let sym = index
         .symbol(symbol)
@@ -1988,8 +1845,7 @@ fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         })?;
 
     // `FOO=bar cmd` sets FOO for that one command only; `$FOO` anywhere else is a different
-    // variable. Removing the prefix would change the command's environment and not inline
-    // anything.
+    // variable.
     if assignment.parent().is_some_and(|p| p.kind() == "command") {
         anyhow::bail!(
             "`{}=…` is a prefix of a single command, so it is visible only inside that \
@@ -2053,8 +1909,7 @@ fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
             }
             .into());
         }
-        // Shell's namespace is global across everything a script sources. So a use in another
-        // file may have been set by a third script between the two.
+        // Shell's namespace is global across everything a script sources.
         if reference.file != sym.file {
             anyhow::bail!(
                 "`{}` is used in {}, a different script. Shell variables live in one \
@@ -2079,8 +1934,7 @@ fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         let expansion = bash_expansion_of(use_node, &source, &sym.name)?;
         let (target, replacement) = match bash_redundant_quotes(expansion, &source, &sym.name) {
             // `x="$name"` on the right of an assignment stays one word however anyone writes
-            // it. The quotes may travel with the expansion while the value keeps its own,
-            // which reverses an extraction byte for byte.
+            // it.
             Some(quoted) => (quoted, Span::from(value).text(&source).to_string()),
             None => (
                 Span::from(expansion),
@@ -2118,8 +1972,7 @@ fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     })
 }
 
-/// Another binding of the same name: a second assignment, or a `for` loop that
-/// rebinds it. Returns the offset of the rebinding.
+/// Another binding of the same name: a second assignment, or a `for` loop that rebinds it.
 fn bash_other_binding(
     parsed: &Parsed,
     source: &str,
@@ -2182,7 +2035,6 @@ fn bash_expansion_of<'a>(node: Node<'a>, source: &str, name: &str) -> Result<Nod
         "expansion" => {
             // `${name:-default}`, `${#name}`, `${name%.c}` and friends do more than read the
             // variable; substituting the value for the whole expansion would drop the operator.
-            // Substituting it inside would not parse.
             let text = Span::from(parent).text(source);
             if text == format!("${{{name}}}") {
                 Ok(parent)
@@ -2201,13 +2053,7 @@ fn bash_expansion_of<'a>(node: Node<'a>, source: &str, name: &str) -> Result<Nod
     }
 }
 
-/// The span of a `"$name"` whose quotes do no work. Such a string holds nothing but this
-/// expansion, and it stands on the right of an assignment. The shell splits nothing there,
-/// whatever the value turns out to be.
-///
-/// Everywhere else the quotes are load-bearing, `"$name"` as a command argument is one word and
-/// the value alone might not be. So this returns `None` and the value is spliced inside the
-/// quotes instead.
+/// The span of a `"$name"` whose quotes do no work.
 fn bash_redundant_quotes(expansion: Node<'_>, source: &str, name: &str) -> Option<Span> {
     let string = expansion.parent().filter(|p| p.kind() == "string")?;
     let text = Span::from(string).text(source);
@@ -2309,15 +2155,7 @@ fn bash_is_one_plain_word(text: &str) -> bool {
         })
 }
 
-/// Inline an XML internal-subset entity. Substitute its replacement text at every `&name;`
-/// and delete the `<!ENTITY …>`. Take the `<!DOCTYPE …>` an extraction created when nothing
-/// else remains inside it.
-///
-/// This is the exact inverse of `extract::variable` on an XML file. It is a standalone function
-/// and not only a `variable()` arm because an entity has no [`SymbolId`]:
-/// `queries/xml/facts.scm` declares element ids and namespace prefixes and nothing else, so no
-/// entity reaches the index and the arm in `variable()` cannot fire until that query captures
-/// `(GEDecl (Name) @name) @definition.constant` and `(EntityRef (Name) @reference.identifier)`.
+/// Inline an XML internal-subset entity.
 pub fn xml_entity(file: &std::path::Path, name: &str) -> Result<InlinePlan> {
     let source = crate::vfs::read_to_string(file)?;
     let parsed = Parsers::new().parse(Language::Xml, &source)?;

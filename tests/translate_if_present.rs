@@ -1,10 +1,4 @@
 //! Testing an optional and binding its payload crosses every boundary here.
-//!
-//! Rust spells it `if let Some(v) = o` and Zig `if (o) |v|`. Python and
-//! TypeScript spell an optional as a nullable value, so they name it and test
-//! against null. Java's `Optional` and Go's pointer cannot unwrap in place.
-//! Both hold the value in a second binding and take the payload out inside the
-//! branch. The same statement, six spellings.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -67,9 +61,7 @@ fn a_zig_payload_if_becomes_if_let() {
 
 #[test]
 fn a_pointer_capture_binds_the_payload() {
-    // `|*v|` binds the payload in place. The dereference unwraps everywhere now. So the write
-    // lands on the binding, which is the payload itself in this value model, where `o` is
-    // already this function's own copy.
+    // `|*v|` binds the payload in place.
     let source = "fn bump(o: ?i64) void {\n    if (o) |*v| {\n        v.* += 1;\n    }\n}\n";
     let (_tmp, root) = workspace(&[("bump.zig", source)]);
     let plan = transpile::plan(&root.join("bump.zig"), Language::Rust).expect("a draft");

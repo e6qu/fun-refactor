@@ -1,10 +1,4 @@
 //! A module constant crosses as something the target can build.
-//!
-//! Found by translating this repository's own prose meter. The module
-//! docstring landed as raw prose. `RETRY_LIMIT` came out typed `&str`. A list
-//! lost its constant's name case, and its `vec![…]` never evaluates in a
-//! `const`. And pathlib's `/` in `ROOT / "tools"` became
-//! `float64(Root) / float64("tools")`.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;

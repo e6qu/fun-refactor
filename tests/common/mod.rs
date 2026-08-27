@@ -1,9 +1,4 @@
 //! The compile gate's harness: a workspace on disk, and the rule every case obeys.
-//!
-//! Shared because two files drive it. `output_compiles.rs` puts the commands that move a
-//! declaration through it, rename, signature, move, inline, and `rewrites_compile.rs`
-//! puts the commands that rewrite one in place. One harness, so a language added to it is
-//! added for both, and the rule about what may reach disk is stated once.
 
 #![allow(dead_code)]
 
@@ -14,14 +9,6 @@ use std::path::PathBuf;
 use std::process::Command;
 
 /// Hold a gate to its coverage, where a hole would otherwise be invisible.
-///
-/// Each gate file prints the tools it drove and the ones it skipped. Under `cargo test` that
-/// output is captured, so on CI nobody ever sees it. A validator that is not installed skips
-/// its cases, says so into a void. The run goes green, looking like one that checked
-/// everything.
-///
-/// So the rule differs by where it runs. On a laptop a missing tool is ordinary and the line is
-/// a note. On CI it is a hole in the build, and this fails instead.
 pub fn require_on_ci(what: &str, missing: &[String]) {
     if missing.is_empty() || std::env::var("CI").is_err() {
         return;
@@ -71,9 +58,7 @@ impl Toolchain {
     }
 
     pub fn is_available(&self) -> bool {
-        // `go --version` is an error; the subcommand is `go version`. Asking the wrong
-        // way reported Go as absent on a machine that has it, and every Go case skipped
-        // itself while the run stayed green.
+        // `go --version` is an error; the subcommand is `go version`.
         let version_flag = match self {
             Toolchain::Go | Toolchain::Zig | Toolchain::Terraform | Toolchain::Helm => "version",
             _ => "--version",
@@ -169,9 +154,7 @@ impl Workspace {
             Toolchain::Cargo => Command::new("cargo")
                 .args(["check", "--quiet", "--all-targets"])
                 .current_dir(self.dir.path())
-                // Its own build directory. Sharing one across the cases in this file made the
-                // result depend on what another case had just built. The check that this gate
-                // can fail passed alone and failed in the suite.
+                // Its own build directory.
                 .env("CARGO_TARGET_DIR", self.dir.path().join("target"))
                 .env("RUSTFLAGS", "-A warnings")
                 .output()
@@ -189,11 +172,8 @@ impl Workspace {
                 .env("GOFLAGS", "-mod=mod")
                 .output()
                 .expect("go runs"),
-            // Python states nothing until it runs, so compiling every file is only the
-            // first half. Importing the fixture resolves every `from … import …` against
-            // what the module now exports, and calling into it runs the code the edit
-            // changed. A rename that missed a call site is an error in neither half of
-            // the language and shows up in the second half of this.
+            // Python states nothing until it runs, so compiling every file is only the first
+            // half.
             Toolchain::Python => {
                 let compiled = Command::new("python3")
                     .args(["-m", "compileall", "-q", "."])
@@ -213,9 +193,8 @@ impl Workspace {
                     .output()
                     .expect("python3 runs")
             }
-            // Zig analyses what the root reaches and nothing else, so the fixture's root
-            // calls into every file for there to be anything to check. `-fno-emit-bin`
-            // keeps the artefact out of the workspace the next index would scan.
+            // Zig analyses what the root reaches and nothing else, so the fixture's root calls
+            // into every file for there to be anything to check.
             Toolchain::Zig => Command::new("zig")
                 .args(["build-lib", "main.zig", "-fno-emit-bin"])
                 .arg("--cache-dir")
@@ -223,8 +202,6 @@ impl Workspace {
                 .current_dir(self.dir.path())
                 .output()
                 .expect("zig runs"),
-            // Every source named at once, because javac resolves across the set it is
-            // given and would otherwise read a stale class file for a file it was not.
             Toolchain::Javac => {
                 let mut sources: Vec<PathBuf> = std::fs::read_dir(self.dir.path())
                     .expect("read_dir")
@@ -242,11 +219,7 @@ impl Workspace {
                     .output()
                     .expect("javac runs")
             }
-            // Three passes. The shell's own parser and shellcheck at error severity,
-            // a warning is style and an error is a script that will not run, and then
-            // the script itself, because neither of the first two can see a call to a
-            // function that moved to another file. `fr move` writes the `source` line
-            // that makes it work, and only running the thing checks that it did.
+            // Three passes.
             Toolchain::Bash => {
                 for script in self.files_ending(".sh") {
                     for (program, args) in [
@@ -321,8 +294,7 @@ impl Workspace {
                 }
                 return Ok(());
             }
-            // An HTML parser recovers from anything, so it exits 0 whatever it read. What
-            // it *says* is the answer: silence means well formed.
+            // An HTML parser recovers from anything, so it exits 0 whatever it read.
             Toolchain::XmllintHtml => {
                 for file in self.files_ending(".html") {
                     let run = Command::new("xmllint")
@@ -401,11 +373,7 @@ pub fn rustc_is_available() -> bool {
         .is_ok_and(|o| o.status.success())
 }
 
-/// A crate with nothing awkward in it. Every reference to `width` resolves exactly, so
-/// every command has enough to work with and the result has to compile.
-///
-/// One import sits behind a feature, because sorting imports moves whole lines and an
-/// attribute occupies one of its own.
+/// A crate with nothing awkward in it.
 pub fn plain() -> Vec<(&'static str, &'static str)> {
     vec![
         (
@@ -443,9 +411,7 @@ pub fn plain() -> Vec<(&'static str, &'static str)> {
     ]
 }
 
-/// The shapes the four known defects needed. A free function and a method share a name,
-/// and an integration test calls both from inside `assert_eq!`, where a macro body is
-/// tokens and a receiver is not recorded.
+/// The shapes the four known defects needed.
 pub fn awkward() -> Vec<(&'static str, &'static str)> {
     vec![
         (
@@ -510,9 +476,6 @@ pub fn the_free_function(index: &Index, name: &str) -> fun_refactor::model::Symb
 }
 
 /// The one rule this file enforces: a plan that reaches disk has to compile.
-///
-/// A refusal is a result and not a failure, so `Err` passes. What cannot pass is a plan
-/// that the tool was willing to write and that the compiler then rejects.
 pub fn gate(what: &str, ws: &Workspace, planned: anyhow::Result<EditSet>) -> bool {
     match planned {
         Err(refusal) => {
@@ -541,11 +504,6 @@ pub fn must_plan(what: &str, ws: &Workspace, planned: anyhow::Result<EditSet>) {
 }
 
 /// The other half: this case refuses today, and the refusal is the thing being pinned.
-///
-/// Twenty-six call sites threw `gate`'s answer away. Named `…_compiles_or_refuses`, they passed
-/// on either outcome, which is a test that cannot fail: the two that refuse never reached the
-/// compiler. A case that compiles today could start refusing without a word. Saying which
-/// outcome is expected makes a change in either direction visible.
 pub fn must_refuse(what: &str, ws: &Workspace, planned: anyhow::Result<EditSet>, because: &str) {
     match planned {
         Ok(edits) => {
@@ -566,11 +524,6 @@ pub fn must_refuse(what: &str, ws: &Workspace, planned: anyhow::Result<EditSet>,
 }
 
 /// What a loop over language fixtures did, so a language that flips is visible.
-///
-/// The loops call `gate` once per language and threw the answer away, so "extract a
-/// function in every language" passed while Java refused every case in it, and would
-/// have passed had they all refused. Skipping is tracked apart from refusing because a
-/// missing toolchain is not a result about the tool.
 #[derive(Default)]
 pub struct GateRun {
     pub compiled: Vec<String>,

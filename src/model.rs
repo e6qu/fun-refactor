@@ -1,7 +1,4 @@
 //! The core vocabulary: symbols, references, scopes and imports.
-//!
-//! These types are shared by every language. Language-specific knowledge lives in
-//! tree-sitter query files (`queries/<lang>/*.scm`), not here.
 
 use crate::lang::Language;
 use crate::span::Span;
@@ -9,15 +6,6 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 /// What kind of thing a symbol is.
-///
-/// Imperative and config kinds share one enum so the index, rename and reference machinery stay
-/// uniform across languages.
-///
-/// [`SymbolKind::as_str`] is this kind's identifier: it is what `--json` emits, what a
-/// catalogue's `symbol_kind:` matches, and what the tables a person reads print. The serde
-/// spelling has to be the same string. For three variants it was not, the tool emitted `"kind":
-/// "type"` and could not read it back, which is a round trip nothing was checking. Three
-/// renames below, and a test over every variant.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SymbolKind {
@@ -89,10 +77,6 @@ impl SymbolKind {
     ];
 
     /// The kind with the article that fits it, for a sentence that reads.
-    ///
-    /// Nine refusals wrote `is a {kind}`, and four kinds start with a vowel. A YAML anchor
-    /// asked to be a flag was told "it is a anchor". The article belongs to the word, so it
-    /// lives with the word.
     pub fn with_article(&self) -> String {
         let word = self.as_str();
         let article = match word.starts_with(['a', 'e', 'i', 'o', 'u']) {
@@ -129,7 +113,7 @@ impl SymbolKind {
         }
     }
 
-    /// Is this a callable thing? Determines call-graph participation.
+    /// Is this a callable thing?
     pub fn is_callable(&self) -> bool {
         matches!(self, SymbolKind::Function | SymbolKind::Method)
     }
@@ -139,12 +123,7 @@ impl SymbolKind {
         matches!(self, SymbolKind::Variable | SymbolKind::Parameter)
     }
 
-    /// Is this kind referenced by name from other files, and not through scope
-    /// or imports?
-    ///
-    /// CSS classes, element ids, custom properties, YAML keys, Markdown headings and link
-    /// definitions are all named globally by string. Cross-language references rest on that:
-    /// `class="btn"` in HTML names the `.btn` declared in a stylesheet.
+    /// Is this kind referenced by name from other files, and not through scope or imports?
     pub fn is_string_keyed(&self) -> bool {
         matches!(
             self,
@@ -159,11 +138,6 @@ impl SymbolKind {
     }
 
     /// May one entity of this kind legitimately have many definition sites?
-    ///
-    /// A CSS class has no canonical definition: `.btn` and `.btn:hover` are both definitions of
-    /// the same class. A custom property can be redeclared per scope. Renaming such an entity
-    /// has to rewrite every site, so these kinds are not treated as an ambiguous choice between
-    /// rival definitions.
     pub fn allows_multiple_definitions(&self) -> bool {
         matches!(
             self,
@@ -176,20 +150,16 @@ impl SymbolKind {
 }
 
 /// How confident we are that a reference or call resolved to the right symbol.
-///
-/// Every resolved edge carries one of these. Refactorings refuse to act on
-/// low-confidence resolutions instead of guessing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Confidence {
-    /// Resolved by lexical scope or an unambiguous local definition. Safe to edit.
+    /// Resolved by lexical scope or an unambiguous local definition.
     Exact,
-    /// Resolved through an explicit import or qualified path. Safe to edit.
+    /// Resolved through an explicit import or qualified path.
     ImportQualified,
     /// Matched by field/member name without knowing the receiver's type.
-    /// Plausible but unproven, refactorings must not silently rewrite these.
     FieldBased,
-    /// Matched by bare name only. Weakest tier; report, never rewrite.
+    /// Matched by bare name only.
     NameOnly,
 }
 
@@ -210,13 +180,6 @@ impl Confidence {
 }
 
 /// The confidence of a reference that exists, which only a reference can produce.
-///
-/// [`crate::refactor::Refusal::TooWeak`] means "this resolved, and not strongly enough to act
-/// on". Five sites raised it where nothing had resolved at all, filling the field with
-/// `Confidence::NameOnly`. So a shell script that sources a computed path was refused with
-/// "resolution is only 'name-only'", sending the reader after a resolution problem that was not
-/// there. Taking this instead of a bare [`Confidence`] means the variant cannot be built
-/// without a reference to take it from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ResolvedConfidence(Confidence);
 
@@ -240,31 +203,26 @@ pub struct Symbol {
     pub id: SymbolId,
     pub name: String,
     pub kind: SymbolKind,
-    /// Span of just the identifier. This is what a rename edits.
+    /// Span of just the identifier.
     pub name_span: Span,
-    /// Span of the whole definition, including body. This is what a move or delete edits.
+    /// Span of the whole definition, including body.
     pub full_span: Span,
-    /// Not serialized: every item in a file shares one path, which the cache restores
-    /// on load. Storing it per item made entries several times larger than the source.
+    /// Not serialized: every item in a file shares one path, which the cache restores on load.
     #[serde(skip)]
     pub file: PathBuf,
     pub language: Language,
     /// Innermost scope containing the definition.
     pub scope: ScopeId,
-    /// Enclosing symbol, e.g. the class owning a method or the function owning a local.
+    /// Enclosing symbol, e.g.
     pub container: Option<SymbolId>,
     /// Name of the enclosing type-like construct, used for qualification.
-    ///
-    /// Distinct from [`Symbol::container`] because some containers are not symbols themselves:
-    /// a Rust `impl S` block qualifies its methods as `S::m`. But the `S` it names is a
-    /// *reference* to the struct, not a second definition of it.
     pub qualifier: Option<String>,
     /// Whether the symbol is visible outside its file (`pub`, `export`, capitalised in Go…).
     pub exported: bool,
 }
 
 impl Symbol {
-    /// Fully-qualified display name, e.g. `Type::method`.
+    /// Fully-qualified display name, e.g.
     pub fn qualified_name(&self) -> String {
         match &self.qualifier {
             Some(q) => format!("{q}::{}", self.name),
@@ -277,7 +235,7 @@ impl Symbol {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Reference {
     pub name: String,
-    /// Span of the identifier at the use site. This is what a rename edits.
+    /// Span of the identifier at the use site.
     pub span: Span,
     /// Not serialized; see [`Symbol::file`].
     #[serde(skip)]
@@ -289,45 +247,23 @@ pub struct Reference {
     pub target: Option<SymbolId>,
     pub confidence: Confidence,
     pub kind: ReferenceKind,
-    /// A second meaning sharing another reference's span: a shorthand
-    /// initializer's identifier reads a local and writes a field, and this is
-    /// the field half. Kept apart so neither symbol reads as dead.
+    /// A second meaning sharing another reference's span: a shorthand initializer's identifier
+    /// reads a local and writes a field, and this is the field half.
     #[serde(default)]
     pub twin: bool,
-    /// What this reference was written against, when it was written as a member of
-    /// something: the `w` in `w.contextWithTimeout(…)`, the `time` in `time.Now()`.
-    ///
-    /// The two are the same syntax in Go, and telling them apart decides whether the
-    /// name is a method or a package-level function. Resolution can only make that
-    /// call by asking whether the receiver is an import binding, which needs the
-    /// receiver recorded here.
+    /// What this reference was written against, when it was written as a member of something:
+    /// the `w` in `w.contextWithTimeout(…)`, the `time` in `time.Now()`.
     #[serde(default)]
     pub receiver: Option<String>,
-    /// Written after a `.` inside a macro's token tree, where the grammar records
-    /// tokens and not syntax and so records no receiver.
-    ///
-    /// `assert_eq!(f.scope_at(30), …)` reaches the query as a bare identifier: not a
-    /// call, and with nothing before it. Left at that it is indistinguishable from a
-    /// call to a free function of the same name, which renaming the free
-    /// `scope_at` rewrote, turning four method calls into calls to a method that does
-    /// not exist. The dot is still in the source even where the syntax is not.
+    /// Written after a `.` inside a macro's token tree, where the grammar records tokens and
+    /// not syntax and so records no receiver.
     #[serde(default)]
     pub member_in_macro: bool,
     /// The kind of declaration this reference can name, where the syntax says so.
-    ///
-    /// `class="thing"` names a CSS class and `href="#thing"` names an element id. Both are
-    /// string references to `thing`, and without this the nearer declaration won: renaming the
-    /// id `#thing` rewrote `class="thing"` as well. So the element lost the class that styled
-    /// it and gained one that nothing declares.
     #[serde(default)]
     pub expects: Option<SymbolKind>,
-    /// The receiver was written as a *path*, as in Rust's `Patterns::build`, `super::f`,
-    /// and not as a value.
-    ///
-    /// A path names a type or a module, so it can be matched against a symbol's own
-    /// qualifier without knowing any types. A value receiver names something whose
-    /// type is unknown, and only a member can follow it. Conflating the two makes
-    /// `super::render(…)` look like a method call on a value called `super`.
+    /// The receiver was written as a *path*, as in Rust's `Patterns::build`, `super::f`, and
+    /// not as a value.
     #[serde(default)]
     pub receiver_is_path: bool,
 }
@@ -354,8 +290,7 @@ pub enum ReferenceKind {
     /// A reference inside a string, template or attribute (Helm `.Values.x`,
     /// HTML `class="btn"`, Markdown `#anchor`).
     StringRef,
-    /// The name written in a comment or a string, which no grammar links to the
-    /// declaration. `fr usages` lists these apart. No command edits them.
+    /// The name written in a comment or a string, which no grammar links to the declaration.
     Textual,
 }
 
@@ -370,7 +305,7 @@ pub struct Scope {
 /// An import / include / use statement.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Import {
-    /// The module path as written, e.g. `std::collections::HashMap`, `./utils`.
+    /// The module path as written, e.g.
     pub path: String,
     /// Local binding introduced, if any (`use x as y` binds `y`).
     pub alias: Option<String>,
@@ -383,12 +318,8 @@ pub struct Import {
     /// True for glob imports (`use x::*`, `from m import *`), which make
     /// name resolution ambiguous and force a confidence downgrade.
     pub is_glob: bool,
-    /// True when this statement also exports what it brings in:
-    /// `export { width } from "./holder"`.
-    ///
-    /// A file like that declares nothing, so a name imported from it resolves to no
-    /// definition there. The declaration is one hop further on, in the file this
-    /// statement names.
+    /// True when this statement also exports what it brings in: `export { width } from
+    /// "./holder"`.
     #[serde(default)]
     pub re_export: bool,
 }
@@ -410,9 +341,6 @@ impl ImportedName {
 }
 
 /// GitHub's heading anchor: lowercased, punctuation dropped, spaces hyphenated.
-///
-/// A Markdown heading is referenced by this. It is not by its text. So it is what resolution compares
-/// a `#fragment` against and what a rename writes into one.
 pub fn anchor_slug(heading: &str) -> String {
     let mut out = String::with_capacity(heading.len());
     for ch in heading.trim().chars() {
@@ -427,34 +355,22 @@ pub fn anchor_slug(heading: &str) -> String {
 
 impl Symbol {
     /// Can another file name this declaration on its own, with no type in front of it?
-    ///
-    /// A method has no container, because an `impl` block is not a declaration that the
-    /// index records. It has a qualifier, which is the type it belongs to. A check that
-    /// asks only about the container counts a method as a top-level item of its file, and
-    /// `fr move` then wrote `use crate::holder::width;` into the file it had just moved
-    /// `width` into, naming a function that was no longer there.
     pub fn is_top_level(&self) -> bool {
         self.container.is_none() && self.qualifier.is_none()
     }
 }
 
 /// A reason some of a file's content is missing from the index.
-///
-/// A gap carries the sentence that reports it. So a new way for extraction to come up short
-/// cannot be added without also deciding what the user is told about it. The alternative, a
-/// bool meaning "trust this file less", has to pick one sentence for every reason, and grew
-/// wrong the moment a second reason existed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum FactGap {
     /// The grammar produced ERROR nodes.
     SyntaxErrors,
-    /// A Helm action stands where a mapping key belongs. The key has no name before
-    /// the template renders, so the entry is not in the index at all.
+    /// A Helm action stands where a mapping key belongs.
     TemplatedKeys,
 }
 
 impl FactGap {
-    /// What went missing. Each reporting site appends what that costs it there.
+    /// What went missing.
     pub fn cause(self) -> &'static str {
         match self {
             Self::SyntaxErrors => "file has syntax errors",
@@ -471,12 +387,6 @@ impl FactGap {
 }
 
 /// A Kubernetes object a file declares, addressed by name from another file.
-///
-/// A manifest's `metadata.name` is written as a value and not as a key, so no symbol
-/// carries it. Another manifest reaches this object by that name. A
-/// `configMapKeyRef` names the ConfigMap it reads a key from. With the declaration
-/// recorded per file, resolution can pick between four workspace `LOG_LEVEL` keys
-/// instead of guessing.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct KubernetesObject {
     /// The `kind` field as written: `ConfigMap`, `Secret`.
@@ -494,12 +404,10 @@ pub struct FileFacts {
     /// The Kubernetes objects this file declares, in document order.
     #[serde(default)]
     pub kubernetes_objects: Vec<KubernetesObject>,
-    /// Why the file's facts are incomplete, empty when they are not. Carried with the
-    /// facts so a cached entry answers the question without reparsing.
+    /// Why the file's facts are incomplete, empty when they are not.
     #[serde(default)]
     pub gaps: Vec<FactGap>,
-    /// Set when the file could not be read at all. So a parallel worker can report the failure
-    /// through its result instead of needing a second channel.
+    /// Set when the file could not be read at all.
     #[serde(skip)]
     pub unreadable: Option<String>,
     pub symbols: Vec<Symbol>,
@@ -509,10 +417,6 @@ pub struct FileFacts {
 }
 
 /// The innermost scope containing `offset`.
-///
-/// A free function over the scopes themselves, because two different types hold the same
-/// `Vec<Scope>`, the per-file facts before resolution and the index's view of a file after it.
-/// The answer must not depend on which one you happen to have.
 pub fn scope_at(scopes: &[Scope], offset: usize) -> Option<ScopeId> {
     scopes
         .iter()

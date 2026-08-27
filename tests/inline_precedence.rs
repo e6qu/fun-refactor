@@ -1,8 +1,4 @@
 //! Substituting a value into an expression, without changing what it means.
-//!
-//! `b = a + 1; return b * 2` inlined to `return a + 1 * 2`, which is `a + 2`. A refactoring
-//! that changes the answer is the one thing this tool must never do. It was doing it in every
-//! language with an expression grammar.
 
 use fun_refactor::index::Index;
 use fun_refactor::model::SymbolId;
@@ -83,9 +79,9 @@ fn a_value_nothing_can_split_is_left_bare() {
 
 #[test]
 fn a_zig_binding_can_be_inlined_at_all() {
-    // tree-sitter-zig names nothing on a `variable_declaration`, the `=` is an
-    // anonymous token with the value after it, so asking for the `value` field refused
-    // every Zig binding there has ever been, while the capability matrix said it worked.
+    // tree-sitter-zig names nothing on a `variable_declaration`, the `=` is an anonymous token
+    // with the value after it, so asking for the `value` field refused every Zig binding there
+    // has ever been, while the capability matrix said it worked.
     let source = "pub fn f(a: i64) i64 {\n    const b = g(a);\n    return b;\n}\n";
     let after = inlined("a.zig", source, "b");
     assert!(after.contains("return g(a);"), "{after}");
@@ -94,9 +90,9 @@ fn a_zig_binding_can_be_inlined_at_all() {
 
 #[test]
 fn extracting_a_whole_statement_is_refused() {
-    // Replacing it with the new name leaves a statement that only names the binding:
-    // `zzx;`, which Zig rejects outright, Go rejects as an unused value, and the other
-    // three accept while meaning nothing.
+    // Replacing it with the new name leaves a statement that only names the binding: `zzx;`,
+    // which Zig rejects outright, Go rejects as an unused value, and the other three accept
+    // while meaning nothing.
     let source = "pub fn f() void {\n    g(1);\n}\n";
     let (_tmp, root) = workspace(&[("a.zig", source)]);
     let index = Index::build(&root, &ScanOptions::default()).expect("an index");
@@ -113,9 +109,7 @@ fn extracting_a_whole_statement_is_refused() {
 
 #[test]
 fn a_config_value_is_not_an_expression() {
-    // `(enabled)` is not the same scalar as `enabled`. A YAML value is not something a
-    // parenthesis can group, so the languages without an expression grammar are left
-    // alone entirely.
+    // `(enabled)` is not the same scalar as `enabled`.
     let source = "root:\n  a: &shared enabled\n  b: *shared\n";
     let after = inlined("a.yaml", source, "shared");
     assert!(after.contains("b: enabled"), "{after}");
@@ -124,9 +118,8 @@ fn a_config_value_is_not_an_expression() {
 
 #[test]
 fn a_multi_line_binding_takes_its_whole_lines_along() {
-    // The removal compared only the first line, so a wrapped binding was
-    // cut from its `let` to its `;`. The first line's indentation stayed
-    // behind as a line of trailing whitespace.
+    // The removal compared only the first line, so a wrapped binding was cut from its `let` to
+    // its `;`.
     let source = "pub fn f(last: &str) -> String {\n    let bare = last\n        \
                   .trim()\n        .to_string();\n    bare\n}\n";
     let out = inlined("m.rs", source, "bare");

@@ -94,9 +94,8 @@ fn refuses_across_files_and_across_languages() {
 
 #[test]
 fn a_reference_the_index_could_not_prove_does_not_block_but_is_reported() {
-    // Two files each define `parse`; the call in `b.rs` is ambiguous, so it resolves
-    // only weakly. That is not proof of a use, and must not silently block or be
-    // silently ignored.
+    // Two files each define `parse`; the call in `b.rs` is ambiguous, so it resolves only
+    // weakly.
     let (_tmp, index) = workspace(&[
         ("a.rs", "pub fn shared_thing() {}\n"),
         ("b.rs", "fn other() { shared_thing(); }\n"),
@@ -218,7 +217,7 @@ fn a_symbol_referenced_only_from_a_string_is_deleted_but_the_string_is_reported(
     assert_eq!(textual.len(), 1, "got {textual:?}");
     assert_eq!(textual[0].line, 3);
 
-    // The delete still happens, the string is reported. It is not obeyed.
+    // The delete still happens, the string is reported.
     assert_eq!(
         applied(&plan, &tmp.path().join("a.rs")),
         "fn main() {\n    dispatch(\"handler\");\n}\n"
@@ -227,8 +226,7 @@ fn a_symbol_referenced_only_from_a_string_is_deleted_but_the_string_is_reported(
 
 #[test]
 fn an_intra_doc_link_to_the_deleted_symbol_is_reported_and_left_alone() {
-    // Deleting `legacy` strands the `[`legacy`]` link in another item's rustdoc. The doc
-    // comment is prose, so nothing edits it; the plan has to say where it dangles.
+    // Deleting `legacy` strands the `[`legacy`]` link in another item's rustdoc.
     let source = "/// Successor to [`legacy`].\npub fn modern() -> u32 {\n    2\n}\n\npub fn legacy() -> u32 {\n    1\n}\n";
     let (tmp, index) = workspace(&[("lib.rs", source)]);
 
@@ -266,8 +264,6 @@ fn files_that_failed_to_parse_are_reported_as_possibly_hiding_uses() {
 #[test]
 fn deleting_a_lone_css_selector_removes_its_whole_rule() {
     // A selector's `full_span` is the selector node, which a rename rewrites.
-    // A delete has to take the rule too: a declaration block with nothing to apply to
-    // is not valid CSS.
     let source = ".btn { color: red; }\n.other { padding: 1px; }\n";
     let (tmp, index) = workspace(&[("style.css", source)]);
 
@@ -338,9 +334,8 @@ fn find_unused_finds_dead_recursive_code() {
 
 #[test]
 fn find_unused_reports_mutual_recursion_as_a_dead_group() {
-    // `ping` and `pong` reference each other, so neither has zero incoming references
-    // and the per-symbol check clears both. Asking the question of the cycle instead,
-    // does anything *outside* it reference a member?, finds the whole component dead.
+    // `ping` and `pong` reference each other, so neither has zero incoming references and the
+    // per-symbol check clears both.
     let source = "fn ping() { pong(); }\nfn pong() { ping(); }\nfn main() {}\n";
     let (_tmp, index) = workspace(&[("a.rs", source)]);
 
@@ -361,9 +356,6 @@ fn find_unused_reports_mutual_recursion_as_a_dead_group() {
 #[test]
 fn find_unused_leaves_out_a_name_a_string_literal_spells() {
     // `on_event` is called through a name-keyed handler table the index cannot see.
-    // Reachability follows resolved edges only, so nothing leads to it, but the string is
-    // evidence that something might. A candidate list that invites deleting live code is worse
-    // than one with a stale entry missing from it.
     let source = "fn on_event() {}\nfn main() {\n    dispatch(\"on_event\");\n}\n";
     let (_tmp, index) = workspace(&[("a.rs", source)]);
 
@@ -467,9 +459,8 @@ fn deleting_a_css_selector_survives_the_reparse_check() {
 
 #[test]
 fn find_unused_leaves_out_a_name_the_author_marked_unused() {
-    // A parameter a signature forces on you and the body ignores is written with a
-    // leading underscore in Rust, TypeScript, Python and Zig. Listing those buries
-    // the real findings: one real TypeScript file contributed eight of them.
+    // A parameter a signature forces on you and the body ignores is written with a leading
+    // underscore in Rust, TypeScript, Python and Zig.
     let source = "fn handler(_theme: i32, value: i32) -> i32 {\n    value\n}\n\
                   fn main() {\n    handler(1, 2);\n}\n";
     let (_tmp, index) = workspace(&[("a.rs", source)]);
@@ -513,7 +504,7 @@ fn the_underscore_convention_is_reported_as_a_reason_not_hidden() {
 #[test]
 fn an_exported_symbol_is_reported_but_marked_as_such() {
     // The distinction the `--internal` flag and the `exported` column rest on: a library's
-    // public API has no caller in its own repository. That is not evidence of anything.
+    // public API has no caller in its own repository.
     let source = "package p\n\nfunc Exported() int {\n\treturn 1\n}\n\
                   func unexported() int {\n\treturn 2\n}\n";
     let (_tmp, index) = workspace(&[("a.go", source)]);
@@ -528,15 +519,8 @@ fn an_exported_symbol_is_reported_but_marked_as_such() {
     assert!(named.contains(&("unexported", false)), "got {named:?}");
 }
 
-//
 // `an_unused_symbol_from_find_unused_can_then_be_deleted` above states the invariant and checks
-// it for one Rust function. Run over a polyglot workspace it failed thirteen times out of
-// fifty-nine. A TypeScript `export const` whose declarator span left `export const ;` behind, a
-// Zig struct field. Nine CSS selectors that were not dead at all, the markup used them, and the
-// use resolved to one of the two stylesheets that declared them, so the other read as
-// unreferenced.
-//
-// One symbol was never going to find that. This runs the whole loop.
+// it for one Rust function.
 
 /// A little service in nine languages: enough shapes for the invariant to bite.
 fn polyglot() -> Vec<(&'static str, &'static str)> {
@@ -570,8 +554,7 @@ fn polyglot() -> Vec<(&'static str, &'static str)> {
             "<!doctype html>\n<html><body>\n<a class=\"panel\">one</a>\n<p class=\"note\" id=\"here\">two</p>\n</body></html>\n",
         ),
         (
-            // `panel` and `note` are declared twice over, and used by the markup. A
-            // per-site count called the second declaration of each dead.
+            // `panel` and `note` are declared twice over, and used by the markup.
             "web/base.css",
             ".panel {\n  color: red;\n}\n\n.note {\n  color: blue;\n}\n\n.never-used {\n  color: green;\n}\n",
         ),
@@ -638,8 +621,7 @@ fn what_find_unused_reports_delete_can_always_remove() {
 
 #[test]
 fn a_class_declared_twice_and_used_once_is_not_dead() {
-    // The use resolves to one of the declarations. Counting per site made the other
-    // one look unreferenced, so the report named a class the markup was using.
+    // The use resolves to one of the declarations.
     let files = polyglot();
     let (_tmp, index) = workspace(&files);
     let unused = delete::find_unused(&index, &Entrypoints::none());
@@ -667,9 +649,6 @@ fn a_class_declared_twice_and_used_once_is_not_dead() {
 
 #[test]
 fn refs_on_one_declaration_finds_every_use_of_the_class() {
-    // `fr refs` on the second declaration of a CSS class used to report nothing,
-    // while `fr rename` at the same position changed five sites. Looking before you
-    // leap has to see what the leap will do.
     let files = polyglot();
     let (_tmp, index) = workspace(&files);
 
@@ -696,11 +675,6 @@ fn refs_on_one_declaration_finds_every_use_of_the_class() {
 }
 
 /// A package clause is not dead code, because it is not code that can die.
-///
-/// Java classes in one package never write the package's name and nothing can import Go's
-/// `main`. So "nothing uses this" is true of every package declaration and says nothing about
-/// any of them. `spring-petclinic` reported all forty-nine of its, one per file. Removing one
-/// is a syntax error. It is not a refactoring.
 #[test]
 fn a_package_clause_is_not_reported_as_unused() {
     let (_tmp, index) = workspace(&[
@@ -723,7 +697,6 @@ fn a_package_clause_is_not_reported_as_unused() {
 }
 
 /// The other side: Rust's `mod` wears the same symbol kind and means something else.
-/// It declares a child module, and one nothing references is a real finding.
 #[test]
 fn an_unreferenced_rust_module_is_still_reported() {
     let (_tmp, index) = workspace(&[("a.rs", "mod helper;\n\nfn main() {}\n")]);
@@ -739,11 +712,6 @@ fn an_unreferenced_rust_module_is_still_reported() {
 }
 
 /// A class whose methods are entry points is reached, whatever calls them.
-///
-/// JUnit constructs a test class to run the `@Test` methods in it, and the
-/// class itself is named nowhere, `spring-petclinic` reported eleven of them. The rule
-/// asks the containment chain instead of the language, so a Rust `mod tests` and a
-/// Python class of pytest cases are covered by the same sentence.
 #[test]
 fn a_container_of_an_entry_point_is_not_dead() {
     let (_tmp, index) = workspace(&[(
@@ -771,10 +739,6 @@ fn a_container_of_an_entry_point_is_not_dead() {
 }
 
 /// A JavaBean accessor is reached by its property, never by its name.
-///
-/// `${owner.address}` in a template reaches `Owner::getAddress`. The property was in the
-/// string index already; only the question was missing. Java only. There the convention
-/// is a specification that template engines, JSON mappers and Spring's binder all follow.
 #[test]
 fn a_bean_accessor_named_only_by_its_property_is_spared() {
     let (_tmp, index) = workspace(&[
@@ -832,10 +796,6 @@ fn a_name_merely_starting_with_get_is_not_an_accessor() {
 }
 
 /// An attribute value is a string the HTML grammar happens not to call one.
-///
-/// It is also where a template names the code behind it. So the rule meant to catch that,
-/// "spared because its name is spelled in a string", could not see the whole Thymeleaf, Vue and
-/// Angular way of referring to code.
 #[test]
 fn a_name_in_a_template_attribute_counts_as_named() {
     let (_tmp, index) = workspace(&[
@@ -867,12 +827,6 @@ fn a_name_in_a_template_attribute_counts_as_named() {
 }
 
 /// An HCL block Terraform gives no address to.
-///
-/// `terraform {}`, `required_providers {}`, `lifecycle {}` and a `dynamic` block's `content {}`
-/// carry no label. So nothing can reference one and every single one answers "nothing uses
-/// this". terraform-aws-vpc reported 46, all of that shape. A labelled block takes its name
-/// from a string label. So the quote before the name is the test, no list of block types to
-/// keep up with Terraform.
 #[test]
 fn an_unaddressable_hcl_block_is_not_reported() {
     let (_tmp, index) = workspace(&[(
@@ -930,10 +884,6 @@ fn a_zig_test_block_and_what_it_calls_are_reached() {
 }
 
 /// What sits attached above a deleted definition goes with it.
-///
-/// Left behind, `#[allow(dead_code)]` and three lines of documentation moved
-/// onto the next survivor. An attribute changes the meaning of whatever
-/// follows, and clippy refuses an orphaned doc comment outright.
 #[test]
 fn a_deletion_takes_its_docs_and_attributes() {
     let (tmp, index) = workspace(&[(
@@ -965,8 +915,7 @@ fn a_deletion_takes_its_docs_and_attributes() {
     );
 }
 
-/// An import of a name this workspace declares as a non-trait goes when its
-/// last user does. The trait caution stays for names the index cannot see.
+/// An import of a name this workspace declares as a non-trait goes when its last user does.
 #[test]
 fn a_deletion_drops_an_import_the_workspace_knows_is_no_trait() {
     let (tmp, index) = workspace(&[

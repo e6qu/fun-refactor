@@ -1,15 +1,4 @@
 //! Value flow: where does this value come from, and where does it go.
-//!
-//! # What tier this is
-//!
-//! This is syntactic def-use analysis over the resolved index, not a full dataflow engine. It
-//! follows assignments and initialisers through resolved references, which answers most "where
-//! did this come from" questions in practice. It stops **loudly** at every boundary it cannot
-//! cross, unresolved names, calls whose target is not proven, and dynamic dispatch (PLAN.md
-//! D5). It never over-approximates by assuming a value flows through an unknown call.
-//!
-//! Each step records the confidence of the resolution that produced it, so a chain containing a
-//! weak link is visibly weak and not silently wrong.
 
 use crate::index::Index;
 use crate::lang::{Language, LanguageClass};
@@ -107,9 +96,6 @@ impl FlowResult {
     }
 
     /// [`Self::format_tree`], with each path under `root` spelled relative to it.
-    ///
-    /// The CLI passes its workspace root so the listing matches the paths a reader
-    /// types back in. A file outside the root keeps its absolute spelling.
     pub fn format_tree_under(&self, root: &Path) -> String {
         let mut out = String::new();
         for step in &self.steps {
@@ -231,7 +217,6 @@ fn walk_backward(
     }
 
     for reference in contributors {
-        // A call in the initialiser: the value comes from the callee's return.
         if reference.kind == ReferenceKind::Call {
             match reference.target {
                 Some(target) if reference.confidence.is_safe_to_rewrite() => {
@@ -318,10 +303,8 @@ fn walk_forward(
     max_depth: usize,
     result: &mut FlowResult,
     seen: &mut HashSet<SymbolId>,
-    // Reached because a use of the previous value initialised this one, so the line
-    // this binding is on has already been printed as that use. Printing it again puts
-    // `parsed = int(cleaned)` twice, one indent apart, at every hop of the chain, and
-    // costs a level of depth for a line the reader has already seen.
+    // Reached because a use of the previous value initialised this one, so the line this
+    // binding is on has already been printed as that use.
     already_shown: bool,
 ) -> Result<()> {
     if depth > max_depth {
@@ -384,10 +367,6 @@ fn walk_forward(
 }
 
 /// The value/initialiser subtree of a definition.
-///
-/// Grammars differ, but the node carrying an assigned value is reliably reachable
-/// through a field named `value` or `right`, which covers `let x = …`, `x = …`,
-/// `const x = …`, `x: y` and HCL/YAML attribute forms.
 fn value_of_definition<'a>(
     parsed: &'a crate::parse::Parsed,
     full_span: Span,
@@ -431,16 +410,12 @@ fn enclosing_assignment_target(
         .root()
         .descendant_for_byte_range(span.start, span.end)?;
 
-    // Walk outwards looking for a node whose `value`/`right` contains our span.
     for _ in 0..16 {
         for field in ["value", "right"] {
             if let Some(value) = node.child_by_field_name(field) {
                 if Span::from(value).contains(span) {
                     // A node can hold the value without naming anything: Rust's `cleaned as
                     // i64` is a `type_cast_expression` whose `value` is the reference.
-                    // `raw.len()` is a `field_expression` whose `value` is the receiver. Giving
-                    // up there gave up on the `let` two levels out, so forward flow in Rust
-                    // stopped at the first hop every time.
                     let Some(target_span) = node
                         .child_by_field_name("name")
                         .or_else(|| node.child_by_field_name("left"))
@@ -456,11 +431,7 @@ fn enclosing_assignment_target(
                     if let Some(exact) = candidates().find(|s| s.name_span == target_span) {
                         return Some(exact.id);
                     }
-                    // Otherwise the *smallest* binding whose span holds that name. Every
-                    // enclosing function's span holds it too, and taking the first match in
-                    // declaration order took the function. So `parsed = int(cleaned)` said the
-                    // value flowed into `load`, and forward flow stopped one hop from where it
-                    // started while looking like it had gone somewhere.
+                    // Otherwise the *smallest* binding whose span holds that name.
                     return candidates()
                         .filter(|s| {
                             matches!(
@@ -494,9 +465,6 @@ fn line_text(source: &str, offset: usize) -> String {
 }
 
 /// Does flow analysis apply to this language?
-///
-/// Config and markup languages get provenance analysis instead of dataflow: their
-/// evaluation model is substitution and override. It is not execution.
 pub fn supports_flow(language: Language) -> bool {
     language.class() == LanguageClass::Imperative
 }
@@ -509,21 +477,10 @@ pub fn applies_to(index: &Index, file: &Path) -> bool {
 }
 
 /// The refusal both entry points owe a language that does not execute.
-///
-/// The predicate above was the CLI's, asked before choosing between flow and provenance. So the
-/// answer was right by the route the CLI happened to take. Called as a library, `forward` and
-/// `backward` walked a Markdown or YAML symbol and returned an empty result, which reads as
-/// "nothing flows from here" and not "this question has no meaning here". The matrix said
-/// `n/a` the whole time.
 fn refuse_unless_it_executes(language: Language) -> Result<()> {
     if supports_flow(language) {
         return Ok(());
     }
-    // The advice this used to give named `fr provenance`, which is not a command, the
-    // command is `fr flow`, which picks provenance itself for the languages provenance
-    // covers. It also promised an answer for HTML, XML and Markdown, where provenance
-    // stops at the first hop saying it has no substitution model to follow. Both halves
-    // were written without being run.
     let because = match crate::analysis::provenance::supports_provenance(language) {
         true => {
             "this language is evaluated by substitution and override rather than \

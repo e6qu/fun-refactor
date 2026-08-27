@@ -67,7 +67,7 @@ refactoring someone wants.
 could not type a step as an `fr` command, it is not a step.
 
 **Not a linter.** A recipe changes code. The default run reports without changing:
-nothing is written without `--write`, so every run doubles as a check.
+nothing reaches disk without `--write`, so every run doubles as a check.
 
 ## The cost of a bespoke syntax, and how it gets paid
 
@@ -205,7 +205,7 @@ It writes beside the source and never over it, so a destination that is already
 there is a refusal. The step reports what it created apart from what it changed.
 A construct the target has no counterpart for is a warning against the line of
 the source it came from. That is the shape a rename uses for a use it left.
-The language is checked while the recipe is read. A target nothing can be
+The parser checks the language as it reads the recipe. A target nothing can be
 written as is a mistake in the recipe, not a fault of the file it reaches.
 
 Two more things the prototype argued for:
@@ -306,7 +306,7 @@ it treats them is the decision that matters most here.
 
 | `on-refusal` | Meaning |
 | --- | --- |
-| `stop` (default) | abandon the run; nothing is written |
+| `stop` (default) | abandon the run and write nothing |
 | `report` | record it, apply the rest, exit non-zero |
 | `allow` | record it, apply the rest, exit zero, the refusals were expected |
 
@@ -418,7 +418,7 @@ v1 recipes are **local**: keep the file beside the code it changes and run
 running someone else's file against your source.
 
 Every file carries `schema 1` from day one anyway, because it costs one line now and
-cannot be added later. A future reader grabs that hook to refuse a file it does not
+nobody can add later. A future reader grabs that hook to refuse a file it does not
 understand.
 
 What sharing would require, written down rather than answered badly:

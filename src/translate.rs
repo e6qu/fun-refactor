@@ -1,22 +1,4 @@
 //! Rewriting a file as another language.
-//!
-//! Two different promises share this command. Where one grammar contains the other, the
-//! result is the same bytes under the target's extension, checked by the target's parser.
-//! Between programming languages, `src/transpile` produces a draft: signatures carried with
-//! their types where possible, and every construct without a counterpart marked, never
-//! silently dropped.
-//!
-//! Some languages contain others. SCSS is a superset of CSS, TSX is TypeScript with JSX, a Helm
-//! template is YAML with actions, XHTML is both HTML and XML. For a file using no feature the
-//! target lacks, converting between those is a rename plus two checks:
-//!
-//! 1. The pair appears in [`targets`], a declared relationship between the two grammars.
-//!    Without it an empty file would "convert" to anything.
-//! 2. The text parses cleanly under the target grammar. SCSS using nesting does not parse as
-//!    CSS, and the refusal says where.
-//!
-//! The result goes beside the original, same stem, target's extension. The original stays: a
-//! conversion that deletes its input cannot be reversed from the diff.
 
 use crate::edit::{Edit, EditSet};
 use crate::lang::Language;
@@ -24,11 +6,7 @@ use crate::parse::Parsers;
 use anyhow::{bail, Result};
 use std::path::{Path, PathBuf};
 
-/// What a file of this language can be rewritten as.
-///
-/// Only relationships where one grammar contains the other. The direction matters: every CSS
-/// file is SCSS, but only some SCSS files are CSS. So the parse in [`plan`] is not optional in
-/// either direction.
+/// What this language may become.
 pub fn targets(from: Language) -> &'static [Language] {
     use Language::*;
     match from {
@@ -42,46 +20,32 @@ pub fn targets(from: Language) -> &'static [Language] {
         // A manifest is a template with no actions in it.
         Yaml => &[Helm],
         Helm => &[Yaml],
-        // Terraform reads both, and they are two encodings of one
-        // configuration. The bytes change, so this is a conversion and not a
-        // rename; `transpile::tfjson` performs it.
+        // Terraform reads both, and they are two encodings of one configuration.
         Hcl => &[Json],
         Json => &[Hcl],
         // XHTML is the intersection; the parse decides whether this file is in it.
         Html => &[Xml],
         Xml => &[Html],
-        // The one pair here whose bytes change: a document renders to the markup it
-        // describes. One way only. HTML back to Markdown would have to decide what
-        // is prose and what is structure, and that is authorship, not translation.
+        // The one pair here whose bytes change: a document renders to the markup it describes.
         Markdown => &[Html],
         _ => &[],
     }
 }
 
-/// One thing a file could be rewritten as, and what that would produce.
+/// One thing a file may become, and what it would produce.
 #[derive(Debug, Clone)]
 pub struct Option_ {
     pub target: Language,
-    /// Where the result would be written.
+    /// Where the result lands.
     pub destination: PathBuf,
     /// `None` where the result is the same bytes under a different extension, and the
     /// fidelity of the draft where it is a translation.
     pub fidelity: std::option::Option<crate::transpile::Fidelity>,
-    /// Why this target cannot be produced right now, when it cannot.
-    ///
-    /// A blocked target used to vanish from the listing, and a listing that hides
-    /// an entry teaches the reader the pair does not exist.
+    /// Why this target is out of reach, where it is.
     pub blocked: std::option::Option<String>,
 }
 
-/// Everything `path` could be rewritten as, worked out by asking for each one.
-///
-/// The list and the answer come from the same call, which keeps them from disagreeing.
-/// They were two: the listing walked one set of languages and the request checked another, so
-/// `fr translate x.py tsx` succeeded while nothing ever offered it.
-///
-/// A target that would fail is left out. The reason is available from
-/// [`crate::transpile::plan`] or [`plan`] for a caller that asks for it by name.
+/// Everything `path` may become. Asks for each in turn.
 pub fn options_for(path: &Path) -> Vec<Option_> {
     let Some(from) = crate::lang::detect(path) else {
         return Vec::new();
@@ -111,8 +75,8 @@ pub fn options_for(path: &Path) -> Vec<Option_> {
         }
     }
 
-    // Plus every language this can be translated into, which is a different and much
-    // weaker promise, a draft instead of the same bytes.
+    // Then every language this translates into. A weaker promise: a draft rather than
+    // the same bytes.
     if crate::transpile::can_be_read(from) {
         for target in crate::transpile::SUPPORTED {
             if *target == from || out.iter().any(|o| o.target == *target) {
@@ -143,10 +107,7 @@ pub fn options_for(path: &Path) -> Vec<Option_> {
     out
 }
 
-/// Why a language cannot be rewritten as another, in words a person can act on.
-///
-/// Returned instead of a silent empty list so the interface can say *why* the button
-/// is doing nothing, which for the imperative languages is the whole story.
+/// Why one language will not become another, in words a person can act on.
 pub fn why_not(from: Language, to: Language) -> String {
     use crate::lang::LanguageClass;
     if from == to {
@@ -174,16 +135,10 @@ pub fn why_not(from: Language, to: Language) -> String {
     )
 }
 
-/// Why a language can be rewritten as nothing at all.
-///
-/// Said once, and not by picking an arbitrary target and explaining that pair.
+/// Why a language becomes nothing at all.
 pub fn why_nothing(from: Language) -> String {
     use crate::lang::LanguageClass;
     if from.class() == LanguageClass::Imperative {
-        // This used to say "nothing here can do it. So nothing here pretends to", which was
-        // true when it was written and became false the day the transpiler landed: Rust, Go,
-        // Python and TypeScript translate into one another. A message that denies a capability
-        // the tool has misinforms, because the reader believes it and stops looking.
         let supported: Vec<String> = crate::transpile::SUPPORTED
             .iter()
             .map(|language| language.to_string())
@@ -200,11 +155,7 @@ pub fn why_nothing(from: Language) -> String {
     }
 }
 
-/// The languages a file could be written *as*, the question asked backwards.
-///
-/// [`targets`] answers "what can this file become". A recipe naming a target asks
-/// the other one, "can anything become this", and it asks before it has a file in
-/// hand. Both answers come from the same two tables, so neither can drift.
+/// The languages a file may become, the question asked backwards.
 pub fn sources_for(to: Language) -> Vec<Language> {
     Language::ALL
         .iter()
@@ -214,7 +165,7 @@ pub fn sources_for(to: Language) -> Vec<Language> {
         .collect()
 }
 
-/// Why nothing at all can be written as this language.
+/// Why nothing at all becomes this language.
 pub fn why_nothing_into(to: Language) -> String {
     use crate::lang::LanguageClass;
     if to.class() == LanguageClass::Imperative {
@@ -257,8 +208,7 @@ pub fn destination_for(path: &Path, to: Language) -> Result<PathBuf> {
     let Some(stem) = path.file_stem() else {
         bail!("{} has no file name", path.display());
     };
-    // Java ties the file's name to the public class inside it. So `sensors.py` has to become
-    // `Sensors.java`, not `sensors.java`, which will not compile whatever is written in it.
+    // Java ties the file's name to the public class inside it.
     let stem = match to {
         Language::Java => pascal_case(&stem.to_string_lossy()),
         _ => stem.to_string_lossy().to_string(),
@@ -321,15 +271,13 @@ pub fn plan_to(
         );
     }
 
-    // The grammar is the oracle. A superset conversion is still checked, because the
-    // supersets are only supersets in the parts of them anyone documents.
+    // The grammar is the oracle.
     let parsers = Parsers::new();
     if !Parsers::supports(to) {
         bail!("this build has no {to} grammar, so it cannot check the result");
     }
 
-    // Terraform's two syntaxes. The bytes change, so the output is what has to
-    // satisfy the target's grammar, the same way the render pair below works.
+    // Terraform's two syntaxes.
     if matches!(
         (from, to),
         (Language::Hcl, Language::Json) | (Language::Json, Language::Hcl)
@@ -411,10 +359,7 @@ pub fn plan_to(
         );
     }
 
-    // The bytes are unchanged; what changes is which grammar reads them. Writing
-    // the whole text as one edit lets the engine's own reparse check see the new
-    // file in its new language. That is the same proof from the other side.
-    // Overwriting is replacing; see the same edit in `transpile::plan_to`.
+    // The bytes are unchanged; what changes is which grammar reads them.
     let existing = crate::vfs::read_to_string(&destination)
         .map(|s| s.len())
         .unwrap_or(0);
@@ -459,12 +404,6 @@ fn first_error(parsed: &crate::parse::Parsed, source: &str) -> Option<crate::spa
 }
 
 /// Markdown rendered as the HTML it describes.
-///
-/// The defined subset: headings, paragraphs, lists tight, block quotes, fenced
-/// and indented code, thematic breaks. Emphasis, strong emphasis, code spans,
-/// inline links and images cross, with raw HTML blocks passed through. A construct outside it,
-/// a reference-style link, a table extension, is emitted as its escaped text under
-/// a marker comment, never dropped in silence.
 fn markdown_to_html(parsed: &crate::parse::Parsed, source: &str) -> String {
     use std::collections::HashMap;
     let mut inline_roots: HashMap<u64, tree_sitter::Node> = HashMap::new();
@@ -603,8 +542,7 @@ fn render_block(
             out.push_str(text_of(node));
             out.push('\n');
         }
-        // A definition is consumed by the links that reference it; alone it renders
-        // nothing. The reference links themselves are outside the subset and say so.
+        // A definition is consumed by the links that reference it; alone it renders nothing.
         "link_reference_definition" => {}
         "block_continuation" | "minus_metadata" | "plus_metadata" => {}
         other => {
@@ -707,8 +645,8 @@ fn render_inline(node: tree_sitter::Node, source: &str, out: &mut String) {
                 out.push_str(&escape_html(&source[child.byte_range()][1..]));
             }
             "emphasis_delimiter" | "code_span_delimiter" => {}
-            // Raw inline HTML crosses as itself; anything else crosses as its text,
-            // escaped, so nothing is dropped even where nothing is understood.
+            // Cross raw inline HTML as itself and everything else as escaped text, so
+            // nothing drops where nothing is understood.
             "html_tag" => out.push_str(&source[child.byte_range()]),
             _ => out.push_str(&escape_html(&source[child.byte_range()])),
         }

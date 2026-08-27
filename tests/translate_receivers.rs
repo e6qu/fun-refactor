@@ -1,8 +1,4 @@
 //! A method that changes the thing it was called on.
-//!
-//! Four of these languages hand a method a reference and let it assign through it. Zig hands it
-//! a value, and a value parameter there is const. So a method that assigns to a field is not a
-//! slow method, it is a file that does not compile.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -74,8 +70,7 @@ fn the_receiver_is_recognised_by_whatever_the_source_called_it() {
 
 #[test]
 fn the_other_targets_are_unchanged() {
-    // Java, TypeScript and Python hand a method a reference. Go already took a pointer receiver
-    // for every method, which is safe and is what it did before.
+    // Java, TypeScript and Python hand a method a reference.
     for (target, expected) in [
         (Language::Java, "public void bump()"),
         (Language::TypeScript, "bump()"),

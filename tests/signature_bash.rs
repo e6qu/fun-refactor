@@ -1,14 +1,4 @@
 //! Changing a shell function's signature.
-//!
-//! A shell function declares nothing, so there is no parameter list to edit. What
-//! there is instead is a numbering: the body reads `$1`, `$2`, … and every call site
-//! passes words positionally. A signature change has to rewrite both halves and keep
-//! them agreeing, and these tests pin the exact text on both sides.
-//!
-//! The refusals get as much room as the successes, because most of what makes this
-//! operation possible is knowing when it is not. `$@`, `shift` and an unquoted
-//! expansion each break the correspondence between a syntactic word and a positional
-//! parameter, and each has a test naming it.
 
 use fun_refactor::{
     edit::{self, apply_to_string, Validation},
@@ -52,7 +42,6 @@ impl Workspace {
 }
 
 /// The one symbol with this name, failing loudly if it is ambiguous.
-/// The one named `name` declared in `file`, for a workspace that has two.
 fn symbol_id_in(index: &Index, name: &str, file: &str) -> SymbolId {
     let found = index.find_symbols(name, None);
     let matching: Vec<_> = found.iter().filter(|s| s.file.ends_with(file)).collect();
@@ -212,8 +201,7 @@ fn refuses_to_remove_a_parameter_the_body_still_reads() {
 
 #[test]
 fn notes_a_call_site_with_nothing_at_that_position() {
-    // Passing fewer arguments than the function reads is legal shell: the parameter
-    // is unset. There is then nothing to remove, which is worth saying.
+    // Passing fewer arguments than the function reads is legal shell: the parameter is unset.
     let ws = Workspace::new(&[("run.sh", "f() {\n  echo \"$1\"\n}\nf a b\nf a\n")]);
     let index = ws.index();
     let plan = signature::change(&index, symbol_id(&index, "f"), Change::Remove(1)).unwrap();
@@ -408,8 +396,7 @@ fn braced_references_are_renumbered_in_place() {
 
 #[test]
 fn renumbering_past_nine_has_to_start_bracing() {
-    // `$10` is not parameter 10, the shell reads it as `${1}0`. So a reference pushed past nine
-    // must gain braces or the rewrite would change its meaning.
+    // `$10` is not parameter 10, the shell reads it as `${1}0`.
     let ws = Workspace::new(&[("run.sh", "f() {\n  echo \"$9\"\n}\nf 1 2 3 4 5 6 7 8 9\n")]);
     let index = ws.index();
     let plan = signature::change(
@@ -456,8 +443,7 @@ fn refuses_a_multi_digit_unbraced_reference() {
 
 #[test]
 fn notes_a_body_that_reads_the_parameter_count() {
-    // `$#` stays correct as an expression and wrong as an intent. The count it reports is one
-    // lower than the code below it was written for.
+    // `$#` stays correct as an expression and wrong as an intent.
     let ws = Workspace::new(&[("run.sh", "f() {\n  echo \"$# $2\"\n}\nf a b\n")]);
     let index = ws.index();
     let plan = signature::change(&index, symbol_id(&index, "f"), Change::Remove(0)).unwrap();
@@ -537,8 +523,6 @@ fn refuses_a_recursive_call_whose_argument_is_also_renumbered() {
     ));
     assert!(message.contains("rewritten twice"), "got: {message}");
 }
-
-// Call sites that are not one word per position.
 
 #[test]
 fn refuses_a_call_that_passes_dollar_at_before_the_position_changed() {
@@ -638,9 +622,8 @@ fn refuses_when_two_functions_share_the_name() {
     let index = ws.index();
     let id = index.find_symbols("f", Some(&ws.path("a.sh")))[0].id;
     let message = refusal(signature::change(&index, id, Change::Remove(0)));
-    // "already defined in … renaming would shadow or collide with it" was the wording
-    // here, borrowed from the refusal `rename` and `extract` raise when a new name would
-    // collide. Nothing is introduced and nothing is renamed: both definitions were there.
+    // "already defined in … renaming would shadow or collide with it" was the wording here,
+    // borrowed from the refusal `rename` and `extract` raise when a new name would collide.
     assert!(message.contains("also defined in"), "got: {message}");
     assert!(!message.contains("renaming"), "got: {message}");
 }
@@ -681,8 +664,6 @@ fn a_same_named_command_that_never_sources_the_definition_is_reported_not_edited
 
 #[test]
 fn refuses_when_a_script_naming_it_does_not_parse() {
-    // A call inside a syntax error produces no reference at all, so the call surface
-    // cannot be shown to be complete.
     let ws = Workspace::new(&[
         ("lib.sh", "greet() {\n  echo \"$2\"\n}\ngreet a b\n"),
         ("broken.sh", "if [ ; then\n  greet a b\nfi\n"),
@@ -760,8 +741,7 @@ fn untouched_bytes_survive_exactly() {
 
 #[test]
 fn refuses_a_change_that_would_rewrite_nothing() {
-    // Position 4 exists nowhere: no call passes it and the body never reads `$5`. A
-    // plan with no edits would look like success.
+    // Position 4 exists nowhere: no call passes it and the body never reads `$5`.
     let ws = Workspace::new(&[("run.sh", "f() {\n  echo \"$1\"\n}\nf a\n")]);
     let index = ws.index();
     let message = error(signature::change(
@@ -787,12 +767,6 @@ fn the_summary_names_the_positional_parameter() {
 }
 
 /// A refusal names the operation the caller asked for.
-///
-/// Two shell functions of one name make every call site ambiguous, which is a reason to refuse
-/// a signature change, but it reused the refusal `rename` and `extract` raise when a *new* name
-/// would collide. So the message said "renaming would shadow or collide with it" to somebody
-/// who had asked to move a parameter. Nothing is being renamed and nothing is being introduced;
-/// two definitions were already there.
 #[test]
 fn two_definitions_of_one_name_refuse_without_mentioning_renaming() {
     let ws = Workspace::new(&[
@@ -816,10 +790,6 @@ fn two_definitions_of_one_name_refuse_without_mentioning_renaming() {
 }
 
 /// The advice has to be true of the thing it is advising about.
-///
-/// An unquoted `$x` becomes one argument when quoted; `"$@"` becomes one word per
-/// parameter, which is the same problem again. The remedy was appended to every one of
-/// these refusals, so a `$@` came back with "quote it to make it one argument".
 #[test]
 fn the_remedy_is_offered_only_where_it_would_work() {
     let quotable = Workspace::new(&[("a.sh", "f() {\n  echo \"$1 $2\"\n}\nf $x two\n")]);
@@ -850,9 +820,7 @@ fn the_remedy_is_offered_only_where_it_would_work() {
     );
 }
 
-/// A resolution that exists and a fact the shell decides at run time are different
-/// refusals. Reporting the second as a confidence produced "resolution is only
-/// 'name-only'", which sends the reader after a resolution problem that is not there.
+/// A resolution that exists and a fact the shell decides at run time are different refusals.
 #[test]
 fn an_indeterminate_argument_is_not_reported_as_weak_resolution() {
     let ws = Workspace::new(&[("a.sh", "f() {\n  echo \"$1 $2\"\n}\nf $x two\n")]);

@@ -1,12 +1,5 @@
 //! Import liveness, one guard per language, and the two halves of the unused-symbol report that
 //! a resolver alone cannot get right.
-//!
-//! Name-based liveness answers "does anything in the file spell this name?" That is the whole
-//! truth only for a value or type that has to be written where it is used. Every test here is a
-//! language construct that uses an import *without* spelling its name, paired with the case
-//! that looks the same and really is dead. The asymmetry is the point: removing a live import
-//! breaks a build silently, whereas keeping a dead one leaves a line of noise. So every guard
-//! errs towards keeping and says why.
 
 use fun_refactor::analysis::entrypoints::Entrypoints;
 use fun_refactor::{
@@ -92,9 +85,7 @@ fn python_a_plain_unused_import_goes() {
 
 #[test]
 fn python_a_submodule_import_is_kept_for_its_registration_side_effect() {
-    // `import myapp.handlers` binds only `myapp`. Writing the submodule out is how
-    // decorator-registration modules get loaded, and the name is never mentioned
-    // again by design.
+    // `import myapp.handlers` binds only `myapp`.
     kept_because(
         &[
             ("a.py", "import myapp.handlers\n\nprint(1)\n"),
@@ -109,8 +100,8 @@ fn python_a_submodule_import_is_kept_for_its_registration_side_effect() {
 
 #[test]
 fn python_a_future_import_is_never_removed() {
-    // `annotations` is not a name anyone spells; the statement changes how the file
-    // is compiled. Removing it can change what every annotation in the file means.
+    // `annotations` is not a name anyone spells; the statement changes how the file is
+    // compiled.
     kept_because(
         &[(
             "a.py",
@@ -125,9 +116,6 @@ fn python_a_future_import_is_never_removed() {
 #[test]
 fn python_an_import_in_a_package_init_is_the_packages_api_and_stays() {
     // `from .mod import api_func` in `pkg/__init__.py` publishes `pkg.api_func`.
-    // Nothing in the file spells the name, and every caller lives outside it.
-    // Stripping it verifiably broke a package: `import pkg; pkg.api_func` raised
-    // ImportError after the organize pass.
     kept_because(
         &[
             ("pkg/__init__.py", "from .mod import api_func\n"),
@@ -172,7 +160,7 @@ fn python_a_name_re_exported_through_dunder_all_is_kept() {
 
 #[test]
 fn python_dunder_all_naming_something_else_does_not_save_an_import() {
-    // The negative half: `__all__` is consulted. It is not treated as blanket immunity.
+    // The negative half: `__all__` is consulted.
     assert_eq!(
         removed_paths(
             &[
@@ -229,8 +217,7 @@ fn typescript_a_type_used_only_in_a_jsdoc_comment_is_kept() {
 
 #[test]
 fn typescript_a_comment_merely_mentioning_the_name_does_not_keep_it() {
-    // The braces are what make a JSDoc tag a type annotation. Prose about `Foo` is
-    // not a use of `Foo`, and treating it as one would disable removal outright.
+    // The braces are what make a JSDoc tag a type annotation.
     assert_eq!(
         removed_paths(
             &[(
@@ -245,9 +232,7 @@ fn typescript_a_comment_merely_mentioning_the_name_does_not_keep_it() {
 
 #[test]
 fn typescript_a_type_only_import_is_kept() {
-    // Every use of a type-only import is in a type position. The fact queries do not capture
-    // all of them (`typeof Foo` is one they miss). So the whole form is held back and not
-    // removed on incomplete evidence.
+    // Every use of a type-only import is in a type position.
     kept_because(
         &[(
             "a.ts",
@@ -277,8 +262,7 @@ fn typescript_an_inline_type_specifier_marks_the_statement_type_only() {
 #[test]
 fn typescript_a_value_import_used_only_under_typeof_is_kept() {
     // `typeof Foo` is a `type_query`, and `queries/typescript/facts.scm` now captures it, so
-    // the import is kept because it is genuinely referenced. It is not held back by a guard.
-    // That is the better outcome: no warning is needed to explain it.
+    // the import is kept because it is genuinely referenced.
     let (removed, warnings) = outcome(
         &[(
             "a.ts",
@@ -352,9 +336,7 @@ fn go_a_blank_import_binds_nothing_and_is_kept() {
 
 #[test]
 fn go_a_package_named_differently_from_its_path_is_not_mistaken_for_unused() {
-    // `gopkg.in/yaml.v2` declares `package yaml`. Guessing the binding from the last path
-    // segment gives `v2`, which nothing names. Removing the import would break a build that
-    // uses `yaml.Marshal` on the next line.
+    // `gopkg.in/yaml.v2` declares `package yaml`.
     assert!(
         removed_paths(
             &[(
@@ -370,8 +352,7 @@ fn go_a_package_named_differently_from_its_path_is_not_mistaken_for_unused() {
 
 #[test]
 fn go_an_unreadable_package_clause_holds_the_import_back() {
-    // Nothing here names `yaml` either, and the package is not in the scan. So the honest
-    // answer is that the binding is unknown and not unused.
+    // Nothing here names `yaml` either, and the package is not in the scan.
     kept_because(
         &[(
             "a.go",
@@ -385,8 +366,7 @@ fn go_an_unreadable_package_clause_holds_the_import_back() {
 
 #[test]
 fn go_a_package_clause_the_scan_can_see_is_used_instead_of_the_path() {
-    // The directory is `helper/`, the package is `helper`. The import path ends in `helper`:
-    // the binding is a fact here. It is not a guess, so `helper.Do()` keeps it.
+    // The directory is `helper/`, the package is `helper`.
     assert!(
         removed_paths(
             &[
@@ -405,8 +385,6 @@ fn go_a_package_clause_the_scan_can_see_is_used_instead_of_the_path() {
 
 #[test]
 fn go_a_visible_package_clause_that_nothing_names_still_goes() {
-    // The counterpart: once the binding is known and not guessed, an unused
-    // import has nothing left to hide behind.
     assert_eq!(
         removed_paths(
             &[
@@ -424,9 +402,8 @@ fn go_a_visible_package_clause_that_nothing_names_still_goes() {
 
 #[test]
 fn zig_needs_no_guard_and_removes_what_nothing_names() {
-    // `@import` yields an ordinary container-level `const`, and every use of it spells
-    // that const's name. Zig has no construct that brings an imported name into scope
-    // invisibly, so name-based liveness is exact here.
+    // `@import` yields an ordinary container-level `const`, and every use of it spells that
+    // const's name.
     let (removed, warnings) = outcome(
         &[(
             "a.zig",
@@ -463,7 +440,6 @@ fn only_symbol(index: &Index, name: &str) -> fun_refactor::model::SymbolId {
 #[test]
 fn a_symbol_named_in_a_string_literal_is_not_reported_unused() {
     // The only trace a handler table keyed by name leaves is the name in a string.
-    // Reporting `on_event` as dead invites deleting live code, so it is left off.
     let (_tmp, index) = workspace(&[(
         "a.rs",
         "fn on_event() {}\nfn main() {\n    dispatch(\"on_event\");\n}\n",
@@ -514,9 +490,7 @@ fn a_symbol_no_string_mentions_is_still_reported() {
 
 #[test]
 fn a_mutually_recursive_dead_group_is_reported() {
-    // `ping` and `pong` each have an incoming reference, so the per-symbol check
-    // clears both. Nothing outside the pair references either and no entry point
-    // reaches them, so the component is dead as a whole.
+    // `ping` and `pong` each have an incoming reference, so the per-symbol check clears both.
     let (_tmp, index) = workspace(&[(
         "a.rs",
         "fn ping() { pong(); }\nfn pong() { ping(); }\nfn main() {}\n",
@@ -575,10 +549,8 @@ fn a_longer_dead_cycle_is_reported_as_a_group() {
 
 #[test]
 fn dynamic_dispatch_no_longer_looks_dead() {
-    // The `hello` that runs is the impl's, reached through a `&dyn Greet`, and no
-    // resolved edge leads to it. `impl Greet for Greeter` is the distinction the
-    // workspace does draw, though: class hierarchy analysis follows it and spares
-    // every implementation of the trait. See tests/hierarchy_reachability.rs.
+    // The `hello` that runs is the impl's, reached through a `&dyn Greet`, and no resolved edge
+    // leads to it.
     let (_tmp, index) = workspace(&[(
         "a.rs",
         "trait Greet { fn hello(&self); }\nstruct Greeter;\nimpl Greet for Greeter {\n    fn hello(&self) {}\n}\nfn main() {\n    let g: &dyn Greet = &Greeter;\n    g.hello();\n}\n",
@@ -600,10 +572,7 @@ fn dynamic_dispatch_no_longer_looks_dead() {
 
 #[test]
 fn a_name_assembled_at_runtime_remains_a_false_positive() {
-    // The part of B5 that stays open. The handler's name exists only once the pieces are
-    // concatenated. So no reference resolves to it, no string literal spells it, and no type
-    // declares it as a method for a hierarchy to fan out to. Nothing in the workspace
-    // distinguishes this from dead code, and inventing a distinction would be guessing.
+    // The part of B5 that stays open.
     let (_tmp, index) = workspace(&[(
         "a.rs",
         "fn on_event() {}\nfn dispatch(name: &str) {}\nfn main() {\n    let name = format!(\"on_{}\", \"event\");\n    dispatch(&name);\n}\n",

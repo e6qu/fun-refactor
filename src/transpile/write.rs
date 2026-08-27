@@ -1,18 +1,4 @@
 //! Writing the IR out as a language.
-//!
-//! Each writer aims for the target's idiom. A record becomes a Rust `struct` with an
-//! `impl` block, a Python `@dataclass`, a Go `struct` with methods beside it, a
-//! TypeScript `class`. Each writer spells names by the target's convention:
-//! `snake_case` in Rust and Python, `camelCase` in TypeScript, `PascalCase` for
-//! exported Go.
-//!
-//! A writer carries the signature across unchanged: parameter names, order, types and
-//! return type, with only the spelling adjusted. A type with no counterpart goes
-//! through by name and counts in the fidelity report, so no substitution passes
-//! silently.
-//!
-//! The writer turns whatever the reader could not translate into a comment holding the
-//! original source, under a marker.
 
 use super::ir::*;
 use crate::lang::Language;
@@ -24,15 +10,9 @@ use std::collections::BTreeMap;
 enum Kind {
     /// A struct, class, interface, `PascalCase` in every one of them.
     Type,
-    /// A module-level constant, `SCREAMING_SNAKE` in most of them. Go spells it like
-    /// anything else, because there the capital letter means exported, and Zig does not
-    /// shout at all.
+    /// A module-level constant, `SCREAMING_SNAKE` in most of them.
     Constant,
     /// A function or method.
-    ///
-    /// The same as [`Kind::Value`] in every target but Zig, whose style guide splits what the
-    /// others join. `camelCase` for what you call, `snake_case` for what you bind. One `Kind`
-    /// for both spelled every local in a Zig file as a function.
     Function,
     /// A field, parameter or local.
     Value,
@@ -152,11 +132,7 @@ fn returns_anywhere(body: &[Stmt]) -> bool {
     })
 }
 
-/// A throwing function, restated in the Result idiom the Go and Zig writers speak. The
-/// canonical form is the exception one: plain returns, `Throw`, calls that just call. These two
-/// targets spell failure in the signature and at every call, so the inverse runs here: returns
-/// wrap `Ok`, throws become `Err` returns. And every call to a failing function is hoisted to
-/// its own binding and marked propagating.
+/// A throwing function, restated in the Result idiom the Go and Zig writers speak.
 fn with_failure_idiom(f: &Function, throwing: &std::collections::BTreeSet<String>) -> Function {
     let mut out = f.clone();
     let throws = f.receiver.is_none() && throwing.contains(&f.name);
@@ -208,9 +184,7 @@ fn with_failure_idiom(f: &Function, throwing: &std::collections::BTreeSet<String
     out
 }
 
-/// Hoist every call to a failing function out of nested expressions. Afterwards a failing call
-/// stands only as the whole value of a `let` or an expression statement, wrapped in
-/// `Propagate`. That is the one shape the Go and Zig emitters spell checks around.
+/// Hoist every call to a failing function out of nested expressions.
 fn extract_failing_calls(
     body: &mut Vec<Stmt>,
     throwing: &std::collections::BTreeSet<String>,
@@ -249,11 +223,6 @@ fn extract_failing_calls(
                 } else {
                     hoist(inner, throwing, counter, lifted, false);
                 }
-                // A propagation over anything but a call is vacuous once the calls inside are
-                // hoisted: `try (f(x) + 1)` fails only at `f`. And `f` is bound above by now. A
-                // call keeps its propagation whether or not the callee is known here. A foreign
-                // callee's failure is still the source's claim, and dropping the `try` would
-                // silence it.
                 let direct = matches!(inner.as_ref(), Expr::Call { .. } | Expr::New { .. });
                 if !direct {
                     let unwrapped = std::mem::replace(inner.as_mut(), Expr::Null);
@@ -328,10 +297,6 @@ fn extract_failing_calls(
 }
 
 /// The functions of this module that can fail, transitively.
-///
-/// A function throws if its body throws outside every `try`, propagates with `?`, or
-/// calls a thrower in either position. The set closes over calls until it stops
-/// growing, so `double`, which only calls `check`, is in it beside `check`.
 fn throwing_functions(module: &Module) -> std::collections::BTreeSet<String> {
     fn direct_throw(body: &[Stmt]) -> bool {
         body.iter().any(|stmt| match stmt {
@@ -360,8 +325,7 @@ fn throwing_functions(module: &Module) -> std::collections::BTreeSet<String> {
     }
     fn sub_walk(body: &[Stmt], test: &dyn Fn(&[Stmt]) -> bool) -> bool {
         body.iter().any(|stmt| match stmt {
-            // A `try` body's throws are caught; only what escapes it counts, and the
-            // catch arms are checked above.
+            // Count only what escapes the `try` body. The arms above cover the rest.
             Stmt::Try { .. } => false,
             other => sub_bodies(other).into_iter().any(|b| test(b)),
         })
@@ -448,9 +412,8 @@ fn route_returns_through_flag(body: &mut [Stmt], ret: &str, flag: &str) {
     }
 }
 
-/// Rewrite every `return v` under these statements into the try-closure's
-/// success channel: `return Ok(Some(v))`, spelled through a builtin the rust
-/// writer alone recognises.
+/// Rewrite every `return v` under these statements into the try-closure's success channel:
+/// `return Ok(Some(v))`, spelled through a builtin the rust writer alone recognises.
 fn route_returns_through_some(body: &mut [Stmt]) {
     for stmt in body.iter_mut() {
         if let Stmt::Return(value) = stmt {
@@ -468,7 +431,7 @@ fn route_returns_through_some(body: &mut [Stmt]) {
 }
 
 /// Insert `disarm` before every `return` under these statements, nested loops included: a
-/// `return` anywhere leaves the function. And the guard it turns off must be off first.
+/// `return` anywhere leaves the function.
 fn disarm_before_returns(body: &mut Vec<Stmt>, disarm: &Stmt) {
     let mut at = 0;
     while at < body.len() {
@@ -484,11 +447,7 @@ fn disarm_before_returns(body: &mut Vec<Stmt>, disarm: &Stmt) {
     }
 }
 
-/// A function with its nested-block bindings hoisted to the top. Python binds a name by
-/// assigning it, wherever that happens, and the name lives to the end of the function. A `let`
-/// in TypeScript or an `int` in Java declared inside a `try` dies at its brace. So a binding
-/// first made inside a block, or made in several blocks, becomes one declaration at the top and
-/// plain assignments below. That says what the source meant all along.
+/// A function with its nested-block bindings hoisted to the top.
 fn with_hoisted_bindings(f: &Function, returns_of: &BTreeMap<String, Type>) -> Function {
     #[derive(Default)]
     struct Seen {
@@ -528,9 +487,8 @@ fn with_hoisted_bindings(f: &Function, returns_of: &BTreeMap<String, Type>) -> F
                     depth,
                     seen,
                 ),
-                // A destructuring declares its names too; unhoisted they die
-                // at the brace of whatever block a lowering wrapped around
-                // them.
+                // A destructuring declares its names too; unhoisted they die at the brace of
+                // whatever block a lowering wrapped around them.
                 Stmt::TupleAssign {
                     names,
                     declares: true,
@@ -592,7 +550,7 @@ fn with_hoisted_bindings(f: &Function, returns_of: &BTreeMap<String, Type>) -> F
     let mut out = f.clone();
     rewrite(&mut out.body, &names);
     // The declared type, or the return type of the call first assigned to it: the block-scoped
-    // targets have to write one. And `Object` says less than the module already said.
+    // targets have to write one.
     let first_type = |name: &str| -> Option<Type> {
         fn first_value<'a>(body: &'a [Stmt], name: &str) -> Option<&'a Expr> {
             for stmt in body {
@@ -721,12 +679,7 @@ pub(super) fn sub_bodies_mut(stmt: &mut Stmt) -> Vec<&mut Vec<Stmt>> {
     }
 }
 
-/// How every name this module declares is spelled in the target language.
-///
-/// Only its own. A name absent from this map is foreign, a library, a builtin,
-/// somebody else's field, and is written as the source had it. That is the
-/// whole of the safety argument. The tool renames what the file declares and nothing
-/// else, which is the same rule its refactorings follow.
+/// Spell every name this module declares the target language's way.
 type Spellings = (BTreeMap<String, String>, BTreeMap<String, String>);
 
 /// Whether a value is one scalar literal, `-80.0` included.
@@ -747,19 +700,13 @@ fn spellings(language: Language, module: &Module) -> Spellings {
             Kind::Type => pascal(name),
             Kind::Constant => match language {
                 Language::Go => go_name(name, exported),
-                // Zig does not shout. Its standard library writes `std.math.pi`, and
-                // a capital there would say "type" and not "constant".
+                // Zig does not shout.
                 Language::Zig => snake_always(name),
                 _ => screaming(name),
             },
             Kind::Function => match language {
                 Language::Rust => snake_always(name),
-                // Python says "not for outside this module" with a leading
-                // underscore. Without it, Go's unexported `half` came back
-                // from a round trip as the exported `Half`, and a package's
-                // internals became its API. The entry point is the exception.
-                // `main` is what a reader and a runner look for, and a private
-                // one reads as a helper nobody calls.
+                // Python says "not for outside this module" with a leading underscore.
                 Language::Python => match exported || name.starts_with('_') || name == "main" {
                     true => snake_always(name),
                     false => format!("_{}", snake_always(name)),
@@ -778,9 +725,7 @@ fn spellings(language: Language, module: &Module) -> Spellings {
     let mut map = BTreeMap::new();
     let mut fields = BTreeMap::new();
     let into = |map: &mut BTreeMap<String, String>, name: &str, kind: Kind, exported: bool| {
-        // `_` is the word for "no name". Rust, Go, Python and Zig all use it, and putting it
-        // through a convention asked what the empty word is called in `camelCase`. The answer
-        // was the empty string, so every `_ = x;` in a Zig file came out as ` = x;`.
+        // `_` is the word for "no name".
         if name.is_empty() || name.chars().all(|c| c == '_') {
             return;
         }
@@ -846,9 +791,7 @@ fn spellings(language: Language, module: &Module) -> Spellings {
                     walk_stmts(body, add);
                 }
                 Stmt::While { body, .. } => walk_stmts(body, add),
-                // A counted `for` declares its counter in the header. Skipping
-                // the header left that name out of the spelling map, so the
-                // declaration and every use of it could take different casings.
+                // A counted `for` declares its counter in the header.
                 Stmt::CountedFor {
                     init, update, body, ..
                 } => {
@@ -863,10 +806,7 @@ fn spellings(language: Language, module: &Module) -> Spellings {
     }
 
     fn walk_function(f: &Function, add: &mut impl FnMut(&str, Kind, bool)) {
-        // A constructor's own name is never written, every target has its own word for one, so
-        // it must not claim a spelling. Java names it after the class, and letting it into the
-        // map meant every Java class came out named after its constructor. `class a` where the
-        // source said `class A`.
+        // Claim no spelling: every target picks its own word for a constructor.
         if !f.is_constructor {
             add(&f.name, Kind::Function, f.exported);
         }
@@ -890,16 +830,10 @@ fn spellings(language: Language, module: &Module) -> Spellings {
                     walk_function(method, &mut add);
                 }
             }
-            // A `const` bound to a literal is a constant and takes the
-            // `SCREAMING_SNAKE` convention. One bound to a call is a binding that
-            // happens to be immutable, `const schema = z.object({...})`. Shouting
-            // its name would be wrong in Python and unstable across a round trip.
+            // A `const` bound to a literal is a constant and takes the `SCREAMING_SNAKE`
+            // convention.
             Item::Constant(c) => {
-                // A scalar takes the target's constant convention. A name the
-                // author already shouts stays shouted, whatever it holds:
-                // `DOCS = ["README.md"]` came out spelt `docs`. The rest keep
-                // the value convention, so `routeContextSchema` still snakes
-                // where the target snakes and `actions` never shouts.
+                // A scalar takes the target's constant convention.
                 let screaming = c.name.chars().any(|ch| ch.is_ascii_uppercase())
                     && !c.name.chars().any(|ch| ch.is_ascii_lowercase());
                 let kind = match &c.value {
@@ -924,10 +858,7 @@ fn spellings(language: Language, module: &Module) -> Spellings {
             Item::Import { .. } | Item::Unsupported(_) => {}
         }
     }
-    // Go's entry point is the one name whose spelling is load-bearing. The runtime
-    // calls `main`, lowercase and niladic, and an exported `Main` is a program that
-    // never starts. Python reads its own `def main` as exported, so the convention
-    // wanted a capital, and `package main` came out with no entry point at all.
+    // Go's entry point is the one name whose spelling is load-bearing.
     if language == Language::Go
         && module.items.iter().any(
             |item| matches!(item, Item::Function(f) if f.name == "main" && f.params.is_empty()),
@@ -938,17 +869,9 @@ fn spellings(language: Language, module: &Module) -> Spellings {
     (map, fields)
 }
 
-/// How this parameter is written here, and whether the calling convention survived.
-///
-/// A `*` marker is not a parameter and is never written. `*args` is exact wherever the target
-/// has a variadic and a change of convention where it does not. `**kwargs` is a change of
-/// convention everywhere but Python. `changed` is reported and not hidden. A caller of
-/// the translated function writes the call differently, and nothing else in the output
-/// would say so.
+/// This parameter's text here, and whether the calling convention survived.
 fn spell_param(out: &Out, kind: ParamKind, raw: &str, changed: &mut bool) -> Option<String> {
-    // A bare `*` or `/` is punctuation standing where a parameter would go. Putting it through
-    // the naming map asked what `*` is called in TypeScript. The answer, "not a name this
-    // language can spell", was a true sentence about a thing that is never written down.
+    // A bare `*` or `/` is punctuation standing where a parameter would go.
     if kind == ParamKind::Marker {
         if out.language == Language::Python {
             return Some(raw.to_string());
@@ -976,11 +899,7 @@ fn spell_param(out: &Out, kind: ParamKind, raw: &str, changed: &mut bool) -> Opt
     }
 }
 
-/// Does the target reserve this word, so that an identifier cannot be spelled it?
-///
-/// Only true keywords: a name that is a builtin (Go's `delete`, Python's `id`)
-/// is legal to shadow and renaming it would be churn. The source language's keywords
-/// are irrelevant, what matters is whether *this* file will parse.
+/// Does the target reserve this word?
 fn reserved(language: Language, name: &str) -> bool {
     const RUST: &[&str] = &[
         "as", "break", "const", "continue", "crate", "dyn", "else", "enum", "extern", "false",
@@ -1179,29 +1098,18 @@ fn reserved(language: Language, name: &str) -> bool {
 }
 
 /// What this language calls the receiver inside a method body.
-///
-/// The readers normalise nothing: each records the word its own source used, because
-/// Go lets the author choose it. This is the other half: the word to put back on,
-/// and it is a fact about the target and not about the source.
 fn receiver_word(language: Language) -> &'static str {
     match language {
         Language::Java | Language::TypeScript | Language::Tsx => "this",
-        // Go's convention is a one- or two-letter abbreviation of the type. There is no way to
-        // pick one that is guaranteed not to collide with a parameter. `self` is not a keyword
-        // there and cannot collide with anything the source declared. A Go file that
-        // used it would have been read as a receiver.
+        // Go's convention is a one- or two-letter abbreviation of the type.
         _ => "self",
     }
 }
 
-/// The marker every carried-over fragment is written under.
+/// The marker that heads every carried-over fragment.
 pub const MARKER: &str = "fun-refactor: not translated";
 
 /// The sibling this import line resolved to inside a directory sweep, if any.
-///
-/// The sweep resolves and the writer only spells. A resolved import with no
-/// named bindings still stays a comment: a namespace or side-effect import
-/// binds nothing a sibling's translation declares.
 fn sibling_import(target: &Option<ImportTarget>) -> Option<(&str, &[ImportedName])> {
     let target = target.as_ref()?;
     let stem = target.resolved.as_deref()?;
@@ -1216,13 +1124,6 @@ pub fn write(language: Language, module: &Module) -> Result<(String, Fidelity)> 
 }
 
 /// Write `module`, spelling names as declared by `context`.
-///
-/// The two are the same module, except where a caller writes a *piece* of a file on its own.
-/// The Next.js translation writes each handler body as its own module so it can indent it into
-/// a decorated `def`. Spelling from the piece alone means a call to a helper declared elsewhere
-/// in the same file keeps its original casing. So the declaration says
-/// `verify_current_user_has_access_to_post` and the call still says
-/// `verifyCurrentUserHasAccessToPost`.
 pub fn write_in_context(
     language: Language,
     module: &Module,
@@ -1268,9 +1169,8 @@ pub fn write_in_context(
             _ => None,
         })
         .collect();
-    // A literal may name a subset of the fields, and the rest take the values
-    // the record declares. A constructor takes them all, so the defaults have
-    // to be to hand.
+    // A literal may name a subset of the fields, and the rest take the values the record
+    // declares.
     out.record_field_defaults = context
         .items
         .iter()
@@ -1300,8 +1200,6 @@ pub fn write_in_context(
         })
         .collect();
     // A name that is a property somewhere and never a field is safe to rewrite.
-    // Every read of it becomes the call it is in a target without properties. A name
-    // that is both stays a read, and the property side keeps the mismatch visible.
     let mut properties: std::collections::BTreeSet<String> = context
         .items
         .iter()
@@ -1353,8 +1251,6 @@ pub fn write_in_context(
         .collect();
     out.throwing = throwing_functions(context);
     // A record's methods declare returns as much as a loose function does.
-    // Left out, a call through a receiver had no type, and the writers that
-    // decide a spelling by type could not decide.
     out.function_returns = context
         .items
         .iter()
@@ -1422,10 +1318,7 @@ pub fn write_in_context(
                 .insert((sum.name.clone(), variant.name.clone()), spelled);
         }
     }
-    // A target without inheritance can still hold what a base in the same module
-    // contributed. The base's own fields and methods lay flat into the extending
-    // record. The supertype marker then only stands where the base is truly out
-    // of reach.
+    // A target without inheritance can still hold what a base in the same module contributed.
     let flattened = match language {
         Language::Rust | Language::Go | Language::Zig => {
             let (module, notes) = flatten_local_bases(module);
@@ -1435,27 +1328,19 @@ pub fn write_in_context(
         _ => None,
     };
     let module = flattened.as_ref().unwrap_or(module);
-    // Go and Zig have no expression that builds a collection. They have the
-    // loop that does, and so does every other language here, so the
-    // comprehension becomes one before either writer sees it. Carried instead,
-    // the binding it filled was left holding nothing and the file did not
-    // compile.
+    // Go and Zig have no expression that builds a collection.
     let looped = match language {
         Language::Go | Language::Zig => Some(loops_for_comprehensions(module)),
         _ => None,
     };
     let module = looped.as_ref().unwrap_or(module);
-    // Zig has no closure: a function value is a function, declared at the top
-    // of the file. A lambda that captures nothing is that same function under
-    // a name, so it is given one.
+    // Zig has no closure: a function value is a function, declared at the top of the file.
     let lifted = match language {
         Language::Zig => Some(functions_for_lambdas(module)),
         _ => None,
     };
     let module = lifted.as_ref().unwrap_or(module);
-    // Rust and Java will not read a whole number as a fractional one. Go and
-    // Zig read an untyped constant either way, and Python and TypeScript have
-    // nothing to declare.
+    // Rust and Java will not read a whole number as a fractional one.
     let spelled = match language {
         Language::Rust | Language::Java => Some(numbers_as_declared(module)),
         _ => None,
@@ -1498,222 +1383,97 @@ struct Out {
     text: String,
     indent: usize,
     fidelity: Fidelity,
-    /// How this module's own names are spelled in the target language. Every language here has
-    /// a convention and they disagree: TypeScript writes `userName`, Python writes `user_name`,
-    /// Go says "exported" with a capital letter. Adopting the target's convention is most of
-    /// what makes a translated file look written and not converted. It is one map, built once
-    /// from the declarations and consulted at every declaration *and* every use. The
-    /// alternative, re-casing at each site with whichever helper was to hand, is how `interface
-    /// User { userName }` became `class User. User_name` whose bodies still said `.userName`. A
-    /// name it does not contain is **foreign** and is left as written: `db.users.find`,
-    /// `NextResponse`, a library function. Re-casing those would rename somebody else's API,
-    /// which is the one thing a translation must not do.
+    /// Spell this module's own names the target language's way.
     names: BTreeMap<String, String>,
     /// Names that are not identifiers at all in any of these languages.
-    ///
-    /// Reported and not quietly reshaped. The replacement is a name the source
-    /// never used, and every call to it has to be found by hand.
     unnameable: std::cell::RefCell<std::collections::BTreeSet<String>>,
     /// Names that had to be escaped because the target reserves them.
-    ///
-    /// Collected while writing and reported at the end. `select` is a name sqlmodel exports
-    /// and a keyword in Go, and `select(User)` is not something Go's grammar will accept.
-    /// Refusing the file outright gives the reader nothing. Escaping it and *saying so* gives
-    /// them a draft and the one line to fix.
     escaped: std::cell::RefCell<std::collections::BTreeSet<String>>,
     /// The types this module declares.
-    ///
-    /// A signature mentioning one of them is complete, not "mentioning a type this
-    /// tool does not know". The record is right there in the same output. Reporting
-    /// the file's own records as foreign made a perfect translation confess to a
-    /// problem it did not have. A fidelity report treated that way stops being read.
     declared_types: std::collections::BTreeSet<String>,
     /// Packages the Go this writer produced needs to import.
-    ///
-    /// `print` becomes `fmt.Println` and `.upper()` becomes `strings.ToUpper`. The writer
-    /// discovers these while it writes the body, then inserts them under the package clause.
-    /// Go refuses to compile a file that names a package it never imported.
     go_imports: std::collections::BTreeSet<&'static str>,
-    /// The lowering helpers the Zig this writer produced turned out to need. Discovered while
-    /// the body is written, like `go_imports`. And appended to the file afterwards: `frPrint`
-    /// for the canonical `print`, `frFormat` for a template used as a value.
+    /// The lowering helpers the Zig this writer produced turned out to need.
     zig_helpers: std::collections::BTreeSet<&'static str>,
     /// Parameters this Java method takes as a functional interface.
-    ///
-    /// Java has no callable `Object`, so an untyped parameter the body calls is
-    /// written `Function<..>`, and a call through it goes by `apply`. Written
-    /// `f(x)`, javac looked for a method named `f` on the class.
     functional_params: std::collections::BTreeSet<String>,
-    /// Inside a record's `impl`, the type parameters the struct already declares,
-    /// by the field each stands for. A method taking a field's value takes the
-    /// struct's parameter, not one of its own.
+    /// Inside a record's `impl`, the type parameters the struct already declares, by the field
+    /// each stands for.
     record_generics: Vec<(String, String)>,
-    /// The record whose `impl` is being written, so a method returning it can
-    /// say `Self` rather than name it without its arguments.
+    /// The record whose `impl` this writer sits in, so a method returning it says `Self`.
     record_written: Option<String>,
-    /// Bindings whose value the Zig writer knows to be text, by watching the `let`s
-    /// it writes. The declared types answer for the rest; these are the inferred ones,
-    /// `const label = frFormat(...)`, that a format hole must spell `{s}`.
+    /// Bindings whose value the Zig writer knows to be text, by watching the `let`s it writes.
     zig_strings: std::collections::BTreeSet<String>,
     /// The distinct types this module declares, name to base.
-    ///
-    /// A call to one is a construction. Two targets spell that their own way:
-    /// Java needs `new`, and Zig has no call syntax for a type at all.
     newtypes: std::collections::BTreeMap<String, Type>,
     /// Each declared record's field names, in order.
-    ///
-    /// `new Point(3, 4)` names no fields, and Rust, Go and Zig construct by
-    /// naming them. When the record is declared right here and the arity
-    /// matches, the positions map onto these; otherwise the construction
-    /// carries.
     records: std::collections::BTreeMap<String, Vec<String>>,
     /// The value each record field starts at, where the record declares one.
     record_field_defaults: std::collections::BTreeMap<String, Vec<(String, Expr)>>,
     /// The module's own choices, whole, for building a variant of one.
-    ///
-    /// The name set in `sums` answers "is this a choice". Making a value of
-    /// one needs the declaration itself, for the discriminator TypeScript
-    /// writes and the field order Java's record constructor takes.
     sum_items: std::collections::BTreeMap<String, Sum>,
     /// Each hoisted variant's name in the output, keyed by (sum, variant).
-    /// The declaration renamer dodges a same-named type by prefixing the
-    /// sum's name. A construction site consulting the plain name then called
-    /// the type the variant dodged.
     variant_spellings: std::collections::BTreeMap<(String, String), String>,
     /// Method names the module reads as data: `@property`, a TypeScript getter.
-    ///
-    /// In a target without the idiom the method is ordinary and its accessors
-    /// become calls, and this set is how the field-access writer knows which.
     properties: std::collections::BTreeSet<String>,
     /// The names of the methods the module's records declare.
-    ///
-    /// A method is declared under the function convention and reached like a
-    /// field, `store.total_value_cents()`. The use site spelled the name
-    /// through the field table, which holds no methods. A two-word method was
-    /// therefore declared in one casing and called in another.
     methods: std::collections::BTreeSet<String>,
     /// Each declared function's parameters, in order, with their defaults.
-    ///
-    /// A keyword argument names its parameter, and five of these languages
-    /// call by position alone. When the callee is declared right here, the
-    /// keywords settle into their declared positions, defaults filling any
-    /// gap; otherwise the argument carries.
     functions: std::collections::BTreeMap<String, Vec<(String, Option<Expr>)>>,
     /// The declared parameter types of this module's functions, by name.
-    ///
-    /// For the coercions a call site needs: a target that refuses `f(-5)` against a
-    /// float parameter has to know the parameter was a float.
     function_param_types: std::collections::BTreeMap<String, Vec<Option<Type>>>,
     /// The declared return types, for the format spec a call's value takes.
     function_returns: std::collections::BTreeMap<String, Type>,
-    /// This module's functions that can fail: a throw in the body, or a call to one
-    /// that can, transitively. The targets that spell failure in the signature read it.
+    /// This module's functions that can fail: a throw in the body, or a call to one that can,
+    /// transitively.
     throwing: std::collections::BTreeSet<String>,
-    /// Whether the statement being written may propagate a failure outward: inside a
-    /// throwing function, or inside the closure a `try` lowers to.
+    /// May this statement propagate a failure outward?
     can_propagate: bool,
-    /// Whether the function being written returns `Result`, so its returns wrap `Ok`.
+    /// Does this function return `Result`, so its returns wrap `Ok`?
     fn_throws: bool,
-    /// What the function being written answers, for the targets that convert
-    /// between their own number types only when told to.
+    /// What this function answers, for targets that convert number types only when told.
     fn_returns: Option<Type>,
-    /// Is a loop's own header being written? Go declares a binding there with
-    /// `:=` and nothing else; `var` is a statement and has no place in one.
+    /// Sits inside a loop's own header.
     in_loop_header: bool,
     /// One counter for the names a lowering has to invent.
     lowering_names: usize,
-    /// The names the Rust body writes to or grows, which must bind `mut` whatever
-    /// the source's own mutability said. A `const` list in TypeScript still grows.
+    /// The names the Rust body writes to or grows, which must bind `mut` whatever the source's
+    /// own mutability said.
     rust_mutated: std::collections::BTreeSet<String>,
     /// The `try` block the Zig writer is inside: its label, the catch binding, and
     /// the catch body every failing call repeats before breaking out.
     zig_try: Option<(String, String, Vec<Stmt>)>,
-    /// The growable lists of the Zig function being written: bound to an empty
-    /// literal, spelled as `std.ArrayList`, reached through `.items`.
+    /// This Zig function's growable lists: `std.ArrayList`, reached through `.items`.
     zig_dyn: std::collections::BTreeSet<String>,
     /// Text a writer could not put where the expression it replaced stood.
-    ///
-    /// Zig is the only target here with no block comment. Its `//` runs to the end of the
-    /// line. A carried fragment written beside an expression would swallow the rest of the
-    /// statement, semicolon included. It is queued here and flushed as whole-line comments
-    /// above the statement, which is the only place in Zig a comment can go.
     pending: Vec<String>,
-    /// The types of the names in the body being written, as the source declared them.
-    ///
-    /// Three operators need it, all for the same reason: these languages agree on the
-    /// spelling and disagree on the meaning. `/` truncates in four of them and produces a
-    /// float in Python. `%` takes its sign from the dividend in four languages and from the
-    /// divisor in Python. `==` compares contents in four, compares references in Java, and
-    /// refuses to compile on a Zig slice.
-    ///
-    /// Nothing is inferred. A name whose type the source never wrote down is not in here, and
-    /// the operator is written as it was.
+    /// The types of this body's names, as the source declared them.
     binding_types: std::collections::BTreeMap<String, Type>,
-    /// What the record now being written declares its fields to be. A body
-    /// reading one through the receiver knows as much as it does about a
-    /// local.
+    /// What this record declares its fields to be.
     field_types: std::collections::BTreeMap<String, Type>,
     /// The same, for every record in view, keyed by the record's name.
     record_field_types:
         std::collections::BTreeMap<String, std::collections::BTreeMap<String, Type>>,
     /// The same, for record fields, which are a separate namespace.
-    ///
-    /// Not folded into `names`: a Rust `Reading { sensor }` with an exported field becomes Go's
-    /// `Sensor`, while a *parameter* also called `sensor` stays lowercase. One map keyed by
-    /// name alone gave the parameter the field's spelling. A field is reached through a
-    /// receiver and a binding is not, so they do not share a namespace in any of these
-    /// languages either.
     fields: BTreeMap<String, String>,
-    /// The fields the method body being written may name without a receiver.
-    ///
-    /// Keyed by the source's spelling, valued by the target's. Empty outside a
-    /// method, and outside one no bare name is ever a field.
+    /// The fields this method body may name without a receiver.
     receiver_fields: BTreeMap<String, String>,
-    /// The ok type of the `Result` the Go function being written returns, if it is one.
-    ///
-    /// Go spells that Result as its own `(T, error)` pair, and the body's `Ok`, `Err`
-    /// and propagations become the returns and checks that pair means. The type lives
-    /// here because a `return Err(...)` sits inside nested blocks that know nothing
-    /// of the signature. Each needs the ok side's zero to return beside the error.
+    /// The ok type of the `Result` this Go function returns, where it returns one.
     go_result: Option<Type>,
-    /// Whether the statements being written sit inside a `func TestX(t *testing.T)`.
+    /// Sits inside a `func TestX(t *testing.T)`.
     in_test: bool,
-    /// How many error bindings the Go body being written has introduced.
-    ///
-    /// `:=` needs a new name on its left, and a body with two propagated calls
-    /// declared `err` twice. Numbering from the second one on keeps every check its
-    /// own binding.
+    /// How many error bindings this Go body has introduced.
     go_errors: usize,
     /// Each declared function's `Result` ok type, where its return is one.
-    ///
-    /// A propagated call whose value the source discards still has to bind the
-    /// callee's results. How many there are is a fact about the callee, and a callee
-    /// whose ok side is unit returns the error alone here.
     result_returns: BTreeMap<String, Type>,
     /// The sums this module declares.
-    ///
-    /// A variant is reached through its type, `ParseError.Empty`, and how a target
-    /// spells that reach is its own. Rust says `ParseError::Empty`. Go's marker
-    /// convention has no reach at all and takes the variant's name as the message.
     sums: std::collections::BTreeSet<String>,
-    /// The bindings of the catch clauses currently being written, innermost last.
-    ///
-    /// The canonical `str(e)` on one of these is the exception as text, and Python is
-    /// the only target whose plain conversion says the message alone. TypeScript and
-    /// Java reach for `.message` and `.getMessage()` instead, and this list is how
-    /// their expression writers know the name is a caught error.
+    /// The bindings of the catch clauses in view, innermost last.
     catch_bindings: Vec<String>,
-    /// The exception classes this TypeScript module throws or catches and the
-    /// language does not have.
-    ///
-    /// Collected while the bodies are written, and declared once at the top so a
-    /// thrown name is always a class the file declares.
+    /// The exception classes this TypeScript module throws or catches and the language does not
+    /// have.
     ts_exceptions: std::collections::BTreeSet<&'static str>,
-    /// Did the Rust body being written ask for floor division?
-    ///
-    /// Rust has no integer method that rounds toward negative infinity, so this
-    /// writer declares one. Set while an expression is written, read after the
-    /// items are, because a helper nothing calls is dead code.
+    /// Did this Rust body ask for floor division?
     needs_floor_div: bool,
 }
 
@@ -1791,11 +1551,7 @@ impl Out {
 
     /// The same name, made writable where the target will not take it as written.
     fn legal(&self, spelled: String) -> String {
-        // A TypeScript member can be named by an expression, as in `[Symbol.dispose]()`,
-        // and no other language here has anything of the kind. Written through, it
-        // produced `pub fn [symbol.dispose](&self)`, which is not Rust. A qualified
-        // path is a different matter and must survive untouched: `std::fmt::Display`
-        // and `sync.Mutex` name real things.
+        // Only TypeScript names a member by an expression, as in `[Symbol.dispose]()`.
         if !is_writable_identifier(&spelled) {
             self.unnameable.borrow_mut().insert(spelled.clone());
             return sanitise(&spelled);
@@ -1804,18 +1560,14 @@ impl Out {
             return spelled;
         }
         // The receiver's own word is never an escape problem: it reaches here only because a
-        // method body used it. It is exactly the word this target binds. Rust also refuses to
-        // raw-escape `self`, so escaping it replaced a correct file with `r#self`, which is a
-        // compile error.
+        // method body used it.
         if spelled == receiver_word(self.language) {
             return spelled;
         }
         self.escaped.borrow_mut().insert(spelled.clone());
         match self.language {
-            // Rust and Zig both have a spelling for this, and under it the
-            // name stays the same identifier instead of becoming a different one.
-            // Rust's does not stretch to the three words that name a scope: `r#crate`,
-            // `r#super` and `r#Self` are rejected the same way `r#self` is.
+            // Rust and Zig both have a spelling for this, and under it the name stays the same
+            // identifier instead of becoming a different one.
             Language::Rust => match spelled.as_str() {
                 "crate" | "super" | "Self" => format!("{spelled}_"),
                 _ => format!("r#{spelled}"),
@@ -1825,12 +1577,7 @@ impl Out {
         }
     }
 
-    /// The name to write for this function: its own, or the target's word for a
-    /// constructor.
-    ///
-    /// A constructor's *name* is not information. It is the type's name in Java, a
-    /// fixed word in Python and TypeScript, and a habit in the other three. What the IR
-    /// carries is that it is one.
+    /// The name to write for this function: its own, or the target's word for a constructor.
     fn function_name(&self, f: &Function) -> String {
         match (f.is_constructor, f.receiver.as_deref()) {
             (true, Some(owner)) => self.legal(constructor_name(self.language, owner)),
@@ -1839,12 +1586,6 @@ impl Out {
     }
 
     /// This field name in the target's convention, or unchanged if it is not ours.
-    ///
-    /// A use site reads `x.name`, and nothing here knows the type of `x`. This therefore
-    /// renames a field of a foreign object that happens to share a name with one this module
-    /// declares. Never renaming a field at a use site leaves the declaration and its uses
-    /// spelled differently, which does not compile. Is this a type with no counterpart here,
-    /// written through by name?
     fn is_foreign(&self, ty: &Type) -> bool {
         match ty {
             Type::Named { name, .. } => !self.declared_types.contains(name),
@@ -1857,9 +1598,7 @@ impl Out {
     fn field(&self, raw: &str) -> String {
         let spelled = match self.fields.get(raw) {
             Some(spelled) => spelled.clone(),
-            // A method is reached like a field and spelled like a function. A
-            // name that is a method and never a field takes the name table's
-            // spelling. A name that is a field somewhere keeps the field one.
+            // A method is reached like a field and spelled like a function.
             None if self.methods.contains(raw) => self
                 .names
                 .get(raw)
@@ -1870,11 +1609,7 @@ impl Out {
         self.legal(spelled)
     }
 
-    /// Spell the receiver this target's way while a method body is written.
-    ///
-    /// Returns what was there before, for [`Out::unbind_receiver`]. The mapping goes through
-    /// the same [`Out::names`] every other rename uses. A body reaches it by that one route,
-    /// so no second rule can drift away from the first.
+    /// Spell the receiver this target's way inside a method body.
     fn bind_receiver(&mut self, bound: &str) -> Option<String> {
         let word = receiver_word(self.language).to_string();
         self.names.insert(bound.to_string(), word)
@@ -1888,11 +1623,6 @@ impl Out {
     }
 
     /// Start writing a method body: bind the receiver and the fields it reaches bare.
-    ///
-    /// Java lets a method body name a field with no receiver at all, and so does
-    /// Go once the receiver is dropped. Every target here needs one written.
-    /// Without this the bodies said `accounts` where the class declared
-    /// `this.accounts`, and TypeScript reported every one of them.
     fn enter_method(&mut self, f: &Function) -> MethodScope {
         let bound = f.receiver_binding.clone();
         let displaced_name = bound.as_deref().map(|b| self.bind_receiver(b));
@@ -1900,9 +1630,8 @@ impl Out {
         let displaced_types = std::mem::take(&mut self.field_types);
         if bound.is_some() {
             self.receiver_fields = self.fields_reached_bare(f);
-            // `this.total / 2` asks what `total` is, and the record the method
-            // belongs to says so. Without this the answer stopped at the class
-            // boundary: a local divided as an integer and a field did not.
+            // `this.total / 2` asks what `total` is, and the record the method belongs to says
+            // so.
             self.field_types = f
                 .receiver
                 .as_deref()
@@ -1928,9 +1657,6 @@ impl Out {
     }
 
     /// The fields of this method's own record, each spelled the target's way.
-    ///
-    /// A parameter or a local of the same name is the nearer declaration here.
-    /// It wins, and the name is left as it stands.
     fn fields_reached_bare(&self, f: &Function) -> BTreeMap<String, String> {
         let Some(declared) = f.receiver.as_deref().and_then(|r| self.records.get(r)) else {
             return BTreeMap::new();
@@ -1946,9 +1672,6 @@ impl Out {
     }
 
     /// This name read as a value.
-    ///
-    /// A field of the record whose method is being written goes through the
-    /// receiver. Every other name is written as itself.
     fn value_name(&self, raw: &str) -> String {
         match self.receiver_fields.get(raw) {
             Some(field) => format!("{}.{field}", receiver_word(self.language)),
@@ -1957,12 +1680,6 @@ impl Out {
     }
 
     /// One line of output, at the current indent.
-    ///
-    /// Text with newlines in it becomes several lines, each indented. It arrives that
-    /// way more often than it looks: a `/* ... */` comment is a single node however
-    /// many lines it spans, and pushing it through whole indented the first line and
-    /// left the rest hanging in column one, with only the first carrying whatever
-    /// marker made it a comment.
     fn line(&mut self, text: &str) {
         if text.is_empty() {
             self.text.push('\n');
@@ -1993,8 +1710,7 @@ impl Out {
         self.indent = self.indent.saturating_sub(1);
     }
 
-    /// Add a note the first time it comes up. A loss repeated at every site
-    /// reads once; fifty copies of the same sentence bury the others.
+    /// Add a note the first time it comes up.
     fn note_once(&mut self, text: &str) {
         if !self.fidelity.notes.iter().any(|n| n == text) {
             self.fidelity.notes.push(text.to_string());
@@ -2015,18 +1731,13 @@ impl Out {
     }
 
     /// `text` as a comment, every line of it.
-    ///
-    /// A marker on the first line alone gives one comment followed by whatever the rest of
-    /// the lines happen to parse as. Multi-line text reaches here from every `/* ... */` in
-    /// every source.
     fn comment(&self, text: &str) -> String {
         let marker = match self.language {
             Language::Python | Language::Bash => "#",
             _ => "//",
         };
-        // Zig rejects a tab inside a comment, and carried source brings the
-        // indentation the other language wrote. A Go file's tabs made a Zig
-        // file its own compiler would not lex.
+        // Zig rejects a tab inside a comment, and carried source brings the indentation the
+        // other language wrote.
         let text = match self.language {
             Language::Zig => text.replace('\t', "    "),
             _ => text.to_string(),
@@ -2050,9 +1761,6 @@ struct MethodScope {
 }
 
 /// Every name this body declares, at any depth, added to `into`.
-///
-/// A local of a field's name hides that field for the whole method here.
-/// Where the declaration sits does not change the answer.
 fn bound_names(body: &[Stmt], into: &mut std::collections::BTreeSet<String>) {
     for stmt in body {
         match stmt {
@@ -2156,11 +1864,6 @@ fn bound_names(body: &[Stmt], into: &mut std::collections::BTreeSet<String>) {
 }
 
 /// One statement rendered onto one line, for a loop header that holds one.
-///
-/// Every writer puts a statement on a line of its own. A `for` header wants
-/// three of them side by side, so this catches what the writer emitted and
-/// trims it. `None` when the statement needed more than a line, which no header
-/// can hold.
 fn header_line(out: &mut Out, stmt: &Stmt, write: &dyn Fn(&mut Out, &Stmt)) -> Option<String> {
     let held = std::mem::take(&mut out.text);
     let indent = std::mem::replace(&mut out.indent, 0);
@@ -2174,8 +1877,8 @@ fn header_line(out: &mut Out, stmt: &Stmt, write: &dyn Fn(&mut Out, &Stmt)) -> O
     Some(trimmed.trim_end_matches(';').to_string())
 }
 
-/// The three clauses of a `for` header, each on its own line, for the targets
-/// that write the whole header. `None` when one of them will not fit.
+/// The three clauses of a `for` header, each on its own line, for the targets that write the
+/// whole header.
 fn counted_header(
     out: &mut Out,
     init: Option<&Stmt>,
@@ -2234,10 +1937,6 @@ fn c_style_header(start: &str, test: &str, step: &str) -> String {
 }
 
 /// Does a `continue` in this body belong to the loop this body is?
-///
-/// A target with no counted header says the loop longhand, with the step at the
-/// foot of the body. A `continue` jumps over that step and the loop never ends.
-/// An inner loop's `continue` is its own and does not count.
 fn continues_here(body: &[Stmt]) -> bool {
     body.iter().any(|stmt| match stmt {
         Stmt::Continue => true,
@@ -2269,10 +1968,6 @@ fn continues_here(body: &[Stmt]) -> bool {
 }
 
 /// The counted loop as a range over one name, when its header is that simple.
-///
-/// `i := 0; i < n; i++` walks a range, and Python and Rust both write one. Said
-/// that way the step belongs to the loop, so a `continue` cannot skip it. The
-/// last member of the answer is the step, signed.
 fn counted_range<'s>(
     init: Option<&'s Stmt>,
     condition: Option<&'s Expr>,
@@ -2327,8 +2022,7 @@ fn counted_range<'s>(
     if !matches!(subject.as_ref(), Expr::Name(n) if n == name) {
         return None;
     }
-    // A body that moves the counter itself is not walking a range. Handing it
-    // one would change how many passes the loop makes.
+    // A body that moves the counter itself is not walking a range.
     if assigns_to(body, name) {
         return None;
     }
@@ -2398,10 +2092,6 @@ fn counted_original(source: &str, line: usize) -> Unsupported {
 }
 
 /// Write a carried-over fragment as a comment, whole, so nothing is lost.
-/// The hash map a Zig binding needs, and what it holds.
-///
-/// Keys that are text want `StringHashMap`, which compares them by content.
-/// Anything else wants `AutoHashMap`, which takes the key type as well.
 fn zig_map_shape(out: &Out, ty: Option<&Type>, entries: &[(Expr, Expr)]) -> (String, String) {
     let declared = match ty {
         Some(Type::Map(k, v)) => Some((zig_type(k), zig_type(v))),
@@ -2438,11 +2128,6 @@ fn owned_keys(out: &Out, of: &Expr) -> bool {
 }
 
 /// Does this expression name a binding the writer knows to hold a map?
-///
-/// The question every target asks before spelling an index, because a map's
-/// index and a list's are the same node and different code. The answer comes
-/// from the declared type where the source wrote one, and from a map literal
-/// where it did not.
 fn holds_a_map(out: &Out, of: &Expr) -> bool {
     let Expr::Name(name) = of else {
         return false;
@@ -2450,8 +2135,7 @@ fn holds_a_map(out: &Out, of: &Expr) -> bool {
     matches!(out.binding_types.get(name), Some(Type::Map(_, _)))
 }
 
-/// Does this name hold a set? The four canonical collection words are spelled
-/// differently for one, and two of the targets have no set at all.
+/// Does this name hold a set?
 fn holds_a_set(out: &Out, of: &Expr) -> bool {
     let Expr::Name(name) = of else {
         return false;
@@ -2460,10 +2144,6 @@ fn holds_a_set(out: &Out, of: &Expr) -> bool {
 }
 
 /// The type a literal states about itself, where it states one.
-///
-/// A map literal is the only place several writers have to name what a map
-/// holds. The entries are the only evidence there is. Anything that is not
-/// a literal says nothing, and the writers fall back to their own widest type.
 fn literal_type_of(e: &Expr) -> Option<Type> {
     match e {
         Expr::Int(_) => Some(Type::Int),
@@ -2475,9 +2155,6 @@ fn literal_type_of(e: &Expr) -> Option<Type> {
 }
 
 /// What a map literal's keys and values are, from its first entry.
-///
-/// The first, because a literal whose entries disagree is not a map any one
-/// annotation could describe. Guessing from a later entry would be picking.
 fn map_literal_types(entries: &[(Expr, Expr)]) -> (Option<Type>, Option<Type>) {
     match entries.first() {
         Some((k, v)) => (literal_type_of(k), literal_type_of(v)),
@@ -2486,9 +2163,6 @@ fn map_literal_types(entries: &[(Expr, Expr)]) -> (Option<Type>, Option<Type>) {
 }
 
 /// What a map literal holds, as TypeScript spells it.
-///
-/// From the first entry, because a literal whose values disagree is not a map
-/// any annotation here could describe.
 fn ts_map_values(entries: &[(Expr, Expr)]) -> &'static str {
     match entries.first().map(|(_, v)| v) {
         Some(Expr::Int(_) | Expr::Float(_)) => "number",
@@ -2512,10 +2186,6 @@ fn carry(out: &mut Out, what: &Unsupported) {
 }
 
 /// These statements as Rust text, for a carry that keeps its body.
-///
-/// A settle pass that walks the IR has no source text left to carry; the
-/// statements are the only record. Rendering them back as Rust is the same
-/// no-loss carry the source text would have been.
 pub(super) fn render_rust_stmts(stmts: &[Stmt]) -> String {
     let mut scratch = Out::new(Language::Rust);
     rust_block(&mut scratch, stmts, None);
@@ -2535,10 +2205,6 @@ fn expr_reads(e: &Expr, name: &str) -> bool {
 }
 
 /// The discriminator literal a variant answers to on the wire.
-///
-/// The source's own spelling where it wrote one, the derived snake case where
-/// it did not. Deriving unconditionally spelled `FIdle`'s tag `f_idle` while
-/// the source and every consumer said `"idle"`.
 fn wire_tag(out: &Out, sum: &str, variant: &str) -> String {
     out.sum_items
         .get(sum)
@@ -2555,15 +2221,9 @@ fn variant_spelling(out: &Out, sum: &str, variant: &str) -> String {
         .unwrap_or_else(|| out.name(variant))
 }
 
-/// `snake_case`, for Rust and Python. A name that already starts with a capital is a type, a
-/// class or an imported binding in every one of these languages. And is left alone:
-/// `NextResponse.json(x)`.
+/// `snake_case`, for Rust and Python.
 pub(super) fn snake_always(name: &str) -> String {
     // A separator goes before an uppercase letter only where a word starts.
-    // A word starts after a lowercase or a digit, or at the end of a run of
-    // capitals followed by a lowercase one. Splitting before *every* capital turns
-    // `HTTPServer` into `h_t_t_p_server` and `MAX_RETRY` into `m_a_x__r_e_t_r_y`.
-    // Real code is full of acronyms.
     let chars: Vec<char> = name.chars().collect();
     let mut out = String::with_capacity(name.len() + 4);
     for (i, c) in chars.iter().enumerate() {
@@ -2599,10 +2259,8 @@ pub(super) fn camel(name: &str) -> String {
         name.to_string()
     };
 
-    // A leading underscore is Python's and Rust's word for "not for outside
-    // this module", not a word boundary. Read as one, `_helper` came out
-    // `Helper`, which in Go says exported: the marker inverted its own
-    // meaning. Visibility travels in the IR's `exported` flag instead.
+    // A leading underscore is Python's and Rust's word for "not for outside this module", not a
+    // word boundary.
     let source = source.trim_start_matches('_').to_string();
     let mut out = String::with_capacity(source.len());
     let mut upper_next = false;
@@ -2634,9 +2292,6 @@ pub(super) fn pascal(name: &str) -> String {
 }
 
 /// What this module calls its floor-division helper.
-///
-/// A module of its own may already declare that name, and shadowing it would
-/// change which function every call site reaches. The suffix keeps both.
 fn floor_div_name(out: &Out) -> String {
     let taken = out.functions.contains_key("floor_div")
         || out.names.values().any(|spelled| spelled == "floor_div");
@@ -2661,11 +2316,7 @@ fn rust(out: &mut Out, module: &Module) {
             }
             Item::Statement(stmt) => carried_statement(out, stmt, rust_expr),
             Item::Constant(c) => {
-                // A constant is evaluated at compile time here. A `todo!()` in its
-                // value stops the build before anything runs, where a body's marker
-                // stays a draft. A value holding anything untranslated carries whole
-                // instead, name and all, and the inner markers ride along inside the
-                // comment.
+                // A constant is evaluated at compile time here.
                 if contains_unsupported(&c.value) {
                     let rendered = rust_expr(out, &c.value);
                     let header = out.comment(&format!(
@@ -2678,11 +2329,7 @@ fn rust(out: &mut Out, module: &Module) {
                     out.blank();
                     continue;
                 }
-                // The type is not decoration. `RETRY_LIMIT: &str = 3` refused
-                // to build; a literal says its own type, and a list of
-                // literals becomes a slice. A runtime value keeps the draft
-                // declaration it always had: dropping it to a comment lost the
-                // entity on every round trip.
+                // The type is not decoration.
                 for line in &c.doc {
                     out.line(&format!("/// {line}"));
                 }
@@ -2714,10 +2361,8 @@ fn rust(out: &mut Out, module: &Module) {
                 }
                 let visibility = if r.exported { "pub " } else { "" };
                 let type_name = out.name(&r.name);
-                // A field the source never typed is a field whose type the
-                // caller picks, which in Rust is a parameter on the struct. The
-                // widest-type marker means nothing here, and spelling it gave a
-                // struct that did not parse.
+                // A field the source never typed is a field whose type the caller picks, which
+                // in Rust is a parameter on the struct.
                 let mut undeclared = Vec::new();
                 out.record_generics.clear();
                 for f in &r.fields {
@@ -2792,10 +2437,8 @@ fn rust(out: &mut Out, module: &Module) {
                     out.line(&format!("impl{generics} {type_name}{generics} {{"));
                     out.open();
                     out.record_written = Some(r.name.clone());
-                    // Java overloads share a name and Rust has no overloading,
-                    // so two `fn add` in one `impl` do not compile. Later ones
-                    // take a numbered name, the way the Zig writer does, and the
-                    // report says so once.
+                    // Java overloads share a name and Rust has no overloading, so two `fn add`
+                    // in one `impl` do not compile.
                     let mut spelled: std::collections::BTreeMap<String, usize> =
                         std::collections::BTreeMap::new();
                     for m in &methods_of(out, r, false) {
@@ -2968,10 +2611,6 @@ fn rust(out: &mut Out, module: &Module) {
 }
 
 /// Can Rust derive the ordinary traits over a field of this type?
-///
-/// A type the reader could not spell has no guarantee behind it. A field the
-/// source never typed becomes a parameter whose bounds the derive writes
-/// itself.
 fn derivable(ty: Option<&Type>) -> bool {
     match ty {
         None => true,
@@ -2987,8 +2626,7 @@ fn derivable(ty: Option<&Type>) -> bool {
 
 fn rust_function(out: &mut Out, f: &Function, method: bool) {
     // Bindings made inside blocks die at their brace here too, and the closures a `try` lowers
-    // to cannot capture an uninitialized slot. So the hoisted `let`s initialize to the type's
-    // default.
+    // to cannot capture an uninitialized slot.
     let f = &with_hoisted_bindings(f, &out.function_returns);
     out.binding_types = declared_bindings(f);
     settle_list_element_types(f, out);
@@ -2997,8 +2635,7 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
     let known_returns = out.function_returns.clone();
     settle_call_bindings(f, &known_returns, &mut out.binding_types);
     out.rust_mutated = rust_mutated_names(&f.body);
-    // The source's word for the receiver, spelled this target's way for as long as
-    // this body is being written. Outside a method there is nothing to bind.
+    // The source's word for the receiver, spelled this target's way inside this body.
     let scope = out.enter_method(f);
 
     for line in &f.doc {
@@ -3010,8 +2647,7 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
     let mut changed = false;
     let mut params: Vec<String> = Vec::new();
     if method {
-        // A body that writes to a field needs the receiver to be writable, and
-        // `&self` is not. Rust refused every translated setter with E0594.
+        // A body that writes to a field needs the receiver to be writable, and `&self` is not.
         let word = receiver_word(out.language);
         let mutation = match assigns_to_receiver(f, word) {
             true => "mut ",
@@ -3062,8 +2698,8 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
             format!(" -> Result<{ok}, String>")
         }
         Some(Type::Unit) => String::new(),
-        // A source that annotated nothing still hands a value back, and this
-        // target has to name its type. Without one the body did not compile.
+        // A source that annotated nothing still hands a value back, and this target has to name
+        // its type.
         None if returns_a_value(f) => {
             unannotated = true;
             let ty = match inferred_return(out, f) {
@@ -3077,8 +2713,8 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
             if out.is_foreign(t) {
                 foreign = true;
             }
-            // A method that hands back the record it lives on names it without
-            // the arguments the struct declares. `Self` carries them.
+            // A method that hands back the record it lives on names it without the arguments
+            // the struct declares.
             let names_its_own = match (t, &out.record_written) {
                 (Type::Named { name, args }, Some(record)) => name == record && args.is_empty(),
                 _ => false,
@@ -3090,17 +2726,12 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
         }
     };
     let visibility = if f.exported { "pub " } else { "" };
-    // Each parameter the source left untyped becomes a type of its own, named in
-    // order. Rust has no widest type to reach for, so "whatever the caller
-    // brings" is what a type parameter means.
+    // Each parameter the source left untyped becomes a type of its own, named in order.
     let called = called_parameters(f);
     let mut generics: Vec<String> = Vec::new();
     for (at_param, param) in params.iter_mut().enumerate() {
         while let Some(at) = param.find(TYPE_THE_CALLER_DECIDES) {
-            // A parameter the body calls is a function, and no widest type is
-            // callable. `impl Fn(..) -> ..` says what the body already assumes,
-            // with the argument types the call site shows and the return this
-            // function declares.
+            // A parameter the body calls is a function, and no widest type is callable.
             let calls = f
                 .params
                 .get(at_param)
@@ -3124,9 +2755,8 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
                             .map(|(_, parameter)| parameter.clone())
                     });
                     match held {
-                        // The struct already declares this one; a second
-                        // declaration here would shadow it and take a different
-                        // type than the field it is stored in.
+                        // Skip: the struct declares this one, and a second would shadow it
+                        // under a different type.
                         Some(name) => {
                             param.replace_range(at..at + TYPE_THE_CALLER_DECIDES.len(), &name)
                         }
@@ -3187,12 +2817,6 @@ fn rust_function(out: &mut Out, f: &Function, method: bool) {
 }
 
 /// `var x; switch { every arm assigns x }` folded back into `let x = match ...;`.
-///
-/// The Zig reader lowers a value-position switch into that pair, and the other targets
-/// write the pair as it stands. Rust cannot. A binding declared without a value has
-/// no `Default::default()` the compiler can infer a type for. Assigning arms into a
-/// plain `let` does not compile either. The pair is one `match` expression again,
-/// which is also what a Rust author would have written.
 fn switch_binding_expression(out: &mut Out, body: &[Stmt], at: usize) -> Option<String> {
     let Stmt::Let {
         name,
@@ -3220,9 +2844,7 @@ fn switch_binding_expression(out: &mut Out, body: &[Stmt], at: usize) -> Option<
             _ => None,
         }
     };
-    // Every value is collected before anything is rendered. Rendering can carry
-    // notes, and a pair that turns out not to fold must leave no trace of the
-    // attempt.
+    // Every value is collected before anything is rendered.
     let mut values = Vec::new();
     for (_, arm) in arms {
         values.push(assigned(arm)?);
@@ -3301,10 +2923,7 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 if matches!(returns, Some(Type::String)) && matches!(value, Some(Expr::Str(_))) {
                     text.push_str(".to_string()");
                 }
-                // Rust converts between its number types only when told to. A
-                // length is an integer, and returned under a float it did not
-                // compile. A written number took the float spelling above and
-                // needs no conversion on top of it.
+                // Rust converts between its number types only when told to.
                 let widens = matches!(returns, Some(Type::Float))
                     && !matches!(value, Some(Expr::Int(_)))
                     && value
@@ -3368,8 +2987,6 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 if let Expr::Index { of, index } = target {
                     if holds_a_map(out, of) {
                         let map = rust_expr(out, of);
-                        // A map declared to hold `String` keys takes owned ones,
-                        // and a literal is a `&str` until it is told otherwise.
                         let key = match (owned_keys(out, of), index.as_ref()) {
                             (true, Expr::Str(_)) => {
                                 format!("{}.to_string()", rust_expr(out, index))
@@ -3496,9 +3113,7 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 default,
             } => {
                 let mut s = rust_expr(out, subject);
-                // A `String` subject matches `&str` literals only through its view. And a float
-                // subject with integer labels matches on the integer the source meant: a float
-                // has no literal patterns worth writing.
+                // A `String` subject matches `&str` literals only through its view.
                 let stringly = arms
                     .iter()
                     .flat_map(|(literals, _)| literals)
@@ -3523,8 +3138,8 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     out.close();
                     out.line("}");
                 }
-                // A Rust match must be exhaustive, so the default arm is written
-                // even when the source had none.
+                // Rust demands exhaustiveness, so emit the default arm even where the
+                // source had none.
                 if default.is_empty() {
                     out.line("_ => {}");
                 } else {
@@ -3538,18 +3153,14 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 out.line("}");
             }
             Stmt::Defer(cleanup) if !exits_anywhere(&body[at..]) => {
-                // Nothing between here and the end of the scope can leave it, so
-                // the deferral is a plain reordering: the rest runs, then the
-                // cleanup. Recursion keeps several defers last-in first-out.
+                // Nothing between here and the end of the scope can leave it, so the deferral
+                // is a plain reordering: the rest runs, then the cleanup.
                 rust_block(out, &body[at..], returns);
                 rust_block(out, cleanup, None);
                 return;
             }
             Stmt::ErrDefer(cleanup) | Stmt::Defer(cleanup) => {
-                // A guard runs the cleanup when the scope exits, however it
-                // exits. The failure-only variant disarms itself on the
-                // successful path, so it fires only when the scope leaves
-                // early through `?` or a panic.
+                // A guard runs the cleanup when the scope exits, however it exits.
                 let failure_only = matches!(stmt, Stmt::ErrDefer(_));
                 out.zig_helpers.insert("rust_defer");
                 out.lowering_names += 1;
@@ -3596,8 +3207,8 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 out.close();
                 out.line("}");
             }
-            // Rust has no counted header, so the start goes before the loop and
-            // the step at the foot of the body. A `continue` would skip the step.
+            // Rust has no counted header, so the start goes before the loop and the step at the
+            // foot of the body.
             Stmt::CountedFor {
                 init,
                 condition,
@@ -3606,8 +3217,7 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 source,
                 line,
             } => {
-                // Rust's range counts up by one. Any other step is said with
-                // `step_by` or a reversal, and neither reads as this loop did.
+                // Rust's range counts up by one.
                 let by_one =
                     counted_range(init.as_deref(), condition.as_ref(), update.as_deref(), body)
                         .filter(|(_, _, _, step)| *step == 1);
@@ -3671,11 +3281,7 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 body,
             } => {
                 let mut it = rust_expr(out, iterable);
-                // A named collection iterates by reference, or the first loop
-                // eats it. Cloning each element as it comes keeps the list and
-                // still binds a value. A borrowed `n` compares against no
-                // literal and adds to no total. Anything pushed from the body
-                // would land in a list of references.
+                // A named collection iterates by reference, or the first loop eats it.
                 if matches!(iterable, Expr::Name(_)) && !it.starts_with('&') {
                     it = format!("{it}.iter().cloned()");
                 }
@@ -3693,20 +3299,16 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
             Stmt::Assert { condition, message } => {
                 let c = rust_expr(out, condition);
                 match message {
-                    // The message is the macro's own format string, so a literal
-                    // rides along with its braces doubled. Anything else has no
-                    // slot there and is said above the check instead.
+                    // The message is the macro's own format string, so a literal rides along
+                    // with its braces doubled.
                     Some(Expr::Str(text)) => {
                         let literal = quoted(Language::Rust, text)
                             .replace('{', "{{")
                             .replace('}', "}}");
                         out.line(&format!("assert!({c}, {literal});"));
                     }
-                    // A message that is not a literal goes in as an argument
-                    // to the macro's own `{}`. The macro evaluates it only on
-                    // failure. The source said the same, and the other targets
-                    // already do it. Rendering it into a comment dropped the
-                    // message and any effect computing it had.
+                    // A message that is not a literal goes in as an argument to the macro's own
+                    // `{}`.
                     Some(other) => {
                         let rendered = rust_expr(out, other);
                         out.line(&format!("assert!({c}, \"{{}}\", {rendered});"));
@@ -3716,11 +3318,8 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
             }
             Stmt::Break => out.line("break;"),
             Stmt::Continue => out.line("continue;"),
-            // Rust models failure in the return type; there is no catch block to
-            // translate a catch block into, so it is carried whole.
-            // `try/catch`, lowered through a closure: the body runs to its first
-            // failure, and the failure lands in the catch as the message. A `return`
-            // inside the body travels out through an Option and returns here.
+            // Rust models failure in the return type and has no catch block, so carry
+            // this whole.
             Stmt::Try {
                 body: tried,
                 catches,
@@ -3751,9 +3350,8 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     return;
                 }
                 if returns_anywhere(tried) {
-                    // The closure that catches also swallows returns, so a
-                    // return inside travels out through an Option and returns
-                    // here.
+                    // The closure that catches also swallows returns, so a return inside
+                    // travels out through an Option and returns here.
                     out.lowering_names += 1;
                     let caught = format!("__fr_caught{}", out.lowering_names);
                     let ret_ty = returns.map(rust_type).unwrap_or_else(|| "()".to_string());
@@ -3854,11 +3452,6 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
 }
 
 /// Whether a `/` operand rules out arithmetic: a string on either side.
-///
-/// Python's pathlib overloads `/` as path joining. `ROOT / "tools"` reached
-/// the true-division repair and came out `float64(Root) / float64("tools")`,
-/// which is not a number and was never a division. What it is cannot be said
-/// in the target, so the writers carry it instead.
 fn divides_a_string(out: &Out, left: &Expr, right: &Expr) -> bool {
     let stringish =
         |e: &Expr| matches!(e, Expr::Str(_)) || static_type(out, e) == Some(Type::String);
@@ -3891,10 +3484,6 @@ fn rust_literal_type(value: &Expr) -> Option<String> {
 }
 
 /// The `: T` on a binding, where Rust lets a binding carry one.
-///
-/// A function type is spelled `impl Fn(..)`, which Rust allows in a signature
-/// and nowhere else. On a binding it does not compile, and the closure it stands
-/// for has a type inference already knows.
 fn rust_binding_annotation(ty: &Option<Type>) -> String {
     match ty {
         Some(Type::Fn { .. }) | None => String::new(),
@@ -3916,9 +3505,7 @@ fn rust_type(ty: &Type) -> String {
             rust_type(k),
             rust_type(v)
         ),
-        // A parameter position wants `impl Fn`; a field or a binding wants a
-        // boxed one. `impl Fn` is what a signature means, and this spells types
-        // for signatures.
+        // A parameter position wants `impl Fn`; a field or a binding wants a boxed one.
         Type::Fn { params, returns } => format!(
             "impl Fn({}) -> {}",
             joined(params, rust_type),
@@ -3935,27 +3522,16 @@ fn rust_type(ty: &Type) -> String {
 }
 
 /// One side of a binary expression, bracketed when the enclosing operator would bind into it.
-/// The writers rendered `left op right` and nothing else. So a group the source wrote was a
-/// group the translation lost. Every one of them turned `(a + b) * c` into `a + b * c`. And `a
-/// - (b - c)` into `a - b - c`. Neither is the same number. Brackets are decided from
-/// precedence and not copied from the source. So the result is right even where the two
-/// languages disagree about binding. A group that was never needed does not survive the trip
-/// either. The right-hand side takes brackets at *equal* precedence as well, because every
-/// operator here associates to the left. `a - (b - c)` needs them and `(a - b) - c` does not.
 fn binary_operand(text: String, operand: &Expr, enclosing: BinaryOp, on_the_right: bool) -> String {
     let inner = match operand {
         Expr::Binary { op, .. } => op.precedence(),
-        // A conditional binds looser than any operator in the table, so it always
-        // needs the brackets. Everything else, a name, a literal, a call, an index,
-        // is one thing and never does.
+        // A conditional binds looser than any operator in the table, so it always needs the
+        // brackets.
         Expr::Ternary { .. } | Expr::Coalesce { .. } => 0,
         _ => return text,
     };
     let outer = enclosing.precedence();
     // A comparison inside a comparison is bracketed whatever the table says.
-    // Python reads `a < 0 != b < 0` as a chain and means something else by it.
-    // Rust refuses to read it at all. `(a < 0) != (b < 0)` is the one spelling
-    // every target agrees on.
     let compares = |op: BinaryOp| {
         matches!(
             op,
@@ -3974,9 +3550,6 @@ fn binary_operand(text: String, operand: &Expr, enclosing: BinaryOp, on_the_righ
 }
 
 /// The operand of `!` or `-`, bracketed when it is not a single thing.
-///
-/// `-(a + b)` is not `-a + b`. `!(a and b)` means something other than `!a and b`. De
-/// Morgan's law says so, and the transformation earns a refactoring of its own.
 fn unary_operand(text: String, operand: &Expr) -> String {
     match operand {
         Expr::Binary { .. } | Expr::Ternary { .. } | Expr::Coalesce { .. } => {
@@ -3986,13 +3559,7 @@ fn unary_operand(text: String, operand: &Expr) -> String {
     }
 }
 
-/// The receiver of a `.field` or a `[index]`, bracketed when the reach would
-/// bind into it.
-///
-/// The readers drop the source's brackets and the writers restore them from
-/// structure. `(a == b).then(x)` written as `a == b.then(x)` is a different
-/// expression in every language here. A literal receiver has its own trap:
-/// Go and Rust read `2.then` as a float with a name stuck to it.
+/// The receiver of a `.field` or a `[index]`, bracketed when the reach would bind into it.
 fn receiver(text: String, of: &Expr) -> String {
     match of {
         Expr::Binary { .. }
@@ -4060,18 +3627,14 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Null => "None".to_string(),
         Expr::Name(n) => out.value_name(n),
         Expr::Field { of, name } => {
-            // A sum's variant is reached through the type, and Rust spells that
-            // reach `::`. A dot there would read as a field access on a type, and
-            // Rust has no such thing.
+            // A sum's variant is reached through the type, and Rust spells that reach `::`.
             if matches!(of.as_ref(), Expr::Name(n) if out.sums.contains(n)) {
                 let owner = rust_expr(out, of);
                 return format!("{owner}::{}", out.name(name));
             }
             let object = receiver(rust_expr(out, of), of);
-            // A read of a property is a call here; the idiom that hid the
-            // parentheses does not exist in this language. A property is a
-            // method, so its spelling comes from the name table and not the
-            // field one.
+            // A read of a property is a call here; the idiom that hid the parentheses does not
+            // exist in this language.
             if out.properties.contains(name) {
                 return format!("{object}.{}()", out.name(name));
             }
@@ -4118,9 +3681,6 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                 return carried_expr_filler(out);
             }
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
-            // A call that can fail must say what happens then. Where the failure can move
-            // outward it propagates. Anywhere else it stops the program with the message, which
-            // is what an uncaught exception did in the source.
             let failing = matches!(callee.as_ref(), Expr::Name(n)
                 if out.throwing.contains(n.as_str()));
             let suffix = match (failing, out.can_propagate) {
@@ -4129,9 +3689,8 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                 (false, _) => "",
             };
             let mut rendered: Vec<String> = args.iter().map(|a| rust_expr(out, a)).collect();
-            // An integer literal where the signature declared a float: Go and the
-            // dynamic sources coerce, Rust refuses. The declared types are this
-            // module's own, so the coercion is read straight off them.
+            // An integer literal where the signature declared a float: Go and the dynamic
+            // sources coerce, Rust refuses.
             if let Expr::Name(name) = callee.as_ref() {
                 if let Some(param_types) = out.function_param_types.get(name.as_str()) {
                     for (at, arg) in args.iter().enumerate() {
@@ -4156,9 +3715,8 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                     }
                 }
             }
-            // `Point(0, 0)` from a language whose classes are called is a
-            // construction, and this struct's fields are named, so calling it
-            // would not compile.
+            // Build the struct: `Point(0, 0)` constructs, and naming the fields is the
+            // only spelling that compiles here.
             if let Some(fields) = positional_record(out, callee, args.len()) {
                 let target = rust_expr(out, callee);
                 let pairs: Vec<String> = fields
@@ -4174,13 +3732,8 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                 rendered.join(", ")
             )
         }
-        // Floor division rounds toward negative infinity, and Rust has no
-        // integer method that does. `div_euclid` keeps the remainder positive
-        // instead, so it answers `-3` where the source's `7 // -2` says `-4`.
-        // A block spells the floor itself and names each operand once, which
-        // matters when an operand is a call.
-        // Python's `/` is a float division. Rust's is the operands' own, so an
-        // integer side is coerced before the operator sees it.
+        // Floor division rounds toward negative infinity, and Rust has no integer method that
+        // does.
         Expr::Binary {
             op: BinaryOp::TrueDiv,
             left,
@@ -4197,8 +3750,7 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                 return format!("todo!(/* {MARKER}: {rendered} */)");
             }
             let side = |out: &mut Out, e: &Expr| {
-                // A written number takes the float spelling. `100 as f64`
-                // compiles and reads as a repair rather than as arithmetic.
+                // A written number takes the float spelling.
                 if let Expr::Int(n) = e {
                     return format!("{n}.0");
                 }
@@ -4240,9 +3792,7 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             out.needs_floor_div = true;
             format!("{}({dividend}, {divisor})", floor_div_name(out))
         }
-        // The remainder that goes with that division. Rust's `%` truncates and
-        // `rem_euclid` keeps the answer positive; neither is what a source that
-        // floors meant when the divisor is negative.
+        // The remainder that goes with that division.
         Expr::Binary {
             op: BinaryOp::FloorRem,
             left,
@@ -4254,9 +3804,8 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             format!("fr_floor_rem({dividend}, {divisor})")
         }
         Expr::Binary { op, left, right } => {
-            // `n <= 0` with `n: f64`: Go and the others coerce the untyped
-            // literal, Rust refuses the comparison. The binding's declared
-            // type is on record, so the literal takes the spelling it needs.
+            // `n <= 0` with `n: f64`: Go and the others coerce the untyped literal, Rust
+            // refuses the comparison.
             fn float_side(out: &Out, e: &Expr) -> bool {
                 matches!(static_type(out, e), Some(Type::Float))
             }
@@ -4277,28 +3826,22 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                 binary_operand(right_text, right, *op, true)
             )
         }
-        // Standard Rust has async syntax but no executor. The defined lowering
-        // for an async source is blocking: the suspension point runs to
-        // completion in place, noted once so the change is not silent.
+        // Standard Rust has async syntax but no executor.
         Expr::Await(inner) => {
             out.note_once(
                 "an `await` runs blocking here: standard Rust has no executor to suspend on.",
             );
             rust_expr(out, inner)
         }
-        // `try (check(n) + 1)` propagates the failure of the call inside. The call arm already
-        // writes that `?` for every failing callee, so an outer propagate over a wider
-        // expression adds nothing but a misplaced operator.
+        // `try (check(n) + 1)` propagates the failure of the call inside.
         Expr::Propagate(inner) => match contains_failing_call(out, inner) {
             true => rust_expr(out, inner),
             false => format!("{}?", rust_expr(out, inner)),
         },
-        // Rust has no universal spelling for construction: `X::new`, `X { .. }` and
-        // a builder are all idiomatic and which one applies is a fact about the type.
+        // Rust has no universal spelling for construction: `X::new`, `X { ..
         Expr::New { callee, args } => {
-            // A construction whose arguments already name their fields is a
-            // struct literal as written: `Point{}` and `Circle{Radius: n}`
-            // arrive this way from Go.
+            // A construction whose arguments already name their fields is a struct literal as
+            // written: `Point{}` and `Circle{Radius: n}` arrive this way from Go.
             let keywords: Option<Vec<(&String, &Expr)>> = args
                 .iter()
                 .map(|a| match a {
@@ -4325,9 +3868,8 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                     };
                 }
             }
-            // A construction whose arguments all name fields is a struct
-            // literal whatever the type: the fields are the constructor. A
-            // dotted foreign path is spelled the way Rust spells paths.
+            // A construction whose arguments all name fields is a struct literal whatever the
+            // type: the fields are the constructor.
             if let Some(pairs) = keywords {
                 if !args.is_empty() {
                     let target = rust_path(out, callee);
@@ -4355,8 +3897,7 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             let target = rust_path(out, callee);
             format!("{target}::new({})", rendered.join(", "))
         }
-        // Rust asks this with a `match` on an enum or with `Any::downcast`. The type decides
-        // which one applies, and the surrounding code does not.
+        // Rust asks this with a `match` on an enum or with `Any::downcast`.
         Expr::Cast { ty, value } => {
             format!("({} as {})", rust_expr(out, value), rust_expr(out, ty))
         }
@@ -4367,8 +3908,6 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             let named = rust_path(out, ty);
             format!("(&{rendered} as &dyn std::any::Any).is::<{named}>()")
         }
-        // A named argument passes by position: the value crosses, and the
-        // name is a fact about the source's parameter list, noted once.
         Expr::Keyword { name: _, value } => {
             out.note_once(
                 "a named argument passes by position here: the target does not name arguments.",
@@ -4409,8 +3948,7 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             let rendered: Vec<String> = items.iter().map(|i| rust_expr(out, i)).collect();
             format!("vec![{}]", rendered.join(", "))
         }
-        // A set built in place. `from` takes the members; an empty one has none
-        // to take and says so.
+        // A set built in place.
         Expr::SetLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| rust_expr(out, i)).collect();
             match rendered.is_empty() {
@@ -4458,9 +3996,7 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                     None => out.name(&p.name),
                 })
                 .collect();
-            // The body is written knowing what the parameters are, the same way
-            // it would know a binding. Without it, `|n: f64| n + 1` wrote an
-            // integer literal against a float and would not compile.
+            // Give the body the parameters, the same way it knows a binding.
             let outer: Vec<(String, Option<Type>)> = params
                 .iter()
                 .map(|p| (p.name.clone(), out.binding_types.get(&p.name).cloned()))
@@ -4492,22 +4028,14 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
         } => {
             let it = rust_expr(out, iterable);
             let name = out.name(binding);
-            // `filter` hands the closure a reference, so a condition written
-            // against the element compared a `&T` with a `T`. The pattern takes
-            // the reference apart, the question the source's condition asked.
+            // `filter` hands the closure a reference, so a condition written against the
+            // element compared a `&T` with a `T`.
             let filter = condition
                 .as_ref()
                 .map(|c| format!(".filter(|&{name}| {})", rust_expr(out, c)))
                 .unwrap_or_default();
-            // `collect` is generic over what it builds, and a bare one leaves
-            // the type to be inferred from a later use. There is often none, so
-            // `E0282` where the source had a list. The turbofish names the
-            // collection and leaves the element to inference, and it works in
-            // expression position where annotating a binding would not.
-            // Borrowed and cloned rather than consumed: a source that builds two
-            // lists from one reads it twice, and `into_iter` moved it on the
-            // first. Cloning is the ownership dialect this writer uses
-            // throughout.
+            // `collect` is generic over what it builds, and a bare one leaves the type to be
+            // inferred from a later use.
             format!(
                 "{it}.iter().cloned(){filter}.map(|{name}| {}).collect::<Vec<_>>()",
                 rust_expr(out, element)
@@ -4515,9 +4043,8 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
         }
         Expr::Unsupported(u) => {
             out.carried(u);
-            // The carried text rides inside `todo!`'s format string, where a brace
-            // from the source reads as a hole and stops the build. Doubling is how
-            // Rust spells a brace that is only a brace.
+            // The carried text rides inside `todo!`'s format string, where a brace from the
+            // source reads as a hole and stops the build.
             let payload = u
                 .source
                 .replace('"', "'")
@@ -4568,8 +4095,7 @@ fn python(out: &mut Out, module: &Module) {
         out.line("import typing");
         out.blank();
     }
-    // The guarded entry may need a module of its own. `asyncio.run` starts an async
-    // main, and `sys.argv` holds the arguments a main that takes them receives.
+    // The guarded entry may need a module of its own.
     let entry = module.items.iter().find_map(|item| match item {
         Item::Statement(stmt) => entry_function(module, stmt),
         _ => None,
@@ -4585,10 +4111,8 @@ fn python(out: &mut Out, module: &Module) {
         }
     }
 
-    // A helper called from `main` has to be defined before the statement that
-    // runs it, and that statement stands at the end of the file. So the need is
-    // decided by looking at the module rather than by what the body has asked
-    // for so far.
+    // A helper called from `main` has to be defined before the statement that runs it, and that
+    // statement stands at the end of the file.
     if python_needs_truncating_remainder(module) {
         out.line("def fr_trunc_rem(dividend: int, divisor: int) -> int:");
         out.open();
@@ -4615,17 +4139,12 @@ fn python(out: &mut Out, module: &Module) {
                 out.line(&format!("# {text}"));
                 out.blank();
             }
-            // The module runs top to bottom here too. The guard is Python's own
-            // idiom for "this part is the program". Written bare, the statement
-            // would also run on import, and the source's entry never did.
             Item::Statement(stmt) => {
                 out.line("if __name__ == \"__main__\":");
                 out.open();
                 match entry_function(module, stmt) {
-                    // A Java `main(String[] args)` receives the program's arguments,
-                    // which Python spells `sys.argv` less the interpreter's own name.
-                    // An async main needs a loop to run on, which `asyncio.run`
-                    // provides; called bare it would build a coroutine and drop it.
+                    // A Java `main(String[] args)` receives the program's arguments, which
+                    // Python spells `sys.argv` less the interpreter's own name.
                     Some(f) => {
                         let name = out.name(&f.name);
                         let arguments = match entry_takes_arguments(f) {
@@ -4664,9 +4183,7 @@ fn python(out: &mut Out, module: &Module) {
                     out.line("@dataclass");
                 }
                 let type_name = out.name(&r.name);
-                // Python spells the base in parentheses after the name. TypeScript's
-                // `extends Error` is this language's `Exception`: written through, the
-                // class extended a name no Python file declares.
+                // Python spells the base in parentheses after the name.
                 let base = inherited_base(out, r, true)
                     .map(|base| match base.as_str() {
                         "Error" if !out.declared_types.contains("Error") => "Exception".to_string(),
@@ -4693,10 +4210,8 @@ fn python(out: &mut Out, module: &Module) {
                             .map(python_type)
                             .unwrap_or_else(|| unknown(out, &f.name));
                     let field_name = out.field(&f.name);
-                    // A mutable default shared between instances is the classic
-                    // Python trap, and the dataclass machinery refuses it outright.
-                    // `field(default_factory=...)` builds one per instance, the
-                    // same thing the source's per-instance initializer did.
+                    // A mutable default shared between instances is the classic Python trap,
+                    // and the dataclass machinery refuses it outright.
                     let default = f.default.as_ref().map(|d| match d {
                         Expr::ListLit(items) if items.is_empty() => {
                             " = field(default_factory=list)".to_string()
@@ -4738,10 +4253,8 @@ fn python(out: &mut Out, module: &Module) {
                 out.blank();
             }
             Item::Import { text, line, target } => {
-                // An import a sweep resolved names a sibling translated beside
-                // this file, so it crosses as a real import. The names take
-                // this writer's spelling from the same table the declarations
-                // use, and the module path becomes a relative one.
+                // An import a sweep resolved names a sibling translated beside this file, so it
+                // crosses as a real import.
                 if let Some((stem, names)) = sibling_import(target) {
                     let list: Vec<String> = names
                         .iter()
@@ -4795,8 +4308,7 @@ fn python(out: &mut Out, module: &Module) {
                 out.blank();
             }
             Item::Sum(s) => {
-                // One class per variant and a union alias naming the choice. The
-                // alias is the type callers write; `match` narrows by class.
+                // One class per variant and a union alias naming the choice.
                 let names = hoisted_variant_names(out, module, s);
                 for (variant, variant_name) in s.variants.iter().zip(&names) {
                     for line in &variant.doc {
@@ -4878,8 +4390,7 @@ fn python_needs_truncating_remainder(module: &Module) -> bool {
 
 fn python_function(out: &mut Out, f: &Function, method: bool) {
     let mut deferred_defaults: Vec<(String, Expr)> = Vec::new();
-    // The source's word for the receiver, spelled this target's way for as long as
-    // this body is being written. Outside a method there is nothing to bind.
+    // The source's word for the receiver, spelled this target's way inside this body.
     let scope = out.enter_method(f);
     out.binding_types = declared_bindings(f);
     settle_list_element_types(f, out);
@@ -4908,12 +4419,6 @@ fn python_function(out: &mut Out, f: &Function, method: bool) {
                 String::new()
             }
         };
-        // Python evaluates a default once, at `def` time, in module scope.
-        // The languages that evaluate per call let one parameter's default
-        // read another. So `def pad(text, width = text.length + 2)` raised
-        // NameError before the module finished importing. Such a default
-        // becomes the sentinel idiom, computed in the body where the
-        // parameters exist.
         let reads_a_parameter = p
             .default
             .as_ref()
@@ -5002,11 +4507,6 @@ fn python_function(out: &mut Out, f: &Function, method: bool) {
 }
 
 /// A line, preceded by anything an expression could not say where it stood.
-///
-/// Python has no inline comment: `#` runs to the end of the line, so a note written inside a
-/// call's parentheses swallows the closing one. The note goes into the file as well as the
-/// fidelity report, because a bare `None` where a value belongs says nothing on its own. It
-/// goes above the statement now, which is where Zig puts its own for exactly the same reason.
 fn python_line(out: &mut Out, text: &str) {
     let pending = std::mem::take(&mut out.pending);
     for note in pending {
@@ -5025,9 +4525,6 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
     }
     let mut wrote = false;
     for (at, stmt) in body.iter().enumerate() {
-        // Whether a statement was produced is a property of the statement, asked once here
-        // and not set inside each arm. An arm that forgets leaves a stray `raise
-        // NotImplementedError` after a working body. How the next one would have.
         wrote |= !matches!(
             stmt,
             Stmt::Unsupported(_) | Stmt::Expr(Expr::Null) | Stmt::Comment(_)
@@ -5051,9 +4548,8 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
                 out.line(&commented);
             }
             Stmt::Return(value) => {
-                // A returned Result speaks this language's own failure handling: the
-                // ok value returns bare, and the Err raises. A propagated call's
-                // error already goes the same way.
+                // A returned Result speaks this language's own failure handling: the ok value
+                // returns bare, and the Err raises.
                 if let Some((ok, payload)) = value.as_ref().and_then(|v| result_call(out, v)) {
                     out.note_once(RESULT_RAISED);
                     match (ok, payload) {
@@ -5117,7 +4613,7 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
                 python_block(out, then);
                 out.close();
                 if !otherwise.is_empty() {
-                    // `else: if ...` is written `elif` when that is all it is.
+                    // Fold `else: if ...` into `elif` where that is all it holds.
                     if otherwise.len() == 1 {
                         if let Stmt::If { .. } = &otherwise[0] {
                             python_line(out, "else:");
@@ -5409,7 +4905,7 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
             Stmt::Unsupported(u) => carry(out, u),
         }
     }
-    // A body that is only carried-over comments still needs a statement to be Python.
+    // Give a body of carried comments a statement, or Python will not parse it.
     if !wrote {
         python_line(out, "raise NotImplementedError");
     }
@@ -5459,17 +4955,13 @@ pub(super) fn python_type(ty: &Type) -> String {
             joined(params, python_type),
             python_type(returns)
         ),
-        // Python spells generics with brackets, so the arguments are kept
-        // apart: `Result<(), String>` written literally is not a Python annotation.
+        // Keep the arguments apart: Python spells generics with brackets, and a literal
+        // `Result<(), String>` is not an annotation.
         Type::Named { name, args } => generic(name, args, "[", "]", ".", python_type),
     }
 }
 
 /// The types this function's names hold: its parameters, and the locals it declares a type for.
-///
-/// Nothing is inferred. A binding whose type the source never wrote down is not in here. An
-/// operator involving it is written the way it was, the tool does not know what it is operating
-/// on. Guessing would be the same mistake in the other direction.
 fn declared_bindings(f: &Function) -> std::collections::BTreeMap<String, Type> {
     let mut types = std::collections::BTreeMap::new();
     for p in &f.params {
@@ -5477,9 +4969,7 @@ fn declared_bindings(f: &Function) -> std::collections::BTreeMap<String, Type> {
             types.insert(p.name.clone(), ty.clone());
         }
     }
-    // The whole body, nested blocks included. An `int v = ...` inside a `try` is as
-    // declared as one at the top. Reading only the top level left every such binding
-    // untyped for the operators that ask.
+    // The whole body, nested blocks included.
     fn walk(stmts: &[Stmt], types: &mut std::collections::BTreeMap<String, Type>) {
         for stmt in stmts {
             match stmt {
@@ -5495,9 +4985,6 @@ fn declared_bindings(f: &Function) -> std::collections::BTreeMap<String, Type> {
                         Expr::Int(_) => Some(Type::Int),
                         Expr::Float(_) => Some(Type::Float),
                         Expr::Bool(_) => Some(Type::Bool),
-                        // A map literal makes a map, whatever it holds. The
-                        // writers ask this to tell an index into a map from an
-                        // index into a list, which they spell differently.
                         Expr::MapLit(_) => Some(Type::Map(
                             Box::new(Type::named("")),
                             Box::new(Type::named("")),
@@ -5541,9 +5028,8 @@ fn declared_bindings(f: &Function) -> std::collections::BTreeMap<String, Type> {
                     walk(then, types);
                     walk(otherwise, types);
                 }
-                // A loop over a list of a known element type binds a name of
-                // that type, and the body asks what it is. A sum over the walk
-                // does not compile where the answer is the widest type.
+                // A loop over a list of a known element type binds a name of that type, and the
+                // body asks what it is.
                 Stmt::ForEach {
                     binding,
                     iterable,
@@ -5598,21 +5084,7 @@ fn declared_bindings(f: &Function) -> std::collections::BTreeMap<String, Type> {
     types
 }
 
-/// Type the unannotated bindings whose value is a call to a function with a
-/// declared return. `declared_bindings` reads one function and cannot see the
-/// module's signatures; this pass can, so `var result = total(10, 20)` knows
-/// what it holds. An `await` around the call is the same value, later.
-/// The element type of a list built empty and filled by appending.
-///
-/// A list literal with nothing in it says nothing about what it holds. The
-/// targets that name their element types wrote their widest, `[]any` in Go, and
-/// arithmetic on what came back out did not compile. The appends say what goes
-/// in, so they say what the list is.
-/// A binding the source did not annotate takes the type of its value.
-///
-/// `const quotient = Math.trunc(a / b)` says nothing, and `a` and `b` say
-/// everything. Without it, Rust wrote an integer literal against a float and
-/// would not compile.
+/// Type the unannotated bindings whose value is a call to a function with a declared return.
 fn settle_inferred_bindings(f: &Function, out: &mut Out) {
     fn walk(body: &[Stmt], out: &mut Out) {
         for stmt in body {
@@ -5639,10 +5111,6 @@ fn settle_inferred_bindings(f: &Function, out: &mut Out) {
 }
 
 /// The element type of a set built empty and filled by adding.
-///
-/// A set literal with nothing in it says nothing about what it holds. The four
-/// targets that name their element types had nothing to name. The adds say
-/// what goes in, so they say what the set is.
 fn settle_set_element_types(f: &Function, out: &mut Out) {
     fn added<'a>(body: &'a [Stmt], name: &str, found: &mut Vec<&'a Expr>) {
         for stmt in body {
@@ -5862,12 +5330,6 @@ fn each_stmt(stmts: &[Stmt], visit: &mut dyn FnMut(&Stmt)) {
 }
 
 /// Give a local that starts as an empty list the element type it goes on to hold.
-///
-/// `out = []` says nothing about its elements. The targets that must name a
-/// type therefore wrote their word for "no idea". Go produced `out := []any{}`
-/// under a signature promising `[]Point`, and the compiler refused the return.
-/// What the body appends says what the list holds, and the declared return type
-/// says it where nothing is appended.
 fn settle_empty_collections(f: &Function, types: &mut std::collections::BTreeMap<String, Type>) {
     fn empty_lists(stmts: &[Stmt], found: &mut Vec<String>) {
         each_stmt(stmts, &mut |stmt| {
@@ -5909,8 +5371,7 @@ fn settle_empty_collections(f: &Function, types: &mut std::collections::BTreeMap
         let mut elements = Vec::new();
         appended(&f.body, &name, &mut elements);
         let element = elements.iter().find_map(literal_type).or_else(|| {
-            // Nothing was appended in a shape this can read. A function that
-            // returns the list has already said what it holds.
+            // Nothing was appended in a shape this can read.
             match (&f.returns, returns_name(&f.body, &name)) {
                 (Some(Type::List(item)), true) => Some((**item).clone()),
                 _ => None,
@@ -5966,26 +5427,16 @@ fn static_type(out: &Out, e: &Expr) -> Option<Type> {
         Expr::Float(_) => Some(Type::Float),
         Expr::Str(_) => Some(Type::String),
         Expr::Bool(_) => Some(Type::Bool),
-        // A bare name in a method body is a local, a parameter, or a field of
-        // the record the method belongs to. The writer decides which when it
-        // spells it, and the type question has the same three places to look.
-        // Stopping at the first two left `this.total / 2` untruncated, while
-        // the same division over a local was right.
+        // A bare name in a method body is a local, a parameter, or a field of the record the
+        // method belongs to.
         Expr::Name(name) => out
             .binding_types
             .get(name)
             .or_else(|| out.field_types.get(name))
             .cloned(),
         Expr::Propagate(inner) | Expr::Await(inner) => static_type(out, inner),
-        // `+` with a string on either side is concatenation, and the whole of it
-        // is a string however the other side is typed. Answering "no idea" here
-        // left `"x" + 1 + 2` as `"x" + str(1) + 2`, which raises. Only the first
-        // number ever got its coercion.
-        // The canonical builtins the readers settle on: their answers have
-        // one type each, whichever language wrote the call. Without this a
-        // function whose whole body is `return len(items)` had no type to
-        // name. The targets that must name one wrote their word for "no idea"
-        // over a number.
+        // `+` with a string on either side is concatenation, and the whole of it is a string
+        // however the other side is typed.
         Expr::Call { callee, args } => match (callee.as_ref(), args.len()) {
             (Expr::Name(name), 1) if name == "len" => Some(Type::Int),
             (Expr::Name(name), 1) if name == "str" => Some(Type::String),
@@ -6011,8 +5462,7 @@ fn static_type(out: &Out, e: &Expr) -> Option<Type> {
             let left = left?;
             (left == right?).then_some(left)
         }
-        // Arithmetic keeps the type of its operands where both agree. Division is
-        // deliberately absent: in Python it is the one operation that does not.
+        // Arithmetic keeps the type of its operands where both agree.
         Expr::Binary {
             op:
                 BinaryOp::Sub
@@ -6040,9 +5490,6 @@ fn holds_an_integer(out: &Out, e: &Expr) -> bool {
 }
 
 /// Is either side of a comparison a string the source declared?
-///
-/// Either, not both: comparing a declared string with something whose type nobody
-/// wrote down is still a string comparison, and Java still gets it wrong.
 fn compares_strings(out: &Out, left: &Expr, right: &Expr) -> bool {
     static_type(out, left) == Some(Type::String) || static_type(out, right) == Some(Type::String)
 }
@@ -6057,8 +5504,6 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
                 .collect();
             format!("{}({})", out.name(ty), rendered.join(", "))
         }
-        // Python has to name the value twice; a value that cannot be named
-        // twice gets a name from the walrus, evaluated once.
         Expr::Coalesce { value, fallback } => match nameable(value) {
             true => format!(
                 "{} if {} is not None else {}",
@@ -6128,8 +5573,7 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
                     );
                 }
             }
-            // The canonical `trunc` cuts toward zero, and so does `int`. Python
-            // names no other truncation without an import.
+            // The canonical `trunc` cuts toward zero, and so does `int`.
             if let (Expr::Name(name), [x]) = (callee.as_ref(), args.as_slice()) {
                 if name == "trunc" {
                     return format!("int({})", python_expr(out, &x.clone()));
@@ -6167,29 +5611,14 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
             format!("{}({})", python_expr(out, callee), rendered.join(", "))
         }
         Expr::Binary { op, left, right } => {
-            // Python compares against None with `is`, not `==`. Both work; only one
-            // is what a Python programmer writes, and idiom is the point here.
+            // Python compares against None with `is`, not `==`.
             let against_none = matches!(**right, Expr::Null) || matches!(**left, Expr::Null);
             let spelling = match (op, against_none) {
                 (BinaryOp::Eq, true) => "is",
                 (BinaryOp::Ne, true) => "is not",
                 (other, _) => other.python(),
             };
-            // Every other language here truncates when it divides two integers. Python's `/`
-            // gives a float and its `//` floors. So `7 / 2` and `-7 / 2` are 3.5 and -3.5 where
-            // the source meant 3 and -3. `int(a / b)` truncates toward zero, which the
-            // source said, at float precision, which is every integer a program of this kind
-            // divides. `%` has the same disagreement and no readable Python form: every other
-            // language here takes the sign from the dividend, Python from the divisor. So `-7 %
-            // 2` is -1 there and 1 here. Writing it exactly means `a - b * int(a / b)`, which
-            // is arithmetic nobody would read twice. So the idiomatic operator is kept and the
-            // difference is reported instead of being left for someone to find with a negative
-            // number.
-            // Python's `%` takes its sign from the divisor and every other
-            // language here from the dividend. So `-7 % 2` is `1` in Python and
-            // `-1` in the source. A helper says the source's answer exactly.
-            // Writing `%` and reporting the difference left a wrong number in
-            // the file, for someone to find with a negative operand.
+            // Every other language here truncates when it divides two integers.
             if *op == BinaryOp::Rem && holds_an_integer(out, left) && holds_an_integer(out, right) {
                 out.zig_helpers.insert("python_trunc_rem");
                 return format!(
@@ -6205,10 +5634,8 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
                     binary_operand(python_expr(out, right), right, *op, true)
                 );
             }
-            // `"n: " + x` concatenates in TypeScript and Java by turning the number
-            // into text; Python raises instead. `str` says the coercion out loud,
-            // which builds the same string the source built. Only where the source
-            // declared both sides: wrapping a value of unknown type would be a guess.
+            // `"n: " + x` concatenates in TypeScript and Java by turning the number into text;
+            // Python raises instead.
             if *op == BinaryOp::Add {
                 let text = |e: &Expr| static_type(out, e) == Some(Type::String);
                 let number =
@@ -6283,7 +5710,7 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
             let rendered: Vec<String> = items.iter().map(|i| python_expr(out, i)).collect();
             format!("[{}]", rendered.join(", "))
         }
-        // `{}` is an empty dict here, so an empty set is spelled `set()`.
+        // Spell an empty set `set()`: `{}` means an empty dict.
         Expr::SetLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| python_expr(out, i)).collect();
             match rendered.is_empty() {
@@ -6298,9 +5725,7 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
                 .collect();
             format!("{{{}}}", rendered.join(", "))
         }
-        // An f-string quotes its text and leaves its expressions as code. Escaping the
-        // assembled body as one string put a backslash in front of every quote inside `{...}`.
-        // `f"{x.replace(\"-\", \" \")}"` is not a string Python reads.
+        // An f-string quotes its text and leaves its expressions as code.
         Expr::Template(parts) => {
             let mut rendered: Vec<(bool, String)> = Vec::new();
             for part in parts {
@@ -6312,9 +5737,8 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
                     }
                 }
             }
-            // Before 3.12 an f-string's expression may contain neither a backslash nor
-            // the quote that delimits the literal. Where one does, the same thing said
-            // with `+` and `str` is exact and reads in every version.
+            // Before 3.12 an f-string's expression may contain neither a backslash nor the
+            // quote that delimits the literal.
             let expressible = rendered
                 .iter()
                 .all(|(is_expr, text)| !is_expr || !text.contains(['"', '\\']));
@@ -6345,8 +5769,7 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
                 .collect::<Vec<_>>()
                 .join(" + ")
         }
-        // A Python lambda takes no annotations, so a typed parameter crosses
-        // by name. The type is in the binding's own annotation.
+        // A Python lambda takes no annotations, so a typed parameter crosses by name.
         Expr::Lambda { params, body, .. } => {
             let rendered: Vec<String> = params.iter().map(|p| out.name(&p.name)).collect();
             match rendered.is_empty() {
@@ -6372,7 +5795,6 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
             )
         }
         // Python has no inline comment, so the note cannot stand where the value did.
-        // It is queued and written above the statement by `python_line`.
         Expr::Unsupported(u) => {
             out.carried(u);
             out.pending.push(format!("{MARKER}: {}", u.source));
@@ -6408,10 +5830,8 @@ fn go(out: &mut Out, module: &Module) {
                 for line in &c.doc {
                     out.line(&format!("// {name} {line}"));
                 }
-                // Go's `const` holds compile-time scalars and nothing else:
-                // `const Docs = []any{…}` and `const Root = Path(…)` both
-                // refuse to build. Anything beyond a scalar literal is a `var`,
-                // which Go initialises at start-up.
+                // Go's `const` holds compile-time scalars and nothing else: `const Docs =
+                // []any{…}` and `const Root = Path(…)` both refuse to build.
                 let keyword = match scalar_literal(&c.value) {
                     true => "const",
                     false => "var",
@@ -6527,10 +5947,7 @@ fn go(out: &mut Out, module: &Module) {
                 out.blank();
             }
             Item::Sum(s) => {
-                // Go has no closed choice. The convention that stands in for one
-                // is an interface with an unexported marker method. Only the types
-                // declared here can implement it, so the choice is as closed as Go
-                // can spell.
+                // Go has no closed choice.
                 let name = out.name(&s.name);
                 for line in &s.doc {
                     out.line(&format!("// {name} {line}"));
@@ -6587,7 +6004,6 @@ fn go(out: &mut Out, module: &Module) {
         out.blank();
     }
 
-    // once the body has named them.
     if !out.go_imports.is_empty() {
         let block: String = out
             .go_imports
@@ -6604,11 +6020,6 @@ fn go(out: &mut Out, module: &Module) {
 }
 
 /// The package clause this module belongs under.
-///
-/// `package main` without a `func main` is a program with no entry point, and
-/// `go build` refuses it: every translated library came out unbuildable. A
-/// module carrying an entry point is `main`, and everything else takes its name
-/// from the file, lowercased and stripped to the letters Go accepts.
 fn go_package(module: &Module) -> String {
     let entry = module
         .items
@@ -6625,17 +6036,15 @@ fn go_package(module: &Module) -> String {
         .filter(|c| c.is_ascii_alphanumeric())
         .collect::<String>()
         .to_ascii_lowercase();
-    // A name starting with a digit is not an identifier, and an empty one is no
-    // name at all. Both fall back to a word Go accepts.
+    // A name starting with a digit is not an identifier, and an empty one is no name at all.
     match named.chars().next() {
         Some(c) if c.is_ascii_alphabetic() => named,
         _ => "translated".to_string(),
     }
 }
 
-/// The field names to construct this callee's record with, when a positional
-/// construction can be mapped onto them. The callee must name a record declared
-/// in this module, and the argument count must be the field count.
+/// The field names to construct this callee's record with, when a positional construction can
+/// be mapped onto them.
 fn positional_record(out: &Out, callee: &Expr, arity: usize) -> Option<Vec<String>> {
     let Expr::Name(name) = callee else {
         return None;
@@ -6646,11 +6055,7 @@ fn positional_record(out: &Out, callee: &Expr, arity: usize) -> Option<Vec<Strin
         .cloned()
 }
 
-/// The call's arguments settled into their declared positions, when its
-/// keywords can be. The callee must be a function declared in this module.
-/// Each keyword must name one of its parameters, and every position left
-/// unfilled must have a declared default to fill it.
-/// The placeholder each target parses where a carried expression stood.
+/// The call's arguments settled into their declared positions, when its keywords can be.
 fn carried_expr_filler(out: &Out) -> String {
     match out.language {
         Language::Rust => "todo!()".to_string(),
@@ -6674,8 +6079,7 @@ fn expr_hint(e: &Expr) -> String {
 }
 
 /// A keyword call on a callee this module declares that still would not settle: the name or the
-/// arity is wrong. And positions would bind the wrong parameter. Such a call carries; a foreign
-/// callee's keywords pass by position instead, since nothing here can check them.
+/// arity is wrong.
 fn keywords_must_carry(out: &Out, callee: &Expr, args: &[Expr], settled: bool) -> bool {
     if settled || !args.iter().any(|a| matches!(a, Expr::Keyword { .. })) {
         return false;
@@ -6718,9 +6122,7 @@ fn resolve_keywords(out: &Out, callee: &Expr, args: &[Expr]) -> Option<Vec<Expr>
         .collect()
 }
 
-/// Does this body leave on its own, making a `break` after it one statement too
-/// many? Java refuses unreachable code outright, so the answer decides whether
-/// the `case` gets one.
+/// Does this body leave on its own, making a `break` after it one statement too many?
 fn leaves_on_its_own(body: &[Stmt]) -> bool {
     matches!(
         body.last(),
@@ -6764,8 +6166,7 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     // A function that can fail takes this target's failure idiom back: the pair
     // return, the error checks, the hoisted calls.
     let f = &with_failure_idiom(f, &out.throwing.clone());
-    // The source's word for the receiver, spelled this target's way for as long as
-    // this body is being written. Outside a method there is nothing to bind.
+    // The source's word for the receiver, spelled this target's way inside this body.
     let scope = out.enter_method(f);
     // What the body declared, for the return type a Python source never wrote.
     out.binding_types = declared_bindings(f);
@@ -6812,10 +6213,8 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
             Some(format!("{spelled} {ty}"))
         })
         .collect();
-    // A declared `Result<T, E>` is Go's own `(T, error)` pair, and the body's `Ok`,
-    // `Err` and propagations become the returns and checks that pair means. A unit ok
-    // side leaves the error alone, which is how Go spells a function that can only
-    // fail. The error type's own identity does not carry: Go's `error` is the message.
+    // A declared `Result<T, E>` is Go's own `(T, error)` pair, and the body's `Ok`, `Err` and
+    // propagations become the returns and checks that pair means.
     let result = result_ok(&out.declared_types, f.returns.as_ref());
     let returns = if let Some(ok) = &result {
         if out.is_foreign(ok) {
@@ -6832,8 +6231,8 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     } else {
         match &f.returns {
             Some(Type::Unit) => String::new(),
-            // A source that annotated nothing still hands a value back, and Go
-            // has to name its type. Without one the body did not compile.
+            // A source that annotated nothing still hands a value back, and Go has to name its
+            // type.
             None if returns_a_value(f) => {
                 unannotated = true;
                 let ty = match inferred_return(out, f) {
@@ -6843,7 +6242,6 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
                 format!(" {ty}")
             }
             None => String::new(),
-            // `(int, error)`: the one position Go writes several types at once.
             Some(Type::Tuple(parts)) => {
                 if parts.iter().any(|p| out.is_foreign(p)) {
                     foreign = true;
@@ -6860,9 +6258,8 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     };
     out.go_result = result;
     out.go_errors = 0;
-    // Go's convention is a one- or two-letter abbreviation, and there is no letter
-    // guaranteed not to be a parameter's name already. The word the body uses and the
-    // word the signature binds have to be the same one, so both come from here.
+    // Go's convention is a one- or two-letter abbreviation, and there is no letter guaranteed
+    // not to be a parameter's name already.
     let receiver = receiver
         .map(|r| format!("({} *{r}) ", receiver_word(out.language)))
         .unwrap_or_default();
@@ -6873,9 +6270,6 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     out.open();
     go_block(out, &f.body, f.returns.as_ref());
     // Go refuses a function that promises a value and has no path returning one.
-    // A body whose statements did not translate reaches here, and the file that
-    // carried them as comments would not build. Panicking says the draft is not
-    // finished where a zero value would have said it was.
     if !returns.is_empty() && !f.body.is_empty() && !body_leaves(&f.body) {
         out.line(&format!(
             "panic({})",
@@ -6907,9 +6301,6 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
 }
 
 /// An `Err(...)` payload as the error value Go returns.
-///
-/// A formatted payload is `fmt.Errorf`, a literal is `errors.New`, and anything else
-/// is rendered through `%v`, which makes the value the message whatever it was.
 fn go_error_value(out: &mut Out, e: &Expr) -> String {
     let errorf = |out: &mut Out, literal: &str, args: &[String]| {
         out.go_imports.insert("fmt");
@@ -6945,9 +6336,8 @@ fn go_error_value(out: &mut Out, e: &Expr) -> String {
             out.go_imports.insert("errors");
             format!("errors.New({})", quoted(Language::Go, text))
         }
-        // A sum's variant as the failure, `ParseError.Empty`: Go's error has no
-        // variants, so the variant's name becomes the message. Zig's own
-        // `@errorName` answers the same.
+        // A sum's variant as the failure, `ParseError.Empty`: Go's error has no variants, so
+        // the variant's name becomes the message.
         Expr::Field { of, name } if matches!(of.as_ref(), Expr::Name(n) if out.sums.contains(n)) => {
             out.go_imports.insert("errors");
             format!("errors.New({})", quoted(Language::Go, name))
@@ -6960,19 +6350,6 @@ fn go_error_value(out: &mut Out, e: &Expr) -> String {
 }
 
 /// The Result mechanics of the enclosing function, written as Go's error returns.
-///
-/// `return Ok(x)` is `return x, nil`, and `return Err(e)` is the ok side's zero
-/// beside an error. A propagated call binds its value next to an `err` that is
-/// checked and returned. Only inside a function whose declared return is the shared
-/// Result. Anywhere else `Ok` is a name like any other, and the statement falls
-/// through to the ordinary arms.
-/// `try f(x);` and `const v = try f(x);` outside the settled result idiom.
-/// The call's error checks and leaves the way the context leaves. That is
-/// `t.Fatal` in a test, the enclosing error return where there is one, a
-/// panic otherwise.
-/// Lift every propagated call out of this statement's expressions: each
-/// becomes a binding rendered before the statement, and the statement reads
-/// the binding. None when there is nothing to lift.
 fn go_lift_propagates(out: &mut Out, stmt: &Stmt) -> Option<(Vec<(String, String)>, Stmt)> {
     fn lift(e: &mut Expr, out: &mut Out, found: &mut Vec<(String, String)>) {
         if let Expr::Propagate(inner) = e {
@@ -7179,8 +6556,6 @@ fn go_result_stmt(out: &mut Out, stmt: &Stmt) -> bool {
         }
         stmt => {
             // A propagated call whose value the source discards: `try f();` in Zig.
-            // The Zig reader hands `_ = try f();` over as an assignment to the blank
-            // name.
             let inner = match stmt {
                 Stmt::Expr(Expr::Propagate(inner)) => inner,
                 Stmt::Assign {
@@ -7216,10 +6591,6 @@ fn go_result_stmt(out: &mut Out, stmt: &Stmt) -> bool {
 }
 
 /// Whether this body's last statement leaves the function on every path.
-///
-/// Go's own rule for a terminating statement, in the shapes the IR has. Judging
-/// only a trailing `return` put a `panic` after a switch whose every arm
-/// returned, which is unreachable code and a defect of its own.
 fn body_leaves(body: &[Stmt]) -> bool {
     match body.last() {
         Some(Stmt::Return(_)) | Some(Stmt::Throw(_)) => true,
@@ -7235,7 +6606,6 @@ fn body_leaves(body: &[Stmt]) -> bool {
                 && arms.iter().all(|arm| body_leaves(&arm.body))
         }
         // A `finally` that leaves ends the function whatever the body did.
-        // Otherwise every path out of the attempt has to leave on its own.
         Some(Stmt::Try {
             body,
             catches,
@@ -7350,10 +6720,7 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 let commented = out.comment(&format!("{MARKER}: {source}"));
                 out.line(&commented);
             }
-            // Go has no ternary. One that is the whole of a return, an
-            // assignment, or a typed binding is an `if`/`else` said shorter, so
-            // Go writes the `if`/`else`. Each arm renders inside its own
-            // branch, which keeps the evaluation the source chose.
+            // Go has no ternary.
             Stmt::Return(Some(Expr::Ternary {
                 condition,
                 then,
@@ -7425,9 +6792,8 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     Some(Expr::Tuple(items)) => {
                         format!(" {}", joined(items, |i| go_expr(out, i)))
                     }
-                    // Go converts between its number types only when told to,
-                    // and a length is an `int`. Returned under a `float64`, it
-                    // did not compile.
+                    // Go converts between its number types only when told to, and a length is
+                    // an `int`.
                     Some(v) => {
                         let widens = matches!(returns, Some(Type::Float))
                             && matches!(static_type(out, v), Some(Type::Int));
@@ -7461,21 +6827,18 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 value: Some(value),
                 ..
             } => {
-                // `[]any{}` under a signature promising `[]Point` is a file Go
-                // refuses. Where the element type settled, the literal names it.
+                // `[]any{}` under a signature promising `[]Point` is a file Go refuses.
                 let declared = out.binding_types.get(name).cloned();
                 let v = match (value, declared.as_ref()) {
                     (Expr::ListLit(items), Some(ty)) if items.is_empty() => {
                         format!("{}{{}}", go_type(ty))
                     }
-                    // The same for a map built empty and filled afterwards. Left
-                    // `map[string]any{}`, every read of it was an `any`.
+                    // The same for a map built empty and filled afterwards.
                     (Expr::MapLit(entries), Some(ty @ Type::Map(_, _))) if entries.is_empty() => {
                         format!("{}{{}}", go_type(ty))
                     }
-                    // A list of whole numbers passed where a list of floats is
-                    // declared is a list of floats. Go infers `[]int` from the
-                    // literal alone and then refuses the call.
+                    // Take a list of whole numbers as floats where the declaration says
+                    // floats.
                     (Expr::ListLit(items), Some(ty @ Type::List(_))) => {
                         let rendered: Vec<String> = items.iter().map(|i| go_expr(out, i)).collect();
                         format!("{}{{{}}}", go_type(ty), rendered.join(", "))
@@ -7483,12 +6846,7 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     _ => go_expr(out, value),
                 };
                 let bound = out.name(name);
-                // A written number infers `int`, and the declaration may say
-                // `float64`. Go converts between the two only when told to, so
-                // such a binding is declared rather than inferred. `x := nil`
-                // has no type to infer either; `any` is the type an
-                // absent-by-default binding takes here.
-                // `-7` is a negated `7`, and it is a written number too.
+                // A written number infers `int`, and the declaration may say `float64`.
                 let written_number = |e: &Expr| {
                     matches!(
                         e,
@@ -7537,8 +6895,7 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 then,
                 otherwise,
             } => {
-                // `if _, ok := m[k]; ok` is how Go asks whether a key is
-                // there. The header is the only place with room for it.
+                // `if _, ok := m[k]; ok` is how Go asks whether a key is there.
                 let asks = match condition {
                     Expr::Call { callee, args } => match (callee.as_ref(), args.as_slice()) {
                         (Expr::Field { of, name }, [key]) if name == "contains" => {
@@ -7579,9 +6936,7 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 then,
                 otherwise,
             } => {
-                // The optional is a pointer here, and the payload is one
-                // dereference away. A second binding holds the pointer, so the
-                // body reads the name the source bound.
+                // The optional is a pointer here, and the payload is one dereference away.
                 let v = go_expr(out, value);
                 let bound = out.name(binding);
                 out.line(&format!("if {bound}Ptr := {v}; {bound}Ptr != nil {{"));
@@ -7664,8 +7019,7 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 }
             },
             // The failure-only cleanup arms a flag that the successful path turns off before
-            // returning. The failure paths the error idiom writes leave it armed, and the defer
-            // fires.
+            // returning.
             Stmt::ErrDefer(cleanup) => {
                 out.lowering_names += 1;
                 let flag = format!("frFailed{}", out.lowering_names);
@@ -7819,9 +7173,7 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                         }
                     }
                 }
-                // Only a call can stand as a statement in Go. Everything else, which
-                // is mostly a carried marker, is discarded into `_`, the same thing
-                // the Zig writer does for the same reason.
+                // Only a call can stand as a statement in Go.
                 let text = go_expr(out, e);
                 match e {
                     Expr::Call { .. } | Expr::New { .. } => out.line(&text),
@@ -7842,12 +7194,7 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
             }
             Stmt::Break => out.line("break"),
             Stmt::Continue => out.line("continue"),
-            // Go returns an error value. A catch block has no counterpart and
-            // inventing one would change where the failure is handled.
-            // `try/catch`, lowered through a closure returning `error`: the body
-            // runs to its first failure, and the catch reads the message. A `return`
-            // inside the body would leave the closure instead of the function, so a
-            // body that returns stays carried.
+            // Go returns an error value.
             Stmt::Try {
                 body: tried,
                 catches,
@@ -7876,8 +7223,6 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                         },
                     );
                 } else {
-                    // A return inside the closure would only leave the closure, so it stores
-                    // what it returns and leaves. The tail returns it from the function itself.
                     let routed = returns_anywhere(tried);
                     let ret = format!("frRet{}", out.lowering_names + 1);
                     let flag = format!("frReturned{}", out.lowering_names + 1);
@@ -7944,8 +7289,7 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                 }
             }
             Stmt::Throw(value) => {
-                // Where the failure can move outward it becomes the error return. Anywhere else
-                // it stops the program, which is what an uncaught exception did in the source.
+                // Where the failure can move outward it becomes the error return.
                 match out.go_result.clone() {
                     Some(ok_ty) => {
                         let err = go_error_value(out, value);
@@ -7972,25 +7316,19 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
 
 fn go_type(ty: &Type) -> String {
     match ty {
-        // Go writes "returns nothing" by writing nothing, which the return position
-        // handles. Everywhere else, a field, a generic argument. It needs a type,
-        // and `Result[, string]` is not one.
+        // Go writes "returns nothing" by writing nothing, which the return position handles.
         Type::Unit => "struct{}".to_string(),
         Type::Bool => "bool".to_string(),
         Type::Int => "int".to_string(),
         Type::Float => "float64".to_string(),
         Type::String => "string".to_string(),
         Type::List(inner) => format!("[]{}", go_type(inner)),
-        // Go has no set. A map whose values carry nothing is the idiom, and
-        // the one that says so. `map[T]bool` is a map of booleans as much as it
-        // is a set, and a round trip could not tell them apart.
+        // Go has no set.
         Type::Set(inner) => format!("map[{}]struct{{}}", go_type(inner)),
         Type::Map(k, v) => format!("map[{}]{}", go_type(k), go_type(v)),
         Type::Optional(inner) => format!("*{}", go_type(inner)),
-        // Go can only say several-types-as-one in a function's results, and the
-        // signature writer spells that itself. In any other position, a field or
-        // an argument, the name will not compile, which is honest. `[](A, B)` from
-        // a Rust `Vec<(A, B)>` field did not compile either, unreadably.
+        // Go can only say several-types-as-one in a function's results, and the signature
+        // writer spells that itself.
         Type::Fn { params, returns } => match returns.as_ref() {
             Type::Unit => format!("func({})", joined(params, go_type)),
             _ => format!("func({}) {}", joined(params, go_type), go_type(returns)),
@@ -8001,12 +7339,6 @@ fn go_type(ty: &Type) -> String {
 }
 
 /// A type carried across by name, with the one qualifier Go allows.
-///
-/// Go names a foreign type `package.Name` and has no third level: `crate.model.Symbol` is not a
-/// type there, it is a field of a field. Every signature mentioning one failed to parse. The
-/// last two segments are what a Go author would write after importing that package, which the
-/// header already lists. So the path is shortened and not flattened, and the name itself is
-/// untouched.
 fn go_named(name: &str, args: &[Type]) -> String {
     let full = generic(name, args, "[", "]", ".", go_type);
     let (path, rest) = match full.split_once('[') {
@@ -8039,8 +7371,7 @@ fn go_zero(ty: &Type) -> String {
 
 fn go_expr(out: &mut Out, e: &Expr) -> String {
     match e {
-        // Go has no set. A map to `bool` is the idiom that reads as one, and
-        // `m[k]` is then the membership question every target asks.
+        // Go has no set.
         Expr::SetLit(items) => {
             let element = items
                 .first()
@@ -8064,10 +7395,7 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
                 .collect();
             format!("{}{{{}}}", out.name(ty), rendered.join(", "))
         }
-        // Go has nothing for this: not an operator, not a standard function. Writing
-        // the `if` it would take needs somewhere to put the result, which does not
-        // exist inside an argument list.
-        // The value binds once inside a closure, and the nil test decides.
+        // Go has nothing for this: not an operator, not a standard function.
         Expr::Coalesce { value, fallback } => {
             out.lowering_names += 1;
             let bound = format!("frOpt{}", out.lowering_names);
@@ -8077,9 +7405,8 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
                 go_expr(out, fallback)
             )
         }
-        // Go has no conditional expression; a closure gives the `if` somewhere
-        // to put its result. The branches' shared type keeps a typed context
-        // typed; branches that disagree answer `any`.
+        // Go has no conditional expression; a closure gives the `if` somewhere to put its
+        // result.
         Expr::Ternary {
             condition,
             then,
@@ -8106,10 +7433,8 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
         // this does not know, and `reading.Get(…)` is a different method.
         Expr::Field { of, name } => {
             let object = receiver(go_expr(out, of), of);
-            // A read of a property is a call here; the idiom that hid the
-            // parentheses does not exist in this language. A property is a
-            // method, so its spelling comes from the name table and not the
-            // field one.
+            // A read of a property is a call here; the idiom that hid the parentheses does not
+            // exist in this language.
             if out.properties.contains(name) {
                 return format!("{object}.{}()", out.name(name));
             }
@@ -8155,8 +7480,6 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
             }
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
             let rendered: Vec<String> = args.iter().map(|a| go_expr(out, a)).collect();
-            // A call to a declared record is a construction; Go's conversion
-            // syntax `Point(x)` means something else entirely.
             if let Some(fields) = positional_record(out, callee, args.len()) {
                 let target = go_expr(out, callee);
                 let pairs: Vec<String> = fields
@@ -8182,8 +7505,7 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
                 go_expr(out, right)
             )
         }
-        // Go's `%` is integers only. A remainder on two floats is a library
-        // call, and the source asked for one.
+        // Go's `%` is integers only.
         Expr::Binary {
             op: BinaryOp::Rem,
             left,
@@ -8194,8 +7516,7 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
             out.go_imports.insert("math");
             format!("math.Mod({}, {})", go_expr(out, left), go_expr(out, right))
         }
-        // The remainder that goes with that division. Go's `%` takes its sign
-        // from the dividend, and a source that floors takes it from the divisor.
+        // The remainder that goes with that division.
         Expr::Binary {
             op: BinaryOp::FloorRem,
             left,
@@ -8242,17 +7563,14 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
             op.c_like(),
             binary_operand(go_expr(out, right), right, *op, true)
         ),
-        // Go has no `await`. The defined lowering is blocking: the suspension
-        // point runs to completion in place, noted once so the change is not
-        // silent.
+        // Go has no `await`.
         Expr::Await(inner) => {
             out.note_once(
                 "an `await` runs blocking here: Go suspends by parking a goroutine, not by awaiting.",
             );
             go_expr(out, inner)
         }
-        // Go propagates nothing: an error is a value somebody must return. Writing
-        // the expression bare would turn an early return into a plain call.
+        // Go propagates nothing: an error is a value somebody must return.
         Expr::Propagate(inner) => {
             let source = format!("{}?", go_expr(out, inner));
             out.carried(&Unsupported {
@@ -8262,10 +7580,7 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
             });
             format!("any(nil) /* {MARKER}: {} */", source.replace("*/", "* /"))
         }
-        // `NewThing(..)` is the Go convention, but it is a convention and not a rule. A
-        // constructor this tool invented would be a name that does not exist. A
-        // record declared right here is different: its fields are known, and a
-        // positional construction maps onto them.
+        // `NewThing(..)` is the Go convention, but it is a convention and not a rule.
         Expr::New { callee, args } => {
             let rendered: Vec<String> = args.iter().map(|a| go_expr(out, a)).collect();
             if let Some(fields) = positional_record(out, callee, args.len()) {
@@ -8316,8 +7631,6 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
             let named = go_expr(out, ty);
             format!("func() bool {{ _, frOk := any({rendered}).({named}); return frOk }}()")
         }
-        // A named argument passes by position: the value crosses, and the
-        // name is a fact about the source's parameter list, noted once.
         Expr::Keyword { name: _, value } => {
             out.note_once(
                 "a named argument passes by position here: the target does not name arguments.",
@@ -8344,8 +7657,6 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
             // block could follow: `if x == Go{}` reads the brace as the body.
             format!("({}{{{rendered}}})", variant_spelling(out, sum, name))
         }
-        // Outside a return Go has no several-values-as-one; the slice of the
-        // elements is what it can hold of the shape, noted once.
         Expr::Tuple(items) => {
             out.note_once("a tuple outside a return travels as a slice here.");
             let rendered: Vec<String> = items.iter().map(|i| go_expr(out, i)).collect();
@@ -8353,8 +7664,6 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
         }
         Expr::ListLit(items) => {
             // The element type comes from the elements, the way a map's does.
-            // Written `[]any`, a loop over the list bound an `any`, and using
-            // one as a map key or a number needs an assertion nobody wrote.
             let element = items
                 .first()
                 .and_then(literal_type_of)
@@ -8365,8 +7674,7 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
             format!("[]{element}{{{}}}", rendered.join(", "))
         }
         Expr::MapLit(entries) => {
-            // The value type comes from the entries. Written `any`, every read
-            // of the map was an `any` and arithmetic on one does not compile.
+            // The value type comes from the entries.
             let (keys, values) = map_literal_types(entries);
             let keys = keys
                 .as_ref()
@@ -8402,9 +7710,7 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
                 )
             }
         }
-        // Go writes no closure without every type spelled. Where the source
-        // spelled them, this writes the closure; where it did not, inventing
-        // them would be a guess about the call sites.
+        // Go writes no closure without every type spelled.
         Expr::Lambda {
             params,
             returns,
@@ -8462,7 +7768,6 @@ fn typescript(out: &mut Out, module: &Module) {
 
     for item in &module.items {
         match item {
-            // The module runs top to bottom here too, so the statement is one of its own.
             Item::Statement(stmt) => {
                 ts_block(out, std::slice::from_ref(stmt));
                 out.blank();
@@ -8489,10 +7794,8 @@ fn typescript(out: &mut Out, module: &Module) {
                     out.line(&format!("/** {} */", block_comment_safe(line)));
                 }
                 let export = if r.exported { "export " } else { "" };
-                // A record with no methods is an interface: it is data, and an
-                // interface is what TypeScript calls that. A field that starts
-                // at a value needs a class, because an interface declares types
-                // and holds no initializer to declare it in.
+                // A record with no methods is an interface: it is data, and an interface is
+                // what TypeScript calls that.
                 if r.methods.is_empty() && r.fields.iter().all(|f| f.default.is_none()) {
                     let type_name = out.name(&r.name);
                     let base = ts_base(out, r)
@@ -8533,10 +7836,8 @@ fn typescript(out: &mut Out, module: &Module) {
                             .unwrap_or_default();
                         out.line(&format!("{field_name}: {ty}{default};"));
                     }
-                    // Under `strictPropertyInitialization` a field with no
-                    // starting value has to be assigned in a constructor. A
-                    // record built from a literal elsewhere has no constructor
-                    // to carry. The fields, in order, are one.
+                    // Under `strictPropertyInitialization` a field with no starting value has
+                    // to be assigned in a constructor.
                     let methods = methods_of(out, r, false);
                     let already = methods.iter().any(|m| m.is_constructor);
                     if !r.fields.is_empty() && !already {
@@ -8576,10 +7877,8 @@ fn typescript(out: &mut Out, module: &Module) {
                 out.blank();
             }
             Item::Import { text, line, target } => {
-                // An import a sweep resolved names a sibling translated beside
-                // this file, so it crosses as a real import. The names take
-                // this writer's spelling from the same table the declarations
-                // use, and the module path points at the sibling's stem.
+                // An import a sweep resolved names a sibling translated beside this file, so it
+                // crosses as a real import.
                 if let Some((stem, names)) = sibling_import(target) {
                     let list: Vec<String> = names
                         .iter()
@@ -8649,9 +7948,8 @@ fn typescript(out: &mut Out, module: &Module) {
                 out.blank();
             }
             Item::Sum(s) => {
-                // One object type per variant, told apart by a literal field, and a
-                // union alias naming the choice. The literal is what lets the
-                // checker narrow a `switch` on it.
+                // One object type per variant, told apart by a literal field, and a union alias
+                // naming the choice.
                 let export = if s.exported { "export " } else { "" };
                 let tag = discriminator(s);
                 let names = hoisted_variant_names(out, module, s);
@@ -8701,8 +7999,6 @@ fn typescript(out: &mut Out, module: &Module) {
         }
     }
 
-    // The exception classes the bodies turned out to throw or catch, declared once
-    // at the top. Every thrown name is then a class the file has. Hoisting after the
     if out.zig_helpers.contains("ts_floor_rem") {
         out.blank();
         out.line("// The remainder that goes with division rounding toward negative");
@@ -8734,13 +8030,6 @@ fn typescript(out: &mut Out, module: &Module) {
 }
 
 /// The base a TypeScript record extends, spelled as this language's own.
-///
-/// Python's exception bases name classes TypeScript does not have. A class
-/// extending `Exception` or one of its everyday complaints is extending
-/// `Error` here. Written through, the base named a class no TypeScript file
-/// declares. `ABC` names no base: it is Python's word for "abstract".
-/// TypeScript has no counterpart, so that base is dropped and said, and the
-/// methods stay.
 fn ts_base(out: &mut Out, record: &Record) -> Option<String> {
     let base = inherited_base(out, record, true)?;
     if out.declared_types.contains(&base) {
@@ -8761,10 +8050,6 @@ fn ts_base(out: &mut Out, record: &Record) -> Option<String> {
 }
 
 /// A canonical exception name, as TypeScript spells it, noted for declaration.
-///
-/// Python's `Exception` is the base `Error` here and `TypeError` exists natively; the
-/// rest keep their names over one-line classes this writer declares. A name the module
-/// declares itself is the module's own and is left alone.
 fn ts_exception_name(out: &mut Out, name: &str) -> Option<&'static str> {
     if out.declared_types.contains(name) {
         return None;
@@ -8784,9 +8069,6 @@ fn ts_exception_name(out: &mut Out, name: &str) -> Option<&'static str> {
 }
 
 /// A thrown canonical exception, as a `new` of the class this file spells it with.
-///
-/// Python spells raising as a call, so `raise ValueError(m)` arrives as one; written
-/// through, the output called a class without `new` and TypeScript refused it.
 fn ts_thrown(out: &mut Out, value: &Expr) -> Option<String> {
     let (callee, args) = match value {
         Expr::Call { callee, args } | Expr::New { callee, args } => (callee, args),
@@ -8800,13 +8082,7 @@ fn ts_thrown(out: &mut Out, value: &Expr) -> Option<String> {
     Some(format!("new {mapped}({})", rendered.join(", ")))
 }
 
-/// What each variant is called where it must live beside every other type.
-///
-/// Rust and Zig keep variants inside the enum, so they never collide with the
-/// module's other types. The flat-namespace targets hoist each variant to the top
-/// level. Rust lets a file declare a struct `Hierarchy` and an enum with a
-/// `Hierarchy` variant, and hoisting both would emit two types with one name. The
-/// variant steps aside, prefixed with its sum's name, and the rename is in the notes.
+/// What each variant answers to where it lives beside every other type.
 fn hoisted_variant_names(out: &mut Out, module: &Module, s: &Sum) -> Vec<String> {
     let cached: Vec<String> = s
         .variants
@@ -8859,10 +8135,6 @@ fn hoisted_variant_names(out: &mut Out, module: &Module, s: &Sum) -> Vec<String>
 }
 
 /// The field that tells the variants of a sum apart, avoiding any name they use.
-///
-/// `kind` is the convention. A variant that already has a field spelled `kind`
-/// would collide with it, so the next free word steps in. Numbering takes over
-/// in the unlikely file where every word is taken.
 fn discriminator(s: &Sum) -> String {
     let taken: std::collections::BTreeSet<String> = s
         .variants
@@ -8881,15 +8153,13 @@ fn discriminator(s: &Sum) -> String {
         .expect("the numbers do not run out")
 }
 
-/// `inside_class` is where it is written, which is not the same question as whether it takes a
-/// receiver, a class holds `static empty()` beside `label()`. One `bool` answering both put
-/// `export function` inside a class body.
+/// `inside_class` says where it lands, a different question from whether it takes a
+/// receiver, a class holds `static empty()` beside `label()`.
 fn ts_function(out: &mut Out, f: &Function, inside_class: bool) {
     let called = called_parameters(f);
     // Bindings made inside blocks die at their brace here; the source's did not.
     let f = &with_hoisted_bindings(f, &out.function_returns);
-    // The source's word for the receiver, spelled this target's way for as long as
-    // this body is being written. Outside a method there is nothing to bind.
+    // The source's word for the receiver, spelled this target's way inside this body.
     let scope = out.enter_method(f);
     // TypeScript has one number type, so `/` needs to know which of them the
     // source declared: an integer division truncates and this one does not.
@@ -8920,9 +8190,8 @@ fn ts_function(out: &mut Out, f: &Function, inside_class: bool) {
                 }
                 None => {
                     unannotated = true;
-                    // `unknown` is a type here, and a correct one for a value
-                    // nothing describes. It is not callable, so a parameter the
-                    // body calls is written as the function it is.
+                    // `unknown` is a type here, and a correct one for a value nothing
+                    // describes.
                     match called.get(&p.name).copied() {
                         Some(arity) => {
                             let answers = f
@@ -8946,8 +8215,7 @@ fn ts_function(out: &mut Out, f: &Function, inside_class: bool) {
             Some(format!("{spelled}{annotation}{default}"))
         })
         .collect();
-    // An async function returns a promise of its declared type. Writing the bare type
-    // would be a signature that says something the function does not do.
+    // An async function returns a promise of its declared type.
     let wrap = |rendered: String| {
         if f.is_async {
             format!(": Promise<{rendered}>")
@@ -9082,16 +8350,11 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
                 value,
                 mutable,
             } => {
-                // A binding whose initializer carried whole keeps its name, so
-                // the statements after it still parse. `any` keeps the
-                // declaration compiling under strict when no type survived to
-                // say more.
+                // A binding whose initializer carried whole keeps its name, so the statements
+                // after it still parse.
                 let annotation = match (ty, value) {
                     (Some(t), _) => format!(": {}", ts_type(t)),
                     (None, Some(Expr::Unsupported(_))) => ": any".to_string(),
-                    // An object literal types as the keys it was written
-                    // with. A map built from one refused every key added later,
-                    // and every read through a variable. A map is a `Record`.
                     (None, Some(Expr::MapLit(entries))) => {
                         format!(": Record<string, {}>", ts_map_values(entries))
                     }
@@ -9390,10 +8653,7 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
                 out.open();
                 ts_block(out, body);
                 out.close();
-                // TypeScript has one catch clause and no types on it. Python's typed `except`s
-                // become `instanceof` tests inside it, which is how the same intent is written
-                // here. The trailing `throw` keeps an unmatched error propagating instead of
-                // swallowing it.
+                // TypeScript has one catch clause and no types on it.
                 if !catches.is_empty() {
                     let bound = catches
                         .iter()
@@ -9458,9 +8718,8 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
                 out.line("}");
             }
             Stmt::Throw(value) => {
-                // A bare message throws wrapped, so `(e as Error).message` and every
-                // other catch-side read stays true. Rethrowing a caught binding
-                // throws the object itself.
+                // A bare message throws wrapped, so `(e as Error).message` and every other
+                // catch-side read stays true.
                 let rendered = match value {
                     Expr::Str(_) | Expr::Template(_) => {
                         format!("new Error({})", ts_expr(out, value))
@@ -9480,17 +8739,12 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
 }
 
 /// A record literal's values in the order the record declares its fields.
-///
-/// `None` where the file does not declare that record, or where the literal
-/// names a field it has not got. Guessing an order there would build a value
-/// the source never wrote.
 fn constructor_order(out: &Out, ty: &str, fields: &[(String, Expr)]) -> Option<Vec<Expr>> {
     let declared = out.records.get(ty)?;
     let defaults = out.record_field_defaults.get(ty);
     let mut taken = Vec::new();
     for name in declared {
-        // The literal's value, or the one the record declares for a field the
-        // literal left out. A field with neither has no value to pass.
+        // The literal's value, or the one the record declares for a field the literal left out.
         let given = fields.iter().find(|(f, _)| f == name).map(|(_, v)| v);
         let held = given
             .or_else(|| defaults.and_then(|d| d.iter().find(|(f, _)| f == name).map(|(_, v)| v)))?;
@@ -9531,17 +8785,15 @@ fn ts_type(ty: &Type) -> String {
 
 fn ts_expr(out: &mut Out, e: &Expr) -> String {
     match e {
-        // TypeScript builds a record by calling a constructor, which takes its
-        // arguments in the order the class declares its fields. This writer
-        // emits that constructor, so the same order fills it.
+        // TypeScript builds a record by calling a constructor, which takes its arguments in the
+        // order the class declares its fields.
         Expr::RecordLit { ty, fields } => match constructor_order(out, ty, fields) {
             Some(taken) => {
                 let rendered: Vec<String> = taken.iter().map(|value| ts_expr(out, value)).collect();
                 format!("new {}({})", out.name(ty), rendered.join(", "))
             }
-            // A literal naming a subset of the fields, or a record this file
-            // does not declare, has no order to fill a constructor with. It
-            // crosses as the construction it is, with each field named.
+            // A literal naming a subset of the fields, or a record this file does not declare,
+            // has no order to fill a constructor with.
             None => ts_expr(
                 out,
                 &Expr::New {
@@ -9574,12 +8826,10 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Bool(v) => v.to_string(),
         Expr::Str(v) => quoted(out.language, v),
         Expr::Null => "null".to_string(),
-        // `super` is the base reached, this language's own keyword, and not a
-        // name to re-case or escape. `super(m)` and `super.m()` fall out of the
-        // ordinary call and field arms once the word survives.
+        // `super` is the base reached, this language's own keyword, and not a name to re-case
+        // or escape.
         Expr::Name(n) if n == "super" && !shadows_builtin(out, "super") => "super".to_string(),
-        // A caught exception read as a value is read for its words: the message is
-        // what every other language's binding holds.
+        // Read a caught exception for its words: every other language binds the message.
         Expr::Name(n) if out.catch_bindings.iter().any(|b| b == n) => {
             format!("({} as Error).message", out.value_name(n))
         }
@@ -9636,9 +8886,7 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
             binary_operand(ts_expr(out, left), left, BinaryOp::Div, false),
             binary_operand(ts_expr(out, right), right, BinaryOp::Div, true)
         ),
-        // The remainder that goes with that division. TypeScript's `%` takes its
-        // sign from the dividend, and a source that floors takes it from the
-        // divisor.
+        // The remainder that goes with that division.
         Expr::Binary {
             op: BinaryOp::FloorRem,
             left,
@@ -9652,10 +8900,8 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
             )
         }
         Expr::Binary { op, left, right } => {
-            // TypeScript has one number type and `/` on it never truncates, so
-            // `half(7)` answered 3.5 where the source said 3. Java and the rest
-            // truncate toward zero, which is `Math.trunc` and not `Math.floor`:
-            // the two disagree on every negative quotient.
+            // TypeScript has one number type and `/` on it never truncates, so `half(7)`
+            // answered 3.5 where the source said 3.
             if *op == BinaryOp::Div && holds_an_integer(out, left) && holds_an_integer(out, right) {
                 return format!(
                     "Math.trunc({} / {})",
@@ -9729,7 +8975,7 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
             }
             format!("{{ {} }}", parts.join(", "))
         }
-        // A tuple's value in TypeScript is an array; only its type is written apart.
+        // TypeScript spells a tuple's value as an array and only its type apart.
         Expr::Tuple(items) => format!("[{}]", joined(items, |i| ts_expr(out, i))),
         Expr::ListLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| ts_expr(out, i)).collect();
@@ -9746,8 +8992,8 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
             let rendered: Vec<String> = entries
                 .iter()
                 .map(|(k, v)| {
-                    // A string key that is a plain identifier is written bare, which
-                    // is what anyone writing TypeScript by hand would do.
+                    // Write a plain-identifier key bare, the way a person writing
+                    // TypeScript would.
                     let key = match k {
                         Expr::Str(text) if is_identifier(text) => text.clone(),
                         other => format!("[{}]", ts_expr(out, other)),
@@ -9783,9 +9029,7 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
             returns,
             body,
         } => {
-            // A parameter the source typed keeps its type. An implicit `any` is
-            // the one thing strict TypeScript refuses, so an untyped one is
-            // written `any`: what the source said, which is nothing.
+            // A parameter the source typed keeps its type.
             let rendered: Vec<String> = params
                 .iter()
                 .map(|p| match &p.ty {
@@ -9818,9 +9062,7 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
                 .as_ref()
                 .map(|c| format!(".filter(({name}) => {})", ts_expr(out, c)))
                 .unwrap_or_default();
-            // `[x for x in xs if p(x)]` keeps every element it selects. So the map is the
-            // identity and writing it out says nothing: `xs.filter(p).map((x) => x)` is
-            // `xs.filter(p)` with three extra words.
+            // `[x for x in xs if p(x)]` keeps every element it selects.
             let identity = matches!(element.as_ref(), Expr::Name(n) if *n == *binding);
             if identity && !filter.is_empty() {
                 format!("{it}{filter}")
@@ -9835,15 +9077,7 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
     }
 }
 
-/// Java has no top level below the type, so a module is written *inside* a class.
-///
-/// That is the one structural thing this writer does that no other does. Every other target
-/// takes the module's items and writes them out; Java has to invent a container for them. A
-/// public class must be named after its file. So [`Module`] carries a name at all.
-///
-/// A record with methods becomes its own class beside it. The loose functions and constants
-/// become `static` members of the file's class. Java offers no other home for a file full of
-/// free functions.
+/// Java has no top level below the type, so a module lives *inside* a class.
 fn java(out: &mut Out, module: &Module) {
     for line in &module.doc {
         out.line(&format!("// {line}"));
@@ -9853,9 +9087,7 @@ fn java(out: &mut Out, module: &Module) {
     }
 
     // `List`, `Map` and `Optional` are the three names this writer reaches for that Java does
-    // not have in scope. It emitted them and never emitted an import. So a signature the report
-    // called "carried across with its types intact" named a type the file had never heard of.
-    // `Objects` is written out in full at its use site and needs nothing here.
+    // not have in scope.
     let needed = java_utilities(module);
     if !needed.is_empty() {
         for name in &needed {
@@ -9902,11 +9134,7 @@ fn java(out: &mut Out, module: &Module) {
         .filter(|i| matches!(i, Item::Record(_) | Item::Sum(_)))
         .collect();
 
-    // **One public class per file**, named after the file. Java requires this, and it is a
-    // rule the compiler enforces. It is the whole reason this writer has to make a choice no
-    // other one does. A module that is only a record gives its name to the file. A module
-    // with loose functions keeps the file's own class public and writes its records as
-    // package-private siblings beside it.
+    // **One public class per file**, named after the file.
     if loose.is_empty() {
         for (index, item) in types.iter().enumerate() {
             if index > 0 {
@@ -10040,8 +9268,7 @@ fn java_record(out: &mut Out, record: &Record, public: bool) {
             .unwrap_or_else(|| unknown(out, &field.name));
         let field_visibility = if field.exported { "public" } else { "private" };
         let field_name = out.field(&field.name);
-        // Java starts a field where the declaration says. Dropping the value
-        // left the field null, and the first method to reach it threw.
+        // Java starts a field where the declaration says.
         let default = field
             .default
             .as_ref()
@@ -10049,10 +9276,7 @@ fn java_record(out: &mut Out, record: &Record, public: bool) {
             .unwrap_or_default();
         out.line(&format!("{field_visibility} {ty} {field_name}{default};"));
     }
-    // Three of these languages build a record from a literal and have no
-    // constructor to carry. Java has no literal, so `new Box(9)` needed one
-    // that was never written and the class would not compile. The fields, in
-    // the order the record declares them, are that constructor.
+    // Three of these languages build a record from a literal and have no constructor to carry.
     let methods = methods_of(out, record, true);
     let already = methods.iter().any(|m| m.is_constructor);
     if !record.fields.is_empty() && !already {
@@ -10092,9 +9316,6 @@ fn java_record(out: &mut Out, record: &Record, public: bool) {
 }
 
 /// A sum as Java spells one: a sealed interface over records, one per variant.
-///
-/// The `permits` clause could be omitted with everything in one file, and is written
-/// anyway because it states the closed set in as many words.
 fn java_sum(out: &mut Out, module: &Module, s: &Sum, public: bool) {
     for line in &s.doc {
         out.line(&format!("/** {} */", block_comment_safe(line)));
@@ -10136,9 +9357,8 @@ fn java_sum(out: &mut Out, module: &Module, s: &Sum, public: bool) {
 
 fn java_function(out: &mut Out, f: &Function, is_static: bool) {
     let called = called_parameters(f);
-    // A parameter that holds a function is invoked through the interface Java
-    // wrapped it in: `f.apply(n)`, never `f(n)`, which names a method of the
-    // class. Both the typed and the untyped kind arrive here.
+    // A parameter that holds a function is invoked through the interface Java wrapped it in:
+    // `f.apply(n)`, never `f(n)`, which names a method of the class.
     out.functional_params = f
         .params
         .iter()
@@ -10151,8 +9371,7 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
         .collect();
     // Bindings made inside blocks die at their brace here; the source's did not.
     let f = &with_hoisted_bindings(f, &out.function_returns);
-    // The source's word for the receiver, spelled this target's way for as long as
-    // this body is being written. Outside a method there is nothing to bind.
+    // The source's word for the receiver, spelled this target's way inside this body.
     let scope = out.enter_method(f);
     out.binding_types = declared_bindings(f);
     settle_list_element_types(f, out);
@@ -10192,9 +9411,7 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
                 }
                 None => {
                     unannotated = true;
-                    // A parameter the body calls is a function, and `Object` has
-                    // no `apply`. Java spells one with the interface for its
-                    // arity, and the call site reaches it through `apply`.
+                    // A parameter the body calls is a function, and `Object` has no `apply`.
                     match called.get(&p.name).copied() {
                         Some(1) => {
                             let answers = f
@@ -10235,22 +9452,15 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
         }
     };
 
-    // The runtime looks for a `public static void main(String[])` and starts
-    // nothing else. Whether the source's entry was exported is a fact about the
-    // source: Go's `main` is lower-case and Python's is a plain function. A
-    // private one here answers "Main method not found in class".
+    // The runtime looks for a `public static void main(String[])` and starts nothing else.
     let entry = is_static && !f.is_constructor && f.name == "main";
-    // A source that said `private` says it here. A source that said nothing
-    // meant "this module's own", which Java spells package-private. Written
-    // `private`, a method on a record could not be called from the file's own
-    // class, which is where the source called it.
+    // A source that said `private` says it here.
     let visibility = match (f.exported || entry, f.is_private) {
         (true, _) => "public ",
         (false, true) => "private ",
         (false, false) => "",
     };
-    // A constructor writes no return type at all. `void` would make it a method that
-    // happens to have the class's name, which compiles, and is not a constructor.
+    // A constructor writes no return type at all.
     let returns = match f.is_constructor {
         true => String::new(),
         false => format!("{returns} "),
@@ -10260,9 +9470,7 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
     } else {
         ""
     };
-    // A niladic `main` runs only on the JDKs that finalised instance main
-    // methods. A draft that ran here died on the ordinary ones. The parameter
-    // is written whether or not the source's entry took one.
+    // A niladic `main` runs only on the JDKs that finalised instance main methods.
     let params = match entry && params.is_empty() {
         true => vec!["String[] args".to_string()],
         false => params,
@@ -10295,7 +9503,7 @@ fn java_function(out: &mut Out, f: &Function, is_static: bool) {
 fn java_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
     if body.is_empty() {
         // A method that returns something must return something; one that does not can be
-        // empty. An invented value would be a guess at what the body did.
+        // empty.
         if matches!(returns, Some(t) if *t != Type::Unit) {
             out.line("throw new UnsupportedOperationException(\"not translated\");");
         }
@@ -10317,8 +9525,7 @@ fn java_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
             out.line("}");
             return;
         }
-        // `errdefer` runs only on the failure path: clean up and rethrow. The
-        // unchecked catch keeps the enclosing signature's `throws` honest.
+        // `errdefer` runs only on the failure path: clean up and rethrow.
         if let Stmt::ErrDefer(cleanup) = stmt {
             out.line("try {");
             out.open();
@@ -10375,9 +9582,8 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
             out.line(&line);
         }
         Stmt::Return(value) => {
-            // A returned Result speaks this language's own failure handling: the ok
-            // value returns bare, and the Err becomes a throw. `RuntimeException` is
-            // the unchecked kind, because this writer declares no `throws` clauses.
+            // A returned Result speaks this language's own failure handling: the ok value
+            // returns bare, and the Err becomes a throw.
             if let Some((ok, payload)) = value.as_ref().and_then(|v| result_call(out, v)) {
                 out.note_once(RESULT_RAISED);
                 match (ok, payload) {
@@ -10407,7 +9613,6 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
         }
         Stmt::Throw(value) => {
             // A bare message throws wrapped, and `getMessage()` reads it back.
-            // Rethrowing a caught binding throws the object itself.
             let rendered = match value {
                 Expr::Str(_) | Expr::Template(_) => {
                     format!("new RuntimeException({})", java_expr(out, value))
@@ -10424,23 +9629,19 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
                 .as_ref()
                 .map(|v| java_expr(out, v))
                 .unwrap_or_else(|| "null".to_string());
-            // `var` is Java 10 and inference is the compiler's job, not this tool's:
-            // writing a type it has not got would be a guess. A binding whose
-            // initializer is `null`, because it carried whole or was never there,
-            // gives `var` nothing to infer, so it is declared `Object`.
+            // `var` is Java 10 and inference is the compiler's job, not this tool's: writing a
+            // type it has not got would be a guess.
             let declared = ty.as_ref().map(java_type).unwrap_or_else(|| match value {
                 Some(Expr::Unsupported(_)) | None => "Object".to_string(),
-                // A lambda has no type of its own here: it takes the one the
-                // context asks for, and `var` asks for nothing. Written that
-                // way, javac said the expression needed an explicit target type.
+                // A lambda has no type of its own here: it takes the one the context asks for,
+                // and `var` asks for nothing.
                 Some(Expr::Lambda { params, .. }) => match params.len() {
                     1 => "java.util.function.Function<Integer, Integer>".to_string(),
                     2 => "java.util.function.BiFunction<Integer, Integer, Integer>".to_string(),
                     _ => "Object".to_string(),
                 },
-                // An empty collection tells `var` nothing, and the diamond it
-                // is written with fills in `Object`. What later goes into it
-                // says what it holds, and that is the type to declare.
+                // Name the type: an empty collection tells `var` nothing, and the diamond
+                // fills in `Object`.
                 Some(Expr::ListLit(items)) if items.is_empty() => out
                     .binding_types
                     .get(name)
@@ -10461,9 +9662,7 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
             }
         }
         Stmt::Assign { target, value } => {
-            // `d[k] = v` is `d.put(k, v)` here. Java has no assignable subscript on a
-            // collection. `d.get(k) = v`, which rendering the target as an expression
-            // produces, is not a statement in the language at all.
+            // `d[k] = v` is `d.put(k, v)` here.
             if let Expr::Index { of, index } = target {
                 let listish = matches!(static_type(out, of), Some(Type::List(_)));
                 let object = java_expr(out, of);
@@ -10477,10 +9676,7 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
             let right = java_expr(out, value);
             out.line(&format!("{left} = {right};"));
         }
-        // Java has no tuple and no multiple return, so there is no line to
-        // write. Carried whole, the names it binds are at least in the file.
-        // The value binds once, and the names take its parts by position;
-        // the List a tuple travels as answers get().
+        // Java has no tuple and no multiple return, so there is no line to write.
         Stmt::TupleAssign { names, value, .. } => {
             out.lowering_names += 1;
             let bound = format!("frTup{}", out.lowering_names);
@@ -10520,9 +9716,8 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
             then,
             otherwise,
         } => {
-            // The optional cannot unwrap in place, so a second binding holds it
-            // and the branch takes the payload out under the name the source
-            // bound.
+            // The optional cannot unwrap in place, so a second binding holds it and the branch
+            // takes the payload out under the name the source bound.
             let v = java_expr(out, value);
             let bound = out.name(binding);
             out.line(&format!("var {bound}Maybe = {v};"));
@@ -10579,8 +9774,7 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
             default,
         } => {
             let mut s = java_expr(out, subject);
-            // A `number` from TypeScript is a double here, and a double cannot select
-            // a switch. Every label being an integer says what the source meant.
+            // A `number` from TypeScript is a double here, and a double cannot select a switch.
             let integral_labels = arms
                 .iter()
                 .flat_map(|(literals, _)| literals)
@@ -10718,9 +9912,7 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
         } => {
             let it = java_expr(out, iterable);
             let bound = out.name(binding);
-            // The element type is the collection's, where the collection's is known. `var`
-            // binds a boxed `Object` over an `ArrayList` and arithmetic on the element then
-            // refuses to compile.
+            // The element type is the collection's, where the collection's is known.
             let element = match static_type(out, iterable) {
                 Some(Type::List(inner)) => java_type(&inner),
                 _ => "var".to_string(),
@@ -10802,9 +9994,6 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
 }
 
 /// The `java.util` types this module's Java will name.
-///
-/// Read from the IR and not from the finished text, because an import has to be written before
-/// the class that uses it. Because a `List` inside a string literal is not a use.
 fn java_utilities(module: &Module) -> std::collections::BTreeSet<&'static str> {
     let mut needed = std::collections::BTreeSet::new();
 
@@ -10936,10 +10125,6 @@ fn java_utilities(module: &Module) -> std::collections::BTreeSet<&'static str> {
 }
 
 /// An argument, with the one thing Java cannot pass by name turned into a value.
-///
-/// A function is not a value in Java. `applyTo(addOne, 6)` names a variable that
-/// was never declared, because `addOne` is a method. A lambda that calls it is
-/// the value the interface asks for.
 fn java_argument(out: &mut Out, e: &Expr) -> String {
     let Expr::Name(name) = e else {
         return java_expr(out, e);
@@ -10968,8 +10153,7 @@ fn java_type(ty: &Type) -> String {
         // Java's `Optional<T>` is the closest thing it has, and it is a real type
         // instead of a nullable annotation.
         Type::Optional(inner) => format!("Optional<{}>", java_boxed(inner)),
-        // Java has no function type of its own. `java.util.function` names one
-        // interface per shape, and these are the shapes it names.
+        // Java has no function type of its own.
         Type::Fn { params, returns } => match (params.as_slice(), returns.as_ref()) {
             ([], Type::Unit) => "Runnable".to_string(),
             ([], answer) => format!("java.util.function.Supplier<{}>", java_boxed(answer)),
@@ -10999,8 +10183,7 @@ fn java_type(ty: &Type) -> String {
             // would declare a type the source never had.
             (many, _) => format!("Unwritable_function_{}", many.len()),
         },
-        // Java has no tuple type. The name will not compile, which is the point:
-        // an invented Pair class would compile and claim a shape the source never had.
+        // Java has no tuple type.
         Type::Tuple(parts) => format!("Unwritable_tuple_{}", parts.len()),
         Type::Named { name, args } => generic(name, args, "<", ">", ".", java_boxed),
     }
@@ -11030,18 +10213,16 @@ fn java_inferred(value: &Expr) -> String {
 
 fn java_expr(out: &mut Out, e: &Expr) -> String {
     match e {
-        // Java builds a record by calling a constructor, which takes its
-        // arguments in the order the class declares its fields. This writer
-        // emits that constructor, so the same order fills it.
+        // Java builds a record by calling a constructor, which takes its arguments in the order
+        // the class declares its fields.
         Expr::RecordLit { ty, fields } => match constructor_order(out, ty, fields) {
             Some(taken) => {
                 let rendered: Vec<String> =
                     taken.iter().map(|value| java_expr(out, value)).collect();
                 format!("new {}({})", out.name(ty), rendered.join(", "))
             }
-            // A literal naming a subset of the fields, or a record this file
-            // does not declare, has no order to fill a constructor with. It
-            // crosses as the construction it is, with each field named.
+            // A literal naming a subset of the fields, or a record this file does not declare,
+            // has no order to fill a constructor with.
             None => java_expr(
                 out,
                 &Expr::New {
@@ -11063,8 +10244,6 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
                 java_expr(out, value),
                 java_expr(out, fallback)
             ),
-            // A value that cannot be named twice goes through Optional,
-            // evaluated once.
             false => format!(
                 "java.util.Optional.ofNullable({}).orElse({})",
                 java_expr(out, value),
@@ -11086,22 +10265,18 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Str(v) => quoted(Language::Java, v),
         Expr::Bool(v) => v.to_string(),
         Expr::Null => "null".to_string(),
-        // `super` is the base reached, this language's own keyword, and not a
-        // name to re-case or escape. `super(m)` and `super.m()` fall out of the
-        // ordinary call and field arms once the word survives.
+        // `super` is the base reached, this language's own keyword, and not a name to re-case
+        // or escape.
         Expr::Name(n) if n == "super" && !shadows_builtin(out, "super") => "super".to_string(),
-        // A caught exception read as a value is read for its words: the message is
-        // what every other language's binding holds.
+        // Read a caught exception for its words: every other language binds the message.
         Expr::Name(n) if out.catch_bindings.iter().any(|b| b == n) => {
             format!("{}.getMessage()", out.value_name(n))
         }
         Expr::Name(n) => out.value_name(n),
         Expr::Field { of, name } => {
             let object = receiver(java_expr(out, of), of);
-            // A read of a property is a call here; the idiom that hid the
-            // parentheses does not exist in this language. A property is a
-            // method, so its spelling comes from the name table and not the
-            // field one.
+            // A read of a property is a call here; the idiom that hid the parentheses does not
+            // exist in this language.
             if out.properties.contains(name) {
                 return format!("{object}.{}()", out.name(name));
             }
@@ -11116,7 +10291,6 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
         }
         Expr::Call { callee, args } => {
             // A functional-interface parameter is invoked through `apply`.
-            // Written `f(x)`, javac looked for a method of that name on the class.
             if let Expr::Name(name) = callee.as_ref() {
                 if out.functional_params.contains(name) && args.len() == 1 {
                     let spelled = out.name(name);
@@ -11153,8 +10327,8 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
                     return format!("new {}({})", out.name(name), rendered.join(", "));
                 }
             }
-            // Java has no callable values: `f()()` and a called lambda are not in
-            // the grammar, however the value arrived. Such a call carries whole.
+            // Java has no callable values: `f()()` and a called lambda are not in the grammar,
+            // however the value arrived.
             if matches!(
                 callee.as_ref(),
                 Expr::Call { .. } | Expr::New { .. } | Expr::Lambda { .. }
@@ -11221,14 +10395,7 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
             java_expr(out, right)
         ),
         Expr::Binary { op, left, right } => {
-            // `==` on a Java String compares references. Every other language here compares
-            // contents, and so did the source. The translation of `a == b` then asked a
-            // different question under the same spelling. It answered false for two equal
-            // strings that were built rather than interned, and said nothing about it.
-            //
-            // `Objects.equals` and not `a.equals(b)`: it answers for null on either side, which
-            // `a.equals(b)` throws on. Written out in full because this writer emits no
-            // imports.
+            // `==` on a Java String compares references.
             if matches!(op, BinaryOp::Eq | BinaryOp::Ne) && compares_strings(out, left, right) {
                 let call = format!(
                     "java.util.Objects.equals({}, {})",
@@ -11278,18 +10445,13 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
                 ordered.join(", ")
             )
         }
-        // Java has no tuple value. `List.of` would erase the types and claim a
-        // collection the source never had, so the tuple is carried, visibly.
-        // An element may carry a marker of its own, and comments do not nest.
-        // No tuple here; the list of the elements is what Java can hold of
-        // the shape, noted once.
+        // Java has no tuple value.
         Expr::Tuple(items) => {
             out.note_once("a tuple travels as a List here.");
             let rendered: Vec<String> = items.iter().map(|i| java_expr(out, i)).collect();
             format!("java.util.List.of({})", rendered.join(", "))
         }
-        // `Set.of` is immutable. A source that wrote a set literal is free to
-        // add to it a line later, which is why the list below wraps too.
+        // `Set.of` is immutable.
         Expr::SetLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| java_expr(out, i)).collect();
             match rendered.is_empty() {
@@ -11299,18 +10461,15 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
         }
         Expr::ListLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| java_expr(out, i)).collect();
-            // `List.of` is immutable, and a source that wrote a list literal is free
-            // to grow it a line later. `ArrayList` behaves like everyone's list.
+            // `List.of` is immutable, and a source that wrote a list literal is free to grow it
+            // a line later.
             match rendered.is_empty() {
                 true => "new ArrayList<>()".to_string(),
                 false => format!("new ArrayList<>(List.of({}))", rendered.join(", ")),
             }
         }
         Expr::MapLit(entries) => {
-            // `Map.of` is immutable, and the source puts keys into this after
-            // building it. Written bare, the translation compiled and threw
-            // `UnsupportedOperationException` at the first assignment. The list
-            // literal above wraps for the same reason.
+            // `Map.of` is immutable, and the source puts keys into this after building it.
             let rendered: Vec<String> = entries
                 .iter()
                 .map(|(k, v)| format!("{}, {}", java_expr(out, k), java_expr(out, v)))
@@ -11327,15 +10486,13 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
                 .iter()
                 .map(|part| match part {
                     TemplatePart::Text(text) => quoted(Language::Java, text),
-                    // A double concatenated as text prints `10.0` here where every
-                    // other target prints `10`. The helper shows a whole number
-                    // whole, the way the source displayed it.
+                    // A double concatenated as text prints `10.0` here where every other target
+                    // prints `10`.
                     TemplatePart::Expr(e) if matches!(static_type(out, e), Some(Type::Float)) => {
                         out.zig_helpers.insert("java_show");
                         format!("frShow({})", java_expr(out, e))
                     }
-                    // `"diff " + a - b` subtracts from a string. Every part of a
-                    // concatenation that is itself an operation takes brackets.
+                    // `"diff " + a - b` subtracts from a string.
                     TemplatePart::Expr(e @ Expr::Binary { .. }) => {
                         format!("({})", java_expr(out, e))
                     }
@@ -11371,9 +10528,7 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
             };
             format!("{it}.stream(){filter}{map}.toList()")
         }
-        // Java has no `await`. The defined lowering is blocking: the suspension
-        // point runs to completion in place, noted once so the change is not
-        // silent.
+        // Java has no `await`.
         Expr::Await(inner) => {
             out.note_once(
                 "an `await` runs blocking here: Java suspends on a virtual thread, not by awaiting.",
@@ -11387,8 +10542,6 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
             );
             java_expr(out, inner)
         }
-        // A named argument passes by position: the value crosses, and the
-        // name is a fact about the source's parameter list, noted once.
         Expr::Keyword { name: _, value } => {
             out.note_once(
                 "a named argument passes by position here: the target does not name arguments.",
@@ -11403,18 +10556,6 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
 }
 
 /// Zig.
-///
-/// Two facts about the language shape this writer. **A type is a value**: a struct is what a
-/// `const` is bound to. So a record is written `const Reading = struct { … };` and its methods
-/// live inside it and not beside it. And **there is no block comment**, `//` runs to the end of
-/// the line. So a carried-over fragment cannot be written beside the expression it replaced. It
-/// goes above the statement instead, via [`Out::pending`].
-///
-/// What has no counterpart and is carried and not guessed at: `new`, `await`, `throw`,
-/// `try`/`catch`, map literals, interpolated strings and comprehensions. Zig models failure
-/// in the return type, and 0.11 removed `async`. An exception or a suspension point arriving
-/// from another language has nowhere to land. Inventing an error set would be inventing the
-/// program's vocabulary of failures.
 fn zig(out: &mut Out, module: &Module) {
     for line in &module.doc {
         out.line(&format!("//! {line}"));
@@ -11423,9 +10564,7 @@ fn zig(out: &mut Out, module: &Module) {
         out.blank();
     }
 
-    // Zig reaches its standard library through a binding the file has to make. Nothing
-    // here emitted one, so `std.mem.eql`, the only way to compare two strings in this
-    // language, named something the file had never heard of.
+    // Zig reaches its standard library through a binding the file has to make.
     if uses_the_standard_library(module) {
         out.line("const std = @import(\"std\");");
         out.blank();
@@ -11493,9 +10632,6 @@ fn zig(out: &mut Out, module: &Module) {
                         .unwrap_or_default();
                     out.line(&format!("{field_name}: {ty}{default},"));
                 }
-                // Java overloads share a name; a Zig container refuses two
-                // members spelled alike, so later overloads take a numbered
-                // name, noted once.
                 let mut spelled: std::collections::BTreeMap<String, usize> =
                     std::collections::BTreeMap::new();
                 for m in &methods_of(out, r, false) {
@@ -11570,9 +10706,8 @@ fn zig(out: &mut Out, module: &Module) {
                     let variant_name = out.legal(snake_always(&variant.name));
                     match variant.fields.as_slice() {
                         [] => out.line(&format!("{variant_name}: void,")),
-                        // A single field named for its value is the payload itself;
-                        // wrapping it in a one-field struct would make every use
-                        // site say `.value.value`.
+                        // A single field named for its value is the payload itself; wrapping it
+                        // in a one-field struct would make every use site say `.value.value`.
                         [only] if only.name == "value" => {
                             let ty = only
                                 .ty
@@ -11609,9 +10744,6 @@ fn zig(out: &mut Out, module: &Module) {
         }
     }
 
-    // The helpers the body turned out to need, appended where declaration order
-    // does not matter. The `std` binding is patched in when nothing else
-    // brought it.
     if !out.zig_helpers.is_empty() {
         if !out.text.contains("const std = @import(\"std\");") {
             let import = "const std = @import(\"std\");\n\n";
@@ -11661,10 +10793,6 @@ fn zig(out: &mut Out, module: &Module) {
 }
 
 /// Will this module's Zig need `std`?
-///
-/// Asked of the IR and not of the finished text, because the binding has to be
-/// written before the code that uses it. String equality is the only thing that
-/// reaches for `std` today; a second one belongs in this list beside it.
 fn uses_the_standard_library(module: &Module) -> bool {
     fn in_expr(types: &std::collections::BTreeMap<String, Type>, e: &Expr) -> bool {
         match e {
@@ -11773,8 +10901,7 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     // A function that can fail takes this target's failure idiom back: the error
     // union in the signature, `try` at every failing call.
     let f = &with_failure_idiom(f, &out.throwing.clone());
-    // The source's word for the receiver, spelled this target's way for as long as
-    // this body is being written. Outside a method there is nothing to bind.
+    // The source's word for the receiver, spelled this target's way inside this body.
     let scope = out.enter_method(f);
     out.binding_types = declared_bindings(f);
     settle_list_element_types(f, out);
@@ -11799,13 +10926,6 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
     let mut unannotated = false;
     let mut changed = false;
     let mut params: Vec<String> = Vec::new();
-    // A method takes its own type as an ordinary first parameter; there is no
-    // receiver syntax to put it in.
-    //
-    // By pointer when the body assigns through it. A Zig value parameter is const, so
-    // `self: Counter` with `self.value = …` in the body is not a slow method. It is a
-    // file that does not compile, from a source that said `&mut self` and a report that
-    // said every signature carried across.
     if let Some(ty) = receiver {
         let word = receiver_word(out.language);
         let through_a_pointer = zig_mutated(&f.body).contains(word)
@@ -11826,9 +10946,7 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
             params.push(spelled);
             continue;
         }
-        // Zig writes a type on every parameter and infers none. One the source
-        // never declared becomes `anytype`, and the signature counts as
-        // unannotated rather than complete.
+        // Zig writes a type on every parameter and infers none.
         let ty = match &p.ty {
             Some(t) => {
                 if out.is_foreign(t) {
@@ -11846,10 +10964,8 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
 
     let returns = match &f.returns {
         Some(Type::Unit) => "void".to_string(),
-        // `void` over a body that returns a value does not compile, and a
-        // source that annotates nothing still returns one. `anytype` is a
-        // parameter's word; a return whose type nothing names says it is
-        // undecided the only way a return position can.
+        // `void` over a body that returns a value does not compile, and a source that annotates
+        // nothing still returns one.
         None if returns_a_value(f) => {
             unannotated = true;
             match inferred_return(out, f) {
@@ -11881,10 +10997,7 @@ fn zig_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
         params.join(", ")
     ));
     out.open();
-    // Zig rejects a `var` nothing writes to. The rest of the body decides which keyword a
-    // binding takes, and the binding itself does not. Only the Rust reader records mutability
-    // at all; every other one says "mutable" because it has nothing better to say. Taking
-    // that at its word made a `const` file into a `var` one that will not build.
+    // Zig rejects a `var` nothing writes to.
     let mutated = zig_mutated(&f.body);
     zig_block(out, &f.body, f.returns.as_ref(), &mutated);
     out.close();
@@ -11925,9 +11038,6 @@ fn zig_growable_lists(body: &[Stmt]) -> std::collections::BTreeSet<String> {
 }
 
 /// Every name this body writes to, including through a field or an index.
-///
-/// `r.value = 1` and `xs[0] = 1` both need `r` and `xs` to be `var`. So the root of the target
-/// is what counts instead of the whole expression.
 fn zig_mutated(body: &[Stmt]) -> std::collections::BTreeSet<String> {
     fn root(e: &Expr) -> Option<&str> {
         match e {
@@ -12000,9 +11110,6 @@ fn zig_block(
 }
 
 /// A line, preceded by anything an expression could not say where it stood.
-///
-/// Every arm of [`zig_stmt`] renders its expressions first and writes afterwards. By the time
-/// this runs, the queue holds the fragments belonging to this statement and no others.
 fn zig_line(out: &mut Out, text: &str) {
     let pending = std::mem::take(&mut out.pending);
     for note in pending {
@@ -12047,9 +11154,8 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
             out.line(&line);
         }
         Stmt::Return(value) => {
-            // A returned Result is native here: the coercion at the `return` decides
-            // success or failure by the value. A success returns bare; a failure
-            // returns the error value its message names.
+            // A returned Result is native here: the coercion at the `return` decides success or
+            // failure by the value.
             if let Some((ok, payload)) = value.as_ref().and_then(|v| result_call(out, v)) {
                 if !ok {
                     let rendered = match payload {
@@ -12061,9 +11167,8 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                     zig_line(out, &format!("return {rendered};"));
                     return;
                 }
-                // Zig converts between its number types only when told to, and
-                // a length is an integer. Returned under a float, it did not
-                // compile.
+                // Zig converts between its number types only when told to, and a length is an
+                // integer.
                 let widens = matches!(out.fn_returns, Some(Type::Float))
                     && payload.is_some_and(|p| matches!(static_type(out, p), Some(Type::Int)));
                 let text = payload
@@ -12078,8 +11183,8 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                 zig_line(out, &format!("return{text};"));
                 return;
             }
-            // Zig converts between its number types only when told to, and a
-            // length is an integer. Returned under a float, it did not compile.
+            // Zig converts between its number types only when told to, and a length is an
+            // integer.
             let widens = matches!(out.fn_returns, Some(Type::Float))
                 && value
                     .as_ref()
@@ -12096,10 +11201,7 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                 .unwrap_or_default();
             zig_line(out, &format!("return{text};"));
         }
-        // Zig has no exceptions: a failure is a value in the return type. Which error it is
-        // belongs to an error set this has no way to name.
-        // A throw with no failure channel stops the program, which is what
-        // the uncaught exception did. The message is the panic's.
+        // Zig has no exceptions: a failure is a value in the return type.
         Stmt::Throw(value) => {
             let message = match value {
                 Expr::Str(_) => zig_expr(out, value),
@@ -12136,10 +11238,6 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                 zig_line(out, &format!("{keyword} {bound} = {call};"));
                 return;
             }
-            // A map is a runtime hash map here, and it goes through an
-            // allocator. Written as the anonymous struct a literal suggests,
-            // every later `m[k] = v` and `m.len` was invalid, and nothing said
-            // so. The literal's entries become the puts that fill it.
             if holds_a_map(out, &Expr::Name(name.clone()))
                 || matches!(value.as_ref(), Some(Expr::MapLit(_)))
             {
@@ -12203,13 +11301,9 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                 );
                 return;
             }
-            // An array literal is not a slice. Declared as one, Zig asks for
-            // the address of the array. The whole file then fails to build over
-            // a binding that says precisely what it holds.
+            // An array literal is not a slice.
             let rendered = match (ty.as_ref(), value.as_ref()) {
-                // The element type comes from the declaration rather than the
-                // items. `[_]i64{ 4, 5, 6 }` under `[]const f64` is a different
-                // array, and Zig says so.
+                // The element type comes from the declaration rather than the items.
                 (Some(Type::List(element)), Some(Expr::ListLit(items))) if !items.is_empty() => {
                     let written: Vec<String> = items.iter().map(|i| zig_expr(out, i)).collect();
                     format!("&[_]{}{{ {} }}", zig_type(element), written.join(", "))
@@ -12218,9 +11312,8 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
             };
             let annotation = match (ty.as_ref(), keyword, value.as_ref()) {
                 (Some(t), _, _) => format!(": {}", zig_type(t)),
-                // A `var` must carry a fixed-size type; a comptime-known integer
-                // stays comptime and will not compile as one. The widest ordinary
-                // integer is the type every other source language means.
+                // A `var` must carry a fixed-size type; a comptime-known integer stays comptime
+                // and will not compile as one.
                 (None, "var", Some(v)) if zig_hole_spec(out, v) == "d" => ": i64".to_string(),
                 _ => String::new(),
             };
@@ -12245,7 +11338,6 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
             zig_line(out, &format!("{left} = {right};"));
         }
         // Zig returns one value, so a pair has nothing to come from here.
-        // The value binds once, and the names index its parts.
         Stmt::TupleAssign {
             names,
             value,
@@ -12359,8 +11451,6 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
             default,
         } => {
             // Zig cannot switch on strings; an `eql` chain says the same thing.
-            // A float subject with integer labels switches on the integer the
-            // source meant; Zig refuses to switch on a float at all.
             let integral_labels = arms
                 .iter()
                 .flat_map(|(literals, _)| literals)
@@ -12431,8 +11521,8 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                 out.close();
                 out.line("},");
             }
-            // A Zig switch must be exhaustive, so the else arm is written even
-            // when the source had none.
+            // Zig demands exhaustiveness, so emit the else arm even where the source had
+            // none.
             if default.is_empty() {
                 out.line("else => {},");
             } else {
@@ -12492,8 +11582,8 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
             out.close();
             out.line("}");
         }
-        // Zig writes the step as a continue expression, which also runs when the
-        // body says `continue`. So the counted loop crosses whole.
+        // Zig writes the step as a continue expression, which also runs when the body says
+        // `continue`.
         Stmt::CountedFor {
             init,
             condition,
@@ -12565,10 +11655,8 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
             out.close();
             out.line("}");
         }
-        // `try/catch`, lowered to a labeled block: each failing call catches, runs
-        // the handler, and breaks out. The extraction pass has already hoisted every
-        // failing call to its own binding, so the catch clause has a place to sit.
-        // A propagated call whose value the source discards.
+        // `try/catch`, lowered to a labeled block: each failing call catches, runs the handler,
+        // and breaks out.
         Stmt::Expr(Expr::Propagate(inner)) => {
             let call = zig_failing_call(out, inner);
             zig_line(out, &format!("_ = {call};"));
@@ -12601,8 +11689,7 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                 return;
             }
             // A `return` inside the labeled block leaves the function, the way the source's
-            // `return` inside the `try` did. Only a try with nothing to catch has no lowering
-            // here.
+            // `return` inside the `try` did.
             if catches.is_empty() {
                 carry(
                     out,
@@ -12652,9 +11739,7 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
             }
         }
         Stmt::Expr(Expr::Null) => {}
-        // Zig has no bare expression statement: a value has to go somewhere. A call is
-        // the one exception, and everything else is discarded into `_`, which is what
-        // Zig would make you write by hand.
+        // Zig has no bare expression statement: a value has to go somewhere.
         Stmt::Expr(e) => {
             let text = zig_expr(out, e);
             match e {
@@ -12685,19 +11770,16 @@ fn zig_type(ty: &Type) -> String {
         Type::Bool => "bool".to_string(),
         Type::Int => "i64".to_string(),
         Type::Float => "f64".to_string(),
-        // Zig has no string type. A string is a slice of bytes that does not change, which
-        // describes a literal.
+        // Zig has no string type.
         Type::String => "[]const u8".to_string(),
         Type::List(inner) => format!("[]const {}", zig_type(inner)),
-        // Zig has no set either. Its hash maps take a value type, and the empty
-        // struct is the value that says "nothing but the key matters".
+        // Zig has no set either.
         Type::Set(inner) => match inner.as_ref() {
             Type::String => "std.StringHashMap(void)".to_string(),
             other => format!("std.AutoHashMap({}, void)", zig_type(other)),
         },
         // Hashing a slice by its contents and hashing it by its address are different maps in
-        // Zig. The standard library makes you pick: `AutoHashMap` cannot take a string key at
-        // all.
+        // Zig.
         Type::Map(key, value) => match key.as_ref() {
             Type::String => format!("std.StringHashMap({})", zig_type(value)),
             other => format!("std.AutoHashMap({}, {})", zig_type(other), zig_type(value)),
@@ -12710,14 +11792,10 @@ fn zig_type(ty: &Type) -> String {
             zig_type(returns)
         ),
         Type::Tuple(parts) => format!("struct {{ {} }}", joined(parts, zig_type)),
-        // The shared `Result<T, E>` is this language's own error union, `E!T`. Only a
-        // named error side can stand before the `!`. A Rust `Result<T, String>`
-        // carries a payload no Zig error set can hold. It crosses as `anyerror`, and
-        // the message's identity is the part that does not.
+        // The shared `Result<T, E>` is this language's own error union, `E!T`.
         Type::Named { name, args } if name == "Result" && args.len() == 2 => {
-            // A qualified error name keeps its path, spelled with dots the way every
-            // other Zig name here is: `anyhow::Error` is not something this grammar
-            // reads.
+            // A qualified error name keeps its path, spelled with dots the way every other Zig
+            // name here is: `anyhow::Error` is not something this grammar reads.
             let err = match &args[1] {
                 Type::Named { name, args }
                     if args.is_empty() && name != "error" && Type::is_writable_name(name) =>
@@ -12728,8 +11806,7 @@ fn zig_type(ty: &Type) -> String {
             };
             format!("{err}!{}", zig_type(&args[0]))
         }
-        // A generic type is a function of its arguments, so it is applied and not
-        // bracketed: `ArrayList(u8)`, not `ArrayList<u8>`.
+        // Apply a generic type rather than bracket it: `ArrayList(u8)`.
         Type::Named { name, args } => {
             let path = zig_path(&generic(name, &[], "(", ")", ".", zig_type));
             if args.is_empty() {
@@ -12742,11 +11819,6 @@ fn zig_type(ty: &Type) -> String {
 }
 
 /// A type name carried across, with any part Zig reserves written its way.
-///
-/// A type written through by name can be a word this language spells something else with: Go's
-/// `error` is Zig's keyword for an error set. A signature returning it did not parse.
-/// `@"error"` is how Zig writes an identifier that collides with one of its own words. Under it
-/// the name still says what the source said.
 fn zig_path(name: &str) -> String {
     name.split('.')
         .map(|part| match reserved(Language::Zig, part) {
@@ -12758,9 +11830,6 @@ fn zig_path(name: &str) -> String {
 }
 
 /// Queue the source of something with no counterpart, and stand `undefined` in for it.
-///
-/// `undefined` is Zig's own word for a value that has not been decided yet. Using it is
-/// deliberate: the program will not run until a person replaces it.
 fn zig_carry(out: &mut Out, construct: &str, source: String) -> String {
     out.carried(&Unsupported {
         construct: construct.into(),
@@ -12782,9 +11851,8 @@ fn zig_expr_immut_placeholder(e: &Expr) -> String {
 
 fn zig_expr(out: &mut Out, e: &Expr) -> String {
     match e {
-        // Zig's sets go through an allocator, so a literal only makes sense
-        // where a binding can hold it. The statement writer builds it there;
-        // reaching here means a set was written where no binding takes it.
+        // Zig's sets go through an allocator, so a literal only makes sense where a binding can
+        // hold it.
         Expr::SetLit(items) => {
             let rendered: Vec<String> = items.iter().map(|i| zig_expr(out, i)).collect();
             zig_carry(out, "set literal", format!("{{{}}}", rendered.join(", ")))
@@ -12819,29 +11887,24 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Str(v) => quoted(Language::Zig, v),
         Expr::Bool(v) => v.to_string(),
         Expr::Null => "null".to_string(),
-        // A caught error read as a value is read for its words: the name is
-        // the message here.
+        // Read a caught error for its words: here the name carries the message.
         Expr::Name(n) if out.catch_bindings.iter().any(|b| b == n) => {
             format!("@errorName({})", out.value_name(n))
         }
         Expr::Name(n) => out.value_name(n),
         Expr::Field { of, name } => {
             let object = receiver(zig_expr(out, of), of);
-            // A read of a property is a call here; the idiom that hid the
-            // parentheses does not exist in this language. A property is a
-            // method, so its spelling comes from the name table and not the
-            // field one.
+            // A read of a property is a call here; the idiom that hid the parentheses does not
+            // exist in this language.
             if out.properties.contains(name) {
                 return format!("{object}.{}()", out.name(name));
             }
             format!("{object}.{}", out.field(name))
         }
-        // `[…]` on a slice or an array and `.get(…)` on a map, and which this is
-        // depends on a type nothing here tracks. Zig's indexable is the slice.
+        // `[…]` on a slice or an array and `.get(…)` on a map, and which this is depends on a
+        // type nothing here tracks.
         Expr::Index { of, index } => {
-            // A hash map is read through `get`, which answers an optional. The
-            // source indexed it and expects the value to be there, so `.?` traps
-            // where the source would have raised.
+            // Reach a hash map through `get`, which answers an optional.
             if holds_a_map(out, of) {
                 let map = receiver(zig_expr(out, of), of);
                 let at = zig_expr(out, index);
@@ -12907,10 +11970,7 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             }
             format!("{}({})", zig_expr(out, callee), rendered.join(", "))
         }
-        // Zig has no `new`. Whatever function on the type returns a value makes one. The type
-        // decides which function that is, whether `init`, a literal or an allocator call, and
-        // this expression does not. A record declared right here is different: its fields are
-        // known, and a positional construction maps onto them.
+        // Zig has no `new`.
         Expr::New { callee, args } => {
             let rendered: Vec<String> = args.iter().map(|a| zig_expr(out, a)).collect();
             if let Some(fields) = positional_record(out, callee, args.len()) {
@@ -12950,17 +12010,15 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             zig_expr(out, left),
             zig_expr(out, right)
         ),
-        // `@mod` is the remainder that goes with `@divFloor`, and `@rem` the one
-        // that goes with `@divTrunc`. Zig is the only language here that makes
-        // the caller say which.
+        // `@mod` is the remainder that goes with `@divFloor`, and `@rem` the one that goes with
+        // `@divTrunc`.
         Expr::Binary {
             op: BinaryOp::FloorRem,
             left,
             right,
         } => format!("@mod({}, {})", zig_expr(out, left), zig_expr(out, right)),
-        // Zig refuses `/` and `%` on signed integers outright: the caller has to
-        // say which rounding. These are the truncating pair, the meaning the
-        // four languages that spell them with operators give.
+        // Zig refuses `/` and `%` on signed integers outright: the caller has to say which
+        // rounding.
         Expr::Binary {
             op: BinaryOp::Div,
             left,
@@ -12970,10 +12028,8 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             zig_expr(out, left),
             zig_expr(out, right)
         ),
-        // `%` on signed integers is refused outright: the language makes the caller
-        // choose a rounding. `@rem` truncates, which is what `%` means in the four
-        // languages that have it. Python floors instead, and negative operands there
-        // are a difference the draft carries visibly by behaving as the others do.
+        // `%` on signed integers is refused outright: the language makes the caller choose a
+        // rounding.
         Expr::Binary {
             op: BinaryOp::Rem,
             left,
@@ -12999,9 +12055,8 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             format!("{} / {}", side(out, left), side(out, right))
         }
         Expr::Binary { op, left, right } => {
-            // A Zig string is a `[]const u8`, and `==` on a slice is not a comparison
-            // the compiler will accept at all. The output looked like the other five
-            // and did not build.
+            // A Zig string is a `[]const u8`, and `==` on a slice is not a comparison the
+            // compiler will accept at all.
             if matches!(op, BinaryOp::Eq | BinaryOp::Ne) && compares_strings(out, left, right) {
                 let call = format!(
                     "std.mem.eql(u8, {}, {})",
@@ -13013,10 +12068,8 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
                     _ => call,
                 };
             }
-            // Joining two slices in Zig means allocating, and this function takes no
-            // allocator parameter. Inventing one would change the signature every caller was
-            // written against. `a + b` on two slices is not something the compiler accepts,
-            // so it went out looking like the other four targets and not building.
+            // Joining two slices in Zig means allocating, and this function takes no allocator
+            // parameter.
             if *op == BinaryOp::Add && compares_strings(out, left, right) {
                 let source = format!("{} + {}", zig_expr(out, left), zig_expr(out, right));
                 out.carried(&Unsupported {
@@ -13025,9 +12078,7 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
                     line: 0,
                 });
                 // Zig has no block comment, so a marker beside the value would swallow the rest
-                // of the line. `@compileError` is a value anywhere one is expected, it says why
-                // in the compiler's own output. It cannot be mistaken for code that works,
-                // which returning an empty slice quietly could.
+                // of the line.
                 return format!(
                     "@compileError(\"{MARKER}: joining two strings needs an allocator: {}\")",
                     source.replace('"', "'")
@@ -13066,9 +12117,7 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
         },
         // Zig's anonymous struct literal is its tuple: `.{ a, b }`.
         Expr::Tuple(items) => format!(".{{ {} }}", joined(items, |i| zig_expr(out, i))),
-        // A list literal is an array whose length the compiler counts. The anonymous `.{ … }`
-        // is a tuple, which will not iterate at run time. So the element type is read off the
-        // elements and spelled.
+        // A list literal is an array whose length the compiler counts.
         Expr::ListLit(items) => {
             let element = match items.first().map(|first| zig_hole_spec(out, first)) {
                 Some("d") => "i64",
@@ -13078,9 +12127,7 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             let rendered: Vec<String> = items.iter().map(|i| zig_expr(out, i)).collect();
             format!("[_]{element}{{ {} }}", rendered.join(", "))
         }
-        // Zig's runtime maps go through an allocator. A literal of known
-        // keys is an anonymous struct: `.{ .k = v }`, keys quoted where they
-        // must be.
+        // Zig's runtime maps go through an allocator.
         Expr::MapLit(entries) => {
             let field = |k: &Expr| match k {
                 Expr::Str(text)
@@ -13107,8 +12154,6 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             if let Some(text) = literal_text(parts) {
                 return quoted(Language::Zig, &text);
             }
-            // Zig formats at run time into an allocator, so a template used as a
-            // value goes through a helper that owns that decision once.
             out.zig_helpers.insert("format");
             let (format, holes) = zig_template(out, parts);
             format!("frFormat(\"{format}\", .{{ {holes} }})")
@@ -13138,8 +12183,7 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
                 .unwrap_or_default();
             let body = zig_expr(out, element);
             // Zig has no iterator adaptors and no way to build a collection without an
-            // allocator. So this is a `for` loop over one, and which allocator is a decision
-            // this cannot make.
+            // allocator.
             zig_carry(
                 out,
                 "comprehension",
@@ -13151,8 +12195,7 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Cast { ty, value } => {
             format!("@as({}, {})", zig_expr(out, ty), zig_expr(out, value))
         }
-        // Zig types are compile-time facts. Asking a value's type compares at comptime, which
-        // is as close as the language comes to the runtime question, noted once.
+        // Zig types are compile-time facts.
         Expr::InstanceOf { value, ty } => {
             out.note_once(
                 "an `instanceof` compares types at compile time here: Zig has no runtime type test.",
@@ -13161,17 +12204,13 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             let named = zig_expr(out, ty);
             format!("@TypeOf({rendered}) == {named}")
         }
-        // Zig removed `async` in 0.11. The defined lowering is blocking: the
-        // suspension point runs to completion in place, noted once so the
-        // change is not silent.
+        // Zig removed `async` in 0.11.
         Expr::Await(inner) => {
             out.note_once("an `await` runs blocking here: Zig has no async to suspend on.");
             zig_expr(out, inner)
         }
         Expr::Propagate(inner) => format!("try {}", zig_expr(out, inner)),
         // Zig calls positionally and has nothing that names an argument.
-        // A named argument passes by position: the value crosses, and the
-        // name is a fact about the source's parameter list, noted once.
         Expr::Keyword { name: _, value } => {
             out.note_once(
                 "a named argument passes by position here: the target does not name arguments.",
@@ -13208,18 +12247,6 @@ fn zig_binary(op: BinaryOp) -> &'static str {
 }
 
 /// A named type, spelled the way this target spells generics.
-///
-/// The name is deliberately *not* case-converted: a `Reading` or an `HttpResponse` is a real
-/// type somewhere. Renaming it to suit a convention would point the signature at something that
-/// does not exist.
-///
-/// A name that cannot be written as a type at all, a tuple, a closure, a trait object,
-/// becomes the target's unknown type. Emitting it verbatim produced `-> Result<(), String>`
-/// in a Python file, which Python cannot parse. A signature that does not parse serves
-/// nobody; one that admits a gap does. A qualified name arrives spelled the source language's
-/// way: Go's `sync.Mutex` is not Rust, and Rust's `std::sync::Mutex` is not Go. The path is
-/// kept. It says where the type came from, and only `separator` changes. The parts rendered
-/// and comma-joined, the shape every tuple spelling shares.
 fn joined<T>(parts: &[T], mut render: impl FnMut(&T) -> String) -> String {
     parts.iter().map(&mut render).collect::<Vec<_>>().join(", ")
 }
@@ -13230,9 +12257,6 @@ fn generic(
     open: &str,
     close: &str,
     // How this language separates the parts of a qualified name: `::` in Rust, `.` in the rest.
-    // Named for what it is, because "separator" beside a list of arguments reads as the
-    // argument separator. The Java writer was written passing `", "` on that reading, turning
-    // `sync.Mutex` into `sync, Mutex`.
     path_separator: &str,
     render: fn(&Type) -> String,
 ) -> String {
@@ -13256,21 +12280,11 @@ fn generic(
 }
 
 /// A string literal, spelled the way this target spells one.
-///
-/// The IR holds the string's **value**; putting escapes back on is the writer's job,
-/// and Rust's `{:?}` was doing it for every target. That is Rust's spelling: it writes
-/// `\u{1f600}` for anything it considers non-printable, which is a syntax error in
-/// Python, Java, TypeScript and Go. Only the four escapes every one of these languages
-/// agrees on are written unconditionally; anything else that cannot appear literally
-/// takes the target's own form.
 fn quoted(language: Language, value: &str) -> String {
     format!("\"{}\"", escaped(language, value))
 }
 
 /// The inside of a string literal: the escapes, without the quotes around them.
-///
-/// Apart from [`quoted`] because an f-string quotes its *text* and leaves its
-/// expressions as code, so the two halves cannot be escaped together.
 fn escaped(language: Language, value: &str) -> String {
     let mut out = String::with_capacity(value.len());
     for c in value.chars() {
@@ -13283,7 +12297,7 @@ fn escaped(language: Language, value: &str) -> String {
             // Every one of these languages takes UTF-8 in a string literal, so a
             // printable character stands for itself whatever its code point.
             c if !c.is_control() => out.push(c),
-            // Java has no `\xNN`, so the one form it does have is used for both.
+            // Java has no `\xNN`, so spell both with the form it does have.
             c if language == Language::Java => out.push_str(&format!("\\u{:04x}", c as u32)),
             c => out.push_str(&format!("\\x{:02x}", c as u32)),
         }
@@ -13292,10 +12306,6 @@ fn escaped(language: Language, value: &str) -> String {
 }
 
 /// The ok type of `Result<T, E>`, where the name means the shared Result.
-///
-/// The Rust reader spells `Result<T, E>` this way and the Zig reader spells `E!T` the
-/// same, which is what lets one writer translate both. A module that declares its own
-/// type called `Result` means that one, and gets no translation invented for it.
 fn result_ok(declared: &std::collections::BTreeSet<String>, ty: Option<&Type>) -> Option<Type> {
     match ty {
         Some(Type::Named { name, args })
@@ -13308,11 +12318,6 @@ fn result_ok(declared: &std::collections::BTreeSet<String>, ty: Option<&Type>) -
 }
 
 /// Does anything under this expression carry no translation?
-///
-/// Exhaustive on purpose, no `_` arm, for the same reason the reader's own walk is.
-/// A new variant must not be able to slip through quietly. The Rust writer asks
-/// before committing a constant, because a marker that is fine in a body stops the
-/// build in a `const`.
 fn contains_unsupported(e: &Expr) -> bool {
     match e {
         Expr::Unsupported(_) => true,
@@ -13375,10 +12380,6 @@ fn contains_unsupported(e: &Expr) -> bool {
 }
 
 /// A returned `Ok(...)` or `Err(...)`, where the value is one.
-///
-/// `true` is the success side. A payload of `()` counts as none, which is how a
-/// function that succeeds with nothing to say returns. A module that declares its own
-/// `Ok` or `Err` means those, and gets no translation invented for it.
 fn result_call<'e>(out: &Out, value: &'e Expr) -> Option<(bool, Option<&'e Expr>)> {
     let Expr::Call { callee, args } = value else {
         return None;
@@ -13403,9 +12404,6 @@ fn result_call<'e>(out: &Out, value: &'e Expr) -> Option<(bool, Option<&'e Expr>
 }
 
 /// Is this Err payload a sum's variant, and what is the variant called?
-///
-/// The exception languages and Go have no variant to hand back, so the name becomes
-/// the message, which is also what Zig's own `@errorName` answers.
 fn error_variant<'e>(out: &Out, payload: &'e Expr) -> Option<&'e str> {
     let Expr::Field { of, name } = payload else {
         return None;
@@ -13417,10 +12415,6 @@ fn error_variant<'e>(out: &Out, payload: &'e Expr) -> Option<&'e str> {
 const RESULT_RAISED: &str = "a Result crosses as its own failure here: Ok returns, Err raises.";
 
 /// Is this top-level statement exactly the entry call to a `main` this module declares?
-///
-/// Four of these targets run `main` themselves, so the call is not information
-/// there. Written anywhere, it would either run the program twice or fail to parse.
-/// Dropping it is a translation and not a loss, and the note says which.
 fn calls_declared_main(out: &Out, stmt: &Stmt) -> bool {
     let Stmt::Expr(Expr::Call { callee, .. }) = stmt else {
         return false;
@@ -13458,19 +12452,11 @@ fn required_parameters(f: &Function) -> usize {
 }
 
 /// Does this entry function receive the program's arguments?
-///
-/// Only `main(String[] args)` and its shape: the one-parameter convention is main's.
-/// Inventing arguments for any other entry would be a guess about what it takes.
 fn entry_takes_arguments(f: &Function) -> bool {
     f.name == "main" && required_parameters(f) == 1
 }
 
 /// A top-level statement, in a target whose top level only declares.
-///
-/// In the source that statement is the program: `main();` at the bottom of a
-/// TypeScript file, the call under `if __name__ == "__main__":`. There is
-/// nowhere here for it to run, so it is carried beside a marker. Where it is one
-/// expression it is rendered, so the reader sees what the source did.
 fn carried_statement(out: &mut Out, stmt: &Stmt, render: impl FnOnce(&mut Out, &Expr) -> String) {
     let rendered = match stmt {
         Stmt::Expr(e) => render(out, e),
@@ -13488,22 +12474,10 @@ fn carried_statement(out: &mut Out, stmt: &Stmt, render: impl FnOnce(&mut Out, &
     out.blank();
 }
 
-//
-// The canonical spellings are Python's, because its reader needs no normalising:
-// `print(x)`, `len(x)`, `str(x)`, `.append`, `.upper`, `.lower`, `.strip`, and
-// `sep.join(xs)`. Each reader rewrites its own language's spelling into these.
-// Each writer rewrites them back out into its own, so one language pair costs
-// two edits and not thirty. What the table does not cover is written through
-// unchanged, visible in the output, as before.
+// The canonical spellings are Python's, because its reader needs no normalising: `print(x)`,
+// `len(x)`, `str(x)`, `.append`, `.upper`, `.lower`, `.strip`, and `sep.join(xs)`.
 
 /// The module with every same-module base laid flat into its extenders.
-///
-/// `class User(UserBase)` where `UserBase` sits ten lines up loses nothing to
-/// a target without inheritance except the sharing. The base's fields and
-/// methods belong to every instance of `User`, so they lay flat into it. The extends
-/// marker then stands only for a base this module does not hold. Chains flatten
-/// transitively; a cycle, which no source language accepts, stops the walk; a
-/// method the extender overrides is the extender's.
 fn flatten_local_bases(module: &Module) -> (Module, Vec<String>) {
     let bases: std::collections::BTreeMap<String, Record> = module
         .items
@@ -13580,12 +12554,6 @@ fn flatten_local_bases(module: &Module) -> (Module, Vec<String>) {
 }
 
 /// Does this callee reach through `super`, into the base the source called?
-///
-/// The canonical shapes are a call to `super` for the base constructor and a
-/// call through a `super` field for a base method. Rust, Go and Zig have no
-/// inheritance and flattened any same-module base already, so what reaches
-/// them calls into a base out of reach. Writing the word through named
-/// nothing in any of the three.
 fn reaches_super(callee: &Expr) -> bool {
     match callee {
         Expr::Name(n) => n == "super",
@@ -13650,15 +12618,11 @@ fn rust_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
             )
         }
         // A length is a `usize` here and an ordinary integer everywhere else.
-        // Returned or compared as one, it did not compile.
-        // Bracketed: `a.len() as i64 < 1` reads the `<` as the start of a
-        // generic argument list on `i64`, and Rust says so.
         (None, "len", [x]) => format!("({}.len() as i64)", rust_expr(out, x)),
         // The canonical `int(x)`: a number cut toward zero, which is what `as`
         // does between Rust's own number types.
         (None, "int", [x]) => format!("(({}) as i64)", rust_expr(out, x)),
-        // `trunc` cuts toward zero and answers the same kind of number. An
-        // integer is already cut, and `i64` has no such method.
+        // `trunc` cuts toward zero and answers the same kind of number.
         (None, "trunc", [x]) => match static_type(out, x) {
             Some(Type::Float) => format!("({}).trunc()", rust_expr(out, x)),
             _ => rust_expr(out, x),
@@ -13682,8 +12646,7 @@ fn rust_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
             format!("{}.insert({member})", rust_expr(out, &of.clone()))
         }
         (Some(of), "remove", [x]) if holds_a_set(out, of) => {
-            // `remove` takes a borrow of what the set can be looked up by. A
-            // string literal is already one; a number is not.
+            // `remove` takes a borrow of what the set can be looked up by.
             let borrows = !matches!(x, Expr::Str(_));
             let member = match borrows {
                 true => format!("&{}", rust_expr(out, x)),
@@ -13739,8 +12702,7 @@ fn ts_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
             let rendered = joined(args, |a| ts_expr(out, a));
             format!("console.log({rendered})")
         }
-        // An object has no `.length`. Written that way, a map's size printed
-        // `undefined` and nothing said so.
+        // An object has no `.length`.
         (None, "len", [x]) if holds_a_map(out, x) => {
             format!("Object.keys({}).length", ts_expr(out, x))
         }
@@ -13839,8 +12801,7 @@ fn go_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
                 go_expr(out, &of.clone())
             )
         }
-        // A Go set is a map to `bool`. Adding writes `true`, removing deletes
-        // the key, and the membership question is the map read itself.
+        // A Go set is a map to `bool`.
         (Some(of), "add", [x]) if holds_a_set(out, of) => format!(
             "{}[{}] = struct{{}}{{}}",
             go_expr(out, &of.clone()),
@@ -13849,9 +12810,7 @@ fn go_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
         (Some(of), "remove", [x]) if holds_a_set(out, of) => {
             format!("delete({}, {})", go_expr(out, &of.clone()), go_expr(out, x))
         }
-        // Membership needs the two-value read, which only an `if` header has
-        // room for. The statement writer puts it there; reaching here means the
-        // question was asked where Go cannot ask it.
+        // Membership needs the two-value read, which only an `if` header has room for.
         (Some(of), "contains", [x]) if holds_a_set(out, of) => {
             let asked = format!("{}[{}]", go_expr(out, &of.clone()), go_expr(out, x));
             out.carried(&Unsupported {
@@ -13880,9 +12839,7 @@ fn java_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
         return None;
     }
     Some(match (receiver, name, args) {
-        // `xs.sort()` sorts in place by natural order. Java's `List.sort` takes
-        // a comparator and refuses to be called without one, so the ordering is
-        // named through `Collections`.
+        // `xs.sort()` sorts in place by natural order.
         (Some(of), "sort", []) => {
             format!(
                 "java.util.Collections.sort({})",
@@ -13920,8 +12877,7 @@ fn java_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
         (None, "str", [x]) => format!("String.valueOf({})", java_expr(out, x)),
         // A set answers Java's own four words, so only `len` needs saying.
         (None, "len", [x]) if holds_a_set(out, x) => format!("{}.size()", java_expr(out, x)),
-        // `len` is spelled by what it measures: a list answers `size()`, text
-        // answers `length()`.
+        // Spell `len` by what it measures: a list answers `size()`, text `length()`.
         (None, "len", [x]) => {
             let spelled = match static_type(out, x) {
                 Some(Type::String) => "length()",
@@ -13931,8 +12887,8 @@ fn java_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
         }
         // A narrowing cast in Java cuts toward zero, which is what this means.
         (None, "int", [x]) => format!("(int) ({})", java_expr(out, x)),
-        // Through `long` and back: the cast cuts toward zero and the result
-        // stays the kind of number the source had. An integer is already cut.
+        // Through `long` and back: the cast cuts toward zero and the result stays the kind of
+        // number the source had.
         (None, "trunc", [x]) => match static_type(out, x) {
             Some(Type::Float) => format!("(double) (long) ({})", java_expr(out, x)),
             _ => java_expr(out, x),
@@ -13972,14 +12928,12 @@ fn zig_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
             zig_expr(out, from),
             zig_expr(out, to)
         ),
-        // Into a helper over stdout rather than `std.debug.print`. That writes to stderr: a
-        // translated program has to say what the source said, on the stream the source said it
-        // on.
+        // Into a helper over stdout rather than `std.debug.print`.
         (None, "print", _) => {
             out.zig_helpers.insert("print");
-            // A lone template arg spreads into the format string; anything else
-            // becomes one hole per argument, space-separated the way every other
-            // target's print separates them.
+            // A lone template arg spreads into the format string; anything else becomes one
+            // hole per argument, space-separated the way every other target's print separates
+            // them.
             if let [Expr::Template(parts)] = args {
                 let (format, holes) = zig_template(out, parts);
                 return Some(format!("frPrint(\"{format}\\n\", .{{ {holes} }})"));
@@ -13995,8 +12949,6 @@ fn zig_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
             format!("@as(i64, @intCast({}.items.len))", out.value_name(n))
         }
         // A hash map answers `count()`; `len` is a field only a slice has.
-        // A length is a `usize` here and an ordinary integer everywhere else,
-        // and Zig converts between the two only when told to.
         (None, "len", [x]) if holds_a_map(out, x) => {
             format!("@as(i64, @intCast({}.count()))", zig_expr(out, x))
         }
@@ -14013,9 +12965,7 @@ fn zig_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
             Some(Type::Float) => format!("@trunc({})", zig_expr(out, x)),
             _ => zig_expr(out, x),
         },
-        // A growable list appends through the allocator the lowering owns. The failure a real
-        // allocator can raise stops the program, loudly, which matches the sources that never
-        // name an allocator mean.
+        // A growable list appends through the allocator the lowering owns.
         (Some(of), "append", [x]) => {
             let target = zig_expr(out, &of.clone());
             format!(
@@ -14058,10 +13008,8 @@ fn zig_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
                 zig_expr(out, &of.clone())
             )
         }
-        // `str` of something already text is the text: a Zig string is a slice of
-        // bytes, and a literal is one from birth. Of a number it is a formatted
-        // string, which the format helper owns. Of a caught error it is the name,
-        // which is where the message lives here.
+        // `str` of something already text is the text: a Zig string is a slice of bytes, and a
+        // literal is one from birth.
         (None, "str", [x @ (Expr::Str(_) | Expr::Template(_))]) => zig_expr(out, x),
         (None, "str", [Expr::Name(bound)]) if out.catch_bindings.iter().any(|b| b == bound) => {
             format!("@errorName({})", out.value_name(bound))
@@ -14076,9 +13024,6 @@ fn zig_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
 }
 
 /// The message as an error identifier: Zig's errors are names, not strings.
-///
-/// A message that is a name already is used as one, so `@errorName` gives it back
-/// exactly. Anything else is slugged, and the catch will read the slug.
 fn zig_error_name(message: &str) -> String {
     let mut name: String = message
         .chars()
@@ -14146,8 +13091,7 @@ fn zig_template(out: &mut Out, parts: &[TemplatePart]) -> (String, String) {
                 // the way any Zig string does, minus the quotes `quoted` adds.
                 let text = text.replace('{', "{{").replace('}', "}}");
                 let quoted = quoted(Language::Zig, &text);
-                // Exactly the two delimiters. `trim_matches` would also eat the `"`
-                // of a trailing escaped quote, leaving its backslash to eat the real one.
+                // Exactly the two delimiters.
                 let inner = quoted
                     .strip_prefix('"')
                     .and_then(|q| q.strip_suffix('"'))
@@ -14164,10 +13108,6 @@ fn zig_template(out: &mut Out, parts: &[TemplatePart]) -> (String, String) {
 }
 
 /// The format spec one hole takes: `d` for a number, `s` for text, `any` otherwise.
-///
-/// Zig formats by spec where every other target formats by value, so the spec is read
-/// off what the expression is. `any` is the honest fallback, and a transcript that
-/// needed better says so by differing.
 fn zig_hole_spec(out: &Out, e: &Expr) -> &'static str {
     match e {
         Expr::Int(_) | Expr::Float(_) => "d",
@@ -14179,8 +13119,6 @@ fn zig_hole_spec(out: &Out, e: &Expr) -> &'static str {
             _ if out.zig_strings.contains(name.as_str()) => "s",
             _ => "any",
         },
-        // A call's value formats by the callee's declared return; the canonical
-        // conversions have one answer each.
         Expr::Call { callee, .. } => match callee.as_ref() {
             Expr::Name(name) if name == "str" => "s",
             Expr::Name(name) if name == "int" || name == "len" => "d",
@@ -14216,20 +13154,13 @@ fn zig_hole_spec(out: &Out, e: &Expr) -> &'static str {
 }
 
 /// The type this record extends, where the target can express one.
-///
-/// Three of these languages have inheritance and the rest do not, so `inheritable` says which
-/// kind of target is asking. `None` comes back either because the source declared no base or
-/// because this language has none. The second of those leaves a note, since dropping it
-/// silently made `class JsonPrimitive extends JsonElement` into a class that extends nothing.
-/// That is a different type, and the output said nothing about it.
 fn inherited_base(out: &mut Out, record: &Record, inheritable: bool) -> Option<String> {
     let base = record.extends.clone()?;
     if inheritable {
         return Some(base);
     }
-    // Said in the output too, beside the type, because that file is the one a
-    // reader of the draft has in front of them. A note that lives only in the
-    // report leaves the struct looking whole.
+    // Said in the output too, beside the type, because that file is the one a reader of the
+    // draft has in front of them.
     out.line(&out.comment(&format!(
         "{MARKER}: extends {base}; whatever `{base}` contributed is not here"
     )));
@@ -14242,11 +13173,6 @@ fn inherited_base(out: &mut Out, record: &Record, inheritable: bool) -> Option<S
 }
 
 /// What this target calls a function that makes a value of `owner`.
-///
-/// Three of these languages have a constructor and three have a habit. Java names it after
-/// the class, Python calls it `__init__` and TypeScript calls it `constructor`; Rust writes
-/// `Thing::new`, Go writes `NewThing` and Zig writes `Thing.init`. Which of those a file gets
-/// is a fact about the target. So the IR carries *that it is one* and not what it is called.
 fn constructor_name(language: Language, owner: &str) -> String {
     match language {
         Language::Python => "__init__".to_string(),
@@ -14259,15 +13185,6 @@ fn constructor_name(language: Language, owner: &str) -> String {
 }
 
 /// A record's methods, with only the first constructor left as one.
-///
-/// Java is the one target here that overloads constructors; everywhere else a type has
-/// exactly one. The rest keep the names their source gave them, and the report lists them. A
-/// caller of `Thing(a, b)` needs to know what to write instead. A constructor body that
-/// builds and returns its own record, rewritten as the field assignments a receiver-taking
-/// constructor makes.
-///
-/// Only a body that is that. A constructor which computes something first is not this shape.
-/// Turning it into one would be a guess about what the rest of it was for.
 fn receiver_assignments(method: &Function, record: &str) -> Option<Vec<Stmt>> {
     let [Stmt::Return(Some(Expr::RecordLit { ty, fields }))] = method.body.as_slice() else {
         return None;
@@ -14298,42 +13215,25 @@ fn methods_of(out: &mut Out, record: &Record, overloads_allowed: bool) -> Vec<Fu
             continue;
         }
         // Whether a constructor takes a receiver, and whether it says what it returns, is a
-        // fact about the target and not about the source. Python's `__init__` takes `self`
-        // and returns nothing, while Java's and TypeScript's take neither. The three that
-        // spell it by habit take no receiver and return the type, and returning the type is
-        // what makes them constructors at all.
+        // fact about the target and not about the source.
         match out.language {
-            // A constructor here acts on a value that already exists, so it takes the
-            // receiver and says nothing about what it returns. A source whose
-            // constructor had none. Rust builds and returns instead, still needs one
-            // bound, or Python writes `@staticmethod def __init__(n)` and TypeScript
-            // writes `static constructor(n)`.
+            // A constructor here acts on a value that already exists, so it takes the receiver
+            // and says nothing about what it returns.
             Language::Python | Language::Java | Language::TypeScript | Language::Tsx => {
                 if method.receiver_binding.is_none() {
                     method.receiver_binding = Some(receiver_word(out.language).to_string());
                 }
                 method.returns = None;
-                // A source that builds and returns its record, `Counter { value. 0, step }`,
-                // says the same thing a constructor here says by assigning through the
-                // receiver. Left as a return it is not a translation: an `__init__` that
-                // returns a value raises. A Java constructor that returns one does not compile.
+                // A source that builds and returns its record, `Counter { value.
                 if let Some(assignments) = receiver_assignments(method, &record.name) {
                     method.body = assignments;
                 }
             }
             // The other three have no constructor, only a habit: a plain function that
-            // *returns* the type, which is the whole of what makes it one. It has no
-            // receiver, so a body that assigns through one has nowhere to run. Writing
-            // `self.n = n` inside a function that binds no `self` translates nothing.
-            //
-            // A body that does not assign through a receiver has somewhere to run. It already
-            // builds a value and returns it, which is the shape these three want. Throwing it
-            // away was a rule about receiver-assigning constructors applied to every
-            // constructor, and it discarded the one line a Rust constructor is made of.
+            // *returns* the type, which is the whole of what makes it one.
             _ => {
-                // The canonical build-and-return body is already this shape, whatever
-                // the source bound as a receiver. An `__init__` of plain assignments
-                // arrives as one `Return(RecordLit)`. Nothing needs throwing away.
+                // The canonical build-and-return body is already this shape, whatever the
+                // source bound as a receiver.
                 let builds_and_returns = matches!(
                     method.body.as_slice(),
                     [Stmt::Return(Some(Expr::RecordLit { ty, .. }))] if *ty == record.name
@@ -14370,22 +13270,12 @@ fn methods_of(out: &mut Out, record: &Record, overloads_allowed: bool) -> Vec<Fu
     methods
 }
 
-/// Text that can sit inside a `/* ... */` comment.
-///
-/// `*/` closes one, and a doc comment that quotes a glob, `app/**/route.ts`, carries that
-/// sequence in the middle of a sentence. Java and TypeScript both wrote it through, so the
-/// comment ended early and the compiler parsed the rest of the sentence as code. It found
-/// three words, two template strings and an optional chain the author never wrote.
+/// Text that can sit inside a `/* ...
 fn block_comment_safe(text: &str) -> String {
     text.replace("*/", "* /")
 }
 
-/// Can this value be written twice without doing anything twice?
-///
-/// Python and Java can only ask "is this absent" by naming the value, so `a ?? b` becomes two
-/// mentions of `a`. That costs nothing for a name, a literal or a field read. Anything else
-/// takes a second call, and the program would then do more than the original did. Those are
-/// carried instead.
+/// Can a writer name this value twice without doing anything twice?
 fn nameable(e: &Expr) -> bool {
     match e {
         Expr::Name(_)
@@ -14410,10 +13300,6 @@ fn sanitise(name: &str) -> String {
 }
 
 /// Is this a name a target can put where a name goes?
-///
-/// Generous on purpose: a qualified path is a name, `std::fmt::Display`, `sync.Mutex`,
-/// and shortening one would point a signature at something that does not exist. What
-/// this refuses is a name that is not made of name characters at all.
 fn is_writable_identifier(name: &str) -> bool {
     !name.is_empty()
         && name
@@ -14422,7 +13308,7 @@ fn is_writable_identifier(name: &str) -> bool {
         && !name.starts_with(|c: char| c.is_ascii_digit())
 }
 
-/// Can this be written as a bare object key?
+/// Can a writer spell this as a bare object key?
 fn is_identifier(text: &str) -> bool {
     !text.is_empty()
         && text
@@ -14432,10 +13318,6 @@ fn is_identifier(text: &str) -> bool {
 }
 
 /// Is this a type the IR only knows the name of?
-///
-/// A signature containing one is carried across but is not a *complete* translation,
-/// A type the source never wrote down. Named and not guessed.
-/// Every value this body hands back, `return` and tail alike.
 fn returned_values(f: &Function) -> Vec<&Expr> {
     fn walk<'a>(stmts: &'a [Stmt], into: &mut Vec<&'a Expr>) {
         for stmt in stmts {
@@ -14492,9 +13374,6 @@ fn returned_values(f: &Function) -> Vec<&Expr> {
 }
 
 /// Does this function hand a value back, whatever the source said about it?
-///
-/// A source that annotates nothing still returns things, and the targets that
-/// name every return type wrote none. The body is the only evidence there is.
 fn returns_a_value(f: &Function) -> bool {
     !returned_values(f).is_empty()
 }
@@ -14518,25 +13397,21 @@ fn unknown(out: &mut Out, of: &str) -> String {
         .notes
         .push(format!("`{of}` had no declared type in the source"));
     match out.language {
-        // `()` is the type of no value, not of an unknown one. A parameter
-        // written that way could not be called, indexed or added to.
-        // Rust says "the caller decides" with a type parameter, which the
-        // signature writer adds.
+        // `()` is the type of no value, not of an unknown one.
         Language::Rust => TYPE_THE_CALLER_DECIDES.to_string(),
         Language::Python => "object".to_string(),
         Language::Go => "any".to_string(),
         // Zig has no dynamic type; `anytype` says the caller decides, which is exactly
         // true of a parameter whose type the source never wrote down.
         Language::Zig => "anytype".to_string(),
-        // `unknown` is a type in TypeScript and a word in Java, where the widest
-        // one is `Object`. Written through, `unknown f` was a class javac had
-        // never heard of.
+        // `unknown` is a type in TypeScript and a word in Java, where the widest one is
+        // `Object`.
         Language::Java => "Object".to_string(),
         _ => "unknown".to_string(),
     }
 }
 
-/// The expressions a statement holds directly, to be rewritten in place.
+/// The expressions a statement holds directly, for rewriting in place.
 fn statement_expressions_mut(stmt: &mut Stmt) -> Vec<&mut Expr> {
     match stmt {
         Stmt::Expr(e) | Stmt::Throw(e) | Stmt::Return(Some(e)) => vec![e],
@@ -14555,7 +13430,7 @@ fn statement_expressions_mut(stmt: &mut Stmt) -> Vec<&mut Expr> {
     }
 }
 
-/// The expressions an expression holds, to be rewritten in place.
+/// The expressions an expression holds, for rewriting in place.
 fn subexpressions_mut(e: &mut Expr) -> Vec<&mut Expr> {
     match e {
         Expr::Call { callee, args } | Expr::New { callee, args } => {
@@ -14592,16 +13467,6 @@ fn subexpressions_mut(e: &mut Expr) -> Vec<&mut Expr> {
 }
 
 /// Every comprehension in this module, written as the loop that builds it.
-///
-/// `[f(x) for x in xs if p(x)]` is an empty list, a walk over `xs`, and an
-/// append under a condition. Each of those is a node every writer already
-/// spells, so the languages with no comprehension of their own get one for
-/// free, and the ones that have it never see this.
-/// Whole-number literals spelled fractional where the binding says fractional.
-///
-/// `let numbers: Vec<f64> = vec![4, 5, 6]` does not compile, and neither does
-/// `List<Double> numbers = List.of(4, 5, 6)`. The value is the same number; only
-/// its spelling changes, and only where a declaration asks for it.
 fn numbers_as_declared(module: &Module) -> Module {
     fn spell(e: &mut Expr, wanted: &Type) {
         match (&mut *e, wanted) {
@@ -14640,8 +13505,8 @@ fn numbers_as_declared(module: &Module) -> Module {
             {
                 spell(value, ty);
             }
-            // A field declared fractional takes a fractional literal, wherever
-            // in the body the record is built.
+            // Give a field declared fractional a fractional literal, wherever the body
+            // builds the record.
             for e in statement_expressions_mut(stmt) {
                 in_record_literals(e, fields_of);
             }
@@ -14664,7 +13529,7 @@ fn numbers_as_declared(module: &Module) -> Module {
                     }
                 }
             }
-            // `new Box(9)` fills the fields in the order they are declared.
+            // `new Box(9)` fills the fields in declaration order.
             Expr::New { callee, args } | Expr::Call { callee, args } => {
                 if let Expr::Name(ty) = callee.as_ref() {
                     if let Some(declared) = fields_of.get(ty) {
@@ -14715,13 +13580,6 @@ fn numbers_as_declared(module: &Module) -> Module {
 }
 
 /// Every named lambda that captures nothing, lifted to a function of its own.
-///
-/// Zig is the one target with no closure at all. A lambda bound to a name
-/// becomes a function with that name, which is the same declaration under the
-/// same word. A lambda written inline has no name to take, and inventing one
-/// adds a declaration the source never had. A round trip back found it and said
-/// so. A lambda that reads a local is not liftable either, because lifting it
-/// would silently drop what it read. Both stay carried.
 fn functions_for_lambdas(module: &Module) -> Module {
     let mut lifted = module.clone();
     let mut made: Vec<Item> = Vec::new();
@@ -14766,8 +13624,7 @@ fn declared_names(body: &[Stmt]) -> Vec<String> {
 
 /// Replace each liftable lambda in these statements with the name of a function.
 fn lift_in(body: &mut Vec<Stmt>, bound: &std::collections::BTreeSet<String>, made: &mut Vec<Item>) {
-    // The owned vector is taken because the marker statements are dropped at
-    // the end, and `retain` needs one.
+    // Take the vector by value: `retain` needs one, and the markers go at the end.
     for stmt in body.iter_mut() {
         // A binding whose whole value is a lambda keeps its name: `add_one`
         // becomes `fn addOne`, which is what a reader of the source expects.
@@ -14856,10 +13713,8 @@ fn loops_for_comprehensions(module: &Module) -> Module {
             for inner in sub_bodies_mut(&mut stmt) {
                 *inner = lower(inner, next);
             }
-            // A binding whose whole value is a comprehension is built in place,
-            // with no name in between. The alias was a second binding, and the
-            // one target that tells a growable list from an array by the name it
-            // was declared under lost track of it.
+            // Build a binding whose whole value is a comprehension in place, naming
+            // nothing in between.
             if let Stmt::Let {
                 name,
                 value: Some(Expr::Comprehension { .. }),
@@ -14995,11 +13850,6 @@ fn loops_for_comprehensions(module: &Module) -> Module {
 }
 
 /// The parameters this body calls, and how many arguments each call passes.
-///
-/// A parameter the source never typed is usually just a value, and the widest
-/// type the target has will hold it. One that is *called* is a function, and no
-/// widest type is callable: Rust's type parameter and Java's `Object` both
-/// refuse. The body says which, so the signature can say so too.
 fn called_parameters(f: &Function) -> std::collections::BTreeMap<String, usize> {
     fn walk(
         stmts: &[Stmt],
@@ -15079,24 +13929,16 @@ fn called_parameters(f: &Function) -> std::collections::BTreeMap<String, usize> 
 }
 
 /// The stand-in Rust uses for a type the source never wrote.
-///
-/// A marker rather than a type. The signature writer turns each one into its
-/// own parameter: two untyped parameters are two unknowns and not one.
 const TYPE_THE_CALLER_DECIDES: &str = "\u{0}caller-decides";
 
 /// What the bash writer tracks beside [`Out`].
-///
-/// Bash separates arrays from scalars at every use site, `"${xs[@]}"` against
-/// `"$x"`, and a function that produces a value produces it on stdout. Neither
-/// fact is written at a use, so both are collected from the declarations first.
 struct BashCx {
     /// Functions whose body returns a value: their calls capture `$(f …)`, and a
     /// call in statement position discards `>/dev/null`.
     value_fns: std::collections::BTreeSet<String>,
     /// Names bound to arrays, spelled `"${xs[@]}"` where a sequence is wanted.
     arrays: std::collections::BTreeSet<String>,
-    /// Names holding text. `line + word` on one of these is concatenation, and
-    /// writing it `$(( line + word ))` printed 0 where the source printed words.
+    /// Names holding text.
     strings: std::collections::BTreeSet<String>,
 }
 
@@ -15256,8 +14098,6 @@ fn bash_stmt(out: &mut Out, bx: &mut BashCx, stmt: &Stmt, local: bool) {
         Stmt::Return(None) => out.line("return"),
         Stmt::Return(Some(value)) => {
             // A bash function's value is its stdout: the caller captures `$(f …)`.
-            // `return` carries only an exit status, so the value prints and the
-            // status says it went well.
             match bash_word(out, bx, value) {
                 Some(word) => {
                     out.note_once(
@@ -15589,11 +14429,6 @@ fn bash_stmt(out: &mut Out, bx: &mut BashCx, stmt: &Stmt, local: bool) {
 }
 
 /// Write a branch body, and `:` after it when nothing in it became a command.
-///
-/// `then` followed by nothing but comments is a syntax error, not a body. A
-/// statement can turn out to be all comments only while it renders: a carry is
-/// comments by design. So the question is asked of what was written, not of what
-/// was about to be.
 fn bash_guarded_block(out: &mut Out, bx: &mut BashCx, body: &[Stmt], local: bool) {
     let before = out.text.len();
     bash_block(out, bx, body, local);
@@ -15752,10 +14587,8 @@ fn bash_arith(out: &mut Out, bx: &mut BashCx, e: &Expr) -> Option<String> {
         }
         Expr::Call { .. } => bash_word(out, bx, e),
         Expr::Binary { op, left, right } => {
-            // Bash's `%` truncates, and a source that floors answers a
-            // different number whenever the operands have different signs.
-            // `((a % b) + b) % b` is that answer. It names the divisor twice,
-            // so only a divisor that can be named twice may take it.
+            // Bash's `%` truncates, and a source that floors answers a different number
+            // whenever the operands have different signs.
             if *op == BinaryOp::FloorRem {
                 if !matches!(
                     right.as_ref(),
@@ -15810,9 +14643,6 @@ fn bash_arith_assign(out: &mut Out, bx: &mut BashCx, stmt: &Stmt) -> Option<Stri
 }
 
 /// A condition after `if` or `while`.
-///
-/// Numeric comparisons test inside `(( … ))`, equality on text inside `[[ … ]]`.
-/// The operands say which: a string or template on either side is text.
 fn bash_cond(out: &mut Out, bx: &mut BashCx, e: &Expr) -> Option<String> {
     match e {
         Expr::Bool(true) => Some("true".to_string()),

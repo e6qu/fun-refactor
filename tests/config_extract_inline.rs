@@ -1,13 +1,4 @@
 //! Extract and inline variable for the config languages, end to end.
-//!
-//! None of Terraform, YAML, CSS or Markdown has a binding form. So each gets the construct that
-//! names a value there, a `locals` entry, a YAML anchor, a CSS custom property, a link
-//! reference definition. These tests assert the exact resulting bytes, that everything outside
-//! the edited ranges survives untouched, that the result still parses. That extract and inline
-//! are inverses.
-//!
-//! Where a form genuinely cannot be produced with the grammars available, the refusal is
-//! asserted instead, with the reason it names.
 
 use fun_refactor::{
     edit::{apply_to_string, plan, Validation},
@@ -66,8 +57,7 @@ impl Workspace {
     }
 }
 
-/// Apply one file's edits to the text on disk. A destination that does not exist yet
-/// starts empty, which is how the refactorings build edits against a new file.
+/// Apply one file's edits to the text on disk.
 fn applied(edits: &fun_refactor::edit::EditSet, path: &Path) -> String {
     let original = std::fs::read_to_string(path).unwrap_or_default();
     apply_to_string(&original, edits.edits_for(path).unwrap_or(&[])).unwrap()
@@ -88,7 +78,7 @@ fn commit(edits: &fun_refactor::edit::EditSet) {
 }
 
 /// Every stretch of the original that no edit covers must reappear, in order and
-/// byte-identical, in the result. This is the guarantee a splice engine exists for.
+/// byte-identical, in the result.
 fn untouched_regions_survive(before: &str, after: &str, edits: &[fun_refactor::edit::Edit]) {
     let mut spans: Vec<Span> = edits.iter().map(|e| e.span).collect();
     spans.sort_by_key(|s| s.start);
@@ -196,7 +186,6 @@ resource \"aws_s3_bucket\" \"logs\" {
 }
 "
     );
-    // The literal survives exactly once, in the declaration.
     assert_eq!(out.matches("\"acme-prod-assets\"").count(), 1);
     must_reparse(&plan_out.edits);
 }
@@ -370,8 +359,7 @@ fn hcl_inline_reaches_across_files_in_the_same_module() {
 
 #[test]
 fn hcl_inline_refuses_when_another_module_directory_uses_the_same_local() {
-    // A local is module-scoped, and a module is a directory. A `local.prefix` in a
-    // different directory cannot be rewritten from here.
+    // A local is module-scoped, and a module is a directory.
     let ws = workspace(&[
         ("locals.tf", "locals {\n  prefix = \"acme\"\n}\n"),
         ("outputs.tf", "output \"o\" {\n  value = local.prefix\n}\n"),
@@ -811,8 +799,7 @@ fn helm_extract_function_refuses_without_a_chart_yaml() {
 #[test]
 fn helm_extract_function_writes_a_named_template_to_a_file_that_did_not_exist() {
     // `_helpers.tpl` normally has to be created, and `.tpl` had no language until
-    // `Language::Helm` claimed the extension. Both are settled, so this plans and
-    // validates like any other refactoring.
+    // `Language::Helm` claimed the extension.
     let ws = helm_workspace();
     let path = ws.path("chart/templates/deploy.yaml");
     let region_start = HELM_DEPLOYMENT.find("        - name: main").unwrap();
@@ -980,9 +967,8 @@ fn css_extract_puts_a_new_root_rule_after_leading_at_rules() {
 
 #[test]
 fn scss_extract_produces_a_dollar_variable_at_the_top_level() {
-    // A `$` name asks for an SCSS variable, which is declared at the stylesheet's top
-    // level and not in a `:root` rule, `$vars` are resolved by the compiler, not
-    // the cascade.
+    // A `$` name asks for an SCSS variable, which is declared at the stylesheet's top level and
+    // not in a `:root` rule, `$vars` are resolved by the compiler, not the cascade.
     let src = ".btn {\n  color: #3366ff;\n}\n\n.link {\n  color: #3366ff;\n}\n";
     let ws = workspace(&[("theme.scss", src)]);
     let path = ws.path("theme.scss");
@@ -1370,8 +1356,7 @@ fn markdown_extract_then_inline_restores_the_original() {
 
 #[test]
 fn every_config_extraction_leaves_the_rest_of_the_file_byte_identical() {
-    // The edited ranges are the only ones that move. Anything outside them, comments,
-    // odd spacing, trailing whitespace, must come through untouched.
+    // The edited ranges are the only ones that move.
     let src = "# a comment\nlocals {\n  keep = \"me\"\n}\n\n\nresource \"aws_s3_bucket\" \"b\" {\n  bucket   =    \"acme\"\n  tags = {}\n}\n   \n";
     let ws = workspace(&[("main.tf", src)]);
     let path = ws.path("main.tf");
@@ -1424,9 +1409,8 @@ fn untouched_regions_survive_every_config_extraction() {
 
 #[test]
 fn html_remains_refused_for_extract_variable() {
-    // HTML has no binding form at all: a reusable value there is a CSS custom
-    // property, which belongs to the stylesheet. XML does have one, the DTD
-    // entity, and is covered in tests/extract_inline_remaining.rs.
+    // HTML has no binding form at all: a reusable value there is a CSS custom property, which
+    // belongs to the stylesheet.
     let ws = workspace(&[("page.html", "<div id=\"main\">hello</div>\n")]);
     let path = ws.path("page.html");
     let err = extract::variable(&ws.index, &path, Span::new(1, 4), "x", false)
@@ -1437,12 +1421,7 @@ fn html_remains_refused_for_extract_variable() {
 
 #[test]
 fn a_go_binding_is_placed_before_the_statement_it_serves() {
-    // Go puts a `statement_list` between a block and its statements. A third private
-    // copy of the "is this a statement container" predicate did not know that, so the
-    // enclosing *statement* of an expression resolved to the whole function body and
-    // the new binding was inserted at the top of the function, above the declaration
-    // of the variable it reads. That parses, so no reparse check would catch it; it
-    // does not compile.
+    // Go puts a `statement_list` between a block and its statements.
     let src = "package p\n\nfunc f(xs []int) {\n\titems := []int{}\n\
                \tfor _, x := range xs {\n\t\titems = append(items, x)\n\t}\n\
                \tif len(items) > 0 {\n\t\tuse(items)\n\t}\n}\n\nfunc use(x []int) {}\n";

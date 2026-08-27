@@ -1,13 +1,4 @@
 //! A rewrite that asks for no change has to make none.
-//!
-//! Running `fr restructure` with the same pattern and template over this repository
-//! changed files eight ways out of eight. Three causes, none of them the shape the user
-//! asked about: a metavariable bracketed because the template binds it, when the pattern
-//! bound it the same way; a template written on one line pulling up a receiver the author
-//! put on its own; and a trailing comma dropped from a call.
-//!
-//! None of the three broke a build. All three wrote to files nobody asked to change,
-//! which is how a refactoring tool loses the benefit of the doubt.
 
 use fun_refactor::index::Index;
 use fun_refactor::lang::Language;

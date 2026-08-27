@@ -160,6 +160,29 @@ as they were, including inside an expression that the tool extracts.
 
 ## Install
 
+Every release carries a built binary. Take the one for your machine, check it
+against the `.sha256` beside it, and put `fr` on your path.
+
+| Archive | Machine |
+|---|---|
+| `fr-<tag>-x86_64-unknown-linux-musl.tar.gz` | Linux, amd64 |
+| `fr-<tag>-aarch64-unknown-linux-musl.tar.gz` | Linux, arm64 |
+| `fr-<tag>-x86_64-apple-darwin.tar.gz` | macOS, Intel |
+| `fr-<tag>-aarch64-apple-darwin.tar.gz` | macOS, Apple silicon |
+| `fun-refactor-<tag>-wasm.tar.gz` | A browser or Node, as a module |
+
+The Linux binaries link against musl and are static, so they need nothing
+installed and no particular distribution. The browser archive holds the
+WebAssembly module and the JavaScript that loads it, the same pair the
+[playground](https://e6qu.github.io/fun-refactor/playground/) runs.
+
+```
+tar -xzf fr-v0.1.0-aarch64-apple-darwin.tar.gz
+./fr-v0.1.0-aarch64-apple-darwin/fr --version
+```
+
+To build it yourself instead:
+
 ```
 cargo install --path .
 ```

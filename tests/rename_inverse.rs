@@ -1,13 +1,4 @@
 //! Renaming a symbol and renaming it back leaves the workspace where it started.
-//!
-//! A rename touches every file that references the symbol. The edits are byte splices instead
-//! of a reformat, so the inverse ought to restore the tree exactly, including the files it
-//! decided not to touch. Anything else means the first rename wrote something the second could
-//! not find, or found something the first did not.
-//!
-//! Verified over `helm/helm` before writing this: 14 uniquely-named Go callables, all 14
-//! byte-identical after `A -> ZzTmpName -> A`. This pins the same property on a workspace that
-//! spans languages, where a cross-language reference gives it more to get wrong.
 
 use fun_refactor::edit::{commit, plan as plan_edits, Validation};
 use fun_refactor::index::Index;

@@ -1,10 +1,4 @@
 //! A Python property is one attribute with two doors, and both doors rename.
-//!
-//! `@property def size` and `@size.setter def size` declare one thing. Renaming
-//! the getter alone left the setter answering the old name, left `@size.setter`
-//! reading a binding the class no longer had, and left `b.size` callers behind
-//! because the getter and setter counted as two candidates and the use site was
-//! called ambiguous inside the very class that declares it.
 
 use fun_refactor::index::Index;
 use fun_refactor::refactor::rename;
@@ -83,8 +77,8 @@ fn a_receiver_declared_the_owning_class_renames_with_the_property() {
 
 #[test]
 fn a_receiver_declared_a_subtype_of_the_owner_renames_too() {
-    // `s` is declared `Sub2`, which declares no `area` of its own; the one it
-    // reaches is `Base`'s. The owners of a family include everything below them.
+    // `s` is declared `Sub2`, which declares no `area` of its own; the one it reaches is
+    // `Base`'s.
     let source = "class Base:\n    def area(self) -> int:\n        return 0\n\n\n\
         class Sub2(Base):\n    pass\n\n\n\
         def measure(s: Sub2) -> int:\n    return s.area()\n";
@@ -100,9 +94,7 @@ fn a_receiver_declared_a_subtype_of_the_owner_renames_too() {
 
 #[test]
 fn an_attribute_follows_into_a_subclass_declared_in_another_file() {
-    // `Sub(Base)` lives one import away from `Base`. The attribute family
-    // crosses the declared chain wherever the files sit; `self.count` in the
-    // subclass is the same attribute `__init__` declares.
+    // `Sub(Base)` lives one import away from `Base`.
     let base = "class Base:\n    def __init__(self) -> None:\n        self.count = 0\n";
     let sub = "from base import Base\n\n\nclass Sub(Base):\n    def bump(self) -> None:\n        \
         self.count += 1\n";
@@ -118,8 +110,7 @@ fn an_attribute_follows_into_a_subclass_declared_in_another_file() {
 
 #[test]
 fn a_java_var_receiver_takes_its_type_from_the_construction() {
-    // `var b = new B()` writes the type on the right of the `=`. The call
-    // renames with `B`'s method and `A`'s same-named one stays.
+    // `var b = new B()` writes the type on the right of the `=`.
     let source = "class B {\n    int size(int n) {\n        return n * 2;\n    }\n}\n\n\
         class A {\n    int size(int n) {\n        return n * 3;\n    }\n}\n\n\
         class Shop {\n    int run() {\n        var b = new B();\n        return b.size(2);\n    }\n}\n";
@@ -153,9 +144,7 @@ fn an_unrelated_class_with_the_same_property_name_stays_put() {
 
 #[test]
 fn a_receiver_assigned_twice_holds_its_call_back() {
-    // `b = B()` then `b = A()` on a live path. An initializer is not a
-    // declaration when the binding is rebound. Renaming the call with `B`'s
-    // method wrote code that raises on the other path.
+    // `b = B()` then `b = A()` on a live path.
     let source = "class B:\n    def size(self, n: int) -> int:\n        return n * 2\n\n\n\
         class A:\n    def size(self, n: int) -> int:\n        return n * 3\n\n\n\
         def run(flag: bool) -> int:\n    b = B()\n    if flag:\n        b = A()\n    \
@@ -179,10 +168,7 @@ fn a_receiver_assigned_twice_holds_its_call_back() {
 
 #[test]
 fn an_aliased_base_class_still_joins_the_family() {
-    // `from base import Base as Foundation` names the class the file over
-    // declares. Recorded as written, the hierarchy edge pointed at a name
-    // nothing declares, so the subclass site was left behind and applying the
-    // rename raised AttributeError.
+    // `from base import Base as Foundation` names the class the file over declares.
     let base = "class Base:\n    def __init__(self) -> None:\n        self.count = 0\n";
     let sub = "from base import Base as Foundation\n\n\nclass Sub(Foundation):\n    \
         def bump(self) -> None:\n        self.count += 1\n";

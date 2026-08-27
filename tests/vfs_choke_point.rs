@@ -1,25 +1,11 @@
 //! The analysis reads source through `crate::vfs` and nowhere else.
-//!
-//! This is not style. `src/vfs.rs` makes the crate work in a browser, where there is no
-//! filesystem. A `std::fs` call there returns nothing and a `Path::exists` returns false, and
-//! both do it quietly. That is the worst failure shape available, `fr move` in the playground
-//! refused every Rust file with "src has neither lib.rs nor main.rs" while `src/main.rs` sat
-//! right there in the loaded workspace, because `exists()` had been left pointing at a
-//! filesystem that was not there.
-//!
-//! Every read was already routed through the choke point when it was introduced; the `exists()`
-//! calls were not, and nothing noticed for a release. So the invariant is checked and not
-//! remembered.
 
 use std::path::Path;
 
 /// Files that are allowed to touch the filesystem directly, and why.
 fn is_exempt(path: &Path) -> bool {
     let name = path.to_string_lossy().replace('\\', "/");
-    // vfs.rs *is* the choke point. cache.rs is the on-disk fact cache, which does not
-    // exist in a browser at all, the wasm build has no cache and asks for none.
-    // scan.rs walks a working tree to find files, which is a terminal-only question:
-    // a browser workspace arrives as a map that is already the answer.
+    // vfs.rs *is* the choke point.
     name.ends_with("src/vfs.rs") || name.ends_with("src/cache.rs") || name.ends_with("src/scan.rs")
 }
 
@@ -65,8 +51,7 @@ fn source_is_read_only_through_the_vfs() {
     assert!(!files.is_empty(), "found no Rust sources under src/");
 
     // `create_dir_all` and `rename` are excluded deliberately: they are write-side filesystem
-    // mechanics that `edit.rs` performs only on the terminal path. The browser never reaches
-    // them because it writes through `vfs::write`.
+    // mechanics that `edit.rs` performs only on the terminal path.
     let banned = [
         ("std::fs::read_to_string", "crate::vfs::read_to_string"),
         ("std::fs::read(", "crate::vfs::read_to_string"),

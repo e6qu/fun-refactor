@@ -1,8 +1,4 @@
 //! The type a symbol was declared with, in each language that writes one down.
-//!
-//! Nothing here is inferred, and that is the point and not a limitation. `x = 5` has no
-//! declared type; answering `int` would be a different claim from the one the source made. A
-//! tool that quietly fills the gap in cannot show the gap closing.
 
 use fun_refactor::analysis::types;
 use fun_refactor::index::Index;
@@ -53,8 +49,7 @@ const subtotal: Money = { minorUnits: 0 };
 #[test]
 fn a_binding_with_no_annotation_says_so() {
     // `declared` stays `None` however much is worked out from elsewhere: the two are different
-    // claims. The whole subject of annotating a codebase is the gap between them. What the
-    // reader is shown names which one they are looking at.
+    // claims.
     for (files, inferred) in [
         (&[("a.py", PY)][..], "int (from the literal)"),
         (&[("a.ts", TS)][..], "number (from the literal)"),
@@ -75,8 +70,6 @@ fn a_binding_with_an_annotation_reports_it() {
 
 #[test]
 fn a_callable_reports_the_signature_a_caller_has_to_satisfy() {
-    // The return type alone is not what a caller needs to know, and a parameter the
-    // source left untyped is marked and not filled in.
     for files in [&[("a.py", PY)][..], &[("a.ts", TS)][..]] {
         let found = describe(files, "capture");
         assert_eq!(
@@ -92,10 +85,8 @@ fn a_callable_reports_the_signature_a_caller_has_to_satisfy() {
 
 #[test]
 fn the_type_is_looked_up_in_its_own_language() {
-    // A Python class called `Money` and a TypeScript interface called `Money` are two
-    // types that share a spelling. The first version of this searched every symbol in
-    // the workspace and pointed the TypeScript binding at the Python class, because
-    // that one happened to be indexed first.
+    // A Python class called `Money` and a TypeScript interface called `Money` are two types
+    // that share a spelling.
     let files = [("a.py", PY), ("a.ts", TS)];
     for (symbol_file, expected) in [("a.py", "a.py"), ("a.ts", "a.ts")] {
         let tmp = tempfile::tempdir().expect("a temporary directory");
@@ -124,8 +115,7 @@ fn the_type_is_looked_up_in_its_own_language() {
 
 #[test]
 fn a_type_from_outside_the_tree_is_not_a_gap() {
-    // `int` resolves nowhere and that is correct. Reporting it as unresolved would put
-    // a warning on every annotation anybody writes.
+    // `int` resolves nowhere and that is correct.
     let found = describe(&[("a.py", PY)], "Money::minor_units");
     assert_eq!(found.declared.as_deref(), Some("int"));
     assert_eq!(found.defined_at, None);
@@ -249,8 +239,7 @@ fn a_field_gives_what_its_record_declared() {
 #[test]
 fn an_object_literal_is_not_answered_with_dict() {
     // `{"amount": 100}` is a dict and saying so is true and useless: a dictionary is where a
-    // type should have been. A tool that answers `dict` has agreed with the code and not
-    // described it.
+    // type should have been.
     for (files, name) in [
         (&[("a.py", PY_INFER)][..], "bag"),
         (&[("a.ts", TS_INFER)][..], "bag"),
@@ -263,7 +252,7 @@ fn an_object_literal_is_not_answered_with_dict() {
 
 #[test]
 fn a_call_out_of_the_workspace_yields_nothing() {
-    // The chain stops where the evidence does. `Any` would be a different claim.
+    // The chain stops where the evidence does.
     for files in [&[("a.py", PY_INFER)][..], &[("a.ts", TS_INFER)][..]] {
         let found = describe(files, "nothing");
         assert_eq!(found.inferred, None, "{found:?}");
@@ -272,9 +261,7 @@ fn a_call_out_of_the_workspace_yields_nothing() {
 
 #[test]
 fn a_declaration_wins_over_a_derivation() {
-    // An annotation is a contract and an inference is a derivation. Where both could apply the
-    // contract is the answer. A disagreement is a defect in the code instead of a choice for
-    // this to make.
+    // An annotation is a contract and an inference is a derivation.
     let source = "\
 class Money:
     pass
@@ -287,11 +274,6 @@ subtotal: int = Money()
 }
 
 /// `--json` answers with names and places, like every other command.
-///
-/// It used to serialize the analysis struct directly, so it emitted `"symbol". 1` and
-/// `"defined_at": 0`, `SymbolId`s, which are positions in one run's index and mean nothing to
-/// whoever reads the output. `defined_at` read like a line number. The text rendering resolved
-/// them all along; only the machine-readable half did not.
 #[test]
 fn the_json_names_what_it_points_at() {
     let tmp = tempfile::tempdir().expect("a temporary directory");
@@ -338,9 +320,8 @@ fn the_json_names_what_it_points_at() {
     }
 }
 
-/// Go and Java fix a binding's type at the declaration, so a literal there settles it for
-/// the whole scope. Rust and Zig are absent. `let x = 0;` takes its type from a later use,
-/// and Zig's `0` is a `comptime_int` no parameter can be written with.
+/// Go and Java fix a binding's type at the declaration, so a literal there settles it for the
+/// whole scope.
 #[test]
 fn a_go_or_java_literal_settles_what_the_binding_holds() {
     let go = "package main\n\nfunc run() {\n\ttotal := 0\n\tlabel := \"a\"\n\n\t\
@@ -360,8 +341,7 @@ fn a_go_or_java_literal_settles_what_the_binding_holds() {
     }
 }
 
-/// Arithmetic over two operands of one type yields that type. A comparison yields a
-/// boolean, so `a < b` derives nothing here.
+/// Arithmetic over two operands of one type yields that type.
 #[test]
 fn arithmetic_over_one_type_yields_that_type() {
     let go = "package main\n\nfunc run() {\n\ta := 6\n\tb := 3\n\n\tratio := a / b\n\t\
@@ -375,8 +355,7 @@ fn arithmetic_over_one_type_yields_that_type() {
     assert_eq!(smaller.inferred, None, "a comparison is not its operands");
 }
 
-/// The walk out of a declaration looking for a written type stops at the block. A Zig
-/// `const width = 3;` inside `fn run() void` reported `void`, the function's return type.
+/// The walk out of a declaration looking for a written type stops at the block.
 #[test]
 fn a_binding_does_not_borrow_the_enclosing_function_type() {
     let zig = "fn run() void {\n    const width = 3;\n}\n";
@@ -385,8 +364,8 @@ fn a_binding_does_not_borrow_the_enclosing_function_type() {
     assert_eq!(found.inferred, None, "and nothing derives one");
 }
 
-/// Rust's strings, booleans and characters have no later use to wait for: `"a"` is
-/// `&str` however the code uses it. Its numbers do wait, so they stay open.
+/// Rust's strings, booleans and characters have no later use to wait for: `"a"` is `&str`
+/// however the code uses it.
 #[test]
 fn rusts_fixed_literals_answer_and_its_numbers_stay_open() {
     let rust = "fn run() {\n    let name = \"a\";\n    let flag = true;\n    let mark = 'x';\n    \
@@ -401,8 +380,7 @@ fn rusts_fixed_literals_answer_and_its_numbers_stay_open() {
     assert_eq!(count.inferred, None, "`0` takes its type from a later use");
 }
 
-/// Zig's booleans are `bool` and nothing else. Its numbers are comptime values no
-/// parameter can be written with, so they stay open.
+/// Zig's booleans are `bool` and nothing else.
 #[test]
 fn zigs_boolean_answers_and_its_numbers_stay_open() {
     let zig = "fn run() void {\n    const flag = true;\n    const count = 7;\n    \
@@ -427,8 +405,7 @@ fn self_takes_the_type_of_the_declaration_enclosing_it() {
     }
 }
 
-/// A conditional expression whose branches share a type has that type. Where the
-/// branches disagree, nothing is claimed.
+/// A conditional expression whose branches share a type has that type.
 #[test]
 fn a_ternary_whose_branches_agree_has_their_type() {
     let ts = "const flag = true;\nconst label = flag ? \"a\" : \"b\";\n\
@@ -463,8 +440,7 @@ fn a_zig_loop_name_takes_the_sequences_element_type() {
     assert_eq!(inferred.ty, "usize");
 }
 
-/// Two classes each declare a `total`. The call resolves through the receiver's
-/// declared type to the one it owns, and the binding takes that return type.
+/// Two classes each declare a `total`.
 #[test]
 fn a_member_call_resolves_through_its_receivers_type() {
     let py = "class Basket:\n    def total(self) -> int:\n        return 0\n\n\
@@ -476,8 +452,7 @@ fn a_member_call_resolves_through_its_receivers_type() {
     assert_eq!(inferred.basis, types::Basis::ReturnOfCall);
 }
 
-/// Two records each declare an `amount`. The read reaches the receiver's own field;
-/// a receiver nothing types answers nothing rather than either field.
+/// Two records each declare an `amount`.
 #[test]
 fn a_field_shared_by_two_records_answers_only_through_the_receiver() {
     let py = "class Ledger:\n    amount: int\n\nclass Journal:\n    amount: str\n\n\
@@ -491,9 +466,7 @@ fn a_field_shared_by_two_records_answers_only_through_the_receiver() {
     assert_eq!(blind.inferred, None, "an untyped receiver picks no field");
 }
 
-/// Two bindings assigned from each other run out of chain, not stack. The first
-/// version restarted the hop count at zero on every route back into a symbol's
-/// answer, and this shape recursed until the process died.
+/// Two bindings assigned from each other run out of chain, not stack.
 #[test]
 fn a_cyclic_assignment_answers_nothing_instead_of_overflowing() {
     let py = "def go():\n    x = y\n    y = x\n    return (x, y)\n";

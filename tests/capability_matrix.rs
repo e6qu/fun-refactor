@@ -1,9 +1,4 @@
 //! The published matrix must match what the code does.
-//!
-//! This exists because the README's matrix drifted once already: capabilities gated by an
-//! explicit predicate stayed accurate while ones left to emerge from grammar shape did not.
-//! `inline --call` was documented for six languages while working for two. A table nobody
-//! checks is a table that lies.
 
 use fun_refactor::capabilities::{self, Capability, Support};
 use fun_refactor::lang::Language;
@@ -25,10 +20,7 @@ fn the_readme_matrix_matches_the_code() {
 
 #[test]
 fn every_command_that_has_a_per_language_answer_is_in_the_matrix() {
-    // The matrix is the tool's own claim about what it does, per language. Three commands were
-    // missing from it, `fr translate` most conspicuously, since its answer differs by language
-    // in two different ways. `fr recipe` is the one genuine exception: it composes the rows
-    // instead of adding one.
+    // The matrix is the tool's own claim about what it does, per language.
     let commands: Vec<&str> = Capability::ALL.iter().map(|c| c.command()).collect();
     for expected in [
         "fr rename",
@@ -61,9 +53,6 @@ fn every_command_that_has_a_per_language_answer_is_in_the_matrix() {
 
 #[test]
 fn no_reason_describes_a_different_language() {
-    // Six reasons once explained Java's absences in terms of stylesheets and markup,
-    // because the fallback strings were written when every unsupported language was
-    // one of those. A reason that names a language other than its own is the tell.
     let mut examined = 0;
     for capability in Capability::ALL {
         for language in Language::ALL {
@@ -72,9 +61,6 @@ fn no_reason_describes_a_different_language() {
             };
             examined += 1;
             // A word only some languages can be described with, and the ones that can.
-            // The first three caught Java; the rest were added when `extract function`
-            // told a reader that a **shell function** needs "a written return type and
-            // modifiers", because Bash inherited Java's reason from the same fallback.
             for (word, truthful_of) in [
                 // Markup may name a stylesheet: that is where the value belongs instead.
                 (
@@ -137,12 +123,7 @@ fn every_supported_cell_names_a_real_command() {
 
 #[test]
 fn nothing_is_merely_unimplemented() {
-    // `Refused` means "could be done in this language, is not". Every such cell has
-    // now been either built or shown to mean nothing in that language, so the matrix
-    // should contain none at all.
-    //
-    // If this fails, a capability was added without deciding what it means everywhere,
-    // which is how 27 unbuilt cells once came to be reported as complete.
+    // `Refused` means "could be done in this language, is not".
     let mut refused: Vec<String> = Vec::new();
     for capability in Capability::ALL {
         for language in Language::ALL {
@@ -177,7 +158,6 @@ fn every_unsupported_cell_explains_itself() {
 #[test]
 fn config_languages_carry_their_share_of_the_mutations() {
     // The whole point of the tool: config and markup languages are not second-class.
-    // If a change drops them below this, it is a regression worth noticing.
     let config = [
         Language::Hcl,
         Language::Helm,
@@ -206,10 +186,6 @@ fn config_languages_carry_their_share_of_the_mutations() {
 
 #[test]
 fn the_published_totals_match_the_matrix() {
-    // The table is checked and the sentence describing it was not, so the sentence drifted: the
-    // README's rows counted 261 supported pairs while the line above them said 260. PLAN.md was
-    // still quoting a total from before six capabilities and a language existed. A number
-    // nobody checks is a table that lies in prose.
     let mut yes = 0usize;
     let mut rest = 0usize;
     for capability in Capability::ALL {
@@ -222,9 +198,7 @@ fn the_published_totals_match_the_matrix() {
     }
     let total = yes + rest;
 
-    // Each claim as it is written, with the numbers left as placeholders. A phrasing
-    // that changes has to be changed here too, which is the point: the sentence and
-    // the count are one thing.
+    // Each claim as it is written, with the numbers left as placeholders.
     for (name, claims) in [
         (
             "README.md",
@@ -260,9 +234,7 @@ fn the_published_totals_match_the_matrix() {
 
 #[test]
 fn the_published_language_count_matches_the_list() {
-    // The same failure as above, in the other number the docs state. Four files
-    // said seventeen after JSON became the eighteenth. A count written once and
-    // read everywhere is a count nobody notices going wrong.
+    // The same failure as above, in the other number the docs state.
     let n = Language::ALL.len();
     let word = match n {
         17 => "seventeen",
@@ -317,10 +289,6 @@ fn the_published_language_count_matches_the_list() {
 
 #[test]
 fn the_status_table_in_the_plan_is_derived_from_the_code() {
-    // The third place a number stated in prose went stale. The table under
-    // "Where this stands" said 24 x 16 and 269 of 384 long after the matrix had
-    // grown two languages. It said twelve defects open with one left in BUGS.md.
-    // Each row below is countable, so each row is counted.
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let plan = std::fs::read_to_string(root.join("PLAN.md")).expect("PLAN.md is readable");
     let bugs = std::fs::read_to_string(root.join("BUGS.md")).expect("BUGS.md is readable");

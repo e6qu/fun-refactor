@@ -1,15 +1,4 @@
 //! A stylesheet's module system: what `@use` and `@import` make visible where.
-//!
-//! Sass splits a codebase into files and gives each one a namespace. `@use "theme"` makes
-//! its variables reachable as `theme.$brand`, `as t` renames that namespace, `as *` drops
-//! it, and the older `@import` drops it too. A partial is written `_theme.scss` and named
-//! `"theme"`, so no import ever spells the file it names.
-//!
-//! Before this, a `$variable` declared in one file and used in another resolved to
-//! nothing in either syntax. `fr rename` rewrote the declaration and left every use site
-//! behind, reporting them as occurrences it could not place. These tests hold both
-//! halves: what the module system makes visible resolves, and what it does not stays
-//! unresolved.
 
 use fun_refactor::index::Index;
 use fun_refactor::model::{Confidence, SymbolId};
@@ -128,8 +117,7 @@ fn the_default_namespace_is_the_file_it_came_from() {
 
 #[test]
 fn a_bare_name_reaches_what_import_and_a_star_bring_in() {
-    // The older `@import` drops everything into one scope, and `@use ... as *` says the
-    // same thing in the newer syntax. A bare `$brand` is the whole name in both.
+    // The older `@import` drops everything into one scope, and `@use ...
     for opening in ["@import \"theme\";", "@use \"theme\" as *;"] {
         let (_tmp, _root, index) = workspace(&[
             ("_theme.scss", "$brand: #fff;\n"),
@@ -146,8 +134,7 @@ fn a_bare_name_reaches_what_import_and_a_star_bring_in() {
 
 #[test]
 fn a_namespace_nothing_bound_reaches_nothing() {
-    // `@use "theme"` binds the namespace `theme` and nothing else. A bare `$brand` is an
-    // undefined variable in Sass, and the tool says so instead of guessing the file.
+    // `@use "theme"` binds the namespace `theme` and nothing else.
     let (_tmp, _root, index) = workspace(&[
         ("_theme.scss", "$brand: #fff;\n"),
         ("style.scss", "@use \"theme\";\n\n.a { color: $brand; }\n"),
@@ -208,9 +195,7 @@ fn a_rename_crosses_the_file_boundary_it_resolved_across() {
 
 #[test]
 fn a_forward_carries_a_name_one_file_further() {
-    // `@forward "theme"` re-exports what that file declares. A third file that `@use`s
-    // the forwarder reaches them through the forwarder's namespace, which is one hop
-    // more than the declaring file's own.
+    // `@forward "theme"` re-exports what that file declares.
     let (_tmp, _root, index) = workspace(&[
         ("_theme.scss", "$brand: #fff;\n"),
         ("_index.scss", "@forward \"theme\";\n"),
@@ -230,8 +215,7 @@ fn a_forward_carries_a_name_one_file_further() {
 
 #[test]
 fn a_builtin_module_names_no_file_and_says_nothing_false() {
-    // `@use "sass:math"` names a module the compiler carries, not a file in this
-    // workspace. Nothing resolves to it, and nothing here pretends otherwise.
+    // `@use "sass:math"` names a module the compiler carries, not a file in this workspace.
     let (_tmp, root, index) = workspace(&[(
         "style.scss",
         "@use \"sass:math\";\n\n.a { width: math.div(1, 2); }\n",
@@ -260,8 +244,7 @@ fn a_builtin_module_names_no_file_and_says_nothing_false() {
 
 #[test]
 fn a_variable_used_only_from_another_file_is_not_dead() {
-    // What resolution is for. Every use site sat in another file, so the declaration
-    // looked like a name nothing reads, and `fr delete` would have taken it away.
+    // What resolution is for.
     let (_tmp, _root, index) = workspace(&[
         ("_theme.scss", "$brand: #fff;\n$unread: #000;\n"),
         (
@@ -287,12 +270,6 @@ fn a_variable_used_only_from_another_file_is_not_dead() {
 }
 
 /// A CSS module's selectors are its own, the way a chart's values are.
-///
-/// `.primary` in `Button.module.css` compiles to a name nobody writes, and the
-/// component reaches it through the object its import binds. So the `.primary` a
-/// neighbouring module declares is a different class. Grouped by name across
-/// files, renaming one component's class rewrote every other component's
-/// stylesheet that happened to use the word.
 #[test]
 fn a_css_module_keeps_its_selectors_to_itself() {
     let (_dir, root, index) = workspace(&[

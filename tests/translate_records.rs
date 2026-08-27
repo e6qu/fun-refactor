@@ -1,7 +1,4 @@
 //! Building a record, which is the line every constructor is made of.
-//!
-//! `Counter { value: 0, step }` is the one way Rust builds one. Nothing read it, so every
-//! constructor body in every target came out as "not translated".
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -68,9 +65,7 @@ impl Counter {
 
 #[test]
 fn a_constructor_that_builds_and_returns_keeps_its_body() {
-    // Rust, Go and Zig have no constructor, only a function that returns the type. The
-    // body was thrown away for all three under a rule about bodies that assign through
-    // a receiver, which this one does not.
+    // Rust, Go and Zig have no constructor, only a function that returns the type.
     for (target, expected) in [
         (Language::Go, "return Counter{Value: 0, Step: step}"),
         (Language::Zig, "return Counter{ .value = 0, .step = step };"),
@@ -82,9 +77,8 @@ fn a_constructor_that_builds_and_returns_keeps_its_body() {
 
 #[test]
 fn a_constructor_becomes_field_assignments_where_one_takes_a_receiver() {
-    // An `__init__` that returns a value raises; a Java constructor that returns one
-    // does not compile. Building and returning the record says what assigning
-    // through the receiver says.
+    // An `__init__` that returns a value raises; a Java constructor that returns one does not
+    // compile.
     let out = translated("a.rs", COUNTER, Language::Python);
     assert!(out.contains("self.value = 0"), "{out}");
     assert!(out.contains("self.step = step"), "{out}");
@@ -99,10 +93,7 @@ fn a_constructor_becomes_field_assignments_where_one_takes_a_receiver() {
 
 #[test]
 fn an_enum_variant_is_not_a_record() {
-    // `Stop::Conditional { … }` builds a tagged union. Writing the path through
-    // produced Go that says `Stop::Conditional{…}`, which Go does not parse;
-    // then it carried for eleven passes. Now the value crosses as the variant's
-    // own struct, and the path spelling never reaches the output.
+    // `Stop::Conditional { … }` builds a tagged union.
     let source = "\
 pub enum Stop {
     Conditional { what: String },

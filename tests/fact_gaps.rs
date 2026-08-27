@@ -1,10 +1,4 @@
 //! What the index does not know about a file, and how it says so.
-//!
-//! Two things stop extraction short of the file: the grammar failing, and a Helm action
-//! standing where a key belongs. Both leave the facts incomplete, and a refactoring that reads
-//! them is deciding on less than the file contains. These tests pin that each one is reported.
-//! That neither is inferred from the other, a templated key parses cleanly about as often as
-//! not. So the parse error is not a usable signal for it.
 
 use fun_refactor::extract::Extractor;
 use fun_refactor::index::Index;
@@ -36,9 +30,7 @@ fn key_names(source: &str) -> Vec<String> {
 
 #[test]
 fn a_templated_key_is_reported_whether_or_not_the_parse_survives_it() {
-    // The same construct, differing only in what surrounds it. `matchLabels` is the
-    // shape three bitnami charts write, and it parses; the second does not. Reporting
-    // the missing entry cannot depend on which one it is.
+    // The same construct, differing only in what surrounds it.
     let parses = "matchLabels:\n  {{ $key | quote }}: {{ $value | quote }}\n";
     let does_not = "a: 1\n{{ .Values.k }}: v\nb: 2\n";
 
@@ -51,7 +43,7 @@ fn a_templated_key_is_reported_whether_or_not_the_parse_survives_it() {
 
 #[test]
 fn a_templated_key_opening_a_sequence_entry_is_a_key_too() {
-    // `- ` is structure. It is not a name, so the action after it is still in key position.
+    // `- ` is structure.
     assert_eq!(
         gaps("items:\n  - {{ $key }}: v\n"),
         [FactGap::TemplatedKeys]
@@ -61,8 +53,7 @@ fn a_templated_key_opening_a_sequence_entry_is_a_key_too() {
 #[test]
 fn a_templated_key_never_becomes_a_symbol() {
     // Byte offsets index the original source, so a key masked to a scalar reports under the
-    // action's own text. A symbol named `{{ $key }}`, which rename would rewrite into broken
-    // template syntax. Absent is the honest answer, and the gap says it is absent.
+    // action's own text.
     for source in [
         "items:\n  - {{ $key }}: v\n",
         "matchLabels:\n  {{ $key | quote }}: {{ $value | quote }}\n",
@@ -77,8 +68,7 @@ fn a_templated_key_never_becomes_a_symbol() {
 
 #[test]
 fn structural_actions_are_not_key_positions() {
-    // `{{- if }}`/`{{- end }}` own their lines and carry no `:`. Reporting a gap for
-    // them would mark most of every chart incomplete.
+    // `{{- if }}`/`{{- end }}` own their lines and carry no `:`.
     let source = "spec:\n  {{- if .Values.enabled }}\n  replicas: 1\n  {{- end }}\n";
     assert!(gaps(source).is_empty(), "{:?}", gaps(source));
     assert!(key_names(source).contains(&"replicas".to_string()));

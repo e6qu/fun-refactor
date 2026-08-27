@@ -1,9 +1,4 @@
 //! Extract a subexpression into a named binding.
-//!
-//! The insertion point matters as much as the extraction. The binding goes at the start of the
-//! statement containing the expression, at that statement's own indentation. So the result
-//! reads like hand-written code. The expression's original bytes are reused verbatim and not
-//! reprinted, so any comments and spacing inside it survive.
 
 use super::Refusal;
 use crate::edit::{full_line_span, line_indent, Edit, EditSet};
@@ -23,14 +18,11 @@ pub struct ExtractPlan {
     /// The extracted text, verbatim.
     pub expression: String,
     pub edits: EditSet,
-    /// How many occurrences of the expression were replaced.
+    /// How many occurrences of the expression this replaced.
     pub occurrences: usize,
 }
 
 /// Extract the expression covering `span` into a binding called `name`.
-///
-/// With `all_occurrences`, every syntactically identical expression in the same
-/// enclosing block is replaced too.
 pub fn variable(
     index: &Index,
     file: &Path,
@@ -44,9 +36,8 @@ pub fn variable(
     let language = info.language;
     crate::capabilities::record(crate::capabilities::Capability::ExtractVariable, language);
 
-    // The config languages have no bindings, so each one gets the construct that plays the
-    // same role. Those are a Terraform `local`, a YAML anchor, a CSS custom property and a
-    // Markdown link reference definition.
+    // The config languages have no bindings, so each one gets the construct that plays the same
+    // role.
     match language {
         Language::Hcl => return hcl_local(index, file, span, name, all_occurrences),
         Language::Yaml | Language::Helm => {
@@ -87,10 +78,7 @@ pub fn variable(
     let expr_span = Span::from(expr);
     let expr_text = expr_span.text(&source).to_string();
 
-    // A statement is not a value. `total_loop = for line in lines: …` says nothing
-    // in any of these languages. Without this check that text was built and
-    // thrown at the reparse gate, which rejected it without saying what to do
-    // instead.
+    // A statement is not a value.
     if expr.kind().contains("statement") || expr.kind().contains("declaration") {
         anyhow::bail!(
             "the selection is a {}, and a binding holds an expression; \
@@ -104,11 +92,7 @@ pub fn variable(
         anyhow::bail!("'{expr_text}' is already a name; extracting it would only create an alias");
     }
 
-    // An expression that *is* its statement has nothing left behind it. Replacing it with the
-    // new name leaves a statement that only names the binding, `zzx;`. Zig rejects that
-    // outright, Go rejects it as an unused value, and the other three accept it while it
-    // means nothing. The value is already being computed for its effect, so there is nothing
-    // to hoist.
+    // An expression that *is* its statement has nothing left behind it.
     if expr
         .parent()
         .is_some_and(|p| p.kind().contains("expression_statement") && p.named_child_count() == 1)
@@ -133,11 +117,7 @@ pub fn variable(
     })?;
     let statement_span = Span::from(statement);
 
-    // Every name the expression uses has to mean the same thing where the binding goes. A
-    // closure parameter, a loop variable and a `match` binding exist only inside the construct
-    // that introduces them. The statement the binding is placed in front of can be outside it.
-    // `self.items.iter().filter(|i| i.kind != K)` is one statement, and `i` does not exist at
-    // the start of it.
+    // Every name the expression uses has to mean the same thing where the binding goes.
     if let Some(unreachable) =
         a_name_that_does_not_reach(index, info, expr_span, statement_span.start)
     {
@@ -181,7 +161,6 @@ pub fn variable(
 }
 
 /// Is extract-variable meaningful for this language?
-/// Languages whose extraction goes through the generic statement-based path.
 pub(crate) fn supports_imperative_extract(language: Language) -> bool {
     matches!(
         language,
@@ -196,10 +175,6 @@ pub(crate) fn supports_imperative_extract(language: Language) -> bool {
 }
 
 /// Can a value be extracted into a named binding in this language?
-///
-/// The single authority for the capability table. It has to account for the config-language
-/// paths `variable()` dispatches to before reaching the generic one. Consulting only the
-/// imperative predicate made the published matrix wrong.
 pub fn supports_extract(language: Language) -> bool {
     supports_imperative_extract(language)
         || matches!(
@@ -216,7 +191,7 @@ pub fn supports_extract(language: Language) -> bool {
         )
 }
 
-/// How a binding is written in each language.
+/// Spell a binding each language's way.
 fn render_binding(language: Language, name: &str, value: &str) -> String {
     match language {
         Language::Rust => format!("let {name} = {value};"),
@@ -252,14 +227,7 @@ fn expression_at<'a>(parsed: &'a Parsed, span: Span) -> Option<Node<'a>> {
     Some(best)
 }
 
-/// The statement the expression belongs to: the ancestor whose parent is a block. A name in the
-/// expression that is written in a scope the binding cannot reach.
-///
-/// The binding goes at the start of the enclosing statement. That statement can be outside the
-/// construct the expression sits in: `self.items.iter().filter(|i| i.kind != K)` is one
-/// statement, and `i` exists only inside the closure. Asking which scope each name is *written*
-/// in answers this without needing the declaration, which matters because a closure parameter
-/// is not recorded as one.
+/// The statement the expression belongs to: the ancestor whose parent is a block.
 fn a_name_that_does_not_reach(
     index: &Index,
     info: &crate::index::FileInfo,
@@ -448,7 +416,6 @@ mod tests {
             out,
             "fn f() {\n    let doubled = x * 2;\n    let a = doubled;\n    let b = doubled;\n}\n"
         );
-        // The expression survives once, in the new binding, and nowhere else.
         assert_eq!(out.matches("x * 2").count(), 1, "got:\n{out}");
     }
 
@@ -594,12 +561,10 @@ pub struct Parameter {
     pub name: String,
     /// The declared type, where the source states one.
     pub type_annotation: Option<String>,
-    /// The region assigns to this name, so the new function's copy changes and the
-    /// changed value has to travel back. Rust is the one language here that must
-    /// say so on the parameter itself.
+    /// The region assigns to this name, so the new function's copy changes and the changed
+    /// value has to travel back.
     pub mutated: bool,
-    /// What the call passes, where that is not the parameter's own name. A receiver
-    /// carried out of a method is passed as `this` and received under a plain name.
+    /// What the call passes, where that is not the parameter's own name.
     pub argument: Option<String>,
 }
 
@@ -629,9 +594,6 @@ impl Parameter {
 }
 
 /// Extract the statements covering `span` into a new function called `name`.
-///
-/// The moved statements keep their original bytes, so comments inside the extracted
-/// region survive, the thing gopls is known to lose.
 pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<ExtractFunctionPlan> {
     if let Some(language) = index.file(file).map(|i| i.language) {
         crate::capabilities::record(crate::capabilities::Capability::ExtractFunction, language);
@@ -641,15 +603,13 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         .ok_or_else(|| anyhow::anyhow!("{} is not in the index", file.display()))?;
     let language = info.language;
 
-    // Each of these languages has something that plays a function's role: a shell function,
-    // an SCSS mixin, a Helm named template. None of them reaches it through the generic
-    // dataflow analysis, so each gets its own arm.
+    // Each of these languages has something that plays a function's role: a shell function, an
+    // SCSS mixin, a Helm named template.
     match language {
         Language::Helm => return helm_named_template(file, span, name),
         Language::Bash => return bash_function(index, file, span, name),
         Language::Scss | Language::Sass => return sass_mixin(index, file, span, name, language),
-        // A mixin is a Sass invention. Plain CSS has no construct that names a group
-        // of declarations, so there is nothing here to extract into.
+        // A mixin is a Sass invention.
         Language::Css => anyhow::bail!(
             "plain CSS has no mixin, function or any other construct that names a group \
              of declarations, so there is nothing to extract into. `@mixin` / `@include` \
@@ -684,9 +644,7 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         .ok_or_else(|| anyhow::anyhow!("select one or more complete statements to extract."))?;
     let region = run.span;
 
-    // The moved statements keep their original bytes. Two ends in different
-    // blocks carry a closing brace, or Python's outdent, into the middle of
-    // the new function.
+    // The moved statements keep their original bytes.
     if let Some(owner) = straddled_block(&run) {
         let lines = crate::span::LineIndex::new(&source);
         let at = lines.line_col(Span::from(owner).start, &source);
@@ -704,9 +662,8 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         .into());
     }
 
-    // A jump out of the region cannot be reproduced by a call, so the extraction
-    // would change control flow. Refuse and not produce something that compiles
-    // but behaves differently.
+    // A jump out of the region cannot be reproduced by a call, so the extraction would change
+    // control flow.
     if let Some(kind) = escaping_control_flow(&parsed, region) {
         return Err(Refusal::NotHere {
             operation: "extracting a function".into(),
@@ -726,8 +683,8 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         );
     }
 
-    // An `await` *can* be carried across, by marking the extracted function async and
-    // awaiting the call. Where the language writes it some other way, it cannot.
+    // Carry an `await` across by marking the extracted function async and awaiting the
+    // call.
     let is_async = awaits(&parsed, region);
     if is_async && !awaits_with_a_keyword(language) {
         anyhow::bail!(
@@ -756,9 +713,7 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
             continue;
         };
         // Whether a binding is local is a question of scope, not of mutability: a
-        // function-scoped `const` is every bit as local as a `let`. Functions and
-        // types are reachable from the new function wherever they live, so only
-        // value bindings declared inside the enclosing function can need passing.
+        // function-scoped `const` is every bit as local as a `let`.
         if !is_value_binding(target.kind) || !enclosing_span.contains(target.name_span) {
             continue;
         }
@@ -776,9 +731,6 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         }
     }
     // Rust's inline format captures read a binding from inside a string.
-    // `println!("{total} file(s)")` reads `total`, and no reference records
-    // it, because the identifier is string content. Extracted without the
-    // parameter, the body did not compile while the command reported success.
     if language == Language::Rust {
         for name in format_captured_names(&parsed, &source, region) {
             if seen_params.contains(&name) {
@@ -803,10 +755,8 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
     }
     parameters.sort_by(|a, b| a.name.cmp(&b.name));
 
-    // A parameter the region assigns to is a copy: the caller's binding keeps its
-    // old value in every one of these languages. Where the code after the region
-    // still reads that binding, the changed value has to travel back as a return.
-    // Anything less quietly changes what the function computes.
+    // A parameter the region assigns to is a copy: the caller's binding keeps its old value in
+    // every one of these languages.
     let assigned = assigned_names(&parsed, region, &source);
     let mut carried: Vec<String> = Vec::new();
     for (name, id) in &parameter_ids {
@@ -833,7 +783,7 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         parameter.mutated = carried.contains(&parameter.name);
     }
 
-    // Data flow out: locals defined in the region that are still read afterwards.
+    // Data flow out: locals the region defines and later code still reads.
     let mut returns: Vec<String> = Vec::new();
     for symbol_id in &info.symbols {
         let Some(symbol) = index.symbol(*symbol_id) else {
@@ -854,8 +804,7 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
     returns.dedup();
     let carried: std::collections::BTreeSet<String> = carried.into_iter().collect();
 
-    // The type of every returned binding. It sits at the declaration inside the
-    // region, or on the parameter that carried it in from outside.
+    // The type of every returned binding.
     let return_types: Vec<Option<String>> = returns
         .iter()
         .map(|name| {
@@ -873,9 +822,7 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         })
         .collect();
 
-    // Languages that require types on parameters cannot have them invented. Where a binding's
-    // type was never written down there is nothing to recover. So the extraction is refused
-    // with the names instead of emitting code that will not compile.
+    // Languages that require types on parameters cannot have them invented.
     if requires_explicit_types(language) {
         let untyped: Vec<&str> = parameters
             .iter()
@@ -916,9 +863,7 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         );
     }
 
-    // Go spells several results as a parenthesised list of types. The signature says
-    // one when the region hands back more than one value. A single value keeps the
-    // bare type it was declared with.
+    // Go spells several results as a parenthesised list of types.
     let return_type: Option<String> = match return_types.as_slice() {
         [] => None,
         [only] => only.clone(),
@@ -929,9 +874,8 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
             .map(|types| format!("({})", types.join(", "))),
     };
 
-    // A method's receiver is implicit: the region reads `this` or `self` and no
-    // parameter carries it. The extracted definition is a plain function, so the
-    // receiver either travels as a parameter or the extraction is refused.
+    // A method's receiver is implicit: the region reads `this` or `self` and no parameter
+    // carries it.
     let placement = definition_placement(&parsed, &source, region, language)?;
     let receiver = match placement.from_a_member.then(|| implicit_receiver(language)) {
         Some(Some(keyword)) => receiver_uses(&parsed, &source, region, keyword),
@@ -940,7 +884,6 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
     let mut body = region.text(&source).to_string();
     if !receiver.is_empty() {
         let carrier = carried_receiver(&parsed, &source, region, language, &parameters)?;
-        // Descending, so an earlier rewrite does not move a later one's bytes.
         for use_span in receiver.iter().rev() {
             let start = use_span.start - region.start;
             let end = use_span.end - region.start;
@@ -1002,14 +945,6 @@ struct Placement {
 }
 
 /// Where the new definition goes.
-///
-/// It used to go straight after the function it came from, at column zero. Inside a class
-/// that put a `def` in the middle of the class body. Python parses that, because a `def`
-/// nests anywhere. Every method below it became a closure of the new function, and the
-/// class lost them. Inside a nested function it did the same to the outer body. So the
-/// definition is hoisted out of every class it sits in and written at the indentation of
-/// whatever it ends up beside. Hoisting stops at the first enclosing function, because a
-/// definition moved past one loses the locals it closes over.
 fn definition_placement(
     parsed: &Parsed,
     source: &str,
@@ -1035,8 +970,7 @@ fn definition_placement(
         current = parent;
     }
 
-    // Java is the one language here whose extracted definition stays a member. It is
-    // written `static`, beside the method it came from, so it does not move out.
+    // Java is the one language here whose extracted definition stays a member.
     let node = match language {
         Language::Java => function,
         _ => outermost,
@@ -1061,12 +995,7 @@ fn enclosing_definition_node<'a>(parsed: &'a Parsed, region: Span) -> Option<Nod
     }
 }
 
-/// The word a method of this language uses for its receiver, where the receiver is
-/// implicit.
-///
-/// Python and Go write theirs in the parameter list, so it is an ordinary binding and the
-/// data-flow analysis already carries it. The rest hide it behind a keyword that no
-/// analysis of names can see.
+/// The word a method of this language uses for its receiver, where the receiver is implicit.
 fn implicit_receiver(language: Language) -> Option<&'static str> {
     match language {
         Language::TypeScript | Language::Tsx | Language::Java => Some("this"),
@@ -1075,12 +1004,7 @@ fn implicit_receiver(language: Language) -> Option<&'static str> {
     }
 }
 
-/// Occurrences of the receiver keyword in the region that mean the enclosing method's
-/// receiver.
-///
-/// A `this` inside a nested `function` means that function's own receiver, decided at the
-/// call, and it keeps that meaning wherever the code is written. So those are left alone.
-/// An arrow function has no receiver of its own, so the ones inside it do have to travel.
+/// Occurrences of the receiver keyword in the region that mean the enclosing method's receiver.
 fn receiver_uses(parsed: &Parsed, source: &str, region: Span, keyword: &str) -> Vec<Span> {
     let mut found: Vec<Span> = collect_nodes(parsed.root(), |node| {
         let span = Span::from(node);
@@ -1112,11 +1036,6 @@ fn receiver_uses(parsed: &Parsed, source: &str, region: Span, keyword: &str) -> 
 }
 
 /// The parameter that carries a method's receiver into the extracted function.
-///
-/// Go reaches this by ordinary means. Its receiver is a named parameter, so extracting
-/// from `func (c *Cart) Subtotal()` yields `accumulate(c *Cart)`. TypeScript names its
-/// receiver nowhere, so the parameter is invented here and the call passes `this`. Where
-/// the receiver cannot be handed over as a value the extraction is refused instead.
 fn carried_receiver(
     parsed: &Parsed,
     source: &str,
@@ -1216,9 +1135,6 @@ fn enclosing_class_node<'a>(parsed: &'a Parsed, region: Span) -> Option<Node<'a>
 }
 
 /// The names Rust format strings inside the region capture inline.
-///
-/// `{total}` and `{total:>8}` read the binding `total`; `{{` is an escaped
-/// brace and `{}` is positional. Only the capture form reads a name.
 fn format_captured_names(parsed: &Parsed, source: &str, region: Span) -> Vec<String> {
     let mut names = Vec::new();
     let mut stack = vec![parsed.root()];
@@ -1266,9 +1182,6 @@ fn format_captured_names(parsed: &Parsed, source: &str, region: Span) -> Vec<Str
 }
 
 /// A member the region reads that nothing outside the class may read.
-///
-/// `private` and `protected` are compiler rules, and not runtime ones. An extraction that
-/// ignores them writes code that runs and does not build. `#name` is checked by both.
 fn unreachable_member(
     parsed: &Parsed,
     source: &str,
@@ -1318,12 +1231,8 @@ fn unreachable_member(
     .map(|property| format!("this.{property}"))
 }
 
-/// Names the region assigns to: the plain-name left side of an assignment,
-/// augmented or not, and the operand of an increment.
-///
-/// Only a bare name matters here. A write through a field or an index,
-/// `totals.count = n`, mutates the value both names see and outlives the call.
-/// Rebinding a bare name is what a parameter copy loses.
+/// Names the region assigns to: the plain-name left side of an assignment, augmented or not,
+/// and the operand of an increment.
 fn assigned_names(
     parsed: &Parsed,
     region: Span,
@@ -1339,8 +1248,8 @@ fn assigned_names(
             out.insert(Span::from(node).text(source).to_string());
             return;
         }
-        // Go writes `a, b = f()` with an expression_list on the left; Python writes
-        // `a, b = f()` with a pattern_list. Each name in it is assigned.
+        // Go writes `a, b = f()` with an expression_list on the left; Python writes `a, b =
+        // f()` with a pattern_list.
         if kind.contains("list") || kind.contains("pattern") || kind.contains("tuple") {
             let mut cursor = node.walk();
             for child in node.named_children(&mut cursor) {
@@ -1419,11 +1328,6 @@ fn requires_explicit_types(language: Language) -> bool {
 }
 
 /// Languages whose extraction goes through the generic data-flow path.
-///
-/// Zig is here on the same footing as Rust and Go: all three require a written type on every
-/// parameter. None of them is refused for that in the abstract. What is refused is the
-/// individual selection whose parameter or return type was never written down,
-/// [`requires_explicit_types`] names the bindings and stops there.
 fn supports_imperative_extract_function(language: Language) -> bool {
     matches!(
         language,
@@ -1438,14 +1342,6 @@ fn supports_imperative_extract_function(language: Language) -> bool {
 }
 
 /// Can a region be extracted into something callable in this language?
-///
-/// Three languages get there by a route of their own. They write a Helm named template in
-/// `_helpers.tpl`, an SCSS `@mixin` or a shell function, rather than a function with
-/// parameters and a returned value. So this cannot ask the imperative predicate alone. It
-/// named Helm and not the other two. The matrix reads this. `fr extract --function` had been
-/// writing `@mixin`/`@include` and shell functions for languages the table told the reader it
-/// could not do, under a reason invented to explain the gap. The arms in [`function`] are the
-/// list, and this is that list.
 pub fn supports_extract_function(language: Language) -> bool {
     supports_imperative_extract_function(language)
         || matches!(
@@ -1455,9 +1351,6 @@ pub fn supports_extract_function(language: Language) -> bool {
 }
 
 /// Widen a selection to the complete statements it touches.
-///
-/// A line selection starts on the line's indentation, which belongs to no statement. The
-/// search therefore begins at the first real content inside the span and ends at the last.
 fn statement_region<'tree>(
     parsed: &'tree Parsed,
     span: Span,
@@ -1492,12 +1385,8 @@ struct StatementRun<'tree> {
     last: Node<'tree>,
 }
 
-/// The statement covering `offset`, or the nearest one inside `content` when the offset
-/// sits on a comment.
-///
-/// A comment between a header and its block is a sibling of the block, not a statement in
-/// it, so widening from one climbed out to the whole enclosing definition: extracting a
-/// commented line rewrote `def main():` into the new function.
+/// The statement covering `offset`, or the nearest one inside `content` when the offset sits on
+/// a comment.
 fn statement_at<'tree>(parsed: &'tree Parsed, offset: usize, content: Span) -> Option<Node<'tree>> {
     let node = parsed.root().descendant_for_byte_range(offset, offset)?;
     if !is_comment(node.kind()) {
@@ -1541,10 +1430,6 @@ fn is_comment(kind: &str) -> bool {
 }
 
 /// The ancestor of `node` that is a statement: a named direct child of a container.
-///
-/// The `}` closing a block is a child of that block. Taking it for a statement
-/// made a selection ending on one look as though it ended inside the block it
-/// closes.
 fn statement_ancestor(node: Node<'_>) -> Option<Node<'_>> {
     let mut current = node;
     loop {
@@ -1558,19 +1443,10 @@ fn statement_ancestor(node: Node<'_>) -> Option<Node<'_>> {
 
 /// The construct owning the block one end of `region` sits in, when its two ends sit in
 /// different blocks.
-///
-/// [`statement_region`] widens each end to a whole statement on its own, and
-/// neither end knows where the other landed. A selection running from inside a
-/// loop to past it spanned two blocks, and extraction copied that verbatim. A
-/// stray brace in TypeScript, a stray outdent in Python, and a success report
-/// over code that does not parse.
 fn straddled_block<'tree>(run: &StatementRun<'tree>) -> Option<Node<'tree>> {
     let (first_block, last_block) = (run.first.parent()?, run.last.parent()?);
 
     // A region is extractable when it runs over whole statements of one block.
-    // So it ends where one of that block's children ends. Selecting a whole
-    // loop ends on the loop's last line. That line is such a child, even
-    // though its last byte belongs to the loop's own body.
     let mut cursor = first_block.walk();
     if first_block
         .children(&mut cursor)
@@ -1587,7 +1463,7 @@ fn straddled_block<'tree>(run: &StatementRun<'tree>) -> Option<Node<'tree>> {
     deeper.parent()
 }
 
-/// How many ancestors `node` has, so two blocks can be compared for depth.
+/// How many ancestors `node` has, for comparing two blocks by depth.
 fn ancestor_count(node: Node<'_>) -> usize {
     let mut count = 0;
     let mut current = node;
@@ -1617,8 +1493,7 @@ fn escaping_control_flow(parsed: &Parsed, region: Span) -> Option<&'static str> 
         }
         if region.contains(span) {
             let kind = node.kind();
-            // A break or continue belonging to a loop inside the region does no harm. Only
-            // the ones escaping the selection matter, because a loop carries its own.
+            // A break or continue belonging to a loop inside the region does no harm.
             if kind.contains("return_statement") || kind == "return" {
                 return Some("return");
             }
@@ -1638,22 +1513,11 @@ fn escaping_control_flow(parsed: &Parsed, region: Span) -> Option<&'static str> 
 }
 
 /// Does the region `yield`?
-///
-/// A `yield` belongs to the function whose iteration the caller is driving, and a call cannot
-/// hand that back. Extracting one produced a Python generator that was constructed and never
-/// run, the loop body silently did nothing, and TypeScript that `tsc` rejects. `return`,
-/// `break` and `continue` were refused for the same reason from the day this was written;
-/// `yield` was not. It is the one whose failure is silent.
 fn yields_to_caller(parsed: &Parsed, region: Span) -> bool {
     node_in_region(parsed, region, |kind| kind.contains("yield"))
 }
 
 /// Does the region `await`?
-///
-/// Unlike a `yield`, this one a call *can* reproduce: the extracted function is async and the
-/// call awaits it. Without that the body kept an `await` in a function that is not async,
-/// `TS1308`. `SyntaxError: 'await' outside async function`, and the call site handed back a
-/// promise where the code expected a number.
 fn awaits(parsed: &Parsed, region: Span) -> bool {
     node_in_region(parsed, region, |kind| kind.contains("await"))
 }
@@ -1675,11 +1539,7 @@ fn node_in_region(parsed: &Parsed, region: Span, wanted: impl Fn(&str) -> bool) 
     false
 }
 
-/// Does this language write `await` as a prefix keyword. So an extracted region that uses one
-/// can be carried across by marking the new function async?
-///
-/// Rust writes `.await` as a postfix and Go and Zig have no such thing. So the question is
-/// per-language instead of a property of the region.
+/// Does this language write `await` as a prefix keyword.
 fn awaits_with_a_keyword(language: Language) -> bool {
     matches!(
         language,
@@ -1732,20 +1592,11 @@ fn references_within<'a>(
 }
 
 /// The type written at a declaration site, if the source states one.
-///
-/// This reads the type a declaration states. Where the programmer left the type to the
-/// compiler, the caller is told so. The type a declaration states, as a bare type with no
-/// punctuation.
-///
-/// The C-family grammars make the `:` part of the annotation node, so the text of the `type`
-/// field is `: number` and not `number`. Every caller wants the type alone and re-spells the
-/// punctuation its own language needs, so it is stripped here and not in each of them.
 fn declared_type(parsed: &Parsed, source: &str, declaration: Span) -> Option<String> {
     let node = parsed
         .root()
         .descendant_for_byte_range(declaration.start, declaration.end)?;
-    // Java puts the type on the declaration and the name on a declarator
-    // inside it. The symbol's own node has no type field; its parent does.
+    // Java puts the type on the declaration and the name on a declarator inside it.
     let ty = node
         .child_by_field_name("type")
         .or_else(|| node.parent().and_then(|p| p.child_by_field_name("type")))?;
@@ -1757,11 +1608,6 @@ fn declared_type(parsed: &Parsed, source: &str, declaration: Span) -> Option<Str
 }
 
 /// The type of a binding: what the source wrote, or what follows from what it wrote.
-///
-/// Inference is consulted only for the languages that demand a written type. Those refuse
-/// the extraction outright when nothing is known. Where a language lets a type stay
-/// unwritten, writing an inferred one into the new signature would state more than the
-/// source ever did.
 fn known_type(
     index: &Index,
     parsed: &Parsed,
@@ -1794,16 +1640,12 @@ fn render_call(
         .map(Parameter::argument)
         .collect::<Vec<_>>()
         .join(", ");
-    // The call has to await what the region awaited, or the binding holds a promise
-    // where the code that follows expects a value.
     let call = match is_async {
         true => format!("await {name}({args})"),
         false => format!("{name}({args})"),
     };
 
-    // A returned binding that already exists at the call site is assigned, never
-    // re-declared. `let` would shadow it in Rust, `:=` re-declare it in Go, and
-    // `const` collide with it in TypeScript.
+    // A returned binding that already exists at the call site is assigned, never re-declared.
     let all_carried = !returns.is_empty() && returns.iter().all(|r| carried.contains(r));
     match (returns.len(), language) {
         (0, Language::Python | Language::Go) => call,
@@ -1826,12 +1668,6 @@ fn render_call(
 }
 
 /// How the file being edited is indented.
-///
-/// `outer` holds the indentation the extracted region already carries. `unit` holds one level
-/// of indentation as this file writes it. The value comes from the source rather than an
-/// assumption, so a two-space or tab-indented file does not come back with four spaces.
-/// `lead` is the definition's own indentation, taken from whatever it is written beside. It
-/// is empty for a definition that lands at the top of the file.
 #[derive(Clone, Copy)]
 struct Indentation<'a> {
     outer: &'a str,
@@ -1840,7 +1676,6 @@ struct Indentation<'a> {
 }
 
 /// The new function definition.
-/// What the extracted function has to say about itself, as against its body.
 struct Signature<'a> {
     name: &'a str,
     parameters: &'a [Parameter],
@@ -1901,10 +1736,7 @@ fn render_function(
                 0 => String::new(),
                 _ => format!("\n{lead}{body_indent}return {}", returns.join(", ")),
             };
-            // Two blank lines before a definition at module scope and one
-            // before a method. `black` rewrites anything else. Hoisting a
-            // definition out of a class puts it at module scope, and it landed
-            // there with a method's single blank line.
+            // Two blank lines before a definition at module scope and one before a method.
             let separation = match lead.is_empty() {
                 true => "\n\n\n",
                 false => "\n\n",
@@ -1944,10 +1776,7 @@ fn render_function(
             format!("\n\n{lead}func {name}({params}){ret} {{\n{reindented}{tail}\n{lead}}}")
         }
         Language::Java => {
-            // The new method sits beside the one it came from, inside the same
-            // class. `static` keeps it callable from anywhere the region was,
-            // and the member indent the placement worked out puts it where a
-            // member goes.
+            // The new method sits beside the one it came from, inside the same class.
             let ret = return_type.unwrap_or("void");
             let tail = match returns.first() {
                 Some(r) => format!("\n{lead}{body_indent}return {r};"),
@@ -1965,12 +1794,7 @@ fn render_function(
     }
 }
 
-//
-// None of these languages has a binding form. So "extract variable" means the construct that
-// plays the same role: name a value once and refer to it. What that construct is differs per
-// language, and so does where it has to be written. But the shape of the work is identical
-// everywhere, splice a declaration in, replace the occurrences with a reference to it, touch
-// nothing else.
+// None of these languages has a binding form.
 
 /// Every node in the tree, in source order, that `keep` accepts.
 fn collect_nodes<'a>(root: Node<'a>, mut keep: impl FnMut(Node<'a>) -> bool) -> Vec<Node<'a>> {
@@ -2045,10 +1869,6 @@ fn invalid(name: &str, reason: &str) -> anyhow::Error {
 }
 
 /// Extract a Terraform expression into a `locals` entry.
-///
-/// The entry joins the first `locals` block in the file, or a new one written at the
-/// top when the file has none. Terraform's scope is the module directory, so the name
-/// is checked against every declaration in that directory, not just this file.
 fn hcl_local(
     index: &Index,
     file: &Path,
@@ -2117,8 +1937,8 @@ fn hcl_local(
     .into_iter()
     .next();
 
-    // An occurrence inside the `locals` block would be rewritten to a reference to the
-    // entry being defined there, which is a cycle Terraform rejects.
+    // Skip the `locals` block: rewriting there points an entry at itself, and Terraform
+    // rejects the cycle.
     let locals_span = locals_block.map(Span::from);
     let targets: Vec<Span> = if all_occurrences {
         let found: Vec<Span> = collect_nodes(parsed.root(), |n| {
@@ -2207,9 +2027,6 @@ fn hcl_module_collision(index: &Index, file: &Path, name: &str) -> Option<std::p
 }
 
 /// Extract a repeated YAML scalar into an anchor plus aliases.
-///
-/// YAML requires an anchor to precede its aliases. So the *first* occurrence in the document
-/// carries `&name` and every later one becomes `*name`, whichever occurrence was selected.
 fn yaml_anchor(
     index: &Index,
     file: &Path,
@@ -2281,9 +2098,7 @@ fn yaml_anchor(
         occurrences = vec![selected_span];
     }
 
-    // An anchor binds a name to a value and an alias spends it. Writing the anchor
-    // alone leaves every occurrence spelled out, so the file says what it said before.
-    // A YAML extraction is the pair or it is nothing.
+    // An anchor binds a name to a value and an alias spends it.
     if !all_occurrences {
         let others = occurrences.len().saturating_sub(1);
         let detail = match others {
@@ -2372,8 +2187,7 @@ fn yaml_is_anchorable(node: Node<'_>, _source: &str) -> bool {
     }
     let mut cursor = node.walk();
     let children: Vec<Node> = node.named_children(&mut cursor).collect();
-    // An anchored or aliased node already names a value. A block scalar spans lines, and
-    // splicing one at an alias would depend on the alias site's indentation.
+    // An anchored or aliased node already names a value.
     !children.is_empty()
         && children.iter().all(|c| {
             matches!(
@@ -2384,10 +2198,6 @@ fn yaml_is_anchorable(node: Node<'_>, _source: &str) -> bool {
 }
 
 /// Extract a declaration value into a custom property declared in `:root`.
-///
-/// A custom property is the form that works in both dialects, and is what a bare
-/// name produces. In an SCSS file a name written with a leading `$` produces an SCSS
-/// variable instead, which its own grammar understands.
 fn css_custom_property(
     index: &Index,
     file: &Path,
@@ -2458,8 +2268,8 @@ fn css_custom_property(
         })
         .into_iter()
         .map(Span::from)
-        // A rewrite inside the `:root` rule the declaration is being added to would
-        // define the property in terms of itself.
+        // Skip the `:root` rule taking the declaration: rewriting there defines the
+        // property in terms of itself.
         .filter(|s| !root_span.is_some_and(|r| r.contains(*s)))
         .collect();
         if found.is_empty() {
@@ -2479,9 +2289,8 @@ fn css_custom_property(
         false => format!("{property}: {value_text};"),
     };
 
-    // An SCSS variable is declared at the top level of the stylesheet, not inside a
-    // `:root` rule. That is a CSS custom property's home, and `$vars` are resolved
-    // by the compiler instead of the cascade.
+    // SCSS declares a variable at the top level of the stylesheet, outside any `:root`
+    // rule.
     if scss_variable {
         let top = css_insertion_point(&parsed, &source);
         let insert_at = sass_variable_insertion_point(
@@ -2536,8 +2345,7 @@ fn css_custom_property(
                         (last.end_byte(), format!(" {declaration}"))
                     }
                 }
-                // An empty `:root` rule: the declaration is the body. The braced syntax
-                // opens with `{`, and the indented one opens with the line under it.
+                // An empty `:root` rule: the declaration is the body.
                 None => match indented {
                     true => (block.start_byte(), format!("{declaration}\n")),
                     false => (block.start_byte() + 1, format!("\n  {declaration}\n")),
@@ -2582,11 +2390,6 @@ fn css_custom_property(
 }
 
 /// Where a new `$variable` declaration may go: after every `$variable` its value reads.
-///
-/// Sass evaluates a stylesheet from the top, so a declaration written above the ones it
-/// reads is an undefined variable and not a forward reference. The declaration also has
-/// to stand above the first use it is extracted from. A value whose parts are declared
-/// after that use has nowhere to go at all.
 fn sass_variable_insertion_point(
     parsed: &Parsed,
     source: &str,
@@ -2657,15 +2460,14 @@ fn css_root_rule<'a>(parsed: &'a Parsed, source: &str) -> Option<Node<'a>> {
     .next()
 }
 
-/// Where a new rule may be written: after any leading `@charset` / `@import`, which
-/// CSS requires to come before every rule.
+/// Where a new rule may go: after any leading `@charset` and `@import`, which CSS
+/// requires before every rule.
 fn css_insertion_point(parsed: &Parsed, source: &str) -> usize {
     let root = parsed.root();
     let mut cursor = root.walk();
     let mut offset = 0usize;
     for child in root.named_children(&mut cursor) {
-        // Sass requires `@use` and `@forward` before any other rule. What goes in above
-        // them is not a mixin or a variable: it is a syntax error.
+        // Sass requires `@use` and `@forward` before any other rule.
         if matches!(
             child.kind(),
             "import_statement"
@@ -2791,9 +2593,6 @@ fn markdown_link_definition(
 }
 
 /// The Markdown node kinds that are links.
-///
-/// All four live in the inline grammar: the block grammar leaves a paragraph's text opaque. So
-/// a link is only ever a node in an inline sub-tree.
 const MARKDOWN_LINK_KINDS: [&str; 4] = [
     "inline_link",
     "full_reference_link",
@@ -2802,9 +2601,6 @@ const MARKDOWN_LINK_KINDS: [&str; 4] = [
 ];
 
 /// The innermost link enclosing `node`, whichever of the four spellings it is.
-///
-/// Reference links are found too, so selecting one is refused for having no inline
-/// destination and not for not being a link at all.
 fn markdown_link_ancestor(node: Node<'_>) -> Option<Node<'_>> {
     let mut current = node;
     loop {
@@ -2849,10 +2645,6 @@ fn markdown_ends_with_definition(parsed: &Parsed) -> bool {
 }
 
 /// Extract a region of a Helm template into a named template in `_helpers.tpl`.
-///
-/// The selected bytes move verbatim, a Helm template is text, and reformatting it
-/// would change the rendered output. The region is widened to whole lines because a
-/// named template is included on a line of its own.
 fn helm_named_template(file: &Path, span: Span, name: &str) -> Result<ExtractFunctionPlan> {
     if name.is_empty() || name.chars().any(|c| c.is_whitespace() || c == '"') {
         return Err(invalid(
@@ -2861,9 +2653,8 @@ fn helm_named_template(file: &Path, span: Span, name: &str) -> Result<ExtractFun
         ));
     }
 
-    // The include name is `<chart>.<template>` by convention, and a chart's templates
-    // share one flat namespace across every chart in a release. Guessing the chart
-    // name would produce an include that silently renders nothing.
+    // The include name is `<chart>.<template>` by convention, and a chart's templates share one
+    // flat namespace across every chart in a release.
     let chart_root = helm_chart_root(file).ok_or_else(|| {
         anyhow::anyhow!(
             "no Chart.yaml above {}, so the chart name is unknown. A named template is \
@@ -3014,16 +2805,7 @@ fn helm_helpers_path(file: &Path, chart_root: &Path) -> std::path::PathBuf {
     chart_root.join("templates").join("_helpers.tpl")
 }
 
-//
-// Shell has bindings, so "extract variable" means what it means everywhere else. What is
-// different is that the *spelling of a reference decides its semantics*. `"$name"` is exactly
-// one word whatever it holds, while a bare `$name` is split on `$IFS` and then glob-expanded.
-// Neither spelling is right everywhere, so the one that reproduces what the selected bytes
-// already did is the one written, see `bash_reference`.
-//
-// Shell also has no block scope. A variable assigned anywhere is visible from that point to the
-// end of the shell. So the binding goes on its own line immediately before the statement it
-// came out of and why an extraction can never need parameter analysis.
+// Shell has bindings, so "extract variable" means what it means everywhere else.
 
 /// A shell variable or function name: a letter or underscore, then word characters.
 fn is_shell_name(name: &str) -> bool {
@@ -3049,16 +2831,6 @@ const BASH_VALUE_KINDS: &[&str] = &[
 ];
 
 /// Extract a command substitution or literal into a shell variable.
-///
-/// The binding is written `name=<value bytes>` on its own line directly before the statement
-/// the value came from, at that statement's indentation. The selection becomes a reference to
-/// it.
-///
-/// Quoting is the whole difficulty, and the reference is spelled to reproduce what the original
-/// bytes did and not to look tidy. `${name}` when the selection was already inside double
-/// quotes, `"$name"` wherever quoting cannot change the result. A bare `$name` only where the
-/// original expansion really was subject to word splitting and globbing. There, `"$name"` would
-/// collapse several words into one and silently change the command's arguments.
 fn bash_variable(
     index: &Index,
     file: &Path,
@@ -3128,8 +2900,8 @@ fn bash_variable(
     let statement_span = Span::from(statement);
     let indent = line_indent(&source, statement_span.start);
 
-    // An occurrence before the assignment would read a variable that is not set yet,
-    // so only the ones from the insertion point onwards are rewritten.
+    // Rewrite only from the insertion point onwards: an earlier occurrence would read a
+    // variable nothing has set.
     let targets: Vec<Node> = if all_occurrences {
         let found = collect_nodes(parsed.root(), |n| {
             n.kind() == value.kind()
@@ -3220,11 +2992,6 @@ fn bash_is_statement_container(kind: &str) -> bool {
 }
 
 /// The statement the value belongs to, the one the binding goes in front of.
-///
-/// Two positions have no statement in front of them, and both are refused. The first is the
-/// condition of an `if`: the binding would replace the test. The second is the condition of a
-/// loop. It runs again on every iteration, so hoisting it out would change how many times the
-/// loop runs.
 fn bash_statement(node: Node<'_>) -> Result<Node<'_>> {
     let mut current = node;
     loop {
@@ -3255,7 +3022,7 @@ fn bash_statement(node: Node<'_>) -> Result<Node<'_>> {
     }
 }
 
-/// How one occurrence must be spelled so the shell still sees the same words.
+/// Spell one occurrence so the shell still sees the same words.
 fn bash_reference(occurrence: Node<'_>, source: &str, name: &str) -> String {
     // Inside double quotes the expansion is already protected from splitting, and a
     // second pair of quotes would end the string and not nest inside it.
@@ -3263,8 +3030,7 @@ fn bash_reference(occurrence: Node<'_>, source: &str, name: &str) -> String {
         return format!("${{{name}}}");
     }
     if bash_would_split(occurrence, source) {
-        // The original was split on `$IFS` and glob-expanded where it stands. `"$name"`
-        // would make it a single literal word, which is a different command line.
+        // The shell splits the original on `$IFS` and glob-expands it where it stands.
         format!("${name}")
     } else {
         format!("\"${name}\"")
@@ -3273,7 +3039,7 @@ fn bash_reference(occurrence: Node<'_>, source: &str, name: &str) -> String {
 
 /// Would the bytes at this position have been word-split and glob-expanded?
 fn bash_would_split(node: Node<'_>, source: &str) -> bool {
-    // The right-hand side of an assignment is never split, whatever it holds.
+    // The shell never splits the right-hand side of an assignment.
     if node
         .parent()
         .is_some_and(|p| p.kind() == "variable_assignment")
@@ -3291,17 +3057,6 @@ fn bash_would_split(node: Node<'_>, source: &str) -> bool {
 }
 
 /// Extract statements into a shell function.
-///
-/// The function goes before the one the selection came from, or at the top of the script when
-/// the selection sits outside a function. Either way it lands before the call, as the shell
-/// requires. A function has to have been *defined* by the time the call runs, and definition
-/// happens in file order.
-///
-/// Shell has no block scope, so every name a shell function reads is global or a caller's
-/// `local`, and the new function reads both. Every binding stays where it is. Only the
-/// positional parameters fail to survive the move. Inside a function, `$1` names that
-/// function's first argument rather than the enclosing one's. So a region that reads them is
-/// refused instead of silently rebound.
 fn bash_function(
     index: &Index,
     file: &Path,
@@ -3337,8 +3092,6 @@ fn bash_function(
         anyhow::bail!("the selection at bytes {span} is blank; select the lines to extract");
     }
 
-    // A call can stand in for whole statements only. Half of one is not a thing a
-    // function can hold.
     if let Some(cut) = bash_straddling_node(&parsed, region) {
         anyhow::bail!(
             "the selection cuts across a `{}` at bytes {}; select whole statements. A \
@@ -3465,8 +3218,6 @@ fn bash_escaping_control_flow(parsed: &Parsed, region: Span, source: &str) -> Op
             continue;
         };
         match word {
-            // A `return` inside the new function would return from *it*, not from the
-            // function the code used to live in.
             "return" => return Some("return"),
             "break" | "continue" if !has_enclosing_loop_within(node, region) => {
                 return Some(if word == "break" { "break" } else { "continue" })
@@ -3477,7 +3228,7 @@ fn bash_escaping_control_flow(parsed: &Parsed, region: Span, source: &str) -> Op
     None
 }
 
-/// A `local` declared inside the region whose name is read after it.
+/// A `local` the region declares and later code reads.
 fn bash_local_used_after(parsed: &Parsed, region: Span, source: &str) -> Option<String> {
     let declared: Vec<String> = collect_nodes(parsed.root(), |n| {
         n.kind() == "declaration_command"
@@ -3524,8 +3275,7 @@ fn bash_enclosing_function(parsed: &Parsed, offset: usize) -> Option<Node<'_>> {
     .min_by_key(|n| Span::from(*n).len())
 }
 
-/// Where a definition may be written at the top of a script. After the shebang and any leading
-/// comments, which are the one thing that has to stay first.
+/// Where a definition may go at the top of a script.
 fn bash_script_top(parsed: &Parsed, source: &str) -> usize {
     let root = parsed.root();
     let mut cursor = root.walk();
@@ -3539,16 +3289,6 @@ fn bash_script_top(parsed: &Parsed, source: &str) -> usize {
 }
 
 /// Extract declarations into an SCSS `@mixin`, called back through `@include`.
-///
-/// A mixin is defined at the top level of the stylesheet. So it can no longer see anything
-/// the rule it came from had in scope. Sass resolves a `$variable` where the mixin is
-/// *defined*, not where it is included. So every `$variable` the selection reads from outside
-/// itself becomes a parameter and is passed at the include site. The meaning then holds
-/// whether the variable was a file-level one or declared inside the rule.
-///
-/// Sass also evaluates a stylesheet top-down, so the definition goes above every rule and not
-/// beside the one it came from, a mixin included before it is declared is an error, not a
-/// forward reference.
 fn sass_mixin(
     index: &Index,
     file: &Path,
@@ -3599,9 +3339,6 @@ fn sass_mixin(
     }
 
     // The node covering the whole selection, and not the one standing at its first byte.
-    // In the indented syntax a block starts where its first declaration does. So asking
-    // about that one byte answers with the block, the declaration or the property name,
-    // depending on nothing the caller can see.
     let node = parsed
         .root()
         .descendant_for_byte_range(content.start, content.end)
@@ -3638,13 +3375,11 @@ fn sass_mixin(
             other.kind()
         );
     }
-    // A declaration in the indented syntax ends at the start of the next line. So the
-    // region would otherwise swallow the newline that stays behind the `@include`.
+    // A declaration in the indented syntax ends at the start of the next line.
     let end = source[..last.end_byte()].trim_end().len();
     let region = Span::new(first.start_byte(), end.max(first.start_byte()));
 
-    // A `$variable` the selection declares itself travels with it. Every other one has to be
-    // handed in, because the mixin is defined where the rule's scope is not.
+    // A `$variable` the selection declares itself travels with it.
     let (declaration_name, use_kind) = match indented {
         true => ("variable_name", "variable_value"),
         false => ("property_name", "variable"),
@@ -3739,11 +3474,6 @@ fn sass_mixin(
 }
 
 /// Extract repeated text into an internal-subset entity.
-///
-/// XML's one binding form is the general entity: `<!ENTITY name "value">` inside the `<!DOCTYPE
-/// …[ … ]>` internal subset, referred to as `&name;`. The subset is created when the document
-/// has none. So the root element's name has to be known, a `<!DOCTYPE>` names the root element
-/// and a document whose doctype names something else is not well-formed.
 fn xml_entity(file: &Path, span: Span, name: &str, all_occurrences: bool) -> Result<ExtractPlan> {
     if !is_xml_name(name) {
         return Err(invalid(
@@ -3792,8 +3522,7 @@ fn xml_entity(file: &Path, span: Span, name: &str, all_occurrences: bool) -> Res
         )
     })?;
 
-    // The selection is clipped to the text it lands in. So a selection that takes the
-    // attribute's quotes with it still names the value between them.
+    // The selection is clipped to the text it lands in.
     let start = span.start.max(inner.start);
     let end = span.end.min(inner.end).max(start);
     let raw = &source[start..end];
@@ -3924,10 +3653,6 @@ fn is_xml_name(name: &str) -> bool {
 }
 
 /// The text a node holds: an attribute value without its quotes, or character data.
-///
-/// tree-sitter-xml matches the characters between an `AttValue`'s quotes with an anonymous
-/// rule. So they never become a node of their own and the byte range has to be worked out from
-/// the quotes instead.
 fn xml_text_extent(node: Node<'_>) -> Option<Span> {
     let span = Span::from(node);
     match node.kind() {

@@ -1,11 +1,4 @@
 //! A FastAPI application written as a Next.js App Router tree.
-//!
-//! The reverse of `fr translate <route.ts> fastapi`, and not its mirror image. A Next.js
-//! route's URL is where its file sits, so one Python module becomes a tree. Two handlers
-//! on one URL are two exports of one `route.ts`, and a path parameter is a directory.
-//!
-//! The contract is what has to survive. The last test builds an OpenAPI document from the
-//! Python and another from the TypeScript it became, and compares the two.
 
 use fun_refactor::transpile::fastapi;
 use std::path::PathBuf;
@@ -95,8 +88,7 @@ fn a_path_parameter_is_a_directory() {
 
 #[test]
 fn a_catch_all_keeps_its_reach() {
-    // `{path:path}` matches slashes, and Next.js spells that `[...path]`. Written
-    // `[path]`, the route would answer `/files/a` and miss `/files/a/b`.
+    // `{path:path}` matches slashes, and Next.js spells that `[...path]`.
     let (_tmp, plan) = translate(APP);
     let files = route(&plan, "/files/[...path]");
     assert!(
@@ -110,8 +102,7 @@ fn a_catch_all_keeps_its_reach() {
 
 #[test]
 fn a_path_parameter_arrives_as_text_and_is_converted() {
-    // `pet_id: int` in Python. `context.params` is strings, so a handler that indexes
-    // with it would look up the string "7" in a store keyed by the number 7.
+    // `pet_id: int` in Python.
     let (_tmp, plan) = translate(APP);
     let one = route(&plan, "/pets/[petId]");
     assert!(
@@ -148,8 +139,7 @@ fn anything_else_is_a_query_parameter() {
 
 #[test]
 fn a_model_crosses_without_the_framework_it_was_declared_to() {
-    // `class Pet(BaseModel)` says "FastAPI validates this shape". The shape crosses;
-    // carried as inheritance it would name a type the route file never declares.
+    // `class Pet(BaseModel)` says "FastAPI validates this shape".
     let (_tmp, plan) = translate(APP);
     let pets = route(&plan, "/pets");
     assert!(pets.output.contains("export interface Pet {"), "{pets:?}");
@@ -158,8 +148,7 @@ fn a_model_crosses_without_the_framework_it_was_declared_to() {
 
 #[test]
 fn every_returned_value_becomes_a_response() {
-    // FastAPI serialises what a handler returns. A Next.js handler returns the response,
-    // so a body carrying the value alone answers with an object where a `Response` goes.
+    // FastAPI serialises what a handler returns.
     let (_tmp, plan) = translate(APP);
     let one = route(&plan, "/pets/[petId]");
     assert!(
@@ -190,8 +179,7 @@ fn a_module_with_no_endpoint_is_refused() {
 
 #[test]
 fn the_contract_survives_the_crossing() {
-    // What the whole translation is for. The document built from the Python and the one
-    // built from the TypeScript it became must name the same URLs and the same methods.
+    // What the whole translation is for.
     let (tmp, plan) = translate(APP);
     let source = tmp.path().join("main.py");
     let before =
@@ -279,9 +267,7 @@ fn the_translation_is_settled() {
 
 #[test]
 fn a_bare_return_still_answers_with_a_response() {
-    // FastAPI serialises a bare `return` as a JSON null with status 200. A Next.js
-    // handler that just `return`s answers with nothing at all, which is a different
-    // endpoint.
+    // FastAPI serialises a bare `return` as a JSON null with status 200.
     let (_tmp, plan) = translate(
         "from fastapi import FastAPI\n\napp = FastAPI()\n\n\n@app.post(\"/reset\")\nasync def reset():\n    clear()\n    return\n",
     );

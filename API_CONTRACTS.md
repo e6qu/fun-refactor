@@ -6,7 +6,7 @@ repository can see: the **contract**.
 
 ```
                  what must not change              what is free to change
-refactoring      what the code does                how it is written
+refactoring      what the code does                how the code reads
 translation      the function's signature          the language
 contract rewrite the HTTP contract                 the language, the framework,
                                                    the internal structure, the
@@ -18,7 +18,7 @@ functions. It sends `PATCH /posts/42` with a JSON body and expects `204`. A refa
 tool guards call sites, imports and symbol resolution, and none of that matters across
 this crossing. Neither language's type system holds what does.
 
-## What an HTTP contract is made of
+## What an HTTP contract holds
 
 An HTTP contract holds six things, and they do not all travel together:
 
@@ -69,7 +69,7 @@ more, because a service written in any of them declares the same thing.
 | Spring | `@GetMapping("/pets")`, an annotation, under a class-level prefix |
 
 What they agree about is the pair that matters: a method and a URL, answered by a named
-function. Both are written down in every one of them, so both are exact.
+function. Every one of them writes both down, so both are exact.
 
 Path parameters are the one place they diverge in spelling. Express, gin and axum write
 `:id`. Flask writes `<int:id>`, where the part before the colon is a converter rather
@@ -239,7 +239,7 @@ curl -s localhost:8000/openapi.json > after.json
 Teams skip step 1, and skipping it makes the rest unfalsifiable. Nobody can show that
 a rewrite with no baseline preserved anything.
 
-### What has to be read that nobody declared
+### What the reader has to infer
 
 Next.js declares none of the contract. The tool infers every element from somewhere
 else, and each element takes a different kind of reading:
@@ -318,7 +318,7 @@ difference rather than the agreement: both sides can miss the same thing and agr
 perfectly. So the baseline says what it could not read:
 
 ```
-<route file>: N statement(s) could not be read; any query parameter
+<route file>: N statement(s) did not read; any query parameter
 read inside one of them is missing from this document
 ```
 

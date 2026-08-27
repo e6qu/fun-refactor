@@ -1,23 +1,10 @@
 //! Language identity and dialect detection.
-//!
-//! Adapted from funveil's `Language` enum, with dialects split apart where a
-//! refactoring tool must treat them differently:
-//!
-//! - `TypeScript` vs `Tsx`, genuinely different tree-sitter grammars.
-//! - `Css` vs `Scss`. SCSS adds `$variables`, nesting and `@mixin`; the plain CSS
-//!   grammar reports them as errors, so the dialect must be visible to callers.
-//! - `Yaml` vs `Helm`. Helm templates are YAML with Go template actions that are not
-//!   valid YAML at all.
 
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::path::Path;
 
-/// A source language, at the granularity that matters for parsing and refactoring. `name()` is
-/// this language's identifier. It appears in `--json`, in a catalogue's `languages:` list, and
-/// after `--language` on a command line. The serde spelling has to be the same string. Without
-/// this attribute it was the variant name, so `fr duplicates --json` reported `"Go"` where
-/// every other command reported `"go"`. `Language::from_name` could not read it back.
+/// A source language, at the granularity that matters for parsing and refactoring.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Language {
@@ -39,16 +26,10 @@ pub enum Language {
     Xml,
     Markdown,
     /// JSON, and the JSON syntax HCL also has.
-    ///
-    /// Terraform accepts `.tf` and `.tf.json` as two spellings of one language,
-    /// and a workspace may hold both. Every configuration format here has a
-    /// JSON neighbour. A build that could not read JSON could not follow a
-    /// reference out of one.
     Json,
 }
 
-/// Broad language class. Determines which analyses even apply: imperative languages
-/// get call graphs and dataflow, config/markup languages get provenance instead.
+/// Broad language class.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum LanguageClass {
     /// Imperative code with functions, scopes and call sites.
@@ -132,9 +113,7 @@ impl Language {
             Language::Zig => &["zig"],
             Language::Java => &["java"],
             // JavaScript is parsed by the TypeScript grammar, which is a superset of it, and
-            // read by the same queries. Mapping the extensions onto these two instead of adding
-            // variants is what keeps the two from drifting. Every `matches!(lang, TypeScript |
-            // Tsx)` in the codebase would otherwise be a place JavaScript could be left out of.
+            // read by the same queries.
             Language::TypeScript => &["ts", "mts", "cts", "js", "mjs", "cjs"],
             Language::Tsx => &["tsx", "jsx"],
             Language::Python => &["py", "pyi"],
@@ -157,31 +136,11 @@ impl Language {
     }
 
     /// Does a name resolve across every file in the same directory?
-    ///
-    /// Terraform's unit of scope is the module, which *is* a directory. A `var.x`
-    /// written in `main.tf` refers to the `variable "x"` block wherever in that
-    /// directory it is declared. Without modelling that, a rename would update the
-    /// declaration and leave every use behind.
     pub fn resolves_by_directory(&self) -> bool {
         matches!(self, Language::Hcl)
     }
 
     /// Is every member of a value reached through a receiver written before it?
-    ///
-    /// Where this holds, a call with no receiver cannot be a method, which stops a bare
-    /// `contextWithTimeout(…)` from resolving to the `statusWaiter` method of that name sitting
-    /// four lines above it.
-    ///
-    /// Rust holds. It was once excluded on the grounds that `Foo::new()` reaches an associated
-    /// function through a path "which is not recorded as a receiver". It is recorded, as a
-    /// receiver with `receiver_is_path` set. So those calls are not bare and were never at
-    /// risk. What the exclusion did instead was let a bare `width(&self.items, n)` inside an
-    /// `impl` resolve to the method of that name enclosing it, which is not something Rust can
-    /// mean: there is no implicit self.
-    ///
-    /// Java is excluded, and for a real reason: inside a class, `helper()` calls the enclosing
-    /// class's method with no receiver at all. So requiring one made every unqualified call in
-    /// the language unresolvable and every method it named look dead.
     pub fn members_always_have_a_receiver(&self) -> bool {
         matches!(
             self,
@@ -194,24 +153,13 @@ impl Language {
         )
     }
 
-    /// Is a package here a directory, so that top-level declarations are visible
-    /// unqualified from every file beside them?
-    ///
-    /// Go's package is the directory. A function in `a.go` is called from `b.go` with
-    /// no import and no qualifier, so resolution cannot stop at the file.
-    /// This is narrower than [`Self::resolves_by_directory`]: only *top-level*
-    /// declarations are in package scope, so methods and struct fields are not.
+    /// Is a package here a directory, so that top-level declarations are visible unqualified
+    /// from every file beside them?
     pub fn packages_by_directory(&self) -> bool {
         matches!(self, Language::Go)
     }
 
-    /// Does an import run the other file's definitions here, under their own
-    /// names?
-    ///
-    /// Bash's `source lib.sh` is not a binding: it executes the file, and
-    /// every function it defines becomes callable from this one by its bare
-    /// name. No other language here works that way, and the ones that bind a
-    /// name are served by the import rules instead.
+    /// Does an import run the other file's definitions here, under their own names?
     pub fn splices_sourced_files(&self) -> bool {
         matches!(self, Language::Bash)
     }
@@ -226,18 +174,12 @@ impl Language {
 
 impl fmt::Display for Language {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // `pad` and not `write_str`, so a width in the format string is honoured. Writing
-        // the name straight out ignored it, and the column of targets `fr translate`
-        // prints came out ragged wherever a `Language` sat in it.
+        // `pad` and not `write_str`, so a width in the format string is honoured.
         f.pad(self.name())
     }
 }
 
 /// Detect a file's language from its path.
-///
-/// YAML files are classified as Helm when the chart layout says so: a `templates/`
-/// directory ancestor, or one of the well-known chart files. Helm templates are
-/// parsed differently because `{{ ... }}` actions are not valid YAML.
 pub fn detect(path: &Path) -> Option<Language> {
     let ext = path
         .extension()
@@ -268,8 +210,7 @@ fn is_helm_path(path: &Path) -> bool {
     }
 
     // Any YAML sitting beside a Chart.yaml belongs to that chart, charts routinely carry
-    // values-prod.yaml and friends. Treating them as plain YAML would give them different
-    // provenance rules than the values.yaml next to them.
+    // values-prod.yaml and friends.
     if let Some(dir) = path.parent() {
         if crate::vfs::exists(dir.join("Chart.yaml")) || crate::vfs::exists(dir.join("chart.yaml"))
         {
@@ -288,13 +229,7 @@ fn is_helm_path(path: &Path) -> bool {
         || writes_template_actions(path)
 }
 
-/// A file under `templates/` written in Go template syntax, with no `Chart.yaml`
-/// above it.
-///
-/// `{{ .Values.x }}` is not valid YAML, so reading such a file as YAML loses every
-/// value it names. `fr stitch` then began the chain at the manifest and looked
-/// complete. The values file feeding it went missing and unmentioned. The layout and
-/// the syntax together say chart, whether or not somebody wrote the metadata.
+/// A file under `templates/` written in Go template syntax, with no `Chart.yaml` above it.
 fn writes_template_actions(path: &Path) -> bool {
     if !under_templates_directory(path) {
         return false;
@@ -319,10 +254,6 @@ fn under_templates_directory(path: &Path) -> bool {
 }
 
 /// Does this text hold a Go template action, the syntax Helm charts are written in?
-///
-/// An action opens `{{`, closes `}}`, and starts with a field path or one of the
-/// keywords the template language defines. A YAML string holding a bare `{{` is not
-/// one, and `{{ }}` with anything else inside belongs to some other templating tool.
 fn holds_template_action(text: &str) -> bool {
     const KEYWORDS: &[&str] = &[
         "include", "if", "range", "with", "template", "define", "end", "else", "toYaml", "printf",
@@ -347,18 +278,6 @@ fn holds_template_action(text: &str) -> bool {
 }
 
 /// The chart directory a Helm file belongs to: the nearest ancestor with a Chart.yaml.
-///
-/// Is this stylesheet a CSS module, whose selector names are its own?
-///
-/// The bundlers all key on the same thing: a file named `*.module.css`, and the
-/// SCSS and Sass spellings of it. Inside one, `.primary` is local. It is compiled
-/// to a name nobody writes, and the component reaches it through the object its
-/// import binds. So a neighbouring module's `.primary` is a different class, the
-/// way a neighbouring chart's `replicaCount` is a different value.
-///
-/// A plain stylesheet is the opposite. Two files declaring `.primary` style the
-/// same elements, and a rename taking one of them would leave the other
-/// answering the old name.
 pub fn is_css_module(path: &Path) -> bool {
     path.file_name()
         .and_then(|name| name.to_str())
@@ -370,10 +289,7 @@ pub fn is_css_module(path: &Path) -> bool {
         })
 }
 
-/// A chart's values are its own. Two charts in one workspace routinely declare the
-/// same key, `image`, `name`, `replicaCount`, and a `.Values.image` in one of them
-/// says nothing about the other. Resolution needs the boundary to avoid pointing a
-/// template at a neighbour's values file.
+/// A chart's values are its own.
 pub fn chart_root(path: &Path) -> Option<&Path> {
     let mut dir = path.parent();
     while let Some(d) = dir {
@@ -382,10 +298,7 @@ pub fn chart_root(path: &Path) -> Option<&Path> {
         }
         dir = d.parent();
     }
-    // No metadata anywhere above. The layout still says where the boundary is: a
-    // chart is the directory holding `templates/`, and its values file sits beside
-    // that directory. Without this the chain from a values key to the code reading
-    // it began at the manifest, missing its first hop and looking whole.
+    // No metadata anywhere above.
     let mut dir = path.parent();
     while let Some(d) = dir {
         if d.file_name()
@@ -418,19 +331,6 @@ fn has_sibling_chart_yaml(path: &Path) -> bool {
 }
 
 /// Which language boundaries a reference may resolve across.
-///
-/// Resolution matches candidates by name across the whole workspace. Without this it ignored
-/// language: a Rust `out.push(…)` resolved to a Zig `Ring.push` at `import-qualified`, a tier
-/// the tool rewrites. So renaming the Zig method turned a `Vec::push` call in Rust into
-/// `out.pushReading(…)`.
-///
-/// A cross-language edge is real only where the two languages have a mechanism for naming each
-/// other's declarations. This enumerates those mechanisms instead of inferring them: a wrong
-/// one produces an edit that compiles elsewhere and breaks here.
-///
-/// Absent: every pair of imperative languages. Rust cannot name a Zig method, Go cannot name a
-/// Python function, and an FFI that connects them declares the binding in a build file this
-/// tool does not read. Those resolve to nothing.
 pub fn may_resolve_across(from: Language, to: Language, t: crate::model::SymbolKind) -> bool {
     use crate::model::SymbolKind as K;
     use Language::*;
@@ -447,8 +347,7 @@ pub fn may_resolve_across(from: Language, to: Language, t: crate::model::SymbolK
         // declared in a theme is the same class the stylesheet declares.
         (Css, Scss) | (Scss, Css) | (Css, Sass) | (Sass, Css) | (Scss, Sass) | (Sass, Scss) => true,
 
-        // Markup names a style rule by class or id. This is the edge that makes
-        // renaming a CSS class across an HTML template worth having.
+        // Markup names a style rule by class or id.
         (Html | Xml | Tsx | TypeScript | Markdown, Css | Scss | Sass) => {
             matches!(t, K::Selector | K::Property)
         }
@@ -568,9 +467,7 @@ mod tests {
 
     #[test]
     fn a_templates_file_writing_actions_is_helm_without_chart_metadata() {
-        // `{{ .Values.x }}` is not valid YAML. Reading such a file as YAML lost every
-        // value it named. So `fr stitch` began the chain at the manifest and looked
-        // whole, and the values file feeding it went unmentioned.
+        // `{{ .Values.x }}` is not valid YAML.
         let tmp = tempfile::tempdir().unwrap();
         let chart = tmp.path().join("svc/chart");
         std::fs::create_dir_all(chart.join("templates")).unwrap();

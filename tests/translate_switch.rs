@@ -1,9 +1,4 @@
 //! One value branched against literal alternatives crosses every boundary here.
-//!
-//! Rust and Zig spell it with arrows, the C family with `case`, Python with
-//! `match`. Only literal arms cross. A guard, a range, a capture, or a case
-//! that falls through with statements of its own is the full construct, and
-//! carries whole.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;

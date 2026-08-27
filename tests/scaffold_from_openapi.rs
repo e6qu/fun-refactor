@@ -1,13 +1,4 @@
 //! A service skeleton written from an OpenAPI document.
-//!
-//! `fr openapi` derives a document from a service; this is the other direction. The rule
-//! that governs the derivation governs the writing: invent nothing. Paths, methods,
-//! parameters and schemas come from the document. A handler body is in no document, so
-//! every generated handler answers 501 out loud rather than returning a plausible empty
-//! value. A service that answers `[]` looks finished.
-//!
-//! The last two tests close the loop: the contract read back out of the scaffold names
-//! the same endpoints the document declared.
 
 use fun_refactor::transpile::scaffold::{self, Target};
 use std::path::PathBuf;
@@ -160,7 +151,7 @@ fn the_nextjs_scaffold_round_trips_through_the_contract() {
     let mut urls: Vec<&String> = paths.keys().collect();
     urls.sort();
     // A placeholder's name is internal to the framework, and the derivation spells it
-    // snake_case. `/pets/{pet_id}` and `/pets/{petId}` serve the same URLs.
+    // snake_case.
     assert_eq!(urls, ["/pets", "/pets/{pet_id}"]);
     assert!(paths["/pets"].get("get").is_some());
     assert!(paths["/pets"].get("post").is_some());
@@ -226,8 +217,7 @@ fn scaffolded_cased(target: Target) -> (tempfile::TempDir, scaffold::ScaffoldPla
 
 #[test]
 fn a_property_name_is_the_wire_contract_and_is_not_re_cased() {
-    // `displayName` in the document is the key every request carries. Re-cased to
-    // `display_name`, the model would serialise a different JSON than the contract.
+    // `displayName` in the document is the key every request carries.
     let (_tmp, python) = scaffolded_cased(Target::FastApi);
     assert!(
         python.files[0].output.contains("    displayName: str\n"),
@@ -261,9 +251,7 @@ fn a_query_key_is_the_wire_contract_and_is_not_re_cased() {
 
 #[test]
 fn a_name_python_cannot_declare_is_left_out_loudly() {
-    // `x-vendor-tag` is not a Python name. Re-spelled it would change the wire key, so
-    // the field is left out and the plan says so. TypeScript can quote any key, so
-    // nothing is left out there.
+    // `x-vendor-tag` is not a Python name.
     let (_tmp, python) = scaffolded_cased(Target::FastApi);
     assert!(
         !python.files[0].output.contains("x-vendor-tag"),

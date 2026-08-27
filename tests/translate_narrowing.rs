@@ -1,11 +1,5 @@
-//! Consuming a sum value crosses: the question "which variant is this?"
-//!
-//! The construction crossed a pass before the consumption did. `s.kind ==
-//! "circle"` and `s.radius` went to Rust verbatim, against an enum that
-//! declares neither, while the header said every signature carried. Each
-//! language now asks its own way. TypeScript compares the discriminator,
-//! Python asks `isinstance`, Rust matches, Go switches on type, Java tests
-//! `instanceof` and sheds the cast.
+//! Consuming a sum value crosses: the question "which variant is this?" The construction
+//! crossed a pass before the consumption did.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;

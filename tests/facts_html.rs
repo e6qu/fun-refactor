@@ -1,8 +1,4 @@
 //! HTML fact extraction.
-//!
-//! HTML is the consumer side of CSS: element ids are defined here, CSS classes
-//! are used here. The tests pin the exact name spans, because those are the bytes
-//! a cross-language rename rewrites.
 
 use fun_refactor::{extract::Extractor, lang::Language, model::*, parse::Parsers};
 use std::path::Path;
@@ -41,9 +37,8 @@ fn id_attribute_defines_an_element_id_without_quotes() {
 
 #[test]
 fn a_data_attribute_value_is_a_hook_the_document_names() {
-    // `data-testid="submit-btn"` is the author's own string, and the TSX that
-    // renders the same element writes it too. `fr usages submit-btn` used to say
-    // "no symbol named" while the name sat in two files.
+    // `data-testid="submit-btn"` is the author's own string, and the TSX that renders the same
+    // element writes it too.
     let src = "<button data-testid=\"submit-btn\" data-role='main'>Go</button>\n";
     let f = facts(src);
     let mut hooks = names(&f, SymbolKind::DataAttribute);
@@ -97,9 +92,8 @@ fn class_attribute_is_a_string_reference_to_a_css_class() {
 
 #[test]
 fn multi_class_values_split_into_one_reference_per_class() {
-    // A query cannot subdivide a token, so the grammar hands us `page dark` as one
-    // span; the extractor fans it out. Each class gets its own span so renaming one
-    // rewrites only its own bytes.
+    // A query cannot subdivide a token, so the grammar hands us `page dark` as one span; the
+    // extractor fans it out.
     let src = "<div class=\"page dark\"></div>\n";
     let f = facts(src);
     assert_eq!(refs(&f), ["page", "dark"]);
@@ -147,9 +141,8 @@ fn in_document_anchor_hrefs_are_references() {
         .iter()
         .find(|r| r.kind == ReferenceKind::StringRef && r.name == "sec")
         .expect("anchor reference");
-    // The grammar offers no node for the fragment alone, so the extractor narrows the
-    // captured destination to it. Naming the reference `#sec` matched no symbol, and a
-    // rename writing over that span would have taken the `#` with it.
+    // The grammar offers no node for the fragment alone, so the extractor narrows the captured
+    // destination to it.
     assert_eq!(anchor.span.text(src), "sec");
     assert_eq!(anchor.kind, ReferenceKind::StringRef);
     assert_eq!(names(&f, SymbolKind::ElementId), ["sec"]);
@@ -157,8 +150,7 @@ fn in_document_anchor_hrefs_are_references() {
 
 #[test]
 fn an_href_names_something_only_when_a_fragment_says_which() {
-    // A bare file name is a document. It is not a symbol in it. `#` alone is the top of the page; and
-    // an absolute URL's fragment belongs to another site's document.
+    // A bare file name is a document.
     let src = concat!(
         "<a href=\"other.html\">x</a>",
         "<a href=\"https://example.com/p#top\">y</a>",

@@ -1,12 +1,4 @@
 //! What a name means in Rust depends on what is written before it.
-//!
-//! Two ways the index claimed `Exact` where the syntax cannot support it. A bare call
-//! resolved to a method. Rust has no implicit self, so `width(…)` inside an `impl`
-//! cannot mean `self.width(…)`. And a dotted name inside a macro resolved to a free
-//! function, because a macro body is tokens: `assert_eq!(f.scope_at(30), …)` reaches the
-//! query as a bare identifier with no receiver at all.
-//!
-//! Both fed `fr rename` and `fr signature`, which rewrite on `Exact`.
 
 use fun_refactor::index::Index;
 use fun_refactor::model::{Confidence, SymbolKind};
@@ -75,8 +67,7 @@ fn a_bare_call_cannot_mean_a_field_either() {
 
 #[test]
 fn a_path_receiver_still_reaches_an_associated_function() {
-    // The reason Rust was excluded from the rule. `Foo::new()` and `Self::new()` record
-    // a receiver with `receiver_is_path`, so neither is a bare call.
+    // The reason Rust was excluded from the rule.
     let source = "pub struct Foo;\n\
                   impl Foo {\n    pub fn new() -> Foo { Foo }\n\
                   \n    pub fn twice() -> Foo { Self::new() }\n}\n\
@@ -128,9 +119,6 @@ const DISPATCHED: &str = "trait Renderer {\n    fn draw(&self, width: u32) -> u3
                           fn draw(&self, width: u32) -> u32 {\n        width * 2\n    }\n}\n";
 
 /// A macro body is tokens, so `println!(\"{}\", s.draw(4))` offers the grammar no call.
-/// The tokens still have a call's shape, and the change rewrites them with the family.
-/// This was once a silent skip that broke the crate. Then it was a refusal that
-/// made the command unusable: half of real Rust's call sites live in test macros.
 #[test]
 fn a_method_call_hidden_in_a_macro_changes_with_the_family() {
     let source = format!(

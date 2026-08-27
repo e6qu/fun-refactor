@@ -1,10 +1,4 @@
 //! Keyword arguments settle into their declared positions.
-//!
-//! Five of these languages call by position alone. When the callee is a
-//! function declared in the same module, each keyword names a parameter.
-//! The arguments settle into the declared order, defaults filling any gap.
-//! A callee declared elsewhere, an unknown keyword, or a hole with no
-//! default keeps the call carried. Reordering it would be a guess.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;

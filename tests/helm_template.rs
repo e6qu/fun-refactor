@@ -1,10 +1,4 @@
 //! Go template parsing for Helm charts, and what it lets the analyses say.
-//!
-//! Two halves. The first parses action text directly: a template action is a small language.
-//! The tests pin what each construct means and not what a substring happens to contain. The
-//! second drives the public API over a realistic chart, subchart, `_helpers.tpl`, `include`, a
-//! `{{- if }}`-wrapped block and a `{{ if }}`-guarded environment variable. Pins either the
-//! resolved answer or the honest statement of what is left undecidable.
 
 use fun_refactor::{
     analysis::provenance::{consumers, provenance, StopReason},
@@ -31,7 +25,7 @@ fn path(segments: &[&str]) -> Vec<String> {
 }
 
 /// Parse a whole file the way the analyses do: the action spans come from the parser that masks
-/// them. So the two views can never drift apart.
+/// them.
 fn template(source: &str) -> helm::Template {
     let parsed = Parsers::new()
         .parse(Language::Helm, source)
@@ -76,8 +70,7 @@ fn a_dotted_path_keeps_every_segment() {
 
 #[test]
 fn a_values_path_written_inside_a_string_is_not_a_values_path() {
-    // A substring scan cannot tell these apart. The lexer can: one is a key, the
-    // other is four words of prose.
+    // A substring scan cannot tell these apart.
     assert!(paths("{{ fail \"set .Values.image.tag before installing\" }}").is_empty());
     assert_eq!(
         paths("{{ .Values.image.tag | quote }}"),
@@ -132,7 +125,7 @@ fn trim_markers_are_recognised_by_gos_own_rule() {
     let right = action("{{ .Values.x -}}");
     assert!(!right.trim_left && right.trim_right);
 
-    // A hyphen with no space beside it is a minus sign. It is not a trim marker.
+    // A hyphen with no space beside it is a minus sign.
     let negative = action("{{-3}}");
     assert!(!negative.trim_left, "`{{-3}}` is the number -3");
     assert!(negative.problems.is_empty(), "{:?}", negative.problems);
@@ -330,7 +323,7 @@ fn a_with_block_resolves_the_fields_written_under_it() {
 #[test]
 fn a_field_under_a_range_is_not_invented_as_a_values_key() {
     // The dot inside a `range` is an element of the collection; no values file has a key for
-    // it. Guessing one would send provenance looking for nothing.
+    // it.
     let source = "{{- range .Values.hosts }}\n- host: {{ .name }}\n{{- end }}\n";
     let template = template(source);
     let index = template
@@ -541,8 +534,8 @@ fn stops(result: &prov::Provenance) -> Vec<String> {
 
 #[test]
 fn a_key_wrapped_in_an_if_is_reported_with_its_condition() {
-    // B2: the masked YAML tree shows `host:` unconditionally, because the `{{- if }}`
-    // around it became blank lines. The template parse is what knows better.
+    // B2: the masked YAML tree shows `host:` unconditionally, because the `{{- if }}` around it
+    // became blank lines.
     let (_tmp, index) = chart();
     let host = key_with_path(&index, "ingress.yaml", "spec.rules.host");
     let result = provenance(&index, host, 6).unwrap();
@@ -556,7 +549,7 @@ fn a_key_wrapped_in_an_if_is_reported_with_its_condition() {
         "got {:?}",
         stops(&result)
     );
-    // And the condition's own values key is resolved. It is not named.
+    // And the condition's own values key is resolved.
     assert!(
         result.hops.iter().any(|h| h.text.contains("enabled: true")),
         "got {:?}",
@@ -579,8 +572,7 @@ fn an_unguarded_key_is_not_reported_as_conditional() {
 
 #[test]
 fn a_value_from_an_include_is_followed_into_the_define() {
-    // B7: `{{ include "app.fullname" . }}` says nothing by itself. The named
-    // template it calls is where `.Values.nameOverride` is read.
+    // B7: `{{ include "app.fullname" .
     let (_tmp, index) = chart();
     let name = key_with_path(&index, "deployment.yaml", "metadata.name");
     let result = provenance(&index, name, 8).unwrap();
@@ -602,7 +594,7 @@ fn a_value_from_an_include_is_followed_into_the_define() {
         "the answer lives in another file, and says so: {:?}",
         result.hops.iter().map(|h| &h.file).collect::<Vec<_>>()
     );
-    // `.Chart.Name` is the fallback, and comes from the release. It is not the workspace.
+    // `.Chart.Name` is the fallback, and comes from the release.
     assert!(
         result.stopped_because(|r| matches!(
             r,
@@ -615,8 +607,7 @@ fn a_value_from_an_include_is_followed_into_the_define() {
 
 #[test]
 fn a_values_key_read_only_inside_a_define_names_its_include_sites() {
-    // Forward: nothing includes `_helpers.tpl` textually. `.Values.image.tag` is
-    // read there, and the places that read it are the places that include it.
+    // Forward: nothing includes `_helpers.tpl` textually.
     let (_tmp, index) = chart();
     let tag = key_with_path(&index, "app/values.yaml", "image.tag");
     let result = consumers(&index, tag, 6).unwrap();
@@ -688,9 +679,6 @@ fn an_include_of_a_template_nothing_defines_is_unresolved() {
 
 #[test]
 fn two_chart_values_files_have_a_decided_winner() {
-    // B10, narrowed: `-f` and `--set` are invisible, but the order of a subchart's
-    // values.yaml and its parent's is fixed by the chart hierarchy, so this one is
-    // decided. Only the command-line-dependent part stays open.
     let (_tmp, index) = chart();
     let tag = key_with_path(&index, "charts/mysql/values.yaml", "image.tag");
     let result = provenance(&index, tag, 5).unwrap();
@@ -711,8 +699,7 @@ fn two_chart_values_files_have_a_decided_winner() {
         "nothing here is undetermined: {:?}",
         stops(&result)
     );
-    // The external channel is still reported. It replaces the answer instead of
-    // reordering these two.
+    // The external channel is still reported.
     assert!(
         result.stopped_because(|r| matches!(
             r,
@@ -794,9 +781,8 @@ fn an_env_var_takes_its_values_path_from_the_action_after_the_colon() {
 
 #[test]
 fn a_guarded_env_var_yields_one_chain_per_branch_each_naming_its_condition() {
-    // Both `value:` keys are siblings in the masked tree, one of them a lie for any
-    // given render. Reporting a single winner would be the guess; reporting both,
-    // each with the condition that selects it, is the answer.
+    // Both `value:` keys are siblings in the masked tree, one of them a lie for any given
+    // render.
     let (_tmp, index) = chart();
     let chains: Vec<_> = stitch::for_variable(&index, "LOG_LEVEL").unwrap();
     assert_eq!(chains.len(), 2, "got {chains:?}");

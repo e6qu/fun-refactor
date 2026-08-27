@@ -1,8 +1,4 @@
 //! A captured expression keeps its meaning where the template puts it.
-//!
-//! The third place in this tool where an expression is moved into a context it was not
-//! written for. `inline` was fixed for it twice; `restructure` does the same thing by
-//! design, the whole point is to move code shapes around, and did not.
 
 use fun_refactor::index::Index;
 use fun_refactor::lang::Language;
@@ -29,8 +25,7 @@ fn restructured(
 
 #[test]
 fn a_captured_expression_keeps_its_grouping() {
-    // `$X * 2` reads as "the captured expression, times two". Substituting the text of
-    // `x + 1` gives `x + 1 * 2`, which is `x + 2`.
+    // `$X * 2` reads as "the captured expression, times two".
     for (file, source, language, expected) in [
         (
             "a.rs",
@@ -72,8 +67,7 @@ fn an_atomic_capture_gains_nothing() {
 
 #[test]
 fn a_capture_in_an_argument_gains_nothing() {
-    // The template puts `$X` where a delimiter already holds it. This is the common
-    // case and it must stay clean.
+    // The template puts `$X` where a delimiter already holds it.
     let after = restructured(
         "a.rs",
         "fn f(x: i32) -> i32 {\n    old_api(x + 1)\n}\n",
@@ -87,8 +81,7 @@ fn a_capture_in_an_argument_gains_nothing() {
 #[test]
 fn a_replacement_that_binds_is_grouped_where_it_lands() {
     // The other half: the match sat where a call sat, and the template is an operator
-    // expression. So whatever the call was an operand of now binds into it. `2 * double(y)` →
-    // `2 * y / 2` is not `2 * (y / 2)` for integers.
+    // expression.
     let after = restructured(
         "a.rs",
         "fn f(y: i32) -> i32 {\n    2 * double(y)\n}\n",
@@ -102,9 +95,7 @@ fn a_replacement_that_binds_is_grouped_where_it_lands() {
 #[test]
 fn a_language_that_does_not_group_with_brackets_gets_none() {
     // A CSS selector's parent is an `attribute_selector` or a `descendant_selector`, which read
-    // as operator kinds by name and are nothing of the sort. Bracketing there is not a
-    // grouping, it is a syntax error. The reparse guard caught it, which is how this was found
-    // before it shipped.
+    // as operator kinds by name and are nothing of the sort.
     let after = restructured(
         "a.css",
         ".old-name {\n  color: red;\n}\n",

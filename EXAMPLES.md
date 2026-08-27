@@ -95,7 +95,7 @@ $ fr entrypoints
 ```
 
 🔎 That was 141 tests. A Rust test declares itself with `#[test]`, and the catalog
-could only match names and paths. ripgrep's tests are called `backslash`, `tab` and
+could only match names and paths. ripgrep names its tests `backslash`, `tab` and
 `carriage`. Catalogs gained `annotated_with`, which reads the annotations above a
 definition.
 
@@ -185,7 +185,7 @@ methods or variables. helm has very little dead code.
 
 🔎 The same command reported **238** candidates before this exercise. Eight resolution
 bugs account for the difference. The largest: a Go package is a directory, and only
-Terraform was treated that way. So `fr refs` returned nothing for symbols helm calls
+Terraform got that treatment. So `fr refs` returned nothing for symbols helm calls
 from the file next door.
 
 `--internal` matters for a library: `--lang go` alone reports 199 exported
@@ -264,7 +264,7 @@ def guess_filename(obj: Any) -> str | None:
 insertion point came from scanning lines. `import os` stayed behind, because a
 module import binds a name without naming it in the statement. And
 `from __future__ import annotations` stayed behind too: it binds nothing at all and
-decides how every annotation in the file is read, so `str | None` stopped parsing
+decides how the file reads every annotation, so `str | None` stopped parsing
 without it.
 
 ### `fr signature`, parameters, and every call site
@@ -298,7 +298,7 @@ $ fr rewrite crates/cli/src/decompress.rs:477:9 guard-clause
 +        for extension in ["com", "exe"] {
 ```
 
-🔎 That `continue` was `return` until this example was written. The `if` ends a `for`
+🔎 That `continue` read `return` until this example went in. The `if` ends a `for`
 body inside a function returning `Result<PathBuf>`. So `return` left the loop
 entirely *and* returned nothing from a function that owes a value. The exit now
 follows from the block. The tool refuses a function that owes a value outright,
@@ -359,19 +359,19 @@ what is missing says more about a tool than the list of what it has.
 |---|---|
 | **Extract interface / trait** | Needs to decide which members belong to the abstraction, which is a design decision and not a mechanical one. The mechanical part, finding every implementor, already exists as `fr implementations`. |
 | **Pull up / push down a member** | Needs the type hierarchy *and* the type of every receiver at every call site, to know which sites still resolve after the move. Hierarchy analysis exists; receiver types do not. |
-| **Introduce parameter object** | Mechanically an `fr signature` change plus a new type, but choosing which parameters group together is the substance of it. A version taking an explicit list is the likeliest of these to be built. |
+| **Introduce parameter object** | Mechanically an `fr signature` change plus a new type, but choosing which parameters group together is the substance of it. A version taking an explicit list is the likeliest of these to arrive. |
 | **Change a return type** | The edit is easy; finding every caller that must adapt needs the type of each call's context, which syntax does not give. |
 | **Convert callback to promise / async** | Requires understanding control flow, which shape alone does not give. Each language spells it differently enough that it is really eight refactorings. |
 | **Encapsulate a field** | Needs to distinguish reads from writes at every use site, which is dataflow and not resolution. `fr flow` has the machinery; the refactoring does not exist yet. |
-| **Rename a file or module** | Every language spells the dependency differently, a Go directory, a Rust `mod`, a TypeScript relative path, a Python package. `fr move` already does this for a *symbol*; doing it for a file is the same work at a different granularity, and is the second-likeliest to be built. |
+| **Rename a file or module** | Every language spells the dependency differently, a Go directory, a Rust `mod`, a TypeScript relative path, a Python package. `fr move` already does this for a *symbol*; doing it for a file is the same work at a different granularity, and the second-likeliest to arrive. |
 | **Inline a class or type** | Needs to know every use is compatible with the inlined shape, which is type checking. |
 | **Extract a superclass** | As with extract interface: the mechanical part is small and the judgement is the task. |
 | **Split a class or module** | The tool can *find* the case for it, `fr duplicates` and `fr graph` show cohesion, but performing the split is a sequence of moves a human should direct. |
 
-The common thread: everything above needs types, and this tool is built on syntax. It
+The common thread: everything above needs types, and syntax is all this tool has. It
 stops where the syntax stops and says so, reporting a reference it cannot prove
 instead of rewriting it. A refactoring that needs the type of an arbitrary
-expression belongs in a language server. One that needs only what is written down
+expression belongs in a language server. One that needs only what the source writes down
 belongs here, across all eighteen languages at once.
 
 ---

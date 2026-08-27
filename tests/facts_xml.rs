@@ -1,13 +1,4 @@
 //! XML fact extraction.
-//!
-//! Two things are renameable in XML: the id/idref graph and namespace prefixes.
-//! Two grammar limits shape every assertion below, and both are pinned by tests
-//! and not papered over:
-//!
-//! * an attribute value is only addressable *with* its surrounding quotes, so
-//!   `id="a"` yields the name `"a"`, quotes included;
-//! * a prefixed name is a single token, so `foo:child` yields one span covering
-//!   prefix and local part together.
 
 use fun_refactor::{extract::Extractor, lang::Language, model::*, parse::Parsers};
 use std::path::Path;
@@ -38,9 +29,9 @@ fn id_attribute_defines_an_element_id_with_quotes_trimmed() {
     assert_eq!(names(&f, SymbolKind::ElementId), ["a"]);
 
     let id = &f.symbols[0];
-    // The grammar gives no node for the text between the quotes, so the query
-    // captures the quoted token; the extractor trims the quotes, leaving a span a
-    // rename can rewrite directly.
+    // The grammar gives no node for the text between the quotes, so the query captures the
+    // quoted token; the extractor trims the quotes, leaving a span a rename can rewrite
+    // directly.
     assert_eq!(id.name_span.text(src), "a");
     assert_eq!(id.full_span.text(src), "id=\"a\"");
     assert!(id.full_span.contains(id.name_span));
@@ -79,8 +70,8 @@ fn idref_and_ref_attributes_reference_element_ids() {
 fn a_fragment_href_references_an_id_here_or_in_another_document() {
     let src = "<root><a href=\"#x\"/><b href=\"other.xml#x\"/><c href=\"http://e/p#x\"/></root>\n";
     let f = facts(src);
-    // Quotes are trimmed and the span is narrowed to the fragment, which is what
-    // resolution matches against an id. The absolute URL names another document.
+    // Quotes are trimmed and the span is narrowed to the fragment, which is what resolution
+    // matches against an id.
     assert_eq!(refs(&f), ["x", "x"]);
     assert_eq!(f.references[0].span.text(src), "x");
 }
@@ -112,8 +103,8 @@ fn prefixed_element_and_attribute_names_are_references() {
     let f = facts(src);
     let mut r = refs(&f);
     r.sort();
-    // Start tag name, attribute name and end tag name, every occurrence a
-    // prefix rename has to visit. Each span is the whole `prefix:local` token.
+    // Start tag name, attribute name and end tag name, every occurrence a prefix rename has to
+    // visit.
     assert_eq!(r, ["foo:attr", "foo:child", "foo:child"]);
     assert!(f
         .references

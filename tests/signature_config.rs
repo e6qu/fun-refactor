@@ -1,15 +1,5 @@
 //! Change-signature for the config languages: Terraform module variables and SCSS mixin
 //! parameters.
-//!
-//! A Terraform module is a directory. Its parameters are the `variable "x" {}` blocks declared
-//! there and its call sites are `module "m" { source = "./that/dir" }` blocks elsewhere. So a
-//! signature change has to reach both sides at once. An SCSS mixin is closer to a function,
-//! `@mixin name($a)` declares, `@include name(1)` calls, and goes through the same path a
-//! function does.
-//!
-//! These tests assert the exact resulting bytes, because "formatting outside the edited range
-//! survives" is only checkable against exact text. Where the SCSS grammar genuinely cannot
-//! parse a form, the test says so and pins the refusal instead of pretending the form works.
 
 use fun_refactor::{
     edit::{apply_to_string, plan, Validation},
@@ -82,8 +72,6 @@ fn refusal(error: anyhow::Error) -> String {
     error.to_string()
 }
 
-// A module with two variables, one required (and used inside the module) and one
-// optional (and unused), called once from the root module.
 const ROOT_MAIN_TF: &str = r#"terraform {
   required_version = ">= 1.5"
 }
@@ -142,8 +130,8 @@ fn the_module_call_surface_is_indexed_as_expected() {
     assert_eq!(imports[0].path, "./modules/thing");
     assert_eq!(imports[0].alias.as_deref(), Some("thing"));
 
-    // The module's own `var.region` read resolves back to the declaration, and so does
-    // the `region` argument the caller passes. An argument names the variable it sets.
+    // The module's own `var.region` read resolves back to the declaration, and so does the
+    // `region` argument the caller passes.
     let reads: Vec<_> = ws
         .index
         .references_to(region)
@@ -212,8 +200,8 @@ fn removing_a_variable_the_module_still_reads_refuses() {
 
 #[test]
 fn a_caller_that_omitted_a_defaulted_argument_needs_no_edit() {
-    // Nothing to remove there, and the result is still valid Terraform, so this is
-    // not a partial update. It is a complete one that happens to touch one file.
+    // Nothing to remove there, and the result is still valid Terraform, so this is not a
+    // partial update.
     let ws = Workspace::new(&[
         (
             "main.tf",
@@ -428,8 +416,7 @@ fn adding_a_name_the_module_already_declares_refuses() {
 
 #[test]
 fn adding_a_name_a_caller_already_passes_refuses() {
-    // The caller sets an argument the module never declared. That configuration is
-    // already broken, and adding the declaration under it would hide the fact.
+    // The caller sets an argument the module never declared.
     let ws = Workspace::new(&[
         (
             "main.tf",
@@ -556,8 +543,7 @@ fn reordering_module_variables_is_refused_as_meaningless() {
 
 #[test]
 fn a_computed_module_source_anywhere_refuses_the_change() {
-    // `source = var.where` cannot be shown *not* to call this module. A change that updates the
-    // callers we can see is exactly the partial update that leaves Terraform broken.
+    // `source = var.where` cannot be shown *not* to call this module.
     let ws = Workspace::new(&[
         ("main.tf", ROOT_MAIN_TF),
         ("modules/thing/variables.tf", THING_VARIABLES_TF),
@@ -804,8 +790,7 @@ fn scss_signature_changes_reparse_clean() {
 
 #[test]
 fn a_mixin_written_without_parentheses_gains_them() {
-    // `@mixin reset { }` has no parameter list at all, and neither does
-    // `@include reset;`. Adding the first parameter has to write both.
+    // `@mixin reset { }` has no parameter list at all, and neither does `@include reset;`.
     let ws = Workspace::new(&[(
         "reset.scss",
         "@mixin reset {\n  margin: 0;\n}\n\n.page {\n  @include reset;\n}\n",
@@ -867,8 +852,7 @@ fn an_scss_function_has_a_signature_too() {
     );
 }
 
-// The grammar is real but not complete. These two forms genuinely do not parse, so
-// the change refuses instead of editing around a call site it cannot see.
+// The grammar is real but not complete.
 
 #[test]
 fn an_include_with_empty_parentheses_is_a_call_site() {
@@ -897,9 +881,7 @@ fn an_include_with_empty_parentheses_is_a_call_site() {
 
 #[test]
 fn a_namespaced_include_is_a_call_site() {
-    // `@use 'theme' as t;` + `@include t.theme(...)` is ordinary Sass. The call site is
-    // the mixin's, reached through the name the `@use` bound. A signature change that
-    // missed it would leave the file half updated.
+    // `@use 'theme' as t;` + `@include t.theme(...)` is ordinary Sass.
     let namespaced = "@use 'theme' as t;\n\n.a {\n  @include t.theme(red);\n}\n";
     let parsed = Parsers::new().parse(Language::Scss, namespaced).unwrap();
     assert!(!parsed.has_errors());

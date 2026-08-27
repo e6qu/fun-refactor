@@ -1,19 +1,4 @@
 //! What a declaration binds, asked of every grammar that spells it differently.
-//!
-//! Three functions used to answer this, one per caller, each written against the
-//! languages its author had in front of them. They disagreed, and the disagreement was
-//! invisible because each caller had a fallback that covered for it somewhere else:
-//!
-//! * `fr inline` refused every Java local, saying "has no initialiser", because Java hangs the
-//!   value off a declarator and not off the declaration.
-//! * `fr type` answered `var`, Java's keyword for "work it out", as though it were the
-//!   type the source wrote down. It could not reach the value to work anything out from,
-//!   and it could not reach it for the same reason.
-//! * `fr remove-flag` was saved by looking at the declared type first, so the same gap
-//!   never showed.
-//!
-//! There is one reader now. These are the shapes it has to know, and a language is added
-//! here at the same time as it is added to the reader.
 
 use fun_refactor::analysis::types;
 use fun_refactor::index::Index;
@@ -118,8 +103,7 @@ fn a_local_bound_to_a_call_inlines_in_every_language() {
 
 #[test]
 fn a_java_local_declaring_several_names_keeps_the_others() {
-    // The reason the value hangs off a declarator in the first place. Inlining one of
-    // three must not take the other two with it.
+    // The reason the value hangs off a declarator in the first place.
     let (_tmp, root) = workspace(&[(
         "M.java",
         "public class M {\n    static int f() {\n        int a = 1, b = 2, c = 3;\n        \
@@ -138,9 +122,7 @@ fn a_java_local_declaring_several_names_keeps_the_others() {
 
 #[test]
 fn a_keyword_that_means_work_it_out_is_not_a_type() {
-    // `var` is Java's way of writing no type at all. Reporting it answered the question with
-    // the question, and hid the answer that does follow. `compute` states what it returns, so
-    // the binding's type is that.
+    // `var` is Java's way of writing no type at all.
     let (_tmp, root) = workspace(&[(
         "V.java",
         "public class V {\n    static String describe() {\n        var total = compute();\n        \
@@ -161,9 +143,8 @@ fn a_keyword_that_means_work_it_out_is_not_a_type() {
 
 #[test]
 fn a_java_construction_names_the_class_it_builds() {
-    // Java spells a call `method_invocation` and a construction
-    // `object_creation_expression`, and names the callee `name` and `type` where every
-    // other grammar here says `function`. Asking only for `function` found neither.
+    // Java spells a call `method_invocation` and a construction `object_creation_expression`,
+    // and names the callee `name` and `type` where every other grammar here says `function`.
     let (_tmp, root) = workspace(&[(
         "W.java",
         "public class W {\n    static class Money {}\n\n    static void f() {\n        \

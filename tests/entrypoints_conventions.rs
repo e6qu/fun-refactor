@@ -1,13 +1,4 @@
 //! Entry points a framework calls and the source never does.
-//!
-//! Python's are not spelled the way the other five spell theirs, and Next.js's newest
-//! convention is not spelled the way its older ones are. Both are the same problem: a
-//! name rule cannot find something that has no name to match.
-//!
-//! Every other catalog can say `name: main`, because every other language here agrees
-//! that a program starts in a function called `main`. Python's starts in a *statement*,
-//! and the function it calls can be named anything, so the rule that worked everywhere
-//! else reported nothing at all for an ordinary script.
 
 use fun_refactor::analysis::entrypoints::{Catalog, EntryKind};
 use fun_refactor::index::Index;
@@ -56,8 +47,7 @@ fn the_main_guard_reaches_through_sys_exit() {
 
 #[test]
 fn a_function_the_guard_does_not_call_is_not_an_entry_point() {
-    // Only what the guard calls directly. Anything further is reachability, which the
-    // call graph answers; folding it in here would tag half a program.
+    // Only what the guard calls directly.
     let found = entry_kinds(&[(
         "run.py",
         "def helper():\n    return 1\n\ndef cli():\n    return helper()\n\n\
@@ -78,8 +68,6 @@ fn a_module_with_no_guard_gains_nothing() {
 #[test]
 fn a_shared_fixture_is_an_entry_point() {
     // Nothing calls a fixture by name, pytest injects it by matching the parameter.
-    // In `conftest.py`, where the shared ones live, neither the file nor the function
-    // is named `test_*`, so no rule matched it at all.
     let found = entry_kinds(&[(
         "conftest.py",
         "import pytest\n\n@pytest.fixture\ndef shared():\n    return 3\n",
@@ -104,7 +92,6 @@ fn a_parameterised_fixture_is_an_entry_point() {
 
 #[test]
 fn unittest_fixtures_are_entry_points() {
-    // `unittest` calls these itself, once per test, and no source refers to them.
     let found = entry_kinds(&[(
         "tc.py",
         "import unittest\n\nclass ThingTest(unittest.TestCase):\n    \
@@ -121,11 +108,8 @@ fn unittest_fixtures_are_entry_points() {
 
 #[test]
 fn a_next_js_server_action_is_an_entry_point() {
-    // A `"use server"` file exports functions the framework makes reachable over the
-    // network, called by nothing in the source. The catalogue already covered Next.js's
-    // *filename* conventions, `page.tsx`, `route.ts`, and this one is not a filename:
-    // `components/cart/actions.ts` is an ordinary name. Found in `vercel/commerce`,
-    // where five live network endpoints were reported as having no detected use.
+    // A `"use server"` file exports functions the framework makes reachable over the network,
+    // called by nothing in the source.
     let found = entry_kinds(&[(
         "actions.ts",
         "\"use server\";\n\nexport async function addItem(id: string) {\n  return id;\n}\n\n\
@@ -141,9 +125,8 @@ fn a_next_js_server_action_is_an_entry_point() {
 
 #[test]
 fn the_directive_inside_one_function_marks_only_that_one() {
-    // Both forms are real: at the top of a file it marks every export, at the top of a
-    // body it marks that body. Treating the second as the first would call an ordinary
-    // helper a network endpoint.
+    // Both forms are real: at the top of a file it marks every export, at the top of a body it
+    // marks that body.
     let found = entry_kinds(&[(
         "mixed.ts",
         "export async function ordinary(id: string) {\n  return id;\n}\n\n\
@@ -161,8 +144,7 @@ fn the_directive_inside_one_function_marks_only_that_one() {
 
 #[test]
 fn the_words_in_a_comment_are_not_a_directive() {
-    // A directive is the first statement and it is quoted. Anything else that mentions
-    // it is prose.
+    // A directive is the first statement and it is quoted.
     let found = entry_kinds(&[(
         "notes.ts",
         "// use server: this file does not, despite the comment\n\n\
@@ -174,8 +156,7 @@ fn the_words_in_a_comment_are_not_a_directive() {
     );
 }
 
-/// A web framework calls its route handlers; the source never does. This project has a
-/// whole page about FastAPI, and a FastAPI handler was being reported as dead code.
+/// A web framework calls its route handlers; the source never does.
 #[test]
 fn a_route_handler_is_an_entry_point() {
     let found = entry_kinds(&[
@@ -199,8 +180,7 @@ fn a_route_handler_is_an_entry_point() {
     }
 }
 
-/// The broker calls the consumer and the scheduler calls the job. Neither appears in a
-/// call graph built from the source alone.
+/// The broker calls the consumer and the scheduler calls the job.
 #[test]
 fn a_consumer_and_a_scheduled_job_are_entry_points() {
     let found = entry_kinds(&[
@@ -230,10 +210,7 @@ fn a_consumer_and_a_scheduled_job_are_entry_points() {
     );
 }
 
-/// The annotation's arguments may contain dots of their own. Stripping the qualifier
-/// before cutting the arguments off read the last dotted piece of an *argument* as the
-/// annotation's name, so a version number in a route path, `/v1.0/status`, quietly
-/// turned a live handler into dead code.
+/// The annotation's arguments may contain dots of their own.
 #[test]
 fn a_dot_in_the_arguments_does_not_hide_the_annotation() {
     let found = entry_kinds(&[
@@ -278,9 +255,7 @@ fn the_annotation_is_found_however_it_is_spelled() {
 }
 
 /// `export class` is how TypeScript writes almost every class, and the word `export` sits
-/// between the decorator and the declaration. Reading it as a preceding line ended the run of
-/// annotations before it reached the decorator. So a NestJS controller, the class the whole
-/// framework is organised around, matched nothing.
+/// between the decorator and the declaration.
 #[test]
 fn a_modifier_between_the_annotation_and_the_declaration_is_not_a_line_before_it() {
     let found = entry_kinds(&[
@@ -334,10 +309,7 @@ fn a_nest_handler_is_an_entry_point() {
     }
 }
 
-/// actix-web and Rocket put the method on the handler as an attribute. These were
-/// covered only by coincidence: `#[get("/health")]` above `fn health` spells the
-/// symbol's own name in a string literal, which `fr unused` skips. The route path is
-/// not required to repeat the function name.
+/// actix-web and Rocket put the method on the handler as an attribute.
 #[test]
 fn a_rust_route_attribute_is_an_entry_point() {
     let found = entry_kinds(&[(
@@ -350,10 +322,7 @@ fn a_rust_route_attribute_is_an_entry_point() {
     );
 }
 
-/// A decorator's name is not unique across libraries. `@patch` is `unittest.mock`'s far more
-/// often than it is FastAPI's. Matching the name alone tagged twenty-two of `psf/black`'s test
-/// methods as remotely reachable HTTP routes, including, once, a `self` parameter. A route
-/// decorator names a URL path; a mock names a module.
+/// A decorator's name is not unique across libraries.
 #[test]
 fn a_route_rule_requires_the_path_and_not_just_the_name() {
     let found = entry_kinds(&[(
@@ -395,10 +364,6 @@ fn a_rule_that_cannot_mean_anything_is_rejected_when_it_loads() {
 }
 
 /// A parameter of an annotated method is not itself an entry point.
-///
-/// It sits inside the declaration's argument list, so the walk up to the annotation passes
-/// through the method's own text. `@KafkaListener` marks `consume` as a queue consumer; the
-/// queue hands it `payload`.
 #[test]
 fn a_parameter_does_not_carry_its_method_s_annotation() {
     let found = entry_kinds(&[
@@ -429,11 +394,6 @@ fn a_parameter_does_not_carry_its_method_s_annotation() {
 }
 
 /// A catalogue's enum-valued fields are enums.
-///
-/// `deny_unknown_fields` rejects a misspelled key. A misspelled *value* was accepted:
-/// `symbol_kind: functoin` and `languages: [pyhton]` both parsed, loaded. Matched nothing,
-/// indistinguishable from a rule that is present and never true. Both are parsed into the type
-/// they denote now, so the mistake is a message at load.
 #[test]
 fn a_misspelled_value_in_a_catalogue_is_rejected_when_it_loads() {
     let cases = [
@@ -505,12 +465,6 @@ fn a_rule_can_apply_to_every_language() {
 }
 
 /// A rule that says nothing matched nothing, quietly.
-///
-/// The comment on the old check said an empty matcher "is never what a catalog author means"
-/// and then returned false, which is also not what they meant, silently doing the opposite of
-/// the dangerous thing is still silent. And the list of what counted as a condition had drifted
-/// from the fields that exist: `symbol_kind`, `exported` and `top_level` were not on it. So a
-/// rule whose only condition was one of those counted as saying nothing and matched nothing.
 #[test]
 fn a_rule_that_names_no_condition_is_rejected_when_it_loads() {
     let dir = tempfile::tempdir().expect("a temporary directory");
@@ -553,12 +507,7 @@ fn a_kind_or_an_export_is_a_condition_by_itself() {
     assert_eq!(found, vec!["handler".to_string()], "a kind is a condition");
 }
 
-/// A Zig test is a construct. It is not a name.
-///
-/// `test "any prose you like" { … }` makes the description the symbol's name. So a rule asking
-/// for `name_prefix: test` matches only the tests whose description happens to begin with
-/// "test", 12 of the 495 in Zig's own standard library. The other 483 were reported as dead
-/// code, and so was anything only they called.
+/// A Zig test is a construct.
 #[test]
 fn a_zig_test_block_is_an_entry_point_whatever_it_is_called() {
     let found = entry_kinds(&[(
@@ -589,10 +538,7 @@ fn a_declaration_merely_starting_with_the_keyword_does_not_match() {
 
 #[test]
 fn an_element_id_is_not_an_http_route() {
-    // A rule matches a symbol, and the only symbols HTML declares are element
-    // ids. A rule for the page itself fired once per id. One page with two
-    // `<div id>` reported two HTTP routes, and a page with no ids reported
-    // nothing at all.
+    // A rule matches a symbol, and the only symbols HTML declares are element ids.
     let found = entry_kinds(&[(
         "index.html",
         "<!doctype html>\n<html>\n  <body>\n    <div id=\"mount\"></div>\n    \
@@ -615,10 +561,7 @@ fn a_mount_point_is_still_the_surface_it_is() {
 
 #[test]
 fn a_terraform_module_names_its_surface_and_not_its_workings() {
-    // A `locals` block is by definition not an input, and an `output` is what
-    // the module offers. Calling every binding an input made `fr unused`
-    // structurally dead for HCL: nothing was ever unreferenced, however clearly
-    // `fr usages` said so.
+    // A `locals` block takes no input, and an `output` offers something.
     let found = entry_kinds(&[(
         "main.tf",
         "variable \"environment\" {\n  type = string\n}\n\n\

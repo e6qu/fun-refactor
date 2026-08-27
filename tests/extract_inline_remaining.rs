@@ -1,10 +1,5 @@
-//! Extract and inline for the cells the matrix still refused: Bash variables and
-//! functions, Zig functions, SCSS mixins and XML entities.
-//!
-//! Every test asserts the exact resulting file text instead of a substring, checks
-//! that the bytes outside the edited ranges came through unchanged, and puts the plan
-//! through `edit::plan(.., ReparseStrict)` so a refactoring that would break the file
-//! fails here and not on disk.
+//! Extract and inline for the cells the matrix still refused: Bash variables and functions, Zig
+//! functions, SCSS mixins and XML entities.
 
 use fun_refactor::edit::{apply_to_string, plan, Edit, Validation};
 use fun_refactor::index::Index;
@@ -24,8 +19,7 @@ impl Workspace {
         self.tmp.path().join(name)
     }
 
-    /// Re-read the tree from disk. Used after applying one refactoring so the next one
-    /// resolves against the rewritten file, which a round trip needs.
+    /// Re-read the tree from disk.
     fn reindex(&mut self) {
         let scanned = scan(self.tmp.path(), &ScanOptions::default()).unwrap();
         self.index = Index::build_from_scan(&scanned).unwrap();
@@ -129,8 +123,7 @@ fn bash_extract_names_a_command_substitution() {
 
 #[test]
 fn bash_extract_leaves_a_splitting_expansion_unquoted() {
-    // `printf %s $(list)` splits the output on $IFS. `"$items"` would make it one
-    // word, which is a different command line, so the reference stays bare.
+    // `printf %s $(list)` splits the output on $IFS.
     let src = "#!/bin/bash\nprintf %s $(list)\n";
     let ws = workspace(&[("run.sh", src)]);
     let path = ws.path("run.sh");

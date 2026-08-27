@@ -1,10 +1,4 @@
 //! A translated Go file has to be one `go build` accepts.
-//!
-//! Everything came out `package main`, and a file with no `func main` is a
-//! program with no entry point: every translated library was unbuildable. A
-//! body that did not translate left a function promising a value and returning
-//! nothing. An empty list came out `[]any` under a signature promising
-//! something else.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -73,8 +67,7 @@ fn a_function_that_promises_nothing_is_left_to_end_where_it_ends() {
 
 #[test]
 fn a_switch_whose_every_arm_returns_needs_nothing_after_it() {
-    // From TypeScript, whose `switch` the reader models. Python's `match` is
-    // carried as a comment, and a body of comments does need the panic.
+    // From TypeScript, whose `switch` the reader models.
     let source = "export function word(n: number): string {\n    switch (n) {\n        \
         case 0:\n            return \"none\";\n        default:\n            \
         return \"some\";\n    }\n}\n";

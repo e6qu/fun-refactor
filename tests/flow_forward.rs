@@ -1,9 +1,4 @@
 //! Where a value goes, asked of the same program in four languages.
-//!
-//! `fr flow back` follows a chain of assignments to its source. `fr flow fwd` is the same
-//! question pointed the other way and answered a different, shorter question. It went one hop
-//! and stopped, while continuing into the enclosing function and its callers. So the answer
-//! looked like it had gone somewhere.
 
 use fun_refactor::analysis::flow;
 use fun_refactor::index::Index;
@@ -65,9 +60,9 @@ fn a_value_is_followed_to_the_end_of_its_chain() {
 
 #[test]
 fn the_value_flows_into_the_binding_and_not_the_function_around_it() {
-    // The candidate search accepted any symbol whose span *contained* the assigned
-    // name, and took the first in declaration order, which is the enclosing function,
-    // whose span contains everything.
+    // The candidate search accepted any symbol whose span *contained* the assigned name, and
+    // took the first in declaration order, which is the enclosing function, whose span contains
+    // everything.
     let steps = forward(
         "a.py",
         "def load(raw):\n    cleaned = raw.strip()\n    parsed = int(cleaned)\n    \
@@ -86,9 +81,7 @@ fn the_value_flows_into_the_binding_and_not_the_function_around_it() {
 
 #[test]
 fn a_hop_is_reported_once() {
-    // The use and the binding it initialises are the same line. Printing both put every
-    // hop in twice, one indent apart, and spent a level of depth on a line the reader
-    // had already seen.
+    // The use and the binding it initialises are the same line.
     let steps = forward(
         "a.py",
         "def load(raw):\n    cleaned = raw.strip()\n    parsed = int(cleaned)\n    \

@@ -1,15 +1,4 @@
 //! Translating the tool's own source, and the other real code in this repository.
-//!
-//! Fixtures are written by whoever writes the assertion, and they pass. Real code was written
-//! by somebody who had never heard of this tool. It is full of the things nobody thinks to put
-//! in a fixture: a comment in the middle of a parameter list, a literal with its width written
-//! into it, a doc comment quoting a glob, a string with an escape in it.
-//!
-//! The bar is the weakest one that is still objective and the strongest one available without
-//! six compilers. **whatever comes out must be a file the target's own grammar accepts.** That
-//! found nine defects the first time it ran, across ninety-seven of two hundred and thirty-five
-//! translations, including three that had been quietly changing the meaning of every string and
-//! every JSDoc block since the transpiler landed.
 
 use fun_refactor::transpile;
 use std::path::{Path, PathBuf};
@@ -71,25 +60,19 @@ fn every_target(files: &[PathBuf], what: &str, least: usize) {
 
 #[test]
 fn the_tools_own_rust_translates_into_something_that_parses() {
-    // Twenty thousand lines of Rust nobody wrote to be translated. It is where the
-    // comment inside a parameter list came from, four invented parameters named after
-    // the sentence that had been sitting between two real ones.
+    // Twenty thousand lines of Rust nobody wrote to be translated.
     every_target(&sources("src", "rs"), "Rust", 30);
 }
 
 #[test]
 fn the_playgrounds_typescript_translates_into_something_that_parses() {
-    // Real TypeScript, and the source of the JSDoc defects: a `/** ... */` is one node
-    // however many lines it spans, and one of them quotes `app/**/route.ts`, which
-    // closes the comment in the middle of a sentence.
+    // Real TypeScript, and the source of the JSDoc defects: a `/** ...
     every_target(&sources("web/src", "ts"), "TypeScript", 5);
 }
 
 #[test]
 fn the_petstore_translates_into_something_that_parses() {
-    // A Next.js API tree is TypeScript before it is anything else. This one is the most
-    // idiomatic in the repository: zod builder chains, shorthand properties, nullish
-    // coalescing, optional chaining, and a schema module every route imports.
+    // A Next.js API tree is TypeScript before it is anything else.
     every_target(&sources("tests/petstore", "ts"), "TypeScript", 8);
 }
 
@@ -106,15 +89,14 @@ fn the_vendored_python_translates_into_something_that_parses() {
 
 #[test]
 fn the_vendored_java_translates_into_something_that_parses() {
-    // google/gson. Nothing in this repository is written in Java, so without a corpus
-    // the Java reader is exercised only by fixtures somebody wrote to pass.
+    // google/gson.
     every_target(&sources("tests/corpus/gson", "java"), "Java", 3);
 }
 
 #[test]
 fn the_vendored_zig_translates_into_something_that_parses() {
-    // zigtools/zls, and every one of these was a defect the first time it was read: a
-    // pointer type, an optional type, `comptime` parameters, `_` as a parameter name,
-    // and a destructuring that silently kept the first name and dropped the rest.
+    // zigtools/zls, and every one of these was a defect the first time it was read: a pointer
+    // type, an optional type, `comptime` parameters, `_` as a parameter name, and a
+    // destructuring that silently kept the first name and dropped the rest.
     every_target(&sources("tests/corpus/zls", "zig"), "Zig", 2);
 }

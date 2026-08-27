@@ -1,19 +1,4 @@
 //! What URLs a file serves, in the five frameworks that are not Next.js.
-//!
-//! `fr openapi` builds a contract from a tree of route files, and it could read
-//! one shape of tree: a Next.js `app/api` directory. A service written with
-//! Express, Flask, axum, gin or Spring declares the same thing. The command
-//! had nothing to say about any of them.
-//!
-//! Each framework says it its own way. Express and gin call a method on a
-//! router and hand it a path. Flask and Spring put the path in a decorator or
-//! an annotation above the handler. axum builds a router by chaining `.route`
-//! calls. What they agree about is the pair that matters: a method and a URL,
-//! answered by a named function.
-//!
-//! Path parameters differ too. Express, gin and axum write `:id`, Flask writes
-//! `<int:id>`, Spring and OpenAPI write `{id}`. The last is the one a contract
-//! uses, so every reader spells its own into that.
 
 use crate::lang::Language;
 use crate::parse::Parsers;
@@ -61,10 +46,6 @@ impl std::fmt::Display for Framework {
 }
 
 /// Every endpoint this file declares, and the framework that declared them.
-///
-/// `None` where the file declares no routes at all. A file in one of these
-/// languages that uses none of its framework is not an error. Most files in a
-/// service are not route files.
 pub fn endpoints_in(path: &Path) -> Result<Option<(Framework, Vec<Endpoint>)>> {
     let Some(language) = crate::lang::detect(path) else {
         return Ok(None);
@@ -136,10 +117,6 @@ fn quoted(text: &str) -> Option<String> {
 }
 
 /// A URL with this framework's path parameters spelled the way a contract does.
-///
-/// Express, gin and axum write `:id`. Flask writes `<id>` and `<int:id>`, where
-/// the part before the colon is a converter and not the name. Spring and
-/// OpenAPI write `{id}` already.
 fn canonical_url(url: &str) -> String {
     let mut out = String::with_capacity(url.len());
     let mut rest = url;
@@ -278,8 +255,7 @@ fn flask(root: Node<'_>, source: &str, lines: &LineIndex) -> Option<(Framework, 
             };
             let url = canonical_url(&url);
             let word = word.trim().to_lowercase();
-            // `@app.get(…)` names one method. `@app.route(…)` names them in a
-            // `methods=` argument, and names `GET` when it names none.
+            // `@app.get(…)` names one method.
             let methods: Vec<String> = match word.as_str() {
                 "route" => match arguments.find("methods") {
                     Some(at) => METHODS
@@ -337,7 +313,6 @@ fn axum(root: Node<'_>, source: &str, lines: &LineIndex) -> Option<(Framework, V
         };
         let url = canonical_url(&url);
         // The second argument is a chain of method routers: `get(f).post(g)`.
-        // Each names one method and the handler that answers it.
         let Some(chain) = given.get(1) else { continue };
         for call in walk(*chain) {
             if call.kind() != "call_expression" {
@@ -513,9 +488,8 @@ fn mapping(text: &str) -> Option<(Vec<String>, String)> {
         }
         _ => return None,
     };
-    // The path is the first string in the argument list, whether it is written
-    // bare or as `value = "…"` or `path = "…"`. A mapping with no path at all
-    // answers the class's own.
+    // The path is the first string in the argument list, whether it is written bare or as
+    // `value = "…"` or `path = "…"`.
     let url = quoted_anywhere(rest).unwrap_or_default();
     Some((methods, url))
 }

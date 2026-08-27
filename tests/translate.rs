@@ -28,8 +28,7 @@ fn plain_css_is_scss() {
 
 #[test]
 fn scss_that_uses_scss_is_not_css() {
-    // Nesting is the commonest thing CSS cannot read. The refusal must say so and
-    // point at it, instead of writing a .css file that no browser will parse.
+    // Nesting is the commonest thing CSS cannot read.
     let (_tmp, root) = workspace(&[(
         "a.scss",
         "$brand: red;\n\n.panel {\n  color: $brand;\n\n  .inner {\n    color: blue;\n  }\n}\n",
@@ -83,10 +82,8 @@ fn a_manifest_is_a_template_and_a_template_with_actions_is_not_a_manifest() {
 
 #[test]
 fn an_imperative_pair_is_never_a_rewrite_and_the_refusal_points_at_the_draft() {
-    // The containment path must still refuse every imperative pair: the bytes of a
-    // Rust file are never a Python file. What the refusal says changed once already,
-    // when it denied that the transpiler exists. It must now point at the path that
-    // does the work, or name the reader or writer the build lacks.
+    // The containment path must still refuse every imperative pair: the bytes of a Rust file
+    // are never a Python file.
     let (_tmp, root) = workspace(&[
         ("a.rs", "fn main() {}\n"),
         ("b.py", "def main():\n    pass\n"),
@@ -136,10 +133,8 @@ fn it_refuses_to_overwrite_something_that_is_already_there() {
 
 #[test]
 fn the_offered_targets_all_actually_work_on_a_file_that_suits_them() {
-    // Whatever `targets` advertises must be plannable for a file in the intersection,
-    // or the interface offers buttons that always refuse.
-    // A distinct stem each: the destination must not already exist, and every one of
-    // these languages shares a directory here.
+    // Whatever `targets` advertises must be plannable for a file in the intersection, or the
+    // interface offers buttons that always refuse.
     let (_tmp, root) = workspace(&[
         ("one.css", ".a {\n  color: red;\n}\n"),
         ("two.scss", ".a {\n  color: red;\n}\n"),
@@ -179,9 +174,8 @@ fn the_offered_targets_all_actually_work_on_a_file_that_suits_them() {
 
 #[test]
 fn force_replaces_the_previous_translation_instead_of_stacking_a_second() {
-    // The overwrite edit was an insertion at byte zero, so an existing destination
-    // kept its old translation below the new one. --force doubled the file on
-    // every run: two headers, twice the functions, all of it valid syntax.
+    // The overwrite edit was an insertion at byte zero, so an existing destination kept its old
+    // translation below the new one.
     let tmp = tempfile::tempdir().unwrap();
     let source = tmp.path().join("c.py");
     std::fs::write(

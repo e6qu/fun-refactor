@@ -22,7 +22,7 @@ half the work, and does not do nothing quietly.
 
 ## Naming what to act on
 
-Most commands take a `<TARGET>`, and it is written one of two ways.
+Most commands take a `<TARGET>`. Write it one of two ways.
 
 - A position: `src/parse.rs:120:8`. The line and column are 1-based and land on
   the identifier.
@@ -38,7 +38,7 @@ ambiguous, and the tool tells you which case you are in.
 | Option | What it does |
 |---|---|
 | `--json` | Machine-readable output instead of text |
-| `-C`, `--root <ROOT>` | The workspace to act on. A single file is accepted, and then only that file is scanned. Default `.` |
+| `-C`, `--root <ROOT>` | The workspace to act on. Naming a single file scans that file alone. Default `.` |
 | `--max-file-size <BYTES>` | Skip files larger than this. Default 4 MiB. Every command warns when a scan skipped one |
 | `--no-ignore` | Read files `.gitignore` excludes, and hidden files. Generated and vendored trees are refactoring targets like any other |
 | `--no-cache` | Re-read every file instead of reusing cached facts |
@@ -58,8 +58,8 @@ List the files `fr` can act on, and count the ones it cannot.
 fr scan [--lang <LANGUAGE>]
 ```
 
-Files in no supported language are counted by extension rather than listed one
-by one. A build that omits a grammar says so here rather than calling the file
+Files in no supported language count by extension rather than listing one by
+one. A build that omits a grammar says so here rather than calling the file
 unsupported.
 
 ### `fr parse`
@@ -70,8 +70,8 @@ Parse every file and report syntax health.
 fr parse [--lang <LANGUAGE>] [--stats]
 ```
 
-A file with syntax errors is still indexed, and its facts are partial. This is
-where you find out which files those are. `--stats` adds node counts per
+A file with syntax errors still reaches the index, carrying partial facts. Run
+this to find out which files those are. `--stats` adds node counts per
 language.
 
 ### `fr symbols`
@@ -203,8 +203,8 @@ Three questions, one command.
   Terraform resource renders, the file a Markdown link points at. A path either
   exists or it does not, so this edge is exact.
 - `--flags`: the program that declares a `--flag` a script passes. clap, Go's
-  `flag` package, `argparse` and commander are read. A flag passed and declared
-  nowhere is reported, which is what a renamed flag looks like.
+  `flag` package, `argparse` and commander. The report names a flag something
+  passes and nothing declares, which is what a renamed flag looks like.
 
 ### `fr impact`
 
@@ -225,8 +225,8 @@ Show what this tool can do, per language.
 fr capabilities [--capability <C>] [--lang <L>] [--markdown]
 ```
 
-The matrix is computed by asking each refactoring's own predicate, so it cannot
-drift from the code. Every cell that is not supported carries its reason.
+The matrix comes from asking each refactoring's own predicate, so it cannot drift
+from the code. Every cell that is not supported carries its reason.
 `--markdown` prints the table the README publishes.
 
 ## Finding work
@@ -265,7 +265,7 @@ fr rename <TARGET> <NEW_NAME> [--write]
 ```
 
 Renames the declaration and every reference that provably points at it. A
-reference the tool cannot prove points there is reported and left alone.
+reference the tool cannot prove stays where it is, and the report names it.
 
 ### `fr extract`
 
@@ -294,9 +294,9 @@ inside a multiplication keeps its brackets.
 fr signature <TARGET> <CHANGE> [--write]
 ```
 
-Change a function's parameters and update every call site. The change is written
-in the DSL's own spelling, so `drop 2` and `add limit: int = 50` mean what they
-look like.
+Change a function's parameters and update every call site. Write the change in
+the DSL's own spelling, so `drop 2` and `add limit: int = 50` mean what they look
+like.
 
 ### `fr move`
 
@@ -315,8 +315,7 @@ fr delete <TARGET> [--write]
 ```
 
 Delete a symbol, refusing if anything still uses it. A file that failed to parse
-is named as possibly hiding a use, so the refusal is honest about what it could
-not see.
+counts as possibly hiding a use, so the refusal states what it could not see.
 
 ### `fr imports`
 
@@ -386,7 +385,7 @@ Two different promises share this command.
   this goes through is documented in [IR.md](IR.md).
 
 `--out` chooses the destination and `--force` overwrites. The original always
-stays: a conversion that deleted its input could not be read back from the diff.
+stays: nobody can read a deleted input back out of the diff.
 
 ### `fr openapi`
 

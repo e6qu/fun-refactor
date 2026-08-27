@@ -1,30 +1,4 @@
 //! Terraform's two syntaxes for one configuration.
-//!
-//! HCL has an official JSON syntax, and Terraform reads `.tf` and `.tf.json` as
-//! two spellings of the same thing. A generator writes the JSON one because
-//! writing JSON is easy; a person reads the HCL one because reading HCL is
-//! easy. A workspace holds both, and moving a file from one to the other is a
-//! real conversion and not a rename: the block header
-//!
-//! ```hcl
-//! resource "aws_s3_bucket" "b" {
-//!   acl = "private"
-//! }
-//! ```
-//!
-//! becomes nesting, one level per label:
-//!
-//! ```json
-//! { "resource": { "aws_s3_bucket": { "b": { "acl": "private" } } } }
-//! ```
-//!
-//! What crosses exactly: blocks, their labels, attributes, and the literals
-//! `string`, `number`, `bool` and `null`. What does not: an expression. `type =
-//! bool` and `count = var.n + 1` are HCL, and the JSON syntax writes each as a
-//! string for Terraform to re-parse. Reading that string back is a decision
-//! about whether the author meant text or an expression. So an expression
-//! crosses as the string Terraform expects and comes back as an expression, and
-//! the round trip says which of the two it read.
 
 use crate::lang::Language;
 use crate::parse::Parsers;
@@ -70,10 +44,6 @@ fn child_of_kind<'t>(node: Node<'t>, kind: &str) -> Option<Node<'t>> {
 }
 
 /// Every body, as the object its attributes and blocks make.
-///
-/// Two blocks with the same header are a list, which is what Terraform means by
-/// writing the header twice. One block is the object on its own, which is what
-/// Terraform's own JSON syntax accepts either way.
 fn body_to_json(body: Node<'_>, source: &str) -> Result<Map<String, Value>> {
     let mut out: Map<String, Value> = Map::new();
     let mut cursor = body.walk();
@@ -102,9 +72,8 @@ fn body_to_json(body: Node<'_>, source: &str) -> Result<Map<String, Value>> {
                     wrapped = Value::Object(level);
                 }
                 let Some(head) = labels.first() else { continue };
-                // The labels are levels of nesting, and two blocks sharing them
-                // share those levels. Two blocks sharing *every* label are two
-                // of the same thing, which is where a list begins.
+                // The labels are levels of nesting, and two blocks sharing them share those
+                // levels.
                 merge(&mut out, head, wrapped, labels.len().saturating_sub(1));
             }
             _ => {}
@@ -130,11 +99,6 @@ fn block_parts<'t>(block: Node<'t>, source: &str) -> (Vec<String>, Option<Node<'
 }
 
 /// Put a value under a key, merging down the levels its labels name.
-///
-/// `resource "aws_s3_bucket" "one"` and `resource "aws_s3_bucket" "two"` share
-/// two levels and part at the third, so the type holds both names. Two blocks
-/// sharing every label are two of the same thing, and Terraform's JSON syntax
-/// says that with an array. Overwriting would lose the first silently.
 fn merge(into: &mut Map<String, Value>, key: &str, value: Value, levels: usize) {
     let Some(already) = into.remove(key) else {
         into.insert(key.to_string(), value);
@@ -181,8 +145,7 @@ fn expression_to_json(expression: Node<'_>, source: &str) -> Value {
         },
         Some("bool_lit") => Value::Bool(text == "true"),
         Some("null_lit") => Value::Null,
-        // An expression: `var.n`, `bool`, `a + 1`. Terraform's JSON syntax
-        // holds one as a string and re-parses it, which is what this writes.
+        // An expression: `var.n`, `bool`, `a + 1`.
         _ => Value::String(text.to_string()),
     }
 }
@@ -215,7 +178,6 @@ fn write_block(out: &mut String, name: &str, value: &Value, depth: usize) {
                 }
             }
         }
-        // An array under a name is that block written more than once.
         Value::Array(items) => {
             for item in items {
                 write_block(out, name, item, depth);
@@ -226,9 +188,6 @@ fn write_block(out: &mut String, name: &str, value: &Value, depth: usize) {
 }
 
 /// The one label this level names, where the level is only labels.
-///
-/// `{"aws_s3_bucket": {"b": {…}}}` is two labels and then a body. A level with
-/// several keys is a body already: those keys are attributes or nested blocks.
 fn block_labels(fields: &Map<String, Value>) -> Option<(String, &Map<String, Value>)> {
     let mut entries = fields.iter();
     let (name, value) = entries.next()?;
@@ -276,10 +235,6 @@ fn write_body(out: &mut String, fields: &Map<String, Value>, depth: usize) {
 }
 
 /// A JSON scalar as HCL writes one.
-///
-/// A string that reads as an expression is written as one. Terraform's JSON
-/// syntax holds `"var.n"` for an author who wrote `var.n`, and putting the
-/// quotes back would change what the configuration means.
 fn literal(value: &Value) -> String {
     match value {
         Value::String(text) => match reads_as_an_expression(text) {
@@ -300,12 +255,6 @@ const TYPE_WORDS: &[&str] = &[
 ];
 
 /// Would Terraform re-parse this string as an expression?
-///
-/// A dotted path, an interpolation, or a type keyword. A bare word on its own
-/// is *not* one: `acl = "private"` and `type = bool` look the same in JSON, and
-/// reading the first as an expression would leave `acl = private`, a reference
-/// to something the configuration never declares. So a lone word stays a
-/// string, and the words that are types are named.
 fn reads_as_an_expression(text: &str) -> bool {
     if text.is_empty() {
         return false;
@@ -319,9 +268,8 @@ fn reads_as_an_expression(text: &str) -> bool {
     if TYPE_WORDS.contains(&text) {
         return true;
     }
-    // `var.name`, `local.a.b`: identifiers separated by dots, at least two of
-    // them, and nothing else. `example.com` is a hostname, so the head has to
-    // be one of the names Terraform itself puts a reference under.
+    // `var.name`, `local.a.b`: identifiers separated by dots, at least two of them, and nothing
+    // else.
     let mut parts = text.split('.');
     let Some(head) = parts.next() else {
         return false;

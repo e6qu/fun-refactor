@@ -1,8 +1,4 @@
 //! Fact-extraction tests for `queries/typescript/facts.scm`.
-//!
-//! One query file backs both `Language::TypeScript` (.ts) and `Language::Tsx` (.tsx). So every
-//! shared construct is exercised against both grammars and the JSX-only constructs against Tsx
-//! alone, the .ts grammar cannot parse JSX.
 
 use fun_refactor::{extract::Extractor, lang::Language, model::*, parse::Parsers, span::Span};
 use std::path::Path;
@@ -253,7 +249,7 @@ fn a_function_valued_binding_is_a_function_not_a_variable() {
         for name in ["arrowFn", "exprFn"] {
             let s = one(&f, name);
             assert_eq!(s.kind, SymbolKind::Function, "{lang}: {name}");
-            // Only the binding identifier is renameable. It is not the whole declarator.
+            // Only the binding identifier is renameable.
             assert_eq!(s.name_span.text(DECLS), name);
         }
     }
@@ -298,7 +294,7 @@ fn class_members_are_qualified_methods_and_fields() {
             assert_eq!(s.qualifier.as_deref(), Some("Widget"));
         }
 
-        // A class field holding an arrow is a method. It is not a field.
+        // A class field holding an arrow is a method.
         let handler = one(&f, "handler");
         assert_eq!(handler.kind, SymbolKind::Method, "{lang}");
         assert_eq!(handler.qualifier.as_deref(), Some("Widget"));
@@ -468,7 +464,7 @@ fn calls_are_recorded_as_calls() {
         let method = refs_named(&f, "methodTarget");
         assert_eq!(method[0].kind, ReferenceKind::Call, "{lang}");
 
-        // Documented choice: `new X()` is a call. It invokes a constructor.
+        // Documented choice: `new X()` is a call.
         let ctor = refs_named(&f, "Klass");
         assert_eq!(ctor[0].kind, ReferenceKind::Call, "{lang}");
     }
@@ -569,8 +565,7 @@ fn an_arrow_body_is_its_own_scope() {
 fn jsx_component_names_are_references_and_html_tags_are_not() {
     let f = facts(Language::Tsx, JSX);
 
-    // Capitalised element names reference a component symbol. Documented choice:
-    // they are captured as plain identifier references.
+    // Capitalised element names reference a component symbol.
     let helper: Vec<_> = refs_named(&f, "Helper")
         .into_iter()
         .filter(|r| r.span.start > JSX.find("return").unwrap())
@@ -681,9 +676,8 @@ export const store = new Store<User>();
     assert!(one(&f, "Profile").exported);
     assert_eq!(one(&f, "add").qualified_name(), "Store::add");
     assert_eq!(one(&f, "DEFAULT_NAME").kind, SymbolKind::Constant);
-    // A binding whose initialiser is a *call*, `useCallback(() => …)` and every
-    // other higher-order wrapper, holds a value, not a literal function, so it
-    // is a Constant. Only a directly-bound function literal reads as a function.
+    // A binding whose initialiser is a *call*, `useCallback(() => …)` and every other
+    // higher-order wrapper, holds a value, not a literal function, so it is a Constant.
     assert_eq!(one(&f, "save").kind, SymbolKind::Constant);
     let css: Vec<&str> = f
         .references
@@ -727,8 +721,7 @@ fn export_declare_is_captured_but_not_marked_exported() {
 #[test]
 fn a_declaration_in_an_exotic_statement_position_is_not_captured() {
     // Known limit: definitions are matched through their statement parent (`program` /
-    // `statement_block` / `export_statement`). So a declaration in a bare switch case is missed
-    // and not duplicated.
+    // `statement_block` / `export_statement`).
     let src =
         "switch (k) { case 1: { const inBlock = 1; } }\nswitch (k) { case 2: const inCase = 2; }\n";
     let f = facts(Language::TypeScript, src);
@@ -738,9 +731,7 @@ fn a_declaration_in_an_exotic_statement_position_is_not_captured() {
 
 #[test]
 fn a_typeof_type_query_names_the_value_it_reads() {
-    // `typeof Foo` reads a *value's* type. The catch-all identifier pattern already
-    // recorded the use, but as a plain identifier, which understates it, and an
-    // import bound only this way looks value-unused.
+    // `typeof Foo` reads a *value's* type.
     let src = "const Foo = { a: 1 };\nlet x: typeof Foo;\n";
     let f = facts(Language::TypeScript, src);
     let uses: Vec<_> = f.references.iter().filter(|r| r.name == "Foo").collect();

@@ -1,10 +1,4 @@
 //! What a pattern reads and what a shorthand writes.
-//!
-//! Every defect here was found by running the tool on its own repository. An
-//! enum variant matched seventeen times read as dead; a field consumed only by
-//! destructuring read as dead; renaming a local that fed `Facts { count }`
-//! initialised a field the struct does not have; and a call to `fn stmt`
-//! resolved to a sibling function's `stmt` parameter that sat nearer.
 
 use fun_refactor::index::Index;
 use fun_refactor::refactor::rename;
@@ -167,7 +161,6 @@ fn renaming_the_field_expands_the_shorthand_the_other_way() {
 #[test]
 fn a_local_does_not_answer_calls_outside_its_scope() {
     // The parameter sits nearer to the call than the function of the same name.
-    // Distance is not scope: the parameter is not usable outside `settle`.
     let filler = "    // filler\n".repeat(40);
     let source = format!(
         "mod reader {{\n    fn settle(stmt: &mut i64) {{\n        *stmt += 1;\n    }}\n\n\

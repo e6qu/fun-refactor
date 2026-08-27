@@ -1,14 +1,4 @@
 //! Copy-paste detection: the same code, written twice.
-//!
-//! The comparison is structural and not textual: a subtree's hash comes from the node kinds it
-//! contains. So a copy whose variables were renamed still matches the original, and a textual
-//! search would not find it. [`Options::exact`] narrows to copies that also agree on every
-//! identifier and literal.
-//!
-//! Two rules bound the output. A clone must be at least [`Options::min_tokens`] tokens, since
-//! every language has small shapes that repeat everywhere. And only maximal clones are
-//! reported: a duplicated function also duplicates its body, its statements and its
-//! expressions, and listing all of them buries the finding.
 
 use crate::index::Index;
 use crate::lang::Language;
@@ -28,9 +18,7 @@ pub struct Clone {
     /// First and last line it covers, 1-based and inclusive.
     pub start_line: usize,
     pub end_line: usize,
-    /// The columns to go with them, so this is a range `fr extract` accepts. Without
-    /// them a caller had to open the file and measure the line itself, which is the one
-    /// thing it came here to avoid.
+    /// The columns to go with them, so this is a range `fr extract` accepts.
     pub start_col: usize,
     pub end_col: usize,
 }
@@ -41,14 +29,12 @@ pub struct CloneClass {
     pub language: Language,
     /// Tokens in each instance, the size of the duplication.
     pub tokens: usize,
-    /// Every occurrence, in scan order. Always two or more.
+    /// Every occurrence, in scan order.
     pub instances: Vec<Clone>,
 }
 
 impl CloneClass {
     /// Tokens that would stop being written twice if this were factored out.
-    ///
-    /// One copy has to stay, so the saving is the cost of the others.
     pub fn redundant_tokens(&self) -> usize {
         self.tokens * (self.instances.len() - 1)
     }
@@ -57,25 +43,18 @@ impl CloneClass {
 /// What counts as a duplicate.
 #[derive(Debug, Clone, Default)]
 pub struct Options {
-    /// Smallest clone to report, in tokens. Unstated, each language gets the
-    /// floor its own density earns.
+    /// Smallest clone to report, in tokens.
     pub min_tokens: Option<usize>,
     /// Require identifiers and literals to match, not only the structure.
     pub exact: bool,
-    /// Restrict the report to these languages. Empty means all of them.
+    /// Restrict the report to these languages.
     pub languages: Vec<Language>,
-    /// Restrict the report to these path prefixes. Empty means the whole workspace.
+    /// Restrict the report to these path prefixes.
     pub paths: Vec<PathBuf>,
 }
 
 impl Options {
     /// The floor for one language, where the caller stated none.
-    ///
-    /// A dozen lines is the unit worth reporting, and a dozen lines is a
-    /// different number of tokens in each kind of language. Twelve lines of
-    /// CSS declarations count 47 and twelve of YAML count 33, so one floor of
-    /// 60 meant copy-paste that any reader would call duplication went
-    /// unreported, with nothing said about why.
     fn floor_for(&self, language: Language) -> usize {
         match (self.min_tokens, language.class()) {
             (Some(stated), _) => stated,
@@ -117,16 +96,14 @@ pub fn find(index: &Index, options: &Options) -> Result<Vec<CloneClass>> {
     let mut candidates: Vec<Candidate> = Vec::new();
     for (i, (_, language, source)) in files.iter().enumerate() {
         let Ok(parsed) = parsers.parse(*language, source) else {
-            // A file that does not parse has no reliable structure to compare. It is
-            // already reported by `fr parse`, so it is skipped and not guessed at.
+            // A file that does not parse has no reliable structure to compare.
             continue;
         };
         let floor = options.floor_for(*language);
         collect(parsed.root(), source, i, options, floor, &mut candidates);
     }
 
-    // Group by hash. The language is carried per file, so two languages can only
-    // share a class if their grammars agree on every node kind, which they do not.
+    // Group by hash.
     let mut by_hash: HashMap<u64, Vec<usize>> = HashMap::new();
     for (i, candidate) in candidates.iter().enumerate() {
         by_hash.entry(candidate.hash).or_default().push(i);
@@ -147,8 +124,7 @@ pub fn find(index: &Index, options: &Options) -> Result<Vec<CloneClass>> {
         )
     });
 
-    // Only maximal clones. A duplicated function duplicates every statement inside
-    // it; once the function is reported, its parts are the same finding said again.
+    // Only maximal clones.
     let mut covered: Vec<Vec<Span>> = vec![Vec::new(); files.len()];
     let mut classes = Vec::new();
 
@@ -189,8 +165,7 @@ pub fn find(index: &Index, options: &Options) -> Result<Vec<CloneClass>> {
             covered[candidate.file_index].push(candidate.span);
             let lines = LineIndex::new(source);
             let from = lines.line_col(candidate.span.start, source);
-            // The end is exclusive, so the last covered byte is one before it. The column
-            // reported is one past that, which a range wants.
+            // The end is exclusive, so the last covered byte is one before it.
             let to = lines.line_col(candidate.span.end.saturating_sub(1), source);
             class.instances.push(Clone {
                 file: path.clone(),
@@ -224,9 +199,6 @@ fn overlaps(a: Span, b: Span) -> bool {
 }
 
 /// Hash every subtree large enough to be worth comparing.
-///
-/// Done bottom-up in one pass: a node's hash is built from its kind and the hashes of its
-/// children. So the whole file costs one traversal instead of one per subtree.
 fn collect(
     root: Node<'_>,
     source: &str,
@@ -253,8 +225,7 @@ fn collect(
         let children: Vec<Node> = node.children(&mut cursor).collect();
 
         let (hash, tokens) = if children.is_empty() {
-            // A leaf is one token. In structural mode its kind is all that matters,
-            // so a renamed copy still matches; in exact mode the text matters too.
+            // A leaf is one token.
             let mut h = fnv(node.kind().as_bytes());
             if options.exact {
                 h = mix(h, fnv(Span::from(node).text(source).as_bytes()));
@@ -305,8 +276,6 @@ fn mix(accumulated: u64, next: u64) -> u64 {
 }
 
 /// Is duplicate detection meaningful for this language?
-///
-/// Files the report skipped because they do not parse.
 pub fn unparsed(index: &Index, options: &Options) -> Vec<PathBuf> {
     index
         .files()

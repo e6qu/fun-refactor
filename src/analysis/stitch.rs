@@ -1,19 +1,4 @@
 //! Stitching references across the code/config boundary.
-//!
-//! A Helm value reaches application code by a route no single tool follows. A key in
-//! `values.yaml` is named by a `{{ .Values.x }}` action in a template, that action supplies the
-//! `value` of a container environment variable. The program reads that variable by name at
-//! runtime. Three files, three languages, one value.
-//!
-//! Every link here is name-keyed and not resolved, an environment variable is matched by the
-//! string a program passes to `getenv`, which no static analysis can prove refers to the same
-//! variable a manifest declares. So every chain carries [`Confidence::NameOnly`] on that hop
-//! and says so, instead of presenting a guess as a fact.
-//!
-//! The manifest end of the chain is read with [`crate::helm`]: the `.Values` path behind a
-//! variable lives inside a `{{ ... }}` action, which is masked out before the YAML parse, and a
-//! `{{ if }}` around the `value:` decides whether that branch is the one that renders. Both are
-//! parsed and not matched by line number.
 
 use crate::helm;
 use crate::index::Index;
@@ -37,10 +22,6 @@ pub struct Chain {
     /// Where that path is defined in a values file, when it is.
     pub values_file: Option<PathBuf>,
     /// The template conditional the declaration sits under, when it sits under one.
-    ///
-    /// A `{{ if }}`-guarded `value:` is one branch of several, so the chain holds
-    /// only when its condition does. Two branches produce two chains for the same
-    /// variable, each naming its own condition, instead of one that silently picks.
     pub conditional_on: Option<String>,
     /// Every place the program reads the variable.
     pub reads: Vec<EnvRead>,
@@ -70,7 +51,7 @@ pub struct EnvRead {
     pub language: Language,
     /// The call or access as written.
     pub text: String,
-    /// Always name-only: the link is a string. It is not a resolved reference.
+    /// Always name-only: the link is a string.
     pub confidence: Confidence,
 }
 
@@ -128,10 +109,6 @@ struct Declaration {
 }
 
 /// Environment variables declared in Helm templates and plain manifests.
-///
-/// The shape looked for is the Kubernetes one: a `name`/`value` pair inside an `env`
-/// sequence. `name` gives the variable, and the template actions written after the
-/// sibling `value:` give the `.Values` path behind it.
 fn env_declarations(index: &Index) -> Result<Vec<Declaration>> {
     let parsers = Parsers::new();
     let mut found = Vec::new();
@@ -181,8 +158,7 @@ fn env_declarations(index: &Index) -> Result<Vec<Declaration>> {
             }
 
             // Each `value:` is a branch: `{{ if }}` around one of them means this entry has
-            // several possible values. Which renders is the template's decision. Every branch
-            // is reported, with the condition that selects it.
+            // several possible values.
             for value_key in values {
                 found.push(Declaration {
                     name: variable.clone(),
@@ -198,13 +174,6 @@ fn env_declarations(index: &Index) -> Result<Vec<Declaration>> {
 }
 
 /// Environment variables set by a docker-compose file.
-///
-/// Compose is recognised by shape and never by file name. The shape is a YAML
-/// document whose top level has a `services:` mapping with an `environment` key
-/// nested somewhere under it. Both spellings count as set-sources, the map form
-/// `APP_MODE: x` and the list form `- APP_MODE=x`. The map form's variables are
-/// keys the index already extracted. The list form's entries are plain scalars
-/// with no symbol, so they are read from the block's own lines.
 fn compose_declarations(index: &Index) -> Result<Vec<Declaration>> {
     let mut found = Vec::new();
 
@@ -233,8 +202,6 @@ fn compose_declarations(index: &Index) -> Result<Vec<Declaration>> {
         };
         let line_index = LineIndex::new(&source);
 
-        // The map form: `environment:` holding `APP_MODE: x` gives the variable a key
-        // of its own, qualified by the block it sits in.
         for key in keys
             .iter()
             .filter(|s| s.qualifier.as_deref() == Some("environment"))
@@ -289,9 +256,6 @@ fn list_environment_entries(block: &str) -> Vec<(usize, String)> {
 }
 
 /// The `value:` keys belonging to one `name:` entry of an `env:` list.
-///
-/// A list item is not its own container in the index. So the entry is bounded by the next
-/// `name:` key at the same level instead.
 fn value_keys<'a>(keys: &[&'a Symbol], name_key: &Symbol, end_of_file: usize) -> Vec<&'a Symbol> {
     let next_entry = keys
         .iter()
@@ -308,10 +272,6 @@ fn value_keys<'a>(keys: &[&'a Symbol], name_key: &Symbol, end_of_file: usize) ->
 }
 
 /// The `.Values` path a `value:` takes its content from.
-///
-/// A `value:` whose whole content is a template action parses as a key with a null
-/// value, its span stops at the colon, because the action's bytes are masked. The
-/// path therefore comes from the actions written after the key, on its own line.
 fn templated_values_path(
     template: &helm::Template,
     lines: &LineIndex,
@@ -347,8 +307,8 @@ fn describe(guards: &[helm::Guard]) -> Option<String> {
 
 /// Is this key inside an `env:` sequence?
 fn under_env_list(keys: &[&Symbol], key: &Symbol) -> bool {
-    // The extractor qualifies a nested key by its parent, and an `env:` list's
-    // entries qualify as `env`. Fall back to an ancestor search for deeper shapes.
+    // The extractor qualifies a nested key by its parent, and an `env:` list's entries qualify
+    // as `env`.
     if key.qualifier.as_deref() == Some("env") {
         return true;
     }
@@ -418,10 +378,6 @@ struct NamedRead {
 }
 
 /// Every environment-variable read in the workspace's code.
-///
-/// These are matched textually against the well-known accessors of each language,
-/// because the variable's name is a string argument and not a resolvable symbol.
-/// A read built from a computed name is invisible here and cannot be otherwise.
 fn env_reads(index: &Index) -> Result<Vec<NamedRead>> {
     let mut reads = Vec::new();
 
@@ -468,11 +424,6 @@ struct Accessor {
     /// The text that introduces the read.
     prefix: &'static str,
     /// Arguments standing between the prefix and the name.
-    ///
-    /// Every accessor the first five languages use puts the name first, and the reader was
-    /// written to take it from there. Zig's does not: `getEnvVarOwned` is passed an allocator
-    /// before the name. So reading the first argument found `allocator`, which is lower case,
-    /// which the name filter dropped, a read that went missing without saying so.
     skip_arguments: usize,
 }
 
@@ -544,9 +495,7 @@ pub fn reads_environment(language: Language) -> bool {
 fn variable_name_after(rest: &str, skip_arguments: usize) -> Option<String> {
     let mut rest = rest;
     for _ in 0..skip_arguments {
-        // Only a flat argument list is followed. A name reached past a nested call or a
-        // struct literal is not read and not guessed at, on the same footing as a
-        // name computed at run time.
+        // Only a flat argument list is followed.
         let comma = rest.find(',')?;
         if rest[..comma].contains(['(', ')', '{', '}']) {
             return None;
@@ -756,8 +705,7 @@ mod tests {
 
     #[test]
     fn a_name_behind_an_allocator_is_still_read() {
-        // Zig passes the allocator first, so the name is the second argument. Taking
-        // the first found `allocator`, which the upper-case filter then dropped.
+        // Zig passes the allocator first, so the name is the second argument.
         assert_eq!(
             variable_name_after("allocator, \"DATABASE_URL\")", 1),
             Some("DATABASE_URL".into())
@@ -873,8 +821,7 @@ mod tests {
 
     #[test]
     fn an_environment_key_outside_a_services_file_sets_nothing() {
-        // The compose shape is `services:` at the top level. A stray `environment`
-        // under another root is some other document.
+        // The compose shape is `services:` at the top level.
         let (_tmp, index) = workspace(&[
             (
                 "conf/settings.yaml",

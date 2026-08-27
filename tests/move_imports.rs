@@ -1,8 +1,4 @@
 //! Moving a symbol, and the imports that have to move with it.
-//!
-//! A move is behaviour-preserving in the same sense a rename is. The same code runs on the same
-//! values, and only where it is written changes. That means the destination has to keep
-//! working, which means the imports on both sides have to end up right.
 
 use fun_refactor::index::Index;
 use fun_refactor::refactor::move_symbol;
@@ -44,9 +40,8 @@ fn moved(files: &[(&str, &str)], symbol: &str, from: &str, to: &str) -> (String,
 
 #[test]
 fn the_destination_stops_importing_what_it_now_defines() {
-    // `from .b import area` in the file `area` is moving *into* points at a file which
-    // no longer defines the name. Nothing was adding that import, so nothing was
-    // removing it either, and the file failed on the line that used to make it work.
+    // `from .b import area` in the file `area` is moving *into* points at a file which no
+    // longer defines the name.
     let (_from, to) = moved(
         &[
             (
@@ -90,9 +85,9 @@ fn an_import_of_several_names_keeps_the_others() {
 
 #[test]
 fn what_the_moved_code_needs_lands_where_imports_go() {
-    // Prepending them to the moved text put an `import` statement in the middle of the
-    // file, legal in Python, a syntax error in half the other targets, and
-    // wrong-looking in all of them.
+    // Prepending them to the moved text put an `import` statement in the middle of the file,
+    // legal in Python, a syntax error in half the other targets, and wrong-looking in all of
+    // them.
     let (_from, to) = moved(
         &[
             (
@@ -115,10 +110,8 @@ fn what_the_moved_code_needs_lands_where_imports_go() {
 
 #[test]
 fn an_aliased_import_repoints_and_keeps_its_alias() {
-    // `import { foo as increment } from "./a"` names the moved symbol under
-    // the name the rest of the file calls it. Leaving that line while adding a
-    // plain `import { foo }` broke the build twice. The old import named a gone
-    // export, and the new one bound a name nothing uses.
+    // `import { foo as increment } from "./a"` names the moved symbol under the name the rest
+    // of the file calls it.
     let files = [
         (
             "a.ts",
@@ -162,10 +155,7 @@ fn an_aliased_import_repoints_and_keeps_its_alias() {
 
 #[test]
 fn a_first_import_goes_below_the_docstring_and_the_shebang() {
-    // Byte zero is above everything, and some things must stay first. The
-    // import demoted a `#!` line to line two, so the script stopped running.
-    // It pushed a module docstring into an expression nobody reads, so
-    // `__doc__` became `None`.
+    // Byte zero is above everything, and some things must stay first.
     let (from, _to) = moved(
         &[
             ("pkg/__init__.py", ""),
@@ -227,11 +217,7 @@ fn moved_reading(files: &[(&str, &str)], symbol: &str, from: &str, to: &str, rea
 
 #[test]
 fn an_importer_a_directory_away_has_its_import_narrowed() {
-    // With the importer beside the definition this worked. With a parent-relative
-    // specifier the old named import stayed beside the new one: `TS2300: Duplicate
-    // identifier` and `TS2459`. Two imports of one name is valid syntax, so the
-    // reparse guard passed it. The cause was one path join that kept the `..` as a
-    // component, so the specifier compared unequal to the very file it names.
+    // With the importer beside the definition this worked.
     let importer = moved_reading(
         &[
             (

@@ -1,9 +1,4 @@
 //! What a class inherits crosses, or is named where it cannot.
-//!
-//! `class Import(Taxed, Levied)` crossed as a class extending nothing while
-//! its body still called `super()`. TypeScript answered TS2335 and the report
-//! claimed every signature carried. One base slot exists in the targets that
-//! inherit at all, and the first base is the one `super()` reaches.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;

@@ -1,9 +1,4 @@
 //! Refactorings.
-//!
-//! Every refactoring returns a *plan*: an [`crate::edit::EditSet`] plus whatever it
-//! could not do. The caller renders a diff or commits, so no refactoring touches a
-//! file itself. A plan never half-applies, and the tool rewrites nothing it could not
-//! verify (PLAN.md D8).
 
 pub mod cascade;
 pub mod delete;
@@ -20,14 +15,6 @@ use serde::Serialize;
 use std::path::PathBuf;
 
 /// Reports whether this node kind is a container whose children are statements.
-///
-/// Several refactorings ask whether a node is the last statement in its block. A
-/// wrapper node counted as a statement makes a block of many look like a block of
-/// one. Go's `statement_list` sits between a block and its statements, so counting it
-/// hoists a guard clause out from under its condition.
-///
-/// Shell function bodies are `compound_statement`, which no other grammar in the set
-/// uses. The list therefore covers more kinds than extraction alone needs.
 pub(crate) fn is_statement_container(kind: &str) -> bool {
     kind.contains("block")
         || kind.contains("body")
@@ -40,10 +27,6 @@ pub(crate) fn is_statement_container(kind: &str) -> bool {
 }
 
 /// Reports whether this node kind holds members in its body rather than statements.
-///
-/// A function spliced into one of these becomes a method, reachable only through a
-/// receiver, so a plain call to it does not resolve. Extraction hoists past every one
-/// of these instead of writing the definition where a member would go.
 pub(crate) fn is_type_definition(kind: &str) -> bool {
     matches!(
         kind,
@@ -59,9 +42,6 @@ pub(crate) fn is_type_definition(kind: &str) -> bool {
 }
 
 /// Reports whether this node kind is a function, whose body scopes the names inside it.
-///
-/// Hoisting stops at one of these. A definition moved past a function loses the
-/// enclosing locals it reads, and nothing puts them back.
 pub(crate) fn is_function_definition(kind: &str) -> bool {
     matches!(
         kind,
@@ -80,8 +60,6 @@ pub(crate) fn is_function_definition(kind: &str) -> bool {
 }
 
 /// Something a refactoring found and deliberately did not act on.
-///
-/// A warning says what the tool saw, why it declined, and where a human should look.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Warning {
     pub kind: WarningKind,
@@ -116,10 +94,6 @@ impl WarningKind {
 }
 
 /// One place a refusal is about, carried as data beside the prose.
-///
-/// An ambiguity's rival definitions ride in the JSON error as `candidates`. These
-/// sites ride the same way, so an agent reads them without parsing the prose back
-/// apart.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct RefusalSite {
     pub file: PathBuf,
@@ -133,17 +107,8 @@ pub enum Refusal {
     /// The new name would collide with an existing one.
     NameCollision { existing: String, file: PathBuf },
     /// A name inside the value means something else where the value would be moved to.
-    ///
-    /// A collision concerns the name being introduced. This concerns a name being
-    /// *carried*: substituting `price_of(order)` into a scope where `order` is a
-    /// different binding changes what the code does.
     NameCaptured { name: String, file: PathBuf },
     /// The rename would move a use under a different declaration of the same name.
-    ///
-    /// Nothing collides here, and no value travels. Both declarations stay put, and
-    /// only the binding a use resolves to changes. An inner `let temp` can stand
-    /// between an outer `value` and its use. Renaming `value` to `temp` turns that use
-    /// into a read of the inner binding, and the file still compiles.
     ScopeCaptured {
         name: String,
         file: PathBuf,
@@ -153,23 +118,13 @@ pub enum Refusal {
     /// The requested name is not a valid identifier for the language.
     InvalidName { name: String, reason: String },
     /// The operation has no meaning in this language, so the tool does not implement it.
-    ///
-    /// `language` holds the language and nothing else. Put the reason in `because`.
     Unsupported {
         operation: String,
         language: crate::lang::Language,
         /// Why *the language* cannot, a property of the language and of nothing else.
-        /// The type is `&'static str` so the rule holds. A reason about one particular
-        /// input interpolates a path or a name into itself, and no interpolated string
-        /// fits here. A fault that belongs to the files goes to [`Refusal::NotHere`].
         because: &'static str,
     },
     /// These files block the operation, for a reason the language does not own.
-    ///
-    /// Two paths in different crates, a directory that is its own Terraform module, a
-    /// relative import that would climb out of its root. The tool declined on purpose
-    /// and wrote nothing, so each of these counts as a considered refusal. Naming the
-    /// language instead would contradict the capability matrix.
     NotHere { operation: String, detail: String },
     /// Resolution was too weak to act on safely.
     TooWeak {
@@ -177,27 +132,13 @@ pub enum Refusal {
         detail: String,
     },
     /// Two definitions answer to one name, so no call site can be attributed to either.
-    ///
-    /// Both definitions were there before and the operation introduces nothing, which
-    /// separates this from [`Refusal::NameCollision`]. Bash resolves the name at run
-    /// time by whichever definition ran last, and no static reading predicts that.
     AmbiguousDefinition { name: String, file: PathBuf },
     /// References still resolve to the symbol, so deleting it would break them.
-    ///
-    /// `detail` carries the full listing, one blocking site per line, and `references`
-    /// carries the same listing as data for the JSON error object. The refusal has its
-    /// own type because the exit code comes from the error's type, and `fr --help`
-    /// promises every considered refusal exits 5.
     StillUsed {
         detail: String,
         references: Vec<RefusalSite>,
     },
     /// Something the tool cannot establish at all.
-    ///
-    /// [`Refusal::TooWeak`] covers a resolution that exists and is too weak to act on.
-    /// Here no resolution exists at all. A grammar may never expose a call as a call,
-    /// or a shell script may source a path computed at run time. Reporting these as a
-    /// confidence produced the self-contradicting "resolution is only 'exact'".
     Unknowable { detail: String },
 }
 
@@ -267,9 +208,6 @@ impl std::fmt::Display for Refusal {
 
 impl Refusal {
     /// The positions this refusal is about, where it knows them exactly.
-    ///
-    /// Variants that carry a file without a position stay out. Inventing a line for
-    /// them would report a measurement nobody took.
     pub fn references(&self) -> &[RefusalSite] {
         match self {
             Refusal::StillUsed { references, .. } => references,
@@ -281,18 +219,11 @@ impl Refusal {
 impl std::error::Error for Refusal {}
 
 /// The refusal in an error's chain, if one stopped the operation.
-///
-/// One lookup shared by the exit-code choice, the JSON error object and the
-/// recipe report. The three cannot disagree about what counts as a refusal.
 pub fn refusal_in(error: &anyhow::Error) -> Option<&Refusal> {
     error.chain().find_map(|c| c.downcast_ref::<Refusal>())
 }
 
 /// The declared type of a reference's receiver, where the source wrote one.
-///
-/// `b.size(2)` with `B b = ...` above it names the type outright; the nearest
-/// binding of the receiver's name in scope carries it. `this` and `self` are the
-/// enclosing instance and answer a different question.
 pub(crate) fn receiver_declared_type(
     index: &crate::index::Index,
     reference: &crate::model::Reference,
@@ -304,10 +235,6 @@ pub(crate) fn receiver_declared_type(
 }
 
 /// What the source says a reference's receiver holds, `this` and `self` apart.
-///
-/// Three answers, because the two silences differ. A receiver nothing describes
-/// and a receiver assigned two types are both unsafe to rewrite. A reader told
-/// the first about the second hunts for an annotation that is already there.
 pub(crate) enum ReceiverType {
     /// The source states the type, and every assignment in scope agrees.
     Settled(String),
@@ -331,19 +258,12 @@ pub(crate) fn receiver_type(
 }
 
 /// The type a reference's receiver is known to be, `this`/`self` included.
-///
-/// The enclosing instance is the one receiver whose type is never a guess: the
-/// class this code is written in. [`receiver_declared_type`] stays separate
-/// because the warnings built on it say "declared", and `self` takes its type
-/// another way.
 pub(crate) fn receiver_known_type(
     index: &crate::index::Index,
     reference: &crate::model::Reference,
 ) -> Option<String> {
     thread_local! {
-        /// One answer per call site per index. The dispatch layer asks about every
-        /// member call in the workspace, and a graph is built more than once per
-        /// session. The binding walk behind the answer is the same every time.
+        /// One answer per call site per index.
         static RECEIVERS: std::cell::RefCell<
             std::collections::HashMap<(u64, std::path::PathBuf, usize), Option<String>>,
         > = std::cell::RefCell::new(std::collections::HashMap::new());
@@ -420,9 +340,8 @@ fn receiver_binding_type(
     let Some(binding) = binding else {
         return ReceiverType::Unwritten;
     };
-    // `var b = new B()` writes the type on the right of the `=`, which counts as
-    // the source's own words. A name the scope assigns again holds two things, and
-    // this site stops treating it as evidence.
+    // `var b = new B()` writes the type on the right of the `=`, which counts as the source's
+    // own words.
     let written = match crate::analysis::types::held_by(index, binding.id) {
         crate::analysis::types::Held::Settled(ty) => ty,
         crate::analysis::types::Held::Reassigned => return ReceiverType::Reassigned,

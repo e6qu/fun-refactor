@@ -1,12 +1,4 @@
 //! `IR.md` names every variant of the shared vocabulary.
-//!
-//! The reference is only worth reading while it is complete. A variant added to
-//! `ir.rs` and left out of the document is a construct nobody knows crosses,
-//! and a variant removed while the document keeps describing it sends a reader
-//! looking for something that is gone.
-//!
-//! `src/transpile/ir.rs` is the authority, read as text. Nothing else in the
-//! repository knows the full list, since the enums have no reflection.
 
 use std::collections::BTreeSet;
 
@@ -14,10 +6,6 @@ const IR: &str = include_str!("../src/transpile/ir.rs");
 const DOC: &str = include_str!("../IR.md");
 
 /// The variant names declared by `pub enum <name>` in `ir.rs`.
-///
-/// A variant sits at four spaces of indent inside the enum, and starts with a
-/// capital. Doc comments, attributes and the fields of a struct-like variant
-/// all fail one of those, so none of them is mistaken for a variant.
 fn variants_of(enum_name: &str) -> BTreeSet<String> {
     let head = format!("pub enum {enum_name} {{");
     let start = IR
@@ -50,10 +38,6 @@ fn variants_of(enum_name: &str) -> BTreeSet<String> {
 }
 
 /// Does the document name this variant, spelled as code?
-///
-/// The name has to appear inside backticks. `Set` and `Map` are ordinary words,
-/// and a check for the bare text would pass on a sentence that never meant the
-/// variant.
 fn names(variant: &str) -> bool {
     // `Named { name, args }`, `List(T)`, `` `Set` ``: the name is followed by
     // its shape or by the closing backtick.
@@ -128,8 +112,7 @@ fn every_field_of_the_report_is_documented() {
 
 #[test]
 fn the_counts_the_document_states_are_right() {
-    // The document opens each section with a count. A number stated in prose
-    // rots faster than anything else in a reference.
+    // The document opens each section with a count.
     for (enum_name, stated) in [
         ("Item", "Nine kinds of top-level thing."),
         ("Stmt", "Twenty-six."),
@@ -161,12 +144,9 @@ fn the_counts_the_document_states_are_right() {
 
 #[test]
 fn every_language_with_a_writer_is_named() {
-    // The document opens by listing them. A language gaining a writer without
-    // reaching this list is one nobody reads about.
+    // The document opens by listing them.
     for language in fun_refactor::transpile::SUPPORTED {
         // `Language`'s own `Display` is the lowercase name the CLI takes.
-        // The document writes prose, so it capitalises, and TypeScript
-        // capitalises twice.
         let title = match format!("{language}").as_str() {
             "typescript" => "TypeScript".to_string(),
             name => format!("{}{}", name[..1].to_uppercase(), &name[1..]),
@@ -180,9 +160,8 @@ fn every_language_with_a_writer_is_named() {
 
 #[test]
 fn the_counts_of_readers_and_pairs_are_right() {
-    // The opening paragraph states both, and both move when a language gains a
-    // reader and a writer. Bash was the seventh, and the pairs went from thirty
-    // to forty-two in the same commit.
+    // The opening paragraph states both, and both move when a language gains a reader and a
+    // writer.
     let n = fun_refactor::transpile::SUPPORTED.len();
     let pairs = n * (n - 1);
     let (word, pairs_word) = match (n, pairs) {

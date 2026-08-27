@@ -1,12 +1,4 @@
 //! The census `CROSS_LANGUAGE.md` publishes, measured rather than remembered.
-//!
-//! The document opens with a count of the bundled sample and a table of which
-//! language crosses into which. Those were written once, by hand, from a run
-//! nobody repeated. The sample gained three files and three languages after
-//! that, and the document went on saying 24 and 15.
-//!
-//! Every figure below is computed from the same sample the document names, so
-//! the two cannot disagree without this failing.
 
 use fun_refactor::index::Index;
 use fun_refactor::lang::Language;
@@ -35,9 +27,8 @@ fn measure() -> Census {
     let scanned = scan(&sample(), &ScanOptions::default()).expect("the sample scans");
     let index = Index::build_from_scan(&scanned).expect("the sample indexes");
 
-    // Counted from the scan and not from the symbols, because `fr scan` is what a
-    // reader runs to check this line. A language whose file in the sample declares
-    // no symbol is still a language the tool read.
+    // Counted from the scan and not from the symbols, because `fr scan` is what a reader runs
+    // to check this line.
     let mut languages = BTreeSet::new();
     let mut files = BTreeSet::new();
     for file in &scanned.files {
@@ -55,8 +46,7 @@ fn measure() -> Census {
         let Some(symbol) = index.symbol(target) else {
             continue;
         };
-        // TSX is TypeScript with JSX in it, and the index keeps them apart. A
-        // reference from one to the other is not a crossing anybody cares about.
+        // TSX is TypeScript with JSX in it, and the index keeps them apart.
         let same = symbol.language == reference.language;
         if !same {
             *crossings
@@ -93,9 +83,7 @@ fn the_sample_census_is_what_the_document_says() {
 
 #[test]
 fn every_crossing_the_sample_has_is_in_the_table() {
-    // The table under the census names each crossing and its count. A crossing
-    // the sample gains and the table omits is the case the whole design exists
-    // for, going unmentioned.
+    // The table under the census names each crossing and its count.
     let census = measure();
     let doc = doc();
     // The table is laid out in columns, so match on the pair and the count
@@ -141,10 +129,7 @@ struct Stated {
 
 #[test]
 fn every_figure_a_document_states_about_this_repository_is_countable() {
-    // The documents also quote measurements on helm, ripgrep and requests. Those
-    // need repositories this one does not hold, so they stay snapshots and say
-    // which commit they came from. Everything below is here, so everything below
-    // is counted rather than remembered.
+    // The documents also quote measurements on helm, ripgrep and requests.
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let entries = |dir: &str| -> Vec<std::path::PathBuf> {
         std::fs::read_dir(root.join(dir))

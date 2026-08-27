@@ -1,14 +1,4 @@
 //! Python's `//` crosses as the floor division it is, in every target.
-//!
-//! Read as an unknown operator, `cents // 100` left a runnable `null` where a
-//! number belonged, and a formatter printed "$null.00". Only Python spells the
-//! operation as an operator. Every writer here says it with its own library
-//! call, and each of those rounds toward negative infinity the way `//` does.
-//!
-//! The spelling is not enough on its own. Rust's `div_euclid` keeps the
-//! remainder positive, so `7 // -2` came out as `-3` where Python says `-4`.
-//! The last case here runs the translation under each toolchain and compares
-//! its numbers with Python's own.
 
 mod common;
 use common::{require_on_ci, Toolchain};
@@ -77,8 +67,7 @@ fn floor_division_is_a_declared_helper_in_rust() {
 
 #[test]
 fn a_declared_floor_div_keeps_its_name_and_the_helper_takes_another() {
-    // A module of its own may already have the name. Shadowing it would send
-    // every call site to a different function than the source wrote.
+    // A module of its own may already have the name.
     let tmp = tempfile::tempdir().unwrap();
     let source = "def floor_div(a: int, b: int) -> int:\n    return a - b\n\n\n\
                   def halves(n: int) -> int:\n    return n // 2\n";
@@ -142,10 +131,8 @@ fn floor_division_is_divfloor_in_zig() {
 
 #[test]
 fn floor_division_survives_a_round_trip_through_typescript() {
-    // `Math.floor(a / b)` is what this tool writes; a Python file that crossed
-    // and came home must still floor. The TypeScript reader has no floor-form
-    // recogniser, so the call comes home as the call, which still computes the
-    // same number.
+    // `Math.floor(a / b)` is what this tool writes; a Python file that crossed and came home
+    // must still floor.
     let tmp = tempfile::tempdir().unwrap();
     let ts = translated(tmp.path(), "cents.py", CENTS_PY, Language::TypeScript);
     let back = translated(tmp.path(), "cents.ts", &ts, Language::Python);

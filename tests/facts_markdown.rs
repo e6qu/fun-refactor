@@ -1,16 +1,4 @@
 //! Markdown fact extraction.
-//!
-//! The grammar is tree-sitter-md-025, which parses block structure and inline content with two
-//! separate grammars. Headings, link reference definitions and code fences come from the block
-//! tree. Links, labels and destinations from the inline sub-trees src/parse.rs builds over the
-//! same bytes. Both feed one extraction pass, so which grammar a fact came from is invisible
-//! here, which is the point.
-//!
-//! Two shapes of syntax survive into a captured name and are trimmed by the extractor: an ATX
-//! heading's optional closing marker (`## Title ##`) and the brackets of a link label
-//! (`[label]`). A rename rewrites exactly the name span, so either one left in place would
-//! corrupt the file. Anchor destinations do still include their leading `#`, which is pinned
-//! here and not hidden.
 
 use fun_refactor::{extract::Extractor, lang::Language, model::*, parse::Parsers};
 use std::path::Path;
@@ -44,8 +32,7 @@ fn atx_headings_define_headings_without_the_markers() {
     // heading rewrites exactly the title bytes.
     let first = &f.symbols[0];
     assert_eq!(first.name_span.text(src), "Title One");
-    // A block node runs to the end of its line. So the full span takes the newline with it,
-    // which makes deleting a heading leave no blank line behind.
+    // A block node runs to the end of its line.
     assert_eq!(first.full_span.text(src), "# Title One\n");
     assert!(first.full_span.contains(first.name_span));
 }
@@ -156,9 +143,7 @@ fn an_inline_link_names_the_anchor_without_its_hash() {
         .iter()
         .find(|r| r.name == "title-one")
         .expect("anchor reference");
-    // `link_destination` is one node, so the extractor narrows the span to the
-    // fragment. Named `#title-one`, it matched no symbol and resolution never
-    // reached the code that was supposed to strip it.
+    // `link_destination` is one node, so the extractor narrows the span to the fragment.
     assert_eq!(anchor.span.text(src), "title-one");
     assert_eq!(anchor.kind, ReferenceKind::StringRef);
 }
@@ -201,9 +186,7 @@ fn code_block_contents_produce_no_facts() {
 #[test]
 fn footnote_definitions_and_uses_both_surface_as_references() {
     // NOT AVAILABLE: this grammar has no footnote rule either, `[^fn]: text` is a paragraph
-    // whose inline content is the shortcut link `[^fn]`. So there is no LinkDef symbol for a
-    // footnote. Both occurrences are still found, which a rename needs, so this is a
-    // missing symbol and not a missing edit site.
+    // whose inline content is the shortcut link `[^fn]`.
     let src = "Text with a note[^fn].\n\n[^fn]: the note\n";
     let f = facts(src);
     assert!(names(&f, SymbolKind::LinkDef).is_empty());
@@ -212,9 +195,7 @@ fn footnote_definitions_and_uses_both_surface_as_references() {
 
 #[test]
 fn headings_do_not_nest_into_scopes() {
-    // The grammar does nest `section` nodes under their headings. But a Markdown name is
-    // document-global, an anchor resolves against the whole file, so the queries capture only
-    // the document as a scope and every fact shares it.
+    // The grammar does nest `section` nodes under their headings.
     let src = "# A\n\ntext\n\n## B\n\nmore\n";
     let f = facts(src);
     assert_eq!(f.scopes.len(), 1);
@@ -255,8 +236,7 @@ fn a_realistic_document_parses_and_extracts() {
     assert_eq!(r, ["bash", "installation", "ref"]);
 
     // The anchor and the heading it points at differ by slugging: the heading is
-    // `Installation`, the link `installation`. Reconciling the two is the index's job,
-    // through `model::anchor_slug`, and it needs the name to be the title alone.
+    // `Installation`, the link `installation`.
     let heading = f.symbols.iter().find(|s| s.name == "Installation").unwrap();
     assert_eq!(
         fun_refactor::model::anchor_slug(&heading.name),

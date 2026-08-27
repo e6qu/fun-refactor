@@ -1,9 +1,4 @@
 //! Naming the thing you want to act on.
-//!
-//! Every listing the tool prints uses a qualified name, `Box::size`, `HookEvent::String`,
-//! and for a long time that spelling was the one thing it would not accept as input.
-//! On a real repository, where a bare `String` is twenty methods, the only way through
-//! was a line and column somebody had to go and look up.
 
 use assert_cmd::Command;
 use predicates::str::contains;
@@ -45,8 +40,7 @@ fn a_qualified_name_selects_the_symbol() {
 
 #[test]
 fn the_name_the_listing_prints_is_the_name_that_works() {
-    // The two are the same string or this is a trap. `fr symbols` is where somebody
-    // gets a name from, and it has to be a name they can use.
+    // The two are the same string or this is a trap.
     let tmp = workspace(&[("a.py", TWO_CLASSES)]);
     let listing = Command::cargo_bin("fr")
         .expect("the binary")
@@ -93,8 +87,7 @@ fn an_ambiguous_bare_name_offers_the_names_that_are_not() {
 
 #[test]
 fn a_qualified_name_that_is_still_ambiguous_says_where() {
-    // Two packages may both declare `Box`, and then the qualified name is not enough
-    // either. That is a real answer; the files are named so the next step is obvious.
+    // Two packages may both declare `Box`, and then the qualified name is not enough either.
     let tmp = workspace(&[("one/a.py", TWO_CLASSES), ("two/b.py", TWO_CLASSES)]);
     Command::cargo_bin("fr")
         .expect("the binary")

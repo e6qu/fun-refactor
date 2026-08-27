@@ -1,8 +1,4 @@
 //! Inlining a call must not change what the call returned.
-//!
-//! The body binds its parameters at whatever precedence it was written with, and the
-//! argument arrives as text. `n * 2` with `x + 1` for `n` is `x + 1 * 2`, which is a
-//! different number in every one of these languages.
 
 use fun_refactor::index::Index;
 use fun_refactor::refactor::inline;
@@ -23,8 +19,7 @@ fn inlined(file: &str, source: &str, line: usize, column: usize) -> String {
 
 #[test]
 fn an_argument_keeps_the_grouping_the_caller_wrote() {
-    // Every language in the set, because the substitution is textual and shared. The
-    // answer was `x + 1 * 2` in every one.
+    // Every language in the set, because the substitution is textual and shared.
     for (file, source, line, column, expected) in [
         (
             "a.rs",
@@ -88,9 +83,7 @@ fn an_argument_keeps_the_grouping_the_caller_wrote() {
 
 #[test]
 fn an_expansion_of_two_groups_is_still_grouped() {
-    // `(p + 1) / (q - 1)` starts with a bracket and ends with one. The check for "already
-    // bracketed" read only those two characters. So the expansion went in bare: `2 * (p + 1) /
-    // (q - 1)`, which for p = 1, q = 4 is 1 where the call returned 0.
+    // `(p + 1) / (q - 1)` starts with a bracket and ends with one.
     let after = inlined(
         "d.rs",
         "fn scale(a: i32, b: i32) -> i32 {\n    a / b\n}\n\nfn u(p: i32, q: i32) -> i32 {\n    \
@@ -103,8 +96,7 @@ fn an_expansion_of_two_groups_is_still_grouped() {
 
 #[test]
 fn an_atomic_argument_gains_no_brackets() {
-    // Grouping everything would be safe and unreadable. A name, a literal, a call and
-    // an already-bracketed expression need nothing.
+    // Grouping everything would be safe and unreadable.
     let after = inlined(
         "e.rs",
         "fn double(n: i32) -> i32 {\n    n * 2\n}\n\nfn u(x: i32) -> i32 {\n    \

@@ -4,14 +4,21 @@
 # A count above its number fails the build. A count below it fails too, and asks you
 # to lower the number here. Both directions are recorded, so the total only falls.
 #
-# Four of the five rules stand at zero and stay there: the next em-dash, false
-# comparison, filler word or sentence pointing at its own text fails the build.
-# Long sentences are still being split, one file at a time.
+# Four rules stand at zero and stay there: the next em-dash, false comparison, filler
+# word or sentence pointing at its own text fails the build. Three still fall, one
+# file at a time.
 #
-# Measured against the same rules before any of this work: 2050 em-dashes, 240 false
-# comparisons, 350 fillers, 222 self-references and 2339 long sentences.
+# `passive-voice` counts what is left in the code and in every document. Two of those
+# documents hold most of it: `BUGS.md` and `PLAN.md` record what happened, in the past
+# tense, and rewriting a record into the imperative would falsify it.
+#
+# Measured before any of this work: 2050 em-dashes, 240 false comparisons, 350
+# fillers, 222 self-references and 2339 long sentences. `comment-line` opened at 20169
+# and `passive-voice` at 1903.
 em-dash 0
 false-comparison 0
 filler 0
 self-reference 0
-long-sentence 467
+passive-voice 955
+long-sentence 281
+comment-line 8752

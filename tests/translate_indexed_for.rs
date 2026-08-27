@@ -1,9 +1,4 @@
 //! The element beside its position crosses every boundary here.
-//!
-//! Zig writes `for (xs, 0..) |x, i|`, Python `for i, x in enumerate(xs)`, Go
-//! `for i, x := range xs`, Rust `.iter().enumerate()`. TypeScript and Java
-//! have no indexed form over an arbitrary iterable, so both count alongside.
-//! A counter is declared before the loop and stepped at its end.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -64,8 +59,6 @@ fn a_python_enumerate_reads_and_zig_writes_it_back() {
 
 #[test]
 fn two_real_sequences_walk_by_one_index() {
-    // `for (xs, ys) |x, y|` walks two iterables at once. The lowering walks the first by an
-    // index and reads the second by the same index.
     let source = "fn pair(xs: []const i64, ys: []const i64) void {\n    \
                   for (xs, ys) |x, y| {\n        use(x, y);\n    }\n}\n";
     let (_tmp, root) = workspace(&[("z.zig", source)]);

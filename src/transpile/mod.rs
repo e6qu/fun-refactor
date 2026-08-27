@@ -1,30 +1,4 @@
 //! Rewriting a file as a different programming language.
-//!
-//! Source → [`ir`] → source. One reader and one writer per language instead of a
-//! translator per pair: seven languages is forty-two ordered pairs and fourteen files.
-//!
-//! # Scope
-//!
-//! The signature is the contract. The writer carries every parameter in order, with
-//! its type and the return type, changing only the spelling to the target's
-//! convention. A type with no counterpart goes through by name and is counted, so a
-//! substitution never passes silently.
-//!
-//! The writer also translates declarations and records. It carries the body constructs
-//! every language shares: a return, a binding, a branch, a loop over a collection, a
-//! call. A record becomes a Rust `struct` with an `impl`, a Python
-//! `@dataclass`, or a Go `struct` with methods beside it. TypeScript takes an
-//! `interface` or a `class`, depending on whether the record has behaviour.
-//!
-//! # Limits
-//!
-//! The result is a draft. Ownership, goroutines, decorators, generators and
-//! pattern matching beyond literal arms have no general translation. Each goes
-//! into the output verbatim, inside a comment, under a marker. Error
-//! propagation, the optional payload `if` and `while`, literal-armed switches
-//! and named tests do cross, each into the target's own spelling.
-//!
-//! Every translation returns a [`Fidelity`] recording how much of it is real.
 
 pub mod fastapi;
 pub mod ir;
@@ -37,9 +11,6 @@ pub mod tfjson;
 mod write;
 
 /// What a file says, in the form no one language owns.
-///
-/// The first half of [`plan`], on its own. A caller comparing two files written in
-/// different languages needs one shared form, and this returns it.
 pub fn read_file(path: &Path) -> Result<ir::Module> {
     let Some(language) = crate::lang::detect(path) else {
         bail!("{} is not a language this build recognises", path.display());
@@ -60,7 +31,7 @@ pub fn read_file(path: &Path) -> Result<ir::Module> {
     read::read(language, &source, parsed.root(), stem.as_deref())
 }
 
-/// Read a parsed file into the IR. Used by the framework-aware translations too.
+/// Read a parsed file into the IR.
 pub(crate) fn read_module(
     language: Language,
     source: &str,
@@ -69,7 +40,7 @@ pub(crate) fn read_module(
     read::read(language, source, root, None)
 }
 
-/// Write a module out as a language. Used by the framework-aware translations too.
+/// Write a module out as a language.
 pub(crate) fn write_module(language: Language, module: &ir::Module) -> Result<(String, Fidelity)> {
     write::write(language, module)
 }
@@ -106,12 +77,6 @@ pub const COMPLETE: &[Language] = &[
 ];
 
 /// The languages a file can be translated into.
-///
-/// Bash is here and not in [`COMPLETE`]. It translates its computational subset:
-/// functions, control flow, arithmetic, strings and arrays. It carries loudly what
-/// it has no way to say, a record, a pipeline, an external command. The corpora
-/// gates that demand zero carried measure the complete six; bash's cells are held
-/// by the conformance groups it can run.
 pub const SUPPORTED: &[Language] = &[
     Language::Rust,
     Language::Go,
@@ -123,18 +88,11 @@ pub const SUPPORTED: &[Language] = &[
 ];
 
 /// Whether a file written in this language can be read into the shared representation.
-///
-/// TSX is TypeScript with JSX in it, and the reader treats it as TypeScript, so a `.tsx`
-/// file is a source like any other.
 pub fn can_be_read(language: Language) -> bool {
     SUPPORTED.contains(&language) || language == Language::Tsx
 }
 
 /// Whether a translation can be written in this language.
-///
-/// TSX is excluded. A translation produces no JSX, so a `.tsx` file would name a
-/// flavour the content does not have. Name `typescript` as the target, then use
-/// `fr translate` to turn the `.ts` file into a `.tsx` one.
 pub fn can_be_written(language: Language) -> bool {
     SUPPORTED.contains(&language)
 }
@@ -168,12 +126,6 @@ pub fn plan_to(
 }
 
 /// [`plan_to`], with the rest of a directory sweep in hand.
-///
-/// `context` is every module in the sweep merged into one. A name declared
-/// anywhere in the sweep is spelled the way its own translation spells it. A
-/// call that builds a sibling's class is a construction. `siblings` maps each
-/// source path in the sweep to what it read as. An import of one then becomes
-/// a real import of its translation instead of a comment.
 pub fn plan_to_in_context(
     path: &Path,
     to: Language,
@@ -188,10 +140,6 @@ pub fn plan_to_in_context(
 type Sweep<'a> = (&'a ir::Module, &'a BTreeMap<PathBuf, ir::Module>);
 
 /// Rename this file's top-level declarations that a sibling declares too.
-///
-/// Only for targets whose namespace is the directory. The file earliest by
-/// path keeps the plain name. So every file of the sweep resolves the clash
-/// the same way, whichever file is written first.
 fn rename_colliding_declarations(
     module: &mut ir::Module,
     path: &Path,
@@ -310,9 +258,8 @@ fn plan_impl(
     let stem = path.file_stem().map(|s| s.to_string_lossy().to_string());
     let mut module = read::read(from, &source, parsed.root(), stem.as_deref())?;
     if let Some((context, siblings)) = sweep {
-        // The sweep travels as one unit, so a sibling's declarations are as
-        // good as this file's own. An import of a sibling becomes a real
-        // import, and a call that builds a sibling's class a construction.
+        // The sweep travels as one unit, so a sibling's declarations are as good as this file's
+        // own.
         lift_local_imports(&mut module, from);
         resolve_sibling_imports(&mut module, path, from, siblings);
         if from == Language::Python {
@@ -326,16 +273,12 @@ fn plan_impl(
                 .collect();
             read::promote_constructions(&mut module, &types);
         }
-        // Two files of a sweep may each declare a `Thing`. Where the target
-        // keeps every file of a directory in one namespace, one name is
-        // declared twice and the package will not build. The later file's copy
-        // takes its own file's name in front, and says so.
+        // Two files of a sweep may each declare a `Thing`.
         if to.packages_by_directory() {
             rename_colliding_declarations(&mut module, path, siblings);
         }
     }
-    // Java has no top level below the type, so its writer needs a class to hold the
-    // module. A public class must be named after its file.
+    // Java has no top level below the type, so its writer needs a class to hold the module.
     module.name = destination
         .file_stem()
         .map(|stem| stem.to_string_lossy().to_string());
@@ -349,9 +292,7 @@ fn plan_impl(
     let header = banner(to, &from.to_string(), path, &fidelity, &module.sweep_notes);
     output.insert_str(0, &header);
 
-    // The output must be a file the target's own grammar accepts. The edit engine
-    // would catch a failure too, but only as "would not parse after the change",
-    // naming no construct. This check runs where the answer is known.
+    // The output must be a file the target's own grammar accepts.
     let written = parsers.parse(to, &output)?;
     if written.has_errors() {
         let at = first_error(&written, &output)
@@ -364,8 +305,7 @@ fn plan_impl(
         );
     }
 
-    // Overwriting means replacing. The edit spans the whole existing file, so a
-    // --force run does not leave the old translation below the new one.
+    // Overwriting means replacing.
     let existing = crate::vfs::read_to_string(&destination)
         .map(|s| s.len())
         .unwrap_or(0);
@@ -392,12 +332,6 @@ fn plan_impl(
 }
 
 /// Move an import written inside a function body up to the file's own imports.
-///
-/// Python breaks an import cycle with `def helper(): from a import Thing`.
-/// The readers carry it as text, because a body has nowhere to put an import.
-/// Left there, the import stays a comment while the body's code translates,
-/// and the output names a class nothing brought in. Every target here hoists
-/// its imports, so the file's top is where it belongs.
 fn lift_local_imports(module: &mut ir::Module, from: Language) {
     let mut lifted: Vec<ir::Item> = Vec::new();
     for item in &mut module.items {
@@ -438,12 +372,6 @@ fn lift_local_imports(module: &mut ir::Module, from: Language) {
 }
 
 /// Point each parsed import at the sweep sibling it names, where it names one.
-///
-/// A sibling is a file in the importing file's own directory whose stem the
-/// import path reaches: `helpers` or `.helpers` from Python, `./helpers` from
-/// TypeScript. The import resolves only when the sibling declares every name
-/// it binds. Anything else keeps its path outside the sweep, so the writers
-/// keep it as a comment.
 fn resolve_sibling_imports(
     module: &mut ir::Module,
     path: &Path,
@@ -484,10 +412,6 @@ fn resolve_sibling_imports(
 }
 
 /// The sibling file stem an import path names, where it can name one.
-///
-/// Python reaches a sibling as `m` or `.m`, TypeScript as `./m`, with or
-/// without an extension. A dotted or nested path names a package beyond the
-/// directory, and a parent path leaves it, so neither is a sibling.
 fn sibling_stem(from: Language, module: &str) -> Option<String> {
     match from {
         Language::Python => {
@@ -527,12 +451,6 @@ fn declares(module: &ir::Module, name: &str) -> bool {
 }
 
 /// Line and column of the most specific syntax error in a parse.
-///
-/// This walk takes the deepest error in the tree. When the very first construct is
-/// wrong, tree-sitter's outermost `ERROR` starts at byte zero and swallows the whole
-/// file. Reporting that gives line 1, column 1, which points at the banner and tells
-/// a reader nothing. The innermost error is where the parser gave up. A `MISSING`
-/// node beats an `ERROR` at the same depth, because it names what was expected.
 fn first_error(parsed: &crate::parse::Parsed, source: &str) -> Option<crate::span::LineCol> {
     let mut cursor = parsed.root().walk();
     let mut stack = vec![(parsed.root(), 0usize)];
@@ -556,10 +474,7 @@ fn first_error(parsed: &crate::parse::Parsed, source: &str) -> Option<crate::spa
             stack.push((child, depth + 1));
         }
     }
-    // A parse can report an error that this walk does not find. An empty Zig struct holds a
-    // zero-width missing identifier that `Node::children` never yields, which leaves the
-    // message with no position. `error_spans` walks with a cursor and does find it, so it
-    // serves as the fallback here.
+    // A parse can report an error that this walk does not find.
     let at = match best {
         Some((_, _, at)) => at,
         None => parsed.error_spans().first().map(|span| span.start)?,
@@ -656,9 +571,8 @@ fn banner(
             )));
         }
     }
-    // A sweep can rename a declaration this file owns, which the file itself
-    // has no way to know. Nobody reading it should have to find out by
-    // grepping for a name that is no longer there.
+    // A sweep can rename a declaration this file owns, which the file itself has no way to
+    // know.
     for note in sweep_notes {
         out.push_str(&comment(note));
     }

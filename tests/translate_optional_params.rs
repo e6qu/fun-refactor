@@ -1,10 +1,4 @@
 //! An optional parameter carries its absence into the declaration.
-//!
-//! TypeScript's `punct?: string` lets every caller leave the argument out.
-//! Crossing to Python as `punct: str | None` with no default declared the
-//! optionality and still required the argument, so every valid call site
-//! became a TypeError. The absence is part of the signature: Python writes
-//! `= None`, and Rust writes the `Option` the type already said.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;

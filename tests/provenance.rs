@@ -1,9 +1,4 @@
 //! Config-language value provenance, exercised through the public API.
-//!
-//! These languages are messy in different ways, and the point of the analysis is that it says
-//! so. Every test below either pins an exact substitution/override answer, or pins the *honest*
-//! refusal to answer, an external input, a masked template action, an undecidable precedence,
-//! instead of a guess.
 
 use fun_refactor::{
     analysis::provenance::{consumers, provenance, specificity, EdgeKind, StopReason},
@@ -112,8 +107,7 @@ fn terraform() -> (tempfile::TempDir, Index) {
 
 #[test]
 fn a_local_keeps_every_hop_of_its_substitution_chain() {
-    // local.name ← local.prefix ← var.env / var.region. Checkov's mistake is to
-    // substitute in place; every intermediate expression must survive here.
+    // local.name ← local.prefix ← var.env / var.region.
     let (_tmp, index) = terraform();
     let name = id_in(&index, "main.tf", "name");
     let result = provenance(&index, name, 10).unwrap();
@@ -216,8 +210,7 @@ fn a_variable_with_a_default_is_still_externally_overridable() {
 
 #[test]
 fn competing_tfvars_files_are_all_reported_with_the_winner_marked() {
-    // Terraform's order: default < terraform.tfvars < *.auto.tfvars. All three set
-    // `env`; the losers must stay visible.
+    // Terraform's order: default < terraform.tfvars < *.auto.tfvars.
     let (_tmp, index) = terraform();
     let env = id_in(&index, "variables.tf", "env");
     let result = provenance(&index, env, 5).unwrap();
@@ -732,8 +725,7 @@ button.btn { color: green; }
 
 #[test]
 fn the_cascade_orders_competing_declarations_by_specificity() {
-    // #id beats .class beats element, and every loser stays visible. This is the
-    // DevTools struck-through view, not a single answer.
+    // #id beats .class beats element, and every loser stays visible.
     let (_tmp, index) = workspace(&[("ui/app.css", STYLES)]);
     let btn = id_in(&index, "app.css", "btn");
     let result = provenance(&index, btn, 5).unwrap();
@@ -777,7 +769,6 @@ fn the_cascade_orders_competing_declarations_by_specificity() {
     );
     assert!(color.decided, "the cascade decides this one outright");
 
-    // A property declared once is still reported, with no rivals.
     let padding = result
         .competitions
         .iter()
@@ -829,7 +820,7 @@ fn source_order_decides_a_specificity_tie_within_one_file() {
 
 #[test]
 fn a_tie_across_two_stylesheets_is_left_undecided() {
-    // Which sheet loads last is a property of the document. It is not of the CSS.
+    // Which sheet loads last is a property of the document.
     let (_tmp, index) = workspace(&[
         ("ui/a.css", ".btn { color: red; }\n"),
         ("ui/b.css", ".btn { color: blue; }\n"),
@@ -1057,9 +1048,6 @@ fn a_config_language_with_no_substitution_model_says_so() {
         .iter()
         .find(|s| s.kind == SymbolKind::Heading)
         .unwrap();
-    // It used to say so inside an `Ok`: a walk with no hops and a stop reason, which is
-    // an answer shaped like an answer. The matrix claimed the cell on that basis, and
-    // `fr flow` sent readers here for it.
     let error = provenance(&index, heading.id, 5)
         .expect_err("markdown has no value-substitution model")
         .to_string();
@@ -1096,7 +1084,7 @@ fn specificity_is_exposed_for_callers_that_need_it() {
 #[test]
 fn a_child_module_input_comes_from_its_caller_not_from_tfvars() {
     // `-var` and `*.tfvars` reach the root module only: a child module's inputs are the
-    // arguments its caller passes. So the chain must cross the module boundary.
+    // arguments its caller passes.
     let (_tmp, index) = workspace(&[
         (
             "infra/main.tf",

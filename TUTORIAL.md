@@ -209,7 +209,7 @@ $ fr duplicates --lang go --path pkg/cmd --path pkg/action --min-tokens 100
 
 Those five blocks in `show.go` are five cobra subcommands built the same way, one
 after another. The tool compares **structure**: it hashes a subtree from the node
-kinds under it, so a copy whose variables were renamed still matches. Those renamed
+kinds under it, so a copy under different variable names still matches. Those renamed
 copies are the ones worth finding, because a textual search never turns them up. Add
 `--exact` to fold the identifiers and literals back in and ask the stricter question.
 

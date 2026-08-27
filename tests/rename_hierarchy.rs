@@ -1,10 +1,4 @@
 //! A method that participates in declared dispatch renames as one family.
-//!
-//! A trait method renamed without its implementations leaves the family
-//! answering two names, and the callers compiling against neither. So the
-//! rename covers the declaration, every implementation, and the dispatch
-//! sites that resolve to no single one of them. Each of those is reported
-//! at its own confidence for a person to review.
 
 use fun_refactor::index::Index;
 use fun_refactor::refactor::rename;
@@ -144,10 +138,7 @@ fn a_method_outside_any_hierarchy_renames_alone() {
 
 #[test]
 fn java_overloads_rename_with_every_call_that_only_they_answer() {
-    // Both declarations of `size` rename as one entity. A call resolved by
-    // name alone can then only reach a renamed declaration. Leaving it wrote
-    // code that called nothing while the summary read clean. It renames, reported for
-    // review under the dispatch-candidate heading.
+    // Both declarations of `size` rename as one entity.
     let source = "public class App {\n    static int size(String s) {\n        \
         return s.length();\n    }\n\n    static int size(int[] items) {\n        \
         return items.length;\n    }\n\n    public static void main(String[] args) {\n        \
@@ -181,8 +172,7 @@ fn java_overloads_rename_with_every_call_that_only_they_answer() {
 
 #[test]
 fn a_stranger_answering_the_same_name_keeps_the_calls_in_place() {
-    // `Other` also declares a `size`, outside the renamed group. A name-only call
-    // might reach it, so the calls stay and the warning stands.
+    // `Other` also declares a `size`, outside the renamed group.
     let source = "public class App {\n    static int size(String s) {\n        \
         return s.length();\n    }\n\n    static int size(int[] items) {\n        \
         return items.length;\n    }\n\n    public static void main(String[] args) {\n        \
@@ -206,9 +196,8 @@ fn a_stranger_answering_the_same_name_keeps_the_calls_in_place() {
 
 #[test]
 fn typescript_overload_signatures_rename_with_their_implementation() {
-    // Two `function pick` signatures over one implementation are one function;
-    // renaming any alone left `error TS2389: Function implementation name must
-    // be 'pick'`.
+    // Two `function pick` signatures over one implementation are one function; renaming any
+    // alone left `error TS2389: Function implementation name must be 'pick'`.
     let source = "export function pick(value: string): string;\n\
         export function pick(value: number): number;\n\
         export function pick(value: string | number): string | number {\n    \

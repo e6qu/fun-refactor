@@ -1,8 +1,4 @@
 //! Python fact-extraction tests: what `queries/python/facts.scm` yields.
-//!
-//! Every assertion here is against real extractor output. Where the query
-//! language or the extractor cannot express something, the test documents the
-//! shortfall instead of hiding it.
 
 use fun_refactor::{extract::Extractor, lang::Language, model::*, parse::Parsers};
 use std::path::Path;
@@ -20,8 +16,7 @@ fn facts(src: &str) -> FileFacts {
         .unwrap()
 }
 
-/// The one symbol with this name. Fails if a definition was captured twice,
-/// which is the failure mode of overlapping query patterns.
+/// The one symbol with this name.
 fn one<'a>(f: &'a FileFacts, name: &str) -> &'a Symbol {
     let found: Vec<_> = f.symbols.iter().filter(|s| s.name == name).collect();
     assert_eq!(
@@ -105,10 +100,8 @@ fn rich_sample_parses_without_errors() {
 
 #[test]
 fn no_definition_is_captured_twice() {
-    // Several patterns can match one node (a class is both @definition.class and
-    // @container; an `export`-style variant exists for most kinds). Any overlap
-    // would produce two symbols over identical bytes, and a rename would then
-    // emit two edits for one identifier.
+    // Several patterns can match one node (a class is both @definition.class and @container; an
+    // `export`-style variant exists for most kinds).
     let f = facts(RICH);
     let mut spans: Vec<_> = f.symbols.iter().map(|s| (s.name_span, s.kind)).collect();
     let before = spans.len();
@@ -143,8 +136,8 @@ fn functions_are_found_with_identifier_only_name_spans() {
 
 #[test]
 fn a_decorated_definition_is_captured_and_excludes_its_decorators() {
-    // Documented query choice: the captured node is the inner function_definition,
-    // so full_span starts at `def`. The decorator lines are not part of it.
+    // Documented query choice: the captured node is the inner function_definition, so full_span
+    // starts at `def`.
     let src = "@deco\ndef target():\n    pass\n";
     let f = facts(src);
     let target = one(&f, "target");
@@ -192,8 +185,7 @@ fn a_top_level_function_is_not_a_method() {
 #[test]
 fn a_function_nested_in_a_method_inherits_the_class_qualifier() {
     // Known behaviour, not a claim that it is ideal: the extractor qualifies by the innermost
-    // @container, and only the class is a container. So a closure inside a method is reported
-    // as a method of that class too.
+    // @container, and only the class is a container.
     let src = "class C:\n    def m(self):\n        def inner():\n            pass\n        return inner\n";
     let f = facts(src);
     let inner = one(&f, "inner");
@@ -341,10 +333,8 @@ fn a_non_identifier_as_target_does_not_define_a_symbol() {
 
 #[test]
 fn tuple_unpacking_in_an_assignment_is_a_known_gap() {
-    // `a, b = pair` binds two names, but the assignment patterns only match a
-    // single-identifier left-hand side, so no symbol is defined. The names are
-    // still visible as references, so a rename driven by another definition site
-    // still rewrites them.
+    // `a, b = pair` binds two names, but the assignment patterns only match a single-identifier
+    // left-hand side, so no symbol is defined.
     let src = "a, b = pair\n";
     let f = facts(src);
     assert!(f.symbols.is_empty(), "got {:?}", f.symbols);
@@ -429,10 +419,7 @@ fn global_and_nonlocal_names_are_references_not_definitions() {
 
 #[test]
 fn assigning_a_global_inside_a_function_still_looks_like_a_local() {
-    // Known limitation. `global CONST` makes the following assignment write the module-level
-    // name. But deciding that needs to correlate a `global` statement with an assignment
-    // elsewhere in the body, beyond what a tree-sitter pattern can express. The assignment is
-    // therefore reported as a second, function-scoped definition of the same name.
+    // Known limitation.
     let src = "CONST = 1\n\n\ndef f():\n    global CONST\n    CONST = 2\n";
     let f = facts(src);
     let defs: Vec<_> = f
@@ -530,9 +517,8 @@ fn future_imports_are_captured() {
 
 #[test]
 fn imported_names_are_not_definitions_but_are_references() {
-    // An import binds a local name, but the binding lives in FileFacts::imports,
-    // not in symbols. The identifier is still a reference, so renaming the
-    // imported symbol rewrites the import site.
+    // An import binds a local name, but the binding lives in FileFacts::imports, not in
+    // symbols.
     let src = "from m import thing\n";
     let f = facts(src);
     assert!(f.symbols.is_empty(), "got {:?}", f.symbols);

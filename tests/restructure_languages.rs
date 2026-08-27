@@ -1,9 +1,4 @@
 //! Pattern restructuring across every language in the matrix.
-//!
-//! One realistic pattern per language, plus the two things that make structural matching worth
-//! having over `sed`. A similar-but-different shape must not match, and text inside a string or
-//! a comment is not code. Every rewrite is put through the same `ReparseStrict` validation the
-//! CLI uses, so a test can only pass if the rewritten file still parses.
 
 use fun_refactor::edit::{apply_to_string, plan, Validation};
 use fun_refactor::index::Index;
@@ -37,12 +32,6 @@ fn workspace(files: &[(&str, &str)]) -> Workspace {
 }
 
 /// Rewrite `file` and return (matches in that file, rewritten text).
-///
-/// The count runs per file, because a workspace can hold more than one file of the language
-/// under test. A Helm chart always carries its `Chart.yaml`.
-///
-/// The edit set is also run through `ReparseStrict`, so any pattern that produced a
-/// syntactically broken file fails here and not in review.
 fn restructured(
     files: &[(&str, &str)],
     language: Language,
@@ -61,8 +50,7 @@ fn restructured(
         None => original,
     };
 
-    // The whole point of the reparse gate: a rewrite that breaks the file is not a
-    // rewrite. `plan` returns an error, so `unwrap` is the assertion.
+    // The whole point of the reparse gate: a rewrite that breaks the file is not a rewrite.
     let outcomes = plan(&result.edits, Validation::ReparseStrict)
         .unwrap_or_else(|e| panic!("{language} rewrite did not survive reparse: {e}"));
     if !result.edits.is_empty() {
@@ -337,8 +325,7 @@ curl https://c --retry 3
 
 #[test]
 fn bash_double_dollar_matches_a_literal_expansion() {
-    // `$X` is a metavariable, so a pattern that means a real shell expansion escapes
-    // the sigil. Without this there is no way to write one.
+    // `$X` is a metavariable, so a pattern that means a real shell expansion escapes the sigil.
     let src = "curl $BASE\ncurl $OTHER\n";
     let (n, out) = one(Language::Bash, "a.sh", src, "curl $$BASE", "wget $$BASE");
     assert_eq!(n, 1, "only the literal $BASE expansion");
@@ -490,8 +477,8 @@ fn helm_rewrites_a_pair_outside_a_template_action() {
 
 #[test]
 fn helm_does_not_match_a_value_that_is_a_template_action() {
-    // `{{ .Values.name }}` is masked out before the YAML parse, so the pair has
-    // no value node at all. Matching it would mean rewriting bytes no parse saw.
+    // `{{ .Values.name }}` is masked out before the YAML parse, so the pair has no value node
+    // at all.
     let (n, _) = restructured(
         &[
             ("mychart/Chart.yaml", HELM_CHART),
@@ -507,8 +494,7 @@ fn helm_does_not_match_a_value_that_is_a_template_action() {
 
 #[test]
 fn helm_does_not_match_a_value_a_template_action_continues() {
-    // `web-{{ .Values.suffix }}` parses as the scalar `web-` followed by blanks. The pair looks
-    // complete but its value is a lie, so the match must be dropped.
+    // `web-{{ .Values.suffix }}` parses as the scalar `web-` followed by blanks.
     let src = "metadata:\n  name: web-{{ .Values.suffix }}\n  team: platform\n";
     let (n, out) = restructured(
         &[
@@ -610,8 +596,7 @@ fn scss_restructures_plain_css_and_scss_only_syntax_alike() {
     assert_eq!(n, 1);
     assert_eq!(out, ".btn {\n  color: var(--red);\n}\n");
 
-    // `$$brand` is an escaped literal `$brand`. SCSS variable syntax, which now
-    // parses and so can be rewritten like anything else.
+    // `$$brand` is an escaped literal `$brand`.
     let (n, out) = one(
         Language::Scss,
         "b.scss",
@@ -782,7 +767,7 @@ fn markdown_rewrites_a_heading() {
 }
 
 /// Every column of PLAN.md's feature × language matrix, each with a pattern realistic for its
-/// language. This is the promise the matrix makes.
+/// language.
 #[test]
 fn every_matrix_language_restructures() {
     let cases: &[(Language, &str, &str, &str, &str, &str)] = &[
@@ -1042,8 +1027,6 @@ fn a_pattern_that_is_only_a_metavariable_is_refused_in_every_language() {
 
 #[test]
 fn an_unparseable_fragment_is_refused_in_the_language_s_own_words() {
-    // The error used to enumerate the fragment wrappers, which describes the parsing
-    // machinery instead of the mistake in the pattern.
     let ws = workspace(&[("a.css", ".b { color: red; }\n")]);
     let err = restructure::apply(&ws.index, Language::Css, "} not css {", "x").unwrap_err();
     let message = err.to_string();
@@ -1069,11 +1052,7 @@ fn only_the_requested_language_is_rewritten() {
 #[test]
 fn a_statement_pattern_works_where_the_wrapper_is_empty() {
     // Python, shell and YAML wrap a fragment in nothing at all, so the statement the pattern
-    // writes is the outermost node. The descent that strips wrapper-introduced statement
-    // containers used to strip that one too. The fragment then started six bytes inside
-    // itself, and every statement pattern in those languages came back unparseable.
-    // Descending is only right when the child begins where the container does; `raise` does
-    // not.
+    // writes is the outermost node.
     let src = "\
 def f(e):
     try:
@@ -1102,8 +1081,6 @@ fn an_expression_pattern_still_matches_only_the_expression() {
 }
 
 /// A comment is an extra, so it sits between two children of the node it interrupts.
-/// Counting it as one of them made `foo(1, /* why */ 2)` a three-argument call. The
-/// occurrence was passed over while the run reported itself complete.
 #[test]
 fn a_comment_between_the_pattern_tokens_is_reported_and_left_alone() {
     let src = "function foo(a: number, b: number): number { return a + b; }\n\n\

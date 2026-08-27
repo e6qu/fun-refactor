@@ -1,12 +1,4 @@
-//! SCSS `#{ ... }`, and the facts written inside it.
-//!
-//! `tree-sitter-scss` 1.0 has no rule for interpolation in a declaration value. Its error
-//! node runs to the end of the file, so one interpolated value cost every fact below it.
-//! `grammars/scss` reads the declaration, and the variables and calls between the braces are
-//! ordinary nodes that the query matches where it matches them anywhere else.
-//!
-//! Measured over `twbs/bootstrap` and `jgthms/bulma`, 276 stylesheets: the published grammar
-//! fails on 203 of them and this one on none.
+//! SCSS `#{ ...
 
 use fun_refactor::extract::Extractor;
 use fun_refactor::lang::Language;
@@ -42,8 +34,7 @@ fn an_interpolated_declaration_value_parses() {
 
 #[test]
 fn an_interpolated_value_no_longer_costs_the_rest_of_the_file() {
-    // The reason this one form was worth masking. The error did not stay in the declaration, it
-    // ran to the end of the file and took every definition with it.
+    // The reason this one form was worth masking.
     let source = ".a {\n  color: #{$v};\n}\n\n.b { color: red; }\n\n.c { color: blue; }\n";
     let (errors, symbols, _) = parsed_and_facts(source);
     assert_eq!(errors, 0);

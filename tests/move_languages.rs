@@ -1,18 +1,4 @@
 //! Move to file, across the seven languages where a move can be made correct.
-//!
-//! Each language has its own answer to "what else has to change". These tests pin the answer
-//! instead of the aspiration:
-//!
-//! - Rust and TypeScript/Python rewrite reference sites, so those tests assert the import lines
-//!   byte for byte.
-//! - Go inside one package, HCL inside one directory and CSS anywhere change nothing but the
-//!   two files. So those tests assert that *no* third file was touched.
-//! - Markdown repoints anchors.
-//!
-//! Every successful move is committed through `edit::plan(…, ReparseStrict)`, so a move that
-//! would break a file fails the test instead of the build. Where the tool refuses, the refusal
-//! message is asserted, because a refusal that does not say what was wrong is not much better
-//! than a wrong answer.
 
 use fun_refactor::{
     edit::{self, Validation},
@@ -65,9 +51,6 @@ fn symbol_id(index: &Index, name: &str, file: Option<&Path>) -> fun_refactor::mo
 }
 
 /// Validate the plan by reparsing every touched file, then write it.
-///
-/// Returns the paths that changed, so a test can assert that a move which
-/// should touch nothing else really touched nothing else.
 fn commit(plan: &move_symbol::MovePlan) -> Vec<PathBuf> {
     let outcomes = edit::plan(&plan.edits, Validation::ReparseStrict)
         .expect("the move must survive a strict reparse");
@@ -136,7 +119,7 @@ fn rust_move_repoints_a_simple_use() {
         ws.read("src/store.rs"),
         "pub const LIMIT: i32 = 10;\n\npub fn shared() -> i32 {\n    2\n}\n"
     );
-    // The existing `use` is repointed. It is not duplicated.
+    // The existing `use` is repointed.
     assert_eq!(
         ws.read("src/app.rs"),
         "use crate::store::shared;\n\npub fn run() -> i32 {\n    shared()\n}\n"
@@ -146,7 +129,7 @@ fn rust_move_repoints_a_simple_use() {
     let after = ws.index();
     let moved = symbol_id(&after, "shared", None);
     assert_eq!(after.symbol(moved).unwrap().file, ws.path("src/store.rs"));
-    // Two: the name in the `use` line and the call. Both point at the new definition.
+    // Two: the name in the `use` line and the call.
     let refs = after.references_to(moved);
     assert_eq!(refs.len(), 2, "got {refs:?}");
     assert!(refs.iter().all(|r| r.file == ws.path("src/app.rs")));
@@ -238,8 +221,7 @@ fn rust_source_file_gains_a_use_when_it_still_calls_the_item() {
     assert_eq!(plan.imports_added, vec![ws.path("src/helpers.rs")]);
     commit(&plan);
 
-    // One blank line where the definition was, not the two it sat between. Both
-    // separators used to stay, which left a gap that no later move healed.
+    // One blank line where the definition was, not the two it sat between.
     assert_eq!(
         ws.read("src/helpers.rs"),
         "//! Helpers.\nuse crate::store::shared;\n\npub fn caller() -> i32 {\n    shared()\n}\n"
@@ -324,10 +306,7 @@ fn rust_repoints_a_fully_qualified_call() {
     let index = ws.index();
     let id = symbol_id(&index, "shared", None);
 
-    // The whole path is written down, and a trailing module segment names
-    // its file. The call resolves, and the move rewrites the path in place. This
-    // used to be a refusal: the path resolved name-only, and before that a
-    // warned-and-broken write.
+    // The whole path is written down, and a trailing module segment names its file.
     let plan = move_symbol::to_file(&index, id, &ws.path("src/store.rs")).expect("a plan");
     let app = ws.path("src/app.rs");
     let out = fun_refactor::edit::apply_to_string(
@@ -512,9 +491,6 @@ fn go_move_into_an_empty_file_writes_the_package_clause() {
 
 #[test]
 fn go_move_carries_the_imports_the_moved_code_uses() {
-    // Both directions used to be reported and neither done. That is two compile
-    // errors from one move. `undefined: fmt` where the code landed, and `"fmt"
-    // imported and not used` where it came from.
     let ws = Workspace::new(&[
         ("go.mod", "module example.com/app\n"),
         (
@@ -544,11 +520,7 @@ fn go_move_carries_the_imports_the_moved_code_uses() {
 
 #[test]
 fn a_go_symbol_moved_out_and_back_comes_home() {
-    // What "back" means, decided and pinned. A move appends to the file it lands in and
-    // leaves no trace in the one it left. So out and back returns the package to the
-    // declarations it started with, in a different order. The emptied file returns to
-    // what it held. It used to come back to a file scarred with the blank lines of two
-    // holes, which `gofmt` rewrites, and no later move healed it.
+    // What "back" means, decided and pinned.
     let pricing = "package pricing\n\nimport \"math\"\n\nfunc Round2(v float64) float64 {\n\t\
         return math.Round(v*100) / 100\n}\n\nfunc WithTax(v float64) float64 {\n\t\
         return Round2(v * 1.2)\n}\n";
@@ -586,8 +558,7 @@ fn a_go_symbol_moved_out_and_back_comes_home() {
 
 #[test]
 fn go_move_keeps_an_import_the_source_file_still_uses() {
-    // The other half of the same question. `fmt` feeds both functions, so it has to
-    // be in both files afterwards.
+    // The other half of the same question.
     let ws = Workspace::new(&[
         ("go.mod", "module example.com/app\n"),
         (
@@ -1199,9 +1170,7 @@ fn typescript_and_python_are_unchanged() {
         ws.read("c.ts"),
         "export const y = 2;\n\nexport function moved() { return 1; }\n"
     );
-    // The importer's own statement repoints in place. Its earlier behaviour,
-    // the old import left beside a new one, declared `moved` twice and failed
-    // to compile. This pin is the deliberate change the old pin asked for.
+    // The importer's own statement repoints in place.
     assert_eq!(
         ws.read("b.ts"),
         "import { moved } from './c';\nexport const x = moved();\n"
@@ -1211,8 +1180,6 @@ fn typescript_and_python_are_unchanged() {
 #[test]
 fn python_move_outside_a_package_writes_an_absolute_import() {
     // No `__init__.py`, so these files are top-level modules and belong to no package.
-    // `from .dest import shared` raises `attempted relative import with no known parent
-    // package` on the import itself: the file parses, compiles, and cannot be imported.
     let ws = Workspace::new(&[
         ("lib.py", "def shared():\n    return 1\n"),
         (
@@ -1237,8 +1204,8 @@ fn python_move_outside_a_package_writes_an_absolute_import() {
 
 #[test]
 fn python_move_inside_a_package_writes_a_relative_import() {
-    // `__init__.py` makes the directory a package, and inside one a leading dot means
-    // the package the importing file is in. That is the spelling Python wants here.
+    // `__init__.py` makes the directory a package, and inside one a leading dot means the
+    // package the importing file is in.
     let ws = Workspace::new(&[
         ("pkg/__init__.py", ""),
         ("pkg/lib.py", "def shared():\n    return 1\n"),
@@ -1263,7 +1230,7 @@ fn python_move_inside_a_package_writes_a_relative_import() {
 #[test]
 fn languages_with_no_derivable_move_are_refused_by_name() {
     // Zig, Bash and YAML gained moves; markup did not, and cannot: a document does not import
-    // another's elements. So a moved element has no reference to update.
+    // another's elements.
     for (source, destination, code) in [
         ("a.html", "b.html", "<div id=\"thing\">x</div>\n"),
         ("a.xml", "b.xml", "<root><item id=\"thing\"/></root>\n"),
@@ -1337,10 +1304,6 @@ fn movable_lists_what_each_language_can_move() {
 }
 
 // the code.
-//
-// A move that relocates the text and nothing else leaves a file that parses and does not
-// compile. The definition is invisible to the import just written for it, and everything it
-// referenced is no longer in scope. These pin the rest of the job.
 
 #[test]
 fn a_moved_symbol_is_exported_where_something_now_imports_it() {
@@ -1454,8 +1417,7 @@ fn what_the_moved_code_left_behind_is_imported_back_and_exported() {
 
 #[test]
 fn a_move_that_cannot_write_the_import_fails_instead_of_skipping_it() {
-    // Skipping leaves a file that parses and no longer compiles, while reporting
-    // success. The reparse check cannot see it, so the refusal has to be explicit.
+    // Skipping leaves a file that parses and no longer compiles, while reporting success.
     let ws = Workspace::new(&[(
         "a.py",
         "def move_me(x):\n    return x + 1\n\n\ndef caller(x):\n    return move_me(x)\n",
@@ -1473,10 +1435,6 @@ fn a_move_that_cannot_write_the_import_fails_instead_of_skipping_it() {
 
 #[test]
 fn a_new_import_goes_after_a_multi_line_import_statement() {
-    // The insertion point used to be found by scanning lines for an `import` prefix,
-    // which stops at the first line that is not one. requests writes
-    // `from typing import (` across three lines, so the new import landed *inside*
-    // the parentheses and the file no longer parsed, every move out of utils.py.
     let ws = Workspace::new(&[
         ("pkg/__init__.py", ""),
         (
@@ -1525,9 +1483,8 @@ fn a_moved_python_symbol_takes_the_module_imports_it_uses() {
 
 #[test]
 fn a_future_import_travels_with_the_code_it_governs() {
-    // It binds nothing, so no name-based rule would carry it, and it decides how
-    // every annotation in the file is read. `str | None` stops parsing without it on
-    // Python below 3.10.
+    // It binds nothing, so no name-based rule would carry it, and it decides how every
+    // annotation in the file is read.
     let ws = Workspace::new(&[
         ("pkg/__init__.py", ""),
         (
@@ -1555,10 +1512,7 @@ fn a_future_import_travels_with_the_code_it_governs() {
 
 #[test]
 fn a_moved_go_body_qualifies_what_it_left_behind() {
-    // `UseShared` calls `Shared`, which stays in package one. Moved bare into
-    // package two, the call named nothing and the tree stopped building. The
-    // move reported success, and its warning stated two things that were not
-    // true.
+    // `UseShared` calls `Shared`, which stays in package one.
     let ws = Workspace::new(&[
         ("go.mod", "module example.com/m\n\ngo 1.21\n"),
         (
@@ -1588,8 +1542,7 @@ fn a_moved_go_body_qualifies_what_it_left_behind() {
 
 #[test]
 fn a_moved_go_body_using_an_unexported_name_refuses() {
-    // `shared` is invisible from package two; `one.shared()` would not compile
-    // either. Nothing true can be written, so nothing is.
+    // `shared` is invisible from package two; `one.shared()` would not compile either.
     let ws = Workspace::new(&[
         ("go.mod", "module example.com/m\n\ngo 1.21\n"),
         (
@@ -1613,9 +1566,7 @@ fn a_moved_go_body_using_an_unexported_name_refuses() {
 
 #[test]
 fn moving_beside_a_dependency_adds_no_self_import() {
-    // `f` used `g` through `from b import g`, and `f` lands in `b`. There `g` is
-    // local; the carried statement was a module importing itself while half
-    // initialised, and the first use raised ImportError.
+    // `f` used `g` through `from b import g`, and `f` lands in `b`.
     let ws = Workspace::new(&[
         ("b.py", "def g() -> int:\n    return 2\n"),
         (
@@ -1637,10 +1588,7 @@ fn moving_beside_a_dependency_adds_no_self_import() {
 
 #[test]
 fn a_module_attribute_consumer_repoints_to_the_new_module() {
-    // `user.py` binds the whole module and dereferences it. There is no named
-    // import to repoint, so the receivers rewrite and the file imports the new
-    // module. The old behaviour added a dead named import, and every call kept
-    // dereferencing the module that no longer held the name.
+    // `user.py` binds the whole module and dereferences it.
     let ws = Workspace::new(&[
         ("mod.py", "def foo() -> int:\n    return 1\n"),
         ("other.py", "X = 1\n"),

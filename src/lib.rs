@@ -1,11 +1,4 @@
 //! fun-refactor, multi-language refactoring and code intelligence on tree-sitter.
-//!
-//! Layering (see PLAN.md):
-//! - [`span`] / [`lang`]: byte-native positions and language identity
-//! - [`parse`]: tree-sitter parsing for every language in [`lang::Language`]
-//! - [`scan`]: workspace discovery
-//! - [`edit`]: lossless byte-splice edit engine
-//! - [`cli`]: command surface
 
 pub mod analysis;
 #[cfg(feature = "cli")]
@@ -14,8 +7,7 @@ pub mod capabilities;
 #[cfg(feature = "cli")]
 pub mod cli;
 pub mod vfs;
-// The C the grammars call, which `wasm32-unknown-unknown` does not supply. Linked
-// for its symbols, never called from Rust.
+// The C the grammars call, which `wasm32-unknown-unknown` does not supply.
 #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
 extern crate fun_refactor_wasm_libc;
 

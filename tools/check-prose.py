@@ -55,8 +55,28 @@ RULES = [
     # text instead of carrying it: "that is why", "is what makes".
     ("self-reference", r"\b(that is (why|how|what)|is what (makes|the))\b",
      "State the fact. Do not point at it."),
+    # Passive voice hides who acts. `docs/style.md` asks for the active,
+    # imperative form: "Read both halves", never "both halves are read".
+    #
+    # A form of `be` in front of a past participle. The participle list is
+    # explicit rather than a `-ed` pattern, because `-ed` also ends the past
+    # tense of every regular verb, and "the walker yielded" is not passive.
+    ("passive-voice",
+     r"\b(is|are|was|were|be|been|being|gets|got)\s+"
+     r"(not\s+)?(?:already\s+|then\s+|also\s+|still\s+|never\s+|only\s+)?"
+     r"(written|read|given|taken|made|held|kept|carried|counted|dropped|added|"
+     r"removed|deleted|renamed|parsed|indexed|scanned|reported|returned|called|"
+     r"passed|spelled|named|built|checked|compared|sorted|resolved|skipped|"
+     r"treated|used|found|left|set|seen|shown|split|stored|applied|emitted|"
+     r"produced|replaced|rewritten|translated|declared|derived|computed|"
+     r"generated|measured|pinned|driven|chosen|picked|wrapped|bound)\b",
+     "Say who acts: \"Read both halves\", not \"both halves are read\"."),
     ("long-sentence", None,
      "Keep sentences to 25 words or fewer."),
+    # Comment volume. Every count above says how a sentence is written; this one
+    # says how many there should be. `docs/style.md` asks for none by default.
+    ("comment-line", None,
+     "Delete the comment, or cut it to the one line that carries the constraint."),
 ]
 
 MAX_WORDS = 25
@@ -122,9 +142,18 @@ def count(text: str) -> dict:
     return found
 
 
+def comment_lines(path: Path) -> int:
+    """Lines of `//` comment in a Rust file.
+
+    Counted rather than read, because the rule is about how many there are.
+    """
+    return sum(1 for line in path.read_text().split("\n") if line.strip().startswith("//"))
+
+
 def gather() -> dict:
     totals = {name: 0 for name, _, _ in RULES}
     for path in sorted(ROOT.glob("src/**/*.rs")) + sorted(ROOT.glob("tests/**/*.rs")):
+        totals["comment-line"] += comment_lines(path)
         for text in (comments_of(path), messages_of(path)):
             for name, n in count(text).items():
                 totals[name] += n

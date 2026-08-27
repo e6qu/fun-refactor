@@ -1,11 +1,4 @@
 //! Two declarations that share a name in different namespaces.
-//!
-//! Terraform writes the namespace in front of the use: `var.thing` and `local.thing` are
-//! two addresses, and a module may declare both. Markup writes it in the attribute:
-//! `class="thing"` names a CSS class and `href="#thing"` names an element id.
-//!
-//! The index recorded both pairs as one name each, so `fr refs` on either declaration
-//! answered for both, and a rename of one rewrote the uses of the other.
 
 use fun_refactor::index::Index;
 use fun_refactor::model::{SymbolId, SymbolKind};
@@ -54,8 +47,7 @@ fn a_terraform_variable_and_a_local_are_two_declarations() {
     variables.sort_by_key(|s| s.full_span.start);
     assert_eq!(variables.len(), 2, "the module declares both");
 
-    // The `variable` block is addressed as `var.thing`, the `locals` entry as
-    // `local.thing`. Each has exactly one use here.
+    // The `variable` block is addressed as `var.thing`, the `locals` entry as `local.thing`.
     for (symbol, expected) in [(variables[0], "var.thing"), (variables[1], "local.thing")] {
         let uses = index.references_to(symbol.id);
         assert_eq!(uses.len(), 1, "{expected}: {uses:?}");
@@ -120,8 +112,6 @@ const CALLED_TF: &str = "variable \"region\" {\n  type = string\n}\n\n\
                          output \"where\" {\n  value = var.region\n}\n";
 
 /// An argument of a `module` block names an input variable of the called configuration.
-/// Renaming that variable left `region = var.region` behind and reported success, and
-/// `terraform validate` then rejected the result.
 #[test]
 fn a_module_argument_renames_with_the_variable_it_names() {
     let (tmp, index) = workspace(&[("main.tf", CALLER_TF), ("modules/net/main.tf", CALLED_TF)]);
@@ -205,10 +195,6 @@ const MODULE_WITH_AN_OUTPUT: &str = "output \"subnet_id\" {\n  value = \"s-1\"\n
                                      provider \"subnet_id\" {\n  region = \"eu-west-1\"\n}\n";
 
 /// `module.net.subnet_id` is a reference to the module's `output "subnet_id"`.
-///
-/// `fr flow` and `fr signature` followed this edge from their own code. The index held
-/// nothing, so `fr usages`, `fr refs` and `fr impact` answered zero for a name the
-/// workspace reads. Every command reads the index, so the edge belongs there.
 #[test]
 fn a_module_output_read_from_outside_is_a_reference_in_the_index() {
     let (tmp, index) = workspace(&[
@@ -252,9 +238,7 @@ fn a_module_output_is_told_from_a_block_of_another_type_with_the_same_name() {
     );
 }
 
-/// Deleting an output something still reads leaves `terraform validate` failing. The
-/// refusal already existed for Helm values and CSS classes; it now covers this too,
-/// because it reads the same reference edge.
+/// Deleting an output something still reads leaves `terraform validate` failing.
 #[test]
 fn deleting_a_module_output_that_is_still_read_is_refused() {
     let (_tmp, index) = workspace(&[

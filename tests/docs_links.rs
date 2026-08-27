@@ -1,9 +1,4 @@
 //! Every document is reachable, and every link between them resolves.
-//!
-//! Two failures this catches. A document added without a link from the README is
-//! one a reader never finds, which is how `CLI.md` and `IR.md` could have landed.
-//! A link to a file that was renamed or removed is a dead end, and Markdown gives
-//! no error for one.
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -36,9 +31,6 @@ fn documents() -> BTreeSet<String> {
 }
 
 /// The relative Markdown link targets in one file.
-///
-/// Only local ones. An `https://` link is somebody else's to keep alive, and a
-/// fragment names a heading in the same file.
 fn links_in(text: &str) -> Vec<String> {
     let mut found = Vec::new();
     let mut rest = text;

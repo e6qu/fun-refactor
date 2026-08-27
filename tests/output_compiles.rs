@@ -1,13 +1,4 @@
 //! Does the code that a refactoring writes still compile?
-//!
-//! The edit engine parses a file before an edit and after it, and rejects an edit that
-//! introduces a syntax error. Four defects passed that check and reached the repository: an
-//! attribute separated from the import it guarded, an integration test that imported the
-//! library as `crate::`, a signature that changed with no call site updated. A method call
-//! renamed to a method that does not exist. Every one of them parses.
-//!
-//! This runs the compiler for the language over the result. A language whose compiler is absent
-//! is named in the output of the run, so a pass cannot mean that nothing was checked.
 
 mod common;
 use common::{
@@ -86,8 +77,7 @@ fn inlining_a_variable_compiles() {
     must_plan("inlining a variable", &ws, planned);
 }
 
-/// Here a plan is optional. A refusal is the right answer when a use site cannot be
-/// verified. Writing a plan that does not compile is the only outcome this forbids.
+/// Here a plan is optional.
 #[test]
 fn no_command_writes_a_broken_workspace() {
     let mut refused = Vec::new();
@@ -146,8 +136,8 @@ fn no_command_writes_a_broken_workspace() {
 
 #[test]
 fn extracting_an_expression_from_inside_a_closure_compiles_or_refuses() {
-    // The binding goes at the start of the enclosing statement, and that statement is
-    // outside the closure. `i` exists only inside it.
+    // The binding goes at the start of the enclosing statement, and that statement is outside
+    // the closure.
     let mut files = plain();
     files.push((
         "src/counts.rs",
@@ -182,8 +172,7 @@ fn extracting_an_expression_from_inside_a_closure_compiles_or_refuses() {
 
 #[test]
 fn a_guard_clause_in_a_function_that_returns_a_value_compiles_or_refuses() {
-    // An early exit needs a value here, and a bare `return` does not compile. The `if`
-    // is nested deeply enough that a bounded walk never reaches the function.
+    // An early exit needs a value here, and a bare `return` does not compile.
     let mut files = plain();
     files.push((
         "src/deep.rs",
@@ -221,15 +210,12 @@ fn tsc_is_available() -> bool {
         .is_ok_and(|o| o.status.success())
 }
 
-/// The same shapes as the Rust fixture, in TypeScript. A free function and a method of one
-/// name, an import of the function from another module, and a caller of both.
+/// The same shapes as the Rust fixture, in TypeScript.
 fn typescript() -> Vec<(&'static str, &'static str)> {
     vec![
         (
             "tsconfig.json",
             // `moduleResolution: node` was removed in a later TypeScript, and CI has one.
-            // `bundler` is accepted by every version that has it and needs no package
-            // layout on disk.
             "{\n  \"compilerOptions\": {\n    \"strict\": true,\n    \"noEmit\": true,\n    \"target\": \"ES2020\",\n    \"module\": \"esnext\",\n    \"moduleResolution\": \"bundler\"\n  },\n  \"include\": [\"src\"]\n}\n",
         ),
         (
@@ -328,10 +314,6 @@ fn changing_a_typescript_signature_compiles_or_refuses() {
 }
 
 /// A barrel that hands on everything the file next to it exports.
-///
-/// `export * from "./holder"` names nothing, so nothing about the statement says which
-/// symbols travel through it. Moving one out left the star naming a file that no longer
-/// had it, and every reader of the barrel gained a second binding of the same name.
 fn typescript_star_barrel() -> Vec<(&'static str, &'static str)> {
     vec![
         (
@@ -508,8 +490,7 @@ fn organising_go_imports_compiles_or_refuses() {
     }
 }
 
-/// The same shapes in Python. The toolchain calls `check`, so the assertions in it are the
-/// behaviour a refactoring has to preserve and not only the names.
+/// The same shapes in Python.
 fn python_files() -> Vec<(&'static str, &'static str)> {
     vec![
         (
@@ -617,10 +598,6 @@ fn inlining_a_python_variable_compiles_or_refuses() {
 
 /// The same shapes again in Zig: a free function and a method of one name, a second file
 /// importing the first, and a root that calls both.
-///
-/// The root matters more here than in the other languages. Zig analyses what it can reach from
-/// the file it is given and leaves the rest alone. So a declaration nothing calls is never
-/// type-checked and a gate pointed at it would pass on anything.
 fn zig_files() -> Vec<(&'static str, &'static str)> {
     vec![
         (
@@ -721,8 +698,7 @@ fn inlining_a_zig_variable_compiles_or_refuses() {
     must_plan("inlining a Zig variable", &ws, planned);
 }
 
-/// The same shapes in Java, where they land differently: a class has no top level. So the free
-/// function is a static method on a class of its own and the method is on the record.
+/// The same shapes in Java, where they land differently: a class has no top level.
 fn java_files() -> Vec<(&'static str, &'static str)> {
     vec![
         (
@@ -823,10 +799,6 @@ fn inlining_a_java_variable_compiles_or_refuses() {
 }
 
 /// The gate has to be able to fail.
-///
-/// Every other test here passes when the tool behaves. That is also what they would do if
-/// the compiler stopped running: a wrong path, a missing project file, an exit code
-/// nobody reads. This breaks each fixture on purpose and checks the compiler says so.
 #[test]
 fn the_gate_reports_a_workspace_that_does_not_compile() {
     let rust = Workspace::new(&plain());
@@ -939,10 +911,6 @@ fn the_gate_reports_a_workspace_that_does_not_compile() {
 }
 
 /// What this gate covers, said out loud.
-///
-/// A gate that silently checks nothing is worse than no gate. This names the languages
-/// it drives and the languages it does not, so a green run cannot be mistaken for
-/// coverage it does not have.
 #[test]
 fn the_gate_states_what_it_covers() {
     assert!(
@@ -966,15 +934,7 @@ fn the_gate_states_what_it_covers() {
             }
         );
     }
-    // The languages this file has no fixture for. Naming them is the point. A green
-    // run covers six languages out of every one this tool reads, and saying so
-    // keeps it from reading as more. The rest have no compiler to run. A
-    // stylesheet, a manifest and a document are checked by parsing them, which the
-    // edit engine already does.
-    //
-    // Subtracted from `Language::ALL` rather than listed. Written by hand, the list
-    // went stale twice over. A language missing from it was one a green run claimed
-    // nothing about while looking complete.
+    // The languages this file has no fixture for.
     let driven = ["rust", "typescript", "go", "python", "zig", "java"];
     let rest: Vec<&str> = fun_refactor::lang::Language::ALL
         .iter()

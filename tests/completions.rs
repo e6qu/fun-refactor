@@ -1,8 +1,4 @@
 //! `fr completions <shell>` writes a script the shell can read.
-//!
-//! Thirty-three subcommands are a lot to type from memory, and nothing
-//! completed any of it. The script is generated from the command tree, so it
-//! cannot offer a command this binary does not have.
 
 mod common;
 
@@ -41,8 +37,7 @@ fn every_shell_gets_a_script_its_own_parser_accepts() {
     for shell in ["bash", "zsh"] {
         let path = std::env::temp_dir().join(format!("fr-completions-{shell}"));
         std::fs::write(&path, script(shell)).expect("write");
-        // A shell that is not installed cannot judge its own script. Saying so
-        // beats a failure that reads as a defect in the script.
+        // A shell that is not installed cannot judge its own script.
         let Ok(out) = Command::new(shell).arg("-n").arg(&path).output() else {
             missing.push(shell.to_string());
             continue;
@@ -55,8 +50,7 @@ fn every_shell_gets_a_script_its_own_parser_accepts() {
         checked += 1;
     }
     assert!(checked > 0, "no shell was available to check anything");
-    // On CI a missing shell is a check that ran and proved nothing. It fails
-    // there and asks for the package, instead of going quietly green.
+    // On CI a missing shell is a check that ran and proved nothing.
     require_on_ci("completion scripts", &missing);
 }
 

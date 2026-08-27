@@ -1,11 +1,4 @@
 //! Error propagation crosses the language boundary.
-//!
-//! Rust spells it `x?` and Zig `try x`, and both mean one thing: evaluate, and on
-//! failure leave the function with the failure. Python, TypeScript and Java mean
-//! the same thing by writing nothing, because an exception propagates unless
-//! something catches it. Their drafts say the expression bare and note it once.
-//! Go says it longhand, the way every Go function does: bind the error beside the
-//! value, check it, and return the Result's zero with it.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;

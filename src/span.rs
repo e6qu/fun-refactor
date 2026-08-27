@@ -1,8 +1,4 @@
 //! Byte-native source positions.
-//!
-//! Every position in fun-refactor is a byte offset into the original file. Line/column
-//! are derived only for display. This makes edits lossless: an edit is
-//! "replace bytes [start, end) with this text", touching nothing else in the file.
 
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -41,7 +37,7 @@ impl Span {
         self.start <= offset && offset < self.end
     }
 
-    /// Do the two spans share any byte? Adjacent (touching) spans do not overlap.
+    /// Do the two spans share any byte?
     pub fn overlaps(&self, other: Span) -> bool {
         self.start < other.end && other.start < self.end
     }
@@ -78,14 +74,9 @@ impl fmt::Display for LineCol {
 }
 
 /// Maps byte offsets to line/column positions for one source file.
-///
-/// Built once per file; lookups are binary searches over line start offsets.
-///
-/// A trailing newline terminates the final line instead of starting a new empty one. So
-/// `"a\nb\n"` has two lines, matching how editors and diffs count them.
 #[derive(Debug, Clone)]
 pub struct LineIndex {
-    /// Byte offset of the start of each line. Always starts with 0.
+    /// Byte offset of the start of each line.
     line_starts: Vec<usize>,
     len: usize,
     ends_with_newline: bool,
@@ -124,9 +115,6 @@ impl LineIndex {
     }
 
     /// Convert a byte offset to a 1-based line/column.
-    ///
-    /// Column counts characters, not bytes, so multi-byte characters advance the
-    /// column by one, matching what editors display.
     pub fn line_col(&self, offset: usize, source: &str) -> LineCol {
         let offset = offset.min(self.len);
         let line = self.line_of(offset);
@@ -134,10 +122,7 @@ impl LineIndex {
         // Clamp to the line's end so a trailing newline does not report a column
         // past the last visible character.
         let mut col_end = offset.min(self.line_end(line));
-        // And to a character boundary. Callers arrive here with offsets they computed,
-        // `span.end - 1` to name the last covered byte, for one, and one of those lands
-        // inside a multi-byte character whenever the region ends with one. Slicing there
-        // panicked: `fr duplicates --language python` over `psf/black` died on a '𨉟'.
+        // And to a character boundary.
         while col_end > line_start && !source.is_char_boundary(col_end) {
             col_end -= 1;
         }
@@ -157,9 +142,6 @@ impl LineIndex {
     }
 
     /// Byte offset of a 1-based line/column position.
-    ///
-    /// Returns `None` if the line does not exist. A column beyond the end of the
-    /// line clamps to the line's end, so callers can address end-of-line positions.
     pub fn offset(&self, pos: LineCol, source: &str) -> Option<usize> {
         if pos.line == 0 || pos.line > self.line_starts.len() {
             return None;
@@ -192,13 +174,6 @@ impl LineIndex {
 }
 
 /// Parse `path:line:col-line:col` into a path and two positions.
-///
-/// Here and not in the CLI because a recipe's `extract … at "…"` writes the same spec. Two
-/// parsers for one syntax is two chances to disagree about it.
-///
-/// An inverted range is refused here, where both ends are known. Letting it through
-/// handed [`Span::new`] a start past its end. That is a caller bug there and a typo
-/// here, and the typo deserves an answer that names both ends.
 pub fn parse_range(spec: &str) -> anyhow::Result<(std::path::PathBuf, LineCol, LineCol)> {
     let shape = || anyhow::anyhow!("expected path:line:col-line:col, got '{spec}'.");
     let (head, end_col) = spec.rsplit_once(':').ok_or_else(shape)?;
@@ -235,8 +210,7 @@ mod tests {
         assert!(!inner.contains(outer));
         assert!(outer.overlaps(inner));
 
-        // Adjacent spans touch but do not overlap. This is what lets us apply
-        // back-to-back edits without a conflict error.
+        // Adjacent spans touch but do not overlap.
         let a = Span::new(0, 5);
         let b = Span::new(5, 10);
         assert!(!a.overlaps(b));
@@ -245,8 +219,6 @@ mod tests {
 
     #[test]
     fn an_inverted_range_is_refused_with_both_ends_named() {
-        // `src/main.py:8:20-8:5` used to reach `Span::new` and die on its assertion,
-        // which reported byte offsets instead of the typo.
         let err = parse_range("src/main.py:8:20-8:5").unwrap_err().to_string();
         assert!(
             err.contains("end (8:5) comes before its start (8:20)"),
@@ -280,11 +252,7 @@ mod tests {
 
     #[test]
     fn line_col_survives_an_offset_inside_a_character() {
-        // Callers compute offsets: `span.end - 1` names the last byte a region covers. That is
-        // inside the character whenever the region ends with a multi-byte one. Slicing there
-        // panicked, `fr duplicates --language python` over `psf/black` died on a '𨉟', four
-        // bytes wide, and `full_line_span` reaches here the same way. So `fr delete` and `fr
-        // imports` could do the same.
+        // Callers compute offsets: `span.end - 1` names the last byte a region covers.
         let source = "x = \"𨉟\"\n";
         let index = LineIndex::new(source);
         let end = source.find('\n').expect("a newline");
@@ -329,8 +297,7 @@ mod tests {
     fn end_of_file_offset_maps_to_end_of_last_line() {
         let source = "alpha\nbeta\n";
         let index = LineIndex::new(source);
-        // Offset at EOF sits just past "beta", i.e. line 2 column 5, not on a
-        // phantom line 3, and not past the newline.
+        // Offset at EOF sits just past "beta", i.e.
         assert_eq!(
             index.line_col(source.len(), source),
             LineCol { line: 2, col: 5 }

@@ -1,24 +1,4 @@
 //! Every translated corpus file, taken past the front end by a real compiler.
-//!
-//! `tests/corpus_compile.rs` asks the strongest question each toolchain can
-//! answer about a file whose dependencies live elsewhere. Does it parse, does
-//! its AST check, does it format. None of those looks at a type. So a
-//! translation could hand `impl Fn(i64) -> i64` a `String`, or call a method on
-//! the wrong receiver, and every gate here would pass it.
-//!
-//! The reason the gate stopped there is real. A corpus file imports a world
-//! this repository does not hold: Gson's neighbours, the Zig standard library,
-//! SQLAlchemy. `rustc` cannot type-check a file whose every import is missing.
-//!
-//! So the world is supplied. The compiler is asked what it cannot find, and a
-//! stub is written declaring exactly those names and nothing else. The file is
-//! compiled again against it. The stub is the assumption made visible: it says,
-//! in as many words, which names were taken on trust.
-//!
-//! What is left after that is either a defect in the writer or a fact about the
-//! foreign world that no stub can supply. The count of those is a ratchet: it
-//! may fall and it may not rise. Every fall is a bug found this way, which
-//! parsing could not have found.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -27,16 +7,6 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 /// What remains unexplained after the foreign world is supplied.
-///
-/// Lower is better and this may only fall. Each of these is a diagnostic
-/// `rustc` reports about a translated corpus file that stubbing the foreign
-/// names did not answer. That makes it a question about the translation.
-///
-/// The number this gate started at was 1230. The first thing it found was four
-/// `fn add` in one `impl`. Java overloads its methods and Rust does not, and
-/// every other gate here passed the file. Two of the eleven files carry three
-/// quarters of what is left. Both import the Zig standard library, whose
-/// surface a stub cannot describe.
 const RESIDUE: usize = 1223;
 
 fn corpus_files() -> Vec<PathBuf> {
@@ -131,11 +101,6 @@ fn between_backticks(text: &str) -> Option<String> {
 }
 
 /// A stub declaring exactly the names the compiler could not find.
-///
-/// Every declaration is as permissive as Rust allows, because the point is to
-/// stop the *resolver* complaining and let the type checker speak. A stub that
-/// guessed a signature would make the type checker complain about the stub
-/// instead of about the translation.
 fn stub_for(missing: &[Missing]) -> String {
     let mut out = String::from(
         "// Generated: the foreign world this file imports, declared so the type\n\
@@ -149,8 +114,7 @@ fn stub_for(missing: &[Missing]) -> String {
                     "#[derive(Clone, Debug, Default, PartialEq)]\npub struct {name};\n"
                 ));
             }
-            // A value may be called, indexed or read. A unit struct is all
-            // three's receiver and the one shape that admits every use.
+            // A value may be called, indexed or read.
             Missing::Value(name) => {
                 out.push_str(&format!(
                     "#[derive(Clone, Debug, Default, PartialEq)]\n\

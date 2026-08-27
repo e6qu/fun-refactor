@@ -1,10 +1,4 @@
 //! A value of a closed choice crosses as the variant it is.
-//!
-//! The types crossed for eleven passes while every value of one carried.
-//! `Shape::Point` reached Python as a comment, and a Zig `.{ .one = n }` took
-//! its whole `if` with it. Each language builds the same thing its own way.
-//! A path that names anything else, `Vec::new`, an enum from another crate,
-//! goes back to being carried, which every such path was before.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -50,8 +44,6 @@ fn rust_variants_reach_every_target_as_constructions() {
 
 #[test]
 fn vec_new_is_the_empty_list_it_builds() {
-    // `Vec::new()` used to carry as a path call; it is the empty list, and
-    // the annotation keeps the element type where the target wants one.
     let source = "pub fn build() -> Vec<i64> {\n    let mut items = Vec::new();\n    \
         items.push(1);\n    items\n}\n";
     let out = translated(source, "build.rs", Language::Python);

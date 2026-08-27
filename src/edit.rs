@@ -1,12 +1,4 @@
 //! The lossless edit engine.
-//!
-//! Every refactoring produces [`Edit`]s: "replace these bytes with this text". Edits
-//! are applied to the original source descending by offset, so earlier offsets stay
-//! valid while later ones are rewritten. Nothing is pretty-printed, so formatting,
-//! comments and trailing whitespace outside the edited ranges survive byte-for-byte.
-//!
-//! Before anything is written, the result is reparsed: an edit that introduces new
-//! syntax errors is rejected and not saved.
 
 use crate::lang::Language;
 use crate::parse::Parsers;
@@ -45,10 +37,6 @@ pub struct FileEdits {
 pub struct EditSet {
     files: BTreeMap<PathBuf, FileEdits>,
     /// What language a file is, where the producer knows better than the name.
-    ///
-    /// A translation writing `--out build/api.gen` knows the text is Python; the
-    /// path says nothing. Detection from the name is the fallback, this is the
-    /// authority.
     languages: BTreeMap<PathBuf, crate::lang::Language>,
 }
 
@@ -110,9 +98,6 @@ impl EditSet {
 }
 
 /// Apply `edits` to `source`, returning the rewritten text.
-///
-/// Fails if any two edits overlap: overlapping edits have no well-defined result, and
-/// guessing one would silently corrupt the file.
 pub fn apply_to_string(source: &str, edits: &[Edit]) -> Result<String> {
     if edits.is_empty() {
         return Ok(source.to_string());
@@ -185,16 +170,13 @@ impl FileOutcome {
 /// Validation performed on the rewritten text before it may be written to disk.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Validation {
-    /// Reparse and reject the edit if it introduces syntax errors the original
-    /// did not have. This is the default and should stay that way.
+    /// Reparse and reject the edit if it introduces syntax errors the original did not have.
     ReparseStrict,
-    /// Skip reparse validation. Only for callers that have already validated.
+    /// Skip reparse validation.
     None,
 }
 
 /// Compute the result of applying an [`EditSet`], validating each file.
-///
-/// Nothing is written; the caller decides whether to render a diff or commit.
 pub fn plan(edit_set: &EditSet, validation: Validation) -> Result<Vec<FileOutcome>> {
     let parsers = Parsers::new();
     let mut outcomes = Vec::new();
@@ -204,8 +186,7 @@ pub fn plan(edit_set: &EditSet, validation: Validation) -> Result<Vec<FileOutcom
             continue;
         }
         // A refactoring may create a file, moving a symbol to a new module, or writing a Helm
-        // `_helpers.tpl` that does not exist yet. So a missing destination is an empty one, not
-        // a failure.
+        // `_helpers.tpl` that does not exist yet.
         let original = match crate::vfs::read_to_string(path) {
             Ok(text) => text,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
@@ -226,9 +207,7 @@ pub fn plan(edit_set: &EditSet, validation: Validation) -> Result<Vec<FileOutcom
             let before = parsers.parse(language, &original)?;
             let after = parsers.parse(language, &updated)?;
 
-            // Check the tree-wide error flag as well as the span count. Some
-            // grammars flag a broken subtree without emitting an ERROR node, so
-            // counting spans alone can miss a file we just broke.
+            // Check the tree-wide error flag as well as the span count.
             if after.has_errors() && !before.has_errors() {
                 bail!(
                     "edit rejected: {} parses cleanly now but would not after the \
@@ -262,9 +241,6 @@ pub fn plan(edit_set: &EditSet, validation: Validation) -> Result<Vec<FileOutcom
 }
 
 /// Where the rejected text stops parsing, with the lines around it.
-///
-/// A refusal naming no position sends whoever caused it back to guessing. The
-/// rejected text never reaches disk, so this is the only moment to see it.
 fn rejection_evidence(after: &crate::parse::Parsed, updated: &str) -> String {
     let Some(at) = after.error_spans().iter().map(|span| span.start).min() else {
         return String::new();
@@ -286,23 +262,9 @@ fn rejection_evidence(after: &crate::parse::Parsed, updated: &str) -> String {
 }
 
 /// Write planned outcomes to disk atomically across all files.
-///
-/// Every file is staged as a temporary file next to its target and only then renamed into
-/// place. So a mid-run failure cannot leave a half-applied refactoring.
-///
-/// The plan captured each file's text when it was read, and the commit re-reads every
-/// file and compares before writing anything. A file that changed in between fails the
-/// whole set. Two `fr rename --write` runs racing on one workspace used to both report
-/// success while the second silently overwrote the first's edits.
 pub fn commit(outcomes: &[FileOutcome]) -> Result<usize> {
     // Without a filesystem there is nothing to stage against: a write goes into the same
-    // in-memory workspace every read comes from. A partial write cannot survive a failure
-    // because there is no second copy to be inconsistent with.
-    //
-    // Asked of the vfs and not of `cfg!(feature = "cli")`. Where the writes go is a fact
-    // about the active backing. The feature only says which backings exist. A build with both
-    // would stage a temporary file beside a path that lives in a browser's memory and has no
-    // directory on disk.
+    // in-memory workspace every read comes from.
     if crate::vfs::is_in_memory() {
         verify_basis_unchanged(outcomes)?;
         let mut written = 0;
@@ -318,8 +280,6 @@ pub fn commit(outcomes: &[FileOutcome]) -> Result<usize> {
         commit_via_staging(outcomes)
     }
 
-    // A build with no filesystem support at all writes through the vfs, which is
-    // what the branch above did.
     #[cfg(not(feature = "cli"))]
     {
         verify_basis_unchanged(outcomes)?;
@@ -333,10 +293,6 @@ pub fn commit(outcomes: &[FileOutcome]) -> Result<usize> {
 }
 
 /// Refuse the whole commit when any file no longer holds the text the plan read.
-///
-/// The comparison is on the recorded text itself, which the plan already carries; a
-/// separate hash would only re-derive it. A file the plan would create reads as empty,
-/// matching how [`plan`] read it.
 fn verify_basis_unchanged(outcomes: &[FileOutcome]) -> Result<()> {
     for outcome in outcomes.iter().filter(|o| o.changed()) {
         let current = match crate::vfs::read_to_string(&outcome.path) {
@@ -359,23 +315,6 @@ fn verify_basis_unchanged(outcomes: &[FileOutcome]) -> Result<()> {
 }
 
 /// Exclusive advisory locks over the commit window, one per directory written to.
-///
-/// Two processes committing into the same workspace at the same time could each pass
-/// the re-read check and then overwrite each other. Any file both would write shares a
-/// parent directory. So an OS lock per written directory serialises the whole
-/// read-verify-write window. The locks are taken in sorted order, so two commits
-/// cannot end up waiting on each other.
-///
-/// The lock files live in the system temporary directory, named by a hash of the
-/// canonical directory path, never inside the workspace. A commit that added files
-/// beside the sources it edits would show up in listings, backups and demo captures.
-/// The canonical spelling makes two processes agree: `/var` and `/private/var` name
-/// the same directory and must name the same lock.
-///
-/// The lock files themselves are left in place. Deleting one that another process is
-/// blocked on would quietly hand out a second lock on a file nobody else can see.
-/// Dropping the handles releases the locks, and the OS releases them if the process
-/// dies, so there is no staleness to detect.
 #[cfg(feature = "cli")]
 struct CommitLocks {
     /// Held for the locks the open handles carry, never read.
@@ -406,8 +345,7 @@ impl CommitLocks {
 
         let mut held = Vec::new();
         for dir in directories {
-            // The directory is created here as well. A plan may introduce a file in a
-            // directory that does not exist yet, and its lock must name the real path.
+            // The directory is created here as well.
             std::fs::create_dir_all(&dir).with_context(|| format!("creating {}", dir.display()))?;
             let canonical = dir
                 .canonicalize()
@@ -433,8 +371,7 @@ impl CommitLocks {
 /// cannot leave a half-applied refactoring.
 #[cfg(feature = "cli")]
 fn commit_via_staging(outcomes: &[FileOutcome]) -> Result<usize> {
-    // The locks first, then the check, then the writes. Checking before locking would
-    // let another commit slip its writes in between the two.
+    // The locks first, then the check, then the writes.
     let locks = CommitLocks::acquire(outcomes)?;
     verify_basis_unchanged(outcomes)?;
 
@@ -450,11 +387,8 @@ fn commit_via_staging(outcomes: &[FileOutcome]) -> Result<usize> {
             tmp.write_all(outcome.updated.as_bytes())
                 .with_context(|| format!("writing staged {}", outcome.path.display()))?;
             tmp.flush()?;
-            // A staged file is created with the private mode a temporary file
-            // deserves, and renaming it over the target hands the target that
-            // mode. So an executable script stopped being executable, and a
-            // file the group could read became one only its owner can. What
-            // the file was is what it stays.
+            // A staged file is created with the private mode a temporary file deserves, and
+            // renaming it over the target hands the target that mode.
             if let Ok(existing) = std::fs::metadata(&outcome.path) {
                 use std::os::unix::fs::PermissionsExt;
                 let mode = existing.permissions().mode();
@@ -489,9 +423,6 @@ pub fn unified_diff(before: &str, after: &str, path: &str) -> String {
 }
 
 /// Render a unified diff between two texts that live at different paths.
-///
-/// A translation reads one file and writes another, so the two sides of its diff carry
-/// different names. `git apply` reads the header, so the paths have to be the real ones.
 pub fn unified_diff_between(before: &str, after: &str, from_path: &str, to_path: &str) -> String {
     use similar::{ChangeTag, TextDiff};
 
@@ -532,7 +463,6 @@ pub fn unified_diff_between(before: &str, after: &str, from_path: &str, to_path:
 }
 
 /// Byte span of the whole line containing `offset`, including its trailing newline.
-/// Used by refactorings that insert or remove whole statements.
 pub fn full_line_span(source: &str, offset: usize) -> Span {
     let index = LineIndex::new(source);
     let pos = index.line_col(offset, source);
@@ -561,11 +491,6 @@ pub fn line_indent(source: &str, offset: usize) -> String {
 }
 
 /// One level of indentation, as this file writes it.
-///
-/// Read it from the source rather than assuming it. Generated code arriving four spaces deep
-/// in a two-space TypeScript file, or in a tab-indented Go file, leaves a visible wart on
-/// every line it touches. The shortest indentation any line carries is one level, every real
-/// file has at least one line indented exactly once.
 pub fn indent_unit(source: &str) -> String {
     source
         .lines()
@@ -581,9 +506,6 @@ pub fn indent_unit(source: &str) -> String {
 }
 
 /// Re-indent a multi-line block so its subsequent lines carry `indent`.
-///
-/// The first line is left alone: it is spliced at a position that already has the
-/// caller's indentation.
 pub fn reindent(text: &str, indent: &str) -> String {
     let mut lines = text.lines();
     let Some(first) = lines.next() else {
@@ -678,11 +600,6 @@ mod tests {
     }
 
     /// The file a commit writes keeps the mode it had.
-    ///
-    /// A staged file is created private, the way a temporary file should be,
-    /// and renaming it over the target handed the target that mode. An
-    /// executable script stopped being executable, and a file the group could
-    /// read became one only its owner can.
     #[cfg(feature = "cli")]
     #[test]
     fn committing_keeps_the_mode_the_file_had() {
@@ -741,9 +658,8 @@ mod tests {
 
     #[test]
     fn plan_rejects_breakage_a_grammar_flags_without_an_error_node() {
-        // A grammar can mark a tree erroneous through a MISSING node, where the parser
-        // supplies a token the source never wrote. No ERROR node appears, so comparing
-        // error-span counts alone would accept the edit. The tree-wide flag catches it.
+        // A grammar can mark a tree erroneous through a MISSING node, where the parser supplies
+        // a token the source never wrote.
         let tmp = tempfile::tempdir().unwrap();
         let path = tmp.path().join("thing.rs");
         crate::vfs::write(&path, "fn main() {}\n").unwrap();
@@ -836,9 +752,8 @@ mod tests {
         let path = tmp.path().join("a.rs");
         crate::vfs::write(&path, "fn one() {}\n").unwrap();
 
-        // Two plans from the same basis, the shape of two `--write` runs racing on
-        // one workspace. Both used to report success and the second overwrote the
-        // first, so one rename vanished without a word.
+        // Two plans from the same basis, the shape of two `--write` runs racing on one
+        // workspace.
         let mut first = EditSet::new();
         first.add(&path, Edit::new(Span::new(3, 6), "won", "rename"));
         let mut second = EditSet::new();
@@ -872,8 +787,7 @@ mod tests {
         set.add(&b, Edit::new(Span::new(3, 4), "y", "rename"));
         let outcomes = plan(&set, Validation::ReparseStrict).unwrap();
 
-        // Only one of the two files moved on, and the fresh one must not be written
-        // either. Half a refactoring is the state the staging design exists to prevent.
+        // Only one of the two files moved on, and the fresh one must not be written either.
         crate::vfs::write(&b, "fn moved() {}\n").unwrap();
         let err = commit(&outcomes).unwrap_err().to_string();
         assert!(

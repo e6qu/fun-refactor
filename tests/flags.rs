@@ -1,13 +1,4 @@
 //! A `--flag` a script passes, and the program that declares it.
-//!
-//! Go, Rust, Python and Node each declare a flag somewhere, and renaming the
-//! declaration breaks every script and CI step that passes it. Nothing said so:
-//! the flag was a word in a shell command and the declaration a string in
-//! another language, and the two never met.
-//!
-//! The link is the flag's own name, a string on both sides. Nothing proves a
-//! `--retention-days` in a script reaches *this* program rather than another one
-//! on the path, so the edge is name-only and never rewritten.
 
 use fun_refactor::analysis::flags;
 use fun_refactor::index::Index;
@@ -53,9 +44,7 @@ fn a_script_flag_finds_the_clap_attribute_that_names_it() {
 
 #[test]
 fn a_bare_clap_long_takes_the_field_name() {
-    // `#[arg(long)]` names no flag; clap kebab-cases the field under it. A
-    // reader that stopped at the attribute would miss the commonest form there
-    // is.
+    // `#[arg(long)]` names no flag; clap kebab-cases the field under it.
     let (_tmp, all) = found(&[
         (
             "src/main.rs",
@@ -98,8 +87,7 @@ fn an_argparse_declaration_is_found() {
 
 #[test]
 fn a_flag_a_script_passes_and_nothing_declares_says_so() {
-    // The failure worth reporting. A script passing a flag nobody declares
-    // fails at run time, and a rename of the declaration is what usually did it.
+    // The failure worth reporting.
     let (_tmp, all) = found(&[
         (
             "src/main.rs",

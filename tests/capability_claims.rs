@@ -1,20 +1,4 @@
 //! Every `✓` in the capability matrix, asked to prove itself.
-//!
-//! `fr capabilities` computes the matrix from each refactoring's own predicate, so a `✓` means
-//! "this command would accept this language", not "this has ever worked". Those are different
-//! claims, and the gap between them is where this project's defects live. A rule that is
-//! documented and never runs, a gap recorded after it had stopped being one, a language driven
-//! by a gate that was never installed.
-//!
-//! So each claimed cell is driven here, against a fixture in that language. One thing is
-//! asserted: **it must not answer that the language is unsupported.** That is the exact
-//! contradiction a wrong `✓` produces. Nothing else in the suite would notice it.
-//!
-//! What this deliberately does not assert is that the answer is *good*. A capability may refuse
-//! for a reason about this particular input, a symbol with no callers, an expression in a place
-//! a binding cannot go, and that is a real answer. The gates in `output_compiles.rs`,
-//! `rewrites_compile.rs`, `removals_compile.rs` and `validators_accept.rs` are what check the
-//! answers are right; this checks the claims are true.
 
 use fun_refactor::capabilities::{is_whole_workspace, support, Capability};
 use fun_refactor::index::Index;
@@ -207,10 +191,6 @@ impl Fixture {
 }
 
 /// What happened when one capability was pointed at one language.
-///
-/// The three are not two. A fixture that offers no symbol and no span drives nothing,
-/// and folding that into "it worked" is how a cell gets counted as checked without
-/// having been run, which both tests below were doing.
 #[derive(Debug)]
 enum Outcome {
     /// The fixture had nothing for this capability to take.
@@ -228,7 +208,7 @@ fn drive(capability: Capability, language: Language, f: &Fixture) -> Outcome {
     let said = |e: anyhow::Error| e.to_string();
     let outcome: Result<(), String> = match capability {
         Capability::Symbols => {
-            // Building the index is the capability. Reaching here means it built.
+            // Building the index is the capability.
             Ok(())
         }
         Capability::Rename => match f.a_symbol() {
@@ -249,9 +229,7 @@ fn drive(capability: Capability, language: Language, f: &Fixture) -> Outcome {
                 .map_err(said),
             None => return Outcome::NotDriven,
         },
-        // The pattern cannot match, so the search has to come back empty. Checking that much
-        // keeps the driver honest. A `restructure` returning edits for a shape absent from
-        // the file would pass here if the outcome went unread.
+        // The pattern cannot match, so the search has to come back empty.
         Capability::Restructure => {
             refactor::restructure::apply(&f.index, language, "nothing_matches_this", "nor_this")
                 .map(|plan| {
@@ -263,8 +241,7 @@ fn drive(capability: Capability, language: Language, f: &Fixture) -> Outcome {
                 .map_err(said)
         }
         // Every fixture here has `caller` calling `width`, and the table claims a call graph
-        // for the imperative languages only. So an empty edge list means the graph found
-        // nothing, and reading the result is what tells the two apart.
+        // for the imperative languages only.
         Capability::CallGraph => {
             let graph = analysis::call_graph::CallGraph::build(&f.index);
             assert!(
@@ -347,9 +324,9 @@ fn drive(capability: Capability, language: Language, f: &Fixture) -> Outcome {
         }
         Capability::MoveToFile => match f.a_symbol() {
             Some(id) => {
-                // Beside the file it came from, since some languages derive a module
-                // path from where a file sits and a destination elsewhere is a different
-                // refusal about a different thing.
+                // Beside the file it came from, since some languages derive a module path from
+                // where a file sits and a destination elsewhere is a different refusal about a
+                // different thing.
                 let destination = f.file.with_file_name(format!(
                     "moved.{}",
                     f.file.extension().unwrap_or_default().to_string_lossy()
@@ -365,8 +342,6 @@ fn drive(capability: Capability, language: Language, f: &Fixture) -> Outcome {
             .map(|_| ())
             .map_err(said),
         // A fixture this small may honestly have nothing unused, so the count proves nothing.
-        // What every answer owes is that each symbol it names exists. Dropping the list let a
-        // reply of invented ids pass.
         Capability::DeadCode => match analysis::entrypoints::Entrypoints::detect(&f.index) {
             Ok(entrypoints) => {
                 let unused = refactor::delete::find_unused(&f.index, &entrypoints);
@@ -386,8 +361,8 @@ fn drive(capability: Capability, language: Language, f: &Fixture) -> Outcome {
                 if *target == language {
                     continue;
                 }
-                // Two paths write another language: one grammar containing another, and
-                // the IR-based translation. A cell is honoured if either accepts.
+                // Two paths write another language: one grammar containing another, and the
+                // IR-based translation.
                 let containment = fun_refactor::translate::plan(&f.file, *target).map(|_| ());
                 if containment.is_ok() {
                     return Outcome::Proceeded;
@@ -430,9 +405,7 @@ fn every_claimed_capability_accepts_the_language_it_claims() {
                 continue;
             }
             match drive(*capability, *language, &f) {
-                // Counted apart and reported below. A cell the fixture cannot reach is
-                // not a cell this test checked, and calling it checked is the vacuity
-                // this suite went looking for.
+                // Counted apart and reported below.
                 Outcome::NotDriven => not_driven += 1,
                 Outcome::Proceeded => driven += 1,
                 Outcome::Refused(said) => {
@@ -463,8 +436,8 @@ fn every_claimed_capability_accepts_the_language_it_claims() {
 
 #[test]
 fn the_matrix_and_this_file_agree_on_how_many_cells_there_are() {
-    // A capability added without a driver above would quietly stop being checked, and the
-    // count is what notices. `fr capabilities` is the authority on the number.
+    // A capability added without a driver above would quietly stop being checked, and the count
+    // is what notices.
     let (yes, _, _) = fun_refactor::capabilities::totals();
     let driven: usize = Language::ALL
         .iter()
@@ -482,13 +455,7 @@ fn the_matrix_and_this_file_agree_on_how_many_cells_there_are() {
 
 #[test]
 fn every_unsupported_capability_refuses_the_language_it_disclaims() {
-    // The mirror of the test above, and the half nothing was asking. An `n/a` cell is a promise
-    // too: the command does not do this here. Nothing drove those cells, so the promise was
-    // unfalsifiable. `fr remove-flag` was breaking it on XML, rewriting `&use_new;` into
-    // `&true;` and deleting the prolog, output no parser accepts.
-    //
-    // Proceeding is the failure. An error is fine whatever it says, because a refusal about
-    // this particular fixture is still a refusal.
+    // The mirror of the test above, and the half nothing was asking.
     let mut proceeded = Vec::new();
     let mut driven = 0;
     let mut not_driven = 0;
@@ -501,7 +468,6 @@ fn every_unsupported_capability_refuses_the_language_it_disclaims() {
             }
             // A whole-workspace analysis takes no language argument, so there is nothing for it
             // to refuse: `n/a` there says the language contributes nothing.
-            // `capability-report.py` is what holds that half.
             if is_whole_workspace(*capability) {
                 continue;
             }
