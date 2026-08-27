@@ -55,6 +55,31 @@ So the two directions work differently:
   export it before the rewrite and assert against it afterwards. This tool does not do
   that direction at all.
 
+## The five frameworks beside Next.js
+
+`fr openapi` reads a Next.js `app/api` tree and a FastAPI router. It also reads five
+more, because a service written in any of them declares the same thing.
+
+| Framework | How it says it |
+|---|---|
+| Express | `app.get("/pets", listPets)`, a method on a router |
+| Flask | `@app.route("/pets", methods=["GET"])`, a decorator |
+| axum | `Router::new().route("/pets", get(list_pets))`, a chain |
+| gin | `r.GET("/pets", listPets)`, a method on a router or a group |
+| Spring | `@GetMapping("/pets")`, an annotation, under a class-level prefix |
+
+What they agree about is the pair that matters: a method and a URL, answered by a named
+function. Both are written down in every one of them, so both are exact.
+
+Path parameters are the one place they diverge in spelling. Express, gin and axum write
+`:id`. Flask writes `<int:id>`, where the part before the colon is a converter rather
+than the name. Spring writes `{id}`, which is also what a contract writes. Every reader
+spells its own into that last form.
+
+What none of them declares is the response schema. A handler returns whatever it
+returns, and no annotation says what. The document lists that as undeclared rather than
+inventing it.
+
 ## What `fr translate <route> fastapi` preserves
 
 Run against `app/api/posts/[postId]/route.ts` from
@@ -329,7 +354,9 @@ you a week there, and a missing `:path` costs you the requests nobody reports.
   run of the tool.
 - `tests/petstore/`, the source it works from.
 - `CROSS_LANGUAGE.md`, what crosses between languages and what does not.
-- `src/transpile/nextjs.rs`, the implementation, including what it refuses.
+- `src/transpile/nextjs.rs` and `src/transpile/routes.rs`, the implementation,
+  including what each refuses.
+- `CLI.md`, and `fr openapi` in it.
 - `tests/nextjs.rs` and `tests/corpus.rs`. They cover the refusal for a `.tsx` file
   containing JSX. A React component renders a user interface and a FastAPI endpoint
   answers HTTP, and no translation joins them.

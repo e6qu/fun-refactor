@@ -372,7 +372,7 @@ The common thread: everything above needs types, and this tool is built on synta
 stops where the syntax stops and says so, reporting a reference it cannot prove
 instead of rewriting it. A refactoring that needs the type of an arbitrary
 expression belongs in a language server. One that needs only what is written down
-belongs here, across all seventeen languages at once.
+belongs here, across all eighteen languages at once.
 
 ---
 

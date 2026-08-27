@@ -526,10 +526,15 @@ and the tool refuses so much.
 
 ## Where to go next
 
-- `fr capabilities` prints what each of the 17 languages supports, with the reason
+- `fr capabilities` prints what each of the 18 languages supports, with the reason
   attached to every cell that is not. The code derives it, and nobody maintains it by
   hand.
-- `fr <command> --help` for the flags each command takes.
+- `fr <command> --help` for the flags each command takes, and [CLI.md](CLI.md) for
+  every command at once: what it answers and what it refuses.
 - `--json` on any command, for editor integration and scripting.
+- [RECIPES.md](RECIPES.md) once you want a change written down and repeatable rather
+  than typed.
+- [IR.md](IR.md) if you reach `fr translate` and want to know what crosses between
+  languages and what does not.
 - [BUGS.md](BUGS.md) for what is known not to work, each entry with the measurement
   that established it.

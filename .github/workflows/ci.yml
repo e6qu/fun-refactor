@@ -39,14 +39,18 @@ jobs:
       # The tools the validator gate drives. Without them those cases skip themselves
       # and say so, which keeps the run honest — and leaves a language checked on a
       # laptop and nowhere else. Only `shellcheck` is already on the runner; `xmllint`
-      # is not, which this step found out by asking rather than by assuming. The two
-      # downloads are pinned, because a gate that changes under you is not a gate.
+      # is not, which this step found out by asking rather than by assuming. Every
+      # download is pinned to a version and to its published checksum, because a
+      # gate that changes under you is not a gate. The versions are the current
+      # release of each, which is what this tool targets.
       - name: Install the validators the gate drives
         timeout-minutes: 12
         run: |
           set -euo pipefail
-          TERRAFORM=1.9.8
-          HELM=v3.16.3
+          TERRAFORM=1.16.0
+          TERRAFORM_SHA=41d05b927aa174f15d1228c4eba832a323b716c68b415ef5a00179f46cc602d3
+          HELM=v4.2.4
+          HELM_SHA=c306b46f719b0a4da32d0f78ee21bf90ce8d602f15b22ab753f0674d1670a7f3
           ZIG=0.16.0
           ZIG_SHA=70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
           # Every fetch below reaches a host this repository does not control.
@@ -73,11 +77,16 @@ jobs:
           echo "${ZIG_SHA}  /tmp/zig.tar.xz" | sha256sum -c -
           tar -xJf /tmp/zig.tar.xz -C /tmp
           sudo ln -sf "/tmp/zig-x86_64-linux-${ZIG}/zig" /usr/local/bin/zig
+          # Both checksums are the ones each project publishes beside its own
+          # release: `terraform_<v>_SHA256SUMS` and `<file>.sha256sum`. Without
+          # them these two downloads were the only unverified thing the gate ran.
           fetch /tmp/terraform.zip \
             "https://releases.hashicorp.com/terraform/${TERRAFORM}/terraform_${TERRAFORM}_linux_amd64.zip"
+          echo "${TERRAFORM_SHA}  /tmp/terraform.zip" | sha256sum -c -
           sudo unzip -o -d /usr/local/bin /tmp/terraform.zip
           fetch /tmp/helm.tar.gz \
             "https://get.helm.sh/helm-${HELM}-linux-amd64.tar.gz"
+          echo "${HELM_SHA}  /tmp/helm.tar.gz" | sha256sum -c -
           tar -xzf /tmp/helm.tar.gz -C /tmp
           sudo install /tmp/linux-amd64/helm /usr/local/bin/helm
           terraform version
@@ -97,7 +106,12 @@ jobs:
         run: pip install "mypy==1.18.2"
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 26
+      # Go took the runner's default, which is the same unpinned toolchain that
+      # broke the Java cells. A runner image moves without this repository asking.
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.27"
       # The tool targets the current version of every language it writes, and
       # says so in its output: a niladic `main`, an entry found anywhere in the
       # file. An Ubuntu runner ships whichever JDK it was built with, which is
@@ -168,7 +182,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 26
           cache: npm
           cache-dependency-path: web/package-lock.json
 

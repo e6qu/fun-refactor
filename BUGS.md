@@ -112,6 +112,41 @@ a translation surface it has not written yet.
   own "cannot find" list. What the type checker says after that is a ratchet,
   standing at 1223.
 
+- [x] B779: **the docs said seventeen languages.** This tool reads eighteen.
+  JSON became the eighteenth and six files kept the old number: the README, the
+  tutorial, the examples, the plan and two pages of the site. The capability
+  matrix beside them was right, because a test compares it against the code.
+  The sentence next to the table had no such test.
+
+  `tests/capability_matrix.rs` now asserts the stated language count the same
+  way it already asserted the stated totals. A number written in prose and read
+  in six places is a number nobody notices going wrong.
+
+- [x] B780: **the compile gate's census skipped two languages.** It named six
+  driven and ten not driven, and this tool reads eighteen. `sass` and `json`
+  were in neither list, so a green run said nothing about them while reading as
+  a full census. The list is subtracted from `Language::ALL` now, and the test
+  asserts the two halves add up.
+
+- [x] B781: **two downloads in the workflow were unverified.** Zig's tarball
+  was checked against a published checksum. Terraform's and Helm's were not, so
+  the gate ran whatever those hosts served. Both carry their published checksum
+  now, and all three pins are the current release of each.
+
+- [x] B782: **the contract document knew one framework of six.** Express,
+  Flask, axum, gin and Spring were added to the route reader. `API_CONTRACTS.md`
+  still described a Next.js tree and nothing else. A reader looking for their
+  spelling of a path parameter found no answer.
+
+- [x] B783: **the command surface had no reference.** Thirty-four commands
+  were documented by `--help` alone. The intermediary language every translation
+  crosses was documented by the source of `ir.rs`. `CLI.md` and `IR.md` now
+  cover both, pinned by `tests/docs_cli.rs` and `tests/docs_ir.rs`. A command
+  without a section fails, a section without a command fails, and an IR variant
+  the document never names fails. `tests/docs_links.rs` catches the next
+  document added without a link from the README. Both of these could have landed
+  unreachable without it.
+
 - [x] B777: **a renamed flag silently broke every script passing it.** A script
   writes `./collector --retention-days 30`, and a program declares that flag
   somewhere. The two never met. The flag was a word in a shell command and

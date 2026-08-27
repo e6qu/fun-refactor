@@ -966,11 +966,27 @@ fn the_gate_states_what_it_covers() {
             }
         );
     }
-    // The languages this file has no fixture for. Naming them is the point: a green run
-    // covers six languages out of sixteen, and saying so keeps it from reading as more.
-    // The ten below have no compiler to run, a stylesheet, a manifest and a document
-    // are checked by parsing them, which the edit engine already does.
-    eprintln!(
-        "compile gate: not driven: bash, html, css, scss, hcl, yaml, helm, xml, markdown, tsx"
+    // The languages this file has no fixture for. Naming them is the point. A green
+    // run covers six languages out of every one this tool reads, and saying so
+    // keeps it from reading as more. The rest have no compiler to run. A
+    // stylesheet, a manifest and a document are checked by parsing them, which the
+    // edit engine already does.
+    //
+    // Subtracted from `Language::ALL` rather than listed. Written by hand, the list
+    // went stale twice over. A language missing from it was one a green run claimed
+    // nothing about while looking complete.
+    let driven = ["rust", "typescript", "go", "python", "zig", "java"];
+    let rest: Vec<&str> = fun_refactor::lang::Language::ALL
+        .iter()
+        .map(|l| l.name())
+        .filter(|name| !driven.contains(name))
+        .collect();
+    eprintln!("compile gate: not driven: {}", rest.join(", "));
+    assert_eq!(
+        driven.len() + rest.len(),
+        fun_refactor::lang::Language::ALL.len(),
+        "the census names {} language(s) and this tool reads {}",
+        driven.len() + rest.len(),
+        fun_refactor::lang::Language::ALL.len()
     );
 }

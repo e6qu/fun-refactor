@@ -40,7 +40,9 @@
       Enough to use it and to know when not to trust it. The
       <a href="https://github.com/e6qu/fun-refactor/blob/main/TUTORIAL.md">tutorial</a>
       walks a whole refactor on a real codebase. Read this page for the reference
-      underneath it.
+      underneath it, or
+      <a href="https://github.com/e6qu/fun-refactor/blob/main/CLI.md">CLI.md</a> for
+      every command at once.
     </p>
   </div>
 </section>
@@ -167,9 +169,8 @@
       <tr><td><code>fr flow back</code> · <code>fr flow fwd</code></td><td>Where a value came from; where it goes</td></tr>
       <tr><td><code>fr impact</code></td><td>Everything a change could affect</td></tr>
       <tr><td><code>fr entrypoints</code></td><td>Where execution starts</td></tr>
-      <tr><td><code>fr stitch</code></td><td>Config → code: which program reads this setting</td></tr>
-      <tr><td><code>fr flow</code></td><td>Where a value came from, and where it goes</td></tr>
-      <tr><td><code>fr openapi [--yaml]</code></td><td>The contract a Next.js route tree declares, to diff a rewrite against; <a href="contract.html">worked through a pet store</a></td></tr>
+      <tr><td><code>fr stitch</code></td><td>Config → code: which program reads this setting, runs this script, or declares this flag</td></tr>
+      <tr><td><code>fr openapi [--yaml]</code></td><td>The contract a route tree declares, to diff a rewrite against. Next.js, FastAPI, Express, Flask, axum, gin and Spring; <a href="contract.html">worked through a pet store</a></td></tr>
     </table></div>
 
     <h3>Finding work</h3>
@@ -223,9 +224,9 @@
         </tr>
         <tr>
           <td><strong>Translation</strong></td>
-          <td>A draft between Rust, Go, Java, Python, TypeScript and Zig. Signatures carry
-              across intact; anything with no counterpart lands in the output verbatim,
-              inside a comment, and counted.</td>
+          <td>A draft between Rust, Go, Java, Python, TypeScript, Zig and Bash.
+              Signatures carry across intact; anything with no counterpart lands in the
+              output verbatim, inside a comment, and counted.</td>
           <td><code>fr translate sensors.py typescript</code></td>
         </tr>
         <tr>
@@ -614,6 +615,8 @@ size      3791 KiB
       <a href="https://github.com/e6qu/fun-refactor">Source</a> ·
       <a href="https://github.com/e6qu/fun-refactor/blob/main/TUTORIAL.md">Tutorial</a> ·
       <a href="https://github.com/e6qu/fun-refactor/blob/main/EXAMPLES.md">Examples</a> ·
+      <a href="https://github.com/e6qu/fun-refactor/blob/main/CLI.md">Commands</a> ·
+      <a href="https://github.com/e6qu/fun-refactor/blob/main/IR.md">The IR</a> ·
       <a href="https://github.com/e6qu/fun-refactor/blob/main/BUGS.md">Known limitations</a>
     </div>
   </div>

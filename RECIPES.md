@@ -236,7 +236,7 @@ The predicates come from the **entry-point catalog matcher** in
 | `exported` / `!exported` | is or is not |
 | `annotated-with="test"` | `#[test]`, `@property`, a build tag |
 | `file~"*_test.go"` | by path glob |
-| `lang=python` | one of the sixteen |
+| `lang=python` | one of the eighteen |
 
 Reuse it and a recipe's selector means what an entry-point rule means, by
 construction. The matcher gains from a second caller.

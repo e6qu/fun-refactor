@@ -196,6 +196,19 @@ afterwards. `fr recipe` runs one.
 **Translate.** Rewrite a file as another language. The output is a draft, and it names
 every construct that did not carry across.
 
+**Intermediary language.** The one vocabulary every translation crosses. A reader turns
+a source file into it and a writer turns it back into source. So a language needs one
+reader and one writer rather than a translator per pair. [IR.md](../IR.md) documents it.
+
+**Carry verbatim.** What a writer does with a construct its target cannot spell. The
+source text goes into the output under a marker. A translation with one of these is
+incomplete. Dropping the construct instead would leave a file that compiles and does
+something else.
+
+**Fidelity report.** What a translation managed and what it did not, printed with the
+diff and repeated at the top of the file it wrote. It counts declarations that crossed
+and signatures by how completely they carried. One note per construct that did not.
+
 **Playground.** The browser build of the tool, served from `docs/playground`. It uses
 the same library as the terminal program, compiled to WebAssembly.
 

@@ -1640,7 +1640,7 @@ struct Out {
     pending: Vec<String>,
     /// The types of the names in the body being written, as the source declared them.
     ///
-    /// Three operators need it, all for the same reason: the six languages agree on the
+    /// Three operators need it, all for the same reason: these languages agree on the
     /// spelling and disagree on the meaning. `/` truncates in four of them and produces a
     /// float in Python. `%` takes its sign from the dividend in four languages and from the
     /// divisor in Python. `==` compares contents in four, compares references in Java, and
@@ -3955,7 +3955,7 @@ fn binary_operand(text: String, operand: &Expr, enclosing: BinaryOp, on_the_righ
     // A comparison inside a comparison is bracketed whatever the table says.
     // Python reads `a < 0 != b < 0` as a chain and means something else by it.
     // Rust refuses to read it at all. `(a < 0) != (b < 0)` is the one spelling
-    // all six agree on.
+    // every target agrees on.
     let compares = |op: BinaryOp| {
         matches!(
             op,
@@ -10049,7 +10049,7 @@ fn java_record(out: &mut Out, record: &Record, public: bool) {
             .unwrap_or_default();
         out.line(&format!("{field_visibility} {ty} {field_name}{default};"));
     }
-    // Three of these six languages build a record from a literal and have no
+    // Three of these languages build a record from a literal and have no
     // constructor to carry. Java has no literal, so `new Box(9)` needed one
     // that was never written and the class would not compile. The fields, in
     // the order the record declares them, are that constructor.
@@ -13258,7 +13258,7 @@ fn generic(
 /// A string literal, spelled the way this target spells one.
 ///
 /// The IR holds the string's **value**; putting escapes back on is the writer's job,
-/// and Rust's `{:?}` was doing it for all six. That is Rust's spelling: it writes
+/// and Rust's `{:?}` was doing it for every target. That is Rust's spelling: it writes
 /// `\u{1f600}` for anything it considers non-printable, which is a syntax error in
 /// Python, Java, TypeScript and Go. Only the four escapes every one of these languages
 /// agrees on are written unconditionally; anything else that cannot appear literally
@@ -13418,7 +13418,7 @@ const RESULT_RAISED: &str = "a Result crosses as its own failure here: Ok return
 
 /// Is this top-level statement exactly the entry call to a `main` this module declares?
 ///
-/// Four of these six targets run `main` themselves, so the call is not information
+/// Four of these targets run `main` themselves, so the call is not information
 /// there. Written anywhere, it would either run the program twice or fail to parse.
 /// Dropping it is a translation and not a loss, and the note says which.
 fn calls_declared_main(out: &Out, stmt: &Stmt) -> bool {
@@ -14217,7 +14217,7 @@ fn zig_hole_spec(out: &Out, e: &Expr) -> &'static str {
 
 /// The type this record extends, where the target can express one.
 ///
-/// Three of these six languages have inheritance and three do not, so `inheritable` says which
+/// Three of these languages have inheritance and the rest do not, so `inheritable` says which
 /// kind of target is asking. `None` comes back either because the source declared no base or
 /// because this language has none. The second of those leaves a note, since dropping it
 /// silently made `class JsonPrimitive extends JsonElement` into a class that extends nothing.
@@ -14243,7 +14243,7 @@ fn inherited_base(out: &mut Out, record: &Record, inheritable: bool) -> Option<S
 
 /// What this target calls a function that makes a value of `owner`.
 ///
-/// Three of these six languages have a constructor and three have a habit. Java names it after
+/// Three of these languages have a constructor and three have a habit. Java names it after
 /// the class, Python calls it `__init__` and TypeScript calls it `constructor`; Rust writes
 /// `Thing::new`, Go writes `NewThing` and Zig writes `Thing.init`. Which of those a file gets
 /// is a fact about the target. So the IR carries *that it is one* and not what it is called.

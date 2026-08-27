@@ -13668,7 +13668,7 @@ mod bash {
     //! in-module function is a call.
     //!
     //! A pipeline, a redirection, an external command: none of these has a
-    //! counterpart the six targets share. Each carries loudly as the construct
+    //! counterpart the targets share. Each carries loudly as the construct
     //! it is.
     //!
     //! Positional parameters become named ones: a function reading `$1` and `$2`
@@ -13720,7 +13720,7 @@ mod bash {
 
     /// The types the source states without writing any down.
     ///
-    /// Bash has no annotations, and the six targets want them. Two places state a
+    /// Bash has no annotations, and the other targets want them. Two places state a
     /// type anyway: the literals a function's own callers pass, and the literals
     /// its body returns. Where every statement agrees, the parameter or return
     /// takes that type. Where any disagrees, nothing is claimed, and the target's

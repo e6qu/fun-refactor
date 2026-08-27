@@ -1,6 +1,6 @@
 # fun-refactor
 
-`fr` finds and changes code across 17 languages. One binary carries the whole
+`fr` finds and changes code across 18 languages. One binary carries the whole
 program, and it pulls in no dependencies. It runs without a language server, a
 background process or a configuration file.
 
@@ -211,13 +211,18 @@ against a public repository at a fixed commit: ripgrep, requests, helm,
 terraform-aws-vpc, zls and grafana. It also lists what the tool does not do, and what
 each of those would take.
 
-Three documents cover the work that spans more than one language at a time:
+[CLI.md](CLI.md) is the command reference: every command, what it answers, and what
+it refuses.
+
+Four documents cover the work that spans more than one language at a time:
 
 - [CROSS_LANGUAGE.md](CROSS_LANGUAGE.md) for what a name crossing a language
   boundary can and cannot prove.
 - [API_CONTRACTS.md](API_CONTRACTS.md) for rewriting a service while preserving the
   contract its callers see.
 - [RECIPES.md](RECIPES.md) for the recipe language `fr recipe` runs.
+- [IR.md](IR.md) for the intermediary language every translation crosses, and what
+  a writer does when it cannot spell a construct.
 
 [BUGS.md](BUGS.md) tracks the open limitations, and the tool reports each one to you
 instead of answering it wrongly in silence. One stands open: reachability through a

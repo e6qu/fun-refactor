@@ -2,7 +2,7 @@
 //!
 //! A translation preserves a signature; the point of preserving one is that the body still
 //! computes what it computed. Every writer rendered a binary expression as `left op right` and
-//! nothing else. So a group the source wrote was a group the translation lost, in all six
+//! nothing else. So a group the source wrote was a group the translation lost, in every
 //! targets at once.
 
 use fun_refactor::lang::Language;

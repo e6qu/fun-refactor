@@ -344,7 +344,7 @@ fn settle_sets(module: &mut Module, language: Language) {
 ///
 /// Rust writes `match cond { true => …, false => … }` and reads as a switch on
 /// a boolean. Java has no such switch outside a preview feature, and the other
-/// four spell it with an `if` anyway. The `if` is the shape all six have.
+/// four spell it with an `if` anyway. The `if` is the shape every target has.
 fn settle_boolean_switches(module: &mut Module) {
     fn walk(body: &mut [Stmt]) {
         for stmt in body.iter_mut() {
@@ -407,7 +407,7 @@ fn settle_boolean_switches(module: &mut Module) {
 ///
 /// Java, Python and TypeScript write a constructor as a body of assignments to
 /// the receiver. Rust, Go and Zig have no receiver to assign to yet: they build
-/// the value and hand it back. The literal is the shape all six can write, and
+/// the value and hand it back. The literal is the shape every target can write, and
 /// the three that assign write the assignments back out.
 fn settle_constructors(module: &mut Module) {
     for item in module.items.iter_mut() {
@@ -417,7 +417,7 @@ fn settle_constructors(module: &mut Module) {
             if !method.is_constructor {
                 continue;
             }
-            // Already a literal, which is how three of the six write one.
+            // Already a literal, which is how three of the targets write one.
             if matches!(
                 method.body.as_slice(),
                 [Stmt::Return(Some(Expr::RecordLit { .. }))]
@@ -1416,7 +1416,7 @@ fn collect_names(e: &Expr, out: &mut Vec<String>) {
 
 /// A function returning `Result<T, message>`, said the way the exception languages say it: the
 /// return type is `T`, `Err` is a throw, `Ok` unwraps. And `?` re-throws. The IR keeps one
-/// canonical form for failure, and it is the exception one: three of the six writers spell it
+/// canonical form for failure, and it is the exception one: three of the writers spell it
 /// natively. And the other three lower it back. A module that mixes idioms is its own worst
 /// reader.
 fn settle_result_idiom(module: &mut Module) {
