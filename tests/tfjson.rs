@@ -19,9 +19,7 @@ fn as_json(hcl: &str) -> Value {
 
 #[test]
 fn a_block_header_becomes_one_level_of_nesting_per_label() {
-    let json = as_json(
-        "resource \"aws_s3_bucket\" \"b\" {\n  acl = \"private\"\n}\n",
-    );
+    let json = as_json("resource \"aws_s3_bucket\" \"b\" {\n  acl = \"private\"\n}\n");
     assert_eq!(json["resource"]["aws_s3_bucket"]["b"]["acl"], "private");
 }
 
@@ -52,9 +50,8 @@ fn an_expression_crosses_as_the_string_terraform_re_parses() {
 
 #[test]
 fn a_nested_block_is_nesting() {
-    let json = as_json(
-        "resource \"aws_s3_bucket\" \"b\" {\n  versioning {\n    enabled = true\n  }\n}\n",
-    );
+    let json =
+        as_json("resource \"aws_s3_bucket\" \"b\" {\n  versioning {\n    enabled = true\n  }\n}\n");
     assert_eq!(
         json["resource"]["aws_s3_bucket"]["b"]["versioning"]["enabled"],
         true
@@ -97,8 +94,8 @@ fn an_expression_comes_back_as_an_expression() {
     assert!(hcl.contains("type = bool"), "{hcl}");
     assert!(hcl.contains("count = var.many"), "{hcl}");
     // And a string that is a string keeps its quotes.
-    let text = tfjson::to_hcl("{\"variable\": {\"n\": {\"description\": \"how many\"}}}")
-        .expect("hcl");
+    let text =
+        tfjson::to_hcl("{\"variable\": {\"n\": {\"description\": \"how many\"}}}").expect("hcl");
     assert!(text.contains("description = \"how many\""), "{text}");
 }
 
@@ -108,10 +105,9 @@ fn a_bare_word_that_is_not_a_reference_keeps_its_quotes() {
     // first as an expression leaves `acl = private`, a reference to something
     // the configuration never declares. So a lone word is text, and the words
     // that are types are named.
-    let hcl = tfjson::to_hcl(
-        "{\"resource\": {\"aws_s3_bucket\": {\"b\": {\"acl\": \"private\"}}}}",
-    )
-    .expect("hcl");
+    let hcl =
+        tfjson::to_hcl("{\"resource\": {\"aws_s3_bucket\": {\"b\": {\"acl\": \"private\"}}}}")
+            .expect("hcl");
     assert!(hcl.contains("acl = \"private\""), "{hcl}");
 
     // And a reference is left bare, because quoting one would change what the
@@ -121,8 +117,7 @@ fn a_bare_word_that_is_not_a_reference_keeps_its_quotes() {
     assert!(reference.contains("value = var.many"), "{reference}");
 
     // A hostname is not a reference, whatever its dots look like.
-    let host =
-        tfjson::to_hcl("{\"output\": {\"o\": {\"value\": \"example.com\"}}}").expect("hcl");
+    let host = tfjson::to_hcl("{\"output\": {\"o\": {\"value\": \"example.com\"}}}").expect("hcl");
     assert!(host.contains("value = \"example.com\""), "{host}");
 }
 
@@ -145,5 +140,8 @@ fn hcl_that_does_not_parse_is_refused_and_says_so() {
 #[test]
 fn json_that_is_not_a_configuration_is_refused() {
     let refused = tfjson::to_hcl("[1, 2, 3]").expect_err("a refusal");
-    assert!(refused.to_string().contains("object at the top"), "{refused}");
+    assert!(
+        refused.to_string().contains("object at the top"),
+        "{refused}"
+    );
 }

@@ -81,10 +81,7 @@ fn a_shell_command_is_not_a_path() {
         "ci/workflow.yml",
         "jobs:\n  build:\n    steps:\n      - run: make\n      - run: cargo test\n",
     )]);
-    assert!(
-        found.is_empty(),
-        "a command is not a path: {found:?}"
-    );
+    assert!(found.is_empty(), "a command is not a path: {found:?}");
 }
 
 #[test]

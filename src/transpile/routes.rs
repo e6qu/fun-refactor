@@ -236,7 +236,9 @@ fn express(root: Node<'_>, source: &str, lines: &LineIndex) -> Option<(Framework
         found.push(Endpoint {
             method: method.to_uppercase(),
             url: canonical_url(&url),
-            handler: given.get(1).and_then(|n| handler_name(&source[n.byte_range()])),
+            handler: given
+                .get(1)
+                .and_then(|n| handler_name(&source[n.byte_range()])),
             line: lines.line(node.start_byte()),
         });
     }
@@ -411,7 +413,9 @@ fn gin(root: Node<'_>, source: &str, lines: &LineIndex) -> Option<(Framework, Ve
         found.push(Endpoint {
             method: named,
             url: canonical_url(&url),
-            handler: given.get(1).and_then(|n| handler_name(&source[n.byte_range()])),
+            handler: given
+                .get(1)
+                .and_then(|n| handler_name(&source[n.byte_range()])),
             line: lines.line(node.start_byte()),
         });
     }

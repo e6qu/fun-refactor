@@ -184,7 +184,10 @@ fn sets_from_maps(module: &mut Module) {
     fn settle(f: &mut Function) {
         let mut names = Vec::new();
         for stmt in &f.body {
-            let Stmt::Let { name, ty, value, .. } = stmt else {
+            let Stmt::Let {
+                name, ty, value, ..
+            } = stmt
+            else {
                 continue;
             };
             let empty_map = matches!(value, Some(Expr::MapLit(entries)) if entries.is_empty());
@@ -327,7 +330,9 @@ fn settle_sets(module: &mut Module, language: Language) {
         // Zig's `put(k, {})` adds a member and carries no value with it.
         if let Expr::Call { callee, args } = e {
             let adds = matches!(callee.as_ref(), Expr::Field { name, .. } if name == "add");
-            if adds && args.len() == 2 && matches!(args[1], Expr::RecordLit { ref fields, .. } if fields.is_empty())
+            if adds
+                && args.len() == 2
+                && matches!(args[1], Expr::RecordLit { ref fields, .. } if fields.is_empty())
             {
                 args.truncate(1);
             }

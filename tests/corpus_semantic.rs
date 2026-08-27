@@ -126,10 +126,7 @@ fn between_backticks(text: &str) -> Option<String> {
     let start = text.find('`')? + 1;
     let end = text[start..].find('`')? + start;
     let name = &text[start..end];
-    let plain = !name.is_empty()
-        && name
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '_');
+    let plain = !name.is_empty() && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');
     plain.then(|| name.to_string())
 }
 
@@ -221,7 +218,10 @@ fn what_the_type_checker_says_about_a_translation_only_shrinks() {
             let together = out.with_file_name("with_stub.rs");
             std::fs::write(
                 &together,
-                format!("{stub}\n{}", std::fs::read_to_string(&out).unwrap_or_default()),
+                format!(
+                    "{stub}\n{}",
+                    std::fs::read_to_string(&out).unwrap_or_default()
+                ),
             )
             .expect("the combined file");
             missing_names(&together)

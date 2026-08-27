@@ -196,9 +196,7 @@ fn settle_called_parameters(module: &mut Module) {
                         .find(|(name, _)| name == n)
                         .and_then(|(_, ty)| ty.clone()),
                     // `f(f(n))`: the inner call answers what this one answers.
-                    Expr::Call { callee, .. }
-                        if matches!(callee.as_ref(), Expr::Name(n) if *n == p.name) =>
-                    {
+                    Expr::Call { callee, .. } if matches!(callee.as_ref(), Expr::Name(n) if *n == p.name) => {
                         Some(answers.clone())
                     }
                     _ => None,
@@ -380,14 +378,15 @@ fn settle_lambda_types(module: &mut Module) {
     }
     /// Give a lambda the shape a function type asks of it.
     fn shape(lambda: &mut Expr, wanted: &Type) {
-        let (Expr::Lambda {
-            params,
-            returns,
-            ..
-        }, Type::Fn {
-            params: taken,
-            returns: answers,
-        }) = (&mut *lambda, wanted)
+        let (
+            Expr::Lambda {
+                params, returns, ..
+            },
+            Type::Fn {
+                params: taken,
+                returns: answers,
+            },
+        ) = (&mut *lambda, wanted)
         else {
             return;
         };
@@ -434,7 +433,10 @@ fn settle_lambda_types(module: &mut Module) {
             }
         });
         for stmt in body.iter_mut() {
-            let Stmt::Let { name, ty, value, .. } = stmt else {
+            let Stmt::Let {
+                name, ty, value, ..
+            } = stmt
+            else {
                 continue;
             };
             let Some(asked) = wanted.get(name) else {
@@ -2247,7 +2249,7 @@ mod rust {
             (Some(pair), _) => pair,
             // A bare `.filter(p).collect()` keeps the element it tested.
             (None, Some((bound, _))) => (bound.clone(), receiver),
-        (None, None) => return None,
+            (None, None) => return None,
         };
         let condition = match condition {
             // Two names is two scopes, and this shape holds one.
@@ -2529,15 +2531,13 @@ mod rust {
                         cx.children(list)
                             .into_iter()
                             .map(|p| match p.kind() {
-                                "identifier" => {
-                                    Some(super::lambda_param(plain(cx.text(p)), None))
-                                }
+                                "identifier" => Some(super::lambda_param(plain(cx.text(p)), None)),
                                 // `|n: i64|`: the grammar gives the name and the
                                 // type as siblings under the parameter.
                                 "parameter" => {
-                                    let name = cx.field(p, "pattern").filter(|n| {
-                                        n.kind() == "identifier"
-                                    })?;
+                                    let name = cx
+                                        .field(p, "pattern")
+                                        .filter(|n| n.kind() == "identifier")?;
                                     Some(super::lambda_param(
                                         plain(cx.text(name)),
                                         cx.field(p, "type").map(|t| ty(cx, t)),
@@ -3508,7 +3508,10 @@ mod python {
             let [taken, answer] = parts.as_slice() else {
                 continue;
             };
-            let Some(taken) = taken.trim().strip_prefix('[').and_then(|s| s.strip_suffix(']'))
+            let Some(taken) = taken
+                .trim()
+                .strip_prefix('[')
+                .and_then(|s| s.strip_suffix(']'))
             else {
                 continue;
             };
@@ -5320,7 +5323,10 @@ mod go {
                             .collect()
                     })
                     .unwrap_or_default();
-                let body = cx.field(node, "body").map(|b| block(cx, b)).unwrap_or_default();
+                let body = cx
+                    .field(node, "body")
+                    .map(|b| block(cx, b))
+                    .unwrap_or_default();
                 match super::only_returned(&body) {
                     Some(value) => Expr::Lambda {
                         params,
@@ -6944,9 +6950,7 @@ mod zig {
                 // A dotted name belongs to another module, and this file
                 // declares no fields for it, so only a plain one builds a
                 // record here.
-                Expr::Name(named) if !named.contains('.') => {
-                    Expr::RecordLit { ty: named, fields }
-                }
+                Expr::Name(named) if !named.contains('.') => Expr::RecordLit { ty: named, fields },
                 other => Expr::New {
                     callee: Box::new(other),
                     args: fields
@@ -10570,7 +10574,7 @@ mod zig {
                         op: BinaryOp::FloorRem,
                         left: Box::new(expr(cx, *left)),
                         right: Box::new(expr(cx, *right)),
-                    },                    // The single-argument casts reassert a type the annotation
+                    }, // The single-argument casts reassert a type the annotation
                     // already names; the value itself is what crosses.
                     (
                         "@intCast" | "@truncate" | "@enumFromInt" | "@intFromEnum" | "@intFromBool"
@@ -13265,7 +13269,9 @@ fn reparsed(text: &str, language: Language) -> Option<Expr> {
         Language::Rust => format!("fn frOne() {{ let frOne = {text}; }}"),
         _ => return None,
     };
-    let parsed = crate::parse::Parsers::new().parse(language, &wrapped).ok()?;
+    let parsed = crate::parse::Parsers::new()
+        .parse(language, &wrapped)
+        .ok()?;
     if parsed.has_errors() {
         return None;
     }

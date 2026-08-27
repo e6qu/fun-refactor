@@ -28,9 +28,19 @@ language suite. Research and provenance for every design choice: see [RESEARCH.m
 | D8 | Unsupported operation × language combinations are refused with an explicit error naming the gap. No silent no-ops, no silent fallbacks. | engineering principle; also user convention |
 | D9 | Every command has `--json` output; mutations default to dry-run unified diff, `--write` to apply, multi-file apply is atomic (all-or-nothing). | CLI-native + agent-friendly |
 | D10 | Do not build on stack-graphs (archived 2025-09). Scope resolution via our own locals-style queries; graph construction may use tree-sitter-graph if the DSL earns its keep. | §3 |
+| D11 | Target the current version of every language, and pin CI to it. A translation writes what a current toolchain accepts, and the gates run on the same one. | an older toolchain shapes the output around a limit nobody has |
 
 **Open decisions.** None. Stage 8 below answers the last one: the tool does not
 delegate to a language server.
+
+D11 is what an Ubuntu runner's default JDK taught. It is older than the one this
+work was written against. Single-file source mode there takes the entry from the
+*first* class declared, rather than from wherever `main` sits. Five conformance
+cells failed on Java that runs on any current JDK.
+
+The fix belongs in the workflow and not in the writer. Shaping output around a
+limit nobody has makes every reader of that output pay for it. Every language CI
+installs now names its version, and Java names one at all.
 
 Resolved since. The tool is `fun-refactor` and its binary is `fr`. Extract-function
 landed for both Zig and Bash, and neither needed a CFG. TSX `className` handles plain

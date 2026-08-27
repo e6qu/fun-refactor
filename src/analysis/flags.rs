@@ -110,7 +110,11 @@ pub fn flags(index: &Index) -> Result<Vec<FlagUse>> {
     Ok(names
         .into_iter()
         .map(|flag| FlagUse {
-            declared: declared.iter().filter(|d| d.flag == flag).cloned().collect(),
+            declared: declared
+                .iter()
+                .filter(|d| d.flag == flag)
+                .cloned()
+                .collect(),
             passed: passed.iter().filter(|p| p.flag == flag).cloned().collect(),
             flag,
         })
@@ -249,10 +253,7 @@ fn field_name(line: &str) -> Option<String> {
     }
     let (name, _) = line.split_once(':')?;
     let name = name.trim().trim_start_matches("pub ").trim();
-    let plain = !name.is_empty()
-        && name
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '_');
+    let plain = !name.is_empty() && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');
     plain.then(|| name.to_string())
 }
 

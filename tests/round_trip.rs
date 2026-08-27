@@ -368,7 +368,9 @@ fn nothing_goes_missing(files: &[PathBuf], least: usize) {
                 .collect();
             for (name, params) in numbered {
                 let root = plain(&name);
-                let root = root.trim_end_matches(|c: char| c.is_ascii_digit()).to_string();
+                let root = root
+                    .trim_end_matches(|c: char| c.is_ascii_digit())
+                    .to_string();
                 if let Some(at) = missing
                     .iter()
                     .position(|(lost, held)| plain(lost) == root && *held == params)

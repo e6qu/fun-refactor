@@ -98,6 +98,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      # The tool targets the current version of every language it writes, and
+      # says so in its output: a niladic `main`, an entry found anywhere in the
+      # file. An Ubuntu runner ships whichever JDK it was built with, which is
+      # older, and the conformance suite failed on Java files that run here and
+      # on any current JDK. A version this repository chooses is a version it
+      # can reason about.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
       - name: Install the tutorial's TypeScript checker
         run: npm ci --no-fund --no-audit
         working-directory: tests/typesafety/typescript
@@ -158,7 +168,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: 24
           cache: npm
           cache-dependency-path: web/package-lock.json
 

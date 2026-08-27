@@ -82,7 +82,11 @@ fn the_edge_is_reported_and_never_rewritten() {
         )
         .unwrap();
     let facts = Extractor::new()
-        .extract(&parsed, Path::new("t.ts"), "const el = document.getElementById(\"open-path\");\n")
+        .extract(
+            &parsed,
+            Path::new("t.ts"),
+            "const el = document.getElementById(\"open-path\");\n",
+        )
         .unwrap();
     let found = facts
         .references

@@ -170,7 +170,11 @@ fn expression_to_json(expression: Node<'_>, source: &str) -> Value {
         Some("string_lit") => Value::String(unquoted(text)),
         Some("numeric_lit") => match text.parse::<i64>() {
             Ok(n) => Value::Number(n.into()),
-            Err(_) => match text.parse::<f64>().ok().and_then(serde_json::Number::from_f64) {
+            Err(_) => match text
+                .parse::<f64>()
+                .ok()
+                .and_then(serde_json::Number::from_f64)
+            {
                 Some(n) => Value::Number(n),
                 None => Value::String(text.to_string()),
             },
@@ -322,7 +326,9 @@ fn reads_as_an_expression(text: &str) -> bool {
     let Some(head) = parts.next() else {
         return false;
     };
-    let heads = ["var", "local", "module", "data", "each", "count", "self", "path"];
+    let heads = [
+        "var", "local", "module", "data", "each", "count", "self", "path",
+    ];
     if !heads.contains(&head) {
         return false;
     }

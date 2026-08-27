@@ -81,7 +81,11 @@ fn a_value_is_not_a_definition() {
     // data, and reporting it would make every rename ask about the wrong thing.
     let facts = json("{\n  \"name\": \"version\"\n}\n");
     let names: Vec<&str> = facts.symbols.iter().map(|s| s.name.as_str()).collect();
-    assert_eq!(names.iter().filter(|n| **n == "version").count(), 0, "{names:?}");
+    assert_eq!(
+        names.iter().filter(|n| **n == "version").count(),
+        0,
+        "{names:?}"
+    );
 }
 
 #[test]

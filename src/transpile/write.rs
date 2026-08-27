@@ -3959,12 +3959,7 @@ fn binary_operand(text: String, operand: &Expr, enclosing: BinaryOp, on_the_righ
     let compares = |op: BinaryOp| {
         matches!(
             op,
-            BinaryOp::Lt
-                | BinaryOp::Le
-                | BinaryOp::Gt
-                | BinaryOp::Ge
-                | BinaryOp::Eq
-                | BinaryOp::Ne
+            BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge | BinaryOp::Eq | BinaryOp::Ne
         )
     };
     if let Expr::Binary { op, .. } = operand {
@@ -4420,10 +4415,7 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             let rendered: Vec<String> = items.iter().map(|i| rust_expr(out, i)).collect();
             match rendered.is_empty() {
                 true => "std::collections::HashSet::new()".to_string(),
-                false => format!(
-                    "std::collections::HashSet::from([{}])",
-                    rendered.join(", ")
-                ),
+                false => format!("std::collections::HashSet::from([{}])", rendered.join(", ")),
             }
         }
         Expr::MapLit(entries) => {
@@ -4846,7 +4838,6 @@ fn python(out: &mut Out, module: &Module) {
             }
         }
     }
-
 }
 
 /// Does any body here take a remainder the source truncated?
@@ -5705,8 +5696,7 @@ fn settle_set_element_types(f: &Function, out: &mut Out) {
             }
         };
         if let Some(element) = element {
-            out.binding_types
-                .insert(name, Type::Set(Box::new(element)));
+            out.binding_types.insert(name, Type::Set(Box::new(element)));
         }
     }
 }
@@ -5770,8 +5760,7 @@ fn settle_list_element_types(f: &Function, out: &mut Out) {
             }
         }
         if let Some(ty) = settled {
-            out.binding_types
-                .insert(name, Type::List(Box::new(ty)));
+            out.binding_types.insert(name, Type::List(Box::new(ty)));
         }
     }
 }
@@ -6025,7 +6014,8 @@ fn static_type(out: &Out, e: &Expr) -> Option<Type> {
         // Arithmetic keeps the type of its operands where both agree. Division is
         // deliberately absent: in Python it is the one operation that does not.
         Expr::Binary {
-            op: BinaryOp::Sub
+            op:
+                BinaryOp::Sub
                 | BinaryOp::Mul
                 | BinaryOp::FloorDiv
                 | BinaryOp::Rem
@@ -7487,8 +7477,7 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     // declared is a list of floats. Go infers `[]int` from the
                     // literal alone and then refuses the call.
                     (Expr::ListLit(items), Some(ty @ Type::List(_))) => {
-                        let rendered: Vec<String> =
-                            items.iter().map(|i| go_expr(out, i)).collect();
+                        let rendered: Vec<String> = items.iter().map(|i| go_expr(out, i)).collect();
                         format!("{}{{{}}}", go_type(ty), rendered.join(", "))
                     }
                     _ => go_expr(out, value),
@@ -9503,9 +9492,8 @@ fn constructor_order(out: &Out, ty: &str, fields: &[(String, Expr)]) -> Option<V
         // The literal's value, or the one the record declares for a field the
         // literal left out. A field with neither has no value to pass.
         let given = fields.iter().find(|(f, _)| f == name).map(|(_, v)| v);
-        let held = given.or_else(|| {
-            defaults.and_then(|d| d.iter().find(|(f, _)| f == name).map(|(_, v)| v))
-        })?;
+        let held = given
+            .or_else(|| defaults.and_then(|d| d.iter().find(|(f, _)| f == name).map(|(_, v)| v)))?;
         taken.push(held.clone());
     }
     // A literal naming something the record has not got is not this record.
@@ -9548,8 +9536,7 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
         // emits that constructor, so the same order fills it.
         Expr::RecordLit { ty, fields } => match constructor_order(out, ty, fields) {
             Some(taken) => {
-                let rendered: Vec<String> =
-                    taken.iter().map(|value| ts_expr(out, value)).collect();
+                let rendered: Vec<String> = taken.iter().map(|value| ts_expr(out, value)).collect();
                 format!("new {}({})", out.name(ty), rendered.join(", "))
             }
             // A literal naming a subset of the fields, or a record this file
@@ -9658,7 +9645,11 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
             right,
         } => {
             out.zig_helpers.insert("ts_floor_rem");
-            format!("frFloorRem({}, {})", ts_expr(out, left), ts_expr(out, right))
+            format!(
+                "frFloorRem({}, {})",
+                ts_expr(out, left),
+                ts_expr(out, right)
+            )
         }
         Expr::Binary { op, left, right } => {
             // TypeScript has one number type and `/` on it never truncates, so
@@ -10070,11 +10061,10 @@ fn java_record(out: &mut Out, record: &Record, public: bool) {
             .fields
             .iter()
             .map(|f| {
-                let ty = f
-                    .ty
-                    .as_ref()
-                    .map(java_type)
-                    .unwrap_or_else(|| "Object".to_string());
+                let ty =
+                    f.ty.as_ref()
+                        .map(java_type)
+                        .unwrap_or_else(|| "Object".to_string());
                 format!("{ty} {}", out.field(&f.name))
             })
             .collect();
@@ -12192,7 +12182,10 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                 );
                 for item in items {
                     let member = zig_expr(out, item);
-                    zig_line(out, &format!("{bound}.put({member}, {{}}) catch unreachable;"));
+                    zig_line(
+                        out,
+                        &format!("{bound}.put({member}, {{}}) catch unreachable;"),
+                    );
                 }
                 return;
             }
@@ -12218,8 +12211,7 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
                 // items. `[_]i64{ 4, 5, 6 }` under `[]const f64` is a different
                 // array, and Zig says so.
                 (Some(Type::List(element)), Some(Expr::ListLit(items))) if !items.is_empty() => {
-                    let written: Vec<String> =
-                        items.iter().map(|i| zig_expr(out, i)).collect();
+                    let written: Vec<String> = items.iter().map(|i| zig_expr(out, i)).collect();
                     format!("&[_]{}{{ {} }}", zig_type(element), written.join(", "))
                 }
                 _ => rendered,
@@ -13854,20 +13846,14 @@ fn go_builtin(out: &mut Out, callee: &Expr, args: &[Expr]) -> Option<String> {
             go_expr(out, &of.clone()),
             go_expr(out, x)
         ),
-        (Some(of), "remove", [x]) if holds_a_set(out, of) => format!(
-            "delete({}, {})",
-            go_expr(out, &of.clone()),
-            go_expr(out, x)
-        ),
+        (Some(of), "remove", [x]) if holds_a_set(out, of) => {
+            format!("delete({}, {})", go_expr(out, &of.clone()), go_expr(out, x))
+        }
         // Membership needs the two-value read, which only an `if` header has
         // room for. The statement writer puts it there; reaching here means the
         // question was asked where Go cannot ask it.
         (Some(of), "contains", [x]) if holds_a_set(out, of) => {
-            let asked = format!(
-                "{}[{}]",
-                go_expr(out, &of.clone()),
-                go_expr(out, x)
-            );
+            let asked = format!("{}[{}]", go_expr(out, &of.clone()), go_expr(out, x));
             out.carried(&Unsupported {
                 construct: "asking about membership outside an `if`".into(),
                 source: asked.clone(),
@@ -14779,11 +14765,7 @@ fn declared_names(body: &[Stmt]) -> Vec<String> {
 }
 
 /// Replace each liftable lambda in these statements with the name of a function.
-fn lift_in(
-    body: &mut Vec<Stmt>,
-    bound: &std::collections::BTreeSet<String>,
-    made: &mut Vec<Item>,
-) {
+fn lift_in(body: &mut Vec<Stmt>, bound: &std::collections::BTreeSet<String>, made: &mut Vec<Item>) {
     // The owned vector is taken because the marker statements are dropped at
     // the end, and `retain` needs one.
     for stmt in body.iter_mut() {
@@ -14810,11 +14792,7 @@ fn lift_in(
 }
 
 /// The function a lambda stands for, when it reads nothing from around it.
-fn liftable(
-    e: &Expr,
-    name: &str,
-    bound: &std::collections::BTreeSet<String>,
-) -> Option<Function> {
+fn liftable(e: &Expr, name: &str, bound: &std::collections::BTreeSet<String>) -> Option<Function> {
     let Expr::Lambda {
         params,
         returns,

@@ -27,9 +27,12 @@ fn found(files: &[(&str, &str)]) -> (tempfile::TempDir, Vec<flags::FlagUse>) {
 }
 
 fn one<'a>(all: &'a [flags::FlagUse], flag: &str) -> &'a flags::FlagUse {
-    all.iter()
-        .find(|f| f.flag == flag)
-        .unwrap_or_else(|| panic!("no flag {flag:?}: {:?}", all.iter().map(|f| &f.flag).collect::<Vec<_>>()))
+    all.iter().find(|f| f.flag == flag).unwrap_or_else(|| {
+        panic!(
+            "no flag {flag:?}: {:?}",
+            all.iter().map(|f| &f.flag).collect::<Vec<_>>()
+        )
+    })
 }
 
 #[test]
@@ -129,10 +132,7 @@ fn a_ci_step_passing_a_flag_counts_as_passing_it() {
 
 #[test]
 fn a_flag_written_with_an_equals_names_the_flag_before_it() {
-    let (_tmp, all) = found(&[(
-        "run.sh",
-        "#!/bin/sh\n./collector --retention-days=30\n",
-    )]);
+    let (_tmp, all) = found(&[("run.sh", "#!/bin/sh\n./collector --retention-days=30\n")]);
     let flag = one(&all, "retention-days");
     assert_eq!(flag.passed.len(), 1, "{flag:?}");
 }
@@ -156,5 +156,9 @@ fn a_double_dash_in_code_is_not_a_flag() {
         "src/lib.rs",
         "pub fn f() {\n    // -- a note\n    let mut n = 2;\n    n -= 1;\n}\n",
     )]);
-    assert!(all.is_empty(), "{:?}", all.iter().map(|f| &f.flag).collect::<Vec<_>>());
+    assert!(
+        all.is_empty(),
+        "{:?}",
+        all.iter().map(|f| &f.flag).collect::<Vec<_>>()
+    );
 }

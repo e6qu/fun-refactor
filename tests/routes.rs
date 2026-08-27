@@ -36,17 +36,16 @@ app.get(\"/pets\", listPets);
 app.post(\"/pets\", createPet);
 app.get(\"/pets/:petId\", showPet);
 ";
-    assert_eq!(framework_of(source, Language::TypeScript), Framework::Express);
+    assert_eq!(
+        framework_of(source, Language::TypeScript),
+        Framework::Express
+    );
     assert_eq!(
         found(source, Language::TypeScript),
         vec![
             ("GET".into(), "/pets".into(), Some("listPets".into())),
             ("POST".into(), "/pets".into(), Some("createPet".into())),
-            (
-                "GET".into(),
-                "/pets/{petId}".into(),
-                Some("showPet".into())
-            ),
+            ("GET".into(), "/pets/{petId}".into(), Some("showPet".into())),
         ]
     );
 }

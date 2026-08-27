@@ -61,11 +61,7 @@ pub fn links(index: &Index, root: &Path) -> Result<Vec<PathLink>> {
         // edge would report every log message that mentions a directory.
         if !matches!(
             language,
-            Language::Yaml
-                | Language::Helm
-                | Language::Hcl
-                | Language::Json
-                | Language::Markdown
+            Language::Yaml | Language::Helm | Language::Hcl | Language::Json | Language::Markdown
         ) {
             continue;
         }
@@ -152,9 +148,13 @@ fn markdown_destinations(line: &str) -> Vec<String> {
     while at < line.len() {
         // A destination follows `](`, the one shape both an inline link and an
         // inline image write.
-        let Some(found) = line[at..].find("](") else { break };
+        let Some(found) = line[at..].find("](") else {
+            break;
+        };
         let start = at + found + 2;
-        let Some(end) = line[start..].find(')') else { break };
+        let Some(end) = line[start..].find(')') else {
+            break;
+        };
         let inside = &line[start..start + end];
         // A title may follow the destination: `[x](a.md "Title")`.
         let destination = inside.split_whitespace().next().unwrap_or(inside);
