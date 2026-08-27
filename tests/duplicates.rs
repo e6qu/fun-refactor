@@ -1,8 +1,4 @@
 //! Copy-paste detection.
-//!
-//! The properties that make the output worth reading: it finds copies whose names were changed,
-//! it does not report the small shapes every language repeats. It reports the largest
-//! duplicated block instead of that block and everything inside it.
 
 use fun_refactor::analysis::duplicates::{self, Options};
 use fun_refactor::index::Index;
@@ -107,8 +103,7 @@ fn an_identical_copy_is_found_in_exact_mode_too() {
 
 #[test]
 fn small_shapes_every_language_repeats_are_not_reported() {
-    // Two files with the same trivial function. Reporting this would mean reporting
-    // every getter in the workspace.
+    // Two files with the same trivial function.
     let src = "package p\n\nfunc get(x int) int {\n\treturn x\n}\n";
     let (_tmp, index) = workspace(&[("a/x.go", src), ("b/y.go", src)]);
 
@@ -119,8 +114,6 @@ fn small_shapes_every_language_repeats_are_not_reported() {
 #[test]
 fn only_the_largest_duplicated_block_is_reported() {
     // A duplicated function duplicates its body, its loop and its every statement.
-    // All of those hash-match as well; listing them is the same finding said five
-    // times, with the useful one buried.
     let a = go_function("alpha", "total");
     let b = go_function("beta", "total");
     let (_tmp, index) = workspace(&[("a/x.go", &a), ("b/y.go", &b)]);
@@ -233,8 +226,7 @@ fn the_redundant_count_is_what_factoring_out_would_save() {
     );
 }
 
-/// A stylesheet rule repeated verbatim. Eleven declarations come to 47 tokens,
-/// which is a lot of stylesheet and not much of an imperative function.
+/// A stylesheet rule repeated verbatim.
 fn css_rule(class: &str) -> String {
     let declarations = [
         "display: flex",
@@ -270,8 +262,7 @@ fn markup_is_measured_against_a_markup_floor() {
         "a rule written twice is duplication a stylesheet reader can act on."
     );
 
-    // A Go pair of about the same token count stays under the code floor. The
-    // two floors are what tells these apart, not the amount of copying.
+    // A Go pair of about the same token count stays under the code floor.
     let go = format!(
         "{}\n{}",
         go_function("alpha", "total"),

@@ -1,17 +1,4 @@
 //! Source the published grammars read wrongly, and what this build does with it.
-//!
-//! Every case below is accepted by the language's own reference implementation. The
-//! published grammar answered each one with an error node, or worse, with a plausible tree
-//! holding something the file does not say. `grammars/` carries a patched copy of five of
-//! them, and these are the forms those patches are for, pinned from both sides: the form
-//! that failed, and the neighbouring forms that always worked, so a fix that over-corrects
-//! fails here too.
-//!
-//! An error count is not always the assertion. Where the published grammar invented a
-//! node instead of reporting a gap, counting errors would pass before the fix and after
-//! it. The tree is what gets asserted there.
-//!
-//! Every case here has a BUGS.md entry. When a test fails, the entry is what to update.
 
 use fun_refactor::lang::Language;
 use fun_refactor::parse::Parsers;
@@ -67,8 +54,7 @@ fn python_reads_the_forms_around_that_one() {
 
 #[test]
 fn python_reads_a_type_parameter_default() {
-    // PEP 696, Python 3.13. `grammars/python` gives each type parameter an optional
-    // `= type`.
+    // PEP 696, Python 3.13.
     for source in [
         "type A[T = int] = float\n",
         "type A[T] = float\n",
@@ -84,10 +70,6 @@ fn python_reads_a_type_parameter_default() {
 }
 
 /// An import type stands where any other type may.
-///
-/// The published grammar makes it a whole `type` and nothing smaller, so it takes no `[]`
-/// and no type arguments. `grammars/typescript` moves it to `primary_type`, which is what
-/// an array type and a generic type are built from.
 #[test]
 fn typescript_reads_an_import_type() {
     for source in [
@@ -109,10 +91,6 @@ fn typescript_reads_an_import_type() {
 }
 
 /// A member called `in` reads as a member, wherever it sits in the body.
-///
-/// `in` is an operator in an expression, so the published scanner never ends a line before
-/// it. A type has no such operator. `grammars/typescript` ends the member there, and
-/// leaves the operator alone where one can stand.
 #[test]
 fn typescript_reads_a_property_called_in() {
     for source in [
@@ -120,7 +98,6 @@ fn typescript_reads_a_property_called_in() {
         "interface G {\n  in?: string\n}\n",
         "interface G {\n  a?: string\n  in: string\n}\n",
         "interface G {\n  a?: string\n  instanceof?: string\n}\n",
-        // The SVG filter attributes this was found in, in `vuejs/core`.
         "interface G {\n  result?: string\n  in?: string\n  in2?: string\n}\n",
     ] {
         assert_eq!(
@@ -154,11 +131,6 @@ fn typescript_reads_the_in_operator_across_a_line_break() {
 }
 
 /// The indented Sass syntax, which is a language of its own and has a grammar of its own.
-///
-/// `grammars/sass` carries it. Every case here is ordinary indented Sass, and the six the
-/// patch is for are marked. Measured over `iv-org/invidious`, `peer-calls/peer-calls`,
-/// `HBM/jet` and the grammar's own examples: the published grammar fails on 8 of the 17
-/// files and this one on one, a Jekyll asset whose first line is YAML front matter.
 #[test]
 fn sass_reads_the_indented_syntax() {
     let cases = [
@@ -256,16 +228,10 @@ fn the_two_sass_syntaxes_keep_their_own_grammars() {
 }
 
 /// The Sass the published grammar could not read.
-///
-/// `grammars/scss` carries the patch. Every case here came from a stylesheet:
-/// `twbs/bootstrap` and `jgthms/bulma`, 276 files, of which the published grammar
-/// fails on 203 and this one on none.
 #[test]
 fn scss_reads_these_forms() {
     let cases = [
-        // A declaration whose value holds an interpolation. The published grammar takes
-        // the colon for a pseudo class's, because it looks ahead for a brace and the
-        // interpolation has one.
+        // A declaration whose value holds an interpolation.
         ("interpolation in a value", ".a { color: #{$v}; }"),
         ("interpolation in a custom property", ".a { --x: #{$v}; }"),
         ("interpolation among values", ".a { width: 1px #{$v}; }"),
@@ -315,7 +281,6 @@ fn scss_reads_these_forms() {
         ),
         ("`not` in an `@if`", "@if not $a { .a { color: red; } }"),
         ("`%` as the modulo operator", "$x: $l % 10;"),
-        // Maps and lists.
         ("a map literal", "$m: (a: 1, b: 2);"),
         ("a nested map literal", "$m: (a: (b: 1));"),
         ("a map with a trailing comma", "$m: (a: 1, b: 2,);"),
@@ -465,11 +430,6 @@ fn scss_reads_these_forms() {
 }
 
 /// And the forms it can, which B11 claimed one of.
-///
-/// The entry said `@content` inside a mixin was among the gaps, from a run over
-/// `grafana/grafana`. It parses, bare, nested, and with arguments, so the claim was
-/// either wrong when written or fixed upstream since, and nothing re-checked it. These
-/// are here so that a regression is a failure and not a quietly wider limitation.
 #[test]
 fn scss_can_read_these_forms() {
     let cases = [
@@ -502,11 +462,6 @@ fn scss_can_read_these_forms() {
 }
 
 /// A call to a user-defined `new` or `make` parses.
-///
-/// `new` is a predeclared identifier in Go, not a keyword, so a package may define its own
-/// and call it. 177 of the 178 Go files that fail to parse in `grafana/grafana` do. The
-/// published grammar gives the name one argument list, the one whose first argument is a
-/// type. `grammars/go` lets either follow it.
 #[test]
 fn go_reads_a_call_to_a_user_defined_new() {
     for source in [
@@ -550,11 +505,6 @@ fn go_reads_the_builtin_forms_of_new_and_make() {
 }
 
 /// A container with no members holds no member, in all four spellings Zig gives one.
-///
-/// `grammars/zig` carries the patch. The published grammar takes `_container_members`
-/// where it should take `optional($._container_members)`, and fills the gap with a
-/// `container_field` whose name is zero bytes long. It reports no error while doing it,
-/// so an error count would pass either way: what this asserts is the tree.
 #[test]
 fn zig_reads_a_container_with_no_members() {
     let parsers = Parsers::new();
@@ -590,23 +540,16 @@ fn zig_reads_a_container_with_no_members() {
 }
 
 /// Helm masking: what the YAML grammar is given where an action stood.
-///
-/// Masking replaces `{{ … }}` with bytes of identical length so every offset in the tree still
-/// indexes the original file. Which bytes matters, and a run of spaces is not always legal
-/// YAML. Each case below cost files in `bitnami/charts`, where 48 of 92 stylesheets failed to
-/// parse before these. 4 still do, all of them the key-position case the masking leaves visibly
-/// wrong on purpose.
 #[test]
 fn helm_masking_produces_parseable_yaml() {
     let cases = [
-        // An action supplying the block indented under it. The value must end up empty, not a
-        // scalar, or the deeper mapping has nothing to attach to.
+        // An action supplying the block indented under it.
         (
             "an action supplying a block",
             "metadata:\n  labels: {{- include \"common.labels.standard\" . | nindent 4 }}\n    app: node\n",
         ),
         // The first line of a block scalar: YAML rejects a leading empty line indented further
-        // than the content. A masked action is as wide as the action was.
+        // than the content.
         (
             "an action on a block scalar's first line",
             "data:\n  redis.conf: |-\n    {{- $password := include \"redis.password\" . }}\n    user default on nopass\n",
@@ -638,9 +581,6 @@ fn helm_masking_produces_parseable_yaml() {
 }
 
 /// And the one the masking leaves wrong on purpose.
-///
-/// A key supplied by a template is reported and not invented, because a
-/// plausible-looking fake key hides more than a parse error does.
 #[test]
 fn helm_leaves_a_templated_key_visibly_wrong() {
     assert!(error_nodes(Language::Helm, "params:\n  {{ $key }}:\n    - a\n") > 0);

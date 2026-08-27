@@ -1,13 +1,4 @@
 //! Which same-named variable counts as a rebinding, and what a multi-line one deletes.
-//!
-//! `fr inline` refused whenever another symbol of the same name appeared later in the same
-//! file, whatever scope it was in. Two functions that each declare `let s` are not a rebinding.
-//! Reusing a local name across functions is the common case. 6,166 of this repository's 9,147
-//! locals share a name with another local in the same file, and the refusal covered 4,940 of
-//! them.
-//!
-//! The check is per-scope now. A rebinding in the same scope still refuses, in every language,
-//! because there the value really does differ per use.
 
 use fun_refactor::index::Index;
 use fun_refactor::refactor::inline;
@@ -79,9 +70,9 @@ fn a_name_shadowed_only_inside_a_nested_block_is_still_inlinable() {
 
 #[test]
 fn a_declaration_spanning_several_lines_is_removed_whole() {
-    // The removal span read the line before the construct and the line after it from
-    // the same offset, so a construct ending on a later line asked for `source[end..start]`
-    // and panicked. `web/sample/infra/main.tf` in this repository is such a file.
+    // The removal span read the line before the construct and the line after it from the same
+    // offset, so a construct ending on a later line asked for `source[end..start]` and
+    // panicked.
     let (tmp, index) = workspace(&[(
         "main.tf",
         "locals {\n  name = \"x\"\n  tags = {\n    Service = local.name\n  }\n}\n\n\
@@ -110,9 +101,7 @@ fn a_declaration_spanning_several_lines_is_removed_whole() {
 
 #[test]
 fn a_side_effecting_value_used_twice_refuses_to_double() {
-    // `let v = effect(); v + v` inlined is `effect() + effect()`, the effect run
-    // twice. The call inliner refuses this for arguments; the variable inliner
-    // owes its callers the same promise.
+    // `let v = effect(); v + v` inlined is `effect() + effect()`, the effect run twice.
     let (_tmp, index) = workspace(&[(
         "src/lib.rs",
         "fn effect() -> i32 {\n    println!(\"side effect\");\n    5\n}\n\n\

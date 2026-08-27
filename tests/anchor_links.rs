@@ -1,13 +1,4 @@
 //! Links to a heading or an element id, and what renaming one has to rewrite.
-//!
-//! Both query files said the engine strips the `#` when it resolves a fragment. It could not:
-//! resolution looked the reference name up verbatim and returned before reaching the code that
-//! would have stripped it. So `[jump](#beta)` resolved to nothing and `## Beta` was reported as
-//! unused. Renaming the heading then rewrote the heading alone and left the link pointing at an
-//! anchor that no longer existed.
-//!
-//! A heading is referenced by its slug instead of its text, which is the other half. Matching
-//! `#two-words` to `Two Words` needs the slug on both sides, and so does writing the new one.
 
 use fun_refactor::index::Index;
 use fun_refactor::model::{SymbolId, SymbolKind};
@@ -52,8 +43,7 @@ fn a_link_from_another_file_resolves_too() {
 
 #[test]
 fn an_absolute_url_names_another_document() {
-    // Its fragment is not this workspace's to resolve. Entering it in the index under a name no
-    // file defines is worse than not seeing it at all.
+    // Its fragment is not this workspace's to resolve.
     let (_tmp, index) = workspace(&[("a.md", "# Top\n\n[out](https://example.com/p#top)\n")]);
     assert_eq!(resolved_references(&index, "Top"), 0);
     assert!(
@@ -122,8 +112,7 @@ fn renaming_an_element_id_rewrites_the_href_verbatim() {
 
 #[test]
 fn a_heading_may_be_renamed_to_something_with_spaces_in_it() {
-    // Headings are prose. Every other markup name is one token, so the rule
-    // was written for all of them at once.
+    // Headings are prose.
     let (_tmp, index) = workspace(&[("a.md", "# Start\n")]);
     let id = only(&index, "Start");
     assert_eq!(index.symbol(id).unwrap().kind, SymbolKind::Heading);
@@ -136,9 +125,8 @@ fn a_heading_may_be_renamed_to_something_with_spaces_in_it() {
 
 #[test]
 fn headings_are_prose_and_never_dead_code() {
-    // Most headings are never linked to, so "nothing links here" is true of
-    // nearly all of them and says nothing. On this repository they were 202 of
-    // the 445 lines of the report, in front of the dead code a reader came for.
+    // Most headings are never linked to, so "nothing links here" is true of nearly all of them
+    // and says nothing.
     let (_tmp, index) = workspace(&[
         ("a.md", "# Linked\n\n# Orphan\n"),
         ("b.md", "[go](a.md#linked)\n"),

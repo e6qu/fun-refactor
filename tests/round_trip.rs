@@ -1,19 +1,4 @@
 //! A signature that goes out and comes back must be the same signature.
-//!
-//! "The output parses" is the weakest objective bar and it found nine defects. This is the next
-//! one up, and it asks a question parsing cannot. **did anything go missing on the way?** A
-//! translation may drop a parameter, invent one, or lose a function altogether. The target's
-//! grammar is perfectly happy with the file either way.
-//!
-//! The check is a round trip. Read the source into the IR, translate it, read the *result* back
-//! into the IR, and compare. The IR is the only place two files written in different languages
-//! can be compared at all.
-//!
-//! What is compared is deliberately narrow: **which functions exist, and what their parameters
-//! are called.** Types are where the legitimate differences live. Go writes `struct{}` for
-//! nothing at all, Zig writes a slice where TypeScript writes an array. A check that argued
-//! about those would spend its life growing exceptions. A parameter appearing or vanishing is
-//! never legitimate.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -21,11 +6,6 @@ use fun_refactor::transpile::ir::{Expr, Function, Item, Module, ParamKind, Templ
 use std::path::{Path, PathBuf};
 
 /// Every function in a module, wherever it is written.
-///
-/// Java has no top level below the type and Zig writes methods inside their struct.
-/// So the same function is a module item in one language and a record's method in
-/// another.
-/// Where it sits is the translation working; what it is called is the promise.
 fn functions(module: &Module) -> Vec<&Function> {
     let mut found = Vec::new();
     for item in &module.items {
@@ -38,9 +18,7 @@ fn functions(module: &Module) -> Vec<&Function> {
     found
 }
 
-/// A name with the conventions taken back off, so `userName` and `user_name` compare
-/// equal. Underscores go too: Go's exported capital and Python's leading underscore are
-/// spellings of visibility, not of the name.
+/// A name with the conventions taken back off, so `userName` and `user_name` compare equal.
 fn plain(name: &str) -> String {
     name.chars()
         .filter(|c| c.is_alphanumeric())
@@ -49,10 +27,6 @@ fn plain(name: &str) -> String {
 }
 
 /// What must survive: the function's name, and the name of every ordinary parameter.
-///
-/// `*args`, `**kwargs` and a bare `*` are left out on purpose. Only Python has them, so
-/// a round trip through anywhere else loses the calling convention, which the fidelity
-/// report already says, in those words.
 fn signature(f: &Function) -> (String, Vec<String>) {
     let params = f
         .params
@@ -61,8 +35,7 @@ fn signature(f: &Function) -> (String, Vec<String>) {
         .map(|p| format!("{}: {}", plain(&p.name), shape(p.ty.as_ref())))
         .collect();
     // A constructor's name is not information: Java names it after the class, Python calls it
-    // `__init__`. Rust, Go and Zig call it `new`, `NewThing` and `init` by habit. Comparing
-    // those would be comparing the two targets, not the translation.
+    // `__init__`.
     let name = match f.is_constructor {
         true => "<constructor>".to_string(),
         false => plain(&f.name),
@@ -78,11 +51,6 @@ fn signatures(module: &Module) -> Vec<(String, Vec<String>)> {
 }
 
 /// A type with the target's spelling taken back off.
-///
-/// Which scalar is not compared: TypeScript has one numeric type. So an `i64` that goes through
-/// it comes back a `number` and there is nothing wrong with that. What is compared is the
-/// *shape*. A list stays a list, an optional stays optional, a named type keeps its name.
-/// None of those can change for a good reason.
 fn shape(ty: Option<&Type>) -> String {
     match ty {
         // Go writes nothing at all for a function that returns nothing, so "returns
@@ -97,8 +65,7 @@ fn shape(ty: Option<&Type>) -> String {
             format!("map<{},{}>", shape(Some(key)), shape(Some(value)))
         }
         Some(Type::Optional(inner)) => format!("option<{}>", shape(Some(inner))),
-        // A function type keeps its arity and the shape of each part. What it
-        // is spelled with is each language's own business.
+        // A function type keeps its arity and the shape of each part.
         Some(Type::Fn { params, returns }) => {
             let taken: Vec<String> = params.iter().map(|p| shape(Some(p))).collect();
             format!("fn<({}),{}>", taken.join(","), shape(Some(returns)))
@@ -108,30 +75,26 @@ fn shape(ty: Option<&Type>) -> String {
             format!("tuple<{}>", inner.join(","))
         }
         // A name this tool cannot write at all, such as a Python `str | Any`, a Rust closure,
-        // is replaced by a placeholder, which is a rename and the one exception this
-        // check has to allow. The fidelity report is where that loss is stated.
+        // is replaced by a placeholder, which is a rename and the one exception this check has
+        // to allow.
         Some(Type::Named { name, .. }) if name.starts_with("Unwritable") => {
             "<unwritable>".to_string()
         }
-        // Each target has a word for "the source did not say": `any`, `unknown`,
-        // `object`, `anytype`. Reading one back is reading "no type was declared", which
-        // is what it was.
+        // Each target has a word for "the source did not say": `any`, `unknown`, `object`,
+        // `anytype`.
         Some(Type::Named { name, args })
             if args.is_empty()
                 && matches!(name.as_str(), "any" | "unknown" | "object" | "anytype") =>
         {
             "nothing".to_string()
         }
-        // A character is an integral type in Java and a byte in Zig. The IR has no
-        // character, so which number it is depends on where it has been.
+        // A character is an integral type in Java and a byte in Zig.
         Some(Type::Named { name, args })
             if args.is_empty() && matches!(name.as_str(), "char" | "rune" | "byte") =>
         {
             "number".to_string()
         }
-        // The last segment only. A qualified name says where a type came from. Go has room for
-        // exactly one level of that, `crate::model::Reference` is `model.Reference` there and
-        // cannot be anything else. What must not change is which type it is.
+        // The last segment only.
         Some(Type::Named { name, args }) => {
             let last = name.rsplit([':', '.']).next().unwrap_or(name);
             format!("{}/{}", plain(last), args.len())
@@ -140,10 +103,6 @@ fn shape(ty: Option<&Type>) -> String {
 }
 
 /// Every field of every record, and every module constant.
-///
-/// A field that vanishes is as bad as a parameter that vanishes, and nothing
-/// was checking. They are listed with the type they belong to, since two records may
-/// both have a `name`.
 fn fields(module: &Module) -> Vec<(String, String)> {
     let mut out = Vec::new();
     for item in &module.items {
@@ -153,9 +112,7 @@ fn fields(module: &Module) -> Vec<(String, String)> {
                     out.push((plain(&r.name), plain(&field.name)));
                 }
             }
-            // Java has no top level below the type. So a module constant is written as a
-            // `static final` field of the file's class and read back as one. Which side of that
-            // line it sits on is the translation working.
+            // Java has no top level below the type.
             Item::Constant(c) => out.push((String::new(), plain(&c.name))),
             _ => {}
         }
@@ -165,11 +122,6 @@ fn fields(module: &Module) -> Vec<(String, String)> {
 }
 
 /// Does anything under this expression carry no translation?
-///
-/// The Rust writer refuses to commit such a value to a `const`. A marker that is a
-/// fine draft in a body stops the build at compile-time evaluation there. The
-/// constant carries whole as a comment instead, which the fidelity report states, and
-/// which this check must not call an unexplained loss.
 fn untranslatable(e: &Expr) -> bool {
     match e {
         Expr::Variant { fields, .. } => fields.iter().any(|(_, v)| untranslatable(v)),
@@ -283,14 +235,6 @@ fn nothing_goes_missing(files: &[PathBuf], least: usize) {
             }
             let there = there_and_back(file, *to);
             let after = signatures(&there);
-            // The whole list at once, sorted, instead of each name looked up in turn: a name is
-            // not unique. Java overloads `add(Boolean)` beside `add(Character)`, and Zig writes
-            // a `deinit` in every struct in the file. So looking one up by name compares two
-            // different functions and calls the difference a defect. A placeholder stands for a
-            // type that could not be written, so it compares equal to whatever it replaced. A
-            // parameter's name always has to match. Its type has to match unless one side holds
-            // a placeholder for something this tool cannot write: a tuple, a closure, a union.
-            // The placeholder *is* the loss, and the fidelity report states it.
             let same_parameters = |a: &[String], b: &[String]| {
                 a.len() == b.len()
                     && a.iter().zip(b.iter()).all(|(x, y)| {
@@ -314,13 +258,7 @@ fn nothing_goes_missing(files: &[PathBuf], least: usize) {
                 .filter(|s| !before.iter().any(|t| alike(s, t)))
                 .collect();
             // A constructor may change its name in either direction, because in three of these
-            // languages "constructor" *is* a naming convention. Java overloads them and nobody
-            // else does, so a second one written elsewhere keeps its source's name and the
-            // report says so. And a Rust `new_handle` that returns a `Handle` is written
-            // `NewHandle` in Go, the way Go spells a constructor, so it comes back as
-            // `Handle::new`. Both are the signature surviving under the target's own
-            // convention, which is the promise. What is never allowed is the parameters
-            // changing.
+            // languages "constructor" *is* a naming convention.
             loop {
                 let pair = missing.iter().enumerate().find_map(|(at, (name, params))| {
                     let constructor = name == "<constructor>";
@@ -335,9 +273,8 @@ fn nothing_goes_missing(files: &[PathBuf], least: usize) {
                 missing.remove(mine);
                 gained.remove(theirs);
             }
-            // A test crossing a target with no runner of its own degrades to a
-            // plain function named `test…`, and the writer's note says so. That
-            // function coming back is the test under another name, not a gain.
+            // A test crossing a target with no runner of its own degrades to a plain function
+            // named `test…`, and the writer's note says so.
             let degraded: Vec<String> = source
                 .items
                 .iter()
@@ -347,12 +284,7 @@ fn nothing_goes_missing(files: &[PathBuf], least: usize) {
                 })
                 .collect();
             gained.retain(|(name, params)| !(params.is_empty() && degraded.contains(&plain(name))));
-            // Java overloads its methods, and Rust and Zig refuse two members
-            // spelled alike. So later overloads take a numbered name, and the
-            // writer's note says so. Coming back, `add2` is the `add` that was
-            // lost and not a method the source lacked. The pair moves together:
-            // a numbered name is only forgiven where the name it was made from
-            // went missing, so a real loss still fails.
+            // Java overloads its methods, and Rust and Zig refuse two members spelled alike.
             let numbered: Vec<(String, Vec<String>)> = gained
                 .iter()
                 .filter(|(name, params)| {
@@ -379,12 +311,8 @@ fn nothing_goes_missing(files: &[PathBuf], least: usize) {
                 }
                 gained.retain(|(n, p)| !(*n == name && *p == params));
             }
-            // Java and TypeScript build a record by calling a constructor and
-            // have no literal to build it with. A record that crosses into one
-            // arrives with the constructor its fields imply. Coming back,
-            // that constructor is the record's own shape and not a function the
-            // source lacked. A constructor the source *did* declare and that
-            // went missing still fails, because losses are checked apart.
+            // Java and TypeScript build a record by calling a constructor and have no literal
+            // to build it with.
             let builds_a_record = |params: &Vec<String>| {
                 source.items.iter().any(|item| match item {
                     Item::Record(r) => r.fields.len() == params.len(),
@@ -399,10 +327,8 @@ fn nothing_goes_missing(files: &[PathBuf], least: usize) {
             );
 
             let after = fields(&there);
-            // The Rust writer carries a constant whose value did not translate as a
-            // comment, since a `todo!()` in a `const` stops the build. It does not
-            // come back from there. The fidelity report states that loss; this check
-            // is for the ones nothing states.
+            // The Rust writer carries a constant whose value did not translate as a comment,
+            // since a `todo!()` in a `const` stops the build.
             let stated = match to {
                 Language::Rust => comment_carried_constants(&source),
                 _ => Vec::new(),

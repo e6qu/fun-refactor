@@ -1,8 +1,4 @@
 //! The local rewrites, and the meaning they must not change.
-//!
-//! `invert-if` swaps the branches and negates the condition. Negating *half* of a
-//! condition and swapping the branches anyway is a different program, one that
-//! compiles, passes the parse check, and answers differently.
 
 use fun_refactor::edit::apply_to_string;
 use fun_refactor::index::Index;
@@ -28,8 +24,7 @@ fn applied(name: &str, source: &str, at: usize, which: Rewrite) -> String {
 #[test]
 fn inverting_a_compound_condition_negates_all_of_it() {
     // `a == 1 and b == 2` negated by flipping the first `==` is `a != 1 and b == 2`, which is a
-    // different program. The negation of an `and` is an `or` of the negations. Flipping one
-    // operand cannot say that.
+    // different program.
     for (name, source, expected) in [
         (
             "a.py",
@@ -75,8 +70,8 @@ fn a_comparison_inside_a_call_is_not_the_conditions_own() {
 
 #[test]
 fn an_if_that_binds_what_it_tested_is_refused() {
-    // Zig writes `if (maybe) |value| { … }`: the condition is an optional and the
-    // payload binds what was inside it. `if (!maybe) |value|` is not a program.
+    // Zig writes `if (maybe) |value| { … }`: the condition is an optional and the payload binds
+    // what was inside it.
     let source = "pub fn f(s: S, uri: U) void {\n    if (s.get(uri)) |old| {\n        \
                   old.deinit();\n    } else {\n        return;\n    }\n}\n";
     let (_tmp, path, index) = workspace("d.zig", source);
@@ -100,8 +95,6 @@ fn an_if_that_binds_what_it_tested_is_refused() {
 #[test]
 fn zig_spells_its_boolean_operators_as_words() {
     // Falling into the C arm made `a and b` invisible to every rule that looks for an operator.
-    // `!(a and b)` is an `error_union_type` in that grammar, because `!T` is an error union
-    // where a type is expected and a negation where a value is.
     let source = "pub fn f(a: bool, b: bool) i64 {\n    if (!(a and b)) {\n        \
                   return 1;\n    }\n    return 2;\n}\n";
     let at = source.find("!(").expect("the negation");
@@ -111,10 +104,7 @@ fn zig_spells_its_boolean_operators_as_words() {
 
 #[test]
 fn a_negation_on_the_first_atom_is_not_a_negation_of_the_whole() {
-    // `!path.is_empty() && !seen` guarded a push. The double-negative rule
-    // stripped the leading `!`, so the guard became `path.is_empty() && !seen`
-    // and let every duplicate through, silently. The `!` covers one atom; the
-    // negation of the whole goes round the outside.
+    // `!path.is_empty() && !seen` guarded a push.
     let source = "pub fn keep(path: &str, seen: bool) {\n    \
                   if !path.is_empty() && !seen {\n        push(path);\n    }\n}\n";
     let (_tmp, path, index) = workspace("g.rs", source);

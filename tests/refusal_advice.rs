@@ -1,9 +1,4 @@
 //! A refusal that says what to do instead is making a claim, and nothing checked it.
-//!
-//! Nearly every refusal ends with a route: `fr delete` removes a declaration nothing
-//! uses, `fr provenance` answers this instead, rename the file to `.scss` if that is
-//! what was meant. The sentence is the whole value of the refusal. It is what turns a
-//! "no" into a next step, and it was the one part of the message no test drove.
 
 use fun_refactor::index::Index;
 use fun_refactor::lang::Language;
@@ -38,9 +33,7 @@ fn symbol(index: &Index, name: &str) -> SymbolId {
 
 #[test]
 fn flow_sends_the_caller_to_a_route_that_exists_and_answers() {
-    // The refusal written when `fr flow` stopped answering for languages that do not
-    // execute. It named `fr provenance`, which is not a command, and promised an answer
-    // for three languages provenance does not cover.
+    // The refusal written when `fr flow` stopped answering for languages that do not execute.
     let cases: &[Case] = &[
         (
             Language::Yaml,
@@ -97,9 +90,8 @@ fn flow_sends_the_caller_to_a_route_that_exists_and_answers() {
 
 #[test]
 fn every_language_flow_turns_away_is_told_one_of_exactly_two_things() {
-    // The eight languages `fr flow` refuses, asked as a set and not as the handful a
-    // fixture happened to cover. Each is either sent to provenance. Provenance has an arm for
-    // it, or told there is nothing of either kind to trace.
+    // The eight languages `fr flow` refuses, asked as a set and not as the handful a fixture
+    // happened to cover.
     use fun_refactor::analysis::{flow, provenance};
 
     let mut routed = Vec::new();
@@ -122,9 +114,7 @@ fn every_language_flow_turns_away_is_told_one_of_exactly_two_things() {
 
 #[test]
 fn a_language_with_no_substitution_model_is_not_sent_anywhere() {
-    // HTML, XML and Markdown do not execute *and* have nothing to substitute. The
-    // refusal promised provenance would answer; provenance stops at the first hop
-    // saying it has no model to follow, and the matrix claimed the cell all the same.
+    // HTML, XML and Markdown do not execute *and* have nothing to substitute.
     for (language, files, name) in [
         (
             Language::Xml,
@@ -165,9 +155,8 @@ fn a_language_with_no_substitution_model_is_not_sent_anywhere() {
 
 #[test]
 fn inline_sends_the_caller_to_delete_and_delete_removes_it() {
-    // Six languages refuse to inline a binding nothing reads, each naming `fr delete`
-    // as the thing that was probably meant. Whether `fr delete` would take it was never
-    // asked in any of them.
+    // Six languages refuse to inline a binding nothing reads, each naming `fr delete` as the
+    // thing that was probably meant.
     let cases: &[Case] = &[
         (
             Language::Rust,
@@ -299,11 +288,7 @@ fn the_css_extract_refusal_names_a_rename_that_works() {
 
 #[test]
 fn the_python_cycle_refusal_names_a_destination_that_works() {
-    // "Move the names '{}' uses as well, or move it to a file neither imports". The second half
-    // is the one a reader can act on without further thought. So it has to be true: a third
-    // file, importing nothing and imported by nothing, must take it. The cycle: `holder` still
-    // uses `width` after the move, so it would import it back, and `util` already imports from
-    // `holder`.
+    // "Move the names '{}' uses as well, or move it to a file neither imports".
     let files: &[(&str, &str)] = &[
         (
             "holder.py",
@@ -354,9 +339,8 @@ fn the_rust_module_path_refusal_names_a_destination_that_works() {
         "the advice has to say what `src/` alone does not give you: {refusal}"
     );
 
-    // Following the old advice exactly, a path under `src/`, landed on a second
-    // refusal, because Rust reaches a file through a `mod` declaration and not through
-    // its directory. That refusal now names the missing line.
+    // Following the old advice exactly, a path under `src/`, landed on a second refusal,
+    // because Rust reaches a file through a `mod` declaration and not through its directory.
     let second =
         fun_refactor::refactor::move_symbol::to_file(&index, width, &root.join("src/moved.rs"))
             .expect_err("nothing declares `mod moved;`")
@@ -390,7 +374,6 @@ fn the_rust_module_path_refusal_names_a_destination_that_works() {
 #[test]
 fn the_ambiguous_flag_refusal_names_a_form_the_command_accepts() {
     // "say which one with a position", and `fr remove-flag` took a bare name and nothing else.
-    // So the only route offered was one the command could not parse.
     use fun_refactor::refactor::cascade::{self, FlagTarget};
 
     let files: &[(&str, &str)] = &[
@@ -426,7 +409,7 @@ fn the_ambiguous_flag_refusal_names_a_form_the_command_accepts() {
             .unwrap_or_else(|e| panic!("the refusal named this form and it was refused: {e}"));
 
         // Resolved to a name, not carried around as a position: everything downstream looks the
-        // flag up by name. A plan that says `one.rs:10` found nothing.
+        // flag up by name.
         assert!(
             plan.rounds
                 .iter()
@@ -484,7 +467,6 @@ fn the_go_cycle_refusal_names_a_package_that_works() {
 #[test]
 fn the_unread_flag_refusal_names_a_command_that_takes_it() {
     // "'{flag}' is declared at {} and nothing reads it, so there is no flag to remove.
-    // `fr delete` removes a declaration nothing uses."
     let (_tmp, root, index) = workspace(&[("a.rs", "pub const USE_NEW: bool = true;\n")]);
 
     let refusal = fun_refactor::refactor::cascade::remove_flag(&root, "USE_NEW", true)
@@ -502,9 +484,8 @@ fn the_unread_flag_refusal_names_a_command_that_takes_it() {
 
 #[test]
 fn the_no_cascade_here_reason_names_two_commands_that_work() {
-    // The matrix's reason for every language without conditionals: "removing one is a
-    // rename or a delete instead of a cascade". Two commands named to a reader who
-    // cannot have the third, so both have to be there for that language.
+    // The matrix's reason for every language without conditionals: "removing one is a rename or
+    // a delete instead of a cascade".
     use fun_refactor::capabilities::{support, Capability};
 
     let cases: &[Case] = &[
@@ -558,9 +539,7 @@ fn the_no_cascade_here_reason_names_two_commands_that_work() {
 #[test]
 fn the_bash_digit_refusal_names_a_spelling_that_works() {
     // "`$12` is not parameter 12 … Write it as `${12}` first if you meant parameter 12." A
-    // shell reads `$1` then the literal `2`. So a function with twelve parameters cannot be
-    // rewritten until the author says which they meant. The advice is only worth printing if
-    // the braced spelling then goes through.
+    // shell reads `$1` then the literal `2`.
     let many = (1..=12)
         .map(|n| format!("  local a{n}=\"${{{n}}}\"\n"))
         .collect::<String>();
@@ -593,8 +572,8 @@ fn the_bash_digit_refusal_names_a_spelling_that_works() {
 
 #[test]
 fn a_list_reaches_the_answer_from_the_flag_and_from_a_file() {
-    // `--set ports={80,443}` is the list `ports[0]=80,ports[1]=443`, which is how helm
-    // reads it. A `-f` file holding the same list has to be taken and ranked too.
+    // `--set ports={80,443}` is the list `ports[0]=80,ports[1]=443`, which is how helm reads
+    // it.
     let literal = fun_refactor::helm::parse_set("ports={80,443}", false).expect("a list literal");
     assert_eq!(literal.len(), 2);
     assert_eq!(literal[0].element().as_deref(), Some("ports[0]"));
@@ -636,10 +615,6 @@ fn a_list_reaches_the_answer_from_the_flag_and_from_a_file() {
 fn the_missing_chart_refusal_names_the_file_that_unblocks_it() {
     // "no Chart.yaml above {}, so the chart name is unknown", the route is the file it names,
     // so adding one has to be enough.
-    //
-    // Reached through a `.tpl`, which is Helm by its extension alone. Every other Helm file is
-    // Helm *because* a Chart.yaml sits above it. So this refusal cannot arise for one: the
-    // fixture that looked obvious tested a plain YAML file instead.
     let template = "{{- define \"demo.labels\" -}}\napp: demo\ntier: web\n{{- end -}}\n";
     let (_tmp, root, index) = workspace(&[("templates/_helpers.tpl", template)]);
     let file = root.join("templates/_helpers.tpl");

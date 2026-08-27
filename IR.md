@@ -65,7 +65,7 @@ about syntax.
 - `is_constructor` records that a function makes a value of its type. Java names
   it after the class, Python calls it `__init__`, Rust writes `new` by habit.
   Each target picks its own name from this flag.
-- `is_private` is held apart from `exported`. A Rust `fn` without `pub` is the
+- `is_private` stands apart from `exported`. A Rust `fn` without `pub` is the
   module's own, which Java spells package-private. Folded into one bit, a Zig
   method came out `private` in Java and its own class could not call it.
 
@@ -95,7 +95,7 @@ Twelve types.
 Two flags travel with a type-like expression. `assignable` asks whether the
 expression can stand left of `=` in any of these languages. Rust assigns through
 a dereference of a call, and no target here can. `nameable` asks whether a name
-can be written as a type at all. A closure or a trait object has no spelling
+can spell this name as a type at all. A closure or a trait object has no spelling
 outside the language that owns it.
 
 ## Expressions
@@ -121,7 +121,7 @@ program.
 | `Ternary` | `a ? b : c` | It is a value. A branch needs somewhere to put its result, and an argument list has none |
 | `Variant` | `Shape::Circle { radius }` | Without it the types cross while every value of one carries verbatim |
 | `Template` | `f"Hi {name}"` | Flattened to text, the expressions inside are lost in silence |
-| `Lambda` | `lambda x: e`, `\|x\| e` | Held as bare names, a typed TypeScript arrow could not be read at all |
+| `Lambda` | `lambda x: e`, `\|x\| e` | Bare names lose a typed TypeScript arrow entirely |
 | `SetLit` | `{a, b}`, `set()` | Read as a call, `set()` in Python became a call to a function named `set` in Rust |
 | `Comprehension` | `[f(x) for x in xs if p(x)]` | Python builds it one way and TypeScript chains it; modelling it lets each write its own |
 
@@ -154,7 +154,7 @@ longhand.
 | `Throw` | Python, TypeScript, Java | |
 | `Assert` | Python, Rust, Zig | The rest test the condition and throw or panic |
 | `LocalFunction` | All | A nested function, a function literal, or an object holding one method |
-| `BreakWith` | Zig | Consumed while lowering labeled blocks; one that survives is carried |
+| `BreakWith` | Zig | Lowering labeled blocks consumes these; a survivor carries whole |
 
 `CountedFor` deserves its own note. It is Go's only loop keyword, so carrying
 its three spellings as comments loses more of Go than any other gap. Rust and
@@ -217,7 +217,7 @@ wrong thing.
   Zig have no receiver to assign to yet.
 - Printing folds to one canonical `print`. `fmt.Println`, `console.log`,
   `System.out.println` and Zig's writer plumbing all arrive at it. Zig's
-  buffer, writer and flush are how Zig says the thing, so they are dropped.
+  buffer, writer and flush are how Zig says the thing, so the reader drops them.
 - A `%`-verb or `{d}` format string becomes a `Template`. Only the verbs every
   target shares: `%d`, `%s`, `%v`, `%f` and `%%`. Width or precision means
   formatting this cannot promise, so the call stays as written.
@@ -236,7 +236,7 @@ Four lowerings run before the writer sees the module, chosen by target.
 | `flatten_local_bases` | Rust, Go, Zig | A base declared in the same module lays its fields and methods flat into the extending record |
 | `loops_for_comprehensions` | Go, Zig | A comprehension becomes the loop that builds the collection |
 | `functions_for_lambdas` | Zig | A lambda that captures nothing becomes a named top-level function |
-| `numbers_as_declared` | Rust, Java | A whole number in a float position is spelled with its point |
+| `numbers_as_declared` | Rust, Java | Spell a whole number in a float position with its point |
 
 Each writer holds its own state while it runs. The types of bindings in scope.
 Which parameters hold functions, and which records take generic arguments. What
@@ -245,9 +245,9 @@ state, a call to a sibling's constructor comes out as a construction.
 
 ## What carrying whole means
 
-A construct with no counterpart in the target is written into the output as the
-source wrote it, under a marker, and counted. It is never dropped and never
-approximated.
+A construct with no counterpart in the target goes into the output as the source
+wrote it, under a marker, and counts against the file. The writer never drops it
+and never approximates it.
 
 The alternative was tried and is worse. A dropped `defer` leaves a file that
 compiles and never cleans up. A dropped `await` leaves a suspension point that
@@ -263,7 +263,7 @@ stops being one.
 |---|---|
 | `functions`, `records`, `constants`, `newtypes`, `sums` | Declarations that came across |
 | `signatures_complete` | Every parameter and the return carried with its type |
-| `signatures_with_foreign_types` | A type had no counterpart and was written through by name |
+| `signatures_with_foreign_types` | A type had no counterpart, so the name carried through |
 | `signatures_untyped` | The source never gave a type, and the target wrote its widest one |
 | `signatures_with_changed_calls` | The types carried, the calling convention did not. A caller writes the call differently |
 | `carried_verbatim` | Statements and expressions with no counterpart |
@@ -294,16 +294,16 @@ and the same facts at the top of the file it wrote:
 // Every signature carried across with its types intact.
 ```
 
-## How this is held
+## How the gates hold this
 
 The conformance suite is the evidence. `tests/conformance/` holds fourteen
 groups, and each group has one native program per language printing the same
-transcript. Every ordered pair is translated, compiled and run, and the output
-compared against the transcript.
+transcript. The suite translates, compiles and runs every ordered pair, then
+compares the output against the transcript.
 
 The list of passing cells is a two-way ratchet. A cell that starts passing must
-be added, and a cell that stops passing fails the suite. So a gain cannot be
-lost quietly and a regression cannot be waved through.
+join the list, and a cell that stops passing fails the suite. So no gain slips
+away quietly and no regression gets waved through.
 
 Two more gates sit behind it. `tests/corpus_compile.rs` asks each toolchain the
 strongest question it can answer about a file whose dependencies live elsewhere.

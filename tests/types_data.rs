@@ -1,11 +1,4 @@
 //! The data behind the types tutorial, produced by running the tool over its stages.
-//!
-//! The page shows code, and beside each symbol what the tool says about it: the type, where it
-//! is defined, what calls it. None of that is written by hand. It is asked of the same index
-//! `fr type`, `fr def` and `fr callers` ask. So the panel a reader clicks is the tool's answer
-//! and not a transcription of one.
-//!
-//! Regenerate with `UPDATE_SITE_DATA=1 cargo test --test types_data`.
 
 use fun_refactor::analysis::call_graph::CallGraph;
 use fun_refactor::analysis::types;
@@ -17,9 +10,6 @@ use fun_refactor::span::LineIndex;
 use std::path::{Path, PathBuf};
 
 /// Every stage, with what the page says about it.
-///
-/// The prose lives here and not in the HTML because each stage's claim is about the code beside
-/// it. The two drifting apart is the failure this whole arrangement exists to prevent.
 const STAGES: &[(&str, &str, &str, &str)] = &[
     (
         "stage0_as_found",

@@ -1,9 +1,4 @@
 //! What `fr impact` says it looked at.
-//!
-//! The caller walk is bounded, and the bound is a choice. A five-deep call chain traced
-//! three levels reported "affects 4 site(s)", a definite count of an incomplete search,
-//! and said nothing at all about the two functions it had not looked at. This is the
-//! command a person uses to decide whether a change is safe.
 
 use fun_refactor::analysis::impact;
 use fun_refactor::index::Index;
@@ -79,9 +74,7 @@ fn raising_the_depth_finds_what_the_note_promised() {
 
 #[test]
 fn impact_accounts_for_every_site_a_rename_would_show() {
-    // The tool suggests `fr impact` before a change, and `fr rename` is the change. An
-    // `__all__` entry and a line of documentation were in the rename's report and in
-    // neither half of the impact. The reader met them only once committed.
+    // The tool suggests `fr impact` before a change, and `fr rename` is the change.
     use fun_refactor::refactor::rename;
     use fun_refactor::span::LineIndex;
     use std::collections::BTreeSet;
@@ -148,9 +141,7 @@ fn impact_accounts_for_every_site_a_rename_would_show() {
 
 #[test]
 fn duplicates_names_the_threshold_it_searched_with() {
-    // The empty answer already said "No duplication of 60 tokens or more". The
-    // non-empty one said "3 duplicated block(s)" and stopped, which reads as all of
-    // them, and the non-empty one is the answer somebody acts on.
+    // The empty answer already said "No duplication of 60 tokens or more".
     let tmp = tempfile::tempdir().expect("a temporary directory");
     std::fs::write(
         tmp.path().join("a.py"),

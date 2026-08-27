@@ -1,10 +1,4 @@
 //! Go has no conditional expression, and a statement-shaped one lowers.
-//!
-//! A ternary that is the whole of a return, an assignment, or a typed binding
-//! is an `if`/`else` said shorter, so Go writes the `if`/`else`. Each arm
-//! renders inside its own branch, which keeps the evaluation the source
-//! chose. One buried inside a larger expression still carries. There is no
-//! statement to unfold it into.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;

@@ -1,10 +1,4 @@
 //! A `Result` in the signature crosses as each target's own way of failing.
-//!
-//! Rust spells it `Result<T, E>` and Zig `E!T`, and the readers agree on one name
-//! for both. Go writes the `(T, error)` pair it always writes, with `Ok`, `Err`
-//! and every propagation becoming the returns and checks that pair means. The
-//! exception languages return the ok value bare and raise the Err, which is
-//! where their propagated calls already fail to. Zig takes the union back.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;

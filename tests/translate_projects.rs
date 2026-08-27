@@ -1,15 +1,4 @@
 //! The whole-project gate: a package translated as a directory builds as a unit.
-//!
-//! A directory sweep translates every file against the merged context of the
-//! whole set. The cheap assertions here need no toolchain and hold the seams.
-//! An import of a sibling becomes a real import. A name declared in one file
-//! is spelled the same way where another file uses it.
-//!
-//! With the toolchains installed the gate goes further. The TypeScript the
-//! sweep writes must satisfy `tsc --strict --noEmit` with zero errors. Each
-//! translated entrypoint must print byte for byte what its source printed.
-//! A machine without the tools skips and says so; on CI a skip fails, the same
-//! rule `tests/typesafety.rs` follows.
 
 mod common;
 
@@ -20,10 +9,6 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 /// A four-file Python package: models, storage, helpers and an entrypoint.
-///
-/// Every seam a project has is in it. `cli` constructs classes two other files
-/// declare, reads a property and calls a two-word method across files, and
-/// every file imports siblings by name.
 const PYTHON_PACKAGE: &[(&str, &str)] = &[
     (
         "models.py",
@@ -123,9 +108,6 @@ if __name__ == "__main__":
 ];
 
 /// The same program as a four-file TypeScript package.
-///
-/// The imports carry `.ts` extensions so that node can run the sources as the
-/// baseline; the sweep resolves them to the same siblings either way.
 const TYPESCRIPT_PACKAGE: &[(&str, &str)] = &[
     (
         "models.ts",
@@ -226,8 +208,7 @@ main();
     ),
 ];
 
-/// What both packages print. Held in one place so the two run gates cannot
-/// drift apart, and asserted against both baselines before any comparison.
+/// What both packages print.
 const EXPECTED_STDOUT: &str = "== INVENTORY ==\n\
     A1 apple x10 = 1500c\n\
     B2 banana x6 = 450c\n\
@@ -242,9 +223,7 @@ fn write_package(dir: &Path, files: &[(&str, &str)]) {
     }
 }
 
-/// Translate every fixture file under `dir` into `to`, the way the directory
-/// sweep does. It reads the whole set first, then plans each file against the
-/// merged context. The outputs land under `out_dir` and come back by stem.
+/// Translate every fixture file under `dir` into `to`, the way the directory sweep does.
 fn sweep(
     dir: &Path,
     files: &[(&str, &str)],
@@ -468,8 +447,8 @@ fn the_python_a_sweep_writes_runs_like_its_typescript_source() {
         .output()
         .expect("running the typescript source");
     if !baseline.status.success() {
-        // Node strips types only from 22.6 on, and an older node is not a
-        // defect in the translation. On CI the baseline has to run.
+        // Node strips types only from 22.6 on, and an older node is not a defect in the
+        // translation.
         eprintln!("translate_projects: node cannot run .ts sources, so nothing ran.");
         common::require_on_ci("the whole-project gate", &["node >= 22.6".to_string()]);
         return;
@@ -499,9 +478,7 @@ fn the_python_a_sweep_writes_runs_like_its_typescript_source() {
 
 #[test]
 fn a_name_two_files_declare_is_renamed_where_the_directory_is_one_namespace() {
-    // Two Python modules may each declare a `Thing`. Go puts every file of a
-    // directory in one package, so the sweep produced `Thing redeclared in
-    // this block` and reported both files translated.
+    // Two Python modules may each declare a `Thing`.
     let files = &[
         (
             "a.py",
@@ -563,9 +540,7 @@ fn a_name_two_files_declare_is_renamed_where_the_directory_is_one_namespace() {
 
 #[test]
 fn an_import_inside_a_function_becomes_a_real_import_of_its_sibling() {
-    // `def helper(): from a import Thing` is how Python breaks an import
-    // cycle. The body's code crossed as live TypeScript while the import
-    // stayed a comment, so the file named a class nothing brought in.
+    // `def helper(): from a import Thing` is how Python breaks an import cycle.
     let files = &[
         (
             "a.py",

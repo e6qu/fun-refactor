@@ -1,41 +1,4 @@
 //! Config-language value provenance: where a configured value comes from, and what consumes it.
-//!
-//! # Not [`super::flow`]
-//!
-//! Imperative dataflow approximates an execution. Config languages evaluate instead, by
-//! substitution and override, under a model each one specifies:
-//!
-//! - **Terraform**: `var.x`, `local.y` and `module.m.out` form a substitution DAG. Every hop
-//!   keeps its own file, line and expression text; nothing is rewritten. (Checkov builds the
-//!   same graph but substitutes in place, losing the hop chain.)
-//! - **Helm**. A values key has a defined override order, subchart defaults, then each
-//!   enclosing parent chart, then `-f` files in command-line order, then `--set`. Every
-//!   competing source in the workspace is reported with its precedence, the winner marked, the
-//!   losers kept. The last two levels live in the invocation instead of the workspace. So a
-//!   caller that knows them supplies them as [`ValuesInputs`] and the same order then decides
-//!   outright.
-//! - **CSS**: the cascade is a specified algorithm (origin → layer → specificity → source
-//!   order). Losing declarations are reported struck through, as DevTools does.
-//! - **YAML**: an alias takes its value from its anchor. Composition discards anchors, so the
-//!   index reads them off the CST.
-//!
-//! # Where it stops
-//!
-//! Anything undetermined becomes a [`StopReason`] and not a guess:
-//!
-//! - a Terraform input variable takes its value from `*.tfvars`, `-var` or `TF_VAR_*`, all
-//!   outside the code ([`StopReason::ExternalInput`]);
-//! - parsing masks a Helm `{{ ... }}` action (`src/parse.rs`), so [`crate::helm`] reads it back
-//!   instead of the YAML queries. The `.Values` paths it names resolve, and what the template
-//!   engine decides, which branch renders, what the release supplies, becomes
-//!   [`StopReason::RenderDependent`] or [`StopReason::Conditional`];
-//! - a resource attribute is computed by a provider at apply time
-//!   ([`StopReason::ComputedAtApply`]);
-//! - competing sources whose relative order the workspace does not show, two `-f` files, two
-//!   `@layer`s, two stylesheets, all appear, winner undecided
-//!   ([`StopReason::PrecedenceUndetermined`]);
-//! - a Helm competition that caller-supplied inputs decide names which input decided it and
-//!   which channel it was never told about ([`StopReason::DecidedGivenInputs`]).
 
 use crate::helm;
 use crate::index::Index;
@@ -59,9 +22,6 @@ pub enum Direction {
 }
 
 /// What kind of provenance edge one hop crossed.
-///
-/// These are the `PROVENANCE` edge labels: substitution, override, expansion and
-/// default, plus the language-specific forms each of those takes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EdgeKind {
     /// The declaration the query started from.
@@ -76,7 +36,7 @@ pub enum EdgeKind {
     Expansion,
     /// An output read from another Terraform module.
     ModuleOutput,
-    /// A `{{ ... }}` template action: the link is textual, the value is render-time.
+    /// A `{{ ...
     TemplateAction,
     /// A `define`d template body, or a site that `include`s one.
     NamedTemplate,
@@ -108,10 +68,7 @@ impl EdgeKind {
 pub enum StopReason {
     /// A literal, or anything else that is its own source.
     Origin(String),
-    /// The value is set outside the code: tfvars, `-var`, `TF_VAR_*`, `--set`, `-f`.
-    ///
-    /// `required` distinguishes "nothing in the workspace supplies this at all"
-    /// from "the workspace supplies a value that an external source may override".
+    /// Something outside the code sets the value: tfvars, `-var`, `TF_VAR_*`, `--set`, `-f`.
     ExternalInput {
         name: String,
         required: bool,
@@ -121,21 +78,15 @@ pub enum StopReason {
     Unresolved(String),
     /// The depth limit was reached; more may lie beyond.
     DepthLimit,
-    /// The value is decided inside a `{{ ... }}` template action, which is masked
-    /// before parsing and evaluated by the template engine, not by us.
+    /// The value is decided inside a `{{ ...
     RenderDependent(String),
-    /// Something renders only when a template conditional holds. The condition is
-    /// named, so this says *when* and not *maybe*.
+    /// Something renders only when a template conditional holds.
     Conditional { what: String, condition: String },
     /// A provider computes this at apply time; no configuration holds it.
     ComputedAtApply(String),
     /// Several sources compete and the workspace does not show which wins.
     PrecedenceUndetermined(String),
     /// A competition the caller's [`ValuesInputs`] decided.
-    ///
-    /// `unsupplied` names the channels the caller said nothing about. While it is
-    /// non-empty the answer holds *given what was supplied* and no further: an
-    /// input that was never mentioned outranks what is listed here.
     DecidedGivenInputs {
         subject: String,
         /// The source that supplies the value, as written.
@@ -204,8 +155,7 @@ impl std::fmt::Display for StopReason {
     }
 }
 
-/// One hop in a provenance chain. Hops are never collapsed or substituted away:
-/// each keeps its own file, line and text.
+/// One hop in a provenance chain.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Hop {
     pub symbol: Option<SymbolId>,
@@ -234,11 +184,11 @@ impl std::fmt::Display for Specificity {
     }
 }
 
-/// Where a source sits in its language's override order. Higher `rank` wins.
+/// Where a source sits in its language's override order.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Precedence {
     pub rank: u32,
-    /// Human-readable level, e.g. "subchart defaults" or "author stylesheet".
+    /// Human-readable level, e.g.
     pub label: String,
     /// Set for CSS, where the cascade compares specificity before source order.
     pub specificity: Option<Specificity>,
@@ -272,27 +222,13 @@ pub struct CompetingSource {
 }
 
 /// Every source competing to supply one value, with the winner marked.
-///
-/// Losers are retained deliberately: an override is only understandable next to
-/// what it overrode.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Competition {
-    /// What is being competed for, e.g. `values key image.tag`.
+    /// What is being competed for, e.g.
     pub subject: String,
     /// The precedence model applied, stated in full.
     pub model: String,
     /// False when the workspace does not show which of *these* sources wins.
-    ///
-    /// A channel outside the workspace that could pre-empt every source listed, `--set`,
-    /// `-var`, is a [`StopReason::ExternalInput`] stop. It replaces the answer instead of
-    /// reordering the candidates, so the competition stays decided. A channel that ranks
-    /// *between* two listed sources does make the competition undecided. So Terraform's
-    /// `TF_VAR_*` leaves one undecided, and Helm's `-f` outranks every values file in the
-    /// chart and leaves it decided.
-    ///
-    /// A Helm competition a caller's [`ValuesInputs`] settles is decided here.
-    /// [`StopReason::DecidedGivenInputs`] then names the input that settled it and the
-    /// channel the caller never described.
     pub decided: bool,
     /// Sorted strongest first.
     pub sources: Vec<CompetingSource>,
@@ -313,7 +249,7 @@ impl Competition {
 pub struct Provenance {
     pub direction: Direction,
     pub root: SymbolId,
-    /// The hop chain, in visit order. Immutable history: nothing is collapsed.
+    /// The hop chain, in visit order.
     pub hops: Vec<Hop>,
     pub competitions: Vec<Competition>,
     /// Every boundary the walk refused to cross, so gaps stay visible.
@@ -335,9 +271,6 @@ impl Provenance {
     }
 
     /// [`Self::format_tree`], with each path under `root` spelled relative to it.
-    ///
-    /// The CLI passes its workspace root so the listing matches the paths a reader
-    /// types back in. A file outside the root keeps its absolute spelling.
     pub fn format_tree_under(&self, root: &Path) -> String {
         let mut out = String::new();
         for hop in &self.hops {
@@ -395,9 +328,6 @@ impl Provenance {
 }
 
 /// Whether provenance analysis applies to this file's language.
-///
-/// The mirror of [`super::flow::applies_to`]: imperative languages get dataflow,
-/// config languages get substitution/override provenance.
 pub fn applies_to(index: &Index, file: &Path) -> bool {
     index
         .file(file)
@@ -405,23 +335,15 @@ pub fn applies_to(index: &Index, file: &Path) -> bool {
 }
 
 /// What only the caller knows: the values inputs of a `helm` invocation.
-///
-/// A workspace scan sees the chart. It cannot see whether a `values-prod.yaml`
-/// beside it is ever passed, in which order two `-f` files were written, or that a
-/// `--set` overrides both. Supplying that turns the undecided half of Helm's
-/// precedence order into a decided one; supplying nothing leaves every answer
-/// as it was.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ValuesInputs {
-    /// `-f`/`--values` files in command-line order. Later wins, as Helm merges
-    /// them left to right.
+    /// `-f`/`--values` files in command-line order.
     pub files: Vec<PathBuf>,
     /// `--set` and `--set-string` assignments, which outrank every `-f` file.
     pub sets: Vec<helm::SetValue>,
 }
 
 /// The `file` a hop carries when its source is the command line and not a file.
-/// Such a hop has line 0: there is no line to point at.
 pub const COMMAND_LINE: &str = "<command line>";
 
 /// The `--set` family as a flag parser collects it, one list per flag.
@@ -449,12 +371,6 @@ impl<'a> SetFlags<'a> {
 
 impl ValuesInputs {
     /// Parse the raw flag strings a CLI collects.
-    ///
-    /// Helm applies the `--set` family in the order it was written. The flags arrive as one
-    /// list per flag, and the order between two lists is lost on the way. That order matters
-    /// only when two of them set the same key, so this refuses that case rather than picking
-    /// one. Two assignments that set different elements of a list set different values, so
-    /// they are not that case.
     pub fn parse(files: &[PathBuf], flags: SetFlags<'_>) -> Result<Self> {
         let mut parsed: Vec<helm::SetValue> = Vec::new();
         let mut from: Vec<&'static str> = Vec::new();
@@ -503,10 +419,7 @@ impl ValuesInputs {
         self.files.is_empty() && self.sets.is_empty()
     }
 
-    /// The channels the caller said nothing about, named as they would be written.
-    ///
-    /// A caller who lists `--set` but no `-f` has described part of a command line.
-    /// An answer from it is only as good as that part.
+    /// The channels the caller said nothing about, spelled as a command line spells them.
     pub fn unsupplied(&self) -> Vec<String> {
         let mut out = Vec::new();
         if self.files.is_empty() {
@@ -529,9 +442,7 @@ impl ValuesInputs {
         parts.join(" ")
     }
 
-    /// Resolve every `-f` path to the file the index holds, refusing anything it cannot read. A
-    /// file whose keys are invisible cannot be ranked against the chart's. Pretending otherwise
-    /// would drop an override silently.
+    /// Resolve every `-f` path to the file the index holds, refusing anything it cannot read.
     pub fn resolve(&self, index: &Index) -> Result<Self> {
         let mut files = Vec::new();
         for given in &self.files {
@@ -607,8 +518,7 @@ pub fn provenance_with_inputs(
     );
     match sym.language {
         Language::Hcl => ctx.hcl_backward(sym, EdgeKind::Declaration, 0)?,
-        // A keyed document, whichever syntax wrote it. JSON has no anchors and no
-        // template actions, so the walk finds none and stops where it should.
+        // A keyed document, whichever syntax wrote it.
         Language::Yaml | Language::Helm | Language::Json => {
             ctx.keyed_backward(sym, EdgeKind::Declaration, 0)?
         }
@@ -657,20 +567,14 @@ pub fn consumers_with_inputs(
 }
 
 /// Whether this language has a value-substitution model to trace.
-///
-/// The five arms of the two dispatches above, named once. The matrix claimed provenance for
-/// every non-imperative language, three more than the dispatch handles. An HTML, XML or
-/// Markdown symbol reached the fallback and stopped, and `fr flow`'s refusal sent callers
-/// here for an answer this cannot give.
 pub fn supports_provenance(language: Language) -> bool {
     matches!(
         language,
         Language::Hcl
             | Language::Yaml
             | Language::Helm
-            // A JSON document is a tree of keys and a key path is an address,
-            // the same as a values file's. One document overrides another the
-            // same way too.
+            // A JSON document is a tree of keys and a key path is an address, the same as a
+            // values file's.
             | Language::Json
             | Language::Css
             | Language::Scss
@@ -682,8 +586,7 @@ pub fn supports_provenance(language: Language) -> bool {
 /// apply to them.
 fn refuse_unless_it_substitutes(sym: &Symbol) -> Result<()> {
     if sym.language.class() == LanguageClass::Imperative {
-        // The message names `fr flow`, a command the reader can run. It named
-        // `analysis::flow (backward/forward)`, a library module, before.
+        // The message names `fr flow`, a command the reader can run.
         bail!(
             "{} is imperative: '{}' has a dataflow, not a substitution/override \
              provenance; `fr flow` traces it instead",
@@ -692,9 +595,7 @@ fn refuse_unless_it_substitutes(sym: &Symbol) -> Result<()> {
         );
     }
     if !supports_provenance(sym.language) {
-        // The two dispatches have arms for five languages. Every other one fell through to
-        // a stop reason inside an `Ok`, an answer shaped like an answer that said there was
-        // nothing to say. The matrix claimed those cells on that basis.
+        // The two dispatches have arms for five languages.
         return Err(crate::refactor::Refusal::Unsupported {
             operation: "tracing provenance".into(),
             language: sym.language,
@@ -862,10 +763,8 @@ struct ModuleCall {
 /// Terraform's reserved evaluation-context namespaces: values the engine supplies.
 const HCL_CONTEXT_NAMESPACES: &[&str] = &["each", "count", "self", "path", "terraform"];
 
-/// The block-type keyword decides the role, and extraction records it as the
-/// symbol's qualifier. This reads the recorded fact. Re-sniffing the source here
-/// let this answer and the index's resolution of `module.<label>.<output>` disagree
-/// about which declarations are outputs.
+/// The block-type keyword decides the role, and extraction records it as the symbol's
+/// qualifier.
 fn hcl_role(sym: &Symbol, source: &str) -> HclRole {
     let head = sym.full_span.text(source);
     match sym.kind {
@@ -946,8 +845,7 @@ impl Ctx<'_> {
         }
     }
 
-    /// An input variable's value comes from outside the module. Every source the
-    /// workspace can see is reported, in Terraform's documented precedence order.
+    /// An input variable's value comes from outside the module.
     fn hcl_variable_sources(
         &mut self,
         sym: &Symbol,
@@ -967,15 +865,15 @@ impl Ctx<'_> {
             ));
         }
 
-        // A module called by another module takes its inputs from the `module`
-        // block's arguments alone. tfvars and -var apply to the root module only.
+        // A module called by another module takes its inputs from the `module` block's
+        // arguments alone.
         let callers = self.hcl_module_arguments(sym)?;
         if !callers.is_empty() {
             return self.hcl_child_module_sources(sym, sources, callers, depth);
         }
 
         // Terraform's order, lowest first: default < TF_VAR_* < terraform.tfvars <
-        // *.auto.tfvars (alphabetical) < -var/-var-file. Only the files are visible.
+        // *.auto.tfvars (alphabetical) < -var/-var-file.
         let dir = sym.file.parent().map(Path::to_path_buf);
         let tfvars: Vec<PathBuf> = self
             .index
@@ -1284,9 +1182,8 @@ impl Ctx<'_> {
                         )),
                     );
                 }
-                // A trailing attribute or type label, already accounted for by the address
-                // it belongs to. Function names land here too: they transform arguments
-                // that the walk follows separately.
+                // A trailing attribute or type label, already accounted for by the address it
+                // belongs to.
                 _ => {}
             }
             i += 1;
@@ -1652,9 +1549,6 @@ fn block_attribute<'t>(block: Node<'t>, source: &str, name: &str) -> Option<Node
 }
 
 /// A top-level `name = value` entry of a `.tfvars` file.
-///
-/// Values files declare no symbols (they are plain attributes, not addressable
-/// declarations), so this reads the CST directly instead of the index.
 fn tfvars_entry(source: &str, name: &str) -> Result<Option<(Span, String)>> {
     let parsed = Parsers::new().parse(Language::Hcl, source)?;
     let Some(body) = child_of_kind(parsed.root(), "body") else {
@@ -1681,15 +1575,13 @@ fn tfvars_entry(source: &str, name: &str) -> Result<Option<(Span, String)>> {
 }
 
 /// Rank of a `values-*.yaml` file beside a chart: above every chart values file, because `-f`
-/// outranks all of them. Far enough above to leave room for any depth of chart nesting below
-/// it.
+/// outranks all of them.
 const USER_SUPPLIED: u32 = 100;
 
-/// Rank of the first `--set`. Helm applies `--set` after every `-f`, so this sits
-/// above `USER_SUPPLIED` plus any number of supplied files.
+/// Rank of the first `--set`.
 const SET_SUPPLIED: u32 = 1_000_000;
 
-/// Where a candidate value is written.
+/// Where a candidate value stands.
 #[derive(Clone)]
 enum ValuesOrigin {
     /// A key in a values file.
@@ -1703,14 +1595,10 @@ enum ValuesOrigin {
 struct ValuesSource {
     rank: u32,
     label: String,
-    /// The list element the source sets, `ports[0]`, when it sets one. Two sources that
-    /// set different elements set different values, and neither overrides the other, so
-    /// they are ranked in separate competitions.
+    /// The list element the source sets, `ports[0]`, when it sets one.
     element: Option<String>,
     origin: ValuesOrigin,
-    /// False for a values file the supplied inputs say is never passed. The listing
-    /// keeps it, because the next reader will reach for it. It supplies nothing in
-    /// the invocation described, so it cannot win.
+    /// False for a values file the supplied inputs never pass.
     participates: bool,
 }
 
@@ -1780,7 +1668,7 @@ impl Ctx<'_> {
             return Ok(());
         }
 
-        // 1. A value written as an alias takes it from the anchor.
+        // 1.
         let mut expanded = false;
         for reference in self.refs_in(&sym.file, sym.full_span) {
             let Some(target) = reference.target.and_then(|t| self.index.symbol(t)) else {
@@ -1798,10 +1686,10 @@ impl Ctx<'_> {
             }
         }
 
-        // 2. A value produced by a template action is decided at render time.
+        // 2.
         let rendered = self.helm_template_value(sym, depth)?;
 
-        // 3. Values-file precedence, for keys that are part of a chart's values.
+        // 3.
         let competed = self.helm_values_competition(sym, depth)?;
 
         if !expanded && !rendered && !competed {
@@ -1817,11 +1705,8 @@ impl Ctx<'_> {
         Ok(())
     }
 
-    /// What a Helm template says about one key: the actions that supply its value,
-    /// and the conditionals that decide whether the key renders at all.
-    ///
-    /// Both live inside `{{ ... }}` bytes that are masked before the YAML parse, so
-    /// neither is visible to the index; [`crate::helm`] reads them back.
+    /// What a Helm template says about one key: the actions that supply its value, and the
+    /// conditionals that decide whether the key renders at all.
     fn helm_template_value(&mut self, sym: &Symbol, depth: usize) -> Result<bool> {
         if sym.language != Language::Helm {
             return Ok(false);
@@ -1830,8 +1715,8 @@ impl Ctx<'_> {
         let parsed = Parsers::new().parse(Language::Helm, &source)?;
         let template = helm::Template::of(&source, &parsed);
 
-        // The key is written unconditionally in the masked tree, but a `{{- if }}`
-        // wrapping it decides whether the rendered manifest holds it at all.
+        // The masked tree holds the key unconditionally. A `{{- if }}` around it decides
+        // whether the rendered manifest holds it.
         for guard in template.conditions_at(sym.name_span.start) {
             self.stop(
                 depth,
@@ -1930,9 +1815,6 @@ impl Ctx<'_> {
     }
 
     /// Follow `include "name"` into the `define "name"` that supplies its text.
-    ///
-    /// Helm's named templates share one namespace across a chart and its subcharts,
-    /// so the search covers the whole chart tree instead of one directory.
     fn helm_named_template(&mut self, from: &Path, name: &str, depth: usize) -> Result<()> {
         if self.over_depth(depth) {
             return Ok(());
@@ -2050,8 +1932,7 @@ impl Ctx<'_> {
         };
         let values = chart.join("values.yaml");
         let Some(symbol) = self.find_key(&values, path) else {
-            // No values file declares it. An input that supplies it is then the
-            // whole answer: it introduces the key rather than overriding a default.
+            // No values file declares it.
             if self.helm_introduced_key(&chart, path, depth)? {
                 return Ok(());
             }
@@ -2080,8 +1961,7 @@ impl Ctx<'_> {
         self.keyed_backward(target, EdgeKind::Substitution, depth)
     }
 
-    /// A key no values file in the chart declares, which the supplied inputs
-    /// nonetheless set. Returns false when no input sets it.
+    /// A key no values file in the chart declares, which the supplied inputs nonetheless set.
     fn helm_introduced_key(&mut self, chart: &Path, path: &[String], depth: usize) -> Result<bool> {
         if self.inputs.is_empty() {
             return Ok(false);
@@ -2121,8 +2001,7 @@ impl Ctx<'_> {
         Ok(true)
     }
 
-    /// A file whose keys are chart values. Any `values*.yaml` beside a chart counts,
-    /// and so does any file the caller passed with `-f`, whatever its name.
+    /// A file whose keys are chart values.
     fn is_values_source(&self, path: &Path) -> bool {
         is_values_file(path) || self.inputs.files.iter().any(|f| f == path)
     }
@@ -2141,8 +2020,7 @@ impl Ctx<'_> {
         // entry in a parent chart addresses the `image.tag` of subchart `mysql`.
         let (owner, local) = self.descend_to_subchart(&chart, &path);
         let levels = chart_levels(&owner, &local);
-        // A `-f` file and a `--set` are merged into the values of the *outermost* chart. So a
-        // subchart key is theirs only under its parent's prefix.
+        // A `-f` file and a `--set` are merged into the values of the *outermost* chart.
         let addressed = levels
             .last()
             .map(|(_, level_path)| level_path.clone())
@@ -2151,10 +2029,7 @@ impl Ctx<'_> {
         let mut candidates = self.helm_chart_candidates(&levels)?;
         candidates.extend(self.helm_input_candidates(&addressed)?);
 
-        // An assignment that names a list element sets that element and no other. So
-        // `--set ports[0].name` and `--set ports[1].name` are two answers and not two
-        // sources competing for one. Each element gets its own competition. The sources
-        // that name no element are in every one of them.
+        // An assignment that names a list element sets that element and no other.
         let mut elements: Vec<String> = candidates
             .iter()
             .filter_map(|c| c.element.clone())
@@ -2178,11 +2053,6 @@ impl Ctx<'_> {
     }
 
     /// The values files of a chart and each chart enclosing it.
-    ///
-    /// A `values-*.yaml` beside a chart is a file *someone may pass* with `-f`. The
-    /// command line decides whether they do, and in which order. With no inputs
-    /// supplied, the file ranks above every chart file and decides nothing. With
-    /// inputs supplied, it is either one of them or takes no part at all.
     fn helm_chart_candidates(
         &mut self,
         levels: &[(PathBuf, Vec<String>)],
@@ -2216,15 +2086,13 @@ impl Ctx<'_> {
                     continue;
                 }
                 if self.inputs.file_position(&file).is_some() {
-                    // Passed with `-f`: it competes at the position it was passed
-                    // in, against the outermost chart's key path, not this one.
+                    // `-f` places it: it competes at its own position, against the
+                    // outermost chart's key path.
                     continue;
                 }
                 out.push(ValuesSource {
                     rank: USER_SUPPLIED,
-                    // With no inputs described, nobody supplied this file. It sits
-                    // at the rank a `-f` would give it. The label keeps the win
-                    // conditional instead of claiming a flag that was never passed.
+                    // With no inputs described, nobody supplied this file.
                     label: if supplied {
                         format!("-f {} (not passed)", file_name(&file))
                     } else {
@@ -2239,8 +2107,7 @@ impl Ctx<'_> {
         Ok(out)
     }
 
-    /// The sources the caller supplied that set this key. Each `-f` file ranks at its
-    /// position on the command line, and each `--set` above all of them.
+    /// The sources the caller supplied that set this key.
     fn helm_input_candidates(&mut self, addressed: &[String]) -> Result<Vec<ValuesSource>> {
         let mut out = Vec::new();
         let files = self.inputs.files.clone();
@@ -2285,8 +2152,7 @@ impl Ctx<'_> {
         Ok(out)
     }
 
-    /// Rank candidate sources against each other, mark the winner and keep every
-    /// loser. Returns false when there was no competition to report.
+    /// Rank candidate sources against each other, mark the winner and keep every loser.
     fn helm_competition(
         &mut self,
         subject: String,
@@ -2326,9 +2192,7 @@ impl Ctx<'_> {
             .filter(|i| candidates[*i].participates)
             .collect();
         if effective.is_empty() {
-            // Every source setting this key is a file the inputs say is not passed.
-            // There is no competition to hold: in the invocation described, nothing
-            // supplies the key at all, and naming the files that would is the answer.
+            // Every source setting this key sits in a file the inputs never pass.
             let ignored: Vec<String> = candidates.iter().map(|c| c.describe()).collect();
             self.stop(
                 depth,
@@ -2360,9 +2224,7 @@ impl Ctx<'_> {
             effective.last().copied()
         };
 
-        // Without inputs, every `values-*.yaml` in the workspace is a file that may or may not
-        // be passed. So the answer is open however the ranks fall. With inputs, the command
-        // line is described and the order decides.
+        // Without inputs, any `values-*.yaml` in the workspace might reach the render.
         let undecided_files: Vec<String> = candidates
             .iter()
             .filter(|c| c.rank == USER_SUPPLIED && c.participates)
@@ -2505,8 +2367,8 @@ impl Ctx<'_> {
             };
         }
         match winning_label {
-            // The conditional label does not name a source, so "overridden by" would
-            // read as a sentence about a sentence. Spell the condition out instead.
+            // The conditional label does not name a source, so "overridden by" would read as a
+            // sentence about a sentence.
             Some(label) => match label.strip_prefix("would win under ") {
                 Some(flag) => format!("overridden when the command line passes {flag}"),
                 None => format!("overridden by {label}"),
@@ -2516,9 +2378,6 @@ impl Ctx<'_> {
     }
 
     /// The dotted key path of a mapping key, read off the container chain.
-    ///
-    /// Keys under a sequence are qualified by the sequence's key, so `ports[0].port`
-    /// reads as `ports.port`: the index records no sequence indices.
     fn key_path(&self, sym: &Symbol) -> Vec<String> {
         let mut path = vec![sym.name.clone()];
         let mut current = sym;
@@ -2600,10 +2459,8 @@ impl Ctx<'_> {
 
         self.helm_values_competition(sym, depth)?;
 
-        // A key another manifest reads by name has resolved references, and the
-        // index holds them. `configMapKeyRef` brought this here. The answer used
-        // to declare that nothing consumed the key, while `fr usages` listed the
-        // container reading it.
+        // A key another manifest reads by name has resolved references, and the index holds
+        // them.
         let named_readers: Vec<(PathBuf, Span)> = self
             .index
             .references_to(sym.id)
@@ -2686,8 +2543,7 @@ impl Ctx<'_> {
                 self.push_hop(hop);
                 self.stop(depth + 1, StopReason::RenderDependent(action_text.clone()));
 
-                // A read under a conditional is a read that may not happen. The
-                // condition decides it, so name the condition rather than imply always.
+                // A read under a conditional is a read that may not happen.
                 for guard in template.conditions_at(span.start) {
                     self.stop(
                         depth + 1,
@@ -2747,16 +2603,11 @@ fn has_chart_yaml(dir: &Path) -> bool {
 }
 
 /// The chart directory this file belongs to.
-///
-/// One authority, [`crate::lang::chart_root`], which also answers for a chart with no
-/// `Chart.yaml` in it. The copy here found no boundary for one, so a template's
-/// values file was invisible while the language layer had already called it Helm.
 fn chart_root(file: &Path) -> Option<PathBuf> {
     crate::lang::chart_root(file).map(Path::to_path_buf)
 }
 
-/// A chart and each chart that encloses it, with the key path as addressed at that
-/// level. Index 0 is the chart itself (lowest precedence).
+/// A chart and each chart that encloses it, with the key path as addressed at that level.
 fn chart_levels(chart: &Path, local: &[String]) -> Vec<(PathBuf, Vec<String>)> {
     let mut levels = vec![(chart.to_path_buf(), local.to_vec())];
     let mut current = chart.to_path_buf();
@@ -2932,8 +2783,7 @@ impl Ctx<'_> {
         Ok(out)
     }
 
-    /// Run the cascade over competing declarations, marking the winner and keeping
-    /// every loser. Returns the winning index, if the cascade decides one.
+    /// Run the cascade over competing declarations, marking the winner and keeping every loser.
     fn css_competition(
         &mut self,
         subject: String,
@@ -3110,8 +2960,7 @@ impl Ctx<'_> {
     }
 }
 
-/// Compare two declarations by the cascade. `None` means the workspace does not
-/// show which wins.
+/// Compare two declarations by the cascade.
 fn css_compare(a: &CssDeclaration, b: &CssDeclaration) -> Option<Ordering> {
     if a.important != b.important {
         return Some(a.important.cmp(&b.important));
@@ -3257,7 +3106,7 @@ fn css_declaration_at(source: &str, file: &Path, span: Span) -> Result<Vec<CssDe
         .collect())
 }
 
-/// The declaration containing an arbitrary span, e.g. a `var()` use site.
+/// The declaration containing an arbitrary span, e.g.
 fn css_declaration_containing(
     source: &str,
     file: &Path,
@@ -3381,13 +3230,8 @@ fn css_language(file: &Path) -> Language {
 }
 
 /// CSS specificity: (id, class/attribute/pseudo-class, element/pseudo-element).
-///
-/// Implements the spec's counting rules, including `:is()`/`:not()`/`:has()`
-/// taking their most specific argument and `:where()` contributing nothing.
 pub fn specificity(selector: &str) -> Specificity {
-    // A selector list has no single specificity. The strongest branch is the one that
-    // can win, so report that. Only a comma outside parentheses splits a list. The
-    // comma in `:is(#a, .b)` belongs to the functional pseudo-class.
+    // A selector list has no single specificity.
     let branches = split_top_level(selector, ',');
     if branches.len() > 1 {
         return branches
@@ -3455,7 +3299,7 @@ pub fn specificity(selector: &str) -> Specificity {
             '*' | ' ' | '>' | '+' | '~' | ')' | '(' => i += 1,
             c if is_ident_char(c) => {
                 let len = ident_len(&bytes[i..]);
-                // `ns|element`: the namespace prefix is not counted, the element is.
+                // `ns|element`: count the element and drop the namespace prefix.
                 if bytes.get(i + len) == Some(&'|') && bytes.get(i + len + 1) != Some(&'|') {
                     i += len + 1;
                     continue;

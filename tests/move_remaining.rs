@@ -1,23 +1,4 @@
 //! Move to file for the languages that used to refuse: Zig, Bash, YAML and Helm.
-//!
-//! Each of the three has a different answer to "what else has to change":
-//!
-//! - **Zig** resolves through `@import`. So a moved declaration is reached by a new namespace.
-//!   The tests assert the `const … = @import(…)` line byte for byte and the qualifier on every
-//!   use.
-//! - **Bash** has no import that binds a name, because `source` splices a whole script in. So a moved
-//!   function needs its surviving callers to source its new home. What `source` cannot say is
-//!   what a computed path put in scope, and that refuses.
-//! - **YAML / Helm** address a values key by its path, and a top-level key's path does not
-//!   mention its file. Nothing needs repointing; what needs saying is that `helm install` reads
-//!   only `values.yaml`.
-//!
-//! HTML and XML stay refused, and there is a test for that too: an element has no name another
-//! document imports.
-//!
-//! Every successful move goes through `edit::plan(…, ReparseStrict)` and is then re-indexed. So
-//! a move that produces text the tool can no longer resolve fails here and not in someone's
-//! repository.
 
 use fun_refactor::{
     edit::{self, apply_to_string, Validation},
@@ -78,7 +59,7 @@ fn symbol_of_kind(index: &Index, name: &str, kind: SymbolKind) -> SymbolId {
     found[0].id
 }
 
-/// Validate by reparsing every touched file, then write it. Returns what changed.
+/// Validate by reparsing every touched file, then write it.
 fn commit(plan: &move_symbol::MovePlan) -> Vec<PathBuf> {
     let outcomes = edit::plan(&plan.edits, Validation::ReparseStrict)
         .expect("the move must survive a strict reparse");
@@ -291,16 +272,15 @@ fn zig_refuses_a_destination_that_would_need_a_climbing_import_path() {
         &ws.path("dest.zig"),
     ));
     // `error` and not `refusal`: which two paths these are is a fact about them and not about
-    // Zig. So this is no longer a `Refusal::Unsupported` naming the language. It was one, and
-    // said Zig was unsupported when Zig moves between files perfectly well.
+    // Zig.
     assert!(message.contains("climbs above"), "got: {message}");
     assert!(message.contains("module root"), "got: {message}");
 }
 
 #[test]
 fn zig_moves_upward_when_nothing_needs_an_import() {
-    // With no remaining use there is no `@import` to write, so the path that could
-    // not be computed is never needed. The move is then plainly correct.
+    // With no remaining use there is no `@import` to write, so the path that could not be
+    // computed is never needed.
     let ws = Workspace::new(&[
         ("sub/a.zig", "pub fn thing() void {}\n"),
         ("dest.zig", "pub const K: i32 = 1;\n"),
@@ -458,7 +438,6 @@ fn bash_sources_the_new_home_from_the_script_that_still_calls_it() {
         plan.warnings
     );
 
-    // The call resolves to the function in its new file.
     let rebuilt = ws.index();
     let moved = symbol_id(&rebuilt, "greet", Some(&ws.path("lib.sh")));
     assert_eq!(

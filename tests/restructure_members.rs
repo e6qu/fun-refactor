@@ -1,19 +1,4 @@
 //! Restructuring the shapes a language is made of: members, arms and macro bodies.
-//!
-//! A pattern used to have to be an expression, a statement or a whole item. That leaves
-//! out most of what changing a program means. A variant of an enum is a member. So is the
-//! arm that goes with it. So are a field of a struct, a case of a switch and a name in an
-//! or-pattern. None of them parses on its own.
-//!
-//! A member is written with the separator that puts it in its list, `Scss,`. Most
-//! grammars leave that separator out of the member's own node. So the match takes the
-//! target's separator with it, and rewriting `Scss,` as two variants leaves two commas
-//! rather than three.
-//!
-//! Rust macros are the other half. `matches!(l, A | B)` holds an or-pattern that
-//! tree-sitter cannot parse as one, because no grammar knows what a macro does with its
-//! arguments. What is there is a run of tokens, and a shape written in Rust has a run of
-//! tokens too.
 
 use fun_refactor::edit::{apply_to_string, plan, Validation};
 use fun_refactor::index::Index;
@@ -22,9 +7,6 @@ use fun_refactor::refactor::restructure;
 use fun_refactor::scan::{scan, ScanOptions};
 
 /// Rewrite a one-file workspace, and return (matches, rewritten text).
-///
-/// Every rewrite goes through the same `ReparseStrict` gate the CLI uses, so a member
-/// pattern that produced `Scss,,` fails here rather than in review.
 fn one(
     language: Language,
     file: &str,
@@ -80,8 +62,8 @@ fn a_variant_joins_an_enum() {
 
 #[test]
 fn a_variant_pattern_is_not_the_name_it_holds() {
-    // `Scss` inside `Language::Scss` is the same identifier, in a place where a variant
-    // may not go. Matching it would put a declaration inside an expression.
+    // `Scss` inside `Language::Scss` is the same identifier, in a place where a variant may not
+    // go.
     let (n, out) = one(Language::Rust, "a.rs", RUST, "Scss,", "Sass,");
     assert_eq!(n, 1, "{out}");
     assert!(
@@ -118,8 +100,6 @@ fn an_arm_joins_a_match() {
 
 #[test]
 fn an_or_pattern_widens_wherever_it_is_written() {
-    // Once in an arm, where the grammar gives it a node, and once inside `matches!`,
-    // where it is a run of tokens and nothing else.
     let src = format!("{RUST}\npub fn either(l: Language) -> bool {{\n    match l {{\n        Language::Css | Language::Scss => true,\n        _ => false,\n    }}\n}}\n");
     let (n, out) = one(
         Language::Rust,
@@ -141,8 +121,7 @@ fn an_or_pattern_widens_wherever_it_is_written() {
 
 #[test]
 fn a_metavariable_inside_a_macro_binds_a_whole_argument() {
-    // The argument is a call with a comma of its own. A run that stopped at the first
-    // comma would bind `item.name(` and leave the rest.
+    // The argument is a call with a comma of its own.
     let src = "\
 fn f(items: &[Item]) {
     println!(\"item {} of {}\", item.name(), items.len());

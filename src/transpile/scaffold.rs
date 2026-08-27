@@ -1,19 +1,4 @@
 //! Code from an OpenAPI document.
-//!
-//! `fr openapi` derives a document from a service. This is the other direction: given
-//! the document, write the service's skeleton. Both targets this tool translates
-//! between are supported, a FastAPI application and a Next.js App Router tree.
-//!
-//! # The rule
-//!
-//! The rule that governs the derivation governs the writing: invent nothing. Paths,
-//! methods, parameters and schemas come from the document. A handler body is in no
-//! document, so every generated handler answers 501 out loud, in the target's own
-//! idiom. A service that answers `[]` looks finished; one that answers 501 says where
-//! the work is.
-//!
-//! Whatever the document leaves undetermined is reported beside the plan: a schema shape
-//! this cannot spell, a parameter with no type, a response left `default`.
 
 use anyhow::{bail, Result};
 use serde_json::Value;
@@ -82,9 +67,6 @@ enum FieldType {
 }
 
 /// Is this file an OpenAPI document?
-///
-/// The `openapi` key is the document's own version declaration, so its presence is the
-/// document saying what it is.
 pub fn is_openapi_document(path: &Path) -> bool {
     read_document(path).is_ok_and(|d| d.get("openapi").is_some())
 }
@@ -127,8 +109,7 @@ pub fn plan_to(
 
     let root = match (out, target) {
         (Some(out), _) => out.to_path_buf(),
-        // A Next.js route is only a route under `app/api`. The URL is where the file
-        // sits, and this tool's own `fr openapi` reads the tree back by that rule.
+        // A Next.js route is only a route under `app/api`.
         (None, Target::NextJs) => path
             .parent()
             .unwrap_or(Path::new("."))
@@ -162,8 +143,7 @@ pub fn plan_to(
             Target::FastApi => crate::lang::Language::Python,
             Target::NextJs => crate::lang::Language::TypeScript,
         };
-        // The output has to parse as its own language. An unparseable result is a
-        // defect here, not in the caller's document, and should say so.
+        // The output has to parse as its own language.
         let parsed = crate::parse::Parsers::new().parse(language, &file.output)?;
         if parsed.has_errors() {
             bail!(
@@ -325,11 +305,6 @@ fn read_operations(document: &Value, notes: &mut Vec<String>) -> Result<Vec<Oper
 }
 
 /// A schema's property name, kept as the document spells it.
-///
-/// The name is the wire contract: `petName` in the document is the key every request
-/// carries, and re-casing it to `pet_name` would change the JSON. A name Python cannot
-/// declare is reported and left out, which shrinks the model out loud instead of
-/// serving a different one.
 fn python_name(name: &str, owner: &str, notes: &mut Vec<String>) -> Option<String> {
     if is_identifier(name) {
         return Some(name.to_string());
@@ -342,9 +317,6 @@ fn python_name(name: &str, owner: &str, notes: &mut Vec<String>) -> Option<Strin
 }
 
 /// A schema's property name as a TypeScript key, quoted where it has to be.
-///
-/// TypeScript can spell any property name, so nothing is left out: `pet-name` becomes
-/// `"pet-name"` and the wire contract holds.
 fn ts_key(name: &str) -> String {
     if is_identifier(name) {
         name.to_string()
@@ -368,10 +340,6 @@ fn snake(name: &str) -> String {
 }
 
 /// The URL with its parameters spelled the way the signature spells them.
-///
-/// FastAPI binds a path parameter by name: `{petId}` over `pet_id: int` never binds, and
-/// the route answers 422 for every request. The URL a caller sees is unchanged, since a
-/// placeholder's name is internal to the framework.
 fn python_path(path: &str) -> String {
     let mut out = String::new();
     let mut rest = path;

@@ -1,18 +1,4 @@
 //! Every file, asked to be written as every language.
-//!
-//! `tests/round_trip.rs` asks whether a translation lost anything, by reading the result
-//! back and comparing. It has nothing to say about the question a caller asks first:
-//! **which of these can I even ask for?** `fr translate <file>` answers that with a list,
-//! and nothing checked that the list was true.
-//!
-//! Sweeping every file against every target found two ways it was not. `fr translate x.py
-//! tsx` succeeded and no listing ever offered it, because the listing walked one set of
-//! languages and the request checked another. And `fastapi`, which the command's own help
-//! documents as a target, was never listed for a Next.js route, because the line that
-//! printed it was written where the loop could not reach.
-//!
-//! Both are the same fault: two definitions of one thing. There is one now,
-//! [`translate::options_for`], and this is what holds it to its word.
 
 use fun_refactor::lang::Language;
 use fun_refactor::{translate, transpile};
@@ -88,9 +74,7 @@ fn ask_for(path: &Path, target: Language) -> Result<PathBuf, String> {
 
 #[test]
 fn everything_the_listing_offers_can_be_asked_for() {
-    // A blocked entry is the other half of the promise. It is listed with the
-    // reason, and asking for it plainly fails with that reason. A Helm chart
-    // offered as yaml writes to its own path; the listing used to hide the pair.
+    // A blocked entry is the other half of the promise.
     let tmp = workspace();
     let mut asked = 0;
     let mut blocked = 0;
@@ -161,8 +145,7 @@ fn nothing_that_works_is_left_off_the_listing() {
 
 #[test]
 fn a_next_js_route_is_offered_as_a_fastapi_router() {
-    // The command's help documents `fastapi` as a target. The listing never printed it,
-    // so the only way to find the capability was to read the help.
+    // The command's help documents `fastapi` as a target.
     let tmp = tempfile::tempdir().expect("a temporary directory");
     let route = tmp.path().join("app/api/posts/route.ts");
     std::fs::create_dir_all(route.parent().expect("a parent")).expect("mkdir");
@@ -184,9 +167,7 @@ fn a_next_js_route_is_offered_as_a_fastapi_router() {
 
 #[test]
 fn tsx_is_a_target_only_where_the_source_is_already_typescript() {
-    // TSX is TypeScript with JSX in it. A `.ts` file is TSX already, so converting one is
-    // the same bytes under another extension. A translation writes no JSX at all, so
-    // producing a `.tsx` file from Python names a flavour the content does not have.
+    // TSX is TypeScript with JSX in it.
     let tmp = workspace();
 
     let from_typescript = ask_for(&tmp.path().join("e.ts"), Language::Tsx);
@@ -202,8 +183,6 @@ fn tsx_is_a_target_only_where_the_source_is_already_typescript() {
 
 #[test]
 fn a_language_with_nowhere_to_go_says_so() {
-    // Bash used to be the example here, then it grew a reader and a writer. The
-    // indented Sass syntax is the one left: no other grammar contains it.
     let tmp = workspace();
     let sass = tmp.path().join("h.sass");
     std::fs::write(&sass, ".panel\n  color: red\n").expect("the file");

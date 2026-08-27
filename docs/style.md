@@ -92,33 +92,34 @@ grows. Add to it whatever gets caught in review.
 
 ## What a comment is for
 
-A comment says what the reader cannot see in the code.
+**Default to no comment.** Most code needs none. Write one only where a reader who
+knows the language would otherwise change the code and break something.
 
-**Say it in the fewest words that still sound human.** Full sentences where a sentence
-is needed. No throat-clearing, no editorialising, no calling a thing clever or a shame.
+**Never say what the code does.** The code says it. A comment carries a reason, a
+constraint, a unit, or a rule the code cannot state.
 
-**Do not say what the code does.** The code says that. A comment gives the reason, the
-constraint, the unit, or the rule that the code alone cannot state.
+**One line.** Two where the constraint needs two. A paragraph means the code is wrong;
+fix the code.
 
-**Write for a reader who arrives today.** A comment is timeless. It describes the code
-as it stands, never the defect that led to it, never what an earlier version did, never
-what somebody once tried. `BUGS.md` holds defects and the git log holds changes.
+**Write active voice and imperative mood.** Say who acts and what to do. "Read both
+halves" and not "both halves are read". "Trim the trailing newline" and not "the
+trailing newline is trimmed here". This holds for every comment, message, document and
+tutorial in the repository.
 
-| Avoid | Write |
+**Write for a reader who arrives today.** Never the defect that led here, never what an
+earlier version did, never what somebody once tried. `BUGS.md` holds defects and the git
+log holds changes.
+
+**Give no justification.** A comment states the constraint. It does not argue for the
+code, weigh alternatives, or say what would happen otherwise.
+
+| Delete | Keep |
 | --- | --- |
-| The old behaviour added a dead import. | (delete: the rule above it already says what to do) |
-| Reading only the first turned X into Y, which is a wrong answer. | Read both, because X and Y mean opposite things. |
-| which is worse than declining the move | (delete, or state the consequence plainly) |
-| This used to refuse every Java call site. | (delete) |
-
-Delete a comment that repeats the code. `// increment the counter` above `count += 1`
-tells the reader nothing.
-
-Keep a comment that gives a reason, a constraint or a unit. "Bytes, because tree-sitter
-reports byte offsets" is worth a line.
-
-Do not write the history of a defect in a comment. `BUGS.md` holds defects and the git
-log holds changes. A comment describes the code as it is today.
+| `// increment the counter` over `count += 1` | `// Bytes: tree-sitter reports byte offsets.` |
+| `// The old behaviour added a dead import.` | `// Sort before comparing: the walker yields no order.` |
+| `// Reading only the first turned X into Y, which is a wrong answer.` | `// Read both: X and Y mean opposite things.` |
+| `// This used to refuse every Java call site.` | `// Java overloads; the name alone does not identify one.` |
+| `// which is worse than declining the move` | `// Refuse: the move would change what the name means.` |
 
 ## Words to avoid, and what to write
 

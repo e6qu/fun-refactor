@@ -364,7 +364,7 @@ says which commit it was taken at.
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 18 |
 | Supported pairs | 299 of 432, every other one carrying its reason |
-| Defects fixed | 631 |
+| Defects fixed | 635 |
 | Defects open | 1 |
 
 Every cell that `fr capabilities` marks `n/a` carries the reason the tool refuses. That
@@ -2639,3 +2639,42 @@ generator and every `<pre>` on every page, with the tags stripped. A comment wra
 Two kinds of comment do reach these pages and stay. What `fr` writes into a translation
 is the tool speaking, and the translation page exists to show it. What a vendored corpus
 file carries is somebody else's code, held to a checksum. Neither was authored here.
+
+### The pass where the tool got a release
+
+Nobody could take this tool without building it. `release-please` reads the commits on
+`main` and keeps the next version and its changelog in an open pull request. Merging
+that request tags the release. Four binaries follow the tag: Linux and macOS, amd64
+and arm64. The Linux pair links against musl and runs anywhere with the right
+architecture. A binary linked against the runner's glibc does not. A fifth archive
+holds the browser module and its loader. Each archive carries its own checksum.
+
+`tests/release.rs` holds the build matrix and the README's download table to each other.
+A target with no row is an artifact nobody looks for. A row with no target is a 404
+behind a green workflow.
+
+One thing had to change first. `release-please` classifies a change by the subject of
+its commit, and a squash merge writes the pull request title there. No title in this
+repository's history says what kind of change it is. So each classifies as nothing, the
+version never moves, and nothing reports it. A job on each
+pull request refuses a title naming no kind, and prints the nine kinds with what each
+one bumps.
+
+### The pass where the comments got out of the way
+
+20,169 lines of comment stood in 159,101 lines of Rust. The rule said a comment gives
+the reason rather than the behaviour. It never said how many. So the answer ran to a
+paragraph per idea, and 13,903 of those lines sat in blocks of three or more.
+
+`docs/style.md` asks for none by default now. One line where a reader would otherwise
+break something, two where the constraint needs two, and no justification at all.
+`tools/trim-comments.py` cuts every block to its leading sentence and deletes the ones
+that restate the code or narrate a defect. It reads Rust closely enough to tell a
+comment from a fixture holding a line that opens `//`, which `write.rs` has several of.
+That took 11,413 lines, and 194 test suites still pass.
+
+The same pass gave the style rule two counters. `comment-line` counts the rest.
+`passive-voice` counts the constructions that say what happened without saying who did
+it. 948 of those left the writers, the readers, the refactorings and every
+reader-facing document. The rest sit mostly in `BUGS.md` and `PLAN.md`, which record
+what happened in the past tense. Rewriting a record into the imperative falsifies it.

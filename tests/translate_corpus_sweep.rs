@@ -1,9 +1,4 @@
-//! Every corpus file, translated to every target, with nothing carried. Not a spot check: the
-//! vendored corpora are real code from real projects, and this holds two facts about them.
-//! Every translation plans without a refusal or a panic. And nothing is carried over verbatim:
-//! every construct in these files has a defined lowering into every target. This used to be a
-//! ratcheted ledger of losses. The ledger reached zero and became this assertion, so a
-//! translation that starts carrying again fails the build naming the construct.
+//! Every corpus file, translated to every target, with nothing carried.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;

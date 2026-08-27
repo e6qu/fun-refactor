@@ -1,7 +1,4 @@
 //! What this tool can do, for each language.
-//!
-//! Each entry asks the predicate that the command itself uses, so the table and the command
-//! cannot disagree. A test checks the published table against this code.
 
 use crate::lang::{Language, LanguageClass};
 use serde::Serialize;
@@ -64,8 +61,8 @@ impl Capability {
         Capability::DeclaredType,
     ];
 
-    /// The name a person reads in the table, not an identifier: it has spaces and
-    /// slashes in it. See the note on `Basis::describe`.
+    /// The name a person reads in the table, not an identifier: it has spaces and slashes in
+    /// it.
     pub fn label(&self) -> &'static str {
         match self {
             Capability::Symbols => "symbols/def/refs",
@@ -132,7 +129,7 @@ impl Capability {
 pub enum Support {
     /// Implemented and tested.
     Yes,
-    /// Meaningless for this language. There is nothing the operation could do.
+    /// Meaningless for this language.
     NotApplicable { because: &'static str },
     /// Meaningful in principle, refused in practice, with the blocking reason.
     Refused { because: &'static str },
@@ -164,9 +161,6 @@ const NO_BINDING_FORM: &str =
     "markup has no binding form: a reusable value here is a CSS custom property, which \
      belongs to the stylesheet instead of the document";
 /// The same absence, for a data format that has no stylesheet to point at.
-///
-/// JSON writes a value where the value goes. There is no name to put in front
-/// of one and no place to put the name, so a selection has nothing to become.
 const NO_NAME_TO_BIND: &str =
     "this format writes a value where the value goes: there is no name to put in \
      front of one and nowhere to put it";
@@ -175,14 +169,6 @@ const NO_SUBSTITUTION: &str =
     "this language executes and not substitutes, so dataflow answers this instead";
 
 /// Why a capability is absent, for this language.
-///
-/// `structural` says the operation has no meaning here. Use it for a language that has no such
-/// construct. `missing` says the construct exists and the tool does not handle it yet. A reason
-/// that is untrue of the language it is given for is worse than none.
-/// Why this language has no binding form, in terms that are true of it.
-///
-/// A stylesheet has a custom property to point at; a data format has nothing at
-/// all. One sentence for both would describe neither.
 fn binding_form_reason(language: Language) -> &'static str {
     match language {
         Language::Json | Language::Yaml | Language::Helm => NO_NAME_TO_BIND,
@@ -201,15 +187,6 @@ fn absent(language: Language, structural: &'static str, missing: &'static str) -
 }
 
 /// Record that a capability ran against a language.
-///
-/// A mark in the table says the command accepts the language. It does not say that any test
-/// ever ran it. Set `FR_CAPABILITY_LOG` to a path and each capability appends the pair it ran
-/// with. `tools/capability-report.py` compares that log against the table.
-///
-/// The log is a file. It is not a global. The test suite is many processes, and one set of
-/// pairs has to cover all of them.
-///
-/// Without the variable this reads one `None` and returns, so it can sit on a hot path.
 pub fn record(capability: Capability, language: Language) {
     use std::io::Write;
     use std::sync::OnceLock;
@@ -219,9 +196,7 @@ pub fn record(capability: Capability, language: Language) {
     let Some(path) = path else {
         return;
     };
-    // Appended and not held: the writer may be one of a dozen processes. The line goes
-    // out in one write call, because `writeln!` may split one line across several and
-    // two processes' halves can interleave. One small write under O_APPEND lands whole.
+    // Appended and not held: the writer may be one of a dozen processes.
     if let Ok(mut file) = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
@@ -233,11 +208,6 @@ pub fn record(capability: Capability, language: Language) {
 }
 
 /// Does this capability take a whole workspace, and not one thing in one language?
-///
-/// The answer decides what `n/a` promises. For a symbol, a span or a file, `n/a` means the
-/// command refuses: the caller pointed at something and is owed an answer about it. For a
-/// workspace, the language is a filter. A call graph over a tree that holds Markdown is not
-/// refused, and it holds no Markdown, so `n/a` means the language adds nothing.
 pub fn is_whole_workspace(capability: Capability) -> bool {
     use Capability as C;
     matches!(
@@ -247,9 +217,6 @@ pub fn is_whole_workspace(capability: Capability) -> bool {
 }
 
 /// Record a capability that runs over a whole workspace.
-///
-/// Only the languages the index holds, and only those the table claims. A call graph built over
-/// a tree that holds Markdown did not build a call graph for Markdown.
 pub fn record_workspace(capability: Capability, index: &crate::index::Index) {
     debug_assert!(
         is_whole_workspace(capability),
@@ -270,9 +237,6 @@ pub fn record_workspace(capability: Capability, index: &crate::index::Index) {
 }
 
 /// Does `capability` apply to `language`?
-///
-/// Every arm calls the predicate that the refactoring uses, or states why the
-/// operation has no meaning for the language.
 pub fn support(capability: Capability, language: Language) -> Support {
     use Capability as C;
     let imperative = language.class() == LanguageClass::Imperative;
@@ -283,9 +247,7 @@ pub fn support(capability: Capability, language: Language) -> Support {
 
         C::Restructure => Support::Yes,
 
-        // SCSS gets its own reason. `fr symbols` prints a mixin as a function, and
-        // `fr usages` lists every `@include` of it. So "this language has no
-        // functions" is untrue of what the tool has just described.
+        // SCSS gets its own reason.
         C::CallGraph if matches!(language, Language::Scss | Language::Sass) => {
             Support::NotApplicable {
                 because: "a mixin is expanded where it is written, so a stylesheet holds \
@@ -306,13 +268,7 @@ pub fn support(capability: Capability, language: Language) -> Support {
             }
         }
 
-        // `fr flow` shared an arm with the call graph. So the row told a
-        // reader that a Terraform variable cannot be traced "because this
-        // language has no functions". The verdict was right and the reason was
-        // not: dataflow needs execution, and these are evaluated by
-        // substitution.
-        // The same command answers for them under provenance, which is the row
-        // to read, and the reason now says so.
+        // `fr flow` shared an arm with the call graph.
         C::Flow => {
             if imperative {
                 Support::Yes
@@ -455,7 +411,6 @@ pub fn support(capability: Capability, language: Language) -> Support {
             }
         }
 
-        // Asked of the operation and not restated here; the two had drifted.
         C::OrganizeImports => match crate::refactor::imports::why_not_organizable(language) {
             None => Support::Yes,
             Some(because) => Support::NotApplicable { because },
@@ -475,10 +430,7 @@ pub fn support(capability: Capability, language: Language) -> Support {
             }
         }
 
-        // Two routes with different promises. Containment writes the same bytes under another
-        // grammar, such as CSS as SCSS, and loses nothing. Translation between programming
-        // languages produces a draft. It carries anything with no counterpart into the output
-        // as a comment.
+        // Two routes with different promises.
         C::Translate => {
             let containment = !crate::translate::targets(language).is_empty();
             if crate::transpile::can_be_read(language) || containment {
@@ -497,12 +449,7 @@ pub fn support(capability: Capability, language: Language) -> Support {
             }
         }
 
-        // The contract lives in the *tree*. A Next.js route's URL is where its file
-        // sits, so this is a question about one framework and not one language.
-        // Two route shapes reach this, not one: a Next.js route tree written in
-        // TypeScript, and a FastAPI router written in Python. The row named
-        // only the first, so the matrix denied a capability the binary ships
-        // and exercises. That is the one thing the matrix exists to prevent.
+        // The contract lives in the *tree*.
         C::Openapi => match language {
             Language::TypeScript | Language::Tsx | Language::Python => Support::Yes,
             _ => Support::NotApplicable {
@@ -518,13 +465,11 @@ pub fn support(capability: Capability, language: Language) -> Support {
         },
 
         // Every language here declares names that something else can reference: a function, a
-        // values key, a CSS class, a Markdown heading. One reference index answers the question
-        // for all of them. The strength of the evidence varies, and the report states it for
-        // each finding.
+        // values key, a CSS class, a Markdown heading.
         C::DeadCode => Support::Yes,
 
-        // Every language here is parsed into a tree of named nodes, and comparing
-        // those is the whole of the analysis. There is nothing to be unable to do.
+        // Every language here is parsed into a tree of named nodes, and comparing those is the
+        // whole of the analysis.
         C::Duplicates => Support::Yes,
 
         C::DeclaredType => {
@@ -540,8 +485,7 @@ pub fn support(capability: Capability, language: Language) -> Support {
         }
 
         C::Stitch => {
-            // A manifest declares the variables and a program reads them. The reading half asks
-            // the analysis, and does not repeat its list.
+            // A manifest declares the variables and a program reads them.
             if matches!(language, Language::Helm | Language::Yaml)
                 || crate::analysis::stitch::reads_environment(language)
             {
@@ -658,8 +602,7 @@ mod tests {
 
     #[test]
     fn no_language_is_offered_both_dataflow_and_provenance() {
-        // The rule that holds is about overlap. Three languages get neither analysis, because
-        // their values are written where they are used.
+        // The rule that holds is about overlap.
         let mut neither = Vec::new();
         for language in Language::ALL {
             let flow = support(Capability::Flow, *language).is_yes();

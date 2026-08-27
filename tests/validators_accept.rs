@@ -1,17 +1,4 @@
 //! Does the code a refactoring writes still satisfy the tool that owns the language?
-//!
-//! The compile gate covered six languages because "has a compiler" was the bar. That was
-//! the wrong bar. `terraform validate` resolves references, `helm lint` renders the chart
-//! and checks it against Kubernetes' schemas, `bash -n` runs the shell's own parser, and
-//! `xmllint` decides well-formedness. Each of them rejects things tree-sitter reads
-//! happily, which is the exact gap that produced every defect the other three gate files
-//! found.
-//!
-//! Five languages here, and each drives every command the capability matrix claims for it.
-//! A refusal passes; writing something the language's own tool then rejects does not.
-//!
-//! Not driven, and why: **scss** has no `sass` on this machine, **markdown** has nothing to
-//! validate, and **yaml** is checked as part of the chart `helm lint` renders.
 
 mod common;
 use common::{gate, must_plan, GateRun, Toolchain, Workspace};
@@ -34,12 +21,6 @@ struct Fixture {
     /// An expression to lift into a binding, where the language has bindings.
     expression: Option<&'static str>,
     /// A shape that occurs more than once, what it becomes, and what must then appear.
-    ///
-    /// In bash, `$NAME` in a pattern is a metavariable and not a shell expansion, the
-    /// language and the pattern syntax spell the same thing the same way. `$1` is literal
-    /// because a metavariable must start with a letter, and a named expansion is written
-    /// `$$name`. Getting that wrong writes `greet "${target}"` over `greet "literal"`,
-    /// which `bash -n` and shellcheck both accept and only running the script rejects.
     restructure: Option<(&'static str, &'static str, &'static str)>,
     /// A declaration to inline, where the language has bindings.
     inline: Option<&'static str>,
@@ -165,10 +146,8 @@ spec:
           image: \"nginx:{{ .Values.image.tag }}\"
 ";
 
-/// XML's own binding forms, which are narrower than they look: an `id` attribute, an
-/// `xmlns:` prefix, and a DTD entity. A `name="timeout"` attribute declares nothing,
-/// only a DTD could say that it does, and reading one is a gap this records and not
-/// guesses at.
+/// XML's own binding forms, which are narrower than they look: an `id` attribute, an `xmlns:`
+/// prefix, and a DTD entity.
 const XML: &str = "\
 <?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <!DOCTYPE configuration [
@@ -187,7 +166,7 @@ const XML: &str = "\
 ";
 
 /// HTML declares element ids and refers to them; a `class` is a *reference* to a selector some
-/// stylesheet declares. So a fixture with no stylesheet has nothing to rename there.
+/// stylesheet declares.
 const HTML: &str = "\
 <!DOCTYPE html>
 <html>
@@ -544,10 +523,6 @@ fn moving_a_declaration_keeps_the_validator_happy() {
 }
 
 /// The gate has to be able to fail, for every validator here.
-///
-/// Each of these passes when the tool behaves, and would also pass if the validator
-/// stopped running, a wrong path, a flag that means nothing, an exit code nobody reads.
-/// This breaks each fixture on purpose and checks the validator says so.
 #[test]
 fn every_validator_reports_a_workspace_it_should_reject() {
     let mut run = GateRun::default();

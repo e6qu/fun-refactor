@@ -211,7 +211,7 @@ fn grouped_declarations_report_one_symbol_per_spec() {
     let f = go(src);
     assert_eq!(names_of(&f, SymbolKind::Constant), vec!["A", "b"]);
     assert_eq!(names_of(&f, SymbolKind::Variable), vec!["C", "d"]);
-    // The definition span is the spec. It is not the whole `const ( ... )` block.
+    // The definition span is the spec.
     assert_eq!(sym(&f, "A").full_span.text(src), "A = 1");
 }
 
@@ -424,8 +424,6 @@ func main() {
         }
     }
 
-    // `Area` is declared twice: once on the interface, once on the struct. They are
-    // distinct symbols distinguished by their qualifier.
     let areas: Vec<_> = f.symbols.iter().filter(|s| s.name == "Area").collect();
     assert_eq!(areas.len(), 2);
     let mut quals: Vec<_> = areas.iter().map(|s| s.qualified_name()).collect();

@@ -1,12 +1,4 @@
 //! `/` between two integers truncates, and TypeScript's does not.
-//!
-//! Java's `n / 2` is integer division. TypeScript has one number type and its
-//! `/` keeps the fraction, so `half(7)` answered 3.5 where the source said 3.
-//! The Python writer already wrapped the pair; this gives TypeScript the same
-//! type-directed treatment.
-//!
-//! `Math.trunc` and not `Math.floor`. Java rounds toward zero, so the two
-//! disagree on every negative quotient, and `half(-7)` is where that shows.
 
 mod common;
 use common::{require_on_ci, Toolchain};
@@ -64,7 +56,7 @@ fn an_integer_division_truncates_toward_zero_in_typescript() {
 
 #[test]
 fn a_division_with_a_float_in_it_keeps_its_fraction() {
-    // `10 / 4.0` is 2.5 in Java too. Truncating it would be a different number.
+    // `10 / 4.0` is 2.5 in Java too.
     let tmp = tempfile::tempdir().expect("a temporary directory");
     let out = translated(tmp.path(), "Halves.java", HALVES_JAVA, Language::TypeScript);
     assert!(out.contains("console.log(10 / 4.0);"), "{out}");

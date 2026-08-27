@@ -1,27 +1,4 @@
 //! An OpenAPI document derived from a Next.js route tree.
-//!
-//! # Why this exists
-//!
-//! A rewrite from one framework to another has to preserve the **contract**, the URLs, the
-//! methods, the path parameters and the shapes. `fr translate <route> fastapi` preserves what
-//! it can see and reports the rest, which is not a check. It cannot catch a contract that got
-//! smaller, and a smaller contract looks like a correct one.
-//!
-//! A check needs two documents to diff. FastAPI emits one from the finished service
-//! (`/openapi.json`); this emits the other from the Next.js tree, before the rewrite.
-//!
-//! # Precision
-//!
-//! Derived from what a Next.js route declares, which is less than FastAPI declares:
-//!
-//! - **Paths, methods and path parameters**: exact, read from the tree.
-//! - **Schemas**: as good as the declaration, an exported `interface` or a zod schema. A body
-//!   validated by hand appears nowhere.
-//! - **Responses**: `default` only. Which status an endpoint returns is a fact about its code
-//!   instead of its declaration.
-//!
-//! Anything undetermined goes in [`Baseline::notes`]. An invented entry would make the diff
-//! come out clean while the contract shrank.
 
 use crate::transpile::ir::Type;
 use crate::transpile::nextjs::{self, Model};
@@ -46,12 +23,6 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
     let mut routes = Vec::new();
 
     // Every shape the tree declares, wherever it is declared.
-    //
-    // A real Next.js application keeps its zod schemas in a module the routes import,
-    // `@/lib/schemas` here. Reading only the route file found none of them. The contract came
-    // out with an empty `components` section. That says the endpoints take no body at all,
-    // a smaller contract than the one it stands in for. This document exists to catch
-    // that failure.
     let mut declared: std::collections::BTreeMap<String, Model> = std::collections::BTreeMap::new();
     for file in files {
         for model in nextjs::models_in(file).unwrap_or_default() {
@@ -83,9 +54,8 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
             }
         }
 
-        // A server function takes its arguments in the framework's own wire encoding,
-        // not a JSON body this document could describe. Writing one would be a guess
-        // presented as a contract, so the gap is named instead.
+        // A server function takes its arguments in the framework's own wire encoding, not a
+        // JSON body this document could describe.
         if nextjs::is_server_module(file) {
             notes.push(format!(
                 "{}: server functions take their arguments in the framework's own \
@@ -94,8 +64,7 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
             ));
         }
 
-        // One entry per endpoint. A route file's endpoints share its URL; a server
-        // module's each have their own.
+        // One entry per endpoint.
         for (method, route) in &plan.endpoints {
             let entry = paths
                 .entry(route.clone())
@@ -118,8 +87,6 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
                 .collect();
 
             // The path parameters, plus whatever this handler reads out of the query.
-            // Next.js declares neither; the path ones come from the tree and the query
-            // ones from the handler reaching into the URL.
             let mut all = parameters.clone();
             for (_, name) in plan.queries.iter().filter(|(m, _)| m == method) {
                 all.push(json!({
@@ -138,8 +105,7 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
                     "default": { "description": "not declared by the source" }
                 }
             });
-            // The body the handler validates, linked to the operation that validates
-            // it. A `components` section nothing refers to is not a contract.
+            // The body the handler validates, linked to the operation that validates it.
             if let Some((_, schema)) = plan.bodies.iter().find(|(m, _)| m == method) {
                 match declared.contains_key(schema) || plan.models.iter().any(|m| m.name == *schema)
                 {
@@ -176,11 +142,8 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
             ));
         }
 
-        // A handler this could not read whole may be reaching into the URL in the part
-        // it could not read. `Number(req.nextUrl.searchParams.get("limit") ?? "50")`
-        // uses `??`, which the IR has no node for, so the statement is carried verbatim,
-        // and `limit` never reaches this document. Saying so is the difference
-        // between a contract with a gap and a contract that looks complete.
+        // A handler this could not read whole may be reaching into the URL in the part it could
+        // not read.
         if plan.fidelity.carried_verbatim > 0 {
             notes.push(format!(
                 "{}: {} statement(s) could not be read; any query parameter read inside \
@@ -190,10 +153,7 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
             ));
         }
 
-        // In the source's own words. The translation's note about these statuses
-        // advises adding `status_code=` to a `@router` decorator, which is advice
-        // about the FastAPI file it writes. This document describes a Next.js tree,
-        // where no such decorator exists, so the note points at the handler instead.
+        // In the source's own words.
         if !plan.statuses.is_empty() {
             notes.push(format!(
                 "{}: returns status {}. Next.js settles a status inside the handler, \
@@ -205,9 +165,7 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
         }
     }
 
-    // The other five frameworks that declare a route. Each says the same pair,
-    // a method and a URL, and each says it its own way. A file that declares
-    // none is most of a service and is not an error.
+    // The other five frameworks that declare a route.
     let mut frameworks: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
     for file in files {
         let Ok(Some((framework, endpoints))) = crate::transpile::routes::endpoints_in(file) else {
@@ -231,8 +189,7 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
                         "name": name,
                         "in": "path",
                         "required": true,
-                        // A path segment arrives as text. A narrower type would
-                        // be a guess about what the handler does with it.
+                        // A path segment arrives as text.
                         "schema": { "type": "string" }
                     })
                 })
@@ -249,10 +206,8 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
             );
         }
         routes.push(file.clone());
-        // The body a handler reads is declared in the framework's own way, and
-        // none of the five say it where the route is declared. A contract that
-        // showed no body at all would look complete and be smaller than the
-        // service it stands for.
+        // The body a handler reads is declared in the framework's own way, and none of the five
+        // say it where the route is declared.
         notes.push(format!(
             "{}: read as {framework}. Paths and methods are exact. Each handler's \
              body is declared away from the route, so it is not in this document",
@@ -358,8 +313,7 @@ fn json_type(ty: &Type) -> Value {
         Type::Bool => json!({ "type": "boolean" }),
         Type::Unit => json!({ "type": "null" }),
         Type::List(inner) => json!({ "type": "array", "items": json_type(inner) }),
-        // JSON Schema has no set. An array whose members are unique is the
-        // nearest thing it says, and it says it.
+        // JSON Schema has no set.
         Type::Set(inner) => {
             json!({ "type": "array", "items": json_type(inner), "uniqueItems": true })
         }
@@ -367,8 +321,7 @@ fn json_type(ty: &Type) -> Value {
             json!({ "type": "object", "additionalProperties": json_type(value) })
         }
         Type::Optional(inner) => json_type(inner),
-        // JSON Schema describes data, and a function is not data. A route
-        // taking or returning one has no body this can describe.
+        // JSON Schema describes data, and a function is not data.
         Type::Fn { .. } => json!({}),
         Type::Tuple(parts) => json!({
             "type": "array",
@@ -377,23 +330,12 @@ fn json_type(ty: &Type) -> Value {
         Type::Named { name, .. } => match name.as_str() {
             "datetime" => json!({ "type": "string", "format": "date-time" }),
             // A type this tool does not know is not a type OpenAPI can be told about.
-            // `{}` is "anything", which is true, instead of a guess that is not.
             _ => json!({}),
         },
     }
 }
 
 /// The contract a FastAPI tree *declares*, read the same way FastAPI reads it.
-///
-/// The point of a baseline is to be diffed against the finished service, and doing that
-/// properly means running the service. This is the check you can make without one. The
-/// decorators and the signatures say what the router will answer. Comparing them with the
-/// Next.js baseline catches the failure that matters. An endpoint may not survive the
-/// crossing, or a path may quietly change shape.
-///
-/// It reads what is written. It is not what will happen. A route added at run time, a router mounted
-/// under a prefix, a dependency that rejects the request: none of those are here. The document
-/// says so instead of pretending otherwise.
 pub fn from_fastapi(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseline> {
     const METHODS: &[&str] = &["get", "post", "put", "patch", "delete", "head", "options"];
 
@@ -499,10 +441,6 @@ fn route_of(decorator: &str, methods: &[&str]) -> Option<(String, String)> {
 }
 
 /// The parameters a handler declares, sorted into path and query.
-///
-/// Which is which is decided by the path template, as FastAPI decides it. A parameter whose
-/// name is a segment of the URL is a path parameter and everything else the caller supplies is
-/// a query one. `Request` and `Response` are FastAPI's own and are not part of the contract.
 fn signature_of(function: tree_sitter::Node<'_>, source: &str, route: &str) -> Vec<Value> {
     let in_path = nextjs::path_parameters(route);
     let Some(list) = function.child_by_field_name("parameters") else {
@@ -525,14 +463,12 @@ fn signature_of(function: tree_sitter::Node<'_>, source: &str, route: &str) -> V
         }
         let where_it_comes_from = match in_path.iter().any(|p| p == name) {
             true => "path",
-            // A parameter annotated with a model is the request body. It is not a query.
+            // A parameter annotated with a model is the request body.
             false if annotation.starts_with(|c: char| c.is_uppercase()) => continue,
             false => "query",
         };
-        // The source annotated the parameter, and FastAPI coerces the path
-        // segment to what it says. Writing every one as a string contradicted
-        // the document's own claim about its schemas. It also disagreed with
-        // the document FastAPI generates for itself.
+        // The source annotated the parameter, and FastAPI coerces the path segment to what it
+        // says.
         let schema = match annotation.split('=').next().unwrap_or("").trim() {
             "int" => json!({ "type": "integer" }),
             "float" => json!({ "type": "number" }),

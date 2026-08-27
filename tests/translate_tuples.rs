@@ -1,10 +1,4 @@
 //! Several values travelling as one cross as a tuple.
-//!
-//! `return a, b` is Go's multiple return. Before the tuple existed in the IR,
-//! the reader mapped it to nothing. Every translated two-value return came out
-//! as a bare `return`: not a marked gap, a silent wrong answer. The tuple also
-//! carries Python's `return a, b` and Rust's `(a, b)`. A writer with no spelling
-//! for it says so instead of inventing one.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -25,8 +19,7 @@ const FETCH_GO: &str = "package main\n\nimport \"fmt\"\n\n\
 
 #[test]
 fn a_go_error_pair_becomes_typescripts_own_throw() {
-    // `(int, error)` is Go's word for a function that can fail; TypeScript's
-    // is a throw. The value side is the return type and the failure flies.
+    // `(int, error)` is Go's word for a function that can fail; TypeScript's is a throw.
     let tmp = tempfile::tempdir().unwrap();
     let out = translated(tmp.path(), "fetch.go", FETCH_GO, Language::TypeScript);
     assert!(

@@ -29,8 +29,8 @@ impl Default for ScanOptions {
         Self {
             respect_ignore: true,
             languages: Vec::new(),
-            // Tree-sitter parse cost grows with file size; multi-megabyte files are
-            // almost always vendored or generated. Skipping them is reported. It is not silent.
+            // Tree-sitter parse cost grows with file size; multi-megabyte files are almost
+            // always vendored or generated.
             max_file_bytes: 4 * 1024 * 1024,
         }
     }
@@ -43,17 +43,8 @@ pub struct ScanResult {
     /// Paths skipped for exceeding `max_file_bytes`, with their size.
     pub skipped_too_large: Vec<(PathBuf, u64)>,
     /// Symlinks that look like source files, with the reason each was skipped.
-    ///
-    /// The walker does not follow links, so these used to vanish without a word. A
-    /// reader comparing the listing against `ls` saw files the tool never mentioned.
-    /// The real file is scanned where it lives; the link is reported here.
     pub skipped_symlinks: Vec<(PathBuf, String)>,
     /// Files in no language this tool reads, counted by extension.
-    ///
-    /// Naming each one would bury the listing under lock files and images, and
-    /// saying nothing let a reader believe the whole tree was read. A repository
-    /// of `.sql` and one `.py` answered "1 file(s)" and left the rest to be
-    /// guessed at. Counted here, named by extension, reported in one line.
     pub unsupported: BTreeMap<String, usize>,
 }
 

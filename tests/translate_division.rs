@@ -1,8 +1,4 @@
 //! Python's `/` and C's `/` are different operations that share a spelling.
-//!
-//! Read as the same one, `self.cents / 100` became an integer division in every
-//! target whose `/` is C's. Rust and Go refused the file. Java took it and
-//! answered 5 where the source answered 5.34, which is the worse of the two.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;

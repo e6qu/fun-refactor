@@ -1,11 +1,4 @@
 //! A one-expression lambda crosses between the four languages that have one.
-//!
-//! `lambda x: e`, `(x) => e`, `|x| e` and `x -> e` are the same nameless
-//! function, and each used to carry as a runnable `null` or a comment, so a
-//! `sorted(key=...)` or a `.map(...)` callback vanished from the program. Go
-//! and Zig cannot write a closure without types the source never spelled, so
-//! their writers carry it, visibly. A block body is a function that wants a
-//! name and stays carried everywhere.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -29,7 +22,6 @@ fn a_python_lambda_is_a_typescript_arrow() {
     let out = translated(tmp.path(), "double.py", DOUBLE_PY, Language::TypeScript);
     assert!(
         // The parameter carries the type the source gave it, which was none.
-        // Strict TypeScript refuses an implicit `any` and accepts a written one.
         out.contains("(x: any) => x * 2"),
         "the callback is live code, no longer a runnable null.\n{out}"
     );
@@ -65,9 +57,8 @@ fn a_typescript_arrow_is_a_python_lambda() {
 
 #[test]
 fn a_rust_closure_in_an_iterator_chain_crosses() {
-    // The chain is a comprehension written the way Rust writes one, so it
-    // arrives as the comprehension the target spells rather than as a call to
-    // `map` with a lambda in it.
+    // The chain is a comprehension written the way Rust writes one, so it arrives as the
+    // comprehension the target spells rather than as a call to `map` with a lambda in it.
     let source = "pub fn shout(names: Vec<String>) -> Vec<String> {\n    \
         let loud: Vec<String> = names.iter().map(|n| n.to_uppercase()).collect();\n    \
         return loud;\n}\n";
@@ -96,9 +87,8 @@ fn go_and_zig_carry_the_lambda_visibly() {
 
 #[test]
 fn a_block_bodied_arrow_holding_one_return_crosses() {
-    // A block whose only statement returns holds one expression, which is the
-    // shape a lambda and a comprehension both take. Refused, the chain around
-    // it crossed as a call to a method the target has not got.
+    // A block whose only statement returns holds one expression, which is the shape a lambda
+    // and a comprehension both take.
     let source = "export function run(xs: number[]): number[] {\n    \
         return xs.map((x) => { return x * 2; });\n}\n";
     let tmp = tempfile::tempdir().unwrap();

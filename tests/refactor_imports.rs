@@ -76,7 +76,6 @@ fn keeps_an_import_something_names() {
 #[test]
 fn a_statement_binding_several_names_survives_if_any_one_is_used() {
     // `HashSet` is unused, but removing it would mean regenerating the brace list.
-    // The statement is kept verbatim instead.
     let (plan, updated, _) = organize(
         &[(
             "a.rs",
@@ -91,7 +90,7 @@ fn a_statement_binding_several_names_survives_if_any_one_is_used() {
 
 #[test]
 fn a_grouped_plain_import_prunes_its_unused_names() {
-    // `import os, sys` binds two modules with one statement. Only the dead one goes.
+    // `import os, sys` binds two modules with one statement.
     let (plan, updated, _) = organize(
         &[("a.py", "import os, sys\n\nprint(os.path.sep)\n")],
         "a.py",
@@ -142,8 +141,7 @@ fn a_grouped_plain_import_keeps_an_aliased_module_something_names() {
 
 #[test]
 fn a_grouped_plain_import_narrows_around_a_kept_submodule() {
-    // `app.handlers` may exist for its registration side effects, so it stays and is
-    // reported. The dead `sys` clause still leaves.
+    // `app.handlers` may exist for its registration side effects, so it stays and is reported.
     let (plan, updated, _) = organize(
         &[("a.py", "import app.handlers, sys\n\nprint(1)\n")],
         "a.py",
@@ -166,8 +164,8 @@ fn a_grouped_plain_import_narrows_around_a_kept_submodule() {
 
 #[test]
 fn an_unused_namespace_import_is_pruned_like_a_named_one() {
-    // `import * as fs` is recorded as a glob for resolution's sake, but it binds exactly
-    // one name. It used to be kept in silence; an unused binding is this command's job.
+    // `import * as fs` is recorded as a glob for resolution's sake, but it binds exactly one
+    // name.
     let (plan, updated, _) = organize(
         &[(
             "a.ts",
@@ -311,9 +309,6 @@ fn a_typescript_named_import_used_in_the_file_is_kept_and_the_rest_go() {
     );
 
     // `./m` binds two names and only one is used, so the statement stays and `b` goes.
-    // It used to stay whole, which left a binding nothing named, an error under
-    // `noUnusedLocals` and a lint failure everywhere else, from the command whose whole
-    // job is removing imports nothing uses. The name this test already had says so.
     assert_eq!(
         plan.removed
             .iter()
@@ -330,9 +325,7 @@ fn a_typescript_named_import_used_in_the_file_is_kept_and_the_rest_go() {
 #[test]
 fn a_rust_trait_imported_only_for_its_methods_is_kept() {
     // `Write` is never spelled at the call site, only `write_str` is, so name-based liveness
-    // sees an unused import. Removing it would leave a file that still parses but no longer
-    // compiles, which the reparse check cannot catch. So any upper-camel-case Rust binding is
-    // held back and reported instead.
+    // sees an unused import.
     let (plan, updated, _) = organize(
         &[(
             "a.rs",
@@ -373,8 +366,8 @@ fn sorts_a_block_by_path() {
 
 #[test]
 fn sorting_reorders_bytes_and_never_rewrites_them() {
-    // Odd spacing, a trailing comment-free tail and a non-canonical `;` position all
-    // have to come through untouched: statements are moved. They are not regenerated.
+    // Odd spacing, a trailing comment-free tail and a non-canonical `;` position all have to
+    // come through untouched: statements are moved.
     let (_plan, updated, _) = organize(
         &[(
             "a.rs",
@@ -586,8 +579,8 @@ fn languages_without_import_declarations_refuse() {
 
 #[test]
 fn a_css_import_is_left_alone_because_its_order_is_semantic() {
-    // CSS `@import` is a real import, but sorting it would change the cascade and
-    // `@import` must precede every other rule. Refusing is the honest answer.
+    // CSS `@import` is a real import, but sorting it would change the cascade and `@import`
+    // must precede every other rule.
     let (tmp, index) = workspace(&[(
         "style.css",
         "@import \"z.css\";\n@import \"a.css\";\n\n.btn { color: red; }\n",
@@ -673,9 +666,8 @@ fn the_go_edits_survive_the_engines_reparse_check() {
 
 #[test]
 fn consecutive_standalone_go_imports_are_sorted() {
-    // Go records `import "os"` as the spec alone, so the `import` keyword sits
-    // outside the span. Without allowing for it the keyword looks like unrelated
-    // code and ends the block, leaving these unsorted.
+    // Go records `import "os"` as the spec alone, so the `import` keyword sits outside the
+    // span.
     let (_plan, updated, _path) = organize(
         &[(
             "m.go",

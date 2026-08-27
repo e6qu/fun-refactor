@@ -1,9 +1,4 @@
 //! What the write commands do when turned on real code.
-//!
-//! Every defect here surfaced by running a command over this repository and
-//! compiling the result: a signature change refused at every `assert_eq!`, an
-//! extraction missed a format-string capture, and a move left a written path
-//! naming the module the symbol had left.
 
 use fun_refactor::index::Index;
 use fun_refactor::refactor::{extract, move_symbol, signature};
@@ -28,9 +23,7 @@ fn applied(edits: &fun_refactor::edit::EditSet, path: &Path) -> String {
 
 #[test]
 fn a_qualified_path_in_a_macro_resolves_and_a_signature_reaches_it() {
-    // `assert_eq!(myc::model::slug("A"), "a")` is tokens to the grammar. The
-    // tokens spell a path and a call, and both halves used to be invisible:
-    // the reference resolved name-only, and the signature change refused.
+    // `assert_eq!(myc::model::slug("A"), "a")` is tokens to the grammar.
     let (tmp, index) = workspace(&[
         (
             "src/model.rs",

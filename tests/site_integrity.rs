@@ -1,13 +1,4 @@
 //! The published site, checked against itself and against the binary.
-//!
-//! `cargo test --test site_data` already asserts that every result shown on the site is
-//! what the tool produced. Nothing asserted the rest of it: that a link goes somewhere,
-//! that an anchor names a heading that exists, that a command the prose tells a reader
-//! to run is a command. Those are the parts that rot silently, because a dead link
-//! looks like a live one until somebody clicks it.
-//!
-//! Everything here reads the `docs/` tree from disk. No network: a test that needs one
-//! fails for reasons that have nothing to do with the change in front of it.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -69,12 +60,6 @@ fn ids(html: &str) -> Vec<String> {
 }
 
 /// Is this path something the frontend build writes instead of something in the tree?
-///
-/// The playground is emitted by Vite and is not committed, so on a clean checkout every link to
-/// it points at a directory that is not there, while being perfectly live on the published
-/// site. Read from the build's own `outDir` and not written down here: a hardcoded exception is
-/// a second place to remember. This test exists because second places to remember are how a
-/// site rots.
 fn built_by_the_frontend(path: &Path) -> bool {
     let config = Path::new(env!("CARGO_MANIFEST_DIR")).join("web/vite.config.ts");
     let Ok(text) = std::fs::read_to_string(&config) else {
@@ -168,7 +153,6 @@ fn every_anchor_names_something_on_the_page() {
 #[test]
 fn no_page_declares_the_same_id_twice() {
     // Two elements with one id means every `#anchor` and `getElementById` picks one of them.
-    // Which one is a fact about source order and not about intent.
     let mut duplicated = Vec::new();
     for (name, html) in pages() {
         let mut counts: BTreeMap<String, usize> = BTreeMap::new();
@@ -206,8 +190,7 @@ fn prose(html: &str) -> String {
 
 #[test]
 fn every_command_the_site_names_is_a_command() {
-    // The site tells a reader what to type. A command that was renamed leaves prose
-    // that reads perfectly and does not run.
+    // The site tells a reader what to type.
     let names = fun_refactor::cli::command_names();
     let known: BTreeSet<&str> = names.iter().map(String::as_str).collect();
     let mut unknown = BTreeSet::new();
@@ -235,11 +218,8 @@ fn every_command_the_site_names_is_a_command() {
 
 #[test]
 fn every_page_says_what_it_was_built_from() {
-    // A failed deploy leaves the site silently stale: green tests, a finished-looking
-    // page, and several commits of drift with nothing saying so. Five deploys in a row
-    // aborted that way before anybody looked, and the only reason it came to light was
-    // somebody asking. The stamp is useful only if it is on every page, because the one
-    // a reader happens to open is the one that has to tell them.
+    // A failed deploy leaves the site silently stale: green tests, a finished-looking page, and
+    // several commits of drift with nothing saying so.
     let mut missing = Vec::new();
     for (name, html) in pages() {
         // The playground's page is emitted by Vite and is not ours to edit.
@@ -262,9 +242,7 @@ fn every_page_says_what_it_was_built_from() {
 
 #[test]
 fn a_parse_failure_says_where_it_is() {
-    // "2 error node(s)" and a filename is a report nobody can act on. The whole value of
-    // knowing a file did not parse is being able to go and look at the part that did not. Found
-    // on vuejs/core, where four files failed and the report gave no position for any of them.
+    // "2 error node(s)" and a filename is a report nobody can act on.
     let tmp = tempfile::tempdir().expect("a temporary directory");
     std::fs::write(
         tmp.path().join("a.rs"),
@@ -288,10 +266,7 @@ fn a_parse_failure_says_where_it_is() {
 #[test]
 fn the_plan_s_closing_list_names_every_command() {
     // The other direction from the test above, asking "is any command missing from the list
-    // that claims to enumerate them". `usages`, `implementations`, `recipe` and `translate`
-    // had all been shipped and none of them reached the list, which is the failure mode a
-    // summary line invites. It is never wrong about what it says, only about what it leaves
-    // out.
+    // that claims to enumerate them".
     let plan =
         std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("PLAN.md"))
             .expect("PLAN.md");
@@ -318,10 +293,9 @@ fn the_plan_s_closing_list_names_every_command() {
 
 #[test]
 fn every_published_page_parses() {
-    // The site is HTML this tool claims to read, and it shipped two raw `&&` in text,
-    // an unterminated entity reference, which browsers recover from and the tool's own
-    // parser reports. Nothing checked: the tests here follow links and check command
-    // names, which both pass on a file that does not parse.
+    // The site is HTML this tool claims to read, and it shipped two raw `&&` in text, an
+    // unterminated entity reference, which browsers recover from and the tool's own parser
+    // reports.
     let parsers = fun_refactor::parse::Parsers::new();
     let mut broken = Vec::new();
     for (name, html) in pages() {

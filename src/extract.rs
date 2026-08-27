@@ -1,21 +1,4 @@
 //! Fact extraction: turn a parsed tree into symbols, references, scopes and imports.
-//!
-//! All language-specific knowledge lives in tree-sitter query files under
-//! `queries/<language>/`, following the capture conventions below. Adding a language
-//! means writing queries, not Rust.
-//!
-//! # Capture conventions
-//!
-//! - `@scope`, a node introducing a lexical scope.
-//! - `@definition.<kind>`, a definition; `<kind>` maps to [`SymbolKind`]. The captured
-//!   node is the whole definition (its `full_span`). A sibling `@name` capture in the
-//!   same match marks the identifier (its `name_span`), the bytes a rename rewrites.
-//! - `@export`, presence in a definition match marks the symbol as externally visible.
-//! - `@reference.<kind>`, a use site; `<kind>` maps to [`ReferenceKind`].
-//! - `@import`, an import statement, with optional `@import.path`, `@import.alias`,
-//!   `@import.name` and `@import.original` captures.
-//! - `@import.glob`, marks a wildcard import.
-//! - `@import.re-export`, marks a statement that exports what it imports.
 
 use crate::lang::Language;
 use crate::model::*;
@@ -55,11 +38,6 @@ fn query_source(lang: Language) -> Option<&'static str> {
 }
 
 /// Separates the halves of a query file that compile against different grammars.
-///
-/// Markdown is parsed by two grammars, one for block structure, one for the inline
-/// content the block grammar leaves opaque, and a query only compiles against the
-/// grammar whose node names it uses. Both halves stay in one file per language, so
-/// `queries/<language>/facts.scm` remains the whole story for that language.
 const INLINE_SECTION: &str = "; ==== inline grammar ====";
 
 /// The half of a language's fact queries that compiles against its main grammar.
@@ -120,10 +98,6 @@ fn reference_kind(name: &str) -> Option<ReferenceKind> {
 }
 
 /// The kind of declaration a capture name says the reference can name.
-///
-/// Markup writes the namespace in the attribute: `class="thing"` names a class and
-/// `href="#thing"` names an element id. `@reference.string` says nothing, which is right
-/// where one attribute can name either.
 fn reference_expects(name: &str) -> Option<SymbolKind> {
     Some(match name {
         "selector" => SymbolKind::Selector,
@@ -134,12 +108,6 @@ fn reference_expects(name: &str) -> Option<SymbolKind> {
 }
 
 /// Narrow a captured span to the bytes that name something.
-///
-/// Grammars vary in how tightly they bound a name. Some expose only a quoted string
-/// node (tree-sitter-xml's attribute values have no inner text node at all), and
-/// Markdown's ATX headings include the padding after the `#`. Since a rename rewrites
-/// exactly the bytes of a name span, an unrefined span would produce `id=""new""` or
-/// re-insert the original padding. Trimming here fixes every language at once.
 fn refine_name_span(span: Span, source: &str, lang: Language) -> Span {
     let text = span.text(source);
 
@@ -165,9 +133,7 @@ fn refine_name_span(span: Span, source: &str, lang: Language) -> Span {
         return trim_markdown_syntax(span, source);
     }
     // The braced Sass syntax writes a namespaced name as one token: `theme.$brand`,
-    // `theme.double`. The name is what follows the last dot, and the namespace before it
-    // is read as the receiver. A rename has to rewrite the name and leave the namespace,
-    // which is a different symbol in a different file.
+    // `theme.double`.
     if lang == Language::Scss {
         let text = span.text(source);
         if let Some(dot) = text.rfind('.') {
@@ -186,11 +152,6 @@ fn is_namespace_character(c: char) -> bool {
 }
 
 /// Strip the Markdown syntax the grammar leaves inside a name.
-///
-/// A link label is a single node that includes its brackets (`[label]`), and an ATX heading's
-/// content includes the optional closing marker (`## Title ##`). A rename rewrites exactly the
-/// name span, so leaving either in would write `new. /a` for a link reference definition, or
-/// leave a stray `##` on a renamed heading.
 fn trim_markdown_syntax(span: Span, source: &str) -> Span {
     let text = span.text(source);
     if text.len() > 1 && text.starts_with('[') && text.ends_with(']') {
@@ -206,14 +167,9 @@ fn trim_markdown_syntax(span: Span, source: &str) -> Span {
 }
 
 /// Split a whitespace-separated attribute value into one span per token.
-///
-/// `class="btn btn-primary"` is a single token in every HTML-ish grammar, but it
-/// references two CSS classes. Renaming one must rewrite only its own bytes, so the
-/// value is fanned out into separate references and not treated as one name.
 fn split_value_spans(span: Span, source: &str) -> Vec<Span> {
-    // Commas separate as much as spaces do: `data-quiz="a,b,c"` names three
-    // hooks the way `class="a b"` names two classes. Read as one name, none of
-    // the three could ever match a use, and all three read as dead.
+    // Commas separate as much as spaces do: `data-quiz="a,b,c"` names three hooks the way
+    // `class="a b"` names two classes.
     let separator = |c: char| c.is_whitespace() || c == ',';
     let text = span.text(source);
     if !text.trim().contains(separator) {
@@ -233,17 +189,6 @@ fn split_value_spans(span: Span, source: &str) -> Vec<Span> {
 }
 
 /// What a reference was written against, if it was written as a member of something.
-///
-/// `w.contextWithTimeout(…)` yields `w`; `time.Now()` yields `time`; a bare `helper()` yields
-/// nothing. Read from the tree and not captured by a query, because every grammar spells the
-/// shape differently but all of them put the receiver first and the member last. Was this name
-/// written as `name(` inside a macro's token tree?
-///
-/// The same problem as `member_in_macro` from the other side. A macro body is tokens, so
-/// `assert_eq!(width(&h.items, 1), 3)` gives a bare identifier and not a call. Resolution then
-/// cannot apply the rule that a call with no receiver is not a method. So a same-named method
-/// stays a candidate and the answer is ambiguous. The parenthesis is in the source where the
-/// syntax is not.
 fn call_in_macro(root: Node<'_>, span: Span, source: &str) -> bool {
     if !inside_token_tree(root, span) {
         return false;
@@ -252,15 +197,6 @@ fn call_in_macro(root: Node<'_>, span: Span, source: &str) -> bool {
 }
 
 /// Was this reference written as `something.name` inside a macro's token tree?
-///
-/// A macro body is tokens, not syntax: tree-sitter offers `token_tree` and no structure within
-/// it, so `assert_eq!(f.scope_at(30), …)` yields a bare identifier with no receiver. Resolution
-/// then cannot tell it from a call to a free function of the same name, and renaming that
-/// function rewrote the method call.
-///
-/// Only the dotted ones. A plain `assert_eq!(helper(), 1)` names `helper` whether the grammar
-/// parsed the call or not. Treating every token in every macro as suspect would leave 12,989
-/// references in this repository unrewritable for nothing.
 fn member_in_macro(root: Node<'_>, span: Span, source: &str) -> bool {
     inside_token_tree(root, span) && source[..span.start].trim_end().ends_with('.')
 }
@@ -277,12 +213,8 @@ fn inside_token_tree(root: Node<'_>, span: Span) -> bool {
 }
 
 fn receiver_of(root: Node<'_>, span: Span, source: &str, language: Language) -> Option<String> {
-    // A macro body is tokens, so `myc::model::slug(x)` inside `assert_eq!` has
-    // no scoped_identifier to read a path from. The tokens still spell it: walk
-    // the `ident::` segments backwards and hand resolution the same path an
-    // expression position would carry. The cheap text check runs first, and
-    // the tree walk only for the one language with token-tree macros. Run for
-    // every reference of every language, the walk was a tenth of extraction.
+    // A macro body is tokens, so `myc::model::slug(x)` inside `assert_eq!` has no
+    // scoped_identifier to read a path from.
     if language == Language::Rust && source[..span.start].trim_end().ends_with("::") {
         let before = &source[..span.start];
         if inside_token_tree(root, span) {
@@ -327,8 +259,7 @@ fn receiver_of(root: Node<'_>, span: Span, source: &str, language: Language) -> 
         }
     }
 
-    // The braced syntax writes the namespace and the name as one token. What precedes the
-    // dot is text, and not a node above this one.
+    // The braced syntax writes the namespace and the name as one token.
     if language == Language::Scss {
         let before = source[..span.start].strip_suffix('.').unwrap_or_default();
         let namespace: String = before
@@ -354,20 +285,13 @@ fn receiver_of(root: Node<'_>, span: Span, source: &str, language: Language) -> 
         "scoped_identifier",
         "scoped_type_identifier",
     ];
-    // What the member was read from, where the grammar names it. Preferred over the positional
-    // rule below, which assumes the member is the last child. Java's `a.m(x)` is one
-    // `method_invocation` whose children are the object, the name and the *argument list*, so
-    // the member is not last and the positional rule saw no receiver at all, leaving every
-    // method call in the language unresolved.
+    // What the member was read from, where the grammar names it.
     const RECEIVER_FIELDS: &[&str] = &["object", "operand", "receiver"];
     let node = root.descendant_for_byte_range(span.start, span.end)?;
     let parent = node.parent()?;
 
-    // Terraform writes its namespace as the first segment of a traversal:
-    // `var.azs`, `local.azs`, `module.azs`, and each names a different declaration.
-    // The segments are flat siblings under one `expression`, so the namespace is the
-    // first `variable_expr` instead of anything above this node. Without it,
-    // `var.azs` and an `output "azs"` in the same directory are indistinguishable.
+    // Terraform writes its namespace as the first segment of a traversal: `var.azs`,
+    // `local.azs`, `module.azs`, and each names a different declaration.
     if parent.kind() == "get_attr" {
         let expression = parent.parent()?;
         let mut cursor = expression.walk();
@@ -377,11 +301,8 @@ fn receiver_of(root: Node<'_>, span: Span, source: &str, language: Language) -> 
             return None;
         }
         let namespace = Span::from(*first).text(source);
-        // `module.net.subnet_id` reaches a declaration in another directory, and the
-        // second segment is the module call that says which. Recording the namespace
-        // alone left the third segment looking like a field read on an untyped value.
-        // The output it names then resolved to nothing, and a delete of that output
-        // was allowed. The address is written down; this carries all of it.
+        // `module.net.subnet_id` reaches a declaration in another directory, and the second
+        // segment is the module call that says which.
         let position = segments.iter().position(|s| s.id() == parent.id())?;
         if namespace == "module" && position == 2 {
             let label = Span::from(segments[1]).text(source).trim_start_matches('.');
@@ -390,10 +311,8 @@ fn receiver_of(root: Node<'_>, span: Span, source: &str, language: Language) -> 
         return Some(namespace.to_string());
     }
 
-    // An argument of a Terraform `module` block names an input variable of the
-    // configuration that block's `source` points at. The module's address is recorded
-    // as the receiver, so resolution can tell it from a variable of the same name in
-    // the calling directory.
+    // An argument of a Terraform `module` block names an input variable of the configuration
+    // that block's `source` points at.
     if parent.kind() == "attribute" {
         if let Some(label) = module_block_label(parent, span, source) {
             return Some(format!("module.{label}"));
@@ -407,7 +326,7 @@ fn receiver_of(root: Node<'_>, span: Span, source: &str, language: Language) -> 
     for field in RECEIVER_FIELDS {
         if let Some(receiver) = parent.child_by_field_name(field) {
             // Only when this node really is the member of that receiver, not the receiver
-            // itself. `a.b` names `a` once as an object and once as a member.
+            // itself.
             if Span::from(receiver) != span {
                 return Some(Span::from(receiver).text(source).to_string());
             }
@@ -426,9 +345,6 @@ fn receiver_of(root: Node<'_>, span: Span, source: &str, language: Language) -> 
 }
 
 /// The label of the Terraform `module` block whose body holds this attribute.
-///
-/// `span` is the attribute's own name. An attribute nested deeper, inside an object
-/// value or a nested block, is not an argument of the call and gets no label.
 fn module_block_label(attribute: Node<'_>, span: Span, source: &str) -> Option<String> {
     if Span::from(attribute.named_child(0)?) != span {
         return None;
@@ -455,15 +371,6 @@ fn module_block_label(attribute: Node<'_>, span: Span, source: &str) -> Option<S
 }
 
 /// What a string reference names: its fragment, itself, or nothing.
-///
-/// `None` drops the reference. An absolute URL is somebody else's document, and the grammars
-/// capture the destination whole. So without this every `href` with a fragment would enter the
-/// index under a name no file can define.
-/// The class a selector names, without the `.` that says it is a selector.
-///
-/// `document.querySelector(".card")` names the class a stylesheet declares as
-/// `card`. The fragment marker on an id is taken off the same way, by
-/// [`link_destination`], and for the same reason.
 fn selector_name(span: Span, source: &str) -> Span {
     let text = span.text(source);
     let names_a_class = text.starts_with('.')
@@ -497,11 +404,6 @@ fn link_destination(span: Span, source: &str, kind: ReferenceKind) -> Option<Spa
 }
 
 /// The `.Values` paths a Helm template names, as references to the values file.
-///
-/// One reference per path, spanning the *last* segment only. Renaming the key `tag` under
-/// `image` must rewrite `tag` in `{{ .Values.image.tag }}` and leave `image` alone. The segment
-/// before it is recorded as the receiver, which lets resolution tell `image.tag` from a
-/// `tag` under something else.
 fn values_references(
     source: &str,
     parsed: &Parsed,
@@ -547,9 +449,6 @@ fn values_references(
 }
 
 /// The Kubernetes kinds whose `data` mapping other manifests read a key of.
-///
-/// A `Secret` writes its entries under `data` or `stringData`; a `ConfigMap` under
-/// `data` alone. Both are addressed the same way, so both are here.
 const KUBERNETES_KEYED_KINDS: &[&str] = &["ConfigMap", "Secret"];
 
 /// The mapping keys whose values hold a `ConfigMap` or `Secret` entry name.
@@ -578,8 +477,8 @@ fn yaml_pairs<'a>(mapping: Node<'a>) -> Vec<Node<'a>> {
 fn yaml_scalar(node: Node<'_>, source: &str) -> Option<(String, Span)> {
     let mut span = Span::from(node);
     let mut text = span.text(source);
-    // A quoted scalar has no inner-content node in this grammar, so the quotes are
-    // stripped here. Leaving them in would make a rename rewrite them too.
+    // A quoted scalar has no inner-content node in this grammar, so the quotes are stripped
+    // here.
     for quote in ['"', '\''] {
         if text.len() >= 2 && text.starts_with(quote) && text.ends_with(quote) {
             span = Span::new(span.start + 1, span.end - 1);
@@ -628,10 +527,6 @@ fn yaml_entry_mapping<'a>(mapping: Node<'a>, key: &str, source: &str) -> Option<
 }
 
 /// The Kubernetes objects a manifest declares, one per document.
-///
-/// Only the kinds another manifest reads a key of. A Deployment is addressed
-/// too, by a Service's selector. That edge is a label match rather than a
-/// name, so it is not this one.
 fn kubernetes_declarations(root: Node<'_>, source: &str) -> Vec<crate::model::KubernetesObject> {
     let mut out = Vec::new();
     let mut cursor = root.walk();
@@ -667,12 +562,6 @@ fn kubernetes_declarations(root: Node<'_>, source: &str) -> Vec<crate::model::Ku
 }
 
 /// The `configMapKeyRef` and `secretKeyRef` reads a manifest performs.
-///
-/// Each names an object and one key of it. Renaming that key without rewriting this
-/// leaves the container asking for an entry the ConfigMap no longer has, and the pod
-/// fails to start. The reference spans the key name alone. The object it belongs
-/// to is recorded as the receiver, so resolution can tell four workspace
-/// `LOG_LEVEL` keys apart.
 fn kubernetes_key_references(
     root: Node<'_>,
     source: &str,
@@ -744,9 +633,6 @@ fn receiver_is_path(root: Node<'_>, span: Span, source: &str, language: Language
 }
 
 /// Ranks reference kinds from most to least specific.
-///
-/// `foo()` matches both a call pattern and the catch-all identifier pattern; the call
-/// is the informative answer, so it wins.
 fn reference_specificity(kind: ReferenceKind) -> u8 {
     match kind {
         ReferenceKind::Call => 0,
@@ -803,9 +689,8 @@ impl Extractor {
         let lang = parsed.language;
         let root = parsed.root();
         self.compile_query(lang, &root.language())?;
-        // A language whose grammar splits block and inline parsing (Markdown) hands
-        // over one sub-tree per inline node. Their spans index the same source as the
-        // block tree's, so their facts join the same pass.
+        // A language whose grammar splits block and inline parsing (Markdown) hands over one
+        // sub-tree per inline node.
         if let Some(inline_root) = parsed.inline_roots().next() {
             self.compile_inline_query(lang, &inline_root.language())?;
         }
@@ -894,10 +779,6 @@ impl Extractor {
                     if let Some(name_span) = name {
                         let name_span = refine_name_span(name_span, source, lang);
                         if !name_span.is_empty() {
-                            // A markup value may declare several names at once:
-                            // `data-quiz="a,b,c"` is three hooks the way
-                            // `class="a b"` is two classes. One symbol per name,
-                            // or none of them ever matches a use.
                             let name_spans = match kind {
                                 SymbolKind::DataAttribute => split_value_spans(name_span, source),
                                 _ => vec![name_span],
@@ -937,11 +818,7 @@ impl Extractor {
                 .map(|s| s.id)
                 .unwrap_or(ScopeId(0))
         };
-        // A definition lives in the scope it is declared in, not the scope it
-        // creates. A whole-function scope contains the function's own name, so
-        // the innermost-scope rule put every function inside itself. The rules
-        // that compare a declaration's scope with a reference's then stopped
-        // matching: `@size.setter` no longer saw the `size` its class binds.
+        // A definition lives in the scope it is declared in, not the scope it creates.
         let declaration_scope = |name_offset: usize, own: Span| -> ScopeId {
             scopes
                 .iter()
@@ -951,10 +828,7 @@ impl Extractor {
                 .unwrap_or(ScopeId(0))
         };
 
-        // One identifier position is one definition. Several patterns may legitimately
-        // match the same node (a language often needs one pattern per parent context),
-        // and without merging them a rename would emit two edits over the same bytes
-        // and be rejected as a conflict.
+        // One identifier position is one definition.
         merge_duplicate_defs(&mut raw_defs);
 
         // Pass 3: materialise symbols, nesting them by span containment.
@@ -973,10 +847,6 @@ impl Extractor {
                 .map(|(j, _)| SymbolId(j as u32));
 
             // The innermost container enclosing this definition supplies its qualifier.
-            //
-            // Locals and parameters are deliberately excluded: a method's parameter
-            // belongs to the method, not the type, so qualifying it would produce
-            // nonsense like `Widget::self`.
             let qualifier = if d.kind.is_local() {
                 None
             } else {
@@ -989,8 +859,7 @@ impl Extractor {
                     .map(|(_, name_span)| name_span.text(source).to_string())
             };
 
-            // A function defined inside a type-like container is a method. Deriving
-            // this keeps every language from needing separate method captures.
+            // A function defined inside a type-like container is a method.
             let kind = match (d.kind, qualifier.is_some()) {
                 (SymbolKind::Function, true) => SymbolKind::Method,
                 (kind, _) => kind,
@@ -1011,8 +880,7 @@ impl Extractor {
             });
         }
 
-        // Pass 4: references. A capture that coincides with a definition's identifier
-        // is the definition itself. It is not a use of it.
+        // Pass 4: references.
         let def_name_spans: std::collections::HashSet<Span> =
             symbols.iter().map(|s| s.name_span).collect();
         let mut references = Vec::new();
@@ -1021,31 +889,23 @@ impl Extractor {
             if def_name_spans.contains(&refined) || refined.is_empty() {
                 continue;
             }
-            // A string reference may name several things at once (`class="a b"`),
-            // so it fans out into one reference per token.
             let spans = if r.kind == ReferenceKind::StringRef {
                 split_value_spans(refined, source)
             } else {
                 vec![refined]
             };
             for span in spans {
-                // `href="#top"`, `[x](#intro)`, `[x](guide.md#intro)`: every grammar
-                // here gives the destination as one node, so the fragment is separated
-                // out now and not at resolution. A reference named `#intro` matches
-                // no symbol, and a rename writing over the span would take the `#` with
-                // it.
+                // `href="#top"`, `[x](#intro)`, `[x](guide.md#intro)`: every grammar here gives
+                // the destination as one node, so the fragment is separated out now and not at
+                // resolution.
                 let span = match link_destination(span, source, r.kind) {
                     Some(span) => span,
-                    // An absolute URL names another document. Neither its fragment nor
-                    // the URL itself refers to anything this workspace defines.
+                    // An absolute URL names another document.
                     None => continue,
                 };
-                // A class written as a selector carries the `.` that says it is
-                // one. The stylesheet declares the name without it, so a
-                // reference keeping it would reach nothing.
+                // A class written as a selector carries the `.` that says it is one.
                 let span = selector_name(span, source);
-                // A name applied to arguments is a call, whether or not the grammar
-                // said so. Inside a macro it does not.
+                // A name applied to arguments is a call, whether or not the grammar said so.
                 let kind = match call_in_macro(root, span, source) {
                     true => ReferenceKind::Call,
                     false => r.kind,
@@ -1068,19 +928,13 @@ impl Extractor {
                 });
             }
         }
-        // Helm hides its references from the grammar. A template action is masked
-        // before parsing so the surrounding YAML still has valid structure, which
-        // means `{{ .Values.image.tag }}` reaches the query as filler. The actions are
-        // parsed separately, and the values paths they name become references here so
-        // that `fr refs`, `fr rename` and go-to-definition see what provenance always
-        // could.
+        // Helm hides its references from the grammar.
         if lang == Language::Helm {
             references.extend(values_references(source, parsed, path, &scope_at));
         }
 
-        // A Kubernetes manifest addresses another one by a name written as a value,
-        // which no mapping-key query captures. Both ends of the edge are read here:
-        // what this file declares, and which key of which object it reads.
+        // A Kubernetes manifest addresses another one by a name written as a value, which no
+        // mapping-key query captures.
         let mut kubernetes_objects = Vec::new();
         if matches!(lang, Language::Yaml | Language::Helm) {
             kubernetes_objects = kubernetes_declarations(root, source);
@@ -1090,11 +944,6 @@ impl Extractor {
         }
 
         // One identifier can match several patterns (a call is also an identifier).
-        // Keep the most specific kind per span so each use site appears exactly
-        // once. A shorthand initializer is the one true double meaning: `Facts
-        // { count }` reads the local and writes the field in a single
-        // identifier. Its second meaning arrives marked `twin` and survives the
-        // dedup; everything else still collapses to one reference per span.
         references.sort_by_key(|r| (r.span, r.twin, reference_specificity(r.kind)));
         references.dedup_by_key(|r| (r.span, r.twin));
 
@@ -1183,9 +1032,6 @@ impl ImportParts {
 }
 
 /// Collapse definitions that describe the same identifier into one.
-///
-/// The survivor keeps the most specific kind, the widest full span (so a delete or
-/// move takes the whole construct) and export visibility if any duplicate had it.
 fn merge_duplicate_defs(defs: &mut Vec<RawDef>) {
     defs.sort_by_key(|d| {
         (
@@ -1300,7 +1146,7 @@ mod tests {
         assert!(names.contains(&"alpha"), "got {names:?}");
         assert!(names.contains(&"beta"), "got {names:?}");
 
-        // name_span must cover only the identifier. This is what rename rewrites.
+        // name_span must cover only the identifier.
         let alpha = f.symbols.iter().find(|s| s.name == "alpha").unwrap();
         assert_eq!(alpha.name_span.text(src), "alpha");
         assert!(alpha.full_span.contains(alpha.name_span));
@@ -1428,9 +1274,8 @@ mod tests {
 
     #[test]
     fn duplicate_definitions_of_one_identifier_are_merged() {
-        // Several patterns often match the same node, languages need one pattern
-        // per parent context. Two symbols over identical bytes would make a rename
-        // emit two edits at the same span, which the edit engine rejects.
+        // Several patterns often match the same node, languages need one pattern per parent
+        // context.
         let mut defs = vec![
             RawDef {
                 kind: SymbolKind::Variable,

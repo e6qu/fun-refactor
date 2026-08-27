@@ -1,9 +1,4 @@
 //! A warm command answers from the resolution snapshot, and answers the same.
-//!
-//! Resolution is a pure function of the merged facts, and it was most of a
-//! warm run. An agent issuing ten commands paid seventeen seconds ten times
-//! on this repository. The snapshot is keyed by every file's path, language
-//! and content hash, so any change anywhere resolves afresh.
 
 use fun_refactor::cache::Cache;
 use fun_refactor::index::Index;

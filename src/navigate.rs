@@ -1,13 +1,4 @@
 //! Navigation: go to definition, go to usages, go to implementations.
-//!
-//! These are the three questions an editor asks. The reason they are one module is that each
-//! answer is a *set*. It is not a single site. A trait method has as many definitions as it has
-//! implementations. A CSS class is declared by every rule that names it. A Terraform local is
-//! one definition read from many files.
-//!
-//! So every answer here is a list, each entry carrying the confidence of the resolution that
-//! produced it. Callers decide how much of the tail to show instead of being handed one result
-//! that looks certain.
 
 use crate::analysis::call_graph::Hierarchy;
 use crate::index::Index;
@@ -40,10 +31,6 @@ pub struct Definition {
 }
 
 /// How a definition relates to what was asked about.
-///
-/// Serialised as a token instead of the variant name, so `--json` spells it the way
-/// every other enum here does and the browser does not have to know Rust's naming.
-/// The prose the terminal prints is [`DefinitionRole::as_str`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum DefinitionRole {
@@ -56,7 +43,7 @@ pub enum DefinitionRole {
 }
 
 impl DefinitionRole {
-    /// Prose for a reader. See the note on `Basis::describe`.
+    /// Prose for a reader.
     pub fn label(&self) -> &'static str {
         match self {
             DefinitionRole::Primary => "definition",
@@ -105,11 +92,9 @@ impl Definitions {
 pub struct Usages {
     pub query: String,
     pub usages: Vec<Usage>,
-    /// Occurrences sharing the name that resolved elsewhere or not at all. Reported
-    /// separately so a caller never mistakes them for uses of this symbol.
+    /// Occurrences sharing the name that resolved elsewhere or not at all.
     pub same_name_elsewhere: Vec<Usage>,
-    /// The name written in a comment or a string. Nothing resolves these, and no
-    /// command edits them, so they are listed apart from the references.
+    /// The name written in a comment or a string.
     pub in_text: Vec<Usage>,
 }
 
@@ -161,9 +146,6 @@ fn definition_of(symbol: &Symbol, role: DefinitionRole) -> Definition {
 }
 
 /// Every definition the thing at `offset` could refer to.
-///
-/// A position on a call to a trait method yields the trait's declaration *and* every
-/// implementation, because "where is this defined" has no single answer there.
 pub fn definitions_at(index: &Index, file: &Path, offset: usize) -> Option<Definitions> {
     let symbol = index.definition_at(file, offset)?;
     Some(definitions_of(index, symbol.id))
@@ -218,14 +200,6 @@ pub fn definitions_with(hierarchy: &Hierarchy, index: &Index, symbol_id: SymbolI
 }
 
 /// Concrete implementations of an abstract declaration.
-///
-/// This is the same question the call graph asks at a dispatch site, answered through
-/// the same [`Hierarchy`], a Rust `impl Trait for Type`, a Go interface whose method
-/// set a type covers, a TypeScript `implements` clause, a Python base class. Sharing
-/// it means navigation and the graph cannot disagree about what implements what.
-///
-/// Scanning the hierarchy costs a parse per file, so a caller answering many
-/// questions should scan once and use [`implementations_with`].
 pub fn implementations_of(index: &Index, symbol_id: SymbolId) -> Vec<SymbolId> {
     implementations_with(&Hierarchy::scanned(index), index, symbol_id)
 }
@@ -276,11 +250,6 @@ pub fn usages_of(index: &Index, symbol_id: SymbolId) -> Usages {
     });
     usages.dedup_by(|a, b| a.location == b.location);
 
-    // A call on a value whose type is not tracked resolves to none of the members that answer
-    // to the name, `c.area()` against a trait declaration and every implementation of it. Where
-    // the ambiguity is *among the things asked about*, that is a use of them, carrying the
-    // confidence that says so. It is only a coincidence of naming when the symbol has no
-    // implementations to be confused with.
     let polymorphic = targets.len() > 1;
     let mut same_name_elsewhere = Vec::new();
     for reference in index.unresolved_matching(symbol_id) {
@@ -312,15 +281,7 @@ pub fn usages_of(index: &Index, symbol_id: SymbolId) -> Usages {
     });
     usages.dedup_by(|a, b| a.location == b.location);
 
-    // The name found by reading the files as text. No grammar links these to
-    // the declaration, so no resolver finds them, and a reader asking "where
-    // does this name appear" still wants them. Reported apart, and never
-    // counted as a use.
-    //
-    // A site this search already accounts for is not one of them. The sweep
-    // matched the declaration itself and every resolved use, so the listing
-    // repeated what it had counted. The heading then called a YAML key a
-    // comment.
+    // The name found by reading the files as text.
     let name = index
         .symbol(symbol_id)
         .map(|s| s.name.clone())
@@ -512,8 +473,6 @@ impl Shape for Square {
         let parse = index.find_symbols("parse", None)[0].id;
         let found = usages_of(&index, parse);
 
-        // The call in a.rs is a use; anything that did not resolve here is listed
-        // apart, so a caller never mistakes it for one.
         assert!(found
             .usages
             .iter()
@@ -536,9 +495,7 @@ impl Shape for Square {
         assert!(grouped.len() >= 2, "got {grouped:?}");
 
         // The name of this test says "in path order" and for a long time it checked only that
-        // there was more than one group. A function returning them in whatever order the hash
-        // map felt like would have passed. The order is the whole reason a caller groups
-        // instead of reading the flat list.
+        // there was more than one group.
         let paths: Vec<&std::path::Path> = grouped.keys().map(|path| path.as_path()).collect();
         let mut sorted = paths.clone();
         sorted.sort();

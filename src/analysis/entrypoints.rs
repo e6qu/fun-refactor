@@ -1,11 +1,4 @@
 //! Entry-point detection driven by declarative catalogs.
-//!
-//! funveil detected entry points with heuristics hardcoded in Rust. Here the rules are data:
-//! one YAML catalog per framework, following the shape CodeQL uses for models-as-data and OWASP
-//! noir uses for endpoint extraction. Adding Flask or Axum support means adding rows, not code.
-//!
-//! An entry point is a tagged symbol, so it feeds directly into call-graph reachability. "what
-//! is reachable from an HTTP handler" is a graph walk from everything tagged `http-route`.
 
 use crate::index::Index;
 use crate::lang::Language;
@@ -15,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::path::Path;
 
-/// What kind of entry point this is. A closed vocabulary so queries can rely on it.
+/// What kind of entry point this is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum EntryKind {
@@ -65,9 +58,6 @@ impl EntryKind {
 }
 
 /// Whether an entry point is reachable by a remote attacker or only locally.
-///
-/// Orthogonal to [`EntryKind`], mirroring CodeQL's threat-model split: the same
-/// handler kind means something different depending on who can reach it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ThreatModel {
@@ -77,11 +67,6 @@ pub enum ThreatModel {
 }
 
 /// A language a rule applies to, or every language the tool knows.
-///
-/// A plain `String` here meant `languages: [pyhton]` parsed, loaded, and matched nothing.
-/// Nothing was wrong with the YAML and nothing was wrong with the rule. It never fired, which
-/// is indistinguishable from a language that has no rules. Parsing the name into the language
-/// it denotes moves that from a silent Tuesday to a message at load.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AppliesTo {
     /// `*`, every language.
@@ -117,9 +102,6 @@ impl<'de> Deserialize<'de> for AppliesTo {
 }
 
 /// One rule from a catalog.
-///
-/// Unknown fields are rejected: a typo in a catalog would otherwise be ignored,
-/// leaving a rule that silently never matches.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Rule {
@@ -138,7 +120,7 @@ fn default_threat() -> ThreatModel {
     ThreatModel::None
 }
 
-/// Conditions a symbol must meet. All present conditions must hold.
+/// Conditions a symbol must meet.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Matcher {
@@ -154,11 +136,7 @@ pub struct Matcher {
     /// Symbol name suffix.
     #[serde(default)]
     pub name_suffix: Option<String>,
-    /// Symbol kind, e.g. function, block, key.
-    ///
-    /// The kind's own type, not its name. `symbol_kind: functoin` used to parse, load and
-    /// match nothing. It read like a rule that was present and never true, the failure
-    /// `deny_unknown_fields` catches for a misspelled key.
+    /// Symbol kind, e.g.
     #[serde(default)]
     pub symbol_kind: Option<SymbolKind>,
     /// The file name must equal this.
@@ -176,59 +154,27 @@ pub struct Matcher {
     /// The symbol must be at file top level (no enclosing symbol).
     #[serde(default)]
     pub top_level: Option<bool>,
-    /// An annotation written immediately above the symbol, without its punctuation:
-    /// `test` matches Rust's `#[test]` and `#[tokio::test]`, Python's `@pytest.mark`
-    /// and Java's `@Test`.
-    ///
-    /// This is how a test declares itself in most languages, and a name convention is
-    /// not: ripgrep's tests are called `backslash`, `tab` and `carriage`. Matching the
-    /// name alone left 141 of its 296 test functions looking like dead code.
+    /// An annotation written immediately above the symbol, without its punctuation: `test`
+    /// matches Rust's `#[test]` and `#[tokio::test]`, Python's `@pytest.mark` and Java's
+    /// `@Test`.
     #[serde(default)]
     pub annotated_with: Option<String>,
     /// The symbol is called from the module's `if __name__ == "__main__":` block.
-    ///
-    /// Every other language here says its entry point is a function called `main`, and
-    /// the rules were written that way. Python's is not a function at all. It is a
-    /// statement, and what it calls can be named anything. A script whose guard calls
-    /// `cli()` reported no entry point whatsoever.
     #[serde(default)]
     pub called_from_main_guard: Option<bool>,
     /// A directive at the top of the file, or at the top of the symbol's own body.
-    ///
-    /// `"use server"` marks a Next.js server action: an exported function the framework makes
-    /// reachable over the network, called by nothing in the source. It is the same case as
-    /// Java's `@RestController` and pytest's fixtures. Unlike Next.js's other conventions it is
-    /// not a filename, `components/cart/actions.ts` is an ordinary name. So no `file_name` rule
-    /// can find it.
     #[serde(default)]
     pub file_directive: Option<String>,
     /// The declaration begins with this keyword.
-    ///
-    /// Zig writes a test as `test "any prose you like" { … }`, so the name a rule could match
-    /// on is the description. `zig-test` asked for `name_prefix: test` and found 12 of the
-    /// 495 test blocks in Zig's standard library. Those twelve have a description beginning
-    /// with "test". The other 483 read as dead code, and so did anything only they called.
     #[serde(default)]
     pub declaration_keyword: Option<String>,
     /// The annotation's first string argument must start with this.
-    ///
-    /// A decorator's name is not unique across libraries: `@patch` is `unittest.mock`'s far
-    /// more often than it is FastAPI's. The decorator names either a URL path or a module, so
-    /// a route rule asks for the path.
-    ///
-    /// Only meaningful alongside `annotated_with`, and rejected without it.
     #[serde(default)]
     pub annotation_argument_prefix: Option<String>,
 }
 
 impl Matcher {
     /// Does this matcher say anything at all?
-    ///
-    /// Destructure it rather than testing field by field. Adding a condition to `Matcher`
-    /// then fails to compile here, instead of dropping out of the answer without a word.
-    /// Three had been: a rule whose only condition was `symbol_kind`, `exported` or
-    /// `top_level` counted as saying nothing. A rule that says nothing matched nothing,
-    /// silently, and in a way that reads like a rule that is never true.
     pub fn names_a_condition(&self) -> bool {
         let Matcher {
             file_prefix,
@@ -298,10 +244,6 @@ const BUILTIN: &[(&str, &str)] = &[
 ];
 
 /// Reject a rule that cannot mean what it says.
-///
-/// `deny_unknown_fields` catches a misspelled key; this catches a well-spelled one in a
-/// combination that has no meaning. Such a rule would parse, load, and match nothing,
-/// which reads like a framework that is covered and absent.
 fn check_rules(rules: &[Rule]) -> Result<()> {
     for rule in rules {
         // Most specific first: a rule with only `annotation_argument_prefix` also names
@@ -359,12 +301,7 @@ impl Catalog {
     /// Find every entry point in an index.
     pub fn detect(&self, index: &Index) -> Vec<Entrypoint> {
         let mut found = Vec::new();
-        // One read per symbol instead of one per rule. Three of the predicates below need the
-        // file's text. Asking each of them separately read the whole file once for every rule
-        // in the catalogue. On `vuejs/core` that meant 34,611 symbols against every
-        // TypeScript rule, and it doubled the time this command takes. The index groups a
-        // file's symbols together, so remembering the last one is enough; a file that cannot
-        // be read is retried and not remembered.
+        // One read per symbol instead of one per rule.
         let mut cached: Option<(std::path::PathBuf, String)> = None;
         for symbol in &index.symbols {
             if cached.as_ref().is_none_or(|(path, _)| path != &symbol.file) {
@@ -392,11 +329,6 @@ impl Catalog {
 }
 
 /// Entry points Python packaging declares, which no catalog rule can express.
-///
-/// Every catalog condition speaks about the symbol and its own file. These
-/// conventions point across files. A package's `__main__.py` runs functions
-/// defined elsewhere. A `console_scripts` or `[project.scripts]` entry names a
-/// function by module path from a packaging file the function never mentions.
 fn python_packaging_entrypoints(index: &Index) -> Vec<Entrypoint> {
     let mut found = dunder_main_entrypoints(index);
     found.extend(console_script_entrypoints(index));
@@ -404,11 +336,6 @@ fn python_packaging_entrypoints(index: &Index) -> Vec<Entrypoint> {
 }
 
 /// Functions a package's `__main__.py` calls at module level.
-///
-/// `python -m pkg` executes the module's top-level statements, so those statements
-/// are the entry the way a script's are. The guard block is a top-level statement
-/// too. Calls inside a function defined here are the function's business, so only
-/// calls outside every callable count.
 fn dunder_main_entrypoints(index: &Index) -> Vec<Entrypoint> {
     let mut found = Vec::new();
     for (path, info) in index.files() {
@@ -454,12 +381,8 @@ fn dunder_main_entrypoints(index: &Index) -> Vec<Entrypoint> {
     found
 }
 
-/// Functions that setup.py `console_scripts` or pyproject.toml `[project.scripts]`
-/// declare as installed commands.
-///
-/// The packaging files are read line by line, and each detection's rule says so.
-/// A target assembled by code or spread over several lines is not seen, which is
-/// a real gap instead of a hidden one.
+/// Functions that setup.py `console_scripts` or pyproject.toml `[project.scripts]` declare as
+/// installed commands.
 fn console_script_entrypoints(index: &Index) -> Vec<Entrypoint> {
     let mut found = Vec::new();
     for (file, basis) in packaging_files(index) {
@@ -484,13 +407,8 @@ fn console_script_entrypoints(index: &Index) -> Vec<Entrypoint> {
     found
 }
 
-/// The packaging files near this workspace's code, each with the label a detection
-/// cites as its basis.
-///
-/// `setup.py` is Python and already indexed. `pyproject.toml` is not an indexed
-/// language, so it is probed for on every ancestor directory down to the deepest
-/// one the indexed files share. A project keeps it at the root while the code
-/// sits in a package below, so the immediate parents alone missed it.
+/// The packaging files near this workspace's code, each with the label a detection cites as its
+/// basis.
 fn packaging_files(index: &Index) -> Vec<(std::path::PathBuf, String)> {
     let mut out = Vec::new();
     let mut root: Option<std::path::PathBuf> = None;
@@ -511,10 +429,7 @@ fn packaging_files(index: &Index) -> Vec<(std::path::PathBuf, String)> {
     }
     let Some(root) = root else { return out };
     let mut dirs = std::collections::BTreeSet::new();
-    // One level above the deepest shared directory as well. A project keeps
-    // pyproject.toml at its root while every indexed file sits inside the one
-    // package below it. One level and no further, so the probe cannot wander up
-    // the filesystem.
+    // One level above the deepest shared directory as well.
     if let Some(above) = root.parent() {
         dirs.insert(above.to_path_buf());
     }
@@ -538,10 +453,6 @@ fn packaging_files(index: &Index) -> Vec<(std::path::PathBuf, String)> {
 }
 
 /// The `(script, module, function)` entries a packaging file declares.
-///
-/// Both formats put one entry per line inside a named section. For setup.py the
-/// section opens at `console_scripts` and closes at `]`; for pyproject.toml it opens
-/// at `[project.scripts]` and closes at the next `[` heading.
 fn script_targets(text: &str, basis: &str) -> Vec<(String, String, String)> {
     let toml = basis.starts_with("pyproject");
     let mut out = Vec::new();
@@ -583,10 +494,6 @@ fn script_targets(text: &str, basis: &str) -> Vec<(String, String, String)> {
 }
 
 /// The top-level function `module:function` names, when the workspace holds it.
-///
-/// `pkg.mod` maps onto `pkg/mod.py` or `pkg/mod/__init__.py`. The path suffix is
-/// matched against the indexed files, so two same-named modules in different
-/// trees stay apart as long as their package paths differ.
 fn module_function(index: &Index, module: &str, function: &str) -> Option<SymbolId> {
     let relative: std::path::PathBuf = module.split('.').collect();
     let suffixes = [relative.with_extension("py"), relative.join("__init__.py")];
@@ -609,15 +516,6 @@ fn module_function(index: &Index, module: &str, function: &str) -> Option<Symbol
 }
 
 /// The roots a reachability question starts from.
-///
-/// This is a type and not a `&[SymbolId]` because an empty slice is a legal value with a
-/// catastrophic meaning: nothing is reachable. So everything not exported reads as dead. The
-/// playground shipped that. Twenty symbols the terminal reported live came back dead in the
-/// browser, every `#[test]` function among them, because one caller passed `&[]` where the
-/// other passed a detected catalog and both type-checked.
-///
-/// Now a caller has to say which it means. There is no way to end up with no roots by omission;
-/// [`Entrypoints::none`] exists, but you have to ask for it by name.
 #[derive(Debug, Clone, Default)]
 pub struct Entrypoints(Vec<SymbolId>);
 
@@ -634,14 +532,12 @@ impl Entrypoints {
         Entrypoints(catalog.detect(index).iter().map(|e| e.symbol).collect())
     }
 
-    /// Exactly these symbols and no others. For asking what a particular root
-    /// reaches, which is a different question from what the workspace runs.
+    /// Exactly these symbols and no others.
     pub fn exactly(roots: &[SymbolId]) -> Self {
         Entrypoints(roots.to_vec())
     }
 
-    /// No roots at all: only exported symbols anchor reachability. Correct for a
-    /// workspace that is a library and nothing else.
+    /// No roots at all: only exported symbols anchor reachability.
     pub fn none() -> Self {
         Entrypoints(Vec::new())
     }
@@ -665,10 +561,7 @@ fn rule_applies(rule: &Rule, symbol: &Symbol, source: Option<&str>) -> bool {
     }
 
     let m = &rule.matches;
-    // A matcher with no conditions would tag every symbol in the language. `check_rules`
-    // rejects one when a catalogue loads, which is where the useful message belongs. This is
-    // the backstop for a `Catalog` assembled directly and not loaded. Both ask the same method,
-    // so they cannot come to different conclusions.
+    // A matcher with no conditions would tag every symbol in the language.
     if !m.names_a_condition() {
         return false;
     }
@@ -766,26 +659,11 @@ pub fn summarise(entries: &[Entrypoint]) -> BTreeMap<&'static str, usize> {
 }
 
 /// Does the catalog have any rule that could fire for this language?
-/// Is `symbol` annotated with `name`, `#[name]`, `#[path::name]` or `@name`?
-///
-/// Reads the bytes above the definition instead of a captured fact: no grammar here
-/// makes an attribute part of the symbol. Only the lines immediately above count, so a
-/// `#[test]` four declarations up does not leak onto this one.
-/// Is an annotation with this name written on the symbol?
-///
-/// Two shapes. Rust and Python put an annotation on its own line above the definition. The
-/// search therefore walks back through the run of `#[…]` and `@…` lines. Java puts it inside
-/// the declaration, in the `modifiers` node, as in `@Test public void f()`. It sits within
-/// the symbol's own span, where a backwards search from that span's start never reaches it.
-///
-/// Public so a recipe's `annotated-with=` predicate shares it instead of reimplementing
-/// it.
 pub fn annotated_with(symbol: &Symbol, name: &str) -> bool {
     annotation_on(symbol, name).is_some()
 }
 
-/// The annotation's own text, so a caller can ask about its arguments as well as its
-/// name. [`annotated_with`] is this question with the answer thrown away.
+/// The annotation's own text, so a caller can ask about its arguments as well as its name.
 pub fn annotation_on(symbol: &Symbol, name: &str) -> Option<String> {
     annotation_in(
         &crate::vfs::read_to_string(&symbol.file).ok()?,
@@ -809,14 +687,7 @@ fn annotation_in(source: &str, symbol: &Symbol, name: &str) -> Option<String> {
     }
 
     // What sits before the symbol on its own line is part of the declaration, not a line before
-    // it. `export class C` and `pub async fn f` put a modifier there. Reading it as a preceding
-    // line ended the run before it reached the annotation above. So the search starts at the
-    // beginning of the declaration's line.
-    //
-    // Unless that text opens or closes something, in which case the symbol is nested in
-    // whatever the annotation above annotates, and does not carry it. The `payload` in
-    // `@KafkaListener void consume(String payload)` is not a queue consumer, and the `inner` in
-    // `fn outer() { fn inner()` is not `outer`'s `#[test]`.
+    // it.
     let before = &source[..start];
     let partial = before.rsplit_once('\n').map_or(before, |(_, tail)| tail);
     if partial.contains(['{', ';', '}', '(']) {
@@ -845,14 +716,6 @@ fn annotation_in(source: &str, symbol: &Symbol, name: &str) -> Option<String> {
 }
 
 /// Does this annotation's first string argument start with `prefix`?
-///
-/// A decorator's *name* is not unique across libraries. `@patch` is `unittest.mock`'s far more
-/// often than it is FastAPI's. Matching the name alone tagged twenty-two of `psf/black`'s test
-/// methods as remotely reachable HTTP routes. What separates the two is the argument: a route
-/// decorator names a URL path, and a mock names a module.
-///
-/// A path held in a constant, `@app.get(PETS)`, is not matched. That is a real gap instead of a
-/// hidden one: the rule asks for something it can read, and says so.
 fn annotation_argument_starts_with(annotation: &str, prefix: &str) -> bool {
     let Some((_, args)) = annotation.split_once('(') else {
         return false;
@@ -863,9 +726,6 @@ fn annotation_argument_starts_with(annotation: &str, prefix: &str) -> bool {
 }
 
 /// Does the symbol's own declaration open with this keyword?
-///
-/// The keyword must be followed by something that cannot continue an identifier, so
-/// `test` does not match a declaration of `testing`.
 fn declaration_begins_with(source: &str, symbol: &Symbol, keyword: &str) -> bool {
     let start = symbol.full_span.start.min(source.len());
     let Some(rest) = source[start..].strip_prefix(keyword) else {
@@ -878,15 +738,6 @@ fn declaration_begins_with(source: &str, symbol: &Symbol, keyword: &str) -> bool
 }
 
 /// Is this symbol called from its module's `if __name__ == "__main__":` block?
-///
-/// The guard is a statement and not a declaration. So there is no symbol to match a name
-/// against. So every other rule here could be written as a name and this one could not. What it
-/// calls is the program's starting point whatever it is called. Reporting nothing for a script
-/// that has one is the wrong answer to the only question `fr entrypoints` asks.
-///
-/// Direct calls only: `cli()` inside the guard, not a call made by something the guard calls.
-/// The second is reachability, which the call graph answers, and folding it in here would tag
-/// half a program as an entry point.
 fn called_from_main_guard(source: &str, symbol: &Symbol) -> bool {
     if symbol.language != Language::Python || symbol.container.is_some() {
         return false;
@@ -944,11 +795,6 @@ fn calls_by_name(node: tree_sitter::Node<'_>, source: &str) -> Vec<String> {
 }
 
 /// Is this symbol under a directive, at the top of its file, or of its own body?
-///
-/// Both forms are real. `"use server"` at the top of a file makes every export in it a server
-/// action. The same string at the top of one function body marks that function alone. Quoted
-/// either way, and the first statement either way, which keeps a mention of the words in a
-/// comment or a string from counting.
 fn under_directive(source: &str, symbol: &Symbol, directive: &str) -> bool {
     let quoted = |line: &str| {
         let trimmed = line.trim().trim_end_matches(';').trim();
@@ -976,16 +822,8 @@ fn under_directive(source: &str, symbol: &Symbol, directive: &str) -> bool {
 }
 
 /// Does this fragment name the annotation, whatever punctuation surrounds it?
-///
-/// `#[tokio::test]`, `@pytest.mark.asyncio` and `@org.junit.jupiter.api.Test` all end in the
-/// bare name, so the qualification is dropped and the arguments with it.
-///
-/// The arguments go first and the qualifier second, because the arguments may contain dots of
-/// their own. `@GetMapping(Routes.PETS)` and `@app.route("/v1.0/status")` name `GetMapping` and
-/// `route`, not `PETS` and `0/status")`.
 fn names_the_annotation(fragment: &str, name: &str) -> bool {
-    // Whitespace ends the name as surely as a bracket does. Inside a Java declaration the
-    // annotation is followed by a newline and the modifiers. It is not by a delimiter.
+    // Whitespace ends the name as surely as a bracket does.
     fragment
         .trim()
         .trim_start_matches(['#', '[', '@'])
@@ -1110,9 +948,7 @@ mod tests {
 
     #[test]
     fn a_terraform_local_is_not_an_input_and_an_output_is_the_surface() {
-        // Both halves reach the index as a symbol of kind `variable`. A rule
-        // asking only for the kind called `locals { prefix = … }` externally
-        // settable, and nothing outside the module can name a local.
+        // Both halves reach the index as a symbol of kind `variable`.
         let (_tmp, index) = workspace(&[("main.tf", MODULE_TF)]);
         assert!(
             kinds_for(&index, "region").contains(&EntryKind::InfraInput),
@@ -1171,9 +1007,7 @@ mod tests {
     #[test]
     fn an_empty_matcher_never_matches_everything() {
         // A rule with no conditions would tag every symbol; that is always a catalog authoring
-        // mistake. A loaded catalogue is refused outright, which is where the author gets told.
-        // This is the backstop for a `Catalog` assembled directly, as here, where there is
-        // nobody to tell.
+        // mistake.
         let rule = Rule {
             id: "bad".into(),
             kind: EntryKind::CliMain,
@@ -1293,8 +1127,7 @@ mod tests {
 
     #[test]
     fn a_call_inside_a_function_of_dunder_main_is_not_itself_an_entry() {
-        // Only module-level statements run under `python -m pkg`. A call inside a
-        // helper defined here is that helper's business.
+        // Only module-level statements run under `python -m pkg`.
         let (_tmp, index) = workspace(&[
             ("mypkg/__init__.py", "\n"),
             (
@@ -1376,11 +1209,6 @@ mod tests {
 
     #[test]
     fn coverage_gaps_are_reportable() {
-        // This used to assert that each gap's *name* held a non-empty string. Every `&'static
-        // str` in the enum satisfies that, so the check passed whether the function returned
-        // nothing, everything, or the wrong languages entirely. The report tells a reader
-        // which languages have no entry-point rules. The only way that is worth printing is
-        // if it agrees with which languages have none.
         let catalog = Catalog::builtin().unwrap();
         let gaps = languages_without_rules(&catalog);
 
@@ -1395,8 +1223,7 @@ mod tests {
                 if has_rules { "has" } else { "has no" }
             );
         }
-        // And it is a real report and not an empty one. Some language has no rules and some
-        // language does, or the agreement above is vacuous.
+        // And it is a real report and not an empty one.
         assert!(!gaps.is_empty(), "no gaps at all, so nothing was compared");
         assert!(
             gaps.len() < Language::ALL.len(),

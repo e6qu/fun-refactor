@@ -1,9 +1,4 @@
 //! Fact extraction for the indented Sass syntax.
-//!
-//! `.sass` and `.scss` hold the same language written two ways, and a workspace may hold
-//! both. So a name declared in one has to come out of the index looking like the same name
-//! declared in the other: same kind, same spelling, same span conventions. Every test here
-//! asserts one of those, and several assert it of both dialects at once.
 
 use fun_refactor::{extract::Extractor, lang::Language, model::*, parse::Parsers};
 use std::path::Path;
@@ -100,9 +95,7 @@ fn an_include_is_a_call_and_a_namespace_is_a_module() {
 
 #[test]
 fn an_extend_is_another_occurrence_of_the_selector_it_names() {
-    // In CSS every occurrence of a selector declares it, and a rename rewrites all of
-    // them. `@extend %card` is one of those occurrences, so it is a definition site and
-    // not a reference. The same line in a `.scss` file reads the same way.
+    // In CSS every occurrence of a selector declares it, and a rename rewrites all of them.
     let src = "%card\n  color: red\n\n.a\n  @extend %card\n\n.b\n  @extend .a\n";
     let f = facts(Language::Sass, src);
     let selectors = names(&f, SymbolKind::Selector);

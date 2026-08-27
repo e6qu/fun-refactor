@@ -1,10 +1,4 @@
 //! What the moved code needed where it came from.
-//!
-//! A move rewrites the callers, which is the half everyone thinks of. The other half is
-//! that the moved code itself referred to things, and half of those live in the file it
-//! just left. The generic path writes an import pointing back for them; the
-//! per-language paths looked only at what the source file *imported*, never at what it
-//! *declared*.
 
 use fun_refactor::index::Index;
 use fun_refactor::refactor::move_symbol;
@@ -71,10 +65,7 @@ const SELF_REFERRING: &[(&str, &str)] = &[
     ),
 ];
 
-/// `Counter.STEP` inside `Counter`'s own method travels with the class. Counting it as a
-/// use left behind had the source importing a name it no longer mentions. The moved code
-/// also needs `LIMIT`, which the source keeps. The two phantom imports then read as a
-/// cycle, and the move was refused for one that does not exist.
+/// `Counter.STEP` inside `Counter`'s own method travels with the class.
 #[test]
 fn a_class_that_names_itself_leaves_no_use_behind() {
     let result = moved(SELF_REFERRING, "Counter", "models.py");
@@ -96,7 +87,7 @@ fn a_class_that_names_itself_leaves_no_use_behind() {
 #[test]
 fn a_rust_move_carries_what_the_source_file_defined() {
     // `cargo check` on the old output: `cannot find value PI in this scope`, with rustc
-    // suggesting the exact `use` the tool should have written. Nothing warned.
+    // suggesting the exact `use` the tool should have written.
     let result = moved(
         &[
             (
@@ -114,8 +105,7 @@ fn a_rust_move_carries_what_the_source_file_defined() {
     let b = result.file("b.rs");
     assert!(b.contains("use crate::a::{PI, SCALE};"), "{b}");
 
-    // A private item is invisible from another module, so the `use` alone would not
-    // compile. `PI` was already public and is left as it was.
+    // A private item is invisible from another module, so the `use` alone would not compile.
     let a = result.file("a.rs");
     assert!(a.contains("pub const SCALE: f64 = 2.0;"), "{a}");
     assert!(a.contains("pub const PI: f64 = 3.14;"), "{a}");
@@ -124,9 +114,8 @@ fn a_rust_move_carries_what_the_source_file_defined() {
 
 #[test]
 fn a_zig_move_says_what_it_could_not_carry() {
-    // Zig imports a module and qualifies, instead of binding a name, so there is no
-    // import to write, the reference itself would have to change. Saying so is the
-    // least this can do, and it is infinitely more than saying nothing.
+    // Zig imports a module and qualifies, instead of binding a name, so there is no import to
+    // write, the reference itself would have to change.
     let result = moved(
         &[
             (
@@ -148,8 +137,7 @@ fn a_zig_move_says_what_it_could_not_carry() {
 
 #[test]
 fn a_go_move_inside_one_package_needs_nothing() {
-    // One package is one scope. Warning here would be noise about a name that still
-    // resolves perfectly well.
+    // One package is one scope.
     let result = moved(
         &[
             (

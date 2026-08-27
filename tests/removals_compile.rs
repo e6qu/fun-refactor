@@ -1,15 +1,4 @@
 //! Does the code that a removal leaves behind still compile?
-//!
-//! The third and last file to drive the compile gate. `output_compiles.rs` takes the commands
-//! that move a declaration, `rewrites_compile.rs` the ones that rewrite one in place. These are
-//! the ones that take code away: `fr delete`, `fr imports`, `fr remove-flag`, and `fr recipe`,
-//! which composes them.
-//!
-//! Taking code away has a failure mode the other two do not. The last use of an import often
-//! lives in the code being removed, and the statement stays behind. Go calls that an error
-//! outright, TypeScript does under `noUnusedLocals`, and Rust makes it a warning that a `-D
-//! warnings` build. This project's own, turns into one. **The result parses in every case**, so
-//! sweeping for parse errors found none of it and running a compiler found all of it.
 
 mod common;
 use common::{gate, must_plan, GateRun, Toolchain, Workspace};
@@ -233,9 +222,8 @@ impl Fixture {
 #[test]
 fn deleting_a_function_takes_the_import_only_it_used() {
     let mut run = GateRun::default();
-    // The whole shape in one case: `Doomed` is the only caller of `strings`, so removing
-    // it leaves `"strings" imported and not used`, which Go rejects. Rust makes the same
-    // thing a warning, and this project's own CI runs `-D warnings`.
+    // The whole shape in one case: `Doomed` is the only caller of `strings`, so removing it
+    // leaves `"strings" imported and not used`, which Go rejects.
     for fixture in fixtures() {
         if skip(&fixture) {
             run.skip(fixture.language.name());
@@ -308,9 +296,8 @@ fn removing_a_flag_takes_the_import_its_dead_branch_used() {
 #[test]
 fn organizing_imports_narrows_a_statement_that_lost_one_name() {
     let mut run = GateRun::default();
-    // `fr imports` dropped a statement nothing named and left one that named two things
-    // and used one. That is an error under `noUnusedLocals` and a lint failure everywhere
-    // else, from the one command whose whole job is removing imports nothing uses.
+    // `fr imports` dropped a statement nothing named and left one that named two things and
+    // used one.
     for fixture in fixtures() {
         if skip(&fixture) || fixture.keeps.is_empty() {
             run.skip(fixture.language.name());
@@ -319,8 +306,6 @@ fn organizing_imports_narrows_a_statement_that_lost_one_name() {
         let ws = fixture.workspace();
         let index = ws.index();
         // Nothing is dead in the fixture as it stands, so the honest answer is no edits.
-        // What this checks is that whatever it does plan compiles, and, below, that it
-        // narrows once something has died.
         match fun_refactor::refactor::imports::plan(&index, &ws.path(fixture.file)) {
             Ok(plan) if plan.edits.is_empty() => {}
             other => {
@@ -358,8 +343,8 @@ fn organizing_imports_narrows_a_statement_that_lost_one_name() {
 #[test]
 fn a_recipe_that_removes_a_flag_and_prunes_what_it_orphaned_compiles() {
     let mut run = GateRun::default();
-    // A recipe is one transaction over several commands, so it inherits their behaviour
-    // and adds a way for them to interact. This is the shape a real retirement takes.
+    // A recipe is one transaction over several commands, so it inherits their behaviour and
+    // adds a way for them to interact.
     for fixture in fixtures() {
         if skip(&fixture) {
             run.skip(fixture.language.name());
@@ -422,9 +407,7 @@ fn the_removal_gate_states_what_it_covers() {
             }
         );
     }
-    // Zig and Java have no import list to narrow. Zig binds one file per `const` and
-    // Java's `import` binds one name, so the shape these fixtures are built around does
-    // not exist there. They are driven by the other two gate files.
+    // Zig and Java have no import list to narrow.
     common::require_on_ci("removal gate", &missing);
     eprintln!("removal gate: not driven: zig and java, which have no multi-name import");
 }

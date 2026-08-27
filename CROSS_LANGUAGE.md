@@ -56,7 +56,7 @@ Nothing else does the job in those repositories.
 ## What may cross, and why that is now a table
 
 Resolution matches candidates by name across the whole workspace. Until recently it
-did so **without asking what language a candidate was written in**. In the bundled
+did so **without asking what language held the candidate**. In the bundled
 sample it produced four false crossings, one of them dangerous:
 
     ingest.rs:56 `push` [import-qualified] -> method Ring::push in buffer.zig
@@ -99,7 +99,7 @@ import styles from "./Button.module.css";
 <button className={styles.primary} />          // resolves, and to the imported file
 ```
 
-Measured again since this was written: it resolves, import-qualified, and to
+Measured again since: it resolves, import-qualified, and to
 the selector in the file the import names. A member the imported module does
 not declare reaches nothing, rather than a same-named selector elsewhere.
 
@@ -124,11 +124,11 @@ document.querySelectorAll(".card")             // the class, without the `.`
 ```
 
 **This crosses now.** The trigger is a string argument to a known DOM accessor,
-and the receiver is checked: `cache.get(k)` is not a DOM lookup. The name is the
+and the receiver has to match: `cache.get(k)` is no DOM lookup. The name is the
 one the markup or the stylesheet declares. So the selector's `#` and `.` come
 off, the same way a link's fragment marker does.
 
-A compound selector is left alone. `div.card > a` names several things at once
+A compound selector stays alone. `div.card > a` names several things at once
 and splitting it needs a selector parser. Reporting the whole string as one name
 would reach nothing and claim to have looked.
 
@@ -185,7 +185,7 @@ than another on the path.
 
 **The path half crosses now**, through `fr stitch --files`. A path either exists
 in the workspace or it does not, so the edge is exact and never name-only. A
-step running a script nobody kept is reported as naming nothing. That is a build
+a step running a script nobody kept reports as naming nothing. That is a build
 which breaks on the next push and not before.
 
 A command is not a path. `make` and `cargo test` name no file, and reporting one
@@ -227,7 +227,7 @@ sentence is the function rather than the English word.
 
 ## Rewriting a file as another language
 
-Since this document was written, `fr translate` gained a second mode. The first,
+Since this document first went up, `fr translate` gained a second mode. The first,
 containment, writes the same bytes under a different grammar: CSS as SCSS, a manifest
 as a Helm template. The second **translates**, between Rust, Go, Java, Python,
 TypeScript, Zig and Bash, and it makes a different promise entirely.
@@ -317,7 +317,7 @@ Four things about the language shape the writer:
 an identifier that collides with one of its own words. Under the escape the name still
 says what the source said.
 
-### How much of this is checked
+### How much of this the gates check
 
 The tests check two properties over every real file in the repository and every
 vendored corpus, into every target:
@@ -476,7 +476,7 @@ what 1,300 fixture tests did not:
 
 | What real code had | What it produced | Now |
 | --- | --- | --- |
-| `def create_user(*, session, …)` | `createUser(*: unknown, …)`, will not parse | the marker is dropped and the change of calling convention counted |
+| `def create_user(*, session, …)` | `createUser(*: unknown, …)`, will not parse | the writer drops the marker and counts the changed calling convention |
 | `try { … } catch (e) { … }` | the whole handler body as one comment | `try:` / `except Exception as e:` |
 | `error instanceof z.ZodError` | carried | `isinstance(error, z.ZodError)` |
 | `new Response(null, {status: 403})` | carried | `Response(status_code=403)` |
@@ -507,7 +507,7 @@ Three things the measurements argue for:
    hides the tool's most valuable cross-file capability. `fr stats` should say
    "627 template→values references", the number that tells you the chart is wired up.
 
-2. **Cross-language edges should be `Exact` only where a path is written down.** The
+2. **Make a cross-language edge `Exact` only where something writes the path down.** The
    CSS-module import names a file. The `class` attribute names a class in a stylesheet
    the page includes. Everything a bare string reaches stays `NameOnly` and must be
    reported rather than rewritten. That covers an env var, an element id from code, a

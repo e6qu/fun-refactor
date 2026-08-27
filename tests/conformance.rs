@@ -1,17 +1,4 @@
 //! Differential execution: a program translated is a program that still runs.
-//!
-//! Every directory under `tests/conformance/` holds one program written six times, once
-//! per language, each printing the same transcript to stdout. The natives are checked
-//! against each other first, so the suite cannot drift while it grows. Then every
-//! source is translated to every other language, compiled with that language's real
-//! compiler, run, and its stdout compared to the transcript.
-//!
-//! The `PASSING` ledger pins which cells hold, and it is a ratchet in both directions.
-//! A pinned cell that stops passing fails the build. A cell that starts passing fails
-//! too, and asks to be pinned, so the ledger keeps meaning something.
-//!
-//! A compiler this machine lacks is named in the output and its cells are skipped by
-//! name; green never means unchecked. Nothing here talks to a network.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -504,9 +491,6 @@ fn extension(language: Language) -> &'static str {
 }
 
 /// The file stem a program takes.
-///
-/// Java's single-file launcher requires the public class to match the file, and the
-/// translator names the class after the destination's stem.
 fn stem(language: Language) -> &'static str {
     match language {
         Language::Java => "Main",
@@ -538,8 +522,6 @@ fn available(language: Language) -> bool {
 }
 
 /// Compile and run one program, returning its stdout.
-///
-/// `Err` carries what went wrong, compile or run, with the tool's own words.
 fn run_program(language: Language, file: &Path, scratch: &Path) -> Result<String, String> {
     let text = |bytes: &[u8]| String::from_utf8_lossy(bytes).to_string();
     let finish = |label: &str, out: std::process::Output| -> Result<String, String> {
@@ -594,9 +576,8 @@ fn run_program(language: Language, file: &Path, scratch: &Path) -> Result<String
                 .map_err(|e| e.to_string())?,
         ),
         Language::TypeScript => {
-            // tsc writes the JavaScript beside its input, so the input is copied into
-            // the scratch directory first. Only when it is not already there: copying
-            // a file onto itself truncates it to nothing.
+            // tsc writes the JavaScript beside its input, so the input is copied into the
+            // scratch directory first.
             let copied = scratch.join("main.ts");
             if file != copied {
                 std::fs::copy(file, &copied).map_err(|e| e.to_string())?;
@@ -677,15 +658,12 @@ fn every_translation_still_prints_the_same_transcript() {
     for group in groups() {
         let name = group.file_name().unwrap().to_string_lossy().to_string();
 
-        // The natives first: every one that can run must print the same transcript,
-        // or the suite itself has drifted and every comparison below is noise.
         let mut transcript: Option<(Language, String)> = None;
         for language in LANGUAGES {
             let file = group
                 .join(stem(*language))
                 .with_extension(extension(*language));
-            // Bash writes its computational subset and sits the other groups out,
-            // out loud. The complete six must all be present in every group.
+            // Bash writes its computational subset and sits the other groups out, out loud.
             if !file.exists() {
                 assert_eq!(
                     *language,

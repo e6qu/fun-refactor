@@ -1,9 +1,4 @@
 //! A distinct type crosses as a distinct type.
-//!
-//! `Pence = NewType("Pence", int)` read as a constant crossed into every target as a
-//! value, and `NewType`, `int` and the quotes crossed with it: output that parses and
-//! refers to nothing. Each language here has a real spelling for the idea, and the
-//! translation now uses it.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;

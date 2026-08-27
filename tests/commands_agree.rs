@@ -1,12 +1,4 @@
 //! The commands that read answer overlapping questions from one index.
-//!
-//! `fr refs`, `fr usages`, `fr callers`, `fr graph`, `fr impact` and `fr duplicates` are
-//! six views of the same facts. Where two of them disagree, one is wrong, and nothing
-//! checked that. These are the agreements, asked of this repository, which is the largest
-//! workspace available to the tests.
-//!
-//! A truncated list is the other half. A report that stops at twenty and says nothing
-//! reads as complete, so every list that stops early states how many it left out.
 
 use fun_refactor::analysis::call_graph::{CallGraph, EdgeOrigin};
 use fun_refactor::analysis::{duplicates, impact};
@@ -17,8 +9,7 @@ use fun_refactor::scan::{scan, ScanOptions};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-/// One index for the whole file. Building it is the expensive part, and every test here
-/// asks a different question of the same facts.
+/// One index for the whole file.
 fn workspace() -> &'static (PathBuf, Index) {
     static WORKSPACE: std::sync::OnceLock<(PathBuf, Index)> = std::sync::OnceLock::new();
     WORKSPACE.get_or_init(|| {
@@ -44,8 +35,7 @@ fn every_call_edge_has_the_reference_that_produced_it() {
     for symbol in &index.symbols {
         for (_, edge) in graph.callers(symbol.id) {
             if edge.origin != EdgeOrigin::Resolved {
-                // A dispatch candidate is not a reference. It is the point of that
-                // layer that no single call site produced it.
+                // A dispatch candidate is not a reference.
                 continue;
             }
             if !sites.contains(&(symbol.id, edge.file.as_path(), edge.offset)) {
@@ -132,13 +122,7 @@ fn usages_reports_the_references_that_resolved_to_the_symbol() {
         .map(|r| ((r.file.as_path(), r.span.start), r.name.as_str()))
         .collect();
 
-    // Two agreements, and not a count. Some declarations are one of several for the same
-    // entity, a CSS custom property set in `:root` and again inside a media query. `fr usages`
-    // answers about the entity. So counting against one of the declarations calls the other
-    // one's uses missing. What has to hold is that the report leaves nothing out and invents
-    // nothing.
-    //
-    // `usages_of` walks every reference, so this samples and does not sweep.
+    // Two agreements, and not a count.
     for symbol in index.symbols.iter().step_by(1493) {
         let report = navigate::usages_of(index, symbol.id);
         assert!(
@@ -148,10 +132,8 @@ fn usages_reports_the_references_that_resolved_to_the_symbol() {
             report.usages.len(),
             per_target.get(&symbol.id).copied().unwrap_or(0)
         );
-        // A polymorphic declaration is used through its implementations, so a
-        // reported use may resolve to one of those by name. `new RoyalPost()`
-        // is a use of `Carrier`. The agreement is with the target set the
-        // report was built from.
+        // A polymorphic declaration is used through its implementations, so a reported use may
+        // resolve to one of those by name.
         let mut answers: Vec<&str> = vec![symbol.name.as_str()];
         for target in index
             .definition_group(symbol.id)
@@ -270,11 +252,7 @@ fn a_report_that_stops_early_says_how_many_it_left_out() {
 
 #[test]
 fn usages_reports_the_name_where_it_appears_in_prose() {
-    // `fr usages` answers "where does this name appear". It listed only the references a
-    // grammar resolved. So a name written in a comment was missing from the answer and nothing
-    // said so. `fr usages supports_cascade` said four for a name that appeared six times. `fr
-    // rename` and `fr delete` had each grown their own scan for exactly these, and `fr usages`
-    // had none.
+    // `fr usages` answers "where does this name appear".
     let (_root, index) = workspace();
     let symbol = index
         .symbols
@@ -341,8 +319,7 @@ fn a_comment_naming_a_symbol_is_reported_by_usages() {
 
 #[test]
 fn the_neighbourhood_is_bounded_and_ranked_around_the_symbol() {
-    // What the playground draws. `graph` answers with three counts, which says how big
-    // the call graph is and nothing about its shape, so the browser had nothing to draw.
+    // What the playground draws.
     let (_root, index) = workspace();
     let graph = CallGraph::build(index);
 
@@ -393,9 +370,7 @@ fn the_neighbourhood_is_bounded_and_ranked_around_the_symbol() {
 
 #[test]
 fn every_symbol_in_a_neighbourhood_can_be_pointed_at() {
-    // The browser opens a file at the node's position when a reader clicks it. The
-    // position has to be the name: a click that lands on the indentation puts the cursor
-    // where the tool knows nothing, and every action then refuses.
+    // The browser opens a file at the node's position when a reader clicks it.
     let (_root, index) = workspace();
     let graph = CallGraph::build(index);
     let start = index

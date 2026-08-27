@@ -1,21 +1,4 @@
 //! The gate for `docs/type-safety.html`.
-//!
-//! Every example on that page is a file under `tests/typesafety/`, one Python and one
-//! TypeScript file per example. Each file's first lines declare what the checker must
-//! say about it:
-//!
-//! - `expect: passes`: `mypy --strict` or `tsc --strict` accepts it.
-//! - `expect: fails`: the checker rejects it, and that rejection is the lesson.
-//! - `run: yes`: the Python file also executes, so its assertions are executed claims.
-//!
-//! The page quotes these files through `docs/typesafety-data.js`, which this test
-//! regenerates. A claim on the page about what a checker accepts is therefore a claim
-//! this test ran. Without that, the page would be sixty statements about `mypy` and
-//! `tsc` that nothing ever put to either.
-//!
-//! The checkers are pinned: mypy 1.18, and the TypeScript compiler
-//! from `tests/typesafety/typescript/package.json`. A machine without them skips and
-//! says so; CI installs them, and a skip there fails the run.
 
 mod common;
 
@@ -37,10 +20,8 @@ struct Example {
     expect_typescript: Expect,
     runs: bool,
     /// The id of the example this one is the improved version of, when there is one.
-    /// The page shows the two together, with the diff between them.
     improves: Option<String>,
-    /// The id of the improved example this one misuses, when there is one. The page
-    /// shows it inside that example's block, as the call the checker now rejects.
+    /// The id of the improved example this one misuses, when there is one.
     misuse_of: Option<String>,
     python: String,
     typescript: String,
@@ -316,11 +297,6 @@ fn every_run_tagged_example_executes() {
 }
 
 /// Every before-and-after pair, as (after id, python diff, typescript diff).
-///
-/// An example that improves another says so in its header, `improves: <id>`, and the
-/// page shows the diff between the two beside the improved version. The diff comes
-/// from this tool's own engine, `edit::unified_diff`, so the rendering on the
-/// tutorial matches the rendering every command prints.
 fn improvement_diffs(all: &[Example]) -> Vec<(String, String, String)> {
     let mut out = Vec::new();
     for example in all {
@@ -514,10 +490,9 @@ fn every_improvement_shows_a_rejection() {
 
 #[test]
 fn every_example_plays_exactly_one_part() {
-    // The page shows an example as a block (an improved version, with its
-    // predecessor and the diff), as a row inside another example's block (the
-    // predecessor itself, or a misuse), or as a standalone example. Every file
-    // must land in one of those parts, or it is content nothing shows.
+    // The page shows an example as a block (an improved version, with its predecessor and the
+    // diff), as a row inside another example's block (the predecessor itself, or a misuse), or
+    // as a standalone example.
     let all = examples();
     for example in &all {
         let improved_by = all
@@ -548,9 +523,6 @@ fn every_example_plays_exactly_one_part() {
 
 #[test]
 fn the_page_and_the_examples_agree() {
-    // Every example placeholder on the page names a checked example, and every
-    // checked example appears on the page exactly once. A file added without a
-    // placeholder, or a placeholder pointing at nothing, fails here.
     let html = std::fs::read_to_string(root().join("docs/type-safety.html"))
         .expect("docs/type-safety.html");
     let all = examples();
@@ -564,8 +536,7 @@ fn the_page_and_the_examples_agree() {
             // together, plus any misuse row.
             Some(format!("data-block=\"{}\"", example.id))
         } else if improved_by || example.misuse_of.is_some() {
-            // Shown inside the block of the example that improves on it, or that
-            // it misuses. No slot of its own.
+            // Shown inside the block of the example that improves on it, or that it misuses.
             None
         } else {
             Some(format!("data-example=\"{}\"", example.id))

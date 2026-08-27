@@ -1,23 +1,4 @@
 //! What a file means, said in a way no one language owns.
-//!
-//! Translation goes source → IR → source. Adding a language costs one reader and one
-//! writer, instead of a pair for every language already here. Six languages is thirty
-//! ordered pairs and twelve files.
-//!
-//! # In it
-//!
-//! Declarations, and the parts of a body every one of these languages has and agrees about. A
-//! return, a binding, a branch, a loop over a collection, a call.
-//!
-//! # Not in it
-//!
-//! Constructs whose meaning is the language: ownership, goroutines, decorators,
-//! generators, pattern matching beyond literal arms. A channel has no
-//! translation into TypeScript.
-//!
-//! Those become [`Stmt::Unsupported`] or [`Expr::Unsupported`], carrying the original text. The
-//! writer emits each as a comment beside a marker, and the report leads with how many crossed
-//! that way.
 
 use std::fmt;
 
@@ -26,17 +7,10 @@ use std::fmt;
 pub struct Module {
     /// The file-level doc comment, where the language has one.
     pub doc: Vec<String>,
-    /// What the file is called, where a language needs to know.
-    ///
-    /// Only Java does: it has no top level below the type. So every function has to be written
-    /// inside a class, and a public class must be named after its file. The other three writers
-    /// ignore this.
+    /// The file's own name, where a language needs it.
     pub name: Option<String>,
     pub items: Vec<Item>,
     /// What a directory sweep had to change about this file, for its header.
-    ///
-    /// A sweep sees what one file cannot: that a sibling declares the same
-    /// name, in a target where the whole directory shares one namespace.
     pub sweep_notes: Vec<String>,
 }
 
@@ -48,38 +22,19 @@ pub enum Item {
     Newtype(Newtype),
     Sum(Sum),
     /// An import.
-    ///
-    /// An import declares a dependency, and every one of these languages resolves
-    /// dependencies differently. It stays out of [`Item::Unsupported`], because
-    /// counting imports as failures makes a perfect translation report one. That
-    /// noise teaches a reader to ignore the number.
     Import {
         text: String,
         line: usize,
         /// What the line says, taken apart, when the reader could take it apart.
-        ///
-        /// `None` for the forms nothing rewrites: a namespace import, a default
-        /// import, a Rust `use`. Those carry as text alone, and the writers keep
-        /// them as comments.
         target: Option<ImportTarget>,
     },
     /// A named test, declared in the source file beside the code it checks.
-    ///
-    /// Zig spells it `test "name" { … }`, and the name is prose rather than an
-    /// identifier. Each writer slugs it into its own convention: a `#[test]`
-    /// function, a `def test_…`, a `func Test…(t *testing.T)`. TypeScript and
-    /// Java name no runner in the language itself, so both write a plain
-    /// function and say what is missing.
     Test {
         doc: Vec<String>,
         name: String,
         body: Vec<Stmt>,
     },
     /// A statement at the top of the file: `main();`, the program's own entry.
-    ///
-    /// Python and TypeScript run a module top to bottom, so such a statement is the
-    /// program. Dropped as unsupported, it leaves a translated program that parses,
-    /// runs and prints nothing. The targets whose top level only declares say so instead.
     Statement(Stmt),
     /// A top-level construct with no counterpart: a Rust `impl Trait for T`, a Go
     /// `init()`, a Python decorator that is not a known one.
@@ -93,45 +48,18 @@ pub struct Function {
     /// The type this is a method on, when it is one.
     pub receiver: Option<String>,
     /// What the source called the receiver inside the body.
-    ///
-    /// These languages disagree. Rust, Python and Zig say `self`, Java and TypeScript say
-    /// `this`. Go says whatever the author called it, and the receiver sits outside the
-    /// parameter list, so nothing renames it with the rest. Recording the word here lets a
-    /// writer spell it its own way. Without it a translated method keeps its source's word
-    /// and names something the output never binds. `this.cache` inside a Rust `impl` is a
-    /// file that cannot compile.
     pub receiver_binding: Option<String>,
     pub params: Vec<Param>,
     pub returns: Option<Type>,
     pub body: Vec<Stmt>,
     pub exported: bool,
-    /// Reported and not translated: a Rust `async fn` written as Python must say
-    /// so, and a Go one cannot be written at all.
+    /// Report rather than translate. Python says so, and Go cannot say it.
     pub is_async: bool,
     /// Is this method read as data at its use sites?
-    ///
-    /// Python's `@property` and TypeScript's `get` both declare a method whose
-    /// callers write `it.total`, no parentheses. Read as an ordinary method, the
-    /// declaration crosses while the accessors keep their spelling, and `it.total`
-    /// in the target names the function object. Targets with the idiom keep it.
-    /// Targets without one write a method and spell the accessors as calls.
     pub is_property: bool,
     /// Does this function make a value of its type?
-    ///
-    /// Three of these languages have a constructor and three have a convention. Java names
-    /// it after the class, Python calls it `__init__`, TypeScript calls it `constructor`. Rust,
-    /// Go and Zig write `new`, `NewThing` and `init` by habit. Each target picks the *name*,
-    /// so this flag carries the fact instead. Without it a Java constructor is a class member
-    /// nothing recognises, and the writer drops it.
     pub is_constructor: bool,
     /// Did the source say `private` in so many words?
-    ///
-    /// Three of these languages have a private keyword and three have a
-    /// convention. A Rust `fn` without `pub` and a Zig one without it are the
-    /// module's own, which Java spells package-private. Held as one bit with
-    /// `exported`, a Zig method came out `private` in Java and the file's own
-    /// class could not call it. Held apart, an explicit `private` still crosses
-    /// as one.
     pub is_private: bool,
 }
 
@@ -143,13 +71,7 @@ pub struct Param {
     pub kind: ParamKind,
 }
 
-/// How a parameter is passed, which is part of the signature and not decoration.
-///
-/// Python writes `def f(*, session, user)` to make everything after the `*`
-/// keyword-only, and `*args` / `**kwargs` to take the rest. Read as ordinary
-/// parameters, they produce `export function createUser(*: unknown, ...)`, which
-/// TypeScript will not parse. Read as *nothing*, the signature would look carried
-/// while the way callers must invoke it had changed.
+/// How a parameter arrives, which belongs to the signature.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ParamKind {
     #[default]
@@ -169,15 +91,9 @@ pub struct Record {
     pub name: String,
     pub fields: Vec<Field>,
     /// The type it inherits from, where the source has inheritance.
-    ///
-    /// Three of these languages have inheritance and the rest do not, so the writer carries
-    /// this where it can and *reports* it otherwise. Dropping it silently turns `class
-    /// JsonPrimitive extends JsonElement` into a class that extends nothing, a different type.
     pub extends: Option<String>,
     pub exported: bool,
-    /// Methods declared on it. Rust and Go declare them apart from the type; Python
-    /// and TypeScript declare them inside. The IR keeps them with the type, so one
-    /// shape can become the other.
+    /// Methods declared on it.
     pub methods: Vec<Function>,
 }
 
@@ -187,10 +103,6 @@ pub struct Field {
     pub name: String,
     pub ty: Option<Type>,
     /// The value the field starts with, where the source gave one.
-    ///
-    /// Without this, `rows: T[] = [];` loses its initializer, and the dataclass it
-    /// becomes takes a required argument nothing passes. A target that cannot write
-    /// a default says so in the report instead of dropping it.
     pub default: Option<Expr>,
     pub exported: bool,
 }
@@ -205,11 +117,6 @@ pub struct Constant {
 }
 
 /// A distinct type over an existing one, worth one line in every language here.
-///
-/// Python spells it `Pence = NewType("Pence", int)`, and TypeScript as a brand.
-/// Rust makes a tuple struct, Go a defined type, Java a one-component record.
-/// Read as a [`Constant`], the source language's incantation crossed into the
-/// target as a value: output that parses and means nothing.
 #[derive(Debug, Clone)]
 pub struct Newtype {
     pub doc: Vec<String>,
@@ -218,15 +125,8 @@ pub struct Newtype {
     pub exported: bool,
 }
 
-/// A closed choice: a value is exactly one of the named variants, and each variant
-/// may carry its own fields.
-///
-/// Rust spells it `enum` with payloads, and Zig `union(enum)`. TypeScript writes a
-/// union of object types told apart by a literal field; Python a union of
-/// dataclasses. Java spells it `sealed interface` over records. Go has no closed
-/// choice and uses the marker-interface convention. Read as anything less, the
-/// variants collapse. A reader that flattened one into a record lost *which*
-/// variant a value was, the whole meaning of the type.
+/// A closed choice: a value is exactly one of the named variants, and each variant may carry
+/// its own fields.
 #[derive(Debug, Clone)]
 pub struct Sum {
     pub doc: Vec<String>,
@@ -239,35 +139,23 @@ pub struct Sum {
 pub struct Variant {
     pub doc: Vec<String>,
     pub name: String,
-    /// The discriminator literal the source wrote, where the language writes
-    /// one: `kind: "idle"` on an interface named `FIdle`. Deriving the tag
-    /// from the name spelled it `f_idle`, and every consumer comparing
-    /// against `"idle"` missed. `None` for the languages that discriminate by
-    /// type instead of by field.
+    /// The discriminator literal the source wrote, where the language writes one: `kind:
+    /// "idle"` on an interface named `FIdle`.
     pub tag: Option<String>,
     /// Empty for a bare tag like `None` or `Empty`.
     pub fields: Vec<Field>,
 }
 
 /// An import taken apart: where it points and which names it binds.
-///
-/// Only Python and TypeScript fill this in, and only for the named form. That
-/// form is `from m import a, b as c` or `import { a, b as c } from "./m"`. A
-/// directory sweep uses it to turn an import of a sibling file into a real
-/// import of the sibling's translation. Everything else keeps the text.
 #[derive(Debug, Clone)]
 pub struct ImportTarget {
     /// The module path as the source wrote it: `helpers`, `.models`, `./m`.
     pub module: String,
     /// Whether the path is relative, a leading dot in Python or `./` here.
     pub relative: bool,
-    /// The named bindings, each with the alias the body uses, where one is given.
+    /// The named bindings, each with the alias the body uses, where it has one.
     pub names: Vec<ImportedName>,
     /// The sibling file stem this import points at, when it points inside a sweep.
-    ///
-    /// Filled by the directory sweep and by nothing else. A reader cannot know
-    /// which files travel together; only the sweep holds the whole set. The
-    /// writers emit a real import when this is set and a comment when it is not.
     pub resolved: Option<String>,
 }
 
@@ -297,12 +185,7 @@ pub struct Unsupported {
     pub line: usize,
 }
 
-/// A type, as far as one can be carried between languages.
-///
-/// The scalars and the two containers are the part that genuinely corresponds.
-/// Anything else becomes [`Type::Named`], written through unchanged with a note.
-/// Renaming a type this tool does not understand makes a signature quietly stop
-/// meaning what it said.
+/// A type, as far as one crosses between languages.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Type {
     Unit,
@@ -312,36 +195,17 @@ pub enum Type {
     String,
     List(Box<Type>),
     /// `set[str]`, `HashSet<String>`, `Set<string>`: membership without order.
-    ///
-    /// Its own type rather than a list, because the question a set answers is
-    /// the one a list answers slowly and differently. Adding a value twice
-    /// leaves one, and asking whether a value is in it is the point. Read as a
-    /// list, `seen.add(x)` twice put two in and every size was wrong.
     Set(Box<Type>),
     Map(Box<Type>, Box<Type>),
     Optional(Box<Type>),
     /// `(int, error)`, `tuple[int, str]`, `[number, string]`: several types as one.
-    ///
-    /// Go's multiple return needs this. Its result type has to cross as the pair
-    /// it is. Flattening it to a name gives `Unwritable_int__error` in a signature
-    /// every target could spell.
     Tuple(Vec<Type>),
     /// A type the reader recognised the shape of but not the meaning.
-    ///
-    /// Structured rather than opaque text, because generic syntax differs. Writing
-    /// Rust's `Result<(), String>` into a Python annotation gives a file Python
-    /// cannot parse. Keeping the arguments apart lets each writer spell them its own
-    /// way, or say that it cannot spell them at all.
     Named {
         name: String,
         args: Vec<Type>,
     },
     /// `(n: number) => number`, `func(int) int`, `Callable[[int], int]`.
-    ///
-    /// Every one of these languages that has a type spells a function type, and each spells
-    /// it differently enough that no name crosses. Held as a name, the pieces
-    /// ran together into `Unwritable_n__number_____number` and the parameter
-    /// took a type nothing could call.
     Fn {
         params: Vec<Type>,
         returns: Box<Type>,
@@ -350,11 +214,6 @@ pub enum Type {
 
 impl Expr {
     /// Can this stand on the left of `=` in any of these languages?
-    ///
-    /// A name, a field of one, or a place in a collection. Rust also assigns
-    /// through a reference, and what it dereferences may be a call:
-    /// `*m.entry(k).or_default() += 1`. No target here can assign to a call,
-    /// and writing one produced a file that would not parse.
     pub fn is_assignable(&self) -> bool {
         match self {
             Expr::Name(_) => true,
@@ -373,10 +232,7 @@ impl Type {
         }
     }
 
-    /// Can this name be written as a type at all, in any of these languages?
-    ///
-    /// A tuple, a reference, a closure or a trait object has no spelling outside the
-    /// language that owns it. Saying so beats emitting something that will not parse.
+    /// Can any of these languages spell this name as a type?
     pub fn is_writable_name(name: &str) -> bool {
         !name.is_empty()
             && name
@@ -421,8 +277,7 @@ impl fmt::Display for Type {
 #[derive(Debug, Clone)]
 pub enum Stmt {
     Return(Option<Expr>),
-    /// A new binding. `mutable` is recorded because Rust needs it and the others do
-    /// not; going the other way it is assumed.
+    /// A new binding.
     Let {
         name: String,
         ty: Option<Type>,
@@ -434,15 +289,8 @@ pub enum Stmt {
         value: Expr,
     },
     /// `a, b = b, a`, `x, err := f()`: several names settled at once.
-    ///
-    /// Four of these languages write it and two do not. Go returns pairs and
-    /// binds them this way, and Python has the same syntax to the character.
-    /// Carried as an unknown construct, the swap leaves `a` and `b` untouched
-    /// and the pair leaves `x` and `err` undeclared, both in silence.
-    /// `declares` is Go's `:=` and Python's first binding of the names.
     TupleAssign {
-        /// The names on the left, in order. Only plain names reach here; a
-        /// target with an index or a field in it carries instead.
+        /// The names on the left, in order.
         names: Vec<String>,
         value: Expr,
         declares: bool,
@@ -456,13 +304,6 @@ pub enum Stmt {
         otherwise: Vec<Stmt>,
     },
     /// `if let Some(x) = e`, `if (e) |x|`: test an optional and bind its payload.
-    ///
-    /// Rust and Zig bind in the condition. Python and TypeScript spell an
-    /// optional as a nullable value, so their writers name the value first and
-    /// test it against null. That says the same thing. Java's `Optional` and
-    /// Go's pointer cannot unwrap in place. Those writers hold the value in a
-    /// second binding, named after the first, and unwrap it into the payload
-    /// name inside the branch.
     IfPresent {
         binding: String,
         value: Expr,
@@ -473,22 +314,12 @@ pub enum Stmt {
         condition: Expr,
         body: Vec<Stmt>,
     },
-    /// `for i := 0; i < n; i++`: a header that starts a counter, tests it before
-    /// each pass and steps it after one.
-    ///
-    /// Go, Java and TypeScript write the whole header. Zig says the same with
-    /// `while (c) : (step)`, whose step also runs on a `continue`. Rust and
-    /// Python have no such header. Both walk a range where the header walks
-    /// one. The rest goes longhand: the start above the loop, the step at the
-    /// foot of the body. A `continue` skips a step written that way and the
-    /// loop never ends, so a body with one carries whole instead.
-    ///
-    /// This is Go's only loop keyword, so carrying its three spellings as
-    /// comments loses more of Go than any other gap.
+    /// `for i := 0; i < n; i++`: a header that starts a counter, tests it before each pass and
+    /// steps it after one.
     CountedFor {
         /// What runs once before the first test.
         init: Option<Box<Stmt>>,
-        /// Tested before each pass. Absent is Go's `for { }`, a loop forever.
+        /// Tested before each pass.
         condition: Option<Expr>,
         /// What runs after each pass, before the next test.
         update: Option<Box<Stmt>>,
@@ -497,13 +328,8 @@ pub enum Stmt {
         source: String,
         line: usize,
     },
-    /// `for i, x in enumerate(xs)`, `for (xs, 0..) |x, i|`: each element beside
-    /// its position, counted from zero.
-    ///
-    /// Go and Zig write it in the loop header, Python through `enumerate`,
-    /// Rust through `.iter().enumerate()`. TypeScript and Java have no indexed
-    /// form over an arbitrary iterable, so both count alongside. A counter is
-    /// declared before the loop and stepped at its end.
+    /// `for i, x in enumerate(xs)`, `for (xs, 0..) |x, i|`: each element beside its position,
+    /// counted from zero.
     ForEachIndexed {
         index: String,
         binding: String,
@@ -511,27 +337,10 @@ pub enum Stmt {
         body: Vec<Stmt>,
     },
     /// Run a body when the enclosing scope exits: Go's and Zig's `defer`.
-    ///
-    /// Go and Zig keep the word. Python, TypeScript and Java say the same thing
-    /// with `try`/`finally`: what follows the defer goes in the `try`, its body
-    /// in the `finally`. Stacked defers nest, which keeps their last-in,
-    /// first-out order. Rust has no scope-exit hook short of inventing a guard
-    /// type, so it carries the body as a comment.
     Defer(Vec<Stmt>),
-    /// Zig's `errdefer`: run only when the scope is left on the failure path.
-    ///
-    /// The exception languages say the same thing with a catch that cleans up
-    /// and rethrows, wrapped around the rest of the scope. It crosses to
-    /// Python, TypeScript and Java as that shape. Go has no failure path a block can
-    /// watch, and Rust would need a guard type; both carry it, visibly.
+    /// Zig's `errdefer`: run only where the scope exits on the failure path.
     ErrDefer(Vec<Stmt>),
     /// One value branched against literal alternatives.
-    ///
-    /// Rust and Zig spell it with arrows, the C family with `case`, Python with
-    /// `match`. Only arms selected by literals cross. A pattern with structure
-    /// in it, a binding, a range, a payload, is a match in the full sense and
-    /// carries whole. Rust and Zig demand exhaustiveness, so their writers emit
-    /// an empty final arm when the source had no default.
     Switch {
         subject: Expr,
         /// Each arm: the literals that select it, and its body.
@@ -540,15 +349,6 @@ pub enum Stmt {
         default: Vec<Stmt>,
     },
     /// One sum value branched by variant, each arm's payload bound by name.
-    ///
-    /// Without this, `s.kind == "circle"` and `s.radius` go to Rust verbatim,
-    /// against an enum that declares neither, while the header says every
-    /// signature carried. Each
-    /// language asks the question its own way. TypeScript compares the
-    /// discriminator, Python asks `isinstance`, Rust and Zig match, Go switches
-    /// on type, Java tests `instanceof`. The bindings are the payload fields
-    /// an arm reads, bound to plain locals, so every writer can spell the
-    /// narrowing without knowing the others' idioms.
     MatchVariants {
         subject: Expr,
         sum: String,
@@ -556,19 +356,14 @@ pub enum Stmt {
         /// The `else` / `default` body; empty when the source had none.
         default: Vec<Stmt>,
     },
-    /// `while let Some(x) = e`, `while (e) |x|`: loop while the optional holds a
-    /// payload, re-evaluating it each pass.
-    ///
-    /// Native in Rust and Zig. The other four have no binding form in a loop
-    /// header. Their writers open an unconditional loop, take the value, and
-    /// break when it is empty, which is the same loop said longhand.
+    /// `while let Some(x) = e`, `while (e) |x|`: loop while the optional holds a payload,
+    /// re-evaluating it each pass.
     WhilePresent {
         binding: String,
         value: Expr,
         body: Vec<Stmt>,
     },
-    /// `for x in xs`, the shape every language here shares. A C-style `for` carries
-    /// as unsupported.
+    /// `for x in xs`, the shape every language here shares.
     ForEach {
         binding: String,
         iterable: Expr,
@@ -576,44 +371,21 @@ pub enum Stmt {
     },
     Expr(Expr),
     /// `assert c, "m"`: check a condition and stop the program when it fails.
-    ///
-    /// Python spells it as a statement, Rust as the `assert!` family, Zig as
-    /// `std.debug.assert`. Read as an unknown construct, every check carries as a
-    /// comment, and a translated test file prints "all tests passed" while
-    /// checking nothing. The targets without an assert say the same thing
-    /// longhand: test the condition and throw or panic.
     Assert {
         condition: Expr,
         /// The words the failure prints, where the source gave any.
         message: Option<Expr>,
     },
     /// A comment on its own line.
-    ///
-    /// Every language here has one, and they differ only in the marker. Treating a comment
-    /// as an untranslatable construct puts `// Validate the route params.` in the output
-    /// under a "not translated" marker. It inflates the count of real gaps with things
-    /// that were never gaps.
     Comment(String),
-    /// A function declared inside another: Zig's `const f = struct { fn f… }.f;`
-    /// idiom, Python's nested `def`. Every target has a local spelling:
-    /// nested functions, function literals, or an anonymous object holding
-    /// one method. The binding's name is the function's.
+    /// A function declared inside another: Zig's `const f = struct { fn f… }.f;` idiom,
+    /// Python's nested `def`.
     LocalFunction(Box<Function>),
     /// A braced block: its statements, scoped where the target scopes blocks.
-    ///
-    /// Zig writes one for scoping alone, and several lowerings group the
-    /// statements they expand into. Targets with block scope keep the braces;
-    /// Python, which has none, writes the statements in place.
     Block(Vec<Stmt>),
     /// `raise e` / `throw e`.
     Throw(Expr),
     /// `try { } catch { } finally { }`, and Python's `try/except/finally`.
-    ///
-    /// Half of these languages have it. Rust and Zig model failure in the return type, and Go
-    /// returns an error value. None of the three has a general translation of a catch block,
-    /// so those writers carry the original text. Python, TypeScript and Java agree closely
-    /// enough to translate. A typed `except` becomes an `instanceof` test inside one `catch`,
-    /// the same intent as the other two write it.
     Try {
         body: Vec<Stmt>,
         catches: Vec<Catch>,
@@ -623,9 +395,7 @@ pub enum Stmt {
         line: usize,
     },
     Break,
-    /// `break :label value`: leave the labeled block, with a value when the
-    /// block produces one. The Zig reader consumes these while lowering
-    /// labeled blocks into loops; one that survives to a writer is carried.
+    /// `break :label value`: leave the labeled block, with a value when the block produces one.
     BreakWith {
         label: String,
         value: Option<Box<Expr>>,
@@ -637,7 +407,7 @@ pub enum Stmt {
 /// One `except` or `catch` clause.
 #[derive(Debug, Clone)]
 pub struct Catch {
-    /// The name the error is bound to, where one is written.
+    /// The name holding the error, where the source gives one.
     pub binding: Option<String>,
     /// The exception type it selects on, where the language has typed clauses.
     pub ty: Option<Type>,
@@ -674,151 +444,73 @@ pub enum Expr {
         operand: Box<Expr>,
     },
     /// `await x`, `x.await`.
-    ///
-    /// Three of these languages have it and mean the same thing by it: suspend
-    /// until this resolves. Only the spelling differs, prefix in Python and
-    /// TypeScript, postfix in Rust. Go has no counterpart and says so instead of
-    /// dropping the keyword, which would turn a suspension point into a plain call.
     Await(Box<Expr>),
-    /// Evaluate, and on failure leave the function with the failure: Rust's `x?`,
-    /// Zig's `try x`.
-    ///
-    /// Python, TypeScript and Java do the same thing with no spelling at all:
-    /// an exception propagates unless something catches it. Their writers emit
-    /// the expression bare and say so once. Go has no propagation and carries
-    /// it, because a dropped `?` would turn an early return into a plain call.
+    /// Evaluate, and on failure leave the function with the failure: Rust's `x?`, Zig's `try
+    /// x`.
     Propagate(Box<Expr>),
     /// `name=value` in an argument list.
-    ///
-    /// Python has these and the other three do not. So a writer without them carries the call
-    /// instead of dropping the name and hoping the position is right.
     Keyword {
         name: String,
         value: Box<Expr>,
     },
     /// `(T) x`, `x as T`, `@as(T, x)`: the value reasserted as a type.
-    ///
-    /// Every language here can spell it. They disagree about what it does: a Java
-    /// cast checks at run time, a TypeScript `as` checks nothing, a Rust `as`
-    /// converts. The source already settled that; the translation keeps the
-    /// assertion where it stood.
     Cast {
         ty: Box<Expr>,
         value: Box<Expr>,
     },
     /// `x instanceof T`, `isinstance(x, T)`.
-    ///
-    /// The same question in both, spelled as an operator in one and a builtin in the other.
-    /// It is a node rather than a call, because a reader that emitted `isinstance(...)`
-    /// would be writing Python inside the TypeScript reader.
     InstanceOf {
         value: Box<Expr>,
         ty: Box<Expr>,
     },
     /// `new Thing(a, b)`.
-    ///
-    /// Kept apart from [`Expr::Call`] because the languages disagree about whether construction
-    /// is a call. Python and Go say yes, TypeScript needs the keyword, and Rust has no
-    /// universal spelling at all.
     New {
         callee: Box<Expr>,
         args: Vec<Expr>,
     },
     /// `Counter { value: 0, step }`, a record built by naming its fields.
-    ///
-    /// Distinct from [`Expr::New`], which passes arguments in an order the callee
-    /// decides. Four of these languages construct a record this way and two do not, so
-    /// the fields stay named until the target is known. A positional list assembled
-    /// here would follow the source's declaration order, which says nothing about the
-    /// constructor anyone will call.
     RecordLit {
         ty: String,
         fields: Vec<(String, Expr)>,
     },
-    /// `a ?? b`, `a orelse b`, the value unless it is absent, and then the fallback.
-    ///
-    /// Its own node rather than a [`BinaryOp`], because most of these languages spell it
-    /// outside the operator table. Zig writes `orelse`, Rust reaches for
-    /// `Option::unwrap_or`, Java for a static method, and Go has nothing at all. The
-    /// *question* crosses: is this absent, and what then.
-    ///
-    /// Three of them can only say it by naming the value twice. A value that is a call
-    /// cannot be named twice without calling it twice. Those writers say so instead of
-    /// changing how many times the program does something.
+    /// `a ??
     Coalesce {
         value: Box<Expr>,
         fallback: Box<Expr>,
     },
-    /// `a ? b : c`, `b if a else c`, `if a { b } else { c }`.
-    ///
-    /// One expression that chooses between two. Most of these languages have it. Go
-    /// does not, and its writer says so instead of inventing a statement out of an
-    /// expression. It is a node rather than an [`Stmt::If`], because it *is* a value.
-    /// Reading it as a branch needs somewhere to put the result, and an argument list
-    /// has no such place.
+    /// `a ?
     Ternary {
         condition: Box<Expr>,
         then: Box<Expr>,
         otherwise: Box<Expr>,
     },
-    /// One variant of a closed choice, made: `Shape::Circle { radius }`,
-    /// `.{ .one = n }`, `{ kind: "circle", radius }`.
-    ///
-    /// Without this node the types cross while every value of one carries verbatim,
-    /// in every direction at once. Each language builds the same thing its own way.
-    /// Rust names the path, Zig the dot-literal, TypeScript writes the
-    /// discriminator field, Python and Java call the variant's own constructor,
-    /// Go builds the variant struct. Fields are empty for a bare tag.
+    /// One variant of a closed choice, made: `Shape::Circle { radius }`, `.{ .one = n }`, `{
+    /// kind: "circle", radius }`.
     Variant {
         sum: String,
         name: String,
         fields: Vec<(String, Expr)>,
     },
     /// `(a, b)`: several values travelling as one, without a name for the whole.
-    ///
-    /// Go returns them. Dropping the payload of `return a, b` turns a two-value return
-    /// into a bare `return` with nothing said, and this node prevents that. Rust and
-    /// Python write tuples anywhere, and TypeScript spells the value as an array. Java
-    /// has no spelling and says so.
     Tuple(Vec<Expr>),
     /// `[a, b, c]`
     ListLit(Vec<Expr>),
     /// `{"a": 1}` in Python, `{ a: 1 }` in TypeScript, a map literal in Go.
     MapLit(Vec<(Expr, Expr)>),
     /// An interpolated string: `f"Hi {name}"`, `` `Hi ${name}` ``.
-    ///
-    /// Kept as parts rather than text, because flattening it loses the expressions
-    /// and answers wrongly in silence.
     Template(Vec<TemplatePart>),
     /// `lambda x: e`, `(x) => e`, `|x| e`: a nameless function of one expression.
-    ///
-    /// Only the single-expression shape crosses, since all four languages that have
-    /// one agree on it. A block body is a function that wants a name and stays
-    /// carried. Go and Zig cannot write a closure without types, so their writers
-    /// carry this too, visibly. Without it, every `sorted(key=...)` callback crosses
-    /// as a runnable `null`.
     Lambda {
-        /// The same [`Param`] a declaration uses, so a lambda whose parameters
-        /// the source typed keeps those types. Held as bare names, a TypeScript
-        /// `(n: number) => n + 1` could not be read at all. Every target that
-        /// needs the type had to guess it back.
+        /// The same [`Param`] a declaration uses, so a lambda whose parameters the source typed
+        /// keeps those types.
         params: Vec<Param>,
-        /// What it answers, where the source said. TypeScript writes
-        /// `(n: number): number => …`, and Go and Zig cannot write a function
-        /// value at all without knowing it.
+        /// What it answers, where the source said.
         returns: Option<Type>,
         body: Box<Expr>,
     },
     /// `{a, b}`, `set()`, `new Set()`, `HashSet::new()`: a set built in place.
-    ///
-    /// Its own node rather than a call, because each language names the
-    /// construction differently and none of the names cross. Read as a call,
-    /// `set()` in Python became a call to a function named `set` in Rust.
     SetLit(Vec<Expr>),
     /// `[f(x) for x in xs if p(x)]`, and `xs.filter(p).map(f)`.
-    ///
-    /// The same idea spelled two ways: Python builds it with a comprehension,
-    /// TypeScript with a chain. Modelling it lets each write its own.
     Comprehension {
         element: Box<Expr>,
         binding: String,
@@ -836,10 +528,6 @@ pub enum TemplatePart {
 }
 
 /// The operators that mean the same thing in every language here.
-///
-/// Notably absent: `==` on anything but scalars, which is reference equality in some
-/// of these and structural in others. The reader emits it; the writer notes it where
-/// the semantics differ.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BinaryOp {
     Add,
@@ -847,27 +535,11 @@ pub enum BinaryOp {
     Mul,
     Div,
     /// `a // b`: division that rounds toward negative infinity.
-    ///
-    /// Only Python spells it as an operator, and reading it as an unknown one left
-    /// a runnable `null` where a number belonged. The other five say it with a
-    /// library call, `Math.floor`, `div_euclid`, `Math.floorDiv`, `math.Floor`,
-    /// `@divFloor`, and each writer reaches for its own.
     FloorDiv,
     /// `a / b` in Python: division that yields a float whatever the operands are.
-    ///
-    /// Python's `/` and C's `/` are different operations that share a spelling.
-    /// Reading both as [`BinaryOp::Div`] made `self.cents / 100` an integer
-    /// division in Rust, Go and Java. Two of them refused the file. Java
-    /// silently answered 5 where the source answered 5.34.
     TrueDiv,
     Rem,
-    /// `%` in Python: the remainder that goes with division rounding toward
-    /// negative infinity.
-    ///
-    /// Its own operator because the two disagree on every negative operand.
-    /// `-7 % 2` is `1` in Python and `-1` in the other five. One spelling
-    /// carrying both meanings made every translation of a negative remainder
-    /// quietly wrong.
+    /// `%` in Python: the remainder that goes with division rounding toward negative infinity.
     FloorRem,
     Eq,
     Ne,
@@ -889,17 +561,12 @@ impl BinaryOp {
             BinaryOp::Sub => "-",
             BinaryOp::Mul => "*",
             BinaryOp::Div => "/",
-            // No C-family language spells floor division as an operator. Every
-            // writer says it with its own library call before reaching for this
-            // table. Asking here is a bug in the writer, said out loud.
+            // No C-family language spells floor division as an operator.
             BinaryOp::FloorDiv => unreachable!("floor division has no shared operator spelling"),
-            // Only the languages whose `/` is already a float division reach
-            // this. The rest coerce an operand before they render the operator.
+            // Only the languages whose `/` is already a float division reach this.
             BinaryOp::TrueDiv => "/",
             BinaryOp::Rem => "%",
             // Only Python's `%` floors, and Python is not a C-family language.
-            // Every other writer says it with its own call before reaching this
-            // table. Asking here is a bug in the writer, said out loud.
             BinaryOp::FloorRem => {
                 unreachable!("a floor remainder has no shared operator spelling")
             }
@@ -926,15 +593,7 @@ impl BinaryOp {
         }
     }
 
-    /// How tightly this operator binds. Higher binds tighter.
-    ///
-    /// One table for every target, because every target orders these the same way,
-    /// multiplication before addition, arithmetic before comparison, comparison before `and`,
-    /// `and` before `or`. Python spells two of them with words and agrees about all of it.
-    ///
-    /// The writers render `left op right` and nothing else, so without this table a group
-    /// the source wrote is a group the translation loses. `(a + b) * c` comes out as
-    /// `a + b * c` in every target, a different number.
+    /// How tightly this operator binds.
     pub fn precedence(self) -> u8 {
         match self {
             BinaryOp::Mul
@@ -959,16 +618,11 @@ impl BinaryOp {
 pub enum UnaryOp {
     Not,
     Neg,
-    /// Zig's `x.?`, TypeScript's `x!`: the value is there, and saying so is an
-    /// assertion. Targets without the assertion use the value directly and
-    /// fail where the source would have trapped.
+    /// Zig's `x.?`, TypeScript's `x!`: the value is there, and saying so is an assertion.
     Unwrap,
 }
 
 /// What a translation managed and what it did not.
-///
-/// The point of the exercise. A translated file is a draft, and the only way to use a
-/// draft responsibly is to know where it stops being one.
 #[derive(Debug, Default, Clone, serde::Serialize)]
 pub struct Fidelity {
     pub functions: usize,
@@ -976,12 +630,11 @@ pub struct Fidelity {
     pub constants: usize,
     /// Signatures carried across with every parameter and the return type intact.
     pub signatures_complete: usize,
-    /// Signatures where some type had no counterpart and was written through by name.
+    /// Signatures naming a type with no counterpart, carried through by name.
     pub signatures_with_foreign_types: usize,
     /// Statements and expressions carried verbatim because nothing corresponds.
     pub carried_verbatim: usize,
-    /// Imports listed and not translated. Counted apart because they are not a
-    /// failure to translate anything.
+    /// Imports listed and not translated.
     pub imports_listed: usize,
     /// Distinct types carried across: a `NewType`, a brand.
     pub newtypes: usize,
@@ -989,31 +642,16 @@ pub struct Fidelity {
     /// discriminated union.
     pub sums: usize,
     /// Signatures with a parameter or a return the source never typed.
-    ///
-    /// The target has to write something, and each one reaches for its widest
-    /// type: `object`, `any`, `anytype`, `Object`, a Rust type parameter. That
-    /// is a defined lowering and not a carry, so it does not stop a translation
-    /// being complete. But a file whose header said every signature carried its
-    /// types intact, over a report naming a parameter that had none, was
-    /// contradicting itself. Counted here, the header says both.
     pub signatures_untyped: usize,
-    /// Signatures whose *types* carried but whose calling convention did not: a
-    /// keyword-only marker, `*args` or `**kwargs` with no counterpart in the target.
-    /// A caller of the translated function writes the call differently.
+    /// Signatures whose *types* carried but whose calling convention did not: a keyword-only
+    /// marker, `*args` or `**kwargs` with no counterpart in the target.
     pub signatures_with_changed_calls: usize,
     /// One line per thing that did not translate, with where it was.
     pub notes: Vec<String>,
 }
 
 impl Fidelity {
-    /// Did everything cross with a defined lowering? A translation that read *nothing* falls
-    /// short of complete. Without the first clause, an empty file reports "every signature
-    /// carried across with its types intact", which is true and misleading. A signature naming
-    /// a type this tool does not know is still complete: the name crosses verbatim, which is
-    /// the defined behavior for foreign types. And the count stays in the report as
-    /// information. The same holds for a calling convention the target cannot keep. Named
-    /// arguments passing by position is a defined lowering, noted in the output, so neither
-    /// count gates completeness. Only a construct carried verbatim does.
+    /// Did everything cross with a defined lowering?
     pub fn is_complete(&self) -> bool {
         self.translated() > 0 && self.carried_verbatim == 0
     }

@@ -1,10 +1,4 @@
 //! What a member access is allowed to claim about its receiver.
-//!
-//! `Confidence::FieldBased` is defined as "matched by field/member name without knowing the
-//! receiver's type, plausible but unproven", and `Exact` as "safe to edit". A member access on
-//! a receiver of unknown type is the first of those by definition. The difference is not
-//! cosmetic: only the top two tiers are rewritten. So calling it `Exact` means `fr rename`
-//! edits it without asking.
 
 use fun_refactor::index::Index;
 use fun_refactor::model::Confidence;
@@ -24,9 +18,8 @@ fn confidences(files: &[(&str, &str)], name: &str) -> Vec<Confidence> {
         .collect()
 }
 
-/// The receiver is from outside the workspace and has nothing to do with the class that
-/// happens to declare a method of the same name. Claiming `exact` here rewrote a call on
-/// a boto3 client to `client.sum()` because a `Cart` in the same file declared `total`.
+/// The receiver is from outside the workspace and has nothing to do with the class that happens
+/// to declare a method of the same name.
 #[test]
 fn a_call_on_a_foreign_receiver_is_not_exact() {
     let found = confidences(
@@ -67,10 +60,7 @@ fn a_call_on_an_imported_instance_is_not_exact() {
     }
 }
 
-/// The other side. A call through `self` or `this` has a receiver whose type is known.
-/// It is the class the call is written inside, and lexical scope settles it before the
-/// question of same-file uniqueness arises. Losing this would cost far more than the
-/// overclaim it guards against.
+/// The other side.
 #[test]
 fn a_call_through_self_is_still_exact() {
     let python = confidences(
@@ -94,8 +84,7 @@ fn a_call_through_self_is_still_exact() {
     assert_eq!(typescript, vec![Confidence::Exact], "typescript `this`");
 }
 
-/// And a plain call to a function defined in the same file is not a member access at all. So it
-/// keeps the tier it earned.
+/// And a plain call to a function defined in the same file is not a member access at all.
 #[test]
 fn a_call_to_a_function_in_the_same_file_is_still_exact() {
     let found = confidences(
@@ -109,12 +98,6 @@ fn a_call_to_a_function_in_the_same_file_is_still_exact() {
 }
 
 /// The same overclaim, one branch up.
-///
-/// Lexical scope settles a name when the definition encloses the use. It was also
-/// letting itself settle a *member* access whenever one member in the workspace had
-/// that name. The reasoning was that there is then "nothing to be wrong about". There is: the workspace does
-/// not contain every type. Fixing the branch below this one left this one untouched, which is
-/// what a rule kept at its use sites does.
 #[test]
 fn a_call_on_an_unknown_receiver_inside_the_declaring_class_is_not_exact() {
     let found = confidences(
@@ -132,11 +115,7 @@ fn a_call_on_an_unknown_receiver_inside_the_declaring_class_is_not_exact() {
     );
 }
 
-/// The property itself, instead of an instance of it. Whatever route through the resolver
-/// produced an answer, a member access on a receiver this tool has not typed may not come back
-/// at a tier that refactorings rewrite. Each shape below reaches a different branch, same-file
-/// uniqueness, enclosing scope, a name declared in another file, and a field read instead of a
-/// call.
+/// The property itself, instead of an instance of it.
 #[test]
 fn no_route_through_the_resolver_makes_an_unknown_receiver_rewritable() {
     let shapes: &[(&str, &[(&str, &str)])] = &[
@@ -186,13 +165,7 @@ fn no_route_through_the_resolver_makes_an_unknown_receiver_rewritable() {
     }
 }
 
-/// "I could not say what this refers to. I am certain of it."
-///
-/// The resolver returns a symbol and a tier as an ordinary pair. So that combination is
-/// representable, and a consumer that trusts the tier without checking the symbol would act on
-/// it, `call_graph` checks both, which is the tell. No branch produces it today. This says so
-/// for whole real workspaces and not by reading the branches, because reading the branches is
-/// what missed the receiver overclaim twice.
+/// "I could not say what this refers to.
 #[test]
 fn an_unresolved_reference_never_claims_a_rewritable_tier() {
     let files: &[(&str, &str)] = &[
@@ -233,9 +206,7 @@ fn an_unresolved_reference_never_claims_a_rewritable_tier() {
     );
 }
 
-/// Two classes each declare a `size`. The receiver's declared type picks whose member
-/// the call names, so the reference carries a target. The tier stays below the
-/// rewrite line: a type worked out from a binding is evidence and not a licence.
+/// Two classes each declare a `size`.
 #[test]
 fn a_typed_receiver_resolves_the_member_it_owns() {
     let tmp = tempfile::tempdir().expect("a temporary directory");

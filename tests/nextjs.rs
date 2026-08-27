@@ -1,7 +1,4 @@
 //! Next.js API routes as FastAPI modules.
-//!
-//! The part worth testing hardest is the part no content-only translation could do:
-//! the URL comes from where the file sits on disk, not from anything inside it.
 
 use fun_refactor::transpile::nextjs;
 use std::path::{Path, PathBuf};
@@ -43,7 +40,7 @@ export async function PUT(request: Request) {
 
 #[test]
 fn the_url_comes_from_the_path_not_the_file() {
-    // Nothing inside a Next.js route says what it serves. Four spellings, four rules.
+    // Nothing inside a Next.js route says what it serves.
     assert_eq!(
         nextjs::route_for(Path::new("app/api/users/route.ts")),
         "/users"
@@ -75,7 +72,7 @@ fn a_route_becomes_a_router_with_its_methods() {
     assert!(plan
         .output
         .contains("async def get(id: str, request: Request):"));
-    // An exported interface is a validated model. It is not a bare class.
+    // An exported interface is a validated model.
     assert!(plan.output.contains("class User(BaseModel):"));
     assert!(plan.output.contains("from fastapi import APIRouter"));
     // Docs survive the crossing.
@@ -84,9 +81,8 @@ fn a_route_becomes_a_router_with_its_methods() {
 
 #[test]
 fn pulling_a_path_parameter_off_the_context_is_dropped_not_carried() {
-    // `const id = context.params.id` is the commonest line in a Next.js route and is
-    // exactly the work FastAPI already did. Carrying it would open every translated
-    // handler with a line naming an object Python does not have.
+    // `const id = context.params.id` is the commonest line in a Next.js route and is exactly
+    // the work FastAPI already did.
     let (_tmp, root) = workspace(&[("app/api/users/[id]/route.ts", ROUTE)]);
     let plan = nextjs::plan(&root.join("app/api/users/[id]/route.ts")).unwrap();
 
@@ -107,9 +103,8 @@ fn pulling_a_path_parameter_off_the_context_is_dropped_not_carried() {
 
 #[test]
 fn the_request_object_is_kept_because_fastapi_has_one() {
-    // `NextRequest` and Starlette's `Request` are the same thing: same headers, same
-    // `await .json()`. Dropping it and commenting out every line that read it was the
-    // wrong call, the correspondence is exact, so the parameter is kept and typed.
+    // `NextRequest` and Starlette's `Request` are the same thing: same headers, same `await
+    // .json()`.
     let (_tmp, root) = workspace(&[("app/api/users/[id]/route.ts", ROUTE)]);
     let plan = nextjs::plan(&root.join("app/api/users/[id]/route.ts")).unwrap();
 
@@ -149,9 +144,7 @@ fn a_handler_that_never_takes_a_request_does_not_import_one() {
 #[test]
 fn the_next_response_helpers_become_their_fastapi_equivalents() {
     // Not approximations: returning a value from a FastAPI handler *is* what
-    // `NextResponse.json` does, and `JSONResponse` is how a status is spelled. The
-    // nested case matters most, an error return inside an `if` is the commonest
-    // branch in a route, and rewriting only the top level missed exactly those.
+    // `NextResponse.json` does, and `JSONResponse` is how a status is spelled.
     let (_tmp, root) = workspace(&[(
         "app/api/posts/[id]/route.ts",
         r#"import { NextResponse, NextRequest } from "next/server";
@@ -181,8 +174,8 @@ export async function GET(request: NextRequest, context: { params: { id: string 
 
 #[test]
 fn the_frameworks_own_imports_are_not_listed_as_work_to_do() {
-    // `import { NextResponse } from "next/server"` is the one import whose uses this
-    // translated away. Listing it under "yours to add" points at a job already done.
+    // `import { NextResponse } from "next/server"` is the one import whose uses this translated
+    // away.
     let (_tmp, root) = workspace(&[("app/api/users/[id]/route.ts", ROUTE)]);
     let plan = nextjs::plan(&root.join("app/api/users/[id]/route.ts")).unwrap();
     assert!(!plan.output.contains("next/server"), "{}", plan.output);
@@ -190,8 +183,7 @@ fn the_frameworks_own_imports_are_not_listed_as_work_to_do() {
 
 #[test]
 fn the_banner_says_draft_only_when_it_is_one() {
-    // A file that carried nothing is not a draft. A banner that says SKELETON over a complete
-    // translation is how a banner stops being read.
+    // A file that carried nothing is not a draft.
     let (_tmp, root) = workspace(&[("app/api/users/[id]/route.ts", ROUTE)]);
     let clean = nextjs::plan(&root.join("app/api/users/[id]/route.ts")).unwrap();
     assert_eq!(clean.fidelity.carried_verbatim, 0);
@@ -231,8 +223,7 @@ fn the_output_parses_as_python() {
 
 #[test]
 fn a_react_component_is_refused_with_the_reason() {
-    // A component renders UI and an endpoint answers HTTP. A file that pretended
-    // otherwise would be worse than no file.
+    // A component renders UI and an endpoint answers HTTP.
     let (_tmp, root) = workspace(&[(
         "app/api/widget/route.tsx",
         "export default function Widget() {\n  return <div>hi</div>;\n}\n",
@@ -248,8 +239,7 @@ fn a_react_component_is_refused_with_the_reason() {
 
 #[test]
 fn a_file_outside_the_api_directories_is_refused() {
-    // The URL is the path. A file that is not at a routable path has no URL, and
-    // inventing one would be a guess.
+    // The URL is the path.
     let (_tmp, root) = workspace(&[("lib/users.ts", ROUTE)]);
     let error = nextjs::plan(&root.join("lib/users.ts")).expect_err("not a route");
     assert!(
@@ -276,8 +266,7 @@ fn a_route_that_exports_no_method_is_refused() {
 
 #[test]
 fn a_catch_all_segment_becomes_a_path_converter() {
-    // `{path}` matches one segment and `{path:path}` matches the rest. A catch-all
-    // route written as the former would quietly serve the wrong URLs.
+    // `{path}` matches one segment and `{path:path}` matches the rest.
     let (_tmp, root) = workspace(&[(
         "app/api/files/[...path]/route.ts",
         "export async function GET(request: Request) {\n  return null;\n}\n",
@@ -321,9 +310,7 @@ export async function POST(request: Request) {
 #[test]
 fn a_zod_schema_becomes_a_pydantic_model() {
     // Most Next.js applications declare their shapes with zod, and a zod schema is a runtime
-    // value instead of a type declaration. So nothing that reads declarations finds it. Left
-    // alone the translated service publishes a contract with no request body in it. The
-    // endpoint works and the contract is smaller than the one it replaced.
+    // value instead of a type declaration.
     let (_tmp, root) = workspace(&[("app/api/posts/route.ts", ZOD_ROUTE)]);
     let plan = nextjs::plan(&root.join("app/api/posts/route.ts")).unwrap();
 
@@ -357,9 +344,7 @@ fn a_zod_schema_becomes_a_pydantic_model() {
 
 #[test]
 fn a_zod_constraint_is_not_invented_into_a_type() {
-    // `.min(3).max(128)` is validation, and Pydantic spells it with `Field(...)`. Guessing one
-    // from a zod call is a guess about the part of a contract it is least safe to guess at, so
-    // the constraint is dropped and not mistranslated.
+    // `.min(3).max(128)` is validation, and Pydantic spells it with `Field(...)`.
     let (_tmp, root) = workspace(&[("app/api/posts/route.ts", ZOD_ROUTE)]);
     let plan = nextjs::plan(&root.join("app/api/posts/route.ts")).unwrap();
     assert!(!plan.output.contains("min_length"), "{}", plan.output);
@@ -387,7 +372,7 @@ fn the_openapi_baseline_states_what_the_tree_declares() {
     let baseline = fun_refactor::openapi::from_routes("demo", &root, &files).unwrap();
     let document = &baseline.document;
 
-    // Only the routes. A library file is not an endpoint.
+    // Only the routes.
     assert_eq!(baseline.routes.len(), 2, "{:?}", baseline.routes);
 
     let paths = document["paths"].as_object().unwrap();
@@ -421,9 +406,7 @@ fn the_openapi_baseline_states_what_the_tree_declares() {
 
 #[test]
 fn the_baseline_never_invents_a_response() {
-    // Which status an endpoint returns is a fact about its code. It is not its declaration.
-    // Writing `200` for everything would be putting fiction into the file you are about
-    // to diff against, which is worse than an empty one.
+    // Which status an endpoint returns is a fact about its code.
     let (_tmp, root) = workspace(&[("app/api/posts/route.ts", ZOD_ROUTE)]);
     let files = vec![root.join("app/api/posts/route.ts")];
     let baseline = fun_refactor::openapi::from_routes("demo", &root, &files).unwrap();
@@ -433,7 +416,7 @@ fn the_baseline_never_invents_a_response() {
     assert!(responses["200"].is_null(), "{responses}");
     assert!(responses["201"].is_null(), "{responses}");
 
-    // And what it could not settle is said. It is not hidden.
+    // And what it could not settle is said.
     assert!(
         baseline.notes.iter().any(|n| n.contains("returns status")),
         "{:?}",
@@ -442,11 +425,6 @@ fn the_baseline_never_invents_a_response() {
 }
 
 /// The tool's own output, read back by the tool.
-///
-/// A translated route is a FastAPI module whose handlers the framework calls and the
-/// source never does. Before the catalogue knew what `@router.get` meant, every handler
-/// this command emitted came back from `fr unused` as having no detected use, output
-/// that was not valid input, with nothing checking that the two ends agreed.
 #[test]
 fn every_handler_this_command_emits_is_an_entry_point() {
     use fun_refactor::analysis::entrypoints::{Catalog, EntryKind};
@@ -484,8 +462,6 @@ fn every_handler_this_command_emits_is_an_entry_point() {
 #[test]
 fn a_fastapi_path_parameter_takes_the_type_the_source_declared() {
     // The document claims its schemas are as good as what the source declared.
-    // Every path parameter was written as a string, so a `int` came out a
-    // string, disagreeing with the document FastAPI generates for itself.
     let tmp = tempfile::tempdir().unwrap();
     let root = tmp.path().to_path_buf();
     let file = root.join("m.py");

@@ -1,11 +1,4 @@
 //! YAML and Helm fact extraction, exercised through the public API.
-//!
-//! Two things are being pinned down here. For plain YAML: mapping keys are the API of a values
-//! file. So every key is a definition whose containment gives it a path, and anchor/alias is
-//! the one reference edge YAML resolves within a single file. For Helm: `{{ ... }}` actions are
-//! masked out before the YAML parse (src/parse.rs), so these tests establish that the
-//! surrounding document still extracts cleanly and that nothing from inside a template leaks
-//! out as a bogus symbol.
 
 use fun_refactor::{extract::Extractor, lang::Language, model::*, parse::Parsers};
 use std::path::Path;
@@ -215,8 +208,7 @@ fn anchor_on_a_scalar_is_found_and_qualified_like_one_on_a_mapping() {
 
 #[test]
 fn merge_key_becomes_an_alias_reference_and_not_a_key_definition() {
-    // `<<` names no field. It splices the aliased mapping in, so the only fact
-    // worth recording is the alias it points at.
+    // `<<` names no field.
     let f = yaml(VALUES);
     assert!(
         !f.symbols.iter().any(|s| s.name == "<<"),
@@ -269,7 +261,7 @@ fn every_reference_starts_unresolved() {
 
 #[test]
 fn block_scalars_contribute_no_spurious_keys() {
-    // Text inside a literal block is data. It is not structure.
+    // Text inside a literal block is data.
     let src = "script: |\n  key: not-a-key\n  echo hi\nafter: 1\n";
     let f = yaml(src);
     assert_eq!(names(&f), vec!["script", "after"], "got {:?}", names(&f));
@@ -277,9 +269,7 @@ fn block_scalars_contribute_no_spurious_keys() {
 
 #[test]
 fn quoted_keys_report_the_bare_name() {
-    // The grammar gives quoted scalars no inner-content node. So @name captures the whole
-    // scalar; the extractor trims the quotes. So a quoted key reports the same bare name a
-    // plain key does and a rename rewrites only the text inside.
+    // The grammar gives quoted scalars no inner-content node.
     let f = yaml(VALUES);
     let q = f
         .symbols
@@ -335,9 +325,8 @@ fn helm_template_parses_and_extracts_its_structure() {
 
 #[test]
 fn keys_whose_value_is_entirely_a_template_action_still_extract() {
-    // `replicas: {{ .Values.replicaCount }}` masks its action to scalar filler, so the
-    // pair has a value and the key spans the whole line. The key must survive, because
-    // that is where a values-file cross-reference lands.
+    // `replicas: {{ .Values.replicaCount }}` masks its action to scalar filler, so the pair has
+    // a value and the key spans the whole line.
     let f = helm(HELM_DEPLOYMENT);
     let replicas = sym(&f, "spec::replicas");
     assert_eq!(replicas.kind, SymbolKind::Key);
@@ -350,9 +339,7 @@ fn keys_whose_value_is_entirely_a_template_action_still_extract() {
 
 #[test]
 fn keys_guarded_by_a_template_conditional_are_still_extracted() {
-    // `{{- if }}` / `{{- end }}` mask to blank lines, leaving the guarded keys in
-    // place. They are reported unconditionally. This extraction has no notion of
-    // a key existing only when a condition holds.
+    // `{{- if }}` / `{{- end }}` mask to blank lines, leaving the guarded keys in place.
     let f = helm(HELM_DEPLOYMENT);
     assert_eq!(sym(&f, "containers::resources").kind, SymbolKind::Key);
     assert_eq!(
@@ -363,10 +350,8 @@ fn keys_guarded_by_a_template_conditional_are_still_extracted() {
 
 #[test]
 fn a_template_action_yields_no_yaml_facts_of_its_own() {
-    // Template contents are masked before parsing, so `include`, `if` and
-    // `chart.fullname` are invisible to the YAML query by construction. Masking must
-    // never invent a key: a symbol overlapping an action would mean the structure of
-    // the document was read out of filler.
+    // Template contents are masked before parsing, so `include`, `if` and `chart.fullname` are
+    // invisible to the YAML query by construction.
     let f = helm(HELM_DEPLOYMENT);
     let leaked: Vec<_> = f
         .symbols
@@ -404,10 +389,8 @@ fn a_template_action_yields_no_yaml_facts_of_its_own() {
 
 #[test]
 fn the_values_a_template_reads_are_the_only_facts_inside_an_action() {
-    // The one exception, and it is deliberate: `{{ .Values.image.tag }}` is a use of
-    // a key the values file declares, and a rename of that key has to rewrite it. The
-    // paths come from parsing the actions themselves, not from the masked text, so
-    // each reference spans the final segment, `tag`, not `.Values.image.tag`.
+    // The one exception, and it is deliberate: `{{ .Values.image.tag }}` is a use of a key the
+    // values file declares, and a rename of that key has to rewrite it.
     let f = helm(HELM_DEPLOYMENT);
     let parsed = Parsers::new()
         .parse(Language::Helm, HELM_DEPLOYMENT)
@@ -468,9 +451,7 @@ fn helm_anchors_work_the_same_as_in_plain_yaml() {
 
 #[test]
 fn a_template_action_in_key_position_breaks_the_parse() {
-    // Known gap, recorded and not papered over: masking `{{ .Values.k }}: v` leaves ` : v`. A
-    // mapping entry with a blank key is not valid YAML. So the document carries a parse error.
-    // Extraction still runs and still finds the surrounding keys, but the masked line is lost.
+    // Known gap, recorded and not papered over: masking `{{ .Values.k }}: v` leaves ` : v`.
     let src = "before: 1\n{{ .Values.k }}: v\nafter: 2\n";
     let parsed = Parsers::new().parse(Language::Helm, src).unwrap();
     assert!(

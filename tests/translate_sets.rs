@@ -1,11 +1,4 @@
 //! A set is a set in every target, whatever each one calls it.
-//!
-//! Four of these languages name a set. Go and Zig spell one as a map whose
-//! values carry nothing, `map[T]struct{}` and `HashMap(K, void)`, because
-//! membership is all such a map can answer. Without a set in the IR, every one
-//! of these crossed as something else. `set()` became a call to a function
-//! named `set`. `seen.add(x)` became a store of `None`, and Go's
-//! `_, ok := m[k]` became a pair nobody had.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -92,8 +85,6 @@ def main() -> None:
 #[test]
 fn a_go_map_to_nothing_reads_back_as_the_set_it_is() {
     // `map[T]struct{}` carries no value, so membership is all it can answer.
-    // `map[T]bool` is a map of booleans as much as it is a set, and a round
-    // trip could not tell the two apart.
     let source = "\
 package m
 
@@ -113,9 +104,8 @@ func main() {
 
 #[test]
 fn a_value_the_source_reads_is_not_thrown_away() {
-    // Rust's `HashSet::insert` answers whether the member was new, and no other
-    // language's `add` answers anything. Renamed in a condition, the answer
-    // went missing and Go wrote a statement where a value belonged.
+    // Rust's `HashSet::insert` answers whether the member was new, and no other language's
+    // `add` answers anything.
     let source = "\
 pub fn note(seen: &mut std::collections::HashSet<i64>, id: i64) -> bool {
     if seen.insert(id) {

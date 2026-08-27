@@ -1,14 +1,4 @@
 //! Safe delete: remove a definition only when nothing provably still uses it.
-//!
-//! The refusal is the feature. Deleting something that is still called is the exact mistake
-//! this tool exists to prevent. So a reference that resolved well enough to rewrite (`exact` or
-//! `import-qualified`) stops the delete and is reported with its file, line and column. Weaker
-//! matches, a name that resolved elsewhere, a hit in a string or comment, cannot be proven to
-//! be uses. So they are surfaced as warnings instead of silently blocking or silently ignoring
-//! the delete.
-//!
-//! [`find_unused`] is the reporting half: candidates for deletion, found by combining "nothing
-//! references it" with "nothing reachable from an entry point calls it".
 
 use super::{Warning, WarningKind};
 use crate::analysis::call_graph::{CallGraph, HierarchyBasis};
@@ -30,17 +20,11 @@ pub struct DeletePlan {
     pub name: String,
     pub edits: EditSet,
     pub warnings: Vec<Warning>,
-    /// Number of definition sites removed. More than one only for kinds with no
-    /// canonical definition, such as a CSS class declared by several rules.
+    /// Number of definition sites removed.
     pub sites: usize,
 }
 
 /// Work out how to delete `symbol` and everything that defines it.
-///
-/// Fails, with every blocking reference listed as `file:line:col`, when any
-/// reference to the symbol resolved strongly enough to be trusted. References inside
-/// the definition being deleted (a recursive call, a method calling its own class)
-/// do not block: they disappear with it.
 pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
     if let Some(language) = index.symbol(symbol).map(|s| s.language) {
         crate::capabilities::record(crate::capabilities::Capability::SafeDelete, language);
@@ -50,9 +34,7 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
         .ok_or_else(|| anyhow::anyhow!("unknown symbol"))?;
 
     // Every definition site of the entity, so a CSS class declared by both `.btn` and
-    // `.btn:hover` goes away as a whole and not half. A method in declared
-    // dispatch goes as one family for the same reason. A trait declaration
-    // without its implementations, or the reverse, is code that cannot compile.
+    // `.btn:hover` goes away as a whole and not half.
     let mut group = index.definition_group(symbol);
     for member in crate::analysis::call_graph::Hierarchy::scanned(index).method_group(index, symbol)
     {
@@ -60,8 +42,7 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
     }
     group.sort();
     group.dedup();
-    // Some definitions cannot be removed on their own. A CSS selector leaves an orphaned rule
-    // behind, so the span is widened to what has to go.
+    // Some definitions cannot be removed on their own.
     let parsers = crate::parse::Parsers::new();
     let mut sites: Vec<(PathBuf, Span)> = Vec::new();
     for id in &group {
@@ -123,8 +104,8 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
             });
         }
         message.push_str("\nRemove or repoint these uses first; nothing was changed.");
-        // A typed refusal, so the caller's exit code can say "refused" instead of
-        // a bare failure. The blocking sites ride beside the prose as data.
+        // A typed refusal, so the caller's exit code can say "refused" instead of a bare
+        // failure.
         return Err(crate::refactor::Refusal::StillUsed {
             detail: message,
             references,
@@ -132,9 +113,7 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
         .into());
     }
 
-    // Nothing proven uses it, so the definitions can go. Whole lines are removed when
-    // the definition is alone on its lines, otherwise the leftover indentation and
-    // newline would remain behind as a blank line.
+    // Nothing proven uses it, so the definitions can go.
     let mut deletions: HashMap<PathBuf, Vec<Span>> = HashMap::new();
     for (file, span) in &sites {
         let resolved = match sources.get(file) {
@@ -147,14 +126,12 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
     let mut edits = EditSet::new();
     let mut deleted: Vec<(PathBuf, Span)> = Vec::new();
     for (file, spans) in &mut deletions {
-        // Two adjacent sites can claim the same blank line. One edit per merged run keeps the
-        // edit set free of the overlaps the engine would reject.
+        // Two adjacent sites can claim the same blank line.
         spans.sort_by_key(|s| (s.start, s.end));
         let merged = merge_runs(spans);
         for span in &merged {
-            // Python's grammar has no empty suite: deleting the only statement of
-            // a body leaves `def __init__(self):` over nothing, and the file
-            // stops parsing. A `pass` in the hole keeps the deletion deliverable.
+            // Python's grammar has no empty suite: deleting the only statement of a body leaves
+            // `def __init__(self):` over nothing, and the file stops parsing.
             let replacement = sources
                 .get(file)
                 .and_then(|source| python_pass_filler(file, source, *span, &merged))
@@ -221,8 +198,7 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
     });
     warnings.dedup();
 
-    // An import the deleted code was the only user of is part of what goes. Leaving it
-    // gave `"strings" imported and not used`, which Go rejects outright.
+    // An import the deleted code was the only user of is part of what goes.
     let (orphaned_imports, kept_imports) = crate::refactor::imports::orphaned_by(index, &edits)?;
     for (file, orphaned) in orphaned_imports.iter() {
         for edit in orphaned {
@@ -247,43 +223,30 @@ pub enum SparedReason {
     /// the only trace reflection and a name-keyed handler table leave.
     NamedInAString,
     /// Dynamic dispatch reaches it: a call site names a method its type declares through a
-    /// trait, an interface or a base class. This is one of the implementations that call could
-    /// pick.
+    /// trait, an interface or a base class.
     DynamicDispatch {
         from: SymbolId,
         basis: HierarchyBasis,
     },
-    /// Its name begins with an underscore. Authors in Rust, TypeScript, Python and Zig write
-    /// that to mean "deliberately not used", usually for a parameter a signature requires and
-    /// the body ignores.
+    /// Its name begins with an underscore.
     DeclaredUnused,
     /// Something uses this name, but more than one definition answers to it and nothing here
-    /// says which one. Two types may declare the same member, or one package may declare the
-    /// same function twice under opposite build tags. Every candidate stays live.
+    /// says which one.
     AmbiguousMemberCall,
-    /// It names where the file lives instead of something in it: Java's `package app;`,
-    /// Go's `package main`. Nothing ever references one, so "unused" is true of all of
-    /// them and says nothing.
+    /// It names where the file lives instead of something in it: Java's `package app;`, Go's
+    /// `package main`.
     NamesTheFilesPlace,
-    /// A JavaBean accessor whose *property* is named somewhere the method is not. A template
-    /// writing `${owner.address}` reaches `getAddress`, and every Java template engine, JSON
-    /// mapper and data binder works that way.
+    /// A JavaBean accessor whose *property* is named somewhere the method is not.
     ReachedByItsProperty,
     /// Something inside it is an entry point, so something outside the workspace reaches in.
-    /// A JUnit test class, a Rust `mod tests` and a Python class of pytest cases all qualify.
     HoldsAnEntryPoint,
     /// The language gives it no address: an HCL block with no labels, such as
     /// `terraform {}` or `lifecycle {}`.
     NoAddressToReferenceIt,
     /// It implements a trait this workspace does not declare, so the caller is the machinery
-    /// behind that trait. serde constructs values through `Deserialize::deserialize`, and
-    /// `Display::fmt` answers every `format!`. The calls arrive through the trait, out of
-    /// this workspace's sight, so the method stays live.
+    /// behind that trait.
     ImplementsForeignTrait,
-    /// It structures a document instead of naming code: a Markdown heading. Most
-    /// headings are never linked to, so "nothing links here" is true of nearly
-    /// all of them and says nothing. On this repository they were 202 of the 445
-    /// lines of the report, in front of the dead code a reader came for.
+    /// It structures a document instead of naming code: a Markdown heading.
     StructuresProse,
 }
 
@@ -363,43 +326,12 @@ impl UnusedReport {
 }
 
 /// Symbols nothing references and nothing reachable from `entrypoints` reaches.
-///
-/// Backs the dead-CSS-selector, unused-Terraform-variable, unused-`values.yaml`-key and
-/// unused-function reports. A symbol qualifies when no resolved reference targets it,
-/// references from inside its own definition do not count. So dead recursive code still
-/// qualifies, and the call graph cannot reach it from any entry point.
-///
-/// Five corrections apply on top, because the raw answer errs in both directions:
-///
-/// * Off the list. A symbol whose name appears in a **string literal** anywhere in the
-///   workspace. Reflection, a name-keyed handler table, a route string and a template all reach
-///   code through a name no resolver follows, leaving only the string. * On it: a **cycle** of
-///   symbols referencing only each other. No entry point reaches any member, and nothing
-///   outside the cycle references one. Otherwise mutual recursion hides a whole dead component,
-///   since every member has an incoming reference. * Off: a method **dynamic dispatch can
-///   reach**. A call through a `dyn Trait`, an interface value or a base-class reference names
-///   no single definition. But the workspace says which types implement the abstraction and
-///   [`CallGraph`] puts an edge on each. Those edges are unproven and marked so. * Off: a
-///   **package clause**, which names where the file lives (see [`names_where_the_file_lives`]).
-/// * Off: a symbol **containing an entry point**, and a **JavaBean accessor** whose property
-///   is named where the method is not.
-///
-/// The result is a candidate list. It is not a delete list. Still invisible: a function held in a map
-/// or struct field and called through it, a name assembled at runtime. Any use inside a file
-/// that failed to parse. [`find_unused_report`] says which correction spared what. Feed each
-/// candidate to [`plan`] before acting.
 pub fn find_unused(index: &Index, entrypoints: &Entrypoints) -> Vec<SymbolId> {
     find_unused_report(index, entrypoints).unused
 }
 
-/// The property a JavaBean accessor exposes: `getAddress` and `isActive` expose
-/// `address` and `active`.
-///
-/// Java only, because the convention there is a specification rather than a habit. Template
-/// engines, JSON mappers and Spring's own data binding reach a getter by the property name
-/// and never write the method's. `spring-petclinic` called `Owner::getAddress` dead while its
-/// template says `${owner.address}` and its tests say `param("address", …)`. Both name the
-/// property; neither names the method.
+/// The property a JavaBean accessor exposes: `getAddress` and `isActive` expose `address` and
+/// `active`.
 fn bean_property(symbol: &crate::model::Symbol) -> Option<String> {
     if symbol.language != crate::lang::Language::Java {
         return None;
@@ -421,15 +353,6 @@ fn bean_property(symbol: &crate::model::Symbol) -> Option<String> {
 }
 
 /// An HCL block Terraform gives no address to.
-///
-/// `resource "aws_vpc" "this"` is addressable as `aws_vpc.this`, and `output "id"` as an
-/// output. Nothing addresses `terraform {}`, `required_providers {}`, `lifecycle {}` or a
-/// `dynamic` block's `content {}`. So nothing can reference one and "nothing uses this" is
-/// true of every one of them. terraform-aws-vpc reported 46, all of them one of those four.
-///
-/// A labelled block takes its name from a string label; a block with no labels takes it from
-/// the block-type keyword. So the quote before the name is the whole test. It reads the
-/// declaration instead of a list of block types that would drift as Terraform adds them.
 fn hcl_block_with_no_address(symbol: &crate::model::Symbol) -> bool {
     if symbol.language != crate::lang::Language::Hcl || symbol.kind != SymbolKind::Block {
         return false;
@@ -441,16 +364,6 @@ fn hcl_block_with_no_address(symbol: &crate::model::Symbol) -> bool {
 }
 
 /// Does this symbol name where the file lives, instead of something in it?
-///
-/// Java's `package app;` and Go's `package main` are file headers. Nothing references them by
-/// name. Java classes in one package never write it, and nothing can import `main`. So "nothing
-/// uses this" is true of every one of them and means nothing. Removing one is a syntax error,
-/// not a refactoring. `spring-petclinic` reported all forty-nine of its package declarations,
-/// one per file.
-///
-/// Rust's `mod helper;` is a different construct wearing the same symbol kind: it declares a
-/// child module, and one nothing references is a real finding. So this asks the language, not
-/// the kind.
 fn names_where_the_file_lives(symbol: &crate::model::Symbol) -> bool {
     symbol.kind == SymbolKind::Module
         && matches!(
@@ -460,11 +373,6 @@ fn names_where_the_file_lives(symbol: &crate::model::Symbol) -> bool {
 }
 
 /// Did the author declare this unused by naming it so?
-///
-/// Rust, TypeScript, Python and Zig use a leading underscore for a binding the signature
-/// forces on you and the body never reads. Listing those as dead code buries the real
-/// findings, a single real file turned up eight of them. Go spells the same idea as a bare
-/// `_`, which binds nothing and never reaches the index in the first place.
 fn declared_unused(symbol: &crate::model::Symbol) -> bool {
     symbol.name.starts_with('_')
 }
@@ -476,16 +384,6 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
     let call_graph = CallGraph::build(index);
 
     // Two reachability answers, because a library has no `main`.
-    //
-    // Everything an exported symbol reaches is live: something outside this workspace may
-    // call it, and no amount of scanning here can rule that out. Without this, the entire
-    // tree beneath a public API reads as dead. In helm/helm that covered most of
-    // `pkg/action`, where `performInstallCtx` calls `performInstall` and the exported
-    // `RunWithContext` calls `performInstallCtx`.
-    //
-    // The exported symbols themselves are judged on the narrow answer. An export nothing in
-    // the workspace uses still gets reported, tagged as exported. Only the author can say
-    // whether it is dead code or the public API.
     let exported_roots: Vec<SymbolId> = index
         .symbols
         .iter()
@@ -497,12 +395,7 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
     let reachable_from_entrypoints = call_graph.reachable_from(entrypoints);
     let reachable = call_graph.reachable_from(&api_roots);
 
-    // Some kinds appear in several places and remain one thing. A CSS class may be written in
-    // a stylesheet and again in a theme, and so may an element id. A reference picks one of
-    // those sites, so counting uses per site reports the others as dead, and `.nav-link`,
-    // used by three anchors in the markup, was reported dead twice while `fr delete` refused
-    // to remove it and named those same three uses. Grouped once here and not per symbol,
-    // which would be quadratic on a large workspace.
+    // Some kinds appear in several places and remain one thing.
     let mut siblings: HashMap<(&str, SymbolKind), Vec<SymbolId>> = HashMap::new();
     for symbol in &index.symbols {
         if symbol.kind.allows_multiple_definitions() {
@@ -513,10 +406,8 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
         }
     }
 
-    // Two fields of one name on two variants, read by destructuring: the
-    // resolver picks the nearer twin at field-based confidence, which is a
-    // guess. The guess must not make the other twin dead, so weak evidence
-    // covers every candidate of that name and kind.
+    // Two fields of one name on two variants, read by destructuring: the resolver picks the
+    // nearer twin at field-based confidence, which is a guess.
     let mut namesakes: HashMap<(&str, SymbolKind), Vec<SymbolId>> = HashMap::new();
     for symbol in &index.symbols {
         namesakes
@@ -537,10 +428,8 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
         if symbol.file == reference.file && symbol.full_span.contains(reference.span) {
             continue;
         }
-        // The widening is for guesses: the resolver picking the nearer twin at
-        // field-based confidence. A member picked because the receiver's settled
-        // type owns it is not a guess; its tier is capped for the rewrite line
-        // only. Widening it would mark every same-named stranger live again.
+        // The widening is for guesses: the resolver picking the nearer twin at field-based
+        // confidence.
         let picked_by_receiver = reference.receiver.is_some()
             && crate::refactor::receiver_known_type(index, reference)
                 .is_some_and(|ty| symbol.qualifier.as_deref() == Some(ty.as_str()));
@@ -550,10 +439,8 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
                 continue;
             }
         }
-        // The index already knows which definition sites are one entity: two clap
-        // variants declaring `include_unresolved`, a Python attribute assigned in
-        // two methods. A use of the entity is a use of every site, or the sites
-        // the resolver did not pick read as dead.
+        // The index already knows which definition sites are one entity: two clap variants
+        // declaring `include_unresolved`, a Python attribute assigned in two methods.
         referenced.extend(index.definition_group(id));
         match siblings.get(&(symbol.name.as_str(), symbol.kind)) {
             Some(group) => referenced.extend(group.iter().copied()),
@@ -565,11 +452,7 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
 
     let named_in_a_string = names_in_string_literals(index);
 
-    // A class whose methods are entry points is reached, whatever calls them. JUnit constructs
-    // a test class to run the `@Test` methods inside it, and the class itself is named nowhere,
-    // `spring-petclinic` reported eleven of them. The same holds for a Rust `mod tests` and a
-    // Python class of pytest cases, so this asks the containment chain instead of the language.
-    // If anything inside it is an entry point, something outside the workspace reaches in.
+    // A class whose methods are entry points is reached, whatever calls them.
     let mut holds_an_entrypoint: HashSet<SymbolId> = HashSet::new();
     for entry in entrypoints {
         let mut at = index.symbol(*entry).and_then(|s| s.container);
@@ -580,9 +463,7 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
             at = index.symbol(id).and_then(|s| s.container);
         }
     }
-    // Names the hierarchy analysis has already ruled on. Where it has, its answer
-    // stands: it knows `Ledger.Area(scale)` cannot satisfy `Shape.Area()` because the
-    // arities differ, and a name-only fallback would undo that.
+    // Names the hierarchy analysis has already ruled on.
     let decided_by_hierarchy: HashSet<&str> = index
         .symbols
         .iter()
@@ -595,9 +476,8 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
         .collect();
     let dead_cycles = dead_reference_cycles(index, &reachable);
 
-    // What the answer would have been on resolved edges alone, so the difference the
-    // hierarchy layer made can be named and not applied. A workspace with
-    // no dispatch edges pays nothing for this.
+    // What the answer would have been on resolved edges alone, so the difference the hierarchy
+    // layer made can be named and not applied.
     let (reachable_directly, dead_cycles_directly) = if call_graph.hierarchy_edge_count() == 0 {
         (reachable.clone(), dead_cycles.clone())
     } else {
@@ -706,18 +586,6 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
 }
 
 /// Every identifier-shaped word inside a string literal anywhere in the workspace.
-///
-/// Reflection and handler tables leave a name in a string and nothing else. This takes
-/// words whole and split on `-`, so CSS `class="btn-primary"` answers for `btn-primary`
-/// and for `btn`. Files it cannot read or parse contribute nothing, which widens the
-/// unused list instead of narrowing it; [`plan`] reports parse errors separately.
-/// Names used where more than one definition could answer to them.
-///
-/// `cfg.recordRelease(r)` resolves to neither of helm's two `recordRelease` methods,
-/// since choosing needs the type of `cfg`. Both stay live.
-///
-/// The fallback for names no declared hierarchy covers; where one does, the caller keeps
-/// that more precise answer.
 fn ambiguously_used_names(index: &Index) -> HashSet<String> {
     index
         .references
@@ -728,11 +596,6 @@ fn ambiguously_used_names(index: &Index) -> HashSet<String> {
 }
 
 /// One spelling for a name however a wire format writes it.
-///
-/// serde renames `ThreatModel::Remote` to `remote` or `remote-first`, and the
-/// string a catalog writes is the renamed one. Comparing the spellings verbatim
-/// called every data-constructed variant dead. Case and the two separator
-/// characters are what the rename conventions change, so both sides drop them.
 fn spelled_loosely(name: &str) -> String {
     name.chars()
         .filter(|c| *c != '-' && *c != '_')
@@ -741,11 +604,6 @@ fn spelled_loosely(name: &str) -> String {
 }
 
 /// Whether this method's `impl` block names a trait the workspace does not declare.
-///
-/// `impl<'de> Deserialize<'de> for AppliesTo` is called by serde, `impl Display`
-/// by every `format!`. The callers live in another crate, so reachability here
-/// can never see them. Rust only: the other languages' `implements` edges are
-/// already hierarchy facts.
 fn implements_foreign_trait(index: &Index, symbol: &crate::model::Symbol) -> bool {
     if symbol.language != crate::lang::Language::Rust || symbol.kind != SymbolKind::Method {
         return false;
@@ -818,12 +676,6 @@ fn names_in_string_literals(index: &Index) -> HashSet<String> {
 }
 
 /// Members of reference cycles that nothing outside the cycle can reach.
-///
-/// The per-symbol check asks "does anything reference this?", which mutual recursion always
-/// answers yes to. The question a cycle needs is whether anything *outside* it references any
-/// member. If not, and no member is reachable from an entry point, the component is dead as a
-/// whole. Every symbol kind participates, not just callables: a pair of CSS classes or
-/// Terraform locals can reference each other just as happily.
 fn dead_reference_cycles(index: &Index, reachable: &HashSet<SymbolId>) -> HashSet<SymbolId> {
     let mut graph: DiGraph<SymbolId, ()> = DiGraph::new();
     let mut nodes: HashMap<SymbolId, NodeIndex> = HashMap::new();
@@ -896,21 +748,6 @@ fn enclosing_symbol(index: &Index, file: &Path, span: Span) -> Option<SymbolId> 
 }
 
 /// The bytes a delete should remove.
-///
-/// When the definition is alone on its lines, the whole lines go, indentation and trailing
-/// newline included. A blank line immediately after goes too, but only when a blank line or
-/// the start of the file already preceded the definition. Otherwise that blank line separates
-/// the code that stays. Widen a symbol's span to the construct that cannot survive without
-/// it.
-///
-/// The index keeps the span a *rename* rewrites, which is rarely the span a delete can remove.
-/// `export const defaultLimits = {…}` has the declarator as its span. Removing that leaves
-/// `export const ;`, which the engine's reparse check rejects, so `fr unused` named the
-/// constant and `fr delete` refused it. A CSS class has the same shape.
-///
-/// One rule covers both. Climb while the symbol is the only child of its kind in its parent,
-/// because a parent left with none has nothing left to be. Stop at the first sibling of the
-/// same kind and take the symbol plus the separator joining them. Never climb into the root.
 pub(crate) fn widen_for_delete(
     parsed: &crate::parse::Parsed,
     source: &str,
@@ -948,11 +785,7 @@ pub(crate) fn widen_for_delete(
         if parent.id() == root.id() {
             break;
         }
-        // A body is not optional. "No sibling of the same kind" is true of a Java class holding
-        // one field and four methods, the methods are a different kind. So the climb went field
-        // → class_body → class_declaration and deleting one constant took the whole class with
-        // it. Stop below anything its own parent names as its body, which is the general form
-        // of "this container has to be here".
+        // A body is not optional.
         let parent_is_a_body = parent
             .parent()
             .and_then(|grandparent| grandparent.child_by_field_name("body"))
@@ -994,9 +827,7 @@ pub(crate) fn widen_for_delete(
     Span::new(begin, span.end)
 }
 
-/// Whether the line starting at `at` sits inside a `/* ... */` block that a
-/// line above opens. A bare `*` also begins a YAML alias, and eating one of
-/// those would delete data, so the `*` prefix only counts inside a block.
+/// Whether the line starting at `at` sits inside a `/* ...
 fn block_comment_continues(source: &str, at: usize) -> bool {
     let above = &source[..at];
     match (above.rfind("/*"), above.rfind("*/")) {
@@ -1019,13 +850,7 @@ pub(crate) fn deletion_span(source: &str, span: Span) -> Span {
         return span;
     }
 
-    // What sits attached above the definition goes with it. A `///` doc
-    // comment describes the deleted thing, and clippy refuses one left
-    // orphaned. An attribute changes the meaning of whatever follows:
-    // `#[allow(dead_code)]` moved onto the next survivor. Plain `//` and `#`
-    // comments stay: a comment above a definition may be about the
-    // neighbourhood, and their survival is pinned behaviour. Attached means
-    // contiguous: the first blank line ends the walk.
+    // What sits attached above the definition goes with it.
     let mut first = first;
     loop {
         if first.start == 0 {
@@ -1044,12 +869,6 @@ pub(crate) fn deletion_span(source: &str, span: Span) -> Span {
         first = Span::new(previous.start, first.end);
     }
 
-    // The blank lines around the definition merge into one run once it is gone.
-    // So as many trailing blanks go as there were leading ones, and the site
-    // keeps the separation it had, instead of both gaps stacked. Eating only one
-    // used to leave a Python file with three blank lines where its style put two.
-    // A gap owned by the survivors, a definition with no blank line above it,
-    // stays.
     let mut blanks_before = 0usize;
     let mut at = first.start;
     while at > 0 {
@@ -1105,13 +924,6 @@ fn merge_runs(spans: &[Span]) -> Vec<Span> {
 }
 
 /// The name inside string literals and comments anywhere in the workspace.
-///
-/// Nothing resolves these, so they are reported for review. Occurrences inside the
-/// bytes being deleted are not outstanding. They go away with the definition.
-/// The name inside string literals and comments anywhere in the workspace.
-///
-/// Nothing resolves these, so they are reported for review. Occurrences inside the
-/// bytes being deleted are not outstanding. They go away with the definition.
 fn textual_occurrences(
     index: &Index,
     name: &str,
@@ -1141,13 +953,7 @@ fn textual_occurrences(
 /// Does this node kind hold a string literal?
 fn is_string_kind(kind: &str) -> bool {
     // An attribute value is a string that the HTML grammar happens not to call one, and a
-    // template names its code there. `th:text="${owner.address}"` reaches
-    // `Owner::getAddress`, and `v-on:click="submit"` reaches `submit`. Reading only nodes
-    // with "string" in their name hid the whole Thymeleaf, Vue and Angular way of referring
-    // to code from the one rule meant to catch it. YAML spells its scalars apart: a bare
-    // `remote` is a `string_scalar` and a quoted `"remote"` is a `double_quote_scalar`. Only
-    // the first matched, so quoting a value hid it from the one rule meant to see data-borne
-    // names.
+    // template names its code there.
     kind.contains("string")
         || kind.contains("quote_scalar")
         || kind.contains("char_literal")
@@ -1155,7 +961,6 @@ fn is_string_kind(kind: &str) -> bool {
 }
 
 /// Spans of string literals, comments and Helm template actions.
-/// Spans of every node whose kind `wanted` accepts, without recursing into a match.
 fn spans_of(parsed: &Parsed, wanted: impl Fn(&str) -> bool) -> Vec<Span> {
     let mut spans: Vec<Span> = Vec::new();
     let mut cursor = parsed.root().walk();
@@ -1210,9 +1015,6 @@ impl Sources {
 }
 
 /// `pass`, indented for the hole, when this deletion empties a Python suite.
-///
-/// The block's other statements may be going in the same plan, so emptiness is
-/// judged against every merged span and not this one alone.
 fn python_pass_filler(
     file: &std::path::Path,
     source: &str,
@@ -1278,16 +1080,12 @@ mod tests {
 
     #[test]
     fn a_separator_blank_line_belonging_to_the_survivor_is_kept() {
-        // `b` is not preceded by a gap, so the blank line after it separates `a` from
-        // `c` once `b` is gone and must stay.
         let source = "fn a() {}\nfn b() {}\n\nfn c() {}\n";
         assert_eq!(deletion_span(source, Span::new(10, 19)), Span::new(10, 20));
     }
 
     #[test]
     fn stacked_blank_lines_collapse_to_the_original_separation() {
-        // Two blank lines above and two below merge into one run once the
-        // definition is gone. The site used to keep three, its style used two.
         let source = "fn a() {}\n\n\nfn b() {}\n\n\nfn c() {}\n";
         let b = Span::new(12, 21);
         let deleted = deletion_span(source, b);

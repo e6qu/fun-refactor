@@ -1,11 +1,4 @@
 //! Tree-sitter parsing for every supported language.
-//!
-//! Grammars are loaded once into a [`Parsers`] handle and reused. Parsing never rewrites the
-//! source: byte offsets in the resulting tree always index the original text, which the
-//! edit engine relies on. That holds for the two languages that are not parsed as written.
-//! Helm, whose template actions are masked to keep the YAML grammar happy. Markdown, whose
-//! inline content is parsed a second time by a second grammar, because both preserve every byte
-//! offset.
 
 use crate::lang::Language;
 use crate::model::FactGap;
@@ -22,15 +15,8 @@ impl Parsers {
     }
 
     /// The tree-sitter grammar used for a language.
-    ///
-    /// One dialect gets its own entry instead of borrowing a near neighbour's. SCSS on the
-    /// CSS grammar reported every `$variable` and `@mixin` as a parse error, so SCSS has its
-    /// own grammar. What a grammar still cannot express surfaces through
-    /// [`Parsed::has_errors`] instead of being mis-parsed silently.
     fn grammar(lang: Language) -> Option<tree_sitter::Language> {
-        // Each arm sits behind its own feature. A grammar costs a megabyte of C parse table,
-        // and a browser build takes only what it uses. Absent means absent, not broken:
-        // [`Self::parse`] says which build you are running.
+        // Each arm sits behind its own feature.
         match lang {
             #[cfg(feature = "lang-rust")]
             Language::Rust => Some(tree_sitter_rust::LANGUAGE.into()),
@@ -75,20 +61,12 @@ impl Parsers {
     }
 
     /// Can this build parse `lang` at all?
-    ///
-    /// A browser build may leave grammars out to save a megabyte each. The caller that loads
-    /// a whole repository needs to know *before* it hands over a file. A workspace should
-    /// still open when one README is in a language this binary was not compiled with.
     pub fn supports(lang: Language) -> bool {
         Self::grammar(lang).is_some()
     }
 
     /// The second grammar a language needs, for grammars that parse block structure and inline
     /// content separately.
-    ///
-    /// Markdown is the only such language: its block grammar leaves the contents of every
-    /// paragraph, heading and table cell as an opaque `inline` node. The inline grammar is what
-    /// turns those bytes into links, labels and destinations.
     fn inline_grammar(lang: Language) -> Option<tree_sitter::Language> {
         match lang {
             #[cfg(feature = "lang-markdown")]
@@ -111,8 +89,6 @@ impl Parsers {
             .with_context(|| format!("loading {lang} grammar"))?;
 
         // Helm templates are not valid YAML, so the actions are masked before the parse.
-        // The mask replaces bytes with the same number of bytes, so every offset in the
-        // tree still indexes the original source.
         let (parse_input, masked_spans) = match lang {
             Language::Helm => {
                 let actions = find_template_actions(source);
@@ -159,12 +135,6 @@ impl Default for Parsers {
 }
 
 /// Parse every opaque inline node of a block tree with the inline grammar.
-///
-/// The parser reads each sub-tree from the *whole* source, with tree-sitter's included ranges
-/// restricted to one inline node. Every byte offset in the result then indexes the original
-/// document, the property Helm masking preserves and the edit engine depends on. Parsing the
-/// ranges one node at a time and not all at once also keeps the nodes independent. A stray
-/// `[` at the end of one paragraph cannot pair with a `]` in the next.
 fn parse_inline_content(
     grammar: &tree_sitter::Language,
     block_tree: &Tree,
@@ -187,10 +157,6 @@ fn parse_inline_content(
 }
 
 /// The byte ranges holding inline content, one entry per inline node.
-///
-/// A node's own named children are cut out of its ranges: multi-line inline content
-/// inside a list item or block quote carries `block_continuation` markers, and feeding
-/// the `>` or the indent to the inline parser would make it part of the text.
 fn inline_ranges(block_tree: &Tree) -> Vec<Vec<Range>> {
     let mut all = Vec::new();
     let mut cursor = block_tree.walk();
@@ -247,15 +213,12 @@ fn ranges_excluding_children(node: Node<'_>) -> Vec<Range> {
 pub struct Parsed {
     pub language: Language,
     pub tree: Tree,
-    /// Sub-trees of the inline content, for languages whose grammar splits block and
-    /// inline parsing (Markdown). Every byte offset in them indexes the original
-    /// source, as in [`Parsed::tree`].
+    /// Sub-trees of the inline content, for languages whose grammar splits block and inline
+    /// parsing (Markdown).
     pub inline_trees: Vec<Tree>,
-    /// Byte spans of Helm `{{ ... }}` template actions, masked out before YAML parsing.
+    /// Byte spans of Helm `{{ ...
     pub masked_spans: Vec<Span>,
-    /// Why facts drawn from this tree fall short of the file, empty when they do not. Settled
-    /// here because the reasons need the original source, which the tree does not keep. Every
-    /// caller that indexes a file needs the same answer.
+    /// Why facts drawn from this tree fall short of the file, empty when they do not.
     pub gaps: Vec<FactGap>,
 }
 
@@ -280,9 +243,6 @@ impl Parsed {
     }
 
     /// Byte spans of every ERROR and MISSING node, in source order.
-    ///
-    /// The edit engine compares these before and after an edit: an edit that
-    /// introduces new syntax errors is rejected and not written.
     pub fn error_spans(&self) -> Vec<Span> {
         let mut errors = Vec::new();
         for root in self.roots() {
@@ -300,9 +260,6 @@ impl Parsed {
     }
 
     /// The smallest node covering `start..end`, across every tree.
-    ///
-    /// Where an inline sub-tree and the block tree both answer, the inline answer
-    /// wins: it describes the same bytes, and describes them in more detail.
     pub fn descendant_at(&self, start: usize, end: usize) -> Option<Node<'_>> {
         self.smallest_covering(start, end.max(start), |root, start, end| {
             root.descendant_for_byte_range(start, end)
@@ -317,8 +274,8 @@ impl Parsed {
     ) -> Option<Node<'_>> {
         let mut best: Option<Node<'_>> = None;
         for root in self.roots() {
-            // An inline sub-tree covers only its own node, and still answers for a
-            // range outside it, with its root. Those answers are discarded here.
+            // An inline sub-tree covers only its own node, and still answers for a range
+            // outside it, with its root.
             let Some(node) =
                 lookup(root, start, end).filter(|n| n.start_byte() <= start && end <= n.end_byte())
             else {
@@ -358,9 +315,7 @@ fn collect_error_spans(root: Node<'_>, errors: &mut Vec<Span>) {
             if !cursor.goto_parent() {
                 // Some grammars flag a subtree as erroneous without producing an ERROR or
                 // MISSING node anywhere in it (tree-sitter-zig does this for an empty container
-                // body). Reporting nothing here would let the edit engine's before/after
-                // comparison see no change and accept an edit that broke the file. So fall back
-                // to the narrowest node that still reports an error.
+                // body).
                 if errors.len() == before && root.has_error() {
                     errors.push(innermost_error_span(root));
                 }
@@ -374,8 +329,6 @@ fn collect_error_spans(root: Node<'_>, errors: &mut Vec<Span>) {
 }
 
 /// Descend to the smallest node that still reports an error.
-///
-/// Used when a tree is flagged erroneous but contains no ERROR or MISSING node.
 fn innermost_error_span(root: Node<'_>) -> Span {
     let mut node = root;
     loop {
@@ -388,10 +341,7 @@ fn innermost_error_span(root: Node<'_>) -> Span {
     }
 }
 
-/// Locate Go template actions `{{ ... }}`, tolerating `{{- -}}` trim markers.
-///
-/// Quoted strings inside an action may legally contain `}}`, so the scan tracks
-/// quoting instead of searching for the first closing delimiter.
+/// Locate Go template actions `{{ ...
 fn find_template_actions(source: &str) -> Vec<Span> {
     let bytes = source.as_bytes();
     let mut spans = Vec::new();
@@ -401,9 +351,7 @@ fn find_template_actions(source: &str) -> Vec<Span> {
             let start = i;
             i += 2;
 
-            // A comment's body is opaque. `{{- /* #j={{ $j }} */}}` is one action, and
-            // stopping at the first `}}` left ` */}}` behind for the YAML grammar to puzzle
-            // over.
+            // A comment's body is opaque.
             let after_dash = i + usize::from(bytes.get(i) == Some(&b'-'));
             let body = source[after_dash.min(source.len())..].trim_start();
             if body.starts_with("/*") {
@@ -454,20 +402,10 @@ fn find_template_actions(source: &str) -> Vec<Span> {
 
 /// Replace each span with filler of the same byte length, preserving newlines so line numbering
 /// and every byte offset outside the spans stay identical.
-///
-/// The filler cannot be one character. An action alone on its line, a `{{- if }}` wrapping
-/// other keys, has to become blank, or the line reads as a stray scalar. But an action *within*
-/// a value has to become scalar text. Masking `name: {{.Release.Name}}-{{.Chart.Name}}` with
-/// spaces leaves `name:` followed by a lone `-`, which YAML rejects. So the choice is made per
-/// line, by whether anything other than the actions is on it.
 fn mask_spans(source: &str, spans: &[Span]) -> String {
     let mut out = source.as_bytes().to_vec();
     for span in spans {
-        // Scalar filler is only right where a *value* is expected. An action alone on its line
-        // is structural and must vanish, and so must one in key position. A key masked to `xxx`
-        // is reported under the action's own source text, giving a symbol named `{{ $key }}`
-        // that renaming would happily rewrite. Blanked, the entry is absent instead, which
-        // `FactGap::TemplatedKeys` then reports.
+        // Scalar filler is only right where a *value* is expected.
         let filler = if line_is_only_actions(source, spans, *span)
             || starts_the_line(source, *span)
             || supplies_the_block_below(source, spans, *span)
@@ -478,11 +416,7 @@ fn mask_spans(source: &str, spans: &[Span]) -> String {
             // A plain-scalar character, so the surrounding text still parses as a value.
             b'x'
         };
-        // The scalar filler belongs to the line the action starts on. An action that runs
-        // over a newline continues on lines of its own. A scalar character at the start of
-        // one of those is content the surrounding structure never asked for. Inside a block
-        // scalar it lands at column zero and ends the block. `SERVICE_NAMES="{{` with its
-        // body on the next line does that.
+        // The scalar filler belongs to the line the action starts on.
         let mut seen_newline = false;
         for b in &mut out[span.start..span.end] {
             match *b == b'\n' {
@@ -491,19 +425,7 @@ fn mask_spans(source: &str, spans: &[Span]) -> String {
             }
         }
 
-        // Spaces are wrong in one place: the first line of a block scalar. YAML rejects a
-        // *leading* empty line indented further than the content. A masked action is a
-        // whitespace run as long as the action was, so
-        //
-        // redis.conf: |- {{- $password := include "redis.password" . }} user default on …
-        //
-        // became forty-nine spaces above content indented two. A `#` there is ordinary
-        // block-scalar content at the indentation the block wants.
-        //
-        // Only there. An action-only line anywhere else is legal as spaces, and a `#` at a
-        // lower indentation than the block would *end* the scalar, which is what
-        // `health-configmap.yaml` does with `{{- if … }}` written at column zero inside an
-        // indented script.
+        // Spaces are wrong in one place: the first line of a block scalar.
         if filler == b' ' && starts_the_line(source, *span) && opens_a_block_scalar(source, *span) {
             out[span.start] = b'#';
         }
@@ -513,16 +435,9 @@ fn mask_spans(source: &str, spans: &[Span]) -> String {
 }
 
 /// Does this action stand where a mapping key belongs?
-///
-/// Such an entry reaches the index under no name at all, the mask blanks it, and a blank key
-/// matches no capture. So the gap is reported and not left to the parse. Whether the blank
-/// *also* trips the grammar depends on what surrounds it. `{{ $k }}: v` alone under its parent
-/// parses, the same line beside a second pair does not. So the parse error cannot be the
-/// signal.
 fn in_key_position(source: &str, span: Span) -> bool {
     let line_start = source[..span.start].rfind('\n').map(|i| i + 1).unwrap_or(0);
-    // A block sequence entry's `- ` is structure. It is not a key, so an action after it is
-    // still in key position.
+    // A block sequence entry's `- ` is structure.
     let opens_the_entry = source[line_start..span.start]
         .trim()
         .chars()
@@ -550,9 +465,6 @@ fn line_is_only_actions(source: &str, spans: &[Span], span: Span) -> bool {
 }
 
 /// Is this span on the first line after a block scalar's header?
-///
-/// `key: |-`, `key: >`, and the `+`/`-` chomping variants. Only there does a
-/// whitespace-only line have to be no wider than the content that follows it.
 fn opens_a_block_scalar(source: &str, span: Span) -> bool {
     let line_start = source[..span.start].rfind('\n').map(|i| i + 1).unwrap_or(0);
     let Some(previous) = source[..line_start.saturating_sub(1)].rsplit('\n').next() else {
@@ -567,14 +479,6 @@ fn opens_a_block_scalar(source: &str, span: Span) -> bool {
 }
 
 /// Does this action stand where a *block* goes instead of a scalar?
-///
-/// `labels: {{- include "common.labels.standard" . | nindent 4 }}` with lines indented under it
-/// renders to a nested mapping. So filling it with a scalar leaves `labels: xxxx` above a
-/// deeper mapping, which no YAML parser accepts. Which cost 48 of 92 files across three
-/// `bitnami/charts` charts. Every failure there was this.
-///
-/// The following line's indentation is what distinguishes the two. Where the action supplies
-/// the block, the value must be empty for the block below to attach to the key.
 fn supplies_the_block_below(source: &str, spans: &[Span], span: Span) -> bool {
     let indent_of = |line: &str| line.len() - line.trim_start().len();
     let line_start = source[..span.start].rfind('\n').map(|i| i + 1).unwrap_or(0);
@@ -605,22 +509,6 @@ fn supplies_the_block_below(source: &str, spans: &[Span], span: Span) -> bool {
 }
 
 /// The expression a declaration binds, where the grammar exposes one.
-///
-/// One definition, because there were three and they disagreed. Each one was written against
-/// the languages its caller had in front of it, and each missed a different grammar. A Java
-/// local's value hangs off a declarator rather than the declaration, so `fr inline` called
-/// every Java local uninitialised. `fr type` answered `var`, the keyword meaning "work it
-/// out", as though somebody had written that type down. It could not reach the value to work
-/// anything out from.
-///
-/// The shapes, and why each is here:
-///
-/// * `value`, `right`, `default_value`, what most grammars call the field.
-/// * `declarator`. Java and the C family put the name and the value together, because one
-///   statement may declare several: `int a = 1, b = 2;`.
-/// * `expression_list`. Go wraps every bound value in a list, even where it binds one.
-/// * no field at all. Zig gives a variable declaration's children no names, so the value is the
-///   last of them, unless the declaration states a type and binds nothing.
 pub fn declaration_value<'t>(declaration: Node<'t>) -> Option<Node<'t>> {
     let bound = ["value", "right", "default_value"]
         .iter()
@@ -639,8 +527,7 @@ pub fn declaration_value<'t>(declaration: Node<'t>) -> Option<Node<'t>> {
     }
 }
 
-/// Zig's variable declaration names none of its children. So the value is the last one, unless
-/// that is the type it states, in which case it binds nothing.
+/// Zig's variable declaration names none of its children.
 fn zig_bound_value<'t>(declaration: Node<'t>) -> Option<Node<'t>> {
     if declaration.kind() != "variable_declaration" {
         return None;
@@ -662,9 +549,6 @@ fn after_the_equals<'t>(declaration: Node<'t>) -> Option<Node<'t>> {
 }
 
 /// Whether a type as written is a placeholder for one the compiler works out.
-///
-/// Java's `var`, C++'s `auto` and Go's `:=` all mean "not stated". Reporting the keyword
-/// as the declared type answers the question with the question.
 pub fn is_an_inferred_type(written: &str) -> bool {
     matches!(written.trim(), "var" | "auto" | "let" | "const")
 }
@@ -764,9 +648,7 @@ mod tests {
 
     #[test]
     fn adjacent_actions_in_a_value_still_parse() {
-        // `name: {{.Release.Name}}-{{.Chart.Name}}` is ordinary Helm. Masking with spaces
-        // left `name:` followed by a lone `-`, which YAML rejects. This one shape caused 28
-        // of the 37 parse failures across the Helm repository.
+        // `name: {{.Release.Name}}-{{.Chart.Name}}` is ordinary Helm.
         let src = "metadata:\n  name: {{.Release.Name}}-{{.Chart.Name}}\n";
         let parsed = parse(Language::Helm, src);
         assert!(
@@ -835,8 +717,7 @@ mod tests {
     #[test]
     fn markdown_inline_spans_index_the_original_document() {
         // The property everything downstream depends on: the inline parser is handed the whole
-        // source with its ranges narrowed. So it can only ever report offsets into the original
-        // document.
+        // source with its ranges narrowed.
         let lead = "Filler paragraph that shifts every following offset.\n\n";
         let src = format!("{lead}A [label][target] link.\n");
         let parsed = parse(Language::Markdown, &src);

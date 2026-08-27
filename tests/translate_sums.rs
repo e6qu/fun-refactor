@@ -1,10 +1,4 @@
 //! A closed choice crosses every language boundary here.
-//!
-//! Rust spells it `enum` with payloads, and Zig `union(enum)`. TypeScript writes a
-//! union of object types told apart by a literal field. Python writes a union of
-//! dataclasses, Java a sealed interface over records, and Go the marker-interface
-//! convention. Before the IR had a sum, each of these carried as a comment and the
-//! type never crossed.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -102,7 +96,6 @@ fn a_zig_plain_enum_is_a_choice_with_bare_variants() {
 #[test]
 fn an_untagged_zig_union_stays_carried() {
     // A bare `union` overlays its members and knows nothing about which is live.
-    // Reading it as a choice would invent a meaning it does not have.
     let (_tmp, root) = workspace(&[(
         "raw.zig",
         "pub const Raw = union {\n    as_int: i64,\n    as_float: f64,\n};\n",

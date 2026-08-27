@@ -1,10 +1,4 @@
 //! Python reads a name out of a module object, and the import says which module.
-//!
-//! `from app import flags` binds the submodule `app/flags.py` under the same syntax that
-//! binds a name out of `app/__init__.py`. Resolution took the import path for the whole
-//! answer, so every `flags.USE_NEW_TAX` in the commonest layout the language has resolved
-//! to nothing. `fr refs` found none, `fr remove-flag` refused saying nothing read the flag,
-//! and `fr rename` moved the declaration and left the reads behind.
 
 use fun_refactor::index::Index;
 use fun_refactor::model::Confidence;
@@ -91,9 +85,7 @@ fn a_relative_import_of_the_module_itself_still_binds_the_name() {
 
 #[test]
 fn a_name_declared_in_the_package_is_still_read_from_the_package() {
-    // The submodule rule offers a second file. It must not take the first one's place:
-    // `from app import limit` reads what `app/__init__.py` declares, and no `app/limit.py`
-    // is there to confuse it.
+    // The submodule rule offers a second file.
     let (_tmp, index) = workspace(&[
         ("app/__init__.py", "LIMIT = 3\n"),
         ("app/use.py", "from app import LIMIT\n\nx = LIMIT\n"),

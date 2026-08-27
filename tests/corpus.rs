@@ -1,15 +1,4 @@
-//! Translation against code somebody shipped. `tests/transpile.rs` and `tests/nextjs.rs` use
-//! fixtures, and a fixture is written by the same person who writes the assertion. So they
-//! passed while `def create_user(*, session, user_create)` produced `export function
-//! createUser(*. Unknown, …)`, a file TypeScript will not parse. The corpus is four projects,
-//! vendored unmodified and pinned; see `tests/corpus/PROVENANCE.md`. What is asserted here is
-//! deliberately not "the output equals this string". That would freeze today's translation and
-//! break on every improvement. It is the three properties that must hold for any translation to
-//! be worth reading: 1. **It parses as what it claims to be.** Anything else is a defect in
-//! this tool. 2. **It adopts the target's conventions.** `user_create` is `userCreate` in
-//! TypeScript, and a file that says otherwise reads as converted and not written. 3. **Nothing
-//! goes missing quietly.** Every construct that did not translate is in the output verbatim and
-//! counted.
+//! Translation against code somebody shipped.
 
 use fun_refactor::lang::Language;
 use fun_refactor::parse::Parsers;
@@ -53,9 +42,7 @@ const FASTAPI_FILES: &[&str] = &["crud.py", "models.py", "security.py"];
 
 #[test]
 fn every_backend_file_translates_into_typescript_that_parses() {
-    // The translator checks this itself and refuses to write output that does not parse. So a
-    // failure here is `plan` returning an error, which is the defect report working, and still
-    // a defect.
+    // The translator checks this itself and refuses to write output that does not parse.
     for name in FASTAPI_FILES {
         let (_tmp, root) = corpus("fastapi");
         let plan = transpile::plan(&root.join(name), Language::TypeScript)
@@ -70,8 +57,7 @@ fn every_backend_file_translates_into_typescript_that_parses() {
 
 #[test]
 fn every_backend_file_translates_into_go_and_rust_that_parse() {
-    // Two targets that share far less with Python than TypeScript does. They carry
-    // more; what they must not do is emit something their own grammar rejects.
+    // Two targets that share far less with Python than TypeScript does.
     for name in FASTAPI_FILES {
         for target in [Language::Go, Language::Rust] {
             let (_tmp, root) = corpus("fastapi");
@@ -106,9 +92,7 @@ fn a_python_signature_arrives_in_typescript_spelled_the_typescript_way() {
 
 #[test]
 fn a_keyword_only_marker_is_reported_rather_than_written_as_a_parameter() {
-    // `*` is a rule about the parameters around it. It is not a parameter. Written as one it
-    // produced `createUser(*: unknown, …)`; dropped in silence the signature would
-    // look carried when the way callers must invoke it had changed.
+    // `*` is a rule about the parameters around it.
     let (_tmp, root) = corpus("fastapi");
     let plan = transpile::plan(&root.join("crud.py"), Language::TypeScript).unwrap();
 
@@ -154,9 +138,7 @@ fn nineteen_typed_records_carry_as_typed_records() {
 
 #[test]
 fn a_foreign_library_type_is_never_renamed_to_suit_the_target() {
-    // `Session`, `UserCreate` and the rest belong to sqlmodel and to the file's own
-    // models. Re-casing a name this module does not declare renames somebody else's
-    // API, which is the one thing a translation must not do.
+    // `Session`, `UserCreate` and the rest belong to sqlmodel and to the file's own models.
     let (_tmp, root) = corpus("fastapi");
     let plan = transpile::plan(&root.join("security.py"), Language::TypeScript).unwrap();
     assert!(!plan.output.contains("session"), "{}", plan.output);
@@ -188,8 +170,7 @@ fn the_url_survives_the_crossing_with_the_targets_conventions() {
     let plan = nextjs::plan(&root.join("app/api/posts/[postId]/route.ts")).unwrap();
 
     // `[postId]` is a placeholder name, not part of the URL, `/posts/{postId}` and
-    // `/posts/{post_id}` serve exactly the same requests. So it takes Python's convention like
-    // every other name FastAPI will see.
+    // `/posts/{post_id}` serve exactly the same requests.
     assert_eq!(plan.route, "/posts/{post_id}");
     assert_eq!(plan.methods, vec!["DELETE", "PATCH"]);
     assert!(
@@ -203,9 +184,8 @@ fn the_url_survives_the_crossing_with_the_targets_conventions() {
 
 #[test]
 fn real_error_handling_carries_across() {
-    // This route's handlers are one `try` each, and before `try` was in the IR the
-    // whole body of every handler came out as a comment. Everything asserted here was
-    // carried verbatim at some point in this file's history.
+    // This route's handlers are one `try` each, and before `try` was in the IR the whole body
+    // of every handler came out as a comment.
     let (_tmp, root) = corpus("nextjs");
     let plan = nextjs::plan(&root.join("app/api/posts/[postId]/route.ts")).unwrap();
 
@@ -235,10 +215,6 @@ fn real_error_handling_carries_across() {
         "a response body must not be dropped:\n{}",
         plan.output
     );
-    // A helper declared in the same file is renamed at its uses, not only where it is
-    // declared, the handler bodies are written as their own modules and used to be
-    // spelled without the rest of the file in view. The route exports neither the
-    // helper nor its name, so Python marks it module-private, at both ends.
     assert!(
         plan.output
             .contains("async def _verify_current_user_has_access_to_post("),
@@ -255,9 +231,7 @@ fn real_error_handling_carries_across() {
 
 #[test]
 fn a_comment_is_translated_rather_than_reported_as_a_failure() {
-    // Every one of these languages has comments and only the marker differs. Reading
-    // one as an untranslatable construct put ordinary prose under a "not translated"
-    // marker and counted it among the real gaps.
+    // Every one of these languages has comments and only the marker differs.
     let (_tmp, root) = corpus("nextjs");
     let plan = nextjs::plan(&root.join("app/api/posts/[postId]/route.ts")).unwrap();
 
@@ -275,11 +249,8 @@ fn a_comment_is_translated_rather_than_reported_as_a_failure() {
 
 #[test]
 fn what_does_not_translate_is_in_the_output_verbatim_and_counted() {
-    // Destructuring was the example here until it learned to lower, and then
-    // everything else did too. The corpus carries nothing now, and the sweep
-    // holds that at zero. The promise that stands here is the accounting one.
-    // The carried count and the markers in the file agree, both zero, and what
-    // stopped carrying is translated.
+    // Destructuring was the example here until it learned to lower, and then everything else
+    // did too.
     let (_tmp, root) = corpus("nextjs");
     let plan = nextjs::plan(&root.join("app/api/posts/[postId]/route.ts")).unwrap();
 
@@ -299,12 +270,7 @@ fn what_does_not_translate_is_in_the_output_verbatim_and_counted() {
 
 #[test]
 fn optional_chaining_is_never_written_away() {
-    // `session?.user.id` is not `session.user.id`. No target here has optional
-    // chaining. The plain access compiles, runs, and throws where the original
-    // returned undefined: a silent wrong answer, the one outcome worse than a
-    // gap. The lowering keeps the question, testing the object against null
-    // before the access. Only a path lowers at all, since reading a path twice
-    // is just reading it twice.
+    // `session?.user.id` is not `session.user.id`.
     let (_tmp, root) = corpus("nextjs");
     let plan = nextjs::plan(&root.join("app/api/posts/[postId]/route.ts")).unwrap();
 
@@ -323,8 +289,7 @@ fn optional_chaining_is_never_written_away() {
 
 #[test]
 fn a_route_that_is_a_component_is_still_refused() {
-    // The corpus has none, so this builds one beside it. The refusal is the load bearing half
-    // of the feature and must not depend on a fixture directory.
+    // The corpus has none, so this builds one beside it.
     let (_tmp, root) = corpus("nextjs");
     let path = root.join("app/api/widget/route.tsx");
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();

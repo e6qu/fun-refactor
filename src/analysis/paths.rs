@@ -1,20 +1,4 @@
 //! A string that names a file, and the file it names.
-//!
-//! A CI step runs `./scripts/deploy.sh`. A Terraform resource renders
-//! `templatefile("${path.module}/init.sh", …)`. A compose service builds from
-//! `./docker/Dockerfile`. Each is a path written as a string in one language
-//! naming a file in another, and none of them resolved. The string reached
-//! nothing, and the script it named looked unused.
-//!
-//! The question a path answers is small and exact. The file either exists in
-//! the workspace or it does not, so there is no guessing to do and nothing to
-//! report as a maybe. What it answers is "what runs this?", which is the
-//! question asked before deleting a script and before moving one.
-//!
-//! What is *not* claimed: the flags after the path. `--namespace signals` names
-//! an option the script declares, and matching one to the other needs the
-//! script's own argument parsing read. That is a separate edge and it is not
-//! this one.
 
 use crate::index::Index;
 use crate::lang::Language;
@@ -36,29 +20,19 @@ pub struct PathLink {
 
 impl PathLink {
     /// Does this name a file the workspace does not hold?
-    ///
-    /// The one failure a path edge can report, and the reason to report at
-    /// all. A CI step running a script nobody kept is a build that breaks on
-    /// the next push and not before.
     pub fn is_dangling(&self) -> bool {
         self.names.is_none()
     }
 }
 
 /// Every path-valued string in the workspace, and the file each names.
-///
-/// The root is passed rather than taken from the index. A path written against
-/// the workspace and a path written beside the file are both ordinary, and only
-/// the caller knows where the workspace begins.
 pub fn links(index: &Index, root: &Path) -> Result<Vec<PathLink>> {
     let mut out = Vec::new();
     for (file, _) in index.files() {
         let Some(language) = crate::lang::detect(file) else {
             continue;
         };
-        // Only the languages that name a file by writing its path. A Rust
-        // string holding a path is a runtime value, and treating one as an
-        // edge would report every log message that mentions a directory.
+        // Only the languages that name a file by writing its path.
         if !matches!(
             language,
             Language::Yaml | Language::Helm | Language::Hcl | Language::Json | Language::Markdown
@@ -84,17 +58,13 @@ pub fn links(index: &Index, root: &Path) -> Result<Vec<PathLink>> {
 }
 
 /// The paths one file writes, with the line each sits on.
-///
-/// Read from the text and not from a query. The shapes are per *framework* and
-/// not per language. A `run:` step and a `templatefile(…)` call have nothing in
-/// common but the string in the middle.
 fn written_paths(source: &str, language: Language) -> Vec<(usize, String)> {
     let mut out = Vec::new();
     for (at, line) in source.lines().enumerate() {
         let number = at + 1;
         match language {
-            // `- run: ./scripts/deploy.sh --namespace signals`, and the
-            // `script:` GitLab spells it with. The path is the first word.
+            // `- run: ./scripts/deploy.sh --namespace signals`, and the `script:` GitLab spells
+            // it with.
             Language::Yaml | Language::Helm | Language::Json => {
                 for word in ["run:", "script:", "entrypoint:", "dockerfile:"] {
                     let Some(at) = line.find(word) else { continue };
@@ -108,9 +78,7 @@ fn written_paths(source: &str, language: Language) -> Vec<(usize, String)> {
                     }
                 }
             }
-            // `[the ingest module](src/ingest.rs)`. Documentation drifts from
-            // code more reliably than anything else in a repository. A link to
-            // a file somebody moved is where the drift shows first.
+            // `[the ingest module](src/ingest.rs)`.
             Language::Markdown => {
                 for written in markdown_destinations(line) {
                     if let Some(path) = as_a_path(&written) {
@@ -139,9 +107,6 @@ fn written_paths(source: &str, language: Language) -> Vec<(usize, String)> {
 }
 
 /// Every `(destination)` an inline link on this line names.
-///
-/// The fragment comes off. `guide.md#intro` names `guide.md`, and the heading
-/// inside it is a separate edge the anchor resolution already follows.
 fn markdown_destinations(line: &str) -> Vec<String> {
     let mut out = Vec::new();
     let mut at = 0;
@@ -177,11 +142,6 @@ fn quoted(text: &str) -> Option<String> {
 }
 
 /// Is this word a path a workspace could hold?
-///
-/// A path has a separator or an extension, and is not a URL and not a shell
-/// word. `make` is a command, `./build.sh` is a file, and `npm run build` names
-/// neither. Asking about the shape and not about whether the file happens to
-/// exist is what lets a dangling path be reported rather than dropped.
 fn as_a_path(word: &str) -> Option<String> {
     let word = word.trim().trim_matches(['"', '\'']);
     if word.is_empty() || word.contains("://") {
@@ -208,10 +168,6 @@ fn as_a_path(word: &str) -> Option<String> {
 }
 
 /// The file a written path names, from the file that wrote it.
-///
-/// A relative path is relative to the file, then to the workspace root. Both
-/// are how the tools that read these files resolve one. Trying the file's own
-/// directory first lets `./init.sh` beside a `.tf` find its neighbour.
 fn resolve(root: &Path, from: &Path, written: &str) -> Option<PathBuf> {
     let written = written.trim_start_matches("./");
     let beside = from.parent().map(|dir| dir.join(written));

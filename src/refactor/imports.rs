@@ -1,20 +1,4 @@
 //! Organize imports: drop the ones nothing names, sort the rest.
-//!
-//! *Removal* follows the index's records: an import goes only when no reference outside
-//! an import statement names anything it binds. A glob import binds names nobody can
-//! enumerate and a side-effect import binds nothing, so this reports both instead of
-//! removing them. A TypeScript namespace import is recorded as a glob for resolution.
-//! It binds exactly one name, so liveness judges it like any other import.
-//!
-//! Name-based liveness is exact for a value or type the code must spell where it is
-//! used, and blind to whatever a language brings into scope invisibly.
-//! `hold_back_reason` lists every such form this tool knows, keeps the import, and says
-//! why. Removing a live import breaks a build, while keeping a dead one leaves a line.
-//!
-//! *Sorting* never regenerates import syntax. It reorders each statement's original
-//! bytes within one contiguous run of import lines. A blank line, a comment or any other
-//! statement ends the run, leaving the programmer's grouping intact. An attribute is not
-//! one of those: `#[cfg(…)]` above a `use` is part of that import and moves with it.
 
 use super::{Refusal, Warning, WarningKind};
 use crate::edit::{full_line_span, Edit, EditSet};
@@ -40,30 +24,15 @@ pub struct ImportsPlan {
     /// Number of contiguous blocks whose statements changed order.
     pub sorted_blocks: usize,
     /// What each touched statement's lines become, with no reordering in it.
-    ///
-    /// [`ImportsPlan::edits`] carries the reordering too, which suits the command and
-    /// not a caller that only wants the dead names gone. A flag removal must never sort
-    /// somebody's imports. A dropped statement maps to nothing, and a narrowed one to
-    /// the same statement without the names that died.
     pub replacements: Vec<(Span, String)>,
 }
 
-/// Uses a language makes of an imported name without ever spelling it where a query
-/// can see it.
-///
-/// Collected once per file from the parse tree, because every entry is a construct the
-/// fact queries never report as a reference. A lookup happens only after name-based
-/// liveness has failed, so each file pays the cost once.
+/// Uses a language makes of an imported name without ever spelling it where a query can see it.
 #[derive(Debug, Default)]
 struct InvisibleUses {
     /// Python names re-exported through `__all__`.
     reexported: HashSet<String>,
     /// True when the file is a package's `__init__.py`.
-    ///
-    /// An import there is the package's public API. `from .mod import api_func`
-    /// publishes `pkg.api_func` whether or not `__all__` says so, and stripping it
-    /// breaks every caller of the package. Liveness cannot see those callers, so the
-    /// file's role decides.
     package_init: bool,
     /// TypeScript names appearing inside a `{...}` type in a JSDoc comment.
     jsdoc_types: HashSet<String>,
@@ -114,8 +83,7 @@ impl InvisibleUses {
                     }
                     "import_statement" => {
                         // The `type` modifier of `import type {...}` and of an inline `{ type X
-                        // }` is an anonymous token. So a named-node pattern cannot see it but a
-                        // full cursor walk can.
+                        // }` is an anonymous token.
                         let mut type_only = false;
                         for_each_node(node, |inner| {
                             if inner.kind() == "type" && !inner.is_named() {
@@ -136,22 +104,13 @@ impl InvisibleUses {
 }
 
 /// Why an import that nothing names is kept anyway, or `None` if it can go.
-///
-/// Every arm answers the same question for one language: is there a way this binding could be
-/// in use that no reference records? The Rust arm is the oldest and states the principle, a
-/// trait is used through its methods. So its name never appears at the call site, and the rest
-/// follow it. A returned reason is reported verbatim as a warning, so it has to say which
-/// binding and why.
 fn hold_back_reason(
     index: &Index,
     language: Language,
     statement: &Statement,
     uses: &InvisibleUses,
 ) -> Option<String> {
-    // An attribute above the statement makes its liveness a property of the
-    // configuration. `#[cfg(feature = "cli")] use crate::scan::S;` is unused
-    // in one build and load-bearing in the other, and this index reads one
-    // tree.
+    // An attribute above the statement makes its liveness a property of the configuration.
     if statement.guarded {
         return Some(format!(
             "'{}' is guarded by an attribute, so whether a build uses it depends \
@@ -160,11 +119,8 @@ fn hold_back_reason(
         ));
     }
     match language {
-        // Any upper-camel-case name may be a trait, and there is no way to tell from
-        // syntax alone for a name another crate declares. A name this workspace
-        // declares is on record: an enum is not a trait. Holding its import
-        // back left `use crate::model::Confidence` behind every deletion of
-        // its last user. The caution stays for the names the index cannot see.
+        // Any upper-camel-case name may be a trait, and there is no way to tell from syntax
+        // alone for a name another crate declares.
         Language::Rust => {
             let binding = statement
                 .bindings
@@ -186,8 +142,7 @@ fn hold_back_reason(
         }
 
         Language::Python => {
-            // `from __future__ import annotations` changes how the whole file is
-            // compiled. The name it binds is never meant to be mentioned again.
+            // `from __future__ import annotations` changes how the whole file is compiled.
             if statement.path == "__future__" {
                 return Some(format!(
                     "'{}' is a __future__ import: it changes how the file is compiled \
@@ -206,11 +161,7 @@ fn hold_back_reason(
                     statement.path
                 ));
             }
-            // In a package's `__init__.py`, an import *is* the public API. `from
-            // .mod import api_func` publishes `pkg.api_func`, and the callers who
-            // use it live outside this file, where liveness cannot see them.
-            // Removing one verifiably broke a package: `import pkg` then
-            // `pkg.api_func` raised ImportError after the strip.
+            // In a package's `__init__.py`, an import *is* the public API.
             if uses.package_init {
                 return Some(format!(
                     "'{}' is imported in a package __init__.py, which re-exports \
@@ -277,9 +228,7 @@ fn hold_back_reason(
         }
 
         // A Go import binds the imported package's *package clause*, which is a fact about the
-        // other package's source. When that source is outside the scan the binding can only be
-        // guessed from the path. The guess is wrong for `gopkg.in/yaml.v2` (package `yaml`),
-        // `.../v2` version suffixes and any hyphenated path.
+        // other package's source.
         Language::Go if !statement.explicit_binding && !statement.binding_certain => Some(format!(
             "'{}' is a Go import whose local name is its package clause, and that \
                  package is not in the scan; '{}' is only a guess from the path, so the \
@@ -292,10 +241,8 @@ fn hold_back_reason(
             }
         )),
 
-        // Zig needs no guard: `@import` yields an ordinary container-level `const`, and
-        // every use of it spells that const's name. There is no Zig construct that
-        // brings an imported name into scope without naming it. `usingnamespace` does,
-        // but it binds nothing for this pass to remove.
+        // Zig needs no guard: `@import` yields an ordinary container-level `const`, and every
+        // use of it spells that const's name.
         _ => None,
     }
 }
@@ -324,10 +271,6 @@ fn text_of<'a>(node: Node, source: &'a str) -> &'a str {
 }
 
 /// Identifiers inside `{...}` in a comment, a JSDoc `@type {Foo}` or `@param {Foo} x`.
-///
-/// The braces are what makes a JSDoc tag a type annotation, so anything spelled inside
-/// them is a name the annotation depends on. `{import('./m').Foo}` yields both `m` and
-/// `Foo`, which is the conservative reading.
 fn braced_identifiers(comment: &str) -> Vec<String> {
     let mut out = Vec::new();
     let mut depth = 0usize;
@@ -353,10 +296,7 @@ fn braced_identifiers(comment: &str) -> Vec<String> {
     out
 }
 
-/// The name a JSX pragma comment gives, e.g. the `h` of `/** @jsx h */`.
-///
-/// Every JSX element in the file compiles into a call to that factory. So the import binding it
-/// names is used by code that does not exist until after compilation.
+/// The name a JSX pragma comment gives, e.g.
 fn jsx_pragma_names(comment: &str) -> Vec<String> {
     let mut out = Vec::new();
     let mut rest = comment;
@@ -382,10 +322,6 @@ fn jsx_pragma_names(comment: &str) -> Vec<String> {
 
 /// Is a Go import path's last segment usable as the package name without seeing the package
 /// clause?
-///
-/// A plain identifier almost always is. A version suffix (`.../v2`), a `gopkg.in` style
-/// `name.vN` segment and anything with a hyphen in it are not. The package clause says
-/// something else, and only the imported package's own source can say what.
 fn go_binding_is_certain(path: &str) -> bool {
     let Some(last) = path.rsplit('/').find(|segment| !segment.is_empty()) else {
         return false;
@@ -398,12 +334,6 @@ fn go_binding_is_certain(path: &str) -> bool {
 }
 
 /// The package clause of an imported Go package, when the scan can see it.
-///
-/// The directory a Go package lives in is named by the tail of its import path. The module
-/// prefix (`example.com/app`) lives in `go.mod` and not on disk. So the only thing to match on
-/// is how many trailing components agree. The longest agreement wins; two equally good
-/// directories disagreeing about the package name means the answer is unknown, not whichever
-/// was found first.
 fn workspace_package_name(index: &Index, import_path: &str) -> Option<String> {
     let wanted: Vec<&str> = import_path
         .split('/')
@@ -460,21 +390,8 @@ pub struct RemovedImport {
 }
 
 /// Work out how to organize the imports of one file.
-///
-/// Refuses for languages that have no import statement to organize, and for files with syntax
-/// errors. A use hidden inside an unparsed region would make a removal look safe when it is
-/// not.
-///
-/// Liveness is decided by name. That is exact for a value or type that must be spelled where it
-/// is used. It is blind to anything a language brings into scope invisibly. A Rust trait
-/// imported only so its methods resolve. A Python module imported for its registration side
-/// effects under a name never mentioned again. A TypeScript type used only in a JSDoc comment.
-/// Every such form `hold_back_reason` knows about keeps its import and produces a warning
-/// saying which binding and why. Check the [`ImportsPlan::removed`] list before committing all
-/// the same.
 pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
-    // The index first. Reading the file before asking answers "no such file" about a path
-    // whose real problem is that nothing indexed it. That is a different thing to fix.
+    // The index first.
     index
         .file(file)
         .ok_or_else(|| anyhow::anyhow!("{} is not in the index", file.display()))?;
@@ -483,21 +400,11 @@ pub fn plan(index: &Index, file: &Path) -> Result<ImportsPlan> {
 }
 
 /// [`plan`] over source already held in memory.
-///
-/// The cascade rewrites in memory and re-indexes each round, so the text on disk is the text
-/// before it started. Asking this question against that text would answer about the wrong file,
-/// and the question is the same one. So it is asked here and not answered a second time
-/// somewhere else.
 pub(crate) fn plan_in(index: &Index, file: &Path, source: &str) -> Result<ImportsPlan> {
     plan_in_consulting(index, index, file, source)
 }
 
 /// [`plan_in`], with the trait caution asking a different index.
-///
-/// The orphan pass reindexes one file to measure liveness after an edit, and a
-/// single file cannot see that `crate::model::Confidence` is an enum. The
-/// caution consults the whole workspace, the liveness answer stays with the
-/// after-text.
 pub(crate) fn plan_in_consulting(
     index: &Index,
     oracle: &Index,
@@ -537,9 +444,7 @@ pub(crate) fn plan_in_consulting(
 
     let parsed = Parsers::new().parse(info.language, source)?;
     let mut statements = statements(info.imports.iter(), source, info.language, &parsed);
-    // A Go import binds the imported package's package clause. When that package is in the scan
-    // its real name is a fact and not a guess. So record it as a binding and stop treating the
-    // path as the last word on the subject.
+    // A Go import binds the imported package's package clause.
     if info.language == Language::Go {
         for statement in &mut statements {
             if statement.explicit_binding {
@@ -584,7 +489,7 @@ pub(crate) fn plan_in_consulting(
     for (i, statement) in statements.iter().enumerate() {
         let position = line_index.line_col(statement.span.start, source);
         // A namespace import carries the glob flag for resolution's sake, yet it binds one
-        // spelled-out name. Only a glob that binds invisibly is beyond liveness.
+        // spelled-out name.
         if statement.is_glob && !statement.explicit_binding {
             warnings.push(Warning {
                 kind: WarningKind::WeaklyResolved,
@@ -599,9 +504,7 @@ pub(crate) fn plan_in_consulting(
             });
             continue;
         }
-        // A Go `import _ "embed"` is the one form that binds nothing on purpose. Every
-        // other empty-binding statement either binds nothing (a TypeScript side-effect
-        // import) or defeated the guess, which the language guard below sorts out.
+        // A Go `import _ "embed"` is the one form that binds nothing on purpose.
         if statement.bindings.is_empty() && statement.binding_certain {
             warnings.push(Warning {
                 kind: WarningKind::WeaklyResolved,
@@ -623,11 +526,7 @@ pub(crate) fn plan_in_consulting(
         {
             continue;
         }
-        // Nothing names it, which for some constructs means nothing *can* name it. Removing one
-        // of those leaves a file that still parses but no longer builds, which the reparse
-        // check cannot catch. So it is kept and reported instead. A name with a path of its
-        // own, one clause of a plain Python `import a, b`, is asked under that path. The
-        // narrowing pass below still removes the clauses that can go.
+        // Nothing names it, which for some constructs means nothing *can* name it.
         let held = hold_back_reason(oracle, info.language, statement, &invisible).or_else(|| {
             statement
                 .named
@@ -662,10 +561,7 @@ pub(crate) fn plan_in_consulting(
         });
     }
 
-    // A statement may lose some of what it binds and keep the rest. Dropping only whole
-    // statements left `import { up, down }` intact with nothing naming `down`. That is
-    // an error under `noUnusedLocals` and a lint failure everywhere else, from the one
-    // command whose whole job is removing imports nothing uses.
+    // A statement may lose some of what it binds and keep the rest.
     let mut narrowed_statements: Vec<(usize, String)> = Vec::new();
     for (i, statement) in statements.iter().enumerate() {
         if drop_statement[i] || statement.is_glob || statement.named.len() < 2 {
@@ -675,8 +571,7 @@ pub(crate) fn plan_in_consulting(
             .named
             .iter()
             .filter(|name| !live.contains(name.local.as_str()))
-            // A name that would be held back on its own is held back here too. The question is
-            // the same one, asked of one binding instead of all of them.
+            // A name that would be held back on its own is held back here too.
             .filter(|name| {
                 let alone = Statement {
                     path: name.path.clone(),
@@ -702,7 +597,6 @@ pub(crate) fn plan_in_consulting(
                 });
             } else {
                 // Each clause of a plain Python `import a, b` names its own module.
-                // Reporting them under the statement's first path would name the wrong one.
                 for name in &dead {
                     removed.push(RemovedImport {
                         path: name.path.clone(),
@@ -794,16 +688,6 @@ pub(crate) fn plan_in_consulting(
 }
 
 /// Does this language have import statements worth organizing?
-///
-/// CSS and SCSS are excluded on purpose even though they have `@import`. Order there is
-/// semantic, a later rule beats an earlier one and `@import` must precede all other rules. So
-/// sorting would change what the stylesheet means. The markup and config languages have no
-/// import construct at all, and Bash `source` is an executed statement instead of a
-/// declaration. Why imports cannot be organized in this language, if they cannot.
-///
-/// The single authority. The capability table and this operation each kept their own reason,
-/// and they drifted. The table told a reader that Bash "has no import statements to organize"
-/// while `queries/bash/facts.scm` extracts every `source`.
 pub fn why_not_organizable(language: Language) -> Option<&'static str> {
     if organizable(language) {
         return None;
@@ -814,9 +698,6 @@ pub fn why_not_organizable(language: Language) -> Option<&'static str> {
              one's in the cascade, and @import must precede all other rules, so \
              sorting or removing them would change which styles apply"
         }
-        // A command that *runs* the other file, so a later `source` may depend on a variable
-        // an earlier one set. A file may be sourced purely for a side effect no name here
-        // refers to.
         Language::Bash => {
             "`source` runs the other file instead of declaring a dependency on it, so \
              order carries meaning and a file sourced only for its side effects looks \
@@ -857,14 +738,10 @@ struct Statement {
     /// is a reading and not a guess from the path.
     explicit_binding: bool,
     /// True when the bindings are known and not inferred from the import path.
-    /// Only Go can be uncertain: the binding is the imported package's package clause.
     binding_certain: bool,
-    /// Each name the statement spells out, with the bytes it occupies. A statement that
-    /// binds several can lose some and keep the rest, which needs the spans and not only
-    /// the names.
+    /// Each name the statement spells out, with the bytes it occupies.
     named: Vec<NamedImport>,
-    /// True when an attribute sits above the statement. `#[cfg(...)]` makes the
-    /// import's liveness configuration-dependent, which the index cannot judge.
+    /// True when an attribute sits above the statement.
     guarded: bool,
     /// Replacement text for [`Statement::lines`], where some of the names it binds went
     /// and the rest stayed.
@@ -872,11 +749,6 @@ struct Statement {
 }
 
 /// Where a span of the edited text sat before the edits.
-///
-/// Every edit that ends at or before the span shifts it by the difference between what it
-/// removed and what it wrote. A span that overlaps an edit has no position in the original
-/// and is answered `None`. An import statement inside a region being rewritten is not one
-/// this may also rewrite.
 fn before_the_edits(span: Span, edits: &[Edit]) -> Option<Span> {
     let mut shift: isize = 0;
     for edit in edits {
@@ -898,14 +770,6 @@ fn before_the_edits(span: Span, edits: &[Edit]) -> Option<Span> {
 }
 
 /// The edits that drop imports a set of edits would leave with nothing naming them.
-///
-/// Removing code often removes the last use of an import. The statement stays behind: `go
-/// build` calls that an error and Rust a warning that a `-D warnings` build turns into one. The
-/// result parses either way, so a sweep for parse errors never sees it.
-///
-/// Asked by applying the edits to a copy and re-reading, because the question is about the file
-/// as it will be and not as it is. Only imports that were live before are touched, one that was
-/// already dead is `fr imports`. It is not this.
 pub fn orphaned_by(index: &Index, edits: &EditSet) -> Result<(EditSet, Vec<Warning>)> {
     let mut out = EditSet::new();
     let mut kept = Vec::new();
@@ -935,8 +799,8 @@ pub fn orphaned_by(index: &Index, edits: &EditSet) -> Result<(EditSet, Vec<Warni
             })
             .unwrap_or_default();
 
-        // The index still describes the file as it was, and the spans below index the
-        // text as it will be. Rebuilding it for one file is what keeps the two agreeing.
+        // The index still describes the file as it was, and the spans below index the text as
+        // it will be.
         let snapshot = vec![(file.clone(), info.language, after.clone())];
         let Ok(reindexed) = Index::build_from_sources(&snapshot) else {
             continue;
@@ -944,10 +808,7 @@ pub fn orphaned_by(index: &Index, edits: &EditSet) -> Result<(EditSet, Vec<Warni
         let Ok(plan) = plan_in_consulting(&reindexed, index, file, &after) else {
             continue;
         };
-        // An import the deletion orphaned that caution keeps anyway. `use
-        // std::collections::BTreeMap` may name a trait used through its
-        // methods, so it stays. The reader deleting under `-D warnings` hears
-        // that from this command, not from the compiler.
+        // An import the deletion orphaned that caution keeps anyway.
         for warning in plan.warnings {
             if !warned_before.contains(&warning.detail) {
                 kept.push(Warning {
@@ -960,9 +821,8 @@ pub fn orphaned_by(index: &Index, edits: &EditSet) -> Result<(EditSet, Vec<Warni
             if was_dead.contains(&span) {
                 continue;
             }
-            // The span indexes the file as it will be, and the edit set is applied to the
-            // file as it is. Every edit that lands before this statement moves it, so the
-            // move is undone here and not two coordinate systems being mixed.
+            // The span indexes the file as it will be, and the edit set is applied to the file
+            // as it is.
             let Some(original) = before_the_edits(span, file_edits) else {
                 continue;
             };
@@ -986,13 +846,11 @@ struct NamedImport {
     local: String,
     /// The bytes of the whole clause, `original as local` included.
     span: Span,
-    /// The module path this one name comes from. It matches the statement's path except
-    /// in a plain Python `import a, b`, where every name has a path of its own.
+    /// The module path this one name comes from.
     path: String,
 }
 
 /// Collapse import records into statements, in source order.
-/// Is this the keyword that introduces an import in the language?
 fn is_import_keyword(text: &str, language: Language) -> bool {
     let keywords: &[&str] = match language {
         Language::Rust => &["use", "pub use"],
@@ -1035,10 +893,7 @@ fn statements<'a>(
             let lines = with_attributes(source, lines, &attributes);
             let guarded = lines.start < unguarded_lines.start;
             // A statement owns its line if nothing but its own introducing keyword sits before
-            // it. Go records `import "os"` as the spec alone, so without this the keyword looks
-            // like unrelated code and ends the block. From the statement's own line, not from
-            // the attributes above it: an attribute is part of this import. So it does not make
-            // the line shared.
+            // it.
             let before = source[first.start..span.start].trim();
             let line_exclusive = (before.is_empty() || is_import_keyword(before, language))
                 && source[span.end..lines.end].trim().is_empty();
@@ -1060,10 +915,7 @@ fn statements<'a>(
             if bindings.is_empty() {
                 bindings.extend(implicit_binding(&records[0].path, language));
             }
-            // A plain Python `import a, b` arrives as one record per module and no name
-            // spans. So `import os, sys` bound only `os` and had nothing to narrow by.
-            // The parse tree still holds each clause; reading it here is what lets one
-            // dead module leave and the rest stay.
+            // A plain Python `import a, b` arrives as one record per module and no name spans.
             if language == Language::Python {
                 let plain = python_plain_names(parsed, span, source);
                 if !plain.is_empty() {
@@ -1098,10 +950,6 @@ fn statements<'a>(
 }
 
 /// The clauses of a plain Python `import a, b as c`, one [`NamedImport`] each.
-///
-/// This form spells its names differently from `from m import a, b`, so the fact query
-/// reports no name spans for it. The tree can: each `name` child is one module clause, whose
-/// local binding is the first path segment, or the alias when it has one.
 fn python_plain_names(parsed: &Parsed, statement: Span, source: &str) -> Vec<NamedImport> {
     let Some(node) = parsed
         .root()
@@ -1148,17 +996,6 @@ fn python_plain_names(parsed: &Parsed, statement: Span, source: &str) -> Vec<Nam
 }
 
 /// The name a whole-module import binds without naming it.
-///
-/// The three languages that have such a form disagree about which segment it is. `use
-/// std::fmt;` binds the last one. `import "net/http"` binds the imported package's package
-/// clause, which the path can only suggest. Hence the version-suffix and `gopkg.in` handling
-/// here and the certainty check in [`go_binding_is_certain`]. Python's `import a.b` binds `a`,
-/// the *first* segment: the statement makes the whole package reachable, and `b` is only
-/// spelled through it.
-///
-/// TypeScript and Zig have no such form: an import with no named binding there is a side-effect
-/// import and binds nothing. So guessing a name from the path would invent a binding that does
-/// not exist.
 pub(crate) fn implicit_binding(path: &str, language: Language) -> Option<String> {
     let segment = match language {
         Language::Rust => path.rsplit("::").find(|segment| !segment.is_empty())?,
@@ -1185,19 +1022,6 @@ pub(crate) fn implicit_binding(path: &str, language: Language) -> Option<String>
 }
 
 /// Split statements into runs of directly consecutive import lines.
-///
-/// A blank line, a comment or any other statement between two imports leaves a gap in the line
-/// coverage, which ends the run. A statement's lines, extended over the attributes written
-/// above it.
-///
-/// An attribute is part of the item, not a neighbour of it: `#[cfg(feature = "cli")]` above a
-/// `use` decides whether that import exists. Sorting moves whole lines, so an attribute left
-/// where it was lands on whichever import sorts into its place. This crate's own `src/index.rs`
-/// came out of `fr imports` with `use anyhow::…` behind the `cfg` and `use crate::scan::…`
-/// unconditional. That compiles under neither setting of the feature.
-///
-/// Read from the tree and not by looking for `#[`. So a multi-line attribute is one span and a
-/// `#[` inside a string is not an attribute at all.
 fn with_attributes(source: &str, lines: Span, attributes: &[Span]) -> Span {
     let mut start = lines.start;
     loop {
@@ -1236,15 +1060,6 @@ fn sorted<'a>(statements: &[&'a Statement]) -> Vec<&'a Statement> {
 }
 
 /// Rebuild a block from the original bytes of the statements that survive.
-///
-/// Each statement contributes its own line text verbatim, so indentation, spacing and the exact
-/// spelling of the statement are carried across untouched. Nothing is regenerated from the
-/// parsed import. The bytes a name occupies in an import list, alias and all.
-///
-/// The index records where a name is *bound*, which for `down as lower` is `lower`. Taking only
-/// that out leaves `down as` behind. So the span is widened to the clause the grammar wraps it
-/// in, `import_specifier` in TypeScript, `aliased_import` in Python, `use_as_clause` in Rust.
-/// The widening stops before it could swallow the statement itself.
 fn whole_clause(parsed: &Parsed, name: Span, statement: Span) -> Span {
     let Some(node) = parsed
         .root()
@@ -1269,12 +1084,6 @@ fn whole_clause(parsed: &Parsed, name: Span, statement: Span) -> Span {
 }
 
 /// The statement's text with some of the names it binds taken out.
-///
-/// Byte surgery on the names themselves, and not a re-spelling of the statement, because
-/// every language writes the list differently, `use a::{b, c};`, `from m import b, c`,
-/// `import { b, c } from "m"`, and the separator is the only thing that has to be
-/// understood. `None` where taking the names out would leave punctuation this does not
-/// know how to close up.
 fn without_names(
     source: &str,
     parsed: &Parsed,
@@ -1284,7 +1093,6 @@ fn without_names(
     let start = statement.lines.start;
     let mut text = statement.lines.text(source).to_string();
 
-    // Latest first, so an earlier removal cannot move a later span.
     let mut spans: Vec<Span> = dead
         .iter()
         .map(|name| whole_clause(parsed, name.span, statement.span))
@@ -1296,7 +1104,6 @@ fn without_names(
         if to > text.len() || !text.is_char_boundary(from) || !text.is_char_boundary(to) {
             return None;
         }
-        // The comma after it, or the one before it where this was the last in the list.
         let mut cut_to = to;
         while text[cut_to..].starts_with(|c: char| c.is_whitespace()) {
             cut_to += text[cut_to..].chars().next()?.len_utf8();

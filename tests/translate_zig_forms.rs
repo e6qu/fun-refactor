@@ -1,9 +1,4 @@
 //! The everyday Zig forms read, and a failed initializer keeps its binding.
-//!
-//! `[_]u32{ 1, 2, 3 }`, `items[i]`, `@intCast(u8, b)`, `&a`, `p.*` and the
-//! dot-literal `.empty` are the forms an ordinary Zig file is made of. Every
-//! one carried whole, taking its declaration with it. The statements after each
-//! then read names the output never declared.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -61,9 +56,8 @@ fn a_source_location_is_its_line() {
 
 #[test]
 fn a_carried_comment_never_holds_a_tab_zig_refuses() {
-    // Zig rejects a tab inside a comment, and carried source brings the
-    // indentation the other language wrote. A Go file's tabs produced a Zig
-    // file its own compiler would not lex.
+    // Zig rejects a tab inside a comment, and carried source brings the indentation the other
+    // language wrote.
     let source = "package tabs\n\nimport (\n\t\"fmt\"\n\t\"strings\"\n)\n\n\
         func Shout(name string) string {\n\t\
         return strings.ToUpper(fmt.Sprintf(\"%v!\", name))\n}\n";
@@ -82,9 +76,7 @@ fn a_carried_comment_never_holds_a_tab_zig_refuses() {
 
 #[test]
 fn what_a_module_keeps_to_itself_survives_a_round_trip() {
-    // Go's unexported `half` came back from `go -> python -> go` as the
-    // exported `Half`. Python dropped the distinction on the way through, and
-    // the case converter read the underscore as a word break.
+    // Go's unexported `half` came back from `go -> python -> go` as the exported `Half`.
     let source = "package priv\n\nfunc half(n int) int {\n\treturn n / 2\n}\n\n\
         func Quarter(n int) int {\n\treturn half(half(n))\n}\n";
     let tmp = tempfile::tempdir().unwrap();

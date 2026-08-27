@@ -1,10 +1,4 @@
 //! Renaming one of several things that share a name.
-//!
-//! This tool resolves references by name and by scope; it does not know types. Where a
-//! name belongs to exactly one thing that is no limitation at all, and where it belongs
-//! to several it is the whole question. Java overloads `add(int)` beside `add(String)`;
-//! two classes in one file each declare `run`; a parameter called `session` appears in
-//! four different functions. Each of those broke something different.
 
 use fun_refactor::index::Index;
 use fun_refactor::model::Confidence;
@@ -42,9 +36,7 @@ fn symbol_at(index: &Index, file: &str, name: &str, nth: usize) -> fun_refactor:
 
 #[test]
 fn a_call_on_another_object_is_not_the_method_beside_it() {
-    // `c.run(1)` names a member of whatever `c` is. The lexical scope chain has nothing to say
-    // about that. It was answering anyway, with `Exact`, by picking the same-named method in an
-    // enclosing scope. Renaming that method rewrote the call.
+    // `c.run(1)` names a member of whatever `c` is.
     let source = "class C:\n    def run(self, a): return a\n\n\n\
                   class D:\n    def run(self, a): return a + 1\n    \
                   def use(self, c): return c.run(1) + self.run(2)\n";
@@ -66,11 +58,7 @@ fn a_call_on_another_object_is_not_the_method_beside_it() {
 
 #[test]
 fn an_overload_set_is_not_resolved_by_proximity() {
-    // Proximity is evidence for a binding and not for a callable. `let x` twice in one block is
-    // shadowing and the nearer one is the answer. Two methods in one class body are an overload
-    // set and the nearer one is a coin flip. Both bare `add(...)` calls resolved to whichever
-    // was written second, at `Exact`, so renaming that one rewrote calls belonging to the
-    // other.
+    // Proximity is evidence for a binding and not for a callable.
     let source = "public class A {\n    public int add(int a) { return a; }\n    \
                   public int add(String s) { return 1; }\n    \
                   public int use() { return add(1) + add(\"x\"); }\n}\n";
@@ -96,9 +84,7 @@ fn an_overload_set_is_not_resolved_by_proximity() {
 
 #[test]
 fn a_rename_that_leaves_a_call_behind_says_so() {
-    // The rename went through, the calls stayed behind. The report said nothing at all, because
-    // the guess had landed on the *other* symbol, so it was skipped in silence. A weak
-    // resolution is a guess wherever it lands.
+    // The rename went through, the calls stayed behind.
     let source = "public class A {\n    public int add(int a) { return a; }\n    \
                   public int add(String s) { return 1; }\n    \
                   public int use() { return add(1) + add(\"x\"); }\n}\n";
@@ -116,10 +102,7 @@ fn a_rename_that_leaves_a_call_behind_says_so() {
 
 #[test]
 fn a_name_used_by_another_function_is_not_a_collision() {
-    // A parameter is written outside the body it belongs to. So the scope it falls in is the
-    // one *around* its function, which is the file. Every parameter of every function therefore
-    // shared a scope, and renaming one to a name used by an unrelated function was refused.
-    // Measured over the vendored corpora, that was most of the renames a real file offers.
+    // A parameter is written outside the body it belongs to.
     let source = "def one(session: int) -> int:\n    return session\n\n\n\
                   def two(email: int) -> int:\n    return email\n";
     let (_tmp, root) = workspace(&[("c.py", source)]);

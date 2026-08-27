@@ -1,11 +1,4 @@
 //! Markdown's two-grammar parse: the block tree plus one sub-tree per inline node.
-//!
-//! The grammar this replaced (tree-sitter-markdown-fork 0.7) parsed both layers into one tree,
-//! and `abort()`ed inside its C++ inline scanner on a wide table, an `assert()` failure no
-//! in-process handler can catch. So a single file made the tool unusable over a whole
-//! repository. The maintained grammar splits the two layers, which buys correctness at the
-//! price of a second parse pass whose spans must still index the original document. Every test
-//! here exists to pin one half of that trade: the crash is gone, and no span drifted.
 
 use fun_refactor::edit::apply_to_string;
 use fun_refactor::index::Index;
@@ -42,8 +35,7 @@ fn wide_table() -> String {
 #[test]
 fn a_wide_table_parses_instead_of_aborting_the_process() {
     // This is a reproduction, not a regression guard: the old grammar did not return an error
-    // here, it called abort(). So this test could not fail, the process died and took the whole
-    // run with it.
+    // here, it called abort().
     let src = wide_table();
     let parsed = parse(&src);
     assert!(
@@ -52,8 +44,6 @@ fn a_wide_table_parses_instead_of_aborting_the_process() {
         parsed.error_spans()
     );
     assert_eq!(parsed.root().kind(), "document");
-    // Every header cell is inline content, so the second pass really did run over
-    // the text that used to trip the scanner.
     assert_eq!(parsed.inline_roots().count(), 4);
 }
 
@@ -91,9 +81,7 @@ fn links_inside_a_wide_table_cell_keep_their_document_offsets() {
 
 #[test]
 fn inline_spans_are_offsets_into_the_original_document() {
-    // The property the whole two-phase parse hangs on. The inline parser is handed the whole
-    // source with its included ranges narrowed to one node. So a span it produces indexes the
-    // original document, never the extracted fragment.
+    // The property the whole two-phase parse hangs on.
     let filler = "padding text that pushes every real offset far to the right.\n\n";
     let src = format!("{filler}Read the [manual text][manual] first.\n\n[manual]: /m\n");
 
@@ -122,9 +110,7 @@ fn inline_spans_are_offsets_into_the_original_document() {
 
 #[test]
 fn inline_content_in_a_block_quote_skips_the_quote_markers() {
-    // A quoted paragraph carries `block_continuation` nodes inside its inline node. They are
-    // cut out of the ranges handed to the inline parser. So `>` never becomes part of the text,
-    // and the spans on the far side of one still line up.
+    // A quoted paragraph carries `block_continuation` nodes inside its inline node.
     let src = "> quoted [a](#sec) text\n> and [b](#sec) more\n";
     let f = facts(src);
     let anchors: Vec<_> = f.references.iter().filter(|r| r.name == "sec").collect();
@@ -136,8 +122,7 @@ fn inline_content_in_a_block_quote_skips_the_quote_markers() {
 
 #[test]
 fn inline_nodes_are_parsed_apart_so_brackets_do_not_pair_across_them() {
-    // One parse per inline node, not one parse over all of them. An unclosed `[` at the end of
-    // a paragraph must not pair with a `]` in the next one.
+    // One parse per inline node, not one parse over all of them.
     let src = "First paragraph ends with [\n\nsecond starts with ](#nope) here.\n";
     let f = facts(src);
     assert!(
@@ -236,9 +221,7 @@ fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, Index) {
 
 #[test]
 fn renaming_a_link_reference_definition_rewrites_the_whole_file() {
-    // End to end: the definition lives in the block tree, every use in an inline
-    // sub-tree. A span that indexed the fragment instead of the document would
-    // corrupt the file here, silently and everywhere.
+    // End to end: the definition lives in the block tree, every use in an inline sub-tree.
     let doc = concat!(
         "# Guide\n",
         "\n",

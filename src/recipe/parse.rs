@@ -1,16 +1,9 @@
 //! The recipe grammar, and the signature table that finishes the job.
-//!
-//! The grammar alone is permissive where the operations are not. A production reading
-//! `operation , [selector] , {modifier}` cannot say that `rewrite` needs a name, that `rename`
-//! needs a target, or that `remove-flag` acts on the whole workspace and has no use for a
-//! `where` clause. Accepting a selector and ignoring it is exactly the accept-and-ignore this
-//! codebase bans, so [`Operation::check`] rejects each case by name, immediately after the
-//! parse.
 
 use super::lex::{lex, Spanned, Token};
 use anyhow::{bail, Result};
 
-/// Every word that can begin a statement. A predicate may not share a name with one.
+/// Every word that can begin a statement.
 pub const RESERVED: &[&str] = &[
     "schema",
     "recipe",
@@ -106,10 +99,6 @@ pub enum Operation {
         name: String,
     },
     /// Rewrite the selected files in another language.
-    ///
-    /// The one operation that writes a file the workspace did not have. The
-    /// destination is the source's own name under the target's extension, which
-    /// is what `fr translate` writes when nothing says otherwise.
     Translate {
         to: String,
     },
@@ -543,9 +532,8 @@ impl Parser {
             line,
         };
 
-        // `where` and the modifiers are order-independent: rejecting
-        // `delete on-refusal allow where unused` is a rule nobody remembers and it
-        // buys nothing.
+        // `where` and the modifiers are order-independent: rejecting `delete on-refusal allow
+        // where unused` is a rule nobody remembers and it buys nothing.
         loop {
             if self.eat_word("where") {
                 if !step.selector.is_empty() {
@@ -703,9 +691,7 @@ impl Parser {
         if self.eat_word("translate") {
             self.want_word("to", "`translate`")?;
             let to = self.want_ident("`translate to`")?;
-            // Named here rather than at the first file. A recipe asking for a
-            // language this build never heard of says so before it touches
-            // anything.
+            // Named here rather than at the first file.
             let Some(language) = crate::lang::Language::from_name(&to) else {
                 bail!(
                     "line {}: `translate to {to}`: {to} is not a language this build \
@@ -788,9 +774,6 @@ impl Parser {
     }
 
     /// A value, which may not be a bare reserved word.
-    ///
-    /// `where name=` followed by a newline and `imports` swallowed `imports` as the
-    /// value and then failed confusingly two tokens later.
     fn value(&mut self, field: &str) -> Result<String> {
         match self.peek().cloned() {
             Some(Token::Str(text)) => {

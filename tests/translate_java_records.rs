@@ -1,10 +1,4 @@
 //! A nested Java record crosses as the record it is, and statics as functions.
-//!
-//! `record Order(...)` inside a class was dropped as a comment while the
-//! header counted one record carried. Static methods gained a receiver their
-//! call sites never pass. The record's accessor calls, `o.paid()`, become the
-//! field reads they are. A class emptied by the hoisting is only a namespace,
-//! and is not written at all.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -41,9 +35,7 @@ fn the_nested_record_is_a_dataclass_with_its_fields() {
 #[test]
 fn the_static_method_is_a_module_function_without_self() {
     let out = to_python(ORDERS_JAVA);
-    // The method is package-private, which Python spells with the leading
-    // underscore. What this pins is the parameter list: no receiver, because
-    // its callers never pass one.
+    // The method is package-private, which Python spells with the leading underscore.
     assert!(
         out.contains("_total_paid(orders:"),
         "no receiver its callers never pass:\n{out}"
@@ -95,9 +87,8 @@ fn a_records_implements_clause_carries_as_its_base() {
 
 #[test]
 fn a_spelled_out_accessor_does_not_collide_with_its_field() {
-    // `record Person(String name, ...)` with a compact `public String name()`
-    // declares the accessor twice. In targets where the field crosses as data
-    // the pair collided, `name: str` beside a method `name`, so the field wins.
+    // `record Person(String name, ...)` with a compact `public String name()` declares the
+    // accessor twice.
     let out = to_python(FEATURES_JAVA);
     assert!(out.contains("name: str"), "the field is there.\n{out}");
     assert!(

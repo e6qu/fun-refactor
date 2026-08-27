@@ -1,28 +1,10 @@
 //! The examples the site renders carry no comments.
-//!
-//! Every page under `docs/` shows source this repository wrote, beside prose
-//! explaining it. A comment inside the example says the same thing a second
-//! time, in the place a reader is looking for the code.
-//!
-//! `tests/typesafety.rs` has enforced this for its own examples since the rule
-//! was decided. The fixtures behind the catalogue, the recipe tutorial and the
-//! translation page were written before it and kept theirs: a `"""The distance
-//! around a circle."""` over a function named `circ`, a `// Reading is one
-//! sample from a sensor.` over `type Reading struct`.
-//!
-//! Two kinds of comment do reach those pages and belong there. What `fr` itself
-//! writes into a translation is the tool speaking, and the pages are about that
-//! output. What a vendored corpus file carries is somebody else's code, held to
-//! a checksum. Neither is authored here, so neither is what this reads.
 
 use std::collections::BTreeMap;
 
 const SOURCE: &str = include_str!("site_data.rs");
 
 /// Every `const NAME: &str = r#"…"#;` fixture in the generator, by name.
-///
-/// The raw-string form only. Every fixture in that file uses it, because the
-/// contents are source code full of quotes and backslashes.
 fn fixtures() -> BTreeMap<String, String> {
     let mut found = BTreeMap::new();
     let mut rest = SOURCE;
@@ -49,10 +31,6 @@ fn fixtures() -> BTreeMap<String, String> {
 }
 
 /// Is this line a comment a person wrote, in any language these fixtures use?
-///
-/// The markers, and what each would otherwise hit. `#` needs the space after
-/// it, because a CSS `#panel {` is a selector and a Rust `#[derive]` is an
-/// attribute. `#!` is a shebang, which a shell fixture needs to run.
 fn is_comment(line: &str) -> bool {
     let text = line.trim_start();
     if text.starts_with("#!") {
@@ -104,9 +82,6 @@ fn the_check_found_the_examples() {
 }
 
 /// Every `<pre>` block on a page under `docs/`, with the page it came from.
-///
-/// Tag-stripped and entity-decoded, since the pages mark keywords up inside the
-/// block. A comment wrapped in `<em>` is still a comment a reader sees.
 fn rendered_blocks() -> Vec<(String, String)> {
     let docs = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs");
     let mut out = Vec::new();
@@ -159,11 +134,9 @@ fn strip(block: &str) -> String {
 
 #[test]
 fn no_code_block_on_a_page_carries_a_comment() {
-    // The generated blocks come from the fixtures above and from what `fr`
-    // itself wrote, so this reads the blocks the pages hold in their own source:
-    // the shape of a recipe, a handler beside its translation, the first three
-    // commands to run. Each explained itself in a comment while the paragraph
-    // under it explained the same thing again.
+    // The generated blocks come from the fixtures above and from what `fr` itself wrote, so
+    // this reads the blocks the pages hold in their own source: the shape of a recipe, a
+    // handler beside its translation, the first three commands to run.
     let mut offenders = Vec::new();
     for (page, block) in rendered_blocks() {
         for (at, line) in block.lines().enumerate() {
@@ -181,8 +154,8 @@ fn no_code_block_on_a_page_carries_a_comment() {
 
 #[test]
 fn the_check_found_the_blocks() {
-    // Most panes on these pages are built by script from the generated data,
-    // so the literal blocks are few. They are the ones nothing else checks.
+    // Most panes on these pages are built by script from the generated data, so the literal
+    // blocks are few.
     let blocks = rendered_blocks();
     assert!(
         blocks.len() >= 12,

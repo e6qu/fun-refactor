@@ -1,10 +1,4 @@
 //! Moving a Rust item when the things that use it are not all in the same crate.
-//!
-//! Two ways `fr move` got this wrong on this repository. It refused every move in the
-//! workspace, because a doc comment in `src/analysis/entrypoints.rs` spells `#[path::name]` and
-//! the check for `#[path]` module redirection searched the text. And once moving, it wrote `use
-//! crate::…` into `tests/` and `examples/`, which are each their own crate. `crate::` there
-//! names the test binary, not the library.
 
 use fun_refactor::index::Index;
 use fun_refactor::refactor::move_symbol;

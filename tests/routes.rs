@@ -1,14 +1,4 @@
 //! What URLs a service serves, whichever framework it was written with.
-//!
-//! `fr openapi` builds a contract from a tree of route files, and it could read
-//! one shape of tree: a Next.js `app/api` directory. Express, Flask, axum, gin
-//! and Spring declare the same thing, and the command had nothing to say about
-//! any of them.
-//!
-//! Each test below asserts three things. The methods found, the URLs with the
-//! framework's own path-parameter spelling turned into a contract's, and the
-//! handler that answers. And each asserts what is *not* found, because a reader
-//! that calls `map.get(k)` a route is worse than one that reads nothing.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile::routes::{self, Framework};
@@ -52,8 +42,7 @@ app.get(\"/pets/:petId\", showPet);
 
 #[test]
 fn a_method_on_something_that_is_not_a_router_is_not_a_route() {
-    // `.get` is the commonest method name there is. A reader that took every
-    // one of them would report a contract full of endpoints nobody serves.
+    // `.get` is the commonest method name there is.
     let source = "\
 const cache = new Map();
 
@@ -223,9 +212,7 @@ public class PetController {
 
 #[test]
 fn a_path_parameter_is_spelled_the_way_a_contract_spells_one() {
-    // Express, gin and axum write `:id`. Flask writes `<int:id>`, where the
-    // part before the colon is a converter and not the name. A contract writes
-    // `{id}`, and that is the one every reader produces.
+    // Express, gin and axum write `:id`.
     let express = found(
         "const app = express();\napp.get(\"/a/:one/b/:two\", h);\n",
         Language::TypeScript,
@@ -254,8 +241,7 @@ fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, std::path::PathBuf) 
 
 #[test]
 fn a_contract_is_built_from_a_service_that_is_not_next_js() {
-    // The whole point of reading these. `fr openapi` could describe one shape
-    // of tree, and a service written with any of the five was invisible.
+    // The whole point of reading these.
     let (_tmp, root) = workspace(&[
         (
             "api.py",
@@ -292,8 +278,7 @@ fn a_contract_is_built_from_a_service_that_is_not_next_js() {
     // A file that declares no routes is not a route file.
     assert_eq!(baseline.routes.len(), 2, "{:?}", baseline.routes);
 
-    // What the document does not settle is said out loud. None of the five
-    // declares its request body where the route is declared.
+    // What the document does not settle is said out loud.
     assert!(
         baseline.notes.iter().any(|n| n.contains("flask")),
         "{:?}",

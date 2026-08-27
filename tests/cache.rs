@@ -1,6 +1,5 @@
-//! The cache must be invisible: an index built from cached facts has to be
-//! indistinguishable from one built by parsing every file. These tests compare the
-//! two directly, because a cache that is *fast* is worthless if it is wrong.
+//! The cache must be invisible: an index built from cached facts has to be indistinguishable
+//! from one built by parsing every file.
 
 use fun_refactor::cache::Cache;
 use fun_refactor::index::Index;
@@ -212,9 +211,7 @@ fn cross_language_resolution_survives_caching() {
 
 #[test]
 fn entries_do_not_store_a_path_per_item() {
-    // Every symbol and reference in a file shares one path. Storing it per item made
-    // entries several times larger than the source they describe, so it is dropped on
-    // write and restored on read. This test guards the size, not just the behaviour.
+    // Every symbol and reference in a file shares one path.
     let big = (0..200u32)
         .map(|i| format!("pub fn f{i}() {{ f{}(); }}\n", i.saturating_sub(1)))
         .collect::<String>();
@@ -254,14 +251,7 @@ fn a_missing_cache_directory_is_not_an_error() {
 
 #[test]
 fn the_cache_namespace_includes_the_extractor_that_produced_the_facts() {
-    // The cache is keyed by file content and by the query set. That is only correct while "the
-    // extractor" is a constant, and it is not. Adding a field to `Reference` changes what a
-    // cached fact means, while `#[serde(default)]` lets yesterday's entry deserialize cleanly
-    // into today's struct. The result is a cache that looks healthy and answers wrongly. It
-    // cost an afternoon of bisecting a test failure that was not in the code being bisected.
-    //
-    // build.rs hashes the sources that define extraction into the namespace, so an edit to any
-    // of them makes every stale entry unreachable and not wrong.
+    // The cache is keyed by file content and by the query set.
     let fingerprint = env!("FUN_REFACTOR_EXTRACTOR_FINGERPRINT");
     assert_eq!(
         fingerprint.len(),

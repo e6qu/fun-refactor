@@ -1,9 +1,4 @@
 //! A Python class crosses with the fields its `__init__` declares.
-//!
-//! `self.name = name` declares a field as surely as an annotation does. Read
-//! as nothing, every class crossed as an empty struct while its methods went
-//! on reading `self.price` from a field the target never had. `Item(...)`
-//! stayed a bare call no target accepts.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -54,9 +49,8 @@ fn construction_is_spelled_the_typescript_way() {
 
 #[test]
 fn a_computing_constructor_keeps_its_body() {
-    // Only a constructor that does nothing but assign becomes the canonical
-    // build-and-return; one that computes keeps its statements, whatever the
-    // target then says about them.
+    // Only a constructor that does nothing but assign becomes the canonical build-and-return;
+    // one that computes keeps its statements, whatever the target then says about them.
     let source = "class Timer:\n    def __init__(self, seconds: int):\n        \
         self.seconds = seconds\n        print(seconds)\n";
     let tmp = tempfile::tempdir().unwrap();
@@ -78,9 +72,7 @@ fn a_computing_constructor_keeps_its_body() {
 
 #[test]
 fn a_lost_supertype_is_said_in_the_output_itself() {
-    // The base lives in another module, so nothing can lay it flat. The report
-    // already named the loss, and the draft file, the thing a reader has in
-    // front of them, says it too.
+    // The base lives in another module, so nothing can lay it flat.
     let source = "import { Repo } from \"./repo\";\n\n\
         export class TaskRepo extends Repo {\n    close(id: number): number {\n        \
         return id;\n    }\n}\n";
@@ -98,9 +90,7 @@ fn a_lost_supertype_is_said_in_the_output_itself() {
 
 #[test]
 fn a_property_keeps_its_reads_where_the_idiom_exists() {
-    // `@property def total` is read as data at every use site. As an ordinary
-    // method, `it.total` in the target was the function object, and every
-    // comparison against it was quietly false.
+    // `@property def total` is read as data at every use site.
     let source = "class Item:\n    def __init__(self, price: float, qty: int):\n        \
         self.price = price\n        self.qty = qty\n\n    @property\n    \
         def total(self) -> float:\n        return self.price * self.qty\n\n\n\
@@ -134,11 +124,7 @@ fn a_property_keeps_its_reads_where_the_idiom_exists() {
 
 #[test]
 fn a_local_base_lays_flat_where_nothing_inherits() {
-    // `TaskRepo extends Repo` and `Repo` sits in the same file. Rust has no
-    // inheritance, and the marker alone left `self.find(id)` calling a method
-    // the struct never had. The base's fields and methods belong to every
-    // instance of the extender, so they lay flat into it. The marker stands
-    // only for a base the module does not hold.
+    // `TaskRepo extends Repo` and `Repo` sits in the same file.
     let source = "export class Repo {\n    rows: number[] = [];\n\n    \
         find(id: number): number {\n        return id;\n    }\n}\n\n\
         export class TaskRepo extends Repo {\n    close(id: number): number {\n        \
@@ -177,10 +163,6 @@ fn a_local_base_lays_flat_where_nothing_inherits() {
 
 #[test]
 fn an_annotated_instance_field_carries_with_its_type() {
-    // `self.entries: list[str] = []` declares the field and its type at once.
-    // Read as a binding, its dotted "name" was no name at all. The whole
-    // assignment carried as a comment, the field vanished, and every method
-    // still read `self.entries` from a field the target never had.
     let source = "class Ledger:\n    def __init__(self) -> None:\n        \
         self.entries: list[str] = []\n\n    def record(self, entry: str) -> None:\n        \
         self.entries.append(entry)\n";

@@ -1,16 +1,5 @@
 //! What is known about a symbol's type: what the source declared, and what follows from what
 //! the source declared.
-//!
-//! Two answers, kept apart. **Declared** is what somebody wrote down. **Inferred** is what this
-//! module worked out, carrying the evidence that produced it: the literal, the class
-//! constructed, the return type of the function called.
-//!
-//! Where the chain reaches outside the workspace, a library call, an unnamed object literal,
-//! the answer is that nothing is known, distinct from `Any`.
-//!
-//! What counts as the type depends on the symbol. A binding has one. A callable has a
-//! signature, so this reports the parameter types the source wrote. A marker where it wrote
-//! none.
 
 use crate::index::Index;
 use crate::lang::Language;
@@ -29,16 +18,10 @@ use tree_sitter::Node;
 type SharedParse = Rc<(String, Parsed)>;
 
 thread_local! {
-    /// One parse per file per index generation per thread. A derivation chain
-    /// re-reads its file at every hop, and a dispatch scan asks about thousands of
-    /// receivers. Parsing the same unchanged file once per hop turned a scan into
-    /// an hour of parser work. The generation key ties every entry to the index that read the
-    /// file, so a rebuilt index never sees the previous build's tree.
+    /// One parse per file per index generation per thread.
     static PARSES: RefCell<HashMap<(u64, PathBuf), SharedParse>> =
         RefCell::new(HashMap::new());
-    /// [`held_by`]'s answers, for the same reason. One receiver name is asked
-    /// about once per call site, and the walk over its scope's assignments is the
-    /// same every time.
+    /// [`held_by`]'s answers, for the same reason.
     static HELD: RefCell<HashMap<(u64, SymbolId), Held>> = RefCell::new(HashMap::new());
 }
 
@@ -53,9 +36,7 @@ fn parsed_source(index: &Index, file: &Path, language: Language) -> Option<Share
         let parsed = Parsers::new().parse(language, &source).ok()?;
         let entry = Rc::new((source, parsed));
         let mut cache = cache.borrow_mut();
-        // A long session builds many indexes, and every generation has its own
-        // entries. The cap empties the map rather than ranking entries: the next
-        // chain refills what it walks.
+        // A long session builds many indexes, and every generation has its own entries.
         if cache.len() >= 512 {
             cache.clear();
         }
@@ -65,10 +46,6 @@ fn parsed_source(index: &Index, file: &Path, language: Language) -> Option<Share
 }
 
 /// Why an inferred type is believed.
-///
-/// Every inference is one short step from something the source stated, and the step is
-/// named so a reader can follow it. A chain of these is a proof; a type with no basis
-/// would be an assertion.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Basis {
@@ -93,9 +70,7 @@ pub enum Basis {
 }
 
 impl Basis {
-    /// Prose for a reader, not an identifier. This carries a different name from the `as_str`
-    /// several enums here use for their stable spelling. Conflating the two made `SymbolKind`
-    /// print `"type"` in JSON and then refuse to read it back.
+    /// Prose for a reader, not an identifier.
     pub fn describe(&self) -> &'static str {
         match self {
             Basis::Literal => "from the literal",
@@ -127,22 +102,12 @@ pub struct Declared {
     pub symbol: SymbolId,
     pub name: String,
     /// The type as written, or `None` where the source wrote none.
-    ///
-    /// An `Option` instead of an empty string, because "no type here" is an answer and
-    /// the caller has to be made to handle it.
     pub declared: Option<String>,
     /// What follows from what the source declared, where the source declared nothing.
-    ///
-    /// Only ever consulted when `declared` is `None`: an annotation is a contract and this is a
-    /// derivation. Where both exist the contract is the answer. Where they disagree that is a
-    /// defect in the code and not a choice for this to make.
     pub inferred: Option<Inferred>,
     /// For a callable, each parameter's declared type in order, `None` where absent.
     pub parameters: Vec<(String, Option<String>)>,
     /// Where the type itself is defined, when it names something in this workspace.
-    ///
-    /// A type that resolves nowhere is a type from outside the tree, `int`, `str`,
-    /// `Promise`, and that is not a gap in the answer.
     pub defined_at: Option<SymbolId>,
 }
 
@@ -164,16 +129,7 @@ impl Declared {
     }
 }
 
-/// What the source declared about `symbol`. Does this language have anywhere to write a type
-/// down?
-///
-/// The question this answers is "what did the source say", so it is yes wherever a language has
-/// a place to say it. Bash has no type syntax at all; markup and configuration have values and
-/// not declarations. A key in a YAML file is not annotated with anything.
-///
-/// The list lived in the capability matrix and nowhere else. The matrix said `n/a` for nine
-/// languages while [`of`] answered for all of them. Its empty answer means "the source wrote
-/// nothing here", and that differs from "nowhere here to write".
+/// What the source declared about `symbol`.
 pub fn supports_declared_type(language: Language) -> bool {
     matches!(
         language,
@@ -192,12 +148,6 @@ pub fn of(index: &Index, symbol: SymbolId) -> Result<Declared> {
 }
 
 /// [`of`], from partway along a derivation chain.
-///
-/// The depth rides along so `x = y` above `y = x` runs out of chain instead of
-/// stack. Every route back into a symbol's answer counts the hop, and
-/// [`MAX_CHAIN`] ends it.
-/// The first version restarted at zero on each hop, and two bindings assigned from
-/// each other recursed until the stack went.
 fn of_at(index: &Index, symbol: SymbolId, depth: usize) -> Result<Declared> {
     if let Some(language) = index.symbol(symbol).map(|s| s.language) {
         crate::capabilities::record(crate::capabilities::Capability::DeclaredType, language);
@@ -220,9 +170,7 @@ fn of_at(index: &Index, symbol: SymbolId, depth: usize) -> Result<Declared> {
 
     let declared = match sym.kind.is_callable() {
         true => signature(parsed, source, sym),
-        // `var` and `auto` are the keyword for "not stated". So a binding written with one has
-        // no declared type and falls through to what can be worked out. Reporting the keyword
-        // answered the question with the question.
+        // `var` and `auto` are the keyword for "not stated".
         false => binding_type(parsed, source, sym.full_span)
             .filter(|written| !crate::parse::is_an_inferred_type(written)),
     };
@@ -234,9 +182,7 @@ fn of_at(index: &Index, symbol: SymbolId, depth: usize) -> Result<Declared> {
     let named = declared.as_deref().and_then(bare_name);
     let defined_at = named.and_then(|name| type_named(index, name, sym));
 
-    // Only where the source said nothing. An annotation is a contract and an inference is a
-    // derivation; where both exist the contract is the answer. A disagreement between them is a
-    // defect in the code and not a choice for this to make.
+    // Only where the source said nothing.
     let inferred = match (&declared, sym.kind.is_callable()) {
         (None, false) => infer(index, sym, parsed, source, depth),
         _ => None,
@@ -253,11 +199,6 @@ fn of_at(index: &Index, symbol: SymbolId, depth: usize) -> Result<Declared> {
 }
 
 /// What a name holds where it is read, over every assignment to it in its scope.
-///
-/// [`of`] answers about one declaration, which is the right answer to its own question.
-/// A use site asks a different one. `b = B()` above `b = A()` puts two types
-/// into one name. Either initializer states what that name holds on its own
-/// line, and nowhere else.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Held {
     /// The source states this, and every assignment in scope agrees.
@@ -292,8 +233,8 @@ fn held_by_uncached(index: &Index, symbol: SymbolId) -> Held {
     let Ok(answer) = of(index, symbol) else {
         return Held::Unwritten;
     };
-    // An annotation is a contract over the name, and a later assignment that
-    // disagrees with it is a defect in the code. So it holds for the whole scope.
+    // An annotation is a contract over the name, and a later assignment that disagrees with it
+    // is a defect in the code.
     if let Some(declared) = answer.declared {
         return Held::Settled(declared);
     }
@@ -332,9 +273,6 @@ fn scope_span(index: &Index, sym: &Symbol) -> Span {
 }
 
 /// Every assignment to this name inside the scope, in source order.
-///
-/// A nested function is not this scope: its `b` is another name that reads the same.
-/// So the walk stops at one.
 fn collect_assignments<'a>(
     node: Node<'a>,
     sym: &Symbol,
@@ -380,10 +318,6 @@ fn assigned_name<'a>(node: Node<'a>) -> Option<Node<'a>> {
 }
 
 /// How far a chain of derivations is followed.
-///
-/// A binding assigned from a binding assigned from a call is three steps and readable. Beyond
-/// that, a reader can no longer check the answer at a glance. This function gives no other
-/// kind.
 const MAX_CHAIN: usize = 4;
 
 /// What follows from what the source declared, for a binding it left unannotated.
@@ -402,10 +336,6 @@ fn infer(
 }
 
 /// What a declaration binds: a value, or one element of a sequence.
-///
-/// `for box in boxes` binds `box` to an element, and the expression the grammar hands
-/// over is the whole sequence. Reading that expression as the value gave `box` the type
-/// `list`, and a member call on it was then attributed to the container.
 #[derive(Debug, Clone, Copy)]
 enum Bound<'a> {
     Value(Node<'a>),
@@ -433,9 +363,8 @@ fn infer_bound(
                 });
             }
             let sequence = infer_expression(index, sym, source, node, depth)?;
-            // A sequence whose element type is not written down says nothing about
-            // the loop variable. Its own name is the container's and never the
-            // element's.
+            // A sequence whose element type is not written down says nothing about the loop
+            // variable.
             let ty = element_type(&sequence.ty)?;
             Some(Inferred {
                 ty,
@@ -447,10 +376,6 @@ fn infer_bound(
 }
 
 /// The expression a definition binds, where the grammar names one.
-///
-/// Read the declaration itself first, through the one reader that knows every grammar's
-/// shape, and only then look outwards. A Python `x: int = 1` hangs the value off the
-/// assignment rather than off `x`. So the name alone is not always the declaration.
 fn assigned_value<'a>(
     parsed: &'a Parsed,
     language: Language,
@@ -477,10 +402,6 @@ fn assigned_value<'a>(
 }
 
 /// What this node binds, for a node that binds anything.
-///
-/// A loop over a sequence is answered as an element, and only where the loop binds
-/// this one name whole. `for k, v in pairs` takes the pair apart, and which piece
-/// each name gets is a question this does not answer.
 fn bound_expression<'a>(language: Language, node: Node<'a>, name: Span) -> Option<Bound<'a>> {
     // Zig binds loop names in a payload, `for (xs, ys) |x, y|`, one name per sequence
     // in order, so the name's own position picks its sequence.
@@ -519,9 +440,6 @@ fn zig_for_element<'a>(node: Node<'a>, name: Span) -> Option<Bound<'a>> {
 }
 
 /// The sequence a loop walks, for the loop forms that bind a name to each element.
-///
-/// By language, because one spelling is two statements. A TypeScript `for_statement`
-/// is the three-part C loop, whose initializer binds a value and not an element.
 fn iterated_sequence<'a>(language: Language, node: Node<'a>) -> Option<Node<'a>> {
     let kind = node.kind();
     let walks = match language {
@@ -541,10 +459,6 @@ fn iterated_sequence<'a>(language: Language, node: Node<'a>) -> Option<Node<'a>>
 }
 
 /// The names of the sequence types whose type argument is the element's.
-///
-/// A closed list, because being wrong here is not a missing answer: it hands a member
-/// call the type of something else and rewrites it. A map's type argument is its value
-/// and its iteration yields its keys, so no map is here.
 const SEQUENCES: &[&str] = &[
     "list",
     "List",
@@ -638,9 +552,7 @@ fn infer_expression(
     }
 
     match kind {
-        // `avg * 2`, where both sides are the same type. Arithmetic in every language here
-        // preserves that type, so the result is it. Where the two sides disagree, or either
-        // is unknown, nothing follows and nothing is claimed.
+        // `avg * 2`, where both sides are the same type.
         "binary_expression" | "binary_operator" => {
             let operator = node.child_by_field_name("operator")?;
             if !arithmetic_operator(Span::from(operator).text(source).trim()) {
@@ -648,8 +560,7 @@ fn infer_expression(
             }
             let left = node.child_by_field_name("left")?;
             let right = node.child_by_field_name("right")?;
-            // The depth counts hops from binding to binding. Both operands belong to
-            // this one expression, so the count does not grow here.
+            // The depth counts hops from binding to binding.
             let left = infer_expression(index, from, source, left, depth)?;
             let right = infer_expression(index, from, source, right, depth)?;
             (left.ty == right.ty).then_some(Inferred {
@@ -658,17 +569,14 @@ fn infer_expression(
                 from: None,
             })
         }
-        // `Money(0, USD)` in Python, `new Money(...)` in TypeScript. The callee decides which
-        // of the two this is: a class is constructed, a function is called. Java spells a
-        // call `method_invocation` and a construction `object_creation_expression`. The same
-        // omission once made `fr signature` refuse at every Java call site.
+        // `Money(0, USD)` in Python, `new Money(...)` in TypeScript.
         "call"
         | "call_expression"
         | "new_expression"
         | "method_invocation"
         | "object_creation_expression" => {
             // Each grammar names the callee differently: `function` in most, `constructor` for
-            // a TypeScript `new`. In Java `name` for a call and `type` for a construction.
+            // a TypeScript `new`.
             let callee = ["function", "constructor", "name", "type"]
                 .iter()
                 .find_map(|field| node.child_by_field_name(field))?;
@@ -730,9 +638,8 @@ fn infer_expression(
                         && matches!(s.kind, SymbolKind::Field | SymbolKind::Property)
                 })
                 .collect();
-            // Several records may declare a field of this name, and the receiver's type
-            // says whose field this is. Without the receiver, one candidate is the answer
-            // and several are none: an answer picked by indexing order is not an answer.
+            // Several records may declare a field of this name, and the receiver's type says
+            // whose field this is.
             let target = match candidates.as_slice() {
                 [] => return None,
                 [only] => only.id,
@@ -759,9 +666,7 @@ fn infer_expression(
                 from: Some(target),
             })
         }
-        // `flag ? a : b` and `a if flag else b`: one of two branches. Where both
-        // branches have the same type, the whole expression has it. Where they disagree
-        // or either is unknown, nothing follows and nothing is claimed.
+        // `flag ?
         "ternary_expression" | "conditional_expression" => {
             let (then, otherwise) = ternary_branches(language, node)?;
             let then = infer_expression(index, from, source, then, depth)?;
@@ -777,9 +682,6 @@ fn infer_expression(
 }
 
 /// The two branch expressions of a conditional expression.
-///
-/// TypeScript and Java write `flag ? a : b` and name the fields. Python writes the value
-/// first, `a if flag else b`, so its three children arrive then-condition-otherwise.
 fn ternary_branches<'a>(language: Language, node: Node<'a>) -> Option<(Node<'a>, Node<'a>)> {
     if let (Some(then), Some(otherwise)) = (
         node.child_by_field_name("consequence"),
@@ -797,9 +699,6 @@ fn ternary_branches<'a>(language: Language, node: Node<'a>) -> Option<(Node<'a>,
 }
 
 /// The type of the declaration enclosing this symbol: what `self` and `this` hold there.
-///
-/// The innermost symbol containing the asking one that carries a qualifier is a method,
-/// and its qualifier is the type it is written in.
 fn enclosing_type(index: &Index, from: &Symbol) -> Option<(String, Option<SymbolId>)> {
     let info = index.file(&from.file)?;
     let method = info
@@ -812,9 +711,6 @@ fn enclosing_type(index: &Index, from: &Symbol) -> Option<(String, Option<Symbol
 }
 
 /// The method a member call reaches, found through its receiver's type.
-///
-/// `payment.total()` with several `total`s in the workspace resolves by name to none of
-/// them. The receiver's own type says which one: the `total` it is the owner of.
 fn method_of_receiver(
     index: &Index,
     from: &Symbol,
@@ -824,9 +720,7 @@ fn method_of_receiver(
     name: &str,
     depth: usize,
 ) -> Option<SymbolId> {
-    // The receiver hangs off the callee in most grammars, `a.b` being the callee
-    // of `a.b()`. In Java it hangs off the call itself, where `object` and `name`
-    // are siblings.
+    // The receiver hangs off the callee in most grammars, `a.b` being the callee of `a.b()`.
     let object = ["object", "value", "operand"]
         .iter()
         .find_map(|field| callee.child_by_field_name(field))
@@ -853,9 +747,6 @@ fn method_of_receiver(
 }
 
 /// The bare name of a written type: generics, sigils and the qualifying path taken off.
-///
-/// `List<Order>` names `List`; `&Facts`, `*Buffer` and `?Handle` name the types their
-/// sigils borrow, point at or make optional; `models.PaymentId` names its last segment.
 pub(crate) fn base_type_name(written: &str) -> String {
     let base = written.split(['<', '[']).next().unwrap_or(written).trim();
     let last = base.rsplit(['.', ':']).next().unwrap_or(base);
@@ -881,19 +772,6 @@ impl Declared {
 }
 
 /// The type a literal states about itself.
-///
-/// An object literal is deliberately absent. `{"amount": 100}` is a `dict`, and saying so
-/// tells the reader nothing. This whole analysis exists because a dictionary sits where a
-/// type should have been. A tool that answers `dict` has agreed with the code and not
-/// described it. A list literal is the same shape of non-answer.
-///
-/// Go and Java are here because each fixes the type at the declaration. `total := 0` is an
-/// `int` and `var s = "a"` is a `String`, whatever the code does later. Rust's numbers are
-/// absent for the opposite reason. There `let x = 0;` takes its type from a later use, so
-/// `i32` would be a guess dressed as an answer. Its strings, booleans and characters have no
-/// later use to wait for: `"a"` is `&str` however it is used, so those three answer. Zig's
-/// `0` is a `comptime_int` and its `"a"` a pointer to a sized array, neither a
-/// type a parameter is written with. So only its booleans answer.
 fn literal_type(language: Language, kind: &str, text: &str) -> Option<String> {
     let python = matches!(language, Language::Python);
     let ts = matches!(language, Language::TypeScript | Language::Tsx);
@@ -969,9 +847,6 @@ fn fixed_literal_type(language: Language, kind: &str) -> Option<&'static str> {
 }
 
 /// The operators whose result has the type its two operands share.
-///
-/// Comparison and logical operators are absent: their result is a boolean and says nothing
-/// about the operands. Reading `a < b` as an `int` is how an inference stops being one.
 fn arithmetic_operator(operator: &str) -> bool {
     matches!(
         operator,
@@ -985,10 +860,6 @@ fn last_segment(text: &str) -> &str {
 }
 
 /// A symbol of this name that the workspace defines, in the asking symbol's language.
-///
-/// Same file first. A name that resolves to several things in one language is ambiguous, so
-/// it resolves to none of them here. Every other lookup in this file gives the same reason.
-/// An answer picked by indexing order is not an answer.
 fn resolve_in_workspace(index: &Index, from: &Symbol, name: &str) -> Option<SymbolId> {
     let candidates: Vec<&Symbol> = index
         .find_symbols(name, None)
@@ -1000,7 +871,6 @@ fn resolve_in_workspace(index: &Index, from: &Symbol, name: &str) -> Option<Symb
         [only] => return Some(only.id),
         [] => {}
         // Two methods of this name in one file are as ambiguous as two anywhere.
-        // The first written version returned whichever was indexed first.
         _ => return None,
     }
     match candidates.as_slice() {
@@ -1010,15 +880,6 @@ fn resolve_in_workspace(index: &Index, from: &Symbol, name: &str) -> Option<Symb
 }
 
 /// The definition of a type of this name, where one can be justified.
-///
-/// Same file first, then the same language. Never another language: a Python class
-/// called `Money` and a TypeScript interface called `Money` are two types that share a
-/// spelling, and the first written version of this pointed a TypeScript binding at the
-/// Python one, a `find` over every symbol in the workspace, answering with whichever
-/// happened to be indexed first.
-///
-/// Several in one language is ambiguous, and nothing is reported instead of picking.
-/// A definition the reader is sent to is a claim, and a coin toss is not one.
 fn type_named(index: &Index, name: &str, from: &Symbol) -> Option<SymbolId> {
     let candidates: Vec<&Symbol> = index
         .find_symbols(name, None)
@@ -1043,9 +904,6 @@ fn is_type_like(kind: SymbolKind) -> bool {
 }
 
 /// The outermost name in a type expression, where there is exactly one.
-///
-/// `PaymentId` names something. `list[PaymentId]`, `Money | None` and `(int, str) -> Money` do
-/// not name *one* thing. Picking a piece of them would be answering a question nobody asked.
 fn bare_name(text: &str) -> Option<&str> {
     let trimmed = text.trim();
     let plain = trimmed
@@ -1063,8 +921,7 @@ fn binding_type(parsed: &Parsed, source: &str, declaration: Span) -> Option<Stri
     let node = parsed
         .root()
         .descendant_for_byte_range(declaration.start, declaration.end)?;
-    // Look outwards, because the name is often a child of the node carrying the type. A
-    // Python `x: int = 1` hangs the type off the assignment rather than off `x`.
+    // Look outwards, because the name is often a child of the node carrying the type.
     let mut current = Some(node);
     for _ in 0..4 {
         let here = current?;
@@ -1074,9 +931,6 @@ fn binding_type(parsed: &Parsed, source: &str, declaration: Span) -> Option<Stri
             }
         }
         let parent = here.parent()?;
-        // The walk stops at the construct that holds statements. A Zig `const width = 3;`
-        // states no type. Climbing out of its block reached `fn run() void` and read
-        // the function's return type as the binding's.
         if holds_statements(parent) {
             return None;
         }

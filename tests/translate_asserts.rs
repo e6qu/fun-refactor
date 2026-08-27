@@ -1,10 +1,4 @@
 //! An assert crosses as a check that stops the program, in every target.
-//!
-//! Python's `assert c, "m"` used to carry as a comment, so a translated test
-//! file checked nothing and still printed "all tests passed". The targets with
-//! an assert keep it: Rust's `assert!`, Zig's `std.debug.assert`, Python's own
-//! statement. The targets without one say it longhand, test the condition and
-//! throw or panic, which is the same program stopping for the same reason.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -94,9 +88,8 @@ fn a_python_assert_is_zigs_own_library_check() {
 
 #[test]
 fn a_python_assert_with_a_computed_message_passes_it_to_the_rust_macro() {
-    // The macro takes a format string and arguments, and evaluates them only
-    // when the check fails. Rendering the message into a comment above the
-    // check dropped it, along with any effect computing it had.
+    // The macro takes a format string and arguments, and evaluates them only when the check
+    // fails.
     let source = "def check(n: int) -> None:\n    assert n > 0, \"got \" + str(n)\n";
     let tmp = tempfile::tempdir().unwrap();
     let out = translated(tmp.path(), "computed.py", source, Language::Rust);

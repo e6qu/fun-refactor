@@ -1,11 +1,4 @@
 //! Markdown renders to the HTML it describes, one way.
-//!
-//! The bytes change, so this is neither the containment rename nor the programming
-//! draft: it is a defined render. Headings, paragraphs, lists, quotes, code,
-//! breaks, emphasis, links and images cross. A construct outside the subset is in
-//! the output as escaped text under a marker comment. The reverse direction
-//! refuses: HTML back to Markdown would have to decide what is prose and what is
-//! structure, and that is authorship.
 
 use fun_refactor::lang::Language;
 use fun_refactor::translate;

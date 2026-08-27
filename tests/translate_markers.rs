@@ -1,10 +1,4 @@
 //! A marker is a draft's honesty, and a draft must still compile around it.
-//!
-//! Three markers did not. Go's inline stand-in was a bare `nil`, which `:=` has
-//! no type to infer for. Rust's `todo!` interpolated braces from the carried
-//! source into its own format string. And a `todo!` in a `const` is not a draft
-//! at all: constants evaluate at compile time, so the build stopped before
-//! anything ran.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -26,8 +20,6 @@ fn gos_inline_marker_asserts_the_type_a_bare_nil_has_not() {
                   const merged = a ?? b;\n    console.log(merged);\n}\n";
     let (_tmp, root) = workspace(&[("pick.ts", source)]);
     let plan = transpile::plan(&root.join("pick.ts"), Language::Go).expect("a draft");
-    // The coalesce lowers to a closure that binds the value once and tests
-    // it; nothing carries, and no bare `nil` binding remains either.
     assert!(
         plan.output.contains("merged := func() any {"),
         "the coalesce binds through a closure:\n{}",
@@ -58,8 +50,7 @@ fn rusts_todo_marker_doubles_the_braces_the_source_carried() {
 
 #[test]
 fn a_composed_error_set_keeps_its_spelling_as_text() {
-    // `error{A} || B` composes error sets, which no target's error model can hold. The alias
-    // keeps the set's spelling as a string, which every target compiles and nothing carries.
+    // `error{A} || B` composes error sets, which no target's error model can hold.
     let source = "const LoadError = error{Unsupported} || SomethingElse;\n\n\
                   pub fn answer() i64 {\n    return 7;\n}\n";
     let (_tmp, root) = workspace(&[("sets.zig", source)]);

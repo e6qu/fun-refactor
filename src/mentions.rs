@@ -1,12 +1,4 @@
 //! Where a name appears in prose: comments, strings and template text.
-//!
-//! Nothing resolves these. A comment that names a function is not a call, and no grammar links
-//! the two. They still matter to a reader, so every command that answers "where does this name
-//! appear" reports them, and no command edits them.
-//!
-//! `fr rename` and `fr delete` warn about them. `fr usages` lists them apart from the
-//! references it resolved. The scan lived twice, once in each refactoring. `fr usages` had no
-//! copy at all: it answered "4 uses" for a name that appeared six times.
 
 use crate::index::Index;
 use crate::parse::{Parsed, Parsers};
@@ -24,8 +16,6 @@ pub struct Mention {
 }
 
 /// Every appearance of `name` in the comments and strings of the workspace.
-///
-/// The match is on whole words, so `helper` does not match `helperful`.
 pub fn of(index: &Index, name: &str) -> Result<Vec<Mention>> {
     let parsers = Parsers::new();
     let mut found = Vec::new();
@@ -71,12 +61,6 @@ pub fn string_and_comment_spans(parsed: &Parsed) -> Vec<Span> {
         let kind = node.kind();
         // Grammars name these differently: string_literal, raw_string_literal,
         // interpreted_string_literal, line_comment, block_comment, comment.
-        //
-        // Markdown has neither a string nor a comment: the whole document is prose.
-        // Its paragraph text is one `inline` node and its fenced code is
-        // `code_fence_content`. Without those two, a style guide writing
-        // `` `.btn-primary` `` in prose, and `class="btn-primary"` in an html fence,
-        // was walked past twice. A cross-language rename said nothing about either.
         let prose = parsed.language == crate::lang::Language::Markdown
             && matches!(kind, "inline" | "code_fence_content");
         if prose

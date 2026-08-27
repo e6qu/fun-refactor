@@ -1,15 +1,4 @@
 //! The browser API.
-//!
-//! The host hands over a workspace as a map of path to text, a repository fetched from GitHub,
-//! say. Every answer here comes from that map. There is no filesystem, no cache and no thread
-//! pool, and none of them are needed. The index builds once from source already in memory, and
-//! every analysis after that reads facts.
-//!
-//! Everything returns JSON, because the alternative is a wasm-bindgen type for each of twenty
-//! answers and the shapes are the ones `--json` already prints.
-//!
-//! Every edit lands in the in-memory workspace, so a refactoring here is a real edit against
-//! real bytes. It changes nothing on GitHub; the diff is the artifact.
 
 use crate::index::Index;
 use crate::lang::Language;
@@ -23,43 +12,26 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 pub struct Workspace {
     index: Index,
-    /// This workspace's bytes. The handle stays here instead of installing once for
-    /// the page, because a page can hold two workspaces. Each one's spans mean
-    /// something only against the text they were measured on.
+    /// This workspace's bytes.
     files: crate::vfs::Handle,
-    /// The last file parsed, and the text it was parsed from.
-    ///
-    /// The status bar asks what the cursor is on after every keystroke. Answering meant parsing
-    /// the whole file: seventeen milliseconds on `requests/models.py`, which is a dropped frame
-    /// every time an arrow key repeats. The memo is keyed by the source itself, so nothing
-    /// needs invalidating. An edit changes the text and the next question misses. One file,
-    /// because only one is open.
+    /// The last file this parsed, and the text behind it.
     parsed: std::cell::RefCell<Option<(PathBuf, String, crate::parse::Parsed)>>,
-    /// Paths in the order they were given, so the file list a user sees is stable.
-    /// A refactoring that creates a file appends to it.
+    /// Paths in the caller's order, so the file list holds still.
     order: Vec<PathBuf>,
-    /// What the extractor found in each file, kept so an edit re-extracts only the
-    /// files it touched. Extraction runs per file and parsing dominates it, while
-    /// resolution is global and cheap beside it. Re-parsing all four hundred files of
-    /// a workspace because one changed made a rename in `zod` take three seconds.
+    /// What the extractor found in each file, kept so an edit re-extracts only the files it
+    /// touched.
     facts: std::collections::BTreeMap<PathBuf, (Language, crate::model::FileFacts)>,
     /// Files whose language this build has no grammar for.
     unsupported: Vec<String>,
 }
 
 /// A rendered tree or report, printed by the analysis that owns it.
-///
-/// Several analyses already know how to print themselves. Re-deriving those shapes in
-/// TypeScript would be a second implementation of an answer that already exists.
 #[derive(Serialize)]
 struct FlowText {
     tree: String,
 }
 
-/// The first twenty notes, and a note saying how many were left out.
-///
-/// A note says what a translation could not do. Dropping the twenty-first without a word
-/// tells the reader that the list is complete when it is not.
+/// The first twenty notes, and a note counting the rest.
 fn first_notes(notes: Vec<String>) -> Vec<String> {
     const SHOWN: usize = 20;
     let total = notes.len();
@@ -71,10 +43,6 @@ fn first_notes(notes: Vec<String>) -> Vec<String> {
 }
 
 /// The applied result, with a plan's plain-string notes attached under one name.
-///
-/// The move and signature plans report what they left alone as plain strings rather
-/// than the structured warning the others use. Attaching them here saves the view from
-/// learning two shapes.
 fn with_notes(applied: String, notes: &[String]) -> String {
     if notes.is_empty() {
         return applied;
@@ -97,9 +65,6 @@ struct Located {
 }
 
 /// A signature change in the command line's spelling.
-///
-/// `remove:1`, `move:0:2` and `add:1:<declaration>:<argument>` read here as they do in
-/// the terminal, so the terminal's documentation holds for both.
 fn parse_signature_change(text: &str) -> Result<crate::refactor::signature::Change, String> {
     use crate::refactor::signature::Change;
     let parts: Vec<&str> = text.splitn(4, ':').collect();
@@ -129,12 +94,6 @@ fn parse_signature_change(text: &str) -> Result<crate::refactor::signature::Chan
 struct Failure {
     error: String,
     /// True when the tool declined on purpose, naming a rule, and wrote nothing.
-    ///
-    /// A caller cannot tell a considered refusal from an internal fault by reading the
-    /// sentence, and `web/test/scale.mjs` tried. It matched the message against a list
-    /// of patterns, so rewording a refusal reclassified it as a defect. Five refusals
-    /// stopped saying "is not supported for", started saying what was wrong, and turned
-    /// into defects. The type already knows; this reports it.
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     refused: bool,
 }
@@ -147,7 +106,7 @@ fn fail(e: impl std::fmt::Display) -> String {
     .unwrap_or_else(|_| r#"{"error":"unprintable"}"#.to_string())
 }
 
-/// [`fail`] for an error that may be a refusal. It asks, and does not guess.
+/// [`fail`] for an error that may be a refusal.
 fn failed(e: anyhow::Error) -> String {
     let refused = e.downcast_ref::<crate::refactor::Refusal>().is_some();
     serde_json::to_string(&Failure {
@@ -163,11 +122,7 @@ fn ok<T: Serialize>(value: &T) -> String {
 
 #[wasm_bindgen]
 impl Workspace {
-    /// Load a repository. `files` is `{ "path/to/file.go": "contents", … }`.
-    ///
-    /// This ignores files in languages it cannot parse instead of refusing them, because a
-    /// real repository is full of lockfiles and images. Refusing a whole load over one of
-    /// those would be useless.
+    /// Load a repository.
     #[wasm_bindgen(constructor)]
     pub fn new(files: JsValue) -> Result<Workspace, JsValue> {
         console_error_panic_hook::set_once();
@@ -179,16 +134,9 @@ impl Workspace {
 
 impl Workspace {
     /// Load a repository from plain Rust values.
-    ///
-    /// This sits outside the constructor so `cargo test` can reach everything but the
-    /// `JsValue` conversion. Only `web/test/api.mjs` exercised the browser API before,
-    /// and that needs a wasm toolchain and a Node run. So a mistake in it survived
-    /// `cargo test` and `cargo clippy` and reached CI.
     pub fn load(map: std::collections::BTreeMap<String, String>) -> Result<Workspace, String> {
         // The grammars' scanners allocate through a bump allocator that starts at NULL until
-        // something hands it a region. See the wasm-libc crate. A host build links a real
-        // libc and never compiles the shim, so `cargo check --features wasm` runs on a host
-        // and catches the mistakes that otherwise reach CI.
+        // something hands it a region.
         #[cfg(target_arch = "wasm32")]
         {
             fun_refactor_wasm_libc::init_scanner_heap();
@@ -200,9 +148,7 @@ impl Workspace {
             .map(|(path, text)| (PathBuf::from(path), text))
             .collect();
 
-        // The whole workspace goes into the virtual filesystem first. Language detection
-        // asks whether a `Chart.yaml` sits beside a YAML file, and that question has to
-        // have an answer before anything parses.
+        // The whole workspace goes into the virtual filesystem first.
         let files = crate::vfs::new_handle(loaded.clone());
         crate::vfs::activate(&files);
 
@@ -214,9 +160,7 @@ impl Workspace {
             let Some(language) = crate::lang::detect(&path) else {
                 continue;
             };
-            // A grammar this build omits leaves one file out and never refuses the
-            // repository. The load reports what it left out, because a file list that
-            // quietly shrinks makes every later answer wrong invisibly.
+            // A grammar this build omits leaves one file out and never refuses the repository.
             if !crate::parse::Parsers::supports(language) {
                 unsupported.push(format!("{} ({language})", path.display()));
                 continue;
@@ -224,8 +168,7 @@ impl Workspace {
             sources.push((path, language, text));
         }
 
-        // One parser set and one extractor for the whole workspace. The extractor
-        // compiles every query, and this pays that cost once instead of per file.
+        // One parser set and one extractor for the whole workspace.
         let parsers = crate::parse::Parsers::new();
         let mut extractor = crate::extract::Extractor::new();
         let mut facts = std::collections::BTreeMap::new();
@@ -345,7 +288,7 @@ impl Workspace {
         ok(&out)
     }
 
-    /// Where the symbol at this position is used, with the confidence of each.
+    /// Every use of the symbol at this position, each with its confidence.
     pub fn references(&self, path: &str, line: usize, col: usize) -> String {
         self.enter();
         match self.symbol_at(path, line, col) {
@@ -357,9 +300,6 @@ impl Workspace {
                     col: usize,
                     confidence: String,
                     /// Whether a rename of this symbol would rewrite this site.
-                    /// The tiers alone under-answer that, because a declared
-                    /// receiver lifts a field-based use into the rewrite. A
-                    /// reader predicting the rename needs the rename's answer.
                     rewritable: bool,
                 }
                 let rewritable = crate::refactor::rename::rewritable_spans(&self.index, id);
@@ -397,10 +337,7 @@ impl Workspace {
         }
     }
 
-    /// The type the symbol at a position was declared with, as the source wrote it.
-    ///
-    /// This infers nothing. A binding with no annotation comes back with `declared`
-    /// null, which is an answer rather than a gap in one.
+    /// The type this position's symbol declares, as the source wrote it.
     pub fn declared_type(&self, path: &str, line: usize, col: usize) -> String {
         self.enter();
         let id = match self.symbol_at(path, line, col) {
@@ -413,7 +350,7 @@ impl Workspace {
         }
     }
 
-    /// Rename the symbol at a position. Returns the edits, and applies them.
+    /// Rename the symbol at a position.
     pub fn rename(&mut self, path: &str, line: usize, col: usize, new_name: &str) -> String {
         self.enter();
         let id = match self.symbol_at(path, line, col) {
@@ -427,9 +364,6 @@ impl Workspace {
     }
 
     /// Retire a feature flag and the branch that only served it.
-    ///
-    /// The cascade re-indexes after each round, so it works over the whole loaded
-    /// workspace instead of one file.
     pub fn remove_flag(&mut self, flag: &str, value: bool) -> String {
         self.enter();
         let mut sources: std::collections::BTreeMap<PathBuf, (Language, String)> =
@@ -452,8 +386,7 @@ impl Workspace {
         }
     }
 
-    /// Code written more than once, compared structurally. Left out, `min_tokens`
-    /// falls to the floor each language's token density calls for.
+    /// Code written more than once, compared structurally.
     pub fn duplicates(&self, min_tokens: Option<usize>) -> String {
         self.enter();
         let options = crate::analysis::duplicates::Options {
@@ -476,8 +409,7 @@ impl Workspace {
             path: String,
             exported: bool,
         }
-        // The catalogs mark a `#[test]` or an HTTP handler as a root. Without them
-        // only exports anchor reachability, and the report is mostly noise.
+        // The catalogs mark a `#[test]` or an HTTP handler as a root.
         let entrypoints = match crate::analysis::entrypoints::Entrypoints::detect(&self.index) {
             Ok(roots) => roots,
             Err(e) => return fail(e),
@@ -514,7 +446,7 @@ impl Workspace {
         }
     }
 
-    /// Every use, including the uncertain ones, which are reported apart.
+    /// Every use. Reports the uncertain ones apart.
     pub fn usages(&self, path: &str, line: usize, col: usize) -> String {
         self.enter();
         match self.symbol_at(path, line, col) {
@@ -553,12 +485,6 @@ impl Workspace {
     }
 
     /// Where the value at this position came from.
-    ///
-    /// Config and markup languages have substitution and override provenance rather than
-    /// dataflow, and `fr flow` routes between the two models for the caller. This called
-    /// dataflow whichever the language was, so the browser answered emptily for a YAML
-    /// anchor the CLI traced. Once dataflow began refusing those languages, the browser
-    /// showed a refusal for a question the tool can answer.
     pub fn flow_back(&self, path: &str, line: usize, col: usize) -> String {
         self.enter();
         let Ok(offset) = self.offset(path, line, col) else {
@@ -662,12 +588,6 @@ impl Workspace {
     }
 
     /// The parse tree of a file, as a structure a view can walk.
-    ///
-    /// Every answer this tool gives is a claim about a tree. Seeing the tree turns a
-    /// surprising answer into an understandable one: a pattern that will not match, a
-    /// rewrite that refuses, a name the resolver reads as a field. Named nodes only. The
-    /// anonymous ones are punctuation, and a tree in which every brace is a row cannot be
-    /// read.
     pub fn ast(&self, path: &str) -> String {
         self.enter();
         #[derive(Serialize)]
@@ -679,8 +599,7 @@ impl Workspace {
             col: usize,
             end_line: usize,
             end_col: usize,
-            /// The source it covers, for a leaf. Elided above a leaf, where the text
-            /// is the whole subtree and the children say it better.
+            /// The source it covers, for a leaf.
             text: Option<String>,
             children: Vec<TreeNode>,
         }
@@ -755,10 +674,6 @@ impl Workspace {
     }
 
     /// What the cursor is on: the symbol, and the coordinate that names it.
-    ///
-    /// A position is how you point at something in an editor; `path:line:col` is how
-    /// you point at the same thing from a terminal. This returns both, so the two
-    /// halves of the tool agree about what is being talked about.
     pub fn at(&self, path: &str, line: usize, col: usize) -> String {
         self.enter();
         #[derive(Serialize)]
@@ -803,36 +718,24 @@ impl Workspace {
         })
     }
 
-    /// What this file could be rewritten as, and why the rest are not on offer.
-    ///
-    /// Answers for every language and not only the possible ones, because "you
-    /// cannot turn Rust into Python and here is why" is the useful half of this
-    /// feature and a shorter list would not say it.
+    /// What this file may become, and why the rest stay out of reach.
     pub fn translations(&self, path: &str) -> String {
         self.enter();
         #[derive(Serialize)]
         struct Option_ {
             language: String,
-            /// Where the rewritten file would be written.
+            /// Where the rewritten file lands.
             destination: Option<String>,
             /// Absent when it can be done.
             unavailable: Option<String>,
-            /// Present when this is a translation and not the same bytes, saying
-            /// how much of it is real. A caller must be able to tell the difference.
+            /// Present when this is a translation and not the same bytes, saying how much of it
+            /// is real.
             draft: Option<String>,
             /// A port to another framework and not to another language.
-            ///
-            /// Its own kind, because it answers a different question. "Write this TypeScript as
-            /// Python" and "serve these routes from FastAPI instead" are not variants of each
-            /// other. A menu that listed them together would make the reader work out which one
-            /// they had asked for.
             framework: bool,
         }
 
-        // Three constructors and not six literals. A field added to the struct is otherwise a
-        // field six call sites have to remember. One of them will not: `framework` was missed
-        // at exactly one, in code no host build compiles. The browser build in CI was what
-        // found it.
+        // Three constructors and not six literals.
         impl Option_ {
             fn offered(language: &str, destination: String, draft: Option<String>) -> Option_ {
                 Option_ {
@@ -869,9 +772,7 @@ impl Workspace {
         let possible = crate::translate::targets(from);
         let mut out: Vec<Option_> = Vec::new();
 
-        // FastAPI is a framework and not a language. It goes first because when it applies at
-        // all it is the best answer for the file. A Next.js route translated as plain Python
-        // loses the routing, which is the half that lives in the path instead of the text.
+        // FastAPI is a framework and not a language.
         if crate::transpile::nextjs::is_api_route(&path_buf) {
             match crate::transpile::nextjs::plan(&path_buf) {
                 Ok(plan) => out.push(
@@ -901,8 +802,7 @@ impl Workspace {
             if *language == from {
                 continue;
             }
-            // A containment is the same bytes; a translation is a draft. Both are
-            // offered, and which one it is has to be visible before it is chosen.
+            // A containment is the same bytes; a translation is a draft.
             if !possible.contains(language)
                 && crate::transpile::can_be_read(from)
                 && crate::transpile::can_be_written(*language)
@@ -925,7 +825,7 @@ impl Workspace {
             }
             if possible.contains(language) {
                 // Offered, but the file still has to parse as it, a `.scss` using nesting is
-                // not CSS. The button must say that before it is pressed and not after.
+                // not CSS.
                 match crate::translate::plan(&path_buf, *language) {
                     Ok(plan) => out.push(Option_::offered(
                         language.name(),
@@ -996,8 +896,8 @@ impl Workspace {
             Ok(plan) => {
                 let f = plan.fidelity.clone();
                 let applied = self.apply(plan.edits, Vec::new());
-                // The fidelity travels with the result: a draft that does not announce
-                // itself will be read as though a person wrote it.
+                // Send the fidelity with the result: a draft that announces nothing
+                // reads as though a person wrote it.
                 with_notes(
                     applied,
                     &std::iter::once(format!(
@@ -1070,9 +970,6 @@ impl Workspace {
     }
 
     /// Change a function's parameters, and every call site.
-    ///
-    /// `change` is spelled as the command line spells it: `remove:1`,
-    /// `move:0:2`, `add:1:<declaration>:<argument>`.
     pub fn signature(&mut self, path: &str, line: usize, col: usize, change: &str) -> String {
         self.enter();
         let id = match self.symbol_at(path, line, col) {
@@ -1182,20 +1079,11 @@ impl Workspace {
     }
 
     /// Make this workspace's files the ones the analysis reads.
-    ///
-    /// Every method that answers a question about source calls this first. Two workspaces in
-    /// one page otherwise share whichever was created last. The older one's answers come out
-    /// measured against the newer one's bytes, a wrong answer that looks like a right one.
-    /// `tests/wasm_api.rs` checks that nothing new escapes this.
     fn enter(&self) {
         crate::vfs::activate(&self.files);
     }
 
     /// The innermost named node covering a position, by name.
-    ///
-    /// The one thing a person cannot see from the source. Whether the resolver is looking at an
-    /// `identifier`, a `field_identifier` or a `type_identifier` decides what half the tool
-    /// will do with it.
     fn node_kind_at(&self, path: &str, line: usize, col: usize) -> Option<String> {
         let offset = self.offset(path, line, col).ok()?;
         let path = PathBuf::from(path);
@@ -1250,13 +1138,6 @@ impl Workspace {
     }
 
     /// The call graph around one symbol, as nodes and edges a browser can draw.
-    ///
-    /// `graph` answers with three counts, which say how big the graph is and nothing
-    /// about its shape. The playground had no way to show the graph itself.
-    ///
-    /// The walk stops at `depth` in both directions from the symbol under the cursor. A
-    /// whole workspace holds thousands of functions, and a picture of all of them says
-    /// less than a picture of the neighbourhood a reader asked about.
     pub fn graph_around(&self, path: &str, line: usize, col: usize, depth: usize) -> String {
         self.enter();
         let start = match self.symbol_at(path, line, col) {
@@ -1273,15 +1154,14 @@ impl Workspace {
             /// The column of the name, so a click lands on the symbol and not on the
             /// indentation before it.
             col: usize,
-            /// Hops from the symbol the reader asked about. Negative is upwards.
+            /// Hops from the symbol the reader asked about.
             rank: i32,
         }
         #[derive(Serialize)]
         struct Edge {
             from: u32,
             to: u32,
-            /// `call` for a resolved call. `dispatch` for one implementation the call
-            /// could reach, chosen while the program runs.
+            /// `call` for a resolved call.
             kind: &'static str,
         }
         #[derive(Serialize)]
@@ -1408,8 +1288,7 @@ impl Workspace {
         #[derive(Serialize)]
         struct Applied<'a> {
             files: Vec<Changed>,
-            /// The sites the refactoring declined to touch. A diff cannot show that
-            /// half of the answer.
+            /// The sites the refactoring declined to touch.
             warnings: &'a [crate::refactor::Warning],
         }
         #[derive(Serialize)]
@@ -1439,9 +1318,7 @@ impl Workspace {
         if let Err(e) = crate::edit::commit(&outcomes) {
             return fail(e);
         }
-        // The edit changed the bytes every span was measured against, so this remeasures
-        // every span. Only the written files re-parse. Nothing else can have changed,
-        // because an edit is the only thing that changes a file here.
+        // The edit moved the bytes behind every span, so remeasure them all.
         let written: Vec<PathBuf> = outcomes
             .iter()
             .filter(|o| o.changed())
@@ -1457,13 +1334,7 @@ impl Workspace {
         })
     }
 
-    /// Re-extract the files that were written, and resolve the whole workspace again.
-    ///
-    /// Resolution has to be global, since a rename in one file changes what a reference in
-    /// another points at. Extraction does not, and extraction is the expensive half. A file
-    /// this workspace has never seen joins the listing here, and `fr move` can write one.
-    /// Such a file went into the virtual filesystem and then never got indexed, so it had
-    /// no symbols and never appeared in the file list.
+    /// Re-extract the files this wrote, then resolve the whole workspace again.
     fn reindex(&mut self, written: &[PathBuf]) -> anyhow::Result<()> {
         let parsers = crate::parse::Parsers::new();
         let mut extractor = crate::extract::Extractor::new();

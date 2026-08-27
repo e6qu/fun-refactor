@@ -1,13 +1,4 @@
 //! A string that names a file, and the file it names.
-//!
-//! A CI step runs `./scripts/deploy.sh`. A Terraform resource renders
-//! `templatefile("${path.module}/init.sh", …)`. Each is a path written as a
-//! string in one language naming a file in another, and neither resolved. The
-//! string reached nothing, and the script it named looked unused.
-//!
-//! The question is small and exact. The file either exists in the workspace or
-//! it does not, so there is nothing to report as a maybe. Each test below says
-//! both halves: the path that is found, and the word that is deliberately not.
 
 use fun_refactor::analysis::paths;
 use fun_refactor::index::Index;
@@ -15,10 +6,6 @@ use fun_refactor::scan::ScanOptions;
 use std::path::PathBuf;
 
 /// A workspace on disk.
-///
-/// The CI files below sit under `ci/` and not `.github/`, because a scan skips
-/// hidden directories. A fixture written where a real workflow lives would be
-/// invisible, and the test would pass by finding nothing.
 fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, PathBuf) {
     let tmp = tempfile::tempdir().unwrap();
     for (name, content) in files {
@@ -60,7 +47,6 @@ fn a_ci_step_finds_the_script_it_runs() {
 #[test]
 fn a_step_running_a_script_nobody_kept_says_so() {
     // The one failure a path edge can report, and the reason to report at all.
-    // A CI step running a deleted script breaks on the next push and not before.
     let (_tmp, found) = links(&[(
         "ci/workflow.yml",
         "jobs:\n  build:\n    steps:\n      - run: ./scripts/gone.sh\n",
@@ -74,9 +60,7 @@ fn a_step_running_a_script_nobody_kept_says_so() {
 
 #[test]
 fn a_shell_command_is_not_a_path() {
-    // `make`, `npm ci`, `cargo test`: a command is not a file this workspace
-    // holds. Reporting one as a dangling path would be noise, and noise teaches
-    // a reader to ignore the real ones.
+    // `make`, `npm ci`, `cargo test`: a command is not a file this workspace holds.
     let (_tmp, found) = links(&[(
         "ci/workflow.yml",
         "jobs:\n  build:\n    steps:\n      - run: make\n      - run: cargo test\n",
@@ -112,8 +96,7 @@ fn a_url_is_not_a_path_in_this_workspace() {
 
 #[test]
 fn a_path_beside_the_file_is_found_before_one_at_the_root() {
-    // `./init.sh` beside a `.tf` is the file in that directory. Resolving from
-    // the root first would find a different file with the same name.
+    // `./init.sh` beside a `.tf` is the file in that directory.
     let (_tmp, found) = links(&[
         (
             "modules/web/main.tf",
@@ -171,9 +154,7 @@ fn a_markdown_link_to_another_site_names_no_file_here() {
 
 #[test]
 fn a_markdown_link_keeps_the_file_and_drops_the_heading() {
-    // `guide.md#intro` names a file and a heading inside it. The heading is a
-    // separate edge the anchor resolution already follows, so this half takes
-    // the file alone.
+    // `guide.md#intro` names a file and a heading inside it.
     let (_tmp, found) = links(&[
         ("README.md", "See [the guide](docs/guide.md#intro).\n"),
         ("docs/guide.md", "# Guide\n\n## Intro\n"),

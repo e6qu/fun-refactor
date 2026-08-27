@@ -1,10 +1,4 @@
 //! The JSON surface an agent scripts against, checked end to end.
-//!
-//! Every error path used to print prose to stderr and nothing to stdout, so a
-//! caller that passed `--json` had nothing to parse. And several reports left
-//! out fields a program needs. A call tree flattened to name and depth. A flow
-//! step with no line. An unused report without its own caveat. These tests pin
-//! the machine-readable half of each contract.
 
 use assert_cmd::Command;
 
@@ -85,8 +79,6 @@ fn an_ambiguous_name_lists_its_candidates_as_data() {
 
 #[test]
 fn a_target_shaped_like_a_position_is_refused_as_one() {
-    // `py/app.py:abc:1` used to fall through to name lookup and answer "no symbol
-    // named 'py/app.py:abc:1'", pointing the reader at the wrong mistake.
     let tmp = workspace(&[("py/app.py", "def process():\n    return 1\n")]);
     let (printed, stderr, ok) = run_json(&tmp, &["def", "py/app.py:abc:1", "--json"]);
     assert!(!ok);
@@ -219,9 +211,6 @@ fn the_openapi_json_carries_the_notes_in_the_payload() {
 
 #[test]
 fn the_openapi_status_note_speaks_the_language_of_the_input() {
-    // The tree is Next.js, and the note used to advise adding `status_code=` to a
-    // `@router` decorator. That decorator exists only in the FastAPI file a
-    // translation would write.
     let tmp = workspace(&[("app/api/pets/route.ts", STATUS_ROUTE)]);
     let (printed, _, ok) = run_json(&tmp, &["openapi", "--json"]);
     assert!(ok);
@@ -248,10 +237,7 @@ const HELPER_AND_CALLER: [(&str, &str); 1] = [(
 
 #[test]
 fn usages_reports_the_definition_sites_apart_from_the_uses() {
-    // `fr usages` counts uses only, while `fr rename` also edits definitions. An
-    // agent cross-checking the two saw "1 file with usages" against "2 files
-    // changed" and read a contradiction. The definitions make the whole entity
-    // visible from this side, without being folded into the use count.
+    // `fr usages` counts uses only, while `fr rename` also edits definitions.
     let tmp = workspace(&HELPER_AND_CALLER);
     let (printed, _, ok) = run_json(&tmp, &["usages", "Helper", "--json"]);
     assert!(ok);
@@ -280,8 +266,8 @@ fn a_rename_summary_counts_definition_edits_beside_reference_edits() {
 
 #[test]
 fn a_change_diff_header_is_workspace_relative_while_the_path_stays_absolute() {
-    // `git apply -p1` refuses `a//absolute/path`; a joining agent still needs the
-    // absolute `path` field. Each keeps its job.
+    // `git apply -p1` refuses `a//absolute/path`; a joining agent still needs the absolute
+    // `path` field.
     let tmp = workspace(&HELPER_AND_CALLER);
     let (printed, _, ok) = run_json(&tmp, &["rename", "Helper", "Fetched", "--json"]);
     assert!(ok);
@@ -343,9 +329,7 @@ fn skipping_workspace() -> tempfile::TempDir {
 
 #[test]
 fn a_file_skipped_for_size_rides_in_every_answer_it_could_falsify() {
-    // A skipped file can hold the reference that makes the answer wrong. A
-    // rename reporting clean success while that file still spells the old name
-    // corrupts the workspace. The report has to say what it never saw.
+    // A skipped file can hold the reference that makes the answer wrong.
     let tmp = skipping_workspace();
     let (printed, _, ok) = run_json(
         &tmp,
@@ -407,9 +391,7 @@ fn a_file_skipped_for_size_rides_in_every_answer_it_could_falsify() {
 
 #[test]
 fn a_file_that_did_not_parse_rides_in_every_answer_it_could_falsify() {
-    // `fr parse` reported the broken file and the commands people act on did
-    // not. `fr unused` is the sharp one: it listed deletion candidates read
-    // out of a file whose text it only half understood.
+    // `fr parse` reported the broken file and the commands people act on did not.
     let tmp = workspace(&[
         ("a.py", "def helper():\n    return 1\n"),
         ("broken.py", "def caller(:\n    return helper()\n"),
@@ -475,9 +457,7 @@ const RENDER_PY: &str = "def render():\n    return 1\n\ndef user():\n    return 
 
 #[test]
 fn a_failed_expectation_under_write_rolls_back_and_says_so() {
-    // RECIPES.md promises one transaction. The refusal path already rolled
-    // back. The expectation-failure path applied the edits and then exited 1,
-    // leaving the disk holding a run the report called failed.
+    // RECIPES.md promises one transaction.
     let tmp = workspace(&[
         ("m.py", RENDER_PY),
         (
@@ -505,9 +485,7 @@ fn a_failed_expectation_under_write_rolls_back_and_says_so() {
 
 #[test]
 fn a_recipe_stopped_by_a_refusal_exits_5_with_the_blocking_positions() {
-    // The standalone command's refusal exits 5. The same refusal inside a
-    // recipe exited 1, so a script branching on the documented codes read it
-    // as a crash.
+    // The standalone command's refusal exits 5.
     let tmp = workspace(&[
         ("m.py", RENDER_PY),
         (
@@ -540,8 +518,6 @@ fn a_recipe_stopped_by_a_refusal_exits_5_with_the_blocking_positions() {
 #[test]
 fn a_recipe_warning_has_the_same_shape_as_a_standalone_one() {
     // `fr rename --json` emits warnings as {file, line, col, kind, detail}.
-    // The recipe report flattened the same facts into prose strings, so an
-    // agent reading both surfaces parsed one of them back apart.
     let tmp = workspace(&[
         (
             "m.py",
@@ -612,17 +588,13 @@ fn the_translate_listing_obeys_json() {
 
 #[test]
 fn a_single_file_translation_reports_the_sweeps_fidelity_block() {
-    // The directory sweep said how much of the draft carried. A single file's
-    // JSON said nothing, so an agent could not tell a clean draft from a
-    // gutted one.
+    // The directory sweep said how much of the draft carried.
     let tmp = workspace(&[("m.py", RENDER_PY)]);
     let (printed, _, ok) = run_json(&tmp, &["translate", "m.py", "typescript", "--json"]);
     assert!(ok, "{printed}");
     assert_eq!(printed["functions"], 2, "{printed}");
     assert!(printed["signatures_complete"].is_u64(), "{printed}");
     assert!(printed["carried_verbatim"].is_u64(), "{printed}");
-    // Nothing here names a type this tool does not know: the defs are unannotated,
-    // which used to be miscounted as "mentioning a foreign type".
     assert_eq!(printed["signatures_with_foreign_types"], 0, "{printed}");
 
     // The count still fires for a signature that really carries a foreign name.
@@ -634,9 +606,8 @@ fn a_single_file_translation_reports_the_sweeps_fidelity_block() {
 
 #[test]
 fn a_symbols_span_round_trips_into_extract() {
-    // The listing mixed 0-based byte spans with 1-based line and column, and
-    // emitted no end position. So extract's range input could not be built
-    // from fr's own output.
+    // The listing mixed 0-based byte spans with 1-based line and column, and emitted no end
+    // position.
     let tmp = workspace(&[(
         "m.py",
         "def log_line():\n    print(\"hello\")\n\n\ndef caller():\n    log_line()\n",

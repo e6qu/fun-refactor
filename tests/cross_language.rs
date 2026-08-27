@@ -1,8 +1,4 @@
 //! Cross-language references, the queries no single-language tool can answer.
-//!
-//! A CSS class named in an HTML attribute and a TSX `className` is one entity
-//! spanning three languages and three grammars. No language server sees across that
-//! boundary, so these tests are the ones that justify the whole design.
 
 use fun_refactor::edit::apply_to_string;
 use fun_refactor::index::Index;
@@ -228,13 +224,7 @@ fn cross_language_edits_survive_reparse_validation() {
     let _ = Path::new(tmp.path());
 }
 
-//
-// Resolution matches candidates by name across the whole workspace. Until the
-// language table existed it did so without asking what language a candidate was
-// written in, so a Rust `out.push(…)` resolved to a Zig `Ring.push`, at
-// `import-qualified`, a tier the tool rewrites. Renaming the Zig method turned a
-// `Vec::push` call in Rust into `out.pushReading(…)`: two languages, no relationship,
-// and an ordinary-looking diff.
+// Resolution matches candidates by name across the whole workspace.
 
 #[test]
 fn a_rust_method_call_does_not_resolve_to_a_zig_method() {
@@ -291,8 +281,8 @@ fn a_go_function_does_not_resolve_to_a_python_function_of_the_same_name() {
 
 #[test]
 fn the_boundaries_that_are_real_still_resolve() {
-    // The negative tests above must not have been bought by breaking the edges the
-    // tool exists for. Markup names a style rule; TSX imports from TypeScript.
+    // The negative tests above must not have been bought by breaking the edges the tool exists
+    // for.
     let (_tmp, index) = workspace(&[
         ("style.css", ".panel {\n  color: red;\n}\n"),
         ("theme.scss", ".panel {\n  background: black;\n}\n"),
@@ -336,11 +326,6 @@ fn the_boundaries_that_are_real_still_resolve() {
 }
 
 /// A class reaches the markup three ways, and a rename rewrites all three.
-///
-/// `className="btn"` is the plain case. `cx("btn", …)` hands the name to a class-list helper,
-/// and `` `btn ${size}` `` builds the list in a template literal. The helper libraries agree
-/// on the shape of the call even where they disagree on its name, and the literal parts of a
-/// template are as fixed as any attribute value.
 #[test]
 fn a_class_is_renamed_through_a_helper_call_and_a_template_literal() {
     let (_tmp, index) = workspace(&[
@@ -385,9 +370,8 @@ fn a_class_is_renamed_through_a_helper_call_and_a_template_literal() {
 
 #[test]
 fn a_data_hook_is_one_entity_across_html_and_tsx() {
-    // `data-testid="submit-btn"` is written in the markup and in the component that
-    // renders the same element. `fr usages submit-btn` answered "no symbol named"
-    // while the string sat in both files, so a rename touched neither.
+    // `data-testid="submit-btn"` is written in the markup and in the component that renders the
+    // same element.
     let (tmp, index) = workspace(&[
         (
             "index.html",
@@ -420,9 +404,6 @@ fn a_data_hook_is_one_entity_across_html_and_tsx() {
 
 #[test]
 fn a_class_named_in_markdown_is_reported_by_the_rename() {
-    // A style guide writes the class twice: once as prose in backticks, once in an
-    // html fence. Markdown has no string and no comment node, so the mention sweep
-    // walked past both and the rename listed neither.
     let (_tmp, index) = workspace(&[
         ("site.css", ".btn-primary { color: white; }\n"),
         (

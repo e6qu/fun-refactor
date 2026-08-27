@@ -1,10 +1,4 @@
 //! A declaration whose initializer or type cannot cross still declares its name.
-//!
-//! `var wg sync.WaitGroup` and `ch := make(chan int, 4)` carried whole.
-//! `wg.Add(1)` and `for v := range ch` then referred to names the output never
-//! declared, and the draft stopped parsing at the first use. The binding stays:
-//! the name is declared with a marker holding the original, and the statements
-//! after it read a name that exists.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;

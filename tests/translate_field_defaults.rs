@@ -1,12 +1,4 @@
 //! A field that starts at a value keeps it.
-//!
-//! `retries: int = 3` crossed as `retries: number;`, undefined at run time,
-//! and Java's `= new ArrayList<>()` went the same way. The reader never took
-//! the value, so no writer had one to write.
-//!
-//! Python, TypeScript, Java and Zig each declare a field's value in the
-//! declaration. Rust and Go declare none, and say so beside the field rather
-//! than let it go quietly.
 
 mod common;
 use common::{require_on_ci, Toolchain};
@@ -91,9 +83,7 @@ fn a_java_field_keeps_the_value_it_was_declared_with() {
 
 #[test]
 fn rust_keeps_the_value_in_a_default_impl() {
-    // A struct field declares no value in Rust. `Default` is where the language keeps a
-    // record's starting values, so the defaults live there and a `..Default::default()`
-    // construction gets them all.
+    // A struct field declares no value in Rust.
     let tmp = tempfile::tempdir().expect("a temporary directory");
     let out = translated(tmp.path(), "policy.py", POLICY_PY, Language::Rust);
     assert!(out.contains("impl Default for Policy {"), "{out}");

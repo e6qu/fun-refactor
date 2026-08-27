@@ -1,11 +1,4 @@
 //! `CLI.md` documents every command, and only commands that exist.
-//!
-//! A reference nobody checks is a reference that drifts, in two directions.
-//! A command added without a section is a feature nobody can find. A section
-//! for a command that was removed sends a reader to a refusal.
-//!
-//! The binary's own `--help` is the authority. It is generated from the same
-//! declarations the parser uses, so it cannot disagree with what `fr` accepts.
 
 use std::collections::BTreeSet;
 use std::process::Command;
@@ -46,9 +39,6 @@ fn commands() -> BTreeSet<String> {
 }
 
 /// Every command `CLI.md` gives a heading to.
-///
-/// A heading and not a mention. The doc names `fr rename` in prose several
-/// times, and one of those places documents the command.
 fn documented() -> BTreeSet<String> {
     let text = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/CLI.md"))
         .expect("CLI.md is there");

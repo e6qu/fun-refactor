@@ -1,9 +1,4 @@
 //! Looping on an optional's payload crosses every boundary here.
-//!
-//! Rust spells it `while let Some(v) = e` and Zig `while (e) |v|`, re-evaluating
-//! `e` each pass. The other four have no binding form in a loop header. Their
-//! writers open an unconditional loop, take the value, and break when it is
-//! empty, which is the same loop said longhand.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -66,8 +61,7 @@ fn a_zig_while_payload_becomes_while_let() {
 
 #[test]
 fn a_while_with_a_continue_expression_steps_at_the_bottom() {
-    // `while (c) |v| : (i += 1)` runs the step after each pass. The lowering runs it at the
-    // bottom of the body, and before each `continue`.
+    // `while (c) |v| : (i += 1)` runs the step after each pass.
     let source = "fn walk(it: Iter) void {\n    var i: usize = 0;\n    \
                   while (it.next()) |v| : (i += 1) {\n        use(v, i);\n    }\n}\n";
     let (_tmp, root) = workspace(&[("c.zig", source)]);
@@ -87,8 +81,7 @@ fn a_while_with_a_continue_expression_steps_at_the_bottom() {
 
 #[test]
 fn compound_assignment_desugars_from_every_reader() {
-    // `total += item` is `total = total + item`, and half the readers dropped or
-    // carried it. The Go and Java readers silently read it as plain `=`.
+    // `total += item` is `total = total + item`, and half the readers dropped or carried it.
     let sources: &[(&str, &str)] = &[
         (
             "a.py",

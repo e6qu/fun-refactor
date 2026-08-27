@@ -1,9 +1,4 @@
 //! The vendor directory must describe itself accurately.
-//!
-//! Vendored material rots in two directions: a file changes and the manifest still
-//! claims its old checksum, or a file appears with no provenance at all. Both are
-//! failures of the same promise. That everything here can be traced to a source and
-//! a licence, so both fail the build.
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -101,9 +96,7 @@ fn every_vendored_file_has_provenance() {
     let queries = vendor_root().join("tree-sitter-queries");
     let mut stack = vec![queries.clone()];
     while let Some(dir) = stack.pop() {
-        // A directory that cannot be read is not a directory with nothing in it. The whole walk
-        // used to pass by finding nothing. So a vendor tree that had gone missing read as a
-        // vendor tree with no stray files in it.
+        // A directory that cannot be read is not a directory with nothing in it.
         let entries = std::fs::read_dir(&dir)
             .unwrap_or_else(|e| panic!("{} cannot be read: {e}", dir.display()));
         for entry in entries.flatten() {
@@ -134,8 +127,7 @@ fn every_vendored_file_has_provenance() {
 
 #[test]
 fn every_licence_is_compatible_with_this_project() {
-    // This project is AGPL-3.0-or-later. Permissive licences can be combined with it;
-    // a differently-copylefted one cannot, and must not arrive unnoticed.
+    // This project is AGPL-3.0-or-later.
     const COMPATIBLE: &[&str] = &[
         "MIT",
         "Apache-2.0",
@@ -192,9 +184,7 @@ fn a_licence_file_accompanies_every_grammar_that_ships_one() {
 
 #[test]
 fn nothing_vendored_is_compiled_into_the_binary() {
-    // Reference material and a compiled dependency carry different obligations. An
-    // MIT file compiled into an AGPL binary needs its notice preserved; a file read
-    // only by a maintainer does not. Keep the two apart.
+    // Reference material and a compiled dependency carry different obligations.
     let src = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src");
     let mut stack = vec![src];
     let mut read = 0;
@@ -229,10 +219,6 @@ fn nothing_vendored_is_compiled_into_the_binary() {
 }
 
 /// `tests/corpus/`, real files from real projects, kept for the translation tests.
-///
-/// Described by `PROVENANCE.md` instead of a manifest, because it is a document a person reads.
-/// That makes it as rot-prone as `MANIFEST.toml` and it needs the same check. A file that
-/// changes without its checksum changing is a file whose provenance is a claim and not a fact.
 fn corpus_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("tests")

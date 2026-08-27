@@ -1,18 +1,4 @@
 //! Does the code that a rewrite writes still compile?
-//!
-//! `output_compiles.rs` drives the commands that move a declaration, rename, signature, move,
-//! inline. These are the ones that rewrite a declaration in place. `fr extract` lifts an
-//! expression or a run of statements out, `fr rewrite` turns one shape into another. `fr
-//! restructure` does that to every occurrence at once. None of the three had ever been compiled
-//! outside Rust.
-//!
-//! Every case starts from a fixture that compiles, applies exactly one refactoring, and
-//! compiles again. A refusal passes: some of these are legitimately not available in a given
-//! language, and the capability matrix says which. Writing a plan the compiler then rejects is
-//! the only outcome forbidden.
-//!
-//! The fixtures are one per language, each holding every shape the three commands need. So a
-//! language is added here once and gets all of them.
 
 mod common;
 use common::{gate, must_plan, GateRun, Toolchain, Workspace};
@@ -28,9 +14,7 @@ struct Fixture {
     /// The file the shapes live in.
     file: &'static str,
     files: &'static [(&'static str, &'static str)],
-    /// The expressions to lift into a binding, one sweep each. Chosen to sit in different
-    /// places, a return, a condition, a call argument. Inside one, because where the binding
-    /// has to go is what varies.
+    /// The expressions to lift into a binding, one sweep each.
     expressions: &'static [&'static str],
     /// The run of statements to lift into a function, as the first and last of them.
     statements: Option<(&'static str, &'static str)>,
@@ -38,9 +22,7 @@ struct Fixture {
     invert_if: Option<&'static str>,
     de_morgan: Option<&'static str>,
     guard_clause: Option<&'static str>,
-    /// Shapes that occur more than once, and what each becomes. More than one, because
-    /// what varies is the pattern: one metavariable or two, and a match nested inside
-    /// another match of the same shape.
+    /// Shapes that occur more than once, and what each becomes.
     restructures: &'static [(&'static str, &'static str, &'static str)],
 }
 
@@ -509,8 +491,7 @@ fn extracting_a_function_compiles_in_every_language() {
             continue;
         }
         let Some((first, last)) = fixture.statements else {
-            // No statements to lift is a gap in the fixture. It is not a result about the language.
-            // So it counts as skipped and not as a language that worked.
+            // No statements to lift is a gap in the fixture.
             run.skip(fixture.language.name());
             continue;
         };
@@ -609,13 +590,7 @@ fn restructuring_every_occurrence_compiles_in_every_language() {
 fn inverting_an_if_twice_returns_it_to_what_it_was() {
     let mut run = GateRun::default();
     // The strongest thing that can be asked of a rewrite without running the program: it has an
-    // inverse. Applying both leaves the source where it started. A rewrite that dropped an
-    // `else`, reordered a branch's statements or left a stray `!!` would compile and would not
-    // survive this.
-    //
-    // `de-morgan` is not asked the same question and is right not to be: it pushes a negation
-    // into a conjunction. The result carries no negated conjunction to push back out. The
-    // command says so and not doing something.
+    // inverse.
     for fixture in fixtures() {
         if skip(&fixture) {
             run.skip(fixture.language.name());
@@ -665,9 +640,6 @@ fn inverting_an_if_twice_returns_it_to_what_it_was() {
 }
 
 /// The `if` to invert on this round.
-///
-/// After the first inversion the condition carries a negation, so the text that found it
-/// the first time is no longer there.
 fn needle_now(ws: &Workspace, file: &str, original: &'static str, round: usize) -> &'static str {
     if round == 1 {
         return original;
@@ -687,17 +659,12 @@ fn needle_now(ws: &Workspace, file: &str, original: &'static str, round: usize) 
 }
 
 /// Every position in the fixture where any rewrite applies.
-///
-/// The tests above name a position each. This asks the command itself where it would act,
-/// which is the difference between checking the case somebody thought of and checking the
-/// cases the fixture contains.
 fn every_applicable_position(ws: &Workspace, file: &str) -> Vec<(usize, Rewrite)> {
     let source = ws.read(file);
     let index = ws.index();
     let path = ws.path(file);
 
-    // One entry per shape, and a shape is a line. Every offset inside an `if` reports the same
-    // rewrite, and applying it to each of them checks it once and pays for it fifty times.
+    // One entry per shape, and a shape is a line.
     let mut found: Vec<(usize, Rewrite)> = Vec::new();
     let mut seen: Vec<(usize, Rewrite)> = Vec::new();
     let line_of = |at: usize| source[..at].matches('\n').count();

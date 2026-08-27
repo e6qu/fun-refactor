@@ -1,19 +1,4 @@
 //! A refusal that names a language must be about that language.
-//!
-//! `Refusal::Unsupported` says "{operation} is not supported for {language}". Ten sites once
-//! wrote a reason naming no language into the field called `language`; they were found. The fix
-//! was to add a `because` field so the language field could be the language. That made the
-//! mistake easier to avoid and did not stop it. Five more sites were doing it afterwards:
-//!
-//! * `fr move` told a Rust user that Rust was unsupported when the destination was outside
-//!   `src/`, found by the capability audit, because a `✓` in the matrix and a refusal naming
-//!   the language cannot both be right.
-//! * Four more interpolated a path into the reason: two crate roots, a missing `lib.rs`, a
-//!   Terraform directory, a Zig relative path.
-//!
-//! The field is `&'static str` now, so a reason with a path in it does not compile. That makes
-//! this hold and not what documents it. These tests check the property the type cannot:
-//! that the pairs the code refuses agree with the matrix.
 
 use fun_refactor::capabilities::{support, Capability};
 use fun_refactor::index::Index;
@@ -50,8 +35,7 @@ fn blames_the_language(said: &str, language: Language) -> bool {
 
 #[test]
 fn a_rust_move_to_the_wrong_place_does_not_blame_rust() {
-    // The one the capability audit found. `fr move` supports Rust; what it cannot do is
-    // derive a module path for a file outside `src/`.
+    // The one the capability audit found.
     let (_tmp, root, index) = workspace(&[
         (
             "Cargo.toml",
@@ -117,10 +101,7 @@ fn a_terraform_move_between_directories_does_not_blame_terraform() {
 
 #[test]
 fn a_language_that_really_cannot_still_says_so() {
-    // The other half. Removing the free text would have been the easy fix and would have thrown
-    // away the explanations that are true. `fr signature` on a Terraform variable is refused
-    // because Terraform's arguments are named. That is a fact about Terraform and belongs in
-    // the sentence.
+    // The other half.
     let (_tmp, _root, index) = workspace(&[(
         "main.tf",
         "variable \"enabled\" {\n  type = bool\n}\n\noutput \"e\" {\n  value = var.enabled\n}\n",
@@ -139,9 +120,6 @@ fn a_language_that_really_cannot_still_says_so() {
 
 #[test]
 fn no_refusal_calls_a_language_unsupported_that_the_matrix_supports() {
-    // The contradiction the audit found, asked of every claimed cell at once: a `✓` and a
-    // refusal naming the language cannot both be true. `capability_claims.rs` drives every
-    // cell; this states the rule the drivers there are checking.
     for language in Language::ALL {
         for capability in Capability::ALL {
             let supported = support(*capability, *language).is_yes();

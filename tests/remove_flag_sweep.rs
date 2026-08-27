@@ -1,14 +1,4 @@
 //! `fr remove-flag`, driven in every language that claims it.
-//!
-//! The one writing command the sweeps never reached, because this repository has no
-//! boolean flag to point it at. These fixtures are that corpus: one flag and one
-//! guarded branch per language. The tool's own reparse gate checks the result
-//! parses; the assertions here check the cascade itself.
-//!
-//! The statement after a branch that returns cannot run once the flag is true, and
-//! `go vet` and `rustc` both say so about the result. These fixtures used to assert
-//! it survived. What a live statement looks like is
-//! [`a_statement_the_fold_can_still_reach_survives`], below.
 
 use std::path::Path;
 use std::process::Command;
@@ -134,8 +124,7 @@ fn the_qualified_name_symbols_prints_selects_the_flag() {
     let (text, ok) = run(tmp.path(), &["remove-flag", "Flags::SHINY", "--write"]);
     assert!(ok, "{text}");
 
-    // The qualifier and the name together read the value, so both go. Replacing the
-    // name alone wrote `if (Flags.true)`.
+    // The qualifier and the name together read the value, so both go.
     let after = std::fs::read_to_string(tmp.path().join("App.java")).unwrap();
     assert!(!after.contains("Flags."), "got:\n{after}");
     assert!(after.contains("return 2"), "got:\n{after}");
@@ -153,9 +142,7 @@ fn bash_removes_the_flag_and_keeps_the_live_branch() {
 
 #[test]
 fn mentions_left_in_config_and_scripts_are_reported_after_the_removal() {
-    // The cascade rewrites the code it can resolve. A chart value or a CI script
-    // that names the flag is invisible to resolution, and it used to be left
-    // behind without a word. The flag was gone while its configuration lived on.
+    // The cascade rewrites the code it can resolve.
     let tmp = tempfile::tempdir().unwrap();
     std::fs::write(
         tmp.path().join("a.go"),
@@ -188,8 +175,8 @@ fn mentions_left_in_config_and_scripts_are_reported_after_the_removal() {
 
 #[test]
 fn a_statement_the_fold_can_still_reach_survives() {
-    // The guarded branch assigns rather than returning, so what follows it runs
-    // whichever way the flag went. Only what cannot run goes.
+    // The guarded branch assigns rather than returning, so what follows it runs whichever way
+    // the flag went.
     swept(
         "b.py",
         "SHINY = True\n\n\ndef greet() -> int:\n    total = 1\n    if SHINY:\n        \

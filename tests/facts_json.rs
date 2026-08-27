@@ -1,14 +1,4 @@
 //! JSON fact extraction, exercised through the public API.
-//!
-//! A JSON document is a tree of keys, and the key path *is* the API. So every
-//! member key is a definition whose containment gives it a path, the same way
-//! a values file's keys do. JSON has no anchors, no aliases and no comments, so
-//! there is no intra-file reference edge at all. A reference into a document
-//! comes from outside it.
-//!
-//! Terraform accepts `.tf` and `.tf.json` as two spellings of one language, and
-//! a workspace may hold both. A build that could not read JSON could not follow
-//! a reference out of one.
 
 use fun_refactor::{extract::Extractor, lang::Language, model::*, parse::Parsers};
 use std::path::Path;
@@ -47,8 +37,7 @@ fn every_member_key_is_a_definition() {
 
 #[test]
 fn a_nested_key_carries_the_path_that_addresses_it() {
-    // The path is the whole of a key's identity. `tag` on its own names nothing
-    // a caller can reach; `image::tag` does.
+    // The path is the whole of a key's identity.
     let facts = json("{\n  \"image\": {\n    \"tag\": \"v1\"\n  }\n}\n");
     let paths = qualified(&facts);
     assert!(paths.contains(&"image".to_string()), "{paths:?}");
@@ -65,8 +54,7 @@ fn a_key_inside_an_array_of_objects_still_carries_its_path() {
 
 #[test]
 fn the_name_is_the_text_between_the_quotes() {
-    // A rename rewrites the key and leaves the quotes where they are. Spanning
-    // them would put a second pair inside the first.
+    // A rename rewrites the key and leaves the quotes where they are.
     let source = "{\n  \"name\": \"thing\"\n}\n";
     let facts = json(source);
     let key = sym(&facts, "name");
@@ -77,8 +65,7 @@ fn the_name_is_the_text_between_the_quotes() {
 
 #[test]
 fn a_value_is_not_a_definition() {
-    // Only keys are the API. A string value that happens to read like a name is
-    // data, and reporting it would make every rename ask about the wrong thing.
+    // Only keys are the API.
     let facts = json("{\n  \"name\": \"version\"\n}\n");
     let names: Vec<&str> = facts.symbols.iter().map(|s| s.name.as_str()).collect();
     assert_eq!(

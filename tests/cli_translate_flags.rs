@@ -1,9 +1,5 @@
-//! The translate listing tells the truth about blocked targets, and the flags that
-//! unblock them work.
-//!
-//! A target whose destination existed used to vanish from the listing, which taught
-//! the reader the pair did not exist. And with no `--out` and no `--force`, the only
-//! way past the collision was to move the other file by hand.
+//! The translate listing tells the truth about blocked targets, and the flags that unblock them
+//! work.
 
 use std::path::Path;
 use std::process::Command;

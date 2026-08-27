@@ -1,11 +1,4 @@
-//! Each language's spelling of the shared builtins, folded into one canonical form. The IR
-//! speaks one small vocabulary for the operations every language has: `print`, `len`, `str`.
-//! And the rest of the names the writers' builtin tables spell out per target. The Rust reader
-//! already folds `println!` into that vocabulary. This pass does the same for the languages
-//! whose print is an ordinary call: `fmt.Println` and its family, `console.log`,
-//! `System.out.println`. Folding happens here, after the read, rather than inside each reader:
-//! the readers stay faithful to their grammars. And the vocabulary lives in one place beside
-//! the table of what it contains.
+//! Each language's spelling of the shared builtins, folded into one canonical form.
 
 use super::ir::*;
 use crate::lang::Language;
@@ -28,11 +21,6 @@ pub fn normalize(module: &mut Module, language: Language) {
 }
 
 /// A membership question asked into a binding the next `if` reads, asked inline.
-///
-/// Go scopes an `if` initialiser to its own statement, so `if _, ok := m[k]; ok`
-/// twice binds `ok` twice. Hoisted, the second binding assigned to the first,
-/// which the targets that make a binding constant refused. The question is what
-/// the condition wanted, so the condition asks it.
 fn membership_into_conditions(module: &mut Module) {
     fn asks_membership(e: &Expr) -> bool {
         matches!(e, Expr::Call { callee, args }
@@ -47,9 +35,6 @@ fn membership_into_conditions(module: &mut Module) {
         }
         let mut at = 0;
         while at + 1 < body.len() {
-            // The binding, however it was written. A second `if` initialiser
-            // binding the same word arrives as an assignment, because an
-            // earlier pass saw the word was already taken.
             let asked = match &body[at] {
                 Stmt::Let {
                     name,
@@ -92,11 +77,6 @@ fn membership_into_conditions(module: &mut Module) {
 }
 
 /// `_ = f(x)` is the call, and the discard is Zig asking to be let off.
-///
-/// Zig refuses an ignored result, so every call made for its effect is written
-/// this way. Read as an assignment to a binding named `_`, Go emitted
-/// `_ = delete(m, k)` against a function that returns nothing. Java got a name
-/// it will not accept.
 fn discards_are_calls(module: &mut Module) {
     fn walk(body: &mut [Stmt]) {
         for stmt in body.iter_mut() {
@@ -129,11 +109,6 @@ fn discards_are_calls(module: &mut Module) {
 }
 
 /// A map whose values carry nothing is a set, and its stores are adds.
-///
-/// Two of these languages have no set and spell one as a map to nothing: Go
-/// writes `map[T]struct{}` and Zig `HashMap(K, void)`. Read as maps, `seen.add`
-/// became a store of `None` and every target that has a set built the wrong
-/// thing.
 fn sets_from_maps(module: &mut Module) {
     fn carries_nothing(e: &Expr) -> bool {
         match e {
@@ -198,8 +173,6 @@ fn sets_from_maps(module: &mut Module) {
             }
             let mut stored = Vec::new();
             stores_into(&f.body, name, &mut stored);
-            // A map with nothing stored in it says nothing either way, and the
-            // declaration is the only evidence there is.
             if !says_set && (stored.is_empty() || !stored.iter().all(|v| carries_nothing(v))) {
                 continue;
             }
@@ -247,15 +220,8 @@ fn sets_from_maps(module: &mut Module) {
 
 /// Every construction that builds a set, read as the set it builds.
 fn settle_sets(module: &mut Module, language: Language) {
-    // The three set words each language spells its own way, onto the canonical
-    // `add`, `remove` and `contains`. A map uses the same three words, and each
-    // of these spellings means the same thing there, so no distinction is
-    // needed between the two.
-    // A word whose value the source uses is a different question. Rust's
-    // `insert` answers whether the member was new and `delete` in TypeScript
-    // whether it was there; no other language's `add` or `remove` answers
-    // anything. So those two are renamed only where the statement is the whole
-    // of it, and asking in an expression carries instead.
+    // The three set words each language spells its own way, onto the canonical `add`, `remove`
+    // and `contains`.
     let statement_words: &[(&str, &str, usize)] = match language {
         Language::Rust => &[("insert", "add", 1)],
         Language::TypeScript | Language::Tsx => &[("delete", "remove", 1)],
@@ -341,10 +307,6 @@ fn settle_sets(module: &mut Module, language: Language) {
 }
 
 /// A branch on `true` and `false` is an `if`, not a `switch`.
-///
-/// Rust writes `match cond { true => …, false => … }` and reads as a switch on
-/// a boolean. Java has no such switch outside a preview feature, and the other
-/// four spell it with an `if` anyway. The `if` is the shape every target has.
 fn settle_boolean_switches(module: &mut Module) {
     fn walk(body: &mut [Stmt]) {
         for stmt in body.iter_mut() {
@@ -404,11 +366,6 @@ fn settle_boolean_switches(module: &mut Module) {
 }
 
 /// A constructor that only fills fields is the record literal it builds.
-///
-/// Java, Python and TypeScript write a constructor as a body of assignments to
-/// the receiver. Rust, Go and Zig have no receiver to assign to yet: they build
-/// the value and hand it back. The literal is the shape every target can write, and
-/// the three that assign write the assignments back out.
 fn settle_constructors(module: &mut Module) {
     for item in module.items.iter_mut() {
         let Item::Record(record) = item else { continue };
@@ -457,9 +414,8 @@ fn settle_constructors(module: &mut Module) {
 }
 
 fn normalize_language(module: &mut Module, language: Language) {
-    // Every language but Python and Go reaches a map through methods, and each
-    // has its own words for the same four things. Read onto the index forms
-    // first, so the passes below see one shape.
+    // Every language but Python and Go reaches a map through methods, and each has its own
+    // words for the same four things.
     settle_maps(module, language);
     settle_map_types(module);
     let rewrite: fn(Expr) -> Expr = match language {
@@ -836,8 +792,6 @@ fn go(expr: Expr) -> Expr {
             print_call(args)
         }
         // `Printf` whose format ends in a newline says the same thing `print` says.
-        // One that does not would need a print-without-newline in every target, so it
-        // stays as it was and the ledger shows it.
         ["fmt", "Printf"] => match sprintf_template(args) {
             Some(Expr::Template(mut parts)) if template_ends_with_newline(&parts) => {
                 trim_trailing_newline(&mut parts);
@@ -851,10 +805,6 @@ fn go(expr: Expr) -> Expr {
 }
 
 /// A `%`-verb format string and its arguments, as a template.
-///
-/// Only the verbs whose meaning every target shares: `%d`, `%s`, `%v`, `%f`, and `%%`
-/// for a literal percent. Width, precision or flags mean formatting this cannot
-/// promise, so the call stays as written.
 fn sprintf_template(args: &[Expr]) -> Option<Expr> {
     let (Expr::Str(format), rest) = args.split_first()? else {
         return None;
@@ -954,12 +904,8 @@ fn typescript(expr: Expr) -> Expr {
         }
         // `word.includes(x)` and the case methods, under their canonical names.
         (["console", "error"], _) => expr,
-        // `Math.trunc(a / b)` is how this language spells the division the other
-        // five truncate natively. `Math.floor(a / b)` is the one that rounds
-        // toward negative infinity. The two answer differently for every pair of
-        // operands with different signs, and reading both as flooring made every
-        // negative quotient wrong. Each writer spells them apart, so a round
-        // trip is still the identity.
+        // `Math.trunc(a / b)` is how this language spells the division the other five truncate
+        // natively.
         (
             ["Math", rounding @ ("trunc" | "floor")],
             [Expr::Binary {
@@ -979,13 +925,8 @@ fn typescript(expr: Expr) -> Expr {
                     left,
                     right,
                 },
-                // Truncation is the canonical `trunc` applied to the quotient,
-                // and no operator at all. Held as the source's `/`, a float
-                // division came out whole in a target whose `/` truncates and
-                // fractional in one whose `/` does not. `trunc` and not `int`:
-                // this language's `Math.trunc` answers a number, and narrowing
-                // it to an integer would change the type of everything it
-                // reaches.
+                // Truncation is the canonical `trunc` applied to the quotient, and no operator
+                // at all.
                 false => Expr::Call {
                     callee: Box::new(Expr::Name("trunc".to_string())),
                     args: vec![Expr::Binary {
@@ -1008,8 +949,7 @@ fn java(expr: Expr) -> Expr {
     if let Some(folded) = fold_concat(&expr) {
         return folded;
     }
-    // `x.length()` on text measures it, and `x.size()` a collection. The
-    // collections pass already spoke for lists; a set reaches here.
+    // `x.length()` on text measures it, and `x.size()` a collection.
     if let Expr::Call { callee, args } = &expr {
         if args.is_empty() {
             if let Expr::Field { of, name } = &**callee {
@@ -1048,10 +988,7 @@ fn java(expr: Expr) -> Expr {
     }
 }
 
-/// A `+` chain with a string literal in it, as a template. `"n " + n` concatenates by
-/// converting in Java and TypeScript. And a template says that portably: the writers spell it
-/// as an f-string, a template literal, `format!`, or `Sprintf`. A chain with no literal stays
-/// as written, since `+` on two unknowns may be arithmetic.
+/// A `+` chain with a string literal in it, as a template.
 fn fold_concat(expr: &Expr) -> Option<Expr> {
     /// Does any part of this `+` chain say string?
     fn stringy(expr: &Expr) -> bool {
@@ -1066,8 +1003,7 @@ fn fold_concat(expr: &Expr) -> Option<Expr> {
         }
     }
     // A subtree with no string in it is arithmetic the source runs first: `1 + 2 + "x"` prints
-    // `3x`. So the numeric prefix stays one leaf and one interpolation instead of flattening
-    // into digits.
+    // `3x`.
     fn leaves<'a>(expr: &'a Expr, out: &mut Vec<&'a Expr>) {
         match expr {
             Expr::Binary {
@@ -1089,8 +1025,7 @@ fn fold_concat(expr: &Expr) -> Option<Expr> {
     };
     let mut flat = Vec::new();
     leaves(expr, &mut flat);
-    // A template in the chain is a string too: the fold runs bottom-up. So the inner half of
-    // `"q " + q + " r " + r` is already a template when the outer `+` arrives.
+    // A template in the chain is a string too: the fold runs bottom-up.
     if !flat
         .iter()
         .any(|leaf| matches!(leaf, Expr::Str(_) | Expr::Template(_)))
@@ -1114,11 +1049,7 @@ fn fold_concat(expr: &Expr) -> Option<Expr> {
 
 // ------------------------------------------------------------------------ Zig
 
-/// Zig's printing, folded to `print`, with the writer plumbing it runs on dropped. A Zig
-/// program prints through a writer it has to build: a buffer, a writer over stdout, an
-/// interface pointer, a flush. The program does not *say* any of that; it is how Zig says it.
-/// The bindings that exist only to carry the writer are dropped, the `print` calls through them
-/// become the canonical `print`. And `std.debug.print` folds the same way.
+/// Zig's printing, folded to `print`, with the writer plumbing it runs on dropped.
 fn zig_module(module: &mut Module) {
     for item in &mut module.items {
         match item {
@@ -1166,16 +1097,13 @@ fn zig_function(f: &mut Function) {
 
     zig_statements(&mut f.body, &writers);
 
-    // The entry point's `init: std.process.Init` is the runtime handing itself over,
-    // and its error-union return is the same plumbing. The canonical main takes
-    // nothing and returns nothing.
+    // The entry point's `init: std.process.Init` is the runtime handing itself over, and its
+    // error-union return is the same plumbing.
     if f.name == "main" && f.receiver.is_none() {
         f.params.retain(
             |p| !matches!(&p.ty, Some(Type::Named { name, .. }) if name.contains("process.Init")),
         );
         f.returns = None;
-        // The `return Ok(())` the reader synthesised for an error-union main has
-        // nothing to say once main returns nothing.
         let unit_ok = |e: &Expr| {
             matches!(e, Expr::Call { callee, args }
                 if matches!(&**callee, Expr::Name(n) if n == "Ok")
@@ -1415,15 +1343,10 @@ fn collect_names(e: &Expr, out: &mut Vec<String>) {
 // -------------------------------------------------------- the Result idiom.
 
 /// A function returning `Result<T, message>`, said the way the exception languages say it: the
-/// return type is `T`, `Err` is a throw, `Ok` unwraps. And `?` re-throws. The IR keeps one
-/// canonical form for failure, and it is the exception one: three of the writers spell it
-/// natively. And the other three lower it back. A module that mixes idioms is its own worst
-/// reader.
+/// return type is `T`, `Err` is a throw, `Ok` unwraps.
 fn settle_result_idiom(module: &mut Module) {
-    // A declared error enum's variants are failure names, and a name is a
-    // message: `Err(ParseError::Empty)` throws "Empty", the same lowering the
-    // error sets take. The enum declaration itself stays for the code that
-    // names it elsewhere.
+    // A declared error enum's variants are failure names, and a name is a message:
+    // `Err(ParseError::Empty)` throws "Empty", the same lowering the error sets take.
     let declared_sums: Vec<String> = module
         .items
         .iter()
@@ -1446,9 +1369,7 @@ fn settle_result_idiom(module: &mut Module) {
                 continue;
             }
             // Whatever names the failure side, the failure is the channel: the canonical model
-            // carries its message. And a typed error's variants dissolve into the names they
-            // throw. Preserving a foreign error type here left half-settled signatures no
-            // target could compile.
+            // carries its message.
             let ok = args[0].clone();
             f.returns = match ok {
                 Type::Unit => None,
@@ -1457,9 +1378,8 @@ fn settle_result_idiom(module: &mut Module) {
             settle_result_statements(&mut f.body);
         }
     }
-    // A throw of a qualified failure name throws the name: the canonical
-    // failure is its message. It runs after the Ok/Err settling, because
-    // the throws.
+    // A throw of a qualified failure name throws the name: the canonical failure is its
+    // message.
     for item in module.items.iter_mut() {
         let functions: Vec<&mut Function> = match item {
             Item::Function(f) => vec![f],
@@ -1556,10 +1476,7 @@ fn unwrap_str_call(e: Expr) -> Expr {
 // ------------------------------------------------- builtin exception classes
 
 /// `ValueError("x")`, `new Error("x")`, `new RuntimeException("x")`: the class is the
-/// language's furniture and the message is the meaning. A throw of a builtin class around one
-/// message becomes a throw of the message. And a catch filtered on a builtin class becomes the
-/// plain catch. A class this module declares stays: that one is the program's own type, not
-/// furniture.
+/// language's furniture and the message is the meaning.
 fn settle_exception_classes(module: &mut Module) {
     let declared: Vec<String> = module
         .items
@@ -1620,10 +1537,7 @@ fn settle_exception_classes(module: &mut Module) {
 
 // ------------------------------------------------------- the Go error idiom
 
-/// `(T, error)` returns and `if err != nil` checks, said as the canonical failure. A function
-/// returning the pair returns `T` and throws. `return v, nil` is a plain return, `return 0,
-/// errors.New("x")` is a throw. And the bind-then-check pair is either a propagation or, when
-/// both branches carry on, a try/catch.
+/// `(T, error)` returns and `if err != nil` checks, said as the canonical failure.
 fn go_module(module: &mut Module) {
     for item in &mut module.items {
         let functions: Vec<&mut Function> = match item {
@@ -1764,9 +1678,7 @@ fn settle_go_checks(body: &mut Vec<Stmt>) {
                 mutable: false,
             },
         };
-        // `if err != nil { return _, err }` alone is a propagation. The return pass
-        // has already turned that return into a rethrow when the function's own
-        // signature was the pair.
+        // `if err != nil { return _, err }` alone is a propagation.
         let rethrows = otherwise.is_empty()
             && match then.as_slice() {
                 [Stmt::Return(Some(Expr::Tuple(items)))] => {
@@ -1855,15 +1767,10 @@ fn rewrite_error_reads(body: &mut [Stmt], err: &str) {
 // ---------------------------------------------------------- our own furniture
 
 /// The helpers this tool's writers emit, folded back out on the way in.
-///
-/// `frShow`, `frPrint` and `frFormat` are lowerings, not program. A translated file
-/// read back must yield the program alone, or a round trip grows a function the
-/// source never had.
 fn strip_lowering_helpers(module: &mut Module) {
     let ours = |name: &str| matches!(name, "frShow" | "frPrint" | "frFormat");
     // The definition may not even have parsed as a function: Zig's `comptime format` parameter
-    // reads as no function at all. And the helper then sits carried. Either way it is
-    // furniture, recognised by its name.
+    // reads as no function at all.
     module.items.retain(|item| match item {
         Item::Function(f) => !ours(&f.name),
         Item::Unsupported(u) => !["frShow", "frPrint", "frFormat"]
@@ -1897,8 +1804,7 @@ fn strip_lowering_helpers(module: &mut Module) {
             Expr::Field { of, .. } | Expr::Index { of, .. } => walk(of),
             _ => {}
         }
-        // `frShow(x)` displays `x`; the value is `x` itself. `frPrint` is the
-        // canonical print, and `frFormat` a template as a value.
+        // `frShow(x)` displays `x`; the value is `x` itself.
         if let Expr::Call { callee, args } = e {
             match &**callee {
                 Expr::Name(n) if n == "frShow" && args.len() == 1 => {
@@ -1965,17 +1871,14 @@ fn strip_lowering_helpers(module: &mut Module) {
 
 /// `std.mem.eql(u8, a, b)` is the string equality every other language spells `==`.
 fn zig_exprs(expr: Expr) -> Expr {
-    // A bare tag no sum answered for: the value says the tag's name,
-    // and a string of it is what every target can hold. A call through one is
-    // a plain call by the member's name; an anonymous record is a map of its
-    // fields.
+    // A bare tag no sum answered for: the value says the tag's name, and a string of it is what
+    // every target can hold.
     match expr {
         Expr::Variant { sum, name, fields } if sum.is_empty() && fields.is_empty() => {
             Expr::Str(name)
         }
         // The rewrite runs bottom-up, so a dot-literal callee arrives already settled into its
-        // tag string: `.fromPath(a)` is `"fromPath"(a)` by now. And no legal Zig calls a string
-        // literal, so the string can only be that tag. The call goes by the member's name.
+        // tag string: `.fromPath(a)` is `"fromPath"(a)` by now.
         Expr::Call { callee, args } => {
             if let Expr::Str(name) = callee.as_ref() {
                 return zig_exprs_tail(Expr::Call {
@@ -2077,15 +1980,8 @@ fn zig_exprs_tail(expr: Expr) -> Expr {
 
 // --------------------------------------------------------------- Java lists
 
-/// `ArrayList` spoken canonically: `add` is `append`, `size` is `len`, `get` is an
-/// index and `set` an index assignment.
-///
-/// The words each language uses for the four things anyone does with a map.
-///
-/// Only the spellings differ. Written as its own language writes it, a map
-/// crossed to Go and nowhere else, because the readers canonicalised Python's
-/// index form and nothing else. These are the other five vocabularies, read
-/// onto the same forms: an index assignment, an index, `len`, and `contains`.
+/// `ArrayList` spoken canonically: `add` is `append`, `size` is `len`, `get` is an index and
+/// `set` an index assignment.
 struct MapWords {
     /// What the language calls putting a value under a key.
     set: &'static str,
@@ -2135,11 +2031,6 @@ fn map_words(language: Language) -> Option<MapWords> {
 }
 
 /// The type an empty map holds, taken from the first key stored in it.
-///
-/// A map built empty and filled afterwards is the ordinary shape in five of
-/// these languages, and its literal says nothing about what it holds. Left
-/// unsaid, every writer reached for its widest type: Go wrote `map[string]any`
-/// and could not add what it read back.
 fn settle_map_types(module: &mut Module) {
     fn literal_type(e: &Expr) -> Option<Type> {
         match e {
@@ -2267,10 +2158,6 @@ fn collect_map_bindings(body: &mut [Stmt], words: &MapWords, maps: &mut Vec<Stri
 }
 
 /// A constructor the reader could not place, whose text names a map.
-///
-/// `HashMap::new()` reaches here already carried: the readers have no rule for
-/// a path call. The binding's own type says it is a map, so the text is enough
-/// to say which. Carrying it would leave the binding empty.
 fn carried_constructor(e: &Expr, words: &MapWords) -> bool {
     let Expr::Unsupported(what) = e else {
         return false;
@@ -2361,9 +2248,8 @@ fn rewrite_map_calls(body: &mut [Stmt], words: &MapWords, maps: &[String]) {
             }
             _ => {}
         }
-        // `m.get(k)!` asserts the key is there, and a map index already says
-        // that in every target: Zig writes `.?`, the rest index directly. Kept,
-        // the assertion became `.unwrap()` on a value that is not an option.
+        // `m.get(k)!` asserts the key is there, and a map index already says that in every
+        // target: Zig writes `.?`, the rest index directly.
         if let Expr::Unary {
             op: UnaryOp::Unwrap,
             operand,
@@ -2460,9 +2346,8 @@ fn rewrite_map_calls(body: &mut [Stmt], words: &MapWords, maps: &[String]) {
     }
 }
 
-/// Only on bindings the function shows to be lists: declared `ArrayList`/`List`, or
-/// initialized from a list literal or an `ArrayList` construction. `add` on anything
-/// else keeps its name.
+/// Only on bindings the function shows to be lists: declared `ArrayList`/`List`, or initialized
+/// from a list literal or an `ArrayList` construction.
 fn settle_java_lists(module: &mut Module) {
     for item in &mut module.items {
         let functions: Vec<&mut Function> = match item {
@@ -2551,10 +2436,6 @@ fn substatements_ref(stmt: &Stmt) -> Vec<&Vec<Stmt>> {
 }
 
 /// The set a construction stands for, in the words each language uses.
-///
-/// `set()`, `new Set()`, `new HashSet<>()` and `HashSet::new()` all build the
-/// same empty set. Read as calls, each named a function the other five have
-/// not got.
 fn built_set(e: &Expr) -> Option<Expr> {
     let (Expr::Call { callee, args } | Expr::New { callee, args }) = e else {
         return None;
@@ -2750,11 +2631,8 @@ fn rewrite_java_lists(body: &mut [Stmt], lists: &[String]) {
             if empty_construction(v) {
                 *v = Expr::ListLit(Vec::new());
             }
-            // `new ArrayList<>(List.of(…))` is the mutable list this writer
-            // emits for a list literal, and `new HashMap<>(Map.of(…))` the map.
-            // Unread, the tool could not take back what it had just written. A
-            // round trip through Java named a class the target had never heard
-            // of.
+            // `new ArrayList<>(List.of(…))` is the mutable list this writer emits for a list
+            // literal, and `new HashMap<>(Map.of(…))` the map.
             if let Some(unwrapped) = wrapped_collection(v) {
                 *v = unwrapped;
             }
@@ -2777,10 +2655,7 @@ fn rewrite_java_lists(body: &mut [Stmt], lists: &[String]) {
 
 // ------------------------------------------------------ list element types
 
-/// The element type of a list, read off what the function puts into it. `nums = []` says
-/// nothing, and neither does TypeScript's `number[]` about whether the numbers are whole. Every
-/// value appended being an integer literal is the function saying so. And the targets that must
-/// choose a type get the one the values chose.
+/// The element type of a list, read off what the function puts into it.
 fn settle_list_element_types(module: &mut Module) {
     for item in &mut module.items {
         let functions: Vec<&mut Function> = match item {
@@ -2872,10 +2747,6 @@ fn retype_list(body: &mut [Stmt], name: &str, element: Type) {
 }
 
 /// Zig's ArrayList idiom, folded to the canonical list.
-///
-/// `.empty` initializes an empty list, `append` takes an allocator no other language
-/// has a slot for, and the elements live behind `.items`. The canonical list has a
-/// literal, a two-place append, and is its own elements.
 fn zig_lists(body: &mut [Stmt]) {
     let mut lists: Vec<String> = Vec::new();
     collect_zig_lists(body, &mut lists);
@@ -3010,9 +2881,7 @@ fn python(expr: Expr) -> Expr {
     if let Some(folded) = fold_concat(&expr) {
         return folded;
     }
-    // Python's `%` rounds with its division, toward negative infinity. The
-    // other five truncate. Read as one operator, `-7 % 2` crossed as `-1` where
-    // the source said `1`, and nothing said so.
+    // Python's `%` rounds with its division, toward negative infinity.
     if let Expr::Binary {
         op: BinaryOp::Rem,
         left,
@@ -3025,9 +2894,7 @@ fn python(expr: Expr) -> Expr {
             right,
         };
     }
-    // `asyncio.run(main())` is how an async entry says "call main". The run
-    // wrapper is the event loop, not the program: the canonical entry is the
-    // call itself.
+    // `asyncio.run(main())` is how an async entry says "call main".
     if let Expr::Call { callee, args } = &expr {
         if let Expr::Field { of, name } = callee.as_ref() {
             if matches!(of.as_ref(), Expr::Name(n) if n == "asyncio")

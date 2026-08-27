@@ -1,17 +1,4 @@
 //! The open entries in BUGS.md, held to what they say.
-//!
-//! Eight of the thirteen are limits of the published grammars, and
-//! `tests/known_grammar_gaps.rs` pins every one of those from both sides. The rest are
-//! this tool's own behaviour, and they used to be prose. A description of what happens,
-//! with nothing to notice when it stopped happening. B11 said `@content` was a gap after it had
-//! stopped being one, and nothing noticed for months.
-//!
-//! Each test here asserts the *whole* of its entry: what the tool does not do, and what
-//! it does instead. Every one of these stands on the second half. An incomplete answer
-//! that says so is a different thing from a wrong one. A test that checked only the
-//! incompleteness would pass just as well if the report went away.
-//!
-//! A failure here means the entry is out of date. The entry is what to update.
 
 use fun_refactor::index::Index;
 use fun_refactor::model::SymbolId;
@@ -45,10 +32,7 @@ fn symbol(index: &Index, name: &str) -> SymbolId {
 
 #[test]
 fn dispatch_is_followed_as_far_as_the_source_shows_it() {
-    // B5. A call through a trait object resolves to no implementation, so reachability fans it
-    // out to every type that declares itself an implementation. A call through a field reaches
-    // whatever function the source puts behind that field. What is left is a function nothing
-    // names: assembled at runtime, or supplied by a caller this workspace does not hold.
+    // B5.
     let (_tmp, root) = workspace(&[
         (
             "a.rs",
@@ -93,8 +77,7 @@ fn dispatch_is_followed_as_far_as_the_source_shows_it() {
          If it no longer is, update the entry: {dead:?}"
     );
 
-    // And the edge itself, which is what `fr callees` prints. It is a candidate and not a
-    // resolved call, because which function sits behind the field is settled at run time.
+    // And the edge itself, which is what `fr callees` prints.
     let graph = fun_refactor::analysis::call_graph::CallGraph::build(&index);
     let go = symbol(&index, "go");
     let candidate = symbol(&index, "candidate");
@@ -112,9 +95,6 @@ fn dispatch_is_followed_as_far_as_the_source_shows_it() {
 
 #[test]
 fn a_values_answer_names_the_channel_it_was_never_told_about() {
-    // B13. Given some of the inputs and not others, the competition is decided *given the
-    // inputs supplied*. The answer names the channel that was left out. Given none, nothing is
-    // decided at all. Neither one infers an invocation.
     let (_tmp, root) = workspace(&[
         ("Chart.yaml", "name: chart\nversion: 0.1.0\n"),
         ("values.yaml", "replicas: 1\n"),
@@ -127,9 +107,8 @@ fn a_values_answer_names_the_channel_it_was_never_told_about() {
     let key = symbol(&index, "replicas");
     use fun_refactor::analysis::provenance::{self, SetFlags, ValuesInputs};
 
-    // The report says this in its stops: a channel outside the workspace that could
-    // pre-empt every source listed is a stop, and so is a competition the supplied inputs
-    // settle. Both name what they were never told about.
+    // The report says this in its stops: a channel outside the workspace that could pre-empt
+    // every source listed is a stop, and so is a competition the supplied inputs settle.
     let said = |report: &provenance::Provenance| -> String {
         report
             .stops
@@ -162,10 +141,6 @@ fn a_values_answer_names_the_channel_it_was_never_told_about() {
 #[test]
 fn a_call_through_a_name_reaches_every_function_put_behind_that_name() {
     // The edge is keyed by the name, and two types may hold a field of the same name.
-    // A receiver whose type is settled reaches only its own record's binding.
-    // `call` takes `a: &A`, so `(a.run)()` reaches `one` and not the `run` a `B`
-    // literal named. Through a receiver nothing types, the name-keyed fan-out remains, and
-    // the edge carries the label that says so.
     let (_tmp, root) = workspace(&[(
         "a.rs",
         "pub struct A {\n    pub run: fn() -> f64,\n}\npub struct B {\n    pub run: fn() -> f64,\n}\n         pub fn one() -> f64 {\n    1.0\n}\npub fn two() -> f64 {\n    2.0\n}\n         pub fn build() -> (A, B) {\n    (A { run: one }, B { run: two })\n}\n         pub fn call(a: &A) -> f64 {\n    (a.run)()\n}\n         pub fn blind<T>(h: &T, pick: fn(&T) -> fn() -> f64) -> f64 {\n    (pick(h))()\n}\n",
@@ -193,9 +168,7 @@ fn a_call_through_a_name_reaches_every_function_put_behind_that_name() {
 
 #[test]
 fn an_untyped_receiver_still_reaches_every_function_behind_the_name() {
-    // The same two records, called through a field read the tool cannot type. The
-    // name-keyed fan-out stays, unsound by design in the same way class-hierarchy
-    // fan-out is, and labelled as a candidate.
+    // The same two records, called through a field read the tool cannot type.
     let (_tmp, root) = workspace(&[(
         "a.rs",
         "pub struct A {\n    pub run: fn() -> f64,\n}\npub struct B {\n    pub run: fn() -> f64,\n}\n         pub fn one() -> f64 {\n    1.0\n}\npub fn two() -> f64 {\n    2.0\n}\n         pub fn build() -> (A, B) {\n    (A { run: one }, B { run: two })\n}\n         pub fn call(pair: &(A, B)) -> f64 {\n    (pair.0.run)()\n}\n",

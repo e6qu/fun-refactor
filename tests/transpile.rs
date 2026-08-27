@@ -1,8 +1,4 @@
 //! Translating a file into another programming language.
-//!
-//! The promise is narrow and has to be tested as such: the *signature* is carried exactly, the
-//! declarations are idiomatic in the target. Everything with no counterpart is in the output
-//! verbatim and not dropped or guessed at.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -119,8 +115,7 @@ def total(values: list[int]) -> int:
 
 #[test]
 fn what_cannot_be_translated_is_in_the_output_verbatim() {
-    // The other half of the promise. A block-bodied closure has no counterpart in
-    // Python; the result must contain the original text, not a silent gap.
+    // The other half of the promise.
     let source = "\
 pub fn shout(names: Vec<String>) -> Vec<String> {
     let loud: Vec<String> = names.iter().map(|n| { n.to_uppercase() }).collect();
@@ -146,9 +141,7 @@ pub fn shout(names: Vec<String>) -> Vec<String> {
 
 #[test]
 fn an_interpolated_string_keeps_interpolating() {
-    // `f"{c} below"` flattened to the literal text `{c} below` is a wrong answer. It was one
-    // this found in its own output. Each target spells interpolation its own way and every
-    // one of them must still substitute.
+    // `f"{c} below"` flattened to the literal text `{c} below` is a wrong answer.
     let source = "\
 def describe(celsius: float) -> str:
     return f\"{celsius} below the floor\"
@@ -237,8 +230,7 @@ async def fetch(url: str, timeout: float = 5.0) -> dict[str, str]:
 
 #[test]
 fn a_foreign_type_is_never_renamed_to_suit_the_target() {
-    // `Reading` is a real type somewhere. Re-casing it to a convention would point
-    // the signature at something that does not exist.
+    // `Reading` is a real type somewhere.
     let source = "pub fn first(items: Vec<HttpResponse>) -> HttpResponse {\n    todo!()\n}\n";
     for target in [Language::Python, Language::Go, Language::TypeScript] {
         let (output, fidelity) = translate(&[("a.rs", source)], "a.rs", target);
@@ -330,9 +322,7 @@ fn every_output_parses_as_the_language_it_claims_to_be() {
 
 #[test]
 fn the_real_sample_files_translate_into_something_that_parses() {
-    // Toy inputs prove very little. These are the files the playground ships. And one of them
-    // is what found `-> Result<(), String>` being written into a Python annotation that Python
-    // cannot read.
+    // Toy inputs prove very little.
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("web/sample");
     let sources = [
         "src/ingest.rs",
@@ -419,10 +409,6 @@ const METHODS: &[(&str, &str)] = &[
 #[test]
 fn the_receiver_is_spelled_the_way_the_target_spells_it() {
     // Six languages, and the receiver is not in the parameter list to be renamed with the rest.
-    // Rust, Python and Zig say `self`, Java and TypeScript say `this`, and Go says whatever the
-    // author called it. Every body used to keep its *source's* word. So a translated method
-    // referred to a name the output never binds, `this.cache` inside a Rust `impl` is not a
-    // typo, it is a file that cannot compile.
     for (name, source) in METHODS {
         let from = fun_refactor::lang::detect(std::path::Path::new(name)).unwrap();
         for to in transpile::SUPPORTED {
@@ -468,9 +454,7 @@ fn the_receiver_is_spelled_the_way_the_target_spells_it() {
 
 #[test]
 fn a_typescript_class_member_is_public_unless_it_says_otherwise() {
-    // The opposite of what a free function does. Reading both the same way made every
-    // translated method private in Java and unreachable everywhere else, while making every
-    // `private` field public. That is the same mistake pointing the other way.
+    // The opposite of what a free function does.
     let source = "export class Guard {\n  private secret: string;\n  token: string;\n\n  \
                   check(t: string): boolean {\n    return t === this.secret;\n  }\n\n  \
                   private hash(t: string): string {\n    return t;\n  }\n}\n";
@@ -495,9 +479,7 @@ fn a_typescript_class_member_is_public_unless_it_says_otherwise() {
 
 #[test]
 fn zig_says_var_only_where_something_writes() {
-    // Zig rejects a `var` nothing writes to. And only the Rust reader records mutability at
-    // all, every other one says "mutable" because it has nothing better to say. Taking that at
-    // its word turned a `const` file into one that will not build.
+    // Zig rejects a `var` nothing writes to.
     let source = "def tally(xs: list[int]) -> int:\n    total = 0\n    label = \"n\"\n    \
                   for x in xs:\n        total = total + x\n    return total\n";
     let (output, _) = translate(&[("t.py", source)], "t.py", Language::Zig);
@@ -513,14 +495,10 @@ fn zig_says_var_only_where_something_writes() {
 
 #[test]
 fn zig_carries_what_it_cannot_say_above_the_statement() {
-    // Zig is the only target here with no block comment: `//` runs to the end of the line. So a
-    // carried fragment written beside an expression would swallow the rest of the statement,
-    // semicolon included.
+    // Zig is the only target here with no block comment: `//` runs to the end of the line.
     let source = "def greet(name: str) -> str:\n    line = f\"hi {name}\"\n    return line\n";
     let (output, fidelity) = translate(&[("g.py", source)], "g.py", Language::Zig);
-    // The f-string crosses whole now, through the formatting helper. The statement-level carry
-    // this test once pinned is gone, and the comment discipline it guarded is exercised by the
-    // marker tests.
+    // The f-string crosses whole now, through the formatting helper.
     assert_eq!(fidelity.carried_verbatim, 0, "{output}");
     assert!(
         output.contains("frFormat(\"hi {s}\", .{ name })"),
@@ -531,8 +509,7 @@ fn zig_carries_what_it_cannot_say_above_the_statement() {
 #[test]
 fn a_word_zig_reserves_is_still_the_name_the_source_wrote() {
     // Go's `error` is Zig's keyword for an error set, and a signature returning one did not
-    // parse. `@"error"` is how Zig writes an identifier that collides with one of its own
-    // words. Under it the name still says what the source said.
+    // parse.
     let source = "package main\n\nfunc Check(a int) error {\n\treturn nil\n}\n";
     let (output, _) = translate(&[("c.go", source)], "c.go", Language::Zig);
     assert!(
@@ -543,10 +520,7 @@ fn a_word_zig_reserves_is_still_the_name_the_source_wrote() {
 
 #[test]
 fn a_string_keeps_its_escapes_and_does_not_gain_any() {
-    // The IR holds what the string *is*, not how the source spelled it. Carrying the
-    // spelling meant every writer escaped the backslash again on the way out, so a
-    // newline crossed as a backslash and an `n`. The output parsed, so nothing caught
-    // it, and every string with an escape in it came out meaning something else.
+    // The IR holds what the string *is*, not how the source spelled it.
     let source = "pub const A: &str = \"one\\ntwo\\tthree\";\n\
                   pub const B: &str = \"quote \\\" and back \\\\ slash\";\n";
     for (target, first, second) in [
@@ -587,9 +561,7 @@ fn a_raw_string_keeps_its_backslashes() {
 #[test]
 fn a_comment_between_two_parameters_is_not_a_third() {
     // A comment is an *extra* in every one of these grammars, so it can appear between any two
-    // nodes anywhere. Every reader reads a parameter list either positionally or through a
-    // catch-all arm, and both read a comment as whatever they expected to find there. So a
-    // comment inside a parameter list became a parameter named after the sentence.
+    // nodes anywhere.
     let source =
         "pub fn f(\n    a: i64,\n    // Why b is what it is.\n    b: i64,\n) -> i64 {\n    \
                   return a;\n}\n";
@@ -616,10 +588,6 @@ fn a_comment_between_two_parameters_is_not_a_third() {
 #[test]
 fn a_method_is_written_with_its_type() {
     // Rust and Go declare methods apart from their type and the others declare them inside it.
-    // The IR keeps them with the type, which lets one shape become the other. The Rust
-    // reader said that in a comment while pushing them out as top-level functions. Every writer
-    // then wrote a free function whose body reached through a receiver nothing in the output
-    // binds.
     let source = "pub struct Repo {\n    pub name: String,\n}\n\n\
                   impl Repo {\n    pub fn label(&self) -> String {\n        \
                   return self.name;\n    }\n\n    \
@@ -655,11 +623,6 @@ fn a_method_is_written_with_its_type() {
 #[test]
 fn a_rust_number_leaves_its_width_behind() {
     // `0usize` writes the type into the literal, which is a spelling only Rust has.
-    //
-    // This failed once, during one full run, and has not repeated since, see B258. The suffix
-    // can reach the output two ways. The message says which: the writer wrote it, or the
-    // statement was carried over verbatim and brought its own text along. Last time there was
-    // no way to tell them apart, and a recurrence should not be a mystery twice.
     let source = "pub fn f() -> i64 {\n    let n = 0usize;\n    return 1i32;\n}\n";
     for target in transpile::SUPPORTED {
         if *target == Language::Rust {
@@ -680,9 +643,8 @@ fn a_rust_number_leaves_its_width_behind() {
 
 #[test]
 fn a_doc_comment_cannot_end_itself_early() {
-    // `*/` closes a block comment, and a doc comment quoting a glob carries that
-    // sequence in the middle of a sentence. Java and TypeScript both wrote it through,
-    // so the comment ended early and the rest of the sentence was parsed as code.
+    // `*/` closes a block comment, and a doc comment quoting a glob carries that sequence in
+    // the middle of a sentence.
     let source = "/// Both routers: `app/**/route.ts` under an `api` segment.\n\
                   pub fn routes() -> i64 {\n    return 1;\n}\n";
     for target in [Language::Java, Language::TypeScript] {
@@ -710,8 +672,6 @@ fn a_discard_is_not_a_binding() {
 #[test]
 fn a_tuple_struct_is_refused_rather_than_emptied() {
     // A record in the IR is a *named* product, and a tuple struct's field has no name.
-    // Reading one gave a record with no fields at all and the payload type vanished
-    // without a word. There is no honest name to give it.
     let source = "pub struct Wrapper(Vec<String>);\n";
     let (output, fidelity) = translate(&[("w.rs", source)], "w.rs", Language::Python);
     assert_eq!(fidelity.records, 0, "{output}");
@@ -747,13 +707,9 @@ const TERNARY: &[(&str, &str)] = &[
 
 #[test]
 fn a_conditional_expression_crosses_between_the_five_that_have_one() {
-    // One expression that chooses between two. Go is the only target here without it, and
-    // turning one into an `if` statement needs somewhere to put the result. That does not exist
-    // inside an argument list, so Go says so instead.
+    // One expression that chooses between two.
     for (name, source) in TERNARY {
-        // TypeScript's `number` is a float. Rust refuses to compare a float
-        // against a bare integer literal, so that literal gains its point on
-        // the way through.
+        // TypeScript's `number` is a float.
         let rust_expected = match *name {
             "t.ts" => "if a > 0.0 { 1 } else { 2 }",
             _ => "if a > 0 { 1 } else { 2 }",
@@ -774,9 +730,8 @@ fn a_conditional_expression_crosses_between_the_five_that_have_one() {
                 "{name} -> {target} should say `{expected}`:\n{output}"
             );
         }
-        // Go has no ternary, and this one is the whole of a return, an
-        // `if`/`else` said shorter, so Go writes the `if`/`else`. One buried in
-        // an argument list still carries; tests/translate_ternary.rs holds that.
+        // Go has no ternary, and this one is the whole of a return, an `if`/`else` said
+        // shorter, so Go writes the `if`/`else`.
         let (output, fidelity) = translate(&[(name, source)], name, Language::Go);
         assert!(
             output.contains("if a > 0 {"),
@@ -795,9 +750,7 @@ fn a_conditional_expression_crosses_between_the_five_that_have_one() {
 
 #[test]
 fn a_base_class_is_carried_where_it_can_be_and_reported_where_it_cannot() {
-    // Three of these languages have inheritance and the rest do not. Dropping the
-    // base silently made `class JsonPrimitive extends JsonElement` into a class that
-    // extends nothing, a different type, with the output saying nothing about it.
+    // Three of these languages have inheritance and the rest do not.
     let source = "export class Primitive extends Element {\n  value: string;\n\n  \
                   read(): string {\n    return this.value;\n  }\n}\n";
     for (target, expected) in [
@@ -823,8 +776,7 @@ fn a_base_class_is_carried_where_it_can_be_and_reported_where_it_cannot() {
 #[test]
 fn zig_pointers_and_optionals_are_read_as_what_they_are() {
     // The grammar calls `?T` a `nullable_type`, which is not what it looks like it should be
-    // called. So the arm written for `optional_type` matched nothing and every optional in
-    // every Zig file crossed as a foreign type spelled `?T`.
+    // called.
     let source = "pub const Store = struct {\n    n: i64,\n};\n\n\
                   pub fn find(store: *Store, key: ?[]const u8) ?i64 {\n    return 1;\n}\n";
     let (output, fidelity) = translate(&[("p.zig", source)], "p.zig", Language::TypeScript);
@@ -832,16 +784,14 @@ fn zig_pointers_and_optionals_are_read_as_what_they_are() {
         output.contains("find(store: Store, key: string | null): number | null"),
         "{output}"
     );
-    // And the pointer is not a type this tool does not know. It is a reference to one that is
-    // right there in the same output.
+    // And the pointer is not a type this tool does not know.
     assert_eq!(fidelity.signatures_with_foreign_types, 0, "{output}");
 }
 
 #[test]
 fn a_zig_comptime_parameter_is_refused_rather_than_read_as_a_value() {
-    // `comptime T: type` is Zig's generics: the parameter is a *type*, supplied where
-    // another language writes `<T>`. Read as an ordinary parameter it produced
-    // `func Lazy(comptime type, comptime type) type`, which means something else.
+    // `comptime T: type` is Zig's generics: the parameter is a *type*, supplied where another
+    // language writes `<T>`.
     let source = "fn Lazy(comptime T: type, comptime C: type) type {\n    return T;\n}\n";
     let (output, fidelity) = translate(&[("l.zig", source)], "l.zig", Language::Go);
     assert_eq!(fidelity.functions, 0, "{output}");
@@ -853,9 +803,7 @@ fn a_zig_comptime_parameter_is_refused_rather_than_read_as_a_value() {
 
 #[test]
 fn a_zig_destructuring_binds_every_name() {
-    // `const a, const b = pair;` binds two names. The value binds once and
-    // the names take its parts, hoisted, so they survive the lowering's own
-    // block and nothing carries.
+    // `const a, const b = pair;` binds two names.
     let source = "fn f(pair: T) void {\n    const a, const b = pair;\n    _ = a;\n    _ = b;\n}\n";
     let (output, fidelity) = translate(&[("d.zig", source)], "d.zig", Language::TypeScript);
     assert_eq!(fidelity.carried_verbatim, 0, "{output}");
@@ -869,9 +817,7 @@ fn a_zig_destructuring_binds_every_name() {
 
 #[test]
 fn an_underscore_is_not_a_name_to_re_case() {
-    // `_` is the word for "no name" in four of these languages. And putting it through a naming
-    // convention asked what the empty word is called in `camelCase`. The answer was the empty
-    // string, so `_ = x;` came out as ` = x;`.
+    // `_` is the word for "no name" in four of these languages.
     let source = "fn f(_: *Analyser, value: i64) void {\n    _ = value;\n}\n";
     for target in [Language::Go, Language::Java, Language::TypeScript] {
         let (output, _) = translate(&[("u.zig", source)], "u.zig", target);
@@ -884,9 +830,7 @@ fn an_underscore_is_not_a_name_to_re_case() {
 
 #[test]
 fn a_note_is_reported_even_when_nothing_was_carried() {
-    // Not every note is about a carried construct. Printing them only when something *else* had
-    // gone wrong meant a translation that lost a supertype and nothing else reported a clean
-    // bill.
+    // Not every note is about a carried construct.
     let source = "export class Primitive extends Element {\n  value: string;\n}\n";
     let (_, fidelity) = translate(&[("n.ts", source)], "n.ts", Language::Rust);
     assert_eq!(fidelity.carried_verbatim, 0);
@@ -895,10 +839,7 @@ fn a_note_is_reported_even_when_nothing_was_carried() {
 
 #[test]
 fn a_decorated_method_is_still_a_method() {
-    // `@staticmethod` describes the shape of the binding, not its behaviour. Reading it as
-    // something unrecognised dropped the method, including the ones this tool's own Python
-    // writer emits. So a round trip lost every associated function in the file while the report
-    // said every signature had carried across intact.
+    // `@staticmethod` describes the shape of the binding, not its behaviour.
     let source =
         "class A:\n    @staticmethod\n    def make(x: int) -> int:\n        return x\n\n    \
                   def use(self) -> int:\n        return 1\n";
@@ -924,9 +865,7 @@ fn a_decorator_that_changes_behaviour_is_not_read_as_a_plain_method() {
 
 #[test]
 fn a_class_member_that_is_not_understood_is_not_a_member_that_is_not_there() {
-    // Every reader ended its member loop with `_ => {}`. A Java static initialiser runs once
-    // when the class is loaded, which nothing else here has. Being unable to say it is not a
-    // reason to pretend it was never written.
+    // Every reader ended its member loop with `_ => {}`.
     let source = "public class A {\n    static { System.loadLibrary(\"x\"); }\n    \
                   public int get() { return 1; }\n}\n";
     let (output, fidelity) = translate(&[("A.java", source)], "A.java", Language::Python);
@@ -939,9 +878,8 @@ fn a_class_member_that_is_not_understood_is_not_a_member_that_is_not_there() {
 
 #[test]
 fn a_rust_raw_identifier_is_the_name_without_the_escape() {
-    // `r#where` *is* the identifier `where`: the prefix is how Rust spells a name that
-    // collides with a keyword. Leaving it on the way back in made the name grow an `r`
-    // every time it crossed.
+    // `r#where` *is* the identifier `where`: the prefix is how Rust spells a name that collides
+    // with a keyword.
     let source = "pub fn r#where(r#type: i64) -> i64 {\n    return r#type;\n}\n";
     let (output, _) = translate(&[("w.rs", source)], "w.rs", Language::TypeScript);
     assert!(output.contains("function where(type: number)"), "{output}");
@@ -950,8 +888,6 @@ fn a_rust_raw_identifier_is_the_name_without_the_escape() {
 #[test]
 fn a_module_level_parameter_called_self_is_still_a_parameter() {
     // Python's `self` is a convention inside a class and an ordinary name outside one.
-    // Stripping it everywhere lost a parameter from every free function that had one,
-    // which a Zig file-struct becomes after a round trip through Python.
     let source = "def deinit(self: Store, uri: str) -> None:\n    return None\n";
     let (output, _) = translate(&[("s.py", source)], "s.py", Language::TypeScript);
     assert!(
@@ -962,9 +898,7 @@ fn a_module_level_parameter_called_self_is_still_a_parameter() {
 
 #[test]
 fn a_constructor_is_spelled_the_way_each_target_spells_one() {
-    // Three of these languages have a constructor and three have a habit. What carries is
-    // that it *is* one, the name is the type's in Java, a fixed word in Python and TypeScript.
-    // And `new`/`NewThing`/`init` in the other three.
+    // Three of these languages have a constructor and three have a habit.
     let source = "public class Store {\n    int n;\n    public Store(int n) { this.n = n; }\n}\n";
     for (target, expected) in [
         (Language::Python, "def __init__(self, n: int):"),
@@ -980,10 +914,7 @@ fn a_constructor_is_spelled_the_way_each_target_spells_one() {
 
 #[test]
 fn a_constructor_body_that_assigns_through_a_receiver_builds_the_value() {
-    // Rust, Go and Zig build a value and return it. A body that assigns through a
-    // receiver has nowhere to run there, and writing `self.n = n` inside a
-    // function that binds no `self` would be worse than saying nothing carried.
-    // The assignments are the fields of the value, so the value is what crosses.
+    // Rust, Go and Zig build a value and return it.
     let source = "public class Store {\n    int n;\n    public Store(int n) { this.n = n; }\n}\n";
     for (target, expected) in [
         (Language::Rust, "Store { n: n }"),
@@ -998,9 +929,8 @@ fn a_constructor_body_that_assigns_through_a_receiver_builds_the_value() {
 
 #[test]
 fn only_a_function_that_returns_the_type_is_read_as_making_one() {
-    // Rust, Go and Zig have no constructor, only a habit, and the habit is a
-    // constructor only when it also returns the thing. A `new` that returns something
-    // else is an ordinary function with a common name.
+    // Rust, Go and Zig have no constructor, only a habit, and the habit is a constructor only
+    // when it also returns the thing.
     let source = "pub struct Store {\n    pub n: i64,\n}\n\n\
                   impl Store {\n    pub fn new(n: i64) -> Store {\n        return 0;\n    }\n\n    \
                   pub fn new_count(n: i64) -> i64 {\n        return n;\n    }\n}\n";
@@ -1011,9 +941,7 @@ fn only_a_function_that_returns_the_type_is_read_as_making_one() {
 
 #[test]
 fn a_generic_impl_still_belongs_to_its_type() {
-    // `impl<'a> Ctx<'a>` is an impl on `Ctx`. Keeping the arguments made the owner `Ctx<'a>`,
-    // which matches no record in the file. So the methods of every generic type became free
-    // functions with a `self` parameter bolted on.
+    // `impl<'a> Ctx<'a>` is an impl on `Ctx`.
     let source = "pub struct Ctx<'a> {\n    pub name: &'a str,\n}\n\n\
                   impl<'a> Ctx<'a> {\n    pub fn label(&self) -> String {\n        \
                   return self.name;\n    }\n}\n";
@@ -1026,9 +954,7 @@ fn a_generic_impl_still_belongs_to_its_type() {
 
 #[test]
 fn a_container_passed_by_reference_is_still_a_container() {
-    // The reference has to come off *first*. Checking the containers before stripping the `&`
-    // meant every map, list and option passed by reference. That in Rust is most of them, was
-    // read as a name instead of as what it is.
+    // The reference has to come off *first*.
     let source =
         "pub fn f(by_name: &HashMap<String, Vec<i64>>, xs: &[i64], s: &'a str) -> i64 {\n    \
                   return 1;\n}\n";
@@ -1041,8 +967,7 @@ fn a_container_passed_by_reference_is_still_a_container() {
 
 #[test]
 fn a_lifetime_is_not_a_type_argument() {
-    // `Node<'_>` is a `Node`. Reading the `'_` as an argument gave a type with an empty
-    // name, which is not a name.
+    // `Node<'_>` is a `Node`.
     let source = "pub fn f(n: Node<'_>) -> i64 {\n    return 1;\n}\n";
     let (output, _) = translate(&[("n.rs", source)], "n.rs", Language::TypeScript);
     assert!(output.contains("function f(n: Node): number"), "{output}");
@@ -1050,9 +975,7 @@ fn a_lifetime_is_not_a_type_argument() {
 
 #[test]
 fn a_nested_container_keeps_every_layer() {
-    // The entry point and the recursion have to be the same function. When they were not, the
-    // value of a `map[string][]SymbolId` resolved one layer and lost the slice. The outer map
-    // was read by one rule and the inner type by a helper that only knew scalars.
+    // The entry point and the recursion have to be the same function.
     let source = "package main\n\nfunc F(byName map[string][]int) int {\n\treturn 1\n}\n";
     let (output, _) = translate(&[("g.go", source)], "g.go", Language::Python);
     assert!(
@@ -1063,9 +986,8 @@ fn a_nested_container_keeps_every_layer() {
 
 #[test]
 fn a_zig_optional_of_a_qualified_type_is_still_optional() {
-    // The grammar binds `?` tighter than `.`, so `?http.Request` arrives as a field
-    // expression whose left side is a nullable `http`, inside out. Read as written, it
-    // became a type this tool could not write at all.
+    // The grammar binds `?` tighter than `.`, so `?http.Request` arrives as a field expression
+    // whose left side is a nullable `http`, inside out.
     let source = "pub fn f(r: ?http.Request) void {\n    return;\n}\n";
     let (output, _) = translate(&[("q.zig", source)], "q.zig", Language::TypeScript);
     assert!(
@@ -1076,9 +998,7 @@ fn a_zig_optional_of_a_qualified_type_is_still_optional() {
 
 #[test]
 fn a_zig_map_comes_home_a_map() {
-    // A generic type in Zig is a name *applied* to its arguments, which the
-    // writer emits. Reading the whole thing as one name turned a dictionary into a type
-    // called `std.StringHashMap([]const u8)`.
+    // A generic type in Zig is a name *applied* to its arguments, which the writer emits.
     let source = "pub fn f(units: std.StringHashMap([]const u8), n: std.AutoHashMap(i64, bool)) void {\n    \
                   return;\n}\n";
     let (output, _) = translate(&[("h.zig", source)], "h.zig", Language::Python);
@@ -1104,8 +1024,7 @@ fn a_readonly_array_is_an_array() {
 #[test]
 fn a_python_module_binding_is_a_constant_whatever_it_is_called() {
     // Python has no `const`, so a module-level binding is the only thing a constant can look
-    // like. Requiring SCREAMING_SNAKE meant this tool could not read back what it writes: its
-    // own Python writer spells a constant bound to anything but a literal in lower case.
+    // like.
     let source = "actions = [1, 2]\nMAX = 3\n";
     let (output, fidelity) = translate(&[("c.py", source)], "c.py", Language::TypeScript);
     assert_eq!(fidelity.constants, 2, "{output}");
@@ -1115,9 +1034,7 @@ fn a_python_module_binding_is_a_constant_whatever_it_is_called() {
 
 #[test]
 fn a_coalesce_crosses_as_the_question_it_asks() {
-    // `a ?? b` asks whether the left side is absent, which is a question and not an arithmetic
-    // operator. Zig spells it with a word, Rust and Java with a call, Python has to name the
-    // value twice. Go cannot say it at all.
+    // `a ??
     let source = "export function f(x: number | null): number {\n  const a = x ?? 5;\n  \
                   return a;\n}\n";
     for (target, expected) in [
@@ -1129,8 +1046,6 @@ fn a_coalesce_crosses_as_the_question_it_asks() {
         let (output, _) = translate(&[("c.ts", source)], "c.ts", target);
         assert!(output.contains(expected), "{target}:\n{output}");
     }
-    // Go says it through a closure: the value binds once, and the nil test
-    // decides. Nothing carries.
     let (output, fidelity) = translate(&[("c.ts", source)], "c.ts", Language::Go);
     assert!(
         output.contains(
@@ -1143,11 +1058,8 @@ fn a_coalesce_crosses_as_the_question_it_asks() {
 
 #[test]
 fn a_value_that_cannot_be_named_twice_is_not_named_twice() {
-    // Python and Java can only ask "is this absent" by naming the value. Naming a call twice
-    // calls it twice, which would make the program do more than it did.
+    // Python and Java can only ask "is this absent" by naming the value.
     let source = "export function f(): number {\n  const a = get(\"x\") ?? 5;\n  return a;\n}\n";
-    // Python binds the call once through the walrus; Java through Optional.
-    // Neither writes the call a second time, and nothing carries.
     let (output, fidelity) = translate(&[("d.ts", source)], "d.ts", Language::Python);
     assert_eq!(fidelity.carried_verbatim, 0, "python:\n{output}");
     assert!(
@@ -1160,16 +1072,14 @@ fn a_value_that_cannot_be_named_twice_is_not_named_twice() {
         output.contains("java.util.Optional.ofNullable(get(\"x\")).orElse(5)"),
         "Optional names the value once:\n{output}"
     );
-    // Zig's operator evaluates the left side once, so it has nothing to refuse.
     let (output, _) = translate(&[("d.ts", source)], "d.ts", Language::Zig);
     assert!(output.contains("get(\"x\") orelse 5"), "{output}");
 }
 
 #[test]
 fn a_shorthand_property_is_a_property() {
-    // `{ species }` means `{ species: species }`, the shorthand every modern
-    // TypeScript file is written in. Refusing it refused the whole object, and with it
-    // the statement the object was in.
+    // `{ species }` means `{ species: species }`, the shorthand every modern TypeScript file is
+    // written in.
     let source = "export function f(species: string, take: number): object {\n  \
                   return { species, take };\n}\n";
     let (output, fidelity) = translate(&[("o.ts", source)], "o.ts", Language::Python);

@@ -1,41 +1,4 @@
 //! FastAPI endpoints as a Next.js App Router tree.
-//!
-//! # What corresponds
-//!
-//! The reverse of [`super::nextjs`], and not its mirror image. A Next.js route's URL is
-//! its position on disk, so one FastAPI module becomes a *tree*. `@router.get("/pets")`
-//! and `@router.post("/pets")` are two functions in one file on one side. On the other
-//! they are two exports of `app/api/pets/route.ts`.
-//!
-//! | FastAPI | Next.js |
-//! | --- | --- |
-//! | `@router.get("/pets")` | `app/api/pets/route.ts` exporting `GET` |
-//! | `@router.get("/pets/{pet_id}")` | `app/api/pets/[petId]/route.ts` |
-//! | `@router.get("/files/{path:path}")` | `app/api/files/[...path]/route.ts` |
-//! | a Pydantic `BaseModel` | an exported `interface` |
-//!
-//! # Where a parameter comes from
-//!
-//! FastAPI declares every input in the handler's signature and the framework fills it in.
-//! Next.js hands the handler a request and the path parameters, and the handler reads the
-//! rest itself. So each parameter becomes a line at the top of the body:
-//!
-//! - A name that appears in the URL is a path parameter, read from `context.params`. Path
-//!   parameters arrive as strings, so a declared `int` or `float` is converted.
-//! - A parameter whose type is a model the module declares is the request body, read from
-//!   `await request.json()`.
-//! - Anything else is a query parameter, read from the URL's `searchParams`.
-//!
-//! A handler returns a value and FastAPI serialises it. The Next.js handler has to say so,
-//! so every `return` becomes `Response.json(...)`.
-//!
-//! # What it still cannot do
-//!
-//! The bodies are Python, translated by the ordinary reader with the ordinary limits. A
-//! database call has no counterpart and lands in the output under the same marker every
-//! other translation uses. `Depends(...)`, background tasks and middleware are reported
-//! rather than translated. Each is a framework doing something for the handler, and
-//! Next.js asks the handler to do it.
 
 use super::ir::*;
 use crate::lang::Language;
@@ -81,9 +44,6 @@ pub struct AppPlan {
 }
 
 /// Is this file a FastAPI application?
-///
-/// One decorated handler is enough. A module of helpers beside one is not a route tree,
-/// and saying so is the point of asking.
 pub fn is_fastapi_module(source: &str) -> Result<bool> {
     let parsed = Parsers::new().parse(Language::Python, source)?;
     if parsed.has_errors() {
@@ -173,10 +133,7 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<AppPlan> 
             .join("api"),
     };
 
-    // The handlers, so the writer spells their names the target's way. A decorated
-    // definition reaches the module reader as an unknown construct. So a parameter
-    // declared only there is a name the spelling table never saw. `pet_id` stayed
-    // `pet_id` in a file whose every other name had been re-cased.
+    // The handlers, so the writer spells their names the target's way.
     let mut context = module.clone();
     context.items.extend(
         by_route
@@ -202,8 +159,7 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<AppPlan> 
     let mut edits = crate::edit::EditSet::new();
     for (url, group) in &by_route {
         let (file, report) = write_route(url, group, &models, &root, &context)?;
-        // The output has to be TypeScript that TypeScript accepts. An unparseable result
-        // is a defect here rather than in the caller's file, and should say so.
+        // The output has to be TypeScript that TypeScript accepts.
         let written = parsers.parse(Language::TypeScript, &file.output)?;
         if written.has_errors() {
             bail!(
@@ -220,9 +176,7 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<AppPlan> 
                 path.display()
             );
         }
-        // Only what the source brought. The route context, the path parameters and the
-        // framework's own types are this translation's scaffolding. Counted as carried
-        // declarations, they said a three-endpoint module held five models.
+        // Only what the source brought.
         fidelity.carried_verbatim += report.carried_verbatim;
         fidelity.imports_listed += report.imports_listed;
         fidelity.notes.extend(report.notes);
@@ -274,15 +228,11 @@ fn endpoint_nodes<'a>(root: Node<'a>, source: &str) -> Vec<(String, String, Node
         }
         stack.extend(node.children(&mut cursor));
     }
-    // The walk is depth-first over a stack, so the order is not the file's.
     found.sort_by_key(|(_, _, node)| node.start_byte());
     found
 }
 
 /// The method and URL a decorator names, when it names both.
-///
-/// `@router.get("/pets/{pet_id}")` and `@app.post("/pets", status_code=201)` both count.
-/// Anything else is a decorator this translation does not know, and the caller reports it.
 fn route_decorator(text: &str) -> Option<(String, String)> {
     let text = text.trim().strip_prefix('@')?;
     let (receiver, rest) = text.split_once('.')?;
@@ -321,8 +271,6 @@ fn path_parameters(url: &str) -> Vec<(String, bool)> {
 }
 
 /// The URL, in the spelling a Next.js route tree uses for its directories.
-///
-/// `/pets/{pet_id}` → `pets/[petId]`, `/files/{path:path}` → `files/[...path]`.
 fn route_directory(url: &str) -> PathBuf {
     let mut directory = PathBuf::new();
     for segment in url.trim_matches('/').split('/') {
@@ -366,9 +314,7 @@ fn write_route(
     let parameters = path_parameters(url);
     let mut items = Vec::new();
 
-    // The shapes the handlers name. A route file stands on its own, so the models it
-    // uses are declared in it. The Python module they came from is one file, and the
-    // tree it becomes is many.
+    // The shapes the handlers name.
     let named: Vec<&Record> = models
         .iter()
         .filter(|model| group.iter().any(|e| names_type(&e.handler, &model.name)))
@@ -376,9 +322,8 @@ fn write_route(
     for model in &named {
         let mut model = (*model).clone();
         model.exported = true;
-        // `class Pet(BaseModel)` says "this is a shape FastAPI validates", and the shape
-        // is what crosses. Carried as inheritance it would name a type the route file
-        // never declares.
+        // `class Pet(BaseModel)` says "this is a shape FastAPI validates", and the shape is
+        // what crosses.
         if model.extends.as_deref() == Some("BaseModel") {
             model.extends = None;
         }
@@ -531,7 +476,7 @@ fn read_parameter(param: &Param, parameters: &[(String, bool)], models: &[Record
             }),
             name: camel.clone(),
         };
-        // A path parameter arrives as text. A handler that declared a number gets one.
+        // A path parameter arrives as text.
         match param.ty {
             Some(Type::Int) | Some(Type::Float) => Expr::Call {
                 callee: Box::new(Expr::Name("Number".into())),
@@ -568,11 +513,9 @@ fn read_parameter(param: &Param, parameters: &[(String, bool)], models: &[Record
     };
 
     Some(Stmt::Let {
-        // The source's own name, so the references in the body reach this binding. The
-        // writer spells both ends in the target's convention.
+        // The source's own name, so the references in the body reach this binding.
         name: param.name.clone(),
-        // Only where the value has the declared type. A path parameter is text until it
-        // is converted, and `searchParams.get` answers with text or nothing.
+        // Only where the value has the declared type.
         ty: param.ty.clone().filter(|_| names_a_model(param, models)),
         value: Some(value),
         mutable: false,
@@ -586,10 +529,6 @@ fn names_a_model(param: &Param, models: &[Record]) -> bool {
 }
 
 /// Turn every returned value into a response.
-///
-/// FastAPI serialises whatever a handler returns. A Next.js handler returns the response
-/// itself. A body carrying the value alone answers with an object where the framework
-/// expects a `Response`.
 fn respond(body: &mut [Stmt]) {
     for statement in body.iter_mut() {
         match statement {

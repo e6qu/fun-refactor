@@ -1,9 +1,4 @@
 //! Terraform/HCL fact extraction, exercised through the public API.
-//!
-//! Terraform has no lexical binding: a declaration is its string labels and a use
-//! site is a scope-traversal expression. These tests pin down which byte range of
-//! each construct a rename would rewrite, since that is the whole point of the
-//! extraction and the part the grammar makes easy to get subtly wrong.
 
 use fun_refactor::{extract::Extractor, lang::Language, model::*, parse::Parsers};
 use std::path::Path;
@@ -137,7 +132,7 @@ fn locals_attributes_are_variables() {
 
 #[test]
 fn attributes_outside_locals_are_not_definitions() {
-    // `bucket` and `region` are provider-defined arguments. They are not addresses.
+    // `bucket` and `region` are provider-defined arguments.
     let f = hcl(MAIN_TF);
     assert!(
         !f.symbols.iter().any(|s| s.name == "bucket"),
@@ -169,8 +164,7 @@ fn resource_and_data_carry_the_terraform_address() {
 
 #[test]
 fn type_label_of_a_resource_is_not_a_second_symbol() {
-    // Renaming a resource must have exactly one definition site. The type label
-    // is a container. It is not a definition, as Rust's `impl S` is.
+    // Renaming a resource must have exactly one definition site.
     let f = hcl(MAIN_TF);
     assert!(
         !f.symbols.iter().any(|s| s.name == "aws_s3_bucket"),
@@ -249,8 +243,6 @@ fn var_and_local_references_name_the_declaration() {
 
 #[test]
 fn declaration_labels_are_not_also_references() {
-    // `prefix` is written three times: once as a local declaration and twice as
-    // `local.prefix`. Only the two uses are references.
     let f = hcl(MAIN_TF);
     let prefix = refs(&f, "prefix");
     assert_eq!(prefix.len(), 2, "got {prefix:?}");
@@ -306,8 +298,8 @@ fn managed_resource_address_splits_into_type_and_name() {
 
 #[test]
 fn data_address_resolves_the_name_one_segment_further_along() {
-    // `data.TYPE.NAME.attr` is one segment longer than a managed resource
-    // address; the renameable segment is the third. It is not the second.
+    // `data.TYPE.NAME.attr` is one segment longer than a managed resource address; the
+    // renameable segment is the third.
     let f = hcl(MAIN_TF);
     let expr = MAIN_TF
         .find("data.aws_caller_identity.current.account_id")
@@ -479,9 +471,8 @@ fn object_expressions_open_their_own_scope() {
 
 #[test]
 fn empty_labels_define_nothing() {
-    // An empty `""` label has no `template_literal` child at all, so there is no
-    // byte range to rename and no symbol is produced. Terraform rejects such a
-    // configuration anyway; this test records the behaviour instead of a claim.
+    // An empty `""` label has no `template_literal` child at all, so there is no byte range to
+    // rename and no symbol is produced.
     let f = hcl("resource \"aws_s3_bucket\" \"\" {}\n");
     assert!(f.symbols.is_empty(), "got {:?}", names(&f));
 }
@@ -489,9 +480,7 @@ fn empty_labels_define_nothing() {
 #[test]
 fn a_splat_keeps_its_trailing_segments() {
     // `aws_instance.web[*].id` hangs the trailing steps off a `splat` node instead of
-    // continuing the flat `get_attr` run, so the sibling-anchored patterns stop at the
-    // address. Matching inside the splat recovers the attribute read; it is a field,
-    // as it would be without the `[*]`.
+    // continuing the flat `get_attr` run, so the sibling-anchored patterns stop at the address.
     let src = "output \"ids\" {\n  value = aws_instance.web[*].id\n}\n";
     let f = hcl(src);
     let web = refs(&f, "web");
@@ -528,8 +517,7 @@ fn a_splat_keeps_every_trailing_segment_not_just_the_first() {
 #[test]
 fn an_index_keeps_the_segments_that_follow_it() {
     // `x.y[0].z` does leave `.z` as a flat sibling, but the `index` node between it and the
-    // root breaks the anchored run. So the address resolved and the attribute read did not. `y`
-    // must stay the renameable identifier, not become a field.
+    // root breaks the anchored run.
     let src = "output \"a\" {\n  value = x.y[0].z\n}\n";
     let f = hcl(src);
     let y = refs(&f, "y");
@@ -571,9 +559,7 @@ fn an_index_expression_is_still_read_as_a_traversal() {
 
 #[test]
 fn tfvars_attributes_are_definitions() {
-    // A values file assigns root-module variables. The grammar is shared with .tf,
-    // where a bare top-level attribute would be invalid, so this pattern only fires
-    // on values files.
+    // A values file assigns root-module variables.
     let src = "region = \"eu-west-2\"\nreplicas = 3\n";
     let f = facts(Language::Hcl, src);
 
@@ -605,9 +591,8 @@ fn tf_block_arguments_are_still_not_definitions() {
 
 #[test]
 fn every_step_past_an_index_is_captured_to_a_stated_depth() {
-    // A query cannot say "every sibling after this one", so each step past an index
-    // needs its own pattern. Six are written; this asserts the bound is a decision
-    // instead of an accident, and that Terraform never realistically reaches it.
+    // A query cannot say "every sibling after this one", so each step past an index needs its
+    // own pattern.
     let src = "a = x.y[0].z.w.q.r.s.t\n";
     let f = facts(Language::Hcl, src);
     let fields: Vec<&str> = f
@@ -630,11 +615,8 @@ fn every_step_past_an_index_is_captured_to_a_stated_depth() {
 
 #[test]
 fn a_namespace_decides_which_declaration_a_traversal_names() {
-    // `var.azs`, `local.azs` and `module.azs` name three different declarations, and
-    // an `output "azs"` beside them names a fourth that no traversal ever reaches.
-    // Terraform writes the namespace down, so this is not a guess, without it,
-    // `var.azs` in terraform-aws-vpc resolved to the module's own `output "azs"`,
-    // and a rename would have rewritten the output and every use of the variable.
+    // `var.azs`, `local.azs` and `module.azs` name three different declarations, and an `output
+    // "azs"` beside them names a fourth that no traversal ever reaches.
     let tmp = tempfile::tempdir().unwrap();
     std::fs::write(
         tmp.path().join("main.tf"),

@@ -1,8 +1,4 @@
 //! CSS/SCSS fact extraction.
-//!
-//! Each dialect runs on its own grammar and its own query file, so the SCSS tests below pin the
-//! two things that could drift. That Sass-only syntax really parses, and that the CSS half of
-//! an SCSS file still extracts as CSS does.
 
 use fun_refactor::{extract::Extractor, lang::Language, model::*, parse::Parsers};
 use std::path::Path;
@@ -29,7 +25,7 @@ fn class_selectors_define_selectors_without_the_dot() {
     assert_eq!(names(&f, SymbolKind::Selector), ["btn", "btn-primary"]);
 
     let btn = f.symbols.iter().find(|s| s.name == "btn").unwrap();
-    // The name span is the bare class name: a rename rewrites `btn`. It is not `.btn`.
+    // The name span is the bare class name: a rename rewrites `btn`.
     assert_eq!(btn.name_span.text(src), "btn");
     assert_eq!(btn.full_span.text(src), ".btn");
     assert!(btn.full_span.contains(btn.name_span));
@@ -69,8 +65,6 @@ fn id_selectors_define_element_ids_without_the_hash() {
 
 #[test]
 fn custom_property_definition_and_var_usage_pair_up() {
-    // The headline CSS rename story: `--brand-color` is defined once and used
-    // through `var()`, and both sites carry the identical name.
     let src = ":root { --brand-color: red; }\n.btn { color: var(--brand-color); }\n";
     let f = facts(Language::Css, src);
 
@@ -200,9 +194,7 @@ fn a_realistic_stylesheet_parses_cleanly() {
     assert_eq!(selectors, ["card", "g", "hidden"]);
 }
 
-// grammar. These tests hold the line in both directions: the Sass-only constructs parse. The
-// same source is still an error under CSS, the dialects are different languages, not one
-// language with a lenient mode.
+// grammar.
 
 #[test]
 fn scss_variables_parse_on_the_scss_grammar() {

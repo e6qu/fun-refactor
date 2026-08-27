@@ -1,12 +1,4 @@
 //! React server functions, translated and put under contract.
-//!
-//! `"use server"` at the top of a file makes every exported async function callable from
-//! a browser, over a request the framework generates. There is no URL on disk to read,
-//! so each function is reached by its own name: `createPet` answers `/create-pet`.
-//!
-//! That gives the function the two facts a route file keeps elsewhere. The ordinary
-//! machinery applies from there: `fr translate <module> fastapi` writes one handler per
-//! export, and `fr openapi` puts each on its own path.
 
 use fun_refactor::transpile::nextjs;
 use std::path::PathBuf;
@@ -76,8 +68,7 @@ fn a_server_function_becomes_a_fastapi_handler() {
 #[test]
 fn the_directive_does_not_survive_as_a_statement() {
     // `"use server"` is what made the file a server module: a fact about the source's
-    // framework, already spent. Carried, it landed in the output as a string that does
-    // nothing, wrapped in the writer's `__main__` block.
+    // framework, already spent.
     let (_tmp, path) = module(ACTIONS);
     let plan = nextjs::plan(&path).expect("a plan");
     assert!(!plan.output.contains("use server"), "{}", plan.output);
@@ -145,8 +136,7 @@ fn the_contract_puts_each_function_on_its_own_path() {
 
 #[test]
 fn the_contract_names_the_payloads_it_cannot_describe() {
-    // A server function's arguments travel in the framework's own wire encoding. A JSON
-    // body written here would be a guess presented as a contract.
+    // A server function's arguments travel in the framework's own wire encoding.
     let (tmp, path) = module(ACTIONS);
     let baseline =
         fun_refactor::openapi::from_routes("actions", tmp.path(), &[path]).expect("a baseline");
@@ -162,9 +152,7 @@ fn the_contract_names_the_payloads_it_cannot_describe() {
 
 #[test]
 fn a_route_file_still_translates_exactly_as_before() {
-    // The endpoint machinery was generalised under the route path. Its output for a
-    // route file is pinned elsewhere; this holds the seam: a route's endpoints all
-    // share the file's URL.
+    // The endpoint machinery was generalised under the route path.
     let tmp = tempfile::tempdir().expect("a temporary directory");
     let dir = tmp.path().join("app/api/pets");
     std::fs::create_dir_all(&dir).expect("mkdir");

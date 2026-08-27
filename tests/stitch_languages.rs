@@ -1,8 +1,4 @@
 //! Every language the tool parses, asked whether it can read an environment variable.
-//!
-//! `fr stitch` exists to find configuration with no consumer. A language whose reads it
-//! cannot see does not produce a smaller answer. It produces the wrong one, because a
-//! variable read only by that language is reported as orphaned.
 
 use fun_refactor::analysis::stitch;
 use fun_refactor::index::Index;
@@ -44,10 +40,7 @@ fn read_once(app: &str, code: &str) -> String {
 
 #[test]
 fn java_reads_the_environment() {
-    // `System.getenv` is how a Java service reads its configuration. The accessor table did not
-    // have it, so a Helm chart feeding a Java service reported every variable as configuration
-    // with no consumer, which is the finding `fr stitch` exists to produce and here it was
-    // produced backwards.
+    // `System.getenv` is how a Java service reads its configuration.
     let text = read_once(
         "Main.java",
         "public class Main {\n    static String url() { return System.getenv(\"DATABASE_URL\"); }\n}\n",
@@ -66,9 +59,9 @@ fn java_reads_the_environment_through_the_map() {
 
 #[test]
 fn zig_reads_the_environment_past_its_allocator() {
-    // Zig's accessor takes the allocator first, so reading the argument straight after
-    // the paren found `allocator`, which the upper-case name filter then dropped, and
-    // the read went missing without anything saying so.
+    // Zig's accessor takes the allocator first, so reading the argument straight after the
+    // paren found `allocator`, which the upper-case name filter then dropped, and the read went
+    // missing without anything saying so.
     let text = read_once(
         "main.zig",
         "const std = @import(\"std\");\npub fn url(a: std.mem.Allocator) ![]u8 {\n    \
@@ -115,9 +108,8 @@ fn a_language_that_cannot_read_the_environment_is_not_claimed_to() {
 
 #[test]
 fn a_chart_with_no_metadata_still_starts_its_chain_at_the_values_file() {
-    // `svc/chart/templates/d.yaml` full of `{{ .Values.* }}` was read as plain YAML
-    // for want of a `Chart.yaml`. So the chain began at the manifest and looked
-    // whole, and the values file feeding it went unmentioned.
+    // `svc/chart/templates/d.yaml` full of `{{ .Values.* }}` was read as plain YAML for want of
+    // a `Chart.yaml`.
     let tmp = tempfile::tempdir().expect("a temporary directory");
     let chart = tmp.path().join("svc/chart/templates");
     std::fs::create_dir_all(&chart).expect("the chart directory");

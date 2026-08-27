@@ -1,8 +1,4 @@
 //! Cascading flag removal, end to end.
-//!
-//! The point of this refactoring is the chain, not the first edit: uses become constants,
-//! conditionals collapse. Whatever only the dead branch called becomes unused. These tests
-//! check the whole chain runs to a fixpoint.
 
 use fun_refactor::edit::apply_to_string;
 use fun_refactor::refactor::cascade;
@@ -114,7 +110,6 @@ fn a_flag_with_no_conditional_just_disappears() {
 #[test]
 fn a_flag_used_negated_collapses_all_the_same() {
     // `if !USE_NEW` substitutes into `if !true`, which is as constant as the literal.
-    // The dead branch used to stay behind while the report claimed the collapse ran.
     let tmp = workspace(&[(
         "a.rs",
         "const USE_NEW: bool = true;\n\nfn run() {\n    if !USE_NEW {\n        old_path();\n    }\n    always();\n}\n",
@@ -188,9 +183,8 @@ fn works_for_python_with_python_spelling() {
 
 #[test]
 fn a_python_flag_read_through_an_import_is_removed_whole() {
-    // The commonest Python layout: the flag in its own module, imported by name where it
-    // is read. The substitution used to put the literal into the import statement. The
-    // file then said `from app.flags import True`, and the parse gate threw it away.
+    // The commonest Python layout: the flag in its own module, imported by name where it is
+    // read.
     let tmp = workspace(&[
         ("app/__init__.py", ""),
         ("app/flags.py", "USE_NEW_TAX = True\n"),
@@ -231,7 +225,7 @@ fn a_typescript_flag_read_through_an_import_is_removed_whole() {
 #[test]
 fn a_python_flag_read_through_its_module_is_removed_whole() {
     // `from app import flags` binds the submodule `app/flags.py`, and the read is written
-    // against it. The refusal used to say nothing read the flag, over a line it prints.
+    // against it.
     let tmp = workspace(&[
         ("app/__init__.py", ""),
         ("app/flags.py", "USE_NEW_TAX = True\n"),
@@ -267,8 +261,7 @@ fn a_python_flag_read_through_a_relative_import_is_removed_whole() {
 
 #[test]
 fn a_refusal_names_the_occurrences_it_could_not_resolve() {
-    // The module object comes from a call, so no import says what it is. The name is still
-    // written down, and a refusal claiming nothing reads the flag would contradict it.
+    // The module object comes from a call, so no import says what it is.
     let tmp = workspace(&[
         ("flags.py", "USE_NEW_TAX = True\n"),
         (

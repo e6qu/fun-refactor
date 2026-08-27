@@ -1,9 +1,4 @@
 //! A Python instance attribute is a symbol, and it renames as one thing.
-//!
-//! `self.count = 0` is how a Python object gets its fields. The most common
-//! rename target the language has answered "no symbol or resolved reference
-//! at" that position. Each assignment site is a definition; the class, carried as
-//! the qualifier, is the identity that groups them; the reads follow.
 
 use fun_refactor::index::Index;
 use fun_refactor::refactor::rename;
@@ -82,9 +77,7 @@ fn same_named_attributes_of_two_classes_stay_apart() {
 
 #[test]
 fn a_local_and_the_attribute_it_copies_stay_two_symbols() {
-    // `count = self.count` binds a local; `count += 1` reads it. Handed to the
-    // attribute, the local's rename took one line of three and the method
-    // raised UnboundLocalError at run time.
+    // `count = self.count` binds a local; `count += 1` reads it.
     let source = "class C:\n    def __init__(self) -> None:\n        self.count = 0\n\n    \
         def bump(self) -> int:\n        count = self.count\n        count += 1\n        \
         self.count = count\n        return self.count\n";
@@ -114,9 +107,7 @@ fn a_local_and_the_attribute_it_copies_stay_two_symbols() {
 
 #[test]
 fn the_attribute_family_crosses_the_class_chain() {
-    // `Sub(Base)` writing `self.count = 0` assigns the attribute
-    // `Base.__init__` created. A rename that stopped at the class boundary
-    // left the object answering two names at run time.
+    // `Sub(Base)` writing `self.count = 0` assigns the attribute `Base.__init__` created.
     let source = "class Base:\n    def __init__(self) -> None:\n        self.count = 0\n\n    \
         def inc(self) -> None:\n        self.count += 1\n\n\nclass Sub(Base):\n    \
         def reset(self) -> None:\n        self.count = 0\n";

@@ -1,13 +1,4 @@
 //! `hoist-function`: a nested function moved to module scope.
-//!
-//! Rust is where the move preserves meaning. A nested `fn` is an item, and the
-//! compiler already forbids it from reaching the enclosing function's locals. A Python
-//! or TypeScript inner function can capture them, so those are refused with the reason
-//! instead of rewritten wrong.
-//!
-//! The verb exists because `fr duplicates` found the same helper written twice, nested
-//! inside two functions in one file. Deduplicating it meant hoisting one copy, and no
-//! command could say so.
 
 use fun_refactor::edit::{apply_to_string, plan, Validation};
 use fun_refactor::index::Index;
@@ -113,8 +104,7 @@ fn other() {}
 
 #[test]
 fn a_language_where_inner_functions_capture_is_refused_with_the_reason() {
-    // `def helper(): return limit` reads `limit` from the enclosing scope. Hoisted, it
-    // would read a global that does not exist, and nothing would say so until runtime.
+    // `def helper(): return limit` reads `limit` from the enclosing scope.
     let src = "def outer(limit):\n    def helper():\n        return limit\n    return helper()\n";
     let (_tmp, path, index) = workspace("a.py", src);
     let refusal = rewrite::apply(

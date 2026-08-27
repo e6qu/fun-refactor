@@ -1,10 +1,4 @@
 //! `.Values` paths are references, so a values key can be renamed.
-//!
-//! A Helm template action is masked before parsing. The surrounding YAML then parses and the
-//! byte offsets stay honest, which left everything inside `{{ … }}` invisible to the index.
-//! Provenance parsed the actions separately and could show which templates read a key. But
-//! `fr refs` said zero and a rename of the key rewrote the values file and nothing else. The
-//! paths are now extracted as references, scoped to their own chart.
 
 use fun_refactor::index::Index;
 use fun_refactor::model::Confidence;
@@ -47,8 +41,7 @@ fn a_values_key_knows_which_templates_read_it() {
 
 #[test]
 fn a_nested_values_path_does_not_match_the_same_leaf_elsewhere() {
-    // `.Values.image.tag` names `tag` under `image`, not the unrelated `tag` beside
-    // it. The segment before the key is what tells them apart.
+    // `.Values.image.tag` names `tag` under `image`, not the unrelated `tag` beside it.
     let tmp = chart(&[
         ("c/Chart.yaml", "apiVersion: v2\nname: c\nversion: 0.1.0\n"),
         ("c/values.yaml", "tag: standalone\nimage:\n  tag: v1\n"),

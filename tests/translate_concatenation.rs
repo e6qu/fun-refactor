@@ -1,9 +1,4 @@
-//! A chain of `+` with a string in it builds a string, all the way along. Java and TypeScript
-//! turn the number into text at every `+`; Python raises instead. The chain settles into a
-//! template at the read, so every target writes its own interpolation and no coercion can be
-//! forgotten. The chain is left-associative and the fold respects it: a string-free subtree on
-//! the left is arithmetic the source runs first. So `1 + 2 + "x"` interpolates `1 + 2` as one
-//! expression and prints `3x`, the way Java does.
+//! A chain of `+` with a string in it builds a string, all the way along.
 
 mod common;
 use common::{require_on_ci, Toolchain};
@@ -59,8 +54,7 @@ fn every_number_in_the_chain_is_coerced() {
 
 #[test]
 fn a_number_on_the_left_still_takes_the_one_coercion_it_needs() {
-    // `1 + 2 + "x"` adds first and concatenates second, which is what Java
-    // does. Flattening the sum into the template would print "12x".
+    // `1 + 2 + "x"` adds first and concatenates second, which is what Java does.
     let tmp = tempfile::tempdir().expect("a temporary directory");
     let out = translated(tmp.path(), "Concat.java", CONCAT_JAVA, Language::Python);
     assert!(out.contains(r#"print(f"{1 + 2}x")"#), "{out}");

@@ -1,18 +1,4 @@
 //! Cascading cleanup: remove a flag and everything that only existed to serve it.
-//!
-//! Deleting a feature flag is never one edit. The flag's uses become constants, the
-//! conditionals around them collapse to whichever branch survives, and whatever only
-//! that dead branch referenced becomes unused in turn. Uber's Piranha showed this
-//! chain makes flag removal worth automating, the first edit is trivial and
-//! the cascade is the work.
-//!
-//! Each round re-indexes the rewritten sources, so every decision is made against
-//! what the code says now instead of a prediction of it. The cascade stops
-//! when a round changes nothing.
-//!
-//! A cascade that cannot finish still runs: the substitution stays, and everything
-//! left undone is named in [`CascadePlan::unfinished`]. Half a cleanup that says
-//! which half it is beats refusing the whole operation.
 
 use crate::edit::{Edit, EditSet};
 use crate::index::Index;
@@ -56,10 +42,6 @@ impl CascadePlan {
 }
 
 /// Does the collapse step know this language's conditionals?
-///
-/// Substituting the flag needs nothing but the index, so it works wherever a symbol resolves.
-/// Collapsing the conditional the substitution just made constant needs the grammar's `if`
-/// shape, which this list holds.
 pub fn supports_cascade(language: Language) -> bool {
     matches!(
         language,
@@ -76,10 +58,6 @@ pub fn supports_cascade(language: Language) -> bool {
 }
 
 /// Which declaration to remove, when the name alone does not say.
-///
-/// The refusal for an ambiguous name told the reader to "say which one with a position". `fr
-/// remove-flag` took a bare name and nothing else, advice for a form the command did not have.
-/// `fr delete` has taken `path:line:col` all along; this is that, for the same reason.
 #[derive(Debug, Clone)]
 pub enum FlagTarget {
     Named(String),
@@ -88,10 +66,6 @@ pub enum FlagTarget {
 }
 
 /// Remove `flag`, assuming it always had `value`, and clean up what follows.
-///
-/// Walks a workspace root, so it needs a filesystem. [`remove_flag_in`] is the same
-/// refactoring over sources already in memory, which the browser calls and
-/// what this delegates to once it has read them.
 #[cfg(feature = "cli")]
 pub fn remove_flag(root: &Path, flag: &str, value: bool) -> Result<CascadePlan> {
     remove_flag_for(root, &FlagTarget::Named(flag.to_string()), value)
@@ -113,11 +87,6 @@ pub fn remove_flag_for(root: &Path, target: &FlagTarget, value: bool) -> Result<
 }
 
 /// [`remove_flag`] over sources already held in memory.
-///
-/// The cascade never needed a filesystem. It rewrites in memory and re-indexes each round, so
-/// the only thing the root was ever for was finding the files. Splitting that off is what lets
-/// the browser build do this at all. It is also why the whole module stopped being dead code
-/// there: it had exactly one entry point, and that entry point took a path.
 pub fn remove_flag_in(
     sources: BTreeMap<PathBuf, (Language, String)>,
     flag: &str,
@@ -138,10 +107,6 @@ pub fn remove_flag_in_for(
     }
     let mut sources = sources;
 
-    // The name, resolved once. Everything downstream looks the flag up by name: which
-    // uses are left, which imports were orphaned, what the rounds are called. So a
-    // target given as a position, or as the qualified spelling `fr symbols` prints,
-    // has to become the leaf name here and not later.
     let flag_name = {
         let snapshot: Vec<(PathBuf, Language, String)> = sources
             .iter()
@@ -164,13 +129,10 @@ pub fn remove_flag_in_for(
         }
     };
     let flag = &flag_name;
-    // The originals are kept to diff against at the end.
+    // Keep the originals to diff against at the end.
     let originals = sources.clone();
 
-    // Only symbols that had a use before any of this started can be *orphaned* by
-    // the cascade. Anything already unreferenced was unused before we arrived and is
-    // not this refactoring's business. Removing it would turn a flag cleanup into an
-    // unrelated purge of the workspace.
+    // Only symbols that had a use before any of this started can be *orphaned* by the cascade.
     let initially_used: HashSet<(String, PathBuf)> = {
         let snapshot: Vec<(PathBuf, Language, String)> = sources
             .iter()
@@ -185,10 +147,7 @@ pub fn remove_flag_in_for(
             .collect()
     };
 
-    // Which imports were unused before any of this started. Only an import the cascade itself
-    // killed is the cascade's business. One that was already dead is a tidy-up of the whole
-    // workspace, which is `fr imports` and not this. The same rule `initially_used` applies to
-    // symbols.
+    // Which imports were unused before any of this started.
     let already_dead_imports: HashSet<(PathBuf, Span)> = {
         let snapshot: Vec<(PathBuf, Language, String)> = sources
             .iter()
@@ -208,8 +167,6 @@ pub fn remove_flag_in_for(
     let mut rounds = Vec::new();
     let mut removed_definition = false;
     let mut unfinished = Vec::new();
-    // Read once, in the round that still has the declaration to read it from. Every
-    // later round asks about uses of a flag whose definition has already gone.
     let mut flag_kind = SymbolKind::Constant;
 
     for round in 0..MAX_ROUNDS {
@@ -229,8 +186,8 @@ pub fn remove_flag_in_for(
                 Some((substituted, kind)) => {
                     flag_kind = kind;
                     removed_definition = true;
-                    // An empty substitution means the flag is there and not one use of
-                    // it could be rewritten. The loop ends and every reason is reported.
+                    // An empty substitution means the flag stands and no use of it
+                    // rewrote.
                     if !substituted.is_empty() {
                         rounds.push(RoundSummary {
                             description: format!("replaced uses of {flag} with {value}"),
@@ -302,9 +259,8 @@ pub fn remove_flag_in_for(
         }
     }
 
-    // A cascade that changed nothing is a refusal, and reporting it as a plan of zero
-    // edits would read as success. The reasons are already gathered, so they are what
-    // the caller is told.
+    // A cascade that changed nothing is a refusal, and reporting it as a plan of zero edits
+    // would read as success.
     if edits.is_empty() {
         anyhow::bail!(
             "nothing about '{flag}' could be removed; nothing was changed:\n  {}",
@@ -332,13 +288,6 @@ fn distinct_files(changes: &[Change]) -> usize {
 }
 
 /// Replace every use of the flag with a literal, and delete its definition.
-///
-/// Uses it will not touch are left alone, and [`remaining_uses`] names them all against the
-/// text the caller will be looking at.
-///
-/// The definition goes only when every use went with it. A use the substitution declined still
-/// reads the flag, and deleting the declaration under it changes what the program does.
-/// `USE_NEW=true` with `${USE_NEW:-no}` left behind starts reading `no`.
 fn substitute_flag(
     index: &Index,
     sources: &BTreeMap<PathBuf, (Language, String)>,
@@ -382,10 +331,8 @@ fn substitute_flag(
     };
     let flag = &definition.name;
 
-    // The matrix asks `supports_cascade` and the command did not, so `n/a` was a claim
-    // with nothing behind it. Removing an XML entity flag rewrote `&use_new;` into
-    // `&true;`, an entity no document defines, and took the prolog with it, output
-    // xmllint rejects. The predicate the matrix already publishes is the one to ask.
+    // The matrix asks `supports_cascade` and the command did not, so `n/a` was a claim with
+    // nothing behind it.
     if !supports_cascade(definition.language) {
         return Err(crate::refactor::Refusal::Unsupported {
             operation: "removing a flag".into(),
@@ -414,14 +361,10 @@ fn substitute_flag(
     }
 
     // Nothing reads the name, so there is no flag to remove: no use to substitute, no
-    // conditional to collapse, nothing to prune. What is left is one declaration nobody
-    // reads, and deleting that is a different command with a different set of checks.
-    // Answering it here removed a Next.js route handler called `DELETE`.
+    // conditional to collapse, nothing to prune.
     if index.references_to(definition.id).is_empty() {
         // "Nothing reads it" is a claim about the whole workspace, and the weakly resolved
-        // occurrences are the evidence against it. `fr rename` lists them for review. A
-        // refusal that ignored them contradicted the tool's own answer, and sent the
-        // reader to `fr delete` over a live flag.
+        // occurrences are the evidence against it.
         let weak = weak_occurrences(index, sources, definition);
         if !weak.is_empty() {
             anyhow::bail!(
@@ -438,10 +381,8 @@ fn substitute_flag(
         );
     }
 
-    // A name means one thing everywhere it is written, so one use that names a type settles
-    // what the name is for all of them. Zig makes the evidence necessary as well as sufficient:
-    // a type is a value there. So `expectEqualSlices(Position, …)` puts a type in argument
-    // position where nothing but the declaration elsewhere says so.
+    // A name means one thing throughout, so one use naming a type settles every other
+    // use.
     if definition.language != Language::Hcl && definition.language != Language::Bash {
         for reference in index.references_to(definition.id) {
             let Some((language, source)) = sources.get(&reference.file) else {
@@ -489,20 +430,13 @@ fn substitute_flag(
             UseSite::Replace(span) => {
                 changes.push((reference.file.clone(), span, literal.to_string()))
             }
-            // The statement stays for now and the dead-import round removes it, once the
-            // uses under it are gone. It reads nothing, so the declaration is still free
-            // to go with the rest.
             UseSite::Binds(_) => {}
             UseSite::Refuse(_) => every_use_was_rewritten = false,
         }
     }
 
     if every_use_was_rewritten {
-        // The definition goes with whatever holds it and then with its whole line. `fr
-        // delete` takes the same two steps, because both answer the same question. Taking the
-        // symbol's own span instead removed `NEW_UI = true` from `const NEW_UI = true;` and
-        // left `const ;` behind. The edit guard caught it, so `fr remove-flag` did not damage
-        // a TypeScript file, it never worked on one.
+        // The definition goes with whatever holds it and then with its whole line.
         let definition_span = match sources.get(&definition.file) {
             Some((language, source)) => {
                 let widened = match parsers.parse(*language, source) {
@@ -521,11 +455,6 @@ fn substitute_flag(
 }
 
 /// Occurrences of the flag's name that resolution could not tie to the declaration.
-///
-/// A read through a module object was one of these until the index learned to follow the
-/// import. `flags.USE_NEW_TAX` sat on a line the tool prints, under a refusal saying
-/// nothing read the flag. Whatever is left over is what `fr rename` shows a reader and
-/// declines to rewrite, and a refusal has to account for the same occurrences.
 fn weak_occurrences(
     index: &Index,
     sources: &BTreeMap<PathBuf, (Language, String)>,
@@ -557,23 +486,9 @@ fn weak_occurrences(
 }
 
 /// What the declaration says the named symbol holds, where that rules a flag out.
-///
-/// Removing a flag replaces every use of a name with `true` or `false`. A Zig module import and
-/// a Zig feature flag are both `const`. So the symbol's kind cannot tell the two apart. Asking
-/// to remove `DocumentScope` from a file that opens `const DocumentScope =
-/// @import("DocumentScope.zig")` rewrote a type into `*const true`, text no compiler
-/// accepts. The declaration says what the kind cannot.
-///
-/// The question is whether the source rules a boolean out, and not whether the source proves
-/// one. A flag read from a call, `const enabled = feature("new-ui")`, states nothing about its
-/// type, and that is the case this command exists for.
-///
-/// The answer is prose, because it goes straight into the sentence the caller prints.
 fn not_a_flag(symbol: &crate::model::Symbol, parsed: &Parsed, source: &str) -> Option<String> {
     // A `Field` is a struct member in Go and Rust and never a flag, but Java has no top level
-    // below the type. So its constants are *all* fields: `public static final boolean
-    // NEW_CHECKOUT` is the idiomatic feature flag and there is nowhere else to put it. The kind
-    // alone cannot tell the two apart; the language can.
+    // below the type.
     let field_is_a_constant = symbol.language == Language::Java;
     let kind_can_hold_a_flag = matches!(
         symbol.kind,
@@ -587,15 +502,13 @@ fn not_a_flag(symbol: &crate::model::Symbol, parsed: &Parsed, source: &str) -> O
         .root()
         .descendant_for_byte_range(symbol.full_span.start, symbol.full_span.end)?;
 
-    // Terraform states a variable's type in an argument and not in a grammar field, so
-    // it is read on its own terms.
+    // Terraform states a variable's type in an argument rather than a grammar field, so
+    // read it on its own terms.
     if symbol.language == Language::Hcl {
         return hcl_not_a_flag(declaration, source);
     }
 
-    // The exception made for Java fields is for `static final boolean`. An enum constant
-    // is a different thing written in the same place: it names one member of a type, and
-    // no boolean stands for it.
+    // The exception made for Java fields is for `static final boolean`.
     if declaration.kind() == "enum_constant" {
         return Some("is an enum constant".into());
     }
@@ -619,10 +532,6 @@ fn not_a_flag(symbol: &crate::model::Symbol, parsed: &Parsed, source: &str) -> O
 }
 
 /// What a bound expression holds, where that rules a boolean out.
-///
-/// A literal states its own kind in every grammar here, so the node's name is the
-/// answer. Anything that is not a literal, a call, another name, an operator, states
-/// nothing, and stating nothing is not grounds to refuse.
 fn what_the_value_holds(value: Node<'_>, source: &str) -> Option<String> {
     let held = match value.kind() {
         "true" | "false" | "boolean" | "boolean_literal" | "bool_lit" => return None,
@@ -669,9 +578,6 @@ fn what_the_value_holds(value: Node<'_>, source: &str) -> Option<String> {
 }
 
 /// Whether an expression opens another file.
-///
-/// Zig spells this as a builtin call and JavaScript as an ordinary one. Both bind a
-/// module, and no boolean stands in for a module.
 fn binds_a_module(value: Node<'_>, source: &str) -> bool {
     let callee = match value.kind() {
         "builtin_function" => value.named_child(0),
@@ -693,10 +599,6 @@ fn is_a_boolean_type(stated: &str) -> bool {
 }
 
 /// What a Terraform variable block says it holds.
-///
-/// Terraform writes the type as an argument, so there is no grammar field to read. A variable
-/// that states no type at all is the ordinary case and says nothing either way; `any` is
-/// Terraform's own word for unconstrained. A boolean is one of the things it allows.
 fn hcl_not_a_flag(block: Node<'_>, source: &str) -> Option<String> {
     if let Some(stated) = hcl_block_argument(block, source, "type") {
         return match is_a_boolean_type(&stated) || stated == "any" {
@@ -741,15 +643,6 @@ fn hcl_block_argument(block: Node<'_>, source: &str, name: &str) -> Option<Strin
 }
 
 /// Occurrences of the flag's name that outlived the cascade.
-///
-/// Every use the substitution could rewrite is gone by now. Whatever still spells the flag is
-/// something it declined. Either the use takes a form no literal fits, or its resolution was
-/// never strong enough to touch. Finding them in the finished text points the line numbers at
-/// the file the caller will open.
-///
-/// The declaration is read from the finished text as well. Where it survived, it survived
-/// because a use of it did. Reporting it as one more unrewritable use of itself said
-/// something that is not true.
 fn remaining_uses(
     sources: &BTreeMap<PathBuf, (Language, String)>,
     flag: &str,
@@ -823,13 +716,8 @@ fn is_name_token(kind: &str) -> bool {
     kind.ends_with("identifier") || kind == "variable_name"
 }
 
-/// Where the flag's name survives as text after the cascade: strings, comments,
-/// YAML keys and values, shell scripts.
-///
-/// No resolution reaches these, so the cascade cannot rewrite them, and it used to
-/// leave them without a word. The code lost the flag while a chart value or a CI
-/// script kept configuring it. This is the same whole-word sweep `fr rename` warns
-/// with, run over the workspace the cascade leaves behind.
+/// Where the flag's name survives as text after the cascade: strings, comments, YAML keys and
+/// values, shell scripts.
 fn textual_mentions(
     sources: &BTreeMap<PathBuf, (Language, String)>,
     flag: &str,
@@ -879,21 +767,12 @@ fn literal_for(language: Language, value: bool) -> &'static str {
 enum UseSite {
     Replace(Span),
     /// The occurrence binds the name and never reads it, so no literal stands here.
-    ///
-    /// An import is the whole of this case. A refusal would be too strong: binding a name
-    /// is not reading it, so the declaration can still go. The round that drops imports
-    /// nothing uses any more takes the statement away afterwards.
     Binds(String),
-    /// The use cannot be rewritten without changing what the code means.
+    /// Rewriting this use would change what the code means.
     Refuse(String),
 }
 
 /// Widen a reference's span to whatever the literal has to stand in for.
-///
-/// In most languages the identifier *is* the expression, so the reference's own span is the
-/// answer. Shell and HCL both write a use as a name inside a larger piece of syntax, `$FLAG`,
-/// `var.flag`. Replacing only the name would leave the sigil or the namespace stranded in front
-/// of a boolean.
 fn use_site(
     language: Language,
     definition: SymbolKind,
@@ -909,17 +788,6 @@ fn use_site(
 }
 
 /// Where a boolean literal can stand, in a language that writes a use as the name.
-///
-/// Most uses are the reference's own span, so most of this is the identity. Three are
-/// not, and each of the three produced text no compiler accepts:
-///
-/// * A name is also how a type is written. Replacing a use in type position gave
-///   `pub fn tokenToPosition(…) true` where the source said `… Position`.
-/// * A flag held by a function is read by calling it, so the literal replaces the call
-///   and not the callee. Replacing the callee gave `if true()`, which then never
-///   collapsed, because `true()` is not a boolean literal.
-/// * Reading a field of the flag reads into its value, and a boolean has no field.
-/// * An import binds the name for the file and reads nothing, so no literal stands there.
 fn general_use_site(definition: SymbolKind, parsed: &Parsed, source: &str, span: Span) -> UseSite {
     let Some(node) = parsed
         .root()
@@ -928,9 +796,7 @@ fn general_use_site(definition: SymbolKind, parsed: &Parsed, source: &str, span:
         return UseSite::Replace(span);
     };
 
-    // Before anything about the value, because an import states nothing about one. Python
-    // writes the bound name bare. So `from app.flags import USE_NEW_TAX` became `from
-    // app.flags import True`, and the final parse gate threw the cascade away.
+    // Before anything about the value, because an import states nothing about one.
     if names_an_import(node) {
         return UseSite::Binds(format!(
             "`{}` is bound by an import here, which names the flag and does not read it",
@@ -950,8 +816,7 @@ fn general_use_site(definition: SymbolKind, parsed: &Parsed, source: &str, span:
     }
 
     if let Some(call) = call_around(node) {
-        // Only a function is read by calling it. A boolean that is called was already
-        // broken before this arrived, and writing `true()` over it would hide that.
+        // Only a call reads a function.
         return match definition == SymbolKind::Function {
             true => UseSite::Replace(Span::from(call)),
             false => UseSite::Refuse(format!(
@@ -961,8 +826,8 @@ fn general_use_site(definition: SymbolKind, parsed: &Parsed, source: &str, span:
         };
     }
 
-    // A flag held by a function and named without being called is the function itself and not
-    // its result. `let f = is_on;` holds a function. `let f = true;` does not.
+    // A flag a function holds, named without a call, means the function and not its
+    // result.
     if definition == SymbolKind::Function {
         return UseSite::Refuse(format!(
             "`{}` names the flag's function without calling it",
@@ -985,10 +850,6 @@ fn general_use_site(definition: SymbolKind, parsed: &Parsed, source: &str, span:
 }
 
 /// The span of a use written as a member of something else, `Flags.SHINY`.
-///
-/// The qualifier and the name together read the value, so the literal stands for
-/// both. Replacing the name alone wrote `if (Flags.true)`, which no compiler accepts,
-/// and `fr remove-flag --write` put it on disk.
 fn qualified_use(node: Node<'_>, parent: Node<'_>) -> Option<Span> {
     let member = match parent.kind() {
         "field_expression" | "field_access" | "selector_expression" => {
@@ -1006,11 +867,6 @@ fn qualified_use(node: Node<'_>, parent: Node<'_>) -> Option<Span> {
 }
 
 /// Is this node part of an import statement?
-///
-/// An import names the flag without reading it, so a boolean cannot stand there.
-/// `use crate::flags::SHINY;` rewritten whole reads `use true;`, and Python's `from
-/// app.flags import USE_NEW_TAX` reads `from app.flags import True`. The cascade
-/// drops an import its own edits orphaned, in a later round.
 fn names_an_import(node: Node<'_>) -> bool {
     let mut current = Some(node);
     while let Some(here) = current {
@@ -1023,11 +879,6 @@ fn names_an_import(node: Node<'_>) -> bool {
 }
 
 /// Whether a use of a name is a use of it as a type.
-///
-/// A type is written as a name, so nothing about the name says which it is. What says it is
-/// the field the grammar hangs it from. Every language here holds a declared type under
-/// `type`, and a declared result under `return_type` or `result`. Each wraps it in a node or
-/// two on the way, as in `*const P`, `P[]` and `: P`.
 fn names_a_type(node: Node<'_>) -> bool {
     let mut current = node;
     for _ in 0..4 {
@@ -1059,8 +910,8 @@ fn call_around(node: Node<'_>) -> Option<Node<'_>> {
     if is_the_callee(node, parent) {
         return Some(parent);
     }
-    // `config.flag()`, the reference names the member, and the member access is what
-    // the call calls. The literal replaces the whole call, namespace included.
+    // In `config.flag()` the reference names the member, and the call calls the member
+    // access.
     if member_of(parent) == Some(node) {
         let grandparent = parent.parent()?;
         if is_the_callee(parent, grandparent) {
@@ -1125,9 +976,7 @@ fn bash_use_site(parsed: &Parsed, source: &str, span: Span) -> UseSite {
     let expansion = match parent.kind() {
         "simple_expansion" => parent,
         "expansion" => {
-            // `${FLAG:-default}`, `${#FLAG}` and `${FLAG[0]}` mean more than the value. Taking
-            // the whole expansion would drop the rest of it, and taking the name alone would
-            // leave `${true:-default}` behind.
+            // `${FLAG:-default}`, `${#FLAG}` and `${FLAG[0]}` mean more than the value.
             if parent.child_by_field_name("operator").is_some() || parent.named_child_count() != 1 {
                 return UseSite::Refuse(format!(
                     "`{}` is not a plain expansion of the flag",
@@ -1149,8 +998,7 @@ fn bash_use_site(parsed: &Parsed, source: &str, span: Span) -> UseSite {
         }
     };
 
-    // `"$FLAG"` on its own is the quoted value. The quotes are what stop a shell test from
-    // reading as a literal, so the string goes with it.
+    // `"$FLAG"` on its own is the quoted value.
     if let Some(string) = expansion.parent() {
         let quoted = format!("\"{}\"", Span::from(expansion).text(source));
         if string.kind() == "string" && Span::from(string).text(source) == quoted {
@@ -1231,8 +1079,8 @@ fn simplify_constants(
             indexed: &indexed,
         };
         let mut found = constant_conditionals(&parsed, source, *language, &context).changes;
-        // One change per file per round: spans shift as soon as one is applied, and
-        // the next round re-parses anyway.
+        // One change per file per round: the first shifts every span after it, and the
+        // next round re-parses.
         if let Some(change) = found.pop() {
             changes.push((path.clone(), change.0, change.1));
         }
@@ -1241,9 +1089,6 @@ fn simplify_constants(
 }
 
 /// What the collapse step needs to know beyond the file in front of it.
-///
-/// Terraform scopes by directory. What one file may do to a resource depends on how the files
-/// beside it address that resource.
 struct Context<'a> {
     /// The file as it stood before the cascade started.
     original: &'a str,
@@ -1287,15 +1132,14 @@ fn named_nodes<'a>(parsed: &'a Parsed) -> Vec<Node<'a>> {
 
 /// The truth value a boolean literal spells, in any of the supported languages.
 fn boolean_literal(text: &str) -> Option<bool> {
-    // Java's `if` names its condition as the *parenthesised* expression, brackets and
-    // all, so the literal arrives as `(true)`. Peeling a matched pair costs nothing in
-    // the languages that do not, where a redundant `if ((true))` is still a constant.
+    // Java's `if` names its condition as the *parenthesised* expression, brackets and all, so
+    // the literal arrives as `(true)`.
     let mut text = text.trim();
     while let Some(inner) = text.strip_prefix('(').and_then(|t| t.strip_suffix(')')) {
         text = inner.trim();
     }
-    // A flag read under negation substitutes into `if !true` or `if not True`, which is
-    // as constant as the literal itself. Without this the dead branch stayed behind.
+    // A flag read under negation substitutes into `if !true` or `if not True`, which is as
+    // constant as the literal itself.
     if let Some(rest) = text.strip_prefix('!') {
         return boolean_literal(rest).map(|truth| !truth);
     }
@@ -1347,9 +1191,6 @@ fn generic_conditionals(parsed: &Parsed, source: &str) -> Collapse {
             None => String::new(),
         };
         // A branch that always leaves takes the rest of its block with it.
-        // `if FLAG { return a } return b` folded to `return a; return b`. It
-        // compiles and answers the same, and `go vet` reports unreachable code
-        // against the user.
         let span = match kept.filter(|branch| always_leaves(*branch)) {
             Some(_) => Span::new(span.start, trailing_end(node)),
             None => span,
@@ -1360,10 +1201,6 @@ fn generic_conditionals(parsed: &Parsed, source: &str) -> Collapse {
 }
 
 /// Does this block always leave, so nothing after it can run?
-///
-/// Only the statements every language here spells the same way. A `panic` or a
-/// process exit is a call. Telling one from an ordinary call is a question
-/// about the callee that this pass cannot answer.
 fn always_leaves(block: Node<'_>) -> bool {
     // Go puts a `statement_list` between a block and its statements, so the
     // block's own last child is that wrapper and never the `return` inside it.
@@ -1378,8 +1215,6 @@ fn always_leaves(block: Node<'_>) -> bool {
             continue;
         }
         // Rust spells a return as an expression, wrapped in a statement.
-        // Matching statement kinds alone left Rust keeping the dead tail while
-        // Go dropped it.
         let last = match last.kind() {
             "expression_statement" => last.named_child(0).unwrap_or(last),
             _ => last,
@@ -1393,11 +1228,8 @@ fn always_leaves(block: Node<'_>) -> bool {
 }
 
 /// Where this node's block ends, counting every sibling after it.
-///
-/// The node's own end when nothing follows, so a caller can take it either way.
 fn trailing_end(node: Node<'_>) -> usize {
-    // Rust's `if` is an expression, wrapped in a statement. So the `if` node
-    // has no siblings, and what follows it hangs off its parent.
+    // Rust's `if` is an expression, wrapped in a statement.
     let mut node = node;
     while node
         .parent()
@@ -1424,10 +1256,6 @@ fn else_body(alternative: Node<'_>) -> Node<'_> {
 }
 
 /// Zig `if`s, in both the statement and the expression spelling.
-///
-/// The statement calls its branches `body` and, one level down, inside the `else_clause`,
-/// `alternative`. So the field names the other grammars share do not find them. The expression
-/// names neither branch at all: they are positional, separated by the `else` keyword.
 fn zig_conditionals(parsed: &Parsed, source: &str) -> Collapse {
     let mut out = Collapse::default();
 
@@ -1480,8 +1308,6 @@ fn zig_conditionals(parsed: &Parsed, source: &str) -> Collapse {
             Some(branch) => zig_branch_text(branch, source, &indent, terminated),
         };
         // A branch that always leaves takes the rest of its block with it.
-        // Zig refuses unreachable code outright, so the fold produced a file
-        // its own compiler would not read.
         let span = match kept.filter(|branch| always_leaves(*branch)) {
             Some(_) => Span::new(span.start, trailing_end(node)),
             None => span,
@@ -1521,10 +1347,6 @@ fn zig_expression_branches<'a>(children: &[Node<'a>], truth: bool) -> Result<Nod
 }
 
 /// A Zig branch as it reads once the `if` around it is gone.
-///
-/// A braced branch loses its braces and a level of indentation. An unbraced one puts an
-/// expression where a statement now has to stand. The semicolon that ended the `if` belonged
-/// to the statement rather than the branch. So it has to be carried over.
 fn zig_branch_text(branch: Node<'_>, source: &str, indent: &str, terminated: bool) -> String {
     if let Some(block) = zig_block(branch) {
         return dedent_block(Span::from(block), source, indent);
@@ -1538,9 +1360,6 @@ fn zig_branch_text(branch: Node<'_>, source: &str, indent: &str, terminated: boo
 }
 
 /// The block a branch wraps, if it is braced and unlabelled.
-///
-/// A labelled block stays whole. `blk: { … }` is a statement in its own right, and dropping
-/// the label would strand the `break :blk` inside it.
 fn zig_block(node: Node<'_>) -> Option<Node<'_>> {
     if node.kind() == "block" {
         return Some(node);
@@ -1557,10 +1376,6 @@ fn zig_block(node: Node<'_>) -> Option<Node<'_>> {
 }
 
 /// Shell `if`s whose test provably succeeds or fails.
-///
-/// Shell has no boolean type: substituting the flag leaves a *string* where the test
-/// used to read a variable. Only some of the ways a script can test a string are
-/// decidable from the text alone. Everything else is reported and not guessed.
 fn bash_conditionals(parsed: &Parsed, source: &str) -> Collapse {
     let mut out = Collapse::default();
 
@@ -1614,9 +1429,6 @@ fn bash_conditionals(parsed: &Parsed, source: &str) -> Collapse {
 }
 
 /// A shell `if`'s two branches, delimited by its keywords.
-///
-/// The grammar gives `if_statement` a `condition` field and nothing else. `then`, `else` and
-/// `fi` are bare tokens and the statements sit between them as ordinary children.
 fn bash_if_parts<'a>(children: &[Node<'a>], node: Node<'a>) -> Option<(Span, Option<Span>)> {
     let then_end = children
         .iter()
@@ -1651,10 +1463,6 @@ fn bash_if_parts<'a>(children: &[Node<'a>], node: Node<'a>) -> Option<(Span, Opt
 }
 
 /// Whether a shell condition provably succeeds.
-///
-/// `Ok(None)` means the test says nothing about the flag, an ordinary `[ -f path ]`
-/// the cascade should walk past. `Err` means it does mention a literal the
-/// substitution put there, but in a form whose outcome is not decidable.
 fn bash_truth(condition: Node<'_>, source: &str) -> Result<Option<bool>, String> {
     let text = Span::from(condition).text(source).trim();
     if let Some(truth) = bash_evaluate(condition, source) {
@@ -1770,8 +1578,8 @@ fn bash_test_expression(node: Node<'_>, source: &str, patterned: bool) -> Option
 }
 
 fn bash_compare(left: &str, operator: &str, right: &str, patterned: bool) -> Option<bool> {
-    // Inside `[[ ]]` the right operand is a glob, and matching one is not string
-    // equality, so a pattern is left for a human.
+    // Leave a pattern for a person: inside `[[ ]]` the right operand globs, and matching
+    // one differs from string equality.
     if patterned && right.contains(['*', '?', '[']) {
         return None;
     }
@@ -1815,14 +1623,6 @@ fn bash_literal(node: Node<'_>, source: &str) -> Option<String> {
 }
 
 /// Terraform's flag is a boolean `variable`, and its conditionals are expressions.
-///
-/// Three shapes follow from substituting it. A `cond ? a : b` collapses to a branch. A `count`
-/// of 1 is the default and the argument goes. A `count` of 0, or a `for_each` over nothing,
-/// means the block never exists at all. So the block goes, and whatever addressed it is
-/// reported as dangling and not deleted in turn.
-///
-/// Each of the last two only fires where the cascade itself produced the value. A `count = 0`
-/// that was already written by hand belongs to the author. It was not to this refactoring.
 fn hcl_constants(parsed: &Parsed, source: &str, context: &Context<'_>) -> Collapse {
     let mut out = Collapse::default();
     let before = hcl_arguments(context.original);
@@ -1881,19 +1681,15 @@ fn hcl_constants(parsed: &Parsed, source: &str, context: &Context<'_>) -> Collap
         }
     }
 
-    // Applied one per round, last first: the conditionals have to collapse before the
-    // `count` they feed can be read.
+    // Apply one per round, last first: the conditionals collapse before anything reads
+    // the `count` they feed.
     out.changes.extend(blocks);
     out.changes.extend(attributes);
     out.changes.extend(conditionals);
     out
 }
 
-/// May a `count` of 1 be deleted?
-///
-/// `count` is not only a number: it makes the block's address a list and puts a `count.index`
-/// in scope. Deleting it where either of those is used turns a resource that exists into a
-/// configuration that will not plan. So those cases keep the argument and say why.
+/// May this cascade delete a `count` of 1?
 fn count_removable(
     block: Node<'_>,
     attribute: Node<'_>,
@@ -1932,7 +1728,7 @@ fn hcl_instance_count(name: &str, value: &str) -> Option<usize> {
     }
 }
 
-/// `count` and `for_each` as they were written before the cascade, by block address.
+/// `count` and `for_each` as they stood before the cascade, by block address.
 fn hcl_arguments(source: &str) -> BTreeMap<String, String> {
     let mut out = BTreeMap::new();
     if source.is_empty() {
@@ -2035,9 +1831,6 @@ fn hcl_addresses(parsed: &Parsed, source: &str) -> BTreeSet<String> {
 }
 
 /// Resource addresses read with an index or a splat, across the whole workspace.
-///
-/// `aws_s3_bucket.logs[0]` and `aws_s3_bucket.logs[*].arn` both say the resource is
-/// a list, which it is only while it has a `count`.
 fn hcl_indexed_addresses(
     sources: &BTreeMap<PathBuf, (Language, String)>,
 ) -> Result<BTreeSet<String>> {
@@ -2074,11 +1867,7 @@ fn hcl_indexed_addresses(
     Ok(out)
 }
 
-/// Addresses still written down after the resource they name has been deleted.
-///
-/// Terraform has no way to make these harmless: an expression naming a resource that
-/// no longer exists is an error at plan time. Deleting them in turn would cascade a
-/// flag removal into arbitrary configuration changes, so they are handed back instead.
+/// Addresses still standing after the cascade deleted the resource they name.
 fn dangling_resource_uses(
     sources: &BTreeMap<PathBuf, (Language, String)>,
     originals: &BTreeMap<PathBuf, (Language, String)>,
@@ -2138,9 +1927,6 @@ fn dangling_resource_uses(
 }
 
 /// Everything the cascade substituted into but could not finish collapsing.
-///
-/// Run once, against the sources the cascade settled on, so a construct it walked
-/// past twelve times is named once.
 fn unfinished_work(
     sources: &BTreeMap<PathBuf, (Language, String)>,
     originals: &BTreeMap<PathBuf, (Language, String)>,
@@ -2174,10 +1960,6 @@ fn unfinished_work(
 }
 
 /// Delete symbols that nothing references any more.
-///
-/// This considers functions and constants only, and only ones the cascade could plausibly
-/// have orphaned. A symbol that was already unused beforehand belongs to somebody else's
-/// clean-up.
 fn remove_orphans(
     index: &Index,
     sources: &BTreeMap<PathBuf, (Language, String)>,
@@ -2215,15 +1997,6 @@ fn remove_orphans(
 }
 
 /// Imports the cascade's own edits left with nothing naming them.
-///
-/// A dead branch is often the only place an import was used. Taking the branch away leaves the
-/// statement behind. `go build` calls that an error outright, and Rust a warning that this
-/// project's own CI turns into one. The output parses either way, which is why sweeping for
-/// parse errors never saw it.
-///
-/// Which imports are dead is not asked here. `fr imports` already answers it, and it knows
-/// about uses no query can see. A Rust trait used through its methods and a JSX pragma in a
-/// comment both count. That a second answer would get wrong.
 fn remove_dead_imports(
     index: &Index,
     sources: &BTreeMap<PathBuf, (Language, String)>,
@@ -2242,9 +2015,6 @@ fn remove_dead_imports(
 }
 
 /// What `fr imports` would make of this file's import statements, region by region.
-///
-/// Take the replacements rather than the removals. A statement may lose one of the names it
-/// binds and keep the others, and treating that as a removal deleted the live ones with it.
 fn dead_import_spans(index: &Index, path: &Path, source: &str) -> Vec<(Span, String)> {
     let Ok(plan) = crate::refactor::imports::plan_in(index, path, source) else {
         return Vec::new();
@@ -2267,11 +2037,6 @@ fn dedent_block(block: Span, source: &str, indent: &str) -> String {
 }
 
 /// Re-indent a run of lines so its shallowest line sits at `indent`.
-///
-/// Taking the shallowest line as the baseline keeps the nesting inside the branch intact.
-/// Every line moves by the same amount, so relative depth survives. The first line is
-/// returned bare, because the replacement starts where the construct it replaces did and that
-/// column is already occupied.
 fn dedent_to(text: &str, indent: &str) -> String {
     let lines: Vec<&str> = text
         .lines()
@@ -2339,8 +2104,7 @@ fn apply_in_memory(
         for (_, span, replacement) in applied.iter().rev() {
             // Deleting a statement should take its line, not leave a blank one.
             let range = if replacement.is_empty() {
-                // A definition usually spans several lines, so the deletion covers all of
-                // them. Taking only the first leaves the body behind as a stray blank region.
+                // A definition usually spans several lines, so the deletion covers all of them.
                 let first = crate::edit::full_line_span(&updated, span.start);
                 let last = crate::edit::full_line_span(
                     &updated,
@@ -2362,17 +2126,11 @@ fn apply_in_memory(
     Ok(())
 }
 
-/// Extend a whole-line deletion over the blank line that separated it from its
-/// neighbour, so removing a definition does not leave a widening gap behind.
-///
-/// Only one blank line is taken, and only when the deleted text had a blank line
-/// before it or began the file. Otherwise the blank belonged to the code that
-/// remains, as a separator it still needs.
+/// Extend a whole-line deletion over the blank line that separated it from its neighbour, so
+/// removing a definition does not leave a widening gap behind.
 fn widen_to_blank_separator(source: &str, line: Span) -> Span {
     let preceded_by_blank = line.start == 0 || {
-        // Strip exactly the newline that ends the previous line, then look at that
-        // line. Trimming every trailing newline would skip past the blank entirely
-        // and inspect the code above it.
+        // Strip exactly the newline that ends the previous line, then look at that line.
         let before = &source[..line.start];
         let previous = before.strip_suffix('\n').unwrap_or(before);
         previous
@@ -2579,8 +2337,8 @@ mod tests {
 
     #[test]
     fn a_count_the_author_wrote_is_left_alone() {
-        // Only a `count` this cascade produced may be removed; one that was already
-        // there is the author's. It is not ours.
+        // Remove only a `count` this cascade produced. One that stood before belongs to
+        // the author.
         let source = "resource \"a\" \"b\" {\n  count = 1\n}\n";
         assert!(collapse_against(Language::Hcl, source, source)
             .changes

@@ -1,9 +1,4 @@
 //! `__init__` is how Python spells a public constructor.
-//!
-//! Its underscores were read as Python's mark for "internal", so Java produced
-//! a `private Account(...)` on a public class and Rust a private `fn new`.
-//! Neither type could be built from outside the file that declared it, and
-//! nothing said so.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;

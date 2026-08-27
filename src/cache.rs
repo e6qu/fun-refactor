@@ -1,13 +1,4 @@
 //! A persistent, content-addressed cache of extracted facts.
-//!
-//! Extraction is the expensive half of indexing, and its result depends on exactly
-//! two things: the bytes of the file and the queries used to read them. So entries are
-//! keyed by a hash of the content and stored under a directory named for a hash of the
-//! query set, change a query file and every stale entry becomes unreachable rather
-//! than wrong.
-//!
-//! Because the key is the content, two files with identical bytes share one entry, and
-//! moving a file costs nothing to re-index.
 
 use crate::lang::Language;
 use crate::model::FileFacts;
@@ -18,8 +9,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 /// Bumped when [`FileFacts`] changes shape in a way old entries cannot satisfy.
 const SCHEMA_VERSION: u32 = 5;
 
-/// Hits and misses since this cache was opened. Two `usize`s a caller could read in
-/// either order as a pair.
+/// Hits and misses since this cache was opened.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CacheStats {
     pub hits: usize,
@@ -37,21 +27,15 @@ pub struct Cache {
 }
 
 impl Cache {
-    /// Open the cache for the current query set, or `None` when no location is
-    /// available. A missing cache is never an error: it only costs time.
+    /// Open the cache for the current query set, or `None` when no location is available.
     pub fn open() -> Option<Cache> {
         Cache::open_at(&cache_root()?)
     }
 
     /// Open the cache under an explicit base directory.
-    ///
-    /// The query fingerprint still names the subdirectory, so a caller cannot
-    /// accidentally read entries produced by a different query set.
     pub fn open_at(base: &Path) -> Option<Cache> {
-        // Three things decide whether an entry is still meaningful: the schema, the
-        // queries that produced the facts, and the extractor that interpreted them.
-        // The third is a compile-time hash of the sources that define extraction,
-        // see build.rs for why leaving it out is not survivable.
+        // Three things decide whether an entry is still meaningful: the schema, the queries
+        // that produced the facts, and the extractor that interpreted them.
         let root = base.join(format!(
             "v{SCHEMA_VERSION}-{}-{}",
             query_fingerprint(),
@@ -82,9 +66,6 @@ impl Cache {
     }
 
     /// Look up facts for a key, rewriting their path to the file being indexed.
-    ///
-    /// The stored facts came from whichever file first had these bytes, so the path
-    /// they carry is not necessarily this one.
     pub fn get(&self, key: &str, path: &Path) -> Option<FileFacts> {
         if self.disabled.load(Ordering::Relaxed) {
             return None;
@@ -105,7 +86,7 @@ impl Cache {
                 }
                 Some(facts)
             }
-            // A corrupt or outdated entry is a miss. It is not a failure.
+            // A corrupt or outdated entry is a miss.
             Err(_) => {
                 let _ = std::fs::remove_file(self.entry_path(key));
                 self.misses.fetch_add(1, Ordering::Relaxed);
@@ -114,8 +95,7 @@ impl Cache {
         }
     }
 
-    /// Store facts under a key. Failure to write only costs time, so it is ignored
-    /// beyond disabling further attempts.
+    /// Store facts under a key.
     pub fn put(&self, key: &str, facts: &FileFacts) {
         if self.disabled.load(Ordering::Relaxed) {
             return;
@@ -145,10 +125,6 @@ impl Cache {
     }
 
     /// The stored resolution snapshot for a workspace key, when one exists.
-    ///
-    /// Resolution is a pure function of the merged facts, and it was most of a
-    /// warm command. The entry is `(target, confidence)` per reference, in the
-    /// index's own reference order, which the key's file list pins.
     pub fn get_resolutions(
         &self,
         key: &str,
@@ -232,10 +208,6 @@ impl Cache {
 }
 
 /// Where cache entries live.
-///
-/// `FUN_REFACTOR_CACHE` overrides everything, which tests use. Otherwise the
-/// usual per-user cache location, never the workspace itself, a refactoring tool has
-/// must not write into the repository it is reading.
 fn cache_root() -> Option<PathBuf> {
     if let Some(explicit) = std::env::var_os("FUN_REFACTOR_CACHE") {
         return Some(PathBuf::from(explicit));
@@ -311,8 +283,7 @@ mod tests {
 
     #[test]
     fn identical_content_in_another_file_reuses_the_entry() {
-        // The key is the content, so a copy costs nothing to index. But the facts must come
-        // back pointing at the file that asked for them.
+        // The key is the content, so a copy costs nothing to index.
         let (_dir, cache) = scratch();
         let key = Cache::key(Language::Rust, "fn alpha() {}\n");
         cache.put(&key, &facts_for("original.rs", "alpha"));
@@ -385,15 +356,7 @@ mod tests {
 
     #[test]
     fn the_fingerprint_would_change_if_a_query_did() {
-        // The one above checks the fingerprint is *stable*. A function that ignored the
-        // queries entirely and hashed a constant would pass it, and the cache tells
-        // every reader that "editing a query file makes every stale entry unreachable
-        // and not wrong", which would then be false, and false in the direction
-        // that returns confident answers computed by code that no longer exists.
-        //
-        // The queries are compiled in, so this cannot edit one. What it can do is
-        // recompute the fingerprint the same way over a set with one query altered, and
-        // insist the answer differs.
+        // The one above checks the fingerprint is *stable*.
         fn over(pairs: &[(&str, &str)]) -> String {
             let mut hasher = Sha256::new();
             for (name, source) in pairs {

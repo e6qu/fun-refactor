@@ -1,10 +1,4 @@
 //! A test declared in the source crosses as the target's own test convention.
-//!
-//! Zig declares tests beside the code, named in prose. Rust writes `#[test]`,
-//! Python a `test_…` function, Go a `TestX(t *testing.T)`; those three loops
-//! close, and the readers bring each convention back. TypeScript and Java name
-//! no runner in the language itself. Both write a plain function, and the
-//! note says what is left to wire up.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -96,9 +90,7 @@ fn a_go_test_function_reads_back_as_a_test() {
 
 #[test]
 fn a_test_named_after_a_declaration_crosses_and_steps_aside() {
-    // `test double {}` is Zig's doctest form: a test named by the declaration it
-    // covers. It crosses as a test. Its name steps aside from the declaration it
-    // would otherwise collide with in a target that puts both in one namespace.
+    // `test double {}` is Zig's doctest form: a test named by the declaration it covers.
     let source = "fn double(n: i64) i64 {\n    return n * 2;\n}\n\ntest double {}\n";
     let (_tmp, root) = workspace(&[("d.zig", source)]);
     let plan = transpile::plan(&root.join("d.zig"), Language::Rust).expect("a draft");

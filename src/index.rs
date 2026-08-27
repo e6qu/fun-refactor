@@ -1,10 +1,4 @@
 //! The workspace index: symbols, references and their resolution.
-//!
-//! Extraction is per-file and knows nothing beyond the file it read. The index
-//! brings facts from many files together and turns references into resolved edges.
-//! Each edge carries a [`Confidence`] saying how far the resolution can be trusted
-//! (PLAN.md D4). Refactorings act on `exact`/`import-qualified` edges and refuse to
-//! silently rewrite anything weaker.
 
 use crate::extract::Extractor;
 use crate::lang::{Language, LanguageClass};
@@ -26,16 +20,11 @@ pub struct FileInfo {
     pub symbols: Vec<SymbolId>,
     /// Indices into [`Index::references`] for references in this file.
     pub references: Vec<usize>,
-    /// Why this file's facts are incomplete, empty when they are not. Resolutions from
-    /// a file with any gap are suspect.
+    /// Why this file's facts are incomplete, empty when they are not.
     pub gaps: Vec<FactGap>,
     /// The Kubernetes objects this file declares, which another file addresses by name.
     pub kubernetes_objects: Vec<KubernetesObject>,
     /// Import index by the name it binds, built when resolution runs.
-    ///
-    /// Without it, [`Index::import_binding`] scans every import once per member
-    /// reference. Multiplied by a workspace's references, that scan took a visible
-    /// slice of every warm command.
     binding_of: HashMap<String, usize>,
     /// Positions of glob imports, which can bind any name.
     glob_imports: Vec<usize>,
@@ -75,28 +64,14 @@ pub struct Index {
     /// Files skipped during scanning, reported and not silently dropped.
     pub skipped: Vec<(PathBuf, String)>,
     /// Hash of each file's text as this index read it.
-    ///
-    /// A plan's byte spans are measured against this text. A file that changes
-    /// between the index and the write has those spans spliced into strange text.
-    /// The reparse gate then reports a syntax error instead of the race. The hash
-    /// lets a caller name the race.
     content_hashes: BTreeMap<PathBuf, u64>,
     /// Symbol ids by name, rebuilt when resolution runs.
-    ///
-    /// Without them, [`Index::definition_group`] scans every symbol in the
-    /// workspace, and resolution asks it about most member references'
-    /// candidates. This repository spent most of two minutes in that scan.
     name_buckets: HashMap<String, Vec<SymbolId>>,
-    /// Files by their stem, rebuilt with the name buckets. The dotted-path arm
-    /// of [`Index::resolve_import_path`] scanned every file key per reference.
+    /// Files by their stem, rebuilt with the name buckets.
     files_by_stem: HashMap<String, Vec<PathBuf>>,
     /// `pkg/__init__.py` files by the name of `pkg`, for the same reason.
     inits_by_dir: HashMap<String, Vec<PathBuf>>,
     /// A number no two built indexes share, stamped when the buckets rebuild.
-    ///
-    /// The type analysis memoizes per-symbol answers and parses across calls, and a
-    /// symbol id only means something inside one index. Keying those caches by this
-    /// number makes an answer from a previous index unfindable rather than stale.
     pub generation: u64,
 }
 
@@ -109,10 +84,6 @@ pub fn content_hash_of(text: &str) -> u64 {
 }
 
 /// Extract every file's facts, in parallel where the build has threads.
-///
-/// Extraction shares nothing between files. The browser build has one thread
-/// and takes the plain loop. Each rayon worker keeps its parsers and compiled
-/// queries in a thread-local: paid once per thread, not once per file.
 #[cfg(feature = "cli")]
 fn extract_all(
     sources: &[(PathBuf, Language, String)],
@@ -150,14 +121,6 @@ fn extract_all(
 }
 
 /// Parse one file and extract everything the index keeps about it.
-///
-/// The result depends only on this file's bytes, so a caller may reuse it. An edit
-/// elsewhere cannot change it.
-///
-/// The caller passes in the parsers and the extractor, because [`Extractor::new`]
-/// compiles the whole query set. Building one per file turned a 2.9-second index of
-/// `zod` into a 19-second one. The parallel path pays query compilation once per
-/// thread for the same reason.
 pub fn extract_facts(
     parsers: &Parsers,
     extractor: &mut Extractor,
@@ -185,9 +148,6 @@ impl Index {
     }
 
     /// Build an index, reusing previously extracted facts where the content matches.
-    ///
-    /// Parsing and extraction dominate indexing cost and depend only on a file's bytes and the
-    /// query set. So an unchanged file need never be looked at twice.
     #[cfg(feature = "cli")]
     pub fn build_with_cache(
         scan_result: &ScanResult,
@@ -197,11 +157,6 @@ impl Index {
     }
 
     /// [`Self::build_with_cache`], telling `progress` how far extraction has come.
-    ///
-    /// The callback receives `(files done, files total)` and runs on worker threads.
-    /// A cold index of a large workspace is otherwise most of a minute of silence.
-    /// Only the terminal-facing caller can decide whether a progress line belongs on
-    /// stderr.
     #[cfg(feature = "cli")]
     pub fn build_with_cache_reporting(
         scan_result: &ScanResult,
@@ -217,9 +172,7 @@ impl Index {
                 .push((path.clone(), format!("exceeds size limit ({size} bytes)")));
         }
 
-        // Extraction is per-file and shares nothing, so it parallelises cleanly. The
-        // merge collects the results in scan order and runs serially, because symbol
-        // ids follow position and must not depend on thread timing.
+        // Extraction is per-file and shares nothing, so it parallelises cleanly.
         let total = scan_result.files.len();
         let done = std::sync::atomic::AtomicUsize::new(0);
         type Extracted = (usize, FileFacts, Option<u64>);
@@ -231,7 +184,6 @@ impl Index {
                 let outcome = (|| {
                     let source = match crate::vfs::read_to_string(&file.path) {
                         Ok(s) => s,
-                        // Reported by the caller once results are merged.
                         Err(e) => {
                             return Ok(Some((
                                 position,
@@ -251,10 +203,8 @@ impl Index {
                         }
                     }
 
-                    // Parsers and compiled queries do not cross threads, so each
-                    // worker keeps its own in a thread-local. Building them per
-                    // file recompiles the query set hundreds of times, which was
-                    // most of the cost of a cold index.
+                    // Parsers and compiled queries do not cross threads, so each worker keeps
+                    // its own in a thread-local.
                     thread_local! {
                         static WORKER: std::cell::RefCell<(Parsers, Extractor)> =
                             std::cell::RefCell::new((Parsers::new(), Extractor::new()));
@@ -303,10 +253,7 @@ impl Index {
             index.add_file(facts, file.language);
         }
 
-        // Resolution is a pure function of the merged facts and costs most of a
-        // warm command. An agent running ten commands paid it ten times. The
-        // workspace key is the ordered file list with each file's content hash,
-        // so any change anywhere misses and resolves afresh.
+        // Resolution is a pure function of the merged facts and costs most of a warm command.
         let workspace_key = cache.map(|_| {
             use sha2::{Digest, Sha256};
             let mut hasher = Sha256::new();
@@ -354,11 +301,6 @@ impl Index {
     }
 
     /// Placeholder facts marking a file that could not be read.
-    ///
-    /// Carrying the failure through the parallel stage keeps the reporting in one
-    /// place instead of needing a second channel out of the worker. Only the scanning
-    /// path can meet an unreadable file; sources handed over in memory are already
-    /// read.
     #[cfg(feature = "cli")]
     fn unreadable_placeholder(path: &Path, error: String) -> FileFacts {
         FileFacts {
@@ -369,10 +311,6 @@ impl Index {
     }
 
     /// Build an index from sources held in memory and not read from disk.
-    ///
-    /// A cascading refactoring rewrites files and must re-resolve against the result before
-    /// deciding what to do next. Writing each intermediate state to disk just to read it back
-    /// would be both slower and observable.
     pub fn build_from_sources(sources: &[(PathBuf, Language, String)]) -> Result<Self> {
         let extracted = extract_all(sources)?;
         let mut index = Self::build_from_facts(&extracted);
@@ -385,12 +323,6 @@ impl Index {
     }
 
     /// Build an index from facts that have already been extracted.
-    ///
-    /// Extraction is per-file and depends only on a file's bytes. Resolution is global
-    /// and depends on all of them. Split that way, a caller that changed one file out of
-    /// four hundred re-extracts that one and re-resolves. The other three hundred and
-    /// ninety-nine stay unparsed. The on-disk fact cache splits the work the same way for
-    /// the same reason.
     pub fn build_from_facts(files: &[(PathBuf, Language, FileFacts)]) -> Self {
         let mut index = Index::default();
         for (_, language, facts) in files {
@@ -403,8 +335,6 @@ impl Index {
     /// Merge one file's facts, remapping file-local ids into the global namespace.
     pub fn add_file(&mut self, facts: FileFacts, language: Language) {
         // Reading a file's symbols and references *is* the symbols/def/refs capability.
-        // No later function exists to instrument, because every caller reads the index
-        // directly. The record sits here so the audit measures what ran.
         crate::capabilities::record(crate::capabilities::Capability::Symbols, language);
         let base = self.symbols.len() as u32;
         let remap = |local: SymbolId| SymbolId(local.0 + base);
@@ -459,11 +389,6 @@ impl Index {
     }
 
     /// Files the grammar could not read in full, so their facts are partial.
-    ///
-    /// A file skipped for its size contributes nothing and is listed as skipped. A
-    /// file with syntax errors contributes some of itself, which reads as a whole
-    /// file to every command answering from the index. `fr unused` is the sharp
-    /// edge: it lists deletion candidates from a file it only half read.
     pub fn unparsed(&self) -> impl Iterator<Item = &PathBuf> {
         self.files
             .iter()
@@ -577,10 +502,6 @@ impl Index {
     }
 
     /// Which Terraform namespace addresses this declaration.
-    ///
-    /// `locals { thing = … }` is written as `local.thing` and `variable "thing"` as
-    /// `var.thing`. Both are variables to the index, and the block each is written in
-    /// separates them. A local's container is the `locals` block, and a variable has none.
     fn terraform_namespace(&self, symbol: &Symbol) -> &'static str {
         match symbol.container.and_then(|c| self.symbol(c)) {
             Some(block) if block.name == "locals" => "local",
@@ -589,20 +510,6 @@ impl Index {
     }
 
     /// Resolve a name reached through a `module` block to the declaration it names.
-    ///
-    /// The block's `source` names the configuration. Terraform's unit of scope is a
-    /// directory, so the declaration is in the directory that source resolves to.
-    /// A source outside the workspace names a configuration nothing here can read, and
-    /// the reference stays unresolved. The rename then reports it rather than rewriting
-    /// it.
-    ///
-    /// Both directions of a module's call surface arrive here. An argument written
-    /// inside the block names an input variable. `module.<label>.<name>` written
-    /// outside it names an output. They differ in one thing, the declaration each
-    /// addresses, so one function serves both. `fr flow` and `fr signature` follow
-    /// the output direction from their own code. The index-reading commands
-    /// (`fr usages`, `fr refs`, `fr impact`, `fr delete`) found nothing until it
-    /// was resolved here.
     fn resolve_module_surface(
         &self,
         path: &Path,
@@ -634,9 +541,8 @@ impl Index {
                 ModuleSurface::Input => {
                     s.kind == SymbolKind::Variable && self.terraform_namespace(s) == "var"
                 }
-                // The block-type keyword is the symbol's qualifier, recorded when the
-                // facts were extracted. So an `output "x"` is told from a `provider "x"`
-                // without re-reading the file.
+                // The block-type keyword is the symbol's qualifier, recorded when the facts
+                // were extracted.
                 ModuleSurface::Output => s.qualifier.as_deref() == Some("output"),
             })
             .collect();
@@ -647,18 +553,6 @@ impl Index {
     }
 
     /// Resolve a reference, and cap what the answer is allowed to claim.
-    ///
-    /// [`Confidence::Exact`] means "safe to edit" and [`Confidence::FieldBased`] means "matched
-    /// by member name without knowing the receiver's type". The tier definition decides which
-    /// of those a member access on an ordinary value deserves. It holds however the branch
-    /// below arrived at an answer.
-    ///
-    /// The cap lives here because twenty-eight places pair a symbol with a tier, and each one
-    /// could disagree. Two of them did, with the same reasoning: one definition of the name
-    /// means "there is nothing to be wrong about". Both were wrong the same way, because the
-    /// workspace does not contain every type. A `boto3` client and an `aws-sdk` instance both
-    /// have members this tool has never seen, and `fr rename` edited calls on them. Fixing one
-    /// branch left the other standing.
     fn resolve_one(
         &self,
         reference: &Reference,
@@ -678,20 +572,13 @@ impl Index {
         };
 
         // Four receivers whose type is not a guess: the enclosing instance, a module path, an
-        // import binding, and a type's own name. All four name something the source declared.
-        // Anything else is a value this tool has not typed.
-        //
-        // The fourth was missing, and the omission hid because the rule resolving such a call
-        // lives elsewhere. Java's `Widths.width(…)` found the right method and then had its
-        // confidence capped to `field-based`, which no refactoring rewrites. That rule and
-        // this cap ask the same question, so they ask it here.
+        // import binding, and a type's own name.
         let known = matches!(receiver, "this" | "self")
             || reference.receiver_is_path
             || self.import_binding(info, receiver).is_some()
             || self.names_a_type(receiver, reference.language)
-            // `module.<label>` is a module path in the sense above: the label is bound
-            // by that block's `source`, which names a directory. Nothing is inferred,
-            // so the read of its output is as certain as an import-qualified call.
+            // `module.<label>` is a module path in the sense above: the label is bound by that
+            // block's `source`, which names a directory.
             || (reference.language == Language::Hcl
                 && receiver.starts_with("module.")
                 && self
@@ -706,9 +593,6 @@ impl Index {
     }
 
     /// Whether a name is one this workspace declares a type under.
-    ///
-    /// A receiver is a path when it names a type, whatever punctuation the language uses.
-    /// Rust writes `Type::m` and Java writes `Type.m`. Both say which type owns the member.
     pub(crate) fn names_a_type(&self, name: &str, language: Language) -> bool {
         self.named_like(name).any(|s| {
             s.name == name
@@ -734,25 +618,15 @@ impl Index {
     ) -> (Option<SymbolId>, Confidence) {
         let candidates = match by_name.get(reference.name.as_str()) {
             Some(c) => c.as_slice(),
-            // A string-keyed reference need not name its target verbatim: `#two-words`
-            // is the anchor of a heading written `Two Words`. Step 4 does that
-            // matching, so a miss here is not the end of the search.
+            // A string-keyed reference need not name its target verbatim: `#two-words` is the
+            // anchor of a heading written `Two Words`.
             None if reference.kind == ReferenceKind::StringRef => &[],
-            // Nothing declares the name, and an import may still bind it. `from lib
-            // import helper as h2` declares no `h2` anywhere, so a bare `h2()` died
-            // here and `helper` showed no callers. Step 3 resolves through the
-            // import, looking candidates up under the imported original.
+            // Nothing declares the name, and an import may still bind it.
             None if self.import_binding(info, reference.name.as_str()).is_some() => &[],
             None => return (None, Confidence::NameOnly),
         };
 
-        // 1. Lexical scope: the innermost definition in this file whose scope encloses the
-        //    reference. Shadowing comes out right this way. The next question is whether the
-        //    source wrote the reference as a member of a value or of a package. An import
-        //    binding before the dot means a package-qualified call to a function. Anything
-        //    else means a value, so the name is one of its members. A value receiver leaves
-        //    the type unknown, so only a member can follow it. A path receiver names a type
-        //    or a module, and the rules below match it against a symbol's qualifier.
+        // 1.
         let called_on_a_value = reference.kind == ReferenceKind::Call
             && !reference.receiver_is_path
             && reference
@@ -764,7 +638,7 @@ impl Index {
             && reference.receiver.is_none()
             && reference.language.members_always_have_a_receiver();
         // Written as a member of something: `x.field`, a call on a value, or a dotted name
-        // inside a macro. In the macro case the grammar recorded the tokens and no receiver.
+        // inside a macro.
         let member_access = reference.kind == ReferenceKind::Field
             || called_on_a_value
             || reference.member_in_macro;
@@ -774,22 +648,14 @@ impl Index {
             .imports
             .iter()
             .any(|import| import.span.contains(reference.span));
-        // The chain is built once per reference. Computed inside the closure
-        // below, it allocated a fresh chain for every candidate of every
-        // reference.
         let own_scopes = self.scope_chain(info, reference.scope);
         let plausible = |s: &Symbol| {
-            // A candidate in another language is only a candidate where the two
-            // languages have a way of naming each other's declarations. Without this
-            // a Rust `out.push(…)` resolved to a Zig `Ring.push`.
+            // A candidate in another language is only a candidate where the two languages have
+            // a way of naming each other's declarations.
             if !crate::lang::may_resolve_across(reference.language, s.language, s.kind) {
                 return false;
             }
-            // A binding is not in scope inside its own initialiser. Go's `templatesDirExists :=
-            // check(templatesDirExists(p))` calls the package function and then shadows it.
-            // Rust's `let x = x + 1` reads the outer `x`; Python's `x = f(x)` reads the
-            // previous one. Resolving to the name being declared makes the thing it was
-            // declared from look dead.
+            // A binding is not in scope inside its own initialiser.
             if matches!(
                 s.kind,
                 SymbolKind::Variable | SymbolKind::Constant | SymbolKind::Parameter
@@ -800,11 +666,6 @@ impl Index {
                 return false;
             }
             // A local is not usable outside its own scope, in any language here.
-            // Left in the candidate set, a sibling function's `stmt` parameter
-            // answered a call to `fn stmt`. A `let spellings` two functions down
-            // answered a call to `fn spellings`. The nearer binding won although
-            // it shadowed nothing. A file-scoped variable stays a candidate:
-            // other files import those.
             if matches!(
                 s.kind,
                 SymbolKind::Variable | SymbolKind::Constant | SymbolKind::Parameter
@@ -813,9 +674,8 @@ impl Index {
             {
                 return false;
             }
-            // Markup writes the namespace down: `class="x"` names a class and
-            // `href="#x"` names an element id. A declaration of the other kind is not a
-            // candidate, however near it is.
+            // Markup writes the namespace down: `class="x"` names a class and `href="#x"` names
+            // an element id.
             if let Some(expected) = reference.expects {
                 if s.kind != expected {
                     return false;
@@ -823,16 +683,11 @@ impl Index {
             }
             let is_member = matches!(s.kind, SymbolKind::Field | SymbolKind::Method);
             if in_an_import {
-                // An import path names an item that a module exports. It never names a method
-                // or a field, so a same-named one is not a candidate. Without this, `use
-                // crate::holder::{width, Holder}` had two candidates and resolved weakly. A
-                // rename of `width` left the import naming the function it had just renamed.
+                // An import path names an item that a module exports.
                 return !is_member;
             }
             if member_access {
-                // `i.provData` names a field of `i`, never the local `provData` two
-                // lines up. Without this the nearest-definition rule below binds the
-                // access to the local and the field reads as never used.
+                // `i.provData` names a field of `i`, never the local `provData` two lines up.
                 is_member
             } else if bare_call {
                 !is_member
@@ -840,36 +695,18 @@ impl Index {
                 && reference.kind == ReferenceKind::Identifier
                 && reference.language.members_always_have_a_receiver()
             {
-                // The mirror of the first rule: a bare `count` in Python or Rust
-                // never names a member, only `self.count` does. With attribute
-                // definitions living in method scopes, the nearest-definition rule
-                // handed a local's own uses to the attribute. Renaming the
-                // local left the rest behind, compiling into UnboundLocalError.
-                //
-                // One bare name does reach a method: `@size.setter` reads the
-                // `size` the previous `def` bound in the class namespace, from
-                // that same namespace. A method declared in the reference's own
-                // scope is a lexical binding, not a member reached through a
-                // receiver. Attributes stay out: `self.count = 0` binds no name
-                // in the scope it sits in.
+                // The mirror of the first rule: a bare `count` in Python or Rust never names a
+                // member, only `self.count` does.
                 !is_member || (s.kind == SymbolKind::Method && s.scope == reference.scope)
             } else {
                 true
             }
         };
 
-        // 0a. A Terraform namespace. `var.azs`, `local.azs` and `module.azs` name
-        //     three different declarations, and an `output "azs"` beside them names a
-        //     fourth that no traversal ever reaches. The namespace is written down, so
-        //     the kind it implies is no guess. Without it, `var.azs` in terraform-aws-vpc
-        //     resolved to the module's `output "azs"`.
+        // 0a.
         if reference.language == Language::Hcl {
             if let Some(namespace) = reference.receiver.as_deref() {
-                // A name reached through one `module` block. An argument written
-                // inside it names an input variable of the configuration `source`
-                // points at. `module.<label>.<name>` written outside it names an
-                // output of that configuration. The label says which call, and the
-                // syntax says which half of the surface.
+                // A name reached through one `module` block.
                 if let Some(label) = namespace.strip_prefix("module.") {
                     let surface = match reference.kind {
                         ReferenceKind::Field => ModuleSurface::Output,
@@ -889,8 +726,7 @@ impl Index {
                         .filter_map(|id| self.symbol(*id))
                         .filter(|s| s.kind == kind && s.file.parent() == dir)
                         // A `variable "x"` and a `locals { x }` in one module are both
-                        // variables. The block each is written in says which namespace
-                        // addresses it.
+                        // variables.
                         .filter(|s| {
                             !matches!(namespace, "var" | "local")
                                 || self.terraform_namespace(s) == namespace
@@ -899,40 +735,21 @@ impl Index {
                     match declared.len() {
                         1 => return (Some(declared[0].id), Confidence::Exact),
                         0 => {}
-                        // Two declarations in one namespace, in one module. Terraform
-                        // rejects that, so the workspace is already broken and picking
-                        // one is a guess.
+                        // Two declarations in one namespace, in one module.
                         _ => return (Some(declared[0].id), Confidence::FieldBased),
                     }
                 }
             }
         }
 
-        // 0. A path prefix that names a type: `Patterns::from_low_args(…)` in Rust reaches an
-        //    associated function through the type it belongs to. The extractor records the
-        //    prefix as the receiver, and a symbol carries its owner's name as its qualifier.
-        //    The two match directly, with no type inference, because the source wrote the
-        //    type down.
-        //
-        // This runs before every other rule. ripgrep declares four `from_low_args` methods in
-        // one file, so the nearest-in-file rule below would pick whichever sat closest and
-        // leave the other three looking dead. `Patterns::` already says which.
-        //
-        // A receiver is a path when it names a type, whatever punctuation the language uses.
-        // Rust writes `Type::m` and Java writes `Type.m`, and only the first was recognised.
-        // Every static call in Java then fell through to the nearest-in-file rule below. It
-        // answered `Widths.width(…)` inside `Holder.java` with `Holder`'s own method, at
-        // exact confidence.
+        // 0.
         if let Some(prefix) = reference.receiver.as_deref().filter(|receiver| {
             reference.receiver_is_path || self.names_a_type(receiver, reference.language)
         }) {
             let by_qualifier: Vec<&Symbol> = candidates
                 .iter()
                 .filter_map(|id| self.symbol(*id))
-                // The language matters too. A workspace holding the same design in Python
-                // and in TypeScript declares `Money::of` twice, and matching on the
-                // qualifier alone called that ambiguous. A call that had always resolved
-                // stopped, and `Money::plus` vanished from its callers.
+                // The language matters too.
                 .filter(|s| {
                     s.language == reference.language && s.qualifier.as_deref() == Some(prefix)
                 })
@@ -946,8 +763,6 @@ impl Index {
             }
 
             // `super::` is the module a file's directory forms, `self::` its own.
-            // Both put the target beside this file, which is the same shape as a Go
-            // package and is resolved the same way.
             if matches!(prefix, "super" | "self") {
                 let dir = path.parent();
                 let siblings: Vec<&Symbol> = candidates
@@ -966,10 +781,8 @@ impl Index {
                 }
             }
 
-            // `fun_refactor::model::anchor_slug` writes everything down, and it
-            // resolved name-only: no rule read the path. The trailing module
-            // segment names a file, the way Rust's module tree names files: the
-            // stem itself, or the directory whose `mod.rs`/`__init__.py` it is.
+            // `fun_refactor::model::anchor_slug` writes everything down, and it resolved
+            // name-only: no rule read the path.
             let segment = prefix.rsplit("::").next().unwrap_or(prefix);
             let in_that_module: Vec<&Symbol> = candidates
                 .iter()
@@ -996,14 +809,7 @@ impl Index {
             }
         }
 
-        // 0b. A receiver bound by an import names a *file*, so the member is one of that file's
-        // declarations. `const holder = @import("holder.zig")` makes `holder.width(…)` a call
-        // to the `width` declared over there, and the import statement says so.
-        //
-        // This runs beside the rule above and for the same reason. Without it the call reached
-        // the name-matching rules, which saw a free function and a method sharing one name and
-        // could not choose. Every cross-file call in Zig was unresolved, so `fr rename` rewrote
-        // the declaration and left the callers naming something the file no longer has.
+        // 0b.
         let bound_files = reference
             .receiver
             .as_deref()
@@ -1029,12 +835,8 @@ impl Index {
             .filter(|id| self.symbol(*id).is_some_and(plausible))
             .collect();
 
-        // A field and a method may share one name, and the use site's syntax says
-        // which is meant: `order.name()` is the method, `order.name` the field. With
-        // both left in the set, every later rule was a coin flip. The field's uses
-        // counted zero while the method collected the field's accesses, and a delete
-        // or rename driven by either answer was wrong. Settled here, once, so no
-        // downstream rule has to remember it.
+        // A field and a method may share one name, and the use site's syntax says which is
+        // meant: `order.name()` is the method, `order.name` the field.
         let candidates: Vec<SymbolId> = {
             let preferred = match reference.kind {
                 ReferenceKind::Call => Some(SymbolKind::Method),
@@ -1070,13 +872,7 @@ impl Index {
             .filter(|s| s.file == path)
             .collect();
 
-        // The enclosing instance. `self.count` inside `Base.inc` names a member of
-        // `Base`, wherever in the class its definition sites sit. Lexical scopes
-        // cannot say that. An attribute defined in `__init__` is invisible from
-        // a sibling method's chain, so resolution fell to the name-matched tier.
-        // It then called the receiver's type unknown, about the one receiver
-        // whose type is always known. The innermost enclosing symbol with a
-        // qualifier names the class.
+        // The enclosing instance.
         if member_access
             && reference
                 .receiver
@@ -1102,24 +898,12 @@ impl Index {
         }
 
         // A member access is a scope lookup only where the scope chain can settle it.
-        // `c.run(1)` names a member of whatever `c` is, and the lexical scope has nothing to
-        // say about that. It answered anyway, with `Exact`, by picking whichever same-named
-        // method sat in an enclosing scope. With two classes declaring `run`, a call on one
-        // was attributed to the other. Renaming that one rewrote the call and left the real
-        // one behind.
-        //
-        // Two conditions keep the scope chain in play, and both leave nothing to guess. A
-        // receiver that *is* the enclosing instance, `this.run` or `self.run`, means a member
-        // of the type this code is written in. A name held by one member in the whole
-        // workspace has nothing to be wrong about. Anything else falls through to step 5,
-        // which says "either".
         let receiver_is_self = reference
             .receiver
             .as_deref()
             .is_some_and(|r| matches!(r, "this" | "self"));
-        // Two members that are one definition group are one candidate: a
-        // property's getter and setter, an overload set. Counting them as two
-        // called `b.size` ambiguous inside the very class that declares it.
+        // Two members that are one definition group are one candidate: a property's getter and
+        // setter, an overload set.
         let member_candidates = {
             let members: Vec<SymbolId> = candidates
                 .iter()
@@ -1143,12 +927,7 @@ impl Index {
                     .iter()
                     .position(|sc| *sc == s.scope)
                     .unwrap_or(usize::MAX);
-                // "Preceding" belongs in the key, alongside the distance. Go re-declares a
-                // name with `:=` mid-function, and a use above that line reads the earlier
-                // binding however close the later one sits. A `return ret` above a nearer
-                // `ret, err := conv(m)` still reads the `var ret` declared at the top. Only
-                // value bindings are ordered this way. A function may be called above where
-                // it is written.
+                // "Preceding" belongs in the key, alongside the distance.
                 let ordered = matches!(
                     s.kind,
                     SymbolKind::Variable | SymbolKind::Constant | SymbolKind::Parameter
@@ -1161,12 +940,7 @@ impl Index {
                 )
             });
         if let Some(symbol) = scoped {
-            // Proximity is evidence for a binding and not for a callable. `let x` twice in
-            // one block is shadowing, so the nearer one is the answer. Two methods declared
-            // in one class body are an overload set, where the nearer one is a coin flip.
-            // Java's `add(int)` beside `add(String)` resolved both bare `add(...)` calls to
-            // whichever was written second, at `Exact`. A rename then rewrote calls belonging
-            // to the other one.
+            // Proximity is evidence for a binding and not for a callable.
             let callable = matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method);
             let tied = in_file
                 .iter()
@@ -1182,12 +956,7 @@ impl Index {
             }
         }
 
-        // 2. Any other definition in the same file (e.g. a function defined below its
-        //    use, or a sibling scope for languages that hoist).
-        //
-        //    Naming a plausible target for a member access is useful, and the tier says
-        //    how far to trust it. `resolve_one` caps the tier for every branch at once,
-        //    so no branch has to remember.
+        // 2.
         if in_file.len() == 1 {
             return (Some(in_file[0].id), Confidence::Exact);
         }
@@ -1205,16 +974,9 @@ impl Index {
                 .unwrap();
             return (Some(nearest.id), Confidence::NameOnly);
         }
-        // For a member access, proximity is not evidence. Two types declaring the same method
-        // in one file are equally plausible targets. Picking the one written nearer the call is
-        // a coin flip that reads as an answer. It made the other method look dead. Step 5 says
-        // "either" instead.
+        // For a member access, proximity is not evidence.
 
-        // 2b. Spliced in by `source`. Bash has no namespace: sourcing a script
-        //     runs its definitions here, so every function it defines is
-        //     callable from this file by its bare name. Without this the call
-        //     resolved to nothing, `fr usages` reported none, and `fr unused`
-        //     offered a running function for deletion.
+        // 2b.
         if reference.language.splices_sourced_files() {
             let sourced: Vec<PathBuf> = info
                 .imports
@@ -1233,8 +995,7 @@ impl Index {
             }
         }
 
-        // 3. Bound by an import in this file: resolve into the imported file when the
-        //    import path identifies one, else accept the unique exported match.
+        // 3.
         if let Some(import) = self.import_binding(info, &reference.name) {
             let mut imported_file = self.resolve_import_path(path, &import.path);
             let mut original = import
@@ -1244,10 +1005,9 @@ impl Index {
                 .map(|n| n.original.clone())
                 .unwrap_or_else(|| reference.name.clone());
 
-            // Candidates are looked up under the name each hop imports, and that name
-            // may differ from the one at the use site: `from lib import helper as h2`
-            // declares no `h2`, so the definitions to weigh are the ones called
-            // `helper`.
+            // Candidates are looked up under the name each hop imports, and that name may
+            // differ from the one at the use site: `from lib import helper as h2` declares no
+            // `h2`, so the definitions to weigh are the ones called `helper`.
             let named = |name: &str| -> Vec<&Symbol> {
                 by_name
                     .get(name)
@@ -1265,12 +1025,7 @@ impl Index {
             matches.retain(|s| s.exported || imported_file.is_some());
 
             // A barrel declares nothing: `export { width } from "./holder"` exports a name it
-            // does not define. So the file the import names holds no match and the declaration
-            // is one hop further on. Follow the chain, with a limit because a pair of files can
-            // re-export from each other. An aliased hop renames the thing it hands on, so the
-            // search continues under the hop's own original name. A Python module hands on
-            // every top-level import, which makes a package `__init__.py` a barrel without any
-            // `export` keyword.
+            // does not define.
             let mut hops = 0;
             while matches.is_empty() && hops < 8 {
                 let Some(current) = imported_file.clone() else {
@@ -1288,11 +1043,9 @@ impl Index {
                                     .find(|n| n.local == original)
                                     .map(|n| (i.path.clone(), n.original.clone()))
                             })
-                            // `export * from "./holder"` names nothing and hands on
-                            // everything, so it is the onward hop for any name the file does
-                            // not export itself. A star that binds an alias stays out of the
-                            // chain: readers of `export * as ns` write `ns.width`, a member
-                            // access under another name.
+                            // `export * from "./holder"` names nothing and hands on everything,
+                            // so it is the onward hop for any name the file does not export
+                            // itself.
                             .or_else(|| {
                                 current_info
                                     .imports
@@ -1325,12 +1078,7 @@ impl Index {
             }
         }
 
-        // 4z. A Kubernetes `configMapKeyRef` or `secretKeyRef` names one key of one
-        //     object, and the manifest writes down which object. The receiver carries
-        //     that address, so the search is over the files declaring it and not over
-        //     the workspace. Without this the read was a textual mention. Renaming
-        //     the key left the container asking for an entry the ConfigMap no
-        //     longer has, and the pod failed to start.
+        // 4z.
         if let Some((kind, object)) = reference
             .receiver
             .as_deref()
@@ -1356,21 +1104,14 @@ impl Index {
                 .collect();
             return match entries.as_slice() {
                 [only] => (Some(only.id), Confidence::Exact),
-                // One name declared twice under one object name. The manifests
-                // disagree, so picking one is a guess and the report says so.
+                // One name declared twice under one object name.
                 [first, ..] => (Some(first.id), Confidence::FieldBased),
-                // The object is outside the workspace, or declares no such key. The evidence
-                // runs out here, so the answer carries the weakest confidence and names no
-                // symbol.
+                // The object is outside the workspace, or declares no such key.
                 [] => (None, Confidence::NameOnly),
             };
         }
 
-        // 4a. A Helm `.Values` path names a key in *this chart's* values file. Two
-        //     charts in one workspace routinely declare `image` or `name`, and the
-        //     global string-keyed rule below would pick whichever came first. The
-        //     receiver is the segment before the key, so `image.tag` does not match a
-        //     `tag` declared under something else.
+        // 4a.
         if reference.language == Language::Helm && reference.kind == ReferenceKind::StringRef {
             if let Some(chart) = crate::lang::chart_root(path) {
                 let in_chart: Vec<&Symbol> = candidates
@@ -1387,30 +1128,22 @@ impl Index {
                     1 => return (Some(in_chart[0].id), Confidence::Exact),
                     0 => {}
                     // A chart declaring one key twice, in values.yaml and a values-prod.yaml
-                    // beside it, is normal. The sites are override layers of one value, and
-                    // `definition_group` holds them together like a CSS class declared by two
-                    // rules. Which layer wins is the question `fr flow back` answers with the
-                    // invocation. The reference itself is certain.
+                    // beside it, is normal.
                     _ => return (Some(in_chart[0].id), Confidence::Exact),
                 }
             }
         }
 
-        // 4. String-keyed references. In CSS, HTML, XML and Markdown a reference
-        //    names its target globally: `class="btn"` refers to whatever declares
-        //    `.btn`, in any file. The language defines it that way, so a unique kind
-        //    match resolves exactly, and a CSS class rename reaches HTML and TSX.
+        // 4.
         if reference.kind == ReferenceKind::StringRef {
-            // A heading is referenced by its anchor, which is a slug of its text and
-            // rarely equal to it. Everything else string-keyed, an element id, a CSS
-            // class, a link reference definition, is named as written.
+            // A heading is referenced by its anchor, which is a slug of its text and rarely
+            // equal to it.
             let name = reference.name.as_str();
             let targets: Vec<&Symbol> = self
                 .symbols
                 .iter()
                 .filter(|s| match reference.expects {
-                    // The attribute wrote the namespace down. A declaration of another
-                    // kind is not a candidate, however near it is.
+                    // The attribute wrote the namespace down.
                     Some(expected) => s.kind == expected && s.name == name,
                     None => match s.kind {
                         SymbolKind::Heading => anchor_slug(&s.name) == name,
@@ -1423,20 +1156,12 @@ impl Index {
             match kinds.len() {
                 1 => return (Some(targets[0].id), Confidence::Exact),
                 0 => {}
-                // The same name declared as two different kinds is genuinely
-                // ambiguous. Report it rather than pick one.
+                // The same name declared as two different kinds is genuinely ambiguous.
                 _ => return (Some(targets[0].id), Confidence::FieldBased),
             }
         }
 
-        // 5. Member access without a known receiver type: name-matched at best.
-        //
-        // A call written through a selector arrives as a plain `Call`. Go writes
-        // `w.contextWithTimeout(…)` and `time.Now()` with one syntax, and the grammars
-        // capture only the callee. The receiver separates them. An import binding means a
-        // package-qualified call to a function. Anything else means a value, and the name is
-        // one of its members. Without that distinction a method call resolves to a
-        // package-level function of the same name, and the method reads as dead.
+        // 5.
         let members: Vec<&Symbol> = candidates
             .iter()
             .filter_map(|id| self.symbol(*id))
@@ -1447,10 +1172,8 @@ impl Index {
                 return (Some(members[0].id), Confidence::FieldBased);
             }
             if !members.is_empty() {
-                // Several members share the name, and the receiver's settled type says
-                // whose member this is. The tier stays where the cap puts a value
-                // receiver: the target is known, the rewrite line is not crossed.
-                // A type worked out by inference is evidence and not a licence.
+                // Several members share the name, and the receiver's settled type says whose
+                // member this is.
                 if let Some(ty) = crate::refactor::receiver_known_type(self, reference) {
                     let owned: Vec<&&Symbol> = members
                         .iter()
@@ -1464,12 +1187,7 @@ impl Index {
             }
         }
 
-        // 6. A package-qualified name. `holder.Width(…)` names a top-level declaration of
-        //    the package the import bound as `holder`, and that package is a directory
-        //    somewhere else in the tree. Step 6b covers only the caller's own directory.
-        //    Without this step every cross-package call in Go resolved to nothing. Then
-        //    `fr unused` called the callee dead, and `fr rename` rewrote the declaration
-        //    while leaving `holder.Width(…)` naming a function that had gone.
+        // 6.
         if reference.language.packages_by_directory() {
             if let Some(package) = reference
                 .receiver
@@ -1491,8 +1209,6 @@ impl Index {
                     })
                     .collect();
                 match exported_there.len() {
-                    // The import statement names the package, so which declaration this
-                    // is was written down.
                     1 => return (Some(exported_there[0].id), Confidence::ImportQualified),
                     0 => {}
                     _ => return (None, Confidence::FieldBased),
@@ -1500,15 +1216,7 @@ impl Index {
             }
         }
 
-        // 6b. Package-scoped languages. Go's package is the directory. A top-level
-        // declaration in one file is visible from every file beside it, unqualified, with no
-        // import to record the fact. Only top-level declarations sit in that scope. A method
-        // or a struct field is reached through a value, which step 5 handles.
-        //
-        // "Top-level" means `qualifier` and not `container`, because a Go method's receiver
-        // type is declared elsewhere. The method links to no containing symbol and carries
-        // the type's name as its qualifier. Testing `container` would let every method into
-        // package scope, and `Circle.Area()` then resolved to a bare `Area`.
+        // 6b.
         if reference.language.packages_by_directory() && !called_on_a_value {
             let dir = path.parent();
             let siblings: Vec<&Symbol> = candidates
@@ -1524,19 +1232,12 @@ impl Index {
             match siblings.len() {
                 1 => return (Some(siblings[0].id), Confidence::Exact),
                 0 => {}
-                // A package can declare one name twice, under mutually exclusive
-                // build tags. Go's `//go:build windows` and `//go:build !windows`.
-                // Which definition a call means depends on the build, so choosing
-                // one would rewrite half of a pair and break the other build.
+                // A package can declare one name twice, under mutually exclusive build tags.
                 _ => return (None, Confidence::FieldBased),
             }
         }
 
-        // 6. Directory-scoped languages: Terraform's module is a directory, so a definition
-        //    anywhere beside this file is in scope. Names are unique per namespace there, so a
-        //    single match is exact. With several, the namespace (`var.` versus `local.`)
-        //    decides, and this layer cannot see it, so the report names them and no
-        //    rewrite touches them.
+        // 6.
         if reference.language.resolves_by_directory() {
             let dir = path.parent();
             let siblings: Vec<&Symbol> = candidates
@@ -1551,8 +1252,7 @@ impl Index {
             }
         }
 
-        // 7. A single exported definition anywhere in the workspace. Plausible, but
-        //    nothing proved this file can see it, so it stays name-only.
+        // 7.
         let exported: Vec<&Symbol> = candidates
             .iter()
             .filter_map(|id| self.symbol(*id))
@@ -1609,18 +1309,11 @@ impl Index {
                     .find(|s| !s.is_empty())
                     .is_some_and(|last| last == name)
                 // `import app.flags` binds `app`, and the module is read as `app.flags.NAME`.
-                // So the receiver is the import path in full rather than any segment of it.
                 || import.path == name
         })
     }
 
     /// The files a receiver could be, where an import in this file binds it to a module.
-    ///
-    /// Zig's `const holder = @import("holder.zig")` binds one file, and the import path is
-    /// the whole answer. Python writes one spelling for two things. `from app import flags`
-    /// binds either a name `app/__init__.py` declares or the submodule `app/flags.py`. This
-    /// offers the submodule too, and the caller weighs both. Without it, `flags.USE_NEW_TAX`
-    /// resolved to nothing under the commonest Python layout there is.
     fn modules_bound_to(&self, info: &FileInfo, from: &Path, receiver: &str) -> Vec<PathBuf> {
         let Some(import) = self.import_binding(info, receiver) else {
             return Vec::new();
@@ -1640,10 +1333,8 @@ impl Index {
             }
         }
 
-        // A file may hand on what it does not declare: a Sass `@forward "theme"`, a
-        // TypeScript `export * from "./holder"`. The namespace then reaches through it,
-        // so the files it forwards to are bound to the same receiver. Bounded, because
-        // two files may forward to each other.
+        // A file may hand on what it does not declare: a Sass `@forward "theme"`, a TypeScript
+        // `export * from "./holder"`.
         let mut frontier = files.clone();
         for _ in 0..8 {
             let mut onward: Vec<PathBuf> = Vec::new();
@@ -1672,11 +1363,6 @@ impl Index {
     }
 
     /// The directory a package import path names, where this workspace holds it.
-    ///
-    /// Go writes an import path from the module root, `gate/holder`. The module root is
-    /// wherever `go.mod` sits, and this function does not read that file. It matches the
-    /// longest suffix of the path that names one directory in the tree. Two matching
-    /// directories give no answer, because a wrong package is worse than an unresolved one.
     fn package_directory(&self, import_path: &str) -> Option<PathBuf> {
         let segments: Vec<&str> = import_path.split('/').filter(|s| !s.is_empty()).collect();
         for start in 0..segments.len() {
@@ -1700,36 +1386,19 @@ impl Index {
     }
 
     /// Map an import path to a file in the workspace.
-    ///
-    /// This handles the relative-path forms used by TypeScript, Python, SCSS and Bash.
-    /// Module systems that need build configuration stay unresolved: Rust crate paths,
-    /// Go module paths, tsconfig `paths` aliases. Callers see the weaker confidence
-    /// that results, in place of a wrong answer.
     pub fn resolve_import_path(&self, from: &Path, import_path: &str) -> Option<PathBuf> {
         if import_path.is_empty() {
             return None;
         }
         let dir = from.parent()?;
 
-        // A path that names a file beside this one, with no `./` in front of it. Zig writes
-        // `@import("holder.zig")` that way, and every branch below assumed a leading dot or
-        // a dotted module name. The extension read as the last segment of a dotted path, so
-        // `holder.zig` was looked up as a file called `zig`.
-        //
-        // The join is normalised, because the index is keyed by paths with no `.` or `..`
-        // left in them. `../src/pricing` joined onto `test/` kept the `..` as a component.
-        // It compared unequal to the file it names, so a specifier crossing a directory
-        // resolved to nothing. `fr move` then wrote its new import beside the old one it
-        // had failed to recognise, which TypeScript rejects as a duplicate identifier.
-        // Duplicate imports parse, so no guard caught it.
+        // A path that names a file beside this one, with no `./` in front of it.
         let beside = crate::vfs::normalise(dir.join(import_path));
         if self.files.contains_key(&beside) {
             return Some(beside);
         }
 
-        // A stylesheet names a file without its extension. A Sass partial is written with
-        // a leading underscore that no import spells: `@use "theme"` is `_theme.scss`.
-        // Both syntaxes, and the plain `.css` a `@use` may also name.
+        // A stylesheet names a file without its extension.
         for extension in ["scss", "sass", "css"] {
             let named = beside.with_extension(extension);
             if self.files.contains_key(&named) {
@@ -1743,10 +1412,7 @@ impl Index {
             }
         }
 
-        // Python writes a relative import as leading dots and then dotted segments. One dot
-        // is the package this file sits in, two is its parent, and `..pkg.mod` reaches
-        // `pkg/mod.py` from there. TypeScript puts a separator after its dots, `./x`, so the
-        // two spellings never collide. A miss falls through to the rules below.
+        // Python writes a relative import as leading dots and then dotted segments.
         if import_path.starts_with('.') && !import_path.contains('/') {
             let levels = import_path.chars().take_while(|c| *c == '.').count();
             let tail = import_path.trim_start_matches('.');
@@ -1784,13 +1450,8 @@ impl Index {
             return candidates.into_iter().find(|c| self.files.contains_key(c));
         }
 
-        // `source "$(dirname "$0")/lib.sh"` is how a shell script names a file
-        // beside itself, and the prefix is a substitution no static read can
-        // evaluate. What follows the last `/` is a plain file name. It
-        // resolves like any path beside the importer, when such a file is
-        // really there. Without this the call into the sourced file resolved
-        // to nothing, so `fr unused` called a running function dead and
-        // `fr delete` took it away.
+        // `source "$(dirname "$0")/lib.sh"` is how a shell script names a file beside itself,
+        // and the prefix is a substitution no static read can evaluate.
         if let Some((_, tail)) = import_path.rsplit_once('/') {
             let beside = crate::vfs::normalise(dir.join(tail));
             if !tail.is_empty() && self.files.contains_key(&beside) {
@@ -1825,9 +1486,6 @@ impl Index {
             return Some(matches[0].clone());
         }
         // Several files share the stem, and the segments before it decide between them.
-        // `analysis.provenance` names the one under `analysis/`; a `tests/provenance.rs`
-        // only shares the name. Still only when one file survives, since a qualifier
-        // both share decides nothing.
         if matches.len() > 1 {
             let qualifiers: Vec<&str> = import_path
                 .split(['/', ':', '.'])
@@ -1857,8 +1515,7 @@ impl Index {
                 }
             }
         }
-        // A Python package is a directory, so `pkg` names `pkg/__init__.py`. The stem
-        // rule above cannot see that: the file's stem is `__init__`.
+        // A Python package is a directory, so `pkg` names `pkg/__init__.py`.
         let init_scan;
         let inits: &[PathBuf] = match self.inits_by_dir.is_empty() && self.files_by_stem.is_empty()
         {
@@ -1884,13 +1541,6 @@ impl Index {
     }
 
     /// All references to the entity `symbol` names.
-    ///
-    /// Some kinds are declared in several places and are still one thing: a CSS class written
-    /// in a stylesheet and again in a theme. A reference resolves to one of those sites, so
-    /// counting per site under-reports. `fr refs` on the second declaration of
-    /// `.sensor-table` found nothing while `fr rename` on the same position changed five
-    /// sites. `definition_group` supplies the identity here, and it returns this symbol alone
-    /// for every kind with one declaration site.
     pub fn references_to(&self, symbol: SymbolId) -> Vec<&Reference> {
         let group = self.definition_group(symbol);
         self.references
@@ -1899,8 +1549,7 @@ impl Index {
             .collect()
     }
 
-    /// References that share a name with `symbol` but resolved elsewhere or
-    /// not at all. These are what a rename must report and not rewrite.
+    /// References that share a name with `symbol` but resolved elsewhere or not at all.
     pub fn unresolved_matching(&self, symbol: SymbolId) -> Vec<&Reference> {
         let Some(sym) = self.symbol(symbol) else {
             return Vec::new();
@@ -1912,30 +1561,13 @@ impl Index {
     }
 
     /// Every definition site of the entity `symbol` belongs to.
-    ///
-    /// Usually the symbol itself. Kinds with no canonical definition, such as CSS
-    /// classes and custom properties, group every site that declares the same name.
-    /// A rename then rewrites all of them.
     pub fn definition_group(&self, symbol: SymbolId) -> Vec<SymbolId> {
         let Some(sym) = self.symbol(symbol) else {
             return Vec::new();
         };
         if !sym.kind.allows_multiple_definitions() {
-            // `self.count = 0` in `__init__` and `self.count = n` in another method are
-            // one attribute declared twice, and Python declares attributes only that way.
-            // The class is the identity and the class is the qualifier, because each
-            // site's container is the method it sits in. A rename that took one site left
-            // the object answering two names at run time.
-            //
-            // TypeScript's overloads are separate declarations over one implementation.
-            // Two `function pick(...)` signatures and the body all name one function.
-            // Renaming one alone leaves `error TS2389: Function implementation name must
-            // be 'pick'`. The grammar allows the repetition only for overloads, so the
-            // entity is same name, same file, same container.
-            //
-            // Python allows the repetition for a property family: `@property def size` and
-            // `@size.setter def size` are one attribute with two doors. Renaming the getter
-            // alone left the setter answering the old name.
+            // `self.count = 0` in `__init__` and `self.count = n` in another method are one
+            // attribute declared twice, and Python declares attributes only that way.
             if (matches!(sym.language, Language::TypeScript | Language::Tsx)
                 && matches!(sym.kind, SymbolKind::Function | SymbolKind::Method))
                 || (sym.language == Language::Python && sym.kind == SymbolKind::Method)
@@ -1954,13 +1586,8 @@ impl Index {
                     return peers;
                 }
             }
-            // A chart value declared in values.yaml and again in values-prod.yaml is one
-            // value with two override layers. Treating each site as its own symbol made
-            // every answer wrong at once. Usages on one site found nothing. A rename
-            // moved one file. A delete removed a value the templates still read.
-            // The identity is the key path within one chart, so the group is every
-            // same-name, same-qualifier key across that chart's values files. Never
-            // across charts: a neighbouring chart's `replicaCount` is a different value.
+            // A chart value declared in values.yaml and again in values-prod.yaml is one value
+            // with two override layers.
             if sym.kind == SymbolKind::Key
                 && matches!(sym.language, Language::Helm | Language::Yaml)
                 && is_values_file(&sym.file)
@@ -1996,11 +1623,7 @@ impl Index {
             }
             return vec![symbol];
         }
-        // A CSS module's selectors are its own. `.primary` there compiles to a name
-        // nobody writes, reached through the object its import binds. A neighbouring
-        // module declaring `.primary` is a different class.
-        // Grouped by name across files, a rename of one component's class rewrote
-        // every other component's stylesheet that happened to use the word.
+        // A CSS module's selectors are its own.
         if sym.kind == SymbolKind::Selector && crate::lang::is_css_module(&sym.file) {
             return self
                 .named_like(&sym.name)
@@ -2010,8 +1633,7 @@ impl Index {
         }
         self.named_like(&sym.name)
             .filter(|s| s.name == sym.name && s.kind == sym.kind)
-            // A plain stylesheet's classes are global and group across files. One
-            // written in a module is not theirs to join.
+            // A plain stylesheet's classes are global and group across files.
             .filter(|s| !crate::lang::is_css_module(&s.file))
             .map(|s| s.id)
             .collect()
@@ -2031,12 +1653,6 @@ impl Index {
     }
 
     /// Whether these symbols all denote the same entity.
-    ///
-    /// `definition_group` supplies the identity, so every kind it groups answers here
-    /// the same way. That covers CSS classes across stylesheets and chart values across
-    /// a chart's values files. Testing the kind's own flag instead left the chart value
-    /// out, and `fr usages replicaCount` refused as ambiguous what rename treats as one
-    /// thing.
     pub fn is_one_entity(&self, symbols: &[&Symbol]) -> bool {
         let Some(first) = symbols.first() else {
             return false;
@@ -2049,11 +1665,6 @@ impl Index {
     }
 
     /// Find a symbol by the name a listing prints: `Type::method`, or a bare leaf.
-    ///
-    /// The one lookup behind every command that takes a name. `fr symbols` prints
-    /// `featureFlags::newCheckout`, and `fr remove-flag` answered "no symbol named"
-    /// to the spelling it had just been shown. A qualified name wins where one
-    /// matches, so a leaf shared by several types stays unambiguous.
     pub fn symbols_written(&self, written: &str, in_file: Option<&Path>) -> Vec<&Symbol> {
         if written.contains("::") {
             let qualified: Vec<&Symbol> = self
@@ -2071,9 +1682,6 @@ impl Index {
 
     /// Find a symbol by name, optionally narrowed to a file.
     pub fn find_symbols(&self, name: &str, in_file: Option<&Path>) -> Vec<&Symbol> {
-        // Through the buckets: the whole-workspace scan this used to be is the shape
-        // the bucket comment above warns about. The name filter stays because the
-        // bucket fallback answers with every symbol.
         self.named_like(name)
             .filter(|s| s.name == name)
             .filter(|s| in_file.is_none_or(|f| s.file == f))
@@ -2101,9 +1709,6 @@ impl Index {
     }
 
     /// Every reference in one file, in the order they were recorded.
-    ///
-    /// A caller that asks about many offsets in one file should index these once rather
-    /// than scan them once per offset.
     pub fn references_in(&self, path: &Path) -> impl Iterator<Item = &Reference> {
         self.files
             .get(path)
@@ -2177,8 +1782,7 @@ pub struct IndexStats {
     pub references: usize,
     pub resolved: usize,
     pub by_confidence: BTreeMap<&'static str, usize>,
-    /// How many files each gap was found in, by [`FactGap::as_str`]. A gap nobody hit
-    /// is absent and not zero, as with `by_confidence`.
+    /// How many files each gap was found in, by [`FactGap::as_str`].
     pub files_by_gap: BTreeMap<&'static str, usize>,
     pub imperative_files: usize,
 }
@@ -2188,10 +1792,6 @@ fn distance(a: usize, b: usize) -> usize {
 }
 
 /// Whether this path is a chart's values file rather than a manifest with keys.
-///
-/// `.Values.name` names a key a values file supplies. Every template in the chart is YAML with
-/// keys of its own. Matching those would point a reference at whatever manifest happened to use
-/// the same word.
 fn is_values_file(path: &std::path::Path) -> bool {
     path.file_name().and_then(|n| n.to_str()).is_some_and(|n| {
         let lower = n.to_ascii_lowercase();
@@ -2328,8 +1928,7 @@ mod tests {
         let index = Index::build_from_scan(&scanned).unwrap();
         assert_eq!(index.file_count(), 0);
         assert_eq!(index.skipped.len(), 1, "skip must be visible");
-        // Visible means a reader can act on it: which file, and why. A skip that gives
-        // neither leaves a count where a report belongs.
+        // Visible means a reader can act on it: which file, and why.
         let (skipped, reason) = &index.skipped[0];
         assert_eq!(skipped, &path);
         assert!(!reason.is_empty(), "the skip gives no reason");
@@ -2337,9 +1936,8 @@ mod tests {
 
     #[test]
     fn terraform_names_resolve_across_the_module_directory() {
-        // Terraform's unit of scope is the directory, so `var.region` in main.tf
-        // refers to the `variable "region"` declared in variables.tf. Without this a
-        // rename would update the declaration and leave every use dangling.
+        // Terraform's unit of scope is the directory, so `var.region` in main.tf refers to the
+        // `variable "region"` declared in variables.tf.
         let (_tmp, index) = index_of(&[
             (
                 "variables.tf",
@@ -2379,8 +1977,6 @@ mod tests {
 
     #[test]
     fn a_call_through_an_import_alias_resolves_to_the_original() {
-        // `from lib import helper as h2` declares nothing called `h2`, so the call
-        // used to die at the name lookup and `helper` showed no callers.
         let (_tmp, index) = index_of(&[
             ("lib.py", "def helper():\n    return 2\n"),
             (
@@ -2400,9 +1996,8 @@ mod tests {
 
     #[test]
     fn an_aliased_python_reexport_chain_resolves_to_the_declaration() {
-        // pkg/__init__.py imports `helper` under a new name and app.py imports that
-        // name from the package. Each hop renames the thing it hands on, so the
-        // search has to carry the hop's own original name.
+        // pkg/__init__.py imports `helper` under a new name and app.py imports that name from
+        // the package.
         let (_tmp, index) = index_of(&[
             ("lib.py", "def helper():\n    return 2\n"),
             ("pkg/__init__.py", "from lib import helper as help_alias\n"),

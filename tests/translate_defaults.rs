@@ -1,9 +1,4 @@
 //! A default that reads another parameter cannot be spelled in Python.
-//!
-//! Python evaluates a default once, at `def` time, in module scope. The
-//! languages that evaluate per call let one parameter's default read another,
-//! and `function pad(text, width = text.length + 2)` reached Python verbatim.
-//! The module raised NameError before anything ran.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;

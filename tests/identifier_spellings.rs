@@ -1,19 +1,4 @@
 //! One spelling per thing.
-//!
-//! Several enums here have both a serde representation and an `as_str`. Where that `as_str` is
-//! an *identifier*, what `--json` emits, what a catalogue matches on, what a person types, the
-//! two must be the same string. Three of `SymbolKind`'s twenty-one variants disagreed: the tool
-//! wrote `"kind": "type"` and could not read it back. So its own output was not valid input to
-//! itself, and nothing was checking.
-//!
-//! Not every `as_str` is an identifier. `Capability` and `Basis` return prose for a reader,
-//! "call graph", "from the literal", and are named `label` and `describe` so the difference is
-//! visible and not remembered.
-//!
-//! The spellings are read out of the `as_str` match in the source and not listed here. That
-//! match is exhaustive, so the compiler already forces a new variant to appear in it. Reading
-//! it means a new variant is covered by this test the day it is added. A list written here
-//! would be one more thing to forget.
 
 use fun_refactor::lang::Language;
 use fun_refactor::model::{Confidence, SymbolKind};
@@ -88,9 +73,7 @@ fn every_entry_kind_survives_the_round_trip() {
     }
 }
 
-/// `Language::name` is an identifier too. It names catalogue entries, `fr capabilities`
-/// rows and every per-language table, and `from_name` is its parser. A language the tool
-/// prints and cannot read would be the same defect one type over.
+/// `Language::name` is an identifier too.
 #[test]
 fn every_language_name_parses_back() {
     for language in Language::ALL {
@@ -104,11 +87,6 @@ fn every_language_name_parses_back() {
 }
 
 /// And its serde spelling is that same identifier.
-///
-/// This test used to ask only whether `from_name(name())` round-trips, which it did all
-/// along. The gap was serde: commands that build their JSON by hand call `name()` and
-/// print `"go"`, while `fr duplicates` serializes its result struct and printed `"Go"`,
-/// a spelling no other command emits and `from_name` cannot read.
 #[test]
 fn every_language_survives_the_round_trip() {
     for language in Language::ALL {

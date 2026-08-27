@@ -1,8 +1,4 @@
 //! Changing a signature in Java, where nothing is spelled the way the other five spell it.
-//!
-//! A signature change is the refactoring with the least room for a partial result. The
-//! declaration and every call move together or the code stops compiling. So a call the tool
-//! cannot see is a broken change.
 
 use fun_refactor::index::Index;
 use fun_refactor::refactor::signature::{self, Change};
@@ -39,10 +35,7 @@ fn changed(files: &[(&str, &str)], symbol: &str, file: &str, change: Change) -> 
 #[test]
 fn a_java_call_is_a_method_invocation() {
     // The lookup matched on `kind().contains("call")`, and Java spells a call a
-    // `method_invocation`. Its own comment said SCSS's `include_statement` was "the one call
-    // form whose kind does not say call", true of the languages it was written against. It
-    // meant `fr signature` refused at every Java call site there has ever been, with a message
-    // about resolution.
+    // `method_invocation`.
     let source = "public class A {\n    int add(int a, String b) { return a; }\n    \
                   int use() { return add(1, \"x\"); }\n}\n";
     let after = changed(
@@ -58,8 +51,7 @@ fn a_java_call_is_a_method_invocation() {
 #[test]
 fn a_constructor_call_is_a_call_whatever_it_was_written_down_as() {
     // `new Thing(1, "x")` is recorded as a reference to the *type*, which it also is, so
-    // filtering on the recorded kind skipped it. A constructor's parameters could be reordered
-    // while every `new` was left as it was.
+    // filtering on the recorded kind skipped it.
     let source = "public class B {\n    B(int a, String b) { }\n    \
                   static B make() { return new B(1, \"x\"); }\n}\n";
     let after = changed(
@@ -74,8 +66,7 @@ fn a_constructor_call_is_a_call_whatever_it_was_written_down_as() {
 
 #[test]
 fn a_mention_that_is_not_a_call_is_passed_over() {
-    // `static B make()` names the type in a return position. There are no arguments
-    // there to change, and refusing because of it would refuse every constructor.
+    // `static B make()` names the type in a return position.
     let source = "public class C {\n    C(int a, String b) { }\n    \
                   static C make() { return new C(1, \"x\"); }\n}\n";
     let after = changed(&[("C.java", source)], "C::C", "C.java", Change::Remove(1));
@@ -86,8 +77,7 @@ fn a_mention_that_is_not_a_call_is_passed_over() {
 #[test]
 fn a_type_named_in_an_argument_is_not_the_call() {
     // Dropping the kind filter meant every mention took the walk up the tree looking for a
-    // call. A type named inside somebody else's argument list finds one. `register(Pet.class)`
-    // would have had *its* arguments reordered as though they belonged to `Pet`'s constructor.
+    // call.
     let source = "public class D {\n    D(int a, String b) { }\n    \
                   static void go() { register(D.class, 7); }\n    \
                   static void register(Object t, int n) { }\n}\n";

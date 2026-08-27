@@ -1,25 +1,4 @@
 //! Generates the data behind `docs/catalog.html` and `docs/translate.html`.
-//!
-//! This test produces every before, after and diff on those pages. It runs the real `fr`
-//! binary over the sample files below, in a temporary directory, as the command printed
-//! beside each one would. Nobody types anything on either page by hand. A hand-typed "after"
-//! claims what the tool does without showing it, and it goes stale the first time the tool
-//! improves.
-//!
-//! The generated files are committed, and this test fails when they no longer match
-//! what the tool produces. Regenerate with:
-//!
-//! ```sh
-//! UPDATE_SITE_DATA=1 cargo test --test site_data
-//! ```
-//!
-//! # On the catalogue
-//!
-//! The refactoring *names*. Extract Function, Guard Clauses, Slide Statements, come
-//! from Martin Fowler's and Kent Beck's catalogues, and each entry says which book and
-//! which edition. The **code is not theirs**: every sample below is written for this
-//! page, in Python, to exercise the move the catalogue describes. Their examples are
-//! copyrighted and translating one into Python would be a derivative of it.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -50,12 +29,6 @@ struct Entry {
     /// What this particular sample shows, beyond the move itself.
     note: &'static str,
     /// What is the same after the change as it was before.
-    ///
-    /// A refactoring is a change to the *text* of a program that leaves what the program does
-    /// alone. Every entry has to say what that means for it. A move that redistributes
-    /// behaviour across several files reports where the behaviour went, and not only where
-    /// the edit landed. Naming it per entry is what stops the page from being a list of edits
-    /// that happen to be reversible.
     invariant: &'static str,
     files: &'static [(&'static str, &'static str)],
     /// The `fr` invocation, with `@from…to@` standing for a range this test computes
@@ -101,10 +74,6 @@ def circ(r):
 "#;
 
 /// The consumer, in a file of its own.
-///
-/// A signature change is only half a refactoring until the calls change with it. A page that
-/// shows the declaration alone is showing the half that would break the program. Every sample
-/// whose move ripples outward keeps its callers where a reader can watch them move.
 const GEOMETRY_USES: &str = r#"from geometry import circ
 
 
@@ -691,8 +660,7 @@ struct Translation {
     target: &'static str,
     /// Where the sample came from, when it is not written for this page.
     provenance: Option<&'static str>,
-    /// A directory under `tests/corpus/` to copy in whole. A translation whose input is a
-    /// *tree* needs this, because a Next.js route's URL is its path.
+    /// A directory under `tests/corpus/` to copy in whole.
     corpus: Option<&'static str>,
 }
 
@@ -1210,10 +1178,6 @@ fn workspace(files: &[(&str, &str)]) -> tempfile::TempDir {
 }
 
 /// Resolve a range written as the text it selects.
-///
-/// `@path|first line|last line@` for a run of whole statements, and `@path~snippet~@` for a
-/// sub-expression. Written as the text and not as four numbers, because four numbers in a test
-/// are four numbers somebody counted. They are wrong as soon as a sample gains a line.
 fn resolve(argument: &str, root: &Path) -> String {
     let Some(inner) = argument.strip_prefix('@').and_then(|a| a.strip_suffix('@')) else {
         return argument.to_string();
@@ -1258,10 +1222,6 @@ fn resolve(argument: &str, root: &Path) -> String {
 }
 
 /// Take the temporary directory's name back out of some text.
-///
-/// macOS hands out `/var/folders/...` and reports it back as `/private/var/...`, so the
-/// longer spelling has to go first. Replacing the short one first leaves the `/private`
-/// behind and prints `/privatesrc/pricing.py`.
 fn scrub(text: &str, root: &Path) -> String {
     let root_text = root.to_string_lossy().to_string();
     let private = format!("/private{root_text}");
@@ -1282,12 +1242,8 @@ fn run(root: &Path, argv: &[String]) -> String {
         .expect("running fr");
     let mut text = String::from_utf8_lossy(&output.stdout).to_string();
     text.push_str(&String::from_utf8_lossy(&output.stderr));
-    // The workspace is a temporary directory and its name is different every run; the
-    // page has to show the path a reader would type.
-    //
-    // macOS hands out `/var/folders/...` and reports it back as `/private/var/...`, so the
-    // longer spelling goes first. Replacing the short one first leaves the `/private` behind
-    // and prints `/privatesrc/pricing.py`.
+    // The workspace is a temporary directory and its name is different every run; the page has
+    // to show the path a reader would type.
     let root_text = root.to_string_lossy().to_string();
     let private = format!("/private{root_text}");
     for prefix in [private.as_str(), root_text.as_str()] {
@@ -1297,9 +1253,6 @@ fn run(root: &Path, argv: &[String]) -> String {
 }
 
 /// One command's standard output, on its own.
-///
-/// `run` glues stderr on the end. A report wants that and a document does not, because `fr
-/// openapi` puts its notes on stderr to keep stdout parseable.
 fn run_stdout(root: &Path, argv: &[String]) -> String {
     let output = Command::new(FR)
         .arg("--root")
@@ -1311,10 +1264,6 @@ fn run_stdout(root: &Path, argv: &[String]) -> String {
 }
 
 /// One command's standard error, on its own.
-///
-/// `fr openapi` puts the document on stdout and everything it could not settle on
-/// stderr, so that the document stays a document. The page wants both halves and has to
-/// keep them apart.
 fn run_stderr(root: &Path, argv: &[String]) -> String {
     let output = Command::new(FR)
         .arg("--root")
@@ -1367,9 +1316,7 @@ fn catalog_data() -> String {
             .map(|a| resolve(a, root))
             .collect::<Vec<_>>();
 
-        // Every file in the sample, not one of them. A refactoring that changes a signature has
-        // to change the callers too. A page that shows only the declaration is showing half of
-        // the move, the half that on its own would break the program.
+        // Every file in the sample, not one of them.
         let before: Vec<String> = entry
             .files
             .iter()
@@ -1393,9 +1340,7 @@ fn catalog_data() -> String {
                 );
                 after
             }
-            // A report finds work without doing it, and a refusal declines with a
-            // reason. Both are asserted, so the page cannot go on claiming a refusal
-            // that no longer happens or a report that has become an edit.
+            // A report finds work without doing it, and a refusal declines with a reason.
             Kind::Report => {
                 assert!(
                     !output.starts_with("Error:"),
@@ -1508,9 +1453,8 @@ fn translate_data() -> String {
             .filter_map(|e| e.ok().map(|e| e.path()))
             .find(|p| p.file_name() != Path::new(case.subject).file_name() && p.is_file())
             .unwrap_or_else(|| panic!("{} produced no file", case.id));
-        // The banner names the file it was translated from, and that path is a
-        // temporary directory with a different name every run. The page has to show
-        // the path a reader would type.
+        // The banner names the file it was translated from, and that path is a temporary
+        // directory with a different name every run.
         let after = scrub(&std::fs::read_to_string(&written).unwrap(), root);
 
         out.push_str(&format!(
@@ -1619,10 +1563,6 @@ struct Endpoint {
 }
 
 /// Every shape a CRUD API has, in one tree.
-///
-/// A router answering all of these has met a collection, a member, a sub-collection, a
-/// sub-member, a replacement, an action, an aggregate and a catch-all. Most APIs never
-/// present more surface than that.
 const ENDPOINTS: &[Endpoint] = &[
     Endpoint {
         route: "app/api/pets/route.ts",
@@ -1684,8 +1624,7 @@ fn contract_data() -> String {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/petstore");
     let tmp = tempfile::tempdir().expect("a temporary directory");
     // Named, not the temporary directory itself: `fr openapi` titles the document after the
-    // workspace. A title that is a different random string every run would make the committed
-    // page churn for no reason.
+    // workspace.
     let workspace = tmp.path().join("petstore");
     copy(&root, &workspace);
     let workspace = workspace.as_path();
@@ -1695,9 +1634,7 @@ fn contract_data() -> String {
         contract.contains("openapi: 3.1.0"),
         "the contract is a document:\n{contract}"
     );
-    // The notes go to stderr, so what lands here is the document. Everything the document could
-    // not settle is fetched separately, because it is the other half of the story. A baseline
-    // that quietly invents an entry is worse than no baseline.
+    // The notes go to stderr, so what lands here is the document.
     let notes = run_stderr(workspace, &["openapi".into()]);
 
     let mut out = String::from(
@@ -1736,9 +1673,7 @@ fn contract_data() -> String {
             .parent()
             .unwrap()
             .to_path_buf();
-        // Read off disk and not out of the report. So it has to be scrubbed here: the header
-        // names the file it was translated from. That path is a temporary directory whose name
-        // changes every run.
+        // Read off disk and not out of the report.
         let written = std::fs::read_dir(&directory)
             .unwrap()
             .flatten()
@@ -1752,14 +1687,11 @@ fn contract_data() -> String {
             .to_string_lossy()
             .into_owned();
 
-        // The route against the file it became. The report carries a patch of its own. That
-        // one adds every line of a file that did not exist before, and says no more than the
-        // Python pane beside it. This compares the two sides, so a reader sees which block of
-        // TypeScript each block of Python answers. It comes from the tool's own engine.
+        // The route against the file it became.
         let diff =
             fun_refactor::edit::unified_diff_between(&before, &after, endpoint.route, &written);
         // A creation patch adds every line and removes none, which says no more than the pane
-        // beside it. The page showed one of those for a year. A comparison has both signs.
+        // beside it.
         let body = || diff.lines().skip(2).filter(|l| !l.starts_with("@@"));
         assert!(
             body().any(|l| l.starts_with('-')) && body().any(|l| l.starts_with('+')),
@@ -1783,13 +1715,7 @@ fn contract_data() -> String {
     }
     out.push_str("];\n\n");
 
-    // The crossing, checked. Every route file has been translated by now. So the same command
-    // reads the *other* side, the decorators and the signatures a FastAPI router declares. The
-    // two documents are compared operation by operation.
-    //
-    // This is the check you can make without running the service. It catches the failure the
-    // whole exercise is about: an endpoint that did not survive, or a path that quietly changed
-    // shape.
+    // The crossing, checked.
     for route in ENDPOINTS {
         std::fs::remove_file(workspace.join(route.route)).unwrap();
     }
@@ -1829,8 +1755,7 @@ fn contract_data() -> String {
 
     let before = operations(&contract);
     let after = operations(&crossed);
-    // The addressing half, the URLs and the methods, has to be identical. That is the
-    // part this tool takes responsibility for.
+    // The addressing half, the URLs and the methods, has to be identical.
     let addressing = |ops: &[String]| -> Vec<String> {
         let mut out: Vec<String> = ops
             .iter()
@@ -1856,10 +1781,7 @@ fn contract_data() -> String {
         .filter(|o| !before.contains(o))
         .cloned()
         .collect();
-    // Not only the addressing half. The whole contract survives this crossing, including the
-    // query parameters, which neither framework declares. Asserting it here is what stops the
-    // page from going on claiming so after it stops being true. What the two documents *cannot*
-    // say is a separate matter, and is in the notes beside them.
+    // Not only the addressing half.
     assert!(
         lost.is_empty() && gained.is_empty(),
         "the contract must survive the crossing\n  lost:   {lost:?}\n  gained: {gained:?}"

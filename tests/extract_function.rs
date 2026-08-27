@@ -1,8 +1,4 @@
 //! Extract function: the data-flow half of the extract/inline family.
-//!
-//! The hard part of this refactoring is working out the interface: which locals flow in as
-//! parameters, which flow out as returns, and whether a call can reproduce the region's
-//! control flow at all.
 
 use fun_refactor::edit::apply_to_string;
 use fun_refactor::index::Index;
@@ -109,7 +105,6 @@ fn comments_inside_the_region_survive() {
 
 #[test]
 fn refuses_a_region_containing_a_return() {
-    // A call cannot reproduce a return from the enclosing function.
     let src = "def main():\n    if bad():\n        return 1\n    print(2)\n";
     let (tmp, index) = workspace(&[("a.py", src)]);
     let path = tmp.path().join("a.py");
@@ -291,7 +286,7 @@ fn an_extracted_body_is_indented_the_way_the_file_is() {
 
 #[test]
 fn extract_function_produces_parseable_code_in_every_imperative_language() {
-    // Only Rust and Python were ever exercised here. TypeScript was broken.
+    // Only Rust and Python were ever exercised here.
     let cases: &[(&str, &str, usize, usize)] = &[
         (
             "a.rs",
@@ -338,8 +333,6 @@ fn extract_function_produces_parseable_code_in_every_imperative_language() {
 #[test]
 fn a_binding_mutated_in_the_region_travels_back_as_a_return() {
     // `total` is declared before the region, assigned inside it, and read after.
-    // Passed by value alone, the mutation dies with the call and the function
-    // quietly computes zero.
     let src = "def tally(items):\n    total = 0\n    for item in items:\n        \
                total += item\n    return total\n";
     let (tmp, index) = workspace(&[("a.py", src)]);
@@ -389,8 +382,7 @@ fn a_mutated_rust_binding_is_reassigned_and_the_parameter_is_mut() {
 
 #[test]
 fn a_typescript_assignment_target_is_a_use_of_the_binding() {
-    // `total += item` was invisible to the index. The region moved without
-    // `total` flowing in, and the output named a binding that no longer existed.
+    // `total += item` was invisible to the index.
     let src = "export function tally(items: number[]): number {\n    \
                let total: number = 0;\n    for (const item of items) {\n        \
                total += item;\n    }\n    return total;\n}\n";
@@ -472,8 +464,8 @@ fn java_extracts_with_types_copied_and_the_mutation_carried_back() {
 
 #[test]
 fn java_recovers_the_type_a_var_local_was_given() {
-    // `var` is the word for "the compiler worked it out", and in Java it works it out
-    // from the initializer alone. So `var n = 2` is an `int` and the parameter says so.
+    // `var` is the word for "the compiler worked it out", and in Java it works it out from the
+    // initializer alone.
     let src = "public final class Calc {\n    static int twice() { // Doubles.\n        \
                var n = 2;\n        int m = n * 2;\n        return m; // Done.\n    }\n}\n";
     let (tmp, index) = workspace(&[("Calc.java", src)]);
@@ -584,10 +576,7 @@ fn apply2(plan: &extract::ExtractPlan, path: &PathBuf) -> String {
 
 #[test]
 fn a_selection_crossing_a_loop_body_is_refused_with_the_boundary_named() {
-    // One end inside the loop's body and the other outside it. The moved
-    // statements keep their bytes, so the extraction carried the loop's own
-    // outdent into the middle of the new function. It wrote a file that does
-    // not parse, and reported success.
+    // One end inside the loop's body and the other outside it.
     let src = "def f(items):\n    total = 0\n    for x in items:\n        total += x\n    \
         result = total * 10\n    return result\n";
     let (tmp, index) = workspace(&[("loop.py", src)]);
@@ -630,10 +619,6 @@ fn a_selection_wholly_inside_a_loop_body_still_extracts() {
 
 #[test]
 fn extracting_from_a_method_that_is_not_the_last_keeps_the_class_whole() {
-    // The definition used to go straight after the method it came from, at column
-    // zero. Python nests a `def` anywhere, so the file still parsed and every method
-    // below became a closure of the new function. `Box` lost `total`, and the tests
-    // that called it failed with an `AttributeError`.
     let src = "class Box:\n    def __init__(self):\n        self.values = []\n\n    \
         def add(self, v):\n        self.values.append(v * 2)\n        return self\n\n    \
         def total(self):\n        return sum(self.values)\n";
@@ -655,8 +640,8 @@ fn extracting_from_a_method_that_is_not_the_last_keeps_the_class_whole() {
 
 #[test]
 fn extracting_from_the_last_method_lands_in_the_same_place() {
-    // The last method was the one case that worked, because there was nothing below
-    // it to swallow. It has to keep working, and land where the other one does.
+    // The last method was the one case that worked, because there was nothing below it to
+    // swallow.
     let src = "class Box:\n    def __init__(self):\n        self.values = []\n\n    \
         def total(self):\n        return sum(self.values)\n";
     let (tmp, index) = workspace(&[("box.py", src)]);
@@ -673,8 +658,7 @@ fn extracting_from_the_last_method_lands_in_the_same_place() {
 
 #[test]
 fn extracting_from_a_nested_function_stays_inside_the_outer_one() {
-    // Hoisting stops at a function. The new definition reads `base`, which belongs to
-    // `outer`, so moving it to the top of the file would leave that name undefined.
+    // Hoisting stops at a function.
     let src = "def outer(base):\n    def inner(v):\n        scaled = v * base\n        \
         return scaled + 1\n\n    return inner(2)\n";
     let (tmp, index) = workspace(&[("n.py", src)]);
@@ -694,10 +678,8 @@ fn extracting_from_a_nested_function_stays_inside_the_outer_one() {
 
 #[test]
 fn a_typescript_method_carries_its_receiver_as_a_parameter() {
-    // `this` is named nowhere in a TypeScript signature, so the data-flow analysis
-    // could not see it. The body still said `this.values` while the parameter list
-    // was empty. Go reaches the same shape by ordinary means, its receiver being a
-    // named parameter, and this follows it.
+    // `this` is named nowhere in a TypeScript signature, so the data-flow analysis could not
+    // see it.
     let src = "export class Box {\n  values: number[] = [];\n\n  sum(): number {\n    \
         let running = 0;\n    for (const v of this.values) {\n      running = running + v;\n    \
         }\n    return running;\n  }\n}\n";
@@ -749,9 +731,7 @@ fn a_private_member_stops_the_extraction_leaving_the_class() {
 
 #[test]
 fn a_rust_method_that_reads_self_is_refused() {
-    // The definition leaves the `impl` block, so it is a free function with no
-    // receiver. Rust cannot be handed one as an ordinary parameter without inventing
-    // a borrow and a lifetime, so the extraction says so instead of guessing.
+    // The definition leaves the `impl` block, so it is a free function with no receiver.
     let src = "pub struct Box2 {\n    pub values: Vec<i64>,\n}\n\nimpl Box2 {\n    \
         pub fn add(&mut self, v: i64) {\n        let doubled = v * 2;\n        \
         self.values.push(doubled);\n    }\n}\n";
@@ -769,11 +749,8 @@ fn a_rust_method_that_reads_self_is_refused() {
 
 #[test]
 fn a_zig_struct_method_places_the_definition_beside_it() {
-    // A Zig container is a `variable_declaration`, not a type declaration the
-    // way the other five spell one. The hoist that keeps a definition out of a
-    // class body therefore does not recognise it. It does not need to. A Zig
-    // struct holds functions, and a sibling function is reachable unqualified.
-    // This pins that the placement is right rather than right by accident.
+    // A Zig container is a `variable_declaration`, not a type declaration the way the other
+    // five spell one.
     let src = "const std = @import(\"std\");\n\nconst Buffer = struct {\n    \
         count: usize,\n\n    pub fn describe(self: *Buffer) void {\n        \
         const doubled: usize = self.count * 2;\n        \
@@ -792,15 +769,12 @@ fn a_zig_struct_method_places_the_definition_beside_it() {
         out.contains("        report(doubled);"),
         "and the call reaches it unqualified.\n{out}"
     );
-    // The struct still closes once, after both functions.
     assert_eq!(out.matches("};").count(), 1, "one container ending.\n{out}");
 }
 
 #[test]
 fn a_python_definition_at_module_scope_gets_the_two_blank_lines_it_needs() {
-    // `black` rewrites one blank line before a top-level `def` to two, and a
-    // method keeps one. Hoisting a definition out of a class moves it to module
-    // scope, and it landed there with a method's spacing.
+    // `black` rewrites one blank line before a top-level `def` to two, and a method keeps one.
     let src = "class Report:\n    def total(self, rows: list[int]) -> int:\n        \
         subtotal = 0\n        for r in rows:\n            subtotal += r\n        \
         return subtotal\n";

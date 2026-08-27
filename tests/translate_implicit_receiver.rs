@@ -1,15 +1,4 @@
 //! A field named with no receiver still reaches the field.
-//!
-//! Java lets a method body write `accounts` for what the class declares as
-//! `this.accounts`. Written through unchanged, the target had a free variable
-//! nothing binds. `tsc` reported twenty-eight of them in one translated class.
-//! Python fared worse: the field was declared `balance_cents` while the body
-//! still said `balanceCents`, a disagreement the translation itself introduced.
-//!
-//! One rule fixes both, at the place every writer reads a name as a value. A
-//! bare name that is a field of the enclosing record goes through the receiver,
-//! in the field table's spelling. A parameter or a local of the same name is
-//! the nearer declaration, so it wins.
 
 mod common;
 use common::{require_on_ci, Toolchain};
@@ -82,8 +71,7 @@ fn a_bare_field_is_written_through_this_in_typescript() {
 
 #[test]
 fn a_bare_field_takes_the_field_tables_spelling_in_python() {
-    // The declaration says `step_by` and the body said `stepBy`. One table
-    // spells both, so they cannot drift apart.
+    // The declaration says `step_by` and the body said `stepBy`.
     let tmp = tempfile::tempdir().expect("a temporary directory");
     let out = translated(tmp.path(), "Counter.java", COUNTER_JAVA, Language::Python);
     assert!(
@@ -98,8 +86,7 @@ fn a_bare_field_takes_the_field_tables_spelling_in_python() {
 
 #[test]
 fn a_local_of_the_fields_name_keeps_the_local() {
-    // `int stepBy = 100;` inside `peek` is the nearer declaration in Java and in
-    // every target. Reaching for the field there would change the answer.
+    // `int stepBy = 100;` inside `peek` is the nearer declaration in Java and in every target.
     let tmp = tempfile::tempdir().expect("a temporary directory");
     let out = translated(
         tmp.path(),

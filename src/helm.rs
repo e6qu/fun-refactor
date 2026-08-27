@@ -1,47 +1,10 @@
 //! Go template actions in Helm charts, parsed and not pattern-matched.
-//!
-//! `src/parse.rs` masks every `{{ ... }}` action to spaces before handing the file to the YAML
-//! grammar, keeping the YAML tree well-formed and every byte offset indexing the original
-//! source, at the cost of hiding everything inside an action from the YAML queries. This module
-//! reads the spans `Parsed::masked_spans` records and turns each into a structured [`Action`].
-//! So `.Values` references, control flow and named templates are parsed. They are not pattern-matched.
-//!
-//! What it models, following `text/template`:
-//!
-//! - **Pipelines and arguments**: `{{ .Values.x | default "y" | quote }}` and `{{ include
-//!   "c.name" . }}` both name their operands; the lexer sees tokens, so a `.Values` path inside
-//!   a function argument reads the same as a bare one.
-//! - **Control actions**: `if`/`else if`/`else`/`end`, `range`, `with`, `define`, `block`,
-//!   `template`. Each opener pairs with its `end` into a [`Region`], which expresses "this key
-//!   exists only when `.Values.resources` is set" instead of marking the whole file
-//!   render-dependent.
-//! - **Trim markers**: `{{- ` and ` -}}`, using Go's own rule that the hyphen counts only when
-//!   a space character sits between it and the content.
-//! - **Built-in objects**: `.Release`, `.Chart`, `.Capabilities`, `.Files`, `.Template` and
-//!   `.Subcharts`, kept apart from `.Values`, `.Release.Name` names no key a values file can
-//!   hold.
-//!
-//! What it does not model, it reports. `.field` under a `range` is a field of the element. The
-//! dot inside a `define` is whatever the caller passed: both resolve to [`RefRoot::Context`]
-//! with no values path. A `with` rebinds the dot to exactly one value, which does resolve
-//! ([`Template::values_path_of`]).
-//!
-//! `index .Values "a-b"` resolves, because a chart reaches a key with a non-identifier name
-//! that way. Only literal string arguments resolve; a computed key (`index .Values $k`) or a
-//! nested call reports through [`Action::problems`].
-//!
-//! # The command line
-//!
-//! `-f` files and `--set` assignments outrank everything in the chart, and a workspace scan
-//! sees neither. [`SetValue`] parses Helm's `--set` syntax so a caller that knows the
-//! invocation can supply it; [`crate::analysis::provenance::ValuesInputs`] applies it in
-//! precedence order.
 
 use crate::parse::Parsed;
 use crate::span::Span;
 use anyhow::{bail, Result};
 
-/// Helm's built-in top-level objects. None of them lives in a values file.
+/// Helm's built-in top-level objects.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Builtin {
     Release,
@@ -86,9 +49,9 @@ pub enum RefRoot {
     Builtin(Builtin),
     /// A field of the current dot: `.name` inside a `range`, `with` or `define`.
     Context,
-    /// `$name.a.b`. The name is empty for `$` itself.
+    /// `$name.a.b`.
     Variable(String),
-    /// The bare dot, as in `{{ include "c.labels" . }}`.
+    /// The bare dot, as in `{{ include "c.labels" .
     Dot,
 }
 
@@ -118,8 +81,7 @@ impl Ref {
     }
 }
 
-/// What an action does. Control actions are separated from value actions because
-/// only the former open or close a [`Region`].
+/// What an action does.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ActionKind {
     If {
@@ -140,19 +102,19 @@ pub enum ActionKind {
     Define {
         name: String,
     },
-    /// `{{ block "name" . }}` both defines a template and invokes it here.
+    /// `{{ block "name" .
     Block {
         name: String,
     },
-    /// `{{ template "name" . }}`.
+    /// `{{ template "name" .
     TemplateCall {
         name: String,
     },
-    /// `{{ $x := ... }}` or `{{ $x = ... }}`.
+    /// `{{ $x := ...
     Assignment {
         variable: String,
     },
-    /// `{{/* ... */}}`.
+    /// `{{/* ...
     Comment,
     /// A pipeline whose result is rendered.
     Expression,
@@ -192,7 +154,7 @@ impl ActionKind {
     }
 }
 
-/// One `{{ ... }}` action.
+/// One `{{ ...
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Action {
     /// Byte span of the whole action, delimiters included, in the original file.
@@ -210,16 +172,14 @@ pub struct Action {
     pub functions: Vec<String>,
     /// Named templates the action invokes, through `include`, `template` or `block`.
     pub invokes: Vec<String>,
-    /// Index into [`Template::regions`] of the innermost region containing this
-    /// action. An opener is *not* inside the region it opens.
+    /// Index into [`Template::regions`] of the innermost region containing this action.
     pub enclosing: Option<usize>,
     /// Anything the lexer could not account for, kept and not dropped.
     pub problems: Vec<String>,
 }
 
 impl Action {
-    /// Every `.Values` path named directly by this action, ignoring any enclosing
-    /// `with`. Use [`Template::values_paths_of`] when the context matters.
+    /// Every `.Values` path named directly by this action, ignoring any enclosing `with`.
     pub fn values_paths(&self) -> Vec<Vec<String>> {
         let mut out: Vec<Vec<String>> = Vec::new();
         for path in self.refs.iter().filter_map(Ref::values_path) {
@@ -264,10 +224,6 @@ pub enum RegionKind {
 
 impl RegionKind {
     /// Does the region's body render only under some condition?
-    ///
-    /// `with` counts: it skips its body when the value is empty. `range` counts: a
-    /// zero-length collection renders nothing. `define` does not, its body renders
-    /// wherever it is included, which is a different question.
     pub fn is_conditional(&self) -> bool {
         matches!(self, RegionKind::If | RegionKind::Range | RegionKind::With)
     }
@@ -377,9 +333,7 @@ pub struct Template {
     pub regions: Vec<Region>,
     pub defines: Vec<NamedTemplate>,
     pub invocations: Vec<Invocation>,
-    /// Openers with no `end`, and `end`s (or `else`s) closing nothing. A Go
-    /// template with any of these does not render at all, so they are reported
-    /// and not repaired.
+    /// Openers with no `end`, and `end`s (or `else`s) closing nothing.
     pub unbalanced: Vec<(Span, String)>,
 }
 
@@ -516,9 +470,7 @@ impl Template {
         out
     }
 
-    /// The `.Values` paths one action names, resolving `.field` against an
-    /// enclosing `with`. Fields whose dot is bound by a `range` or a `define`
-    /// yield nothing: no caller knows what the dot holds there.
+    /// The `.Values` paths one action names, resolving `.field` against an enclosing `with`.
     pub fn values_paths_of(&self, action: usize) -> Vec<Vec<String>> {
         let mut out: Vec<Vec<String>> = Vec::new();
         for reference in &self.actions[action].refs {
@@ -663,17 +615,11 @@ impl Template {
 }
 
 /// Parse a single action from its text alone.
-///
-/// The delimiters are optional: text with none is read as the inside of an action,
-/// which makes this usable on a fragment. Spans are relative to `text`.
 pub fn parse_action(text: &str) -> Action {
     action_at(text, Span::new(0, text.len()))
 }
 
 /// Every `.Values.a.b.c` path named in a snippet of template text.
-///
-/// Context-relative fields are not included: without the file around them there is
-/// no `with` to resolve them against.
 pub fn values_paths_in(text: &str) -> Vec<Vec<String>> {
     parse_action(text).values_paths()
 }
@@ -705,8 +651,6 @@ impl std::fmt::Display for SetSegment {
 }
 
 /// Which `--set` flag an assignment came from.
-///
-/// Helm has five, and they differ in where the value comes from and how it is read.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SetSource {
     /// `--set`, the value read as YAML would read it.
@@ -735,26 +679,19 @@ impl SetSource {
 pub struct SetValue {
     /// The path as written, indices included.
     pub path: Vec<SetSegment>,
-    /// The value, with `\.`, `\,`, `\=` and `\\` escapes resolved. For `--set-file` it is
-    /// the path the value is read from, and for `--set-json` the leaf the JSON holds.
+    /// The value, with `\.`, `\,`, `\=` and `\\` escapes resolved.
     pub value: String,
     /// Which flag it came from.
     pub source: SetSource,
     /// `--set x=null` removes the key in Helm, so this source takes a value away instead
     /// of supplying one.
     pub deletes: bool,
-    /// The assignment as written, e.g. `image.tag=1.2`.
+    /// The assignment as written, e.g.
     pub text: String,
 }
 
 impl SetValue {
     /// The mapping keys of the path, with list indices dropped.
-    ///
-    /// Values-file keys are indexed by their mapping path, a key under a sequence is qualified
-    /// by the sequence's key, with no index. So `ports[0].name` and the `name` under `ports:`
-    /// are the same key path here. Which *element* of `ports` the assignment sets is
-    /// [`SetValue::element`], and two assignments that set different elements set different
-    /// values without either overriding the other.
     pub fn keys(&self) -> Vec<String> {
         self.path
             .iter()
@@ -766,9 +703,6 @@ impl SetValue {
     }
 
     /// The list element the path addresses, `ports[0]`, or `None` when it addresses none.
-    ///
-    /// The path up to and including its last index. Everything after that index is a key
-    /// *within* that element.
     pub fn element(&self) -> Option<String> {
         let last = self
             .path
@@ -812,9 +746,6 @@ impl std::fmt::Display for SetValue {
 
 /// Parse one `--set`/`--set-string` argument, which may hold several assignments separated by
 /// unescaped commas, as Helm's `strvals` does.
-///
-/// A `{a,b}` list literal sets one element per item, which is the same list Helm builds from
-/// `key[0]=a,key[1]=b`, so it is read into those assignments.
 pub fn parse_set(argument: &str, string: bool) -> Result<Vec<SetValue>> {
     let source = if string {
         SetSource::String
@@ -869,7 +800,7 @@ pub fn parse_set(argument: &str, string: bool) -> Result<Vec<SetValue>> {
     Ok(out)
 }
 
-/// Parse one `--set-file KEY=PATH` argument. The value is whatever the file holds.
+/// Parse one `--set-file KEY=PATH` argument.
 pub fn parse_set_file(argument: &str) -> Result<Vec<SetValue>> {
     let mut out = Vec::new();
     for assignment in split_assignments(argument)? {
@@ -891,9 +822,6 @@ pub fn parse_set_file(argument: &str) -> Result<Vec<SetValue>> {
 }
 
 /// Parse one `--set-json KEY=JSON` argument.
-///
-/// JSON holding an object or a list sets every key beneath the path. So each leaf becomes
-/// an assignment of its own, and the keys under it rank like any other.
 pub fn parse_set_json(argument: &str) -> Result<Vec<SetValue>> {
     let Some((key, json)) = split_once_unescaped(argument, '=') else {
         bail!("`{argument}` is not an assignment; --set-json takes key=json");
@@ -1010,7 +938,7 @@ fn list_literal(value: &str) -> Result<Option<Vec<String>>> {
     ))
 }
 
-/// `image.tag`, `ports[0].name`, `annotations.foo\.bar`. Helm's key syntax.
+/// `image.tag`, `ports[0].name`, `annotations.foo\.bar`.
 fn parse_set_path(key: &str) -> Result<Vec<SetSegment>> {
     if key.trim().is_empty() {
         bail!("`{key}=…` sets an empty key; --set takes key=value");
@@ -1180,8 +1108,7 @@ fn action_at(source: &str, span: Span) -> Action {
     }
 
     let inner = &source[inner_start..inner_end];
-    // Text with no delimiters at all is a fragment, which is a supported input. An action that
-    // opens and never closes is a broken file, which is not.
+    // Text with no delimiters at all is a fragment, which is a supported input.
     let mut problems = Vec::new();
     if text.starts_with("{{") && !text.ends_with("}}") {
         problems.push("action is never closed by `}}`".to_string());
@@ -1489,9 +1416,7 @@ fn references(tokens: &[Token], source: &str, problems: &mut Vec<String>) -> Vec
     let mut out = Vec::new();
     let mut i = 0usize;
     while i < tokens.len() {
-        // `index .Values "a-b"` reaches a key no field chain can spell. Its string
-        // arguments *are* the path, so it resolves like one; anything else it is
-        // given cannot be, and is reported and not dropped.
+        // `index .Values "a-b"` reaches a key no field chain can spell.
         if let Some((reference, next)) = index_call(tokens, source, i, problems) {
             if let Some(reference) = reference {
                 out.push(reference);
@@ -1553,15 +1478,6 @@ fn references(tokens: &[Token], source: &str, problems: &mut Vec<String>) -> Vec
 }
 
 /// An `index` call over `.Values`, starting at token `at`.
-///
-/// Returns the reference it names, `None` inside the `Some` when the call names
-/// no key we can know, and the token index to continue from. `None` means the
-/// tokens at `at` are not an `index` call at all, and are read the ordinary way.
-///
-/// `index .Values "a-b" "c"` is `.Values.a-b.c`: each literal string argument is
-/// one path segment, which Go's `index` does to a map. A computed
-/// key or a parenthesised sub-call names a segment the workspace does not hold, so
-/// it becomes a problem on the action and not a guessed path.
 fn index_call(
     tokens: &[Token],
     source: &str,
@@ -1607,9 +1523,7 @@ fn index_call(
     }
 
     if end == at + 2 {
-        // Nothing literal followed. A chain with a path of its own still names a key, `index
-        // .Values.hosts 0` reads an element of `.Values.hosts`. But a bare `.Values` indexed by
-        // a computed key names nothing at all.
+        // Nothing literal followed.
         if base_path.is_empty() {
             let key = tokens
                 .get(at + 2)
@@ -1668,8 +1582,7 @@ fn function_names(tokens: &[Token], kind: &ActionKind) -> Vec<String> {
         .collect()
 }
 
-/// The named templates an action calls. `include` and `template` take the name as
-/// their first argument; a `block` calls the template it defines, in place.
+/// The named templates an action calls.
 fn invocations(tokens: &[Token], kind: &ActionKind) -> Vec<String> {
     let mut out = Vec::new();
     if let ActionKind::Block { name } | ActionKind::TemplateCall { name } = kind {
@@ -1682,7 +1595,7 @@ fn invocations(tokens: &[Token], kind: &ActionKind) -> Vec<String> {
         if name != "include" && name != "template" {
             continue;
         }
-        // `{{ template "x" . }}` is already accounted for by the action's kind.
+        // `{{ template "x" .
         if index == 0 && matches!(kind, ActionKind::TemplateCall { .. }) {
             continue;
         }
@@ -1695,6 +1608,6 @@ fn invocations(tokens: &[Token], kind: &ActionKind) -> Vec<String> {
     out
 }
 
-// Every item above is public, and `tests/helm_template.rs` exercises all of it
-// through the same door a caller uses, the parser has no private behaviour that
-// an in-module test could reach and that file could not.
+// Every item above is public, and `tests/helm_template.rs` exercises all of it through the same
+// door a caller uses, the parser has no private behaviour that an in-module test could reach
+// and that file could not.

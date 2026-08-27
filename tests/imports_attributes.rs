@@ -1,15 +1,4 @@
 //! What an attribute above an import belongs to.
-//!
-//! Sorting moves whole lines within a run of imports. An attribute sits on its own line and is
-//! part of the item below it. So leaving it where it was hands it to whichever import sorts
-//! into its place. Run over this repository, `fr imports` did that to three of its 49 Rust
-//! files, `src/index.rs` among them:
-//!
-//! ```text #[cfg(feature = "cli")] +use anyhow::{Context, Result}; use crate::scan::{scan,
-//! ScanOptions, ScanResult}; ```
-//!
-//! which compiles under neither setting of the feature, `anyhow` disappears without it, and
-//! `crate::scan` is named unconditionally while the module it names is not.
 
 use fun_refactor::index::Index;
 use fun_refactor::refactor::imports;
@@ -78,9 +67,7 @@ fn stacked_attributes_all_travel() {
 
 #[test]
 fn an_attribute_does_not_make_the_line_look_shared() {
-    // The check for "something else is on this line" reads the statement's own line. Run
-    // against the extended one, every attributed import looked like shared code and the
-    // whole block stopped sorting.
+    // The check for "something else is on this line" reads the statement's own line.
     let source = format!(
         "#[cfg(feature = \"cli\")]\nuse crate::scan::S;\nuse crate::b::B;\nuse crate::a::A;\n\
          use anyhow::Result;\nuse std::path::Path;\n{TAIL}"
@@ -98,9 +85,8 @@ fn an_attribute_does_not_make_the_line_look_shared() {
 
 #[test]
 fn an_unused_guarded_import_is_held_with_its_reason() {
-    // Liveness reads one configuration of the tree; `#[cfg]` makes the import's
-    // use a property of the build. Removing it stranded the attribute above
-    // whatever came next; holding it is the honest answer.
+    // Liveness reads one configuration of the tree; `#[cfg]` makes the import's use a property
+    // of the build.
     let source = format!(
         "#[cfg(feature = \"cli\")]\nuse crate::scan::S;\nuse anyhow::Result;\n\
          use crate::a::A;\nuse crate::b::B;\nuse std::path::Path;\n{TAIL}"

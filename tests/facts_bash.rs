@@ -1,8 +1,4 @@
 //! Bash fact-extraction tests: what `queries/bash/facts.scm` yields.
-//!
-//! Bash is dynamically scoped and has no declarations to lean on, so several of
-//! these tests pin down deliberate heuristics and not language guarantees.
-//! Where the query language cannot express something, the test says so.
 
 use fun_refactor::{extract::Extractor, lang::Language, model::*, parse::Parsers};
 use std::path::Path;
@@ -20,8 +16,7 @@ fn facts(src: &str) -> FileFacts {
         .unwrap()
 }
 
-/// The one symbol with this name. Fails if a definition was captured twice,
-/// which is the failure mode of overlapping query patterns.
+/// The one symbol with this name.
 fn one<'a>(f: &'a FileFacts, name: &str) -> &'a Symbol {
     let found: Vec<_> = f.symbols.iter().filter(|s| s.name == name).collect();
     assert_eq!(
@@ -91,9 +86,7 @@ fn rich_sample_parses_without_errors() {
 
 #[test]
 fn no_definition_is_captured_twice() {
-    // `local x=1` is both a declaration and an assignment. The declaration patterns and the
-    // plain-assignment patterns must not both claim it, or a rename would emit two edits over
-    // the same bytes.
+    // `local x=1` is both a declaration and an assignment.
     let f = facts(RICH);
     let mut spans: Vec<_> = f.symbols.iter().map(|s| s.name_span).collect();
     let before = spans.len();
@@ -131,8 +124,6 @@ fn both_function_syntaxes_are_captured() {
 
 #[test]
 fn functions_are_never_marked_exported() {
-    // Bash has no visibility control over functions: every one is global once
-    // its definition has run. @export is reserved for `export`ed variables.
     let f = facts(RICH);
     for name in ["greet", "farewell", "main"] {
         assert!(!one(&f, name).exported, "{name}");
@@ -241,8 +232,7 @@ fn a_c_style_for_loop_binds_its_initializer() {
 
 #[test]
 fn positional_parameters_are_not_captured() {
-    // `$1` is a variable_name node, but it has no definition site and cannot be renamed. So it
-    // is deliberately left out and not reported as a use of a variable called "1".
+    // `$1` is a variable_name node, but it has no definition site and cannot be renamed.
     let src = "f() {\n  local name=$1\n  echo \"$2 $name\"\n}\n";
     let f = facts(src);
     let names: Vec<_> = f.references.iter().map(|r| r.name.as_str()).collect();
@@ -313,9 +303,7 @@ fn quoted_source_paths_lose_their_quotes() {
 
 #[test]
 fn a_concatenated_source_path_is_captured_but_not_unquoted_cleanly() {
-    // Known shortcoming, in the extractor instead of the query. Import paths are unquoted by
-    // trimming quote characters off the ends, which cannot handle a path built from several
-    // pieces. The import itself, and its span, are right.
+    // Known shortcoming, in the extractor instead of the query.
     let src = "source \"$DIR\"/lib.sh\n";
     let f = facts(src);
     assert_eq!(f.imports.len(), 1);
@@ -335,8 +323,7 @@ fn a_command_named_source_is_also_a_call_reference() {
 
 #[test]
 fn function_bodies_and_subshells_are_scopes() {
-    // Bash scoping is dynamic, so this tree is a lexical approximation. A name used in a
-    // function may at run time resolve to a caller's variable.
+    // Bash scoping is dynamic, so this tree is a lexical approximation.
     let src = "outer() {\n  inside=1\n}\ntoplevel=2\n( subshelled=3 )\n";
     let f = facts(src);
     let body = f.scope_at(src.find("inside=1").unwrap()).unwrap();
@@ -385,8 +372,6 @@ fn the_rich_sample_yields_the_expected_facts() {
         vec!["./lib/util.sh", "/etc/profile"]
     );
 
-    // Calls to workspace functions are indistinguishable from external commands
-    // at this layer; both are Call references awaiting resolution.
     let calls: Vec<_> = f
         .references
         .iter()
@@ -399,11 +384,6 @@ fn the_rich_sample_yields_the_expected_facts() {
 }
 
 /// A function reached through `source` is used, and deleting it breaks the run.
-///
-/// Sourcing a script is not a binding: it runs the file, and every function it
-/// defines becomes callable here by its bare name. Resolved as nothing, the
-/// call left `fr usages` reporting none and `fr unused` offering a running
-/// function for deletion.
 #[test]
 fn a_function_reached_through_source_resolves() {
     use fun_refactor::index::Index;

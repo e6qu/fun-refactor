@@ -194,6 +194,43 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   the pages are about that output. So does what a vendored corpus file carries,
   which is somebody else's code held to a checksum.
 
+- [x] B789: **no release existed.** Nobody could take the tool without building
+  it. `release-please` keeps the next version and its changelog in an open pull
+  request now, and merging that request tags the release. Four binaries
+  follow it: Linux and macOS, amd64 and arm64. The Linux pair links against musl
+  and runs anywhere with the right architecture. A fifth archive holds the
+  browser module and its loader. Each archive carries its own checksum.
+
+  `tests/release.rs` holds the matrix and the README's download table to each
+  other. A target with no row is an artifact nobody looks for. A row with no
+  target is a 404 behind a green workflow.
+
+- [x] B790: **`release-please` would never have released anything.** It reads the
+  subject of each commit on `main`. A squash merge writes the pull request title
+  there. No title in this repository's history says what kind of change it
+  is. So each one classifies as nothing, the version never moves, and no error
+  appears. A job on each pull request refuses a title naming no kind, and prints
+  the nine kinds with what each one bumps.
+
+- [x] B791: **20,169 lines of comment, most of them narrative.** The rule said a
+  comment gives the reason rather than the behaviour. It did not say how many, so
+  the answer was a paragraph per idea: 13,903 of those lines sat in blocks of
+  three or more.
+
+  `docs/style.md` asks for none by default, one line where a reader would
+  otherwise break something, and two where the constraint needs two. It forbids
+  justification. `tools/trim-comments.py` cuts every block to its leading
+  sentence and deletes the ones that restate the code or narrate a defect. That
+  took 11,413 lines. `tools/check-prose.py` counts the rest, and the count may
+  only fall.
+
+- [x] B792: **the comments and the documents spoke in the passive.**
+  `docs/style.md` asks for the active voice and the imperative mood. 1,903
+  constructions ignored it. The rule has a counter beside the others now. 948 of
+  those left the writers, the readers, the refactorings and every reader-facing
+  document. The rest sit mostly in `BUGS.md` and `PLAN.md`, which record what
+  happened, in the past tense.
+
 - [x] B777: **a renamed flag silently broke every script passing it.** A script
   writes `./collector --retention-days 30`, and a program declares that flag
   somewhere. The two never met. The flag was a word in a shell command and

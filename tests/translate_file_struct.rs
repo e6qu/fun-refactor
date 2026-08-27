@@ -1,9 +1,4 @@
 //! The Zig file-as-struct idiom crosses as a record.
-//!
-//! A Zig file with fields at its top level is itself a struct, and
-//! `const Self = @This();` says so in as many words. zls writes whole types this
-//! way. Before the reader learned the idiom, every field carried as a comment and
-//! the type never existed in the output.
 
 use fun_refactor::lang::Language;
 use std::path::PathBuf;

@@ -1,13 +1,4 @@
 //! Helm values precedence when the caller supplies the command line.
-//!
-//! A workspace scan sees a chart, its subcharts and whatever `values-*.yaml` files sit beside
-//! them. It cannot see the invocation: whether a values file is passed with `-f` at all, in
-//! which order two of them were written, or that a `--set` overrides both. That is not an
-//! inherent limit, it is a missing input, so these tests supply it. Pin both halves: what the
-//! same query answers with nothing supplied (unchanged), and what it answers when told.
-//!
-//! Every assertion below is of what the code does, including where it still refuses: an answer
-//! from a partial command line says it is partial.
 
 use fun_refactor::{
     analysis::provenance::{
@@ -140,7 +131,7 @@ fn stops(result: &provenance::Provenance) -> Vec<String> {
 #[test]
 fn with_no_inputs_the_command_line_still_decides_nothing() {
     // The baseline this whole feature is additive to: two values files beside the chart both
-    // set the key. Which one applies is the invocation's business.
+    // set the key.
     let (_tmp, index) = chart();
     let tag = key_with_path(&index, "charts/mysql/values.yaml", "image.tag");
     let result = provenance(&index, tag, 5).unwrap();
@@ -266,9 +257,7 @@ fn a_values_file_that_sets_nothing_for_the_key_leaves_the_chart_value_standing()
 
 #[test]
 fn a_key_only_a_file_that_is_not_passed_sets_is_unset_in_this_invocation() {
-    // The other half of "which file is passed". A key whose only source is a file the caller
-    // did not list is not a competition anyone wins. It is unset, and the file that would
-    // supply it is named.
+    // The other half of "which file is passed".
     let (tmp, index) = workspace(&[
         ("app/Chart.yaml", "name: app\nversion: 0.1.0\n"),
         ("app/values.yaml", "replicaCount: 1\n"),
@@ -578,8 +567,7 @@ fn set_paths_follow_helms_own_syntax() {
     assert_eq!(dotted[0].value, "1.2");
     assert!(!dotted[0].is_string());
 
-    // A list index addresses an element; the values index records mapping keys only. So the
-    // index is kept in the text and dropped from the key path.
+    // A list index addresses an element; the values index records mapping keys only.
     let indexed = helm::parse_set("ports[0].name=http", false).unwrap();
     assert_eq!(
         indexed[0].path,
@@ -597,11 +585,10 @@ fn set_paths_follow_helms_own_syntax() {
     assert_eq!(several[1].keys(), vec!["b", "c"]);
     assert_eq!(several[1].text, "b.c=2");
 
-    // An escaped dot is part of the key. It is not a separator.
+    // An escaped dot is part of the key.
     let escaped = helm::parse_set(r"annotations.example\.com/team=infra", false).unwrap();
     assert_eq!(escaped[0].keys(), vec!["annotations", "example.com/team"]);
 
-    // A value may hold `=` and commas of its own once escaped.
     let value = helm::parse_set(r"args=--a\,--b", false).unwrap();
     assert_eq!(value[0].value, "--a,--b");
 
@@ -696,7 +683,7 @@ fn set_syntax_that_names_no_key_is_refused() {
 #[test]
 fn an_order_between_set_and_set_string_that_the_flags_lost_is_refused() {
     // Helm applies --set and --set-string in the order they were written; two flag lists cannot
-    // say what that was. So the one case where it matters is refused.
+    // say what that was.
     let clash = ValuesInputs::parse(
         &[],
         SetFlags {
@@ -737,8 +724,7 @@ fn parsed_inputs_describe_themselves_as_a_command_line() {
 
 #[test]
 fn index_with_a_literal_key_resolves_to_that_values_key() {
-    // The idiom for a key that is not a valid identifier. It was a documented
-    // residual of the masked-action work; the string arguments are the path.
+    // The idiom for a key that is not a valid identifier.
     assert_eq!(
         helm::values_paths_in(r#"{{ index .Values "extra-args" }}"#),
         vec![vec!["extra-args".to_string()]]
@@ -833,8 +819,7 @@ fn a_hyphenated_key_reached_by_index_takes_the_supplied_inputs_too() {
 #[test]
 fn a_file_nobody_passed_is_never_labelled_user_supplied() {
     // With no `-f` on the command line the strongest visible source may still be a
-    // values-prod.yaml beside the chart. The label says its win is conditional
-    // instead of claiming a flag that was never passed.
+    // values-prod.yaml beside the chart.
     let (_tmp, index) = workspace(&[
         ("app/Chart.yaml", "name: app\nversion: 0.1.0\n"),
         ("app/values.yaml", "image:\n  tag: \"1.0\"\n"),
@@ -865,9 +850,8 @@ fn a_file_nobody_passed_is_never_labelled_user_supplied() {
 
 #[test]
 fn two_elements_of_one_list_are_two_answers_and_not_a_competition() {
-    // `--set ports[0].name` and `--set ports[1].name` address the same key path and
-    // different elements of it. Neither overrides the other, so the report holds one
-    // competition per element and names which.
+    // `--set ports[0].name` and `--set ports[1].name` address the same key path and different
+    // elements of it.
     let (_tmp, index) = workspace(&[
         ("app/Chart.yaml", "name: app\nversion: 0.1.0\n"),
         (

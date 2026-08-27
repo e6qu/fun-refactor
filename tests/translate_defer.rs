@@ -1,10 +1,4 @@
 //! `defer` crosses, and a positional construction finds its record's fields.
-//!
-//! Go and Zig keep the word. Python, TypeScript and Java say the same thing
-//! with `try`/`finally`: everything after the defer goes in the `try`, the
-//! deferred body in the `finally`. Stacked defers nest, which keeps their
-//! last-in, first-out order. Rust has no scope-exit hook short of inventing a
-//! guard type, so it carries the body as a comment, rendered as Rust.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -82,7 +76,6 @@ fn stacked_defers_nest_and_keep_their_order() {
 #[test]
 fn a_go_defer_reads_and_rust_runs_it_from_a_drop_guard() {
     // Rust has no scope-exit statement; the guard type is where it keeps one.
-    // The cleanup is inside the guard's closure, runnable, not a comment.
     let source = "package main\n\nfunc readAll(path string) int {\n\tfile := open(path)\n\t\
                   defer file.Close()\n\treturn parse(file)\n}\n";
     let (_tmp, root) = workspace(&[("d.go", source)]);
@@ -126,9 +119,7 @@ fn a_positional_construction_names_the_declared_records_fields() {
 
 #[test]
 fn a_construction_with_the_wrong_arity_calls_the_convention() {
-    // Two fields, one argument: mapping positions would invent a default. So the construction
-    // goes through the constructor convention instead of a field literal, and the argument it
-    // has is the argument it passes.
+    // Two fields, one argument: mapping positions would invent a default.
     let source = "from dataclasses import dataclass\n\n\n@dataclass\nclass Point:\n    \
                   x: int\n    y: int\n\n\ndef partial() -> Point:\n    return Point(1)\n";
     let (_tmp, root) = workspace(&[("pp.py", source)]);
@@ -160,10 +151,7 @@ fn typescript_parameter_properties_become_fields() {
 
 #[test]
 fn errdefer_cleans_up_only_on_the_failure_path() {
-    // Zig's `errdefer` runs when the scope is left failing, and here failure
-    // is an exception. The cleanup wraps the rest of the scope, runs on the
-    // way out, and the exception keeps flying. Carried whole, 55 of these vanished
-    // into comments while the code after them read the names they managed.
+    // Zig's `errdefer` runs when the scope is left failing, and here failure is an exception.
     let source = "pub fn build(allocator: anytype) !u32 {\n    \
         var list = try makeList(allocator);\n    errdefer list.deinit(allocator);\n    \
         try fill(&list);\n    return list.len;\n}\n";

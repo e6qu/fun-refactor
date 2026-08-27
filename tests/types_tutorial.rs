@@ -1,12 +1,4 @@
 //! The stages of the types tutorial, measured and not asserted.
-//!
-//! The page claims that each stage knows more about its own values than the one before.
-//! That is a claim about the code in `tests/types_tutorial`, and this makes it
-//! fail the build when it stops being true.
-//!
-//! What is measured is what `fr type` answers for every binding and parameter in the
-//! file: the source declared a type, or one follows from what it declared, or nothing
-//! is known. A stage that adds prose and no types moves nothing here.
 
 use fun_refactor::analysis::types;
 use fun_refactor::index::Index;
@@ -85,8 +77,7 @@ fn every_stage_parses_in_both_languages() {
 
 #[test]
 fn the_first_stage_has_written_down_nothing() {
-    // The whole point of where it starts. Anything the tool reports here it worked out
-    // for itself, which the panel says beside it.
+    // The whole point of where it starts.
     for language in [Language::Python, Language::TypeScript] {
         let known = known_in(STAGES[0], language);
         assert_eq!(
@@ -99,8 +90,7 @@ fn the_first_stage_has_written_down_nothing() {
 
 #[test]
 fn what_the_source_says_never_goes_backwards() {
-    // Each stage declares at least as much as the one before it. A stage that adds
-    // prose and no types moves nothing here, and a stage that loses a type fails.
+    // Each stage declares at least as much as the one before it.
     for language in [Language::Python, Language::TypeScript] {
         let mut previous = 0;
         for stage in STAGES {
@@ -133,7 +123,7 @@ fn the_last_stage_leaves_almost_nothing_unknown() {
 #[test]
 fn the_states_carry_only_what_that_state_has() {
     // The climax of the page, checked and not described: a failure has a reason and no capture
-    // time. A capture has a capture time and no reason.
+    // time.
     let index = Index::build(
         &tutorial().join("stage6_state_machine"),
         &ScanOptions::default(),
@@ -177,9 +167,7 @@ fn the_states_carry_only_what_that_state_has() {
 
 #[test]
 fn the_last_stage_deleted_the_checks_the_one_before_still_had() {
-    // The payoff. Stage 6 puts the types in and leaves the old defences standing; stage
-    // 7 removes the ones that can no longer fire. If they were never there, the page is
-    // showing a deletion that did not happen.
+    // The payoff.
     for name in ["payments.py", "payments.ts"] {
         let before = std::fs::read_to_string(tutorial().join("stage6_state_machine").join(name))
             .expect("stage 6");

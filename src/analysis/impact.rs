@@ -1,10 +1,4 @@
 //! Blast radius: everything a change to one symbol could touch.
-//!
-//! This is the query that motivates a multi-language tool. It composes every edge layer at
-//! once, resolved references, call edges, string-keyed cross-language references and textual
-//! occurrences. Groups the result by how certain each finding is. So "what breaks if I change
-//! this" has an answer that spans the code/config boundary no single-language tool can see
-//! across.
 
 use crate::analysis::call_graph::CallGraph;
 use crate::index::Index;
@@ -57,10 +51,6 @@ pub struct Impact {
     pub symbol: SymbolId,
     pub items: Vec<Impacted>,
     /// How many callers the depth limit stopped short of.
-    ///
-    /// A bound nobody is told about reads as a complete answer. This is the command a person
-    /// uses to decide whether a change is safe. A five-deep call chain traced three levels
-    /// reported "affects 4 site(s)" and said nothing about the two it had not looked at.
     pub callers_beyond_the_depth_limit: usize,
 }
 
@@ -115,8 +105,6 @@ impl Impact {
 }
 
 /// Compute the blast radius of `symbol`.
-///
-/// `caller_depth` bounds how far call edges are followed; 0 disables the call walk.
 pub fn analyse(index: &Index, symbol: SymbolId, caller_depth: usize) -> Result<Impact> {
     if let Some(language) = index.symbol(symbol).map(|s| s.language) {
         crate::capabilities::record(crate::capabilities::Capability::Impact, language);
@@ -195,10 +183,7 @@ pub fn analyse(index: &Index, symbol: SymbolId, caller_depth: usize) -> Result<I
         }
     }
 
-    // The name written as text: an `__all__` entry, a docstring, a CI script. No grammar
-    // links these to the declaration, and `fr rename` lists every one of them for review.
-    // `fr impact` is the reconnaissance for that rename. An occurrence it leaves out is
-    // one the reader meets later, in the report of a change already under way.
+    // The name written as text: an `__all__` entry, a docstring, a CI script.
     let accounted: std::collections::HashSet<(PathBuf, usize, usize)> = items
         .iter()
         .map(|item| (item.file.clone(), item.line, item.col))
@@ -233,21 +218,13 @@ pub fn analyse(index: &Index, symbol: SymbolId, caller_depth: usize) -> Result<I
 
 /// The callers reached from `start`, each with the confidence of its whole route.
 struct TaintedCallers {
-    /// `(caller, confidence, depth)`, outward from the symbol. The confidence is
-    /// the weakest edge on the strongest route. An edge crossed at field-based
-    /// taints everything reached only through it. A second, fully resolved route
-    /// restores what it proves.
+    /// `(caller, confidence, depth)`, outward from the symbol.
     callers: Vec<(SymbolId, Confidence, usize)>,
     /// Nodes the depth limit stopped at that still had callers beyond them.
     stopped_short: usize,
 }
 
 /// Walk the caller graph carrying a per-route confidence.
-///
-/// A route is as trustworthy as its weakest edge, and a node reached by several
-/// routes deserves the best of them. The plain trace carried only each caller's
-/// last hop. So a caller five steps beyond an unproven dispatch edge landed under
-/// "would definitely change".
 fn tainted_callers(graph: &CallGraph, start: SymbolId, max_depth: usize) -> TaintedCallers {
     use std::collections::{HashMap, HashSet, VecDeque};
 
@@ -426,9 +403,7 @@ mod tests {
             .collect();
         assert_eq!(cross.len(), 2, "got {cross:?}");
 
-        // And which two. The count alone is satisfied by any pair, including the CSS
-        // definition itself mislabelled, with the TSX missed entirely, which is the
-        // failure this query exists to make impossible.
+        // And which two.
         let mut from: Vec<&str> = cross
             .iter()
             .filter_map(|i| i.file.file_name().and_then(|n| n.to_str()))
@@ -474,10 +449,7 @@ mod tests {
 
     #[test]
     fn an_unproven_edge_taints_everything_reached_only_through_it() {
-        // `announce` reaches `speak` through dynamic dispatch, so that edge is a
-        // candidate. Everything above it is reached only across that edge, and used
-        // to land under "would definitely change" because each hop's own edge was
-        // exact.
+        // `announce` reaches `speak` through dynamic dispatch, so that edge is a candidate.
         let (_tmp, index) = workspace(&[("chain.rs", DISPATCH_CHAIN)]);
         let noise = index.find_symbols("noise", None)[0].id;
         let impact = analyse(&index, noise, 10).unwrap();
@@ -506,8 +478,8 @@ mod tests {
 
     #[test]
     fn a_fully_resolved_second_route_restores_certainty() {
-        // `main` also calls `noise` directly, so the weak dispatch route is not the
-        // only way to reach it. The best route decides.
+        // `main` also calls `noise` directly, so the weak dispatch route is not the only way to
+        // reach it.
         let source = DISPATCH_CHAIN.replace(
             "fn main() {\n    println!(\"{}\", render());\n}\n",
             "fn main() {\n    noise();\n    println!(\"{}\", render());\n}\n",

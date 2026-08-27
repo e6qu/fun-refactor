@@ -1,8 +1,4 @@
 //! Extracting a region that does something the caller can see.
-//!
-//! A `return`, `break` or `continue` inside the selection was refused from the day this
-//! was written, on the grounds that a call cannot reproduce a jump out of the enclosing
-//! function. Two more effects have that property and were not checked.
 
 use fun_refactor::index::Index;
 use fun_refactor::refactor::extract;
@@ -71,9 +67,7 @@ async def fetch1(n):
 
 #[test]
 fn an_awaiting_region_becomes_an_async_function() {
-    // Without this the body kept an `await` in a function that is not async. TS1308
-    // from `tsc`, `SyntaxError: 'await' outside async function` from CPython, and the
-    // call handed back a promise where the code after it expected a number.
+    // Without this the body kept an `await` in a function that is not async.
     let after = extracted("c.ts", TS_ASYNC, (2, 5), (3, 31), "fetchIt").expect("an extraction");
     assert!(after.contains("async function fetchIt("), "{after}");
     assert!(after.contains("= await fetchIt(n);"), "{after}");
@@ -85,9 +79,7 @@ fn an_awaiting_region_becomes_an_async_function() {
 
 #[test]
 fn an_await_this_cannot_move_is_refused() {
-    // Rust writes `.await` as a postfix, so there is no keyword to move onto the new
-    // function. Refusing is the honest answer; emitting an `async fn` whose body still
-    // says `.await` and whose call site does not is not.
+    // Rust writes `.await` as a postfix, so there is no keyword to move onto the new function.
     let source = "\
 async fn run(n: i32) -> i32 {
     let first: i32 = fetch1(n).await;
@@ -105,9 +97,7 @@ async fn fetch1(n: i32) -> i32 { n }
 
 #[test]
 fn a_yielding_region_is_refused() {
-    // The worst of the three, because it was silent. Python produced a generator the caller
-    // constructed and never ran. So the loop body did nothing at all; the accumulator it also
-    // mutated stayed at zero.
+    // The worst of the three, because it was silent.
     let source = "\
 def run(items):
     total = 0
