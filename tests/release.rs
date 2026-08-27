@@ -257,3 +257,59 @@ fn a_platform_dependency_on_a_member_carries_a_version() {
          The release job throws on that. Add `version` beside `path`."
     );
 }
+
+#[test]
+fn the_browser_check_reads_where_the_release_writes() {
+    // The release job wrote the bindings where nothing loads them from.
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let check = std::fs::read_to_string(root.join("web/test/api.mjs"))
+        .expect("the browser check is readable");
+    let loaded = check
+        .lines()
+        .find_map(|l| {
+            l.split_once("join(root, \"")
+                .and_then(|(_, r)| r.split_once('/'))
+        })
+        .map(|(dir, _)| format!("web/{dir}/wasm"))
+        .expect("the check names the directory it loads from");
+    assert!(
+        WORKFLOW.contains(&format!("--out-dir {loaded}")),
+        "the release generates bindings somewhere other than {loaded}, which is \
+         where the browser check loads them from."
+    );
+    assert!(
+        WORKFLOW.contains(&format!("cp {loaded}/*")),
+        "the release packages bindings from somewhere other than {loaded}."
+    );
+    assert!(
+        CI.contains(&format!("--out-dir {loaded}")),
+        "CI generates bindings somewhere other than {loaded}, so the release and \
+         the gate build different things."
+    );
+}
+
+#[test]
+fn the_tag_carries_the_version_and_nothing_else() {
+    // With the component in it, an archive read `fr-fun-refactor-v0.2.0-…`.
+    assert!(
+        CONFIG.contains("\"include-component-in-tag\": false"),
+        "the tag would carry the package name, and every archive named after it \
+         would repeat it."
+    );
+    assert!(
+        CONFIG.contains("\"include-v-in-tag\": true"),
+        "the tag would carry no `v`, and the README's example does."
+    );
+}
+
+#[test]
+fn no_job_asks_for_a_runner_that_is_retired() {
+    // A job naming a retired image waits for a runner that never comes.
+    for retired in ["macos-13", "macos-11", "macos-12", "ubuntu-20.04"] {
+        assert!(
+            !WORKFLOW.contains(retired) && !CI.contains(retired),
+            "a job asks for {retired}, which GitHub no longer offers. It waits \
+             for a runner that never comes."
+        );
+    }
+}

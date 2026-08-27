@@ -177,12 +177,14 @@ WebAssembly module and the JavaScript that loads it, the same pair the
 [playground](https://e6qu.github.io/fun-refactor/playground/) runs.
 
 ```
-tar -xzf fr-v0.1.0-aarch64-apple-darwin.tar.gz
-./fr-v0.1.0-aarch64-apple-darwin/fr --version
+shasum -a 256 -c fr-v0.2.0-aarch64-apple-darwin.tar.gz.sha256
+tar -xzf fr-v0.2.0-aarch64-apple-darwin.tar.gz
+./fr-v0.2.0-aarch64-apple-darwin/fr --version
 ```
 
 Releases come from `release-please`. It reads the commits on `main` and keeps the
-next version and its changelog in an open pull request. Merging that request tags
+next version and its changelog in an open pull request. [CHANGELOG.md](CHANGELOG.md)
+holds what each release carried. Merging that request tags
 the release. The repository has to allow a workflow to open one: Settings,
 Actions, General, Workflow permissions, "Allow GitHub Actions to create and
 approve pull requests".
