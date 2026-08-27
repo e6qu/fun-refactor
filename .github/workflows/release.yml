@@ -12,6 +12,11 @@ on:
   push:
     branches: [main]
 
+# `release-please` opens a pull request holding the next version. A workflow may
+# only do that where the repository allows it: Settings, Actions, General,
+# Workflow permissions, "Allow GitHub Actions to create and approve pull
+# requests". Without it the job fails with "GitHub Actions is not permitted to
+# create or approve pull requests" and no release goes out.
 permissions:
   contents: write
   pull-requests: write

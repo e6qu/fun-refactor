@@ -181,6 +181,12 @@ tar -xzf fr-v0.1.0-aarch64-apple-darwin.tar.gz
 ./fr-v0.1.0-aarch64-apple-darwin/fr --version
 ```
 
+Releases come from `release-please`. It reads the commits on `main` and keeps the
+next version and its changelog in an open pull request. Merging that request tags
+the release. The repository has to allow a workflow to open one: Settings,
+Actions, General, Workflow permissions, "Allow GitHub Actions to create and
+approve pull requests".
+
 To build it yourself instead:
 
 ```
