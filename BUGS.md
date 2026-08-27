@@ -231,6 +231,16 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   document. The rest sit mostly in `BUGS.md` and `PLAN.md`, which record what
   happened, in the past tense.
 
+- [x] B793: **the first release failed before it built anything.**
+  `release-please` gives every member of a Rust workspace the root's version. It
+  rewrites each dependency naming one. Under `[target.'cfg(...)'.dependencies]` it
+  writes the `version` key without checking for one. `fun-refactor-wasm-libc` had
+  none, so the job threw `path not found in object` and skipped both build jobs.
+
+  The dependency carries a `version` now. `tests/release.rs` fails on a platform
+  dependency naming a member without one, and on a member whose version drifts
+  from the root's.
+
 - [x] B777: **a renamed flag silently broke every script passing it.** A script
   writes `./collector --retention-days 30`, and a program declares that flag
   somewhere. The two never met. The flag was a word in a shell command and
