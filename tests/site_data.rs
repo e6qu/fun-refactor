@@ -97,7 +97,6 @@ const GEOMETRY: &str = r#"import math
 
 
 def circ(r):
-    """The distance around a circle."""
     return 2 * math.pi * r
 "#;
 
@@ -217,7 +216,6 @@ const DEFAULTS_PY: &str = r#"import math
 
 
 def circ(r, precision, units="m"):
-    """The distance around a circle."""
     return f"{2 * math.pi * r}{units}"
 "#;
 
@@ -713,7 +711,6 @@ class SensorReading:
 
 
 def readings_above(readings: list[SensorReading], limit: float) -> list[SensorReading]:
-    """Every reading warmer than the limit."""
     return [reading for reading in readings if reading.celsius > limit]
 
 
@@ -739,7 +736,6 @@ export interface SensorReading {
   recordedBy: string | null;
 }
 
-/** Every reading warmer than the limit. */
 export function readingsAbove(readings: SensorReading[], limit: number): SensorReading[] {
   return readings.filter((reading) => reading.celsius > limit);
 }
@@ -762,13 +758,11 @@ export async function loadReading(source: string): Promise<SensorReading | null>
 
 const TYPED_GO: &str = r#"package store
 
-// Reading is one sample from a sensor.
 type Reading struct {
 	SensorID string
 	Celsius  float64
 }
 
-// Warmer counts the readings above a limit.
 func Warmer(readings []Reading, limit float64) int {
 	count := 0
 	for _, reading := range readings {
@@ -780,13 +774,11 @@ func Warmer(readings []Reading, limit float64) int {
 }
 "#;
 
-const TYPED_RUST: &str = r#"/// One sample from a sensor.
-pub struct Reading {
+const TYPED_RUST: &str = r#"pub struct Reading {
     pub sensor_id: String,
     pub celsius: f64,
 }
 
-/// Count the readings above a limit.
 pub fn warmer(readings: Vec<Reading>, limit: f64) -> i64 {
     let mut count = 0;
     for reading in readings {
@@ -798,23 +790,18 @@ pub fn warmer(readings: Vec<Reading>, limit: f64) -> i64 {
 }
 "#;
 
-const TYPED_ZIG: &str = r#"//! Readings from a sensor.
+const TYPED_ZIG: &str = r#"const default_limit: f64 = 30.0;
 
-const default_limit: f64 = 30.0;
-
-/// One sample from a sensor.
 pub const Reading = struct {
     sensor_id: []const u8,
     celsius: f64,
     valid: bool,
 
-    /// Whether this reading is above a limit.
     pub fn warmerThan(self: Reading, limit: f64) bool {
         return self.celsius > limit;
     }
 };
 
-/// Count the readings above a limit.
 pub fn warmer(readings: []const Reading, limit: f64) i64 {
     var count: i64 = 0;
     for (readings) |reading| {

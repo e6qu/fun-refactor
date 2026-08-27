@@ -164,10 +164,14 @@ Name → appName: 3 site(s) across 2 file(s)
 <span class="cmd">cargo install --path fun-refactor</span>
 
 <span class="cmd">cd ~/code/your-project</span>
-<span class="cmd">fr parse --stats</span>          <span class="dim"># what can it read?</span>
-<span class="cmd">fr unused --internal</span>       <span class="dim"># what is dead?</span>
-<span class="cmd">fr duplicates</span>              <span class="dim"># what is written twice?</span></pre></div>
+<span class="cmd">fr parse --stats</span>
+<span class="cmd">fr unused --internal</span>
+<span class="cmd">fr duplicates</span></pre></div>
     </div>
+    <p class="note prose" style="margin-top:1rem">
+      Three questions, in order: what can it read, what is dead, and what is written
+      twice.
+    </p>
     <div class="btn-row">
       <a class="btn" href="demo.html">Walk through a real refactor</a>
       <a class="btn ghost" href="https://github.com/e6qu/fun-refactor/blob/main/TUTORIAL.md">Full tutorial</a>

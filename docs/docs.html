@@ -53,9 +53,10 @@
     <div class="term" style="max-width:44rem">
       <div class="term-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
       <div class="term-body"><pre><span class="cmd">git clone https://github.com/e6qu/fun-refactor</span>
-<span class="cmd">cargo install --path fun-refactor</span>   <span class="dim"># installs `fr`</span></pre></div>
+<span class="cmd">cargo install --path fun-refactor</span></pre></div>
     </div>
     <p class="note prose" style="margin-top:1rem">
+      That installs the binary, which is called <code>fr</code>.
       You need the Rust 2021 edition and a C compiler. Every tree-sitter grammar is C,
       so a cold build takes a few minutes.
     </p>
@@ -385,9 +386,13 @@
       <em>decorator</em>, so a status on a returned <code>Response</code> changes what
       the endpoint does without changing what it says it does:
     </p>
-    <pre class="grammar"><code>@router.delete("/posts/{post_id}")          <em># documents 200</em>
+    <pre class="grammar"><code>@router.delete("/posts/{post_id}")
 async def delete(post_id: str, req: Request):
-    return Response(status_code=204)        <em># returns 204</em></code></pre>
+    return Response(status_code=204)</code></pre>
+    <p>
+      The decorator documents a <code>200</code> and the body returns a
+      <code>204</code>.
+    </p>
     <p>
       The rewrite preserves behaviour and shrinks the contract at once, and every test
       you have will pass. The tool does not add <code>status_code=</code> to the

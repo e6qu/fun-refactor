@@ -196,8 +196,9 @@ more: a patched copy under `grammars/`, which that directory's README explains.
 
 ## Status
 
-Only one stage of [PLAN.md](PLAN.md) remains open, the optional LSP delegation
-backend. The tool builds every capability a language can meaningfully support:
+Every stage of [PLAN.md](PLAN.md) is complete. The LSP delegation backend is
+decided against and the daemon is deferred, each with the measurement behind the
+decision. The tool builds every capability a language can meaningfully support:
 **299 of 432 capability × language pairs supported, 133 not applicable, none refused.**
 The code generates the matrix above, and `fr capabilities` prints the reason behind
 every cell that is not a ✓.

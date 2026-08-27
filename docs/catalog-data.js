@@ -70,10 +70,10 @@ export const CATALOG = [
     note: "The call inside `band_width` is updated twice, because it is called twice. A call the tool could not resolve would be reported and not rewritten.",
     command: "fr signature circ 'add:1:units: str:\"m\"'",
     files: [
-      { path: "src/geometry.py", before: "import math\n\n\ndef circ(r):\n    \"\"\"The distance around a circle.\"\"\"\n    return 2 * math.pi * r\n", after: "import math\n\n\ndef circ(r, units: str):\n    \"\"\"The distance around a circle.\"\"\"\n    return 2 * math.pi * r\n" },
+      { path: "src/geometry.py", before: "import math\n\n\ndef circ(r):\n    return 2 * math.pi * r\n", after: "import math\n\n\ndef circ(r, units: str):\n    return 2 * math.pi * r\n" },
       { path: "src/report.py", before: "from geometry import circ\n\n\ndef band_width(inner, outer):\n    return circ(outer) - circ(inner)\n", after: "from geometry import circ\n\n\ndef band_width(inner, outer):\n    return circ(outer, \"m\") - circ(inner, \"m\")\n" },
     ],
-    output: "--- a/src/geometry.py\n+++ b/src/geometry.py\n@@ -1,6 +1,6 @@\n import math\n \n \n-def circ(r):\n+def circ(r, units: str):\n     \"\"\"The distance around a circle.\"\"\"\n     return 2 * math.pi * r\n--- a/src/report.py\n+++ b/src/report.py\n@@ -2,4 +2,4 @@\n \n \n def band_width(inner, outer):\n-    return circ(outer) - circ(inner)\n+    return circ(outer, \"m\") - circ(inner, \"m\")\n\ncirc: added parameter `units: str` at position 1, updating 2 call site(s)\n\nNothing written. Re-run with --write to apply.",
+    output: "--- a/src/geometry.py\n+++ b/src/geometry.py\n@@ -1,5 +1,5 @@\n import math\n \n \n-def circ(r):\n+def circ(r, units: str):\n     return 2 * math.pi * r\n--- a/src/report.py\n+++ b/src/report.py\n@@ -2,4 +2,4 @@\n \n \n def band_width(inner, outer):\n-    return circ(outer) - circ(inner)\n+    return circ(outer, \"m\") - circ(inner, \"m\")\n\ncirc: added parameter `units: str` at position 1, updating 2 call site(s)\n\nNothing written. Re-run with --write to apply.",
   },
   {
     id: "rename-function",
@@ -85,10 +85,10 @@ export const CATALOG = [
     note: "`circ` appears twice inside `band_width` and once in the docstring. The docstring mention is reported, not rewritten, a name in prose is not a reference.",
     command: "fr rename circ circumference",
     files: [
-      { path: "src/geometry.py", before: "import math\n\n\ndef circ(r):\n    \"\"\"The distance around a circle.\"\"\"\n    return 2 * math.pi * r\n", after: "import math\n\n\ndef circumference(r):\n    \"\"\"The distance around a circle.\"\"\"\n    return 2 * math.pi * r\n" },
+      { path: "src/geometry.py", before: "import math\n\n\ndef circ(r):\n    return 2 * math.pi * r\n", after: "import math\n\n\ndef circumference(r):\n    return 2 * math.pi * r\n" },
       { path: "src/report.py", before: "from geometry import circ\n\n\ndef band_width(inner, outer):\n    return circ(outer) - circ(inner)\n", after: "from geometry import circumference\n\n\ndef band_width(inner, outer):\n    return circumference(outer) - circumference(inner)\n" },
     ],
-    output: "--- a/src/geometry.py\n+++ b/src/geometry.py\n@@ -1,6 +1,6 @@\n import math\n \n \n-def circ(r):\n+def circumference(r):\n     \"\"\"The distance around a circle.\"\"\"\n     return 2 * math.pi * r\n--- a/src/report.py\n+++ b/src/report.py\n@@ -1,5 +1,5 @@\n-from geometry import circ\n+from geometry import circumference\n \n \n def band_width(inner, outer):\n-    return circ(outer) - circ(inner)\n+    return circumference(outer) - circumference(inner)\n\ncirc → circumference: 4 site(s) across 2 file(s)\n\nNothing written. Re-run with --write to apply.",
+    output: "--- a/src/geometry.py\n+++ b/src/geometry.py\n@@ -1,5 +1,5 @@\n import math\n \n \n-def circ(r):\n+def circumference(r):\n     return 2 * math.pi * r\n--- a/src/report.py\n+++ b/src/report.py\n@@ -1,5 +1,5 @@\n-from geometry import circ\n+from geometry import circumference\n \n \n def band_width(inner, outer):\n-    return circ(outer) - circ(inner)\n+    return circumference(outer) - circumference(inner)\n\ncirc → circumference: 4 site(s) across 2 file(s)\n\nNothing written. Re-run with --write to apply.",
   },
   {
     id: "rename-variable",
@@ -129,10 +129,10 @@ export const CATALOG = [
     note: "The declaration and the calls change together or not at all. A call the tool could not resolve would be reported and not left quietly passing an argument to a parameter that no longer exists.",
     command: "fr signature circ remove:1",
     files: [
-      { path: "src/geometry.py", before: "import math\n\n\ndef circ(r, precision, units=\"m\"):\n    \"\"\"The distance around a circle.\"\"\"\n    return f\"{2 * math.pi * r}{units}\"\n", after: "import math\n\n\ndef circ(r, units=\"m\"):\n    \"\"\"The distance around a circle.\"\"\"\n    return f\"{2 * math.pi * r}{units}\"\n" },
+      { path: "src/geometry.py", before: "import math\n\n\ndef circ(r, precision, units=\"m\"):\n    return f\"{2 * math.pi * r}{units}\"\n", after: "import math\n\n\ndef circ(r, units=\"m\"):\n    return f\"{2 * math.pi * r}{units}\"\n" },
       { path: "src/rim.py", before: "from geometry import circ\n\n\ndef rim(r):\n    return circ(r, 2)\n\n\ndef label(r):\n    return \"rim: \" + circ(r, 4)\n", after: "from geometry import circ\n\n\ndef rim(r):\n    return circ(r)\n\n\ndef label(r):\n    return \"rim: \" + circ(r)\n" },
     ],
-    output: "--- a/src/geometry.py\n+++ b/src/geometry.py\n@@ -1,6 +1,6 @@\n import math\n \n \n-def circ(r, precision, units=\"m\"):\n+def circ(r, units=\"m\"):\n     \"\"\"The distance around a circle.\"\"\"\n     return f\"{2 * math.pi * r}{units}\"\n--- a/src/rim.py\n+++ b/src/rim.py\n@@ -2,8 +2,8 @@\n \n \n def rim(r):\n-    return circ(r, 2)\n+    return circ(r)\n \n \n def label(r):\n-    return \"rim: \" + circ(r, 4)\n+    return \"rim: \" + circ(r)\n\ncirc: removed parameter 1, updating 2 call site(s)\n\nNothing written. Re-run with --write to apply.",
+    output: "--- a/src/geometry.py\n+++ b/src/geometry.py\n@@ -1,5 +1,5 @@\n import math\n \n \n-def circ(r, precision, units=\"m\"):\n+def circ(r, units=\"m\"):\n     return f\"{2 * math.pi * r}{units}\"\n--- a/src/rim.py\n+++ b/src/rim.py\n@@ -2,8 +2,8 @@\n \n \n def rim(r):\n-    return circ(r, 2)\n+    return circ(r)\n \n \n def label(r):\n-    return \"rim: \" + circ(r, 4)\n+    return \"rim: \" + circ(r)\n\ncirc: removed parameter 1, updating 2 call site(s)\n\nNothing written. Re-run with --write to apply.",
   },
   {
     id: "remove-parameter-refused",
@@ -144,10 +144,10 @@ export const CATALOG = [
     note: "The rule existed for shell functions, where a parameter is `$1` and the body reading `$2` is obvious, and for nothing else. `def circ(r): return f\"…{units}\"` was produced happily until this page asked for it.",
     command: "fr signature circ remove:2",
     files: [
-      { path: "src/geometry.py", before: "import math\n\n\ndef circ(r, precision, units=\"m\"):\n    \"\"\"The distance around a circle.\"\"\"\n    return f\"{2 * math.pi * r}{units}\"\n", after: "import math\n\n\ndef circ(r, precision, units=\"m\"):\n    \"\"\"The distance around a circle.\"\"\"\n    return f\"{2 * math.pi * r}{units}\"\n" },
+      { path: "src/geometry.py", before: "import math\n\n\ndef circ(r, precision, units=\"m\"):\n    return f\"{2 * math.pi * r}{units}\"\n", after: "import math\n\n\ndef circ(r, precision, units=\"m\"):\n    return f\"{2 * math.pi * r}{units}\"\n" },
       { path: "src/rim.py", before: "from geometry import circ\n\n\ndef rim(r):\n    return circ(r, 2)\n\n\ndef label(r):\n    return \"rim: \" + circ(r, 4)\n", after: "from geometry import circ\n\n\ndef rim(r):\n    return circ(r, 2)\n\n\ndef label(r):\n    return \"rim: \" + circ(r, 4)\n" },
     ],
-    output: "Error: the body of `circ` still reads `units` at src/geometry.py:6; removing the parameter would leave a name nothing supplies",
+    output: "Error: the body of `circ` still reads `units` at src/geometry.py:5; removing the parameter would leave a name nothing supplies",
   },
   {
     id: "reorder-parameters",
@@ -174,7 +174,7 @@ export const CATALOG = [
     note: "Python requires every defaulted parameter to come last, so this would produce `def circ(units=\"m\", r):`, which Python rejects outright. The engine reparses every edit and would normally catch a broken result, but tree-sitter parses this without complaint, so the refactoring has to know the rule itself. It did not until this page was written.",
     command: "fr signature circ move:0:2",
     files: [
-      { path: "src/geometry.py", before: "import math\n\n\ndef circ(r, precision, units=\"m\"):\n    \"\"\"The distance around a circle.\"\"\"\n    return f\"{2 * math.pi * r}{units}\"\n", after: "import math\n\n\ndef circ(r, precision, units=\"m\"):\n    \"\"\"The distance around a circle.\"\"\"\n    return f\"{2 * math.pi * r}{units}\"\n" },
+      { path: "src/geometry.py", before: "import math\n\n\ndef circ(r, precision, units=\"m\"):\n    return f\"{2 * math.pi * r}{units}\"\n", after: "import math\n\n\ndef circ(r, precision, units=\"m\"):\n    return f\"{2 * math.pi * r}{units}\"\n" },
     ],
     output: "Error: moving parameter 0 to position 2 would put a parameter with a default before one without, which python does not allow. Give the other parameter a default first, or remove this one's.",
   },

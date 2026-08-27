@@ -147,6 +147,53 @@ a translation surface it has not written yet.
   document added without a link from the README. Both of these could have landed
   unreachable without it.
 
+- [x] B784: **the status table said 24 x 16.** Every row of "Where this
+  stands" in PLAN.md was measured once and never again. 269 of 384 supported
+  pairs against 299 of 432. Sixteen languages against eighteen. Twelve defects
+  open against the one BUGS.md holds.
+
+  `tests/capability_matrix.rs` counts every countable row now. The rows no test
+  can pin without failing on each commit say which commit they came from.
+
+- [x] B785: **the README called a closed stage open.** PLAN.md had closed it.
+  The LSP delegation backend is decided against, with the measurement. The
+  daemon is deferred with a reason. The README went on calling the first one
+  open.
+
+- [x] B786: **the sample census was three files and two languages behind.**
+  `CROSS_LANGUAGE.md` opened with `web/sample (24 files, 15 languages, 574
+  resolved references)`. The sample holds 27, 17 and 596. The crossings table
+  under it was still right, so the line above it read as checked.
+
+  `tests/docs_census.rs` indexes the sample and computes all four figures. It
+  also counts the conformance groups, the languages the catalogs name, and the
+  pet store's route files, each against the sentence stating it.
+
+- [x] B787: **the crate doc said twelve languages.** `src/lib.rs` names
+  `lang::Language` now instead of repeating a number. The capability coverage
+  the gate measures is 299 of 299, and PLAN.md carried the figure from two
+  languages ago.
+
+- [x] B788: **the rendered examples explained themselves in comments.** An
+  example is explained by the prose beside it, not by a comment inside it. That
+  rule was enforced for the type-safety examples and nowhere else. The fixtures
+  behind the catalogue and the translation page predated it. A
+  `"""The distance around a circle."""` sat over a function named `circ`. A
+  `// Reading is one sample from a sensor.` sat over `type Reading struct`.
+
+Eleven comments went, from the four typed fixtures and the two geometry ones.
+  Four more went from the blocks the pages hold in their own source. The guard
+  in the recipe shape. The two language labels on the handler pair. The status
+  annotations on the FastAPI decorator, and the three questions beside the first
+  commands to run. Each moved into the paragraph under its block, where the same
+  sentence was usually there already.
+
+  `tests/docs_examples.rs` reads both. It scans every fixture in the generator
+  and every `<pre>` on every page, with the tags stripped. A comment wrapped in
+  `<em>` is still a comment. What `fr` writes into a translation stays, since
+  the pages are about that output. So does what a vendored corpus file carries,
+  which is somebody else's code held to a checksum.
+
 - [x] B777: **a renamed flag silently broke every script passing it.** A script
   writes `./collector --retention-days 30`, and a program declares that flag
   somewhere. The two never met. The flag was a word in a shell command and

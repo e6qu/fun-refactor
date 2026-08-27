@@ -314,3 +314,63 @@ fn the_published_language_count_matches_the_list() {
         }
     }
 }
+
+#[test]
+fn the_status_table_in_the_plan_is_derived_from_the_code() {
+    // The third place a number stated in prose went stale. The table under
+    // "Where this stands" said 24 x 16 and 269 of 384 long after the matrix had
+    // grown two languages. It said twelve defects open with one left in BUGS.md.
+    // Each row below is countable, so each row is counted.
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let plan = std::fs::read_to_string(root.join("PLAN.md")).expect("PLAN.md is readable");
+    let bugs = std::fs::read_to_string(root.join("BUGS.md")).expect("BUGS.md is readable");
+
+    let count_dir = |name: &str, keep: fn(&std::path::Path) -> bool| -> usize {
+        std::fs::read_dir(root.join(name))
+            .unwrap_or_else(|e| panic!("{name}/ is readable: {e}"))
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| keep(&entry.path()))
+            .count()
+    };
+    // `queries/` holds one directory per language and a README beside them.
+    let query_sets = count_dir("queries", |p| p.is_dir());
+    let catalogs = count_dir("catalogs", |p| {
+        p.extension().and_then(|e| e.to_str()) == Some("yaml")
+    });
+
+    let mut supported = 0usize;
+    let mut rest = 0usize;
+    for capability in Capability::ALL {
+        for language in Language::ALL {
+            match capabilities::support(*capability, *language) {
+                Support::Yes => supported += 1,
+                Support::NotApplicable { .. } | Support::Refused { .. } => rest += 1,
+            }
+        }
+    }
+
+    let fixed = bugs.lines().filter(|l| l.starts_with("- [x] B")).count();
+    let open = bugs.lines().filter(|l| l.starts_with("- [ ] B")).count();
+
+    for row in [
+        format!("| Query sets | {query_sets} |"),
+        format!("| Entry-point catalogs | {catalogs} |"),
+        format!(
+            "| Capabilities × languages | {} × {} |",
+            Capability::ALL.len(),
+            Language::ALL.len()
+        ),
+        format!(
+            "| Supported pairs | {supported} of {}, every other one carrying its reason |",
+            supported + rest
+        ),
+        format!("| Defects fixed | {fixed} |"),
+        format!("| Defects open | {open} |"),
+    ] {
+        assert!(
+            plan.contains(&row),
+            "PLAN.md's status table does not have the row `{row}`. Update the \
+             table, or update the phrasing here if the row was reworded."
+        );
+    }
+}
