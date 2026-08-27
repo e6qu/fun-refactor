@@ -38,6 +38,13 @@ pub enum Language {
     Helm,
     Xml,
     Markdown,
+    /// JSON, and the JSON syntax HCL also has.
+    ///
+    /// Terraform accepts `.tf` and `.tf.json` as two spellings of one language,
+    /// and a workspace may hold both. Every configuration format here has a
+    /// JSON neighbour. A build that could not read JSON could not follow a
+    /// reference out of one.
+    Json,
 }
 
 /// Broad language class. Determines which analyses even apply: imperative languages
@@ -65,6 +72,7 @@ impl Language {
         Language::Scss,
         Language::Sass,
         Language::Hcl,
+        Language::Json,
         Language::Yaml,
         Language::Helm,
         Language::Xml,
@@ -86,6 +94,7 @@ impl Language {
             Language::Scss => "scss",
             Language::Sass => "sass",
             Language::Hcl => "hcl",
+            Language::Json => "json",
             Language::Yaml => "yaml",
             Language::Helm => "helm",
             Language::Xml => "xml",
@@ -108,6 +117,7 @@ impl Language {
             | Language::Scss
             | Language::Sass
             | Language::Hcl
+            | Language::Json
             | Language::Yaml
             | Language::Helm
             | Language::Xml
@@ -136,6 +146,7 @@ impl Language {
             // ends differently, so it has a grammar of its own.
             Language::Sass => &["sass"],
             Language::Hcl => &["tf", "tfvars", "hcl"],
+            Language::Json => &["json"],
             Language::Yaml => &["yaml", "yml"],
             // Helm shares YAML extensions and is otherwise distinguished by chart
             // layout, but `.tpl` is unambiguously a Helm template file.
@@ -147,7 +158,7 @@ impl Language {
 
     /// Does a name resolve across every file in the same directory?
     ///
-    /// Terraform's unit of scope is the module, which *is* a directory: a `var.x`
+    /// Terraform's unit of scope is the module, which *is* a directory. A `var.x`
     /// written in `main.tf` refers to the `variable "x"` block wherever in that
     /// directory it is declared. Without modelling that, a rename would update the
     /// declaration and leave every use behind.

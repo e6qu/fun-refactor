@@ -607,7 +607,11 @@ pub fn provenance_with_inputs(
     );
     match sym.language {
         Language::Hcl => ctx.hcl_backward(sym, EdgeKind::Declaration, 0)?,
-        Language::Yaml | Language::Helm => ctx.yaml_backward(sym, EdgeKind::Declaration, 0)?,
+        // A keyed document, whichever syntax wrote it. JSON has no anchors and no
+        // template actions, so the walk finds none and stops where it should.
+        Language::Yaml | Language::Helm | Language::Json => {
+            ctx.keyed_backward(sym, EdgeKind::Declaration, 0)?
+        }
         Language::Css | Language::Scss | Language::Sass => ctx.css_backward(sym, 0)?,
         other => unreachable!(
             "refuse_unless_it_substitutes rejects {other} before the dispatch is reached"
@@ -664,6 +668,10 @@ pub fn supports_provenance(language: Language) -> bool {
         Language::Hcl
             | Language::Yaml
             | Language::Helm
+            // A JSON document is a tree of keys and a key path is an address,
+            // the same as a values file's. One document overrides another the
+            // same way too.
+            | Language::Json
             | Language::Css
             | Language::Scss
             | Language::Sass
@@ -1734,7 +1742,7 @@ impl ValuesSource {
 }
 
 impl Ctx<'_> {
-    fn yaml_backward(&mut self, sym: &Symbol, edge: EdgeKind, depth: usize) -> Result<()> {
+    fn keyed_backward(&mut self, sym: &Symbol, edge: EdgeKind, depth: usize) -> Result<()> {
         if self.over_depth(depth) {
             return Ok(());
         }
@@ -1786,7 +1794,7 @@ impl Ctx<'_> {
                 expanded = true;
                 let target_id = target.id;
                 let anchor = self.index.symbol(target_id).expect("anchor exists");
-                self.yaml_backward(anchor, EdgeKind::Expansion, depth + 1)?;
+                self.keyed_backward(anchor, EdgeKind::Expansion, depth + 1)?;
             }
         }
 
@@ -2069,7 +2077,7 @@ impl Ctx<'_> {
             return Ok(());
         };
         let target = self.index.symbol(symbol).expect("key exists");
-        self.yaml_backward(target, EdgeKind::Substitution, depth)
+        self.keyed_backward(target, EdgeKind::Substitution, depth)
     }
 
     /// A key no values file in the chart declares, which the supplied inputs

@@ -1108,6 +1108,7 @@ fn write(module: &Module, endpoints: &[Endpoint], source: &Path) -> Result<Writt
                 is_async: false,
                 is_property: false,
                 is_constructor: false,
+                is_private: false,
             })],
         };
         let (written, inner) = super::write_module_in(Language::Python, &one, module)?;

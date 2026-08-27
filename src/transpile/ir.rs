@@ -124,6 +124,15 @@ pub struct Function {
     /// so this flag carries the fact instead. Without it a Java constructor is a class member
     /// nothing recognises, and the writer drops it.
     pub is_constructor: bool,
+    /// Did the source say `private` in so many words?
+    ///
+    /// Three of these six languages have a private keyword and three have a
+    /// convention. A Rust `fn` without `pub` and a Zig one without it are the
+    /// module's own, which Java spells package-private. Held as one bit with
+    /// `exported`, a Zig method came out `private` in Java and the file's own
+    /// class could not call it. Held apart, an explicit `private` still crosses
+    /// as one.
+    pub is_private: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -302,6 +311,13 @@ pub enum Type {
     Float,
     String,
     List(Box<Type>),
+    /// `set[str]`, `HashSet<String>`, `Set<string>`: membership without order.
+    ///
+    /// Its own type rather than a list, because the question a set answers is
+    /// the one a list answers slowly and differently. Adding a value twice
+    /// leaves one, and asking whether a value is in it is the point. Read as a
+    /// list, `seen.add(x)` twice put two in and every size was wrong.
+    Set(Box<Type>),
     Map(Box<Type>, Box<Type>),
     Optional(Box<Type>),
     /// `(int, error)`, `tuple[int, str]`, `[number, string]`: several types as one.
@@ -320,6 +336,32 @@ pub enum Type {
         name: String,
         args: Vec<Type>,
     },
+    /// `(n: number) => number`, `func(int) int`, `Callable[[int], int]`.
+    ///
+    /// Every one of these six languages spells a function type, and each spells
+    /// it differently enough that no name crosses. Held as a name, the pieces
+    /// ran together into `Unwritable_n__number_____number` and the parameter
+    /// took a type nothing could call.
+    Fn {
+        params: Vec<Type>,
+        returns: Box<Type>,
+    },
+}
+
+impl Expr {
+    /// Can this stand on the left of `=` in any of these languages?
+    ///
+    /// A name, a field of one, or a place in a collection. Rust also assigns
+    /// through a reference, and what it dereferences may be a call:
+    /// `*m.entry(k).or_default() += 1`. No target here can assign to a call,
+    /// and writing one produced a file that would not parse.
+    pub fn is_assignable(&self) -> bool {
+        match self {
+            Expr::Name(_) => true,
+            Expr::Field { of, .. } | Expr::Index { of, .. } => of.is_assignable(),
+            _ => false,
+        }
+    }
 }
 
 impl Type {
@@ -356,11 +398,16 @@ impl fmt::Display for Type {
             Type::Float => write!(f, "float"),
             Type::String => write!(f, "string"),
             Type::List(inner) => write!(f, "list<{inner}>"),
+            Type::Set(inner) => write!(f, "set<{inner}>"),
             Type::Map(k, v) => write!(f, "map<{k}, {v}>"),
             Type::Optional(inner) => write!(f, "optional<{inner}>"),
             Type::Tuple(parts) => {
                 let rendered: Vec<String> = parts.iter().map(|p| p.to_string()).collect();
                 write!(f, "tuple<{}>", rendered.join(", "))
+            }
+            Type::Fn { params, returns } => {
+                let rendered: Vec<String> = params.iter().map(|p| p.to_string()).collect();
+                write!(f, "fn<({}) -> {returns}>", rendered.join(", "))
             }
             Type::Named { name, args } if args.is_empty() => write!(f, "{name}"),
             Type::Named { name, args } => {
@@ -751,9 +798,23 @@ pub enum Expr {
     /// carry this too, visibly. Without it, every `sorted(key=...)` callback crosses
     /// as a runnable `null`.
     Lambda {
-        params: Vec<String>,
+        /// The same [`Param`] a declaration uses, so a lambda whose parameters
+        /// the source typed keeps those types. Held as bare names, a TypeScript
+        /// `(n: number) => n + 1` could not be read at all. Every target that
+        /// needs the type had to guess it back.
+        params: Vec<Param>,
+        /// What it answers, where the source said. TypeScript writes
+        /// `(n: number): number => …`, and Go and Zig cannot write a function
+        /// value at all without knowing it.
+        returns: Option<Type>,
         body: Box<Expr>,
     },
+    /// `{a, b}`, `set()`, `new Set()`, `HashSet::new()`: a set built in place.
+    ///
+    /// Its own node rather than a call, because each language names the
+    /// construction differently and none of the names cross. Read as a call,
+    /// `set()` in Python became a call to a function named `set` in Rust.
+    SetLit(Vec<Expr>),
     /// `[f(x) for x in xs if p(x)]`, and `xs.filter(p).map(f)`.
     ///
     /// The same idea spelled two ways: Python builds it with a comprehension,
@@ -800,6 +861,14 @@ pub enum BinaryOp {
     /// silently answered 5 where the source answered 5.34.
     TrueDiv,
     Rem,
+    /// `%` in Python: the remainder that goes with division rounding toward
+    /// negative infinity.
+    ///
+    /// Its own operator because the two disagree on every negative operand.
+    /// `-7 % 2` is `1` in Python and `-1` in the other five. One spelling
+    /// carrying both meanings made every translation of a negative remainder
+    /// quietly wrong.
+    FloorRem,
     Eq,
     Ne,
     Lt,
@@ -828,6 +897,12 @@ impl BinaryOp {
             // this. The rest coerce an operand before they render the operator.
             BinaryOp::TrueDiv => "/",
             BinaryOp::Rem => "%",
+            // Only Python's `%` floors, and Python is not a C-family language.
+            // Every other writer says it with its own call before reaching this
+            // table. Asking here is a bug in the writer, said out loud.
+            BinaryOp::FloorRem => {
+                unreachable!("a floor remainder has no shared operator spelling")
+            }
             BinaryOp::Eq => "==",
             BinaryOp::Ne => "!=",
             BinaryOp::Lt => "<",
@@ -845,6 +920,8 @@ impl BinaryOp {
             BinaryOp::And => "and",
             BinaryOp::Or => "or",
             BinaryOp::FloorDiv => "//",
+            // The remainder Python's `%` already gives.
+            BinaryOp::FloorRem => "%",
             other => other.c_like(),
         }
     }
@@ -864,7 +941,8 @@ impl BinaryOp {
             | BinaryOp::Div
             | BinaryOp::FloorDiv
             | BinaryOp::TrueDiv
-            | BinaryOp::Rem => 6,
+            | BinaryOp::Rem
+            | BinaryOp::FloorRem => 6,
             BinaryOp::Add | BinaryOp::Sub => 5,
             // C gives xor its own tier between arithmetic and comparison;
             // parenthesised operands keep every target agreeing.
@@ -910,6 +988,15 @@ pub struct Fidelity {
     /// Closed choices carried across: an enum with payloads, a tagged union, a
     /// discriminated union.
     pub sums: usize,
+    /// Signatures with a parameter or a return the source never typed.
+    ///
+    /// The target has to write something, and each one reaches for its widest
+    /// type: `object`, `any`, `anytype`, `Object`, a Rust type parameter. That
+    /// is a defined lowering and not a carry, so it does not stop a translation
+    /// being complete. But a file whose header said every signature carried its
+    /// types intact, over a report naming a parameter that had none, was
+    /// contradicting itself. Counted here, the header says both.
+    pub signatures_untyped: usize,
     /// Signatures whose *types* carried but whose calling convention did not: a
     /// keyword-only marker, `*args` or `**kwargs` with no counterpart in the target.
     /// A caller of the translated function writes the call differently.

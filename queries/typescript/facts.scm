@@ -461,6 +461,36 @@
       (ternary_expression (string (string_fragment) @reference.string))]))
  (#any-of? @_helper "cx" "clsx" "classnames" "classNames" "cva" "twMerge" "twJoin"))
 
+; `document.getElementById("panel")` names an element the markup declares. The id
+; arrives as a string literal, so nothing proves it names an id rather than
+; matching one by coincidence; the resolution is name-only and the tool reports
+; it without rewriting it. The receiver is checked because `cache.getElementById`
+; is not this call, and a bare `getElementById(x)` is not either.
+((call_expression
+   function: (member_expression
+     property: (property_identifier) @_dom)
+   arguments: (arguments . (string (string_fragment) @reference.element-id)))
+ (#any-of? @_dom "getElementById"))
+
+; `document.querySelector("#panel")` and `.querySelectorAll(".card")` name the
+; same things a stylesheet declares, in a stylesheet's own spelling. Only the
+; single-token forms are captured: `#panel` is one id and `.card` one class, and
+; a compound selector names several things at once and would need a parser of
+; its own to split.
+((call_expression
+   function: (member_expression
+     property: (property_identifier) @_dom)
+   arguments: (arguments . (string (string_fragment) @reference.element-id)))
+ (#any-of? @_dom "querySelector" "querySelectorAll")
+ (#match? @reference.element-id "^#[A-Za-z_][-A-Za-z0-9_]*$"))
+
+((call_expression
+   function: (member_expression
+     property: (property_identifier) @_dom)
+   arguments: (arguments . (string (string_fragment) @reference.selector)))
+ (#any-of? @_dom "querySelector" "querySelectorAll")
+ (#match? @reference.selector "^\\.[A-Za-z_][-A-Za-z0-9_]*$"))
+
 ; `data-testid="submit-btn"` — the same string the HTML that renders this element
 ; writes. Written in the same structural shape as `className` above, because the
 ; JSX attribute node cannot be named here. Every site is a definition, as in HTML:

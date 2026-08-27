@@ -145,6 +145,9 @@ pub fn to_file(index: &Index, symbol: SymbolId, destination: &Path) -> Result<Mo
         Language::Zig => move_zig(index, sym, destination),
         Language::Bash => move_bash(index, sym, destination),
         Language::Yaml | Language::Helm => move_values_key(index, sym, destination),
+        // A JSON key's path is its address, the same as a YAML key's, so the
+        // same move carries one.
+        Language::Json => move_values_key(index, sym, destination),
         // Java ties a file's name to the public type inside it and imports by fully-qualified
         // name and not by path. So moving a type is a rename of the file *and* of its package,
         // and moving a method is a change of receiver. Neither is the operation this performs,
@@ -4344,7 +4347,9 @@ pub fn movable(index: &Index, file: &Path) -> Vec<SymbolId> {
             Language::Bash => s.container.is_none() && s.kind == SymbolKind::Function,
             // A nested key's path is its address; only a top-level key keeps the same
             // path in another file.
-            Language::Yaml | Language::Helm => s.container.is_none() && s.kind == SymbolKind::Key,
+            Language::Yaml | Language::Helm | Language::Json => {
+                s.container.is_none() && s.kind == SymbolKind::Key
+            }
             Language::Html | Language::Xml => false,
         })
         .map(|s| s.id)

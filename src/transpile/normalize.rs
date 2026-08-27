@@ -17,6 +17,443 @@ pub fn normalize(module: &mut Module, language: Language) {
     // After the per-language pass, so Go's `x = append(x, v)` is already the method
     // call this reads.
     settle_list_element_types(module);
+    settle_sets(module, language);
+    sets_from_maps(module);
+    membership_into_conditions(module);
+    if matches!(language, Language::Zig) {
+        discards_are_calls(module);
+    }
+    settle_constructors(module);
+    settle_boolean_switches(module);
+}
+
+/// A membership question asked into a binding the next `if` reads, asked inline.
+///
+/// Go scopes an `if` initialiser to its own statement, so `if _, ok := m[k]; ok`
+/// twice binds `ok` twice. Hoisted, the second binding assigned to the first,
+/// which the targets that make a binding constant refused. The question is what
+/// the condition wanted, so the condition asks it.
+fn membership_into_conditions(module: &mut Module) {
+    fn asks_membership(e: &Expr) -> bool {
+        matches!(e, Expr::Call { callee, args }
+            if args.len() == 1
+                && matches!(callee.as_ref(), Expr::Field { name, .. } if name == "contains"))
+    }
+    fn walk(body: &mut Vec<Stmt>) {
+        for stmt in body.iter_mut() {
+            for inner in super::write::sub_bodies_mut(stmt) {
+                walk(inner);
+            }
+        }
+        let mut at = 0;
+        while at + 1 < body.len() {
+            // The binding, however it was written. A second `if` initialiser
+            // binding the same word arrives as an assignment, because an
+            // earlier pass saw the word was already taken.
+            let asked = match &body[at] {
+                Stmt::Let {
+                    name,
+                    value: Some(value),
+                    ..
+                } if asks_membership(value) => Some((name.clone(), value.clone())),
+                Stmt::Assign {
+                    target: Expr::Name(name),
+                    value,
+                } if asks_membership(value) => Some((name.clone(), value.clone())),
+                _ => None,
+            };
+            let Some((name, value)) = asked else {
+                at += 1;
+                continue;
+            };
+            let reads_it = matches!(&body[at + 1], Stmt::If { condition, .. }
+                if matches!(condition, Expr::Name(n) if *n == name));
+            if !reads_it {
+                at += 1;
+                continue;
+            }
+            if let Stmt::If { condition, .. } = &mut body[at + 1] {
+                *condition = value;
+            }
+            body.remove(at);
+        }
+    }
+    for item in module.items.iter_mut() {
+        match item {
+            Item::Function(f) => walk(&mut f.body),
+            Item::Record(r) => {
+                for m in r.methods.iter_mut() {
+                    walk(&mut m.body);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// `_ = f(x)` is the call, and the discard is Zig asking to be let off.
+///
+/// Zig refuses an ignored result, so every call made for its effect is written
+/// this way. Read as an assignment to a binding named `_`, Go emitted
+/// `_ = delete(m, k)` against a function that returns nothing. Java got a name
+/// it will not accept.
+fn discards_are_calls(module: &mut Module) {
+    fn walk(body: &mut [Stmt]) {
+        for stmt in body.iter_mut() {
+            if let Stmt::Assign {
+                target: Expr::Name(bound),
+                value,
+            } = stmt
+            {
+                if bound == "_" && matches!(value, Expr::Call { .. }) {
+                    *stmt = Stmt::Expr(value.clone());
+                    continue;
+                }
+            }
+            for inner in super::write::sub_bodies_mut(stmt) {
+                walk(inner);
+            }
+        }
+    }
+    for item in module.items.iter_mut() {
+        match item {
+            Item::Function(f) => walk(&mut f.body),
+            Item::Record(r) => {
+                for m in r.methods.iter_mut() {
+                    walk(&mut m.body);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// A map whose values carry nothing is a set, and its stores are adds.
+///
+/// Two of these languages have no set and spell one as a map to nothing: Go
+/// writes `map[T]struct{}` and Zig `HashMap(K, void)`. Read as maps, `seen.add`
+/// became a store of `None` and every target that has a set built the wrong
+/// thing.
+fn sets_from_maps(module: &mut Module) {
+    fn carries_nothing(e: &Expr) -> bool {
+        match e {
+            Expr::Null => true,
+            Expr::RecordLit { fields, .. } => fields.is_empty(),
+            _ => false,
+        }
+    }
+    fn stores_into<'a>(body: &'a [Stmt], name: &str, found: &mut Vec<&'a Expr>) {
+        for stmt in body {
+            if let Stmt::Assign {
+                target: Expr::Index { of, .. },
+                value,
+            } = stmt
+            {
+                if matches!(of.as_ref(), Expr::Name(n) if n == name) {
+                    found.push(value);
+                }
+            }
+            for inner in super::write::sub_bodies(stmt) {
+                stores_into(inner, name, found);
+            }
+        }
+    }
+    fn rewrite(body: &mut [Stmt], name: &str) {
+        for stmt in body.iter_mut() {
+            if let Stmt::Assign {
+                target: Expr::Index { of, index },
+                value,
+            } = stmt
+            {
+                if matches!(of.as_ref(), Expr::Name(n) if n == name) && carries_nothing(value) {
+                    *stmt = Stmt::Expr(Expr::Call {
+                        callee: Box::new(Expr::Field {
+                            of: of.clone(),
+                            name: "add".to_string(),
+                        }),
+                        args: vec![(**index).clone()],
+                    });
+                    continue;
+                }
+            }
+            for inner in super::write::sub_bodies_mut(stmt) {
+                rewrite(inner, name);
+            }
+        }
+    }
+    fn settle(f: &mut Function) {
+        let mut names = Vec::new();
+        for stmt in &f.body {
+            let Stmt::Let {
+                name, ty, value, ..
+            } = stmt
+            else {
+                continue;
+            };
+            let empty_map = matches!(value, Some(Expr::MapLit(entries)) if entries.is_empty());
+            let says_set = matches!(ty, Some(Type::Set(_)))
+                || matches!(ty, Some(Type::Map(_, v)) if **v == Type::Unit);
+            if !empty_map && !says_set {
+                continue;
+            }
+            let mut stored = Vec::new();
+            stores_into(&f.body, name, &mut stored);
+            // A map with nothing stored in it says nothing either way, and the
+            // declaration is the only evidence there is.
+            if !says_set && (stored.is_empty() || !stored.iter().all(|v| carries_nothing(v))) {
+                continue;
+            }
+            names.push(name.clone());
+        }
+        for name in &names {
+            let mut body = std::mem::take(&mut f.body);
+            rewrite(&mut body, name);
+            for stmt in body.iter_mut() {
+                let Stmt::Let {
+                    name: bound,
+                    ty,
+                    value,
+                    ..
+                } = stmt
+                else {
+                    continue;
+                };
+                if bound != name {
+                    continue;
+                }
+                if let Some(Expr::MapLit(entries)) = value {
+                    let keys = entries.iter().map(|(k, _)| k.clone()).collect();
+                    *value = Some(Expr::SetLit(keys));
+                }
+                if let Some(Type::Map(key, _)) = ty {
+                    *ty = Some(Type::Set(key.clone()));
+                }
+            }
+            f.body = body;
+        }
+    }
+    for item in module.items.iter_mut() {
+        match item {
+            Item::Function(f) => settle(f),
+            Item::Record(r) => {
+                for m in r.methods.iter_mut() {
+                    settle(m);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// Every construction that builds a set, read as the set it builds.
+fn settle_sets(module: &mut Module, language: Language) {
+    // The three set words each language spells its own way, onto the canonical
+    // `add`, `remove` and `contains`. A map uses the same three words, and each
+    // of these spellings means the same thing there, so no distinction is
+    // needed between the two.
+    // A word whose value the source uses is a different question. Rust's
+    // `insert` answers whether the member was new and `delete` in TypeScript
+    // whether it was there; no other language's `add` or `remove` answers
+    // anything. So those two are renamed only where the statement is the whole
+    // of it, and asking in an expression carries instead.
+    let statement_words: &[(&str, &str, usize)] = match language {
+        Language::Rust => &[("insert", "add", 1)],
+        Language::TypeScript | Language::Tsx => &[("delete", "remove", 1)],
+        Language::Zig => &[("put", "add", 2)],
+        _ => &[],
+    };
+    let words: &[(&str, &str, usize)] = match language {
+        Language::TypeScript | Language::Tsx => &[("has", "contains", 1)],
+        _ => &[],
+    };
+    fn rename_statements(module: &mut Module, words: &[(&str, &str, usize)]) {
+        fn walk(body: &mut [Stmt], words: &[(&str, &str, usize)]) {
+            for stmt in body.iter_mut() {
+                if let Stmt::Expr(e) = stmt {
+                    for (from, to, argc) in words {
+                        let taken = std::mem::replace(e, Expr::Null);
+                        *e = match rename_method(taken, from, to, *argc) {
+                            Ok(renamed) => renamed,
+                            Err(unchanged) => unchanged,
+                        };
+                    }
+                }
+                for inner in super::write::sub_bodies_mut(stmt) {
+                    walk(inner, words);
+                }
+            }
+        }
+        for item in module.items.iter_mut() {
+            match item {
+                Item::Function(f) => walk(&mut f.body, words),
+                Item::Record(r) => {
+                    for m in r.methods.iter_mut() {
+                        walk(&mut m.body, words);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    rename_statements(module, statement_words);
+    super::read::each_expr_in_module(module, &mut |e| {
+        if let Some(built) = built_set(e) {
+            *e = built;
+            return;
+        }
+        // Go's `delete(m, k)` is a builtin taking the collection first, where
+        // the other five call a method on it.
+        if matches!(language, Language::Go) {
+            if let Expr::Call { callee, args } = e {
+                let deletes = matches!(callee.as_ref(), Expr::Name(n) if n == "delete");
+                if deletes && args.len() == 2 {
+                    let of = args[0].clone();
+                    let key = args[1].clone();
+                    *e = Expr::Call {
+                        callee: Box::new(Expr::Field {
+                            of: Box::new(of),
+                            name: "remove".to_string(),
+                        }),
+                        args: vec![key],
+                    };
+                    return;
+                }
+            }
+        }
+        for (from, to, argc) in words {
+            let taken = std::mem::replace(e, Expr::Null);
+            *e = match rename_method(taken, from, to, *argc) {
+                Ok(renamed) => renamed,
+                Err(unchanged) => unchanged,
+            };
+        }
+        // Zig's `put(k, {})` adds a member and carries no value with it.
+        if let Expr::Call { callee, args } = e {
+            let adds = matches!(callee.as_ref(), Expr::Field { name, .. } if name == "add");
+            if adds
+                && args.len() == 2
+                && matches!(args[1], Expr::RecordLit { ref fields, .. } if fields.is_empty())
+            {
+                args.truncate(1);
+            }
+        }
+    });
+}
+
+/// A branch on `true` and `false` is an `if`, not a `switch`.
+///
+/// Rust writes `match cond { true => …, false => … }` and reads as a switch on
+/// a boolean. Java has no such switch outside a preview feature, and the other
+/// four spell it with an `if` anyway. The `if` is the shape all six have.
+fn settle_boolean_switches(module: &mut Module) {
+    fn walk(body: &mut [Stmt]) {
+        for stmt in body.iter_mut() {
+            for inner in super::write::sub_bodies_mut(stmt) {
+                walk(inner);
+            }
+            let Stmt::Switch {
+                subject,
+                arms,
+                default,
+            } = stmt
+            else {
+                continue;
+            };
+            // `true` and `false` name every value a boolean has, so a `default`
+            // beside them is unreachable and there is nothing to lose.
+            let mut then = None;
+            let mut otherwise = None;
+            let mut only_booleans = !arms.is_empty();
+            for (literals, taken) in arms.iter() {
+                match literals.as_slice() {
+                    [Expr::Bool(true)] => then = Some(taken.clone()),
+                    [Expr::Bool(false)] => otherwise = Some(taken.clone()),
+                    _ => {
+                        only_booleans = false;
+                        break;
+                    }
+                }
+            }
+            if !only_booleans || then.is_none() {
+                continue;
+            }
+            *stmt = Stmt::If {
+                condition: subject.clone(),
+                then: then.unwrap_or_default(),
+                otherwise: otherwise.unwrap_or_else(|| std::mem::take(default)),
+            };
+        }
+    }
+    for item in module.items.iter_mut() {
+        match item {
+            Item::Function(f) => walk(&mut f.body),
+            Item::Record(r) => {
+                for m in r.methods.iter_mut() {
+                    walk(&mut m.body);
+                }
+            }
+            Item::Test { body, .. } => walk(body),
+            Item::Statement(stmt) => {
+                let mut one = vec![stmt.clone()];
+                walk(&mut one);
+                *stmt = one.remove(0);
+            }
+            _ => {}
+        }
+    }
+}
+
+/// A constructor that only fills fields is the record literal it builds.
+///
+/// Java, Python and TypeScript write a constructor as a body of assignments to
+/// the receiver. Rust, Go and Zig have no receiver to assign to yet: they build
+/// the value and hand it back. The literal is the shape all six can write, and
+/// the three that assign write the assignments back out.
+fn settle_constructors(module: &mut Module) {
+    for item in module.items.iter_mut() {
+        let Item::Record(record) = item else { continue };
+        let name = record.name.clone();
+        for method in record.methods.iter_mut() {
+            if !method.is_constructor {
+                continue;
+            }
+            // Already a literal, which is how three of the six write one.
+            if matches!(
+                method.body.as_slice(),
+                [Stmt::Return(Some(Expr::RecordLit { .. }))]
+            ) {
+                continue;
+            }
+            let Some(receiver) = method.receiver_binding.clone() else {
+                continue;
+            };
+            let mut fields = Vec::new();
+            let mut only_assigns = !method.body.is_empty();
+            for stmt in &method.body {
+                let Stmt::Assign {
+                    target: Expr::Field { of, name: field },
+                    value,
+                } = stmt
+                else {
+                    only_assigns = false;
+                    break;
+                };
+                if !matches!(of.as_ref(), Expr::Name(n) if *n == receiver) {
+                    only_assigns = false;
+                    break;
+                }
+                fields.push((field.clone(), value.clone()));
+            }
+            if !only_assigns {
+                continue;
+            }
+            method.body = vec![Stmt::Return(Some(Expr::RecordLit {
+                ty: name.clone(),
+                fields,
+            }))];
+            method.returns = Some(Type::named(&name));
+        }
+    }
 }
 
 fn normalize_language(module: &mut Module, language: Language) {
@@ -480,9 +917,9 @@ fn typescript(expr: Expr) -> Expr {
     if let Some(folded) = fold_concat(&expr) {
         return folded;
     }
-    // `x.length` measures, whatever x is.
+    // `x.length` measures, whatever x is, and a set and a map answer `.size`.
     if let Expr::Field { of, name } = &expr {
-        if name == "length" {
+        if name == "length" || name == "size" {
             return Expr::Call {
                 callee: Box::new(Expr::Name("len".to_string())),
                 args: vec![(**of).clone()],
@@ -517,26 +954,46 @@ fn typescript(expr: Expr) -> Expr {
         }
         // `word.includes(x)` and the case methods, under their canonical names.
         (["console", "error"], _) => expr,
-        // `Math.trunc(a / b)` is how this language spells the division every other target
-        // truncates natively. `Math.floor` says the same thing for the non-negative operands
-        // real code feeds it, and both read back as the operator. So a round trip is the
-        // identity.
+        // `Math.trunc(a / b)` is how this language spells the division the other
+        // five truncate natively. `Math.floor(a / b)` is the one that rounds
+        // toward negative infinity. The two answer differently for every pair of
+        // operands with different signs, and reading both as flooring made every
+        // negative quotient wrong. Each writer spells them apart, so a round
+        // trip is still the identity.
         (
-            ["Math", "trunc" | "floor"],
+            ["Math", rounding @ ("trunc" | "floor")],
             [Expr::Binary {
                 op: BinaryOp::Div, ..
             }],
         ) => {
+            let floors = *rounding == "floor";
             let Expr::Call { args, .. } = expr else {
                 unreachable!("call_parts said so");
             };
             let Some(Expr::Binary { left, right, .. }) = args.into_iter().next() else {
                 unreachable!("the guard said so");
             };
-            Expr::Binary {
-                op: BinaryOp::FloorDiv,
-                left,
-                right,
+            match floors {
+                true => Expr::Binary {
+                    op: BinaryOp::FloorDiv,
+                    left,
+                    right,
+                },
+                // Truncation is the canonical `trunc` applied to the quotient,
+                // and no operator at all. Held as the source's `/`, a float
+                // division came out whole in a target whose `/` truncates and
+                // fractional in one whose `/` does not. `trunc` and not `int`:
+                // this language's `Math.trunc` answers a number, and narrowing
+                // it to an integer would change the type of everything it
+                // reaches.
+                false => Expr::Call {
+                    callee: Box::new(Expr::Name("trunc".to_string())),
+                    args: vec![Expr::Binary {
+                        op: BinaryOp::Div,
+                        left,
+                        right,
+                    }],
+                },
             }
         }
         _ => expr,
@@ -551,11 +1008,12 @@ fn java(expr: Expr) -> Expr {
     if let Some(folded) = fold_concat(&expr) {
         return folded;
     }
-    // `x.length()` on text measures it; the collections pass already spoke for lists.
+    // `x.length()` on text measures it, and `x.size()` a collection. The
+    // collections pass already spoke for lists; a set reaches here.
     if let Expr::Call { callee, args } = &expr {
         if args.is_empty() {
             if let Expr::Field { of, name } = &**callee {
-                if name == "length" {
+                if name == "length" || name == "size" {
                     return Expr::Call {
                         callee: Box::new(Expr::Name("len".to_string())),
                         args: vec![(**of).clone()],
@@ -2092,6 +2550,104 @@ fn substatements_ref(stmt: &Stmt) -> Vec<&Vec<Stmt>> {
     }
 }
 
+/// The set a construction stands for, in the words each language uses.
+///
+/// `set()`, `new Set()`, `new HashSet<>()` and `HashSet::new()` all build the
+/// same empty set. Read as calls, each named a function the other five have
+/// not got.
+fn built_set(e: &Expr) -> Option<Expr> {
+    let (Expr::Call { callee, args } | Expr::New { callee, args }) = e else {
+        return None;
+    };
+    let named = match callee.as_ref() {
+        Expr::Name(n) => n.rsplit(['.', ':']).next().unwrap_or(n).to_string(),
+        Expr::Field { name, .. } => name.clone(),
+        _ => return None,
+    };
+    let builds = matches!(
+        named.as_str(),
+        "set" | "Set" | "HashSet" | "TreeSet" | "LinkedHashSet" | "BTreeSet" | "frozenset"
+    );
+    if !builds {
+        return None;
+    }
+    match args.as_slice() {
+        [] => Some(Expr::SetLit(Vec::new())),
+        // `new Set([a, b])` and `set([a, b])` take the members as one list.
+        [Expr::ListLit(items)] => Some(Expr::SetLit(items.clone())),
+        _ => None,
+    }
+}
+
+/// The literal an immutable collection factory stands for.
+fn immutable_collection(e: &Expr) -> Option<Expr> {
+    let Expr::Call { callee, args } = e else {
+        return None;
+    };
+    let Expr::Field { of, name } = callee.as_ref() else {
+        return None;
+    };
+    if name != "of" {
+        return None;
+    }
+    let Expr::Name(holder) = of.as_ref() else {
+        return None;
+    };
+    match holder.rsplit('.').next().unwrap_or(holder) {
+        "List" | "Set" => Some(Expr::ListLit(args.clone())),
+        "Map" => {
+            let mut entries = Vec::new();
+            for pair in args.chunks(2) {
+                if let [k, v] = pair {
+                    entries.push((k.clone(), v.clone()));
+                }
+            }
+            Some(Expr::MapLit(entries))
+        }
+        _ => None,
+    }
+}
+
+/// The literal inside a mutable collection built around an immutable one.
+fn wrapped_collection(e: &Expr) -> Option<Expr> {
+    let (Expr::New { callee, args } | Expr::Call { callee, args }) = e else {
+        return None;
+    };
+    let built = match callee.as_ref() {
+        Expr::Name(n) => n.rsplit('.').next().unwrap_or(n),
+        Expr::Field { name, .. } => name.as_str(),
+        _ => return None,
+    };
+    let [inside] = args.as_slice() else {
+        return None;
+    };
+    let Expr::Call { callee, args } = inside else {
+        return None;
+    };
+    let Expr::Field { of, name } = callee.as_ref() else {
+        return None;
+    };
+    if name != "of" {
+        return None;
+    }
+    let holder = match of.as_ref() {
+        Expr::Name(n) => n.rsplit('.').next().unwrap_or(n),
+        _ => return None,
+    };
+    match (built, holder) {
+        ("ArrayList" | "LinkedList", "List") => Some(Expr::ListLit(args.clone())),
+        ("HashMap" | "TreeMap" | "LinkedHashMap", "Map") => {
+            let mut entries = Vec::new();
+            let mut pairs = args.chunks(2);
+            while let Some([k, v]) = pairs.next() {
+                entries.push((k.clone(), v.clone()));
+            }
+            Some(Expr::MapLit(entries))
+        }
+        _ => None,
+    }
+}
+
 fn rewrite_java_lists(body: &mut [Stmt], lists: &[String]) {
     fn empty_construction(e: &Expr) -> bool {
         matches!(e, Expr::New { callee, args } | Expr::Call { callee, args }
@@ -2193,6 +2749,18 @@ fn rewrite_java_lists(body: &mut [Stmt], lists: &[String]) {
         if let Stmt::Let { value: Some(v), .. } = stmt {
             if empty_construction(v) {
                 *v = Expr::ListLit(Vec::new());
+            }
+            // `new ArrayList<>(List.of(…))` is the mutable list this writer
+            // emits for a list literal, and `new HashMap<>(Map.of(…))` the map.
+            // Unread, the tool could not take back what it had just written. A
+            // round trip through Java named a class the target had never heard
+            // of.
+            if let Some(unwrapped) = wrapped_collection(v) {
+                *v = unwrapped;
+            }
+            // A bare `List.of(…)` or `Map.of(…)` is the literal itself.
+            if let Some(unwrapped) = immutable_collection(v) {
+                *v = unwrapped;
             }
         }
         match stmt {
@@ -2441,6 +3009,21 @@ fn rewrite_zig_lists(body: &mut [Stmt], lists: &[String]) {
 fn python(expr: Expr) -> Expr {
     if let Some(folded) = fold_concat(&expr) {
         return folded;
+    }
+    // Python's `%` rounds with its division, toward negative infinity. The
+    // other five truncate. Read as one operator, `-7 % 2` crossed as `-1` where
+    // the source said `1`, and nothing said so.
+    if let Expr::Binary {
+        op: BinaryOp::Rem,
+        left,
+        right,
+    } = expr
+    {
+        return Expr::Binary {
+            op: BinaryOp::FloorRem,
+            left,
+            right,
+        };
     }
     // `asyncio.run(main())` is how an async entry says "call main". The run
     // wrapper is the event loop, not the program: the canonical entry is the

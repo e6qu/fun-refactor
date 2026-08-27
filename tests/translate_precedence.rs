@@ -25,16 +25,22 @@ fn translated(source: &str, to: Language) -> String {
 
 #[test]
 fn a_group_the_source_wrote_survives() {
-    for (body, expected) in [
-        ("return (a + b) * c;", "(a + b) * c"),
-        ("return a - (b - c);", "a - (b - c)"),
-        ("return a / (b * c);", "a / (b * c)"),
+    // Zig refuses `/` on signed integers and names the rounding instead, so the
+    // grouping shows up inside its call rather than inside brackets.
+    for (body, expected, in_zig) in [
+        ("return (a + b) * c;", "(a + b) * c", "(a + b) * c"),
+        ("return a - (b - c);", "a - (b - c)", "a - (b - c)"),
+        ("return a / (b * c);", "a / (b * c)", "@divTrunc(a, b * c)"),
     ] {
         let source = format!("pub fn f(a: i64, b: i64, c: i64) -> i64 {{\n    {body}\n}}\n");
         for target in TARGETS {
             let out = translated(&source, *target);
+            let wanted = match target {
+                Language::Zig => in_zig,
+                _ => expected,
+            };
             assert!(
-                out.contains(expected),
+                out.contains(wanted),
                 "{target} lost the grouping in `{body}`:\n{out}"
             );
         }
@@ -155,11 +161,12 @@ fn a_division_whose_operands_have_no_declared_type_is_left_alone() {
 }
 
 #[test]
-fn a_remainder_between_integers_is_reported_rather_than_left_quiet() {
-    // The same disagreement as division, with no readable Python form: every other language
-    // here takes the sign from the dividend and Python from the divisor. So `-7 % 2` is -1
-    // there and 1 here. Writing it exactly means `a - b * int(a / b)`, which nobody would read
-    // twice. So the operator stays and the report says where the two differ.
+fn a_remainder_between_integers_answers_what_the_source_answered() {
+    // The same disagreement as division: every other language here takes the sign
+    // from the dividend and Python from the divisor. So `-7 % 2` is -1 there and
+    // 1 here. Writing `%` and reporting the difference left a wrong number in the
+    // file, for someone to find with a negative operand. A helper says the
+    // source's answer, and it says it for every pair of operands.
     let tmp = tempfile::tempdir().expect("a temporary directory");
     let path = tmp.path().join("a.rs");
     std::fs::write(
@@ -168,11 +175,15 @@ fn a_remainder_between_integers_is_reported_rather_than_left_quiet() {
     )
     .expect("the file");
     let plan = transpile::plan(&path, Language::Python).expect("a translation");
-    assert!(plan.output.contains("return a % b"), "{}", plan.output);
     assert!(
-        plan.fidelity.notes.iter().any(|n| n.contains("sign")),
-        "no note about the sign: {:?}",
-        plan.fidelity.notes
+        plan.output.contains("fr_trunc_rem(a, b)"),
+        "{}",
+        plan.output
+    );
+    assert!(
+        plan.output.contains("def fr_trunc_rem("),
+        "the helper has to be in the file it is called from: {}",
+        plan.output
     );
 }
 

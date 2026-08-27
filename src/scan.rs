@@ -150,13 +150,13 @@ mod tests {
     fn files_in_no_language_are_counted_by_kind() {
         let tmp = workspace();
         fs::write(tmp.path().join("schema.sql"), "select 1;\n").unwrap();
-        fs::write(tmp.path().join("data.json"), "{}\n").unwrap();
-        fs::write(tmp.path().join("more.json"), "{}\n").unwrap();
+        fs::write(tmp.path().join("data.toml"), "a = 1\n").unwrap();
+        fs::write(tmp.path().join("more.toml"), "b = 2\n").unwrap();
         fs::write(tmp.path().join("Makefile"), "all:\n").unwrap();
         let result = scan(tmp.path(), &ScanOptions::default()).unwrap();
         assert_eq!(result.unsupported.get(".sql"), Some(&1));
         assert_eq!(
-            result.unsupported.get(".json"),
+            result.unsupported.get(".toml"),
             Some(&2),
             "a kind is counted, and not listed once per file."
         );

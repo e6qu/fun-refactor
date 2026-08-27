@@ -3,8 +3,10 @@
 pub mod call_graph;
 pub mod duplicates;
 pub mod entrypoints;
+pub mod flags;
 pub mod flow;
 pub mod impact;
+pub mod paths;
 pub mod provenance;
 pub mod stitch;
 pub mod types;

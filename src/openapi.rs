@@ -49,9 +49,9 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
     //
     // A real Next.js application keeps its zod schemas in a module the routes import,
     // `@/lib/schemas` here. Reading only the route file found none of them. The contract came
-    // out with an empty `components` section, which says the endpoints take no body at all: a
-    // smaller contract than the one it stands in for, and exactly the failure this document
-    // exists to catch.
+    // out with an empty `components` section. That says the endpoints take no body at all,
+    // a smaller contract than the one it stands in for. This document exists to catch
+    // that failure.
     let mut declared: std::collections::BTreeMap<String, Model> = std::collections::BTreeMap::new();
     for file in files {
         for model in nextjs::models_in(file).unwrap_or_default() {
@@ -205,16 +205,80 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
         }
     }
 
+    // The other five frameworks that declare a route. Each says the same pair,
+    // a method and a URL, and each says it its own way. A file that declares
+    // none is most of a service and is not an error.
+    let mut frameworks: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    for file in files {
+        let Ok(Some((framework, endpoints))) = crate::transpile::routes::endpoints_in(file) else {
+            continue;
+        };
+        frameworks.insert(framework.to_string());
+        for endpoint in endpoints {
+            let entry = paths
+                .entry(endpoint.url.clone())
+                .or_insert_with(|| json!({}))
+                .as_object_mut()
+                .expect("a path item is an object");
+            let method = endpoint.method.to_lowercase();
+            if entry.contains_key(&method) {
+                continue;
+            }
+            let parameters: Vec<Value> = nextjs::path_parameters(&endpoint.url)
+                .into_iter()
+                .map(|name| {
+                    json!({
+                        "name": name,
+                        "in": "path",
+                        "required": true,
+                        // A path segment arrives as text. A narrower type would
+                        // be a guess about what the handler does with it.
+                        "schema": { "type": "string" }
+                    })
+                })
+                .collect();
+            entry.insert(
+                method.clone(),
+                json!({
+                    "operationId": format!("{method}{}", operation_suffix(&endpoint.url)),
+                    "parameters": parameters,
+                    "responses": {
+                        "default": { "description": "not declared by the source" }
+                    }
+                }),
+            );
+        }
+        routes.push(file.clone());
+        // The body a handler reads is declared in the framework's own way, and
+        // none of the five say it where the route is declared. A contract that
+        // showed no body at all would look complete and be smaller than the
+        // service it stands for.
+        notes.push(format!(
+            "{}: read as {framework}. Paths and methods are exact. Each handler's \
+             body is declared away from the route, so it is not in this document",
+            relative(root, file),
+            framework = framework
+        ));
+    }
+
+    let read_from = match frameworks.is_empty() {
+        true => "a Next.js route tree".to_string(),
+        false => format!(
+            "a Next.js route tree and the {} routes beside it",
+            frameworks.into_iter().collect::<Vec<_>>().join(", ")
+        ),
+    };
     let document = json!({
         "openapi": "3.1.0",
         "info": {
             "title": title,
             "version": "0.0.0",
-            "description":
-                "Derived from a Next.js route tree by fun-refactor. Paths, methods and \
-                 path parameters are exact; schemas are as good as what the source \
-                 declared; responses are not declared by the source and are `default` \
-                 here and not invented. See the notes beside it.",
+            "description": format!(
+                "Derived from {read_from} by fun-refactor. Paths, methods and path \
+                 parameters are exact. Schemas are as good as what the source declared. \
+                 Responses are not declared by the source, so they are `default` here \
+                 and not invented. See the notes beside it."
+            ),
         },
         "paths": Value::Object(paths),
         "components": { "schemas": Value::Object(schemas) },
@@ -294,10 +358,18 @@ fn json_type(ty: &Type) -> Value {
         Type::Bool => json!({ "type": "boolean" }),
         Type::Unit => json!({ "type": "null" }),
         Type::List(inner) => json!({ "type": "array", "items": json_type(inner) }),
+        // JSON Schema has no set. An array whose members are unique is the
+        // nearest thing it says, and it says it.
+        Type::Set(inner) => {
+            json!({ "type": "array", "items": json_type(inner), "uniqueItems": true })
+        }
         Type::Map(_, value) => {
             json!({ "type": "object", "additionalProperties": json_type(value) })
         }
         Type::Optional(inner) => json_type(inner),
+        // JSON Schema describes data, and a function is not data. A route
+        // taking or returning one has no body this can describe.
+        Type::Fn { .. } => json!({}),
         Type::Tuple(parts) => json!({
             "type": "array",
             "prefixItems": parts.iter().map(json_type).collect::<Vec<_>>(),
@@ -315,9 +387,9 @@ fn json_type(ty: &Type) -> Value {
 ///
 /// The point of a baseline is to be diffed against the finished service, and doing that
 /// properly means running the service. This is the check you can make without one. The
-/// decorators and the signatures say what the router will answer, and comparing them with the
-/// Next.js baseline catches the failure that matters, an endpoint that did not survive the
-/// crossing, or a path that quietly changed shape.
+/// decorators and the signatures say what the router will answer. Comparing them with the
+/// Next.js baseline catches the failure that matters. An endpoint may not survive the
+/// crossing, or a path may quietly change shape.
 ///
 /// It reads what is written. It is not what will happen. A route added at run time, a router mounted
 /// under a prefix, a dependency that rejects the request: none of those are here. The document

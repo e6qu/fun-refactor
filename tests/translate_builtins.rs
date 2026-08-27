@@ -42,7 +42,8 @@ fn python_builtins_reach_rust_as_rust() {
     let out = translated(SHOUT_PY, "shout.py", Language::Rust);
     for expected in [
         "loud.push(name.to_uppercase())",
-        "println!(\"{}\", loud.len())",
+        // A length is a `usize` here and an ordinary integer everywhere else.
+        "println!(\"{}\", (loud.len() as i64))",
         "loud.join(\", \")",
     ] {
         assert!(out.contains(expected), "missing `{expected}`:\n{out}");

@@ -43,6 +43,7 @@ fn query_source(lang: Language) -> Option<&'static str> {
         Language::Java => include_str!("../queries/java/facts.scm"),
         Language::Bash => include_str!("../queries/bash/facts.scm"),
         Language::Hcl => include_str!("../queries/hcl/facts.scm"),
+        Language::Json => include_str!("../queries/json/facts.scm"),
         Language::Css => include_str!("../queries/css/facts.scm"),
         Language::Scss => include_str!("../queries/scss/facts.scm"),
         Language::Sass => include_str!("../queries/sass/facts.scm"),
@@ -458,6 +459,24 @@ fn module_block_label(attribute: Node<'_>, span: Span, source: &str) -> Option<S
 /// `None` drops the reference. An absolute URL is somebody else's document, and the grammars
 /// capture the destination whole. So without this every `href` with a fragment would enter the
 /// index under a name no file can define.
+/// The class a selector names, without the `.` that says it is a selector.
+///
+/// `document.querySelector(".card")` names the class a stylesheet declares as
+/// `card`. The fragment marker on an id is taken off the same way, by
+/// [`link_destination`], and for the same reason.
+fn selector_name(span: Span, source: &str) -> Span {
+    let text = span.text(source);
+    let names_a_class = text.starts_with('.')
+        && text.len() > 1
+        && text[1..]
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '-' || c == '_');
+    match names_a_class {
+        true => Span::new(span.start + 1, span.end),
+        false => span,
+    }
+}
+
 fn link_destination(span: Span, source: &str, kind: ReferenceKind) -> Option<Span> {
     if kind != ReferenceKind::StringRef {
         return Some(span);
@@ -1021,6 +1040,10 @@ impl Extractor {
                     // the URL itself refers to anything this workspace defines.
                     None => continue,
                 };
+                // A class written as a selector carries the `.` that says it is
+                // one. The stylesheet declares the name without it, so a
+                // reference keeping it would reach nothing.
+                let span = selector_name(span, source);
                 // A name applied to arguments is a call, whether or not the grammar
                 // said so. Inside a macro it does not.
                 let kind = match call_in_macro(root, span, source) {

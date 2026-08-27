@@ -512,6 +512,7 @@ fn handler_for(endpoint: &Endpoint, parameters: &[(String, bool)], models: &[Rec
         is_async: true,
         is_property: false,
         is_constructor: false,
+        is_private: false,
     }
 }
 

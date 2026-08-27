@@ -118,19 +118,22 @@ treats a stylesheet as a module with an export list.
 ### 2. Element ids named from code, `getElementById("panel")`
 
 ```ts
-document.getElementById("open-path")           // a string, resolving to nothing
+document.getElementById("open-path")           // resolves, name-only
+document.querySelector("#panel")               // the id, without the `#`
+document.querySelectorAll(".card")             // the class, without the `.`
 ```
 
-The tool already resolves ids *within* markup (`<label for>` → `<input id>`). From
-code, the id arrives as a string literal.
+**This crosses now.** The trigger is a string argument to a known DOM accessor,
+and the receiver is checked: `cache.get(k)` is not a DOM lookup. The name is the
+one the markup or the stylesheet declares. So the selector's `#` and `.` come
+off, the same way a link's fragment marker does.
 
-**What it needs.** String-keyed resolution already exists, and Helm values and some
-config keys resolve through it. The same mechanism takes a narrower trigger here: a
-string argument to a known DOM accessor. Keep it `NameOnly`. Nothing proves the string
-names an id rather than matching by coincidence, so the tool should report it and leave
-it alone.
+A compound selector is left alone. `div.card > a` names several things at once
+and splitting it needs a selector parser. Reporting the whole string as one name
+would reach nothing and claim to have looked.
 
-**Cost.** Small. Report it and do not rewrite it.
+The confidence stays `NameOnly`. Nothing proves the string names an id rather
+than matching one by coincidence, so the tool reports it and does not rewrite it.
 
 ### 3. Environment variables, manifest to `os.getenv`
 
@@ -160,14 +163,19 @@ environment variable name is a runtime string that other systems also read.
 Go or Rust declares the flag as a struct field or a clap attribute. Rename that flag
 and scripts and CI break silently.
 
-**What it needs.** Each framework declares a flag recognisably (clap attributes,
-Go's `flag` package, `argparse`). On the shell side, look for a word starting with
-`--`. Keep it `NameOnly`, always. The catalogs are the natural home for the
-per-framework rules; they already encode "what a test looks like" per language in this
-shape.
+**This crosses now**, through `fr stitch --flags`. Four frameworks declare a
+flag recognisably: clap, Go's `flag` package, `argparse` and commander. clap
+writes `#[arg(long = "…")]`, and the bare `#[arg(long)]` kebab-cases the field
+under it. On the shell side a word starting with `--` is a flag, in the
+languages that write a command line and nowhere else.
 
-**Cost.** Moderate, and it grows with every framework. The catalog format keeps that
-growth out of the code.
+The failure worth reporting is a flag a script passes and nothing declares.
+Renaming a declaration is what usually causes one, and the script fails at run
+time and not before.
+
+The link is the flag's name, a string on both sides, so every hop is name-only.
+Nothing proves a `--retention-days` in a script reaches *this* program rather
+than another on the path.
 
 ### 5. CI configuration to the scripts it runs
 
@@ -175,13 +183,17 @@ growth out of the code.
 - run: ./scripts/deploy.sh --namespace signals
 ```
 
-A path in a YAML `run:` step naming a file, and flags naming a script's options.
+**The path half crosses now**, through `fr stitch --files`. A path either exists
+in the workspace or it does not, so the edge is exact and never name-only. A
+step running a script nobody kept is reported as naming nothing. That is a build
+which breaks on the next push and not before.
 
-**What it needs.** Resolving a path-valued string to a file is a small,
-high-confidence edge. The path either exists in the workspace or it does not. It
-answers "what runs this?" as much as it serves a rename.
+A command is not a path. `make` and `cargo test` name no file, and reporting one
+as dangling would be noise. Noise teaches a reader to ignore the real ones.
 
-**Cost.** Small.
+**The flag half does not.** `--namespace signals` names an option the script
+declares. Matching one to the other means reading the script's own argument
+parsing, which is edge 4 and still open.
 
 ### 6. Terraform to the scripts and templates it renders
 
@@ -189,21 +201,29 @@ answers "what runs this?" as much as it serves a rename.
 user_data = templatefile("${path.module}/init.sh", { port = var.port })
 ```
 
-The file reference is a path, and the substituted names are template variables inside
-another language's file.
+**The path half crosses now**, through the same reader as edge 5.
+`templatefile`, `file` and `filebase64` each name a file, and `${path.module}`
+is the directory the `.tf` sits in. A path beside the file wins over one at the
+root, which is how Terraform itself resolves one.
 
-**Cost.** The path half is small. The variable half needs a template grammar per
-target and is probably not worth it.
+**The variable half does not.** The substituted names are variables inside
+another language's file, and reading them needs a template grammar per target.
 
 ### 7. Markdown to the code it documents
 
-A link to `src/ingest.rs#L20`, or a fenced block naming a function somebody has since
+A link to `src/ingest.rs`, or a fenced block naming a function somebody has since
 renamed. Documentation drifts from code more reliably than anything else in a
 repository.
 
-**Cost.** The link half is small and genuinely useful. The tool already covers prose
-mentioning a symbol, as a *textual occurrence*, reported and never rewritten, which is
-the right answer.
+**The link half crosses now**, through the same reader as edges 5 and 6.
+`fr stitch --files` reports a link to a file the workspace no longer holds,
+which is where the drift shows first. A fragment comes off the destination:
+`guide.md#intro` names the file, and the heading inside it is the anchor edge
+the tool already followed.
+
+**The prose half is already answered.** A paragraph mentioning a symbol is a
+*textual occurrence*, reported and never rewritten. Nothing proves the word in a
+sentence is the function rather than the English word.
 
 ## Rewriting a file as another language
 

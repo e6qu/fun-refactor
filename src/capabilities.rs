@@ -163,6 +163,13 @@ impl Support {
 const NO_BINDING_FORM: &str =
     "markup has no binding form: a reusable value here is a CSS custom property, which \
      belongs to the stylesheet instead of the document";
+/// The same absence, for a data format that has no stylesheet to point at.
+///
+/// JSON writes a value where the value goes. There is no name to put in front
+/// of one and no place to put the name, so a selection has nothing to become.
+const NO_NAME_TO_BIND: &str =
+    "this format writes a value where the value goes: there is no name to put in \
+     front of one and nowhere to put it";
 const NO_CALLABLES: &str = "this language has no functions, so there is nothing to call";
 const NO_SUBSTITUTION: &str =
     "this language executes and not substitutes, so dataflow answers this instead";
@@ -172,6 +179,17 @@ const NO_SUBSTITUTION: &str =
 /// `structural` says the operation has no meaning here. Use it for a language that has no such
 /// construct. `missing` says the construct exists and the tool does not handle it yet. A reason
 /// that is untrue of the language it is given for is worse than none.
+/// Why this language has no binding form, in terms that are true of it.
+///
+/// A stylesheet has a custom property to point at; a data format has nothing at
+/// all. One sentence for both would describe neither.
+fn binding_form_reason(language: Language) -> &'static str {
+    match language {
+        Language::Json | Language::Yaml | Language::Helm => NO_NAME_TO_BIND,
+        _ => NO_BINDING_FORM,
+    }
+}
+
 fn absent(language: Language, structural: &'static str, missing: &'static str) -> Support {
     if language.class() == LanguageClass::Imperative {
         Support::NotApplicable { because: missing }
@@ -356,7 +374,7 @@ pub fn support(capability: Capability, language: Language) -> Support {
             } else {
                 absent(
                     language,
-                    NO_BINDING_FORM,
+                    binding_form_reason(language),
                     "a declaration here needs a written type and there is no inference \
                      in this tool, so nearly every selection would have to refuse",
                 )
@@ -385,7 +403,7 @@ pub fn support(capability: Capability, language: Language) -> Support {
             } else {
                 absent(
                     language,
-                    NO_BINDING_FORM,
+                    binding_form_reason(language),
                     "a declaration here needs a written type and there is no inference \
                      in this tool, so nearly every selection would have to refuse",
                 )
@@ -479,8 +497,8 @@ pub fn support(capability: Capability, language: Language) -> Support {
             }
         }
 
-        // The contract lives in the *tree*, a Next.js route's URL is where its file sits, so
-        // this is a question about one framework and not one language.
+        // The contract lives in the *tree*. A Next.js route's URL is where its file
+        // sits, so this is a question about one framework and not one language.
         // Two route shapes reach this, not one: a Next.js route tree written in
         // TypeScript, and a FastAPI router written in Python. The row named
         // only the first, so the matrix denied a capability the binary ships

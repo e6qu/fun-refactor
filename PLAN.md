@@ -28,9 +28,19 @@ language suite. Research and provenance for every design choice: see [RESEARCH.m
 | D8 | Unsupported operation × language combinations are refused with an explicit error naming the gap. No silent no-ops, no silent fallbacks. | engineering principle; also user convention |
 | D9 | Every command has `--json` output; mutations default to dry-run unified diff, `--write` to apply, multi-file apply is atomic (all-or-nothing). | CLI-native + agent-friendly |
 | D10 | Do not build on stack-graphs (archived 2025-09). Scope resolution via our own locals-style queries; graph construction may use tree-sitter-graph if the DSL earns its keep. | §3 |
+| D11 | Target the current version of every language, and pin CI to it. A translation writes what a current toolchain accepts, and the gates run on the same one. | an older toolchain shapes the output around a limit nobody has |
 
 **Open decisions.** None. Stage 8 below answers the last one: the tool does not
 delegate to a language server.
+
+D11 is what an Ubuntu runner's default JDK taught. It is older than the one this
+work was written against. Single-file source mode there takes the entry from the
+*first* class declared, rather than from wherever `main` sits. Five conformance
+cells failed on Java that runs on any current JDK.
+
+The fix belongs in the workflow and not in the writer. Shaping output around a
+limit nobody has makes every reader of that output pay for it. Every language CI
+installs now names its version, and Java names one at all.
 
 Resolved since. The tool is `fun-refactor` and its binary is `fr`. Extract-function
 landed for both Zig and Bash, and neither needed a CFG. TSX `className` handles plain
@@ -938,11 +948,148 @@ which bindings hold a map, so a map's `contains` is told from a string's.
 Until that lands the group stays out of the harness rather than sitting in it
 green.
 
+## Everything that was left
+
+One branch and one pull request. Nothing here is deferred to a later one, and
+nothing is skipped. Where something turns out to be undecidable rather than
+large, it is named as undecidable with the evidence. That is a category
+and not an excuse.
+
+### The three the probe found
+
+A Rust comprehension collects without a target type, so `E0282`, with no marker
+saying anything went wrong. An untyped parameter that holds a function becomes
+`f: ()` in Rust, whose unit type cannot be called. In Java it becomes
+`unknown f`, which is not a type at all. The header of a generated file claims every signature
+carried its types across, while the report under it lists a parameter that had
+none.
+
+### The constructs nothing measured
+
+Nine conformance groups run at their full matrix, and the two bugs above lived
+in the space between them. Five more groups go in: comprehensions, closures,
+generics, sets and numbers. Every cell that fails is fixed rather than pinned
+around. The numbers group holds the arithmetic each language decides
+differently: integer against float division, the floor, and what a literal
+means.
+
+### The route trees
+
+`fr openapi` reads a Next.js tree and a FastAPI router. Express, Flask, axum, gin
+and Spring join them, in `src/transpile/routes.rs`. Each declares the same pair,
+a method and a URL. Each says it its own way: a call on a router, a decorator,
+an annotation, a chain of `.route` calls. Path parameters differ too:
+`:id` against `<int:id>` against `{id}`. Every reader spells its own into the
+one a contract uses.
+
+A reader that finds routes nobody serves is worse than one that finds none, so
+each is held to what it must *not* read. `cache.get(k)` is not an Express route
+and `strings.ToUpper` is not a gin one.
+
+### The eighteenth language
+
+JSON is in: grammar, fact queries, capability rows, provenance. A JSON document
+is a tree of keys and a key path is an address, the same as a values file's. So
+the keyed walk that answers for YAML answers for JSON. It is named for what it
+walks rather than for one of its callers.
+
+HCL and JSON are one configuration in two official syntaxes, and Terraform
+reads both. Moving a file between them is a conversion and not a rename: a
+block header becomes nesting, one level per label. `src/transpile/tfjson.rs`
+does it either way, and `fr translate main.tf json` is how a caller asks.
+
+The one ambiguity is named rather than papered over. `acl = "private"` and
+`type = bool` are the same string in JSON, and Terraform tells them apart by
+where they sit. Coming back, a lone word is text, a dotted path under one of
+Terraform's own heads is a reference, and the type words are types.
+
+### The edges
+
+Every reference in CROSS_LANGUAGE.md that this tool did not follow. All seven
+are answered now, and where half of one is not, the half is named.
+
+- **CSS modules** already resolved, import-qualified, and were measured again to
+  say so.
+- **`getElementById("panel")`** and the `querySelector` family reach the id or
+  the class that markup and stylesheets declare.
+- **Environment variables** already crossed, end to end.
+- **`--flags`** reach the clap, `flag`, `argparse` or commander declaration that
+  names them, through `fr stitch --flags`.
+- **A CI step** reaches the script it runs, through `fr stitch --files`.
+- **Terraform** reaches the template it renders, through the same reader. The
+  *variables* substituted into that template do not. Reading those needs a
+  template grammar per target, which is a grammar question and not this one.
+- **A Markdown link** reaches the file it documents. Prose mentioning a symbol
+  stays a textual occurrence, reported and never rewritten. Nothing proves a
+  word in a sentence is the function rather than the English word.
+
+### The compile gate, all the way down
+
+`tests/corpus_semantic.rs` takes the Rust half past the front end. The compiler
+is asked what it cannot find, a stub is written declaring exactly those names,
+and the file is compiled again against it. The stub is the assumption made
+visible: it says which names were taken on trust.
+
+The first thing the gate found was four `fn add` in one `impl`. Java overloads
+its methods, Rust does not, and every other gate here passed the file. Later
+overloads take a numbered name now, the way the Zig writer already spelled
+them.
+
+What is left is a ratchet, 1223 diagnostics across eleven files. Two of those
+files carry three quarters of it, and both import the Zig standard library
+whose surface a stub cannot describe. The number may fall and may not rise.
+Every fall is a bug parsing could not have found.
+
+### B5, said exactly
+
+The layer was measured against this crate's own source rather than described
+from memory. It draws 100 edges from 58 call sites, and those sites reach 6
+functions between them. 24 of the 58 reach exactly one, so most are not a
+fan-out at all. The workspace admits one answer and the layer gives it.
+
+The entry carries that measurement now. What is left after it is a function the
+workspace never names. No analysis of this source can settle that, and the
+entry says so and no more.
+
+### What the five groups found
+
+All five groups are in and pass every cell of their matrix: comprehensions,
+closures, generics, numbers and sets. 150 pinned cells, and the ledger holds
+456.
+
+The groups earned their place. Each one found defects that nine existing
+groups had never touched:
+
+- A Rust iterator chain was not a comprehension, so `xs.iter().map(f).collect()`
+  crossed as a comment.
+- Reading `*x` was not supported, so every borrowed operand in a Rust body
+  crossed as a comment.
+- Assigning through a dereference produced a target no language can assign to,
+  and the file did not parse.
+- The IR had no function type. `(n: number) => number` ran together into one
+  unwritable name and the parameter took a type nothing could call.
+- A lambda could not carry the types its source declared, and a typed parameter
+  made the whole lambda unreadable.
+- Java and TypeScript wrote a class with no constructor and then built it
+  positionally, so neither compiled.
+- A Rust record carried no derives, and an untyped field produced a struct that
+  did not parse.
+- `Math.trunc` and `Math.floor` were read as one operator, and so were
+  `@divTrunc` and `@divFloor`. Every negative quotient was wrong.
+- Python's `%` was written as `%` everywhere, and every negative remainder was
+  wrong. The report said so instead of the file being right.
+- The IR had no set. Every one of the six spells one, two of them as a map
+  whose values carry nothing, and none of the thirty cells worked.
+- Go's `_, ok := m[k]` is the only way that language asks whether a key is
+  there. It crossed as a pair nobody had.
+- A comparison inside a comparison lost its brackets. Python read the result as
+  a chain and meant something else by it. Rust refused to read it at all.
+
 ## Progress log
 
 Every stage is complete except the optional LSP delegation backend. Every
-capability a language can meaningfully support is built: **288 of 408 capability ×
-language pairs supported, 120 not applicable, none refused.**
+capability a language can meaningfully support is built: **299 of 432 capability ×
+language pairs supported, 133 not applicable, none refused.**
 
 Nobody maintains the matrix by hand any more. `src/capabilities.rs` computes it by
 asking each refactoring's own predicate, and `fr capabilities` prints it with the reason

@@ -70,7 +70,7 @@ fn a_zig_error_union_becomes_a_rust_result() {
         "Empty,",
         "fn parse_len(s: String) -> Result<i64, String> {",
         "return Err(\"Empty\".to_string());",
-        "return Ok(s.len());",
+        "return Ok((s.len() as i64));",
         "fn touch(s: String) -> Result<(), String> {",
         "_ = parse_len(s)?;",
         "return Ok(());",

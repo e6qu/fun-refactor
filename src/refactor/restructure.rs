@@ -573,6 +573,10 @@ fn fragment_wrappers(language: Language) -> &'static [(&'static str, &'static st
         Language::Html => &[("", "\n"), ("<html><body>", "</body></html>\n")],
         Language::Xml => &[("", "\n"), ("<__fr_pattern>", "</__fr_pattern>\n")],
         Language::Markdown => &[("", "\n")],
+        // A fragment of JSON is a value, a member, or a whole document. Only a
+        // document parses on its own, so the other two get the brackets that
+        // make one.
+        Language::Json => &[("", "\n"), ("{\"__fr_pattern\": ", "}\n"), ("[", "]\n")],
     }
 }
 

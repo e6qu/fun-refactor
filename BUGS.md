@@ -53,6 +53,14 @@ a translation surface it has not written yet.
   arriving from outside. An untyped parameter, or one assigned two types. A type
   the workspace never declares, and a generic parameter. And what remains undecidable is
   undecidable from the source: a function this workspace never names.
+
+  Measured against this crate's own source, the function-value layer draws 100
+  edges from 58 call sites, and those sites reach 6 functions between them. 24
+  of the 58 reach exactly one, so most sites are not a fan-out at all. The
+  workspace admits one answer and the layer gives it. 28 reach two, 5 reach
+  three, and one reaches five. The tier stays `field-based` for all of them,
+  because which body runs is the program's choice and not the source's.
+
   Either a caller outside it supplies the value, or the name is assembled at runtime from
   pieces no string literal spells. A symbol used only from a file that failed to parse is
   invisible for a third reason. `delete::plan` reports that file as possibly hiding
@@ -60,6 +68,183 @@ a translation surface it has not written yet.
   neither has a hierarchy to read.
 
 ## Fixed
+
+- [x] B760: **a Rust comprehension collected into nothing.** `collect` is
+  generic over what it builds. A bare one waits for a later use to say which. There
+  is often none, so `E0282` where the source had a list, with no marker saying
+  anything had gone wrong. The turbofish names the collection and leaves the
+  element to inference, and it works in expression position where annotating the
+  binding would not.
+
+- [x] B761: **an untyped parameter took a type that is not one.** Rust was
+  given `()`, the type of no value and not of an unknown one. It could not
+  be called or added to. Java was given the word `unknown`. That is a type
+  in TypeScript and a class javac has never heard of. Rust takes a type
+  parameter now, Java takes `Object`, and each says the caller decides, which is
+  what the source said by saying nothing.
+
+  A parameter the body *calls* is a function, and no widest type is callable.
+  The body says which parameters those are, so the signature says so
+  too. Rust writes `impl Fn(..) -> ..`, Java a `Function<..>` reached through
+  `apply`, and TypeScript the arrow. A lambda's own parameters are written
+  `any`, the annotation strict TypeScript needs written down.
+
+- [x] B762: **the header contradicted the report under it.** A file claimed
+  every signature carried its types across. The report beneath listed a
+  parameter that had none. An unannotated signature was counted in neither
+  bucket, so completeness never saw it. It has a count of its own now, and the
+  header names it.
+
+- [x] B763: **the widest type came back as a type.** A parameter left
+  unannotated is written with the target's widest type. Read again,
+  the annotation the source never wrote came back as one, and a round trip
+  gained what it should have preserved. Each language's widest type reads as the
+  nothing it stands for.
+
+- [x] B778: **four `fn add` in one `impl`.** Java overloads its methods and
+  Rust does not. A class with four `add` overloads translated into a file that
+  could not compile, and every gate here passed it. The corpus gate stops at the
+  front end, and `rustfmt` parses a duplicate method happily.
+
+  The Zig writer already numbered later overloads and said so in its report.
+  The Rust writer does the same now. `tests/corpus_semantic.rs` is what found
+  it. The foreign world a corpus file imports is stubbed from the compiler's
+  own "cannot find" list. What the type checker says after that is a ratchet,
+  standing at 1223.
+
+- [x] B777: **a renamed flag silently broke every script passing it.** A script
+  writes `./collector --retention-days 30`, and a program declares that flag
+  somewhere. The two never met. The flag was a word in a shell command and
+  the declaration a string in another language.
+
+  `fr stitch --flags` reads both sides. clap, Go's `flag` package, `argparse`
+  and commander declare one recognisably. clap's bare `#[arg(long)]` takes the
+  field's name kebab-cased, which is the commonest form there is. A word
+  starting with `--` is a flag only in the languages that write a command line,
+  so a Rust comment marker is not one. A flag passed and declared nowhere is
+  reported, and the link stays name-only.
+
+- [x] B776: **a path in configuration named nothing.** A CI step runs
+  `./scripts/deploy.sh` and a Terraform resource renders
+  `templatefile("${path.module}/init.sh", …)`. Each is a path written as a
+  string in one language naming a file in another, and neither resolved. The
+  script looked unused. A step running one nobody kept broke on the next push
+  and not before.
+
+  `fr stitch --files` reads them, and a Markdown link to a file besides. A path
+  either exists in the workspace or it does not, so the edge is exact and never
+  name-only. A command is not a path: `make` names no file, and reporting one as
+  dangling would be noise. The flags after the path are a separate question and
+  are not claimed.
+
+- [x] B775: **an element id named from code reached nothing.** The tool
+  resolved ids within markup already, `<label for>` to `<input id>`. From code
+  the id arrives as a string literal, and `document.getElementById("panel")`
+  resolved to nothing.
+
+  A string argument to a known DOM accessor is a reference now, and the receiver
+  is checked so `cache.get(k)` is not one. The name comes from what the markup
+  or the stylesheet declares, so a selector's `#` and `.` come off. A compound
+  selector is left alone: splitting one needs a selector parser. Reporting the
+  whole string as a name would reach nothing while claiming to have looked.
+  The confidence stays name-only, so nothing rewrites it.
+
+- [x] B774: **this build could not read JSON at all.** Every configuration
+  format here has a JSON neighbour. Terraform reads `.tf` and `.tf.json` as two
+  spellings of one language. Without the grammar, a workspace holding both
+  could not follow a reference out of either.
+
+  JSON is the eighteenth language: grammar, fact queries, capability rows and
+  provenance. Its keys are addresses the way a values file's are, so the walk
+  that answers for YAML answers for it. The matrix is 299 of 432 now.
+
+  `src/transpile/tfjson.rs` converts between the two Terraform syntaxes both
+  ways. `acl = "private"` and `type = bool` are the same string in JSON. Coming
+  back, a lone word is text, a dotted path under one of Terraform's own heads
+  is a reference, and the type words are types.
+
+- [x] B773: **a contract could only be built from one shape of tree.** `fr
+  openapi` read a Next.js `app/api` directory. A service written with Express,
+  Flask, axum, gin or Spring was invisible to it. All five declare the same
+  pair, a method and a URL. Each is read now, and each is held to what it must
+  not read as well: `cache.get(k)` is not a route.
+
+- [x] B772: **the IR had no set.** Every one of these six languages spells a
+  set. Rust, Python, Java and TypeScript name one. Go and Zig spell one as a
+  map whose values carry nothing: `map[T]struct{}` and `HashMap(K, void)`.
+  Without the type, all thirty cells of the `sets` group failed.
+
+  `Type::Set` and `Expr::SetLit` go in. Each reader reads its own spelling and
+  each writer writes one. The four collection words settle onto `add`,
+  `remove`, `contains` and `len`. So `insert`, `delete`, `has`, `put`, `size`
+  and Go's `delete(m, k)` builtin all arrive as the same question. A map to
+  nothing is recognised as the set it is, from the type and from what is stored
+  in it. Go's `_, ok := m[k]` is that language's only way to ask about
+  membership, and it crossed as a pair nobody had. It is the question now,
+  asked in the condition that wanted it. Zig's `_ = f(x)` is the call, not an
+  assignment to a binding named `_`.
+
+- [x] B771: **arithmetic answered different numbers in different targets.**
+  The `numbers` group compares whole-number division and remainder across the
+  matrix, including negative operands. Five things were wrong. `Math.trunc` and
+  `Math.floor` were read as one operator, and so were Zig's `@divTrunc` and
+  `@divFloor`. Every negative quotient came out one away from the source's.
+  Python's `%` rounds with its division, toward negative infinity. It was
+  written as `%` in the four languages that round the other way. The report
+  said so; the file was still wrong. A comparison inside a comparison lost its
+  brackets. Python reads that as a chain and Rust refuses it outright. Java
+  subtracted from a string, because a concatenated operand kept no brackets.
+
+  A floor remainder is now its own operator. Java and Zig name one. Rust, Go,
+  TypeScript and bash spell it. `trunc` joins `int` as a canonical operation,
+  so a truncation crosses as a truncation whatever the numeric type. All thirty
+  cells pass.
+
+- [x] B770: **a record could not be built in Java or TypeScript.** Both write a
+  record as a class. A class is built by calling a constructor, and neither
+  writer emitted one. So `new Box(9)` named a constructor the class had not
+  got, and TypeScript refused an uninitialised field besides. Both write the
+  constructor their fields imply. A record literal fills it in declaration
+  order. A constructor body that only assigns fields is canonicalised to that
+  literal. So the three languages that build a value and the three that assign
+  to a receiver read each other.
+
+- [x] B769: **a Rust record carried nothing.** An emitted struct had no derives.
+  A translated record could not be copied, printed or compared, all of which
+  its source gave for free. A field the source never typed spelled the
+  widest-type marker verbatim and the file did not parse. Fields with no type
+  become parameters on the struct, and the ordinary derives go on.
+
+- [x] B768: **the IR had no function type.** `(n: number) => number` ran
+  together into `Unwritable_n__number_____number`. The parameter then took a
+  type nothing could call. All six languages spell a function type, so the IR
+  has one and each reader and writer spells it. A lambda carries the types its
+  source declared. A parameter the body calls is typed from the call, and a
+  lambda takes the type of the slot it is passed to. Zig has no closure at all,
+  so a lambda that captures nothing is lifted to a function of its own.
+
+- [x] B767: **a Rust iterator chain crossed as a comment.**
+  `xs.iter().filter(p).map(f).collect()` is the comprehension Rust spells as a
+  chain, and nothing read it. Reading `*x` was missing too, so every borrowed
+  operand in a body crossed the same way. Both are read now. An assignment
+  whose target is a call carries whole, rather than producing a line no
+  language can parse.
+
+- [x] B766: **a `vec![…]` element more involved than a literal was refused.** A
+  macro body is a token tree and not a syntax tree. `vec!["a".to_string()]` had
+  no node to read. Each element is parsed from its own text.
+
+- [x] B765: **Java could not read back what this writer had just written.**
+  `new ArrayList<>(List.of(…))` is the mutable list the writer emits. The
+  reader crossed it verbatim, as a construction of a class no target has heard
+  of. Both wrappers, and the bare `List.of` and `Map.of` besides, read as the
+  literals they stand for.
+
+- [x] B764: **two Java shapes did not compile.** A lambda bound with `var` has
+  no target type to take, which javac refuses. It is declared with the
+  functional interface for its arity now. And `xs.sort()` sorts by natural order
+  in the source, where Java's `List.sort` demands a comparator, so the ordering
+  is named through `Collections`.
 
 - [x] B755: **a map's key and value types did not cross.** The vocabularies
   read and the writers spelled them. Fifteen of the thirty map cells ran.
