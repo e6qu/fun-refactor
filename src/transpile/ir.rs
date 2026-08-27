@@ -94,7 +94,7 @@ pub struct Function {
     pub receiver: Option<String>,
     /// What the source called the receiver inside the body.
     ///
-    /// The six languages disagree. Rust, Python and Zig say `self`, Java and TypeScript say
+    /// These languages disagree. Rust, Python and Zig say `self`, Java and TypeScript say
     /// `this`. Go says whatever the author called it, and the receiver sits outside the
     /// parameter list, so nothing renames it with the rest. Recording the word here lets a
     /// writer spell it its own way. Without it a translated method keeps its source's word
@@ -118,7 +118,7 @@ pub struct Function {
     pub is_property: bool,
     /// Does this function make a value of its type?
     ///
-    /// Three of these six languages have a constructor and three have a convention. Java names
+    /// Three of these languages have a constructor and three have a convention. Java names
     /// it after the class, Python calls it `__init__`, TypeScript calls it `constructor`. Rust,
     /// Go and Zig write `new`, `NewThing` and `init` by habit. Each target picks the *name*,
     /// so this flag carries the fact instead. Without it a Java constructor is a class member
@@ -126,7 +126,7 @@ pub struct Function {
     pub is_constructor: bool,
     /// Did the source say `private` in so many words?
     ///
-    /// Three of these six languages have a private keyword and three have a
+    /// Three of these languages have a private keyword and three have a
     /// convention. A Rust `fn` without `pub` and a Zig one without it are the
     /// module's own, which Java spells package-private. Held as one bit with
     /// `exported`, a Zig method came out `private` in Java and the file's own
@@ -170,7 +170,7 @@ pub struct Record {
     pub fields: Vec<Field>,
     /// The type it inherits from, where the source has inheritance.
     ///
-    /// Three of these six languages have inheritance and three do not, so the writer carries
+    /// Three of these languages have inheritance and the rest do not, so the writer carries
     /// this where it can and *reports* it otherwise. Dropping it silently turns `class
     /// JsonPrimitive extends JsonElement` into a class that extends nothing, a different type.
     pub extends: Option<String>,
@@ -338,7 +338,7 @@ pub enum Type {
     },
     /// `(n: number) => number`, `func(int) int`, `Callable[[int], int]`.
     ///
-    /// Every one of these six languages spells a function type, and each spells
+    /// Every one of these languages that has a type spells a function type, and each spells
     /// it differently enough that no name crosses. Held as a name, the pieces
     /// ran together into `Unwritable_n__number_____number` and the parameter
     /// took a type nothing could call.
@@ -742,7 +742,7 @@ pub enum Expr {
     /// `Option::unwrap_or`, Java for a static method, and Go has nothing at all. The
     /// *question* crosses: is this absent, and what then.
     ///
-    /// Three of the six can only say it by naming the value twice. A value that is a call
+    /// Three of them can only say it by naming the value twice. A value that is a call
     /// cannot be named twice without calling it twice. Those writers say so instead of
     /// changing how many times the program does something.
     Coalesce {
@@ -751,7 +751,7 @@ pub enum Expr {
     },
     /// `a ? b : c`, `b if a else c`, `if a { b } else { c }`.
     ///
-    /// One expression that chooses between two. Five of these six languages have it. Go
+    /// One expression that chooses between two. Most of these languages have it. Go
     /// does not, and its writer says so instead of inventing a statement out of an
     /// expression. It is a node rather than an [`Stmt::If`], because it *is* a value.
     /// Reading it as a branch needs somewhere to put the result, and an argument list
@@ -877,7 +877,7 @@ pub enum BinaryOp {
     Ge,
     And,
     Or,
-    /// `a ^ b`, the exclusive or, which all six spell the same way.
+    /// `a ^ b`, the exclusive or, which every target spells the same way.
     Xor,
 }
 
@@ -934,7 +934,7 @@ impl BinaryOp {
     ///
     /// The writers render `left op right` and nothing else, so without this table a group
     /// the source wrote is a group the translation loses. `(a + b) * c` comes out as
-    /// `a + b * c` in all six languages, a different number.
+    /// `a + b * c` in every target, a different number.
     pub fn precedence(self) -> u8 {
         match self {
             BinaryOp::Mul

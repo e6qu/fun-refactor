@@ -1,7 +1,7 @@
 //! Rewriting a file as a different programming language.
 //!
 //! Source → [`ir`] → source. One reader and one writer per language instead of a
-//! translator per pair: six languages is thirty ordered pairs and twelve files.
+//! translator per pair: seven languages is forty-two ordered pairs and fourteen files.
 //!
 //! # Scope
 //!

@@ -257,3 +257,60 @@ fn the_published_totals_match_the_matrix() {
         }
     }
 }
+
+#[test]
+fn the_published_language_count_matches_the_list() {
+    // The same failure as above, in the other number the docs state. Four files
+    // said seventeen after JSON became the eighteenth. A count written once and
+    // read everywhere is a count nobody notices going wrong.
+    let n = Language::ALL.len();
+    let word = match n {
+        17 => "seventeen",
+        18 => "eighteen",
+        19 => "nineteen",
+        other => panic!(
+            "this tool reads {other} languages and this test has no word for that \
+             number. Add it here and update the prose that states it."
+        ),
+    };
+    for (name, claims) in [
+        (
+            "README.md",
+            &["finds and changes code across N languages."][..],
+        ),
+        (
+            "TUTORIAL.md",
+            &["what each of the N languages supports"][..],
+        ),
+        ("EXAMPLES.md", &["across all WORD languages at once"][..]),
+        (
+            "PLAN.md",
+            &[
+                "The compile gate drives six of the WORD languages",
+                "Build-out, in order: WORD languages",
+            ][..],
+        ),
+        (
+            "docs/index.html",
+            &[
+                "A multi-language refactoring tool for N languages.",
+                "N languages · one index",
+            ][..],
+        ),
+        (
+            "docs/why.html",
+            &["one index across WORD languages out of syntax alone."][..],
+        ),
+    ] {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(name);
+        let text = std::fs::read_to_string(&path).expect("the file is readable");
+        for claim in claims {
+            let needle = claim.replace("WORD", word).replace('N', &n.to_string());
+            assert!(
+                text.contains(&needle),
+                "{name} does not say `{needle}`. This tool reads {n} language(s): \
+                 update the sentence, or update the phrasing here if it changed."
+            );
+        }
+    }
+}

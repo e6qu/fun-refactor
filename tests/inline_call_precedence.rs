@@ -24,7 +24,7 @@ fn inlined(file: &str, source: &str, line: usize, column: usize) -> String {
 #[test]
 fn an_argument_keeps_the_grouping_the_caller_wrote() {
     // Every language in the set, because the substitution is textual and shared. The
-    // answer was `x + 1 * 2` in all six.
+    // answer was `x + 1 * 2` in every one.
     for (file, source, line, column, expected) in [
         (
             "a.rs",

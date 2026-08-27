@@ -1,6 +1,6 @@
 //! A set is a set in every target, whatever each one calls it.
 //!
-//! Four of these six languages name a set. Go and Zig spell one as a map whose
+//! Four of these languages name a set. Go and Zig spell one as a map whose
 //! values carry nothing, `map[T]struct{}` and `HashMap(K, void)`, because
 //! membership is all such a map can answer. Without a set in the IR, every one
 //! of these crossed as something else. `set()` became a call to a function

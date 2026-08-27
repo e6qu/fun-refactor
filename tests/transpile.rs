@@ -795,7 +795,7 @@ fn a_conditional_expression_crosses_between_the_five_that_have_one() {
 
 #[test]
 fn a_base_class_is_carried_where_it_can_be_and_reported_where_it_cannot() {
-    // Three of these six languages have inheritance and three do not. Dropping the
+    // Three of these languages have inheritance and the rest do not. Dropping the
     // base silently made `class JsonPrimitive extends JsonElement` into a class that
     // extends nothing, a different type, with the output saying nothing about it.
     let source = "export class Primitive extends Element {\n  value: string;\n\n  \
@@ -962,7 +962,7 @@ fn a_module_level_parameter_called_self_is_still_a_parameter() {
 
 #[test]
 fn a_constructor_is_spelled_the_way_each_target_spells_one() {
-    // Three of these six languages have a constructor and three have a habit. What carries is
+    // Three of these languages have a constructor and three have a habit. What carries is
     // that it *is* one, the name is the type's in Java, a fixed word in Python and TypeScript.
     // And `new`/`NewThing`/`init` in the other three.
     let source = "public class Store {\n    int n;\n    public Store(int n) { this.n = n; }\n}\n";

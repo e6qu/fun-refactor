@@ -1097,8 +1097,10 @@ attached to every non-supported cell. A test asserts the README matches. The
 hand-written version drifted twice, once hiding 27 unbuilt cells and once publishing six
 working ones as refused.
 
-The compile gate drives six of the seventeen languages: Rust, TypeScript, Go, Python, Zig
-and Java. It names the other ten on every run. Those ten have no compiler to run. A
+The compile gate drives six of the eighteen languages: Rust, TypeScript, Go, Python, Zig
+and Java. It names the other twelve on every run. The twelve are subtracted from the
+language list rather than written out. The hand-written version went stale twice. Those
+twelve have no compiler to run. A
 stylesheet, a manifest and a document are checked by parsing, which the edit engine
 already does.
 
@@ -1398,8 +1400,8 @@ outside are the same type spelled differently.
 
 ### The log
 
-Build-out, in order: seventeen languages; six transpiler readers and writers, thirty ordered
-pairs; the recipe language; the entry-point catalogues. Then the published site and its
+Build-out, in order: eighteen languages; seven transpiler readers and writers, forty-two
+ordered pairs; the recipe language; the entry-point catalogues. Then the published site and its
 WebAssembly playground; the refactoring catalogue page; the API-contract invariant; the
 types tutorial. BUGS.md records each one with what it broke on the way.
 
@@ -2545,3 +2547,35 @@ schema property is the JSON key every request carries, and the generated model r
 it. Wire names stay as the document spells them now. `fr signature` threaded the notes
 channel the fix needed, and `fr restructure` swapped every call site. One of them was a
 whole match arm, which the member shapes from this branch made a matchable unit.
+
+### The pass where the documents were held to the code
+
+Two references did not exist. Thirty-four commands were documented by `--help`, and the
+intermediary language every translation crosses was documented by `ir.rs` itself.
+`CLI.md` and `IR.md` are those two.
+
+Both are pinned, because a reference nobody checks is a reference that drifts.
+`tests/docs_cli.rs` reads `fr --help` and fails on a command with no section and on a
+section with no command. `tests/docs_ir.rs` reads the enums out of `ir.rs`. It fails on
+a variant the document never names. It fails on a `Fidelity` field with no meaning
+given, and on a count stated in prose that the code no longer bears out. It found three gaps on its
+first run. The plain operators were never listed, one language was missing, and the
+field parser read the struct header as a field.
+
+The sweep for staleness found more than the two new files. Six places said seventeen
+languages after JSON became the eighteenth, two of them pages of the site. Sixteen
+comments said "these six languages" after Bash became the seventh reader and writer.
+The compile gate's census named sixteen languages out of eighteen, leaving `sass` and
+`json` in neither half. `API_CONTRACTS.md` described a Next.js tree while `fr openapi`
+had learned five more frameworks.
+
+Two of those are derived rather than written now. The census subtracts from
+`Language::ALL`, and `tests/capability_matrix.rs` asserts the stated language count as
+it already asserted the stated totals. `tests/docs_links.rs` fails on a document the
+README does not link and on a link that points at nothing.
+
+The workflow moved to the current release of everything it pins, which is decision D11
+applied to the rest of the list. Terraform 1.9.8 to 1.16.0, Helm 3.16.3 to 4.2.4, Node
+24 to 26. Go is pinned at 1.27 where it had been taking the runner's default. Terraform
+and Helm carry their published checksums now. Zig already did, and the two beside it did
+not, so the gate ran whatever those hosts served.

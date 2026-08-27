@@ -229,8 +229,8 @@ sentence is the function rather than the English word.
 
 Since this document was written, `fr translate` gained a second mode. The first,
 containment, writes the same bytes under a different grammar: CSS as SCSS, a manifest
-as a Helm template. The second **translates**, between Rust, Go, Java, Python, TypeScript and Zig,
-and it makes a different promise entirely.
+as a Helm template. The second **translates**, between Rust, Go, Java, Python,
+TypeScript, Zig and Bash, and it makes a different promise entirely.
 
 The signature is the contract. The writer carries every parameter in order, with its
 type and the return type, and spells each the target's way. `fn averages(readings:
@@ -367,12 +367,12 @@ None of these is exotic. All five are in the first file you would pick up.
 Reading real Java, rather than running it, produced two additions.
 
 **The conditional expression**, `a ? b : c`, `b if a else c`, `if a { b } else { c }`,
-is one expression that chooses between two. Five of these six languages have it. The IR
+is one expression that chooses between two. Most of these languages have it. The IR
 holds it as a node rather than a branch because it *is* a value. Reading it as an `if`
 would need somewhere to put the result. An argument list offers no such place. Go is
 the exception and says so.
 
-**The base class.** Three of these languages inherit and three do not. The writer
+**The base class.** Three of these languages inherit and the rest do not. The writer
 carries it into Java, Python and TypeScript, and *reports* it for Rust, Go and Zig.
 `class JsonPrimitive extends JsonElement` becoming a class that extends nothing is a
 different type. A translation that says nothing about it fails the way this document
@@ -390,8 +390,9 @@ not, and picking one of them would be a guess.
 | Go | `NewThing`, returns the type |
 | Zig | `Thing.init`, returns the type |
 
-The name does not carry. The function's job carries: it **makes a value of its type**.
-The last three have no constructor at all, only a habit. So the reader takes one as a
+Bash has neither, and its writer says so. The name does not carry. The function's job
+carries: it **makes a value of its type**. The last three above have no constructor at
+all, only a habit. So the reader takes one as a
 constructor there only when it *also returns the type*. A `new` that returns something
 else is an ordinary function with a common name.
 
@@ -404,7 +405,8 @@ keeps the name its source gave it. The report says which name to call instead.
 
 ### The receiver has six names
 
-`self`, `this`, or whatever the Go author called it. The receiver is the one binding
+`self`, `this`, or whatever the Go author called it. Bash binds no receiver, so its
+writer has none to put back. The receiver is the one binding
 **outside the parameter list**. So it never went through the rename that every other
 name goes through, and each body kept its source's word. `this.cache` inside a
 Rust `impl` produces a file that cannot compile, not a typo. It appeared in every
