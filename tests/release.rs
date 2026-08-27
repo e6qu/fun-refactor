@@ -164,3 +164,96 @@ fn the_kinds_of_change_the_title_gate_takes_are_the_kinds_the_changelog_sorts() 
         );
     }
 }
+
+/// Every workspace member's manifest, by the member's path.
+fn members() -> Vec<(String, String)> {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let listed = CARGO
+        .split_once("members = [")
+        .and_then(|(_, rest)| rest.split_once(']'))
+        .map(|(inner, _)| inner.to_string())
+        .expect("the workspace lists its members");
+    listed
+        .split(',')
+        .map(|m| m.trim().trim_matches('"').to_string())
+        .filter(|m| !m.is_empty())
+        .map(|m| {
+            let path = match m.as_str() {
+                "." => root.join("Cargo.toml"),
+                other => root.join(other).join("Cargo.toml"),
+            };
+            let text = std::fs::read_to_string(&path)
+                .unwrap_or_else(|e| panic!("{} is readable: {e}", path.display()));
+            (m, text)
+        })
+        .collect()
+}
+
+#[test]
+fn every_member_carries_the_same_version() {
+    // `release-please` gives every member of a Rust workspace the root's version.
+    let root = CARGO
+        .lines()
+        .find_map(|l| l.strip_prefix("version = "))
+        .map(|v| v.trim().trim_matches('"').to_string())
+        .expect("the root declares a version");
+    let adrift: Vec<String> = members()
+        .into_iter()
+        .filter_map(|(name, text)| {
+            let version = text
+                .lines()
+                .find_map(|l| l.strip_prefix("version = "))?
+                .trim()
+                .trim_matches('"')
+                .to_string();
+            (version != root).then_some(format!("{name} is {version}"))
+        })
+        .collect();
+    assert!(
+        adrift.is_empty(),
+        "the root is {root} and {adrift:?}. Every member moves together."
+    );
+}
+
+#[test]
+fn a_platform_dependency_on_a_member_carries_a_version() {
+    // `release-please` rewrites the version of every dependency naming a member.
+    // Under `[target.'cfg(...)'.dependencies]` it writes the key without checking
+    // for one, and throws where none is there.
+    let names: Vec<String> = members()
+        .iter()
+        .filter_map(|(_, text)| {
+            text.lines()
+                .find_map(|l| l.strip_prefix("name = "))
+                .map(|n| n.trim().trim_matches('"').to_string())
+        })
+        .collect();
+    assert!(names.len() > 3, "only {names:?} were read as members");
+
+    let mut bare = Vec::new();
+    let mut in_target = false;
+    for line in CARGO.lines() {
+        if line.starts_with('[') {
+            in_target = line.starts_with("[target.");
+            continue;
+        }
+        if !in_target {
+            continue;
+        }
+        let Some((name, rest)) = line.split_once('=') else {
+            continue;
+        };
+        let name = name.trim();
+        if !names.iter().any(|n| n == name) {
+            continue;
+        }
+        if rest.contains("path") && !rest.contains("version") {
+            bare.push(name.to_string());
+        }
+    }
+    assert!(
+        bare.is_empty(),
+        "{bare:?} name a workspace member from a platform table with no `version`. \
+         The release job throws on that. Add `version` beside `path`."
+    );
+}

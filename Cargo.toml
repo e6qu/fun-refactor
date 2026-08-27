@@ -117,8 +117,12 @@ serde-wasm-bindgen = { version = "0.6", optional = true }
 tempfile = { version = "3.27", optional = true }
 
 # Linked only into the browser build, where the grammars' C has no libc to call.
+#
+# `version` has to be here. `release-please` gives every workspace member the root's
+# version, and its rewrite of a `target.*` dependency writes to a `version` key without
+# checking for one first. Absent, the release job fails on the first release.
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-fun-refactor-wasm-libc = { path = "crates/wasm-libc", optional = true }
+fun-refactor-wasm-libc = { version = "0.1.0", path = "crates/wasm-libc", optional = true }
 
 [dev-dependencies]
 # Also an optional runtime dependency (the edit engine stages through it); tests need
