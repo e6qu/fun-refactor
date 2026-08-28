@@ -150,3 +150,51 @@ fn a_double_dash_in_code_is_not_a_flag() {
         all.iter().map(|f| &f.flag).collect::<Vec<_>>()
     );
 }
+
+#[test]
+fn a_yaml_document_separator_names_no_flag() {
+    // Stripping two dashes off `---` left a flag called `-`.
+    let (_tmp, all) = found(&[(
+        "chart/templates/service.yaml",
+        "kind: Service\n---\napiVersion: networking.k8s.io/v1\nkind: Ingress\n",
+    )]);
+    assert!(
+        all.is_empty(),
+        "{:?}",
+        all.iter().map(|f| &f.flag).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn a_declaration_inside_a_string_literal_does_not_name_an_escaped_flag() {
+    // The reader kept the backslash of an escaped quote, declaring `retention-days\`.
+    let (_tmp, all) = found(&[(
+        "src/main.rs",
+        "const FIXTURE: &str = \"#[arg(long = \\\"retention-days\\\")]\";\n",
+    )]);
+    assert!(
+        all.iter().all(|f| !f.flag.contains('\\')),
+        "a flag name carries a backslash: {:?}",
+        all.iter().map(|f| &f.flag).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn a_flag_name_opens_with_a_letter_or_a_digit() {
+    // One rule, and every reader holds to it.
+    let (_tmp, all) = found(&[(
+        "run.sh",
+        "#!/bin/sh\n./collector --- --=x --2fa --retention-days 30\n",
+    )]);
+    for flag in all.iter().map(|f| &f.flag) {
+        assert!(
+            flag.starts_with(|c: char| c.is_ascii_alphanumeric()),
+            "{flag:?} does not open with a letter or a digit"
+        );
+    }
+    assert!(
+        all.iter().any(|f| f.flag == "retention-days") && all.iter().any(|f| f.flag == "2fa"),
+        "the real flags went missing: {:?}",
+        all.iter().map(|f| &f.flag).collect::<Vec<_>>()
+    );
+}

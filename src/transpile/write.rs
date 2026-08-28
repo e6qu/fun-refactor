@@ -3662,23 +3662,8 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
                 return mapped;
             }
             let settled = resolve_keywords(out, callee, args);
-            if keywords_must_carry(out, callee, args, settled.is_some()) {
-                let rendered = joined(args, |a| match a {
-                    Expr::Keyword { name, value } => {
-                        format!("{name}={}", expr_hint(value))
-                    }
-                    _ => expr_hint(a),
-                });
-                let named = match callee.as_ref() {
-                    Expr::Name(n) => n.clone(),
-                    _ => "the call".to_string(),
-                };
-                out.carried(&Unsupported {
-                    construct: "keyword argument".into(),
-                    source: format!("{named}({rendered})"),
-                    line: 0,
-                });
-                return carried_expr_filler(out);
+            if let Some(filler) = carried_keywords(out, callee, args, settled.is_some()) {
+                return filler;
             }
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
             let failing = matches!(callee.as_ref(), Expr::Name(n)
@@ -6080,6 +6065,27 @@ fn expr_hint(e: &Expr) -> String {
 
 /// A keyword call on a callee this module declares that still would not settle: the name or the
 /// arity is wrong.
+/// The filler a target writes where it cannot spell a call's keyword arguments.
+fn carried_keywords(out: &mut Out, callee: &Expr, args: &[Expr], settled: bool) -> Option<String> {
+    if !keywords_must_carry(out, callee, args, settled) {
+        return None;
+    }
+    let rendered = joined(args, |a| match a {
+        Expr::Keyword { name, value } => format!("{name}={}", expr_hint(value)),
+        _ => expr_hint(a),
+    });
+    let named = match callee {
+        Expr::Name(n) => n.clone(),
+        _ => "the call".to_string(),
+    };
+    out.carried(&Unsupported {
+        construct: "keyword argument".into(),
+        source: format!("{named}({rendered})"),
+        line: 0,
+    });
+    Some(carried_expr_filler(out))
+}
+
 fn keywords_must_carry(out: &Out, callee: &Expr, args: &[Expr], settled: bool) -> bool {
     if settled || !args.iter().any(|a| matches!(a, Expr::Keyword { .. })) {
         return false;
@@ -7460,23 +7466,8 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
                 return mapped;
             }
             let settled = resolve_keywords(out, callee, args);
-            if keywords_must_carry(out, callee, args, settled.is_some()) {
-                let rendered = joined(args, |a| match a {
-                    Expr::Keyword { name, value } => {
-                        format!("{name}={}", expr_hint(value))
-                    }
-                    _ => expr_hint(a),
-                });
-                let named = match callee.as_ref() {
-                    Expr::Name(n) => n.clone(),
-                    _ => "the call".to_string(),
-                };
-                out.carried(&Unsupported {
-                    construct: "keyword argument".into(),
-                    source: format!("{named}({rendered})"),
-                    line: 0,
-                });
-                return carried_expr_filler(out);
+            if let Some(filler) = carried_keywords(out, callee, args, settled.is_some()) {
+                return filler;
             }
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
             let rendered: Vec<String> = args.iter().map(|a| go_expr(out, a)).collect();
@@ -8853,23 +8844,8 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
                 return mapped;
             }
             let settled = resolve_keywords(out, callee, args);
-            if keywords_must_carry(out, callee, args, settled.is_some()) {
-                let rendered = joined(args, |a| match a {
-                    Expr::Keyword { name, value } => {
-                        format!("{name}={}", expr_hint(value))
-                    }
-                    _ => expr_hint(a),
-                });
-                let named = match callee.as_ref() {
-                    Expr::Name(n) => n.clone(),
-                    _ => "the call".to_string(),
-                };
-                out.carried(&Unsupported {
-                    construct: "keyword argument".into(),
-                    source: format!("{named}({rendered})"),
-                    line: 0,
-                });
-                return carried_expr_filler(out);
+            if let Some(filler) = carried_keywords(out, callee, args, settled.is_some()) {
+                return filler;
             }
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
             let rendered: Vec<String> = args.iter().map(|a| ts_expr(out, a)).collect();
@@ -10302,23 +10278,8 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
                 return mapped;
             }
             let settled = resolve_keywords(out, callee, args);
-            if keywords_must_carry(out, callee, args, settled.is_some()) {
-                let rendered = joined(args, |a| match a {
-                    Expr::Keyword { name, value } => {
-                        format!("{name}={}", expr_hint(value))
-                    }
-                    _ => expr_hint(a),
-                });
-                let named = match callee.as_ref() {
-                    Expr::Name(n) => n.clone(),
-                    _ => "the call".to_string(),
-                };
-                out.carried(&Unsupported {
-                    construct: "keyword argument".into(),
-                    source: format!("{named}({rendered})"),
-                    line: 0,
-                });
-                return carried_expr_filler(out);
+            if let Some(filler) = carried_keywords(out, callee, args, settled.is_some()) {
+                return filler;
             }
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
             let rendered: Vec<String> = args.iter().map(|a| java_argument(out, a)).collect();
@@ -11928,23 +11889,8 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
                 return mapped;
             }
             let settled = resolve_keywords(out, callee, args);
-            if keywords_must_carry(out, callee, args, settled.is_some()) {
-                let rendered = joined(args, |a| match a {
-                    Expr::Keyword { name, value } => {
-                        format!("{name}={}", expr_hint(value))
-                    }
-                    _ => expr_hint(a),
-                });
-                let named = match callee.as_ref() {
-                    Expr::Name(n) => n.clone(),
-                    _ => "the call".to_string(),
-                };
-                out.carried(&Unsupported {
-                    construct: "keyword argument".into(),
-                    source: format!("{named}({rendered})"),
-                    line: 0,
-                });
-                return carried_expr_filler(out);
+            if let Some(filler) = carried_keywords(out, callee, args, settled.is_some()) {
+                return filler;
             }
             let args: &[Expr] = settled.as_deref().unwrap_or(args);
             let rendered: Vec<String> = args.iter().map(|a| zig_expr(out, a)).collect();

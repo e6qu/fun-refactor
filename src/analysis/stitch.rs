@@ -567,18 +567,8 @@ pub fn format_chains(chains: &[Chain]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::scan::{scan, ScanOptions};
 
-    fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, Index) {
-        let tmp = tempfile::tempdir().unwrap();
-        for (name, content) in files {
-            let path = tmp.path().join(name);
-            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-            crate::vfs::write(&path, content).unwrap();
-        }
-        let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
-        (tmp, Index::build_from_scan(&scanned).unwrap())
-    }
+    use crate::testing::workspace;
 
     const CHART: &str = "name: demo\nversion: 0.1.0\n";
     const VALUES: &str = "db:\n  url: postgres://localhost\nreplicas: 2\n";
