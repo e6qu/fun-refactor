@@ -781,23 +781,7 @@ mod tests {
     use crate::edit::apply_to_string;
     use crate::scan::{ScanResult, SourceFile};
 
-    fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, Index) {
-        let tmp = tempfile::tempdir().unwrap();
-        let mut scanned = ScanResult::default();
-        for (name, content) in files {
-            let path = tmp.path().join(name);
-            if let Some(parent) = path.parent() {
-                std::fs::create_dir_all(parent).unwrap();
-            }
-            crate::vfs::write(&path, content).unwrap();
-            scanned.files.push(SourceFile {
-                language: crate::lang::detect(&path).unwrap(),
-                path,
-            });
-        }
-        let index = Index::build_from_scan(&scanned).unwrap();
-        (tmp, index)
-    }
+    use crate::testing::indexed as workspace;
 
     fn only_symbol(index: &Index, name: &str) -> SymbolId {
         let found = index.find_symbols(name, None);

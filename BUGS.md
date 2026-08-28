@@ -370,6 +370,25 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   The extracted Rust compiles under `rustc` and the Go passes `go vet`, both
   checked on the way in.
 
+- [x] B810: **the writers said one thing six times, twice over.** Every target
+  carried a labeled break with its own copy of eleven lines. Four built a
+  record's field pairs with their own copy of five. The rendered value was the
+  only difference. `carry_labeled_break` and
+  `record_pairs` hold them, and 1,030 redundant tokens went.
+
+  Three more collapsed the same way. Two walkers over a body differed in the
+  method name alone, `add` against `append`, and `given_to` takes the verb.
+  TypeScript and Java built a record literal identically but for the renderer,
+  and `record_as_constructor` takes it as an argument. `index_of` and a second
+  `workspace` were one test fixture in two modules, and `src/testing.rs` holds
+  it.
+
+  Two clusters `fr duplicates` reports stay. `Capability::label` and
+  `Capability::command` are two mappings that share a shape and mean different
+  things. The TypeScript and Java constructor headers differ in the type
+  function, the fallback, the parameter order and the header. One helper would
+  take four arguments and read worse than the two.
+
 - [x] B777: **a renamed flag silently broke every script passing it.** A script
   writes `./collector --retention-days 30`, and a program declares that flag
   somewhere. The two never met. The flag was a word in a shell command and

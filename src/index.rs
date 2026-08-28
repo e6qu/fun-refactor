@@ -1805,23 +1805,7 @@ mod tests {
     use crate::scan::SourceFile;
 
     /// Build an index from in-memory sources written to a temp workspace.
-    fn index_of(files: &[(&str, &str)]) -> (tempfile::TempDir, Index) {
-        let tmp = tempfile::tempdir().unwrap();
-        let mut scanned = ScanResult::default();
-        for (name, content) in files {
-            let path = tmp.path().join(name);
-            if let Some(parent) = path.parent() {
-                std::fs::create_dir_all(parent).unwrap();
-            }
-            crate::vfs::write(&path, content).unwrap();
-            scanned.files.push(SourceFile {
-                language: crate::lang::detect(&path).unwrap(),
-                path,
-            });
-        }
-        let index = Index::build_from_scan(&scanned).unwrap();
-        (tmp, index)
-    }
+    use crate::testing::indexed as index_of;
 
     #[test]
     fn resolves_a_local_call_exactly() {
