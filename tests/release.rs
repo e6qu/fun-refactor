@@ -289,16 +289,25 @@ fn the_browser_check_reads_where_the_release_writes() {
 }
 
 #[test]
-fn the_tag_carries_the_version_and_nothing_else() {
-    // With the component in it, an archive read `fr-fun-refactor-v0.2.0-…`.
+fn an_archive_is_named_from_the_version_and_not_the_tag() {
+    // Naming from the tag doubled the package name; renaming the tag lost release-please its own last release.
     assert!(
-        CONFIG.contains("\"include-component-in-tag\": false"),
-        "the tag would carry the package name, and every archive named after it \
-         would repeat it."
+        !WORKFLOW.contains("name=\"fr-${{ needs.release-please.outputs.tag }}"),
+        "an archive takes its name from the tag, which carries the package name."
     );
+    for shape in [
+        "name=\"fr-v${{ needs.release-please.outputs.version }}",
+        "name=\"fun-refactor-v${{ needs.release-please.outputs.version }}",
+    ] {
+        assert!(
+            WORKFLOW.contains(shape),
+            "no packaging step names its archive `{shape}…`."
+        );
+    }
     assert!(
-        CONFIG.contains("\"include-v-in-tag\": true"),
-        "the tag would carry no `v`, and the README's example does."
+        !CONFIG.contains("include-component-in-tag"),
+        "the tag format moved. release-please finds its last release by tag, and \
+         a format it has never written sends it past one."
     );
 }
 
