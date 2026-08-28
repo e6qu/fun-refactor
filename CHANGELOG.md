@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.3.0...fun-refactor-v0.4.0) (2026-08-28)
+
+
+### Features
+
+* extract a region that returns, in the targets that can say it ([#178](https://github.com/e6qu/fun-refactor/issues/178)) ([565540e](https://github.com/e6qu/fun-refactor/commit/565540e69ea63a6254517191389baf18ba1feedd))
+
 ## [0.3.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.2.2...fun-refactor-v0.3.0) (2026-08-28)
 
 
