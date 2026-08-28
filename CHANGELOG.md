@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.2.2...fun-refactor-v0.3.0) (2026-08-28)
+
+
+### Features
+
+* fr tells an agent what a recipe may say, and four defects it found ([#175](https://github.com/e6qu/fun-refactor/issues/175)) ([b51038d](https://github.com/e6qu/fun-refactor/commit/b51038d5d68cb2be82023eb863b6d46c14cfb078))
+
 ## [0.2.2](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.2.1...fun-refactor-v0.2.2) (2026-08-28)
 
 
