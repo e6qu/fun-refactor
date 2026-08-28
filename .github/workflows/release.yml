@@ -12,6 +12,11 @@ on:
   push:
     branches: [main]
 
+# `release-please` opens a pull request holding the next version. A workflow may
+# only do that where the repository allows it: Settings, Actions, General,
+# Workflow permissions, "Allow GitHub Actions to create and approve pull
+# requests". Without it the job fails with "GitHub Actions is not permitted to
+# create or approve pull requests" and no release goes out.
 permissions:
   contents: write
   pull-requests: write
@@ -34,10 +39,14 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  # One job per thing a person can download. Each builds on the architecture it
-  # targets, so no cross-linker enters into it: the tree-sitter grammars are C,
-  # and cross-compiling C for four targets is four ways to find out something is
-  # missing at link time.
+  # One job per thing a person can download. Each Linux target builds on the
+  # architecture it targets, so no cross-linker enters into it: the tree-sitter
+  # grammars are C, and cross-compiling C for a foreign platform is a way to find
+  # out something is missing at link time.
+  #
+  # macOS is the exception. Apple ships both architectures in one toolchain, so
+  # both build on Apple silicon. The Intel image is retired, and a job asking for
+  # it waits for a runner that never comes.
   #
   # Linux links against musl and statically. A binary built against the runner's
   # glibc needs that glibc or newer, which rules out every long-term distribution
@@ -57,7 +66,8 @@ jobs:
             runs-on: ubuntu-24.04-arm
             libc: musl
           - target: x86_64-apple-darwin
-            runs-on: macos-13
+            runs-on: macos-14
+            cross: true
           - target: aarch64-apple-darwin
             runs-on: macos-14
     runs-on: ${{ matrix.runs-on }}
@@ -89,12 +99,21 @@ jobs:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
         run: cargo build --release --locked --bin fr --target ${{ matrix.target }}
 
-      # The binary has to answer before it is published. A build that links and
-      # then dies on its first call is a build that passed every gate here.
+      # The binary answers before it goes out. A build that links and then dies on
+      # its first call passes every other gate here.
       - name: Check it runs
         run: |
-          ./target/${{ matrix.target }}/release/fr --version
-          ./target/${{ matrix.target }}/release/fr capabilities > /dev/null
+          set -euo pipefail
+          binary="target/${{ matrix.target }}/release/fr"
+          file "$binary"
+          if "$binary" --version; then
+            "$binary" capabilities > /dev/null
+          elif [ "${{ matrix.cross || false }}" = "true" ]; then
+            echo "this host cannot execute ${{ matrix.target }}: checked the architecture and not the answer"
+          else
+            echo "the binary built for this host and would not run"
+            exit 1
+          fi
 
       - name: Package
         id: package
@@ -150,9 +169,11 @@ jobs:
       - name: Build the analysis for the browser
         run: ./tools/build-wasm.sh
 
+      # Into `web/src/wasm`, where `web/test/api.mjs` loads them from. The check
+      # below is the only thing that runs this artifact before it goes out.
       - name: Generate the bindings
         run: |
-          wasm-bindgen --target web --out-dir dist/wasm \
+          wasm-bindgen --target web --out-dir web/src/wasm \
             target/wasm32-unknown-unknown/release/fun_refactor.wasm
 
       # Same check the binaries get, in the runtime this artifact is for. The
@@ -169,7 +190,7 @@ jobs:
           set -euo pipefail
           name="fun-refactor-${{ needs.release-please.outputs.tag }}-wasm"
           mkdir -p "dist/$name"
-          cp dist/wasm/* "dist/$name/"
+          cp web/src/wasm/* "dist/$name/"
           cp LICENSE README.md "dist/$name/"
           tar -C dist -czf "dist/$name.tar.gz" "$name"
           ( cd dist && shasum -a 256 "$name.tar.gz" > "$name.tar.gz.sha256" )

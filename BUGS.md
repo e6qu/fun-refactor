@@ -241,6 +241,31 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   dependency naming a member without one, and on a member whose version drifts
   from the root's.
 
+- [x] B794: **nothing said the release needs a repository setting.** With the
+  manifest fixed, `release-please` failed again. "GitHub Actions is not permitted
+  to create or approve pull requests". A workflow may only open one where
+  Settings, Actions, General, Workflow permissions allows it. The switch is off
+  by default, and no file in the repository mentioned it. A fresh clone with the
+  same workflow fails the same way.
+
+  The workflow and the README both name the setting now. The default token stays
+  read-only: the release job declares the two scopes it wants.
+
+- [x] B795: **the first tag built four of five artifacts.** The browser job
+  generated its bindings into one directory. `web/test/api.mjs` loads them from
+  another, so the check failed on a module that was never there. The job writes
+  where the check reads now, and `tests/release.rs` holds the two paths together
+  with the one CI uses.
+
+- [x] B796: **a job waited an hour for a runner that never came.** `macos-13` is
+  retired. Both macOS binaries build on Apple silicon now, which carries the
+  Intel toolchain. The Intel one runs under Rosetta, or says it checked the
+  architecture alone. `tests/release.rs` fails on any retired image.
+
+- [x] B797: **every archive repeated the package name.** The tag carried it, so a
+  download read `fr-fun-refactor-v0.2.0-x86_64-unknown-linux-musl.tar.gz`. The
+  tag is the version now.
+
 - [x] B777: **a renamed flag silently broke every script passing it.** A script
   writes `./collector --retention-days 30`, and a program declares that flag
   somewhere. The two never met. The flag was a word in a shell command and
