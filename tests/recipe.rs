@@ -747,3 +747,72 @@ fn translate_needs_a_selector_like_every_other_operation_that_takes_one() {
         "{error}"
     );
 }
+
+#[test]
+fn a_symbol_predicate_on_a_file_step_is_refused_by_name() {
+    // Asking `kind` of a file selected nothing and blamed the rewrite.
+    let (tmp, sources) = workspace(&[("a.py", AUTH)]);
+    let file =
+        recipe::parse("schema 1\nrecipe r { rewrite guard-clause where kind=function }").unwrap();
+    let error = recipe::run(
+        &file.recipes[0],
+        sources,
+        &Options {
+            root: tmp.path(),
+            catalogs: &[],
+        },
+    )
+    .unwrap_err()
+    .to_string();
+    assert!(error.contains("acts on a file"), "{error}");
+    assert!(error.contains("`kind` asks about a symbol"), "{error}");
+    for offered in recipe::FILE_PREDICATES {
+        assert!(
+            error.contains(offered),
+            "the refusal does not offer `{offered}`: {error}"
+        );
+    }
+}
+
+#[test]
+fn every_predicate_a_file_step_takes_is_a_predicate() {
+    // Otherwise the refusal offers a predicate nothing accepts.
+    for field in recipe::FILE_PREDICATES {
+        assert!(
+            recipe::PREDICATES.contains(field),
+            "`{field}` is offered for a file step and is not a predicate at all"
+        );
+    }
+}
+
+#[test]
+fn a_rewrite_that_fires_nowhere_names_the_gap() {
+    // It reported "applied 0" and nothing else. Every other operation says why.
+    let (tmp, sources) = workspace(&[("a.py", "def f(x):\n    return x + 1\n")]);
+    let file = recipe::parse(
+        "schema 1\nrecipe r { rewrite guard-clause where lang=python on-refusal report }",
+    )
+    .unwrap();
+    let (report, _) = recipe::run(
+        &file.recipes[0],
+        sources,
+        &Options {
+            root: tmp.path(),
+            catalogs: &[],
+        },
+    )
+    .expect("the recipe runs");
+    fun_refactor::vfs::use_filesystem();
+    let refusals: Vec<&str> = report
+        .steps
+        .iter()
+        .flat_map(|step| step.refusals.iter())
+        .map(|r| r.reason.as_str())
+        .collect();
+    assert!(
+        refusals
+            .iter()
+            .any(|r| r.contains("applies at no position")),
+        "a rewrite that fired nowhere said nothing: {refusals:?}"
+    );
+}

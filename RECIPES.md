@@ -254,6 +254,23 @@ existing analysis:
 | `matches='$A + $B'` | a structural shape | `fr restructure` |
 | `changed` | this recipe already touched it | the run itself |
 
+### Asking what a recipe may say
+
+`fr recipe --vocabulary` prints the whole surface: the verbs and their argument
+forms, both predicate lists, the rewrites, the modifiers and the languages. It
+comes from the code that reads a recipe, so it says what this build takes rather
+than what a document remembers. `--json` gives the same to a program.
+
+### A file step takes the file predicates
+
+`imports`, `rewrite` and `translate` act on a file. The rest act on a symbol. So a
+selector for one of the three may only ask what a file can answer: `lang`, `file`,
+`in`, `duplicated`, `changed`, `matches`.
+
+Asking `kind=function` of a `rewrite` names a symbol, and a file cannot answer it.
+The step refuses and says which predicate to drop. It used to match no file and
+report that the rewrite found nothing, which sent a reader after the wrong thing.
+
 So *"every unused unexported helper under `src/adapters`"* is:
 
 ```

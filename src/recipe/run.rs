@@ -531,6 +531,18 @@ fn run_step(
         }
     };
 
+    // A rewrite that fires nowhere said only "applied 0".
+    if applied == 0 && matched > 0 && refusals.is_empty() {
+        if let Operation::Rewrite { name } = &step.operation {
+            refusals.push(Refusal {
+                subject: format!("{matched} file(s)"),
+                reason: format!("`{name}` applies at no position in them"),
+                permitted,
+                references: Vec::new(),
+            });
+        }
+    }
+
     // A selector that matches nothing stops the recipe.
     if matched == 0 && !step.allow_empty {
         bail!(
@@ -878,6 +890,10 @@ pub const PREDICATES: &[&str] = &[
     "matches",
 ];
 
+/// The predicates a file can answer. `file_matches` says `false` to every other,
+/// so asking one of those selected nothing and blamed the operation.
+pub const FILE_PREDICATES: &[&str] = &["lang", "file", "in", "duplicated", "changed", "matches"];
+
 /// The workspace-wide answers a selector needed, computed once per step.
 #[derive(Default)]
 struct Facts {
@@ -949,6 +965,33 @@ fn select(
         step.operation,
         Operation::Imports | Operation::Rewrite { .. } | Operation::Translate { .. }
     );
+
+    if by_file {
+        let asked: Vec<&str> = step
+            .selector
+            .iter()
+            .map(|p| p.field())
+            .filter(|field| !FILE_PREDICATES.contains(field))
+            .collect();
+        if !asked.is_empty() {
+            bail!(
+                "line {}: `{}` acts on a file, and {} {} about a symbol. Select the \
+                 files with {}.",
+                step.line,
+                step.operation.describe(),
+                asked
+                    .iter()
+                    .map(|f| format!("`{f}`"))
+                    .collect::<Vec<_>>()
+                    .join(", "),
+                match asked.len() {
+                    1 => "asks",
+                    _ => "ask",
+                },
+                FILE_PREDICATES.join(", ")
+            );
+        }
+    }
 
     let facts = gather(step, index, options)?;
 
