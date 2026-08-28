@@ -263,8 +263,14 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   architecture alone. `tests/release.rs` fails on any retired image.
 
 - [x] B797: **every archive repeated the package name.** The tag carried it, so a
-  download read `fr-fun-refactor-v0.2.0-x86_64-unknown-linux-musl.tar.gz`. The
-  tag is the version now.
+  download read `fr-fun-refactor-v0.2.0-x86_64-unknown-linux-musl.tar.gz`.
+
+  Changing the tag was the wrong repair, and the next release said so.
+  `release-please` finds its last release by tag, so a format it has never
+  written sent it past `fun-refactor-v0.2.0`. It proposed 0.3.0, re-collected a
+  feature already out, and pointed its compare link at a tag nobody made. The
+  archive takes its name from the version output now, and the tag stays as it
+  was.
 
 - [x] B777: **a renamed flag silently broke every script passing it.** A script
   writes `./collector --retention-days 30`, and a program declares that flag
