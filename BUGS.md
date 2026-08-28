@@ -297,6 +297,53 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   a call cannot reproduce that. `carried_keywords` answers an `Option` instead,
   and each writer returns what it holds.
 
+- [x] B802: **four walkers each knew nine expression kinds of twenty.**
+  `normalize.rs` held four hand-rolled walks beside the shared one, and none of
+  them entered a cast, a coalesce, an `instanceof`, a keyword argument, a lambda,
+  a list, a map, a record, a ternary, a tuple or a variant. So Go's
+  `return []string{err.Error()}` crossed into Python as `[err.Error()]`, and
+  Python has no such method. Bare, it crossed correctly.
+
+  `children_mut` is the one place that knows every variant. Its match is
+  exhaustive, so a new variant stops the build until it says what it holds.
+
+  One of the four was not a plain walk. It skips a callee that names a map's
+  member, and its own comment said why: rewriting the `m.count` of `m.count()`
+  leaves `len(m)()`. Routing it through the shared walk reproduced that,
+  in three `maps java->*` cells. The guard is back.
+
+- [x] B803: **a symbol predicate on a file step blamed the operation.**
+  `imports`, `rewrite` and `translate` act on a file. `file_matches` answered
+  `false` to every predicate it did not know. So
+  `rewrite guard-clause where kind=function` selected no file, and the error read
+  `rewrite guard-clause matched nothing`. The step names the predicate now, and
+  says which ones a file answers.
+
+- [x] B804: **a rewrite that fired nowhere said only "applied 0".** Every other
+  operation names what it refused on. This one selected its files, found no
+  position, and left an agent with a number. It names the gap now.
+
+- [x] B805: **`CLI.md` documented a `fr signature` syntax the command refuses.**
+  It offered `drop 2` and `add limit: int = 50`. The command takes `remove:<i>`,
+  `move:<from>:<to>` and `add:<i>:<declaration>:<argument>`, and says so when
+  given anything else. Running the documented form through a recipe found it.
+
+- [x] B806: **`fr rewrite --help` named three rewrites of four.** The list was
+  sat beside the argument as prose, and `hoist-function` arrived after it. So the
+  only way to learn the fourth was to read `Rewrite::ALL`. Clap takes the list
+  from there now, and validates the argument against it.
+
+- [x] B807: **nothing told a reader what a recipe may say.** `fr recipe --help`
+  named the flags and not one verb, predicate or rewrite. Writing a recipe meant
+  reading `RECIPES.md`, and guessing where that was out of reach. Two guesses
+  went wrong in one sitting: a snake-cased recipe name, and a `signature` change
+  spelled the way `CLI.md` spelled it.
+
+  `fr recipe --vocabulary` prints the surface: every verb with its argument form,
+  both predicate lists, the rewrites, the modifiers and the languages. `--json`
+  gives a program the same. Every list comes from the parser and the runner, and
+  `tests/vocabulary.rs` fails where one goes missing.
+
 - [x] B777: **a renamed flag silently broke every script passing it.** A script
   writes `./collector --retention-days 30`, and a program declares that flag
   somewhere. The two never met. The flag was a word in a shell command and

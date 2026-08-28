@@ -294,9 +294,17 @@ inside a multiplication keeps its brackets.
 fr signature <TARGET> <CHANGE> [--write]
 ```
 
-Change a function's parameters and update every call site. Write the change in
-the DSL's own spelling, so `drop 2` and `add limit: int = 50` mean what they look
-like.
+Change a function's parameters and update every call site. The change takes one
+of three forms.
+
+| Form | What it does |
+|---|---|
+| `remove:<i>` | Drop the parameter at index `i`, and its argument at every call |
+| `move:<from>:<to>` | Reorder, and reorder every call's arguments to match |
+| `add:<i>:<declaration>:<argument>` | Insert a parameter, and pass `<argument>` at every call |
+
+`remove:1` drops the second parameter. `add:0:limit: int:50` puts `limit: int`
+first and passes `50`.
 
 ### `fr move`
 
@@ -357,11 +365,18 @@ written in the target language, with metavariables for the parts that vary.
 
 ```
 fr recipe <FILE> [--write] [--explain] [--catalogs <P>]
+fr recipe --vocabulary [--json]
 ```
 
 Run a refactoring recipe: find, do, expect. One transaction, all or nothing.
 `--explain` prints what the recipe would do without doing it. The language is
 documented in [RECIPES.md](RECIPES.md).
+
+`--vocabulary` prints the language itself. Every verb with the form its arguments
+take. The predicates a step takes for a symbol, and the fewer it takes for a
+file. The rewrites this build has, and the languages. Every list comes from the
+code that reads a recipe. With `--json`, a program writing a recipe reads what it
+may write.
 
 ## Crossing languages
 

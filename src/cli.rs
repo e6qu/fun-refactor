@@ -308,8 +308,8 @@ enum Command {
         about = "Run a refactoring recipe: find, do, expect"
     )]
     Recipe {
-        /// The recipe file.
-        file: PathBuf,
+        /// The recipe file. Omit it with `--vocabulary`.
+        file: Option<PathBuf>,
         /// Apply the changes instead of printing a diff.
         #[arg(long)]
         write: bool,
@@ -320,6 +320,10 @@ enum Command {
         /// Additional catalog directory for entry-point rules, as `fr unused` takes.
         #[arg(long)]
         catalogs: Vec<PathBuf>,
+        /// Print what a recipe may say: the verbs, their argument forms, the
+        /// predicates each kind of step takes, and the rewrites this build has.
+        #[arg(long)]
+        vocabulary: bool,
     },
     /// Rewrite a file as another language, beside the original.
     Translate {
@@ -354,7 +358,9 @@ enum Command {
     Rewrite {
         /// Position as `path:line:col`.
         target: String,
-        /// Which transformation: invert-if, de-morgan, guard-clause.
+        /// Which transformation. Named from `Rewrite::ALL`, so a rewrite this
+        /// build has cannot go unlisted here.
+        #[arg(value_parser = rewrite_names())]
         rewrite: Option<String>,
         /// Apply the change instead of printing a diff.
         #[arg(long)]
@@ -749,7 +755,15 @@ fn dispatch(cli: &Cli) -> Result<()> {
             write,
             explain,
             catalogs,
-        } => cmd_recipe(cli, file, *write, *explain, catalogs),
+            vocabulary,
+        } => cmd_recipe(
+            cli,
+            file.as_deref(),
+            *write,
+            *explain,
+            catalogs,
+            *vocabulary,
+        ),
         Command::RemoveFlag { flag, value, write } => {
             cmd_remove_flag(cli, flag, FlagValue(*value), *write)
         }
@@ -2485,13 +2499,37 @@ fn cmd_openapi(cli: &Cli, out: Option<&std::path::Path>, yaml: bool) -> Result<(
 }
 
 /// `fr recipe <file>`, run a refactoring written down.
+/// The rewrites this build has, for clap to list and to validate against.
+fn rewrite_names() -> clap::builder::PossibleValuesParser {
+    clap::builder::PossibleValuesParser::new(
+        crate::refactor::rewrite::Rewrite::ALL
+            .iter()
+            .map(|r| r.as_str())
+            .collect::<Vec<_>>(),
+    )
+}
+
 fn cmd_recipe(
     cli: &Cli,
-    file: &std::path::Path,
+    file: Option<&std::path::Path>,
     write: bool,
     explain: bool,
     catalogs: &[PathBuf],
+    vocabulary: bool,
 ) -> Result<()> {
+    if vocabulary {
+        let words = crate::recipe::vocabulary();
+        match cli.json {
+            true => println!("{}", serde_json::to_string_pretty(&words)?),
+            false => print!("{}", crate::recipe::render(&words)),
+        }
+        return Ok(());
+    }
+    let Some(file) = file else {
+        return Err(anyhow::anyhow!(
+            "name a recipe file, or ask for `--vocabulary`"
+        ));
+    };
     let root = workspace_root(cli);
     // A relative path is relative to the workspace, as every other file argument is.
     let recipe_path = if file.is_absolute() || crate::vfs::exists(file) {

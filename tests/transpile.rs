@@ -1089,3 +1089,26 @@ fn a_shorthand_property_is_a_property() {
     );
     assert_eq!(fidelity.carried_verbatim, 0, "{output}");
 }
+
+#[test]
+fn an_error_read_inside_a_collection_still_crosses() {
+    let source = "package main\n\nfunc load(path string) []string {\n\t\
+                  data, err := read(path)\n\tif err != nil {\n\t\t\
+                  return []string{err.Error()}\n\t}\n\treturn data\n}\n";
+    let tmp = tempfile::tempdir().expect("a temporary directory");
+    let go = tmp.path().join("load.go");
+    std::fs::write(&go, source).expect("the fixture");
+    let out = tmp.path().join("load.py");
+    let plan = fun_refactor::transpile::plan_to(&go, Language::Python, Some(&out), true)
+        .expect("go translates into python");
+    assert!(
+        plan.output.contains("[str(err)]"),
+        "the error read never crossed: {}",
+        plan.output
+    );
+    assert!(
+        !plan.output.contains(".Error()"),
+        "Python has no `.Error()`: {}",
+        plan.output
+    );
+}

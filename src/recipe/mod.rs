@@ -3,6 +3,7 @@
 mod lex;
 mod parse;
 mod run;
+mod vocabulary;
 
 pub use parse::{
     parse, Comparison, Expect, File, OnRefusal, Operation, Predicate, Recipe, Requirement, Step,
@@ -12,4 +13,8 @@ pub use parse::{
 // re-export is an unused import the wasm build refuses.
 #[cfg(feature = "cli")]
 pub(crate) use run::distance;
-pub use run::{run, ExpectReport, Options, Refusal, Report, StepReport, StepWarning, PREDICATES};
+pub use run::{
+    run, ExpectReport, Options, Refusal, Report, StepReport, StepWarning, FILE_PREDICATES,
+    PREDICATES,
+};
+pub use vocabulary::{render, vocabulary, Verb, Vocabulary};

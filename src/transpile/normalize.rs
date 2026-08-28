@@ -631,6 +631,66 @@ fn map_stmt(stmt: &mut Stmt, rewrite: fn(Expr) -> Expr) {
     }
 }
 
+/// The expressions held directly inside this one. A new variant stops the build here.
+fn children_mut(expr: &mut Expr) -> Vec<&mut Expr> {
+    match expr {
+        Expr::Field { of, .. } => vec![of],
+        Expr::Index { of, index } => vec![of, index],
+        Expr::Call { callee, args } | Expr::New { callee, args } => {
+            let mut out = vec![&mut **callee];
+            out.extend(args.iter_mut());
+            out
+        }
+        Expr::Binary { left, right, .. } => vec![left, right],
+        Expr::Unary { operand, .. } => vec![operand],
+        Expr::Await(inner) | Expr::Propagate(inner) => vec![inner],
+        Expr::Template(parts) => parts
+            .iter_mut()
+            .filter_map(|part| match part {
+                TemplatePart::Expr(e) => Some(e),
+                TemplatePart::Text(_) => None,
+            })
+            .collect(),
+        Expr::Tuple(items) | Expr::ListLit(items) | Expr::SetLit(items) => {
+            items.iter_mut().collect()
+        }
+        Expr::MapLit(entries) => entries
+            .iter_mut()
+            .flat_map(|(key, value)| [key, value])
+            .collect(),
+        Expr::Variant { fields, .. } | Expr::RecordLit { fields, .. } => {
+            fields.iter_mut().map(|(_, value)| value).collect()
+        }
+        Expr::Keyword { value, .. } => vec![value],
+        Expr::Cast { value, ty } => vec![value, ty],
+        Expr::InstanceOf { value, ty } => vec![value, ty],
+        Expr::Coalesce { value, fallback } => vec![value, fallback],
+        Expr::Ternary {
+            condition,
+            then,
+            otherwise,
+        } => vec![condition, then, otherwise],
+        Expr::Lambda { body, .. } => vec![body],
+        Expr::Comprehension {
+            element,
+            iterable,
+            condition,
+            ..
+        } => {
+            let mut out = vec![&mut **element, &mut **iterable];
+            out.extend(condition.as_deref_mut());
+            out
+        }
+        Expr::Int(_)
+        | Expr::Float(_)
+        | Expr::Str(_)
+        | Expr::Bool(_)
+        | Expr::Null
+        | Expr::Name(_)
+        | Expr::Unsupported(_) => Vec::new(),
+    }
+}
+
 /// Apply `rewrite` to `expr` and everything under it, children first.
 fn map_expr(expr: &mut Expr, rewrite: fn(Expr) -> Expr) {
     let walk = |e: &mut Expr| map_expr(e, rewrite);
@@ -1715,30 +1775,8 @@ fn settle_go_checks(body: &mut Vec<Stmt>) {
 /// `err.Error()` inside a catch is the message read the canonical way: `str(err)`.
 fn rewrite_error_reads(body: &mut [Stmt], err: &str) {
     fn in_expr(e: &mut Expr, err: &str) {
-        let fix = |e: &mut Expr| in_expr(e, err);
-        match e {
-            Expr::Call { callee, args } | Expr::New { callee, args } => {
-                fix(callee);
-                for a in args {
-                    fix(a);
-                }
-            }
-            Expr::Binary { left, right, .. } => {
-                fix(left);
-                fix(right);
-            }
-            Expr::Unary { operand, .. } | Expr::Await(operand) | Expr::Propagate(operand) => {
-                fix(operand)
-            }
-            Expr::Template(parts) => {
-                for part in parts {
-                    if let TemplatePart::Expr(e) = part {
-                        fix(e);
-                    }
-                }
-            }
-            Expr::Field { of, .. } | Expr::Index { of, .. } => fix(of),
-            _ => {}
+        for child in children_mut(e) {
+            in_expr(child, err);
         }
         let is_read = matches!(e, Expr::Call { callee, args }
             if args.is_empty()
@@ -2204,49 +2242,23 @@ fn rewrite_map_calls(body: &mut [Stmt], words: &MapWords, maps: &[String]) {
         }
     }
     fn fix(e: &mut Expr, words: &MapWords, maps: &[String]) {
-        let each = |e: &mut Expr| fix(e, words, maps);
+        // Not into a map's member: rewriting the `m.count` of `m.count()` left `len(m)()`.
         match e {
             Expr::Call { callee, args } | Expr::New { callee, args } => {
-                // Not into a member of a map: `m.count()` is one thing, and
-                // rewriting the `m.count` half first left `len(m)()`.
                 let member_of_a_map = matches!(callee.as_ref(), Expr::Field { of, .. }
                     if on_map(of, maps).is_some());
                 if !member_of_a_map {
-                    each(callee);
+                    fix(callee, words, maps);
                 }
                 for a in args {
-                    each(a);
+                    fix(a, words, maps);
                 }
             }
-            Expr::Binary { left, right, .. } => {
-                each(left);
-                each(right);
-            }
-            Expr::Unary { operand, .. } | Expr::Await(operand) | Expr::Propagate(operand) => {
-                each(operand)
-            }
-            Expr::Index { of, index } => {
-                each(of);
-                each(index);
-            }
-            Expr::Field { of, .. } => each(of),
-            Expr::Template(parts) => {
-                for part in parts {
-                    if let TemplatePart::Expr(inner) = part {
-                        each(inner);
-                    }
+            _ => {
+                for child in children_mut(e) {
+                    fix(child, words, maps);
                 }
             }
-            Expr::Ternary {
-                condition,
-                then,
-                otherwise,
-            } => {
-                each(condition);
-                each(then);
-                each(otherwise);
-            }
-            _ => {}
         }
         // `m.get(k)!` asserts the key is there, and a map index already says that in every
         // target: Zig writes `.?`, the rest index directly.
@@ -2543,30 +2555,8 @@ fn rewrite_java_lists(body: &mut [Stmt], lists: &[String]) {
         }
     }
     fn fix(e: &mut Expr, lists: &[String]) {
-        let each = |e: &mut Expr| fix(e, lists);
-        match e {
-            Expr::Call { callee, args } | Expr::New { callee, args } => {
-                each(callee);
-                for a in args {
-                    each(a);
-                }
-            }
-            Expr::Binary { left, right, .. } => {
-                each(left);
-                each(right);
-            }
-            Expr::Unary { operand, .. } | Expr::Await(operand) | Expr::Propagate(operand) => {
-                each(operand)
-            }
-            Expr::Template(parts) => {
-                for part in parts {
-                    if let TemplatePart::Expr(e) = part {
-                        each(e);
-                    }
-                }
-            }
-            Expr::Field { of, .. } | Expr::Index { of, .. } => each(of),
-            _ => {}
+        for child in children_mut(e) {
+            fix(child, lists);
         }
         let Expr::Call { callee, args } = e else {
             return;
@@ -2801,30 +2791,8 @@ fn rewrite_zig_lists(body: &mut [Stmt], lists: &[String]) {
         }
     }
     fn fix(e: &mut Expr, lists: &[String]) {
-        let each = |e: &mut Expr| fix(e, lists);
-        match e {
-            Expr::Call { callee, args } | Expr::New { callee, args } => {
-                each(callee);
-                for a in args {
-                    each(a);
-                }
-            }
-            Expr::Binary { left, right, .. } => {
-                each(left);
-                each(right);
-            }
-            Expr::Unary { operand, .. } | Expr::Await(operand) | Expr::Propagate(operand) => {
-                each(operand)
-            }
-            Expr::Template(parts) => {
-                for part in parts {
-                    if let TemplatePart::Expr(e) = part {
-                        each(e);
-                    }
-                }
-            }
-            Expr::Field { of, .. } | Expr::Index { of, .. } => each(of),
-            _ => {}
+        for child in children_mut(e) {
+            fix(child, lists);
         }
         // `nums.items` is `nums`; the elements are the list.
         if let Expr::Field { of, name } = e {
