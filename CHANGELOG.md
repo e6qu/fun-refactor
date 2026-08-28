@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.2.1...fun-refactor-v0.2.2) (2026-08-28)
+
+
+### Fixes
+
+* four defects fr found in fr ([#173](https://github.com/e6qu/fun-refactor/issues/173)) ([7ad30a1](https://github.com/e6qu/fun-refactor/commit/7ad30a1636d5e395ce908696c7ddd94fa6b3c386))
+
 ## [0.2.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.2.0...fun-refactor-v0.2.1) (2026-08-28)
 
 
