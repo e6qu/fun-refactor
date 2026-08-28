@@ -344,6 +344,12 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   gives a program the same. Every list comes from the parser and the runner, and
   `tests/vocabulary.rs` fails where one goes missing.
 
+- [x] B808: **a refusal named no way forward.** `fr extract --function` said
+  only that a call cannot reproduce a `return`. It names the two shapes that work now. A run of statements that
+  falls off its end, or the same region with the `return` lifted out.
+  `tests/extract_function.rs` pins both halves. A refusal pointing at something
+  that does not work is worse than one pointing nowhere.
+
 - [x] B777: **a renamed flag silently broke every script passing it.** A script
   writes `./collector --retention-days 30`, and a program declares that flag
   somewhere. The two never met. The flag was a word in a shell command and

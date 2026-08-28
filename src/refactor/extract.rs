@@ -659,7 +659,9 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
             operation: "extracting a function".into(),
             detail: format!(
                 "the selected code contains a `{kind}` that leaves the enclosing \
-                 function. A call cannot reproduce that."
+                 function, and a call cannot reproduce that. Select a run of \
+                 statements that falls off its end, or lift the `{kind}` out of the \
+                 selection first."
             ),
         }
         .into());

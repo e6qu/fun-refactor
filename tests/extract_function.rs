@@ -792,3 +792,41 @@ fn a_python_definition_at_module_scope_gets_the_two_blank_lines_it_needs() {
         "and not three.\n{out}"
     );
 }
+
+#[test]
+fn a_return_that_leaves_the_function_is_refused_with_what_to_do_instead() {
+    // The refusal is what a reader acts on, so it names the shapes that work.
+    let source = "pub fn describe(n: i64) -> String {\n\
+                  \x20   if n < 0 {\n\
+                  \x20       let word = \"negative\".to_string();\n\
+                  \x20       return word;\n\
+                  \x20   }\n\
+                  \x20   format!(\"{n}\")\n\
+                  }\n";
+    let (tmp, index) = workspace(&[("a.rs", source)]);
+    let path = tmp.path().join("a.rs");
+    let error = extract::function(&index, &path, lines(source, 2, 5), "early")
+        .unwrap_err()
+        .to_string();
+    assert!(error.contains("`return`"), "{error}");
+    assert!(
+        error.contains("falls off its end") && error.contains("lift the `return` out"),
+        "the refusal leaves a reader with nothing to try: {error}"
+    );
+}
+
+#[test]
+fn a_region_that_falls_off_its_end_still_extracts() {
+    // The other half: what the refusal points at has to work.
+    let source = "pub fn describe(n: i64) -> String {\n\
+                  \x20   let doubled: i64 = n * 2;\n\
+                  \x20   let label: String = format!(\"{doubled}\");\n\
+                  \x20   label\n\
+                  }\n";
+    let (tmp, index) = workspace(&[("a.rs", source)]);
+    let path = tmp.path().join("a.rs");
+    let plan = extract::function(&index, &path, lines(source, 2, 3), "label_for")
+        .expect("a region with no escaping jump extracts");
+    let after = apply(&plan, &path);
+    assert!(after.contains("fn label_for"), "{after}");
+}
