@@ -350,6 +350,26 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   `tests/extract_function.rs` pins both halves. A refusal pointing at something
   that does not work is worse than one pointing nowhere.
 
+- [x] B809: **`fr extract --function` refused every region holding a `return`.**
+  A call falls back to its caller and a `return` does not. The refusal was right
+  about the shape and wrong to stop there. Rust and Go extract one now: the
+  new function answers, and the call site does the returning.
+
+  | Enclosing | The new function answers | The call site |
+  | --- | --- | --- |
+  | Rust, returns `T` | `Option<T>` | `if let Some(answer) = f(…) { return answer; }` |
+  | Rust, returns nothing | `bool` | `if f(…) { return; }` |
+  | Go, returns `T` | `(T, bool)` | `if answer, ok := f(…); ok { return answer }` |
+  | Go, returns nothing | `bool` | `if f(…) { return }` |
+
+  Go takes a declared zero on the way out, because no named type's zero is known
+  here. Python and TypeScript answer `None` for absence and for a value alike, so
+  both still refuse and say so. A region that returns and also produces a value
+  the code after it reads refuses too: one answer cannot carry both.
+
+  The extracted Rust compiles under `rustc` and the Go passes `go vet`, both
+  checked on the way in.
+
 - [x] B777: **a renamed flag silently broke every script passing it.** A script
   writes `./collector --retention-days 30`, and a program declares that flag
   somewhere. The two never met. The flag was a word in a shell command and

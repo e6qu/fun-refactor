@@ -113,7 +113,8 @@ fn refuses_a_region_containing_a_return() {
         .unwrap_err()
         .to_string();
     assert!(err.contains("return"), "got: {err}");
-    assert!(err.contains("cannot"), "got: {err}");
+    // Python answers `None` for absence and for a value alike.
+    assert!(err.contains("could not answer anyway"), "got: {err}");
 }
 
 #[test]
@@ -794,8 +795,8 @@ fn a_python_definition_at_module_scope_gets_the_two_blank_lines_it_needs() {
 }
 
 #[test]
-fn a_return_that_leaves_the_function_is_refused_with_what_to_do_instead() {
-    // The refusal is what a reader acts on, so it names the shapes that work.
+fn a_rust_region_that_returns_becomes_an_optional_the_caller_returns() {
+    // The extracted function answers; the call site does the returning.
     let source = "pub fn describe(n: i64) -> String {\n\
                   \x20   if n < 0 {\n\
                   \x20       let word = \"negative\".to_string();\n\
@@ -805,14 +806,85 @@ fn a_return_that_leaves_the_function_is_refused_with_what_to_do_instead() {
                   }\n";
     let (tmp, index) = workspace(&[("a.rs", source)]);
     let path = tmp.path().join("a.rs");
+    let plan = extract::function(&index, &path, lines(source, 2, 5), "early")
+        .expect("a region whose only escape is a return extracts");
+    let after = apply(&plan, &path);
+    assert!(
+        after.contains("fn early(n: i64) -> Option<String>"),
+        "{after}"
+    );
+    assert!(after.contains("return Some(word);"), "{after}");
+    assert!(
+        after.contains("    None\n"),
+        "the fall-through is missing: {after}"
+    );
+    assert!(
+        after.contains("if let Some(answer) = early(n) {"),
+        "the call site does not return the answer: {after}"
+    );
+}
+
+#[test]
+fn a_rust_region_that_returns_nothing_becomes_a_bool() {
+    let source = "pub fn report(n: i64) {\n\
+                  \x20   if n < 0 {\n\
+                  \x20       let word = \"negative\".to_string();\n\
+                  \x20       drop(word);\n\
+                  \x20       return;\n\
+                  \x20   }\n\
+                  \x20   drop(n);\n\
+                  }\n";
+    let (tmp, index) = workspace(&[("a.rs", source)]);
+    let path = tmp.path().join("a.rs");
+    let plan = extract::function(&index, &path, lines(source, 2, 6), "bail")
+        .expect("a unit return extracts too");
+    let after = apply(&plan, &path);
+    assert!(after.contains("fn bail(n: i64) -> bool"), "{after}");
+    assert!(after.contains("return true;"), "{after}");
+    assert!(after.contains("if bail(n) {"), "{after}");
+}
+
+#[test]
+fn a_go_region_that_returns_answers_a_value_and_a_flag() {
+    let source = "package main\n\nfunc Describe(n int) string {\n\
+                  \tif n < 0 {\n\
+                  \t\tword := \"negative\"\n\
+                  \t\treturn word\n\
+                  \t}\n\
+                  \treturn \"positive\"\n\
+                  }\n";
+    let (tmp, index) = workspace(&[("b.go", source)]);
+    let path = tmp.path().join("b.go");
+    let plan = extract::function(&index, &path, lines(source, 4, 7), "early")
+        .expect("go extracts a returning region");
+    let after = apply(&plan, &path);
+    assert!(
+        after.contains("func early(n int) (string, bool)"),
+        "{after}"
+    );
+    assert!(after.contains("return word, true"), "{after}");
+    // Go needs the value, and nothing here knows a named type's zero.
+    assert!(after.contains("var zero string"), "{after}");
+    assert!(after.contains("if answer, ok := early(n); ok {"), "{after}");
+}
+
+#[test]
+fn a_return_beside_a_value_that_flows_out_is_refused() {
+    // The extracted function has one answer, and this needs two.
+    let source = "pub fn mixed(n: i64) -> i64 {\n\
+                  \x20   let kept: i64 = n * 2;\n\
+                  \x20   if n < 0 {\n\
+                  \x20       return 0;\n\
+                  \x20   }\n\
+                  \x20   kept + 1\n\
+                  }\n";
+    let (tmp, index) = workspace(&[("a.rs", source)]);
+    let path = tmp.path().join("a.rs");
     let error = extract::function(&index, &path, lines(source, 2, 5), "early")
         .unwrap_err()
         .to_string();
-    assert!(error.contains("`return`"), "{error}");
-    assert!(
-        error.contains("falls off its end") && error.contains("lift the `return` out"),
-        "the refusal leaves a reader with nothing to try: {error}"
-    );
+    assert!(error.contains("kept"), "{error}");
+    assert!(error.contains("Extract them separately"), "{error}");
 }
 
 #[test]

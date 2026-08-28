@@ -991,7 +991,7 @@ fn signature(parsed: &Parsed, source: &str, sym: &Symbol) -> Option<String> {
     ))
 }
 
-fn return_type(parsed: &Parsed, source: &str, declaration: Span) -> Option<String> {
+pub(crate) fn return_type(parsed: &Parsed, source: &str, declaration: Span) -> Option<String> {
     let node = parsed
         .root()
         .descendant_for_byte_range(declaration.start, declaration.end)?;

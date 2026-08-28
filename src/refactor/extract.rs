@@ -652,20 +652,40 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         .into());
     }
 
-    // A jump out of the region cannot be reproduced by a call, so the extraction would change
-    // control flow.
-    if let Some(kind) = escaping_control_flow(&parsed, region) {
-        return Err(Refusal::NotHere {
-            operation: "extracting a function".into(),
-            detail: format!(
-                "the selected code contains a `{kind}` that leaves the enclosing \
-                 function, and a call cannot reproduce that. Select a run of \
-                 statements that falls off its end, or lift the `{kind}` out of the \
-                 selection first."
-            ),
+    // A `break` targets a loop outside the region and no answer reaches it.
+    let escaping = escaping_control_flow(&parsed, region);
+    let enclosing_returns = enclosing_definition_node(&parsed, region)
+        .and_then(|node| crate::analysis::types::return_type(&parsed, &source, Span::from(node)));
+    let leaving = match escaping {
+        Some("return") => match early_exit(language, enclosing_returns.as_deref()) {
+            Some(form) => Some(form),
+            None => {
+                return Err(Refusal::NotHere {
+                    operation: "extracting a function".into(),
+                    detail: format!(
+                        "the selected code contains a `return` that leaves the enclosing \
+                         function. {language} has no value a call can answer with that it \
+                         could not answer anyway. Select a run of statements that falls off \
+                         its end, or lift the `return` out of the selection first."
+                    ),
+                }
+                .into());
+            }
+        },
+        Some(kind) => {
+            return Err(Refusal::NotHere {
+                operation: "extracting a function".into(),
+                detail: format!(
+                    "the selected code contains a `{kind}` that leaves the enclosing \
+                     function, and a call cannot reproduce that. Select a run of \
+                     statements that falls off its end, or lift the `{kind}` out of the \
+                     selection first."
+                ),
+            }
+            .into());
         }
-        .into());
-    }
+        None => None,
+    };
 
     if yields_to_caller(&parsed, region) {
         anyhow::bail!(
@@ -688,7 +708,7 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
 
     let enclosing = enclosing_function(index, file, region.start).ok_or_else(|| {
         anyhow::anyhow!(
-            "the selection is not inside a function, so there is nothing to extract from"
+            "the selection is not inside a function, so there is nothing to extract from."
         )
     })?;
     let enclosing_span = index
@@ -884,8 +904,62 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         parameters.insert(0, carrier);
     }
 
+    if leaving.is_some() && !returns.is_empty() {
+        return Err(Refusal::NotHere {
+            operation: "extracting a function".into(),
+            detail: format!(
+                "the selected code both leaves the enclosing function with a `return` \
+                 and produces {} that the code after it reads. The extracted function \
+                 can answer one of those, and answering both needs a shape this does \
+                 not invent. Extract them separately.",
+                returns.join(", ")
+            ),
+        }
+        .into());
+    }
+
+    // The region's `return`s hand their value to the caller instead.
+    let (body, return_type) = match &leaving {
+        None => (body, return_type),
+        Some(form) => {
+            let mut rewritten = body.clone();
+            for (statement, value) in returns_within(&parsed, region, &source).into_iter().rev() {
+                let carried_value = value
+                    .map(|v| v.text(&source).to_string())
+                    .unwrap_or_default();
+                let start = statement.start - region.start;
+                let end = statement.end - region.start;
+                if start > rewritten.len() || end > rewritten.len() {
+                    continue;
+                }
+                rewritten.replace_range(start..end, &(form.carrying)(&carried_value));
+            }
+            if !form.falling_through.is_empty() {
+                if !rewritten.ends_with('\n') {
+                    rewritten.push('\n');
+                }
+                rewritten.push_str(&form.falling_through);
+            }
+            (rewritten, Some(form.answers.clone()))
+        }
+    };
+
     let indent = line_indent(&source, region.start);
-    let call = render_call(language, name, &parameters, &returns, &carried, is_async);
+    let call = match &leaving {
+        None => render_call(language, name, &parameters, &returns, &carried, is_async),
+        Some(form) => {
+            let args = parameters
+                .iter()
+                .map(Parameter::argument)
+                .collect::<Vec<_>>()
+                .join(", ");
+            let bare = match is_async {
+                true => format!("await {name}({args})"),
+                false => format!("{name}({args})"),
+            };
+            (form.call)(&bare).replace('\n', &format!("\n{indent}"))
+        }
+    };
     let definition = render_function(
         language,
         Signature {
@@ -945,7 +1019,7 @@ fn definition_placement(
 ) -> Result<Placement> {
     let function = enclosing_definition_node(parsed, region).ok_or_else(|| {
         anyhow::anyhow!(
-            "the selection is not inside a function, so there is nothing to extract from"
+            "the selection is not inside a function, so there is nothing to extract from."
         )
     })?;
 
@@ -1475,6 +1549,77 @@ fn block_keyword(node: Node<'_>) -> String {
 }
 
 /// A `return`, `break` or `continue` inside the region that leaves it.
+/// How a target says "the caller should return this", and "carry on". Only the two
+/// that keep absence apart from every value a function answers can say it.
+struct EarlyExit {
+    answers: String,
+    /// `return x` inside the region, rewritten.
+    carrying: fn(&str) -> String,
+    /// What it answers where the region falls off its end.
+    falling_through: String,
+    /// The call, and the return it drives.
+    call: fn(&str) -> String,
+}
+
+fn early_exit(language: Language, enclosing_returns: Option<&str>) -> Option<EarlyExit> {
+    match (language, enclosing_returns) {
+        (Language::Rust, Some(ty)) => Some(EarlyExit {
+            answers: format!("Option<{ty}>"),
+            carrying: |value| format!("return Some({value})"),
+            falling_through: "None".to_string(),
+            call: |call| format!("if let Some(answer) = {call} {{\n    return answer;\n}}"),
+        }),
+        (Language::Rust, None) => Some(EarlyExit {
+            answers: "bool".to_string(),
+            carrying: |_| "return true".to_string(),
+            falling_through: "false".to_string(),
+            call: |call| format!("if {call} {{\n    return;\n}}"),
+        }),
+        // A declared zero: Go needs the value and no named type's zero is known here.
+        (Language::Go, Some(ty)) => Some(EarlyExit {
+            answers: format!("({ty}, bool)"),
+            carrying: |value| format!("return {value}, true"),
+            falling_through: format!("\tvar zero {ty}\n\treturn zero, false"),
+            call: |call| format!("if answer, ok := {call}; ok {{\n\treturn answer\n}}"),
+        }),
+        (Language::Go, None) => Some(EarlyExit {
+            answers: "bool".to_string(),
+            carrying: |_| "return true".to_string(),
+            falling_through: "\treturn false".to_string(),
+            call: |call| format!("if {call} {{\n\treturn\n}}"),
+        }),
+        // Python and TypeScript answer `None` for absence and for a value alike.
+        _ => None,
+    }
+}
+
+/// Every `return` inside the region: its whole statement, and the value it carries.
+fn returns_within(parsed: &Parsed, region: Span, source: &str) -> Vec<(Span, Option<Span>)> {
+    let mut out = Vec::new();
+    let mut cursor = parsed.root().walk();
+    let mut stack = vec![parsed.root()];
+    while let Some(node) = stack.pop() {
+        let span = Span::from(node);
+        if !span.overlaps(region) {
+            continue;
+        }
+        // Never the bare keyword: its span stops before the value.
+        let returns = node.is_named()
+            && (node.kind() == "return_statement" || node.kind() == "return_expression");
+        if region.contains(span) && returns {
+            let value = node
+                .named_children(&mut node.walk())
+                .find(|child| !child.kind().contains("comment"))
+                .map(Span::from)
+                .filter(|v| !v.text(source).trim().is_empty());
+            out.push((span, value));
+        }
+        stack.extend(node.children(&mut cursor));
+    }
+    out.sort_by_key(|(span, _)| span.start);
+    out
+}
+
 fn escaping_control_flow(parsed: &Parsed, region: Span) -> Option<&'static str> {
     let mut cursor = parsed.root().walk();
     let mut stack = vec![parsed.root()];
