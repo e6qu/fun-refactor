@@ -278,6 +278,22 @@ becomes a function. Its parameters come from what the selection reads, and its
 return from what the rest of the body needs. `--all` extracts every occurrence
 of the same expression.
 
+A region holding a `return` leaves the enclosing function, and a call does not.
+Rust and Go extract one anyway: the new function answers, and the call site does
+the returning.
+
+| Enclosing function | The new function answers | The call site |
+|---|---|---|
+| Rust, returns `T` | `Option<T>` | `if let Some(answer) = f(…) { return answer; }` |
+| Rust, returns nothing | `bool` | `if f(…) { return; }` |
+| Go, returns `T` | `(T, bool)` | `if answer, ok := f(…); ok { return answer }` |
+| Go, returns nothing | `bool` | `if f(…) { return }` |
+
+Python and TypeScript spell absence with a value a function may also answer.
+`None` from the new function reads the same as a `return None` inside it, so both
+refuse and say that. A region that both returns and produces a value the code
+after it reads refuses too: one answer cannot carry both.
+
 ### `fr inline`
 
 ```
