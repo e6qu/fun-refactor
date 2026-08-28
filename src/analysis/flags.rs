@@ -117,7 +117,9 @@ fn declarations(source: &str, language: Language) -> Vec<(usize, String)> {
             Language::Go => {
                 for word in ["flag.String(", "flag.Int(", "flag.Bool(", "flag.Duration("] {
                     if let Some(named) = first_string_after(line, word) {
-                        out.push((number, named));
+                        if is_flag_name(&named) {
+                            out.push((number, named));
+                        }
                     }
                 }
                 for word in [
@@ -129,13 +131,15 @@ fn declarations(source: &str, language: Language) -> Vec<(usize, String)> {
                     // The `Var` forms take the destination first, so the name is
                     // the first string rather than the first argument.
                     if let Some(named) = first_string_after(line, word) {
-                        out.push((number, named));
+                        if is_flag_name(&named) {
+                            out.push((number, named));
+                        }
                     }
                 }
             }
             Language::Python => {
                 if let Some(named) = first_string_after(line, "add_argument(") {
-                    if let Some(flag) = named.strip_prefix("--") {
+                    if let Some(flag) = named.strip_prefix("--").filter(|f| is_flag_name(f)) {
                         out.push((number, flag.to_string()));
                     }
                 }
@@ -146,10 +150,15 @@ fn declarations(source: &str, language: Language) -> Vec<(usize, String)> {
                     let first = named.split_whitespace().next().unwrap_or(&named);
                     // `-r, --retention-days` names the short form first.
                     if let Some(flag) = first.strip_prefix("--") {
-                        out.push((number, flag.trim_end_matches(',').to_string()));
+                        let flag = flag.trim_end_matches(',');
+                        if is_flag_name(flag) {
+                            out.push((number, flag.to_string()));
+                        }
                     } else if let Some(long) = named.split("--").nth(1) {
                         let long = long.split_whitespace().next().unwrap_or(long);
-                        out.push((number, long.to_string()));
+                        if is_flag_name(long) {
+                            out.push((number, long.to_string()));
+                        }
                     }
                 }
             }
@@ -177,14 +186,9 @@ fn uses(source: &str, language: Language) -> Vec<(usize, String)> {
             let Some(flag) = word.strip_prefix("--") else {
                 continue;
             };
-            // `--` on its own ends the options, and `--flag=value` names the
-            // flag before the `=`.
+            // `--flag=value` names the flag before the `=`.
             let flag = flag.split('=').next().unwrap_or(flag);
-            let named = !flag.is_empty()
-                && flag
-                    .chars()
-                    .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
-            if named {
+            if is_flag_name(flag) {
                 out.push((at + 1, flag.to_string()));
             }
         }
@@ -192,6 +196,15 @@ fn uses(source: &str, language: Language) -> Vec<(usize, String)> {
     out.sort();
     out.dedup();
     out
+}
+
+/// A flag opens with a letter or a digit: `--` ends the options and `---` heads a
+/// YAML document.
+fn is_flag_name(name: &str) -> bool {
+    name.starts_with(|c: char| c.is_ascii_alphanumeric())
+        && name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
 
 /// `long = "retention-days"` inside an attribute.
@@ -202,7 +215,7 @@ fn attribute_value(line: &str, key: &str) -> Option<String> {
     let at = line.find(key)?;
     let rest = line[at + key.len()..].trim_start();
     let rest = rest.strip_prefix('=')?.trim_start();
-    quoted(rest)
+    quoted(rest).filter(|name| is_flag_name(name))
 }
 
 /// Does this attribute name `key` on its own, with no value after it?

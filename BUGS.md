@@ -272,6 +272,31 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   archive takes its name from the version output now, and the tag stays as it
   was.
 
+- [x] B798: **`fr stitch --flags` reported a flag called `-`.** `---` heads a
+  YAML document. Stripping the two dashes left one, and a name of nothing but
+  dashes passed the check. Running the tool over this repository's own sample
+  found it.
+
+- [x] B799: **a declaration inside a string literal named a flag ending in a
+  backslash.** `tests/flags.rs` holds clap syntax inside a Rust string, and the
+  reader took the text between the escaped quotes and kept the backslash, so this
+  repository declared `retention-days\`.
+
+  Both are the same gap. The passing side checked the shape of a name and no
+  declaring side did, so the two disagreed. `is_flag_name` is that check, and
+  every reader holds to it: clap, Go's `flag` package, `argparse` and commander.
+
+- [x] B800: **one test fixture stood in eight modules.** `fr duplicates` found
+  `fn workspace` copied byte for byte, 966 redundant tokens. It lives in
+  `src/testing.rs` now, and `fr imports` took out the seven imports the move left
+  behind.
+
+- [x] B801: **five writers carried keyword arguments the same way.** 552
+  redundant tokens, found the same way. `fr extract --function` refuses the
+  shape, and its reason holds: the block returns from the function around it, and
+  a call cannot reproduce that. `carried_keywords` answers an `Option` instead,
+  and each writer returns what it holds.
+
 - [x] B777: **a renamed flag silently broke every script passing it.** A script
   writes `./collector --retention-days 30`, and a program declares that flag
   somewhere. The two never met. The flag was a word in a shell command and

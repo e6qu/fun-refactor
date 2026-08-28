@@ -327,18 +327,8 @@ pub fn suggest_name(expression: &str) -> String {
 mod tests {
     use super::*;
     use crate::edit::apply_to_string;
-    use crate::scan::{scan, ScanOptions};
 
-    fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, Index) {
-        let tmp = tempfile::tempdir().unwrap();
-        for (name, content) in files {
-            let path = tmp.path().join(name);
-            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-            crate::vfs::write(&path, content).unwrap();
-        }
-        let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
-        (tmp, Index::build_from_scan(&scanned).unwrap())
-    }
+    use crate::testing::workspace;
 
     fn apply(plan: &ExtractPlan, path: &Path) -> String {
         let original = crate::vfs::read_to_string(path).unwrap();
