@@ -1,4 +1,4 @@
-//! The type a symbol was declared with, in each language that writes one down.
+//! The type a symbol declares, in each language that writes one down.
 
 use fun_refactor::analysis::types;
 use fun_refactor::index::Index;
@@ -392,7 +392,7 @@ fn zigs_boolean_answers_and_its_numbers_stay_open() {
     assert_eq!(count.inferred, None, "a comptime_int is not a written type");
 }
 
-/// `self` and `this` hold the type of the declaration they are written in.
+/// `self` and `this` hold the type of the declaration around them.
 #[test]
 fn self_takes_the_type_of_the_declaration_enclosing_it() {
     let py = "class Money:\n    def snapshot(self):\n        keep = self\n        return keep\n";

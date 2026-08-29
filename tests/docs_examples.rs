@@ -154,7 +154,7 @@ fn no_code_block_on_a_page_carries_a_comment() {
 
 #[test]
 fn the_check_found_the_blocks() {
-    // Most panes on these pages are built by script from the generated data, so the literal
+    // A script builds most panes on these pages from the generated data, so the literal
     // blocks are few.
     let blocks = rendered_blocks();
     assert!(

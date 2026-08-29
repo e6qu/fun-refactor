@@ -76,7 +76,7 @@ fn built_by_the_frontend(path: &Path) -> bool {
         return false;
     };
     let out_dir = &rest[open + 1..open + 1 + close];
-    // The path is written relative to `web/`.
+    // The path stands relative to `web/`.
     let built = config
         .parent()
         .expect("web/")
@@ -130,7 +130,7 @@ fn every_internal_link_goes_somewhere() {
 
 #[test]
 fn every_anchor_names_something_on_the_page() {
-    // A table of contents pointing at a heading that was renamed scrolls nowhere, and
+    // A table of contents pointing at a heading somebody renamed scrolls nowhere, and
     // looks like one that works.
     let mut broken = Vec::new();
     for (name, html) in pages() {
@@ -222,7 +222,7 @@ fn every_page_says_what_it_was_built_from() {
     // several commits of drift with nothing saying so.
     let mut missing = Vec::new();
     for (name, html) in pages() {
-        // The playground's page is emitted by Vite and is not ours to edit.
+        // Vite emits the playground's page, and nobody here edits it.
         if built_by_the_frontend(&docs().join(&name)) {
             continue;
         }

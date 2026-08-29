@@ -305,7 +305,7 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
     }
 
     // Strings and comments defeat every analysis, so report every hit except the ones already
-    // being rewritten.
+    // this rewrites.
     let edited: Vec<(PathBuf, Span)> = edits
         .iter()
         .flat_map(|(path, file_edits)| file_edits.iter().map(|e| (path.clone(), e.span)))
@@ -401,7 +401,7 @@ fn validate_name(name: &str, language: Language, kind: SymbolKind) -> Result<(),
     Ok(())
 }
 
-/// Reserved words that cannot be used as identifiers.
+/// Reserved words no identifier may take.
 fn is_keyword(name: &str, language: Language) -> bool {
     const SHARED: &[&str] = &["if", "else", "for", "while", "return", "break", "continue"];
     let specific: &[&str] = match language {

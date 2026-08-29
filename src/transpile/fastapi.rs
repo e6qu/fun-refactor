@@ -26,7 +26,7 @@ pub struct RouteFile {
     pub destination: PathBuf,
     /// The URL this file serves, in Next.js's spelling: `/pets/[petId]`.
     pub route: String,
-    /// The methods it exports, in the order they were declared.
+    /// The methods it exports, in declaration order.
     pub methods: Vec<String>,
     pub output: String,
 }

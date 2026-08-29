@@ -468,7 +468,7 @@ pub fn support(capability: Capability, language: Language) -> Support {
         // values key, a CSS class, a Markdown heading.
         C::DeadCode => Support::Yes,
 
-        // Every language here is parsed into a tree of named nodes, and comparing those is the
+        // Every language here parses into a tree of named nodes, and comparing those is the
         // whole of the analysis.
         C::Duplicates => Support::Yes,
 

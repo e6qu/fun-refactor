@@ -93,7 +93,7 @@ fn invocations() -> Vec<(&'static str, Vec<&'static str>)> {
         ("duplicates", vec!["duplicates", "--min-tokens", "40"]),
         ("unused", vec!["unused", "--language", "go"]),
         ("imports", vec!["imports", "svc/a.go"]),
-        // A stylesheet is the one thing in this fixture that can be rewritten as
+        // A stylesheet is the one thing in this fixture that becomes
         // another language; every programming language in it refuses, by design.
         ("translate", vec!["translate", "web/app.css", "scss"]),
         (

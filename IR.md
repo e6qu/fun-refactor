@@ -36,8 +36,7 @@ body. A `Record` holds fields and methods. Statements hold expressions, and
 expressions hold types.
 
 A `Module` is one file. It carries the file's doc comment, and its stem, which
-only Java needs. Java has no top level below the type, so a public class must be
-named after its file.
+only Java needs. Java has no top level below the type, so a public class takes its file's name.
 
 ## Items
 

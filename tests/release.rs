@@ -153,7 +153,7 @@ fn the_kinds_of_change_the_title_gate_takes_are_the_kinds_the_changelog_sorts() 
     assert!(kinds.len() >= 8, "the gate lists only {kinds:?}");
     for kind in &kinds {
         // `revert` is a kind `release-please` handles itself rather than one it
-        // is given a section for.
+        // holds a section for.
         if *kind == "revert" {
             continue;
         }

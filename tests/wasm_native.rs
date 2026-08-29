@@ -63,7 +63,7 @@ fn two_workspaces_do_not_read_each_others_bytes() {
 
 #[test]
 fn the_translation_menu_answers_for_every_language() {
-    // This is the call whose result shape broke: a field was added to the option struct and
+    // This is the call whose result shape broke: somebody added a field to the option struct and
     // missed at one of six literals.
     let ws = workspace(&[(
         "a.py",
@@ -125,7 +125,7 @@ fn a_file_that_is_not_a_route_says_why_fastapi_is_not_on_offer() {
         .iter()
         .find(|o| o["language"] == "fastapi");
     // Not a route at all, so it is not in the list; the refusal belongs to files that
-    // are routes and still cannot be translated.
+    // are routes and still cross into nothing.
     assert!(fastapi.is_none(), "{options}");
 }
 

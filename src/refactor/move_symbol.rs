@@ -323,7 +323,7 @@ fn repoint_re_export(
                 format!("export {{ {} }} from '{path}';\n", spelled.join(", "))
             }
         };
-        // Where the barrel is itself the destination, the name is declared here now, and a file
+        // Where the barrel is itself the destination, it declares the name now, and a file
         // does not re-export from itself.
         let onward = match barrel == destination {
             true => String::new(),
@@ -1025,7 +1025,7 @@ fn repoint_module_attribute_uses(
     Ok(handled)
 }
 
-/// A named-import statement, each name keeping the alias it was written with.
+/// A named-import statement, each name keeping the alias the source gave it.
 fn named_import(
     language: Language,
     type_import: bool,
@@ -2341,7 +2341,7 @@ fn go_carry_imports(
                     );
                     plan.imports_added.push(destination.to_path_buf());
                 }
-                // A destination with no package clause yet is written whole by the
+                // A destination with no package clause yet takes a whole file from the
                 // caller, which puts the clause and the imports in together.
                 None => {
                     for_the_header.push_str(statement.trim_start_matches('\n'));
@@ -3268,7 +3268,7 @@ fn zig_import_path(from: &Path, to: &Path) -> Option<String> {
     (!parts.is_empty()).then(|| parts.join("/"))
 }
 
-/// The identifier a new `@import` of `destination` is bound to.
+/// The identifier a new `@import` of `destination` binds.
 fn zig_namespace_name(destination: &Path) -> Result<String> {
     let stem = destination
         .file_stem()
@@ -3850,7 +3850,7 @@ fn carry_defined_dependencies(
     source: &str,
     plan: &mut MovePlan,
 ) {
-    // A Go move inside one package keeps one scope: nothing has to be named again.
+    // A Go move inside one package keeps one scope, so no name changes.
     if sym.language == Language::Go && sym.file.parent() == destination.parent() {
         return;
     }

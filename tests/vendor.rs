@@ -96,7 +96,7 @@ fn every_vendored_file_has_provenance() {
     let queries = vendor_root().join("tree-sitter-queries");
     let mut stack = vec![queries.clone()];
     while let Some(dir) = stack.pop() {
-        // A directory that cannot be read is not a directory with nothing in it.
+        // A directory that fails to read differs from an empty one.
         let entries = std::fs::read_dir(&dir)
             .unwrap_or_else(|e| panic!("{} cannot be read: {e}", dir.display()));
         for entry in entries.flatten() {
@@ -198,7 +198,7 @@ fn nothing_vendored_is_compiled_into_the_binary() {
                 continue;
             }
             if path.extension().is_some_and(|e| e == "rs") {
-                // Not `unwrap_or_default`: a file that cannot be read became empty
+                // Not `unwrap_or_default`: a file that fails to read became empty
                 // source, and empty source contains no `vendor/`.
                 let source = std::fs::read_to_string(&path)
                     .unwrap_or_else(|e| panic!("{} cannot be read: {e}", path.display()));

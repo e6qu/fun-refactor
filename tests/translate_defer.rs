@@ -151,7 +151,7 @@ fn typescript_parameter_properties_become_fields() {
 
 #[test]
 fn errdefer_cleans_up_only_on_the_failure_path() {
-    // Zig's `errdefer` runs when the scope is left failing, and here failure is an exception.
+    // Zig's `errdefer` runs where the scope exits failing, and here failure is an exception.
     let source = "pub fn build(allocator: anytype) !u32 {\n    \
         var list = try makeList(allocator);\n    errdefer list.deinit(allocator);\n    \
         try fill(&list);\n    return list.len;\n}\n";

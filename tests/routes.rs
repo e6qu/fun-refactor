@@ -1,4 +1,4 @@
-//! What URLs a service serves, whichever framework it was written with.
+//! What URLs a service serves, whichever framework it speaks.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile::routes::{self, Framework};
@@ -290,7 +290,7 @@ fn a_contract_is_built_from_a_service_that_is_not_next_js() {
         baseline.notes
     );
 
-    // And the document says which trees it was read from.
+    // And the document names the trees behind it.
     let described = baseline.document["info"]["description"].as_str().unwrap();
     assert!(described.contains("flask"), "{described}");
     assert!(described.contains("gin"), "{described}");

@@ -240,7 +240,7 @@ fn scss_reads_these_forms() {
             "several values in an interpolation",
             ".a { --x: #{transform 1s ease-in-out}; }",
         ),
-        // Argument lists, in every shape one is written.
+        // Argument lists, in every shape one takes.
         ("empty parameters", "@mixin m() { color: red; }"),
         (
             "empty arguments",
@@ -539,7 +539,7 @@ fn zig_reads_a_container_with_no_members() {
     );
 }
 
-/// Helm masking: what the YAML grammar is given where an action stood.
+/// Helm masking: what the YAML grammar sees where an action stood.
 #[test]
 fn helm_masking_produces_parseable_yaml() {
     let cases = [

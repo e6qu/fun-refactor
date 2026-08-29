@@ -1,4 +1,4 @@
-//! A header that binds names must not be dropped under the branch it guards.
+//! A header that binds names stays under the branch it guards.
 
 mod common;
 use common::{require_on_ci, Toolchain};

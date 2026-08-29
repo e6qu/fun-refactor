@@ -141,7 +141,7 @@ fn a_grouped_plain_import_keeps_an_aliased_module_something_names() {
 
 #[test]
 fn a_grouped_plain_import_narrows_around_a_kept_submodule() {
-    // `app.handlers` may exist for its registration side effects, so it stays and is reported.
+    // `app.handlers` may exist for its registration side effects, so it stays and the report names it.
     let (plan, updated, _) = organize(
         &[("a.py", "import app.handlers, sys\n\nprint(1)\n")],
         "a.py",
@@ -308,7 +308,7 @@ fn a_typescript_named_import_used_in_the_file_is_kept_and_the_rest_go() {
         "a.ts",
     );
 
-    // `./m` binds two names and only one is used, so the statement stays and `b` goes.
+    // `./m` binds two names and the body reads one, so the statement stays and `b` goes.
     assert_eq!(
         plan.removed
             .iter()
@@ -324,7 +324,7 @@ fn a_typescript_named_import_used_in_the_file_is_kept_and_the_rest_go() {
 
 #[test]
 fn a_rust_trait_imported_only_for_its_methods_is_kept() {
-    // `Write` is never spelled at the call site, only `write_str` is, so name-based liveness
+    // The call site spells `write_str` and never `Write`, so name-based liveness
     // sees an unused import.
     let (plan, updated, _) = organize(
         &[(

@@ -43,7 +43,7 @@ impl Workspace {
     }
 }
 
-/// A function long enough to be found as a duplicate, and dead enough to be listed.
+/// A function long enough to match as a duplicate, and dead enough to list.
 fn go_helper(name: &str) -> String {
     format!(
         "package p\n\nfunc {name}(items []int, factor int) int {{\n\
@@ -167,7 +167,7 @@ fn internal_hides_what_might_be_a_public_api() {
 
 #[test]
 fn a_bare_name_defined_twice_is_refused_with_both_locations() {
-    // How a target is named, and what happens when the name is not enough.
+    // How to name a target, and what happens where the name falls short.
     let ws = Workspace::new(&[
         (
             "one/a.go",
@@ -467,7 +467,7 @@ fn each_kind_of_domain_failure_has_its_own_exit_code() {
         Some(5),
         "a blocked delete is a refusal."
     );
-    // A position naming a file that does not exist was not found.
+    // A position naming a file that does not exist finds nothing.
     assert_eq!(
         code(&["def", "one/missing.go:3:6"]),
         Some(3),

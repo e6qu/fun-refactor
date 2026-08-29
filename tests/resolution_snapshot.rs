@@ -38,7 +38,7 @@ fn a_snapshot_answers_identically_and_an_edit_invalidates_it() {
     );
 
     // An edit anywhere changes the workspace key, so the stale snapshot
-    // cannot be applied to the new shape.
+    // does not fit the new shape.
     std::fs::write(
         tmp.path().join("a.rs"),
         "pub fn helper() -> i64 {\n    8\n}\n\npub fn extra() -> i64 {\n    helper()\n}\n",

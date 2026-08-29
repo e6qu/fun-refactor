@@ -217,7 +217,7 @@ fn a_symbol_referenced_only_from_a_string_is_deleted_but_the_string_is_reported(
     assert_eq!(textual.len(), 1, "got {textual:?}");
     assert_eq!(textual[0].line, 3);
 
-    // The delete still happens, the string is reported.
+    // The delete still happens, and the report names the string.
     assert_eq!(
         applied(&plan, &tmp.path().join("a.rs")),
         "fn main() {\n    dispatch(\"handler\");\n}\n"
@@ -277,7 +277,7 @@ fn deleting_a_lone_css_selector_removes_its_whole_rule() {
 #[test]
 fn deleting_one_of_several_selectors_leaves_the_rule_standing() {
     // The rule still applies to its remaining selectors, so only the named one and
-    // the comma joining it are removed.
+    // the comma joining it come away too.
     let source = ".card, .btn, .wide { margin: 0; }\n";
     let (tmp, index) = workspace(&[("style.css", source)]);
 
@@ -355,7 +355,7 @@ fn find_unused_reports_mutual_recursion_as_a_dead_group() {
 
 #[test]
 fn find_unused_leaves_out_a_name_a_string_literal_spells() {
-    // `on_event` is called through a name-keyed handler table the index cannot see.
+    // A name-keyed handler table the index cannot see calls `on_event`.
     let source = "fn on_event() {}\nfn main() {\n    dispatch(\"on_event\");\n}\n";
     let (_tmp, index) = workspace(&[("a.rs", source)]);
 
@@ -437,7 +437,7 @@ fn the_edits_survive_the_engines_reparse_check() {
 
 #[test]
 fn deleting_a_css_selector_survives_the_reparse_check() {
-    // What is left has to still be CSS.
+    // What remains has to parse as CSS.
     let (_tmp, index) = workspace(&[(
         "style.css",
         ".btn { color: red; }\n.card, .btn { margin: 0; }\n",
@@ -459,7 +459,7 @@ fn deleting_a_css_selector_survives_the_reparse_check() {
 
 #[test]
 fn find_unused_leaves_out_a_name_the_author_marked_unused() {
-    // A parameter a signature forces on you and the body ignores is written with a leading
+    // A parameter a signature forces and the body ignores takes a leading
     // underscore in Rust, TypeScript, Python and Zig.
     let source = "fn handler(_theme: i32, value: i32) -> i32 {\n    value\n}\n\
                   fn main() {\n    handler(1, 2);\n}\n";
@@ -554,7 +554,7 @@ fn polyglot() -> Vec<(&'static str, &'static str)> {
             "<!doctype html>\n<html><body>\n<a class=\"panel\">one</a>\n<p class=\"note\" id=\"here\">two</p>\n</body></html>\n",
         ),
         (
-            // `panel` and `note` are declared twice over, and used by the markup.
+            // `panel` and `note` each stand twice, and the markup reads both.
             "web/base.css",
             ".panel {\n  color: red;\n}\n\n.note {\n  color: blue;\n}\n\n.never-used {\n  color: green;\n}\n",
         ),
@@ -638,7 +638,7 @@ fn a_class_declared_twice_and_used_once_is_not_dead() {
              neither declaration is dead. Reported: {dead:?}"
         );
     }
-    // The negative half: a class nothing uses must still be found, in both files.
+    // The negative half: the search still finds a class nothing uses, in both files.
     for gone in ["never-used", "also-never"] {
         assert!(
             dead.contains(&gone),

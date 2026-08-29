@@ -23,7 +23,7 @@ pub struct Passed {
     pub language: Language,
 }
 
-/// A flag, everywhere it is declared and everywhere it is passed.
+/// A flag, everywhere something declares it and everywhere something passes it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FlagUse {
     pub flag: String,
@@ -172,7 +172,7 @@ fn declarations(source: &str, language: Language) -> Vec<(usize, String)> {
 
 /// The flags one file passes, with the line each sits on.
 fn uses(source: &str, language: Language) -> Vec<(usize, String)> {
-    // Only where a command line is written.
+    // Only the languages that write a command line.
     if !matches!(
         language,
         Language::Bash | Language::Yaml | Language::Helm | Language::Json

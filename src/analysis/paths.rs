@@ -8,11 +8,11 @@ use std::path::{Path, PathBuf};
 /// One string that names a file, and the file.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PathLink {
-    /// The file the string is written in.
+    /// The file holding the string.
     pub from: PathBuf,
     pub line: usize,
     pub language: Language,
-    /// The path as it is written.
+    /// The path as the source spells it.
     pub written: String,
     /// The file it names, where the workspace holds one.
     pub names: Option<PathBuf>,
@@ -147,7 +147,7 @@ fn as_a_path(word: &str) -> Option<String> {
     if word.is_empty() || word.contains("://") {
         return None;
     }
-    // A Terraform path is written against `path.module`, which is the directory
+    // Terraform spells a path against `path.module`, the directory
     // the file sits in.
     let word = word
         .trim_start_matches("${path.module}")

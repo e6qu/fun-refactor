@@ -180,7 +180,7 @@ def retry():
     return send("backup.example.com", 8443)
 "#;
 
-// `precision` is passed at every call and read by nothing: the parameter nobody needs.
+// Every call passes `precision` and nothing reads it: the parameter nobody needs.
 const DEFAULTS_PY: &str = r#"import math
 
 
@@ -658,7 +658,7 @@ struct Translation {
     files: &'static [(&'static str, &'static str)],
     subject: &'static str,
     target: &'static str,
-    /// Where the sample came from, when it is not written for this page.
+    /// Where the sample came from, where this page did not write it.
     provenance: Option<&'static str>,
     /// A directory under `tests/corpus/` to copy in whole.
     corpus: Option<&'static str>,
@@ -1453,7 +1453,7 @@ fn translate_data() -> String {
             .filter_map(|e| e.ok().map(|e| e.path()))
             .find(|p| p.file_name() != Path::new(case.subject).file_name() && p.is_file())
             .unwrap_or_else(|| panic!("{} produced no file", case.id));
-        // The banner names the file it was translated from, and that path is a temporary
+        // The banner names the file behind it, and that path is a temporary
         // directory with a different name every run.
         let after = scrub(&std::fs::read_to_string(&written).unwrap(), root);
 

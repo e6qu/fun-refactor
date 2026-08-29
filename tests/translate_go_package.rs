@@ -3,7 +3,7 @@
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
 
-/// The package clause is taken from the file being written, so the destination
+/// The package clause comes from the file this writes, so the destination
 /// is the one a `--write` would choose.
 fn translated(source: &str, name: &str) -> String {
     let tmp = tempfile::tempdir().unwrap();

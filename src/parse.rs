@@ -163,7 +163,7 @@ fn inline_ranges(block_tree: &Tree) -> Vec<Vec<Range>> {
     let mut recurse = true;
     loop {
         let node = cursor.node();
-        // `pipe_table_cell` holds inline content too, so links in a table are found.
+        // `pipe_table_cell` holds inline content too, so a table's links turn up.
         if matches!(node.kind(), "inline" | "pipe_table_cell") {
             let ranges = ranges_excluding_children(node);
             if ranges.iter().any(|r| r.end_byte > r.start_byte) {

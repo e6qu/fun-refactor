@@ -197,7 +197,7 @@ fn const_and_var_map_to_constant_and_variable() {
 
 #[test]
 fn a_var_initialiser_is_not_mistaken_for_a_second_declaration() {
-    // `var a = b;` has two identifier children; only the one before `=` is declared.
+    // `var a = b;` has two identifier children; only the one before `=` declares.
     let src = "const b: u32 = 1;\nvar a = b;\n";
     let f = zig(src);
     assert_eq!(names_of(&f, SymbolKind::Variable), vec!["a"]);
@@ -378,7 +378,7 @@ fn import_binds_a_name_to_a_path() {
     let f = zig(src);
     assert_eq!(f.imports.len(), 1);
     let i = &f.imports[0];
-    // The path is reported without its quotes.
+    // The report drops the quotes around the path.
     assert_eq!(i.path, "std");
     assert_eq!(i.names.len(), 1);
     assert_eq!(i.names[0].local, "std");

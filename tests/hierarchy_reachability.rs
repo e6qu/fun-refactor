@@ -143,7 +143,7 @@ fn rust_a_dyn_call_reaches_every_impl_of_the_trait() {
             HierarchyBasis::ImplementedTrait,
         );
     }
-    // The trait's own declaration is named by the call too, and stays live with it.
+    // The call names the trait's own declaration too, and both stay live.
     assert_eq!(
         edge(&graph, report, method(&index, "Shape", "area")),
         Some((Confidence::FieldBased, EdgeOrigin::Resolved)),

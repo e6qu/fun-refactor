@@ -162,9 +162,9 @@ pub struct Action {
     /// The action as written.
     pub text: String,
     pub kind: ActionKind,
-    /// `{{-` was written.
+    /// The source wrote `{{-`.
     pub trim_left: bool,
-    /// `-}}` was written.
+    /// The source wrote `-}}`.
     pub trim_right: bool,
     /// Every field chain the action names, in source order.
     pub refs: Vec<Ref>,
@@ -723,7 +723,7 @@ impl SetValue {
         Some(out)
     }
 
-    /// `true` when this assignment carries the string it was written with.
+    /// `true` where this assignment keeps the string the source gave it.
     pub fn is_string(&self) -> bool {
         self.source == SetSource::String
     }
@@ -732,7 +732,7 @@ impl SetValue {
         self.source.flag()
     }
 
-    /// The assignment as it would be written on the command line.
+    /// The assignment as a command line spells it.
     pub fn describe(&self) -> String {
         format!("`{} {}`", self.flag(), self.text)
     }
@@ -1489,7 +1489,7 @@ fn index_call(
         _ => return None,
     }
 
-    // The base is the collection being indexed: `.Values`, `.Values.a` or `$.Values`.
+    // The base names the collection this indexes: `.Values`, `.Values.a`, `$.Values`.
     let base = tokens.get(at + 1)?;
     let base_path: Vec<String> = match &base.kind {
         Tok::Field(segments) if segments.first().is_some_and(|s| s == "Values") => {

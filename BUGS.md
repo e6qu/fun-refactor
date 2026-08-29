@@ -389,6 +389,34 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   function, the fallback, the parameter order and the header. One helper would
   take four arguments and read worse than the two.
 
+- [x] B811: **only two targets extracted a region that returns.** Rust and Go
+  answered an optional and a pair. The other four refused: `None` means absence
+  and a value alike. Java has `Optional`, Zig has `?T`, and
+  Python and TypeScript both spell a pair. All six extract one now.
+
+  | Target | Answers | At the call |
+  | --- | --- | --- |
+  | Rust | `Option<T>` | `if let Some(answer) = f(…)` |
+  | Go | `(T, bool)` | `if answer, ok := f(…); ok` |
+  | Zig | `?T` | `if (f(…)) \|answer\|` |
+  | Java | `Optional<T>` | `answer.isPresent()` |
+  | TypeScript | `[T, true] \| [null, false]` | `const [answer, ok] = f(…)` |
+  | Python | a pair | `answer, ok = f(…)` |
+
+  TypeScript takes a discriminated pair. A plain `[T | null, boolean]` leaves the
+  value nullable and strict mode refuses to return it. Every output went through
+  its own toolchain. `rustc`, `go vet`, `tsc --strict`, `javac`, `zig ast-check`,
+  and the Python ran.
+
+  Two defects fell out of that checking. The rewrite matched the bare `return`
+  keyword and left the value behind. It also dropped the terminator in the
+  grammars holding the `;` inside the statement.
+
+- [x] B812: **every comment in the source spoke in the passive.** 1,903
+  constructions ignored the rule when the counter went in. None remains in a
+  comment or in a reader-facing document. The rest sit in assertion messages and
+  in this file and `PLAN.md`. The budget holds them.
+
 - [x] B777: **a renamed flag silently broke every script passing it.** A script
   writes `./collector --retention-days 30`, and a program declares that flag
   somewhere. The two never met. The flag was a word in a shell command and

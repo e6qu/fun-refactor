@@ -188,7 +188,7 @@ fn split_value_spans(span: Span, source: &str) -> Vec<Span> {
     spans
 }
 
-/// What a reference was written against, if it was written as a member of something.
+/// The receiver a reference names, where it names one.
 fn call_in_macro(root: Node<'_>, span: Span, source: &str) -> bool {
     if !inside_token_tree(root, span) {
         return false;
@@ -285,7 +285,7 @@ fn receiver_of(root: Node<'_>, span: Span, source: &str, language: Language) -> 
         "scoped_identifier",
         "scoped_type_identifier",
     ];
-    // What the member was read from, where the grammar names it.
+    // The receiver the member hangs off, where the grammar names it.
     const RECEIVER_FIELDS: &[&str] = &["object", "operand", "receiver"];
     let node = root.descendant_for_byte_range(span.start, span.end)?;
     let parent = node.parent()?;
@@ -336,7 +336,7 @@ fn receiver_of(root: Node<'_>, span: Span, source: &str, language: Language) -> 
 
     let mut cursor = parent.walk();
     let children: Vec<Node> = parent.named_children(&mut cursor).collect();
-    // The member itself is last; anything before it is what it was read from.
+    // The member comes last; everything before it names the receiver.
     let last = children.last()?;
     if Span::from(*last) != span || children.len() < 2 {
         return None;
@@ -774,7 +774,7 @@ impl Extractor {
                 }
 
                 if let Some((kind, full_span)) = def {
-                    // A definition without an identifier cannot be renamed or referenced,
+                    // Nothing renames or references a definition with no identifier,
                     // so it is not a usable symbol.
                     if let Some(name_span) = name {
                         let name_span = refine_name_span(name_span, source, lang);
@@ -818,7 +818,7 @@ impl Extractor {
                 .map(|s| s.id)
                 .unwrap_or(ScopeId(0))
         };
-        // A definition lives in the scope it is declared in, not the scope it creates.
+        // A definition lives in the scope holding it, never the scope it opens.
         let declaration_scope = |name_offset: usize, own: Span| -> ScopeId {
             scopes
                 .iter()
@@ -1235,7 +1235,7 @@ mod tests {
             "label"
         );
 
-        // Unmatched quotes are left alone and not half-trimmed.
+        // Leave unmatched quotes alone rather than half-trim them.
         let odd = "\"unclosed";
         assert_eq!(
             refine_name_span(Span::new(0, odd.len()), odd, Language::Rust).text(odd),

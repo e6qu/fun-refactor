@@ -1,4 +1,4 @@
-//! A method that changes the thing it was called on.
+//! A method that changes its own receiver.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -46,7 +46,7 @@ fn a_zig_method_that_only_reads_takes_a_value() {
 #[test]
 fn the_receiver_is_recognised_by_whatever_the_source_called_it() {
     // TypeScript says `this` and Python says `self`; the body carries the source's word
-    // until it is written.
+    // until this writes it.
     let ts = translated(
         "a.ts",
         "export class Counter {\n    value: number;\n\n    bump() {\n        \

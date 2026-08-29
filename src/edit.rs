@@ -26,7 +26,7 @@ impl Edit {
     }
 }
 
-/// All edits to be applied to a single file.
+/// Every edit for one file.
 #[derive(Debug, Clone, Default)]
 pub struct FileEdits {
     pub edits: Vec<Edit>,
@@ -64,7 +64,7 @@ impl EditSet {
         self.languages.insert(path.into(), language);
     }
 
-    /// The declared language of `path`, where one was declared.
+    /// The language `path` declares, where it declares one.
     pub fn language(&self, path: &Path) -> Option<crate::lang::Language> {
         self.languages.get(path).copied()
     }
@@ -167,7 +167,7 @@ impl FileOutcome {
     }
 }
 
-/// Validation performed on the rewritten text before it may be written to disk.
+/// What the rewritten text has to pass before it reaches disk.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Validation {
     /// Reparse and reject the edit if it introduces syntax errors the original did not have.
@@ -787,7 +787,7 @@ mod tests {
         set.add(&b, Edit::new(Span::new(3, 4), "y", "rename"));
         let outcomes = plan(&set, Validation::ReparseStrict).unwrap();
 
-        // Only one of the two files moved on, and the fresh one must not be written either.
+        // Only one of the two files moved on, and the fresh one stays as it is too.
         crate::vfs::write(&b, "fn moved() {}\n").unwrap();
         let err = commit(&outcomes).unwrap_err().to_string();
         assert!(

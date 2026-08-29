@@ -139,7 +139,7 @@ fn a_bare_double_dash_names_no_flag() {
 #[test]
 fn a_double_dash_in_code_is_not_a_flag() {
     // A Rust comment marker and a decrement are not command lines, so only the
-    // languages that write one are read for uses.
+    // languages that write one carry a use.
     let (_tmp, all) = found(&[(
         "src/lib.rs",
         "pub fn f() {\n    // -- a note\n    let mut n = 2;\n    n -= 1;\n}\n",

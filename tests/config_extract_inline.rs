@@ -237,7 +237,7 @@ resource \"aws_s3_bucket\" \"b\" {
 
 #[test]
 fn hcl_extract_refuses_a_name_the_module_already_uses() {
-    // Terraform's scope is the directory, so a name taken in a sibling file is taken.
+    // Terraform scopes to the directory, so a sibling file taking the name takes it.
     let ws = workspace(&[
         (
             "variables.tf",
@@ -967,8 +967,8 @@ fn css_extract_puts_a_new_root_rule_after_leading_at_rules() {
 
 #[test]
 fn scss_extract_produces_a_dollar_variable_at_the_top_level() {
-    // A `$` name asks for an SCSS variable, which is declared at the stylesheet's top level and
-    // not in a `:root` rule, `$vars` are resolved by the compiler, not the cascade.
+    // A `$` name asks for an SCSS variable, which sits at the stylesheet's top level and
+    // not in a `:root` rule: the compiler resolves a `$var`, never the cascade.
     let src = ".btn {\n  color: #3366ff;\n}\n\n.link {\n  color: #3366ff;\n}\n";
     let ws = workspace(&[("theme.scss", src)]);
     let path = ws.path("theme.scss");

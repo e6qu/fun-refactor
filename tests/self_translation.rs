@@ -60,7 +60,7 @@ fn every_target(files: &[PathBuf], what: &str, least: usize) {
 
 #[test]
 fn the_tools_own_rust_translates_into_something_that_parses() {
-    // Twenty thousand lines of Rust nobody wrote to be translated.
+    // Twenty thousand lines of Rust nobody wrote for a translator.
     every_target(&sources("src", "rs"), "Rust", 30);
 }
 
@@ -95,7 +95,7 @@ fn the_vendored_java_translates_into_something_that_parses() {
 
 #[test]
 fn the_vendored_zig_translates_into_something_that_parses() {
-    // zigtools/zls, and every one of these was a defect the first time it was read: a pointer
+    // zigtools/zls. Every one of these was a defect on the first reading: a pointer
     // type, an optional type, `comptime` parameters, `_` as a parameter name, and a
     // destructuring that silently kept the first name and dropped the rest.
     every_target(&sources("tests/corpus/zls", "zig"), "Zig", 2);

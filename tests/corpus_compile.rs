@@ -183,7 +183,7 @@ fn every_translated_corpus_file_is_accepted_by_its_toolchain() {
                 .expect("a stem")
                 .to_string_lossy()
                 .replace(['-', '[', ']'], "_");
-            // Java names the class after the module, which is named after the
+            // Java names the class after the module, which takes its name from the
             // source file; the output file must match.
             let named = format!("{stem}.{}", extension(*target));
             let dir = tmp.path().join(format!("{checked}"));

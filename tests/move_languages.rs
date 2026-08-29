@@ -1,4 +1,4 @@
-//! Move to file, across the seven languages where a move can be made correct.
+//! Move to file, across the seven languages where a move holds.
 
 use fun_refactor::{
     edit::{self, Validation},
@@ -81,7 +81,7 @@ fn error(result: Result<move_symbol::MovePlan, anyhow::Error>) -> String {
 
 // Rust, module paths derived from the file tree.
 
-/// A crate whose module tree is spelled out, which is the precondition Rust needs.
+/// A crate spelling out its module tree, the precondition Rust needs.
 fn rust_crate(files: &[(&str, &str)]) -> Workspace {
     let mut all: Vec<(&str, &str)> = vec![(
         "src/lib.rs",
@@ -306,7 +306,7 @@ fn rust_repoints_a_fully_qualified_call() {
     let index = ws.index();
     let id = symbol_id(&index, "shared", None);
 
-    // The whole path is written down, and a trailing module segment names its file.
+    // The source spells the whole path, and a trailing module segment names its file.
     let plan = move_symbol::to_file(&index, id, &ws.path("src/store.rs")).expect("a plan");
     let app = ws.path("src/app.rs");
     let out = fun_refactor::edit::apply_to_string(
@@ -857,7 +857,7 @@ fn css_rule_moves_to_an_imported_partial_without_a_warning() {
 
     let plan = move_symbol::to_file(&index, id, &ws.path("buttons.css")).unwrap();
     let changed = commit(&plan);
-    // A CSS class is named globally: the HTML does not change.
+    // A CSS class names globally, so the HTML stands.
     assert_eq!(names_of(&changed), ["buttons.css", "main.css"]);
     assert!(plan.warnings.is_empty(), "got {:?}", plan.warnings);
 
@@ -1484,7 +1484,7 @@ fn a_moved_python_symbol_takes_the_module_imports_it_uses() {
 #[test]
 fn a_future_import_travels_with_the_code_it_governs() {
     // It binds nothing, so no name-based rule would carry it, and it decides how every
-    // annotation in the file is read.
+    // annotation in the file counts.
     let ws = Workspace::new(&[
         ("pkg/__init__.py", ""),
         (

@@ -191,7 +191,7 @@ fn unlabelled_and_single_label_blocks_are_named_by_what_they_have() {
     let tf = sym(&f, "terraform");
     assert_eq!(tf.kind, SymbolKind::Block);
     assert_eq!(tf.name_span.text(MAIN_TF), "terraform");
-    // `provider "aws"` is named by its single label.
+    // Its single label names `provider "aws"`.
     let aws = sym(&f, "aws");
     assert_eq!(aws.kind, SymbolKind::Block);
     assert_eq!(aws.name_span.text(MAIN_TF), "aws");
@@ -271,7 +271,7 @@ fn managed_resource_address_splits_into_type_and_name() {
     // `aws_s3_bucket.main.arn`: the name is renameable, the type is provider-fixed
     // but still rewritten by a type change, and `arn` is a read of the resource.
     let f = hcl(MAIN_TF);
-    // `seg` is written with its leading dot to disambiguate; the reference span
+    // `seg` keeps its leading dot to disambiguate; the reference span
     // deliberately starts after that dot, so step over it.
     let at = |needle: &str, seg: &str| {
         let base = MAIN_TF.find(needle).unwrap();
@@ -337,7 +337,7 @@ fn module_output_reference_names_the_module_then_the_output() {
 
 #[test]
 fn evaluation_context_values_are_fields_not_renameable_names() {
-    // `each.value` has no declaration site anywhere, so it must not be reported
+    // `each.value` declares nowhere, so nothing should report it
     // as an identifier a rename could chase.
     let f = hcl(MAIN_TF);
     let value = refs(&f, "value");
@@ -385,7 +385,7 @@ fn function_calls_are_calls() {
     let length = refs(&f, "length");
     assert_eq!(length.len(), 1, "got {length:?}");
     assert_eq!(length[0].kind, ReferenceKind::Call);
-    // Its argument is still resolved as a variable reference.
+    // Resolution still reaches its argument as a variable reference.
     assert_eq!(refs(&f, "list").len(), 1);
 }
 
@@ -472,7 +472,7 @@ fn object_expressions_open_their_own_scope() {
 #[test]
 fn empty_labels_define_nothing() {
     // An empty `""` label has no `template_literal` child at all, so there is no byte range to
-    // rename and no symbol is produced.
+    // rename and no symbol comes of it.
     let f = hcl("resource \"aws_s3_bucket\" \"\" {}\n");
     assert!(f.symbols.is_empty(), "got {:?}", names(&f));
 }

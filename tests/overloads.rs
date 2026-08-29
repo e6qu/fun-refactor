@@ -102,7 +102,7 @@ fn a_rename_that_leaves_a_call_behind_says_so() {
 
 #[test]
 fn a_name_used_by_another_function_is_not_a_collision() {
-    // A parameter is written outside the body it belongs to.
+    // A parameter stands outside the body owning it.
     let source = "def one(session: int) -> int:\n    return session\n\n\n\
                   def two(email: int) -> int:\n    return email\n";
     let (_tmp, root) = workspace(&[("c.py", source)]);

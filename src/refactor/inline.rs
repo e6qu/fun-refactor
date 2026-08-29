@@ -134,7 +134,7 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         .into());
     }
 
-    // A compound value is wrapped only where the use site needs it.
+    // Wrap a compound value only where the use site needs it.
     let mut trees: std::collections::HashMap<std::path::PathBuf, (String, crate::parse::Parsed)> =
         std::collections::HashMap::new();
     let mut edits = EditSet::new();
@@ -528,7 +528,7 @@ mod tests {
     #[test]
     fn refuses_non_variables() {
         let src = "fn helper() {}\nfn f() { helper(); }\n";
-        // The temp dir is bound so it outlives the index that points into it.
+        // Bind the temp dir so it outlives the index pointing into it.
         let (_tmp, index) = workspace(&[("a.rs", src)]);
         let id = index.find_symbols("helper", None)[0].id;
 
@@ -1050,7 +1050,7 @@ fn wrapped_in_one_group(text: &str) -> bool {
         match character {
             '(' => depth += 1,
             ')' => {
-                // Unbalanced text is nothing this can reason about, so it is treated
+                // Nothing here reasons about unbalanced text, so this treats it
                 // as needing the brackets, and not as already having them.
                 depth = match depth.checked_sub(1) {
                     Some(depth) => depth,
@@ -1273,7 +1273,7 @@ fn hcl_local(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     }
 
     let mut edits = EditSet::new();
-    // A module spans several files, so each use site is read and parsed in its own.
+    // A module spans several files, so each use site parses in its own.
     let mut per_file: std::collections::HashMap<PathBuf, (String, Parsed)> =
         std::collections::HashMap::new();
     for reference in &references {
@@ -1546,7 +1546,7 @@ fn css_custom_property(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         );
     }
 
-    // An SCSS `$variable` is used bare.
+    // An SCSS `$variable` stands bare at its uses.
     if sym.name.starts_with('$') {
         let mut edits = EditSet::new();
         for reference in &references {

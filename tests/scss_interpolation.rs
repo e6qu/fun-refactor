@@ -38,7 +38,7 @@ fn an_interpolated_value_no_longer_costs_the_rest_of_the_file() {
     let source = ".a {\n  color: #{$v};\n}\n\n.b { color: red; }\n\n.c { color: blue; }\n";
     let (errors, symbols, _) = parsed_and_facts(source);
     assert_eq!(errors, 0);
-    // A selector symbol is named without its leading `.`.
+    // A selector symbol drops its leading `.`.
     for expected in ["a", "b", "c"] {
         assert!(
             symbols.iter().any(|s| s == expected),
@@ -71,7 +71,7 @@ fn a_bare_word_inside_the_braces_names_nothing() {
 
 #[test]
 fn an_interpolated_name_is_the_text_the_file_holds() {
-    // A selector built around an interpolation is named by what the file says, braces
+    // A selector built around an interpolation takes the name the file gives it, braces
     // and all: that is the text a rename has to rewrite.
     let (_, symbols, _) = parsed_and_facts(".btn-#{$variant} { color: red; }");
     assert!(
@@ -95,7 +95,7 @@ fn braces_inside_the_braces_are_one_interpolation() {
 
 #[test]
 fn an_unterminated_interpolation_stays_a_syntax_error() {
-    // A fault in the file, and it is reported as one.
+    // A fault in the file, and the report calls it one.
     let (errors, _, _) = parsed_and_facts(".a { color: #{$v; }");
     assert!(errors > 0);
 }

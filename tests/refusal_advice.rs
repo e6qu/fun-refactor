@@ -466,7 +466,7 @@ fn the_go_cycle_refusal_names_a_package_that_works() {
 
 #[test]
 fn the_unread_flag_refusal_names_a_command_that_takes_it() {
-    // "'{flag}' is declared at {} and nothing reads it, so there is no flag to remove.
+    // "nothing declares '{flag}' at {}, so there is no flag to remove.
     let (_tmp, root, index) = workspace(&[("a.rs", "pub const USE_NEW: bool = true;\n")]);
 
     let refusal = fun_refactor::refactor::cascade::remove_flag(&root, "USE_NEW", true)

@@ -215,7 +215,7 @@ fn typescript() -> Vec<(&'static str, &'static str)> {
     vec![
         (
             "tsconfig.json",
-            // `moduleResolution: node` was removed in a later TypeScript, and CI has one.
+            // A later TypeScript dropped `moduleResolution: node`, and CI runs one.
             "{\n  \"compilerOptions\": {\n    \"strict\": true,\n    \"noEmit\": true,\n    \"target\": \"ES2020\",\n    \"module\": \"esnext\",\n    \"moduleResolution\": \"bundler\"\n  },\n  \"include\": [\"src\"]\n}\n",
         ),
         (
@@ -844,7 +844,7 @@ fn the_gate_reports_a_workspace_that_does_not_compile() {
     }
 
     if Toolchain::Python.is_available() {
-        // Python compiles a name that does not exist and fails when it is read, which is
+        // Python compiles a name that does not exist and fails at the read, which is
         // why this toolchain runs the fixture as well as compiling it.
         let python = Workspace::python(&python_files());
         std::fs::write(

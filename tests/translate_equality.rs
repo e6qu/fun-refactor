@@ -27,7 +27,7 @@ pub fn numbers(a: i64, b: i64) -> bool {
 #[test]
 fn java_compares_the_contents_of_a_string() {
     // `a == b` on a Java String asks whether they are the same object, which is false for two
-    // equal strings that were built and not interned.
+    // equal strings something built rather than interned.
     let out = translated(STRINGS, Language::Java);
     assert!(
         out.contains("return java.util.Objects.equals(a, b);"),
@@ -37,7 +37,7 @@ fn java_compares_the_contents_of_a_string() {
         out.contains("return !java.util.Objects.equals(a, b);"),
         "{out}"
     );
-    // Numbers are compared with `==` in Java as everywhere else.
+    // Java compares numbers with `==` as everywhere else.
     assert!(out.contains("return a == b;"), "{out}");
 }
 

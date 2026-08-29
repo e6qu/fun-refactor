@@ -11,7 +11,7 @@ pub struct Baseline {
     pub document: Value,
     /// One line per thing a reader must not take the document to have settled.
     pub notes: Vec<String>,
-    /// The route files it was built from.
+    /// The route files behind it.
     pub routes: Vec<PathBuf>,
 }
 
@@ -22,7 +22,7 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
     let mut notes = Vec::new();
     let mut routes = Vec::new();
 
-    // Every shape the tree declares, wherever it is declared.
+    // Every shape the tree declares, wherever it sits.
     let mut declared: std::collections::BTreeMap<String, Model> = std::collections::BTreeMap::new();
     for file in files {
         for model in nextjs::models_in(file).unwrap_or_default() {
@@ -206,8 +206,8 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
             );
         }
         routes.push(file.clone());
-        // The body a handler reads is declared in the framework's own way, and none of the five
-        // say it where the route is declared.
+        // Each framework declares a handler's body its own way, and none of the five
+        // say it beside the route.
         notes.push(format!(
             "{}: read as {framework}. Paths and methods are exact. Each handler's \
              body is declared away from the route, so it is not in this document",

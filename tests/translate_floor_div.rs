@@ -201,7 +201,7 @@ fn every_target_prints_the_same_floors_as_python_does() {
 
     if Toolchain::Javac.is_available() {
         // Java names the file after the public class, so the destination is
-        // part of what is translated and not a place to put the result.
+        // part of what crosses and no place to put the result.
         let java = transpile::plan_to(
             &dir.join("signs.py"),
             Language::Java,

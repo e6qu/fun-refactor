@@ -466,7 +466,7 @@ const PASSING: &[&str] = &[
     "strings zig->typescript",
 ];
 
-/// The languages of the suite, with how each one's programs are named and run.
+/// The languages of the suite, with how each names and runs its programs.
 const LANGUAGES: &[Language] = &[
     Language::Rust,
     Language::Go,

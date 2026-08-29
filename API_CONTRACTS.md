@@ -181,8 +181,8 @@ contract, and no amount of reading one side ever will. Compare the two sides ins
 1. Export the contract from the original. For a Next.js app, that means writing the
    OpenAPI document by hand or from its zod schemas, work most teams have already
    skipped.
-2. Rewrite. Read the report: what carried, what did not, and which status codes are
-   returned but not declared.
+2. Rewrite. Read the report: what carried, what did not, and which status codes the
+   code returns without declaring.
 3. Export the contract from the result: `curl localhost:8000/openapi.json`.
 4. **Diff them**, and treat every difference as a defect until argued otherwise.
 

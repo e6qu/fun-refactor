@@ -436,7 +436,7 @@ fn every_claimed_capability_accepts_the_language_it_claims() {
 
 #[test]
 fn the_matrix_and_this_file_agree_on_how_many_cells_there_are() {
-    // A capability added without a driver above would quietly stop being checked, and the count
+    // A capability added without a driver above quietly drops out of the check, and the count
     // is what notices.
     let (yes, _, _) = fun_refactor::capabilities::totals();
     let driven: usize = Language::ALL

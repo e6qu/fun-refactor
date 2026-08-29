@@ -1,4 +1,4 @@
-//! Restructuring the shapes a language is made of: members, arms and macro bodies.
+//! Restructuring the shapes a language holds: members, arms and macro bodies.
 
 use fun_refactor::edit::{apply_to_string, plan, Validation};
 use fun_refactor::index::Index;

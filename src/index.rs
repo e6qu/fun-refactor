@@ -300,7 +300,7 @@ impl Index {
         Ok(index)
     }
 
-    /// Placeholder facts marking a file that could not be read.
+    /// Placeholder facts marking a file that failed to read.
     #[cfg(feature = "cli")]
     fn unreadable_placeholder(path: &Path, error: String) -> FileFacts {
         FileFacts {
@@ -577,7 +577,7 @@ impl Index {
             || reference.receiver_is_path
             || self.import_binding(info, receiver).is_some()
             || self.names_a_type(receiver, reference.language)
-            // `module.<label>` is a module path in the sense above: the label is bound by that
+            // `module.<label>` is a module path in the sense above: that module binds the label
             // block's `source`, which names a directory.
             || (reference.language == Language::Hcl
                 && receiver.starts_with("module.")
@@ -1308,7 +1308,7 @@ impl Index {
                     .rsplit(['/', ':', '.'])
                     .find(|s| !s.is_empty())
                     .is_some_and(|last| last == name)
-                // `import app.flags` binds `app`, and the module is read as `app.flags.NAME`.
+                // `import app.flags` binds `app`, and the body reaches it as `app.flags.NAME`.
                 || import.path == name
         })
     }
@@ -1471,7 +1471,7 @@ impl Index {
                 .get(last)
                 .map(|v| v.as_slice())
                 .unwrap_or(&[]),
-            // A caller resolved before the buckets were built; correctness first.
+            // A caller resolved before the buckets existed; correctness first.
             true => {
                 stem_scan = self
                     .files
@@ -1782,7 +1782,7 @@ pub struct IndexStats {
     pub references: usize,
     pub resolved: usize,
     pub by_confidence: BTreeMap<&'static str, usize>,
-    /// How many files each gap was found in, by [`FactGap::as_str`].
+    /// How many files hold each gap, by [`FactGap::as_str`].
     pub files_by_gap: BTreeMap<&'static str, usize>,
     pub imperative_files: usize,
 }
@@ -1900,7 +1900,7 @@ mod tests {
     fn unreadable_files_are_skipped_and_reported() {
         let tmp = tempfile::tempdir().unwrap();
         let path = tmp.path().join("bad.rs");
-        // Invalid UTF-8 cannot be read as source.
+        // Nothing reads invalid UTF-8 as source.
         std::fs::write(&path, [0xff, 0xfe, 0x00]).unwrap();
         let scanned = ScanResult {
             files: vec![SourceFile {

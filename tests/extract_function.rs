@@ -104,17 +104,19 @@ fn comments_inside_the_region_survive() {
 }
 
 #[test]
-fn refuses_a_region_containing_a_return() {
+fn a_python_region_that_returns_nothing_becomes_a_flag() {
     let src = "def main():\n    if bad():\n        return 1\n    print(2)\n";
     let (tmp, index) = workspace(&[("a.py", src)]);
     let path = tmp.path().join("a.py");
 
-    let err = extract::function(&index, &path, lines(src, 2, 3), "guard")
-        .unwrap_err()
-        .to_string();
-    assert!(err.contains("return"), "got: {err}");
-    // Python answers `None` for absence and for a value alike.
-    assert!(err.contains("could not answer anyway"), "got: {err}");
+    let plan = extract::function(&index, &path, lines(src, 2, 3), "guard")
+        .expect("python extracts a returning region too");
+    let after = apply(&plan, &path);
+    // `main` answers nothing, so a flag is all the caller needs.
+    assert!(after.contains("def guard():"), "{after}");
+    assert!(after.contains("return True"), "{after}");
+    assert!(after.contains("return False"), "{after}");
+    assert!(after.contains("if guard():"), "{after}");
 }
 
 #[test]
@@ -333,7 +335,7 @@ fn extract_function_produces_parseable_code_in_every_imperative_language() {
 
 #[test]
 fn a_binding_mutated_in_the_region_travels_back_as_a_return() {
-    // `total` is declared before the region, assigned inside it, and read after.
+    // `total` declares before the region, takes a value inside it, and reads after.
     let src = "def tally(items):\n    total = 0\n    for item in items:\n        \
                total += item\n    return total\n";
     let (tmp, index) = workspace(&[("a.py", src)]);
@@ -539,7 +541,7 @@ fn go_derives_the_type_a_short_declaration_gave() {
 #[test]
 fn go_refuses_a_return_whose_type_is_beyond_reach() {
     // An untyped value from outside the workspace derives nothing, and a Go signature
-    // cannot be written without one.
+    // takes no shape without one.
     let src = "package main\n\nimport \"os\"\n\nfunc process() string {\n\t\
                host := os.Getenv(\"HOST\")\n\tport := os.Getenv(\"PORT\")\n\t\
                return host + port\n}\n";
@@ -679,7 +681,7 @@ fn extracting_from_a_nested_function_stays_inside_the_outer_one() {
 
 #[test]
 fn a_typescript_method_carries_its_receiver_as_a_parameter() {
-    // `this` is named nowhere in a TypeScript signature, so the data-flow analysis could not
+    // A TypeScript signature names no `this`, so the data-flow analysis could not
     // see it.
     let src = "export class Box {\n  values: number[] = [];\n\n  sum(): number {\n    \
         let running = 0;\n    for (const v of this.values) {\n      running = running + v;\n    \
@@ -713,7 +715,7 @@ fn a_typescript_method_carries_its_receiver_as_a_parameter() {
 
 #[test]
 fn a_private_member_stops_the_extraction_leaving_the_class() {
-    // `private` is checked by the compiler, so a function outside the class that
+    // The compiler enforces `private`, so a function outside the class that
     // reads one is code that runs and does not build.
     let src = "export class Box {\n  private values: number[] = [];\n\n  sum(): number {\n    \
         let running = 0;\n    for (const v of this.values) {\n      running = running + v;\n    \
@@ -901,4 +903,81 @@ fn a_region_that_falls_off_its_end_still_extracts() {
         .expect("a region with no escaping jump extracts");
     let after = apply(&plan, &path);
     assert!(after.contains("fn label_for"), "{after}");
+}
+
+#[test]
+fn every_target_says_the_early_exit_its_own_way() {
+    // Each output went through its own toolchain.
+    struct Case {
+        file: &'static str,
+        source: &'static str,
+        from: usize,
+        to: usize,
+        answers: &'static str,
+        carries: &'static str,
+        at_the_call: &'static str,
+    }
+    for case in [
+        Case {
+            file: "a.py",
+            source: "def describe(n: int) -> str:\n    if n < 0:\n        word = \"negative\"\n        return word\n    return \"positive\"\n",
+            from: 2,
+            to: 4,
+            answers: "def early(n):",
+            carries: "return word, True",
+            at_the_call: "answer, ok = early(n)",
+        },
+        Case {
+            file: "b.ts",
+            source: "export function describe(n: number): string {\n  if (n < 0) {\n    const word: string = \"negative\";\n    return word;\n  }\n  return \"positive\";\n}\n",
+            from: 2,
+            to: 5,
+            answers: "[string, true] | [null, false]",
+            carries: "return [word, true];",
+            at_the_call: "const [answer, ok] = early(n);",
+        },
+        Case {
+            file: "D.java",
+            source: "public class D {\n    static String describe(int n) {\n        if (n < 0) {\n            String word = \"negative\";\n            return word;\n        }\n        return \"positive\";\n    }\n}\n",
+            from: 3,
+            to: 6,
+            answers: "Optional<String> early(int n)",
+            carries: "return Optional.of(word);",
+            at_the_call: "answer.isPresent()",
+        },
+        Case {
+            file: "e.zig",
+            source: "pub fn describe(n: i64) []const u8 {\n    if (n < 0) {\n        const word: []const u8 = \"negative\";\n        return word;\n    }\n    return \"positive\";\n}\n",
+            from: 2,
+            to: 5,
+            answers: "fn early(n: i64) ?[]const u8",
+            carries: "return word;",
+            at_the_call: "if (early(n)) |answer| {",
+        },
+    ] {
+        let (tmp, index) = workspace(&[(case.file, case.source)]);
+        let path = tmp.path().join(case.file);
+        let plan = extract::function(&index, &path, lines(case.source, case.from, case.to), "early")
+            .unwrap_or_else(|e| panic!("{} did not extract: {e}", case.file));
+        let after = apply(&plan, &path);
+        for wanted in [case.answers, case.carries, case.at_the_call] {
+            assert!(
+                after.contains(wanted),
+                "{} is missing {wanted:?}:\n{after}",
+                case.file
+            );
+        }
+    }
+}
+
+#[test]
+fn a_grammar_that_closes_a_return_with_its_semicolon_keeps_it() {
+    // TypeScript's return statement holds the `;` and Rust's does not.
+    let source = "export function describe(n: number): string {\n  if (n < 0) {\n    const word: string = \"negative\";\n    return word;\n  }\n  return \"positive\";\n}\n";
+    let (tmp, index) = workspace(&[("b.ts", source)]);
+    let path = tmp.path().join("b.ts");
+    let plan = extract::function(&index, &path, lines(source, 2, 5), "early").expect("extracts");
+    let after = apply(&plan, &path);
+    assert!(after.contains("return [word, true];"), "{after}");
+    assert!(!after.contains("return [word, true]\n"), "{after}");
 }

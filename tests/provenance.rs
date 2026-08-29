@@ -567,7 +567,7 @@ fn two_user_supplied_files_leave_the_winner_undecided() {
 #[test]
 fn a_value_read_inside_a_template_action_is_render_dependent() {
     // The action's bytes are masked out before the YAML parse, so the read is
-    // structurally invisible: it is reported as such, never silently dropped.
+    // structurally invisible, so the report says so and never drops it.
     let (_tmp, index) = chart();
     let image = key_with_path(
         &index,

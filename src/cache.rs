@@ -65,7 +65,7 @@ impl Cache {
         self.root.join(&key[..2]).join(&key[2..])
     }
 
-    /// Look up facts for a key, rewriting their path to the file being indexed.
+    /// Look up facts for a key, repointing their path at this file.
     pub fn get(&self, key: &str, path: &Path) -> Option<FileFacts> {
         if self.disabled.load(Ordering::Relaxed) {
             return None;

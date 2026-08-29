@@ -84,7 +84,7 @@ fn a_python_signature_arrives_in_typescript_spelled_the_typescript_way() {
         "the signature did not carry with the target's conventions:\n{}",
         plan.output
     );
-    // Locals too, not only the declaration, a file whose declarations are renamed and
+    // Locals too, not only the declaration: a file whose declarations move and
     // whose bodies are not is worse than one that renames nothing.
     assert!(plan.output.contains("let extraData"), "{}", plan.output);
     assert!(plan.output.contains("dbUser: User"), "{}", plan.output);

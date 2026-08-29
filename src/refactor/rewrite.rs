@@ -550,7 +550,7 @@ fn guard_clause(
     let guard = match language {
         Language::Python => format!("{header}\n{indent}{unit}{exit}\n"),
         Language::Bash => format!("{header}\n{indent}{unit}{exit}\n{indent}fi\n"),
-        // Go's grammar accepts the semicolon, but no Go is written with it.
+        // Go's grammar accepts the semicolon, and nobody writes one.
         Language::Go => format!("{header} {{\n{indent}{unit}{exit}\n{indent}}}\n"),
         _ => format!("{header} {{\n{indent}{unit}{exit};\n{indent}}}\n"),
     };
@@ -583,7 +583,7 @@ fn guard_clause(
         .join("\n");
 
     // The guard ends in a newline, so every body line, including the first, needs
-    // the indentation it was given above.
+    // the indentation above it.
     Ok((Span::from(node), format!("{guard}{body_text}")))
 }
 

@@ -202,8 +202,8 @@ and a pass there mean the same thing.
 
 ## Third-party material
 
-`vendor/` holds the upstream tree-sitter query files the rules in `queries/` were
-derived from, each with its licence and a checksum in `vendor/MANIFEST.toml`. The
+`vendor/` holds the upstream tree-sitter query files behind the rules in
+`queries/`, each with its licence and a checksum in `vendor/MANIFEST.toml`. The
 build compiles nothing there. Those files serve as reference material, and as
 evidence of where the rules came from. `cargo test --test vendor` fails in three
 cases:

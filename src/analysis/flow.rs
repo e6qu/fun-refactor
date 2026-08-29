@@ -272,7 +272,7 @@ fn walk_backward(
     Ok(())
 }
 
-/// Trace where a symbol's value is used.
+/// Trace where a symbol's value goes.
 pub fn forward(index: &Index, symbol_id: SymbolId, max_depth: usize) -> Result<FlowResult> {
     if let Some(symbol) = index.symbol(symbol_id) {
         crate::capabilities::record(crate::capabilities::Capability::Flow, symbol.language);
@@ -355,7 +355,7 @@ fn walk_forward(
         }
     }
 
-    // Weakly-resolved uses of the same name are reported, never assumed.
+    // Report a weakly-resolved use of the same name; never assume it.
     for weak in index.unresolved_matching(symbol_id) {
         if weak.target.is_none() {
             result

@@ -1,4 +1,4 @@
-//! What a name means in Rust depends on what is written before it.
+//! What a name means in Rust depends on what stands before it.
 
 use fun_refactor::index::Index;
 use fun_refactor::model::{Confidence, SymbolKind};
@@ -54,7 +54,7 @@ fn a_bare_call_cannot_mean_a_method() {
 
 #[test]
 fn a_bare_call_cannot_mean_a_field_either() {
-    // A field holding a closure is called as `(self.f)()`; a bare `f()` is not it.
+    // A field holding a closure takes `(self.f)()`; a bare `f()` is another thing.
     let source = "pub struct Holder { pub run: fn() -> u8 }\n\
                   pub fn run() -> u8 { 1 }\n\
                   impl Holder {\n    pub fn go(&self) -> u8 { run() }\n}\n";

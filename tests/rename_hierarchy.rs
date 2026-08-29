@@ -222,7 +222,7 @@ fn typescript_overload_signatures_rename_with_their_implementation() {
 
 #[test]
 fn a_receiver_with_a_declared_type_outside_the_family_holds_its_call() {
-    // `b` is declared `B`, and `B` has its own `size`; renaming A's overloads
+    // `b` declares `B`, and `B` has its own `size`; renaming A's overloads
     // took `b.size(2)` with them as a dispatch candidate, and javac refused.
     let shapes = "public class A {\n    int size(int n) {\n        return n;\n    }\n\n    \
         int size(String s) {\n        return s.length();\n    }\n}\n\n\

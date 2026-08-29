@@ -77,7 +77,7 @@ fn a_receiver_declared_the_owning_class_renames_with_the_property() {
 
 #[test]
 fn a_receiver_declared_a_subtype_of_the_owner_renames_too() {
-    // `s` is declared `Sub2`, which declares no `area` of its own; the one it reaches is
+    // `s` declares `Sub2`, which declares no `area` of its own; the one it reaches sits
     // `Base`'s.
     let source = "class Base:\n    def area(self) -> int:\n        return 0\n\n\n\
         class Sub2(Base):\n    pass\n\n\n\
