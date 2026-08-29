@@ -2899,14 +2899,7 @@ fn rust_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
                     .as_ref()
                     .map(|v| rust_expr(out, v))
                     .unwrap_or_default();
-                let source = format!("break :{label} {rendered}");
-                out.carried(&Unsupported {
-                    construct: "a labeled break".into(),
-                    source: source.clone(),
-                    line: 0,
-                });
-                let commented = out.comment(&format!("{MARKER}: {source}"));
-                out.line(&commented);
+                carry_labeled_break(out, label, &rendered);
             }
             Stmt::Return(value) => {
                 let mut text = value
@@ -3704,11 +3697,7 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             // only spelling that compiles here.
             if let Some(fields) = positional_record(out, callee, args.len()) {
                 let target = rust_expr(out, callee);
-                let pairs: Vec<String> = fields
-                    .iter()
-                    .zip(rendered.iter())
-                    .map(|(field, value)| format!("{}: {value}", out.field(field)))
-                    .collect();
+                let pairs = record_pairs(out, &fields, &rendered);
                 return format!("{target} {{ {} }}", pairs.join(", "));
             }
             format!(
@@ -3870,11 +3859,7 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
             let rendered: Vec<String> = args.iter().map(|a| rust_expr(out, a)).collect();
             if let Some(fields) = positional_record(out, callee, args.len()) {
                 let target = rust_expr(out, callee);
-                let pairs: Vec<String> = fields
-                    .iter()
-                    .zip(rendered.iter())
-                    .map(|(field, value)| format!("{}: {value}", out.field(field)))
-                    .collect();
+                let pairs = record_pairs(out, &fields, &rendered);
                 return format!("{target} {{ {} }}", pairs.join(", "));
             }
             // A positional construction of a type this file does not declare:
@@ -4523,14 +4508,7 @@ fn python_block(out: &mut Out, body: &[Stmt]) {
                     .as_ref()
                     .map(|v| python_expr(out, v))
                     .unwrap_or_default();
-                let source = format!("break :{label} {rendered}");
-                out.carried(&Unsupported {
-                    construct: "a labeled break".into(),
-                    source: source.clone(),
-                    line: 0,
-                });
-                let commented = out.comment(&format!("{MARKER}: {source}"));
-                out.line(&commented);
+                carry_labeled_break(out, label, &rendered);
             }
             Stmt::Return(value) => {
                 // A returned Result speaks this language's own failure handling: the ok value
@@ -5097,27 +5075,6 @@ fn settle_inferred_bindings(f: &Function, out: &mut Out) {
 
 /// The element type of a set built empty and filled by adding.
 fn settle_set_element_types(f: &Function, out: &mut Out) {
-    fn added<'a>(body: &'a [Stmt], name: &str, found: &mut Vec<&'a Expr>) {
-        for stmt in body {
-            if let Stmt::Expr(Expr::Call { callee, args }) = stmt {
-                let onto = match callee.as_ref() {
-                    Expr::Field { of, name: verb } if verb == "add" => match of.as_ref() {
-                        Expr::Name(n) => Some(n.as_str()),
-                        _ => None,
-                    },
-                    _ => None,
-                };
-                if onto == Some(name) {
-                    if let Some(first) = args.first() {
-                        found.push(first);
-                    }
-                }
-            }
-            for inner in sub_bodies(stmt) {
-                added(inner, name, found);
-            }
-        }
-    }
     fn sets(body: &[Stmt], names: &mut Vec<(String, bool)>) {
         for stmt in body {
             if let Stmt::Let {
@@ -5141,7 +5098,7 @@ fn settle_set_element_types(f: &Function, out: &mut Out) {
             false => None,
             true => {
                 let mut found = Vec::new();
-                added(&f.body, &name, &mut found);
+                given_to(&f.body, &name, "add", &mut found);
                 found
                     .first()
                     .and_then(|first| static_type(out, first))
@@ -5155,27 +5112,6 @@ fn settle_set_element_types(f: &Function, out: &mut Out) {
 }
 
 fn settle_list_element_types(f: &Function, out: &mut Out) {
-    fn appended<'a>(body: &'a [Stmt], name: &str, found: &mut Vec<&'a Expr>) {
-        for stmt in body {
-            if let Stmt::Expr(Expr::Call { callee, args }) = stmt {
-                let onto = match callee.as_ref() {
-                    Expr::Field { of, name: verb } if verb == "append" => match of.as_ref() {
-                        Expr::Name(n) => Some(n.as_str()),
-                        _ => None,
-                    },
-                    _ => None,
-                };
-                if onto == Some(name) {
-                    if let Some(first) = args.first() {
-                        found.push(first);
-                    }
-                }
-            }
-            for inner in sub_bodies(stmt) {
-                appended(inner, name, found);
-            }
-        }
-    }
     fn empty_lists(body: &[Stmt], names: &mut Vec<String>) {
         for stmt in body {
             if let Stmt::Let {
@@ -5198,7 +5134,7 @@ fn settle_list_element_types(f: &Function, out: &mut Out) {
     empty_lists(&f.body, &mut names);
     for name in names {
         let mut values = Vec::new();
-        appended(&f.body, &name, &mut values);
+        given_to(&f.body, &name, "append", &mut values);
         let mut settled: Option<Type> = None;
         for value in values {
             match (static_type(out, value), &settled) {
@@ -6066,6 +6002,80 @@ fn expr_hint(e: &Expr) -> String {
 /// A keyword call on a callee this module declares that still would not settle: the name or the
 /// arity is wrong.
 /// The filler a target writes where it cannot spell a call's keyword arguments.
+/// Every value a body hands to `name.<verb>(x)`, at any depth.
+fn given_to<'a>(body: &'a [Stmt], name: &str, verb: &str, found: &mut Vec<&'a Expr>) {
+    for stmt in body {
+        if let Stmt::Expr(Expr::Call { callee, args }) = stmt {
+            let onto = match callee.as_ref() {
+                Expr::Field { of, name: called } if called == verb => match of.as_ref() {
+                    Expr::Name(n) => Some(n.as_str()),
+                    _ => None,
+                },
+                _ => None,
+            };
+            if onto == Some(name) {
+                if let Some(first) = args.first() {
+                    found.push(first);
+                }
+            }
+        }
+        for inner in sub_bodies(stmt) {
+            given_to(inner, name, verb, found);
+        }
+    }
+}
+
+/// A record literal as the constructor call the class-shaped targets write.
+fn record_as_constructor(
+    out: &mut Out,
+    ty: &str,
+    fields: &[(String, Expr)],
+    render: fn(&mut Out, &Expr) -> String,
+) -> String {
+    match constructor_order(out, ty, fields) {
+        Some(taken) => {
+            let rendered: Vec<String> = taken.iter().map(|value| render(out, value)).collect();
+            format!("new {}({})", out.name(ty), rendered.join(", "))
+        }
+        // A literal naming a subset of the fields, or a record this file does not
+        // declare, has no order to fill a constructor with.
+        None => render(
+            out,
+            &Expr::New {
+                callee: Box::new(Expr::Name(ty.to_string())),
+                args: fields
+                    .iter()
+                    .map(|(name, value)| Expr::Keyword {
+                        name: name.clone(),
+                        value: Box::new(value.clone()),
+                    })
+                    .collect(),
+            },
+        ),
+    }
+}
+
+/// A record's fields beside the values a positional call passed them.
+fn record_pairs(out: &Out, fields: &[String], rendered: &[String]) -> Vec<String> {
+    fields
+        .iter()
+        .zip(rendered.iter())
+        .map(|(field, value)| format!("{}: {value}", out.field(field)))
+        .collect()
+}
+
+/// Carry a labeled break, which no target here spells.
+fn carry_labeled_break(out: &mut Out, label: &str, rendered: &str) {
+    let source = format!("break :{label} {rendered}");
+    out.carried(&Unsupported {
+        construct: "a labeled break".into(),
+        source: source.clone(),
+        line: 0,
+    });
+    let commented = out.comment(&format!("{MARKER}: {source}"));
+    out.line(&commented);
+}
+
 fn carried_keywords(out: &mut Out, callee: &Expr, args: &[Expr], settled: bool) -> Option<String> {
     if !keywords_must_carry(out, callee, args, settled) {
         return None;
@@ -6717,14 +6727,7 @@ fn go_block(out: &mut Out, body: &[Stmt], returns: Option<&Type>) {
             }
             Stmt::BreakWith { label, value } => {
                 let rendered = value.as_ref().map(|v| go_expr(out, v)).unwrap_or_default();
-                let source = format!("break :{label} {rendered}");
-                out.carried(&Unsupported {
-                    construct: "a labeled break".into(),
-                    source: source.clone(),
-                    line: 0,
-                });
-                let commented = out.comment(&format!("{MARKER}: {source}"));
-                out.line(&commented);
+                carry_labeled_break(out, label, &rendered);
             }
             // Go has no ternary.
             Stmt::Return(Some(Expr::Ternary {
@@ -7473,11 +7476,7 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
             let rendered: Vec<String> = args.iter().map(|a| go_expr(out, a)).collect();
             if let Some(fields) = positional_record(out, callee, args.len()) {
                 let target = go_expr(out, callee);
-                let pairs: Vec<String> = fields
-                    .iter()
-                    .zip(rendered.iter())
-                    .map(|(field, value)| format!("{}: {value}", out.field(field)))
-                    .collect();
+                let pairs = record_pairs(out, &fields, &rendered);
                 return format!("{target}{{{}}}", pairs.join(", "));
             }
             format!("{}({})", go_expr(out, callee), rendered.join(", "))
@@ -7576,11 +7575,7 @@ fn go_expr(out: &mut Out, e: &Expr) -> String {
             let rendered: Vec<String> = args.iter().map(|a| go_expr(out, a)).collect();
             if let Some(fields) = positional_record(out, callee, args.len()) {
                 let target = go_expr(out, callee);
-                let pairs: Vec<String> = fields
-                    .iter()
-                    .zip(rendered.iter())
-                    .map(|(field, value)| format!("{}: {value}", out.field(field)))
-                    .collect();
+                let pairs = record_pairs(out, &fields, &rendered);
                 return format!("{target}{{{}}}", pairs.join(", "));
             }
             // A composite literal names at most `pkg.Type`; a deeper foreign
@@ -8296,14 +8291,7 @@ fn ts_block(out: &mut Out, body: &[Stmt]) {
             }
             Stmt::BreakWith { label, value } => {
                 let rendered = value.as_ref().map(|v| ts_expr(out, v)).unwrap_or_default();
-                let source = format!("break :{label} {rendered}");
-                out.carried(&Unsupported {
-                    construct: "a labeled break".into(),
-                    source: source.clone(),
-                    line: 0,
-                });
-                let commented = out.comment(&format!("{MARKER}: {source}"));
-                out.line(&commented);
+                carry_labeled_break(out, label, &rendered);
             }
             Stmt::Return(value) => {
                 // A returned Result speaks this language's own failure handling: the
@@ -8778,27 +8766,7 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
     match e {
         // TypeScript builds a record by calling a constructor, which takes its arguments in the
         // order the class declares its fields.
-        Expr::RecordLit { ty, fields } => match constructor_order(out, ty, fields) {
-            Some(taken) => {
-                let rendered: Vec<String> = taken.iter().map(|value| ts_expr(out, value)).collect();
-                format!("new {}({})", out.name(ty), rendered.join(", "))
-            }
-            // A literal naming a subset of the fields, or a record this file does not declare,
-            // has no order to fill a constructor with.
-            None => ts_expr(
-                out,
-                &Expr::New {
-                    callee: Box::new(Expr::Name(ty.clone())),
-                    args: fields
-                        .iter()
-                        .map(|(name, value)| Expr::Keyword {
-                            name: name.clone(),
-                            value: Box::new(value.clone()),
-                        })
-                        .collect(),
-                },
-            ),
-        },
+        Expr::RecordLit { ty, fields } => record_as_constructor(out, ty, fields, ts_expr),
         Expr::Coalesce { value, fallback } => {
             format!("{} ?? {}", ts_expr(out, value), ts_expr(out, fallback))
         }
@@ -9544,14 +9512,7 @@ fn java_stmt(out: &mut Out, stmt: &Stmt) {
                 .as_ref()
                 .map(|v| java_expr(out, v))
                 .unwrap_or_default();
-            let source = format!("break :{label} {rendered}");
-            out.carried(&Unsupported {
-                construct: "a labeled break".into(),
-                source: source.clone(),
-                line: 0,
-            });
-            let commented = out.comment(&format!("{MARKER}: {source}"));
-            out.line(&commented);
+            carry_labeled_break(out, label, &rendered);
         }
         Stmt::Comment(text) => {
             let line = out.comment(text);
@@ -10191,28 +10152,7 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
     match e {
         // Java builds a record by calling a constructor, which takes its arguments in the order
         // the class declares its fields.
-        Expr::RecordLit { ty, fields } => match constructor_order(out, ty, fields) {
-            Some(taken) => {
-                let rendered: Vec<String> =
-                    taken.iter().map(|value| java_expr(out, value)).collect();
-                format!("new {}({})", out.name(ty), rendered.join(", "))
-            }
-            // A literal naming a subset of the fields, or a record this file does not declare,
-            // has no order to fill a constructor with.
-            None => java_expr(
-                out,
-                &Expr::New {
-                    callee: Box::new(Expr::Name(ty.clone())),
-                    args: fields
-                        .iter()
-                        .map(|(name, value)| Expr::Keyword {
-                            name: name.clone(),
-                            value: Box::new(value.clone()),
-                        })
-                        .collect(),
-                },
-            ),
-        },
+        Expr::RecordLit { ty, fields } => record_as_constructor(out, ty, fields, java_expr),
         // Java spells it as a static call, and has to name the value twice to do it.
         Expr::Coalesce { value, fallback } => match nameable(value) {
             true => format!(
@@ -11101,14 +11041,7 @@ fn zig_stmt(out: &mut Out, stmt: &Stmt, mutated: &std::collections::BTreeSet<Str
         }
         Stmt::BreakWith { label, value } => {
             let rendered = value.as_ref().map(|v| zig_expr(out, v)).unwrap_or_default();
-            let source = format!("break :{label} {rendered}");
-            out.carried(&Unsupported {
-                construct: "a labeled break".into(),
-                source: source.clone(),
-                line: 0,
-            });
-            let commented = out.comment(&format!("{MARKER}: {source}"));
-            out.line(&commented);
+            carry_labeled_break(out, label, &rendered);
         }
         Stmt::Comment(text) => {
             let line = out.comment(text);
