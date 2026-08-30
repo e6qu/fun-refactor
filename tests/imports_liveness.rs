@@ -31,7 +31,7 @@ fn outcome(files: &[(&str, &str)], target: &str) -> (Vec<String>, Vec<String>) {
     (removed, warnings)
 }
 
-/// Assert `path` was kept and that a warning says why, naming `because`.
+/// Assert `path` stayed and a warning says why, naming `because`.
 fn kept_because(files: &[(&str, &str)], target: &str, path: &str, because: &str) {
     let (removed, warnings) = outcome(files, target);
     assert!(
@@ -61,7 +61,7 @@ fn rust_an_import_nothing_names_goes() {
 
 #[test]
 fn rust_a_trait_used_through_its_methods_is_kept() {
-    // `Write` is never spelled at the call site, only `write_str` is.
+    // The call site spells `write_str` and never `Write`.
     kept_because(
         &[(
             "a.rs",
@@ -130,7 +130,7 @@ fn python_an_import_in_a_package_init_is_the_packages_api_and_stays() {
 #[test]
 fn python_the_same_import_outside_an_init_still_goes() {
     // The other half of the guard: the file's role is what decides, so the same
-    // dead import in an ordinary module is still removed.
+    // dead import in an ordinary module still goes.
     assert_eq!(
         removed_paths(
             &[
@@ -262,7 +262,7 @@ fn typescript_an_inline_type_specifier_marks_the_statement_type_only() {
 #[test]
 fn typescript_a_value_import_used_only_under_typeof_is_kept() {
     // `typeof Foo` is a `type_query`, and `queries/typescript/facts.scm` now captures it, so
-    // the import is kept because it is genuinely referenced.
+    // the import stays: something genuinely references it.
     let (removed, warnings) = outcome(
         &[(
             "a.ts",

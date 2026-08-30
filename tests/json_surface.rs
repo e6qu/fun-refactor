@@ -312,7 +312,7 @@ fn scan_names_each_file_absolutely_and_lists_skipped_symlinks() {
     );
 }
 
-/// A Python module whose one symbol is used by a second, oversized module.
+/// A Python module whose one symbol a second, oversized module reads.
 fn skipping_workspace() -> tempfile::TempDir {
     let mut big = String::from("from a import helper\n");
     for i in 0..40 {

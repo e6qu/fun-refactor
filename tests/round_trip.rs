@@ -5,7 +5,7 @@ use fun_refactor::transpile;
 use fun_refactor::transpile::ir::{Expr, Function, Item, Module, ParamKind, TemplatePart, Type};
 use std::path::{Path, PathBuf};
 
-/// Every function in a module, wherever it is written.
+/// Every function in a module, wherever it sits.
 fn functions(module: &Module) -> Vec<&Function> {
     let mut found = Vec::new();
     for item in &module.items {
@@ -75,7 +75,7 @@ fn shape(ty: Option<&Type>) -> String {
             format!("tuple<{}>", inner.join(","))
         }
         // A name this tool cannot write at all, such as a Python `str | Any`, a Rust closure,
-        // is replaced by a placeholder, which is a rename and the one exception this check has
+        // takes a placeholder, which renames it and is the one exception this check has
         // to allow.
         Some(Type::Named { name, .. }) if name.starts_with("Unwritable") => {
             "<unwritable>".to_string()

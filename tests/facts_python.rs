@@ -191,7 +191,7 @@ fn a_function_nested_in_a_method_inherits_the_class_qualifier() {
     let inner = one(&f, "inner");
     assert_eq!(inner.kind, SymbolKind::Method);
     assert_eq!(inner.qualifier.as_deref(), Some("C"));
-    // Its containing symbol is still the method it is written in.
+    // Its containing symbol stays the method holding it.
     assert_eq!(
         inner
             .container

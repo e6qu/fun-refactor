@@ -129,7 +129,7 @@ fn zig_qualifies_the_uses_left_behind_in_the_source_file() {
     );
     assert_eq!(plan.imports_added, vec![ws.path("a.zig")]);
 
-    // The moved declaration is still reachable from where it is used.
+    // Its uses still reach the moved declaration.
     let rebuilt = ws.index();
     let moved = symbol_id(&rebuilt, "thing", Some(&ws.path("b.zig")));
     assert!(
@@ -192,7 +192,7 @@ fn zig_repoints_a_qualified_use_in_another_file() {
         "const a = @import(\"a.zig\");\nconst dest = @import(\"dest.zig\");\n\
          pub fn go() void {\n    dest.thing();\n    a.other();\n}\n"
     );
-    // `a` is still used for `other`, so no "unused import" warning.
+    // `other` still uses `a`, so no "unused import" warning.
     assert!(
         !plan
             .warnings
@@ -257,7 +257,7 @@ fn zig_moves_into_a_subdirectory() {
 #[test]
 fn zig_refuses_a_destination_that_would_need_a_climbing_import_path() {
     // Zig rejects an `@import` that leaves the module root, and where that root is
-    // cannot be read off two file paths.
+    // does not come off two file paths.
     let ws = Workspace::new(&[
         (
             "sub/a.zig",

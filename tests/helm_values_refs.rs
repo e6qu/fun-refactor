@@ -1,4 +1,4 @@
-//! `.Values` paths are references, so a values key can be renamed.
+//! `.Values` paths are references, so a rename reaches a values key.
 
 use fun_refactor::index::Index;
 use fun_refactor::model::Confidence;

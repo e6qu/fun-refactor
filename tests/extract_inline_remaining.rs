@@ -195,7 +195,7 @@ fn bash_extract_replaces_every_occurrence_when_asked() {
 #[test]
 fn bash_extract_never_rewrites_an_occurrence_before_the_binding() {
     // The first occurrence is above the insertion point, where the variable is not
-    // set yet, so it is left as it was.
+    // set yet, so this leaves it alone.
     let src = "#!/bin/bash\na=$(id -u)\nb=$(id -u)\n";
     let ws = workspace(&[("run.sh", src)]);
     let path = ws.path("run.sh");

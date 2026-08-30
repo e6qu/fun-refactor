@@ -76,7 +76,7 @@ pub enum WarningKind {
     WeaklyResolved,
     /// The old name appears in a string literal, comment or template.
     TextualOccurrence,
-    /// Some of the file did not reach the index, so uses hidden there were not seen.
+    /// Some of the file never reached the index, so this missed the uses hiding there.
     IncompleteFacts,
     /// A dispatch site renamed with the method family it could reach.
     DispatchCandidate,

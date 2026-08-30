@@ -1,4 +1,4 @@
-//! A default that reads another parameter cannot be spelled in Python.
+//! Python spells no default that reads another parameter.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;

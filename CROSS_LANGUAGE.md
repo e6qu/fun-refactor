@@ -509,8 +509,8 @@ Three things the measurements argue for:
 
 2. **Make a cross-language edge `Exact` only where something writes the path down.** The
    CSS-module import names a file. The `class` attribute names a class in a stylesheet
-   the page includes. Everything a bare string reaches stays `NameOnly` and must be
-   reported rather than rewritten. That covers an env var, an element id from code, a
+   the page includes. Everything a bare string reaches stays `NameOnly`, and the report names it
+   rather than rewriting it. That covers an env var, an element id from code, a
    flag in a shell script. The four false crossings that started this all handed a
    strong tier out for a weak reason.
 

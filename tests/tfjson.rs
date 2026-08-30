@@ -92,7 +92,7 @@ fn a_bare_word_that_is_not_a_reference_keeps_its_quotes() {
             .expect("hcl");
     assert!(hcl.contains("acl = \"private\""), "{hcl}");
 
-    // And a reference is left bare, because quoting one would change what the
+    // And a reference stays bare, because quoting one changes what the
     // configuration means.
     let reference =
         tfjson::to_hcl("{\"output\": {\"o\": {\"value\": \"var.many\"}}}").expect("hcl");

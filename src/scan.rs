@@ -42,7 +42,7 @@ pub struct ScanResult {
     pub files: Vec<SourceFile>,
     /// Paths skipped for exceeding `max_file_bytes`, with their size.
     pub skipped_too_large: Vec<(PathBuf, u64)>,
-    /// Symlinks that look like source files, with the reason each was skipped.
+    /// Symlinks that look like source files, each with the reason for skipping it.
     pub skipped_symlinks: Vec<(PathBuf, String)>,
     /// Files in no language this tool reads, counted by extension.
     pub unsupported: BTreeMap<String, usize>,

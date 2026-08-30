@@ -108,7 +108,7 @@ fn a_language_that_cannot_read_the_environment_is_not_claimed_to() {
 
 #[test]
 fn a_chart_with_no_metadata_still_starts_its_chain_at_the_values_file() {
-    // `svc/chart/templates/d.yaml` full of `{{ .Values.* }}` was read as plain YAML for want of
+    // `svc/chart/templates/d.yaml` full of `{{ .Values.* }}` came through as plain YAML for want of
     // a `Chart.yaml`.
     let tmp = tempfile::tempdir().expect("a temporary directory");
     let chart = tmp.path().join("svc/chart/templates");

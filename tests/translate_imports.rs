@@ -43,7 +43,7 @@ fn java_imports_the_optional_it_names() {
 
 #[test]
 fn java_imports_a_type_only_a_literal_names() {
-    // `List.of(…)` is how this writer spells a list literal, so the name is used even
+    // `List.of(…)` is how this writer spells a list literal, so the name stands even
     // where no signature mentions it.
     let out = translated(
         "a.py",
@@ -67,7 +67,7 @@ fn java_imports_nothing_it_does_not_name() {
 
 #[test]
 fn objects_equals_needs_no_import() {
-    // Written out in full at its use site, so it is spelled that way.
+    // Its use site spells it in full, so this does too.
     let out = translated(
         "a.rs",
         "pub fn same(a: String, b: String) -> bool {\n    return a == b;\n}\n",

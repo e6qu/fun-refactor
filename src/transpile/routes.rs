@@ -488,7 +488,7 @@ fn mapping(text: &str) -> Option<(Vec<String>, String)> {
         }
         _ => return None,
     };
-    // The path is the first string in the argument list, whether it is written bare or as
+    // The path is the first string in the argument list, bare or as
     // `value = "…"` or `path = "…"`.
     let url = quoted_anywhere(rest).unwrap_or_default();
     Some((methods, url))

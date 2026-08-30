@@ -90,7 +90,7 @@ fn a_lost_supertype_is_said_in_the_output_itself() {
 
 #[test]
 fn a_property_keeps_its_reads_where_the_idiom_exists() {
-    // `@property def total` is read as data at every use site.
+    // Every use site reads `@property def total` as data.
     let source = "class Item:\n    def __init__(self, price: float, qty: int):\n        \
         self.price = price\n        self.qty = qty\n\n    @property\n    \
         def total(self) -> float:\n        return self.price * self.qty\n\n\n\

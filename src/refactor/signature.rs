@@ -62,7 +62,7 @@ impl Change {
 pub enum Subject {
     /// A function or method, whose arguments are positional.
     Callable,
-    /// A Terraform module directory, whose arguments are named.
+    /// A Terraform module directory, which names its arguments.
     TerraformModule,
     /// A shell function, whose parameters are the `$1 $2 …` its body reads.
     ShellFunction,
@@ -564,7 +564,7 @@ fn defaults_would_be_out_of_order(
     }
 }
 
-/// The file a change is being written into.
+/// The file this change lands in.
 struct Site<'a> {
     file: &'a std::path::Path,
     source: &'a str,
@@ -1291,7 +1291,7 @@ fn shell_command_resets_parameters(name: Node<'_>, source: &str) -> bool {
     found
 }
 
-/// How a renumbered reference is spelled.
+/// Spell a renumbered reference.
 fn shell_positional_text(number: usize, braced: bool) -> String {
     if braced || number < 10 {
         number.to_string()
@@ -1503,7 +1503,7 @@ fn shell_check_positions(
     Ok(())
 }
 
-/// Why an argument cannot be treated as exactly one positional parameter, and what to
+/// Why an argument stands for no single positional parameter, and what to
 /// do about it where there is anything to do.
 fn shell_argument_is_indeterminate(
     parsed: &Parsed,
@@ -1754,7 +1754,7 @@ fn terraform_module(index: &Index, sym: &Symbol, change: Change) -> Result<Signa
     let mut call_sites = 0usize;
 
     match &change {
-        // Terraform arguments are named, so shuffling `variable` blocks is a formatting change
+        // Terraform names its arguments, so shuffling `variable` blocks only reformats
         // that no call site can observe.
         Change::Move { .. } => {
             return Err(Refusal::Unsupported {
@@ -1776,7 +1776,7 @@ fn terraform_module(index: &Index, sym: &Symbol, change: Change) -> Result<Signa
                 );
             };
 
-            // A variable the module's own configuration still reads cannot be removed: the
+            // A variable the module's own configuration still reads has to stay: the
             // `var.x` uses would dangle.
             let uses: Vec<&crate::model::Reference> = index
                 .references_to(target.id)

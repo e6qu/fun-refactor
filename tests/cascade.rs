@@ -58,7 +58,7 @@ fn removing_a_false_flag_keeps_the_other_branch() {
 
 #[test]
 fn the_cascade_removes_what_the_dead_branch_alone_used() {
-    // `only_old` is called only from the branch being deleted, so it should go too.
+    // Only the branch this deletes calls `only_old`, so it goes too.
     let tmp = workspace(&[(
         "a.rs",
         "const USE_NEW: bool = true;\n\nfn only_old() {}\n\nfn run() {\n    if USE_NEW {\n        keep();\n    } else {\n        only_old();\n    }\n}\n",
@@ -224,7 +224,7 @@ fn a_typescript_flag_read_through_an_import_is_removed_whole() {
 
 #[test]
 fn a_python_flag_read_through_its_module_is_removed_whole() {
-    // `from app import flags` binds the submodule `app/flags.py`, and the read is written
+    // `from app import flags` binds the submodule `app/flags.py`, and the body spells the read
     // against it.
     let tmp = workspace(&[
         ("app/__init__.py", ""),
@@ -303,7 +303,7 @@ fn the_result_still_parses() {
 
 #[test]
 fn deleted_definitions_leave_no_blank_debris() {
-    // A multi-line definition must be removed lines and all, together with the blank
+    // A multi-line definition comes away lines and all, with the blank
     // line that separated it, otherwise a cascade leaves a widening gap.
     let tmp = workspace(&[(
         "a.rs",

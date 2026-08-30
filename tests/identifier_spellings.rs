@@ -34,7 +34,7 @@ fn spellings(file: &str, enum_name: &str, function: &str) -> Vec<String> {
     found
 }
 
-/// Every kind the tool prints can be read back as the kind it printed.
+/// Every kind the tool prints reads back as the kind it printed.
 #[test]
 fn every_symbol_kind_survives_the_round_trip() {
     let all = spellings("src/model.rs", "SymbolKind", "as_str");

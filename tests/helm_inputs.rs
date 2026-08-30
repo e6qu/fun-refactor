@@ -207,7 +207,7 @@ fn one_values_file_decides_the_winner_and_keeps_every_loser() {
                 "tag: \"5.7\"".to_string(),
                 false
             ),
-            // Listed, not competing: the caller said this file is not passed.
+            // Listed and not competing: the caller passes no such file.
             (
                 "-f values-stage.yaml (not passed)".to_string(),
                 "tag: \"8.3\"".to_string(),
@@ -257,7 +257,7 @@ fn a_values_file_that_sets_nothing_for_the_key_leaves_the_chart_value_standing()
 
 #[test]
 fn a_key_only_a_file_that_is_not_passed_sets_is_unset_in_this_invocation() {
-    // The other half of "which file is passed".
+    // The other half of "which file reaches the render".
     let (tmp, index) = workspace(&[
         ("app/Chart.yaml", "name: app\nversion: 0.1.0\n"),
         ("app/values.yaml", "replicaCount: 1\n"),
@@ -322,7 +322,7 @@ fn two_values_files_apply_in_the_order_they_were_given() {
     let competition = tag_competition(&result);
     assert!(competition.decided);
     assert_eq!(competition.winner().unwrap().hop.text, "tag: \"8.3\"");
-    // Both are ranked above the chart, and neither is dropped.
+    // Both rank above the chart, and neither goes.
     assert_eq!(competition.sources.len(), 4);
 }
 
@@ -379,7 +379,7 @@ fn the_last_set_of_a_repeated_key_is_the_one_that_applies() {
 
 #[test]
 fn a_set_for_a_key_no_values_file_declares_is_reported_as_introducing_it() {
-    // `.Values.image.pullPolicy` is read by the template and declared nowhere.
+    // The template reads `.Values.image.pullPolicy` and nothing declares it.
     let (_tmp, index) = chart();
     let inputs = ValuesInputs {
         files: Vec::new(),
@@ -682,7 +682,7 @@ fn set_syntax_that_names_no_key_is_refused() {
 
 #[test]
 fn an_order_between_set_and_set_string_that_the_flags_lost_is_refused() {
-    // Helm applies --set and --set-string in the order they were written; two flag lists cannot
+    // Helm applies --set and --set-string in the order given; two flag lists cannot
     // say what that was.
     let clash = ValuesInputs::parse(
         &[],

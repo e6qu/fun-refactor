@@ -187,7 +187,7 @@ impl Operation {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum OnRefusal {
-    /// Abandon the run; nothing is written.
+    /// Abandon the run and write nothing.
     #[default]
     Stop,
     /// Record it, apply the rest, exit non-zero.

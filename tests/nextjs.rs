@@ -144,7 +144,7 @@ fn a_handler_that_never_takes_a_request_does_not_import_one() {
 #[test]
 fn the_next_response_helpers_become_their_fastapi_equivalents() {
     // Not approximations: returning a value from a FastAPI handler *is* what
-    // `NextResponse.json` does, and `JSONResponse` is how a status is spelled.
+    // `NextResponse.json` does, and `JSONResponse` spells a status.
     let (_tmp, root) = workspace(&[(
         "app/api/posts/[id]/route.ts",
         r#"import { NextResponse, NextRequest } from "next/server";

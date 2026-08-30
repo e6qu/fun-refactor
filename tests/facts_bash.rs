@@ -232,7 +232,7 @@ fn a_c_style_for_loop_binds_its_initializer() {
 
 #[test]
 fn positional_parameters_are_not_captured() {
-    // `$1` is a variable_name node, but it has no definition site and cannot be renamed.
+    // `$1` is a variable_name node with no definition site, so no rename reaches it.
     let src = "f() {\n  local name=$1\n  echo \"$2 $name\"\n}\n";
     let f = facts(src);
     let names: Vec<_> = f.references.iter().map(|r| r.name.as_str()).collect();
@@ -314,7 +314,7 @@ fn a_concatenated_source_path_is_captured_but_not_unquoted_cleanly() {
 #[test]
 fn a_command_named_source_is_also_a_call_reference() {
     // `source` is an ordinary builtin invocation as well as an import, and both
-    // facts are reported.
+    // facts turn up.
     let f = facts("source ./lib.sh\n");
     assert_eq!(f.imports.len(), 1);
     let r = f.references.iter().find(|r| r.name == "source").unwrap();
@@ -383,7 +383,7 @@ fn the_rich_sample_yields_the_expected_facts() {
     assert!(calls.contains(&"printf"), "got {calls:?}");
 }
 
-/// A function reached through `source` is used, and deleting it breaks the run.
+/// `source` reaches a function, so deleting it breaks the run.
 #[test]
 fn a_function_reached_through_source_resolves() {
     use fun_refactor::index::Index;

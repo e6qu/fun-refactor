@@ -42,7 +42,7 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
     }
     group.sort();
     group.dedup();
-    // Some definitions cannot be removed on their own.
+    // Some definitions do not come away on their own.
     let parsers = crate::parse::Parsers::new();
     let mut sites: Vec<(PathBuf, Span)> = Vec::new();
     for id in &group {
@@ -216,10 +216,10 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
     })
 }
 
-/// Why a symbol the resolved call graph would have called dead was kept off the list.
+/// Why the list spares a symbol the resolved call graph calls dead.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SparedReason {
-    /// Its name is spelled in a string literal somewhere in the workspace, which is
+    /// A string literal somewhere in the workspace spells its name, which is
     /// the only trace reflection and a name-keyed handler table leave.
     NamedInAString,
     /// Dynamic dispatch reaches it: a call site names a method its type declares through a
@@ -236,7 +236,7 @@ pub enum SparedReason {
     /// It names where the file lives instead of something in it: Java's `package app;`, Go's
     /// `package main`.
     NamesTheFilesPlace,
-    /// A JavaBean accessor whose *property* is named somewhere the method is not.
+    /// A JavaBean accessor whose *property* appears where the method does not.
     ReachedByItsProperty,
     /// Something inside it is an entry point, so something outside the workspace reaches in.
     HoldsAnEntryPoint,
@@ -257,7 +257,7 @@ pub struct UnusedReport {
     pub unused: Vec<SymbolId>,
     /// Symbols reachability alone would have listed, and what saved each.
     pub spared: Vec<(SymbolId, SparedReason)>,
-    /// Files whose dispatch edges could not be read, so an absent hierarchy is not
+    /// Files whose dispatch edges failed to read, so an absent hierarchy does not
     /// mistaken for the absence of a hierarchy.
     pub hierarchy_gaps: Vec<(PathBuf, String)>,
 }
@@ -477,7 +477,7 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
     let dead_cycles = dead_reference_cycles(index, &reachable);
 
     // What the answer would have been on resolved edges alone, so the difference the hierarchy
-    // layer made can be named and not applied.
+    // layer made carries a name and no edit.
     let (reachable_directly, dead_cycles_directly) = if call_graph.hierarchy_edge_count() == 0 {
         (reachable.clone(), dead_cycles.clone())
     } else {
@@ -992,7 +992,7 @@ fn spans_of(parsed: &Parsed, wanted: impl Fn(&str) -> bool) -> Vec<Span> {
     }
 }
 
-/// Reads each file at most once while one plan is being built.
+/// Reads each file at most once per plan.
 #[derive(Default)]
 struct Sources {
     cache: HashMap<PathBuf, Option<String>>,

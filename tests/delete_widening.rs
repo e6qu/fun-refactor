@@ -1,4 +1,4 @@
-//! How much goes with a definition when it is deleted.
+//! How much comes away with a definition.
 
 use fun_refactor::index::Index;
 use fun_refactor::refactor::{cascade, delete};
@@ -43,7 +43,7 @@ fn deleting_a_lone_java_field_keeps_the_class() {
 
 #[test]
 fn deleting_the_only_member_of_a_java_class_keeps_the_class() {
-    // Nothing is left inside it, and a class with an empty body is still a class.
+    // Nothing remains inside it, and a class with an empty body is still a class.
     let source = "public class C {\n    static final boolean UNUSED = true;\n}\n";
     let after = deleted(&[("C.java", source)], "UNUSED", "C.java");
     assert!(after.contains("public class C {"), "{after}");

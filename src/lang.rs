@@ -112,7 +112,7 @@ impl Language {
             Language::Go => &["go"],
             Language::Zig => &["zig"],
             Language::Java => &["java"],
-            // JavaScript is parsed by the TypeScript grammar, which is a superset of it, and
+            // The TypeScript grammar covers JavaScript as a superset, and
             // read by the same queries.
             Language::TypeScript => &["ts", "mts", "cts", "js", "mjs", "cjs"],
             Language::Tsx => &["tsx", "jsx"],
@@ -253,7 +253,7 @@ fn under_templates_directory(path: &Path) -> bool {
     false
 }
 
-/// Does this text hold a Go template action, the syntax Helm charts are written in?
+/// Does this text hold a Go template action, the syntax a Helm chart speaks?
 fn holds_template_action(text: &str) -> bool {
     const KEYWORDS: &[&str] = &[
         "include", "if", "range", "with", "template", "define", "end", "else", "toYaml", "printf",
@@ -408,7 +408,7 @@ mod tests {
     #[test]
     fn tpl_files_are_helm() {
         // `_helpers.tpl` is where named templates live; without this it belongs to no
-        // language and cannot be written to.
+        // language and takes no output.
         assert_eq!(
             detect(Path::new("chart/templates/_helpers.tpl")),
             Some(Language::Helm)

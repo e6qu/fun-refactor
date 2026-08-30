@@ -103,7 +103,7 @@ impl InvisibleUses {
     }
 }
 
-/// Why an import that nothing names is kept anyway, or `None` if it can go.
+/// Why an import nothing names stays, or `None` where it may go.
 fn hold_back_reason(
     index: &Index,
     language: Language,
@@ -571,7 +571,7 @@ pub(crate) fn plan_in_consulting(
             .named
             .iter()
             .filter(|name| !live.contains(name.local.as_str()))
-            // A name that would be held back on its own is held back here too.
+            // A name this would hold back on its own stays here too.
             .filter(|name| {
                 let alone = Statement {
                     path: name.path.clone(),
@@ -821,7 +821,7 @@ pub fn orphaned_by(index: &Index, edits: &EditSet) -> Result<(EditSet, Vec<Warni
             if was_dead.contains(&span) {
                 continue;
             }
-            // The span indexes the file as it will be, and the edit set is applied to the file
+            // The span indexes the file as it will stand, and the edit set reaches the file
             // as it is.
             let Some(original) = before_the_edits(span, file_edits) else {
                 continue;

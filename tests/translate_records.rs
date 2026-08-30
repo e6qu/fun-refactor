@@ -1,4 +1,4 @@
-//! Building a record, which is the line every constructor is made of.
+//! Building a record, the line at the centre of every constructor.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
@@ -35,7 +35,7 @@ fn the_four_languages_that_name_their_fields_do() {
 
 #[test]
 fn the_shorthand_is_read_as_the_field_it_names() {
-    // `Point { x, y }` is `x: x, y: y`, and is how the code is written.
+    // `Point { x, y }` means `x: x, y: y`, the shorthand every Rust file uses.
     let source = "\
 pub struct Point {
     pub x: i64,

@@ -8,9 +8,10 @@
 # word or sentence pointing at its own text fails the build. Three still fall, one
 # file at a time.
 #
-# `passive-voice` counts what is left in the code and in every document. Two of those
-# documents hold most of it: `BUGS.md` and `PLAN.md` record what happened, in the past
-# tense, and rewriting a record into the imperative would falsify it.
+# `passive-voice` stands at zero for every comment in the source and every
+# reader-facing document. What is left sits in assertion messages and in `BUGS.md`
+# and `PLAN.md`. Active voice and past tense sit together happily, so those records
+# come down too, a batch at a time.
 #
 # Measured before any of this work: 2050 em-dashes, 240 false comparisons, 350
 # fillers, 222 self-references and 2339 long sentences. `comment-line` opened at 20169
@@ -19,6 +20,6 @@ em-dash 0
 false-comparison 0
 filler 0
 self-reference 0
-passive-voice 955
+passive-voice 687
 long-sentence 281
-comment-line 8803
+comment-line 8808

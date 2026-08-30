@@ -76,7 +76,7 @@ pub const COMPLETE: &[Language] = &[
     Language::Zig,
 ];
 
-/// The languages a file can be translated into.
+/// The languages a file may become.
 pub const SUPPORTED: &[Language] = &[
     Language::Rust,
     Language::Go,
@@ -87,12 +87,12 @@ pub const SUPPORTED: &[Language] = &[
     Language::Bash,
 ];
 
-/// Whether a file written in this language can be read into the shared representation.
+/// Whether a reader takes this language into the shared representation.
 pub fn can_be_read(language: Language) -> bool {
     SUPPORTED.contains(&language) || language == Language::Tsx
 }
 
-/// Whether a translation can be written in this language.
+/// Whether a writer answers in this language.
 pub fn can_be_written(language: Language) -> bool {
     SUPPORTED.contains(&language)
 }
@@ -287,7 +287,7 @@ fn plan_impl(
         None => write::write(to, &module)?,
     };
 
-    // A header, because a translated file that does not announce itself will be read
+    // A header: a translated file that announces nothing reads
     // as though a person wrote it.
     let header = banner(to, &from.to_string(), path, &fidelity, &module.sweep_notes);
     output.insert_str(0, &header);

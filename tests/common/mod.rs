@@ -20,7 +20,7 @@ pub fn require_on_ci(what: &str, missing: &[String]) {
     );
 }
 
-/// A workspace on disk that can be indexed, edited and compiled.
+/// A workspace on disk, ready to index, edit and compile.
 #[derive(Clone, Copy, PartialEq)]
 pub enum Toolchain {
     Cargo,
@@ -503,7 +503,7 @@ pub fn must_plan(what: &str, ws: &Workspace, planned: anyhow::Result<EditSet>) {
     );
 }
 
-/// The other half: this case refuses today, and the refusal is the thing being pinned.
+/// The other half: this case refuses today, and the refusal is what this pins.
 pub fn must_refuse(what: &str, ws: &Workspace, planned: anyhow::Result<EditSet>, because: &str) {
     match planned {
         Ok(edits) => {

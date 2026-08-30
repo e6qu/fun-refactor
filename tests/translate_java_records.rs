@@ -76,7 +76,7 @@ const FEATURES_JAVA: &str = "public class Features {\n    \
 
 #[test]
 fn a_records_implements_clause_carries_as_its_base() {
-    // `implements Greeter` was dropped without a word, so the record crossed as
+    // The writer dropped `implements Greeter` without a word. The record crossed as
     // a type with no relation to the interface its callers know it by.
     let out = to_python(FEATURES_JAVA);
     assert!(

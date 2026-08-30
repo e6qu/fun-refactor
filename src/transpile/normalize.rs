@@ -1146,7 +1146,7 @@ fn zig_function(f: &mut Function) {
             other => kept.push(other),
         }
     }
-    // The buffer the writer consumed, wherever it was declared.
+    // The buffer the writer consumed, wherever it stood.
     f.body = kept
         .into_iter()
         .filter(|stmt| match stmt {

@@ -220,7 +220,7 @@ fn endpoints(document: &serde_json::Value) -> Vec<String> {
     found
 }
 
-/// The route tree is written under the directory the caller named.
+/// The route tree lands under the directory the caller named.
 #[test]
 fn the_tree_is_written_where_it_was_asked_for() {
     let tmp = tempfile::tempdir().expect("a temporary directory");
@@ -237,7 +237,7 @@ fn the_tree_is_written_where_it_was_asked_for() {
     }
 }
 
-/// A file that is not Python is refused before anything is read out of it.
+/// A file that is not Python refuses before this reads anything out of it.
 #[test]
 fn only_python_declares_a_fastapi_application() {
     let tmp = tempfile::tempdir().expect("a temporary directory");

@@ -159,7 +159,7 @@ pub struct Matcher {
     /// `@Test`.
     #[serde(default)]
     pub annotated_with: Option<String>,
-    /// The symbol is called from the module's `if __name__ == "__main__":` block.
+    /// The module's `if __name__ == "__main__":` block calls this symbol.
     #[serde(default)]
     pub called_from_main_guard: Option<bool>,
     /// A directive at the top of the file, or at the top of the symbol's own body.

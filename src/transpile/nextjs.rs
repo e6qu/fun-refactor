@@ -16,7 +16,7 @@ pub struct RoutePlan {
     pub destination: PathBuf,
     /// The URL path this file serves, in FastAPI's spelling.
     pub route: String,
-    /// The methods found, in the order they were declared.
+    /// The methods this found, in declaration order.
     pub methods: Vec<String>,
     /// Every endpoint the file declares, as `(method, URL)`.
     pub endpoints: Vec<(String, String)>,
@@ -701,7 +701,7 @@ fn object_fields(value: &Expr) -> Option<Vec<Field>> {
     )
 }
 
-/// Is this `z.<method>`, however many builders are wrapped around it?
+/// Is this `z.<method>`, under however many builders?
 fn is_zod(callee: &Expr, method: &str) -> bool {
     matches!(callee, Expr::Field { of, name }
         if name == method && matches!(of.as_ref(), Expr::Name(z) if z == "z"))
@@ -759,7 +759,7 @@ fn write(module: &Module, endpoints: &[Endpoint], source: &Path) -> Result<Writt
     // What each handler reads out of the URL.
     let query_keys = read_queries(module);
     // The handlers are the exported functions named after HTTP methods; everything
-    // else in the file is a helper and is written as an ordinary function.
+    // else in the file is a helper and takes an ordinary function's shape.
     let handlers: Vec<&Endpoint> = endpoints.iter().collect();
     let mut rest = Module {
         doc: module.doc.clone(),
@@ -871,7 +871,7 @@ fn write(module: &Module, endpoints: &[Endpoint], source: &Path) -> Result<Writt
             .filter(|(m, _)| m.eq_ignore_ascii_case(&handler.name))
             .map(|(_, key)| (key.clone(), super::snake_always(key)))
             .filter(|(key, name)| {
-                // A key that is not a name (`page-size`, `filter[]`) cannot be declared, and
+                // No declaration takes a key that is not a name (`page-size`, `filter[]`), and
                 // inventing a spelling for it would answer a different URL.
                 let spellable = !name.is_empty()
                     && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')

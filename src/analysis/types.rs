@@ -53,7 +53,7 @@ pub enum Basis {
     Literal,
     /// A class in this workspace was constructed.
     Construction,
-    /// A function in this workspace was called, and it declares what it returns.
+    /// A call reaches a function in this workspace, and it declares what it answers.
     ReturnOfCall,
     /// The value is another binding whose type is known.
     SameBinding,
@@ -198,7 +198,7 @@ fn of_at(index: &Index, symbol: SymbolId, depth: usize) -> Result<Declared> {
     })
 }
 
-/// What a name holds where it is read, over every assignment to it in its scope.
+/// What a name holds at its uses, over every assignment in its scope.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Held {
     /// The source states this, and every assignment in scope agrees.
@@ -263,7 +263,7 @@ fn held_by_uncached(index: &Index, symbol: SymbolId) -> Held {
     }
 }
 
-/// The span of the scope a symbol was declared in.
+/// The span of the scope holding this symbol's declaration.
 fn scope_span(index: &Index, sym: &Symbol) -> Span {
     index
         .file(&sym.file)
@@ -363,7 +363,7 @@ fn infer_bound(
                 });
             }
             let sequence = infer_expression(index, sym, source, node, depth)?;
-            // A sequence whose element type is not written down says nothing about the loop
+            // A sequence declaring no element type says nothing about the loop
             // variable.
             let ty = element_type(&sequence.ty)?;
             Some(Inferred {
@@ -540,7 +540,7 @@ fn infer_expression(
     }
 
     // `self` and `this` are the one value whose type is never a guess: the declaration
-    // this code is written in names it.
+    // this code speaks names it.
     if matches!(kind, "self" | "this") || (kind == "identifier" && matches!(text, "self" | "this"))
     {
         let (ty, owner) = enclosing_type(index, from)?;
@@ -1038,7 +1038,7 @@ fn parameters_of(parsed: &Parsed, source: &str, sym: &Symbol) -> Vec<(String, Op
             .or_else(|| parameter.child_by_field_name("pattern"))
             .map(|n| Span::from(n).text(source).to_string())
             .unwrap_or_else(|| {
-                // A parameter the grammar does not break up is written whole; its name
+                // A parameter the grammar leaves whole keeps its text; its name
                 // is the first identifier in it.
                 let text = Span::from(parameter).text(source);
                 text.split([':', ' ']).next().unwrap_or(text).to_string()

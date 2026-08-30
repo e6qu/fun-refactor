@@ -1,4 +1,4 @@
-//! Changing a signature in Java, where nothing is spelled the way the other five spell it.
+//! Changing a signature in Java, which spells nothing the way the other five do.
 
 use fun_refactor::index::Index;
 use fun_refactor::refactor::signature::{self, Change};

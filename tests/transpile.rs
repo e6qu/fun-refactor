@@ -20,7 +20,7 @@ fn translate(files: &[(&str, &str)], from: &str, to: Language) -> (String, trans
 }
 
 const RUST_SOURCE: &str = "\
-/// Whether a reading can be stored.
+/// Whether a store accepts this reading.
 pub fn validate(sensor: String, celsius: f64, limit: f64) -> bool {
     if celsius > limit {
         return false;
@@ -310,7 +310,7 @@ fn every_output_parses_as_the_language_it_claims_to_be() {
             checked += 1;
         }
     }
-    // The count is written down so that adding a language without adding a source for
+    // The count stands here so that adding a language without adding a source for
     // it fails here and not quietly testing a fraction of the matrix.
     let languages = transpile::SUPPORTED.len();
     assert_eq!(
@@ -408,7 +408,7 @@ const METHODS: &[(&str, &str)] = &[
 
 #[test]
 fn the_receiver_is_spelled_the_way_the_target_spells_it() {
-    // Six languages, and the receiver is not in the parameter list to be renamed with the rest.
+    // Six languages, and the parameter list holds no receiver to rename with the rest.
     for (name, source) in METHODS {
         let from = fun_refactor::lang::detect(std::path::Path::new(name)).unwrap();
         for to in transpile::SUPPORTED {
@@ -417,7 +417,7 @@ fn the_receiver_is_spelled_the_way_the_target_spells_it() {
             }
             let (output, _) = translate(&[(name, source)], name, *to);
             // Bash has no records: the declaration carries loudly instead of a
-            // receiver being spelled at all.
+            // receiver appearing at all.
             if *to == Language::Bash {
                 assert!(
                     output.contains(transpile::MARKER),

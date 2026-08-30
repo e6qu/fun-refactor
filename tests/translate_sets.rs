@@ -31,7 +31,7 @@ fn a_set_is_built_the_way_each_target_builds_one() {
         let out = translated(SEEN_PY, "seen.py", target);
         assert!(out.contains(expected), "{target}:\n{out}");
     }
-    // Zig's sets go through an allocator, so the binding is where one is built.
+    // Zig's sets go through an allocator, so the binding is where one appears.
     let zig = translated(SEEN_PY, "seen.py", Language::Zig);
     assert!(
         zig.contains("std.StringHashMap(void).init(std.heap.page_allocator)"),

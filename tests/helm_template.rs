@@ -336,7 +336,7 @@ fn a_field_under_a_range_is_not_invented_as_a_values_key() {
         "got {:?}",
         template.values_paths_of(index)
     );
-    // The collection itself is a values key, and is reported.
+    // The collection itself is a values key, and the report names it.
     assert_eq!(template.values_paths(), vec![path(&["hosts"])]);
 }
 
@@ -549,7 +549,7 @@ fn a_key_wrapped_in_an_if_is_reported_with_its_condition() {
         "got {:?}",
         stops(&result)
     );
-    // And the condition's own values key is resolved.
+    // And resolution reaches the condition's own values key.
     assert!(
         result.hops.iter().any(|h| h.text.contains("enabled: true")),
         "got {:?}",
@@ -699,7 +699,7 @@ fn two_chart_values_files_have_a_decided_winner() {
         "nothing here is undetermined: {:?}",
         stops(&result)
     );
-    // The external channel is still reported.
+    // The report still names the external channel.
     assert!(
         result.stopped_because(|r| matches!(
             r,

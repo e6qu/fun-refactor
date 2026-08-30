@@ -223,7 +223,7 @@ pub fn usages_of(index: &Index, symbol_id: SymbolId) -> Usages {
         .map(|s| s.qualified_name())
         .unwrap_or_default();
 
-    // A polymorphic declaration is used through its implementations too.
+    // Uses reach a polymorphic declaration through its implementations too.
     let mut targets = vec![symbol_id];
     targets.extend(index.definition_group(symbol_id));
     targets.extend(implementations_of(index, symbol_id));

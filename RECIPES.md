@@ -205,8 +205,7 @@ It writes beside the source and never over it, so a destination that is already
 there is a refusal. The step reports what it created apart from what it changed.
 A construct the target has no counterpart for is a warning against the line of
 the source it came from. That is the shape a rename uses for a use it left.
-The parser checks the language as it reads the recipe. A target nothing can be
-written as is a mistake in the recipe, not a fault of the file it reaches.
+The parser checks the language as it reads the recipe. A target nothing becomes is a mistake in the recipe, not a fault of the file it reaches.
 
 Two more things the prototype argued for:
 

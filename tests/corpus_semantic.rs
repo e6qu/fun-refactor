@@ -36,7 +36,7 @@ fn corpus_files() -> Vec<PathBuf> {
     out
 }
 
-/// One name the compiler could not find, and what it was used as.
+/// One name the compiler could not find, and the role it stood in.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum Missing {
     /// Used where a type belongs: `fn f(x: JsonElement)`.
@@ -114,7 +114,7 @@ fn stub_for(missing: &[Missing]) -> String {
                     "#[derive(Clone, Debug, Default, PartialEq)]\npub struct {name};\n"
                 ));
             }
-            // A value may be called, indexed or read.
+            // A value may take a call, an index or a read.
             Missing::Value(name) => {
                 out.push_str(&format!(
                     "#[derive(Clone, Debug, Default, PartialEq)]\n\

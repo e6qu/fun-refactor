@@ -34,7 +34,7 @@ fn inlines_a_thin_wrapper() {
 
     let out = apply(&plan, &path);
     assert!(out.contains("let y = 3 * 2;"), "got:\n{out}");
-    // The definition is left alone; inlining one call is not deleting the function.
+    // The definition stays: inlining one call deletes no function.
     assert!(out.contains("fn double(x: i32)"), "got:\n{out}");
 }
 

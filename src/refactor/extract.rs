@@ -932,7 +932,13 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
                 if start > rewritten.len() || end > rewritten.len() {
                     continue;
                 }
-                rewritten.replace_range(start..end, &(form.carrying)(&carried_value));
+                // Carry the source's own terminator: grammars differ on the `;`.
+                let mut carried = (form.carrying)(&carried_value);
+                let replaced = statement.text(&source);
+                if replaced.trim_end().ends_with(';') && !carried.ends_with(';') {
+                    carried.push(';');
+                }
+                rewritten.replace_range(start..end, &carried);
             }
             if !form.falling_through.is_empty() {
                 if !rewritten.ends_with('\n') {
@@ -1588,7 +1594,59 @@ fn early_exit(language: Language, enclosing_returns: Option<&str>) -> Option<Ear
             falling_through: "\treturn false".to_string(),
             call: |call| format!("if {call} {{\n\treturn\n}}"),
         }),
-        // Python and TypeScript answer `None` for absence and for a value alike.
+        // A pair: `None` and `null` mean absence and a value alike.
+        (Language::Python, Some(ty)) => Some(EarlyExit {
+            answers: format!("tuple[{ty}, bool]"),
+            carrying: |value| format!("return {value}, True"),
+            falling_through: "    return None, False".to_string(),
+            call: |call| format!("answer, ok = {call}\nif ok:\n    return answer"),
+        }),
+        (Language::Python, None) => Some(EarlyExit {
+            answers: "bool".to_string(),
+            carrying: |_| "return True".to_string(),
+            falling_through: "    return False".to_string(),
+            call: |call| format!("if {call}:\n    return"),
+        }),
+        // Discriminated, so `if (ok)` narrows away the null half.
+        (Language::TypeScript | Language::Tsx, Some(ty)) => Some(EarlyExit {
+            answers: format!("[{ty}, true] | [null, false]"),
+            carrying: |value| format!("return [{value}, true]"),
+            falling_through: "  return [null, false];".to_string(),
+            call: |call| format!("const [answer, ok] = {call};\nif (ok) {{\n  return answer;\n}}"),
+        }),
+        (Language::TypeScript | Language::Tsx, None) => Some(EarlyExit {
+            answers: "boolean".to_string(),
+            carrying: |_| "return true".to_string(),
+            falling_through: "  return false;".to_string(),
+            call: |call| format!("if ({call}) {{\n  return;\n}}"),
+        }),
+        // Java's `Optional` and Zig's `?T` say absence in the type.
+        (Language::Java, Some(ty)) => Some(EarlyExit {
+            answers: format!("Optional<{ty}>"),
+            carrying: |value| format!("return Optional.of({value})"),
+            falling_through: "        return Optional.empty();".to_string(),
+            call: |call| {
+                format!("var answer = {call};\nif (answer.isPresent()) {{\n    return answer.get();\n}}")
+            },
+        }),
+        (Language::Java, None) => Some(EarlyExit {
+            answers: "boolean".to_string(),
+            carrying: |_| "return true".to_string(),
+            falling_through: "        return false;".to_string(),
+            call: |call| format!("if ({call}) {{\n    return;\n}}"),
+        }),
+        (Language::Zig, Some(ty)) => Some(EarlyExit {
+            answers: format!("?{ty}"),
+            carrying: |value| format!("return {value}"),
+            falling_through: "    return null;".to_string(),
+            call: |call| format!("if ({call}) |answer| {{\n    return answer;\n}}"),
+        }),
+        (Language::Zig, None) => Some(EarlyExit {
+            answers: "bool".to_string(),
+            carrying: |_| "return true".to_string(),
+            falling_through: "    return false;".to_string(),
+            call: |call| format!("if ({call}) {{\n    return;\n}}"),
+        }),
         _ => None,
     }
 }
@@ -1922,11 +1980,17 @@ fn render_function(
             format!("\n\n{lead}static {ret} {name}({params}) {{\n{reindented}{tail}\n{lead}}}")
         }
         _ => {
+            let ret = match return_type {
+                Some(ty) => format!(": {ty}"),
+                None => String::new(),
+            };
             let tail = match returns.first() {
                 Some(r) => format!("\n{lead}{body_indent}return {r};"),
                 None => String::new(),
             };
-            format!("\n\n{lead}{prefix}function {name}({params}) {{\n{reindented}{tail}\n{lead}}}")
+            format!(
+                "\n\n{lead}{prefix}function {name}({params}){ret} {{\n{reindented}{tail}\n{lead}}}"
+            )
         }
     }
 }

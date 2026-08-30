@@ -251,7 +251,7 @@ pub struct Reference {
     /// reads a local and writes a field, and this is the field half.
     #[serde(default)]
     pub twin: bool,
-    /// What this reference was written against, when it was written as a member of something:
+    /// The receiver this reference names, where it names one:
     /// the `w` in `w.contextWithTimeout(…)`, the `time` in `time.Now()`.
     #[serde(default)]
     pub receiver: Option<String>,
@@ -262,7 +262,7 @@ pub struct Reference {
     /// The kind of declaration this reference can name, where the syntax says so.
     #[serde(default)]
     pub expects: Option<SymbolKind>,
-    /// The receiver was written as a *path*, as in Rust's `Patterns::build`, `super::f`, and
+    /// The source spelled the receiver as a *path*: Rust's `Patterns::build`, `super::f`, and
     /// not as a value.
     #[serde(default)]
     pub receiver_is_path: bool,
@@ -407,7 +407,7 @@ pub struct FileFacts {
     /// Why the file's facts are incomplete, empty when they are not.
     #[serde(default)]
     pub gaps: Vec<FactGap>,
-    /// Set when the file could not be read at all.
+    /// Set where the file failed to read.
     #[serde(skip)]
     pub unreadable: Option<String>,
     pub symbols: Vec<Symbol>,
@@ -563,7 +563,7 @@ mod tests {
         assert!(Confidence::FieldBased < Confidence::NameOnly);
         assert!(Confidence::Exact.is_safe_to_rewrite());
         assert!(Confidence::ImportQualified.is_safe_to_rewrite());
-        // Anything weaker must not be rewritten silently.
+        // Never rewrite anything weaker in silence.
         assert!(!Confidence::FieldBased.is_safe_to_rewrite());
         assert!(!Confidence::NameOnly.is_safe_to_rewrite());
     }

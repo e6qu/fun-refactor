@@ -30,7 +30,7 @@ pub struct Report {
     pub stopped: Option<String>,
     /// True when this run's edits reached the disk.
     pub applied: bool,
-    /// True when `--write` was asked for and the workspace was left untouched
+    /// True where `--write` asked and the workspace stayed as it stood
     /// because the run failed: a stop, or an expectation that did not hold.
     pub rolled_back: bool,
 }
@@ -187,7 +187,7 @@ pub fn run(recipe: &Recipe, sources: Sources, options: &Options) -> Result<(Repo
                 applied: false,
                 rolled_back: false,
             },
-            // Nothing is written: the transaction did not complete.
+            // Write nothing: the transaction did not complete.
             originals,
         ));
     }
@@ -583,7 +583,7 @@ fn merge(into: &mut EditSet, from: &EditSet) {
                 into.add(path.clone(), edit.clone());
             }
         }
-        // What a plan says a file it creates is written in travels with the edits.
+        // The language a plan gives a file it creates travels with the edits.
         if let Some(language) = from.language(path) {
             into.declare_language(path.clone(), language);
         }
@@ -609,7 +609,7 @@ impl Subject {
         }
     }
 
-    /// Find this subject in an index built since it was chosen.
+    /// Find this subject in an index that postdates the choice.
     fn resolve(&self, index: &Index) -> Option<SymbolId> {
         let Subject::Symbol { file, name, kind } = self else {
             return None;
@@ -1039,7 +1039,7 @@ fn wants(selector: &[Predicate], field: &str) -> bool {
     selector.iter().any(|p| p.field() == field)
 }
 
-/// The value a predicate was given, when it takes one.
+/// The value a predicate carries, where it takes one.
 fn argument<'a>(selector: &'a [Predicate], field: &str) -> Option<&'a str> {
     selector.iter().find_map(|p| match p {
         Predicate::Equals { field: f, value } if f == field => Some(value.as_str()),
@@ -1073,7 +1073,7 @@ fn gather(step: &Step, index: &Index, options: &Options) -> Result<Facts> {
             .unwrap_or_default();
     }
 
-    // One call graph answers both directions, and it is only built if one is asked for.
+    // One call graph answers both directions, and only a step asking for one builds it.
     if wants(&step.selector, "calls") || wants(&step.selector, "called-by") {
         let graph = crate::analysis::call_graph::CallGraph::build(index);
         if let Some(name) = argument(&step.selector, "calls") {

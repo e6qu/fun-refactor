@@ -370,7 +370,7 @@ fn a_class_is_renamed_through_a_helper_call_and_a_template_literal() {
 
 #[test]
 fn a_data_hook_is_one_entity_across_html_and_tsx() {
-    // `data-testid="submit-btn"` is written in the markup and in the component that renders the
+    // `data-testid="submit-btn"` stands in the markup and in the component rendering the
     // same element.
     let (tmp, index) = workspace(&[
         (

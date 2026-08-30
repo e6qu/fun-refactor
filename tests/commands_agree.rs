@@ -115,7 +115,7 @@ fn usages_reports_the_references_that_resolved_to_the_symbol() {
             *per_target.entry(t).or_default() += 1;
         }
     }
-    // Every reference in the workspace, by where it is written and what it spells.
+    // Every reference in the workspace, by where it sits and what it spells.
     let spelled: HashMap<(&Path, usize), &str> = index
         .references
         .iter()
@@ -132,7 +132,7 @@ fn usages_reports_the_references_that_resolved_to_the_symbol() {
             report.usages.len(),
             per_target.get(&symbol.id).copied().unwrap_or(0)
         );
-        // A polymorphic declaration is used through its implementations, so a reported use may
+        // Uses reach a polymorphic declaration through its implementations, so a reported one may
         // resolve to one of those by name.
         let mut answers: Vec<&str> = vec![symbol.name.as_str()];
         for target in index
@@ -276,7 +276,7 @@ fn usages_reports_the_name_where_it_appears_in_prose() {
         );
     }
 
-    // The two lists never overlap: a mention is not counted as a use.
+    // The two lists never overlap, and a mention counts as no use.
     for mention in &found.in_text {
         assert!(
             !found.usages.iter().any(|u| u.location == mention.location),

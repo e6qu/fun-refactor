@@ -198,7 +198,7 @@ fn the_published_totals_match_the_matrix() {
     }
     let total = yes + rest;
 
-    // Each claim as it is written, with the numbers left as placeholders.
+    // Each claim as the document spells it, the numbers standing as placeholders.
     for (name, claims) in [
         (
             "README.md",

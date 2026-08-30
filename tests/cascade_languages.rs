@@ -227,7 +227,7 @@ fn zig_a_function_still_used_elsewhere_survives() {
 #[test]
 fn zig_a_payload_capture_is_refused_by_name() {
     // A payload binds the condition's value, and a boolean has no value to bind, so
-    // the substitution stays and the `if` is reported instead of guessed at.
+    // the substitution stays and the report names the `if` rather than guessing.
     let tmp = workspace(&[(
         "a.zig",
         "const USE_NEW = true;\n\
@@ -470,7 +470,7 @@ fn bash_substitutes_inside_a_larger_string_without_stranding_the_sigil() {
 
 #[test]
 fn bash_a_compound_expansion_is_refused_by_name() {
-    // `${FLAG:-no}` means more than the flag's value: the whole expansion cannot be replaced
+    // `${FLAG:-no}` means more than the flag's value, so nothing replaces the whole expansion
     // without losing the default.
     let tmp = workspace(&[("run.sh", "USE_NEW=true\n\necho \"${USE_NEW:-no}\"\n")]);
 
@@ -483,7 +483,7 @@ fn bash_a_compound_expansion_is_refused_by_name() {
 
 #[test]
 fn bash_a_refused_use_keeps_the_assignment_that_feeds_it() {
-    // One use can be replaced and one cannot.
+    // One use gives way and one does not.
     let tmp = workspace(&[(
         "run.sh",
         "USE_NEW=true\n\
@@ -790,7 +790,7 @@ fn terraform_a_true_for_each_keeps_the_collection_it_chose() {
 
 #[test]
 fn terraform_a_count_the_author_wrote_by_hand_survives() {
-    // Only a `count` this cascade produced may be removed; one that was already there
+    // Only a `count` this cascade produced comes away; one that stood before
     // belongs to the author.
     let tmp = workspace(&[
         ("variables.tf", "variable \"enabled\" {\n  type = bool\n}\n"),

@@ -1,4 +1,4 @@
-//! What a class inherits crosses, or is named where it cannot.
+//! What a class inherits crosses, or the report names it.
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;

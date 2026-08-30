@@ -125,7 +125,7 @@ fn editing_a_file_invalidates_only_that_entry() {
 
 #[test]
 fn a_files_parse_error_state_survives_a_round_trip() {
-    // The flag is carried with the facts so a hit need not reparse to learn it.
+    // The flag travels with the facts, so a hit skips the reparse.
     let (tmp, scanned) = workspace(FILES);
     let cache_dir = tempfile::tempdir().unwrap();
     let cache = Cache::open_at(cache_dir.path()).unwrap();
@@ -191,7 +191,7 @@ fn indexing_is_deterministic_despite_running_in_parallel() {
 #[test]
 fn cross_language_resolution_survives_caching() {
     // Resolution happens after facts are loaded, so a cached CSS class must still
-    // be found by an HTML attribute.
+    // turn up through an HTML attribute.
     let (_tmp, scanned) = workspace(FILES);
     let cache_dir = tempfile::tempdir().unwrap();
     let cache = Cache::open_at(cache_dir.path()).unwrap();

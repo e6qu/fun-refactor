@@ -159,8 +159,8 @@ fn renaming_the_callers_variable_leaves_the_module_argument_alone() {
     assert!(after.contains("variable \"where\""), "{after}");
 }
 
-/// A source outside the workspace names a configuration nothing here can read, so the
-/// argument stays unresolved and is reported rather than rewritten.
+/// A source outside the workspace names a configuration nothing here reads. The
+/// argument stays unresolved, and the report names it rather than rewriting it.
 #[test]
 fn an_argument_of_a_module_from_the_registry_is_reported() {
     let caller = "module \"net\" {\n  source = \"./modules/net\"\n  region = \"eu-west-1\"\n}\n\n\

@@ -543,7 +543,7 @@ fn reordering_module_variables_is_refused_as_meaningless() {
 
 #[test]
 fn a_computed_module_source_anywhere_refuses_the_change() {
-    // `source = var.where` cannot be shown *not* to call this module.
+    // Nothing shows `source = var.where` *not* calling this module.
     let ws = Workspace::new(&[
         ("main.tf", ROOT_MAIN_TF),
         ("modules/thing/variables.tf", THING_VARIABLES_TF),
@@ -657,7 +657,7 @@ fn a_locals_entry_is_not_a_module_variable() {
 // `@mixin name($a, $b)` is a parameter list and `@include name(1, 2)` is a call,
 // so a mixin's signature changes through exactly the same path a function's does.
 
-// `$legacy` is declared and never used, which makes removing it a refactoring:
+// `$legacy` declares and nothing reads it, which makes removing it a refactoring:
 // the body does not read it, so nothing that renders today renders differently.
 const THEME_SCSS: &str =
     "@mixin theme($fg, $bg, $legacy) {\n  color: $fg;\n  background: $bg;\n}\n";

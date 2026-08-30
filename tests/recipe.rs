@@ -291,7 +291,7 @@ def unrelated():
 
 #[test]
 fn the_call_graph_answers_calls_and_called_by() {
-    // Both directions come from one graph, and the graph is only built when a
+    // Both directions come from one graph, and only a step asking for one builds
     // predicate asks for it.
     let (_tmp, report, _after) = run(
         &[("src/app.py", CALLS_PY)],
@@ -654,7 +654,7 @@ fn a_translate_step_writes_the_file_beside_its_source() {
         "{}",
         written.1
     );
-    // The source is untouched: a translation is written beside it, never over it.
+    // The source stands: a translation lands beside it, never over it.
     assert_eq!(
         after.get(&tmp.path().join("lib.go")).map(|f| f.1.as_str()),
         Some(GO_LIB)

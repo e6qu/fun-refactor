@@ -279,20 +279,27 @@ return from what the rest of the body needs. `--all` extracts every occurrence
 of the same expression.
 
 A region holding a `return` leaves the enclosing function, and a call does not.
-Rust and Go extract one anyway: the new function answers, and the call site does
-the returning.
+Every target extracts one anyway. The new function answers, and the call site
+does the returning. Each says it its own way.
 
-| Enclosing function | The new function answers | The call site |
+| Target | The new function answers | The call site |
 |---|---|---|
-| Rust, returns `T` | `Option<T>` | `if let Some(answer) = f(…) { return answer; }` |
-| Rust, returns nothing | `bool` | `if f(…) { return; }` |
-| Go, returns `T` | `(T, bool)` | `if answer, ok := f(…); ok { return answer }` |
-| Go, returns nothing | `bool` | `if f(…) { return }` |
+| Rust | `Option<T>` | `if let Some(answer) = f(…) { return answer; }` |
+| Go | `(T, bool)` | `if answer, ok := f(…); ok { return answer }` |
+| Zig | `?T` | `if (f(…)) \|answer\| { return answer; }` |
+| Java | `Optional<T>` | `var answer = f(…); if (answer.isPresent()) …` |
+| TypeScript | `[T, true] \| [null, false]` | `const [answer, ok] = f(…); if (ok) …` |
+| Python | a pair | `answer, ok = f(…)` then `if ok:` |
 
-Python and TypeScript spell absence with a value a function may also answer.
-`None` from the new function reads the same as a `return None` inside it, so both
-refuse and say that. A region that both returns and produces a value the code
-after it reads refuses too: one answer cannot carry both.
+Where the enclosing function answers nothing, the new one answers a flag and the
+call site returns bare.
+
+TypeScript takes a discriminated pair rather than `[T \| null, boolean]`. Strict
+mode refuses to return the nullable half. Go declares a zero on the way out,
+since nothing here knows a named type's zero.
+
+A region that both returns and produces a value the code after it reads refuses.
+One answer cannot carry both, and the refusal names the bindings.
 
 ### `fr inline`
 
@@ -374,8 +381,8 @@ at that position.
 fr restructure <PATTERN> <TEMPLATE> [--lang <L>] [--write]
 ```
 
-Rewrite every occurrence of a code shape. The pattern and the template are
-written in the target language, with metavariables for the parts that vary.
+Rewrite every occurrence of a code shape. Write the pattern and the template in
+the target language, with metavariables for the parts that vary.
 
 ### `fr recipe`
 

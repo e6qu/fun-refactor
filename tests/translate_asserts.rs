@@ -116,7 +116,7 @@ fn rusts_assert_family_reads_back_as_the_checks_they_are() {
     );
     assert!(
         // Rust's `%` takes its sign from the dividend and Python's from the
-        // divisor, so the source's answer is spelled out rather than assumed.
+        // divisor, so this spells the source's answer out rather than assuming it.
         out.contains("assert fr_trunc_rem(total, 2) == 0"),
         "`assert_eq!` is the comparison it abbreviates.\n{out}"
     );

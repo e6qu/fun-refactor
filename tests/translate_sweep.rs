@@ -1,4 +1,4 @@
-//! Every file, asked to be written as every language.
+//! Every file, asked to become every language.
 
 use fun_refactor::lang::Language;
 use fun_refactor::{translate, transpile};

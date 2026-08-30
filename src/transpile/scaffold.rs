@@ -25,7 +25,7 @@ pub struct ScaffoldPlan {
     pub edits: crate::edit::EditSet,
 }
 
-/// The target a scaffold can be written as.
+/// The target a scaffold may become.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Target {
     FastApi,
