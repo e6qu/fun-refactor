@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.5.2...fun-refactor-v0.6.0) (2026-08-30)
+
+
+### Features
+
+* Lean 4, the nineteenth language, read but not yet written ([#187](https://github.com/e6qu/fun-refactor/issues/187)) ([5c61ab9](https://github.com/e6qu/fun-refactor/commit/5c61ab9cc738bac2dabdda76a70dd9393cc385ac))
+
 ## [0.5.2](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.5.1...fun-refactor-v0.5.2) (2026-08-30)
 
 
