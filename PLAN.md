@@ -6,10 +6,11 @@ language suite. Research and provenance for every design choice: see [RESEARCH.m
 - **Crate**: `fun-refactor`, binary `fr` (provisional). Rust 2021, **AGPL-3.0-or-later**.
 - **Repo**: `github.com/e6qu/fun-refactor`. Commits authored as `e6qu
   <2966430+e6qu@users.noreply.github.com>`; remote uses the `github.com-e6qu` SSH alias.
-- **Languages** (16 variants): Rust, Go, Zig, Java, TypeScript/TSX, Python, Bash, HTML,
-  CSS/SCSS, Terraform/HCL, Helm/YAML, XML, Markdown. Grammar pins inherited from funveil
-  (tree-sitter 0.26 line). Java came later, at a price of one query file, five lines of
-  enum and three transpiler cases.
+- **Languages** (19 variants): Rust, Go, Zig, Java, TypeScript/TSX, Python, Bash, HTML,
+  CSS/SCSS/Sass, Terraform/HCL, JSON, Helm/YAML, XML, Markdown, Lean. Grammar pins
+  inherited from funveil (tree-sitter 0.26 line). Java came later, at a price of one
+  query file, five lines of enum and three transpiler cases. Lean cost a great deal more,
+  and the section on it says how much.
 - **Feature families**: standard refactors (rename, extract/inline, move, change signature,
   safe delete, organize imports) + analysis (symbols/refs, call graphs, entrypoints,
   forward/backward flow, config-value provenance).
@@ -348,6 +349,11 @@ A silent guard-clause moved code out from under its condition. A dead-code repor
 
 Stages 0 to 8 are complete, and so are the five pull requests this plan sequenced.
 
+This table and the two sections at the end are what a reader wants. Everything between
+"Where this stands" and them is a record of work that shipped, kept in the order it
+happened. The reasoning is worth more than the plan was. Nothing below waits to be done
+unless it says so.
+
 `tests/capability_matrix.rs` derives the lower half of this table from the code and
 asserts it. The earlier version said sixteen languages and 269
 supported pairs long after both had moved, because nothing checked it. The upper half
@@ -435,7 +441,7 @@ and rejects an edit that introduces a syntax error. That guard cannot see any of
 Nothing in this repository compiles what the tool wrote. A person found all four by
 reading the output.
 
-## Sequenced work
+## The five pull requests, sequenced and delivered
 
 Five pull requests in dependency order. PR 1 buys a gate that raises the value of PR 2 and
 PR 3. PR 4 is independent. PR 5 is a product decision and not a debt.
@@ -613,7 +619,7 @@ the stage as well as an implementation does.
 refusal to explain itself. `fr rename` names why it left each site: read from a value of
 unknown type, written inside a macro, or matched by name alone.
 
-## What is still to build
+## The four surfaces, and what each turned out to need
 
 `fr` is a command line for declarative code changes. Source is edited through its
 structure, at the level of the tree and above, and never as text. Four surfaces carry
@@ -770,7 +776,7 @@ one dispatch function per overridden method; field defaults as `impl Default` an
 `New` constructor; TypeScript optional chaining as the null-testing conditional; and
 the unsigned shift, xor, slices and `++` concatenation.
 
-## Type inference finished, then the translations that remain
+## Type inference, and the translations that followed it
 
 The goal, in force: the inference in `analysis/types.rs` answers everywhere a
 supported language gives it evidence, and every consumer of resolution uses the
@@ -948,7 +954,7 @@ which bindings hold a map, so a map's `contains` is told from a string's.
 Until that lands the group stays out of the harness rather than sitting in it
 green.
 
-## Everything still standing
+## Everything that was still standing, and how it came down
 
 One branch and one pull request. Nothing here waits for a later one, and nothing goes
 unaddressed. Where something turns out to be undecidable rather than large, this entry
@@ -2711,6 +2717,27 @@ The last of those found a defect of its own. `EXAMPLES.md` and `TUTORIAL.md` bot
 quote `fr delete` refusing, and the quoted line stopped matching the command the
 moment the pass above reworded it. Nothing noticed. Nothing runs the commands in
 those two files and compares. That is the next thing worth building.
+
+## Specs in Lean
+
+**Planned, not built.** `docs/lean-specs.md` holds it. What Lean would specify here,
+what `fr` would own, what an agent would own. And the three things the idea promises
+that nobody can deliver.
+
+The line the design rests on is the one Lean itself draws. Writing a proof is a search;
+checking one is a decision. So `fr` takes everything decidable. A spec's shape derived
+from the code, a report of where the two drifted, a count of what is unproved,
+generation, and running `lake`. An agent does the search. `lake` alone accepts an
+answer.
+
+The first thing to build is a Lean writer, because everything waits on it and it extends
+the transpiler that already works. The most valuable thing to build is a semantics for
+the IR, because that is where a wrong answer is silent.
+
+What the plan refuses: proving the refactorings, which needs a formal semantics for
+nineteen grammars. Proving a hand-written implementation refines its spec, which needs one
+for Rust. And the word "verified" for anything a conformance run established rather than a
+proof.
 
 ## The nineteenth language: Lean
 

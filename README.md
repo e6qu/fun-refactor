@@ -254,6 +254,9 @@ Four documents cover the work that spans more than one language at a time:
 - [RECIPES.md](RECIPES.md) for the recipe language `fr recipe` runs.
 - [IR.md](IR.md) for the intermediary language every translation crosses, and what
   a writer does when it cannot spell a construct.
+- [docs/lean-specs.md](docs/lean-specs.md) for a plan nobody has built: writing this
+  project's specifications in Lean, and the three things that idea promises which nobody
+  can deliver.
 
 [BUGS.md](BUGS.md) tracks the open limitations, and the tool reports each one to you
 instead of answering it wrongly in silence. One stands open: reachability through a
