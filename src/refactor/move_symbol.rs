@@ -120,6 +120,7 @@ pub fn to_file(index: &Index, symbol: SymbolId, destination: &Path) -> Result<Mo
         Language::Css | Language::Scss | Language::Sass => move_css(index, sym, destination),
         Language::Markdown => move_markdown(index, sym, destination),
         Language::Zig => move_zig(index, sym, destination),
+        Language::Lean => move_lean(index, sym, destination),
         Language::Bash => move_bash(index, sym, destination),
         Language::Yaml | Language::Helm => move_values_key(index, sym, destination),
         // A JSON key's path is its address, the same as a YAML key's, so the
@@ -3884,6 +3885,118 @@ fn blank_run(source: &str, offset: usize, direction: Direction) -> usize {
 }
 
 /// Append `text` to a file that may not exist yet.
+/// The module a Lean file is: `Geometry/Point.lean` is `Geometry.Point`, rooted at the
+/// nearest lakefile or, with none above it, at the file's own directory.
+fn lean_module_path(file: &Path) -> Option<String> {
+    let dir = file.parent()?;
+    let root = dir
+        .ancestors()
+        .find(|a| {
+            ["lakefile.lean", "lakefile.toml", "lean-toolchain"]
+                .iter()
+                .any(|marker| crate::vfs::read_to_string(a.join(marker)).is_ok())
+        })
+        .unwrap_or(dir);
+    let relative = file.strip_prefix(root).ok()?;
+    let mut parts: Vec<String> = Vec::new();
+    for component in relative.components() {
+        parts.push(component.as_os_str().to_str()?.to_string());
+    }
+    let last = parts.last_mut()?;
+    *last = last.strip_suffix(".lean")?.to_string();
+    Some(parts.join("."))
+}
+
+/// Where an `import` goes: Lean takes them all before any other command.
+fn lean_import_insertion_point(source: &str) -> usize {
+    let mut at = 0;
+    let mut after_last_import = 0;
+    for line in source.split_inclusive('\n') {
+        let trimmed = line.trim_start();
+        if trimmed.starts_with("import ") {
+            at += line.len();
+            after_last_import = at;
+        } else if trimmed.is_empty() || trimmed.starts_with("--") {
+            at += line.len();
+        } else {
+            break;
+        }
+    }
+    after_last_import
+}
+
+/// Lean: a file is a module. A top-level declaration keeps its name wherever it lands,
+/// so a use site needs the import and nothing else.
+fn move_lean(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
+    if sym.container.is_some() {
+        return Err(Refusal::Declined {
+            detail: format!(
+                "'{}' is nested inside another declaration; only a top-level declaration \
+                 moves between Lean modules",
+                sym.name
+            ),
+        }
+        .into());
+    }
+    let Some(module) = lean_module_path(destination) else {
+        return Err(Refusal::Declined {
+            detail: format!(
+                "{} yields no module path, so nothing can spell the `import` a use site \
+                 would need",
+                destination.display()
+            ),
+        }
+        .into());
+    };
+
+    let source = crate::vfs::read_to_string(&sym.file)?;
+    let removal = whole_lines(&source, sym.full_span);
+    let moved_text = removal.text(&source).to_string();
+
+    let mut plan = MovePlan::new(sym, destination);
+    plan.edits.add(
+        sym.file.clone(),
+        Edit::new(removal, String::new(), format!("{} moves out", sym.name)),
+    );
+    append_to_destination(
+        &mut plan.edits,
+        destination,
+        moved_text.trim_end(),
+        format!("{} lands here", sym.name),
+    );
+
+    // Every file still naming it needs the destination module.
+    let mut needs_import: BTreeSet<PathBuf> = BTreeSet::new();
+    for reference in index.references_to(sym.id) {
+        if reference.file == sym.file && removal.contains(reference.span) {
+            continue;
+        }
+        if reference.file != *destination {
+            needs_import.insert(reference.file.clone());
+        }
+    }
+    for file in needs_import {
+        let text = crate::vfs::read_to_string(&file).unwrap_or_default();
+        if text
+            .lines()
+            .any(|l| l.trim_start().strip_prefix("import ") == Some(module.as_str()))
+        {
+            continue;
+        }
+        let at = lean_import_insertion_point(&text);
+        plan.edits.add(
+            file.clone(),
+            Edit::new(
+                Span::new(at, at),
+                format!("import {module}\n"),
+                format!("{} lives in {module} now", sym.name),
+            ),
+        );
+        plan.imports_added.push(file);
+    }
+    Ok(plan)
+}
+
 fn append_to_destination(
     edits: &mut EditSet,
     destination: &Path,
@@ -4127,6 +4240,14 @@ pub fn movable(index: &Index, file: &Path) -> Vec<SymbolId> {
         .filter(|s| match s.language {
             // Nothing, because `move` refuses for Java.
             Language::Java => false,
+            // A Lean module is a file, and a top-level declaration moves between two.
+            Language::Lean => {
+                s.container.is_none()
+                    && matches!(
+                        s.kind,
+                        SymbolKind::Function | SymbolKind::Struct | SymbolKind::Enum
+                    )
+            }
             Language::TypeScript | Language::Tsx | Language::Python => {
                 s.container.is_none()
                     && matches!(

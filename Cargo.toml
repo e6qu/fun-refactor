@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "crates/wasm-libc", "grammars/zig", "grammars/python", "grammars/go", "grammars/typescript", "grammars/scss", "grammars/sass"]
+members = [".", "crates/wasm-libc", "grammars/zig", "grammars/python", "grammars/go", "grammars/typescript", "grammars/scss", "grammars/sass", "grammars/lean"]
 
 [package]
 name = "fun-refactor"
@@ -58,7 +58,8 @@ lang-yaml = ["dep:tree-sitter-yaml"]
 lang-xml = ["dep:tree-sitter-xml"]
 lang-markdown = ["dep:tree-sitter-md-025"]
 lang-json = ["dep:tree-sitter-json"]
-lang-all = ["lang-rust", "lang-go", "lang-typescript", "lang-python", "lang-zig", "lang-java", "lang-bash", "lang-html", "lang-css", "lang-scss", "lang-sass", "lang-hcl", "lang-yaml", "lang-xml", "lang-markdown", "lang-json"]
+lang-lean = ["dep:fun-refactor-lean-grammar"]
+lang-all = ["lang-rust", "lang-go", "lang-typescript", "lang-python", "lang-zig", "lang-java", "lang-bash", "lang-html", "lang-css", "lang-scss", "lang-sass", "lang-hcl", "lang-yaml", "lang-xml", "lang-markdown", "lang-json", "lang-lean"]
 
 # The analysis core, compiled for the browser. See src/wasm.rs.
 wasm = ["dep:wasm-bindgen", "dep:console_error_panic_hook", "dep:serde-wasm-bindgen", "dep:fun-refactor-wasm-libc"]
@@ -77,6 +78,7 @@ fun-refactor-scss-grammar = { path = "grammars/scss", optional = true }
 # Sass has two syntaxes. The indented one is not SCSS: every block and every statement
 # ends differently, so it has a grammar of its own (was BUGS.md B283).
 fun-refactor-sass-grammar = { path = "grammars/sass", optional = true }
+fun-refactor-lean-grammar = { path = "grammars/lean", optional = true }
 tree-sitter-rust = { version = "0.24", optional = true }
 tree-sitter-bash = { version = "0.25", optional = true }
 tree-sitter-hcl = { version = "1.1", optional = true }

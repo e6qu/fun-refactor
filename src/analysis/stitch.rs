@@ -481,6 +481,7 @@ fn accessors_for(language: Language) -> &'static [Accessor] {
         | Language::Helm
         | Language::Xml
         | Language::Json
+        | Language::Lean
         | Language::Markdown => &[],
     }
 }

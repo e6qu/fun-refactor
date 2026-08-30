@@ -27,6 +27,8 @@ pub enum Language {
     Markdown,
     /// JSON, and the JSON syntax HCL also has.
     Json,
+    /// Lean 4, whose types state theorems and whose proofs are ordinary terms.
+    Lean,
 }
 
 /// Broad language class.
@@ -58,6 +60,7 @@ impl Language {
         Language::Helm,
         Language::Xml,
         Language::Markdown,
+        Language::Lean,
     ];
 
     pub fn name(&self) -> &'static str {
@@ -76,6 +79,7 @@ impl Language {
             Language::Sass => "sass",
             Language::Hcl => "hcl",
             Language::Json => "json",
+            Language::Lean => "lean",
             Language::Yaml => "yaml",
             Language::Helm => "helm",
             Language::Xml => "xml",
@@ -92,7 +96,8 @@ impl Language {
             | Language::TypeScript
             | Language::Tsx
             | Language::Python
-            | Language::Bash => LanguageClass::Imperative,
+            | Language::Bash
+            | Language::Lean => LanguageClass::Imperative,
             Language::Html
             | Language::Css
             | Language::Scss
@@ -126,6 +131,7 @@ impl Language {
             Language::Sass => &["sass"],
             Language::Hcl => &["tf", "tfvars", "hcl"],
             Language::Json => &["json"],
+            Language::Lean => &["lean"],
             Language::Yaml => &["yaml", "yml"],
             // Helm shares YAML extensions and is otherwise distinguished by chart
             // layout, but `.tpl` is unambiguously a Helm template file.

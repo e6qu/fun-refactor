@@ -55,6 +55,8 @@ impl Parsers {
             Language::Markdown => Some(tree_sitter_md_025::LANGUAGE.into()),
             #[cfg(feature = "lang-json")]
             Language::Json => Some(tree_sitter_json::LANGUAGE.into()),
+            #[cfg(feature = "lang-lean")]
+            Language::Lean => Some(fun_refactor_lean_grammar::LANGUAGE.into()),
             #[allow(unreachable_patterns)]
             _ => None,
         }

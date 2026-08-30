@@ -358,6 +358,7 @@ dependencies = [
  "clap",
  "console_error_panic_hook",
  "fun-refactor-go-grammar",
+ "fun-refactor-lean-grammar",
  "fun-refactor-python-grammar",
  "fun-refactor-sass-grammar",
  "fun-refactor-scss-grammar",
@@ -399,6 +400,14 @@ dependencies = [
 
 [[package]]
 name = "fun-refactor-go-grammar"
+version = "0.5.2"
+dependencies = [
+ "cc",
+ "tree-sitter-language",
+]
+
+[[package]]
+name = "fun-refactor-lean-grammar"
 version = "0.5.2"
 dependencies = [
  "cc",

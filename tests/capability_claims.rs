@@ -11,6 +11,12 @@ use std::path::PathBuf;
 /// One small, valid file per language, each holding a declaration and a use of it.
 fn fixture(language: Language) -> (&'static str, &'static str) {
     match language {
+        Language::Lean => (
+            "Geometry.lean",
+            "def limit : Int := 3\n\n\
+             def width (n : Int) : Int :=\n  n + limit\n\n\
+             def caller (n : Int) : Int :=\n  width n\n",
+        ),
         Language::Rust => (
             "src/lib.rs",
             "pub const LIMIT: usize = 3;\n\npub fn width(items: &[u8]) -> usize {\n    \

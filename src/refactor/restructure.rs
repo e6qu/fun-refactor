@@ -449,6 +449,12 @@ fn fragment_wrappers(language: Language) -> &'static [(&'static str, &'static st
         Language::Markdown => &[("", "\n")],
         // A fragment of JSON is a value, a member, or a whole document.
         Language::Json => &[("", "\n"), ("{\"__fr_pattern\": ", "}\n"), ("[", "]\n")],
+        // A term, a whole declaration, or the body of one.
+        Language::Lean => &[
+            ("", "\n"),
+            ("def __frPattern := ", "\n"),
+            ("example : Nat := ", "\n"),
+        ],
     }
 }
 

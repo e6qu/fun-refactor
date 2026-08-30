@@ -360,10 +360,10 @@ names the commit it measures.
 | Merged pull requests | 164, at `632276e` |
 | Rust source | 97,377 lines, at `632276e` |
 | Tests | 2,227 in 189 files, at `632276e` |
-| Query sets | 16 |
+| Query sets | 17 |
 | Entry-point catalogs | 10 |
-| Capabilities × languages | 24 × 18 |
-| Supported pairs | 299 of 432, every other one carrying its reason |
+| Capabilities × languages | 24 × 19 |
+| Supported pairs | 310 of 456, every other one carrying its reason |
 | Defects fixed | 662 |
 | Defects open | 1 |
 
@@ -1088,8 +1088,8 @@ groups had never touched:
 ## Progress log
 
 Every stage is complete except the optional LSP delegation backend. Every
-capability a language can meaningfully support now stands: **299 of 432 capability ×
-language pairs supported, 133 not applicable, none refused.**
+capability a language can meaningfully support now stands: **310 of 456 capability ×
+language pairs supported, 146 not applicable, none refused.**
 
 Nobody maintains the matrix by hand any more. `src/capabilities.rs` computes it by
 asking each refactoring's own predicate, and `fr capabilities` prints it with the reason
@@ -1097,7 +1097,7 @@ attached to every non-supported cell. A test asserts the README matches. The
 hand-written version drifted twice, once hiding 27 unbuilt cells and once publishing six
 working ones as refused.
 
-The compile gate drives six of the eighteen languages: Rust, TypeScript, Go, Python, Zig
+The compile gate drives six of the nineteen languages: Rust, TypeScript, Go, Python, Zig
 and Java. It names the other twelve on every run. The twelve are subtracted from the
 language list rather than written out. The hand-written version went stale twice. Those
 twelve have no compiler to run. A
@@ -1398,7 +1398,7 @@ outside are the same type spelled differently.
 
 ### The log
 
-Build-out, in order: eighteen languages; seven transpiler readers and writers, forty-two
+Build-out, in order: nineteen languages; seven transpiler readers and writers, forty-two
 ordered pairs; the recipe language; the entry-point catalogues. Then the published site and its
 WebAssembly playground; the refactoring catalogue page; the API-contract invariant; the
 types tutorial. BUGS.md records each one with what it broke on the way.
@@ -2714,7 +2714,40 @@ those two files and compares. That is the next thing worth building.
 
 ## The nineteenth language: Lean
 
-**Planned, not built.** Nothing below exists yet. It sits here to fix the shape of the work
+**The reading half works.** `fr` parses Lean, indexes it, and renames and moves a
+declaration across it. The writing half does not exist: nothing translates into Lean
+yet. The capability matrix says so cell by cell.
+
+What the grammar gave, and what it cost. `grammars/lean` holds the published grammar
+regenerated against this build's tree-sitter, because the crate on crates.io links 0.25
+and this workspace links 0.26.
+
+The cost is the largest any language here has carried, and it wants a decision rather
+than a shrug. `parser.c` is 44 MB, seven times the largest grammar before it, and
+upstream ships the same size, so nothing here made it big. A first visit to the
+playground goes from 2.09 MB gzipped to 3.55 MB. One language, seventy per cent.
+
+`lang-lean` is a feature like every other, so a browser build can leave it out and the
+command line keep it. Nothing does that yet. A matrix that reads differently in two
+places is its own kind of lie. Which cost to pay is a judgement, not a fact.
+
+Lean writes a definition and a proof the same way. `def`, `theorem`, `lemma` and
+`abbrev` are one node told apart by a field. So a theorem is a symbol like any other,
+and a rename reaches the lemma names inside a tactic block: `simp [translate]` is a
+use.
+
+`import M` brings the whole of M's environment in rather than binding one name. That is
+what a glob import is everywhere else, and marking it as one made a name resolve across
+files. The same fact is why organising imports refuses: nothing tells a live import from
+a dead one by the names a file spells.
+
+What remains, with the matrix carrying a reason for each cell: the translation pair and
+the `lake` compile gate. Dispatch through type-class search. The refactorings that want
+a type this build does not infer.
+
+---
+
+**The plan as written, before any of it existed.** What follows is that plan. It sits here to fix the shape of the work
 before anybody starts it, which is how every other capability on this page began.
 
 Lean 4 is a dependently typed language and a proof assistant. It is a programming

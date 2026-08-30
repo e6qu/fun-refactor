@@ -706,6 +706,11 @@ pub fn why_not_organizable(language: Language) -> Option<&'static str> {
              order carries meaning and a file sourced only for its side effects looks \
              unused"
         }
+        Language::Lean => {
+            "a Lean `import` brings a module's whole environment in rather than binding \
+             names, so nothing here tells a live one from a dead one by the names a \
+             file spells"
+        }
         _ => "this language has no import statements to organize",
     })
 }
