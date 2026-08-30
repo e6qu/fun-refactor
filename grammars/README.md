@@ -1,23 +1,42 @@
 # grammars/
 
-Grammars this project compiles itself, because the published one cannot parse code the
-language accepts.
+Grammars this project compiles itself. Most are here because the published parser cannot
+read code the language accepts. Lean is here because its crate links a different
+tree-sitter, and two crates cannot both claim `links = "tree-sitter"`.
 
 Everything under `vendor/` is reference material. Everything here is built into the
-binary, so each directory carries the upstream source, the licence, the patch applied to
-it, and the provenance to check all three.
+binary, so each directory carries the upstream source, the licence, whatever patch it
+took, and the provenance to check all three.
 
 ## Adding one
 
 1. Fetch the upstream release the crate publishes, at its tag.
-2. Patch `grammar.js`. The patch must keep the parser correct for the language: it may
-   accept what the language accepts, and nothing more.
+2. Patch `grammar.js` where the published parser is wrong. The patch must keep the parser
+   correct for the language: it may accept what the language accepts, and nothing more.
+   A grammar vendored for a version conflict takes no patch.
 3. Regenerate with the `tree-sitter` CLI, and keep `src/parser.c` beside the grammar.
 4. Save the diff against the untouched `grammar.js`, so the next upgrade can re-apply it.
 5. Record the source, tag, checksum and licence in `PROVENANCE.toml`.
 6. Prove the patch is additive: parse a body of real code with the stock parser and the
    patched one, and compare the trees. They must agree everywhere the stock parser
    succeeds.
+
+## Why `src/parser.c` is committed, at any size
+
+The `tree-sitter` CLI generates it from `grammar.js`, and its first line says so. Every
+grammar here keeps the generated file anyway, so `cargo build` needs a C compiler and
+nothing else. Generating at build time instead would make that CLI a hard dependency of
+every clone and every CI run.
+
+Lean is the one that makes the question worth asking. Its `parser.c` is 44 MB and 1.2
+million lines, seven times the largest grammar before it. 91% of that is a single dense
+array: tree-sitter gives a state a full `STATE x SYMBOL` row once its action set is wide
+enough, and Lean's expression grammar leaves 9,850 of its 14,669 states in that state.
+Python leaves 194 of 2,894.
+
+The number that decides it is smaller. That array is repeated small integers, so git
+packs the file to 3.47 MB, and a first visit to the playground grows 2.09 MB gzipped to
+3.55 MB. The 44 MB costs an editor and a `grep`, not a clone.
 
 ## zig
 

@@ -4,6 +4,10 @@
 # `tree-sitter` CLI this build pins, because the crate on crates.io links tree-sitter
 # 0.25 and this workspace links 0.26. Two crates cannot claim `links = "tree-sitter"`.
 
+# `src/parser.c` is 44 MB, and committed on purpose. `grammars/README.md` has the
+# measurement and the reasoning: git packs it to 3.47 MB, and generating it at build
+# time instead would make the tree-sitter CLI a hard dependency of every clone.
+
 language = "lean"
 upstream = "https://github.com/wvhulle/tree-sitter-lean"
 archive = "https://crates.io/api/v1/crates/tree-sitter-lean4/0.3.0/download"
