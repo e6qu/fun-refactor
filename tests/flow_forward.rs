@@ -75,7 +75,7 @@ fn the_value_flows_into_the_binding_and_not_the_function_around_it() {
     );
     assert!(
         !steps.iter().any(|s| s.starts_with("def load")),
-        "the value was reported as flowing into the function around it: {steps:#?}"
+        "the report has the value flowing into the function around it: {steps:#?}"
     );
 }
 

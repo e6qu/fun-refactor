@@ -75,8 +75,8 @@ fn locals_bound_to_a_call() -> Vec<(&'static str, &'static str, &'static str)> {
              pub fn g() usize {\n    return 1;\n}\n",
             "g() * 2",
         ),
-        // The one that was refused outright: Java puts the name and the value together in
-        // a declarator, because one statement may declare several.
+        // The one that refuses outright: Java puts the name and the value together in a
+        // declarator, because one statement may declare several.
         (
             "F.java",
             "public class F {\n    static int f() {\n        int total = g();\n        \
@@ -134,7 +134,7 @@ fn a_keyword_that_means_work_it_out_is_not_a_type() {
 
     assert_eq!(
         answer.declared, None,
-        "`var` states nothing, so nothing is what was declared"
+        "`var` states nothing, so the declaration names no type"
     );
     let inferred = answer.inferred.expect("the call states what it returns");
     assert_eq!(inferred.ty, "int");

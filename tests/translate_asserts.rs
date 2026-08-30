@@ -53,7 +53,7 @@ fn a_python_assert_is_a_rust_assert_macro() {
     assert!(
         out.contains("assert!(total >= 0, \"total went negative\");")
             && out.contains("assert!(total < 100);"),
-        "a literal message rides in the macro and a missing one is left out.\n{out}"
+        "a literal message rides in the macro and a missing one stays out.\n{out}"
     );
 }
 

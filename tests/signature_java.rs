@@ -50,7 +50,7 @@ fn a_java_call_is_a_method_invocation() {
 
 #[test]
 fn a_constructor_call_is_a_call_whatever_it_was_written_down_as() {
-    // `new Thing(1, "x")` is recorded as a reference to the *type*, which it also is, so
+    // Extraction records `new Thing(1, "x")` as a reference to the *type*, which it also is, so
     // filtering on the recorded kind skipped it.
     let source = "public class B {\n    B(int a, String b) { }\n    \
                   static B make() { return new B(1, \"x\"); }\n}\n";

@@ -79,7 +79,7 @@ fn a_python_swap_crosses_the_other_way() {
     assert!(!out.contains(MARKER), "nothing carried.\n{out}");
     assert!(
         out.contains("[a, b] = [b, a];"),
-        "the parameters are bound already, so this assigns.\n{out}"
+        "the parameters already hold their values, so this assigns.\n{out}"
     );
 }
 

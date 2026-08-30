@@ -51,7 +51,7 @@ fn a_call_on_another_object_is_not_the_method_beside_it() {
     let plan = refactor::rename::plan(&index, d_run, "go").expect("a rename");
     assert!(
         plan.warnings.iter().any(|w| w.detail.contains("'run'")),
-        "the call it left behind has to be reported: {:?}",
+        "the notes have to carry the call it left behind: {:?}",
         plan.warnings
     );
 }
@@ -72,7 +72,7 @@ fn an_overload_set_is_not_resolved_by_proximity() {
             assert_ne!(
                 reference.confidence,
                 Confidence::Exact,
-                "an overloaded call cannot be resolved exactly: {reference:?}"
+                "nothing resolves an overloaded call exactly: {reference:?}"
             );
         }
     }

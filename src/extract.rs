@@ -477,7 +477,7 @@ fn yaml_pairs<'a>(mapping: Node<'a>) -> Vec<Node<'a>> {
 fn yaml_scalar(node: Node<'_>, source: &str) -> Option<(String, Span)> {
     let mut span = Span::from(node);
     let mut text = span.text(source);
-    // A quoted scalar has no inner-content node in this grammar, so the quotes are stripped
+    // A quoted scalar has no inner-content node in this grammar, so this strips the quotes
     // here.
     for quote in ['"', '\''] {
         if text.len() >= 2 && text.starts_with(quote) && text.ends_with(quote) {
@@ -896,8 +896,8 @@ impl Extractor {
             };
             for span in spans {
                 // `href="#top"`, `[x](#intro)`, `[x](guide.md#intro)`: every grammar here gives
-                // the destination as one node, so the fragment is separated out now and not at
-                // resolution.
+                // the destination as one node, so this splits the fragment off here rather
+                // than at resolution.
                 let span = match link_destination(span, source, r.kind) {
                     Some(span) => span,
                     // An absolute URL names another document.
@@ -1333,7 +1333,7 @@ mod tests {
             .expect("parameter extracted");
         assert_eq!(param.kind, SymbolKind::Parameter);
         assert_eq!(param.qualifier, None);
-        // The method itself is still qualified.
+        // The method itself keeps its qualifier.
         let method = f.symbols.iter().find(|s| s.name == "m").unwrap();
         assert_eq!(method.qualifier.as_deref(), Some("S"));
     }

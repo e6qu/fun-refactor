@@ -406,8 +406,8 @@ fn module_source_is_the_import() {
     assert_eq!(f.imports.len(), 1, "got {:?}", f.imports);
     let i = &f.imports[0];
     assert_eq!(i.path, "./modules/network");
-    // The module label is the local binding the imported surface is reached
-    // through: `module.network.<output>`.
+    // The module label is the local binding that reaches the imported surface:
+    // `module.network.<output>`.
     assert_eq!(i.alias.as_deref(), Some("network"));
     assert!(!i.is_glob);
     assert!(i.span.text(MAIN_TF).starts_with("module \"network\""));

@@ -27,7 +27,7 @@ fn the_first_base_rides_and_the_rest_are_named() {
     );
     assert!(
         ts.contains("Levied"),
-        "the base that could not carry is named.\n{ts}"
+        "the notes name the base that could not carry.\n{ts}"
     );
     assert!(
         ts.contains("super.cost()"),
@@ -46,6 +46,6 @@ fn a_single_base_still_carries_without_a_note() {
     );
     assert!(
         !ts.contains("one base is all that carries"),
-        "nothing was dropped, so nothing is said.\n{ts}"
+        "nothing dropped, so the notes stay quiet.\n{ts}"
     );
 }

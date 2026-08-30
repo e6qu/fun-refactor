@@ -26,7 +26,7 @@ pub struct Definition {
     pub qualified_name: String,
     pub kind: SymbolKind,
     pub location: Location,
-    /// Why this is being offered as a definition.
+    /// Why this turns up as a definition.
     pub role: DefinitionRole,
 }
 

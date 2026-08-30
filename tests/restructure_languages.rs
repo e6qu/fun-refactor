@@ -477,7 +477,7 @@ fn helm_rewrites_a_pair_outside_a_template_action() {
 
 #[test]
 fn helm_does_not_match_a_value_that_is_a_template_action() {
-    // `{{ .Values.name }}` is masked out before the YAML parse, so the pair has no value node
+    // A mask covers `{{ .Values.name }}` before the YAML parse, so the pair has no value node
     // at all.
     let (n, _) = restructured(
         &[
@@ -528,7 +528,7 @@ fn helm_refuses_a_pattern_containing_a_template_action() {
     .unwrap_err();
     let message = err.to_string();
     assert!(
-        message.contains("template action") && message.contains("masked"),
+        message.contains("template action") && message.contains("a mask blanks those bytes"),
         "the refusal must name the real reason: {message}"
     );
 }

@@ -485,7 +485,7 @@ fn zig_says_var_only_where_something_writes() {
     let (output, _) = translate(&[("t.py", source)], "t.py", Language::Zig);
     assert!(
         output.contains("var total"),
-        "`total` is written to in the loop:\n{output}"
+        "the loop writes to `total`:\n{output}"
     );
     assert!(
         output.contains("const label"),
@@ -775,8 +775,7 @@ fn a_base_class_is_carried_where_it_can_be_and_reported_where_it_cannot() {
 
 #[test]
 fn zig_pointers_and_optionals_are_read_as_what_they_are() {
-    // The grammar calls `?T` a `nullable_type`, which is not what it looks like it should be
-    // called.
+    // The grammar calls `?T` a `nullable_type`, against every expectation the spelling sets.
     let source = "pub const Store = struct {\n    n: i64,\n};\n\n\
                   pub fn find(store: *Store, key: ?[]const u8) ?i64 {\n    return 1;\n}\n";
     let (output, fidelity) = translate(&[("p.zig", source)], "p.zig", Language::TypeScript);
@@ -1078,8 +1077,8 @@ fn a_value_that_cannot_be_named_twice_is_not_named_twice() {
 
 #[test]
 fn a_shorthand_property_is_a_property() {
-    // `{ species }` means `{ species: species }`, the shorthand every modern TypeScript file is
-    // written in.
+    // `{ species }` means `{ species: species }`, the shorthand every modern TypeScript file
+    // uses.
     let source = "export function f(species: string, take: number): object {\n  \
                   return { species, take };\n}\n";
     let (output, fidelity) = translate(&[("o.ts", source)], "o.ts", Language::Python);

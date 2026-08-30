@@ -70,7 +70,7 @@ fn idref_and_ref_attributes_reference_element_ids() {
 fn a_fragment_href_references_an_id_here_or_in_another_document() {
     let src = "<root><a href=\"#x\"/><b href=\"other.xml#x\"/><c href=\"http://e/p#x\"/></root>\n";
     let f = facts(src);
-    // Quotes are trimmed and the span is narrowed to the fragment, which is what resolution
+    // Extraction trims the quotes and narrows the span to the fragment, which is what resolution
     // matches against an id.
     assert_eq!(refs(&f), ["x", "x"]);
     assert_eq!(f.references[0].span.text(src), "x");

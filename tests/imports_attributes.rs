@@ -48,7 +48,7 @@ fn a_multi_line_attribute_travels_whole() {
     let after = organized(&source);
     assert!(
         after.contains("#[cfg(all(\n    feature = \"cli\",\n    unix,\n))]\nuse crate::scan::S;"),
-        "the attribute was split from its import:\n{after}"
+        "the sort split the attribute from its import:\n{after}"
     );
 }
 

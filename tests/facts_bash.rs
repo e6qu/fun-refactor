@@ -132,8 +132,8 @@ fn functions_are_never_marked_exported() {
 
 #[test]
 fn a_nested_function_is_contained_by_its_outer_function() {
-    // Bash has no method-like construct, so there are no @container patterns and
-    // nothing gets qualified, nesting shows up as containment only.
+    // Bash has no method-like construct, so there are no @container patterns and nothing takes
+    // a qualifier; nesting shows up as containment only.
     let src = "outer() {\n  inner() { echo hi; }\n  inner\n}\n";
     let f = facts(src);
     let inner = one(&f, "inner");

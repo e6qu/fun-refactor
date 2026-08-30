@@ -43,7 +43,7 @@ fn a_rebinding_in_the_same_scope_still_refuses() {
     let err = inline::variable(&index, nth_named(&index, "s", 0))
         .expect_err("shadowed in the same block")
         .to_string();
-    assert!(err.contains("assigned again"), "{err}");
+    assert!(err.contains("takes a second assignment"), "{err}");
 }
 
 #[test]
@@ -56,7 +56,7 @@ fn a_reassignment_still_refuses_where_the_language_has_no_second_binding() {
     let err = inline::variable(&index, nth_named(&index, "s", 0))
         .expect_err("reassigned")
         .to_string();
-    assert!(err.contains("assigned again"), "{err}");
+    assert!(err.contains("takes a second assignment"), "{err}");
 }
 
 #[test]

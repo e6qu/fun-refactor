@@ -187,8 +187,8 @@ fn rename_colliding_declarations(
         if taken.contains(name) {
             let renamed = format!("{prefix}{name}");
             notes.push(format!(
-                "`{name}` is declared by another file of this sweep, and every file \
-                 shares one namespace here, so this one is written as `{renamed}`."
+                "another file of this sweep declares `{name}`, and every file shares \
+                 one namespace here, so this one becomes `{renamed}`."
             ));
             *name = renamed;
         }
@@ -219,7 +219,7 @@ fn plan_impl(
     }
     if !can_be_written(to) {
         bail!(
-            "there is no writer for {to}. {} cannot be expressed in it without \
+            "there is no writer for {to}. nothing spells {} in it without \
              inventing structure the source never had.{}",
             from,
             match to {
@@ -300,7 +300,7 @@ fn plan_impl(
             .unwrap_or_default();
         bail!(
             "the {to} this produced does not parse{at}. That is a defect in the \
-             translator and not in your file; the output is not written.\n\n{}",
+             translator and not in your file; this writes no output.\n\n{}",
             numbered(&output, first_error(&written, &output).map(|at| at.line))
         );
     }
@@ -534,7 +534,7 @@ fn banner(
     }
     if fidelity.translated() == 0 {
         out.push_str(&comment(
-            "Nothing was found to translate: no function, record or constant. If the \
+            "This found nothing to translate: no function, record or constant. If the \
              source has any, this tool did not recognise them.",
         ));
     } else if fidelity.is_complete() && fidelity.signatures_untyped == 0 {
@@ -551,14 +551,14 @@ fn banner(
         }
         if fidelity.signatures_with_foreign_types > 0 {
             out.push_str(&comment(&format!(
-                "{} signature(s) mention a type this tool does not know; they were \
-                 written through by name and are not checked.",
+                "{} signature(s) mention a type this tool does not know; each one \
+                 crossed by name alone, and nothing checks it.",
                 fidelity.signatures_with_foreign_types
             )));
         }
         if fidelity.imports_listed > 0 {
             out.push_str(&comment(&format!(
-                "{} import(s) are listed as comments: dependencies do not carry between \
+                "{} import(s) ride as comments: dependencies do not carry between \
                  these languages.",
                 fidelity.imports_listed
             )));

@@ -112,6 +112,6 @@ fn rename_reports_the_file_whose_key_it_could_not_read() {
         reported
             .iter()
             .any(|d| d.contains("template action where a key belongs")),
-        "the templated key must be reported by its own cause, got {reported:?}"
+        "the templated key needs its own cause in the report, got {reported:?}"
     );
 }

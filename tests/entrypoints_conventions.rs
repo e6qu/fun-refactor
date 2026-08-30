@@ -138,13 +138,13 @@ fn the_directive_inside_one_function_marks_only_that_one() {
     );
     assert!(
         !found.iter().any(|(name, _)| name == "ordinary"),
-        "an ordinary function beside an action was called an endpoint: {found:?}"
+        "the scan called an ordinary function beside an action an endpoint: {found:?}"
     );
 }
 
 #[test]
 fn the_words_in_a_comment_are_not_a_directive() {
-    // A directive is the first statement and it is quoted.
+    // A directive is the first statement and carries quotes.
     let found = entry_kinds(&[(
         "notes.ts",
         "// use server: this file does not, despite the comment\n\n\
@@ -152,7 +152,7 @@ fn the_words_in_a_comment_are_not_a_directive() {
     )]);
     assert!(
         !found.iter().any(|(name, _)| name == "helper"),
-        "a comment was read as a directive: {found:?}"
+        "the scan took a comment for a directive: {found:?}"
     );
 }
 
@@ -175,7 +175,7 @@ fn a_route_handler_is_an_entry_point() {
     for name in ["list_pets", "create_pet", "health"] {
         assert!(
             found.contains(&(name.to_string(), EntryKind::HttpRoute)),
-            "{name} is reached by a request, not by a call: {found:?}"
+            "a request reaches {name}, and no call does: {found:?}"
         );
     }
 }

@@ -220,7 +220,7 @@ pub fn is_whole_workspace(capability: Capability) -> bool {
 pub fn record_workspace(capability: Capability, index: &crate::index::Index) {
     debug_assert!(
         is_whole_workspace(capability),
-        "{} is recorded as a whole-workspace capability and is not one",
+        "the table holds {} as a whole-workspace capability and it is not one",
         capability.label()
     );
     if std::env::var_os("FR_CAPABILITY_LOG").is_none() {
@@ -250,8 +250,8 @@ pub fn support(capability: Capability, language: Language) -> Support {
         // SCSS gets its own reason.
         C::CallGraph if matches!(language, Language::Scss | Language::Sass) => {
             Support::NotApplicable {
-                because: "a mixin is expanded where it is written, so a stylesheet holds \
-                          no call for a graph to walk; `fr usages` lists every `@include`",
+                because: "a mixin expands where it stands, so a stylesheet holds no call \
+                          for a graph to walk; `fr usages` lists every `@include`",
             }
         }
 
@@ -274,15 +274,13 @@ pub fn support(capability: Capability, language: Language) -> Support {
                 Support::Yes
             } else if crate::analysis::provenance::supports_provenance(language) {
                 Support::NotApplicable {
-                    because: "this language is evaluated by substitution rather than \
-                              executed, so `fr flow` traces its provenance instead; see \
+                    because: "this language runs by substitution rather than by execution, so `fr flow` traces its provenance instead; see \
                               that row",
                 }
             } else {
                 absent(
                     language,
-                    "a value here is written where it is used, so there is no chain \
-                     to follow",
+                    "a value lands where the code uses it, so there is no chain to follow",
                     "following a value here means reading a call graph this tool does \
                      not build for it",
                 )
@@ -299,8 +297,7 @@ pub fn support(capability: Capability, language: Language) -> Support {
                 }
             } else {
                 Support::NotApplicable {
-                    because: "this language has no value-substitution model to trace: a \
-                              value here is written where it is used",
+                    because: "this language has no value-substitution model to trace: a value lands where the code uses it",
                 }
             }
         }
@@ -315,11 +312,10 @@ pub fn support(capability: Capability, language: Language) -> Support {
                     language,
                     // Neutral, because this arm catches YAML as well as stylesheets and
                     // the old wording told a reader that a values file was a stylesheet.
-                    "nothing here is executed, so there is no point at which a runtime \
-                     starts",
-                    "no entry-point rules are written for this language yet; they are \
-                     catalogue data and not code, so adding them is a file under \
-                     `catalogs/` naming what a runtime here is pointed at",
+                    "nothing here runs, so there is no point at which a runtime starts",
+                    "no entry-point rules cover this language yet; they are catalogue \
+                     data and not code, so adding them means a file under \
+                     `catalogs/` naming what a runtime here starts from",
                 )
             }
         }
@@ -439,12 +435,12 @@ pub fn support(capability: Capability, language: Language) -> Support {
                 Support::NotApplicable {
                     because: "there is no reader or writer for this language yet. A \
                               translation needs one of each, and until both exist the \
-                              honest answer is that it cannot be written as anything",
+                              honest answer is that no language can hold it",
                 }
             } else {
                 Support::NotApplicable {
                     because: "no other grammar in this build contains this one, so there \
-                              is nothing it can be rewritten as without changing it",
+                              is no other spelling that leaves it as it is",
                 }
             }
         }
@@ -609,7 +605,7 @@ mod tests {
             let provenance = support(Capability::Provenance, *language).is_yes();
             assert!(
                 !(flow && provenance),
-                "{language} is offered both dataflow and provenance"
+                "{language} claims both dataflow and provenance"
             );
             if !flow && !provenance {
                 neither.push(language.name());

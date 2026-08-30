@@ -47,7 +47,7 @@ fn a_terraform_variable_and_a_local_are_two_declarations() {
     variables.sort_by_key(|s| s.full_span.start);
     assert_eq!(variables.len(), 2, "the module declares both");
 
-    // The `variable` block is addressed as `var.thing`, the `locals` entry as `local.thing`.
+    // A reader spells the `variable` block `var.thing`, and the `locals` entry `local.thing`.
     for (symbol, expected) in [(variables[0], "var.thing"), (variables[1], "local.thing")] {
         let uses = index.references_to(symbol.id);
         assert_eq!(uses.len(), 1, "{expected}: {uses:?}");
@@ -72,17 +72,13 @@ fn a_css_class_and_an_element_id_are_two_declarations() {
     assert_eq!(
         uses.len(),
         1,
-        "the class is used by the class attribute: {uses:?}"
+        "the class attribute reaches the class: {uses:?}"
     );
     assert!(uses[0].file.ends_with("p.html"));
 
     let id = only_of_kind(&index, "thing", SymbolKind::ElementId, "s.css");
     let uses = index.references_to(id);
-    assert_eq!(
-        uses.len(),
-        1,
-        "the id is used by the fragment link: {uses:?}"
-    );
+    assert_eq!(uses.len(), 1, "the fragment link reaches the id: {uses:?}");
 }
 
 #[test]
@@ -184,7 +180,7 @@ fn an_argument_of_a_module_from_the_registry_is_reported() {
     let reported: Vec<&str> = plan.warnings.iter().map(|w| w.detail.as_str()).collect();
     assert!(
         reported.iter().any(|d| d.contains("module \"vpc\"")),
-        "the unhandled argument should be named: {reported:?}"
+        "the report names the unhandled argument: {reported:?}"
     );
 }
 

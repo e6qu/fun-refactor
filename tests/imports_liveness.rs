@@ -36,7 +36,7 @@ fn kept_because(files: &[(&str, &str)], target: &str, path: &str, because: &str)
     let (removed, warnings) = outcome(files, target);
     assert!(
         !removed.iter().any(|r| r == path),
-        "'{path}' must be kept, got removed: {removed:?}"
+        "'{path}' has to stay, and it went: {removed:?}"
     );
     assert!(
         warnings.iter().any(|w| w.contains(because)),
@@ -346,7 +346,7 @@ fn go_a_package_named_differently_from_its_path_is_not_mistaken_for_unused() {
             "a.go"
         )
         .is_empty(),
-        "a used package must survive a path its name cannot be read off"
+        "a used package has to survive a path that yields no name"
     );
 }
 
@@ -450,7 +450,7 @@ fn a_symbol_named_in_a_string_literal_is_not_reported_unused() {
     );
     assert!(
         !unused.contains(&only_symbol(&index, "on_event")),
-        "a name spelled in a string may be reached by reflection: {unused:?}"
+        "reflection may reach a name spelled in a string: {unused:?}"
     );
 }
 

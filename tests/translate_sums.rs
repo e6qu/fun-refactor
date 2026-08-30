@@ -104,7 +104,7 @@ fn an_untagged_zig_union_stays_carried() {
     assert_eq!(plan.fidelity.sums, 0, "{}", plan.output);
     assert!(
         plan.output.contains(transpile::MARKER),
-        "an untagged union must be carried, not guessed at:\n{}",
+        "an untagged union has to carry across rather than turn into a guess:\n{}",
         plan.output
     );
 }
@@ -201,7 +201,7 @@ fn an_explicit_discriminant_is_kept_as_words() {
     let plan = transpile::plan(&root.join("status.rs"), Language::Python).expect("a draft");
     assert!(
         plan.output.contains("the source gave this the value `200`"),
-        "a dropped discriminant must be dropped out loud:\n{}",
+        "a discriminant that goes has to go out loud:\n{}",
         plan.output
     );
 }

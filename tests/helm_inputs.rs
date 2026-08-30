@@ -140,7 +140,7 @@ fn with_no_inputs_the_command_line_still_decides_nothing() {
     assert!(!competition.decided);
     assert!(
         competition.winner().is_none(),
-        "two files that may be passed in either order have no winner: {:?}",
+        "two files a caller may supply in either order have no winner: {:?}",
         listing(competition)
     );
     assert_eq!(
@@ -351,7 +351,7 @@ fn a_set_beats_every_values_file_however_many_were_passed() {
         winner.hop.file,
         std::path::PathBuf::from(provenance::COMMAND_LINE)
     );
-    // Both files and both chart levels are still listed under it.
+    // Both files and both chart levels still appear under it.
     assert_eq!(competition.losers().len(), 4, "{:?}", listing(competition));
     assert!(competition.losers().iter().all(|s| s
         .reason
@@ -472,12 +472,12 @@ fn a_partial_command_line_decides_only_given_what_was_supplied() {
 
     let stop = stops(&result)
         .into_iter()
-        .find(|s| s.contains("decided given the inputs supplied"))
+        .find(|s| s.contains("given the inputs the caller gave"))
         .unwrap_or_else(|| panic!("no partial-input stop: {:?}", stops(&result)));
     assert!(stop.contains("--set mysql.image.tag=9.9"), "{stop}");
     assert!(
         stop.contains("a `-f` values file"),
-        "the channel never described is named: {stop}"
+        "the answer names the channel nothing describes: {stop}"
     );
     assert!(
         !stop.contains("a `--set`"),
@@ -506,7 +506,7 @@ fn a_command_line_described_in_full_carries_no_caveat() {
     );
     assert!(stops(&result)
         .iter()
-        .any(|s| s.contains("the strongest of the inputs supplied")));
+        .any(|s| s.contains("as the strongest input the caller gave")));
     assert!(
         !stops(&result)
             .iter()
@@ -694,7 +694,7 @@ fn an_order_between_set_and_set_string_that_the_flags_lost_is_refused() {
     )
     .unwrap_err()
     .to_string();
-    assert!(clash.contains("order they were written"), "{clash}");
+    assert!(clash.contains("do not record which came first"), "{clash}");
 
     // Different keys never need that order, and are accepted.
     let fine = ValuesInputs::parse(

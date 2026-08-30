@@ -102,7 +102,7 @@ fn an_overriding_accessor_body_is_said_beside_the_field_it_stood_for() {
     let out = to_python(FEATURES_JAVA);
     assert!(
         out.contains("overrode the record's `label()` accessor"),
-        "a body that did more than return the field is not dropped in silence.\n{out}"
+        "a body that did more than return the field does not go in silence.\n{out}"
     );
 }
 

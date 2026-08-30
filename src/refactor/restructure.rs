@@ -77,8 +77,8 @@ pub fn apply(
         return Err(Refusal::Unsupported {
             operation: "a pattern containing a '{{ ... }}' template action".to_string(),
             language,
-            because: "those bytes are masked to whitespace before the YAML parse, so they \
-                      carry no structure to match",
+            because: "a mask blanks those bytes before the YAML parse, so they carry no \
+                      structure to match",
         }
         .into());
     }
@@ -306,7 +306,10 @@ fn fragment_shapes(
     }
     if shapes.is_empty() {
         // Name the mistake, which is nearly always a pattern that is not a whole piece of code.
-        anyhow::bail!("'{display}' is not valid {language}; check for unbalanced brackets.");
+        return Err(Refusal::Declined {
+            detail: format!("'{display}' is not valid {language}; check for unbalanced brackets."),
+        }
+        .into());
     }
     Ok(shapes)
 }
@@ -541,7 +544,7 @@ fn meta_name(text: &str) -> Option<String> {
     }
 }
 
-/// The text inside a matched pair of quotes, if the text is quoted.
+/// The text inside a matched pair of quotes, where quotes surround it.
 fn strip_quotes(text: &str) -> Option<&str> {
     let mut chars = text.chars();
     let first = chars.next()?;

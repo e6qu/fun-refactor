@@ -307,11 +307,11 @@ fn a_python_package_sweeps_to_typescript_with_real_imports_and_one_naming_table(
     );
     assert!(
         cli.contains("store.totalValueCents()"),
-        "a sibling's method must be called as its declaration spells it.\n{cli}"
+        "a caller has to spell a sibling's method as its declaration does.\n{cli}"
     );
     assert!(
         outputs["models"].contains("get totalCents(): number"),
-        "the property must be declared under the same name its callers use.\n{}",
+        "the declaration has to carry the same name its callers use.\n{}",
         outputs["models"]
     );
     for (stem, output) in &outputs {
@@ -347,7 +347,7 @@ fn a_typescript_package_sweeps_to_python_with_real_relative_imports() {
     );
     assert!(
         cli.contains("store.total_value_cents()"),
-        "a sibling's method must be called as its declaration spells it.\n{cli}"
+        "a caller has to spell a sibling's method as its declaration does.\n{cli}"
     );
     for (stem, output) in &outputs {
         assert!(
@@ -533,7 +533,7 @@ fn a_name_two_files_declare_is_renamed_where_the_directory_is_one_namespace() {
         "the other takes its own file's name in front.\n{second}"
     );
     assert!(
-        second.contains("is declared by another file of this sweep"),
+        second.contains("another file of this sweep declares"),
         "and the header says so.\n{second}"
     );
 }

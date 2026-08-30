@@ -48,7 +48,10 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
     validate_name(new_name, symbol.language, symbol.kind)?;
 
     if new_name == symbol.name {
-        anyhow::bail!("'{new_name}' is already the name of this symbol.");
+        return Err(Refusal::Declined {
+            detail: format!("'{new_name}' is already the name of this symbol."),
+        }
+        .into());
     }
 
     check_collision(index, symbol, new_name)?;
@@ -278,8 +281,8 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
             &reference.file,
             reference.span.start,
             format!(
-                "renamed: its receiver is declared `{declared}`, and what `{declared}` \
-                 answers here is being renamed.",
+                "renamed: `{declared}` declares its receiver, and this rename moves what \
+                 `{declared}` answers here.",
             ),
         ));
     }
@@ -700,8 +703,8 @@ fn textual_sweep(
             line: m.line,
             col: m.col,
             detail: format!(
-                "'{name}' is written here as text, with nothing linking it to the \
-                 declaration; left unchanged"
+                "'{name}' appears here as text, with nothing linking it to the \
+                 declaration; this left it alone"
             ),
         })
         .collect())
@@ -726,24 +729,24 @@ fn why_it_was_left(index: &Index, reference: &crate::model::Reference) -> String
         match super::receiver_type(index, reference) {
             super::ReceiverType::Settled(declared) => {
                 return format!(
-                    "its receiver is declared `{declared}`, which is not what is being renamed"
+                    "`{declared}` declares its receiver, and this rename does not touch that"
                 );
             }
             super::ReceiverType::Reassigned => {
                 let receiver = reference.receiver.as_deref().unwrap_or("the receiver");
                 return format!(
-                    "`{receiver}` is assigned more than once here, so what it holds at \
+                    "more than one assignment writes `{receiver}` here, so what it holds at \
                      this line is not settled"
                 );
             }
             super::ReceiverType::Unwritten => {}
         }
-        return "it is read from a value whose type is not known here, so it may name \
+        return "it comes off a value whose type nothing here settles, so it may name \
                 something else of the same name"
             .to_string();
     }
     if reference.member_in_macro {
-        return "it is written inside a macro, where the receiver is not recorded".to_string();
+        return "it sits inside a macro, which records no receiver".to_string();
     }
     "it matched by name alone".to_string()
 }
@@ -1018,7 +1021,7 @@ mod tests {
             plan.warnings
                 .iter()
                 .any(|w| w.kind == WarningKind::IncompleteFacts),
-            "a file with syntax errors may hide references and must be reported"
+            "a file with syntax errors may hide references, so the plan warns about it"
         );
     }
 

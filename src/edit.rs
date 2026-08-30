@@ -211,7 +211,7 @@ pub fn plan(edit_set: &EditSet, validation: Validation) -> Result<Vec<FileOutcom
             if after.has_errors() && !before.has_errors() {
                 bail!(
                     "edit rejected: {} parses cleanly now but would not after the \
-                     change. The file was left unchanged.{}",
+                     change. This left the file alone.{}",
                     path.display(),
                     rejection_evidence(&after, &updated)
                 );
@@ -221,7 +221,7 @@ pub fn plan(edit_set: &EditSet, validation: Validation) -> Result<Vec<FileOutcom
             if after_errors > before_errors {
                 bail!(
                     "edit rejected: {} would gain {} new syntax error(s). \
-                     The file was left unchanged.{}",
+                     This left the file alone.{}",
                     path.display(),
                     after_errors - before_errors,
                     rejection_evidence(&after, &updated)
@@ -305,7 +305,7 @@ fn verify_basis_unchanged(outcomes: &[FileOutcome]) -> Result<()> {
         };
         if current != outcome.original {
             bail!(
-                "{} changed since the plan was made; nothing was written. \
+                "{} changed after the plan read it. Nothing written. \
                  Re-run the command against the current text.",
                 outcome.path.display()
             );
@@ -345,7 +345,7 @@ impl CommitLocks {
 
         let mut held = Vec::new();
         for dir in directories {
-            // The directory is created here as well.
+            // This creates the directory too.
             std::fs::create_dir_all(&dir).with_context(|| format!("creating {}", dir.display()))?;
             let canonical = dir
                 .canonicalize()
@@ -371,7 +371,6 @@ impl CommitLocks {
 /// cannot leave a half-applied refactoring.
 #[cfg(feature = "cli")]
 fn commit_via_staging(outcomes: &[FileOutcome]) -> Result<usize> {
-    // The locks first, then the check, then the writes.
     let locks = CommitLocks::acquire(outcomes)?;
     verify_basis_unchanged(outcomes)?;
 
@@ -387,8 +386,8 @@ fn commit_via_staging(outcomes: &[FileOutcome]) -> Result<usize> {
             tmp.write_all(outcome.updated.as_bytes())
                 .with_context(|| format!("writing staged {}", outcome.path.display()))?;
             tmp.flush()?;
-            // A staged file is created with the private mode a temporary file deserves, and
-            // renaming it over the target hands the target that mode.
+            // A staged file takes the private mode a temporary file deserves, and renaming
+            // it over the target hands the target that mode.
             if let Ok(existing) = std::fs::metadata(&outcome.path) {
                 use std::os::unix::fs::PermissionsExt;
                 let mode = existing.permissions().mode();
@@ -764,7 +763,7 @@ mod tests {
         assert_eq!(commit(&plan_a).unwrap(), 1);
         let err = commit(&plan_b).unwrap_err().to_string();
         assert!(
-            err.contains("changed since the plan was made"),
+            err.contains("changed after the plan read it"),
             "unexpected error: {err}"
         );
         assert_eq!(
@@ -791,7 +790,7 @@ mod tests {
         crate::vfs::write(&b, "fn moved() {}\n").unwrap();
         let err = commit(&outcomes).unwrap_err().to_string();
         assert!(
-            err.contains("changed since the plan was made"),
+            err.contains("changed after the plan read it"),
             "unexpected error: {err}"
         );
         assert_eq!(crate::vfs::read_to_string(&a).unwrap(), "fn a() {}\n");

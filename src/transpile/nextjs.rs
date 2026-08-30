@@ -90,7 +90,7 @@ fn declares_use_server(source: &str) -> bool {
         .is_some_and(|line| line == "\"use server\"" || line == "'use server'")
 }
 
-/// `createPet` → `/create-pet`, the URL a server function is reached by.
+/// `createPet` → `/create-pet`, the URL that reaches a server function.
 fn action_route(name: &str) -> String {
     let mut url = String::from("/");
     for (index, part) in super::snake_always(name).split('_').enumerate() {
@@ -237,8 +237,8 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<RoutePlan
         bail!(
             "{} is neither a Next.js API route nor a module of server functions. A route \
              is `app/**/api/**/route.ts` or anything under `pages/api/`, and its URL comes \
-             from where the file sits. A server module opens with `\"use server\"`, and each \
-             of its exports is reached by its own name.",
+             from where the file sits. A server module opens with `\"use server\"`, and its own name \
+             reaches each of its exports.",
             path.display()
         );
     }
@@ -293,7 +293,7 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<RoutePlan
     if written.has_errors() {
         bail!(
             "the FastAPI module this produced does not parse as Python. That is a defect \
-             in the translator; nothing was written.\n\n{output}"
+             in the translator; this wrote nothing.\n\n{output}"
         );
     }
 
@@ -881,8 +881,8 @@ fn write(module: &Module, endpoints: &[Endpoint], source: &Path) -> Result<Writt
                 if !spellable {
                     fidelity.notes.push(format!(
                         "`{}` reads the query key `{key}`, which is not a name Python can \
-                         declare; that read is left as it was and the endpoint's contract \
-                         does not mention it",
+                         declare; that read stands as it was and the endpoint's \
+                         contract does not mention it",
                         handler.name
                     ));
                 }
@@ -932,7 +932,7 @@ fn write(module: &Module, endpoints: &[Endpoint], source: &Path) -> Result<Writt
             match supplied_by_fastapi(stmt, &dropped, &parameters) {
                 Some(name) => fidelity.notes.push(format!(
                     "`{}` read `{name}` off the Next.js context; FastAPI supplies it as a \
-                     path parameter, so that line is not needed and was dropped",
+                     path parameter, so that line went",
                     handler.name
                 )),
                 None => {
@@ -941,7 +941,7 @@ fn write(module: &Module, endpoints: &[Endpoint], source: &Path) -> Result<Writt
                     match binds_itself(&supplied) {
                         Some(name) => fidelity.notes.push(format!(
                             "`{}` read `{name}` out of the query string; FastAPI supplies \
-                             it as a parameter, so that line is not needed and was dropped",
+                             it as a parameter, so that line went",
                             handler.name
                         )),
                         None => body.push(as_fastapi(supplied, &mut responses)),
@@ -1071,7 +1071,7 @@ fn write(module: &Module, endpoints: &[Endpoint], source: &Path) -> Result<Writt
              # across. What remains foreign is your own dependencies. The database\n\
              # calls and helpers this file imported, which no translation could supply.\n\n"
         } else {
-            "# The routes, methods, path parameters and models are translated. Some of\n\
+            "# The routes, methods, path parameters and models all crossed. Some of\n\
              # the handler bodies had no Python counterpart and are below as comments,\n\
              # marked, for you to finish. THIS FILE IS A DRAFT.\n\n"
         },

@@ -261,11 +261,11 @@ fn a_variable_used_only_from_another_file_is_not_dead() {
         .collect();
     assert!(
         !dead.contains(&"$brand"),
-        "it is read through the namespace `@use` bound: {dead:?}"
+        "the caller reaches it through the namespace `@use` bound: {dead:?}"
     );
     assert!(
         dead.contains(&"$unread"),
-        "and one nothing reads is still listed: {dead:?}"
+        "and the report still holds one nothing reads: {dead:?}"
     );
 }
 

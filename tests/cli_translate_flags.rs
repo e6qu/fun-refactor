@@ -151,11 +151,11 @@ fn a_directory_translates_as_a_sweep_with_every_skip_named() {
     );
     assert!(
         text.contains("1 file(s) are already go."),
-        "a file already in the target is counted, never re-translated. {text}"
+        "the sweep counts a file already in the target and never re-translates it. {text}"
     );
     assert!(
         text.contains("1 css file(s) have no reader"),
-        "a language with no reader is skipped by name. {text}"
+        "the sweep skips a language with no reader, by name. {text}"
     );
     assert!(
         text.contains("func Twice(n int) int"),
@@ -195,7 +195,7 @@ fn a_sweep_skips_an_occupied_destination_and_says_so() {
     let (text, ok) = run(tmp.path(), &["translate", "pkg", "go"]);
     assert!(ok, "{text}");
     assert!(
-        text.contains("already exists, so its source was skipped. --force overwrites."),
+        text.contains("already exists, so this skipped its source. --force overwrites."),
         "an occupied destination is a named skip: {text}"
     );
 }

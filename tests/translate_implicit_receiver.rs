@@ -76,7 +76,7 @@ fn a_bare_field_takes_the_field_tables_spelling_in_python() {
     let out = translated(tmp.path(), "Counter.java", COUNTER_JAVA, Language::Python);
     assert!(
         out.contains("self.total = self.total + self.step_by"),
-        "the field is spelled the same in the body as in the declaration.\n{out}"
+        "the body spells the field as the declaration does.\n{out}"
     );
     assert!(
         !out.contains("stepBy"),

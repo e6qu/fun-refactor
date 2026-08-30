@@ -462,7 +462,7 @@ mod tests {
             .collect();
         assert!(
             review_names.iter().any(|d| d.starts_with("render ")),
-            "the tainted caller is reported for review: {review_names:?}"
+            "the review list holds the tainted caller: {review_names:?}"
         );
     }
 

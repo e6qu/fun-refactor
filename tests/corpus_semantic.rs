@@ -6,7 +6,7 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-/// What remains unexplained after the foreign world is supplied.
+/// What remains unexplained once the stub supplies the foreign world.
 const RESIDUE: usize = 1223;
 
 fn corpus_files() -> Vec<PathBuf> {
@@ -229,6 +229,6 @@ fn what_the_type_checker_says_about_a_translation_only_shrinks() {
     assert!(
         total >= RESIDUE.saturating_sub(20),
         "the residue is {total}, well under the budget of {RESIDUE}. Lower the \
-         budget in this file so the gain is held."
+         budget in this file so the gain holds."
     );
 }

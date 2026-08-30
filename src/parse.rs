@@ -88,7 +88,7 @@ impl Parsers {
             .set_language(&grammar)
             .with_context(|| format!("loading {lang} grammar"))?;
 
-        // Helm templates are not valid YAML, so the actions are masked before the parse.
+        // Helm templates are not valid YAML, so a mask covers the actions before the parse.
         let (parse_input, masked_spans) = match lang {
             Language::Helm => {
                 let actions = find_template_actions(source);
@@ -716,7 +716,7 @@ mod tests {
 
     #[test]
     fn markdown_inline_spans_index_the_original_document() {
-        // The property everything downstream depends on: the inline parser is handed the whole
+        // The property everything downstream depends on: the inline parser takes the whole
         // source with its ranges narrowed.
         let lead = "Filler paragraph that shifts every following offset.\n\n";
         let src = format!("{lead}A [label][target] link.\n");

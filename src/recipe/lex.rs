@@ -173,7 +173,7 @@ pub fn lex(source: &str) -> Result<Vec<Spanned>> {
             }
             other => bail!(
                 "line {line}: {other:?} cannot start anything in a recipe. Identifiers are \
-                 lower-case and kebab-cased, strings are quoted, and comments start with `#`."
+                 lower-case and kebab-cased, a string carries quotes, and a comment starts with `#`."
             ),
         }
     }

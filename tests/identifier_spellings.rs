@@ -81,7 +81,7 @@ fn every_language_name_parses_back() {
         assert_eq!(
             Language::from_name(printed),
             Some(*language),
-            "`{printed}` is printed for {language:?} and does not parse back"
+            "the writer prints `{printed}` for {language:?} and it does not parse back"
         );
     }
 }

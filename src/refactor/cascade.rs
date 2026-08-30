@@ -5,6 +5,7 @@ use crate::index::Index;
 use crate::lang::Language;
 use crate::model::SymbolKind;
 use crate::parse::{Parsed, Parsers};
+use crate::refactor::Refusal;
 #[cfg(feature = "cli")]
 use crate::scan::{scan, ScanOptions};
 use crate::span::{LineIndex, Span};
@@ -121,10 +122,15 @@ pub fn remove_flag_in_for(
             },
             FlagTarget::At(path, offset) => match index.definition_at(path, *offset) {
                 Some(symbol) => symbol.name.clone(),
-                None => anyhow::bail!(
-                    "no declaration at {}:{offset}; nothing was changed",
-                    path.display()
-                ),
+                None => {
+                    return Err(Refusal::Declined {
+                        detail: format!(
+                            "no declaration at {}:{offset}; this changed nothing",
+                            path.display()
+                        ),
+                    }
+                    .into())
+                }
             },
         }
     };
@@ -180,7 +186,10 @@ pub fn remove_flag_in_for(
         let changes = if !removed_definition {
             match substitute_flag(&index, &sources, target, value)? {
                 None if round == 0 => {
-                    anyhow::bail!("no symbol named '{flag}' to remove; nothing was changed")
+                    return Err(Refusal::Declined {
+                        detail: format!("no symbol named '{flag}' to remove; this changed nothing"),
+                    }
+                    .into())
                 }
                 None => Vec::new(),
                 Some((substituted, kind)) => {
@@ -262,10 +271,13 @@ pub fn remove_flag_in_for(
     // A cascade that changed nothing is a refusal, and reporting it as a plan of zero edits
     // would read as success.
     if edits.is_empty() {
-        anyhow::bail!(
-            "nothing about '{flag}' could be removed; nothing was changed:\n  {}",
-            unfinished.join("\n  ")
-        );
+        return Err(Refusal::Declined {
+            detail: format!(
+                "nothing about '{flag}' came out; this changed nothing:\n  {}",
+                unfinished.join("\n  ")
+            ),
+        }
+        .into());
     }
 
     Ok(CascadePlan {
@@ -297,10 +309,15 @@ fn substitute_flag(
     let definition = match target {
         FlagTarget::At(path, offset) => match index.definition_at(path, *offset) {
             Some(symbol) => symbol,
-            None => anyhow::bail!(
-                "no declaration at {}:{offset}; nothing was changed",
-                path.display()
-            ),
+            None => {
+                return Err(Refusal::Declined {
+                    detail: format!(
+                        "no declaration at {}:{offset}; this changed nothing",
+                        path.display()
+                    ),
+                }
+                .into())
+            }
         },
         FlagTarget::Named(name) => {
             let definitions = index.symbols_written(name, None);
@@ -320,11 +337,14 @@ fn substitute_flag(
                         format!("{}:{line}", s.file.display())
                     })
                     .collect();
-                anyhow::bail!(
-                    "'{name}' is defined {} times; say which one as `path:line:col`: {}",
-                    definitions.len(),
-                    where_they_are.join(", ")
-                );
+                return Err(Refusal::Declined {
+                    detail: format!(
+                        "'{name}' is defined {} times; say which one as `path:line:col`: {}",
+                        definitions.len(),
+                        where_they_are.join(", ")
+                    ),
+                }
+                .into());
             }
             definitions[0]
         }
@@ -351,11 +371,14 @@ fn substitute_flag(
     if let Some((language, source)) = sources.get(&definition.file) {
         let parsed = parsers.parse(*language, source)?;
         if let Some(what) = not_a_flag(definition, &parsed, source) {
-            anyhow::bail!(
-                "'{flag}' is not a flag: it {what}. Removing a flag replaces every use of \
+            return Err(Refusal::Declined {
+                detail: format!(
+                    "'{flag}' is not a flag: it {what}. Removing a flag replaces every use of \
                  the name with `{literal}`, and that only reads correctly where the name \
-                 held a boolean. Nothing was changed."
-            );
+                 held a boolean. This changed nothing."
+                ),
+            }
+            .into());
         }
         trees.insert(definition.file.clone(), parsed);
     }
@@ -367,18 +390,24 @@ fn substitute_flag(
         // occurrences are the evidence against it.
         let weak = weak_occurrences(index, sources, definition);
         if !weak.is_empty() {
-            anyhow::bail!(
-                "'{flag}' is declared at {}, and no use of it resolves firmly enough to \
-                 rewrite. These name it and may be reads of it:\n  {}\nNothing was changed.",
-                definition.file.display(),
-                weak.join("\n  ")
-            );
+            return Err(Refusal::Declined {
+                detail: format!(
+                    "{0} declares '{flag}', and no use of it resolves firmly enough to \
+                 rewrite. These name it and may read it:\n  {1}\nThis changed nothing.",
+                    definition.file.display(),
+                    weak.join("\n  ")
+                ),
+            }
+            .into());
         }
-        anyhow::bail!(
-            "'{flag}' is declared at {} and nothing reads it, so there is no flag to \
-             remove. `fr delete` removes a declaration nothing uses. Nothing was changed.",
-            definition.file.display()
-        );
+        return Err(Refusal::Declined {
+            detail: format!(
+                "{0} declares '{flag}' and nothing reads it, so there is no flag to \
+             remove. `fr delete` removes a declaration nothing uses. This changed nothing.",
+                definition.file.display()
+            ),
+        }
+        .into());
     }
 
     // A name means one thing throughout, so one use naming a type settles every other
@@ -400,12 +429,15 @@ fn substitute_flag(
                 let line = LineIndex::new(source)
                     .line_col(reference.span.start, source)
                     .line;
-                anyhow::bail!(
-                    "'{flag}' is not a flag: it names a type at {}:{line}. Removing a flag \
+                return Err(Refusal::Declined {
+                    detail: format!(
+                        "'{flag}' is not a flag: it names a type at {}:{line}. Removing a flag \
                      replaces every use of the name with `{literal}`, and a boolean is not \
-                     a type. Nothing was changed.",
-                    reference.file.display()
-                );
+                     a type. This changed nothing.",
+                        reference.file.display()
+                    ),
+                }
+                .into());
             }
         }
     }
@@ -799,7 +831,7 @@ fn general_use_site(definition: SymbolKind, parsed: &Parsed, source: &str, span:
     // Before anything about the value, because an import states nothing about one.
     if names_an_import(node) {
         return UseSite::Binds(format!(
-            "`{}` is bound by an import here, which names the flag and does not read it",
+            "an import here binds `{}`, which names the flag and does not read it",
             span.text(source)
         ));
     }
@@ -820,7 +852,7 @@ fn general_use_site(definition: SymbolKind, parsed: &Parsed, source: &str, span:
         return match definition == SymbolKind::Function {
             true => UseSite::Replace(Span::from(call)),
             false => UseSite::Refuse(format!(
-                "`{}` calls the flag, and a boolean cannot be called",
+                "`{}` calls the flag, and nothing can call a boolean",
                 Span::from(call).text(source)
             )),
         };
@@ -988,7 +1020,7 @@ fn bash_use_site(parsed: &Parsed, source: &str, span: Span) -> UseSite {
         _ => {
             if inside_expansion(node) {
                 return UseSite::Refuse(
-                    "the flag is used inside a compound expansion, which a literal cannot replace"
+                    "the flag sits inside a compound expansion, which a literal cannot replace"
                         .into(),
                 );
             }
@@ -1033,7 +1065,7 @@ fn hcl_use_site(parsed: &Parsed, source: &str, span: Span) -> UseSite {
         return UseSite::Replace(span);
     };
     let Some(expression) = get_attr.parent().filter(|p| p.kind() == "expression") else {
-        return UseSite::Refuse("the flag is not used as a `var.NAME` traversal".into());
+        return UseSite::Refuse("the flag does not appear as a `var.NAME` traversal".into());
     };
 
     let mut cursor = expression.walk();
@@ -1043,7 +1075,7 @@ fn hcl_use_site(parsed: &Parsed, source: &str, span: Span) -> UseSite {
         .copied()
         .filter(|p| p.kind() == "variable_expr");
     let Some(namespace) = namespace else {
-        return UseSite::Refuse("the flag is not used as a `var.NAME` traversal".into());
+        return UseSite::Refuse("the flag does not appear as a `var.NAME` traversal".into());
     };
     // A longer traversal, `var.flag.attr`, `var.flag[0]`, reads *into* the value
     // instead of being it, and a boolean has nothing to read.
@@ -1411,7 +1443,7 @@ fn bash_conditionals(parsed: &Parsed, source: &str) -> Collapse {
         let Some(parts) = bash_if_parts(&children, node) else {
             out.refusals.push((
                 Span::from(node),
-                "this `if` has no `then`, so its branches cannot be found".into(),
+                "this `if` has no `then`, so nothing marks off its branches".into(),
             ));
             continue;
         };
@@ -1700,7 +1732,7 @@ fn count_removable(
     let argument = Span::from(attribute).text(source);
     if body.replace(argument, "").contains("count.index") {
         return Err(
-            "`count.index` is used here, and it only exists while the resource has a `count`"
+            "`count.index` appears here, and it only exists while the resource has a `count`"
                 .into(),
         );
     }
@@ -1711,7 +1743,7 @@ fn count_removable(
         .is_some_and(|a| context.indexed.contains(a))
     {
         return Err(format!(
-            "`{}` is read with an index, which only a resource with a `count` has",
+            "something reads `{}` with an index, which only a resource with a `count` has",
             address.unwrap_or_default()
         ));
     }
@@ -1918,7 +1950,7 @@ fn dangling_resource_uses(
                     path,
                     source,
                     Span::from(node),
-                    &format!("{address} no longer exists; this reference is left dangling"),
+                    &format!("{address} no longer exists; this reference dangles"),
                 ));
             }
         }
@@ -1942,7 +1974,7 @@ fn unfinished_work(
         }
         if !supports_cascade(*language) {
             out.push(format!(
-                "{}: the flag was substituted, but {language} conditionals are not collapsed",
+                "{}: the flag gave up its value, and nothing collapses {language} conditionals",
                 path.display()
             ));
             continue;

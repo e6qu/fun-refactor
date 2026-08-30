@@ -119,7 +119,7 @@ fn the_module_call_surface_is_indexed_as_expected() {
         ws.path("modules/thing/variables.tf")
     );
 
-    // `module "thing"` is a Module symbol, and its source is recorded as an import.
+    // `module "thing"` is a Module symbol, and extraction records its source as an import.
     let thing = ws
         .index
         .symbol(ws.symbol("thing", SymbolKind::Module))
@@ -193,7 +193,10 @@ fn removing_a_variable_the_module_still_reads_refuses() {
     let error = signature::change(&ws.index, region, Change::Remove(0))
         .unwrap_err()
         .to_string();
-    assert!(error.contains("still read 1 time(s)"), "got: {error}");
+    assert!(
+        error.contains("1 site(s) inside the module still read"),
+        "got: {error}"
+    );
     assert!(error.contains("var.region"), "got: {error}");
     assert!(error.contains("modules/thing/main.tf:3"), "got: {error}");
 }
@@ -538,7 +541,10 @@ fn reordering_module_variables_is_refused_as_meaningless() {
     let size = ws.symbol("size", SymbolKind::Variable);
     let error =
         refusal(signature::change(&ws.index, size, Change::Move { from: 1, to: 0 }).unwrap_err());
-    assert!(error.contains("named and not positional"), "got: {error}");
+    assert!(
+        error.contains("names its arguments rather than"),
+        "got: {error}"
+    );
 }
 
 #[test]

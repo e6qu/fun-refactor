@@ -140,7 +140,7 @@ fn the_release_reads_the_config_this_repository_holds() {
 
 #[test]
 fn the_kinds_of_change_the_title_gate_takes_are_the_kinds_the_changelog_sorts() {
-    // The gate on a pull request title decides what may be merged.
+    // The gate on a pull request title decides what may land.
     let gate = CI
         .lines()
         .find(|l| l.contains("pattern='^("))
@@ -159,8 +159,8 @@ fn the_kinds_of_change_the_title_gate_takes_are_the_kinds_the_changelog_sorts() 
         }
         assert!(
             CONFIG.contains(&format!("\"type\": \"{kind}\"")),
-            "a pull request titled `{kind}: …` may be merged, and the changelog \
-             config has no section for it."
+            "a pull request titled `{kind}: …` may land, and the changelog config has \
+             no section for it."
         );
     }
 }

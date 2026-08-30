@@ -261,12 +261,12 @@ const ENTRIES: &[Entry] = &[
             "Refactoring, 2nd ed., by Martin Fowler (2018), §6.1",
             "Tidy First?. Kent Beck (2023), “Extract Helper”",
         ],
-        intent: "A fragment of code that can be grouped together gets its own name.",
-        invariant: "The statements run in the same order, on the same values, and produce the same result; they are reached through a call now instead of being written where they run.",
+        intent: "A fragment of code that hangs together gets its own name.",
+        invariant: "The statements run in the same order, on the same values, and produce the same result. A call reaches them now, instead of the statements standing where they run.",
         note: "The extracted statements read two variables defined above them, so the new \
                function takes both as parameters and the call passes them. Nothing here \
-               was told what `invoice` is, or what an `outstanding` is; the parameters \
-               come from which names the fragment uses and where they were bound.",
+               was told what `invoice` is, or what an `outstanding` is. The parameters \
+               come from the names the fragment uses and where each one came from.",
         files: &[("src/billing.py", BILLING)],
         argv: &[
             "extract",
@@ -284,7 +284,7 @@ const ENTRIES: &[Entry] = &[
             "Tidy First?. Kent Beck (2023), “Explaining Variables”",
         ],
         intent: "A sub-expression that is hard to read gets a name that says what it is.",
-        invariant: "The expression is computed once instead of where it stood, and every place that used it reads the same value.",
+        invariant: "The expression runs once instead of where it stood, and every place that used it reads the same value.",
         note: "The name is the whole point of the move: the expression is unchanged and \
                the code is no shorter.",
         files: &[("src/pricing.py", PRICING)],
@@ -302,8 +302,8 @@ const ENTRIES: &[Entry] = &[
             "Refactoring, 2nd ed., by Martin Fowler (2018), §6.4",
             "Tidy First?. Kent Beck (2023), “One Pile”",
         ],
-        intent: "A name that says no more than the expression it stands for is removed.",
-        invariant: "The value is computed where it is used instead of once above; the parentheses keep the operators binding the way they did.",
+        intent: "A name that says no more than the expression it stands for goes away.",
+        invariant: "The value now runs at each use instead of once above; the parentheses keep the operators binding the way they did.",
         note: "The reverse of Extract Variable, and the reason both are in the catalogue: \
                which one is an improvement depends on whether the name earns its keep.",
         files: &[("src/pricing.py", PRICING)],
@@ -314,9 +314,9 @@ const ENTRIES: &[Entry] = &[
         id: "inline-function",
         name: "Inline Function",
         sources: &["Refactoring, 2nd ed., by Martin Fowler (2018), §6.2"],
-        intent: "A function whose body is as clear as its name is replaced by its body.",
-        invariant: "The callee's body runs at the call site instead of inside a call; the same expression is evaluated on the same arguments.",
-        note: "The call is replaced with the callee's body, with the arguments substituted \
+        intent: "A function whose body is as clear as its name gives way to that body.",
+        invariant: "The callee's body runs at the call site instead of inside a call, on the same arguments and to the same value.",
+        note: "The callee's body takes the call's place, with the arguments standing in \
                for the parameters.",
         files: &[("src/delivery.py", DELIVERY)],
         argv: &["inline", "src/delivery.py:2:17", "--call"],
@@ -331,8 +331,9 @@ const ENTRIES: &[Entry] = &[
         ],
         intent: "A function's parameters change, and every call site changes with them.",
         invariant: "Every call passes the same values it did, plus the new one. The declaration and the call sites move together: either both change or nothing does.",
-        note: "The call inside `band_width` is updated twice, because it is called twice. \
-               A call the tool could not resolve would be reported and not rewritten.",
+        note: "This updates the call inside `band_width` twice, because it runs twice. \
+               A call the tool could not resolve turns up in the report rather than \
+               the diff.",
         files: &[
             ("src/geometry.py", GEOMETRY),
             ("src/report.py", GEOMETRY_USES),
@@ -350,8 +351,8 @@ const ENTRIES: &[Entry] = &[
         intent: "A name that does not say what the thing is becomes one that does.",
         invariant: "Nothing but the name changes. Every call still reaches the same function, in both files.",
         note: "`circ` appears twice inside `band_width` and once in the docstring. The \
-               docstring mention is reported, not rewritten, a name in prose is not a \
-               reference.",
+               report names the docstring mention rather than rewriting it: a name in \
+               prose is not a reference.",
         files: &[
             ("src/geometry.py", GEOMETRY),
             ("src/report.py", GEOMETRY_USES),
@@ -367,11 +368,11 @@ const ENTRIES: &[Entry] = &[
             "Implementation Patterns. Kent Beck (2007), “Intention-Revealing Name”",
         ],
         intent: "A local whose name says nothing becomes one that says what it holds.",
-        invariant: "One binding is renamed and the other `width`, a different binding in a different function, is not. Every read still reads what it read.",
-        note: "There are two variables called `width` in this file and only one of them \
-               is being renamed. Nothing here matches on the text `width`: the rename \
-               follows the lexical scope, so the one in `area` is a different binding \
-               and is left alone. A find-and-replace gets this wrong every time.",
+        invariant: "One binding takes the new name and the other `width`, a different binding in a different function, keeps its own. Every read still reads what it read.",
+        note: "There are two variables called `width` in this file and this renames one \
+               of them. Nothing here matches on the text `width`. The rename follows \
+               the lexical scope, so the one in `area` is a different binding and \
+               keeps its name. A find-and-replace gets this wrong every time.",
         files: &[("src/geometry.py", SCOPES_PY)],
         argv: &["rename", "src/geometry.py:5:5", "span"],
     },
@@ -380,8 +381,8 @@ const ENTRIES: &[Entry] = &[
         id: "rename-across-languages",
         name: "Rename, across a language boundary",
         sources: &["Not in either catalogue, the catalogues predate the problem"],
-        intent: "A CSS class is renamed in the stylesheet and everywhere the markup names it.",
-        invariant: "The stylesheet still styles the same element. The rule and the `class` attribute that reaches it are renamed together, across two grammars.",
+        intent: "A CSS class takes a new name in the stylesheet and everywhere the markup names it.",
+        invariant: "The stylesheet still styles the same element. The rule and the `class` attribute that reaches it move together, across two grammars.",
         note: "Two files, two grammars, one name. The stylesheet declares `.nav-link` and \
                the HTML reaches it through a `class` attribute, no import, no path, \
                nothing a compiler would check. The catalogues are about one language at \
@@ -400,8 +401,8 @@ const ENTRIES: &[Entry] = &[
         intent: "A parameter nobody needs goes, and every call site loses its argument.",
         invariant: "The parameter was unused, so no call was passing anything the body read. Every call keeps the arguments the body still uses.",
         note: "The declaration and the calls change together or not at all. A call the \
-               tool could not resolve would be reported and not left quietly \
-               passing an argument to a parameter that no longer exists.",
+               tool could not resolve turns up in the report. It does not go on \
+               quietly passing an argument to a parameter that has gone.",
         files: &[
             ("src/geometry.py", DEFAULTS_PY),
             ("src/rim.py", DEFAULTS_USES_PY),
@@ -414,12 +415,12 @@ const ENTRIES: &[Entry] = &[
         name: "…and the parameter that could not go",
         sources: &["Refactoring, 2nd ed., by Martin Fowler (2018), §6.5"],
         intent: "The same move, where taking the parameter away would change what runs.",
-        invariant: "Nothing changes. `units` is read by the body, so removing it would \
-                    leave a name nothing supplies, a change to what the program does, \
+        invariant: "Nothing changes. The body reads `units`, so removing it would leave \
+                    a name nothing supplies. That changes what the program does, \
                     which is the definition of not a refactoring.",
         note: "The rule existed for shell functions, where a parameter is `$1` and the \
                body reading `$2` is obvious, and for nothing else. `def circ(r): return \
-               f\"…{units}\"` was produced happily until this page asked for it.",
+               f\"…{units}\"` came out happily until this page asked for it.",
         files: &[
             ("src/geometry.py", DEFAULTS_PY),
             ("src/rim.py", DEFAULTS_USES_PY),
@@ -435,7 +436,7 @@ const ENTRIES: &[Entry] = &[
             "The online refactoring catalogue. Martin Fowler",
         ],
         intent: "Two parameters swap, and so do the arguments at every call.",
-        invariant: "Each argument still arrives at the parameter it was written for, in both files: the parameters and the arguments move in step.",
+        invariant: "Each argument still arrives at the parameter it belongs to, in both files: the parameters and the arguments move in step.",
         note: "The arguments move with the parameters. Getting one of the two halves \
                right is worse than doing nothing, which is why this is a refactoring \
                instead of two edits.",
@@ -456,7 +457,7 @@ const ENTRIES: &[Entry] = &[
                produce `def circ(units=\"m\", r):`, which Python rejects outright. The \
                engine reparses every edit and would normally catch a broken result, but \
                tree-sitter parses this without complaint, so the refactoring has to \
-               know the rule itself. It did not until this page was written.",
+               know the rule itself. It did not until this page asked for it.",
         files: &[("src/geometry.py", DEFAULTS_PY)],
         argv: &["signature", "circ", "move:0:2"],
     },
@@ -486,9 +487,9 @@ const ENTRIES: &[Entry] = &[
         id: "organize-imports",
         name: "Remove unused imports",
         sources: &["The tidying you do after the others, though neither catalogue lists it"],
-        intent: "Imports nothing uses are dropped and the rest are sorted.",
-        invariant: "The same modules are imported. Only the order changes, and Python does not care about the order of independent imports.",
-        note: "Read what it prints above the diff. Liveness is decided by name, so an \
+        intent: "Imports nothing uses go, and the rest sort into order.",
+        invariant: "The file imports the same modules. Only the order changes, and Python does not care about the order of independent imports.",
+        note: "Read what it prints above the diff. The name decides liveness, so an \
                import kept for a trait, a registration side effect or a doc comment \
                would look unused, and it says so instead of letting you find out. \
                This is the step a recipe puts last, with `imports where changed`.",
@@ -504,7 +505,7 @@ const ENTRIES: &[Entry] = &[
             "Tidy First?. Kent Beck (2023), “Cohesion Order”",
         ],
         intent: "A function moves to the module it belongs with, and its callers follow.",
-        invariant: "The function is called through an import instead of from beside its caller. The same code runs on the same arguments; only where it is written moved.",
+        invariant: "The caller reaches the function through an import instead of from beside it. The same code runs on the same arguments; only its address moved.",
         note: "The import appears in the file it left, because the function that stayed \
                behind still calls it.",
         files: &[("src/account.py", ACCOUNT), ("src/rates.py", RATES)],
@@ -518,7 +519,7 @@ const ENTRIES: &[Entry] = &[
             "Refactoring, 2nd ed., by Martin Fowler (2018), §8.9",
             "Tidy First?. Kent Beck (2023), “Dead Code”",
         ],
-        intent: "Code nothing calls is deleted and not maintained.",
+        intent: "Code nothing calls goes, rather than staying to maintain.",
         invariant: "Nothing reaches the deleted function, so nothing that runs today stops running. The deletion is therefore safe rather than a guess.",
         note: "`fr unused` finds it and `fr delete` removes it, and the two must agree: \
                delete refuses anything still referenced, so the list is \
@@ -531,13 +532,13 @@ const ENTRIES: &[Entry] = &[
         id: "delete-refused",
         name: "…and the one it will not delete",
         sources: &["Refactoring, 2nd ed., by Martin Fowler (2018), §8.9"],
-        intent: "Deleting something that is still reached is not dead-code removal.",
+        intent: "Deleting something a caller still reaches is not dead-code removal.",
         invariant: "Nothing changes. The symbol is reachable, so removing it would change what the program does, which is the definition of not a refactoring.",
         note: "The boundary that makes `fr unused` worth acting on: whatever the list \
                says, `delete` checks again and refuses anything still referenced. The \
                two halves have to agree, and running them against each other over a \
-               nine-language workspace is how thirteen disagreements in fifty-nine were \
-               found.",
+               nine-language workspace is how thirteen disagreements in fifty-nine \
+               came out.",
         files: &[("src/live.py", LIVE_PY)],
         argv: &["delete", "helper"],
     },
@@ -552,7 +553,7 @@ const ENTRIES: &[Entry] = &[
         intent: "The special cases leave early, so the normal path is not indented.",
         invariant: "The same conditions decide the same outcome; the nesting is inverted so the exceptional cases leave early.",
         note: "Beck's version is the one this does: a single guard at a time, taken off \
-               the front. Run it again on what is left and the second guard comes off too.",
+               the front. Run it again on the result and the second guard comes off too.",
         files: &[("src/notify.py", NOTIFY)],
         argv: &["rewrite", "src/notify.py:2:5", "guard-clause"],
     },
@@ -578,8 +579,8 @@ const ENTRIES: &[Entry] = &[
         sources: &["The online refactoring catalogue. Martin Fowler"],
         intent: "A condition is negated and its branches swapped, when that reads better.",
         invariant: "The branches swap and the condition is negated with them, so each case still runs for the same inputs.",
-        note: "Purely local: the tool does not need to resolve a single name to know this \
-               is sound, which is why it is offered at a position and not for a symbol.",
+        note: "Purely local: the tool resolves no name at all to know this is sound. So it \
+               takes a position rather than a symbol.",
         files: &[("src/payout.py", PAYOUT)],
         argv: &["rewrite", "src/payout.py:2:5", "invert-if"],
     },
@@ -626,7 +627,7 @@ const ENTRIES: &[Entry] = &[
             "Refactoring, 2nd ed., by Martin Fowler (2018), §11.3",
             "Feature Toggles. Martin Fowler & Pete Hodgson (2017)",
         ],
-        intent: "A flag that is now always one value is removed, and the branch it chose with it.",
+        intent: "A flag that is now always one value goes, and the branch it chose goes with it.",
         invariant: "The flag was constant, so only one branch could ever run. The branch that ran still runs; the one that could not is gone.",
         note: "The dead branch goes with the flag. This is the one move on the page that \
                cascades: it keeps going until nothing else falls out.",
@@ -638,13 +639,13 @@ const ENTRIES: &[Entry] = &[
         id: "tdd-refactor-step",
         name: "The refactor step of red–green–refactor",
         sources: &["Test-Driven Development by Example. Kent Beck (2002)"],
-        intent: "Once the test passes, the duplication that made it pass is removed.",
+        intent: "Once the test passes, the duplication that made it pass comes out.",
         invariant: "The test does not change, which is the whole point: it passed before the move and it passes after.",
         note: "The cycle ends with a refactoring, and the refactoring starts with seeing \
                the duplication. These two functions share not one identifier, `bank` and \
                `exchange`, `rate` and `ratio`, `converted` and `result`, and they are the \
-               same code. Structure is compared, not text, which is the copy a textual \
-               search never finds. What to do about it is yours; the moves above are the menu.",
+               same code. This compares structure, not text, which is the copy a \
+               textual search never finds. What to do about it is yours; the moves above are the menu.",
         files: &[("src/exchange.py", TDD_CYCLE)],
         argv: &["duplicates", "--min-tokens", "40"],
     },
@@ -971,7 +972,7 @@ recipe intention-revealing-name {
         id: "java-rename-a-method",
         title: "Rename a method the whole package calls",
         language: "java",
-        teaches: "A refusal is reported, and `on-refusal` decides what it costs.",
+        teaches: "A refusal reaches the report, and `on-refusal` decides what it costs.",
         note: "Java reaches a method through a receiver, and this tool does not track \
                the receiver's type, so the call in `Report.java` resolves only as \
                `field-based`, and the rename rewrites the declaration and *says* it \
@@ -1352,7 +1353,7 @@ fn catalog_data() -> String {
             Kind::Refused => {
                 assert!(
                     output.starts_with("Error:"),
-                    "{} claims to be refused and was not:\n{output}",
+                    "{} claims to refuse and did not:\n{output}",
                     entry.id
                 );
                 before.clone()
@@ -1587,8 +1588,8 @@ const ENDPOINTS: &[Endpoint] = &[
     Endpoint {
         route: "app/api/pets/[petId]/photos/[photoId]/route.ts",
         shape: "A sub-member: two path parameters",
-        note: "Both parameters arrive, in the order the tree declares them, and both \
-               are used in the body. Getting one of them right is not half a rewrite.",
+        note: "Both parameters arrive, in the order the tree declares them, and the body \
+               reads both. Getting one of them right is not half a rewrite.",
     },
     Endpoint {
         route: "app/api/pets/[petId]/status/route.ts",
@@ -1601,7 +1602,7 @@ const ENDPOINTS: &[Endpoint] = &[
         shape: "An action, which is not CRUD at all",
         note: "`/pets/search` is a *sibling* of `/pets/{pet_id}` in the tree, so a \
                router has to tell a literal segment from a parameter. Both are in the \
-               contract, and the order they are declared in decides which wins.",
+               contract, and the order the source declares them in decides which wins.",
     },
     Endpoint {
         route: "app/api/stores/[storeId]/inventory/route.ts",

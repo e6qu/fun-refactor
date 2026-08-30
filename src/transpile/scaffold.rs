@@ -148,7 +148,7 @@ pub fn plan_to(
         if parsed.has_errors() {
             bail!(
                 "the {language} this produced does not parse. That is a defect in the \
-                 scaffolder; nothing was written.\n\n{}",
+                 scaffolder; this wrote nothing.\n\n{}",
                 file.output
             );
         }
@@ -183,7 +183,7 @@ fn read_schemas(document: &Value, notes: &mut Vec<String>) -> Vec<Schema> {
     for (name, schema) in schemas {
         let Some(properties) = schema.get("properties").and_then(|p| p.as_object()) else {
             notes.push(format!(
-                "schema `{name}` has no properties to write, so nothing is written for it"
+                "schema `{name}` has no properties to write, so this wrote nothing for it"
             ));
             continue;
         };
@@ -310,8 +310,8 @@ fn python_name(name: &str, owner: &str, notes: &mut Vec<String>) -> Option<Strin
         return Some(name.to_string());
     }
     notes.push(format!(
-        "{owner}: `{name}` is not a name Python can declare, so it is left out; \
-         the wire key would change if it were re-spelled"
+        "{owner}: `{name}` is not a name Python can declare, so this left it out; \
+         re-spelling it would change the wire key"
     ));
     None
 }
@@ -471,7 +471,7 @@ fn write_fastapi(
             out.push_str(&format!("    \"\"\"{}\"\"\"\n", summary.replace('"', "'")));
         }
         out.push_str(&format!(
-            "    raise HTTPException(status_code=501, detail=\"{} {} is not implemented\")\n",
+            "    raise HTTPException(status_code=501, detail=\"{} {} has no handler yet\")\n",
             operation.method.to_uppercase(),
             operation.path
         ));
@@ -599,7 +599,7 @@ fn write_nextjs(
                 operation.method.to_uppercase()
             ));
             out.push_str(&format!(
-                "    return Response.json({{ error: \"{} {} is not implemented\" }}, \
+                "    return Response.json({{ error: \"{} {} has no handler yet\" }}, \
                  {{ status: 501 }});\n}}\n",
                 operation.method.to_uppercase(),
                 path

@@ -101,10 +101,13 @@ fn already_declared(
         .filter_map(|text| parameter_name(text, language))
         .any(|existing| existing == name);
     if taken {
-        anyhow::bail!(
-            "this declaration already has a parameter called `{name}`; adding it \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "this declaration already has a parameter called `{name}`; adding it \
              again would name one thing twice"
-        );
+            ),
+        }
+        .into());
     }
     Ok(())
 }
@@ -219,11 +222,14 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
     }
 
     if !matches!(sym.kind, SymbolKind::Function | SymbolKind::Method) {
-        anyhow::bail!(
-            "'{}' is {}; only functions and methods have signatures",
-            sym.name,
-            sym.kind.with_article()
-        );
+        return Err(Refusal::Declined {
+            detail: format!(
+                "'{}' is {}; only functions and methods have signatures",
+                sym.name,
+                sym.kind.with_article()
+            ),
+        }
+        .into());
     }
 
     // A method in declared dispatch changes as one family.
@@ -327,7 +333,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                     return Err(Refusal::NotHere {
                         operation: "signature".to_string(),
                         detail: format!(
-                            "`{}` is used as a value at {}, and a value keeps the old \
+                            "{1} binds `{0}` as a value, and a value keeps the old \
                              shape. Change or remove that binding first.",
                             sym.name,
                             location(&reference.file, reference.span.start)
@@ -361,7 +367,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                 return Err(Refusal::Unknowable {
                     detail: format!(
                         "the call to `{}` at {} is not a call expression this grammar \
-                         exposes, so its arguments cannot be rewritten",
+                         exposes, so nothing can rewrite its arguments",
                         sym.name,
                         location(&reference.file, reference.span.start)
                     ),
@@ -375,8 +381,8 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
             return Err(Refusal::TooWeak {
                 confidence: reference.resolved_confidence(),
                 detail: format!(
-                    "the call to `{}` at {} does not parse cleanly, so its argument list \
-                     cannot be rewritten with certainty",
+                    "the call to `{}` at {} does not parse cleanly, so nothing can rewrite \
+                     its argument list with certainty",
                     sym.name,
                     location(&reference.file, reference.span.start)
                 ),
@@ -456,8 +462,8 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
             let out_of_reach = |why: &str| -> anyhow::Error {
                 Refusal::Unknowable {
                     detail: format!(
-                        "`{}` is called at {where_}, where dispatch can reach the \
-                         declaration being changed, and {why}",
+                        "a call to `{}` sits at {where_}, where dispatch can reach the \
+                         declaration this changes, and {why}",
                         sym.name
                     ),
                 }
@@ -486,7 +492,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                 }
                 return Err(out_of_reach(match reference.member_in_macro {
                     true => {
-                        "it is written inside a macro, where the grammar records \
+                        "it sits inside a macro, where the grammar records \
                              tokens and not a call"
                     }
                     false => "the grammar exposes no call expression there",
@@ -605,11 +611,14 @@ fn apply_change(
                 // A declaration must have the parameter; a call may legitimately
                 // omit a defaulted one, so only the declaration is an error.
                 if is_declaration {
-                    anyhow::bail!(
-                        "there is no parameter at position {index}: the declaration has {} \
+                    return Err(Refusal::Declined {
+                        detail: format!(
+                            "there is no parameter at position {index}: the declaration has {} \
                          parameter(s), counted from 0",
-                        items.len()
-                    );
+                            items.len()
+                        ),
+                    }
+                    .into());
                 }
                 return Ok(());
             };
@@ -637,21 +646,27 @@ fn apply_change(
         Change::Move { from, to } => {
             let (Some(a), Some(b)) = (items.get(*from), items.get(*to)) else {
                 if is_declaration {
-                    anyhow::bail!(
-                        "positions {from} and {to} are not both present: the declaration \
+                    return Err(Refusal::Declined {
+                        detail: format!(
+                            "positions {from} and {to} are not both present: the declaration \
                          has {} parameter(s), counted from 0",
-                        items.len()
-                    );
+                            items.len()
+                        ),
+                    }
+                    .into());
                 }
                 return Ok(());
             };
             if is_declaration && defaults_would_be_out_of_order(language, source, items, *from, *to)
             {
-                anyhow::bail!(
-                    "moving parameter {from} to position {to} would put a parameter with a \
+                return Err(Refusal::Declined {
+                    detail: format!(
+                        "moving parameter {from} to position {to} would put a parameter with a \
                      default before one without, which {language} does not allow. Give the \
                      other parameter a default first, or remove this one's."
-                );
+                    ),
+                }
+                .into());
             }
             // Swapping the text of two items keeps every byte in between untouched.
             edits.add(
@@ -724,7 +739,10 @@ fn open_a_parameter_list(
     } = change
     else {
         if is_declaration {
-            anyhow::bail!("`{name}` has no parameter list to change");
+            return Err(Refusal::Declined {
+                detail: format!("`{name}` has no parameter list to change"),
+            }
+            .into());
         }
         return Ok(());
     };
@@ -761,8 +779,8 @@ fn reject_hidden_call_sites(index: &Index, sym: &Symbol) -> Result<()> {
     Err(Refusal::Unknowable {
         detail: format!(
             "{} file(s) naming `{}` do not parse cleanly, starting with {}; a call site \
-             inside a syntax error is invisible to the index, so the call surface cannot \
-             be shown to be complete",
+             inside a syntax error hides from the index, so nothing here proves the \
+             call surface complete",
             hidden.len(),
             sym.name,
             first.display()
@@ -998,9 +1016,9 @@ struct Positional {
     braced: bool,
 }
 
-/// One command invocation of the function being changed.
+/// One command invocation of the function this changes.
 struct ShellCall {
-    /// Span of the command name, where a first argument has to be inserted.
+    /// Span of the command name, where a first argument goes.
     name: Span,
     /// The argument words, in source order.
     arguments: Vec<Span>,
@@ -1009,11 +1027,14 @@ struct ShellCall {
 /// Change the positional signature of the shell function `sym`.
 fn shell_function(index: &Index, sym: &Symbol, change: Change) -> Result<SignaturePlan> {
     if sym.kind != SymbolKind::Function {
-        anyhow::bail!(
-            "'{}' is {}; only a shell function has positional parameters",
-            sym.name,
-            sym.kind.with_article()
-        );
+        return Err(Refusal::Declined {
+            detail: format!(
+                "'{}' is {}; only a shell function has positional parameters",
+                sym.name,
+                sym.kind.with_article()
+            ),
+        }
+        .into());
     }
     // Two functions of one name make every call site ambiguous, and bash resolves
     // the ambiguity at run time by whichever definition ran last.
@@ -1100,8 +1121,8 @@ fn shell_function(index: &Index, sym: &Symbol, change: Change) -> Result<Signatu
     if let Change::Add { declaration, .. } = &change {
         if !declaration.trim().is_empty() {
             notes.push(format!(
-                "a shell function declares no parameters, so the declaration `{}` was not \
-                 written anywhere; only the argument and the body's numbering changed",
+                "a shell function declares no parameters, so the declaration `{}` went \
+                 nowhere; only the argument and the body's numbering changed",
                 first_line(declaration)
             ));
         }
@@ -1110,12 +1131,15 @@ fn shell_function(index: &Index, sym: &Symbol, change: Change) -> Result<Signatu
     let calls = shell_call_files(index, sym, &mut notes)?;
     if let Change::Add { argument, .. } = &change {
         if argument.trim().is_empty() && !calls.is_empty() {
-            anyhow::bail!(
-                "`{}` is called from {} site(s) and shell arguments are positional, so an \
-                 added parameter needs a word to pass; supply an argument",
-                sym.name,
-                calls.values().map(|v| v.len()).sum::<usize>()
-            );
+            return Err(Refusal::Declined {
+                detail: format!(
+                    "{1} site(s) call `{0}` and shell arguments are positional, so an added \
+                 parameter needs a word to pass; supply an argument",
+                    sym.name,
+                    calls.values().map(|v| v.len()).sum::<usize>()
+                ),
+            }
+            .into());
         }
     }
 
@@ -1143,12 +1167,15 @@ fn shell_function(index: &Index, sym: &Symbol, change: Change) -> Result<Signatu
 
     // A change that rewrites nothing is not a change.
     if edits.is_empty() {
-        anyhow::bail!(
-            "the change leaves `{}` as it was: no call site and no reference in \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "the change leaves `{}` as it was: no call site and no reference in \
              its body names that position.{}",
-            sym.name,
-            notes.iter().map(|n| format!("\n  {n}")).collect::<String>()
-        );
+                sym.name,
+                notes.iter().map(|n| format!("\n  {n}")).collect::<String>()
+            ),
+        }
+        .into());
     }
 
     Ok(SignaturePlan {
@@ -1180,11 +1207,14 @@ fn shell_function_node<'a>(parsed: &'a Parsed, sym: &Symbol) -> Result<Node<'a>>
         let Some(parent) = node.parent() else { break };
         node = parent;
     }
-    anyhow::bail!(
-        "`{}` at {} is not a function definition this grammar exposes",
-        sym.name,
-        location(&sym.file, sym.name_span.start)
-    )
+    Err(Refusal::Declined {
+        detail: format!(
+            "`{}` at {} is not a function definition this grammar exposes",
+            sym.name,
+            location(&sym.file, sym.name_span.start)
+        ),
+    }
+    .into())
 }
 
 /// Every `$1`-style reference in a function body, refusing on the shapes no
@@ -1203,46 +1233,69 @@ fn shell_positionals(
         match node.kind() {
             // A nested function has positional parameters of its own, and no rule
             // says which `$1` inside the body belongs to which.
-            "function_definition" if node.id() != definition.id() => anyhow::bail!(
-                "`{}` defines a nested function at {}; its `$1` names that function's \
-                 first argument, not this one's, so the body cannot be renumbered",
-                sym.name,
-                location(&sym.file, node.start_byte())
-            ),
-            "special_variable_name" if text == "@" || text == "*" => anyhow::bail!(
-                "the body of `{}` uses `${text}` at {}, which expands to the whole \
-                 parameter list; renumbering individual references cannot follow it",
-                sym.name,
-                location(&sym.file, node.start_byte())
-            ),
-            "special_variable_name" if text == "#" => reads_count = true,
-            "command_name" if text == "shift" => anyhow::bail!(
-                "the body of `{}` calls `shift` at {}, which renumbers the parameters at \
-                 run time; a static renumbering cannot follow it",
-                sym.name,
-                location(&sym.file, node.start_byte())
-            ),
-            "command_name" if text == "set" => {
-                if shell_command_resets_parameters(node, source) {
-                    anyhow::bail!(
-                        "the body of `{}` calls `set --` at {}, which replaces the \
-                         positional parameters wholesale; a static renumbering cannot \
-                         follow it",
+            "function_definition" if node.id() != definition.id() => {
+                return Err(Refusal::Declined {
+                    detail: format!(
+                        "`{}` defines a nested function at {}; its `$1` names that function's \
+                 first argument, not this one's, so nothing can renumber the body",
                         sym.name,
                         location(&sym.file, node.start_byte())
-                    );
+                    ),
+                }
+                .into())
+            }
+            "special_variable_name" if text == "@" || text == "*" => {
+                return Err(Refusal::Declined {
+                    detail: format!(
+                        "the body of `{}` uses `${text}` at {}, which expands to the whole \
+                 parameter list; renumbering individual references cannot follow it",
+                        sym.name,
+                        location(&sym.file, node.start_byte())
+                    ),
+                }
+                .into())
+            }
+            "special_variable_name" if text == "#" => reads_count = true,
+            "command_name" if text == "shift" => {
+                return Err(Refusal::Declined {
+                    detail: format!(
+                        "the body of `{}` calls `shift` at {}, which renumbers the parameters at \
+                 run time; a static renumbering cannot follow it",
+                        sym.name,
+                        location(&sym.file, node.start_byte())
+                    ),
+                }
+                .into())
+            }
+            "command_name" if text == "set" => {
+                if shell_command_resets_parameters(node, source) {
+                    return Err(Refusal::Declined {
+                        detail: format!(
+                            "the body of `{}` calls `set --` at {}, which replaces the \
+                         positional parameters wholesale; a static renumbering cannot \
+                         follow it",
+                            sym.name,
+                            location(&sym.file, node.start_byte())
+                        ),
+                    }
+                    .into());
                 }
             }
             "variable_name" if !text.is_empty() && text.bytes().all(|b| b.is_ascii_digit()) => {
                 let braced = match node.parent().map(|p| p.kind()) {
                     Some("expansion") => true,
                     Some("simple_expansion") => false,
-                    other => anyhow::bail!(
-                        "`${text}` at {} sits inside a {} instead of an expansion, so the \
+                    other => {
+                        return Err(Refusal::Declined {
+                            detail: format!(
+                                "`${text}` at {} sits inside a {} instead of an expansion, so the \
                          tool cannot tell what rewriting it would mean",
-                        location(&sym.file, node.start_byte()),
-                        other.unwrap_or("(nothing)")
-                    ),
+                                location(&sym.file, node.start_byte()),
+                                other.unwrap_or("(nothing)")
+                            ),
+                        }
+                        .into())
+                    }
                 };
                 // `$0` is the script's name.
                 let number: usize = text.parse()?;
@@ -1250,13 +1303,16 @@ fn shell_positionals(
                     continue;
                 }
                 if !braced && text.len() > 1 {
-                    anyhow::bail!(
-                        "`${text}` at {} is not parameter {text}: the shell reads `$` and one \
+                    return Err(Refusal::Declined {
+                        detail: format!(
+                            "`${text}` at {} is not parameter {text}: the shell reads `$` and one \
                          digit, then `{}` as literal text. Write it as `${{{text}}}` first if \
                          that is what was meant",
-                        location(&sym.file, node.start_byte()),
-                        &text[1..]
-                    );
+                            location(&sym.file, node.start_byte()),
+                            &text[1..]
+                        ),
+                    }
+                    .into());
                 }
                 out.push(Positional {
                     span: Span::from(node),
@@ -1342,8 +1398,8 @@ fn shell_call_files<'a>(
             continue;
         }
         notes.push(format!(
-            "{} runs `{}` {} time(s) but never sources {}, so those are a different \
-             command and were left alone",
+            "{} runs `{}` {} time(s) but never sources {}, so those name a different \
+             command; this left them alone",
             file.display(),
             sym.name,
             references.len(),
@@ -1427,20 +1483,26 @@ fn shell_call_at(parsed: &Parsed, sym: &Symbol, file: &Path, span: Span) -> Resu
             break;
         }
         let Some(parent) = node.parent() else {
-            anyhow::bail!(
-                "the call to `{}` at {} is not a command invocation this grammar exposes",
-                sym.name,
-                location(file, span.start)
-            )
+            return Err(Refusal::Declined {
+                detail: format!(
+                    "the call to `{}` at {} is not a command invocation this grammar exposes",
+                    sym.name,
+                    location(file, span.start)
+                ),
+            }
+            .into());
         };
         node = parent;
     }
     if node.kind() != "command" {
-        anyhow::bail!(
-            "the call to `{}` at {} is not a command invocation this grammar exposes",
-            sym.name,
-            location(file, span.start)
-        );
+        return Err(Refusal::Declined {
+            detail: format!(
+                "the call to `{}` at {} is not a command invocation this grammar exposes",
+                sym.name,
+                location(file, span.start)
+            ),
+        }
+        .into());
     }
 
     let name = node.child_by_field_name("name").ok_or_else(|| {
@@ -1452,11 +1514,14 @@ fn shell_call_at(parsed: &Parsed, sym: &Symbol, file: &Path, span: Span) -> Resu
     // A name that fails to coincide with the reference means the reference was an argument of
     // some other command, and no call took place.
     if !Span::from(name).contains(span) {
-        anyhow::bail!(
-            "`{}` at {} is an argument of another command, not a call to the function",
-            sym.name,
-            location(file, span.start)
-        );
+        return Err(Refusal::Declined {
+            detail: format!(
+                "`{}` at {} is an argument of another command, not a call to the function",
+                sym.name,
+                location(file, span.start)
+            ),
+        }
+        .into());
     }
 
     let mut cursor = node.walk();
@@ -1597,8 +1662,8 @@ fn shell_rewrite_call(
         Change::Move { from, to } => {
             let (Some(a), Some(b)) = (call.arguments.get(*from), call.arguments.get(*to)) else {
                 notes.push(format!(
-                    "{}: the call to `{}` passes {} argument(s), so positions {from} and \
-                     {to} are not both present and its arguments were left alone",
+                    "{}: the call to `{}` passes {} argument(s), so it holds no position \
+                     {from} and {to} both; this left its arguments alone",
                     location(file, call.name.start),
                     sym.name,
                     call.arguments.len()
@@ -1616,14 +1681,17 @@ fn shell_rewrite_call(
         }
         Change::Add { at, argument, .. } => {
             if *at > call.arguments.len() {
-                anyhow::bail!(
-                    "the call to `{}` at {} passes {} argument(s), so inserting at position \
+                return Err(Refusal::Declined {
+                    detail: format!(
+                        "the call to `{}` at {} passes {} argument(s), so inserting at position \
                      {at} would land at position {} instead",
-                    sym.name,
-                    location(file, call.name.start),
-                    call.arguments.len(),
-                    call.arguments.len()
-                );
+                        sym.name,
+                        location(file, call.name.start),
+                        call.arguments.len(),
+                        call.arguments.len()
+                    ),
+                }
+                .into());
             }
             match call.arguments.get(*at) {
                 Some(before) => edits.add(
@@ -1687,12 +1755,15 @@ fn reject_shell_edit_collisions(
             continue;
         }
         if let Some(clash) = renumbered.iter().find(|span| span.overlaps(edit.span)) {
-            anyhow::bail!(
-                "the recursive call to `{}` at {} passes a positional parameter that this \
-                 change also renumbers; the same bytes would be rewritten twice",
-                sym.name,
-                location(file, clash.start)
-            );
+            return Err(Refusal::Declined {
+                detail: format!(
+                    "the recursive call to `{}` at {} passes a positional parameter that this \
+                 change also renumbers; two edits would land on the same bytes",
+                    sym.name,
+                    location(file, clash.start)
+                ),
+            }
+            .into());
         }
     }
     Ok(())
@@ -1760,20 +1831,23 @@ fn terraform_module(index: &Index, sym: &Symbol, change: Change) -> Result<Signa
             return Err(Refusal::Unsupported {
                 operation: "reordering module variables".to_string(),
                 language: Language::Hcl,
-                because: "a Terraform module's arguments are named and not \
-                          positional, so moving a `variable` block changes nothing at any \
-                          call site",
+                because: "a Terraform module names its arguments rather than \
+                          numbering them, so moving a `variable` block changes nothing \
+                          at any call site",
             }
             .into());
         }
 
         Change::Remove(at) => {
             let Some(target) = variables.get(*at) else {
-                anyhow::bail!(
-                    "there is no module variable at position {at}; {} declares {}",
-                    crate::vfs::describe_dir(dir),
-                    describe_variables(&variables)
-                );
+                return Err(Refusal::Declined {
+                    detail: format!(
+                        "there is no module variable at position {at}; {} declares {}",
+                        crate::vfs::describe_dir(dir),
+                        describe_variables(&variables)
+                    ),
+                }
+                .into());
             };
 
             // A variable the module's own configuration still reads has to stay: the
@@ -1791,8 +1865,8 @@ fn terraform_module(index: &Index, sym: &Symbol, change: Change) -> Result<Signa
                     .join(", ");
                 return Err(still_used(
                     format!(
-                        "`{}` is still read {} time(s) inside the module ({where_}); \
-                         removing it would leave those `var.{}` references dangling",
+                        "{1} site(s) inside the module still read `{0}` ({where_}); \
+                         removing it would leave those `var.{2}` references dangling",
                         target.name,
                         uses.len(),
                         target.name
@@ -1872,11 +1946,14 @@ fn terraform_module(index: &Index, sym: &Symbol, change: Change) -> Result<Signa
             }
             // A variable with no default is required, so every caller has to start passing it.
             if argument.is_empty() && !has_default && !calls.is_empty() {
-                anyhow::bail!(
-                    "`{name}` has no `default`, so it is required at all {} call site(s); \
+                return Err(Refusal::Declined {
+                    detail: format!(
+                        "`{name}` has no `default`, so it is required at all {} call site(s); \
                      supply an argument value to pass there, or give the variable a default",
-                    calls.len()
-                );
+                        calls.len()
+                    ),
+                }
+                .into());
             }
 
             let (file, offset, text) =
@@ -1894,11 +1971,14 @@ fn terraform_module(index: &Index, sym: &Symbol, change: Change) -> Result<Signa
                 for call in &calls {
                     let call_source = crate::vfs::read_to_string(&call.file)?;
                     let Some((_, last)) = call.arguments.last() else {
-                        anyhow::bail!(
-                            "module \"{}\" at {} has no arguments to append to",
-                            call.label,
-                            location(&call.file, call.span.start)
-                        );
+                        return Err(Refusal::Declined {
+                            detail: format!(
+                                "module \"{}\" at {} has no arguments to append to",
+                                call.label,
+                                location(&call.file, call.span.start)
+                            ),
+                        }
+                        .into());
                     };
                     let indent = argument_indent(&call_source, call.span, *last);
                     edits.add(
@@ -1949,43 +2029,58 @@ fn target_module_dir(index: &Index, sym: &Symbol) -> Result<PathBuf> {
             match block_source(block, &source) {
                 ModuleSource::Literal(path) => {
                     let Some(target) = local_module_dir(dir, &path) else {
-                        anyhow::bail!(
-                            "module \"{}\" at {} has source `{path}`, which is not a local \
-                             directory; its variables are not declared in this workspace",
-                            sym.name,
-                            location(&sym.file, sym.name_span.start)
-                        );
+                        return Err(Refusal::Declined {
+                            detail: format!(
+                                "module \"{}\" at {} has source `{path}`, which is not a local \
+                             directory; nothing in this workspace declares its variables",
+                                sym.name,
+                                location(&sym.file, sym.name_span.start)
+                            ),
+                        }
+                        .into());
                     };
                     if !directory_has_hcl(index, &target) {
-                        anyhow::bail!(
-                            "module \"{}\" at {} points at {}, which holds no Terraform files \
+                        return Err(Refusal::Declined {
+                            detail: format!(
+                                "module \"{}\" at {} points at {}, which holds no Terraform files \
                              in this workspace",
-                            sym.name,
-                            location(&sym.file, sym.name_span.start),
-                            target.display()
-                        );
+                                sym.name,
+                                location(&sym.file, sym.name_span.start),
+                                target.display()
+                            ),
+                        }
+                        .into());
                     }
                     Ok(target)
                 }
-                ModuleSource::Computed(text) => anyhow::bail!(
-                    "module \"{}\" at {} has a computed source `{text}`, so the directory it \
+                ModuleSource::Computed(text) => Err(Refusal::Declined {
+                    detail: format!(
+                        "module \"{}\" at {} has a computed source `{text}`, so the directory it \
                      calls is not knowable without applying the configuration",
-                    sym.name,
-                    location(&sym.file, sym.name_span.start)
-                ),
-                ModuleSource::Missing => anyhow::bail!(
-                    "module \"{}\" at {} has no `source` argument",
-                    sym.name,
-                    location(&sym.file, sym.name_span.start)
-                ),
+                        sym.name,
+                        location(&sym.file, sym.name_span.start)
+                    ),
+                }
+                .into()),
+                ModuleSource::Missing => Err(Refusal::Declined {
+                    detail: format!(
+                        "module \"{}\" at {} has no `source` argument",
+                        sym.name,
+                        location(&sym.file, sym.name_span.start)
+                    ),
+                }
+                .into()),
             }
         }
-        _ => anyhow::bail!(
-            "'{}' is {} in Terraform; only a `variable` block or a `module` block names a \
+        _ => Err(Refusal::Declined {
+            detail: format!(
+                "'{}' is {} in Terraform; only a `variable` block or a `module` block names a \
              module signature",
-            sym.name,
-            sym.kind.with_article()
-        ),
+                sym.name,
+                sym.kind.with_article()
+            ),
+        }
+        .into()),
     }
 }
 
@@ -2108,7 +2203,7 @@ fn module_calls(index: &Index, dir: &Path) -> Result<Vec<ModuleCall>> {
                 return Err(Refusal::Unknowable {
                     detail: format!(
                         "a `module` block at {} sources {} but is not a top-level block, so \
-                         its arguments cannot be rewritten",
+                         nothing can rewrite its arguments",
                         location(path, import.span.start),
                         crate::vfs::describe_dir(dir)
                     ),
@@ -2121,8 +2216,8 @@ fn module_calls(index: &Index, dir: &Path) -> Result<Vec<ModuleCall>> {
     if !opaque.is_empty() {
         return Err(Refusal::Unknowable {
             detail: format!(
-                "{} `module` block(s) do not name a literal source, so they cannot be shown \
-                 not to call {}: {}",
+                "{} `module` block(s) do not name a literal source, so nothing rules out a \
+                 call to {}: {}",
                 opaque.len(),
                 crate::vfs::describe_dir(dir),
                 opaque.join("; ")
@@ -2181,11 +2276,14 @@ fn variable_insertion(
     // A module with no variables at all has no anchor.
     let path = dir.join("variables.tf");
     if index.file(&path).is_none() {
-        anyhow::bail!(
-            "module {} declares no variables and has no variables.tf to add one to; create \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "module {} declares no variables and has no variables.tf to add one to; create \
              the file first",
-            crate::vfs::describe_dir(dir)
-        );
+                crate::vfs::describe_dir(dir)
+            ),
+        }
+        .into());
     }
     let source = crate::vfs::read_to_string(&path)?;
     // A block needs a blank line before it, but only as much of one as the file
@@ -2201,6 +2299,7 @@ fn variable_insertion(
 }
 
 /// Validate a `variable "x" { ...
+// The caller typed this, so a malformed one is invalid input and exits 2, not a decline.
 fn parse_variable_declaration(declaration: &str) -> Result<(String, bool)> {
     let parsed = Parsers::new().parse(Language::Hcl, declaration)?;
     if parsed.has_errors() {

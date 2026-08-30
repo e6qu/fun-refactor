@@ -34,7 +34,7 @@ RULES = [
     # reader what a thing is not and leaves them to work out what it is.
     #
     # Twice narrowed, both times after reading what it caught. "the guard was
-    # file-scoped, not scope-scoped" and "Structure is compared, not text" name the
+    # file-scoped, not scope-scoped" and "compares structure, not text" name the
     # thing a reader would otherwise assume, and that is the most precise sentence
     # available. A rule against every negation deletes those. This asks for the shape
     # where the negation carries the weight and the positive claim arrives second, or
@@ -61,6 +61,11 @@ RULES = [
     # A form of `be` in front of a past participle. The participle list is
     # explicit rather than a `-ed` pattern, because `-ed` also ends the past
     # tense of every regular verb, and "the walker yielded" is not passive.
+    #
+    # The list reached zero once while 365 constructions stood in the tree, on
+    # verbs it had never named. A word joins it when it reads as a verb here, so
+    # the predicate adjectives stay out: "is nested", "is guarded", "is required"
+    # and "is unused" describe a state and name no actor to promote.
     ("passive-voice",
      r"\b(is|are|was|were|be|been|being|gets|got)\s+"
      r"(not\s+)?(?:already\s+|then\s+|also\s+|still\s+|never\s+|only\s+)?"
@@ -69,7 +74,18 @@ RULES = [
      r"passed|spelled|named|built|checked|compared|sorted|resolved|skipped|"
      r"treated|used|found|left|set|seen|shown|split|stored|applied|emitted|"
      r"produced|replaced|rewritten|translated|declared|derived|computed|"
-     r"generated|measured|pinned|driven|chosen|picked|wrapped|bound)\b",
+     r"generated|measured|pinned|driven|chosen|picked|wrapped|bound|"
+     r"moved|located|extracted|placed|inlined|verified|repointed|traced|ranked|"
+     r"spliced|handed|substituted|redeclared|updated|qualified|renumbered|"
+     r"expressed|decided|masked|supplied|included|recorded|offered|listed|"
+     r"executed|assigned|anchored|addressed|tested|refused|referenced|"
+     r"implemented|contained|changed|evaluated|followed|reached|keyed|quoted|"
+     r"inserted|appended|attached|collected|converted|copied|created|discarded|"
+     r"filtered|flattened|gathered|grouped|hoisted|ignored|inspected|joined|"
+     r"lifted|lowered|marked|merged|narrowed|omitted|ordered|overwritten|"
+     r"printed|promoted|published|raised|rejected|rendered|repeated|reused|"
+     r"routed|selected|separated|shipped|stripped|swapped|tagged|tracked|"
+     r"transformed|truncated|unwrapped|validated|walked|widened|yielded)\b",
      "Say who acts: \"Read both halves\", not \"both halves are read\"."),
     ("long-sentence", None,
      "Keep sentences to 25 words or fewer."),

@@ -452,7 +452,7 @@ fn guard_clause_indents_the_way_the_file_does() {
     assert!(out.contains("\n\t\treturn\n"), "expected tabs:\n{out}");
     assert!(
         !out.contains("return;"),
-        "Go is not written with the semicolon:\n{out}"
+        "Go leaves the semicolon off:\n{out}"
     );
 }
 

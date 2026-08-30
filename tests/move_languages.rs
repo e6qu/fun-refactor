@@ -119,7 +119,7 @@ fn rust_move_repoints_a_simple_use() {
         ws.read("src/store.rs"),
         "pub const LIMIT: i32 = 10;\n\npub fn shared() -> i32 {\n    2\n}\n"
     );
-    // The existing `use` is repointed.
+    // The existing `use` moves to the new path.
     assert_eq!(
         ws.read("src/app.rs"),
         "use crate::store::shared;\n\npub fn run() -> i32 {\n    shared()\n}\n"
@@ -1096,7 +1096,7 @@ fn markdown_leaves_unrelated_anchors_alone() {
     let plan = move_symbol::to_file(&index, id, &ws.path("install.md")).unwrap();
     commit(&plan);
 
-    // Only the anchor whose heading left is repointed.
+    // Only the anchor whose heading left moves.
     assert!(
         ws.read("guide.md").contains("[install](#installation)"),
         "got:\n{}",

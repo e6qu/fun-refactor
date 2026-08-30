@@ -30,7 +30,7 @@ fn the_vocabulary_names_every_verb_the_parser_reads() {
         assert!(text.contains(verb), "`{verb}` is missing: {text}");
         assert!(
             fun_refactor::recipe::RESERVED.contains(&verb),
-            "`{verb}` is offered and the parser reserves no such word"
+            "the vocabulary lists `{verb}` and the parser reserves no such word"
         );
     }
 }
@@ -119,7 +119,7 @@ fn every_language_the_vocabulary_offers_is_one_this_build_reads() {
     for name in &offered {
         assert!(
             fun_refactor::lang::Language::from_name(name).is_some(),
-            "`{name}` is offered and is not a language"
+            "the vocabulary lists `{name}` and it is not a language"
         );
     }
 }

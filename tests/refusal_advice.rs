@@ -203,7 +203,7 @@ fn inline_sends_the_caller_to_delete_and_delete_removes_it() {
         });
         assert!(
             !plan.edits.is_empty(),
-            "{language}: `fr delete` planned nothing for the symbol it was handed"
+            "{language}: `fr delete` planned nothing for the symbol it took"
         );
     }
 }
@@ -406,7 +406,7 @@ fn the_ambiguous_flag_refusal_names_a_form_the_command_accepts() {
         let source = std::fs::read_to_string(&path).expect("the file");
         let offset = source.find("USE_NEW").expect("the declaration");
         let plan = cascade::remove_flag_for(&root, &FlagTarget::At(path, offset), true)
-            .unwrap_or_else(|e| panic!("the refusal named this form and it was refused: {e}"));
+            .unwrap_or_else(|e| panic!("the refusal named this form and then refused it: {e}"));
 
         // Resolved to a name, not carried around as a position: everything downstream looks the
         // flag up by name.
@@ -596,7 +596,7 @@ fn a_list_reaches_the_answer_from_the_flag_and_from_a_file() {
     let ports = symbol(&index, "ports");
     let traced =
         fun_refactor::analysis::provenance::provenance_with_inputs(&index, ports, 5, &inputs)
-            .expect("the refusal named a `-f` file, so a `-f` file has to be taken");
+            .expect("the refusal named a `-f` file, so the command has to accept one");
     assert!(
         !traced.is_empty(),
         "the input the refusal named was accepted and then traced nothing"
@@ -606,7 +606,7 @@ fn a_list_reaches_the_answer_from_the_flag_and_from_a_file() {
             .hops
             .iter()
             .any(|h| h.file.ends_with("override.yaml")),
-        "the `-f` file was not ranked into the answer: {:?}",
+        "the answer left the `-f` file out of its ranking: {:?}",
         traced.hops.iter().map(|h| &h.file).collect::<Vec<_>>()
     );
 }

@@ -106,7 +106,7 @@ pub struct RefusalSite {
 pub enum Refusal {
     /// The new name would collide with an existing one.
     NameCollision { existing: String, file: PathBuf },
-    /// A name inside the value means something else where the value would be moved to.
+    /// A name inside the value means something else at the destination.
     NameCaptured { name: String, file: PathBuf },
     /// The rename would move a use under a different declaration of the same name.
     ScopeCaptured {
@@ -140,6 +140,9 @@ pub enum Refusal {
     },
     /// Something the tool cannot establish at all.
     Unknowable { detail: String },
+    /// A decline the refusing site worded in full. Prefer a variant above where one fits;
+    /// each carries structure a caller reads, and this carries only the sentence.
+    Declined { detail: String },
 }
 
 impl std::fmt::Display for Refusal {
@@ -154,13 +157,12 @@ impl std::fmt::Display for Refusal {
             Refusal::AmbiguousDefinition { name, file } => write!(
                 f,
                 "'{name}' is also defined in {}; a call names one of the two and nothing \
-                 here says which, so the call sites cannot be updated",
+                 here says which, so nothing can update the call sites",
                 file.display()
             ),
             Refusal::NameCaptured { name, file } => write!(
                 f,
-                "the value uses `{name}`, which means something else where it would be \
-                 moved to in {}; substituting it would change what the code does",
+                "the value uses `{name}`, which means something else at the destination in {}; substituting it would change what the code does",
                 file.display()
             ),
             Refusal::ScopeCaptured {
@@ -192,7 +194,7 @@ impl std::fmt::Display for Refusal {
             },
             Refusal::TooWeak { confidence, detail } => write!(
                 f,
-                "resolution is only '{}'. {detail}. Refusing to rewrite what cannot be verified",
+                "resolution is only '{}'. {detail}. Refusing to rewrite what nothing can verify",
                 confidence.get().as_str()
             ),
             Refusal::NotHere { operation, detail } => write!(f, "{operation}: {detail}"),
@@ -200,8 +202,9 @@ impl std::fmt::Display for Refusal {
             // blocking sites.
             Refusal::StillUsed { detail, .. } => f.write_str(detail),
             Refusal::Unknowable { detail } => {
-                write!(f, "{detail}. Refusing to change what cannot be checked")
+                write!(f, "{detail}. Refusing to change what nothing can check")
             }
+            Refusal::Declined { detail } => f.write_str(detail),
         }
     }
 }
@@ -238,7 +241,7 @@ pub(crate) fn receiver_declared_type(
 pub(crate) enum ReceiverType {
     /// The source states the type, and every assignment in scope agrees.
     Settled(String),
-    /// The receiver is assigned more than once in scope, to types that disagree.
+    /// More than one assignment in scope writes the receiver, to types that disagree.
     Reassigned,
     /// Nothing in scope says what the receiver holds.
     Unwritten,

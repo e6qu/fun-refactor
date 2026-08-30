@@ -195,11 +195,11 @@ fn everything_an_exported_symbol_reaches_is_live() {
         .collect();
     assert!(
         !dead.contains(&"helper"),
-        "the public API can be called from outside the workspace: {dead:?}"
+        "code outside the workspace can call the public API: {dead:?}"
     );
     assert!(
         dead.contains(&"Exported"),
-        "the export itself is still reported, tagged, for the caller to judge: {dead:?}"
+        "the report still carries the export, tagged, for the caller to judge: {dead:?}"
     );
 }
 

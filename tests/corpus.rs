@@ -99,7 +99,7 @@ fn a_keyword_only_marker_is_reported_rather_than_written_as_a_parameter() {
     assert!(!plan.output.contains("*: unknown"), "{}", plan.output);
     assert!(
         plan.fidelity.signatures_with_changed_calls > 0,
-        "the change of calling convention has to be counted: {:?}",
+        "the tally has to hold the change of calling convention: {:?}",
         plan.fidelity
     );
     assert!(

@@ -1,7 +1,7 @@
 # Every refactoring, on real code
 
 One example per capability, each run against a public repository at a pinned commit.
-The outputs are copied from those runs. Nothing here is invented. Where a command
+The outputs come straight from those runs. Nothing here is invented. Where a command
 refused or found nothing, the refusal or the empty result stands as printed.
 
 | Repository | Commit | Languages used here |
@@ -224,7 +224,7 @@ Not changed. Review these yourself:
     alpine-pod.yaml:3:17  'Name' appears in a string or comment; left unchanged
 ```
 
-🔎 `{{ … }}` is masked before parsing, so the index never saw inside it. The command
+🔎 A mask covers `{{ … }}` before parsing, so the index never saw inside it. The command
 rewrote `values.yaml` and nothing else, listing every template use as a textual
 occurrence to fix by hand.
 
@@ -332,7 +332,7 @@ Error: refusing to delete 'releaseApplyMethod': 4 reference(s) still resolve to 
   pkg/action/action_test.go:2281:54
   pkg/action/install.go:676:23
   pkg/action/rollback.go:192:23
-Remove or repoint these uses first; nothing was changed.
+Remove or repoint these uses first; this changed nothing.
 ```
 
 ### `fr imports`, `fr inline`, `fr remove-flag`, `fr stitch`
@@ -352,7 +352,7 @@ chart, read by a Go program.
 
 ## Not supported, and what each would take
 
-The tool does not do these refactorings. They are listed because the shape of
+The tool does not do these refactorings. They stand here because the shape of
 what is missing says more about a tool than the list of what it has.
 
 | Refactoring | Why not, and what it needs |

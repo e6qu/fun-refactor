@@ -203,7 +203,7 @@ fn of_at(index: &Index, symbol: SymbolId, depth: usize) -> Result<Declared> {
 pub enum Held {
     /// The source states this, and every assignment in scope agrees.
     Settled(String),
-    /// The name is assigned more than once, and the assignments disagree.
+    /// More than one assignment writes the name, and they disagree.
     Reassigned,
     /// Nothing in scope writes down what the name holds.
     Unwritten,
@@ -317,7 +317,7 @@ fn assigned_name<'a>(node: Node<'a>) -> Option<Node<'a>> {
         })
 }
 
-/// How far a chain of derivations is followed.
+/// How far this follows a chain of derivations.
 const MAX_CHAIN: usize = 4;
 
 /// What follows from what the source declared, for a binding it left unannotated.
@@ -609,8 +609,8 @@ fn infer_expression(
             }
             let other = index.symbol(target)?;
             let answer = of_at(index, target, depth + 1).ok()?;
-            // A derived answer is followed only through the same file: a chain that
-            // leaves the file is a chain a reader cannot see.
+            // This follows a derived answer through one file and no further: a chain
+            // that leaves the file is a chain a reader cannot see.
             let ty = match answer.declared {
                 Some(ty) => Some(ty),
                 None => (other.file == from.file)

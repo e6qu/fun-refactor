@@ -47,7 +47,7 @@ fn a_python_super_method_call_is_typescripts_super_dot() {
     let out = translated(tmp.path(), "labels.py", source, Language::TypeScript);
     assert!(
         out.contains("`${super.label()}!`"),
-        "a base method is reached through the keyword.\n{out}"
+        "the keyword reaches a base method.\n{out}"
     );
 }
 

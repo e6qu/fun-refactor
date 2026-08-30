@@ -149,7 +149,7 @@ mod tests {
         assert_eq!(
             result.unsupported.get(".toml"),
             Some(&2),
-            "a kind is counted, and not listed once per file."
+            "the tally counts a kind once, rather than once per file."
         );
         assert_eq!(result.unsupported.get("no extension"), Some(&1));
         assert!(
@@ -168,7 +168,7 @@ mod tests {
         let result = scan(tmp.path(), &opts).unwrap();
         assert!(
             !result.unsupported.contains_key(".py"),
-            "the reader asked for Rust. Python was not passed over for want of support."
+            "the reader asked for Rust. Nothing passed over Python for want of support."
         );
     }
 

@@ -114,7 +114,7 @@ fn hold_back_reason(
     if statement.guarded {
         return Some(format!(
             "'{}' is guarded by an attribute, so whether a build uses it depends \
-             on the configuration, which this index cannot see. It is kept",
+             on the configuration, which this index cannot see. It stays",
             statement.path
         ));
     }
@@ -134,9 +134,9 @@ fn hold_back_reason(
                             .any(|s| s.kind == crate::model::SymbolKind::Trait)
                 })?;
             Some(format!(
-                "'{}' binds '{binding}', which nothing names. A trait is used \
-                 through its methods, never by name, so this is kept. Remove it by \
-                 hand if it really is unused",
+                "'{}' binds '{binding}', which nothing names. Code reaches a trait \
+                 through its methods, never by name, so this stays. Remove it by \
+                 hand if it really has no use",
                 statement.path
             ))
         }
@@ -145,8 +145,8 @@ fn hold_back_reason(
             // `from __future__ import annotations` changes how the whole file is compiled.
             if statement.path == "__future__" {
                 return Some(format!(
-                    "'{}' is a __future__ import: it changes how the file is compiled \
-                     instead of binding a name anyone spells, so it is never removed",
+                    "'{}' is a __future__ import: it changes how the compiler reads the file \
+                     instead of binding a name anyone spells, so it always stays",
                     statement.path
                 ));
             }
@@ -165,7 +165,7 @@ fn hold_back_reason(
             if uses.package_init {
                 return Some(format!(
                     "'{}' is imported in a package __init__.py, which re-exports \
-                     what it binds as package API, so it is kept",
+                     what it binds as package API, so it stays",
                     statement.path
                 ));
             }
@@ -175,7 +175,7 @@ fn hold_back_reason(
                 return Some(format!(
                     "'{}' imports a submodule: nothing names the '{}' it binds, but the \
                      statement may exist to run the submodule's registration side \
-                     effects, so it is kept",
+                     effects, so it stays",
                     statement.path,
                     statement.bindings.join(", ")
                 ));
@@ -187,7 +187,7 @@ fn hold_back_reason(
             if uses.type_only.contains(&statement.span) {
                 return Some(format!(
                     "'{}' is a type-only import; its uses are all in type positions, \
-                     which the fact queries do not capture in full, so it is kept",
+                     which the fact queries do not capture in full, so it stays",
                     statement.path
                 ));
             }
@@ -197,8 +197,8 @@ fn hold_back_reason(
                 .find(|binding| uses.type_queries.contains(*binding))
             {
                 return Some(format!(
-                    "'{}' binds '{binding}', which is used in a `typeof {binding}` type \
-                     query. A type position no reference records, so it is kept",
+                    "'{}' binds '{binding}', which a `typeof {binding}` type query names. \
+                     No reference records a type position, so it stays",
                     statement.path
                 ));
             }
@@ -208,8 +208,8 @@ fn hold_back_reason(
                 .find(|binding| uses.jsdoc_types.contains(*binding))
             {
                 return Some(format!(
-                    "'{}' binds '{binding}', which is named in a JSDoc type comment; \
-                     that is a use no reference records, so it is kept",
+                    "'{}' binds '{binding}', which a JSDoc type comment names; no reference \
+                     records that use, so it stays",
                     statement.path
                 ));
             }
@@ -220,7 +220,7 @@ fn hold_back_reason(
             {
                 return Some(format!(
                     "'{}' binds '{binding}', which a JSX pragma comment names as the \
-                     factory every JSX element compiles to, so it is kept",
+                     factory every JSX element compiles to, so it stays",
                     statement.path
                 ));
             }
@@ -232,7 +232,7 @@ fn hold_back_reason(
         Language::Go if !statement.explicit_binding && !statement.binding_certain => Some(format!(
             "'{}' is a Go import whose local name is its package clause, and that \
                  package is not in the scan; '{}' is only a guess from the path, so the \
-                 import is kept",
+                 import stays",
             statement.path,
             if statement.bindings.is_empty() {
                 "<no name could be guessed>".to_string()
@@ -431,12 +431,15 @@ pub(crate) fn plan_in_consulting(
     }
 
     if let Some(gap) = info.gaps.first() {
-        anyhow::bail!(
-            "refusing to organize imports in {}: {}, so a use hidden in the part that did \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "refusing to organize imports in {}: {}, so a use hidden in the part that did \
              not reach the index could make a live import look unused",
-            file.display(),
-            gap.cause()
-        );
+                file.display(),
+                gap.cause()
+            ),
+        }
+        .into());
     }
 
     let line_index = LineIndex::new(source);
@@ -497,8 +500,8 @@ pub(crate) fn plan_in_consulting(
                 line: position.line,
                 col: position.col,
                 detail: format!(
-                    "'{}' is a glob import; what it binds cannot be enumerated, so it is \
-                     never removed",
+                    "'{}' is a glob import; nothing can enumerate what it binds, so it \
+                     always stays",
                     statement.path
                 ),
             });
@@ -512,8 +515,8 @@ pub(crate) fn plan_in_consulting(
                 line: position.line,
                 col: position.col,
                 detail: format!(
-                    "'{}' binds no name; it is imported for its side effects and is never \
-                     removed",
+                    "'{}' binds no name; it carries side effects alone, so it always \
+                     stays",
                     statement.path
                 ),
             });
@@ -633,8 +636,8 @@ pub(crate) fn plan_in_consulting(
                 file: file.to_path_buf(),
                 line: position.line,
                 col: position.col,
-                detail: "an import here shares its line with other code; the block was left \
-                         untouched and not risk moving that code"
+                detail: "an import here shares its line with other code; this left the \
+                         block alone rather than risk moving that code"
                     .into(),
             });
             continue;

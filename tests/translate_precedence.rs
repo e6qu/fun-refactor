@@ -44,7 +44,7 @@ fn a_group_the_source_wrote_survives() {
 
 #[test]
 fn a_group_that_was_never_needed_does_not_survive() {
-    // Brackets are decided from precedence.
+    // Precedence decides the brackets.
     for (body, unwanted) in [
         ("return (a - b) - c;", "(a - b)"),
         ("return a * b + c;", "("),
@@ -166,7 +166,7 @@ fn a_remainder_between_integers_answers_what_the_source_answered() {
     );
     assert!(
         plan.output.contains("def fr_trunc_rem("),
-        "the helper has to be in the file it is called from: {}",
+        "the helper has to sit in the file that calls it: {}",
         plan.output
     );
 }

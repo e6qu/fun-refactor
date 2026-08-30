@@ -116,7 +116,7 @@ fn a_reference_the_index_could_not_prove_does_not_block_but_is_reported() {
         plan.warnings
             .iter()
             .any(|w| w.kind == WarningKind::WeaklyResolved),
-        "the weak reference must be reported: {:?}",
+        "the warnings have to carry the weak reference: {:?}",
         plan.warnings
     );
 }
@@ -365,7 +365,7 @@ fn find_unused_leaves_out_a_name_a_string_literal_spells() {
     );
     assert!(
         !unused.contains(&only_symbol(&index, "on_event")),
-        "a name spelled in a string may be reached by reflection: {unused:?}"
+        "reflection may reach a name spelled in a string: {unused:?}"
     );
 }
 
@@ -395,7 +395,7 @@ fn without_entry_points_reachability_contributes_nothing() {
     let unused = delete::find_unused(&index, &Entrypoints::none());
     assert!(
         unused.contains(&only_symbol(&index, "main")),
-        "nothing references main and no entry point was given: {unused:?}"
+        "nothing references main and no catalogue names an entry point: {unused:?}"
     );
     assert!(
         !unused.contains(&only_symbol(&index, "used")),
@@ -634,7 +634,7 @@ fn a_class_declared_twice_and_used_once_is_not_dead() {
     for live in ["panel", "note"] {
         assert!(
             !dead.contains(&live),
-            "`.{live}` is used by the markup and declared in two stylesheets; \
+            "the markup reaches `.{live}` and two stylesheets declare it; \
              neither declaration is dead. Reported: {dead:?}"
         );
     }
@@ -642,7 +642,7 @@ fn a_class_declared_twice_and_used_once_is_not_dead() {
     for gone in ["never-used", "also-never"] {
         assert!(
             dead.contains(&gone),
-            "`.{gone}` is used by nothing and should be reported. Reported: {dead:?}"
+            "nothing reaches `.{gone}`, so the report should carry it. Reported: {dead:?}"
         );
     }
 }
@@ -711,7 +711,7 @@ fn an_unreferenced_rust_module_is_still_reported() {
     assert_eq!(found, vec!["helper".to_string()], "a `mod` can be dead");
 }
 
-/// A class whose methods are entry points is reached, whatever calls them.
+/// A class whose methods are entry points stays reachable, whatever calls them.
 #[test]
 fn a_container_of_an_entry_point_is_not_dead() {
     let (_tmp, index) = workspace(&[(
@@ -730,7 +730,7 @@ fn a_container_of_an_entry_point_is_not_dead() {
 
     assert!(
         !names.contains(&"OwnerTests".to_string()),
-        "the class holding the test is reached: {names:?}"
+        "reachability keeps the class holding the test: {names:?}"
     );
     assert!(
         names.contains(&"helper".to_string()),
@@ -738,7 +738,7 @@ fn a_container_of_an_entry_point_is_not_dead() {
     );
 }
 
-/// A JavaBean accessor is reached by its property, never by its name.
+/// A caller reaches a JavaBean accessor by its property, never by its name.
 #[test]
 fn a_bean_accessor_named_only_by_its_property_is_spared() {
     let (_tmp, index) = workspace(&[

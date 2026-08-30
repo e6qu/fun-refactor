@@ -32,7 +32,7 @@ export const LESSONS = [
     id: "java-rename-a-method",
     title: "Rename a method the whole package calls",
     language: "java",
-    teaches: "A refusal is reported, and `on-refusal` decides what it costs.",
+    teaches: "A refusal reaches the report, and `on-refusal` decides what it costs.",
     note: "Java reaches a method through a receiver, and this tool does not track the receiver's type, so the call in `Report.java` resolves only as `field-based`, and the rename rewrites the declaration and *says* it left that one alone. Read the `left` line: this is the tool telling the truth about what it knows, and a recipe that swallowed it would report a clean run over work still to do.",
     recipe: "schema 1\n\nrecipe clearer-method-name {\n  description \"`overdueDays` reads as a noun; `daysOverdue` reads as what it returns.\"\n\n  requires language java\n\n  rename to \"daysOverdue\" where name=\"overdueDays\" kind=method\n                           on-refusal report\n}\n",
     file: "com/example/Account.java",

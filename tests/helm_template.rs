@@ -226,7 +226,7 @@ fn include_and_template_name_what_they_invoke() {
 
 #[test]
 fn a_comment_holds_no_references() {
-    let a = action("{{/* .Values.x is set by the operator */}}");
+    let a = action("{{/* the operator sets .Values.x */}}");
     assert_eq!(a.kind, ActionKind::Comment);
     assert!(a.values_paths().is_empty());
     assert!(a.refs.is_empty());
@@ -584,7 +584,7 @@ fn a_value_from_an_include_is_followed_into_the_define() {
     );
     assert!(
         texts.iter().any(|t| t.contains("nameOverride: parent-app")),
-        "the values key behind the define is resolved: {texts:?}"
+        "the trace reaches the values key behind the define: {texts:?}"
     );
     assert!(
         result
