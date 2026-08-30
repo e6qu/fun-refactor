@@ -927,7 +927,10 @@ impl Family {
             Language::TypeScript | Language::Tsx => Some(Family::Ts),
             Language::Java => Some(Family::Java),
             Language::Python => Some(Family::Python),
-            Language::Zig
+            // Lean dispatches by type-class search, which finds an instance by the
+            // shape of a type and never by a name a call site spells.
+            Language::Lean
+            | Language::Zig
             | Language::Json
             | Language::Bash
             | Language::Html

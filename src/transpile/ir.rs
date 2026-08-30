@@ -561,7 +561,6 @@ impl BinaryOp {
             BinaryOp::Sub => "-",
             BinaryOp::Mul => "*",
             BinaryOp::Div => "/",
-            // No C-family language spells floor division as an operator.
             BinaryOp::FloorDiv => unreachable!("floor division has no shared operator spelling"),
             // Only the languages whose `/` is already a float division reach this.
             BinaryOp::TrueDiv => "/",

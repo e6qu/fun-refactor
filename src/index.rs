@@ -334,7 +334,6 @@ impl Index {
 
     /// Merge one file's facts, remapping file-local ids into the global namespace.
     pub fn add_file(&mut self, facts: FileFacts, language: Language) {
-        // Reading a file's symbols and references *is* the symbols/def/refs capability.
         crate::capabilities::record(crate::capabilities::Capability::Symbols, language);
         let base = self.symbols.len() as u32;
         let remap = |local: SymbolId| SymbolId(local.0 + base);

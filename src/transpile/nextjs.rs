@@ -288,7 +288,6 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<RoutePlan
         );
     }
 
-    // The output has to be a Python file Python accepts.
     let written = parsers.parse(Language::Python, &output)?;
     if written.has_errors() {
         bail!(
@@ -824,7 +823,6 @@ fn write(module: &Module, endpoints: &[Endpoint], source: &Path) -> Result<Writt
     out.push('\n');
     out.push_str("router = APIRouter()\n\n");
 
-    // The models and helpers, with records turned into Pydantic models.
     let with_models = promote_models(&body, &rest);
     if !with_models.trim().is_empty() {
         out.push_str(with_models.trim_start());
@@ -864,7 +862,6 @@ fn write(module: &Module, endpoints: &[Endpoint], source: &Path) -> Result<Writt
                 .collect(),
         };
 
-        // The query parameters this handler reads out of the URL, declared.
         let declared_queries: Vec<String> = query_keys
             .iter()
             .filter(|_| endpoint.kind == Kind::Route)
@@ -917,7 +914,6 @@ fn write(module: &Module, endpoints: &[Endpoint], source: &Path) -> Result<Writt
 
         // A Next.js handler receives `(request, context)`.
         let dropped: Vec<String> = match endpoint.kind {
-            // A server function has no request and no context.
             Kind::ServerFunction => Vec::new(),
             Kind::Route => handler
                 .params

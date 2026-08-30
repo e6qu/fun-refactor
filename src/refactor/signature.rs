@@ -149,7 +149,6 @@ fn still_read(
     let Some(span) = items.get(*at).copied() else {
         return Ok(());
     };
-    // The parameter symbol is the one this file declares inside the removed span.
     let Some(parameter) = index.symbols.iter().find(|s| {
         s.file == sym.file && s.kind == SymbolKind::Parameter && span.contains(s.name_span)
     }) else {

@@ -859,7 +859,6 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         })
         .collect();
 
-    // Languages that require types on parameters cannot have them invented.
     if requires_explicit_types(language) {
         let untyped: Vec<&str> = parameters
             .iter()

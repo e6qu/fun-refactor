@@ -336,6 +336,15 @@ pub fn support(capability: Capability, language: Language) -> Support {
         C::ExtractFunction => {
             if crate::refactor::extract::supports_extract_function(language) {
                 Support::Yes
+            } else if language == Language::Lean {
+                // A dependent return type may name the arguments, so there is nothing to
+                // read off the selection.
+                Support::NotApplicable {
+                    because: "a `def` needs a written type, and in a dependently typed \
+                              language that type may name the arguments, so choosing one \
+                              is a judgement about the code rather than a fact about the \
+                              selection",
+                }
             } else {
                 // Java is the only language left with something callable, so the reason below
                 // is Java's.
