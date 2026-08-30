@@ -132,7 +132,6 @@ fn env_declarations(index: &Index) -> Result<Vec<Declaration>> {
             .collect();
 
         for name_key in keys.iter().filter(|s| s.name == "name") {
-            // Only `name` keys that sit under an `env:` list describe a variable.
             if !under_env_list(&keys, name_key) {
                 continue;
             }

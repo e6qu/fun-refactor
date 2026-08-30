@@ -20,6 +20,19 @@ fn workspace() -> &'static (PathBuf, Index) {
     })
 }
 
+/// One symbol in every `n`, chosen by what it is rather than where it sits. `step_by`
+/// picked by position, so adding a function anywhere moved every later choice.
+fn sampled(index: &Index, n: u64) -> impl Iterator<Item = &fun_refactor::model::Symbol> {
+    use std::hash::{Hash, Hasher};
+    index.symbols.iter().filter(move |s| {
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        s.name.hash(&mut hasher);
+        s.file.hash(&mut hasher);
+        s.kind.hash(&mut hasher);
+        hasher.finish().is_multiple_of(n)
+    })
+}
+
 #[test]
 fn every_call_edge_has_the_reference_that_produced_it() {
     let (_root, index) = workspace();
@@ -92,7 +105,7 @@ fn callers_and_callees_are_two_views_of_one_edge() {
     let (_root, index) = workspace();
     let graph = CallGraph::build(index);
     let mut edges = 0;
-    for symbol in index.symbols.iter().step_by(23) {
+    for symbol in sampled(index, 23) {
         for (caller, _) in graph.callers(symbol.id) {
             edges += 1;
             assert!(
@@ -123,7 +136,7 @@ fn usages_reports_the_references_that_resolved_to_the_symbol() {
         .collect();
 
     // Two agreements, and not a count.
-    for symbol in index.symbols.iter().step_by(1493) {
+    for symbol in sampled(index, 1493) {
         let report = navigate::usages_of(index, symbol.id);
         assert!(
             report.usages.len() >= per_target.get(&symbol.id).copied().unwrap_or(0),
@@ -165,7 +178,7 @@ fn impact_covers_every_reference_it_could_rewrite() {
     let (_root, index) = workspace();
     let mut sources: HashMap<PathBuf, String> = HashMap::new();
     let mut checked = 0;
-    for symbol in index.symbols.iter().step_by(311) {
+    for symbol in sampled(index, 311) {
         let Ok(report) = impact::analyse(index, symbol.id, 2) else {
             continue;
         };
@@ -414,4 +427,20 @@ fn a_symbol_nothing_calls_draws_only_itself() {
     assert_eq!(near.nodes.len(), 1, "itself and nothing else");
     assert!(near.edges.is_empty());
     assert!(!near.more, "nothing lies beyond the depth");
+}
+
+/// A definition group holds the symbol it is the group of. `fr impact` walks the group,
+/// so one that drops its own symbol answers for another file and not for the symbol.
+#[test]
+fn a_definition_group_holds_its_own_symbol() {
+    let (_root, index) = workspace();
+    for symbol in index.symbols.iter() {
+        assert!(
+            index.definition_group(symbol.id).contains(&symbol.id),
+            "the group of {:?} {:?} in {} leaves it out",
+            symbol.kind,
+            symbol.name,
+            symbol.file.display()
+        );
+    }
 }

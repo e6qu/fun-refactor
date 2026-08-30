@@ -232,7 +232,6 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
         .into());
     }
 
-    // A method in declared dispatch changes as one family.
     let family = crate::analysis::call_graph::Hierarchy::scanned(index).method_group(index, symbol);
     let dispatched = !family.is_empty();
     let members: Vec<SymbolId> = if dispatched { family } else { vec![symbol] };

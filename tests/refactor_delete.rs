@@ -944,3 +944,44 @@ fn a_deletion_drops_an_import_the_workspace_knows_is_no_trait() {
         "an enum is not a trait, and the workspace knows as much.\n{out}"
     );
 }
+
+#[test]
+fn a_lock_file_stays_out_of_the_dead_code_report_and_says_so() {
+    // 127 of 184 findings here were lock-file keys, burying seven real functions.
+    let lock = "{\n  \"name\": \"app\",\n  \"lockfileVersion\": 3,\n  \
+                \"packages\": {\n    \"node_modules/left-pad\": {\n      \
+                \"version\": \"1.3.0\"\n    }\n  }\n}\n";
+    let (_tmp, index) = workspace(&[
+        ("a.rs", "fn dead() {}\nfn main() {}\n"),
+        ("package-lock.json", lock),
+    ]);
+
+    let report = delete::find_unused_report(
+        &index,
+        &Entrypoints::exactly(&[only_symbol(&index, "main")]),
+    );
+    let listed: Vec<String> = report
+        .unused
+        .iter()
+        .filter_map(|id| index.symbol(*id))
+        .map(|s| format!("{}:{}", s.file.display(), s.name))
+        .collect();
+    assert!(
+        !listed.iter().any(|n| n.contains("package-lock.json")),
+        "a tool writes the lock file, so nothing in it is code to delete: {listed:?}"
+    );
+    assert!(
+        listed.iter().any(|n| n.ends_with(":dead")),
+        "the function nobody calls is still the answer: {listed:?}"
+    );
+
+    let key = index
+        .symbols
+        .iter()
+        .find(|s| s.file.ends_with("package-lock.json"))
+        .expect("the lock file is indexed");
+    let reason = report
+        .explain(&index, key.id)
+        .expect("a spared symbol says why");
+    assert!(reason.contains("a tool writes"), "got: {reason}");
+}

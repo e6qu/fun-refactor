@@ -126,7 +126,6 @@ pub fn analyse(index: &Index, symbol: SymbolId, caller_depth: usize) -> Result<I
     for id in index.definition_group(symbol) {
         for reference in index.references_to(id) {
             let at = locate(&reference.file, reference.span.start);
-            // A reference from another language is the interesting case.
             let kind = if reference.language != sym.language {
                 ImpactKind::CrossLanguage
             } else {

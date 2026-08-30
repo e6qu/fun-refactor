@@ -364,7 +364,7 @@ names the commit it measures.
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 18 |
 | Supported pairs | 299 of 432, every other one carrying its reason |
-| Defects fixed | 659 |
+| Defects fixed | 662 |
 | Defects open | 1 |
 
 Every cell that `fr capabilities` marks `n/a` carries the reason the tool refuses. That

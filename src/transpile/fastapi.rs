@@ -159,7 +159,6 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<AppPlan> 
     let mut edits = crate::edit::EditSet::new();
     for (url, group) in &by_route {
         let (file, report) = write_route(url, group, &models, &root, &context)?;
-        // The output has to be TypeScript that TypeScript accepts.
         let written = parsers.parse(Language::TypeScript, &file.output)?;
         if written.has_errors() {
             bail!(

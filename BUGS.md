@@ -429,6 +429,47 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   mid-clause. A `fr translate` refusal carries a run of stray spaces through the
   middle of a sentence. Both had shipped.
 
+- [x] B818: **a definition group left out the symbol it was the group of.** A CSS
+  module scopes class names. So a module's `.btn` and a plain stylesheet's `.btn`
+  are two classes, and never group. The split reached every kind that groups across
+  files. A custom property, an element id and a data attribute stay global in a
+  module, as anywhere else.
+
+  So `--brand` in `a.module.css` got a group holding `b.css`'s `--brand` and not
+  itself. `fr impact` walks the group and collects each member's references. It
+  answered for the other file alone, and reported none of the symbol's own. Only
+  class names take the split now.
+
+  `tests/commands_agree.rs` asserts the invariant over every symbol this repository
+  declares: a group holds the symbol it is the group of.
+
+- [x] B819: **three self-consistency checks sampled by position.** So their
+  coverage moved under an unrelated edit. `commands_agree` walked `step_by(23)`,
+  `step_by(1493)` and `step_by(311)` over the index. Adding a function anywhere
+  shifted every later choice.
+
+  B818 is what that hid. The impact check caught it, then passed again once other
+  work changed the symbol count, with the defect untouched. B331 through B336 went
+  after a test that checks nothing. This is one level up: a test whose reach drifts,
+  so it stops covering a case without anybody deciding to stop.
+
+  The sample keys on a hash of the symbol's name, file and kind now. A symbol stays
+  in it or out of it for as long as it exists.
+
+- [x] B817: **a lock file buried the dead-code report.** `fr unused` over this
+  repository listed 184 symbols. 127 of them were keys in
+  `web/package-lock.json`. The seven functions and three methods worth reading sat
+  under a wall of generated JSON.
+
+  B625 fixed this shape for `fr scan`. Its skipped-file tally groups by extension,
+  so a lock file cannot dominate it. `fr unused` had no such rule.
+
+  A tool writes a lock file and nobody edits it, so no key in one is code anyone
+  deletes. Eight of them, `package-lock.json` through `composer.lock`, now spare
+  with a reason. They go through the same `SparedReason` machinery that spares a
+  Markdown heading and a Go package clause. The count falls to 57, and the caveat
+  names the rule so nothing goes quietly.
+
 - [x] B816: **rewording a refusal moved it into the defect column.** The browser
   sweep, `web/test/scale.mjs`, sorts a failure into `refused` or `BROKE`. It reads
   the `refused` flag the API sets. For an error carrying no flag it falls back to a

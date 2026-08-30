@@ -1,22 +1,12 @@
 //! Extract function: the data-flow half of the extract/inline family.
 
 use fun_refactor::edit::apply_to_string;
-use fun_refactor::index::Index;
 use fun_refactor::refactor::extract;
-use fun_refactor::scan::{scan, ScanOptions};
 use fun_refactor::span::{LineCol, LineIndex, Span};
 use std::path::{Path, PathBuf};
 
-fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, Index) {
-    let tmp = tempfile::tempdir().unwrap();
-    for (name, content) in files {
-        let path = tmp.path().join(name);
-        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-        std::fs::write(&path, content).unwrap();
-    }
-    let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
-    (tmp, Index::build_from_scan(&scanned).unwrap())
-}
+mod common;
+use common::workspace;
 
 /// Byte span of whole lines `from..=to` (1-based).
 fn lines(source: &str, from: usize, to: usize) -> Span {

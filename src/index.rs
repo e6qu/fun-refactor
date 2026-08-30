@@ -620,7 +620,6 @@ impl Index {
             // A string-keyed reference need not name its target verbatim: `#two-words` is the
             // anchor of a heading written `Two Words`.
             None if reference.kind == ReferenceKind::StringRef => &[],
-            // Nothing declares the name, and an import may still bind it.
             None if self.import_binding(info, reference.name.as_str()).is_some() => &[],
             None => return (None, Confidence::NameOnly),
         };
@@ -1630,10 +1629,12 @@ impl Index {
                 .map(|s| s.id)
                 .collect();
         }
+        // A CSS module scopes class names and nothing else. A custom property, an
+        // element id and a data attribute group across files as they do anywhere.
+        let scoped_to_its_file = sym.kind == SymbolKind::Selector;
         self.named_like(&sym.name)
             .filter(|s| s.name == sym.name && s.kind == sym.kind)
-            // A plain stylesheet's classes are global and group across files.
-            .filter(|s| !crate::lang::is_css_module(&s.file))
+            .filter(|s| !(scoped_to_its_file && crate::lang::is_css_module(&s.file)))
             .map(|s| s.id)
             .collect()
     }

@@ -1,21 +1,11 @@
 //! Inline call: the strictest refactoring in the set.
 
 use fun_refactor::edit::apply_to_string;
-use fun_refactor::index::Index;
 use fun_refactor::refactor::inline;
-use fun_refactor::scan::{scan, ScanOptions};
 use std::path::PathBuf;
 
-fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, Index) {
-    let tmp = tempfile::tempdir().unwrap();
-    for (name, content) in files {
-        let path = tmp.path().join(name);
-        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-        std::fs::write(&path, content).unwrap();
-    }
-    let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
-    (tmp, Index::build_from_scan(&scanned).unwrap())
-}
+mod common;
+use common::workspace;
 
 fn apply(plan: &inline::InlineCallPlan, path: &PathBuf) -> String {
     let original = std::fs::read_to_string(path).unwrap();
