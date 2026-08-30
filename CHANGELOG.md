@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.4.0...fun-refactor-v0.5.0) (2026-08-30)
+
+
+### Features
+
+* every target extracts a region that returns, and no comment speaks passively ([#181](https://github.com/e6qu/fun-refactor/issues/181)) ([027ec5f](https://github.com/e6qu/fun-refactor/commit/027ec5f6479942e6920de1c7804db142878812f6))
+
 ## [0.4.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.3.0...fun-refactor-v0.4.0) (2026-08-28)
 
 
