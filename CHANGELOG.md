@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.5.0...fun-refactor-v0.5.1) (2026-08-30)
+
+
+### Refactoring
+
+* the passive goes, and so does the rule that missed most of it ([#183](https://github.com/e6qu/fun-refactor/issues/183)) ([08bb3db](https://github.com/e6qu/fun-refactor/commit/08bb3db9a2906fe2ac74a30554c4412974fe4bb5))
+
 ## [0.5.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.4.0...fun-refactor-v0.5.0) (2026-08-30)
 
 
