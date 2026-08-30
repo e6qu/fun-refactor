@@ -116,7 +116,7 @@ pub enum ActionKind {
     },
     /// `{{/* ...
     Comment,
-    /// A pipeline whose result is rendered.
+    /// A pipeline whose result the template renders.
     Expression,
     /// `{{ }}`.
     Empty,
@@ -754,7 +754,7 @@ pub fn parse_set(argument: &str, string: bool) -> Result<Vec<SetValue>> {
     };
     if argument.trim().is_empty() {
         bail!(
-            "`{}` was given nothing to set; it takes key=value",
+            "`{}` names nothing to set; it takes key=value",
             source.flag()
         );
     }
@@ -1398,7 +1398,7 @@ fn classify(tokens: &[Token], source: &str, problems: &mut Vec<String>) -> Actio
         }
         "define" | "block" | "template" => {
             let Some(name) = quoted_name(1) else {
-                problems.push(format!("`{word}` is not followed by a quoted name"));
+                problems.push(format!("no quoted name follows `{word}`"));
                 return ActionKind::Expression;
             };
             match word.as_str() {
@@ -1502,8 +1502,8 @@ fn index_call(
         }
         Tok::LParen => {
             problems.push(
-                "`index` is given a parenthesised expression, so the key it reads is not a \
-                 values path this can resolve"
+                "`index` takes a parenthesised expression here, so the key it reads is not \
+                 a values path this can resolve"
                     .to_string(),
             );
             return None;
@@ -1531,7 +1531,7 @@ fn index_call(
                 .unwrap_or("")
                 .trim();
             problems.push(format!(
-                "`index .Values {key}` computes its key, so the values path is not resolved"
+                "`index .Values {key}` computes its key, so nothing here resolves the values path"
             ));
         }
         return None;

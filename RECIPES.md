@@ -9,7 +9,7 @@ and it fails loudly.
 [docs/recipes.html](https://e6qu.github.io/fun-refactor/recipes.html) works five of
 them, in five languages, with the output the tool produced.
 
-The design and the build agree. Every predicate in the table below is implemented,
+The design and the build agree. Every predicate in the table below works,
 including the four that were missing at first. One call graph answers both `calls=` and
 `called-by=`, and the runner builds it only when a recipe asks for one of them. The
 hierarchy answers `implements=`. The pattern matcher answers `matches=`, and it needs
@@ -361,8 +361,8 @@ The engine reparse-checks every edit regardless. You do not opt into that one.
 ## Output
 
 Every run produces a report, human by default and `--json` for a machine.
-For each step it prints what was selected and by which predicate, what changed, what
-was refused and why, and what `expect` found.
+For each step it prints what it selected and by which predicate, what changed, what
+refused and why, and what `expect` found.
 
 ```
 recipe retire-legacy-auth: 3 step(s)

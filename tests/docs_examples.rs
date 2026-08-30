@@ -68,7 +68,7 @@ fn the_check_found_the_examples() {
     let found = fixtures();
     assert!(
         found.len() > 20,
-        "only {} fixture(s) were read out of the generator: {:?}.",
+        "only {} fixture(s) came out of the generator: {:?}.",
         found.len(),
         found.keys().collect::<Vec<_>>()
     );
@@ -159,7 +159,7 @@ fn the_check_found_the_blocks() {
     let blocks = rendered_blocks();
     assert!(
         blocks.len() >= 12,
-        "only {} code block(s) were read out of the pages, and the pages hold \
+        "only {} code block(s) came out of the pages, and the pages hold \
          more than that.",
         blocks.len()
     );

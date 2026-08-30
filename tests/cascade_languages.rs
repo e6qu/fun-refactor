@@ -475,10 +475,10 @@ fn bash_a_compound_expansion_is_refused_by_name() {
     let tmp = workspace(&[("run.sh", "USE_NEW=true\n\necho \"${USE_NEW:-no}\"\n")]);
 
     let error = cascade::remove_flag(tmp.path(), "USE_NEW", true)
-        .expect_err("a flag whose every use is refused cannot be removed")
+        .expect_err("a flag whose every use refuses stays put")
         .to_string();
     assert!(error.contains("not a plain expansion"), "{error}");
-    assert!(error.contains("nothing was changed"), "{error}");
+    assert!(error.contains("this changed nothing"), "{error}");
 }
 
 #[test]
@@ -678,7 +678,7 @@ fn terraform_false_deletes_the_resource_the_count_zeroed() {
 #[test]
 fn terraform_reports_the_addresses_a_deleted_resource_leaves_dangling() {
     // Deleting whatever referenced the resource would turn a flag removal into an
-    // open-ended configuration change, so the dangling addresses are handed back.
+    // open-ended configuration change, so the plan hands the dangling addresses back.
     let tmp = workspace(&[
         ("variables.tf", "variable \"enabled\" {\n  type = bool\n}\n"),
         (
@@ -702,7 +702,7 @@ fn terraform_reports_the_addresses_a_deleted_resource_leaves_dangling() {
     );
     assert!(
         out.contains("value = aws_s3_bucket.logs[0].arn"),
-        "the dangling use is reported, not deleted:\n{out}"
+        "the plan names the dangling use rather than deleting it:\n{out}"
     );
     assert_eq!(plan.unfinished.len(), 1, "{}", unfinished(&plan));
     assert!(
@@ -874,7 +874,7 @@ fn terraform_keeps_a_count_of_one_the_module_indexes_into() {
          }\n"
     );
     assert!(
-        unfinished(&plan).contains("read with an index"),
+        unfinished(&plan).contains("reads `aws_s3_bucket.logs` with an index"),
         "{}",
         unfinished(&plan)
     );
@@ -898,7 +898,7 @@ fn terraform_keeps_a_count_of_one_that_count_index_depends_on() {
     let out = result_for(tmp.path(), "main.tf", &plan);
     assert!(out.contains("count  = 1"), "got:\n{out}");
     assert!(
-        unfinished(&plan).contains("`count.index` is used here"),
+        unfinished(&plan).contains("`count.index` appears here"),
         "{}",
         unfinished(&plan)
     );
@@ -946,10 +946,10 @@ fn terraform_reading_through_the_flag_is_refused_by_name() {
 
     // That one traversal is the variable's only reader.
     let error = cascade::remove_flag(tmp.path(), "enabled", true)
-        .expect_err("a variable whose every use is refused cannot be removed")
+        .expect_err("a variable whose every use refuses stays put")
         .to_string();
     assert!(error.contains("reads through the flag"), "{error}");
-    assert!(error.contains("nothing was changed"), "{error}");
+    assert!(error.contains("this changed nothing"), "{error}");
 }
 
 #[test]

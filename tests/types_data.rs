@@ -14,7 +14,7 @@ const STAGES: &[(&str, &str, &str, &str)] = &[
     (
         "stage0_as_found",
         "The code as found",
-        "Nothing is written down. Every value is a string, a number or a dictionary, and \
+        "The code states nothing. Every value is a string, a number or a dictionary, and \
          the program has no way to tell one from another.",
         "",
     ),
@@ -36,9 +36,9 @@ const STAGES: &[(&str, &str, &str, &str)] = &[
     (
         "stage3_closed_sets",
         "Close the string sets",
-        "Three providers, three vocabularies, one domain. Each provider's words are \
-         translated at the door and stop there; a word this provider does not \
-         use stays unread input rather than a state.",
+        "Three providers, three vocabularies, one domain. The door translates each \
+         provider's words and they stop there; a word this provider does not use \
+         stays unread input rather than a state.",
         "A typo'd status, an unknown status, and a provider's vocabulary leaking into \
          code that should not know which provider it is.",
     ),
@@ -53,9 +53,9 @@ const STAGES: &[(&str, &str, &str, &str)] = &[
     (
         "stage5_unconstructible",
         "Make the invalid unconstructible",
-        "`Money` is a whole number of the currency's smallest unit and the currency it is \
-         in. It is built through one function, which is the one place a negative amount \
-         can be turned away, and two currencies are never one number.",
+        "`Money` is a whole number of the currency's smallest unit and the currency it \
+         names. One function builds it, and that one place turns a negative amount \
+         away; two currencies never make one number.",
         "A negative amount, dollars added to cents, and dollars added to euros.",
     ),
     (

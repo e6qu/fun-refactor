@@ -91,7 +91,7 @@ fn the_dispatch_site_renames_and_is_reported_at_its_confidence() {
         plan.warnings
             .iter()
             .any(|w| w.kind == fun_refactor::refactor::WarningKind::DispatchCandidate),
-        "a dispatch site is renamed and said, for a person to review: {:?}",
+        "the rename reaches a dispatch site and says so, for a person to review: {:?}",
         plan.warnings
     );
 }

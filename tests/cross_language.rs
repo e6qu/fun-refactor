@@ -364,7 +364,7 @@ fn a_class_is_renamed_through_a_helper_call_and_a_template_literal() {
         .collect();
     assert!(
         reported.is_empty(),
-        "every occurrence is rewritten, so none is reported: {reported:#?}"
+        "the rename reaches every occurrence, so it reports none: {reported:#?}"
     );
 }
 

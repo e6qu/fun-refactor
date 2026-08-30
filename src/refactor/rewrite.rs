@@ -381,8 +381,7 @@ fn invert_if(
         .ok_or_else(|| anyhow::anyhow!("could not find the condition and branches"))?;
     if parts.chained {
         anyhow::bail!(
-            "this `if` continues into an `else if`; its later conditions are only \
-             tested when this one is false, so swapping the branches would change \
+            "this `if` continues into an `else if`; it reaches its later conditions only when this one is false, so swapping the branches would change \
              which of them run"
         );
     }

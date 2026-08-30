@@ -66,7 +66,7 @@ fn adding_a_parameter_changes_the_whole_family() {
     );
     assert!(
         plan.notes.iter().any(|n| n.contains("family")),
-        "the family members are named in the notes. {:?}",
+        "the notes name the family members. {:?}",
         plan.notes
     );
 }
@@ -134,7 +134,8 @@ fn a_function_held_as_a_value_refuses_the_change() {
     let id = method_at(&index, source, "fn add");
     let err = signature::change(&index, id, signature::Change::Remove(1)).unwrap_err();
     assert!(
-        err.to_string().contains("used as a value"),
+        err.to_string()
+            .contains("as a value, and a value keeps the old shape"),
         "the refusal names the binding: {err}"
     );
 }

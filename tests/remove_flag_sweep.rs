@@ -162,11 +162,11 @@ fn mentions_left_in_config_and_scripts_are_reported_after_the_removal() {
     assert!(text.contains("Left undone:"), "{text}");
     assert!(
         text.contains("config.yaml:2") && text.contains("still mentioned"),
-        "the YAML value is named with its line:\n{text}"
+        "the report names the YAML value with its line:\n{text}"
     );
     assert!(
         text.contains("deploy.sh:2"),
-        "the shell comment is named with its line:\n{text}"
+        "the report names the shell comment with its line:\n{text}"
     );
     // The code itself is clean; only the prose mentions remain.
     let code = std::fs::read_to_string(tmp.path().join("a.go")).unwrap();

@@ -129,7 +129,7 @@ fn a_zig_call_through_a_value_is_not_a_call_through_an_import() {
     );
     assert!(
         found.contains(&("a.zig".to_string(), Confidence::FieldBased)),
-        "`h.items` does not, and must not be promoted by these rules: {found:?}"
+        "`h.items` does not, and these rules may not promote it: {found:?}"
     );
 }
 
@@ -208,8 +208,8 @@ fn one_design_written_in_two_languages_keeps_its_calls_apart() {
 
 #[test]
 fn a_go_call_into_another_package_resolves_there() {
-    // The rule this one needs already exists; it is here so the three spellings of one idea are
-    // checked in one place.
+    // The rule this one needs already exists; it sits here to hold the three spellings of one
+    // idea in one place.
     let (_tmp, root) = workspace(&[
         ("go.mod", "module gate\n\ngo 1.21\n"),
         (

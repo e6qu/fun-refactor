@@ -367,7 +367,7 @@ fn terraform_consumers_walk_forward_through_the_same_chain() {
     );
     assert!(
         has_hop(&result, "name   = \"${local.prefix}-app\""),
-        "the value must be followed onward through local.prefix: {:?}",
+        "the trace has to carry on through local.prefix: {:?}",
         hop_texts(&result)
     );
     assert!(
@@ -544,7 +544,7 @@ fn a_key_with_one_source_reports_the_external_override_channel() {
 
 #[test]
 fn two_user_supplied_files_leave_the_winner_undecided() {
-    // `-f a.yaml -f b.yaml` is decided by command-line order, which no file shows.
+    // Command-line order settles `-f a.yaml -f b.yaml`, and no file shows it.
     let (_tmp, index) = workspace(&[
         ("app/Chart.yaml", "name: app\nversion: 0.1.0\n"),
         ("app/values.yaml", "replicas: 1\n"),
@@ -558,7 +558,7 @@ fn two_user_supplied_files_leave_the_winner_undecided() {
     assert_eq!(competition.sources.len(), 3);
     assert!(
         competition.winner().is_none(),
-        "a tie must not be resolved by guessing: {:?}",
+        "nothing may break a tie by guessing: {:?}",
         competition.sources
     );
     assert!(result.stopped_because(|r| matches!(r, StopReason::PrecedenceUndetermined(_))));
@@ -566,8 +566,8 @@ fn two_user_supplied_files_leave_the_winner_undecided() {
 
 #[test]
 fn a_value_read_inside_a_template_action_is_render_dependent() {
-    // The action's bytes are masked out before the YAML parse, so the read is
-    // structurally invisible, so the report says so and never drops it.
+    // A mask covers the action's bytes before the YAML parse, so the read stays structurally
+    // invisible, so the report says so and never drops it.
     let (_tmp, index) = chart();
     let image = key_with_path(
         &index,
@@ -894,7 +894,7 @@ fn a_conditional_declaration_is_reported_as_conditional() {
     let color = &result.competitions[0];
     assert!(
         !color.decided,
-        "a media query is decided by the viewport, not the stylesheet"
+        "the viewport settles a media query, and the stylesheet does not"
     );
     assert!(
         color
@@ -1125,7 +1125,7 @@ fn a_child_module_input_comes_from_its_caller_not_from_tfvars() {
             .sources
             .iter()
             .all(|s| !s.hop.text.contains("ignored")),
-        "a root-module tfvars entry must not be offered as a source: {:?}",
+        "a root-module tfvars entry may not turn up as a source: {:?}",
         competition.sources
     );
 

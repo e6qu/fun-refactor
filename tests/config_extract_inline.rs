@@ -406,7 +406,7 @@ output \"o\" {
     let id = ws.symbol("cfg", SymbolKind::Variable);
 
     let err = inline::variable(&ws.index, id).unwrap_err().to_string();
-    assert!(err.contains("read further"), "got: {err}");
+    assert!(err.contains("carries a further"), "got: {err}");
 }
 
 #[test]
@@ -500,7 +500,7 @@ fn yaml_extract_refuses_an_anchor_that_nothing_would_alias() {
     let err = extract::variable(&ws.index, &path, Span::new(3, 8), "greeting", false)
         .unwrap_err()
         .to_string();
-    assert!(err.contains("written once"), "got: {err}");
+    assert!(err.contains("appears once"), "got: {err}");
 }
 
 #[test]
@@ -696,7 +696,7 @@ fn helm_extract_refuses_a_selection_inside_a_masked_template_action() {
     .unwrap_err()
     .to_string();
     assert!(
-        err.contains("masked out before the YAML parse"),
+        err.contains("sit behind a mask before the YAML parse"),
         "got: {err}"
     );
     assert!(err.contains("{{ .Values.replicaCount }}"), "got: {err}");
@@ -792,13 +792,13 @@ fn helm_extract_function_refuses_without_a_chart_yaml() {
                 "got: {text}"
             );
         }
-        Ok(_) => panic!("a template with no Chart.yaml above it must be refused"),
+        Ok(_) => panic!("a template with no Chart.yaml above it has to refuse"),
     }
 }
 
 #[test]
 fn helm_extract_function_writes_a_named_template_to_a_file_that_did_not_exist() {
-    // `_helpers.tpl` normally has to be created, and `.tpl` had no language until
+    // `_helpers.tpl` normally has to appear first, and `.tpl` had no language until
     // `Language::Helm` claimed the extension.
     let ws = helm_workspace();
     let path = ws.path("chart/templates/deploy.yaml");
@@ -1129,7 +1129,7 @@ fn css_inline_refuses_a_property_declared_more_than_once() {
     let id = ws.symbol("--brand", SymbolKind::Property);
 
     let err = inline::variable(&ws.index, id).unwrap_err().to_string();
-    assert!(err.contains("declared 2 times"), "got: {err}");
+    assert!(err.contains("2 declarations spell"), "got: {err}");
     assert!(err.contains("cascade"), "got: {err}");
 }
 
@@ -1328,7 +1328,7 @@ fn markdown_inline_refuses_a_use_in_another_document() {
     let id = ws.symbol("ref", SymbolKind::LinkDef);
 
     let err = inline::variable(&ws.index, id).unwrap_err().to_string();
-    assert!(err.contains("document that contains it"), "got: {err}");
+    assert!(err.contains("document that holds it"), "got: {err}");
     assert!(err.contains("b.md"), "got: {err}");
 }
 

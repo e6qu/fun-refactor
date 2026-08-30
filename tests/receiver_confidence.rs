@@ -252,7 +252,7 @@ fn an_untyped_receiver_still_resolves_no_shared_member() {
         .expect("the call");
     assert!(
         call.target.is_none(),
-        "a cast is not a binding this reads, so no member is picked: {:?}",
+        "a cast is not a binding this reads, so nothing picks a member: {:?}",
         call.target
     );
 }

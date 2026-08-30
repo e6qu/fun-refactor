@@ -139,7 +139,7 @@ fn a_files_parse_error_state_survives_a_round_trip() {
     assert_eq!(
         broken.gaps,
         [FactGap::SyntaxErrors],
-        "a file with syntax errors must still be reported as such from cache"
+        "the cache still names a file with syntax errors as such"
     );
     let fine = cached.file(&tmp.path().join("a.rs")).unwrap();
     assert!(fine.gaps.is_empty());
@@ -154,8 +154,8 @@ fn two_files_with_identical_content_share_one_entry() {
     let cache_dir = tempfile::tempdir().unwrap();
     let cache = Cache::open_at(cache_dir.path()).unwrap();
 
-    // Files are extracted in parallel, so within one run both may finish before
-    // either writes; the shared entry pays off from the next run onwards.
+    // Extraction runs in parallel, so within one run both files may finish before either
+    // writes; the shared entry pays off from the next run onwards.
     Index::build_with_cache(&scanned, Some(&cache)).unwrap();
     let before = cache.stats().hits;
     let index = Index::build_with_cache(&scanned, Some(&cache)).unwrap();
@@ -166,16 +166,12 @@ fn two_files_with_identical_content_share_one_entry() {
     let symbols = index.find_symbols("same", None);
     assert_eq!(symbols.len(), 2);
     let files: Vec<&PathBuf> = symbols.iter().map(|s| &s.file).collect();
-    assert_ne!(
-        files[0], files[1],
-        "facts must be rewritten to their own file"
-    );
+    assert_ne!(files[0], files[1], "each file gets its own facts file");
 }
 
 #[test]
 fn indexing_is_deterministic_despite_running_in_parallel() {
-    // Symbol ids are assigned by position, so results are collected in scan order
-    // and merged serially; otherwise ids would depend on thread timing.
+    // Position decides a symbol id, so the merge takes results in scan order and runs serially; otherwise ids would depend on thread timing.
     let (_tmp, scanned) = workspace(FILES);
     let first = Index::build_with_cache(&scanned, None).unwrap();
     for _ in 0..4 {
@@ -224,8 +220,8 @@ fn entries_do_not_store_a_path_per_item() {
     let stored = cache.size_bytes() as usize;
     assert!(
         stored < big.len() * 6,
-        "entry is {stored} bytes for {} bytes of source, which suggests paths are \
-         being stored per item again",
+        "entry is {stored} bytes for {} bytes of source, which suggests the cache \
+         holds a path per item again",
         big.len()
     );
 
@@ -251,7 +247,7 @@ fn a_missing_cache_directory_is_not_an_error() {
 
 #[test]
 fn the_cache_namespace_includes_the_extractor_that_produced_the_facts() {
-    // The cache is keyed by file content and by the query set.
+    // The cache keys an entry by file content and by the query set.
     let fingerprint = env!("FUN_REFACTOR_EXTRACTOR_FINGERPRINT");
     assert_eq!(
         fingerprint.len(),

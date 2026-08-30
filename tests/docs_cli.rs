@@ -85,7 +85,7 @@ fn the_reference_covers_more_than_a_handful() {
     let found = commands();
     assert!(
         found.len() > 25,
-        "only {} command(s) were read out of `fr --help`, so the checks above \
+        "only {} command(s) came out of `fr --help`, so the checks above \
          compared almost nothing: {found:?}",
         found.len()
     );

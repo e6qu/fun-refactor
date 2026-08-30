@@ -235,7 +235,7 @@ fn every_page_says_what_it_was_built_from() {
     }
     assert!(
         missing.is_empty(),
-        "page(s) that cannot say what they were built from:\n  {}",
+        "page(s) that name no source of their own:\n  {}",
         missing.join("\n  ")
     );
 }

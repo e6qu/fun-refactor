@@ -109,8 +109,8 @@ fn everything_the_listing_offers_can_be_asked_for() {
     }
     assert!(
         asked >= 30,
-        "only {asked} options were offered across the whole corpus, so this checked \
-         almost nothing"
+        "the whole corpus turned up only {asked} options, so this checked almost \
+         nothing"
     );
     eprintln!(
         "translate sweep: {asked} open options honoured, {blocked} blocked ones \
@@ -138,7 +138,7 @@ fn nothing_that_works_is_left_off_the_listing() {
     }
     assert!(
         unlisted.is_empty(),
-        "{} targets work and are never offered: {unlisted:?}",
+        "{} targets work and the listing never names them: {unlisted:?}",
         unlisted.len()
     );
 }

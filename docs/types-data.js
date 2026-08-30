@@ -7,7 +7,7 @@ export const STAGES = [
   {
     id: "stage0_as_found",
     title: "The code as found",
-    lede: "Nothing is written down. Every value is a string, a number or a dictionary, and the program has no way to tell one from another.",
+    lede: "The code states nothing. Every value is a string, a number or a dictionary, and the program has no way to tell one from another.",
     kills: "",
     scoreboard: { python: [0, 1, 10], typescript: [0, 1, 10] },
     files: [
@@ -304,7 +304,7 @@ export const STAGES = [
   {
     id: "stage3_closed_sets",
     title: "Close the string sets",
-    lede: "Three providers, three vocabularies, one domain. Each provider's words are translated at the door and stop there; a word this provider does not use stays unread input rather than a state.",
+    lede: "Three providers, three vocabularies, one domain. The door translates each provider's words and they stop there; a word this provider does not use stays unread input rather than a state.",
     kills: "A typo'd status, an unknown status, and a provider's vocabulary leaking into code that should not know which provider it is.",
     scoreboard: { python: [12, 7, 3], typescript: [12, 0, 0] },
     files: [
@@ -699,7 +699,7 @@ export const STAGES = [
   {
     id: "stage5_unconstructible",
     title: "Make the invalid unconstructible",
-    lede: "`Money` is a whole number of the currency's smallest unit and the currency it is in. It is built through one function, which is the one place a negative amount can be turned away, and two currencies are never one number.",
+    lede: "`Money` is a whole number of the currency's smallest unit and the currency it names. One function builds it, and that one place turns a negative amount away; two currencies never make one number.",
     kills: "A negative amount, dollars added to cents, and dollars added to euros.",
     scoreboard: { python: [29, 15, 5], typescript: [29, 1, 0] },
     files: [

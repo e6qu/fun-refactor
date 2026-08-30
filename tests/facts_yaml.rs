@@ -294,7 +294,7 @@ fn helm_template_parses_and_extracts_its_structure() {
     assert_eq!(
         parsed.masked_spans.len(),
         8,
-        "every {{{{ }}}} action should be recorded"
+        "extraction records every {{{{ }}}} action"
     );
 
     let f = helm(HELM_DEPLOYMENT);
@@ -350,8 +350,8 @@ fn keys_guarded_by_a_template_conditional_are_still_extracted() {
 
 #[test]
 fn a_template_action_yields_no_yaml_facts_of_its_own() {
-    // Template contents are masked before parsing, so `include`, `if` and `chart.fullname` are
-    // invisible to the YAML query by construction.
+    // A mask covers the template contents before parsing, so `include`, `if` and
+    // `chart.fullname` stay invisible to the YAML query by construction.
     let f = helm(HELM_DEPLOYMENT);
     let leaked: Vec<_> = f
         .symbols

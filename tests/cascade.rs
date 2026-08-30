@@ -70,7 +70,7 @@ fn the_cascade_removes_what_the_dead_branch_alone_used() {
     assert!(out.contains("keep();"), "got:\n{out}");
     assert!(
         !out.contains("fn only_old"),
-        "the now-unused function should be removed too:\n{out}"
+        "the cascade takes the now-unused function too:\n{out}"
     );
     assert!(
         plan.rounds.len() >= 2,
@@ -183,8 +183,8 @@ fn works_for_python_with_python_spelling() {
 
 #[test]
 fn a_python_flag_read_through_an_import_is_removed_whole() {
-    // The commonest Python layout: the flag in its own module, imported by name where it is
-    // read.
+    // The commonest Python layout: the flag in its own module, and every reader imports it
+    // by name.
     let tmp = workspace(&[
         ("app/__init__.py", ""),
         ("app/flags.py", "USE_NEW_TAX = True\n"),

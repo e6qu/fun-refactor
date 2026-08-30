@@ -30,7 +30,7 @@ pub enum StopReason {
     Unresolved(String),
     /// Resolution was too weak to follow.
     TooWeak(Confidence),
-    /// The depth limit was reached; more may lie beyond.
+    /// The walk hit the depth limit; more may lie beyond.
     DepthLimit,
     /// The value crosses a function boundary, which this tier does not follow.
     CrossesFunctionBoundary(String),
@@ -53,7 +53,7 @@ impl std::fmt::Display for StopReason {
             StopReason::DepthLimit => write!(f, "depth limit reached; more may lie beyond"),
             StopReason::CrossesFunctionBoundary(name) => write!(
                 f,
-                "'{name}' crosses a function boundary; inter-procedural flow is not followed here"
+                "'{name}' crosses a function boundary; nothing here follows inter-procedural flow"
             ),
         }
     }
@@ -303,8 +303,8 @@ fn walk_forward(
     max_depth: usize,
     result: &mut FlowResult,
     seen: &mut HashSet<SymbolId>,
-    // Reached because a use of the previous value initialised this one, so the line this
-    // binding is on has already been printed as that use.
+    // Reached because a use of the previous value initialised this one, so the report
+    // already printed this binding's line as that use.
     already_shown: bool,
 ) -> Result<()> {
     if depth > max_depth {
@@ -399,7 +399,7 @@ fn value_of_definition<'a>(
     None
 }
 
-/// If `span` sits inside the value of an assignment, the symbol being assigned.
+/// If `span` sits inside the value of an assignment, the symbol the assignment writes.
 fn enclosing_assignment_target(
     index: &Index,
     parsed: &crate::parse::Parsed,
@@ -483,13 +483,12 @@ fn refuse_unless_it_executes(language: Language) -> Result<()> {
     }
     let because = match crate::analysis::provenance::supports_provenance(language) {
         true => {
-            "this language is evaluated by substitution and override rather than \
-                 executed, so `fr flow` traces its provenance instead of its dataflow"
+            "this language runs by substitution and override rather than by\
+                 execution, so `fr flow` traces its provenance instead of its dataflow"
         }
         false => {
-            "this language is evaluated by substitution and override rather than \
-                  executed, and it has no substitution model to trace either: a value \
-                  here is written where it is used"
+            "this language runs by substitution and override rather than by\
+                  execution, and it has no substitution model to trace either: a value lands where the code uses it"
         }
     };
     Err(crate::refactor::Refusal::Unsupported {
@@ -575,7 +574,7 @@ mod tests {
             flow.stops
                 .iter()
                 .any(|(_, r)| matches!(r, StopReason::UnresolvedCall(_))),
-            "an unresolvable call must be reported, not skipped: {:?}",
+            "the flow reports an unresolvable call rather than skipping it: {:?}",
             flow.stops
         );
     }

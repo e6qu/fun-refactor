@@ -5,14 +5,14 @@ stage.
 
 Format: `- [ ] B<N>: <symptom>`, then where it happens, then status and notes.
 
-Open entries are characterised limitations: the behaviour is reported and no operation
-silently does the wrong thing.
+Open entries are characterised limitations: the tool reports the behaviour and no
+operation silently does the wrong thing.
 
-Every open entry is pinned by a test, so a claim that stops being true fails a build
-instead of sitting here. B11 said `@content` was a gap after it had stopped being one, and
-nothing noticed. The grammar limits are pinned by `tests/known_grammar_gaps.rs`, from both
-sides, the failing form and the neighbouring forms that work. The ones that are this
-tool's own behaviour are pinned by `tests/open_defects.rs`. Each asserts the whole entry:
+A test pins every open entry, so a claim that stops being true fails a build instead of
+sitting here. B11 said `@content` was a gap after it had stopped being one, and
+nothing noticed. `tests/known_grammar_gaps.rs` pins the grammar limits from both sides,
+the failing form and the neighbouring forms that work. `tests/open_defects.rs` pins the
+ones that are this tool's own behaviour. Each asserts the whole entry:
 what the tool does not do, and what it reports instead. Every one of these stands on the
 second half. A test that checked only the first would pass just as well if the report went
 away.
@@ -23,8 +23,8 @@ Re-triaged against this branch. The entries below still reproduce. Where a publi
 grammar could not read source the language accepts, this build compiles a patched copy
 instead of recording the gap: `grammars/` holds one for Go, Python, Sass, SCSS,
 TypeScript and Zig, each with its upstream pin, licence, patch and the measurement that
-shows the patch additive. What is left below is a limit of this tool's own analysis and
-a translation surface it has not written yet.
+shows the patch additive. What remains below is a limit of this tool's own analysis and
+a translation surface it does not yet write.
 
 - [ ] B5: `find_unused` and the call graph follow what the source shows, and no further.
   A call whose receiver nothing types is fanned out to the definitions the workspace
@@ -35,11 +35,10 @@ a translation surface it has not written yet.
   * a TypeScript `implements`/`extends` clause;
   * a Python base class.
 
-  A fifth reaches through a value. A function is assigned to a name,
-  `Held { run: candidate }`, and called through it, `(h.run)()`. Every such edge carries
+  A fifth reaches through a value. Something assigns a function to a name, `Held { run: candidate }`, and calls it through that, `(h.run)()`. Every such edge carries
   the tag `field-based`. `fr graph` counts it apart from resolved edges, and the report
   names it as the reason a symbol was spared. TypeScript also falls back to matching
-  a method name alone where no `implements` is written, under the label `method-name`.
+  a method name alone where no `implements` appears, under the label `method-name`.
 
   A receiver the source settles narrows all five. An annotation, an initializer, a
   loop over a typed sequence, `self` and `this`: `held_by` works the type out with its
@@ -76,9 +75,9 @@ a translation surface it has not written yet.
   element to inference, and it works in expression position where annotating the
   binding would not.
 
-- [x] B761: **an untyped parameter took a type that is not one.** Rust was
-  given `()`, the type of no value and not of an unknown one. It could not
-  be called or added to. Java was given the word `unknown`. That is a type
+- [x] B761: **an untyped parameter took a type that is not one.** Rust got `()`. That is
+  the type of no value, not of an unknown one, and nothing could call it or add
+  to it. Java got the word `unknown`. That is a type
   in TypeScript and a class javac has never heard of. Rust takes a type
   parameter now, Java takes `Object`, and each says the caller decides, which is
   what the source said by saying nothing.
@@ -86,17 +85,17 @@ a translation surface it has not written yet.
   A parameter the body *calls* is a function, and no widest type is callable.
   The body says which parameters those are, so the signature says so
   too. Rust writes `impl Fn(..) -> ..`, Java a `Function<..>` reached through
-  `apply`, and TypeScript the arrow. A lambda's own parameters are written
-  `any`, the annotation strict TypeScript needs written down.
+  `apply`, and TypeScript the arrow. A lambda's own parameters take `any`, the
+  annotation strict TypeScript wants spelled out.
 
 - [x] B762: **the header contradicted the report under it.** A file claimed
   every signature carried its types across. The report beneath listed a
-  parameter that had none. An unannotated signature was counted in neither
-  bucket, so completeness never saw it. It has a count of its own now, and the
+  parameter that had none. An unannotated signature fell in neither bucket, so
+  completeness never saw it. It has a count of its own now, and the
   header names it.
 
-- [x] B763: **the widest type came back as a type.** A parameter left
-  unannotated is written with the target's widest type. Read again,
+- [x] B763: **the widest type came back as a type.** A parameter the source left
+  unannotated takes the target's widest type. Read again,
   the annotation the source never wrote came back as one, and a round trip
   gained what it should have preserved. Each language's widest type reads as the
   nothing it stands for.
@@ -128,13 +127,13 @@ a translation surface it has not written yet.
   a full census. The list is subtracted from `Language::ALL` now, and the test
   asserts the two halves add up.
 
-- [x] B781: **two downloads in the workflow were unverified.** Zig's tarball
-  was checked against a published checksum. Terraform's and Helm's were not, so
+- [x] B781: **two downloads in the workflow went unverified.** Zig's tarball
+  answered to a published checksum. Terraform's and Helm's did not, so
   the gate ran whatever those hosts served. Both carry their published checksum
   now, and all three pins are the current release of each.
 
 - [x] B782: **the contract document knew one framework of six.** Express,
-  Flask, axum, gin and Spring were added to the route reader. `API_CONTRACTS.md`
+  Flask, axum, gin and Spring joined the route reader. `API_CONTRACTS.md`
   still described a Next.js tree and nothing else. A reader looking for their
   spelling of a path parameter found no answer.
 
@@ -147,8 +146,8 @@ a translation surface it has not written yet.
   document added without a link from the README. Both of these could have landed
   unreachable without it.
 
-- [x] B784: **the status table said 24 x 16.** Every row of "Where this
-  stands" in PLAN.md was measured once and never again. 269 of 384 supported
+- [x] B784: **the status table said 24 x 16.** Every row of "Where this stands" in PLAN.md
+  held one measurement, taken once. 269 of 384 supported
   pairs against 299 of 432. Sixteen languages against eighteen. Twelve defects
   open against the one BUGS.md holds.
 
@@ -156,8 +155,7 @@ a translation surface it has not written yet.
   can pin without failing on each commit say which commit they came from.
 
 - [x] B785: **the README called a closed stage open.** PLAN.md had closed it.
-  The LSP delegation backend is decided against, with the measurement. The
-  daemon is deferred with a reason. The README went on calling the first one
+  PLAN.md rules the LSP delegation backend out, with the measurement, and defers the daemon with a reason. The README went on calling the first one
   open.
 
 - [x] B786: **the sample census was three files and two languages behind.**
@@ -417,6 +415,45 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   comment or in a reader-facing document. The rest sit in assertion messages and
   in this file and `PLAN.md`. The budget holds them.
 
+- [x] B813: **687 passive constructions outlived the comments.** B812 cleared the
+  comments and the documents a reader opens, and stopped there. 357 sat in
+  assertion messages, which a person reads at the moment a test fails, and 320 in
+  this file and `PLAN.md`.
+
+  Ten more hid in comments that wrap. The rule matches a construction spanning a
+  line break, and the per-line pass that closed B812 never joined the halves.
+
+  Every one is gone. `passive-voice` reads zero and the budget pins it there, so
+  the next one fails the build. Rewriting the user-facing refusals turned up two
+  sentences with no grammar left in them. One in `fr imports` trails off
+  mid-clause. A `fr translate` refusal carries a run of stray spaces through the
+  middle of a sentence. Both had shipped.
+
+- [x] B814: **`fr unused` said "1 of these are exported".** Found by running the
+  command rather than reading it. The count picks the verb now.
+
+- [x] B815: **`passive-voice` read zero while 365 constructions stood in the tree.**
+  The rule lists its participles by hand. `-ed` also ends the past tense of every
+  regular verb, so a pattern would over-match. The list named 48 and missed the
+  rest, so the counter called the habit gone. Meanwhile `fr` still told a user
+  that nothing could locate a value, that an import stayed, that a language
+  claimed a capability.
+
+  A gate that passes on an incomplete list is worse than no gate. It turns a gap
+  into a claim, which is the defect B784 and B190 record one layer down.
+
+  The list now names every participle that reads as a verb in this tree. It holds
+  out the predicate adjectives, which name no actor to promote: "is nested", "is
+  guarded", "is required", "is unused".
+
+  365 rewrites followed. 110 comments, 134 assertion messages and refusals, 98
+  lines of `BUGS.md` and `PLAN.md`, and 23 in the documents a reader opens.
+
+  Two of those documents had gone stale the same day. `EXAMPLES.md` and
+  `TUTORIAL.md` quote `fr delete` refusing, and the quoted line stopped matching
+  the command the moment B813 reworded it. Nothing noticed, because nothing runs
+  the commands in those two files.
+
 - [x] B777: **a renamed flag silently broke every script passing it.** A script
   writes `./collector --retention-days 30`, and a program declares that flag
   somewhere. The two never met. The flag was a word in a shell command and
@@ -426,8 +463,8 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   and commander declare one recognisably. clap's bare `#[arg(long)]` takes the
   field's name kebab-cased, which is the commonest form there is. A word
   starting with `--` is a flag only in the languages that write a command line,
-  so a Rust comment marker is not one. A flag passed and declared nowhere is
-  reported, and the link stays name-only.
+  so a Rust comment marker is not one. A flag a caller passes and nothing declares
+  reaches the report, and the link stays name-only.
 
 - [x] B776: **a path in configuration named nothing.** A CI step runs
   `./scripts/deploy.sh` and a Terraform resource renders
@@ -447,10 +484,10 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   the id arrives as a string literal, and `document.getElementById("panel")`
   resolved to nothing.
 
-  A string argument to a known DOM accessor is a reference now, and the receiver
-  is checked so `cache.get(k)` is not one. The name comes from what the markup
+  A string argument to a known DOM accessor is a reference now, and a check on the
+  receiver keeps `cache.get(k)` out. The name comes from what the markup
   or the stylesheet declares, so a selector's `#` and `.` come off. A compound
-  selector is left alone: splitting one needs a selector parser. Reporting the
+  selector stays whole: splitting one needs a selector parser. Reporting the
   whole string as a name would reach nothing while claiming to have looked.
   The confidence stays name-only, so nothing rewrites it.
 
@@ -468,10 +505,10 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   back, a lone word is text, a dotted path under one of Terraform's own heads
   is a reference, and the type words are types.
 
-- [x] B773: **a contract could only be built from one shape of tree.** `fr
-  openapi` read a Next.js `app/api` directory. A service written with Express,
-  Flask, axum, gin or Spring was invisible to it. All five declare the same
-  pair, a method and a URL. Each is read now, and each is held to what it must
+- [x] B773: **a contract came from one shape of tree alone.** `fr openapi` read a
+  Next.js `app/api` directory. A service written with Express, Flask, axum, gin
+  or Spring stayed invisible to it. All five declare the same pair, a method and
+  a URL. The reader takes each one now, and a test holds each to what it must
   not read as well: `cache.get(k)` is not a route.
 
 - [x] B772: **the IR had no set.** Every one of these six languages spells a
@@ -483,19 +520,18 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   each writer writes one. The four collection words settle onto `add`,
   `remove`, `contains` and `len`. So `insert`, `delete`, `has`, `put`, `size`
   and Go's `delete(m, k)` builtin all arrive as the same question. A map to
-  nothing is recognised as the set it is, from the type and from what is stored
-  in it. Go's `_, ok := m[k]` is that language's only way to ask about
-  membership, and it crossed as a pair nobody had. It is the question now,
-  asked in the condition that wanted it. Zig's `_ = f(x)` is the call, not an
+  nothing reads as the set it is, from the type and from what it holds. Go's `_, ok := m[k]` is that language's only way to ask about
+  membership, and it crossed as a pair nobody had. It carries the question now,
+  into the condition that wanted it. Zig's `_ = f(x)` is the call, not an
   assignment to a binding named `_`.
 
 - [x] B771: **arithmetic answered different numbers in different targets.**
   The `numbers` group compares whole-number division and remainder across the
-  matrix, including negative operands. Five things were wrong. `Math.trunc` and
-  `Math.floor` were read as one operator, and so were Zig's `@divTrunc` and
-  `@divFloor`. Every negative quotient came out one away from the source's.
-  Python's `%` rounds with its division, toward negative infinity. It was
-  written as `%` in the four languages that round the other way. The report
+  matrix, including negative operands. Five things were wrong. The reader took
+  `Math.trunc` and `Math.floor` for one operator, and Zig's `@divTrunc` and
+  `@divFloor` too. Every negative quotient came out one away from the source's.
+  Python's `%` rounds with its division, toward negative infinity, and it crossed
+  as `%` into the four languages that round the other way. The report
   said so; the file was still wrong. A comparison inside a comparison lost its
   brackets. Python reads that as a chain and Rust refuses it outright. Java
   subtracted from a string, because a concatenated operand kept no brackets.
@@ -505,17 +541,17 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   so a truncation crosses as a truncation whatever the numeric type. All thirty
   cells pass.
 
-- [x] B770: **a record could not be built in Java or TypeScript.** Both write a
-  record as a class. A class is built by calling a constructor, and neither
-  writer emitted one. So `new Box(9)` named a constructor the class had not
+- [x] B770: **nothing could construct a record in Java or TypeScript.** Both write a record
+  as a class. A caller reaches a class through a constructor, and neither writer
+  emitted one. So `new Box(9)` named a constructor the class had not
   got, and TypeScript refused an uninitialised field besides. Both write the
   constructor their fields imply. A record literal fills it in declaration
-  order. A constructor body that only assigns fields is canonicalised to that
+  order, and a constructor body that only assigns fields collapses to that
   literal. So the three languages that build a value and the three that assign
   to a receiver read each other.
 
 - [x] B769: **a Rust record carried nothing.** An emitted struct had no derives.
-  A translated record could not be copied, printed or compared, all of which
+  Nothing could copy, print or compare a translated record, all of which
   its source gave for free. A field the source never typed spelled the
   widest-type marker verbatim and the file did not parse. Fields with no type
   become parameters on the struct, and the ordinary derives go on.
@@ -524,40 +560,40 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   together into `Unwritable_n__number_____number`. The parameter then took a
   type nothing could call. All six languages spell a function type, so the IR
   has one and each reader and writer spells it. A lambda carries the types its
-  source declared. A parameter the body calls is typed from the call, and a
-  lambda takes the type of the slot it is passed to. Zig has no closure at all,
-  so a lambda that captures nothing is lifted to a function of its own.
+  source declared. A parameter the body calls takes its type from the call, and a
+  lambda takes the type of the slot it lands in. Zig has no closure at all,
+  so a lambda that captures nothing rises to a function of its own.
 
 - [x] B767: **a Rust iterator chain crossed as a comment.**
   `xs.iter().filter(p).map(f).collect()` is the comprehension Rust spells as a
   chain, and nothing read it. Reading `*x` was missing too, so every borrowed
-  operand in a body crossed the same way. Both are read now. An assignment
+  operand in a body crossed the same way. The reader takes both now. An assignment
   whose target is a call carries whole, rather than producing a line no
   language can parse.
 
-- [x] B766: **a `vec![…]` element more involved than a literal was refused.** A
-  macro body is a token tree and not a syntax tree. `vec!["a".to_string()]` had
-  no node to read. Each element is parsed from its own text.
+- [x] B766: **a `vec![…]` element beyond a literal met a refusal.** A macro body is a
+  token tree and not a syntax tree. `vec!["a".to_string()]` had
+  no node to read. Each element now parses from its own text.
 
 - [x] B765: **Java could not read back what this writer had just written.**
   `new ArrayList<>(List.of(…))` is the mutable list the writer emits. The
   reader crossed it verbatim, as a construction of a class no target has heard
-  of. Both wrappers, and the bare `List.of` and `Map.of` besides, read as the
-  literals they stand for.
+  of. Both wrappers, and the bare `List.of` and `Map.of` besides, now come through
+  as the literals they stand for.
 
 - [x] B764: **two Java shapes did not compile.** A lambda bound with `var` has
-  no target type to take, which javac refuses. It is declared with the
-  functional interface for its arity now. And `xs.sort()` sorts by natural order
-  in the source, where Java's `List.sort` demands a comparator, so the ordering
-  is named through `Collections`.
+  no target type to take, which javac refuses. It now carries the functional
+  interface for its arity. And `xs.sort()` sorts by natural order in the source,
+  where Java's `List.sort` demands a comparator, so `Collections` names the
+  ordering.
 
 - [x] B755: **a map's key and value types did not cross.** The vocabularies
   read and the writers spelled them. Fifteen of the thirty map cells ran.
-  The other fifteen shared one cause: the type the map holds. Go was given
-  `map[string]any` and could not add what it read. Java was given `Object`. Zig
-  guessed a key type from an empty literal. Rust was given a `&str` key for a
-  map of `String`. A Go map literal with its type written on it was carried
-  whole, so the binding it initialised held nothing.
+  The other fifteen shared one cause: the type the map holds. Go got
+  `map[string]any` and could not add what it read. Java got `Object`. Zig
+  guessed a key type from an empty literal. Rust got a `&str` key for a map of
+  `String`. A Go map literal carrying its own type crossed whole, so the binding
+  it initialised held nothing.
 
   The types come from the entries. Where the literal is empty, they come from
   the first key stored, which is how five of these languages build a map. Go names
@@ -572,9 +608,9 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   The harness asks for `--strict` now, which is the stricter of the two, and
   every cell still holds.
 
-  It held after one fix. An object literal types as the keys it was written
-  with. A map built from one refused every key added later, and every read
-  through a variable. A map literal is annotated `Record<string, T>` now. The
+  It held after one fix. An object literal types as the keys the source spelled
+  in it. A map from one refused every later key, and every read through a
+  variable. A map literal now carries a `Record<string, T>` annotation. The
   FastAPI corpus gained the same annotation on a dictionary it builds empty and
   fills under a condition.
 
@@ -584,12 +620,12 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   the `non_null_expression` its whole left-hand side. It arrived as
   `(total + m.get(k))!` and reached Rust as `.unwrap()` on a sum, which is
   `E0599`. Nothing said a word: the shape parsed and the meaning had moved. The
-  assertion travels down the right spine to the term it was written on now.
+  assertion now travels down the right spine to the term it belongs to.
   Found by the maps conformance group, and true of any `a + b!`.
 
-- [x] B757: **a map reached through its methods did not read.** Python's
-  spelling was the only one the readers canonicalised. A map written the way its
-  own language writes one arrived as method calls against a type with no such
+- [x] B757: **a map reached through its methods did not read.** The readers
+  canonicalised Python's spelling alone. A map in its own language's spelling
+  arrived as method calls against a type with no such
   member. A Rust map reached Python as `ages.insert(str("ada"), 36)` on a
   `dict`. Each language now has its four words read onto the one shape the
   writers already spell: an index assignment, an index, `len` and `contains`.
@@ -598,12 +634,12 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   place folds into the empty literal when the binding's type says it is a map. Fifteen map cells run in the conformance suite where none did.
 
 - [x] B756: **a map crossed to Go and to nowhere else.** Neither sweep saw it.
-  No corpus file and no conformance program writes to a map. Rust was
-  given `ages["alan"] = 41`, which is `E0594`: `HashMap` has no `IndexMut`.
-  Java was given an immutable `Map.of` and then a `put` on it, so it compiled
-  and threw where it ran. TypeScript was given an object literal and read
-  `.length` off it, which is `undefined`. Zig was given an anonymous struct and
-  then indexed with a string. None of the four said a word about any of it.
+  No corpus file and no conformance program writes to a map. Rust got
+  `ages["alan"] = 41`, which is `E0594`: `HashMap` has no `IndexMut`.
+  Java got an immutable `Map.of` and then a `put` on it, so it compiled
+  and threw where it ran. TypeScript got an object literal and a
+  `.length` read off it, which is `undefined`. Zig got an anonymous struct and
+  then a string index into it. None of the four said a word about any of it.
 
   A map binding is known by its declared type or its literal, and each writer
   spells the three operations its own way now. Rust inserts, and Java wraps
@@ -625,10 +661,9 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B752: **a file a recipe created went in under the wrong grammar.** The
   runner keeps the workspace as path to language and text. A step that wrote a
   path the map did not have guessed the language from the extension. Where the guess failed it inserted Markdown and carried
-  on, which is the silent fallback this project bans. The file was then
-  extracted under a grammar that was never going to read it. A plan already declares what a file it creates is written
-  in. That declaration was dropped at all three places the runner rebuilds an
-  edit set. The declaration travels now, and a destination nothing can place is
+  on, which is the silent fallback this project bans. The extraction then ran under a grammar that was never going to read the file. A plan already declares the
+  language of every file it creates. That declaration went missing at all three places
+  the runner rebuilds an edit set. The declaration travels now, and a destination nothing can place is
   a refusal naming the file.
 
 - [x] B753: **a recipe refusal named flags the grammar has not got.** A
@@ -637,8 +672,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   It says what a recipe can do instead: remove the file, narrow the selector, or
   let the run continue with `on-refusal allow`.
 
-- [x] B751: **the fact cache outlived the resolver.** Its namespace is keyed by
-  a fingerprint of the files that decide a cached fact. That list held the
+- [x] B751: **the fact cache outlived the resolver.** Its namespace takes a fingerprint of the files that decide a cached fact as its key. That list held the
   extractor and left the resolver out. The
   cache stores the resolution snapshot too, the target and tier of every
   reference, and skips resolving when it hits. A change to how a member access
@@ -708,8 +742,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   `struct{}` reads as the unit it spells.
 
 - [x] B742: **Rust destructured a hole mutably.** A tuple binding with `_` in it
-  wrote `let (mut _, mut loc) = …`. rustc refuses that: `mut` must be followed
-  by a named binding. The hole takes no `mut`.
+  wrote `let (mut _, mut loc) = …`. rustc refuses that: a named binding has to follow `mut`. The hole takes no `mut`.
 
 - [x] B743: **a Python branch of only comments had no body.** Comments are not
   statements in Python. An `else:` whose lowered body was one comment emitted no
@@ -725,8 +758,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   refuses. Later overloads take a numbered name, noted once in the output.
 
 - [x] B746: **a labeled break's flag test escaped its loop.** Lowering
-  `break :blk v` through an intervening loop plants a flag. The flag is tested
-  after the loop. But when the run-once wrapper itself was scanned as "an
+  `break :blk v` through an intervening loop plants a flag. The test on the flag sits after the loop. But where the walk counted the run-once wrapper itself as "an
   intervening loop", the test landed outside any loop at all. Python refused
   the bare `break`. The wrapper's own breaks settle before it goes on.
 
@@ -735,8 +767,8 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   resolved to nothing, `fr unused` called `f` dead, and `fr delete` planned a deletion
   that would not compile, warning about "unresolved occurrences" it should have counted
   as callers. Running that deletion as a recipe against this repository found it.
-  `provenance::applies_to` is called from `tests/provenance.rs` through such an import,
-  and the tool reported the function unused.
+  `tests/provenance.rs` calls `provenance::applies_to` through such an import, and the
+  tool reported the function unused.
 
   Two rules were missing. The use-group's aliased entry now records `local <- original`
   the way every other language's aliases do, at the top level and one group down. And
@@ -751,9 +783,9 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   parameter's spelling changed the URL key FastAPI accepts. Path parameters were the
   only names that are internal, and they were also the only ones it was right about.
 
-  Names are kept as the document spells them now. A name Python cannot declare is left
-  out of the model and reported, which shrinks the contract out loud instead of serving
-  a different one. TypeScript can quote any key, so nothing is left out there.
+  Names now keep the document's own spelling. A name Python cannot declare stays
+  out of the model and reaches the report. That shrinks the contract out loud,
+  rather than serving a different one. TypeScript can quote any key, so nothing drops out there.
 
 - [x] B737: **a bare `return` translated into a handler that answers nothing.** FastAPI
   serialises `return` as a JSON null with status 200. The Next.js handler it became just
@@ -775,15 +807,13 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   No `cargo test` can see this. `src/wasm.rs` compiles only for wasm32, and the sweep that
   caught it needs a wasm toolchain and a Node run.
 
-- [x] B733: **`fr` could not write the changes it is made of.** A pattern had to
+- [x] B733: **`fr` could not write the changes that make it up.** A pattern had to
   be an expression, a statement or an item. A variant of an enum, a field of a
-  struct, an arm of a match and the pattern on its left are none of those. Adding a
-  language to this tool needs all four, and each was refused the same way: `'Scss,' is
+  struct, an arm of a match and the pattern on its left are none of those. Adding a language to this tool needs all four, and each met the same refusal: `'Scss,' is
   not valid rust; check for unbalanced brackets.`
 
-  A member is written with the separator that puts it in its list. Most grammars leave
-  that separator out of the member's own node. The fragment reached one byte past the node
-  that held it, and every wrapper was rejected. Members have wrappers of their own
+  A member carries the separator that puts it in its list. Most grammars leave
+  that separator out of the member's own node. The fragment reached one byte past the node that held it, and every wrapper failed. Members have wrappers of their own
   now, in Rust, Go, TypeScript, Java, Python and Zig. They cover an enum's variants, a
   struct's fields, a switch's cases, an object's properties and a match's arms. A match
   takes the target's separator with it, so rewriting `Scss,` as two variants leaves two
@@ -798,8 +828,8 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   Rust macros were the third. No grammar knows what a macro does with its arguments, so
   `matches!(l, A | B)` holds a flat run of tokens where the source holds an or-pattern.
   This source is 1876 `format!` calls and 378 `matches!` calls deep, so a tool blind to
-  macro bodies is blind to much of it. A pattern's own tokens are compared against runs of
-  macro tokens, counting brackets. A metavariable binds `item.name()` whole rather than
+  macro bodies is blind to much of it. The match walks a pattern's own tokens against runs
+  of macro tokens, counting brackets. A metavariable binds `item.name()` whole rather than
   stopping at the comma inside it. A shape that matched a node wins over one that matched
   only tokens, since every shape of a pattern has the same tokens.
 
@@ -811,7 +841,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B731: **a stylesheet variable crossed no file boundary.** One declared in
   `_theme.scss` and used in `style.scss` reached nothing. Sass splits a codebase into
-  files and gives each one a namespace, and none of that was read. `@use "theme" as t` bound no name and `t.$brand` resolved to nothing.
+  files and gives each one a namespace, and the reader took in none of that. `@use "theme" as t` bound no name and `t.$brand` resolved to nothing.
   `fr rename` rewrote the declaration and reported every use site as an occurrence it
   could not place. Both syntaxes, and the same for a mixin and a function reached the same
   way.
@@ -824,26 +854,26 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   is an undefined variable in Sass, and a guess would be worse than the report.
   `@forward` hands a name on, so a namespace reaches through the file that forwards it.
 
-  Three things stood in the way. A partial is written `_theme.scss` and named `"theme"`,
+  Three things stood in the way. A partial takes the file name `_theme.scss` and the
+  import name `"theme"`,
   so no import ever spelled the file it named. The resolver puts the underscore back and
   tries each stylesheet extension. The braced grammar's plain-value token matched
   `theme.$brand` and won the tie against the variable token. So the use site was not a
   variable at all. The variable token outranks it now. And the namespace had to reach
   resolution as the receiver. The indented syntax gives it a node of its own; the braced
-  one writes it into the same token. So the name is read from after the last dot, and a
+  one writes it into the same token. So the name now comes off after the last dot, and a
   rename rewrites that and leaves the namespace alone.
 
-- [x] B732: **the fact cache did not notice a grammar change.** Entries are keyed by the
-  file's bytes and the query set. The namespace they live in is fingerprinted from the
+- [x] B732: **the fact cache did not notice a grammar change.** An entry takes the file's bytes and the query set as its key. The namespace they live in is fingerprinted from the
   sources that decide what a fact means, and the grammars were not among them. So a
   patched grammar changed what the tree looks like, and every file already scanned kept
   the answer from the old one. Raising one token's precedence moved `theme.$brand` from a
   plain value to a variable. The cache went on reporting a file with no variable in it. That reads like a fix that did not work. `build.rs` hashes what each grammar
-  is generated from. A change moves every entry to a new namespace, and the stale ones are
-  never looked up again.
+  generates it. A change moves every entry to a new namespace, and nothing ever
+  looks the stale ones up again.
 
 - [x] B283: **the indented Sass syntax, which is a language of its own.** `.sass` mapped
-  to `Language::Scss` and could not be parsed. The SCSS grammar reads the braced syntax
+  to `Language::Scss`, and no parser would take it. The SCSS grammar reads the braced syntax
   only, and the two differ in how every block and every statement ends. So this needed a
   grammar and not a rule.
 
@@ -852,7 +882,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   ordinary Sass failed it. The CSS colour, gradient and maths functions had name tokens
   that outranked the identifier token, so `transition: color 0.2s` failed and so did
   `color.adjust(…)`. A call took no named argument. A list in parentheses read as a value
-  in brackets. A selector list could not be written down the page. A hyphen could not join
+  in brackets. A selector list would not run down the page. A hyphen could not join
   two interpolations. And `li + li` lost its left-hand selector to the descendant
   combinator, which is a run of spaces and is now the scanner's to decide.
 
@@ -870,7 +900,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   wrote a new `$variable` above the declarations it reads, and it wrote a `@mixin` above
   the `@use` rules. Sass rejects each.
 
-- [x] B11: **the Sass a stylesheet is written in.** `tree-sitter-scss` 1.0.0
+- [x] B11: **the Sass a real stylesheet spells.** `tree-sitter-scss` 1.0.0
   failed on 203 of the 276 stylesheets in `twbs/bootstrap` and `jgthms/bulma`. Its gaps
   ran from `$m: (a: 1)` and `!default` to `@use "x" as t`, and this entry listed seven of
   them; measuring against the two corpora found twenty more, among them a variadic
@@ -889,11 +919,11 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   sign glued to a variable and subtraction when it stands apart. Both are rules about
   spacing, so both belong to the token.
 
-  The masking B280 added is gone with the gap. The parser reads the declaration, so
-  nothing is filled in and nothing has to be read back. Checked over the 73 files the
-  published grammar reads cleanly, 5,068 nodes: one tree differs. It is `$return: ()`,
-  where the published grammar invents a zero-width `integer_value` and this one reads the
-  empty list that is written.
+  The masking B280 added goes with the gap. The parser reads the declaration, so nothing
+  fills a hole and nothing comes back out of one. Over the 73 files the published grammar
+  reads cleanly, 5,068 nodes: one tree differs. It is `$return: ()`, where the published
+  grammar invents a zero-width `integer_value` and this one reads the empty list the
+  source spells.
 
 - [x] B15: **a Go package that defines its own `new`.** `new` and `make` are predeclared
   identifiers in Go and not keywords. A package may define a function called `new` and
@@ -908,13 +938,13 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   passes 67 of 67.
 
 - [x] B231, B232: **an import type, and a member called `in`.** Both are ordinary
-  TypeScript and both were found in `vuejs/core`. `import("@babel/types").Statement` was a
+  TypeScript and `vuejs/core` holds both. `import("@babel/types").Statement` parsed as a
   whole `type` and nothing smaller, so it took no `[]` and no type arguments. A member
   called `in` ended the interface it sat in. The scanner never ends a line before `in`,
   which is an operator in an expression.
 
   `grammars/typescript` moves the import-type forms to `primary_type`, which an array
-  type and a generic type are built from. `generic_type` takes one as a name.
+  type and a generic type both build on. `generic_type` takes one as a name.
   In a type there is no `in` and no `instanceof` operator, so a line opening with either
   ends the member before it. An identifier that only begins with one, `in2`, ends a
   statement in an expression too. The published scanner got that wrong as well. Checked
@@ -930,16 +960,13 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   only as complete as the description the caller gives. Four edges were missing from that
   description.
 
-  `--set ports[0].name` and `--set ports[1].name` addressed the same key path and were
-  ranked against each other. Each element now holds a competition of its own, and neither
+  `--set ports[0].name` and `--set ports[1].name` addressed the same key path and competed with each other. Each element now holds a competition of its own, and neither
   overrides the other. `--set x=null` removes a key in Helm and ranked as a source that
-  supplies it. It is now reported as removing it. `--set-file` and `--set-json` were
-  refused by name and are now read. The JSON is expanded to one assignment per leaf, so
-  the keys beneath it rank like any other. And `{a,b}` was refused. It is the list
+  supplies it. It is now reported as removing it. `--set-file` and `--set-json` refused by name and now read through. The JSON is expanded to one assignment per leaf, so
+  the keys beneath it rank like any other. And `{a,b}` refused. It is the list
   `key[0]=a,key[1]=b`, which is how Helm reads it.
 
-  The order between two different flags is still not recoverable from the flag lists. So
-  two assignments to one path under different flags are refused, as they always were.
+  The order between two different flags is still not recoverable from the flag lists. So two assignments to one path under different flags still refuse, as they always did.
 
 - [x] B233, B234: **valid Python the grammar could not read.** A starred
   element in an unparenthesised tuple failed unless it was a name:
@@ -953,8 +980,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   returns the tree the stock one returns. The five forms that used to fail
   now parse.
 
-- [x] B133: **an empty Zig container came back holding a field that is not
-  written.** `const Foo = struct {};` is ordinary Zig. Its four container
+- [x] B133: **an empty Zig container came back holding a field nobody wrote.** `const Foo = struct {};` is ordinary Zig. Its four container
   rules take `_container_members`, which needs at least one member, while
   `source_file` takes `optional($._container_members)` and reads an empty
   file. The published 1.1.2 is the newest release and master carries the
@@ -1050,9 +1076,8 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   the checker objects to. The reader does the work now, and the checker
   only enforces it. Each unit keeps its three parts apart: the
   problem above the cell, the cell as the answer, the conclusion and the
-  run-time cost below. Every claim about an example was checked against
-  the file, and six paragraphs that described the wrong example got
-  rewritten. `docs/style.md` carries the doctrine and the phrase list.
+  run-time cost below. Every claim about an example now answers to the file,
+  and six paragraphs describing the wrong example came out rewritten. `docs/style.md` carries the doctrine and the phrase list.
 
 - [x] B723: **the capability log tore under concurrent writers.** `record`
   wrote its line with `writeln!`, which may split one line across several
@@ -1150,8 +1175,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B706: **a path written inside a macro resolved name-only.**
   `assert_eq!(fun_refactor::model::anchor_slug(x), y)` spells the whole path.
   A macro body is tokens, so no rule read it. The reference fell to the
-  weakest tier, and `fr signature` refused the change. The tokens are walked
-  now, and the path becomes the receiver. A trailing module segment resolves
+  weakest tier, and `fr signature` refused the change. This walks the tokens now, and the path becomes the receiver. A trailing module segment resolves
   to the file it names, the way the module tree names files.
 
 - [x] B707: **`fr signature` refused every call written inside a macro.**
@@ -1168,19 +1192,17 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B709: **a move left a written path naming the module the symbol left.**
   `crate::refactor::delete::deletion_span(…)` kept its old spelling. A fresh
-  `use` landed beside it unused, and the crate did not compile. A
-  written path is repointed in its own bytes, and such a file gets no `use`
-  it does not need.
+  `use` landed beside it unused, and the crate did not compile. A written path moves in its own bytes, and such a file gets no `use` it does not need.
 
 - [x] B710: **a move carried a `use` the destination already had.** The moved
   code needed `full_line_span`; the destination imported it in a brace group.
   The carried single-name `use` was E0252, twice defined. What the
-  destination already binds is not carried, at either of the two writers that
+  destination already binds stays behind, at either of the two writers that
   carry imports.
 
 - [x] B705: **`fr refs` could not predict what `fr rename` rewrites.** The
-  tiers alone under-answer. A field-based `s.pending` whose receiver is
-  declared `*BatchSink` rewrites too, and only the rename logic knew it. So
+  tiers alone under-answer. A field-based `s.pending` whose declaration says
+  `*BatchSink` rewrites too, and only the rename logic knew it. So
   the playground's fidelity sweep and any agent reading `--json` guessed low.
   Every reference now carries `rewritable`, computed from the rename's own
   plan, and the sweep checks the writes against the tool's own claim.
@@ -1190,14 +1212,13 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   it removed was `#[cfg(feature = "cli")] use crate::scan::S;`, leaving the
   attribute above whatever came next. The deeper truth: a guarded
   import's liveness depends on the configuration, and this index reads one
-  tree. A guarded import is held back, with that reason.
+  tree. A guarded import stays put, and the report gives that reason.
 
 - [x] B701: **`fr delete` left the dead function's docs and attributes.**
   Each of this pass's four tool-made deletions left a `///` block behind.
   clippy refuses an orphaned doc comment outright. Worse, the
   `#[allow(dead_code)]` above one of them moved onto the next survivor, which
-  changes what the compiler checks. What is attached above a deletion goes
-  with it: doc comments, attributes, and a closing `/** ... */` block. Plain
+  changes what the compiler checks. Whatever sits above a deletion goes with it: doc comments, attributes, and a closing `/** ... */` block. Plain
   `//` and `#` comments stay, as the tests have always pinned.
 
 - [x] B702: **the trait caution held imports the workspace can rule on.**
@@ -1228,14 +1249,14 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B692: **an enum variant used from another file read as dead.** Rust
   variants were captured as unqualified fields. So a cross-file
   `Shape::Square(side)` resolved to nothing. This repository's own `Stmt::Let`,
-  matched seventeen times in one writer, was listed for deletion. A variant is
+  matched seventeen times in one writer, turned up on the deletion list. A variant is
   a constant qualified by its enum now, the way Java's constants already were,
   and a variant rename reaches every match arm.
 
 - [x] B693: **`fr symbols <file>` was a usage error.** Every sibling listing
   command takes positional paths. The one that answers "what is in this file"
-  did not. It does now, and the whole workspace is still indexed, keeping the
-  cross-file answers right.
+  did not. It does now, and the index still covers the whole workspace, keeping
+  the cross-file answers right.
 
 - [x] B694: **a destructuring pattern read no fields.** `Stmt::ForEach {
   iterable, .. }` is how a writer consumes that field, and it was no reference
@@ -1246,8 +1267,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B695: **a serde-renamed variant read as dead.** `ThreatModel::Remote` is
   constructed from a catalog writing `remote`. The string-literal spare
-  compared spellings verbatim, so every data-constructed variant was offered
-  for deletion. Case and separators drop on both sides now. YAML's quoted
+  compared spellings verbatim, so every data-constructed variant turned up for deletion. Case and separators drop on both sides now. YAML's quoted
   scalars joined the comparison: `"remote"` is a `double_quote_scalar`, which
   the string gate did not recognise, so quoting a value hid it.
 
@@ -1261,7 +1281,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B697: **a field rename left `f.count` behind, blaming its own type.**
   A struct was no container, so its fields had no owner. The declared-receiver
   rule refused `f.count` on an `&Facts` receiver, with a reason naming the very
-  type being renamed. Structs qualify their fields now,
+  type the rename moves. Structs qualify their fields now,
   and a declared type sheds its sigils: `&Facts`, `*Buffer` and `?Handle`
   reach what the bare names do.
 
@@ -1279,16 +1299,15 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   names the kept import up front, with the reason.
 
 - [x] B700: **a foreign trait's impl read as dead.** `impl Deserialize for
-  AppliesTo` is called by serde, `impl Display` by every `format!`. The
-  callers live in another crate, so reachability can never see them. A method
-  implementing a trait this workspace does not declare is spared, with the
-  reason written down.
+  AppliesTo` answers serde, `impl Display` answers every `format!`. The callers
+  live in another crate, so reachability can never see them. A method implementing
+  a trait this workspace does not declare survives, and the report gives the
+  reason.
 
 - [x] B666: **a hoisted Python definition landed with a method's spacing.**
-  Fixing B660 moved an extracted definition to module scope. It had been
-  written inside a class. `black` wants two blank lines in front of it and
-  got one. Verified against `black --check`, which now leaves the output
-  unchanged. A definition that stays a class member still takes one.
+  Fixing B660 moved an extracted definition out of its class, to module scope.
+  `black` wants two blank lines in front of it and got one.
+  `black --check` now leaves the output alone. A definition that stays a class member still takes one.
 
 - [x] B636: **nothing completed anything.** Thirty-three subcommands and six
   global flags, and no shell knew any of it. `fr completions bash|zsh|fish`
@@ -1296,13 +1315,13 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   and nothing else. A command added tomorrow
   is completed tomorrow.
 
-- [x] B635: **a translated class could not be constructed.** `__init__` is
-  how Python spells a public constructor. Its underscores were read as Python's
-  mark for "internal", so Java produced a `private Account(...)` on a public
-  class, and Rust a private `fn new`. Neither type could be built from
-  outside the file that declared it, and nothing said so. A name wrapped in two
+- [x] B635: **nothing could construct a translated class.** `__init__` is how
+  Python spells a public constructor. Its underscores read as Python's mark for
+  "internal", so Java produced a `private Account(...)` on a public class, and
+  Rust a private `fn new`. Nothing outside the declaring file could construct
+  either type, and nothing said so. A name wrapped in two
   underscores on each side is a protocol method the language itself calls. It
-  is part of the surface. One leading underscore still means keep out.
+  belongs to the surface. One leading underscore still means keep out.
 
 - [x] B633: **Python's `/` crossed as C's `/`.** They are two operations
   sharing a spelling. Python's yields a float whatever it divides, and C's
@@ -1311,23 +1330,22 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   answered 5 where the source answered 5.34, which is the worse of the two.
   True division is its own operator in the IR now. The targets whose `/` is
   C's coerce an operand before the operator sees it. The two whose `/` already
-  divides in floats are left alone.
+  divides in floats stay as they are.
 
 - [x] B634: **a translated method that wrote a field would not compile.** Rust
-  took `&self` for every method. A body assigning to `self.cents` was refused
-  with E0594: cannot assign behind a `&` reference. A body that writes a field
+  took `&self` for every method. A body assigning to `self.cents` drew E0594:
+  cannot assign behind a `&` reference. A body that writes a field
   takes `&mut self`. A body that only reads keeps the shared borrow.
 
 - [x] B630: **an empty list crossed as `[]any` under a signature promising
   something else.** `out = []` says nothing about its elements. Go therefore
   wrote `out := []any{}` inside a function returning `[]Point`, and the compiler
-  refused the return. What the body appends says what the list holds, and a
-  declared return type says it where nothing is appended. The element type
+  refused the return. What the body appends says what the list holds, and a declared return type says it where nothing appends. The element type
   settles in the shared binding table, so every target that must name one
   benefits.
 
 - [x] B631: **a function whose body did not translate would not compile.** The
-  untranslated statements were carried as comments. That left a Go function
+  statements that did not cross rode along as comments. That left a Go function
   promising a value and returning nothing: `missing return`. It now panics with
   the marker, so a draft says it is unfinished where a zero value would have
   said it was done.
@@ -1337,14 +1355,14 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   translated library was unbuildable. A module carrying an entry point is
   still `main`. Everything else takes its package name from the file.
 
-- [x] B628: **an unindexed file was refused as if the cursor were wrong.**
+- [x] B628: **an unindexed file refused as if the cursor were wrong.**
   A `def` sat plainly on the line named. The answer was "no symbol or resolved
   reference". The file was excluded by .gitignore and never
   indexed, so nothing in it resolves at any position. The refusal now names the
   file as the reason. It also offers the likeliest cause it can check: a
   language this does not read, a size over the limit, or an ignore rule.
 
-- [x] B629: **ignored files could not be reached at all.** The scan honoured
+- [x] B629: **nothing could reach an ignored file at all.** The scan honoured
   .gitignore unconditionally and no flag turned that off. A generated tree, a
   vendored copy or build output was therefore outside every command, and B628's
   advice had no flag to name. `--no-ignore` reads ignored and hidden files.
@@ -1357,26 +1375,26 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   a name nothing declares. All three exited zero and reported success. That is
   the worst shape a wrong answer takes. A shell sits in a subdirectory far more
   often than at a repository root, and an agent's shell almost always does.
-  Where `-C` is not stated, the root is now the nearest enclosing project. It is
-  found by `.git`, `Cargo.toml`, `go.mod`, `package.json`, `pyproject.toml`,
-  `setup.py`, `build.zig`, `pom.xml` or a Gradle build. Widening it is said out
+  Where nobody states `-C`, the root is now the nearest enclosing project. `.git`,
+  `Cargo.toml`, `go.mod`, `package.json`, `pyproject.toml`, `setup.py`,
+  `build.zig`, `pom.xml` and a Gradle build all mark one. Widening it is said out
   loud, and `-C .` still means this directory alone.
 
-- [x] B627: **a path typed from a subdirectory was read against the root.**
+- [x] B627: **a path typed from a subdirectory resolved against the root.**
   Fixing B626 exposed the other half: `-C` states which workspace to operate
   on, so relative paths resolved against it, and a caller standing in
-  `pkg/deep` typing `h.py` was answered "does not exist". Where the root was
-  found rather than stated, a typed path is now read from where the caller
-  stands first, and against the root second. A stated `-C` keeps its meaning.
+  `pkg/deep` typing `h.py` got "does not exist". Where the tool finds the root
+  rather than taking it from a flag, a typed path now resolves from where the
+  caller stands. The root comes second. A stated `-C` keeps its meaning.
 
 - [x] B625: **`fr scan` passed over files without saying so.** A directory of
   `.sql`, `.json` and a `Makefile` beside one Python file answered "1 file(s)"
   and nothing else, so a reader could not tell an unsupported tree from an
   empty one, and neither could an agent deciding whether `fr` was the right
   tool. Both the listing and the JSON now account for every file skipped for
-  want of a language. Each is counted by extension, so a lock file does not bury
-  the report. A `--languages` filter is not a gap in support, and is not
-  counted.
+  want of a language. The tally groups them by extension, so a lock file does not
+  bury the report. A `--languages` filter is not a gap in support, and stays out
+  of the tally.
 
 - [x] B624: **`fr duplicates` measured a stylesheet against a function's
   floor.** One threshold of 60 tokens covered all sixteen languages. A
@@ -1384,7 +1402,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   duplication" over eleven copied declarations. Where nothing is stated, the
   floor is the one each language class earns. Code gets 60; markup and
   configuration get 30, their lines being far fewer tokens each. `--min-tokens`
-  still wins where it is given, and the report names the floor it used.
+  still wins wherever a caller passes it, and the report names the floor it used.
 - [x] B660: **`fr extract --function` spliced a class in half.** The new definition
   went straight after the function it came from, at column zero. Extracting from a
   Python method that was not the last one put a `def` in the middle of the class
@@ -1392,29 +1410,27 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   passed. Every method below became a closure of the new function, and the class
   lost them. The file still imported, and the tests that called those methods
   failed with `AttributeError`. A nested function got the same treatment, at the
-  outer body's expense. Placement is one choke point now. The definition is hoisted
-  out of every class it sits in, and stops at the first enclosing function. It takes
+  outer body's expense. Placement is one choke point now. The definition rises out of every class it sits in, and stops at the first enclosing function. It takes
   the indentation of whatever it lands beside. Pinned in
   `tests/extract_function.rs`.
 
 - [x] B661: **`fr extract --function` lost a method's receiver.** TypeScript reached
-  it first. `this` is named nowhere in a signature, so the data-flow analysis could
-  not see it. The body still read `this.values` while the parameter list was empty,
+  it first. No signature names `this`, so the data-flow analysis could not see it. The body still read `this.values` while the parameter list was empty,
   and the definition landed inside the class body. The syntax guard caught the
-  second half, so nothing was written, and the capability matrix went on claiming
+  second half, so nothing reached disk, and the capability matrix went on claiming
   extract-function for typescript and tsx. Go had it right all along: its receiver
   is a named parameter, so `func (c *Cart) Subtotal()` yields `accumulate(c *Cart)`
   by ordinary means. TypeScript now carries the receiver the same way, as a
   parameter typed with the class it came out of, with the call passing `this`. A
   private or protected member, a generic class, an anonymous one and `super` are
-  each refused by name. Rust and Java say the receiver cannot be handed over.
+  each refused by name. Rust and Java say nothing can pass the receiver on.
   Pinned in `tests/extract_function.rs`.
 
 - [x] B662: **`fr move` did not carry a Go symbol's imports.** Moving a function
   that used `math` broke both files. The destination said `undefined: math`. The
   source said `"math" imported and not used`. Two compile errors from one move, in
   the commonest Go refactoring there is, and the report said `0 file(s) gained an
-  import`. Both directions had been reported and neither done. A Go import path is
+  import`. The plan reported both directions and did neither. A Go import path is
   absolute, so the statement travels verbatim. A qualified use is a reference under
   the package binding, so which import fed which name is a fact. References inside
   the moved span decide what goes and the ones outside decide what stays. Pinned in
@@ -1424,8 +1440,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   path join short of normalised. `Index::resolve_import_path` joined the specifier
   onto the importer's directory and looked the result up as written.
   `"../src/pricing"` from `test/run.ts` became `test/../src/pricing`. That compared
-  unequal to the file it names, because the index is keyed by paths with no `..` in
-  them. Every caller asking which file an import points at got `None`. `fr move`
+  unequal to the file it names, because the index keys a file by a path with no `..` in it. Every caller asking which file an import points at got `None`. `fr move`
   then wrote its new import beside the old one it had failed to recognise: `TS2300:
   Duplicate identifier` and `TS2459`. Duplicate imports parse, so no guard caught
   it. The join is normalised at that one point. Pinned in `tests/move_imports.rs`.
@@ -1433,8 +1448,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B664: **a move left a blank-line scar.** Two declarations have a blank line on
   each side of the one between them. Erasing that one's lines alone left both, so
   the file kept a two-line gap where a one-line gap belongs. `gofmt` rewrites it. A
-  symbol moved out and back came home to that scar. What "back" means is decided and
-  pinned now. A move appends to the file it lands in and leaves no trace in the one
+  symbol moved out and back came home to that scar. One rule settles what "back" means, and a test pins it. A move appends to the file it lands in and leaves no trace in the one
   it left. So out and back returns the package to the declarations it started with,
   in a different order. The emptied file returns to what it held. Holes whose blank
   runs meet are worked out as one, because two edits claiming the same blank line is
@@ -1442,8 +1456,8 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   the run below, which is the only separator left. Pinned in
   `tests/move_languages.rs` and the unit tests beside `erase_spans`.
 
-- [x] B665: **half of a documented pairing was empty.** `fr inline` was called the
-  reverse of `fr extract`. `extract --function` writes a body of several statements
+- [x] B665: **half of a documented pairing was empty.** The documents called
+  `fr inline` the reverse of `fr extract`. `extract --function` writes a body of several statements
   by construction. `inline --call` refuses a body of several statements by
   construction. So no output of the first is an input to the second, and nothing
   said so. Teaching `--call` the multi-statement case is a different piece of work
@@ -1462,8 +1476,8 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B684: **`fr imports` kept an import and never said why.** The planner works out a
   reason for each one it holds back: a package `__init__.py` re-export, a `__future__`
   import, a submodule imported for its registration side effects, a Rust trait used
-  through its methods. Each reason was built as a warning and then thrown away by the
-  command, in text and in `--json` alike. So the user read "removed 0 import(s)" and
+  through its methods. Each reason became a warning that the command then threw away,
+  in text and in `--json` alike. So the user read "removed 0 import(s)" and
   had nowhere to go. The single-file report lists them now, and carries them as
   `kept_imports`. The workspace sweep prints the count and names the command that
   gives the reason. Pinned in `tests/cli.rs`.
@@ -1482,9 +1496,9 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   It is the operation where a typo is likeliest and least visible. A caller
   looping over rewrites read "your pattern was wrong" as "there is nothing left to
   do". It is a not-found now, in the exit code and in the `--json` error object. The
-  matches a template could not be written over were prose on stdout in `--json` mode
-  as well. They arrived in front of the report, so the output was not JSON, and they
-  are `skipped_occurrences` in it now. Pinned in `tests/cli.rs`.
+  matches no template could cover came out as prose on stdout in `--json` mode as
+  well. They arrived in front of the report, so the output was not JSON, and they
+  ride as `skipped_occurrences` in it now. Pinned in `tests/cli.rs`.
 
 - [x] B681: **a read through a Python module object resolved to nothing.** `from app
   import flags` binds the submodule `app/flags.py`, and `flags.USE_NEW_TAX` reads it.
@@ -1498,7 +1512,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   Pinned in `tests/cascade.rs` and `tests/python_modules.rs`.
 
 - [x] B680: **`fr remove-flag` rewrote an import statement.** Python puts a flag in
-  its own module and imports it where it is read.
+  its own module and imports it at every reader.
   `from app.flags import USE_NEW_TAX` became `from app.flags import True`, and
   the final parse gate threw the whole cascade away. So the command was unusable on
   that shape. TypeScript wrote `import { true }` in the same place and only survived
@@ -1516,8 +1530,8 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   Pinned in `tests/remove_flag_sweep.rs`.
 
 - [x] B623: **`fr entrypoints` called a module's workings its inputs.** A
-  `locals` block was reported as `infra-input` beside a real `variable`. An
-  `output` was not an entry point at all. Since
+  `locals` block turned up as `infra-input` beside a real `variable`. An `output`
+  was not an entry point at all. Since
   `fr unused` treats an entry point as reached, nothing in HCL or Helm was ever
   unreferenced, however plainly `fr usages` said otherwise. A variable is an
   input, an output is the surface, and a local is neither. Pinned in
@@ -1574,19 +1588,18 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B609: **Markdown was invisible to the mention sweep.** The sweep looks for
   a string node or a comment node, and Markdown has neither. So a style guide
-  writing `` `.btn-primary` `` in prose, and `class="btn-primary"` in an html
-  fence, was walked past twice. `fr rename` rewrote the CSS, the HTML and the
+  writing `` `.btn-primary` `` in prose, and `class="btn-primary"` in an html fence, went by twice. `fr rename` rewrote the CSS, the HTML and the
   TSX, and listed neither Markdown site. A paragraph and a fence body count as
   text now. So `fr rename`, `fr delete`, `fr usages` and the flag cascade all
   report them. Pinned in `tests/cross_language.rs`.
 
-- [x] B608: **a name nothing declares was reported as a typo.** `<a
+- [x] B608: **a name nothing declares came back as a typo.** `<a
   href="#section-two">` with no element carrying that id got "no symbol named
   'section-two'". The sites that write the name now ride with the message, so a
   link into nothing is visible from any command that takes a name.
 
 - [x] B607: **HTML modelling stopped at element ids.** A hook like
-  `data-testid="submit-btn"` is written twice. Once in the markup, once in the
+  `data-testid="submit-btn"` appears twice. Once in the markup, once in the
   TSX that renders the same element. `fr usages submit-btn` answered "no symbol
   named" to it. A `data-*` value is a
   symbol now, of its own kind, with every site equal, as a CSS class is. So a
@@ -1611,15 +1624,16 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B604: **`fr signature` refusals exited 1.** `fr --help` promises 5 for a
   refactoring that refused to proceed. Three sites raised a considered refusal
   as a plain error. An HCL variable the module still reads, an SCSS mixin
-  parameter its body still reads, and a shell positional. The exit code is
-  chosen from the error's type, so each now raises the `Refusal::StillUsed`
-  that `fr delete` raises. Pinned in `tests/cli.rs`.
+  parameter its body still reads, and a shell positional. The error's type picks
+  the exit code, so each now raises the `Refusal::StillUsed` that `fr delete`
+  raises. Pinned in `tests/cli.rs`.
 
 - [x] B603: **`fr remove-flag` wrote `Flags.true`.** A use written as a member,
   `Flags.SHINY`, had its name replaced and its qualifier left standing. Java,
   Go, Python and TypeScript all read a constant that way. The reparse gate let
   it through, and `--write` put it on disk. The literal now stands for the
-  whole qualified name. An import is left alone, since a later round drops it.
+  whole qualified name. The rewrite leaves an import alone, since a later round
+  drops it.
   Pinned in `tests/remove_flag_sweep.rs`.
 
 - [x] B602: **`fr remove-flag` refused the name `fr symbols` prints.**
@@ -1640,8 +1654,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   Markdown document. A definition like `[api]: ./a.md` sits at the end of a
   file, under the last section. Moving that section carried the definition off,
   so reference links left behind resolved to nothing. The report said nothing
-  about it. A definition now stays where it is, and the section is taken around
-  it. Where the moved text uses one, a copy goes with it and a warning names
+  about it. A definition now stays put, and the section moves around it. Where the moved text uses one, a copy goes with it and a warning names
   the copy. Pinned in `tests/move_languages.rs`.
 
 - [x] B576: **a repeated `signature add:` named one thing twice.** The grammar
@@ -1651,15 +1664,15 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   a re-run recipe broke what it had just changed. A declaration that already
   has the name refuses. Pinned in `tests/signature_hierarchy.rs`.
 
-- [x] B577: **a parameter's name was read from the wrong end.** Go writes
-  `name type` and Java writes `type name`. One rule read both, so Go's `price
-  float64` came back as a parameter called `float64`. Each
-  language is read the way it writes. Pinned in
+- [x] B577: **a parameter's name came off the wrong end.** Go writes `name type`
+  and Java writes `type name`. One rule read both, so Go's `price float64` came
+  back as a parameter called `float64`. Each language now reads the way it
+  writes. Pinned in
   `tests/signature_hierarchy.rs`.
 
 - [x] B574: **every `--write` reset the file's mode to 0600.** A commit stages
   beside the target and renames over it. The target inherited the private mode
-  a temporary file is given. An executable script stopped being executable, a
+  a temporary file carries. An executable script stopped being executable, a
   git hook stopped running, and a file the group could read became one only
   its owner can. A repository-wide rename re-permissioned the
   repository. The staged file takes the mode of the file it replaces. Pinned
@@ -1672,12 +1685,12 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   `None`. The insertion point is after the file's prologue now. Pinned in
   `tests/move_imports.rs`.
 
-- [x] B572: **every element id was reported as an HTTP route.** A rule matches
+- [x] B572: **every element id came back as an HTTP route.** A rule matches
   a symbol, and HTML declares only element ids. So a page-level rule fired once
   per id. One page with two `<div id>` reported
   two routes, and a page with no ids reported nothing. An id is not a route.
   What an element genuinely offers the outside, a mount point or a form target,
-  is still reported as what it is. Pinned in `tests/entrypoints_conventions.rs`.
+  still comes back as what it is. Pinned in `tests/entrypoints_conventions.rs`.
 
 - [x] B573: **a typed path parameter reached the contract as a string.**
   `def h(i: int)` under `@app.get("/x/{i}")` produced `{"type": "string"}`,
@@ -1692,7 +1705,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   names both now, and the claims test proves the cell by running it.
 
 - [x] B571: **the `flow` row answered a dataflow question with a call-graph
-  reason.** CSS, SCSS, HCL, YAML and Helm were marked not applicable "because
+  reason.** The matrix marked CSS, SCSS, HCL, YAML and Helm not applicable "because
   this language has no functions, so there is nothing to call", on a command
   that traces values through all five. The verdict was right and the reason was
   not. `fr flow` follows provenance for a language evaluated by substitution.
@@ -1700,12 +1713,12 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B549: **removing a parameter took the wrong argument.** A call passing
   arguments by name resolves them to the parameter. So a keyword three files
-  away was reported as "the body of `greet` still reads `punct`", with the
-  call site's line. The check looks
+  away came back as "the body of `greet` still reads `punct`", with the call
+  site's line. The check looks
   inside the declaration now, which is the only place a removal cannot repair.
   At a call site the name decides which argument goes, so `greet("b",
   loud=True)` keeps what it passed. A call that names arguments and not the
-  one going relied on the default, and is left alone. Pinned in
+  one going relied on the default, so the rewrite passes it by. Pinned in
   `tests/signature_hierarchy.rs`.
 
 - [x] B547: **a body that returns a value got no return type.** A Python
@@ -1724,10 +1737,9 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B565: **`fr move` refused a class that names itself.** The cycle it
   named does not exist. `Counter.STEP` written in `Counter`'s own method
-  counted as a use left behind in the source file. So the source was given an import of a
+  counted as a use left behind in the source file. So the source gained an import of a
   name it no longer mentions. Where the moved code also needed something the
-  source keeps, the two phantom imports read as a cycle and the move was
-  refused. A reference inside the moved span travels with it and is no longer
+  source keeps, the two phantom imports read as a cycle and the move refused. A reference inside the moved span travels with it and is no longer
   counted. Pinned in `tests/move_dependencies.rs`.
 
 - [x] B564: **`fr restructure` skipped a commented occurrence in silence.** A
@@ -1736,8 +1748,8 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   and `foo($A, $B)` passed over it while the run reported itself complete.
   Comments are out of the shape now, so the pattern matches across them. A
   comment inside what a metavariable binds travels with that binding. One
-  between the pattern's own tokens has nowhere to go. That occurrence is left
-  alone and reported by file and line. Pinned in
+  between the pattern's own tokens has nowhere to go, so that occurrence stays
+  as it is and the report names its file and line. Pinned in
   `tests/restructure_languages.rs`.
 
 - [x] B563: **`fr signature` was blind to a macro-hidden method call.**
@@ -1746,8 +1758,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   a parameter, the report said "0 call sites", and the crate stopped compiling.
   A dispatch site the pass cannot reach now refuses and names the site. Out of
   reach means a macro body, a call the grammar hides, an unparseable call, or a
-  call with no argument list. Rename was checked for the same hole and has
-  none. It rewrites the name where it stands and reports the site as a dispatch
+  call with no argument list. A check for the same hole in rename found none. It rewrites the name where it stands and reports the site as a dispatch
   candidate. Pinned in `tests/rust_receivers.rs`.
 
 - [x] B562: **a Terraform rename left the module call behind.** Renaming a
@@ -1768,13 +1779,11 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B560: **`fr extract` wrote uncompilable Go.** Two live-out values came
   back as `return a, b` from a function declared `int`. The report said
   success. Go spells several results as a parenthesised list, and the signature
-  says `(int, int)` now. The same selection written idiomatically, with
-  `total := 0`, was refused for a type "never written down". Go and Java both
-  fix a binding's type at its declaration, so inference supplies it. Only a
-  type neither written nor derivable is refused. Pinned in
+  says `(int, int)` now. The same selection written idiomatically, with `total := 0`, refused for a type "never written down". Go and Java both
+  fix a binding's type at its declaration, so inference supplies it. Only a type neither written nor derivable refuses. Pinned in
   `tests/extract_function.rs`.
 
-- [x] B546: **a field's starting value was dropped in both directions.**
+- [x] B546: **a field's starting value went missing in both directions.**
   Python's `retries: int = 3` became `retries: number;`. That is undefined at
   run time, and Java's `= new ArrayList<>()` went the same way. Neither took the
   value, so no writer had one to write. Python, TypeScript, Java and Zig each
@@ -1786,20 +1795,19 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   starts at nothing. Pinned in `tests/translate_field_defaults.rs`, which runs
   the Java and the Python.
 
-- [x] B545: **only the first number in a concatenation was coerced.**
+- [x] B545: **only the first number in a concatenation took a coercion.**
   Java's `"x" + 1 + 2` raised a TypeError in Python. It came out as
-  `"x" + str(1) + 2`, where the source printed `x12`. The chain is
-  left-associative, so the outer `+` holds the inner one, and the inner one had
-  no type. A `+` with a string on either side is a string, whatever the other
+  `"x" + str(1) + 2`, where the source printed `x12`. The chain binds to the
+  left, so the outer `+` holds the inner one, and the inner one had no type. A `+` with a string on either side is a string, whatever the other
   side is. The whole chain follows from that one line, associativity included.
   Zig's own concatenation check reads the same answer. Pinned in
   `tests/translate_concatenation.rs`, which runs the Java and the Python.
 
-- [x] B544: **a header that bound names was dropped under its branch.** Go's
+- [x] B544: **a header that bound names went missing under its branch.** Go's
   `if` may run a statement in its header. `if m, ok := tree.Min(); ok { }`
   lost the header with no marker at all. The branch then tested `ok` and
-  printed `m` while the output bound neither. The header is written before
-  the branch now. That widens the scope of what it binds, and every target
+  printed `m` while the output bound neither. The header now goes in ahead of
+  the branch. That widens the scope of what it binds, and every target
   here already scopes it that way. Two sibling branches that bind the same
   names shared one scope after the move, so the second settles them again
   instead of declaring them twice. Pinned in
@@ -1818,7 +1826,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   `main` is lower-case. So the Java draft came out `private static void
   main`. The runtime answered "Main method not found
   in class". Whether the source exported its entry is a fact about the source.
-  The entry is written public whatever it was. Pinned by the run in
+  The entry now goes out public whatever the source said. Pinned by the run in
   `tests/translate_counted_for.rs`.
 
 - [x] B541: **Go's `for` carried in three of its four spellings.** `for { }`,
@@ -1838,16 +1846,16 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   lets a body write `accounts` for a field it declares. Every writer here
   needs a receiver written. `tsc` answered "Cannot find name
   'accounts'. Did you mean the instance member 'this.accounts'?" twenty-eight
-  times over one translated class. Python was worse: the field was declared
+  times over one translated class. Python was worse: the declaration read
   `balance_cents` while the body still said `balanceCents`, a disagreement the
   translation introduced by itself. The writers now enter a method body through
   one call. It binds the receiver and the fields the body may name bare. A bare
-  name in that set is written through the receiver in the field table's
+  name in that set goes out through the receiver, in the field table's
   spelling. A parameter or a local of the same name is the nearer declaration
   and wins. Pinned in `tests/translate_implicit_receiver.rs`. That gate runs
   the Java, the Python and the TypeScript, and compares what they print.
 
-- [x] B536: **a shell function reached through `source` was reported dead, and
+- [x] B536: **a shell function reached through `source` read as dead, and
   deleting it broke the script.** Sourcing a file is not a binding. It runs
   the file, and every function it defines becomes callable by its bare name.
   The
@@ -1857,10 +1865,10 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   the path, where the source line ends in a plain file name, which is what
   `source "$(dirname "$0")/lib.sh"` does. Pinned in `tests/facts_bash.rs`.
 
-- [x] B537: **a textual match was called a comment.** The sweep matched the
+- [x] B537: **a textual match came back labelled a comment.** The sweep matched the
   declaration and every resolved use, then listed them again. The heading read "mention(s) in a comment or a string.
   No command edits these". A YAML key is neither.
-  A reader told a broken reference was a comment has been told it is safe. The
+  A reader told a broken reference is a comment has been told it is safe. The
   listing drops what the search already accounts for, and says what the rest
   are: matched as text, with nothing linking them to the declaration. Pinned
   by the navigate and rename suites.
@@ -1877,12 +1885,11 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   crossed.** `def helper(): from a import Thing` breaks an import cycle. The
   body's `Thing()` became live TypeScript beside a commented-out import, so
   the file named a class nothing brought in. Every target here
-  hoists its imports, so a sibling named inside a body is lifted to the file's
-  own imports. Pinned in `tests/translate_projects.rs`.
+  hoists its imports, so a sibling named inside a body rises to the file's own imports. Pinned in `tests/translate_projects.rs`.
 
 - [x] B533: **an aliased base class left the family.** `from base import Base
   as Foundation` recorded an edge pointing at a name nothing declares.
-  So `self.count` in the subclass was left behind, and applying the rename
+  So `self.count` in the subclass stayed behind, and applying the rename
   raised. Supertype names resolve through the file's imports now, at one point
   that answers for every language. Pinned in
   `tests/rename_property_family.rs`.
@@ -1896,9 +1903,9 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   the exception, since `main` is what a runner looks for. Pinned in
   `tests/translate_zig_forms.rs`.
 
-- [x] B535: **a tab reached a Zig comment.** Carried Go source brings Go's
-  indentation, and Zig's lexer refuses a tab inside a comment. The
-  file could not be read by its own compiler. The comment writer replaces
+- [x] B535: **a tab reached a Zig comment.** Carried Go source brings Go's indentation.
+  Zig's lexer refuses a tab inside a comment, so its own compiler would not read
+  the file. The comment writer replaces
   them.
   Pinned in `tests/translate_zig_forms.rs`.
 
@@ -1923,24 +1930,23 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B528: **`fr extract` wrote unparseable code across a loop boundary and
   called it success.** A selection with one end inside a loop's body and the
   other outside it kept its bytes, so the loop's outdent landed in the middle
-  of the new function. Such a selection is refused with the boundary named, by
+  of the new function. Such a selection refuses with the boundary named, by
   a guard shared across languages. Both this refusal and the escaping-`return`
   one are considered refusals now, and exit 5 as the help promises. Pinned in
   `tests/extract_function.rs`.
 
 - [x] B529: **a rename trusted an initializer the code had overwritten.** With
   `b = B()` and then `b = A()` on a live path, `b.size(2)` renamed with `B`'s
-  method under the claim that `b` is declared `B`, and the result raised
-  AttributeError. A type derived from an initializer is evidence only where
-  nothing reassigns the binding. Otherwise the site stays for review, and the
-  reason says the binding is assigned more than once. Pinned in
+  method under the claim that `B` declares `b`, and the result raised
+  AttributeError. A type an initializer supplies is evidence only where nothing
+  reassigns the binding. Otherwise the site stays for review, and the reason says more than one assignment writes the binding. Pinned in
   `tests/rename_property_family.rs`.
 
 - [x] B524: **a Python class with two bases lost both of them.** `class
   Import(Taxed, Levied)` crossed as a class extending nothing. The body kept
   `super().cost()`, TypeScript answered TS2335, and the report claimed every
   signature carried. The first base is the one `super()`
-  dispatches to, so it rides in the single slot the targets offer. The rest are
+  dispatches to, so it rides in the single slot the targets offer. The rest sit
   named beside the type. The translated class compiles under `tsc --strict`
   and prints what Python prints. Pinned in
   `tests/translate_inheritance.rs`.
@@ -1952,11 +1958,11 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   becomes the sentinel idiom, computed in the body, and the annotation widens
   to admit it. Pinned in `tests/translate_defaults.rs`.
 
-- [x] B526: **a computed assert message was dropped into a comment.** Rust's
+- [x] B526: **a computed assert message fell into a comment.** Rust's
   macro takes a format string and arguments, evaluated only on failure. The
-  other targets already did that. The message rode above the
-  check as prose instead, so the failure said nothing, and any effect
-  computing it had was lost. Pinned in
+  other targets already did that. The message rode above the check as prose
+  instead, so the failure said nothing and any effect computing it had went
+  nowhere. Pinned in
   `tests/translate_asserts.rs`.
 
 - [x] B514: **a file skipped for its size falsified every answer, silently.** A
@@ -1977,7 +1983,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B516: **a recipe whose expectation failed left its edits on disk.** The
   documented promise is one transaction. The refusal path honoured it and the
   expectation path did not. A failed expectation restores the bytes the run
-  started from, and the report says whether anything was written. Pinned in
+  started from, and the report says whether anything reached disk. Pinned in
   `tests/json_surface.rs`.
 
 - [x] B517: **a refusal's blocking positions lived only in prose.** Ambiguity
@@ -1991,8 +1997,8 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   as a symbol name. Each failure now exits as the help promises.
   Pinned in `tests/cli.rs`.
 
-- [x] B519: **`fr translate` answered prose to `--json`.** Listing what a file
-  could be written as ignored the flag outright. A single-file translation
+- [x] B519: **`fr translate` answered prose to `--json`.** Listing the languages
+  that can hold a file ignored the flag outright. A single-file translation
   omitted the fidelity block its own directory sweep emits. Both speak the
   sweep's schema now. Pinned in `tests/json_surface.rs`.
 
@@ -2041,17 +2047,17 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   settle against the type the position names. Pinned in
   `tests/translate_narrowing.rs`.
 
-- [x] B507: **the discriminator literal was derived, not read.** An interface
+- [x] B507: **the writer derived the discriminator literal rather than reading it.** An interface
   named `FIdle` writing `kind: "idle"` got the derived tag `f_idle`. No
   consumer matched, and the writers respelled the wire format.
   A variant carries the literal its source declared, and every reader and
   writer prefers it. Pinned through `tests/translate_narrowing.rs`.
 
-- [x] B508: **a variant dodging a name collision was built under the name it
+- [x] B508: **a variant dodging a name collision came out under the name it
   dodged.** The declaration renamer wrote `class StatusOk`. The construction
   site wrote `Ok()`, the very record the dodge avoided, and running it
-  raised. The spellings live in one table now, computed before anything is
-  written, and both sides consult it. Pinned in
+  raised. The spellings live in one table now, computed before either side
+  writes, and both consult it. Pinned in
   `tests/translate_narrowing.rs`.
 
 - [x] B509: **a struct used concretely was consumed into its sum anyway.** Go's
@@ -2087,7 +2093,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   the host target, which catches the class without needing a wasm clang.
   Caught by CI on this very pass: `run::distance` was cli-only and ungated.
 
-- [x] B442: **a Java record crossed wrong twice.** `implements X` was dropped
+- [x] B442: **a Java record crossed wrong twice.** `implements X` vanished
   in silence. A compact `name()` body crossed beside the `name` field, and
   the pair collided in every flat target. A single interface rides in the
   base slot, and more of them ride in prose. The field wins the collision,
@@ -2103,7 +2109,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B440: **an annotated instance field vanished.** `self.entries: list[str]
   = []` read as a binding whose dotted "name" was no name at all. The whole
-  assignment carried as a comment and the field was deleted. It reads as the
+  assignment carried as a comment and the field went with it. It reads as the
   plain assignment now, and the derived field takes the annotation's type.
   Pinned in `tests/translate_classes.rs`.
 
@@ -2144,9 +2150,9 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B430: **an inverted extract range died on the span constructor's
   assertion.** `fr extract --range file:8:20-8:5` printed byte offsets and a
-  panic. It is refused where both ends are known, with both ends named.
+  panic. It refuses where both ends are known, and names them.
   Invalid input exits 2, the code clap uses for a command line that does not
-  parse. A column of 0 is refused with "columns start at 1." instead of
+  parse. A column of 0 refuses with "columns start at 1." instead of
   quietly reading as column 1. Pinned in `src/span.rs` tests and
   `tests/cli.rs`.
 
@@ -2196,7 +2202,8 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   entrypoints --unreachable` flagged a function that `[project.scripts]`
   installs as a command. setup.py `console_scripts`, pyproject
   `[project.scripts]` and a package's `__main__.py` are entry points now. The
-  packaging files are read line by line, and each detection's rule says so.
+  reader takes the packaging files line by line, and each detection's rule says
+  so.
   Pinned in `src/analysis/entrypoints.rs` tests.
 
 - [x] B425: **docker-compose `environment` entries were invisible to `fr
@@ -2226,7 +2233,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   constructions. TypeScript kind-literal objects settle against the module's
   sums, and the inline union form becomes the named one's sum. A
   path naming anything else, `Vec::new`, an enum from another crate, goes back
-  to being carried whole. Pinned in `tests/translate_variants.rs`.
+  to crossing whole. Pinned in `tests/translate_variants.rs`.
 
 - [x] B419: **`fr inline --call` pasted a callee that read its own file's
   imports.** B412 held module globals back and stopped there. `os.environ`
@@ -2245,8 +2252,8 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B421: **a use site inside the owner counted the property's two doors as
   two candidates.** `b: Box` made `b.size` ambiguous. The very class that
-  declares the property could not reach it, because ambiguity was counted in
-  symbols. It is counted in entities now: candidates that form one definition
+  declares the property could not reach it, because the count of ambiguity ran
+  over symbols. It runs over entities now: candidates that form one definition
   group are one answer wherever the count decides. Pinned in
   `tests/rename_property_family.rs`.
 
@@ -2279,13 +2286,13 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   file it imported from carried the import along, a module importing itself
   half-initialised; and an importer holding the whole module (`import mod;
   mod.foo()`) gained a dead named import while every call kept dereferencing
-  the module that no longer held the name. The self-import is dropped, and the
+  the module that no longer held the name. The self-import goes, and the
   module-attribute receivers rewrite to the new module, which the importer now
   imports. Pinned in `tests/move_languages.rs`.
 
 - [x] B410: **a receiver's declared type did not hold its call still.** Renaming
-  `A`'s overloads took `b.size(2)` with them as a dispatch candidate. `b` is
-  declared `B`, and `B` answers `size` itself, so javac refused the result.
+  `A`'s overloads took `b.size(2)` with them as a dispatch candidate. `B`
+  declares `b`, and answers `size` itself, so javac refused the result.
   A dispatch-candidate site whose receiver's declared type sits outside the
   family stays, and the warning names the type instead of claiming it unknown.
   The same evidence holds `fr signature` still. Pinned in
@@ -2314,7 +2321,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B399: **two racing `fr rename --write` runs both reported applied and one
   rename vanished.** Whole-file writes let the last writer win in silence. The
   commit now re-reads every file and refuses whenever the text differs from what
-  the plan read, and nothing partial is written. OS locks held in the system
+  the plan read. No half of a change reaches disk. OS locks held in the system
   temporary directory serialise the read-verify-write window. Pinned by the
   commit tests in `src/edit.rs`.
 
@@ -2339,7 +2346,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B404: **`fr scan --json` spelled paths its own way and dropped symlinks
   in silence.** Each item now carries an absolute `file` beside `path`.
-  Skipped symlinks are listed with their targets named. Pinned in
+  A skipped symlink appears with its target named. Pinned in
   `tests/json_surface.rs` and the `src/scan.rs` tests.
 
 - [x] B405: **a `restructure` step that matched nothing reported "matched 1,
@@ -2413,7 +2420,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   `.append`, `.upper`, `.lower`, `.strip` and `sep.join(xs)`. Go gains the
   imports its mapped calls need. Pinned in `tests/translate_builtins.rs`.
 
-- [x] B395: **the program's own entry was dropped as unsupported.** Two entry
+- [x] B395: **the program's own entry went out as unsupported.** Two entry
   forms became comments. `main();` sits at the bottom of a TypeScript file, and
   the other call sits under Python's `__main__` guard. The translated program ran
   and printed nothing. A top-level statement is an item now; Python writes it back under
@@ -2423,8 +2430,8 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   Pinned in `tests/translate_entrypoints.rs`.
 
 - [x] B394: **a class crossed as an empty struct.** Python declares fields in
-  `__init__`, and `record Order(...)` declares them in its header. Both were
-  read as nothing, while the methods went on using them. Both derive now. A
+  `__init__`, and `record Order(...)` declares them in its header. The reader took
+  both for nothing, while the methods went on using them. Both derive now. A
   constructor of plain assignments becomes each target's own constructor, and
   `Item(...)` becomes a construction. A Java static loses the receiver its
   call sites never passed, and a record's accessor calls become the field
@@ -2480,8 +2487,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   now, naming the capturing declaration, the line, and the fact that the
   compiler would not have noticed. Pinned in `tests/rename_capture.rs`.
 
-- [x] B386: **the OpenAPI status note spoke FastAPI at a Next.js tree.** The
-  note was copied from the translation. That note tells the reader to add
+- [x] B386: **the OpenAPI status note spoke FastAPI at a Next.js tree.** The note came straight from the translation. That note tells the reader to add
   `status_code=` to a `@router` decorator that exists nowhere in their tree.
   The statuses now travel as data on the route plan. The baseline writes its
   own note in the source's terms: `NextResponse.json(..., { status })` or
@@ -2497,7 +2503,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B384: **every failed command printed nothing to stdout under `--json`.**
   An agent asking for JSON had nothing to parse. The CLI now prints one
-  `{"error": {...}}` object on stdout when `--json` was passed. The `kind`
+  `{"error": {...}}` object on stdout wherever `--json` asks. The `kind`
   field names what went wrong: `not-found`, `ambiguous`, `refused`,
   `invalid-input`, `io`, or `error` for a plain failure. An ambiguous name
   carries a `candidates` array: name, kind, path, line and column for each
@@ -2512,8 +2518,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   now takes the receiver off the addressable list for Rust, Python and Zig.
   The change and the delete now follow the same family `fr rename` learned in
   B382: every member's declaration changes or goes, each member's body guards
-  the change, and the dispatch sites that resolve to no single implementation
-  are updated with the declared default and named in the notes. The family
+  the change, and the dispatch sites that resolve to no single implementation take the declared default, and the notes name them. The family
   expands only through declared relationships; the name-only tier that fans a
   Java call out for reachability is deliberately too weak to merge a change,
   which the first version of this fix learned from two unrelated `width`
@@ -2526,8 +2531,8 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   other end. A method in declared dispatch now renames as one family, through
   the same `Hierarchy` the call graph and `fr unused` already trust. The family
   is the declaration, every implementation, and the dispatch sites that resolve
-  to no single one of them. The dispatch sites are reported under their own
-  heading at field-based confidence, for a person to review. A same-named
+  to no single one of them. The dispatch sites sit under their own heading at
+  field-based confidence, for a person to review. A same-named
   method on an unrelated type stays untouched.
 
 - [x] B381: **Java was the one language refused both kinds of extraction.** The
@@ -2536,16 +2541,16 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   does. What was missing was the arms. Java now extracts an expression into a
   `var` binding, and statements into a `static` method at the class's member
   indent. A mutated outside binding travels back the way it does everywhere
-  else. A local declared with `var` refuses by name, because the type it would
-  need was never written down. The compile gate drives both through `javac` now
+  else. A local declared with `var` refuses by name, because nothing writes down
+  the type it would need. The compile gate drives both through `javac` now
   instead of pinning the refusal, and the capability matrix moved to 272 of
   384.
 
 - [x] B379: **a call to a declared record wrote a call.** Silent wrong answer.
   `Point(0, 0)` from Python crossed into Rust as `Point(0, 0)`, which does not
   compile against named fields. In Go it crossed as a conversion, which means
-  something else entirely. The record is declared in the same module, so its
-  field names are known, and a positional construction now maps onto them:
+  something else entirely. The same module declares the record, so its field
+  names are there to read, and a positional construction now maps onto them:
   `Point { x: 0, y: 0 }`, `Point{X: 0, Y: 0}`, `Point{ .x = 0, .y = 0 }`. An
   arity mismatch stays a call, because mapping it would invent a default.
 
@@ -2568,8 +2573,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   after became a parameter. A parameter is a copy in every one of these
   languages. `invoice_total` extracted its loop and started returning zero. The
   changed value travels back as a return now. The call assigns instead of
-  declaring, and the Rust parameter says `mut`. Zig refuses by name, because its
-  parameters cannot be assigned at all.
+  declaring, and the Rust parameter says `mut`. Zig refuses by name, because nothing assigns its parameters at all.
 
 - [x] B374: **a TypeScript assignment target was no use of its binding.** Query gap.
   The reference catch-all is restricted to `primary_expression`, and the left side
@@ -2593,8 +2597,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B377: **a Go `:=` with any right side carried whole.** Wrapper. Both sides of
   `:=` and `=` arrive inside an `expression_list` even when they hold one
-  expression, and the wrapper reached `expr` as an unknown construct. The single
-  element is unwrapped now; a genuine pair, `a, b := f()`, still carries, because
+  expression, and the wrapper reached `expr` as an unknown construct. This unwraps the single element now; a genuine pair, `a, b := f()`, still carries, because
   the IR cannot bind two names at once.
 
 - [x] B364: **a Zig file whose top level is fields loses them in translation.** The
@@ -2602,7 +2605,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   The reader had no record to put them in, so each carried as a comment. Fixed. The
   reader builds a record from the file's fields, named by the `@This()` binding. When
   the binding is the conventional `Self`, the file itself names the record.
-  Signatures saying `Self` are renamed to the record, so the output never mentions a
+  Signatures saying `Self` take the record's name, so the output never mentions a
   type it does not declare. Receiver-taking functions join the record as methods the
   way they do everywhere else. Covered in `tests/translate_file_struct.rs`.
 
@@ -2655,9 +2658,9 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   everywhere. It lowers to that now, one binding for several names; renames,
   defaults and nesting still carry, and say so.
 
-- [x] B369: **a Zig field default was dropped without a word.** Silent. `mutex: Mutex
+- [x] B369: **a Zig field default vanished without a word.** Silent. `mutex: Mutex
   = .init` became a field with no default and no note. No language here puts a default
-  on a plain struct field, so it is still dropped. The field's doc now says what the
+  on a plain struct field, so it still goes. The field's doc now says what the
   source gave it.
 
 - [x] B370: **a translation to `--out` with an unfamiliar extension failed in the edit
@@ -2677,7 +2680,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   honest number, with the note in `tools/PROSE-DEBT` saying why.
 
 - [x] B358: **`fr translate` wrote Python's `NewType` incantation into every target as a
-  value.** `Pence = NewType("Pence", int)` was read as a constant. So Rust got
+  value.** The reader took `Pence = NewType("Pence", int)` for a constant. So Rust got
   `pub const pence: &str = NewType("Pence", int);`, which parses and refers to nothing.
   The IR has a `Newtype` item now. Python reads the call, and TypeScript reads the brand
   idiom. Each writer spells the real thing: a tuple struct, a defined type, a brand plus
@@ -2687,8 +2690,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B359: **the translate listing hid a target whose destination existed.**
   `options_for` swallowed every failed plan. With `money.ts` on disk the listing offered
-  four languages, teaching the reader the fifth pair did not exist. A blocked target is
-  listed with the reason now. `--out` and `--force` are the two ways past it, on all three
+  four languages, teaching the reader the fifth pair did not exist. A blocked target appears with its reason now. `--out` and `--force` are the two ways past it, on all three
   translation paths. The imperative-pair refusal text also still denied the transpiler
   exists; it names the missing reader or writer now.
 
@@ -2699,7 +2701,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B361: **`fr imports` took one file where every other sweep takes the workspace.**
   Odd one out. `unused`, `duplicates` and `parse` walk the tree; `imports` demanded a
   path. With no file it now organizes every file the index holds, in one atomic apply.
-  Every skipped file is counted and the reason printed, because a silent skip reads as
+  It counts every file it skips and prints the reason, because a silent skip reads as
   coverage.
 
 - [x] B362: **applying an edit into a directory that does not exist failed at the
@@ -2716,7 +2718,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B351: **the fixed-defect archive was 31,000 words.** 333 entries, median 85 words,
   for defects closed and gone. An entry needs its symptom and its fix, and git holds the
   rest. Entries below B300 keep the symptom line alone, and the file is 9,000 words now.
-  This entry was written once and lost before the commit, which is its own small lesson.
+  This entry went in once and vanished before the commit, which is its own small lesson.
 
 - [x] B350: **the call graph tab never drew anything.** `graph_around` has two checks
   there now. One asks the shape of an answer, the other the shape of a refusal.
@@ -2741,22 +2743,22 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B344: **a doc comment for one function sat on top of another.** Found while rewriting
   the comments in that file.
 
-- [x] B343: **the prose in this repository was written in a machine's voice.**
+- [x] B343: **the prose in this repository spoke in a machine's voice.**
   `docs/terminology.md` holds the terms.
 
-- [x] B342: **the site could not be published for two days. Every run said `cancelled`.**
+- [x] B342: **nothing could publish the site for two days. Every run said `cancelled`.**
   `cancel-in-progress: true` now, so the newest deploy takes the slot.
 
 - [x] B341: **`fr flow` sent three languages to an analysis that has no arm for them.** The
-  test asserts the rule now. No language is offered both.
+  test asserts the rule now. No language claims both.
 
 - [x] B340: **the browser never routed to provenance. So it answered questions the CLI
   could.** Both bindings route the same way the CLI does now.
 
 - [x] B339: **`fr remove-flag` told the reader to do something the command could not do.**
   The resolved name is fixed before the cascade starts. Everything downstream looks the
-  flag up by name: which uses are left, which imports were orphaned, what each round is
-  called.
+  flag up by name: which uses remain, which imports lost their reason, what each round
+  answers to.
 
 - [x] B338: **"move it somewhere under `src/`" led to a second refusal.** The first now demands
   a destination the module tree already declares. The second names the line to add.
@@ -2834,7 +2836,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B317: **`fr signature` reported call sites it had not touched.** The two are told
   apart now: no argument list still means no parentheses. A grammar that wraps nothing
-  is read on its own terms.
+  answers on its own terms.
 
 - [x] B316: **a Zig `@import` path resolved to nothing.** So `fr rename` rewrote the
   declaration. That left every caller naming something that is not there.
@@ -2862,18 +2864,16 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   `export { width } from './util'` with `Holder` gone.
 
 - [x] B300: **`fr move` declined at a re-export barrel.** Now says why: readers write
-  `ns.width`. Splitting the module in two cannot be followed by repointing one
-  statement.
+  `ns.width`. Repointing one statement cannot follow a module split in two.
 
 - [x] B309: **`fr usages` and the reference index disagreed. The check could not see it.**
   Those are what it checks now.
 
 - [x] B308: **a Go call into another package resolved to nothing.** The import statement
-  names the package. So which declaration a qualified call means is written down; resolution
-  now reads it.
+  names the package. So the source says which declaration a qualified call means, and
+  resolution now reads it.
 
-- [x] B307: **`fr move` wrote import cycles that neither Go nor Python accepts.** Both are
-  refused now. The refusal names the two files and what each would import.
+- [x] B307: **`fr move` wrote import cycles that neither Go nor Python accepts.** Both refuse now. The refusal names the two files and what each would import.
 
 - [x] B306: **`fr move` wrote a relative import into a file in no package.** It writes
   relative inside a package, absolute outside.
@@ -2886,8 +2886,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   rule that never runs repeats B296's defect shape.
 
 - [x] B303: **`fr remove-flag` wrote a boolean into a type position.** One use in a
-  position only a type can occupy settles the name. The whole operation is refused,
-  naming that use.
+  position only a type can occupy settles the name. The whole operation refuses, naming that use.
 
 - [x] B302: **`fr remove-flag` treated every constant as a possible flag.** A sweep found
   234 asks that produced a plan. It ran over every name in the vendored corpus, both
@@ -2969,9 +2968,9 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B268: **five more refusals reported a resolution that had not happened.**
 
-- [x] B267: **a remedy was offered where it would not work.**
+- [x] B267: **a remedy turned up where it would not work.**
 
-- [x] B266: **an argument the shell decides at run time was reported as weak resolution.**
+- [x] B266: **an argument the shell decides at run time came back as weak resolution.**
 
 - [x] B265: **a signature change refused by talking about renaming.**
 
@@ -3011,7 +3010,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B248: **`as_str` named two different things.** The display three are now `label()` and
   `describe()`.
 
-- [x] B247: **the tool's JSON could not be read back into the tool's own types.**
+- [x] B247: **the tool's own types would not read the tool's JSON back.**
 
 - [x] B246: **a misspelled value in a catalogue loaded and matched nothing.**
 
@@ -3049,9 +3048,9 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B226: **a test named for path order never checked the order.** The order is asserted
   now.
 
-- [x] B225: **the entry-point coverage report was checked for having names in it.**
+- [x] B225: **the entry-point coverage check asked only whether the report held names.**
 
-- [x] B224: **the cache's own claim was tested for stability and not for meaning.**
+- [x] B224: **the cache's own test asked about stability and not meaning.**
 
 - [x] B223: **`fr duplicates` named its threshold only when it found nothing.**
 
@@ -3059,22 +3058,22 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B221: **`fr type` answered half the question.**
 
-- [x] B220: **the published site was checked by hand and by nothing else.**
+- [x] B220: **nothing but a pair of hands checked the published site.**
 
 - [x] B219: **`fr impact` reported a bounded search as a complete answer.**
 
-- [x] B218: **every hop of a forward flow was printed twice.**
+- [x] B218: **every hop of a forward flow printed twice.**
 
 - [x] B217: **forward flow stopped at the first hop in Rust.** It keeps walking now.
 
-- [x] B216: **a value was reported as flowing into the function around it.**
+- [x] B216: **the report had a value flowing into the function around it.**
 
 - [x] B215: **a constructor body that builds and returns was thrown away for three
   targets.**
 
-- [x] B214: **an enum variant was read as a record.**
+- [x] B214: **the reader took an enum variant for a record.**
 
-- [x] B213: **a Rust struct literal was not read at all.**
+- [x] B213: **the reader passed a Rust struct literal by entirely.**
 
 - [x] B212: **a Zig method that changed its own object did not compile.**
 
@@ -3110,7 +3109,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B197: **extracting a region containing `yield` silently did nothing.**
 
-- [x] B196: **an expansion of two bracketed halves was left unbracketed.** The check
+- [x] B196: **an expansion of two bracketed halves came out unbracketed.** The check
   balances the brackets now.
 
 - [x] B195: **`fr inline --call` changed what the program computes, in all seven
@@ -3120,11 +3119,11 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B193: **a Python script with a `__main__` guard reported no entry point.**
 
-- [x] B192: **a type argument was read as a supertype.**
+- [x] B192: **the reader took a type argument for a supertype.**
 
 - [x] B191: **class hierarchy analysis skipped Java.**
 
-- [x] B190: **the number describing the matrix was not checked, and had drifted.**
+- [x] B190: **nothing checked the number describing the matrix, and it had drifted.**
 
 - [x] B189: **a shell function was told it needs a return type and modifiers.**
 
@@ -3139,7 +3138,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B184: **`fr signature` refused at every Java call site there has ever been.**
 
-- [x] B183: **the imports a moved symbol needs were written above the code and not where
+- [x] B183: **the imports a moved symbol needs went above the code and not where
   imports go.**
 
 - [x] B182: **moving a symbol into a file that imported it left the import behind.**
@@ -3156,9 +3155,9 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B176: **a query parameter did not survive the crossing.**
 
-- [x] B175: **the contract could only be derived from one side of the crossing.**
+- [x] B175: **the contract came from one side of the crossing alone.**
 
-- [x] B174: **a handler's inline `context.params.petId` was left naming an object Python
+- [x] B174: **a handler's inline `context.params.petId` went on naming an object Python
   does not have.**
 
 - [x] B173: **the contract had no query parameters at all.** Read from
@@ -3177,21 +3176,21 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B167: **`inline` changed what the code does.**
 
-- [x] B166: **an overload set was resolved by proximity, at `Exact`.**
+- [x] B166: **proximity resolved an overload set, at `Exact`.**
 
 - [x] B165: **a rename that left a call behind said nothing at all.**
 
-- [x] B164: **a member access was resolved through the lexical scope chain.**
+- [x] B164: **the lexical scope chain resolved a member access.**
 
 - [x] B163: **the rename collision guard was file-scoped. It was not scope-scoped.**
 
 - [x] B162: **a Go type's recursion was not its entry point.**
 
-- [x] B161: **a Rust reference was stripped after the containers were checked**
+- [x] B161: **a Rust reference lost its sigil after the container check ran**
 
-- [x] B160: **`readonly string[]` was read as an array of `readonly string`.**
+- [x] B160: **the reader took `readonly string[]` for an array of `readonly string`.**
 
-- [x] B159: **every Zig type read from text was read wrong.**
+- [x] B159: **every Zig type coming off text came out wrong.**
 
 - [x] B158: **the Zig reader required a named node after `=`**
 
@@ -3207,7 +3206,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B147: **a Rust raw identifier grew an `r` every time it crossed.**
 
-- [x] B146: **Python's `self` was stripped from free functions too.**
+- [x] B146: **the writer took Python's `self` off free functions too.**
 
 - [x] B145: **a `@staticmethod` disappeared from its class.**
 
@@ -3215,49 +3214,49 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B143: **there was no round-trip check at all.**
 
-- [x] B142: **a note was reported only when something else had gone wrong.**
+- [x] B142: **a note reached the report only when something else had gone wrong.**
 
-- [x] B141: **a base class was dropped without a word.**
+- [x] B141: **a base class vanished without a word.**
 
 - [x] B140: **there was no conditional expression in the IR**
 
 - [x] B139: **`_` was put through the naming convention.** A rename that produces nothing is
   not a rename.
 
-- [x] B138: **a Zig `comptime` parameter was read as an ordinary one.**
+- [x] B138: **the reader took a Zig `comptime` parameter for an ordinary one.**
 
 - [x] B137: **a Zig destructuring kept the first name and dropped the rest.**
 
-- [x] B136: **Zig optionals and pointers were never read.**
+- [x] B136: **the reader never took in a Zig optional or pointer.**
 
-- [x] B135: **a Rust raw or byte string was not read as a string.**
+- [x] B135: **the reader did not take a Rust raw or byte string for a string.**
 
 - [x] B134: **a parse error with no position reported none at all.**
 
-- [x] B132: **a comment inside a parameter list was read as a parameter.**
+- [x] B132: **the reader took a comment inside a parameter list for a parameter.**
 
 - [x] B131: **every string escape was doubled on every crossing.**
 
-- [x] B130: **a method was written as a free function whose body reached through a receiver
+- [x] B130: **a method came out as a free function whose body reached through a receiver
   nothing bound.**
 
-- [x] B129: **a method with no receiver was written as one with a receiver.**
+- [x] B129: **a method with no receiver came out with one.**
 
 - [x] B128: **a multi-line comment got its marker on the first line only.**
 
 - [x] B127: **a doc comment could end itself early.**
 
-- [x] B126: **`0usize` was carried into every target.**
+- [x] B126: **`0usize` rode verbatim into every target.**
 
 - [x] B125: **a Rust tuple struct silently lost its payload.**
 
 - [x] B124: **`let _ = f();` declared something with no name.**
 
-- [x] B123: **a TypeScript class member is public unless it says otherwise. Every one of
-  them was read as private.**
+- [x] B123: **a TypeScript class member is public unless it says otherwise. The reader
+  took every one for private.**
 
 - [x] B122: **Python's `x = 1` is a declaration the first time and an assignment every time
-  after. All of them were read as declarations.**
+  after. The reader took every one for a declaration.**
 
 - [x] B121: **the receiver had six names and the IR recorded none of them.**
 
@@ -3268,7 +3267,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B118: **the Zig reader read named children only. In that grammar the `:` before a
   type, the `=` before a value and every operator are anonymous.**
 
-- [x] B117: **a `for` over two sequences. An `if`/`while` that unwraps an optional, were
+- [x] B117: **a `for` over two sequences. An `if`/`while` that unwraps an optional. The reader took both
   read as if they were the one-binding form.**
 
 - [x] B116: **Zig rejects a `var` nothing writes to.**
@@ -3330,7 +3329,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B91: **`fr signature move` could produce Python the interpreter rejects.**
 
-- [x] B90: **every Go function body was carried into a translation as a single comment.**
+- [x] B90: **every Go function body crossed into a translation as a single comment.**
 
 - [x] B89: **the recipe runner planned each step against the file on disk.**
 
@@ -3345,8 +3344,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B84: **a bare `xs.filter(p)` did not translate. A comprehension that kept every
   element it selected wrote out an identity `map`.**
 
-- [x] B83: **inlining a variable was refused whenever any name in its value appeared
-  anywhere else in the file.**
+- [x] B83: **inlining a variable refused whenever any name in its value appeared anywhere else in the file.**
 
 - [x] B82: **`fr signature X 'add:1:flag: bool:false'`, the example in the tool's own error
   message, did not work.**
@@ -3356,13 +3354,13 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B80: **`commit` chose how to write by feature flag and not by where the writes go.**
 
-- [x] B79: **`src/wasm.rs` could not be compiled without a wasm toolchain. So every edit to
-  the browser API was checked only by CI.**
+- [x] B79: **`src/wasm.rs` needed a wasm toolchain to compile. So CI alone ever checked an
+  edit to the browser API.**
 
 - [x] B78: **a foreign name that is a keyword in the target made the whole file
   unwritable.**
 
-- [x] B77: **Python's `*`, `/`, `*args` and `**kwargs` were read as ordinary
+- [x] B77: **the reader took Python's `*`, `/`, `*args` and `**kwargs` for ordinary
   parameters.** `def create_user(*, session, user_create)` produced
   `export function createUser(*: unknown, …)`, which TypeScript will not parse, caught
   by the translator's own parse check, on real code, in a file 1,300 fixture tests had
@@ -3371,23 +3369,23 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   had changed. `ParamKind` now models all four and `signatures_with_changed_calls`
   counts the difference.
 
-- [x] B76: **an optional chain was written away.**
+- [x] B76: **an optional chain went out flattened.**
 
 - [x] B75: **a TypeScript type assertion became `None`.**
 
-- [x] B74: **comments were reported as untranslatable constructs.**
+- [x] B74: **the report called comments untranslatable constructs.**
 
 - [x] B73: **`try`/`catch` had no counterpart in the IR. So whole handler bodies came out as
   one comment.**
 
 - [x] B72: **the Python writer decided "did I write anything" in each match arm.**
 
-- [x] B71: **the naming convention was applied at declarations and not at uses.**
+- [x] B71: **the naming convention reached declarations and not uses.**
 
 - [x] B70: **the Next.js route matcher required a leading slash. So no relative path was
   ever a route.**
 
-- [x] B69: **`await` was not in the IR. So every line containing one was carried verbatim.**
+- [x] B69: **the IR had no `await`. So every line holding one rode verbatim.**
 
 - [x] B68: **the Next.js translation counted handler signatures as failures and overwrote
   the helper count.**
@@ -3398,8 +3396,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B65: **a template metavariable the pattern never bound was caught by the wrong
   check.**
 
-- [x] B66: **`?repo=` picked the workspace for the JSON renderings and was ignored by the
-  page.**
+- [x] B66: **`?repo=` picked the workspace for the JSON renderings and the page ignored it.**
 
 - [x] B64: **a Rust method call resolved to a Zig method. A rename rewrote it.**
 
@@ -3410,7 +3407,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B61: **an edit re-parsed every file in the workspace.** zod 3144ms → 624ms, ripgrep
   860ms → 149ms.
 
-- [x] B60: **a file a refactoring created was never indexed.** The move reported success.
+- [x] B60: **the index never took in a file a refactoring created.** The move reported success.
 
 - [x] B59: **a message rendered the workspace root as nothing.**
 
@@ -3422,7 +3419,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B55: **`fr unused` named symbols `fr delete` could not remove.**
 
-- [x] B54: **a CSS class used by the markup was reported as dead.**
+- [x] B54: **a CSS class the markup reaches came back dead.**
 
 - [x] B53: **the browser reported symbols dead that the terminal reported live.**
 
@@ -3435,14 +3432,14 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 
 - [x] B49: **`fr implementations` answered nothing for an interface.**
 
-- [x] B47: **a new import was written inside a multi-line import statement.**
+- [x] B47: **a new import landed inside a multi-line import statement.**
 
 - [x] B48: a moved Python symbol left its module imports behind. `import os` binds
   `os` without naming it in the statement. So the name-based check that carries named
   imports never matched it, and the moved code lost `os.path`. Also carried now:
   `from __future__ import annotations`. It binds nothing at all and decides how
-  every annotation in the file is read. Without it, `str | None` stops parsing below
-  Python 3.10. It is placed first, where the language requires it.
+  the compiler reads every annotation in the file. Without it, `str | None` stops parsing
+  below Python 3.10. It now goes first, where the language requires it.
 
 - [x] B46: **a guard clause exited the wrong construct.**
 
@@ -3450,7 +3447,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   languages wrap a `fr restructure` fragment in nothing, so the statement the pattern
   writes is the outermost node. The descent that strips wrapper-introduced
   statement containers stripped that one too. The fragment then started six bytes
-  inside itself, and every such pattern was rejected as "not a valid fragment". Descending
+  inside itself, and every such pattern failed as "not a valid fragment". Descending
   is only correct when the child begins where the container does; `raise` does not.
   `fr restructure 'raise InvalidURL($X)' 'raise InvalidURL($X) from None'` now works
   on psf/requests.
@@ -3460,8 +3457,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B41: **the cache reused facts produced by a different extractor.**
 
 - [x] B42: Rust reached nothing through a path. `super::render_custom_markup(…)` and
-  `Patterns::from_low_args(…)` both resolved to nothing, because the prefix of a
-  `scoped_identifier` was never recorded. References now carry it, flagged as a path
+  `Patterns::from_low_args(…)` both resolved to nothing, because nothing recorded the prefix of a `scoped_identifier`. References now carry it, flagged as a path
   instead of a value. A path names a type or a module. The resolver matches it against
   a symbol's own qualifier with no type inference, since the source wrote the type down.
   This rule runs before every other: ripgrep declares four `from_low_args` methods in
@@ -3469,7 +3465,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   leave the other three looking dead.
 
 - [x] B43: a Rust test looked like dead code. Tests declare themselves with `#[test]`,
-  and the entry-point catalog could only match names and paths, ripgrep's are called
+  and the entry-point catalog could only match names and paths, while ripgrep's answer to
   `backslash`, `tab` and `carriage`. Catalogs gained `annotated_with`, which reads the
   annotations immediately above a definition, and Rust gained rules for `#[test]` and
   `#[bench]`. Detected test entry points in ripgrep went from 141 to 516, and its
@@ -3478,11 +3474,11 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B40: **`fr extract` put a Go binding above the declaration it read.** All three copies
   are now one.
 
-- [x] B39: **a Helm values key could not be renamed.**
+- [x] B39: **nothing would rename a Helm values key.**
 
 - [x] B35: **`--path` filters matched nothing, and reported that as nothing found.**
 
-- [x] B36: a relative path in a target was read from the shell's working directory
+- [x] B36: a relative path in a target resolved from the shell's working directory
   instead of the workspace `-C` names. So `fr -C ../helm refs pkg/x.go:3:6` failed
   with "reading pkg/x.go: No such file". Four sites had their own
   `canonicalize().unwrap_or(…)`, which kept the unusable path and let the failure
@@ -3491,7 +3487,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B37: a field access resolved to a local variable. `i.provData` bound to a
   `provData, err := …` two lines up. The nearest-definition rule ran before
   anything checked that a member access can only name a member. The field then had no
-  references at all and was reported as dead.
+  references at all and came back dead.
 
 - [x] B38: nothing tested the command line. Every test called the library directly.
   B35 and B36 both lived entirely in the layer between an argument and that
@@ -3503,23 +3499,23 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B27: a method call resolved to a package-level function of the same name.
   `w.contextWithTimeout(…)` and `time.Now()` are one syntax in Go, and the grammars
   capture only the callee, so nothing separated a member from a package-qualified
-  call. References now record the receiver they were written against, and an import
-  binding before the dot is what tells the two apart. Without it the method read as
+  call. References now record the receiver they sat under, and an import binding before
+  the dot tells the two apart. Without it the method read as
   dead while the function absorbed its call sites.
 
 - [x] B28: **file proximity decided which method a call meant.**
 
 - [x] B29: a binding resolved inside its own initialiser. helm's
   `templatesDirExists := run(…, templatesDirExists(path))` calls the package function
-  and *then* shadows it. Resolving the call to the variable being declared made the
+  and *then* shadows it. Resolving the call to the variable under declaration made the
   function look dead. The rule holds in Rust (`let x = x + 1`) and Python (`x = f(x)`)
   as well. All three apply it now.
 
 - [x] B30: a use bound to the nearest declaration in either direction. Go re-declares
   with `:=` mid-function. In helm, `var ret …` / `return ret` / `ret, err := …`
   bound the early return to the *later* binding. It sat 15 bytes closer. Value
-  bindings now prefer a declaration above the use; a function may still be called
-  above where it is written.
+  bindings now prefer a declaration above the use; a call to a function may still stand
+  above the declaration.
 
 - [x] B31: a package may declare one name twice under opposite build tags,
   `//go:build windows` and `//go:build !windows`. Resolution picked the first and
@@ -3534,16 +3530,16 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   stands.
 
 - [x] B34: `fr unused` had no way to narrow its report. On a polyglot repository every
-  Markdown heading drowned the code findings. `-C` could not be used to narrow
-  because a smaller index invents dead symbols instead of hiding them. Added
+  Markdown heading drowned the code findings. `-C` was no way to narrow, because a
+  smaller index invents dead symbols instead of hiding them. Added
   `--lang`, `--path` and `--internal`, which filter the report and not the index,
   with an unknown language name refused against the known list.
 
-- [x] B16: micro-rewrites were published for seven languages and tested on three.
+- [x] B16: micro-rewrites shipped for seven languages and had tests for three.
   `invert-if` and `guard-clause` negated the whole condition node, which in the C
   family and Zig *includes the brackets*. So both emitted `if !(a)`, valid Rust,
   a syntax error in TypeScript, TSX and Zig. Zig failed earlier still: its grammar
-  calls the consequence `body`, not `consequence`, so no part of the `if` was found.
+  calls the consequence `body`, not `consequence`, so the walk found no part of the `if`.
   The fix negates the expression inside the condition and splices within it, so
   whatever the grammar writes around it survives. `guard-clause` now builds its
   header from the source's own bytes instead of reinventing one per language.
@@ -3553,7 +3549,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B17: **`guard-clause` silently changed what Go programs do.**
 
 - [x] B18: `invert-if` accepted an `else if` chain and produced unparseable output.
-  The second condition is only tested when the first is false. So swapping the
+  The chain reaches the second condition only when the first is false. So swapping the
   branches changes which tests run; it is now refused with that reason. Also fixed:
   `else_body_of` returned the whole `else` clause when it did not recognise the body
   shape, splicing the `else` keyword into the consequence position.
@@ -3569,10 +3565,10 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
 - [x] B21: **a move produced files that parse and do not compile.**
 
 - [x] B22: a move wrote imports like `'../../../../../../../var/folders/…'`. It
-  happened when the destination was spelled differently from the indexed path: a
+  happened wherever the destination's spelling differed from the indexed path: a
   relative path, or `/var` where the index holds `/private/var`. In the relative case
   it silently added no import at all. `canonicalize()` had failed on a file that does
-  not exist yet and the result was passed through unchanged. The destination is now
+  not exist yet, and the result went through unchanged. The destination is now
   resolved through its parent directory, and a missing directory is an error. The move
   itself had a matching silent skip: a file needed an import, did not get one, and the
   run reported success. That is a failure now.
@@ -3592,12 +3588,11 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   than dropped quietly.
 
 - [x] B10: Helm values precedence stopped at the command line. Whether a
-  `values-*.yaml` is passed with `-f`, the order of several `-f` files, every
-  `--set`: all were invisible and reported undecided. A missing input caused it,
+  `values-*.yaml` rides on a `-f`, the order of several `-f` files, every
+  `--set`: all of it stayed invisible and came back undecided. A missing input caused it,
   not a limit. `fr flow back <target> -f values-prod.yaml --set a.b=c` supplies the
   invocation. Helm's order then decides it: chart `values.yaml` < each enclosing
-  parent chart < each `-f` in the order given < `--set`. The winner is marked, and
-  every loser stays listed, including a values file the caller says is *not* passed.
+  parent chart < each `-f` in the order given < `--set`. The report marks the winner and keeps every loser, including a values file the caller says is *not* passed.
   With nothing supplied the answer is what it was.
 
 - [x] B12: Terraform lost the third and later step past an index traversal. A query
@@ -3610,11 +3605,11 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   past the last character. Fixed: a trailing newline terminates the final line;
   columns clamp to the line end.
 
-- [x] B0b: `.gitignore` was ignored outside a git repository, so scans of worktrees
+- [x] B0b: the scan ignored `.gitignore` outside a git repository, so scans of worktrees
   and exported trees walked `target/`, `node_modules/` etc, `src/scan.rs`. Fixed with
   `WalkBuilder::require_git(false)`.
 
-- [x] B1: SCSS was parsed with the plain CSS grammar, so `$variables`, `@mixin`,
+- [x] B1: the plain CSS grammar parsed SCSS, so `$variables`, `@mixin`,
   `@include` and `@use` were all parse errors. Fixed at the root by adding the
   `tree-sitter-scss` grammar. A test asserts the CSS grammar still rejects SCSS
   syntax, so the split is real and not cosmetic.
@@ -3634,11 +3629,11 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   invisibly looked unused. Per-language guards now hold back and report: Python
   `__future__` imports, `__all__` re-exports and dotted registration imports;
   TypeScript type-only imports, JSDoc `{Foo}` mentions, JSX pragmas and `typeof X`;
-  Go blank imports and packages whose clause name cannot be derived from the path.
-  Zig was verified to need none. Two real false positives fell out of it: Python
+  and Go blank imports. So are packages whose path yields no clause name.
+  Zig turned out to need none. Two real false positives fell out of it: Python
   `import a.b` binds `a`, not `b`, and `gopkg.in/yaml.v2` binds `yaml`, not `v2`.
 
-- [x] B6: consecutive standalone Go `import "x"` lines were not sorted. The `import`
+- [x] B6: nothing sorted consecutive standalone Go `import "x"` lines. The `import`
   keyword sits outside the `import_spec` span, so it looked like unrelated code
   ending the block.
 
@@ -3646,7 +3641,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   Fixed by parsing the actions: paths resolve through pipelines, function arguments,
   `with` scopes, `$.` and into `define` bodies reached by `include`. Fields of a dot
   bound by `range`, values reached via `index .Values "a-b"`, and computed template
-  names are named as unresolved and not resolved.
+  names all come back unresolved rather than resolved.
 
 - [x] B8: Terraform splat traversals lost their trailing segments. `[*].id` and
   `.*.id` now capture every following attribute; B12 records what an index traversal

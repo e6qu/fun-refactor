@@ -103,7 +103,7 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
                 col: at.col,
             });
         }
-        message.push_str("\nRemove or repoint these uses first; nothing was changed.");
+        message.push_str("\nRemove or repoint these uses first; this changed nothing.");
         // A typed refusal, so the caller's exit code can say "refused" instead of a bare
         // failure.
         return Err(crate::refactor::Refusal::StillUsed {
@@ -185,10 +185,7 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
                 file: path.clone(),
                 line: 1,
                 col: 1,
-                detail: format!(
-                    "{}; uses hidden in it would not have been seen",
-                    gap.cause()
-                ),
+                detail: format!("{}; nothing here can see a use hidden in it", gap.cause()),
             });
         }
     }
@@ -301,8 +298,8 @@ impl UnusedReport {
                     .to_string()
             }
             SparedReason::ReachedByItsProperty => {
-                "its property is named elsewhere. A template or a mapper reaches a \
-                 JavaBean accessor by the property, never by the method"
+                "something elsewhere names its property. A template or a mapper reaches \
+                 a JavaBean accessor by the property, never by the method"
                     .to_string()
             }
             SparedReason::NamesTheFilesPlace => {
@@ -452,7 +449,7 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
 
     let named_in_a_string = names_in_string_literals(index);
 
-    // A class whose methods are entry points is reached, whatever calls them.
+    // A class whose methods are entry points stays reachable, whatever calls them.
     let mut holds_an_entrypoint: HashSet<SymbolId> = HashSet::new();
     for entry in entrypoints {
         let mut at = index.symbol(*entry).and_then(|s| s.container);
@@ -942,8 +939,8 @@ fn textual_occurrences(
             line: m.line,
             col: m.col,
             detail: format!(
-                "'{name}' is written here as text, with nothing linking it to the \
-                 declaration; it is not deleted and may \
+                "'{name}' appears here as text, with nothing linking it to the \
+                 declaration; this leaves it in place and it may \
                  be a use nothing can resolve"
             ),
         })

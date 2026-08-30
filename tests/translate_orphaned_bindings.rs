@@ -89,7 +89,7 @@ fn the_index_of_a_range_loop_is_bound() {
     let out = translated(tmp.path(), "weigh.go", INDEXED_GO, Language::Python);
     assert!(
         out.contains("for i, x in enumerate(xs):"),
-        "the position is bound beside the value.\n{out}"
+        "the position takes its binding beside the value.\n{out}"
     );
 }
 

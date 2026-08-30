@@ -391,7 +391,7 @@ impl CallGraph {
                         file.clone(),
                         format!(
                             "call site at byte {} names '{}', but the indexed source has no \
-                             such reference there; dispatch edges for this file were skipped",
+                             such reference there; this skipped the dispatch edges for it",
                             site.offset, site.name
                         ),
                     );
@@ -1290,8 +1290,8 @@ impl Hierarchy {
                         note(implementor, HierarchyBasis::InterfaceMethodSet);
                     }
                 }
-                // The declaring class is reached by its own name alone, which is the
-                // field-based heuristic, and the label says so.
+                // A caller reaches the declaring class by its own name alone, which is
+                // the field-based heuristic, and the label says so.
                 Family::Ts | Family::Java => {
                     note(abstraction.clone(), HierarchyBasis::MethodName);
                     for subclass in self.subtypes(family, abstraction) {

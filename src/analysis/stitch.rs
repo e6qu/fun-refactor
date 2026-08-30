@@ -495,7 +495,7 @@ pub fn reads_environment(language: Language) -> bool {
 fn variable_name_after(rest: &str, skip_arguments: usize) -> Option<String> {
     let mut rest = rest;
     for _ in 0..skip_arguments {
-        // Only a flat argument list is followed.
+        // This follows a flat argument list and no other.
         let comma = rest.find(',')?;
         if rest[..comma].contains(['(', ')', '{', '}']) {
             return None;
@@ -703,7 +703,7 @@ mod tests {
         assert_eq!(
             variable_name_after(" gpa.allocator(), \"PORT\")", 1),
             None,
-            "an argument that is itself a call is not followed"
+            "this does not follow an argument that is itself a call"
         );
         assert_eq!(variable_name_after("allocator)", 1), None);
     }

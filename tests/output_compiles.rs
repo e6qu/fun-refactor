@@ -35,7 +35,7 @@ fn moving_a_symbol_compiles() {
     must_plan("moving a symbol", &ws, planned);
     assert!(
         ws.read("tests/it.rs").contains("gate_plain::util::width"),
-        "the integration test was not repointed:\n{}",
+        "the move left the integration test pointing at the old path:\n{}",
         ws.read("tests/it.rs")
     );
 }
@@ -468,7 +468,7 @@ fn moving_a_go_symbol_compiles_or_refuses() {
         "moving a Go symbol",
         &ws,
         planned,
-        "is used from 2 file(s) outside package",
+        "2 file(s) outside package",
     );
 }
 
@@ -813,7 +813,7 @@ fn the_gate_reports_a_workspace_that_does_not_compile() {
     );
 
     if !tsc_is_available() {
-        eprintln!("compile gate: the TypeScript half of this check was skipped, tsc is absent");
+        eprintln!("compile gate: tsc is absent, so this skipped the TypeScript half of the check");
         return;
     }
     let ts = Workspace::typescript(&typescript());
@@ -840,7 +840,7 @@ fn the_gate_reports_a_workspace_that_does_not_compile() {
             "go build accepted a call to a function that does not exist"
         );
     } else {
-        eprintln!("compile gate: the Go half of this check was skipped, go is absent");
+        eprintln!("compile gate: go is absent, so this skipped the Go half of the check");
     }
 
     if Toolchain::Python.is_available() {
@@ -873,7 +873,7 @@ fn the_gate_reports_a_workspace_that_does_not_compile() {
             "the fixture's assertions did not notice a changed answer"
         );
     } else {
-        eprintln!("compile gate: the Python half of this check was skipped, python3 is absent");
+        eprintln!("compile gate: python3 is absent, so this skipped the Python half of the check");
     }
 
     if Toolchain::Zig.is_available() {
@@ -890,7 +890,7 @@ fn the_gate_reports_a_workspace_that_does_not_compile() {
             "zig accepted a call to a declaration the imported file does not have"
         );
     } else {
-        eprintln!("compile gate: the Zig half of this check was skipped, zig is absent");
+        eprintln!("compile gate: zig is absent, so this skipped the Zig half of the check");
     }
 
     if Toolchain::Javac.is_available() {
@@ -906,7 +906,7 @@ fn the_gate_reports_a_workspace_that_does_not_compile() {
             "javac accepted a call to a method that does not exist"
         );
     } else {
-        eprintln!("compile gate: the Java half of this check was skipped, javac is absent");
+        eprintln!("compile gate: javac is absent, so this skipped the Java half of the check");
     }
 }
 

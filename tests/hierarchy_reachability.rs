@@ -85,7 +85,7 @@ fn assert_never_exact(graph: &CallGraph, id: SymbolId) {
     for (_, edge) in graph.callers(id) {
         assert!(
             !edge.confidence.is_safe_to_rewrite(),
-            "a dispatch candidate must not be tagged {}",
+            "nothing may tag a dispatch candidate {}",
             edge.confidence.as_str()
         );
     }
@@ -216,7 +216,7 @@ fn rust_an_impl_reached_only_by_dispatch_is_not_reported_unused() {
         let id = method(&index, owner, "area");
         assert!(
             !report.unused.contains(&id),
-            "{owner}::area is reached through &dyn Shape: {:?}",
+            "a call through &dyn Shape reaches {owner}::area: {:?}",
             report.unused
         );
     }

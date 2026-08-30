@@ -116,7 +116,7 @@ fn every_imperative_language_offers_nothing() {
     ] {
         assert!(
             translate::targets(language).is_empty(),
-            "{language} has no language it can be rewritten as"
+            "no language can hold {language}"
         );
     }
 }
@@ -161,7 +161,7 @@ fn the_offered_targets_all_actually_work_on_a_file_that_suits_them() {
             let outcome = translate::plan(&root.join(file), *target);
             assert!(
                 outcome.is_ok(),
-                "{language} offers {target}, but a file in the intersection was refused: {:?}",
+                "{language} offers {target}, and a file in the intersection refused: {:?}",
                 outcome.err().map(|e| e.to_string())
             );
         }

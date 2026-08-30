@@ -332,7 +332,7 @@ Error: refusing to delete 'releaseApplyMethod': 4 reference(s) still resolve to 
   pkg/action/action_test.go:2281:54
   pkg/action/install.go:676:23
   pkg/action/rollback.go:192:23
-Remove or repoint these uses first; nothing was changed.
+Remove or repoint these uses first; this changed nothing.
 ```
 
 ## 6. Configuration is code too

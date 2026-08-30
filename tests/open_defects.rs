@@ -65,7 +65,7 @@ fn dispatch_is_followed_as_far_as_the_source_shows_it() {
 
     assert!(
         !dead.contains(&"area"),
-        "the implementation is reached through the trait, so it is not dead: {dead:?}"
+        "a call through the trait reaches the implementation, so it is not dead: {dead:?}"
     );
     assert!(
         !dead.contains(&"candidate"),
@@ -73,8 +73,8 @@ fn dispatch_is_followed_as_far_as_the_source_shows_it() {
     );
     assert!(
         dead.contains(&"unnamed"),
-        "B5's remaining half is a function the source never names, and it is still listed. \
-         If it no longer is, update the entry: {dead:?}"
+        "B5's remaining half is a function the source never names, and the report still \
+         holds it. If it stops doing so, update the entry: {dead:?}"
     );
 
     // And the edge itself, which is what `fr callees` prints.
@@ -132,15 +132,15 @@ fn a_values_answer_names_the_channel_it_was_never_told_about() {
     let with =
         provenance::provenance_with_inputs(&index, key, 5, &some_supplied).expect("a report");
     assert!(
-        said(&with).contains("given the inputs supplied"),
-        "with some inputs the answer is decided given them, and names what is missing: {}",
+        said(&with).contains("given the inputs the caller gave"),
+        "with some inputs the answer settles on them, and names what is missing: {}",
         said(&with)
     );
 }
 
 #[test]
 fn a_call_through_a_name_reaches_every_function_put_behind_that_name() {
-    // The edge is keyed by the name, and two types may hold a field of the same name.
+    // The edge carries the name as its key, and two types may hold a field of that name.
     let (_tmp, root) = workspace(&[(
         "a.rs",
         "pub struct A {\n    pub run: fn() -> f64,\n}\npub struct B {\n    pub run: fn() -> f64,\n}\n         pub fn one() -> f64 {\n    1.0\n}\npub fn two() -> f64 {\n    2.0\n}\n         pub fn build() -> (A, B) {\n    (A { run: one }, B { run: two })\n}\n         pub fn call(a: &A) -> f64 {\n    (a.run)()\n}\n         pub fn blind<T>(h: &T, pick: fn(&T) -> fn() -> f64) -> f64 {\n    (pick(h))()\n}\n",
@@ -154,7 +154,7 @@ fn a_call_through_a_name_reaches_every_function_put_behind_that_name() {
         .collect();
     assert!(
         reached.contains(&symbol(&index, "one")),
-        "`A`'s own binding is reached: {reached:?}"
+        "the walk reaches `A`'s own binding: {reached:?}"
     );
     assert!(
         !reached.contains(&symbol(&index, "two")),

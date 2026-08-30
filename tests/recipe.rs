@@ -53,7 +53,7 @@ fn the_schema_comes_first_and_is_mandatory() {
     let error = recipe::parse("schema 99\nrecipe r { delete where unused }").unwrap_err();
     assert!(
         error.to_string().contains("understands schema 1"),
-        "a version this build was not written for must be refused, not guessed at: {error}"
+        "a version this build does not know has to refuse rather than guess: {error}"
     );
 }
 
@@ -413,7 +413,7 @@ fn a_requirement_that_does_not_hold_refuses_before_anything_runs() {
     .unwrap_err()
     .to_string();
     fun_refactor::vfs::use_filesystem();
-    assert!(error.contains("written for a different tree"), "{error}");
+    assert!(error.contains("expects a different tree"), "{error}");
 }
 
 #[test]
@@ -721,10 +721,10 @@ fn what_a_translation_could_not_carry_is_a_warning_against_its_source() {
 fn a_language_nothing_can_be_written_as_is_refused_while_the_recipe_is_read() {
     // Before a file is touched.
     let error = recipe::parse("schema 1\nrecipe port {\n  translate to sass where lang=go\n}\n")
-        .expect_err("nothing can be written as sass");
+        .expect_err("no writer produces sass");
     let said = error.to_string();
     assert!(
-        said.contains("nothing can be written as sass"),
+        said.contains("no writer produces sass"),
         "the refusal names the target: {said}"
     );
 
@@ -780,7 +780,7 @@ fn every_predicate_a_file_step_takes_is_a_predicate() {
     for field in recipe::FILE_PREDICATES {
         assert!(
             recipe::PREDICATES.contains(field),
-            "`{field}` is offered for a file step and is not a predicate at all"
+            "a file step accepts `{field}` and it is not a predicate at all"
         );
     }
 }

@@ -174,7 +174,7 @@ pub(crate) fn supports_imperative_extract(language: Language) -> bool {
     )
 }
 
-/// Can a value be extracted into a named binding in this language?
+/// Can this language name a value in a binding?
 pub fn supports_extract(language: Language) -> bool {
     supports_imperative_extract(language)
         || matches!(
@@ -369,7 +369,7 @@ mod tests {
 
     #[test]
     fn preserves_the_expression_bytes_verbatim() {
-        // Odd internal spacing survives because the original bytes are reused.
+        // Odd internal spacing survives because this copies the original bytes.
         let src = "fn f() {\n    let y = foo( 1,  2 );\n}\n";
         let (tmp, index) = workspace(&[("a.rs", src)]);
         let path = tmp.path().join("a.rs");
@@ -690,8 +690,8 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
     if yields_to_caller(&parsed, region) {
         anyhow::bail!(
             "the selected code contains a `yield`, which belongs to the function whose \
-             iteration the caller is driving; a call cannot hand that back, so this \
-             region cannot be extracted as-is"
+             iteration the caller is driving; a call cannot hand that back, so nothing can lift this \
+             region as it stands"
         );
     }
 
@@ -701,8 +701,8 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
     if is_async && !awaits_with_a_keyword(language) {
         anyhow::bail!(
             "the selected code awaits, and {language} does not spell that as a prefix \
-             keyword this can move onto the extracted function, so the region cannot be \
-             extracted as-is"
+             keyword this can move onto the extracted function, so nothing can lift the \
+             region as it stands"
         );
     }
 
@@ -786,8 +786,8 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
     if !carried.is_empty() && language == Language::Zig {
         anyhow::bail!(
             "the selected code assigns to {}, declared outside it and read after it. \
-             A Zig parameter cannot be assigned, so the change cannot travel back, \
-             and this region cannot be extracted as-is.",
+             Nothing can assign a Zig parameter, so the change cannot travel back, \
+             and this region has to stay where it is.",
             carried.join(", ")
         );
     }
@@ -844,7 +844,7 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
         if !untyped.is_empty() {
             anyhow::bail!(
                 "cannot extract: {language} requires a type on every parameter, and the \
-                 type of {} was never written down, so there is none to copy. Annotate \
+                 declaration of {} names no type, so there is none to copy. Annotate \
                  the declaration(s) and try again",
                 untyped.join(", ")
             );
@@ -1006,7 +1006,7 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
     })
 }
 
-/// Where the extracted definition is spliced, and what it came out of.
+/// Where the extracted definition goes, and what it came out of.
 struct Placement {
     /// Byte offset the definition goes at.
     at: usize,
@@ -1126,15 +1126,15 @@ fn carried_receiver(
     if !matches!(language, Language::TypeScript | Language::Tsx) {
         return Err(refuse(format!(
             "the selected code reads `{keyword}`, and the extracted function is not a \
-             method, so it has no receiver to read it from. {language} cannot be handed \
+             method, so it has no receiver to read it from. Nothing can pass {language} \
              one as an ordinary parameter here."
         )));
     }
 
     let class = enclosing_class_node(parsed, region).ok_or_else(|| {
         refuse(
-            "the selected code reads `this` outside a class, so what it means is decided \
-             by the call and not by the text. A call to the extracted function would \
+            "the selected code reads `this` outside a class, so the call settles what it \
+             means, and not the text. A call to the extracted function would \
              decide it differently."
                 .into(),
         )
@@ -1144,8 +1144,8 @@ fn carried_receiver(
         .map(|n| Span::from(n).text(source).to_string())
     else {
         return Err(refuse(
-            "the selected code reads `this` inside a class expression with no name. The \
-             parameter that would carry it has no type to be given."
+            "the selected code reads `this` inside a class expression with no name. \
+             Nothing names a type for the parameter that would carry it."
                 .into(),
         ));
     };
@@ -1159,8 +1159,8 @@ fn carried_receiver(
     if let Some(member) = unreachable_member(parsed, source, region, class) {
         return Err(refuse(format!(
             "the selected code reads `{member}`, which `{class_name}` does not expose. A \
-             function outside the class cannot read it, so the region cannot be extracted \
-             out of the class."
+             function outside the class cannot read it, so the region has to stay inside \
+             the class."
         )));
     }
     if node_in_region(parsed, region, |kind| kind == "super") {
@@ -1413,7 +1413,7 @@ fn supports_imperative_extract_function(language: Language) -> bool {
     )
 }
 
-/// Can a region be extracted into something callable in this language?
+/// Can this language turn a region into something callable?
 pub fn supports_extract_function(language: Language) -> bool {
     supports_imperative_extract_function(language)
         || matches!(
@@ -1840,7 +1840,8 @@ fn render_call(
         false => format!("{name}({args})"),
     };
 
-    // A returned binding that already exists at the call site is assigned, never re-declared.
+    // A returned binding the call site already declares takes an assignment, never a second
+    // declaration.
     let all_carried = !returns.is_empty() && returns.iter().all(|r| carried.contains(r));
     match (returns.len(), language) {
         (0, Language::Python | Language::Go) => call,
@@ -2270,8 +2271,8 @@ fn yaml_anchor(
     if let Some(action) = parsed.masked_spans.iter().find(|a| a.overlaps(span)) {
         anyhow::bail!(
             "the selection at bytes {span} overlaps the template action `{}`. Helm \
-             `{{{{ ... }}}}` actions are masked out before the YAML parse, so nothing \
-             inside one is visible as YAML and no anchor can be placed there",
+             `{{{{ ... }}}}` actions sit behind a mask before the YAML parse, so nothing \
+             inside one shows up as YAML and no anchor has anywhere to go",
             action.text(&source)
         );
     }
@@ -2282,7 +2283,7 @@ fn yaml_anchor(
         anyhow::anyhow!(
             "no anchorable scalar at bytes {span} in {}; select a scalar value of a \
              mapping key or a sequence item (a value that already carries an anchor or \
-             alias, and a block scalar, cannot be anchored)",
+             alias, and a block scalar, take no anchor)",
             file.display()
         )
     })?;
@@ -2304,7 +2305,7 @@ fn yaml_anchor(
         let others = occurrences.len().saturating_sub(1);
         let detail = match others {
             0 => format!(
-                "`{value_text}` is written once in {}, so an anchor would bind a name \
+                "`{value_text}` appears once in {}, so an anchor would bind a name \
                  that nothing spends",
                 file.display()
             ),
@@ -2426,7 +2427,7 @@ fn css_custom_property(
     let parsed = Parsers::new().parse(language, &source)?;
     if parsed.has_errors() {
         anyhow::bail!(
-            "{} has syntax errors, so the selection cannot be located reliably",
+            "{} has syntax errors, so nothing can place the selection reliably",
             file.display()
         );
     }
@@ -2482,8 +2483,8 @@ fn css_custom_property(
         vec![value_span]
     };
 
-    // The indented syntax ends a declaration at the line and has no braces, so what is
-    // written differs from what the braced syntax writes.
+    // The indented syntax ends a declaration at the line and has no braces, so it takes a
+    // different spelling from the braced one.
     let indented = language == Language::Sass;
     let declaration = match indented {
         true => format!("{property}: {value_text}"),
@@ -2619,9 +2620,9 @@ fn sass_variable_insertion_point(
         let end = source[..declaration.end_byte()].trim_end().len();
         if end > first_use {
             anyhow::bail!(
-                "`{name}` is declared after the value being extracted is used in {}, so \
-                 the new declaration has nowhere to stand: it would read a variable that \
-                 does not exist yet. Move `{name}` above that use first",
+                "{0} declares `{name}` after the use this extracts from, so the new \
+                 declaration has nowhere to stand: it would read a variable that does \
+                 not exist yet. Move `{name}` above that use first",
                 file.display()
             );
         }
@@ -2858,8 +2859,8 @@ fn helm_named_template(file: &Path, span: Span, name: &str) -> Result<ExtractFun
     // flat namespace across every chart in a release.
     let chart_root = helm_chart_root(file).ok_or_else(|| {
         anyhow::anyhow!(
-            "no Chart.yaml above {}, so the chart name is unknown. A named template is \
-             addressed as `<chart>.<name>` across every chart in a release, and an \
+            "no Chart.yaml above {}, so the chart name is unknown. A named template \
+             answers to `<chart>.<name>` across every chart in a release, and an \
              include under the wrong name renders empty instead of failing",
             file.display()
         )
@@ -3058,7 +3059,7 @@ fn bash_variable(
     let parsed = Parsers::new().parse(Language::Bash, &source)?;
     if parsed.has_errors() {
         anyhow::bail!(
-            "{} has syntax errors, so the selection cannot be located reliably",
+            "{} has syntax errors, so nothing can place the selection reliably",
             file.display()
         );
     }
@@ -3090,7 +3091,7 @@ fn bash_variable(
     if strict_ancestor_of_kind(value, "heredoc_body").is_some() {
         anyhow::bail!(
             "the selection is inside a here-document body, whose bytes are data rather \
-             than a value position; a binding cannot be spliced in front of it"
+             than a value position, so a binding has nowhere to go in front of it"
         );
     }
 
@@ -3176,8 +3177,8 @@ fn bash_extractable(node: Node<'_>) -> Option<Node<'_>> {
     }
 }
 
-/// Node kinds whose children are complete statements, so a binding may be spliced in
-/// front of any one of them.
+/// Node kinds whose children are complete statements, so a binding may go in front of any one
+/// of them.
 fn bash_is_statement_container(kind: &str) -> bool {
     matches!(
         kind,
@@ -3209,8 +3210,8 @@ fn bash_statement(node: Node<'_>) -> Result<Node<'_>> {
                 Some(then) if current.start_byte() >= then.end_byte() => return Ok(current),
                 _ => anyhow::bail!(
                     "the selection is part of the condition of an `if`; a binding \
-                         spliced in front of it would become the command whose exit \
-                         status is tested"
+                         in front of it would take over as the command whose exit \
+                         status decides the branch"
                 ),
             },
             "while_statement" | "until_statement" | "c_style_for_statement" => anyhow::bail!(
@@ -3283,7 +3284,7 @@ fn bash_function(
     let parsed = Parsers::new().parse(Language::Bash, &source)?;
     if parsed.has_errors() {
         anyhow::bail!(
-            "{} has syntax errors, so the selection cannot be located reliably",
+            "{} has syntax errors, so nothing can place the selection reliably",
             file.display()
         );
     }
@@ -3316,13 +3317,13 @@ fn bash_function(
     if let Some(word) = bash_escaping_control_flow(&parsed, region, &source) {
         anyhow::bail!(
             "the selected code contains a `{word}` that leaves the enclosing function or \
-             loop; a call cannot reproduce that, so this region cannot be extracted as-is"
+             loop; a call cannot reproduce that, so nothing can lift this region as it stands"
         );
     }
 
     if let Some(local) = bash_local_used_after(&parsed, region, &source) {
         anyhow::bail!(
-            "the selection declares `local {local}` and `{local}` is read after it. A \
+            "the selection declares `local {local}` and later code reads `{local}`. A \
              `local` belongs to the function that declares it, so moving the declaration \
              into a new function would leave the later read seeing the outer value"
         );
@@ -3524,7 +3525,7 @@ fn sass_mixin(
     let parsed = Parsers::new().parse(language, &source)?;
     if parsed.has_errors() {
         anyhow::bail!(
-            "{} does not parse cleanly, so the selection cannot be located reliably",
+            "{} does not parse cleanly, so nothing can place the selection reliably",
             file.display()
         );
     }
@@ -3572,7 +3573,7 @@ fn sass_mixin(
     if let Some(other) = selected.iter().find(|c| c.kind() != "declaration") {
         anyhow::bail!(
             "the selection contains a `{}`; only declarations move into a mixin \
-             unchanged, so this region is refused and not reinterpreted",
+             unchanged, so this region refuses and not reinterpreted",
             other.kind()
         );
     }
@@ -3686,8 +3687,8 @@ fn xml_entity(file: &Path, span: Span, name: &str, all_occurrences: bool) -> Res
     if matches!(name, "lt" | "gt" | "amp" | "quot" | "apos") {
         return Err(invalid(
             name,
-            "that is one of XML's five predefined entities, which may not be redeclared \
-             with a different value",
+            "that is one of XML's five predefined entities, and no document may declare \
+             one again with a different value",
         ));
     }
 
@@ -3695,7 +3696,7 @@ fn xml_entity(file: &Path, span: Span, name: &str, all_occurrences: bool) -> Res
     let parsed = Parsers::new().parse(Language::Xml, &source)?;
     if parsed.has_errors() {
         anyhow::bail!(
-            "{} has syntax errors, so the selection cannot be located reliably",
+            "{} has syntax errors, so nothing can place the selection reliably",
             file.display()
         );
     }

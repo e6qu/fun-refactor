@@ -164,8 +164,8 @@ fn a_grouped_plain_import_narrows_around_a_kept_submodule() {
 
 #[test]
 fn an_unused_namespace_import_is_pruned_like_a_named_one() {
-    // `import * as fs` is recorded as a glob for resolution's sake, but it binds exactly one
-    // name.
+    // Extraction records `import * as fs` as a glob for resolution's sake, and it binds exactly
+    // one name.
     let (plan, updated, _) = organize(
         &[(
             "a.ts",
@@ -336,7 +336,7 @@ fn a_rust_trait_imported_only_for_its_methods_is_kept() {
 
     assert!(
         plan.removed.is_empty(),
-        "a possible trait import must not be removed: {:?}",
+        "a possible trait import has to stay: {:?}",
         plan.removed
     );
     assert!(updated.contains("use std::fmt::Write;"), "got:\n{updated}");
@@ -367,7 +367,7 @@ fn sorts_a_block_by_path() {
 #[test]
 fn sorting_reorders_bytes_and_never_rewrites_them() {
     // Odd spacing, a trailing comment-free tail and a non-canonical `;` position all have to
-    // come through untouched: statements are moved.
+    // come through untouched: the sort moves whole statements.
     let (_plan, updated, _) = organize(
         &[(
             "a.rs",

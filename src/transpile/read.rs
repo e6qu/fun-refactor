@@ -1138,7 +1138,7 @@ mod rust {
         Some(Stmt::Assert { condition, message })
     }
 
-    /// A `match` whose arms are selected by literals, as a switch.
+    /// A `match` whose literal arms pick a branch, as a switch.
     fn match_switch(cx: &Cx, node: Node<'_>) -> Option<Stmt> {
         let subject = cx.field(node, "value")?;
         let body = cx.field(node, "body")?;
@@ -1997,8 +1997,8 @@ mod rust {
         let [only] = parameters.as_slice() else {
             return None;
         };
-        // `|&n|` and `|n|` bind the same element; the pattern says how it is
-        // taken, and no target has a way to take it differently.
+        // `|&n|` and `|n|` bind the same element; the pattern says how to take it, and no
+        // target has another way.
         let bound = cx.text(*only);
         let name = bound.trim_start_matches(['&', '*']).to_string();
         if name.is_empty() || !name.chars().all(|c| c.is_alphanumeric() || c == '_') {
@@ -2023,8 +2023,7 @@ mod rust {
                 ("filter", [only]) if condition.is_none() => {
                     condition = Some(one_argument_closure(cx, *only)?)
                 }
-                // These say how the elements are handed over, which is a question only Rust
-                // asks.
+                // These say how each element crosses, which is a question only Rust asks.
                 ("iter" | "into_iter" | "cloned" | "copied", []) => {}
                 // Anything else in the chain does something this shape cannot say.
                 _ => return None,
@@ -5009,8 +5008,8 @@ mod go {
                     }
                     return Expr::MapLit(entries);
                 }
-                // `struct{}{}` is the value Go writes where nothing is
-                // carried, and it is what a set stores under each member.
+                // `struct{}{}` is the value Go writes where nothing rides along, and a set
+                // stores it under each member.
                 if cx
                     .field(node, "type")
                     .is_some_and(|t| t.kind() == "struct_type")
@@ -6673,7 +6672,7 @@ mod zig {
             })
     }
 
-    /// A `switch` whose cases are selected by literals, as the shared switch.
+    /// A `switch` whose literal cases pick a branch, as the shared switch.
     fn switch_stmt(cx: &Cx, node: Node<'_>) -> Option<Stmt> {
         let children = cx.children(node);
         let subject_node = children.first().copied()?;
@@ -10370,7 +10369,7 @@ mod typescript {
         super::each_expr_in_module(module, &mut |e| settle(e, None));
     }
 
-    /// A `switch` whose cases are selected by literals and leave before the next case, as the
+    /// A `switch` whose literal cases pick a branch and leave before the next case, as the
     /// shared switch.
     fn ts_switch(cx: &Cx, node: Node<'_>) -> Option<Stmt> {
         let subject = cx.field(node, "value")?;

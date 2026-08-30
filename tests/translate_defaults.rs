@@ -24,7 +24,7 @@ fn a_default_reading_a_parameter_becomes_the_sentinel_idiom() {
     );
     assert!(
         py.contains("if width is None:"),
-        "the default is computed where the parameters exist.\n{py}"
+        "the default runs where the parameters exist.\n{py}"
     );
     assert!(
         !py.contains("= text.length + 2)"),

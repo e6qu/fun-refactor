@@ -18,8 +18,8 @@ pub struct MovePlan {
     pub from: PathBuf,
     pub to: PathBuf,
     pub edits: EditSet,
-    /// Files that gained an import, or, in Markdown, which has none, whose links
-    /// were repointed at the new document.
+    /// Files that gained an import, or, in Markdown, which has none, whose links now point at
+    /// the new document.
     pub imports_added: Vec<PathBuf>,
     /// Things the move could not fix and a human must check.
     pub warnings: Vec<String>,
@@ -74,7 +74,7 @@ pub fn to_file(index: &Index, symbol: SymbolId, destination: &Path) -> Result<Mo
 
     let Some(dest_language) = crate::lang::detect(destination) else {
         bail!(
-            "the destination {} has no recognised language, so '{}' cannot be moved into it",
+            "the destination {} has no recognised language, so '{}' has nowhere to land in it",
             destination.display(),
             sym.name
         );
@@ -135,7 +135,7 @@ pub fn to_file(index: &Index, symbol: SymbolId, destination: &Path) -> Result<Mo
     }
 }
 
-/// May a symbol written in `from` be moved into a file of language `to`?
+/// May a symbol written in `from` land in a file of language `to`?
 fn interchangeable(from: Language, to: Language) -> bool {
     from == to
         || matches!(
@@ -261,8 +261,8 @@ fn repoint_re_export(
         }
         let module = relative_module(barrel, destination).ok_or_else(|| {
             anyhow::anyhow!(
-                "cannot express {} as a module path from {}, so the re-export of '{}' \
-                 cannot be repointed",
+                "cannot express {} as a module path from {}, so nothing can repoint the \
+                 re-export of '{}'",
                 destination.display(),
                 barrel.display(),
                 sym.name
@@ -330,8 +330,8 @@ fn repoint_re_export(
             false => {
                 let module = relative_module(barrel, destination).ok_or_else(|| {
                     anyhow::anyhow!(
-                        "cannot express {} as a module path from {}, so the re-export of \
-                         '{}' cannot be repointed",
+                        "cannot express {} as a module path from {}, so nothing can repoint \
+                         the re-export of '{}'",
                         destination.display(),
                         barrel.display(),
                         sym.name
@@ -369,7 +369,7 @@ fn reaches_through_a_barrel(index: &Index, file: &Path, barrels: &[PathBuf], nam
 fn move_by_relative_import(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
     if sym.container.is_some() {
         bail!(
-            "'{}' is nested inside another definition; only top-level symbols can be moved",
+            "'{}' is nested inside another definition; only a top-level symbol moves",
             sym.name
         );
     }
@@ -650,8 +650,8 @@ fn carried_imports(
         // `import os` binds `os` without naming it anywhere in the statement, and the moved
         // code reaches `os.path.basename` through that binding.
         let implicit = crate::refactor::imports::implicit_binding(&statement.path, sym.language);
-        // `from __future__ import annotations` binds nothing and changes how every annotation
-        // in the file is evaluated.
+        // `from __future__ import annotations` binds nothing and changes how the runtime reads
+        // every annotation in the file.
         let governs_the_file = statement.path == "__future__";
         let binds_something_used = governs_the_file
             || statement.names.iter().any(|n| used.contains(&n.local))
@@ -677,8 +677,8 @@ fn carried_imports(
                 source,
             )),
             None => plan.warnings.push(format!(
-                "the moved code uses `{}`, imported from `{}`; that path could not be \
-                 re-expressed from the new file and was not carried over",
+                "the moved code uses `{}`, imported from `{}`; the new file has no way to \
+                 spell that path, so this dropped the import",
                 statement
                     .names
                     .iter()
@@ -713,8 +713,8 @@ fn carried_imports(
                 imports_the_source_back = true;
             }
             None => plan.warnings.push(format!(
-                "the moved code uses {} from {}, and no import path back to it could be \
-                 written from the new file",
+                "the moved code uses {} from {}, and the new file has no way to spell an \
+                 import back to it",
                 names.join(", "),
                 sym.file.display()
             )),
@@ -1052,8 +1052,8 @@ fn named_import(
 fn import_statement(language: Language, from: &Path, to: &Path, name: &str) -> Result<String> {
     let unresolvable = || {
         anyhow::anyhow!(
-            "cannot express {} as a module path from {}, so the import {} needs after \
-             the move cannot be written",
+            "cannot express {} as a module path from {}, so nothing can spell the \
+             import {} needs after the move",
             to.display(),
             from.display(),
             name
@@ -1070,8 +1070,8 @@ fn import_statement(language: Language, from: &Path, to: &Path, name: &str) -> R
             format!("from {module} import {name}\n")
         }
         other => bail!(
-            "{other} does not move by relative import, so no import statement can be \
-             written for {name}"
+            "{other} does not move by relative import, so nothing can spell an import \
+             statement for {name}"
         ),
     })
 }
@@ -1268,7 +1268,7 @@ impl CrateModule {
 fn move_rust(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
     if sym.container.is_some() {
         bail!(
-            "'{}' is nested inside another definition; only top-level items can be moved",
+            "'{}' is nested inside another definition; only a top-level item can moved",
             sym.name
         );
     }
@@ -1410,12 +1410,11 @@ fn move_rust(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
         needs_use.insert(reference.file.clone());
     }
 
-    // A use site that cannot be repointed is a use site that will name a definition which is no
-    // longer there.
+    // A use site nothing can repoint is a use site left naming a definition that has gone.
     if !unverified.is_empty() {
         bail!(
-            "'{}' is used at {} site(s) that did not resolve conclusively, so the `use` \
-             each one needs cannot be written: {}. Moving it would leave them naming a \
+            "{1} site(s) using '{0}' did not resolve conclusively, so nothing can spell \
+             the `use` each one needs: {2}. Moving it would leave them naming a \
              definition that is no longer there",
             sym.name,
             unverified.len(),
@@ -1429,8 +1428,8 @@ fn move_rust(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
             Some(prefix) => format!("use {prefix}::{};", sym.name),
             None => {
                 plan.warnings.push(format!(
-                    "{}: it is outside {} and the package name is not readable from \
-                     Cargo.toml, so no `use` was written for '{}'",
+                    "{}: it sits outside {} and Cargo.toml gives up no package name, so \
+                     this wrote no `use` for '{}'",
                     file.display(),
                     to_module.src.display(),
                     sym.name
@@ -1506,9 +1505,9 @@ fn crate_module(file: &Path) -> Result<CrateModule> {
         return Err(Refusal::NotHere {
             operation: "move to file".into(),
             detail: format!(
-                "{} is not under a `src/` directory, so its module path cannot be derived \
-                 from its location; move it to a file under `src/` that the module tree \
-                 already declares",
+                "{} is not under a `src/` directory, so its location yields no module \
+                 path; move it to a file under `src/` that the module tree already \
+                 declares",
                 file.display()
             ),
         }
@@ -1867,8 +1866,8 @@ fn with_rust_attributes(source: &str, span: Span) -> Span {
 fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
     if sym.container.is_some() {
         bail!(
-            "'{}' is nested inside another definition; only top-level declarations can \
-             be moved",
+            "'{}' is nested inside another definition; only a top-level declaration \
+             moves",
             sym.name
         );
     }
@@ -1957,7 +1956,7 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
     };
     let import_path = go_import_path(dest_dir).ok_or_else(|| {
         anyhow::anyhow!(
-            "no go.mod above {}, so the import path of package {} cannot be derived",
+            "no go.mod above {}, so nothing yields the import path of package {}",
             crate::vfs::describe_dir(dest_dir),
             package
         )
@@ -1975,7 +1974,7 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
         .collect();
     if !stray.is_empty() {
         let mut message = format!(
-            "'{}' is used from {} file(s) outside package {}",
+            "{1} file(s) outside package {2} use '{0}'",
             sym.name,
             stray.len(),
             crate::vfs::describe_dir(source_dir)
@@ -1987,8 +1986,8 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
             ));
         }
         message.push_str(
-            "\nRequalifying an already-qualified use cannot be verified from names alone; \
-             nothing was changed.",
+            "\nNames alone cannot settle a requalified use; \
+             this changed nothing.",
         );
         bail!("{message}");
     }
@@ -1997,8 +1996,8 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
     // into another package names nothing there.
     let source_package = go_package(index, &sym.file).ok_or_else(|| {
         anyhow::anyhow!(
-            "{} has no package clause, so what the moved code leaves behind cannot \
-             be qualified.",
+            "{} has no package clause, so nothing can qualify what the \
+             moved code leaves behind.",
             sym.file.display()
         )
     })?;
@@ -2057,7 +2056,7 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
         if !existing.contains(&format!("\"{path}\"")) {
             let at = go_import_insertion_point(index, destination).ok_or_else(|| {
                 anyhow::anyhow!(
-                    "{} has no package clause, so an import cannot be placed in it",
+                    "{} has no package clause, so an import has nowhere to go in it",
                     destination.display()
                 )
             })?;
@@ -2082,7 +2081,7 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
     for reference in &outside {
         if !reference.confidence.is_safe_to_rewrite() {
             plan.warnings.push(format!(
-                "{}: '{}' resolves only '{}' here, so it was left unqualified",
+                "{}: '{}' resolves only '{}' here, so this left it unqualified",
                 location(&reference.file, reference.span.start),
                 sym.name,
                 reference.confidence.as_str()
@@ -2131,7 +2130,7 @@ fn move_go(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> 
         }
         let at = go_import_insertion_point(index, file).ok_or_else(|| {
             anyhow::anyhow!(
-                "{} has no package clause, so an import cannot be placed in it",
+                "{} has no package clause, so an import has nowhere to go in it",
                 file.display()
             )
         })?;
@@ -2427,8 +2426,8 @@ fn move_hcl(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan>
     if sym.kind == SymbolKind::Key {
         bail!(
             "'{}' is a value in a .tfvars file, not a declaration; which values file \
-             Terraform loads is decided by its name and the command line, so moving it \
-             between files changes whether it is applied at all",
+             Terraform loads follows from its name and the command line, so moving it \
+             between files decides whether it applies at all",
             sym.name
         );
     }
@@ -2439,7 +2438,7 @@ fn move_hcl(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan>
     if sym.container.is_some() && enclosing_locals.is_none() {
         bail!(
             "'{}' is an argument of an enclosing block, not a declaration of its own; \
-             only whole blocks and `locals` entries can be moved between files",
+             only a whole block or a `locals` entry moves between files",
             sym.name
         );
     }
@@ -2676,7 +2675,7 @@ fn move_markdown(index: &Index, sym: &Symbol, destination: &Path) -> Result<Move
     let taken = spans_between(removal, &definitions);
     let mut moved_text: String = taken.iter().map(|span| span.text(&source)).collect();
 
-    // Every anchor that travelled with the section, so links to it can be repointed.
+    // Every anchor that travelled with the section, so this can repoint links to it.
     let moved_slugs: HashSet<String> = headings
         .iter()
         .filter(|h| removal.contains(h.full_span))
@@ -2690,7 +2689,7 @@ fn move_markdown(index: &Index, sym: &Symbol, destination: &Path) -> Result<Move
 
     let mut plan = MovePlan::new(sym, destination);
 
-    // A definition the moved text uses is copied, so the section still reads as written.
+    // This copies a definition the moved text uses, so the section still reads as written.
     let (copied, left) = split_by_use(index, &definitions, &taken, &sym.file);
     for definition in &definitions {
         if copied.contains(&definition.name) {
@@ -2981,8 +2980,8 @@ fn relative_link(from_dir: &Path, to: &Path) -> Option<String> {
 fn move_zig(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
     if sym.container.is_some() {
         bail!(
-            "'{}' is nested inside another declaration; only top-level declarations can \
-             be moved",
+            "'{}' is nested inside another declaration; only a top-level declaration \
+             moves",
             sym.name
         );
     }
@@ -3087,8 +3086,8 @@ fn move_zig(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan>
                         detail: format!(
                             "{} would have to reach {} through a relative path that climbs \
                              above its own directory. Zig refuses an `@import` that leaves \
-                             the module root, and where that root is cannot be read off \
-                             the two paths, so no import can be written for it",
+                             the module root, and the two paths do not say where that \
+                             root sits, so nothing can spell an import for it",
                             file.display(),
                             destination.display()
                         ),
@@ -3123,15 +3122,15 @@ fn move_zig(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan>
         let mut repointed: Vec<Span> = Vec::new();
         for reference in references {
             match zig_qualifier(&parsed, reference.span) {
-                // `other.thing`, the namespace it was reached through has to change.
+                // `other.thing`, the namespace the call went through, has to change.
                 Some(object) => {
                     let qualifier = Span::from(object).text(&text);
                     let names_source = zig_import_binding_target(index, file, qualifier).as_deref()
                         == Some(&*sym.file);
                     if !names_source {
                         plan.warnings.push(format!(
-                            "{}: `{qualifier}.{}` is not reached through an `@import` of {}, \
-                             so it was left alone",
+                            "{}: `{qualifier}.{}` does not come through an `@import` of {}, \
+                             so this left it alone",
                             location(file, reference.span.start),
                             sym.name,
                             sym.file.display()
@@ -3158,8 +3157,8 @@ fn move_zig(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan>
                     ),
                 ),
                 None => plan.warnings.push(format!(
-                    "{}: `{}` is named without a namespace in a file that does not declare \
-                     it, which Zig cannot resolve either way; it was left alone",
+                    "{}: `{}` carries no namespace in a file that does not declare it, which \
+                     Zig cannot resolve either way; this left it alone",
                     location(file, reference.span.start),
                     sym.name
                 )),
@@ -3287,7 +3286,7 @@ fn zig_namespace_name(destination: &Path) -> Result<String> {
     }
     if out.is_empty() {
         bail!(
-            "{} has no file name a Zig identifier can be derived from",
+            "{} has no file name that yields a Zig identifier",
             destination.display()
         );
     }
@@ -3338,7 +3337,7 @@ fn move_bash(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
 
     if sym.kind != SymbolKind::Function {
         bail!(
-            "'{}' is {}; only a function can be moved between scripts. A variable's \
+            "'{}' is {}; only a function moves between scripts. A variable's \
              value depends on when its assignment ran, so moving one changes what it \
              holds and not where it lives",
             sym.name,
@@ -3348,7 +3347,7 @@ fn move_bash(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
     if sym.container.is_some() {
         bail!(
             "'{}' is defined inside another function or subshell; only a top-level \
-             function can be moved",
+             function moves",
             sym.name
         );
     }
@@ -3423,8 +3422,8 @@ fn move_bash(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan
         // function, so the move does not break it.
         if *file != sym.file && !shell_reaches(&sources, file, &sym.file) {
             plan.warnings.push(format!(
-                "{} runs `{}` {uses} time(s) but never sources {}, so it was already \
-                 calling something else and was left alone",
+                "{} runs `{}` {uses} time(s) but never sources {}, so it already called \
+                 something else; this left it alone",
                 file.display(),
                 sym.name,
                 sym.file.display()
@@ -3526,13 +3525,13 @@ fn shell_prelude_end(source: &str) -> usize {
     point
 }
 
-// YAML and Helm: a values key is addressed by its path, which names no file.
+// YAML and Helm: a values key carries its address in its path, which names no file.
 
 fn move_values_key(index: &Index, sym: &Symbol, destination: &Path) -> Result<MovePlan> {
     if sym.kind != SymbolKind::Key {
         bail!(
             "'{}' is {}; only a mapping key and the subtree under it can move between \
-             values files. An anchor is resolved within one document and does not \
+             values files. An anchor reaches within one document and does not \
              survive leaving it",
             sym.name,
             sym.kind.with_article()
@@ -3542,7 +3541,7 @@ fn move_values_key(index: &Index, sym: &Symbol, destination: &Path) -> Result<Mo
         bail!(
             "'{}' is nested under `{}`, so its address is the whole path down to it. \
              Appending it to the top level of {} would change that path and every \
-             reference with it; only a top-level key can be moved",
+             reference with it; only a top-level key moves",
             sym.name,
             container.name,
             destination.display()
@@ -3639,8 +3638,8 @@ fn move_values_key(index: &Index, sym: &Symbol, destination: &Path) -> Result<Mo
         .unwrap_or_default();
     if file_name.eq_ignore_ascii_case("values.yaml") {
         plan.warnings.push(format!(
-            "`helm install` reads only values.yaml by default, so `{}` will be unset \
-             unless {} is passed with `-f`",
+            "`helm install` reads only values.yaml by default, so `{}` stays unset \
+             unless the caller passes {} with `-f`",
             sym.name,
             destination.display()
         ));
@@ -3820,7 +3819,7 @@ fn warn_about_carried_imports(
                 .any(|r| r.name == name && !removal.contains(r.span));
             if !still_used {
                 plan.warnings.push(format!(
-                    "{} imports '{}' only for the code being moved; the import may now \
+                    "{} imports '{}' only for the code this moves; the import may now \
                      be unused",
                     sym.file.display(),
                     import.path
@@ -3930,8 +3929,8 @@ fn carry_defined_dependencies(
     }
 
     plan.warnings.push(format!(
-        "the moved code uses {} defined in {}, and no import naming {} from {} could be \
-         written; add it by hand or the moved code will not compile",
+        "the moved code uses {} defined in {}, and nothing can spell an import naming \
+         {} from {}; add it by hand or the moved code will not compile",
         names.join(", "),
         sym.file.display(),
         if names.len() == 1 { "it" } else { "them" },
@@ -3989,7 +3988,7 @@ fn location(file: &Path, offset: usize) -> String {
     format!("{}:{}", file.display(), position)
 }
 
-/// Symbols eligible to be moved, by what a move means in each language.
+/// The symbols a move accepts, by what a move means in each language.
 pub fn movable(index: &Index, file: &Path) -> Vec<SymbolId> {
     let Some(info) = index.file(file) else {
         return Vec::new();

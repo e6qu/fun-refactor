@@ -38,7 +38,7 @@ mod memory {
         HANDED_OVER.with(|h| *h.borrow_mut() = true);
     }
 
-    /// Has a workspace been handed over on this thread?
+    /// Does this thread hold a workspace?
     #[cfg(not(target_arch = "wasm32"))]
     pub fn is_active() -> bool {
         HANDED_OVER.with(|h| *h.borrow())

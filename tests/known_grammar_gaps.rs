@@ -500,7 +500,7 @@ fn go_reads_the_builtin_forms_of_new_and_make() {
         .expect("the grammar loads");
     assert!(
         parsed.tree.root_node().to_sexp().contains("map_type"),
-        "the first argument is still read as a type"
+        "the reader still takes the first argument for a type"
     );
 }
 

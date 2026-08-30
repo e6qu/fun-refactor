@@ -71,7 +71,7 @@ fn a_receiver_declared_the_owning_class_renames_with_the_property() {
     let out = applied(tmp.path(), "box.py", &plan);
     assert!(
         out.contains("b.width = 3") && out.contains("return b.width"),
-        "`b` is declared `Box`, and `Box` declares the property.\n{out}"
+        "`Box` declares `b`, and `Box` declares the property.\n{out}"
     );
 }
 
@@ -138,7 +138,7 @@ fn an_unrelated_class_with_the_same_property_name_stays_put() {
     let out = applied(tmp.path(), "crate_.py", &plan);
     assert!(
         out.contains("c.size") && out.contains("def size"),
-        "`c` is declared `Crate`, which is not what is being renamed.\n{out}"
+        "`Crate` declares `c`, and this rename does not touch that.\n{out}"
     );
 }
 
@@ -160,7 +160,7 @@ fn a_receiver_assigned_twice_holds_its_call_back() {
     assert!(
         plan.warnings
             .iter()
-            .any(|w| w.detail.contains("assigned more than once")),
+            .any(|w| w.detail.contains("more than one assignment writes")),
         "and the report says why: {:?}",
         plan.warnings
     );
@@ -178,6 +178,6 @@ fn an_aliased_base_class_still_joins_the_family() {
     let out = applied(tmp.path(), "sub.py", &plan);
     assert!(
         out.contains("self.total += 1"),
-        "the alias is followed to the class it names.\n{out}"
+        "resolution follows the alias to the class it names.\n{out}"
     );
 }

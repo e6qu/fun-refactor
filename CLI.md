@@ -145,8 +145,8 @@ fr callers <TARGET> [--depth <N>]
 fr callees <TARGET> [--depth <N>]
 ```
 
-Each edge carries its confidence and its origin. An edge from a hierarchy fan-out
-is marked, and so is one through a function held in a field. A walk stops at an
+Each edge carries its confidence and its origin. The output marks an edge from
+a hierarchy fan-out, and one through a function held in a field. A walk stops at an
 unresolved call and says so rather than guessing past it.
 
 ### `fr graph`
@@ -184,7 +184,7 @@ fr flow <backward|forward> <TARGET> [--depth <N>]
 For imperative languages this is dataflow. For a configuration language with a
 substitution model it is provenance: which document overrode which. The `--set`
 family supplies Helm values the way `helm` itself takes them, so a chain that
-depends on one can be followed.
+depends on one still resolves.
 
 ### `fr stitch`
 
@@ -418,8 +418,8 @@ Two different promises share this command.
   target's extension, checked by the target's parser. A `.ts` becomes a `.tsx`,
   a CSS file becomes SCSS, a YAML manifest becomes a Helm template.
 - Between programming languages, the result is a draft. Signatures carry with
-  their types where the source gave them. Every construct without a counterpart
-  is marked in the output and counted in the report. The intermediary language
+  their types where the source gave them. The output marks every construct without
+  a counterpart, and the report counts it. The intermediary language
   this goes through is documented in [IR.md](IR.md).
 
 `--out` chooses the destination and `--force` overwrites. The original always
@@ -434,7 +434,7 @@ fr openapi [--out <PATH>] [--yaml]
 Derive an OpenAPI document from a route tree. Reads a Next.js `app/api`
 directory, a FastAPI router, and Express, Flask, axum, gin and Spring beside
 them. Paths, methods and path parameters are exact. Anything the source left
-undeclared is listed as undeclared and not invented.
+undeclared stays undeclared here, rather than invented.
 
 ## Housekeeping
 
@@ -444,8 +444,8 @@ undeclared is listed as undeclared and not invented.
 fr cache [--clear]
 ```
 
-Inspect or clear the fact cache. The cache is keyed by content and by the
-version of everything that could change a fact, so a stale answer is not
+Inspect or clear the fact cache. The cache keys an entry by content and by
+the version of everything that could change a fact, so a stale answer is not
 findable. `--clear` is for when you want to prove that.
 
 ### `fr completions`

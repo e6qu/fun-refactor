@@ -173,7 +173,7 @@ fn rust_refuses_when_a_parameter_type_was_never_written() {
     let err = extract::function(&index, &path, lines(src, 3, 3), "show")
         .unwrap_err()
         .to_string();
-    assert!(err.contains("never written down"), "got: {err}");
+    assert!(err.contains("names no type"), "got: {err}");
     assert!(
         err.contains("width"),
         "the blocking name should be named: {err}"
@@ -352,7 +352,7 @@ fn a_binding_mutated_in_the_region_travels_back_as_a_return() {
     let out = apply(&plan, &path);
     assert!(
         out.contains("    total = add_up(items, total)"),
-        "the changed value is assigned back.\n{out}"
+        "the caller takes the changed value back.\n{out}"
     );
     assert!(
         out.contains("def add_up(items, total):"),
@@ -411,7 +411,7 @@ fn a_typescript_assignment_target_is_a_use_of_the_binding() {
 
 #[test]
 fn zig_refuses_a_region_that_assigns_an_outside_binding() {
-    // A Zig parameter cannot be assigned, so the changed value has no way back.
+    // Nothing can assign a Zig parameter, so the changed value has no way back.
     let src = "fn tally(items: []const i64) i64 {\n    var total: i64 = 0;\n    \
                for (items) |item| {\n        total += item;\n    }\n    return total;\n}\n";
     let (tmp, index) = workspace(&[("a.zig", src)]);
@@ -420,7 +420,10 @@ fn zig_refuses_a_region_that_assigns_an_outside_binding() {
     let err = extract::function(&index, &path, lines(src, 3, 5), "addUp")
         .unwrap_err()
         .to_string();
-    assert!(err.contains("cannot be assigned"), "got: {err}");
+    assert!(
+        err.contains("Nothing can assign a Zig parameter"),
+        "got: {err}"
+    );
     assert!(
         err.contains("total"),
         "the refusal names the binding: {err}"
@@ -457,7 +460,7 @@ fn java_extracts_with_types_copied_and_the_mutation_carried_back() {
     let out = apply(&plan, &path);
     assert!(
         out.contains("total = addUp(items, total);"),
-        "the changed value is assigned back, never re-declared.\n{out}"
+        "the caller assigns the changed value back, never declaring it again.\n{out}"
     );
     assert!(
         out.contains("    static int addUp(int[] items, int total) {"),
@@ -491,7 +494,7 @@ fn java_refuses_when_a_local_type_is_beyond_reach() {
     let err = extract::function(&index, &path, lines(src, 4, 4), "doubled")
         .unwrap_err()
         .to_string();
-    assert!(err.contains("never written down"), "got: {err}");
+    assert!(err.contains("names no type"), "got: {err}");
     assert!(err.contains("n"), "the blocking name is named: {err}");
 }
 
@@ -631,7 +634,7 @@ fn extracting_from_a_method_that_is_not_the_last_keeps_the_class_whole() {
     let plan = extract::function(&index, &path, lines(src, 6, 6), "record").expect("a plan");
     let out = apply(&plan, &path);
     let definition = out.find("\ndef record(").unwrap_or_else(|| {
-        panic!("the definition is hoisted out of the class:\n{out}");
+        panic!("the definition rises out of the class:\n{out}");
     });
     let total = out.find("    def total(self):").expect("total survives");
     assert!(

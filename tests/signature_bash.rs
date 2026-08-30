@@ -370,7 +370,7 @@ fn notes_a_call_that_cannot_be_reordered_for_want_of_positions() {
     )
     .unwrap();
     assert!(
-        plan.notes.iter().any(|n| n.contains("not both present")),
+        plan.notes.iter().any(|n| n.contains("holds no position")),
         "got: {:?}",
         plan.notes
     );
@@ -521,7 +521,7 @@ fn refuses_a_recursive_call_whose_argument_is_also_renumbered() {
         symbol_id(&index, "f"),
         Change::Move { from: 0, to: 1 },
     ));
-    assert!(message.contains("rewritten twice"), "got: {message}");
+    assert!(message.contains("land on the same bytes"), "got: {message}");
 }
 
 #[test]
@@ -780,7 +780,7 @@ fn two_definitions_of_one_name_refuse_without_mentioning_renaming() {
         Change::Move { from: 0, to: 1 },
     ));
     assert!(
-        message.contains("also defined in") && message.contains("cannot be updated"),
+        message.contains("also defined in") && message.contains("nothing can update"),
         "got: {message}"
     );
     assert!(

@@ -245,7 +245,7 @@ fn deleting_a_function_takes_the_import_only_it_used() {
         if !fixture.keeps.is_empty() {
             assert!(
                 after.contains(fixture.keeps),
-                "{} dropped `{}`, which is still used:\n{after}",
+                "{} dropped `{}`, and something still reaches it:\n{after}",
                 fixture.language,
                 fixture.keeps
             );
@@ -283,7 +283,7 @@ fn removing_a_flag_takes_the_import_its_dead_branch_used() {
         if !fixture.keeps.is_empty() {
             assert!(
                 after.contains(fixture.keeps),
-                "{} dropped `{}`, which is still used:\n{after}",
+                "{} dropped `{}`, and something still reaches it:\n{after}",
                 fixture.language,
                 fixture.keeps
             );
@@ -331,7 +331,7 @@ fn organizing_imports_narrows_a_statement_that_lost_one_name() {
         let after = ws.read(fixture.file);
         assert!(
             after.contains(fixture.keeps),
-            "{} dropped `{}`, which is still used:\n{after}",
+            "{} dropped `{}`, and something still reaches it:\n{after}",
             fixture.language,
             fixture.keeps
         );

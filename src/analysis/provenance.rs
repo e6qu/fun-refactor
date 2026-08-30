@@ -76,9 +76,9 @@ pub enum StopReason {
     },
     /// A reference that names nothing findable in the workspace.
     Unresolved(String),
-    /// The depth limit was reached; more may lie beyond.
+    /// The walk hit the depth limit; more may lie beyond.
     DepthLimit,
-    /// The value is decided inside a `{{ ...
+    /// A `{{ ... }}` action decides the value.
     RenderDependent(String),
     /// Something renders only when a template conditional holds.
     Conditional { what: String, condition: String },
@@ -119,7 +119,7 @@ impl std::fmt::Display for StopReason {
             StopReason::DepthLimit => write!(f, "depth limit reached; more may lie beyond"),
             StopReason::RenderDependent(what) => write!(
                 f,
-                "render-dependent: {what} is decided inside a template action, which is masked before parsing and evaluated at render time"
+                "render-dependent: a template action settles {what}, and a mask covers it before parsing; the render decides it"
             ),
             StopReason::Conditional { what, condition } => write!(
                 f,
@@ -127,7 +127,7 @@ impl std::fmt::Display for StopReason {
             ),
             StopReason::ComputedAtApply(what) => write!(
                 f,
-                "'{what}' is computed by its provider at apply time; no configuration holds this value"
+                "the provider computes '{what}' at apply time; no configuration holds this value"
             ),
             StopReason::PrecedenceUndetermined(what) => {
                 write!(f, "precedence undetermined: {what}")
@@ -140,12 +140,12 @@ impl std::fmt::Display for StopReason {
                 if unsupplied.is_empty() {
                     write!(
                         f,
-                        "{subject} is decided by {decided_by}, the strongest of the inputs supplied"
+                        "{decided_by} settles {subject}, as the strongest input the caller gave"
                     )
                 } else {
                     write!(
                         f,
-                        "{subject} is decided given the inputs supplied, by {decided_by}; {} not listed here would change it",
+                        "{decided_by} settles {subject} given the inputs the caller gave; {} outside that list would change it",
                         unsupplied.join(" and ")
                     )
                 }
@@ -398,8 +398,8 @@ impl ValuesInputs {
                     continue;
                 }
                 bail!(
-                    "`{} {}` and `{} {}` both set {}, and the order they were written in is \
-                     not recoverable from the flags; write both under the same flag",
+                    "`{} {}` and `{} {}` both set {}, and the flags do not record which came \
+                     first; write both under the same flag",
                     from[j],
                     other.text,
                     from[i],
@@ -414,7 +414,7 @@ impl ValuesInputs {
         })
     }
 
-    /// Nothing was supplied: every answer is the workspace-only one.
+    /// The caller supplied nothing: every answer is the workspace-only one.
     pub fn is_empty(&self) -> bool {
         self.files.is_empty() && self.sets.is_empty()
     }
@@ -474,7 +474,7 @@ fn resolve_values_file(index: &Index, given: &Path) -> Result<PathBuf> {
     match matches.len() {
         1 => Ok(matches[0].clone()),
         0 => bail!(
-            "`-f {}` is not in the scanned workspace, so its keys cannot be ranked against \
+            "`-f {}` is not in the scanned workspace, so nothing can rank its keys against \
              the chart's; scan the directory holding it, or drop the flag",
             given.display()
         ),
@@ -523,9 +523,9 @@ pub fn provenance_with_inputs(
             ctx.keyed_backward(sym, EdgeKind::Declaration, 0)?
         }
         Language::Css | Language::Scss | Language::Sass => ctx.css_backward(sym, 0)?,
-        other => unreachable!(
-            "refuse_unless_it_substitutes rejects {other} before the dispatch is reached"
-        ),
+        other => {
+            unreachable!("refuse_unless_it_substitutes rejects {other} before the dispatch runs")
+        }
     }
     Ok(ctx.out)
 }
@@ -559,9 +559,9 @@ pub fn consumers_with_inputs(
         Language::Hcl => ctx.hcl_forward(sym, EdgeKind::Declaration, 0)?,
         Language::Yaml | Language::Helm => ctx.yaml_forward(sym, 0)?,
         Language::Css | Language::Scss | Language::Sass => ctx.css_forward(sym, 0)?,
-        other => unreachable!(
-            "refuse_unless_it_substitutes rejects {other} before the dispatch is reached"
-        ),
+        other => {
+            unreachable!("refuse_unless_it_substitutes rejects {other} before the dispatch runs")
+        }
     }
     Ok(ctx.out)
 }
@@ -582,8 +582,8 @@ pub fn supports_provenance(language: Language) -> bool {
     )
 }
 
-/// Imperative languages are refused outright, pointing at the analysis that does
-/// apply to them.
+/// Refuse an imperative language outright, pointing at the analysis that does apply
+/// to it.
 fn refuse_unless_it_substitutes(sym: &Symbol) -> Result<()> {
     if sym.language.class() == LanguageClass::Imperative {
         // The message names `fr flow`, a command the reader can run.
@@ -599,8 +599,7 @@ fn refuse_unless_it_substitutes(sym: &Symbol) -> Result<()> {
         return Err(crate::refactor::Refusal::Unsupported {
             operation: "tracing provenance".into(),
             language: sym.language,
-            because: "this language has no value-substitution model to trace: a value \
-                      here is written where it is used",
+            because: "this language has no value-substitution model to trace: a value lands where the code uses it",
         }
         .into());
     }
@@ -776,7 +775,7 @@ fn hcl_role(sym: &Symbol, source: &str) -> HclRole {
     }
 }
 
-/// The Terraform address a symbol is referenced by.
+/// The Terraform address a reference spells to reach a symbol.
 fn hcl_address(sym: &Symbol, role: HclRole) -> String {
     match role {
         HclRole::InputVariable => format!("var.{}", sym.name),
@@ -1101,7 +1100,7 @@ impl Ctx<'_> {
             self.stop(
                 depth,
                 StopReason::PrecedenceUndetermined(format!(
-                    "this module is called from {} places; each call is a separate instance with its own var.{}",
+                    "{} places call this module; each call is a separate instance with its own var.{}",
                     callers.len(),
                     sym.name
                 )),
@@ -1177,7 +1176,7 @@ impl Ctx<'_> {
                     self.stop(
                         depth + 1,
                         StopReason::Origin(format!(
-                            "{namespace}.{} is supplied by Terraform's evaluation context",
+                            "Terraform's evaluation context supplies {namespace}.{}",
                             reference.name
                         )),
                     );
@@ -1229,7 +1228,7 @@ impl Ctx<'_> {
                 self.stop(
                     depth + 1,
                     StopReason::PrecedenceUndetermined(format!(
-                        "'{}' is declared {} times in this module directory",
+                        "{1} declarations spell '{0}' in this module directory",
                         reference.name,
                         candidates.len()
                     )),
@@ -1272,7 +1271,7 @@ impl Ctx<'_> {
             self.stop(
                 depth + 1,
                 StopReason::Unresolved(format!(
-                    "module.{} is read without naming an output",
+                    "this reads module.{} without naming an output",
                     reference.name
                 )),
             );
@@ -1827,7 +1826,7 @@ impl Ctx<'_> {
             self.stop(
                 depth,
                 StopReason::Unresolved(format!(
-                    "template {name:?} is included here but no `define` in the chart declares it"
+                    "an include here names template {name:?} and no `define` in the chart declares it"
                 )),
             );
             return Ok(());
@@ -2020,7 +2019,7 @@ impl Ctx<'_> {
         // entry in a parent chart addresses the `image.tag` of subchart `mysql`.
         let (owner, local) = self.descend_to_subchart(&chart, &path);
         let levels = chart_levels(&owner, &local);
-        // A `-f` file and a `--set` are merged into the values of the *outermost* chart.
+        // A `-f` file and a `--set` merge into the values of the *outermost* chart.
         let addressed = levels
             .last()
             .map(|(_, level_path)| level_path.clone())
@@ -2282,7 +2281,7 @@ impl Ctx<'_> {
             self.stop(
                 depth,
                 StopReason::PrecedenceUndetermined(format!(
-                    "{subject} is set by {}; the winner is whichever `-f` comes last on the helm command line",
+                    "{} sets {subject}; the winner is whichever `-f` comes last on the helm command line",
                     undecided_files.join(" and ")
                 )),
             );
@@ -2290,7 +2289,7 @@ impl Ctx<'_> {
             self.stop(
                 depth,
                 StopReason::PrecedenceUndetermined(format!(
-                    "{subject} is set by the chart's values and by {file}, which applies only if the command line passes `-f {file}`"
+                    "the chart's values set {subject}, and so does {file}, which applies only if the command line passes `-f {file}`"
                 )),
             );
         }
@@ -2554,8 +2553,8 @@ impl Ctx<'_> {
                     );
                 }
 
-                // A read inside a `define` happens wherever that template is
-                // included, so the consumers are the include sites rather than the body.
+                // A read inside a `define` happens wherever an include pulls that
+                // template in, so the consumers are the include sites and not the body.
                 let define = template
                     .define_containing(span.start)
                     .map(|define| define.name.clone());
@@ -2565,7 +2564,7 @@ impl Ctx<'_> {
                         self.stop(
                             depth + 2,
                             StopReason::Origin(format!(
-                                "{dotted} is read by template {name:?}, which nothing in the chart includes."
+                                "template {name:?} reads {dotted}, and nothing in the chart includes that template."
                             )),
                         );
                     }

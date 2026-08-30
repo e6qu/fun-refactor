@@ -282,7 +282,7 @@ fn every_fixture_satisfies_its_validator_before_anything_touches_it() {
         let ws = fixture.workspace();
         if let Err(e) = ws.compiles() {
             panic!(
-                "the {} fixture is rejected before any refactoring:\n{e}",
+                "the validator rejects the {} fixture before any refactoring:\n{e}",
                 fixture.language
             );
         }

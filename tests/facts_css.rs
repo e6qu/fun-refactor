@@ -33,8 +33,8 @@ fn class_selectors_define_selectors_without_the_dot() {
 
 #[test]
 fn every_selector_occurrence_is_a_definition_site() {
-    // CSS has no single canonical definition of a class; a rename must rewrite
-    // all of them, so all of them are recorded.
+    // CSS has no single canonical definition of a class; a rename must rewrite all of them, so
+    // extraction records all of them.
     let src = ".btn { color: red; }\n.btn:hover { color: blue; }\n.a .btn { top: 0; }\n";
     let f = facts(Language::Css, src);
     assert_eq!(names(&f, SymbolKind::Selector), ["btn", "btn", "a", "btn"]);

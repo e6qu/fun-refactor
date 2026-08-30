@@ -81,6 +81,6 @@ fn a_command_offers_its_own_flags() {
     );
     assert!(
         bash.contains("--no-ignore"),
-        "a global flag is offered wherever it applies"
+        "a global flag turns up wherever it applies"
     );
 }

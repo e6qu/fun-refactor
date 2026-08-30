@@ -107,7 +107,7 @@ fn a_path_filter_actually_narrows_the_report() {
 fn a_path_filter_that_matches_nothing_says_so_instead_of_reporting_nothing() {
     let ws = workspace();
     let (out, ok) = ws.run(&["duplicates", "--path", "does-not-exist"]);
-    assert!(!ok, "a path that cannot be resolved is an error:\n{out}");
+    assert!(!ok, "a path that resolves to nothing fails:\n{out}");
     assert!(out.contains("cannot resolve --path"), "got:\n{out}");
 }
 
@@ -290,7 +290,7 @@ fn a_long_unused_report_says_what_it_is_mostly_made_of() {
     );
     assert!(
         out.contains("of them in") && out.contains("bundle.css"),
-        "one file holding most of the answer should be named:\n{out}"
+        "the summary names the one file holding most of the answer:\n{out}"
     );
 
     // Spread out, and short: no breakdown at all.
@@ -323,7 +323,7 @@ fn what_unused_reports_can_be_given_to_delete() {
         .find(|s| {
             s["name"] == "Shared" && s["file"].as_str().is_some_and(|f| f.contains("a/one.go"))
         })
-        .unwrap_or_else(|| panic!("the unreferenced `Shared` should be listed: {json}"));
+        .unwrap_or_else(|| panic!("the report holds the unreferenced `Shared`: {json}"));
 
     let target = format!(
         "{}:{}:{}",
@@ -471,12 +471,12 @@ fn each_kind_of_domain_failure_has_its_own_exit_code() {
     assert_eq!(
         code(&["def", "one/missing.go:3:6"]),
         Some(3),
-        "a missing file in a position is not found."
+        "a position naming a missing file finds nothing."
     );
     assert_eq!(
         code(&["def", "one/a.go:999:1"]),
         Some(3),
-        "a position past the end of the file is not found."
+        "a position past the end of the file finds nothing."
     );
     // A required position left out, and a position that does not parse, are faults in the
     // command line.
@@ -558,7 +558,7 @@ fn a_pattern_that_matches_nothing_is_not_found() {
 
 #[test]
 fn a_match_the_template_cannot_be_written_over_is_json_and_not_prose() {
-    // The skipped occurrences were printed to stdout in `--json` mode as well.
+    // The skipped occurrences went to stdout in `--json` mode as well.
     let ws = Workspace::new(&[(
         "m.py",
         "def g(x):\n    return x\n\n\ny = g(1)\nz = g(  # keep\n    2\n)\n",
@@ -751,7 +751,7 @@ fn translating_a_file_into_its_own_language_points_at_the_listing() {
     let (out, ok) = ws.run(&["translate", "x.py", "python"]);
     assert!(!ok, "{out}");
     assert!(
-        out.contains("Run 'fr translate x.py' to list the languages it can be written as."),
+        out.contains("Run 'fr translate x.py' for the languages that can hold it."),
         "got:\n{out}"
     );
 }
@@ -856,7 +856,7 @@ mod from_a_subdirectory {
         assert!(!ok, "a used symbol is not deletable.\n{out}");
         assert!(
             out.contains("main.py"),
-            "the caller is named so it can be dealt with.\n{out}"
+            "the refusal names the caller, so a reader can deal with it.\n{out}"
         );
     }
 
@@ -873,7 +873,7 @@ mod from_a_subdirectory {
         );
         assert!(
             !out.contains("the project"),
-            "nothing was widened, so nothing is announced.\n{out}"
+            "nothing widened, so nothing says otherwise.\n{out}"
         );
     }
 }
@@ -926,7 +926,10 @@ mod ignored_files {
             cache.path(),
             &["--no-ignore", "usages", "build/g.py:1:5"],
         );
-        assert!(ok, "the symbol resolves once the file is read.\n{out}");
+        assert!(
+            ok,
+            "the symbol resolves once the scan reaches the file.\n{out}"
+        );
         assert!(out.contains("gen"), "and it is the right symbol.\n{out}");
     }
 
@@ -950,7 +953,7 @@ fn symbols_narrows_to_the_paths_it_is_given() {
     assert!(ok, "{narrowed}");
     assert!(
         narrowed.contains("alpha"),
-        "the kept directory's symbol is listed:\n{narrowed}"
+        "the report holds the kept directory's symbol:\n{narrowed}"
     );
     assert!(
         !narrowed.contains("beta"),
@@ -973,8 +976,8 @@ fn delete_names_the_import_it_kept() {
     let (out, ok) = ws.run(&["delete", "lib.rs:3:8"]);
     assert!(ok, "{out}");
     assert!(
-        out.contains("BTreeMap") && out.contains("kept"),
-        "the kept import is named up front:\n{out}"
+        out.contains("BTreeMap") && out.contains("stays"),
+        "the report names the import that stayed, up front:\n{out}"
     );
 }
 

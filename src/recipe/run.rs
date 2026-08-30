@@ -263,8 +263,8 @@ fn apply(sources: &mut Sources, edits: &EditSet) -> Result<()> {
                     .or_else(|| crate::lang::detect(path))
                     .with_context(|| {
                         format!(
-                            "{} would be created, and nothing says what language \
-                             it is written in. The step declared none. The name does \
+                            "this would create {}, and nothing says what language \
+                             it holds. The step declared none. The name does \
                              not say",
                             path.display()
                         )
@@ -295,8 +295,8 @@ fn check_requirements(recipe: &Recipe, index: &Index, sources: &Sources) -> Resu
             Requirement::Symbol(name) => {
                 if !index.symbols.iter().any(|s| s.name == *name) {
                     bail!(
-                        "`requires symbol \"{name}\"`. Nothing in this workspace is called \
-                         that. The recipe was written for a different tree."
+                        "`requires symbol \"{name}\"`. Nothing in this workspace carries \
+                         that name. The recipe expects a different tree."
                     );
                 }
             }
@@ -511,8 +511,8 @@ fn run_step(
                 }
             }
 
-            // The step's edit is the difference it made, whole-file: the individual spans were
-            // measured against intermediate text that no longer exists.
+            // The step's edit is the difference it made, whole-file: each span points into
+            // intermediate text that no longer exists.
             for (path, (language, text)) in &running {
                 let before = sources.get(path).map(|(_, t)| t.as_str()).unwrap_or("");
                 if before != text {

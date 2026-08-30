@@ -279,8 +279,8 @@ fn zig_refuses_a_destination_that_would_need_a_climbing_import_path() {
 
 #[test]
 fn zig_moves_upward_when_nothing_needs_an_import() {
-    // With no remaining use there is no `@import` to write, so the path that could not be
-    // computed is never needed.
+    // With no remaining use there is no `@import` to write, so nothing ever asks for the
+    // path this cannot compute.
     let ws = Workspace::new(&[
         ("sub/a.zig", "pub fn thing() void {}\n"),
         ("dest.zig", "pub const K: i32 = 1;\n"),
@@ -541,7 +541,7 @@ fn bash_reports_a_caller_that_never_sourced_the_definition() {
     let changed = commit(&plan);
     assert!(
         !changed.contains(&ws.path("other.sh")),
-        "a script that was calling something else is left alone: {changed:?}"
+        "the move leaves a script that was calling something else alone: {changed:?}"
     );
     assert_eq!(ws.read("other.sh"), "greet\n");
 }
@@ -568,7 +568,7 @@ fn bash_refuses_to_move_a_variable() {
         &ws.path("lib.sh"),
     ));
     assert!(
-        message.contains("only a function can be moved"),
+        message.contains("only a function moves between scripts"),
         "got: {message}"
     );
 }
@@ -632,7 +632,7 @@ fn helm_moves_a_values_key_and_warns_that_only_values_yaml_is_read() {
     let id = symbol_id(&index, "replicas", Some(&ws.path("chart/values.yaml")));
     let plan = move_symbol::to_file(&index, id, &ws.path("chart/values-prod.yaml")).unwrap();
 
-    // The path stays `.Values.replicas`, so nothing whatsoever is repointed.
+    // The path stays `.Values.replicas`, so nothing whatsoever moves.
     assert!(
         plan.imports_added.is_empty(),
         "a key path names no file: {:?}",
@@ -845,7 +845,10 @@ fn yaml_refuses_an_anchor() {
         symbol_of_kind(&index, "shared", SymbolKind::Anchor),
         &ws.path("conf/extra.yaml"),
     ));
-    assert!(message.contains("An anchor is resolved"), "got: {message}");
+    assert!(
+        message.contains("An anchor reaches within"),
+        "got: {message}"
+    );
 }
 
 // What stays refused, and what each language offers.

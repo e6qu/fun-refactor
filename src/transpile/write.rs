@@ -1363,7 +1363,7 @@ pub fn write_in_context(
     let unnameable: Vec<String> = out.unnameable.borrow().iter().cloned().collect();
     for name in unnameable {
         out.fidelity.notes.push(format!(
-            "{language} cannot spell `{name}`, so it is written `{}`, and every \
+            "{language} cannot spell `{name}`, so this writes `{}`, and every \
              use of it needs a real name",
             sanitise(&name)
         ));
@@ -1371,8 +1371,8 @@ pub fn write_in_context(
     let escaped: Vec<String> = out.escaped.borrow().iter().cloned().collect();
     for name in escaped {
         out.fidelity.notes.push(format!(
-            "`{name}` is a keyword in {language} and cannot be an identifier there; it \
-             is written with a suffix, and every use of it needs a real name"
+            "`{name}` is a keyword in {language} and cannot be an identifier there; this \
+             adds a suffix, and every use of it needs a real name"
         ));
     }
     Ok((out.finish(), out.fidelity))
@@ -1598,7 +1598,7 @@ impl Out {
     fn field(&self, raw: &str) -> String {
         let spelled = match self.fields.get(raw) {
             Some(spelled) => spelled.clone(),
-            // A method is reached like a field and spelled like a function.
+            // A caller reaches a method like a field and spells it like a function.
             None if self.methods.contains(raw) => self
                 .names
                 .get(raw)
@@ -2248,7 +2248,7 @@ fn screaming(name: &str) -> String {
 
 /// `camelCase`, for TypeScript and unexported Go.
 pub(super) fn camel(name: &str) -> String {
-    // SCREAMING_SNAKE has to be lowered before it is re-cased, or `MIN_CELSIUS`
+    // Lower SCREAMING_SNAKE before re-casing it, or `MIN_CELSIUS`
     // becomes `MINCELSIUS` and not `minCelsius`.
     let screaming = name
         .chars()
@@ -2316,7 +2316,7 @@ fn rust(out: &mut Out, module: &Module) {
             }
             Item::Statement(stmt) => carried_statement(out, stmt, rust_expr),
             Item::Constant(c) => {
-                // A constant is evaluated at compile time here.
+                // This language evaluates a constant at compile time.
                 if contains_unsupported(&c.value) {
                     let rendered = rust_expr(out, &c.value);
                     let header = out.comment(&format!(
@@ -2844,7 +2844,7 @@ fn switch_binding_expression(out: &mut Out, body: &[Stmt], at: usize) -> Option<
             _ => None,
         }
     };
-    // Every value is collected before anything is rendered.
+    // Collect every value before rendering anything.
     let mut values = Vec::new();
     for (_, arm) in arms {
         values.push(assigned(arm)?);
@@ -3620,7 +3620,8 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Null => "None".to_string(),
         Expr::Name(n) => out.value_name(n),
         Expr::Field { of, name } => {
-            // A sum's variant is reached through the type, and Rust spells that reach `::`.
+            // A caller reaches a sum's variant through the type, and Rust spells that reach
+            // `::`.
             if matches!(of.as_ref(), Expr::Name(n) if out.sums.contains(n)) {
                 let owner = rust_expr(out, of);
                 return format!("{owner}::{}", out.name(name));
@@ -5292,7 +5293,7 @@ fn settle_empty_collections(f: &Function, types: &mut std::collections::BTreeMap
         let mut elements = Vec::new();
         appended(&f.body, &name, &mut elements);
         let element = elements.iter().find_map(literal_type).or_else(|| {
-            // Nothing was appended in a shape this can read.
+            // Nothing appended to it in a shape this can read.
             match (&f.returns, returns_name(&f.body, &name)) {
                 (Some(Type::List(item)), true) => Some((**item).clone()),
                 _ => None,
@@ -5461,8 +5462,8 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Null => "None".to_string(),
         Expr::Name(n) => out.value_name(n),
         Expr::Field { of, name } => {
-            // A member reached through `super` is reached through the call this
-            // language spells the reach with.
+            // A member reached through `super` travels through the call this language spells
+            // the reach with.
             if matches!(of.as_ref(), Expr::Name(n) if n == "super")
                 && !shadows_builtin(out, "super")
             {
@@ -5585,7 +5586,7 @@ fn python_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Await(inner) => format!("await {}", python_expr(out, inner)),
         Expr::Propagate(inner) => {
             out.note_once(
-                "a `?`/`try` is written as the bare expression: an error here \
+                "a `?`/`try` crosses as the bare expression: an error here \
                  propagates on its own.",
             );
             python_expr(out, inner)
@@ -6237,7 +6238,7 @@ fn go_function(out: &mut Out, f: &Function, receiver: Option<&str>) {
             foreign = true;
         }
         out.note_once(
-            "a Result's error side is written as Go's own error: the error's identity \
+            "a Result's error side crosses as Go's own error: the error's identity \
              becomes its message.",
         );
         match ok {
@@ -7822,8 +7823,8 @@ fn typescript(out: &mut Out, module: &Module) {
                             .unwrap_or_default();
                         out.line(&format!("{field_name}: {ty}{default};"));
                     }
-                    // Under `strictPropertyInitialization` a field with no starting value has
-                    // to be assigned in a constructor.
+                    // Under `strictPropertyInitialization` a constructor has to give a field
+                    // with no starting value one.
                     let methods = methods_of(out, r, false);
                     let already = methods.iter().any(|m| m.is_constructor);
                     if !r.fields.is_empty() && !already {
@@ -7919,8 +7920,8 @@ fn typescript(out: &mut Out, module: &Module) {
                     out.line(&format!("/** {} */", block_comment_safe(line)));
                 }
                 out.note_once(
-                    "a test crossed as a plain function: no runner is part of the \
-                     language, so wiring it into yours is left to you.",
+                    "a test crossed as a plain function: the language ships no runner, so \
+                     wire it into yours by hand.",
                 );
                 out.line(&format!(
                     "export function {}(): void {{",
@@ -8026,7 +8027,7 @@ fn ts_base(out: &mut Out, record: &Record) -> Option<String> {
         "ABC" | "abc.ABC" => {
             out.fidelity.notes.push(format!(
                 "`{}` extends `{base}` in the source; TypeScript has no abstract \
-                 base classes, so the base is dropped and the methods stay.",
+                 base classes, so this drops the base and keeps the methods.",
                 record.name
             ));
             None
@@ -8108,7 +8109,7 @@ fn hoisted_variant_names(out: &mut Out, module: &Module, s: &Sum) -> Vec<String>
         if taken.contains(&base) {
             let renamed = format!("{}{base}", out.name(&s.name));
             out.fidelity.notes.push(format!(
-                "variant `{}` of `{}` is written as `{renamed}`: the file already \
+                "variant `{}` of `{}` crosses as `{renamed}`: the file already \
                  declares a type called `{base}`.",
                 variant.name, s.name
             ));
@@ -8867,7 +8868,7 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
         Expr::Await(inner) => format!("await {}", ts_expr(out, inner)),
         Expr::Propagate(inner) => {
             out.note_once(
-                "a `?`/`try` is written as the bare expression: an error here \
+                "a `?`/`try` crosses as the bare expression: an error here \
                  propagates on its own.",
             );
             ts_expr(out, inner)
@@ -9143,8 +9144,8 @@ fn java(out: &mut Out, module: &Module) {
                     out.line(&format!("/** {} */", block_comment_safe(line)));
                 }
                 out.note_once(
-                    "a test crossed as a plain method: no runner is part of the \
-                     language. Wiring it into yours is left to you.",
+                    "a test crossed as a plain method: the language ships no runner, so \
+                     wire it into yours by hand.",
                 );
                 out.line(&format!(
                     "static void {}() {{",
@@ -10438,7 +10439,7 @@ fn java_expr(out: &mut Out, e: &Expr) -> String {
         }
         Expr::Propagate(inner) => {
             out.note_once(
-                "a `?`/`try` is written as the bare expression: an exception here \
+                "a `?`/`try` crosses as the bare expression: an exception here \
                  propagates on its own.",
             );
             java_expr(out, inner)
@@ -11907,8 +11908,7 @@ fn zig_expr(out: &mut Out, e: &Expr) -> String {
             zig_expr(out, left),
             zig_expr(out, right)
         ),
-        // `%` on signed integers is refused outright: the language makes the caller choose a
-        // rounding.
+        // The language refuses `%` on signed integers outright: the caller chooses a rounding.
         Expr::Binary {
             op: BinaryOp::Rem,
             left,
@@ -12303,7 +12303,7 @@ fn calls_declared_main(out: &Out, stmt: &Stmt) -> bool {
 }
 
 /// The words every self-running target drops the entry call with.
-const ENTRY_DROPPED: &str = "the source's entry call is dropped: the target runs main itself.";
+const ENTRY_DROPPED: &str = "this drops the source's entry call: the target runs main itself.";
 
 /// The module function the entry statement calls with no arguments, if that is one.
 fn entry_function<'m>(module: &'m Module, stmt: &Stmt) -> Option<&'m Function> {
@@ -13137,8 +13137,8 @@ fn methods_of(out: &mut Out, record: &Record, overloads_allowed: bool) -> Vec<Fu
         if seen && !overloads_allowed {
             method.is_constructor = false;
             out.fidelity.notes.push(format!(
-                "`{}` declares more than one constructor and {} allows one; this is \
-                 written as an ordinary function called `{}`",
+                "`{}` declares more than one constructor and {} allows one; this \
+                 becomes an ordinary function called `{}`",
                 record.name,
                 out.language,
                 out.name(&method.name)
@@ -13587,8 +13587,8 @@ fn loops_for_comprehensions(module: &Module) -> Module {
         for stmt in body {
             let mut before: Vec<Stmt> = Vec::new();
             let mut stmt = stmt.clone();
-            // The bodies first, so a comprehension nested in a loop is lowered
-            // inside the loop it belongs to.
+            // The bodies first, so a comprehension nested in a loop lowers inside the loop it
+            // belongs to.
             for inner in sub_bodies_mut(&mut stmt) {
                 *inner = lower(inner, next);
             }

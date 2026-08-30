@@ -194,8 +194,8 @@ fn bash_extract_replaces_every_occurrence_when_asked() {
 
 #[test]
 fn bash_extract_never_rewrites_an_occurrence_before_the_binding() {
-    // The first occurrence is above the insertion point, where the variable is not
-    // set yet, so this leaves it alone.
+    // The first occurrence sits above the insertion point, where nothing has yet given the
+    // variable a value, so this leaves it alone.
     let src = "#!/bin/bash\na=$(id -u)\nb=$(id -u)\n";
     let ws = workspace(&[("run.sh", src)]);
     let path = ws.path("run.sh");
@@ -352,7 +352,10 @@ fn bash_inline_refuses_a_second_assignment() {
     let id = symbol_at(&ws.index, &path, src.find("x=1").unwrap());
 
     let err = inline::variable(&ws.index, id).unwrap_err().to_string();
-    assert!(err.contains("assigned again at line 4"), "got: {err}");
+    assert!(
+        err.contains("a second assignment writes `x` at line 4"),
+        "got: {err}"
+    );
     assert!(err.contains("no block scope"), "got: {err}");
 }
 
@@ -423,7 +426,7 @@ fn bash_inline_refuses_a_loop_variable() {
     let id = symbol_at(&ws.index, &path, src.find("item in").unwrap());
 
     let err = inline::variable(&ws.index, id).unwrap_err().to_string();
-    assert!(err.contains("not bound by an assignment"), "got: {err}");
+    assert!(err.contains("no assignment binds"), "got: {err}");
 }
 
 #[test]
@@ -616,7 +619,7 @@ fn zig_extract_function_says_void_when_nothing_comes_back() {
 
 #[test]
 fn zig_extract_function_refuses_the_selection_whose_type_was_never_written() {
-    // Zig is refused per selection, like Rust and Go: the language needing a
+    // Zig refuses per selection, like Rust and Go: the language needing a
     // written type is not the reason, the missing annotation is.
     let src = "fn run() void {\n    const width = 3;\n    log(width);\n}\n";
     let ws = workspace(&[("a.zig", src)]);
@@ -625,7 +628,7 @@ fn zig_extract_function_refuses_the_selection_whose_type_was_never_written() {
     let err = extract::function(&ws.index, &path, lines(src, 3, 3), "show")
         .unwrap_err()
         .to_string();
-    assert!(err.contains("never written down"), "got: {err}");
+    assert!(err.contains("names no type"), "got: {err}");
     assert!(err.contains("width"), "got: {err}");
     assert!(err.contains("zig"), "got: {err}");
 }
@@ -883,7 +886,7 @@ fn xml_inline_refuses_an_entity_that_is_never_referenced() {
     let path = ws.path("doc.xml");
 
     let err = inline::xml_entity(&path, "brand").unwrap_err().to_string();
-    assert!(err.contains("never referenced"), "got: {err}");
+    assert!(err.contains("nothing references"), "got: {err}");
 }
 
 #[test]

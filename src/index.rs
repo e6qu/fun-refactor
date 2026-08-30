@@ -322,7 +322,7 @@ impl Index {
         Ok(index)
     }
 
-    /// Build an index from facts that have already been extracted.
+    /// Build an index from facts extraction has already produced.
     pub fn build_from_facts(files: &[(PathBuf, Language, FileFacts)]) -> Self {
         let mut index = Index::default();
         for (_, language, facts) in files {
@@ -541,8 +541,7 @@ impl Index {
                 ModuleSurface::Input => {
                     s.kind == SymbolKind::Variable && self.terraform_namespace(s) == "var"
                 }
-                // The block-type keyword is the symbol's qualifier, recorded when the facts
-                // were extracted.
+                // The block-type keyword is the symbol's qualifier, recorded at extraction.
                 ModuleSurface::Output => s.qualifier.as_deref() == Some("output"),
             })
             .collect();
@@ -585,7 +584,7 @@ impl Index {
                     .import_binding(info, receiver.trim_start_matches("module."))
                     .is_some());
 
-        // Weaker of the two: the tiers are ordered strongest first.
+        // Weaker of the two: the tiers run strongest first.
         match known {
             true => (target, confidence),
             false => (target, confidence.max(Confidence::FieldBased)),
@@ -757,8 +756,8 @@ impl Index {
             match by_qualifier.len() {
                 1 => return (Some(by_qualifier[0].id), Confidence::Exact),
                 0 => {}
-                // Two types of that name in the workspace; the path says which only
-                // if the imports are followed, which this layer does not do.
+                // Two types of that name in the workspace; the path says which only to a reader
+                // that follows the imports, which this layer does not do.
                 _ => return (None, Confidence::FieldBased),
             }
 
@@ -1136,7 +1135,7 @@ impl Index {
 
         // 4.
         if reference.kind == ReferenceKind::StringRef {
-            // A heading is referenced by its anchor, which is a slug of its text and rarely
+            // A reference reaches a heading by its anchor, which is a slug of its text and rarely
             // equal to it.
             let name = reference.name.as_str();
             let targets: Vec<&Symbol> = self
@@ -1708,7 +1707,7 @@ impl Index {
         reference.target.and_then(|t| self.symbol(t))
     }
 
-    /// Every reference in one file, in the order they were recorded.
+    /// Every reference in one file, in the order extraction found them.
     pub fn references_in(&self, path: &Path) -> impl Iterator<Item = &Reference> {
         self.files
             .get(path)

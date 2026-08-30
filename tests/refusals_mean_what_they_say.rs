@@ -115,7 +115,10 @@ fn a_language_that_really_cannot_still_says_so() {
     .to_string();
 
     assert!(said.contains("hcl"), "it names the language: {said}");
-    assert!(said.contains("named and not"), "and why: {said}");
+    assert!(
+        said.contains("names its arguments rather than"),
+        "and why: {said}"
+    );
 }
 
 #[test]

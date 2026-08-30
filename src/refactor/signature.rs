@@ -327,7 +327,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                     return Err(Refusal::NotHere {
                         operation: "signature".to_string(),
                         detail: format!(
-                            "`{}` is used as a value at {}, and a value keeps the old \
+                            "{1} binds `{0}` as a value, and a value keeps the old \
                              shape. Change or remove that binding first.",
                             sym.name,
                             location(&reference.file, reference.span.start)
@@ -361,7 +361,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                 return Err(Refusal::Unknowable {
                     detail: format!(
                         "the call to `{}` at {} is not a call expression this grammar \
-                         exposes, so its arguments cannot be rewritten",
+                         exposes, so nothing can rewrite its arguments",
                         sym.name,
                         location(&reference.file, reference.span.start)
                     ),
@@ -375,8 +375,8 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
             return Err(Refusal::TooWeak {
                 confidence: reference.resolved_confidence(),
                 detail: format!(
-                    "the call to `{}` at {} does not parse cleanly, so its argument list \
-                     cannot be rewritten with certainty",
+                    "the call to `{}` at {} does not parse cleanly, so nothing can rewrite \
+                     its argument list with certainty",
                     sym.name,
                     location(&reference.file, reference.span.start)
                 ),
@@ -456,8 +456,8 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
             let out_of_reach = |why: &str| -> anyhow::Error {
                 Refusal::Unknowable {
                     detail: format!(
-                        "`{}` is called at {where_}, where dispatch can reach the \
-                         declaration being changed, and {why}",
+                        "a call to `{}` sits at {where_}, where dispatch can reach the \
+                         declaration this changes, and {why}",
                         sym.name
                     ),
                 }
@@ -486,7 +486,7 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
                 }
                 return Err(out_of_reach(match reference.member_in_macro {
                     true => {
-                        "it is written inside a macro, where the grammar records \
+                        "it sits inside a macro, where the grammar records \
                              tokens and not a call"
                     }
                     false => "the grammar exposes no call expression there",
@@ -761,8 +761,8 @@ fn reject_hidden_call_sites(index: &Index, sym: &Symbol) -> Result<()> {
     Err(Refusal::Unknowable {
         detail: format!(
             "{} file(s) naming `{}` do not parse cleanly, starting with {}; a call site \
-             inside a syntax error is invisible to the index, so the call surface cannot \
-             be shown to be complete",
+             inside a syntax error hides from the index, so nothing here proves the \
+             call surface complete",
             hidden.len(),
             sym.name,
             first.display()
@@ -998,9 +998,9 @@ struct Positional {
     braced: bool,
 }
 
-/// One command invocation of the function being changed.
+/// One command invocation of the function this changes.
 struct ShellCall {
-    /// Span of the command name, where a first argument has to be inserted.
+    /// Span of the command name, where a first argument goes.
     name: Span,
     /// The argument words, in source order.
     arguments: Vec<Span>,
@@ -1100,8 +1100,8 @@ fn shell_function(index: &Index, sym: &Symbol, change: Change) -> Result<Signatu
     if let Change::Add { declaration, .. } = &change {
         if !declaration.trim().is_empty() {
             notes.push(format!(
-                "a shell function declares no parameters, so the declaration `{}` was not \
-                 written anywhere; only the argument and the body's numbering changed",
+                "a shell function declares no parameters, so the declaration `{}` went \
+                 nowhere; only the argument and the body's numbering changed",
                 first_line(declaration)
             ));
         }
@@ -1111,8 +1111,8 @@ fn shell_function(index: &Index, sym: &Symbol, change: Change) -> Result<Signatu
     if let Change::Add { argument, .. } = &change {
         if argument.trim().is_empty() && !calls.is_empty() {
             anyhow::bail!(
-                "`{}` is called from {} site(s) and shell arguments are positional, so an \
-                 added parameter needs a word to pass; supply an argument",
+                "{1} site(s) call `{0}` and shell arguments are positional, so an added \
+                 parameter needs a word to pass; supply an argument",
                 sym.name,
                 calls.values().map(|v| v.len()).sum::<usize>()
             );
@@ -1205,7 +1205,7 @@ fn shell_positionals(
             // says which `$1` inside the body belongs to which.
             "function_definition" if node.id() != definition.id() => anyhow::bail!(
                 "`{}` defines a nested function at {}; its `$1` names that function's \
-                 first argument, not this one's, so the body cannot be renumbered",
+                 first argument, not this one's, so nothing can renumber the body",
                 sym.name,
                 location(&sym.file, node.start_byte())
             ),
@@ -1342,8 +1342,8 @@ fn shell_call_files<'a>(
             continue;
         }
         notes.push(format!(
-            "{} runs `{}` {} time(s) but never sources {}, so those are a different \
-             command and were left alone",
+            "{} runs `{}` {} time(s) but never sources {}, so those name a different \
+             command; this left them alone",
             file.display(),
             sym.name,
             references.len(),
@@ -1597,8 +1597,8 @@ fn shell_rewrite_call(
         Change::Move { from, to } => {
             let (Some(a), Some(b)) = (call.arguments.get(*from), call.arguments.get(*to)) else {
                 notes.push(format!(
-                    "{}: the call to `{}` passes {} argument(s), so positions {from} and \
-                     {to} are not both present and its arguments were left alone",
+                    "{}: the call to `{}` passes {} argument(s), so it holds no position \
+                     {from} and {to} both; this left its arguments alone",
                     location(file, call.name.start),
                     sym.name,
                     call.arguments.len()
@@ -1689,7 +1689,7 @@ fn reject_shell_edit_collisions(
         if let Some(clash) = renumbered.iter().find(|span| span.overlaps(edit.span)) {
             anyhow::bail!(
                 "the recursive call to `{}` at {} passes a positional parameter that this \
-                 change also renumbers; the same bytes would be rewritten twice",
+                 change also renumbers; two edits would land on the same bytes",
                 sym.name,
                 location(file, clash.start)
             );
@@ -1760,9 +1760,9 @@ fn terraform_module(index: &Index, sym: &Symbol, change: Change) -> Result<Signa
             return Err(Refusal::Unsupported {
                 operation: "reordering module variables".to_string(),
                 language: Language::Hcl,
-                because: "a Terraform module's arguments are named and not \
-                          positional, so moving a `variable` block changes nothing at any \
-                          call site",
+                because: "a Terraform module names its arguments rather than \
+                          numbering them, so moving a `variable` block changes nothing \
+                          at any call site",
             }
             .into());
         }
@@ -1791,8 +1791,8 @@ fn terraform_module(index: &Index, sym: &Symbol, change: Change) -> Result<Signa
                     .join(", ");
                 return Err(still_used(
                     format!(
-                        "`{}` is still read {} time(s) inside the module ({where_}); \
-                         removing it would leave those `var.{}` references dangling",
+                        "{1} site(s) inside the module still read `{0}` ({where_}); \
+                         removing it would leave those `var.{2}` references dangling",
                         target.name,
                         uses.len(),
                         target.name
@@ -1951,7 +1951,7 @@ fn target_module_dir(index: &Index, sym: &Symbol) -> Result<PathBuf> {
                     let Some(target) = local_module_dir(dir, &path) else {
                         anyhow::bail!(
                             "module \"{}\" at {} has source `{path}`, which is not a local \
-                             directory; its variables are not declared in this workspace",
+                             directory; nothing in this workspace declares its variables",
                             sym.name,
                             location(&sym.file, sym.name_span.start)
                         );
@@ -2108,7 +2108,7 @@ fn module_calls(index: &Index, dir: &Path) -> Result<Vec<ModuleCall>> {
                 return Err(Refusal::Unknowable {
                     detail: format!(
                         "a `module` block at {} sources {} but is not a top-level block, so \
-                         its arguments cannot be rewritten",
+                         nothing can rewrite its arguments",
                         location(path, import.span.start),
                         crate::vfs::describe_dir(dir)
                     ),
@@ -2121,8 +2121,8 @@ fn module_calls(index: &Index, dir: &Path) -> Result<Vec<ModuleCall>> {
     if !opaque.is_empty() {
         return Err(Refusal::Unknowable {
             detail: format!(
-                "{} `module` block(s) do not name a literal source, so they cannot be shown \
-                 not to call {}: {}",
+                "{} `module` block(s) do not name a literal source, so nothing rules out a \
+                 call to {}: {}",
                 opaque.len(),
                 crate::vfs::describe_dir(dir),
                 opaque.join("; ")

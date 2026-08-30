@@ -34,8 +34,8 @@ fn every_word_the_parser_takes_is_documented() {
     assert!(
         missing.is_empty(),
         "RECIPES.md never mentions {missing:?}, which the recipe parser accepts. \
-         A recipe is written by hand, so a word the document omits is one nobody \
-         can use."
+         People write recipes by hand, so a word the document omits is one \
+         nobody can use."
     );
 }
 
@@ -45,7 +45,7 @@ fn the_check_read_the_vocabulary() {
     let found = keywords();
     assert!(
         found.len() > 15,
-        "only {} word(s) were read out of the parser. The check above compared \
+        "only {} word(s) came out of the parser. The check above compared \
          almost nothing: {found:?}.",
         found.len()
     );
@@ -79,7 +79,7 @@ fn every_verb_is_in_the_grammar_and_the_table() {
     assert!(
         unknown.is_empty(),
         "this test lists {unknown:?} as verbs and the parser dispatches on no \
-         such word. Update the list, or the verb was renamed."
+         such word. Update the list, or restore the verb's old name."
     );
 
     let grammar = {

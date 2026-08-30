@@ -91,7 +91,7 @@ fn the_check_found_the_documents_to_check() {
     let found = documents();
     assert!(
         found.len() > 8,
-        "only {} document(s) were found, so the checks above compared almost \
+        "only {} document(s) turned up, so the checks above compared almost \
          nothing: {found:?}",
         found.len()
     );

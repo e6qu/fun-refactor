@@ -372,7 +372,7 @@ impl Parser {
         if schema != SCHEMA {
             bail!(
                 "this file says `schema {schema}` and this build understands schema \
-                 {SCHEMA}. Refusing to guess at a version it was not written for."
+                 {SCHEMA}. Refusing to guess at a version nobody wrote it for."
             );
         }
 
@@ -706,7 +706,7 @@ impl Parser {
             };
             if crate::translate::sources_for(language).is_empty() {
                 bail!(
-                    "line {}: `translate to {to}`: nothing can be written as {to}. {}",
+                    "line {}: `translate to {to}`: no writer produces {to}. {}",
                     self.line(),
                     crate::translate::why_nothing_into(language)
                 );

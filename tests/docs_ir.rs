@@ -39,8 +39,8 @@ fn variants_of(enum_name: &str) -> BTreeSet<String> {
 
 /// Does the document name this variant, spelled as code?
 fn names(variant: &str) -> bool {
-    // `Named { name, args }`, `List(T)`, `` `Set` ``: the name is followed by
-    // its shape or by the closing backtick.
+    // `Named { name, args }`, `List(T)`, `` `Set` ``: the shape or the closing backtick follows
+    // the name.
     DOC.contains(&format!("`{variant}`"))
         || DOC.contains(&format!("`{variant}("))
         || DOC.contains(&format!("`{variant} {{"))
@@ -51,7 +51,7 @@ fn assert_documented(enum_name: &str) {
     let all = variants_of(enum_name);
     assert!(
         all.len() > 2,
-        "only {} variant(s) were read out of `{enum_name}`, so this checked \
+        "only {} variant(s) came out of `{enum_name}`, so this checked \
          almost nothing: {all:?}",
         all.len()
     );

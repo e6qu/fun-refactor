@@ -210,7 +210,7 @@ fn every_python_example_gets_the_verdict_it_declares() {
     let output = mypy(&refs);
     assert!(
         output.status.success(),
-        "an example the page presents as accepted was rejected:\n{}",
+        "the checker rejected an example the page presents as accepted:\n{}",
         said(&output)
     );
 
@@ -245,7 +245,7 @@ fn every_typescript_example_gets_the_verdict_it_declares() {
     let output = tsc(&refs);
     assert!(
         output.status.success(),
-        "an example the page presents as accepted was rejected:\n{}",
+        "the checker rejected an example the page presents as accepted:\n{}",
         said(&output)
     );
 
@@ -290,10 +290,7 @@ fn every_run_tagged_example_executes() {
         );
         ran += 1;
     }
-    assert!(
-        ran > 0,
-        "no example carries `run: yes`, so nothing was executed"
-    );
+    assert!(ran > 0, "no example carries `run: yes`, so nothing ran");
 }
 
 /// Every before-and-after pair, as (after id, python diff, typescript diff).

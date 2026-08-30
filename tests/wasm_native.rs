@@ -84,7 +84,7 @@ fn the_translation_menu_answers_for_every_language() {
         assert!(option["framework"].is_boolean(), "{option}");
         assert!(
             option["unavailable"].is_string() || option["destination"].is_string(),
-            "an option must either be offered or say why not: {option}"
+            "an option either turns up or says why not: {option}"
         );
     }
     assert!(
@@ -111,7 +111,7 @@ fn a_next_js_route_is_offered_as_a_framework_port() {
     assert!(fastapi["destination"].is_string(), "{fastapi}");
     assert!(
         fastapi["draft"].as_str().unwrap().contains("/users/{id}"),
-        "the menu has to show the route before it is chosen: {fastapi}"
+        "the menu has to show the route before a reader picks it: {fastapi}"
     );
 }
 

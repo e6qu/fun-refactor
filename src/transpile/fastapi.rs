@@ -79,8 +79,8 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<AppPlan> 
     if found.is_empty() {
         bail!(
             "{} declares no endpoint. A FastAPI handler carries a decorator naming its \
-             method and its URL, `@router.get(\"/pets\")`. The URL is what a Next.js route \
-             tree is built from, so a module without one has nothing to place.",
+             method and its URL, `@router.get(\"/pets\")`. A Next.js route tree stands on \
+             those URLs, so a module without one has nothing to place.",
             path.display()
         );
     }
@@ -102,8 +102,8 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<AppPlan> 
         for param in &handler.params {
             if depends_on_the_framework(param) {
                 notes.push(format!(
-                    "{}: `{}` is filled in by FastAPI, and a Next.js handler has no \
-                     equivalent. It is left as a parameter to supply.",
+                    "{}: FastAPI fills `{}` in, and a Next.js handler has no \
+                     equivalent. It stays a parameter for you to supply.",
                     handler.name, param.name
                 ));
             }
@@ -164,7 +164,7 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<AppPlan> 
         if written.has_errors() {
             bail!(
                 "the route this produced does not parse as TypeScript. That is a defect \
-                 in the translator; nothing was written.\n\n{}",
+                 in the translator; this wrote nothing.\n\n{}",
                 file.output
             );
         }

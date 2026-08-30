@@ -103,7 +103,7 @@ fn callers_and_callees_are_two_views_of_one_edge() {
         }
     }
     // A graph that resolved no call at all agrees with itself trivially.
-    assert!(edges > 0, "no call edge was checked in either direction.");
+    assert!(edges > 0, "this checked no call edge in either direction.");
 }
 
 #[test]
@@ -197,7 +197,7 @@ fn impact_covers_every_reference_it_could_rewrite() {
     // leave nothing compared and the test passing.
     assert!(
         checked > 0,
-        "no rewritable reference was checked against any impact report."
+        "this checked no rewritable reference against any impact report."
     );
 }
 
@@ -271,7 +271,7 @@ fn usages_reports_the_name_where_it_appears_in_prose() {
         let text = std::fs::read_to_string(&mention.location.file).expect("the file");
         assert!(
             text.contains(&name),
-            "{} was reported as holding '{name}' and does not",
+            "the report puts '{name}' in {} and it is not there",
             mention.location.file.display()
         );
     }
@@ -280,7 +280,7 @@ fn usages_reports_the_name_where_it_appears_in_prose() {
     for mention in &found.in_text {
         assert!(
             !found.usages.iter().any(|u| u.location == mention.location),
-            "{}:{} is reported as both a use and a mention",
+            "the report calls {}:{} both a use and a mention",
             mention.location.file.display(),
             mention.location.line
         );
@@ -311,7 +311,7 @@ fn a_comment_naming_a_symbol_is_reported_by_usages() {
     assert_eq!(
         found.in_text.len(),
         1,
-        "and the comment that names it is reported: {:?}",
+        "and the report carries the comment that names it: {:?}",
         found.in_text
     );
     assert_eq!(found.in_text[0].location.line, 5);
@@ -346,7 +346,7 @@ fn the_neighbourhood_is_bounded_and_ranked_around_the_symbol() {
     for (_, rank) in &near.nodes {
         assert!(
             rank.abs() <= 2,
-            "the walk went past the depth it was given: {rank}"
+            "the walk went past the depth it took: {rank}"
         );
     }
     for (from, to, _) in &near.edges {

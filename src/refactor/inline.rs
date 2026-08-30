@@ -54,7 +54,7 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
 
     if !matches!(sym.kind, SymbolKind::Variable | SymbolKind::Constant) {
         anyhow::bail!(
-            "'{}' is {}; only variables and constants can be inlined",
+            "'{}' is {}; only a variable or a constant inlines",
             sym.name,
             sym.kind.with_article()
         );
@@ -108,7 +108,7 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     if let Some(second) = other_assignment(index, symbol, &source, &parsed, sym.name.as_str()) {
         let pos = LineIndex::new(&source).line_col(second, &source);
         anyhow::bail!(
-            "'{}' is assigned again at line {}; inlining would change behaviour",
+            "'{}' takes a second assignment at line {}; inlining would change behaviour",
             sym.name,
             pos.line
         );
@@ -116,7 +116,7 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
 
     if references.len() > 1 && may_run_code(&value_text) {
         anyhow::bail!(
-            "'{}' is used {} times and `{}` is not a simple value; \
+            "{1} sites use '{0}' and `{2}` is not a simple value; \
              inlining would evaluate it more than once",
             sym.name,
             references.len(),
@@ -511,7 +511,7 @@ mod tests {
         let id = var_at(&index, &path, src.find("let mut x").unwrap() + 8);
 
         let err = variable(&index, id).unwrap_err().to_string();
-        assert!(err.contains("assigned again"), "got: {err}");
+        assert!(err.contains("takes a second assignment"), "got: {err}");
     }
 
     #[test]
@@ -533,7 +533,7 @@ mod tests {
         let id = index.find_symbols("helper", None)[0].id;
 
         let err = variable(&index, id).unwrap_err().to_string();
-        assert!(err.contains("only variables"), "got: {err}");
+        assert!(err.contains("only a variable or a constant"), "got: {err}");
     }
 
     #[test]
@@ -625,7 +625,7 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
         return Err(Refusal::TooWeak {
             confidence: reference.resolved_confidence(),
             detail: format!(
-                "the callee of '{}' was not resolved conclusively",
+                "nothing resolved the callee of '{}' conclusively",
                 reference.name
             ),
         }
@@ -656,8 +656,8 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
         anyhow::anyhow!(
             "'{}' has a body of several statements. Inlining one would have to preserve \
              evaluation order and shadowing, which is not supported. Only a callee whose \
-             body is one expression can be inlined. `fr extract --function` writes \
-             several statements by construction, so what it produces cannot be put back \
+             body is one expression inlines. `fr extract --function` writes \
+             several statements by construction, so nothing puts what it produces back \
              this way",
             callee.name
         )
@@ -747,9 +747,8 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
         if uses > 1 && !is_duplicable(&argument.text) {
             let text = &argument.text;
             anyhow::bail!(
-                "'{parameter}' is used {uses} times in the body and the argument \
-                 `{text}` is not a simple value; inlining would evaluate it more \
-                 than once"
+                "the body uses '{parameter}' {uses} times and the argument `{text}` is \
+                 not a simple value; inlining would evaluate it more than once"
             );
         }
     }
@@ -933,7 +932,7 @@ fn enclosing_call<'a>(
     None
 }
 
-/// Can a call be inlined in this language?
+/// Can this language inline a call?
 pub fn supports_call(language: crate::lang::Language) -> bool {
     use crate::lang::Language as L;
     matches!(
@@ -942,7 +941,7 @@ pub fn supports_call(language: crate::lang::Language) -> bool {
     )
 }
 
-/// May this value be substituted more than once without changing behaviour?
+/// May this value stand in more than one place without changing behaviour?
 fn is_duplicable(argument: &str) -> bool {
     // A bare name or a literal has no effects and costs nothing to repeat.
     let trimmed = argument.trim();
@@ -1217,7 +1216,7 @@ fn hcl_local(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         })
         .ok_or_else(|| {
             anyhow::anyhow!(
-                "'{}' is not declared in a `locals` block, so there is no `local.{}` to \
+                "no `locals` block declares '{}', so there is no `local.{}` to \
                  substitute",
                 sym.name,
                 sym.name
@@ -1260,9 +1259,9 @@ fn hcl_local(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     let foreign = hcl_foreign_local_uses(index, &sym.file, &sym.name);
     if !foreign.is_empty() {
         anyhow::bail!(
-            "`local.{}` is also used in {}, which is a different Terraform module \
-             directory. Locals are module-scoped, so those uses cannot be rewritten \
-             from here and would be left naming a local that no longer exists",
+            "{1} also uses `local.{0}`, and it is a different Terraform module \
+             directory. Locals are module-scoped, so nothing here can rewrite those \
+             uses, and they would go on naming a local that no longer exists",
             sym.name,
             foreign
                 .iter()
@@ -1294,7 +1293,7 @@ fn hcl_local(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
             .filter(|start| &site_source[*start..reference.span.start] == "local.")
             .ok_or_else(|| {
                 anyhow::anyhow!(
-                    "a use of '{}' at {} byte {} is not written as `local.{}`; refusing \
+                    "a use of '{}' at {} byte {} does not spell `local.{}`; refusing \
                      to guess what it meant",
                     sym.name,
                     reference.file.display(),
@@ -1309,8 +1308,8 @@ fn hcl_local(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         if let Some(next) = site_source[traversal.end..].chars().next() {
             if next == '.' || next == '[' {
                 anyhow::bail!(
-                    "`local.{}` at byte {} is read further with `{}`; inlining the value \
-                     underneath an attribute or index read is not supported",
+                    "`local.{}` at byte {} carries a further `{}`; this cannot inline a \
+                     value underneath an attribute or an index",
                     sym.name,
                     traversal.start,
                     next
@@ -1417,8 +1416,8 @@ fn yaml_anchor(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         anyhow::bail!(
             "'&{}' anchors a block collection spanning several lines. Substituting it \
              at an alias would have to re-indent the spliced lines to each alias's \
-             depth, which would not be a byte-preserving edit; only anchors on a \
-             single-line value can be inlined",
+             depth, and that is not a byte-preserving edit; only an anchor on a \
+             single-line value inlines",
             sym.name
         );
     }
@@ -1432,8 +1431,8 @@ fn yaml_anchor(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     }
     if let Some(elsewhere) = references.iter().find(|r| r.file != sym.file) {
         anyhow::bail!(
-            "'*{}' is used in {}, but a YAML anchor is only visible inside the document \
-             that declares it; that use names something else",
+            "{1} uses '*{0}', and a YAML anchor reaches only inside the document that \
+             declares it; that use names something else",
             sym.name,
             elsewhere.file.display()
         );
@@ -1448,17 +1447,17 @@ fn yaml_anchor(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
             .filter(|s| source.as_bytes()[*s] == b'*')
             .ok_or_else(|| {
                 anyhow::anyhow!(
-                    "a use of '{}' at byte {} is not written as an alias",
+                    "a use of '{}' at byte {} does not spell an alias",
                     sym.name,
                     reference.span.start
                 )
             })?;
-        // `<<: *name` splices a mapping in; a scalar cannot be merged.
+        // `<<: *name` splices a mapping in, and nothing can merge a scalar.
         let line = full_line_span(&source, start);
         if line.text(&source).trim_start().starts_with("<<:") {
             anyhow::bail!(
-                "'*{}' is used as a merge key (`<<:`), which requires a mapping; the \
-                 anchored value is a scalar, so the merge cannot be inlined",
+                "'*{}' serves as a merge key (`<<:`), which requires a mapping; the \
+                 anchor holds a scalar, so nothing can inline the merge",
                 sym.name
             );
         }
@@ -1506,7 +1505,7 @@ fn css_custom_property(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
             .map(|s| s.file.display().to_string())
             .collect();
         anyhow::bail!(
-            "'{}' is declared {} times ({}); which declaration wins at a given use site \
+            "{1} declarations spell '{0}' ({2}); which one wins at a given use site \
              is a cascade question, so inlining one value everywhere would change meaning",
             sym.name,
             group.len(),
@@ -1518,7 +1517,7 @@ fn css_custom_property(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     let parsed = Parsers::new().parse(sym.language, &source)?;
     if parsed.has_errors() {
         anyhow::bail!(
-            "{} does not parse cleanly{}; the declaration cannot be located reliably",
+            "{} does not parse cleanly{}; nothing can place the declaration reliably",
             sym.file.display(),
             if sym.language == Language::Scss {
                 ". Check for SCSS syntax its grammar does not yet cover, such as \
@@ -1692,8 +1691,8 @@ fn markdown_link_definition(index: &Index, symbol: SymbolId) -> Result<InlinePla
     }
     if let Some(elsewhere) = references.iter().find(|r| r.file != sym.file) {
         anyhow::bail!(
-            "'[{}]' is used in {}, but a link reference definition only applies to the \
-             document that contains it; that use resolves to nothing there",
+            "{1} uses '[{0}]', and a link reference definition reaches only the \
+             document that holds it; that use resolves to nothing there",
             sym.name,
             elsewhere.file.display()
         );
@@ -1818,7 +1817,7 @@ fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     let parsed = Parsers::new().parse(sym.language, &source)?;
     if parsed.has_errors() {
         anyhow::bail!(
-            "{} has syntax errors, so the declaration cannot be located reliably",
+            "{} has syntax errors, so nothing can place the declaration reliably",
             sym.file.display()
         );
     }
@@ -1828,8 +1827,8 @@ fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         .filter(|a| Span::from(*a) == sym.full_span)
         .ok_or_else(|| {
             anyhow::anyhow!(
-                "`{}` is not bound by an assignment. A `for` loop variable and a bare \
-                 `local {}` have no value to substitute",
+                "no assignment binds `{}`. A `for` loop variable and a bare `local {}` \
+                 have no value to substitute",
                 sym.name,
                 sym.name
             )
@@ -1858,7 +1857,7 @@ fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     if let Some(other) = bash_other_binding(&parsed, &source, &sym.name, sym.full_span) {
         let pos = LineIndex::new(&source).line_col(other, &source);
         anyhow::bail!(
-            "`{}` is assigned again at line {}. Shell has no block scope, so every use \
+            "a second assignment writes `{}` at line {}. Shell has no block scope, so every use \
              after that line reads the second value and one substitution cannot be \
              right for both",
             sym.name,
@@ -1903,10 +1902,10 @@ fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         // Shell's namespace is global across everything a script sources.
         if reference.file != sym.file {
             anyhow::bail!(
-                "`{}` is used in {}, a different script. Shell variables live in one \
-                 global namespace shared by everything a run sources, so what that use \
-                 reads depends on the order the scripts run in, which is not visible \
-                 here",
+                "{1} uses `{0}`, and it is a different script. Shell variables share one \
+                 global namespace across everything a run sources, so what that use \
+                 reads depends on the order the scripts run in, which nothing here \
+                 can see",
                 sym.name,
                 reference.file.display()
             );
@@ -1917,7 +1916,7 @@ fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     for reference in &references {
         let use_node = node_covering(&parsed, reference.span).ok_or_else(|| {
             anyhow::anyhow!(
-                "a use of `{}` at byte {} could not be located in the tree",
+                "nothing could place a use of `{}` at byte {} in the tree",
                 sym.name,
                 reference.span.start
             )
@@ -2032,7 +2031,7 @@ fn bash_expansion_of<'a>(node: Node<'a>, source: &str, name: &str) -> Result<Nod
             } else {
                 anyhow::bail!(
                     "the use `{text}` applies a parameter expansion operator to \
-                     `{name}`; the value cannot be substituted without dropping it"
+                     `{name}`, and no substitution keeps that without dropping it"
                 )
             }
         }
@@ -2090,9 +2089,9 @@ fn bash_substitution(
                 Ok(text)
             }
             "ansi_c_string" => anyhow::bail!(
-                "`{name}` holds a `$'…'` string, whose escapes are interpreted when the \
-                 assignment runs, not where the value is used; there is no spelling of \
-                 it that means the same inside double quotes"
+                "`{name}` holds a `$'…'` string, and the shell resolves its escapes where \
+                 the assignment runs rather than where the value lands; no spelling \
+                 inside double quotes means the same"
             ),
             _ => Ok(verbatim.to_string()),
         };
@@ -2152,7 +2151,7 @@ pub fn xml_entity(file: &std::path::Path, name: &str) -> Result<InlinePlan> {
     let parsed = Parsers::new().parse(Language::Xml, &source)?;
     if parsed.has_errors() {
         anyhow::bail!(
-            "{} has syntax errors, so the declaration cannot be located reliably",
+            "{} has syntax errors, so nothing can place the declaration reliably",
             file.display()
         );
     }
@@ -2190,8 +2189,8 @@ pub fn xml_entity(file: &std::path::Path, name: &str) -> Result<InlinePlan> {
     if value.contains(['&', '%', '<']) {
         anyhow::bail!(
             "`{name}` expands to `{value}`, which contains markup (`&`, `%` or `<`). \
-             That is re-parsed where the entity is referenced, so pasting the text in \
-             would not mean the same thing"
+             The parser reads that again at every reference to the entity, so pasting the \
+             text in would not mean the same thing"
         );
     }
 
@@ -2200,7 +2199,7 @@ pub fn xml_entity(file: &std::path::Path, name: &str) -> Result<InlinePlan> {
     });
     if uses.is_empty() {
         anyhow::bail!(
-            "`&{name};` is never referenced; inlining would only delete the declaration \
+            "nothing references `&{name};`; inlining would only delete the declaration \
 . Use `fr delete` if that is the intent"
         );
     }

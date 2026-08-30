@@ -87,7 +87,7 @@ fn a_go_defer_reads_and_rust_runs_it_from_a_drop_guard() {
     );
     assert!(
         plan.output.contains("file.Close();") && plan.output.contains("impl<F: FnMut()> Drop"),
-        "the cleanup is code inside the guard, and the guard type is declared:\n{}",
+        "the cleanup is code inside the guard, and the file declares the guard type:\n{}",
         plan.output
     );
 }

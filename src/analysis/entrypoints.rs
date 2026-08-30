@@ -219,7 +219,7 @@ pub struct Entrypoint {
     pub symbol: SymbolId,
     pub kind: EntryKind,
     pub threat_model: ThreatModel,
-    /// The catalog rule that matched, so a surprising result can be traced back.
+    /// The catalog rule that matched, so a surprising result leads back to it.
     pub rule: String,
 }
 
@@ -960,7 +960,7 @@ mod tests {
         );
         assert!(
             kinds_for(&index, "web_ids").contains(&EntryKind::ExportedApi),
-            "an output is what a caller reads, wherever it is written"
+            "an output is what a caller reads, wherever it sits"
         );
     }
 
@@ -1041,7 +1041,7 @@ mod tests {
             .unwrap();
         assert!(
             !main_entry.rule.is_empty(),
-            "every detection must name its rule so it can be traced"
+            "every detection names its rule, so a reader can trace it back"
         );
     }
 
@@ -1190,7 +1190,7 @@ mod tests {
         let entry = entries
             .iter()
             .find(|e| e.symbol == other_main.id)
-            .unwrap_or_else(|| panic!("other_main is declared as a script: {entries:?}"));
+            .unwrap_or_else(|| panic!("the scripts table declares other_main: {entries:?}"));
         assert!(
             entry.rule.contains("pyproject.toml"),
             "the provenance names its basis: {}",
@@ -1227,7 +1227,7 @@ mod tests {
         assert!(!gaps.is_empty(), "no gaps at all, so nothing was compared");
         assert!(
             gaps.len() < Language::ALL.len(),
-            "every language is a gap, so the catalog is not being read"
+            "every language is a gap, so nothing reads the catalog"
         );
     }
 }

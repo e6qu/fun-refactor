@@ -164,7 +164,7 @@ fn instances_of_one_class_never_overlap_each_other() {
     }
     assert!(
         compared > 0,
-        "no two instances were compared, so this checked nothing"
+        "this compared no two instances, so it checked nothing"
     );
 }
 

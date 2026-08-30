@@ -180,7 +180,7 @@ pub fn why_nothing_into(to: Language) -> String {
                 .join(", ")
         )
     } else {
-        format!("no grammar this build has is contained by {to}, and nothing renders to it")
+        format!("{to} contains no grammar this build has, and nothing renders to it")
     }
 }
 
@@ -290,7 +290,7 @@ pub fn plan_to(
         if check.has_errors() {
             bail!(
                 "the {to} this conversion produced does not parse. That is a defect in \
-                 the converter and not in your file; the output is not written."
+                 the converter and not in your file; this writes no output."
             );
         }
         let existing = crate::vfs::read_to_string(&destination)
@@ -323,7 +323,8 @@ pub fn plan_to(
         let check = parsers.parse(to, &html)?;
         if check.has_errors() {
             bail!(
-                "the html this render produced does not parse. That is a defect in the                  renderer and not in your file; the output is not written."
+                "the html this render produced does not parse. That is a defect in the \
+                 renderer and not in your file; this writes no output."
             );
         }
         let existing = crate::vfs::read_to_string(&destination)

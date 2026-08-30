@@ -114,7 +114,7 @@ fn every_vendored_file_has_provenance() {
 
     assert!(
         seen > 0,
-        "no vendored query files were found under {}, so this checked nothing",
+        "no vendored query files turned up under {}, so this checked nothing",
         queries.display()
     );
 
@@ -156,7 +156,7 @@ fn every_licence_is_compatible_with_this_project() {
     }
     assert!(
         checked > 0,
-        "no licences were checked; the manifest looks wrong"
+        "this checked no licences; the manifest looks wrong"
     );
 }
 
@@ -172,8 +172,8 @@ fn a_licence_file_accompanies_every_grammar_that_ships_one() {
         checked += 1;
         assert!(
             vendor_root().join(relative).exists(),
-            "{relative} is referenced by the manifest but missing. The licence text \
-             has to travel with the files it covers"
+            "the manifest names {relative} and it is missing. The licence text has to \
+             travel with the files it covers"
         );
     }
     assert!(
@@ -214,7 +214,7 @@ fn nothing_vendored_is_compiled_into_the_binary() {
     }
     assert!(
         read > 10,
-        "only {read} source file(s) were read; the walk found nothing"
+        "only {read} source file(s) came through; the walk found nothing"
     );
 }
 

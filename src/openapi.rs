@@ -120,8 +120,8 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
                         });
                     }
                     false => notes.push(format!(
-                        "{}: {method} validates its body with `{schema}`, which is declared \
-                         nowhere this document can see. The body is not in the contract",
+                        "{}: {method} validates its body with `{schema}`, which nothing this \
+                         document can see declares. The contract omits the body",
                         relative(root, file)
                     )),
                 }
@@ -131,8 +131,8 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
 
         if !plan.models.is_empty() {
             notes.push(format!(
-                "{}: declares {}. Which operation consumes it is not written down, so it \
-                 is in `components` and referenced by nothing",
+                "{}: declares {}. Nothing says which operation consumes it, so it sits \
+                 in `components` and nothing references it",
                 relative(root, file),
                 plan.models
                     .iter()
@@ -146,8 +146,8 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
         // not read.
         if plan.fidelity.carried_verbatim > 0 {
             notes.push(format!(
-                "{}: {} statement(s) could not be read; any query parameter read inside \
-                 one of them is missing from this document",
+                "{}: {} statement(s) would not read; this document omits any query \
+                 parameter one of them reads",
                 relative(root, file),
                 plan.fidelity.carried_verbatim
             ));
@@ -209,8 +209,8 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
         // Each framework declares a handler's body its own way, and none of the five
         // say it beside the route.
         notes.push(format!(
-            "{}: read as {framework}. Paths and methods are exact. Each handler's \
-             body is declared away from the route, so it is not in this document",
+            "{}: read as {framework}. Paths and methods are exact. Each handler \
+             declares its body away from the route, so this document omits it",
             relative(root, file),
             framework = framework
         ));
@@ -231,8 +231,8 @@ pub fn from_routes(title: &str, root: &Path, files: &[PathBuf]) -> Result<Baseli
             "description": format!(
                 "Derived from {read_from} by fun-refactor. Paths, methods and path \
                  parameters are exact. Schemas are as good as what the source declared. \
-                 Responses are not declared by the source, so they are `default` here \
-                 and not invented. See the notes beside it."
+                 The source declares no responses, so they read `default` here rather \
+                 than something invented. See the notes beside it."
             ),
         },
         "paths": Value::Object(paths),

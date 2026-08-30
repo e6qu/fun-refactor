@@ -48,7 +48,7 @@ const EXIT_CODES_HELP: &str = "Exit codes:\n  \
      0  success.\n  \
      1  failure without a more specific code below.\n  \
      2  the command line itself was invalid.\n  \
-     3  the target was not found.\n  \
+     3  nothing matched the target.\n  \
      4  the target is ambiguous; the error lists the candidates.\n  \
      5  the refactoring refused to proceed; the error says why.";
 
@@ -1046,9 +1046,8 @@ fn refuse_stale_plan(index: &Index, edits: &crate::edit::EditSet) -> Result<()> 
             Ok(text) => text,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
                 anyhow::bail!(
-                    "{} was removed after it was indexed and changed since the plan \
-                     was made; nothing was written. Re-run the command against the \
-                     current tree.",
+                    "{} left the tree after the index read it. Nothing written. Re-run \
+                     the command against the current tree.",
                     path.display()
                 );
             }
@@ -1059,7 +1058,7 @@ fn refuse_stale_plan(index: &Index, edits: &crate::edit::EditSet) -> Result<()> 
         };
         if crate::index::content_hash_of(&current) != recorded {
             anyhow::bail!(
-                "{} changed since the plan was made; nothing was written. Re-run \
+                "{} changed after the plan read it. Nothing written. Re-run \
                  the command against the current text.",
                 path.display()
             );
@@ -1388,7 +1387,7 @@ fn workspace_path(cli: &Cli, path: &std::path::Path) -> Result<PathBuf> {
             Fault::not_found(format!("{}: {e}", path.display()))
         } else {
             Fault::not_found(format!(
-                "{} does not exist in {}. Paths are read relative to the workspace \
+                "{} does not exist in {}. Every path resolves against the workspace \
                  root, which -C set to that. ({e})",
                 path.display(),
                 root.display()
@@ -1508,20 +1507,19 @@ fn cmd_duplicates(
             classes.len()
         );
         println!(
-            "Structure is compared, not text, so a copy with renamed variables still \n\
-             matches; pass --exact to require the names too. Only the largest block of \n\
-             each duplication is listed. The statements inside it are duplicated as \n\
-             well, and saying so again would bury the finding. Smaller copies exist in \n\
-             most codebases and are not counted here; --min-tokens decides where the \n\
-             line is."
+            "This compares structure, not text, so a copy with renamed variables still \n\
+             matches; pass --exact to require the names too. Each duplication shows \n\
+             its largest block alone. The statements inside it repeat as well, and \n\
+             saying so again would bury the finding. Smaller copies exist in most \n\
+             codebases and fall below the line --min-tokens draws."
         );
     }
 
     let skipped = duplicates::unparsed(&index, &options);
     if !skipped.is_empty() {
         println!(
-            "\n{} file(s) were skipped because they do not parse, so duplication in \n\
-             them is not reported:",
+            "\n{} file(s) do not parse, so this skips them and says nothing about \n\
+             duplication in them:",
             skipped.len()
         );
         for path in skipped.iter().take(10) {
@@ -1540,9 +1538,9 @@ const UNUSED_CAVEAT: &str =
      candidates. So a method reached only through a trait object, an interface \n\
      value or a base class is no longer listed. A function held in a map or a \n\
      struct field and called through it, and a name assembled at runtime, still \n\
-     can be. Symbols whose name is spelled in any string literal are deliberately \n\
-     left off. So are names beginning with an underscore, which say the author \n\
-     meant them to go unused.";
+     can be. This leaves off, on purpose, every symbol whose name appears in a \n\
+     string literal. It also leaves off every name beginning with an underscore, \n\
+     which says the author meant it to go unused.";
 
 fn cmd_unused(
     cli: &Cli,
@@ -1664,8 +1662,12 @@ fn cmd_unused(
     }
     println!("{UNUSED_CAVEAT}");
     if exported_count > 0 && !internal_only {
+        let verb = match exported_count {
+            1 => "is",
+            _ => "are",
+        };
         println!(
-            "\n{exported_count} of these are exported. In a library that is the public \n\
+            "\n{exported_count} of these {verb} exported. In a library that is the public \n\
              API, which nothing in this repository can be expected to call. Pass \n\
              --internal to list only what is definitely dead here."
         );
@@ -1694,7 +1696,7 @@ fn cmd_imports(cli: &Cli, file: Option<&std::path::Path>, write: bool) -> Result
             );
         }
         println!(
-            "\nLiveness is decided by name, so an import kept only for a trait, a \n\
+            "\nThe name decides liveness, so an import held only for a trait, a \n\
              registration side effect or a doc comment would look unused. Check these.\n"
         );
     }
@@ -1783,7 +1785,7 @@ fn cmd_imports_workspace(cli: &Cli, index: &crate::index::Index, write: bool) ->
     // A sweep of a workspace would drown in one line per held import.
     if !cli.json && !kept.is_empty() {
         println!(
-            "\n{} import(s) nothing names were kept. `fr imports <file>` says why.",
+            "\n{} import(s) that nothing names stay. `fr imports <file>` says why.",
             kept.len()
         );
     }
@@ -1871,13 +1873,13 @@ fn cmd_translate(
         }
         if options.is_empty() && route.is_none() {
             println!(
-                "{} is {from}, and there is no language it can be rewritten as.\n\n{}",
+                "{} is {from}, and no language can hold it.\n\n{}",
                 path.display(),
                 crate::translate::why_nothing(from)
             );
             return Ok(());
         }
-        println!("{} is {from}. It could be written as:", path.display());
+        println!("{} is {from}. These languages can hold it:", path.display());
         if let Some(plan) = route {
             println!(
                 "  {:<10} -> {} (route {}, {})",
@@ -1940,8 +1942,8 @@ fn cmd_translate(
     // listing, so the refusal says how to get it.
     if to == from {
         anyhow::bail!(
-            "{} is already {to}. Run 'fr translate {}' to list the languages it can \
-             be written as.",
+            "{} is already {to}. Run 'fr translate {}' for the languages that can \
+             hold it.",
             path.display(),
             file.display()
         );
@@ -2187,11 +2189,11 @@ fn cmd_translate_directory(
         println!("  {already_target} file(s) are already {to}.");
     }
     for (name, count) in &unreadable {
-        println!("  {count} {name} file(s) have no reader, so they were skipped.");
+        println!("  {count} {name} file(s) have no reader, so this skipped them.");
     }
     for destination in &occupied {
         println!(
-            "  {} already exists, so its source was skipped. --force overwrites.",
+            "  {} already exists, so this skipped its source. --force overwrites.",
             destination.display()
         );
     }
@@ -2586,7 +2588,7 @@ fn cmd_recipe(
                         format!("recipe {}", report.recipe),
                     ),
                 );
-                // A file the run created is placed by this and by nothing else.
+                // This, and nothing else, places a file the run created.
                 edits.declare_language(path.clone(), *language);
             }
         }
@@ -2612,7 +2614,7 @@ fn cmd_recipe(
                     print!("{}", workspace_diff(cli, outcome));
                 }
                 println!(
-                    "\nThe run failed, so nothing was written. The diff above is what \
+                    "\nThe run failed, so this wrote nothing. The diff above is what \
                      the recipe would have done."
                 );
             } else {
@@ -2849,7 +2851,7 @@ fn cmd_remove_flag(cli: &Cli, flag: &str, value: FlagValue, write: bool) -> Resu
             let near = nearest_names(&index, name);
             return Err(Fault::not_found_near(
                 format!(
-                    "no symbol named '{name}' to remove; nothing was changed.{}",
+                    "no symbol named '{name}' to remove; this changed nothing.{}",
                     did_you_mean(&near)
                 ),
                 near,
@@ -2966,7 +2968,7 @@ fn cmd_restructure(
     // with the same code.
     if plan.matches.is_empty() && plan.skipped_with_comments.is_empty() {
         return Err(Fault::not_found(format!(
-            "no {lang} code matches `{pattern}`; nothing was changed."
+            "no {lang} code matches `{pattern}`; this changed nothing."
         )));
     }
 
@@ -3233,9 +3235,9 @@ fn cmd_stitch(
 
     print!("{}", stitch::format_chains(&chains));
     println!(
-        "{} chain(s). The link from a manifest to a program is the variable's name, \n\
-         which is a string on both sides -- nothing can prove the two refer to the \n\
-         same variable, so those hops are reported as name-only.",
+        "{} chain(s). The link from a manifest to a program is the variable's name. \n\
+         It is a string on both sides, and nothing can prove the two refer to one \n\
+         variable, so this reports those hops as name-only.",
         chains.len()
     );
     Ok(())
@@ -3318,7 +3320,7 @@ fn report_flags(cli: &Cli, index: &crate::index::Index) -> Result<()> {
     }
 
     if flags.is_empty() {
-        println!("No command-line flag is declared or passed in this workspace.");
+        println!("No command-line flag turns up in this workspace, declared or passed.");
         return Ok(());
     }
     for flag in &flags {
@@ -3525,10 +3527,10 @@ fn cmd_entrypoints(
             }
             println!(
                 "\nNote: reachability follows resolved call edges plus class-hierarchy \
-                 dispatch, so a method reached through a trait object or an interface \
-                 value is counted. A function held in a map or a struct field, and a \
-                 name assembled at runtime, are not. This list can still include \
-                 functions that are used."
+                 dispatch, so it counts a method that a trait object or an interface \
+                 value reaches. It misses a function held in a map or a struct field, \
+                 and a name assembled at runtime. This list can still name a function \
+                 that something calls."
             );
         }
         return Ok(());
@@ -4013,7 +4015,7 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
                 ),
                 None => format!(
                     "{} is not in the workspace this indexed, so nothing in it \
-                     resolves. {} `fr scan` lists what was read.",
+                     resolves. {} `fr scan` lists every file it read.",
                     path.display(),
                     why_unindexed(cli, &path)
                 ),
@@ -4047,7 +4049,7 @@ fn resolve_target<'a>(cli: &Cli, index: &'a Index, target: &str) -> Result<&'a S
             }
             Err(Fault::ambiguous(
                 format!(
-                    "'{target}' is declared in {} files; specify a position as \
+                    "{} files declare '{target}'; specify a position as \
                      path:line:col{listing}",
                     matches.len()
                 ),
@@ -4231,7 +4233,7 @@ fn cmd_cache(cli: &Cli, clear: bool) -> Result<()> {
         println!("location  {}", cache.location().display());
         println!("size      {} KiB", bytes / 1024);
         println!(
-            "\nEntries are keyed by file content and by the query set, so editing a \n\
+            "\nAn entry takes its key from the file's content and the query set, so editing a \n\
              query file makes every stale entry unreachable and not wrong."
         );
     }
@@ -4466,8 +4468,8 @@ fn cmd_def(cli: &Cli, target: &str, first_only: bool) -> Result<()> {
 
     if found.is_polymorphic() && !first_only {
         println!(
-            "\n`{}` is declared on an abstraction, so which one runs is a runtime \n\
-             fact. Every implementation is listed.",
+            "\n`{}` sits on an abstraction, so which one runs is a runtime fact. \n\
+             This lists every implementation.",
             found.query
         );
     }
@@ -4926,7 +4928,7 @@ fn report_skipped(result: &crate::scan::ScanResult) {
     }
     if !result.skipped_symlinks.is_empty() {
         println!(
-            "\n{} symlink(s) skipped; each file is read where it really lives:",
+            "\n{} symlink(s) skipped; this reads each file where it really lives:",
             result.skipped_symlinks.len()
         );
         for (path, reason) in &result.skipped_symlinks {
@@ -5009,8 +5011,8 @@ mod tests {
         crate::vfs::write(&path, "def f():\n    return 2\n").unwrap();
         let err = refuse_stale_plan(&index, &edits).unwrap_err().to_string();
         assert!(
-            err.contains("changed since the plan was made"),
-            "the race is named, instead of a syntax error: {err}"
+            err.contains("changed after the plan read it"),
+            "the refusal names the race, instead of a syntax error: {err}"
         );
     }
 }

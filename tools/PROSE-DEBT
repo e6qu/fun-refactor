@@ -4,14 +4,15 @@
 # A count above its number fails the build. A count below it fails too, and asks you
 # to lower the number here. Both directions are recorded, so the total only falls.
 #
-# Four rules stand at zero and stay there: the next em-dash, false comparison, filler
-# word or sentence pointing at its own text fails the build. Three still fall, one
-# file at a time.
+# Five rules stand at zero and stay there: the next em-dash, false comparison, filler
+# word, sentence pointing at its own text or passive construction fails the build.
+# Two still fall, one file at a time.
 #
-# `passive-voice` stands at zero for every comment in the source and every
-# reader-facing document. What is left sits in assertion messages and in `BUGS.md`
-# and `PLAN.md`. Active voice and past tense sit together happily, so those records
-# come down too, a batch at a time.
+# `passive-voice` reached zero across the whole tree: every comment, every assertion
+# message, every reader-facing document, and the two records in `BUGS.md` and
+# `PLAN.md`. Active voice and past tense sit together happily, which is why the
+# records came down too. It reached zero once before, on a word list too short to
+# see 365 of them; the list now names every participle that reads as a verb here.
 #
 # Measured before any of this work: 2050 em-dashes, 240 false comparisons, 350
 # fillers, 222 self-references and 2339 long sentences. `comment-line` opened at 20169
@@ -20,6 +21,6 @@ em-dash 0
 false-comparison 0
 filler 0
 self-reference 0
-passive-voice 687
-long-sentence 281
-comment-line 8808
+passive-voice 0
+long-sentence 280
+comment-line 8804

@@ -109,7 +109,7 @@ fn impact_accounts_for_every_site_a_rename_would_show() {
         let source = std::fs::read_to_string(path).expect("the file");
         let lines = LineIndex::new(&source);
         for edit in edits {
-            // The declaration is the thing being changed, not part of what it affects.
+            // The declaration is the thing that changes, not part of what it affects.
             if path == &symbol.file && edit.span == symbol.name_span {
                 continue;
             }
@@ -163,7 +163,7 @@ fn duplicates_names_the_threshold_it_searched_with() {
         "the threshold is not in the answer:\n{text}"
     );
     assert!(
-        text.contains("--min-tokens decides where the"),
-        "nothing says smaller copies were not counted:\n{text}"
+        text.contains("fall below the line --min-tokens draws"),
+        "nothing says the count leaves smaller copies out:\n{text}"
     );
 }

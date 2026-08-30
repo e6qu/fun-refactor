@@ -96,7 +96,7 @@ fn pulling_a_path_parameter_off_the_context_is_dropped_not_carried() {
             .notes
             .iter()
             .any(|n| n.contains("FastAPI supplies it")),
-        "the drop has to be reported, not silent: {:?}",
+        "the notes have to carry the drop rather than swallow it: {:?}",
         plan.fidelity.notes
     );
 }
@@ -164,7 +164,7 @@ export async function GET(request: NextRequest, context: { params: { id: string 
     assert!(
         plan.output
             .contains(r#"return JSONResponse({"error": "not found"}, 404)"#),
-        "a nested error return has to be rewritten too:\n{}",
+        "the translation has to reach a nested error return too:\n{}",
         plan.output
     );
     assert!(plan
@@ -202,7 +202,7 @@ fn the_banner_says_draft_only_when_it_is_one() {
     );
     assert!(
         draft.output.contains("for (let i = 0; i < 3; i++)"),
-        "what could not be translated has to be in the output verbatim:\n{}",
+        "whatever the translation could not carry has to reach the output verbatim:\n{}",
         draft.output
     );
 }

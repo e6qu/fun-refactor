@@ -76,7 +76,7 @@ fn the_sample_census_is_what_the_document_says() {
     );
     assert!(
         doc().contains(&claim),
-        "CROSS_LANGUAGE.md does not say `{claim}`. The sample was measured just \
+        "CROSS_LANGUAGE.md does not say `{claim}`. This measured the sample just \
          now, so the document is what moved."
     );
 }

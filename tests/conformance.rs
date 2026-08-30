@@ -576,7 +576,7 @@ fn run_program(language: Language, file: &Path, scratch: &Path) -> Result<String
                 .map_err(|e| e.to_string())?,
         ),
         Language::TypeScript => {
-            // tsc writes the JavaScript beside its input, so the input is copied into the
+            // tsc writes the JavaScript beside its input, so this copies the input into the
             // scratch directory first.
             let copied = scratch.join("main.ts");
             if file != copied {
@@ -771,7 +771,7 @@ fn every_translation_still_prints_the_same_transcript() {
     for cell in &passing {
         if !pinned.contains(cell) {
             wrong.push(format!(
-                "{cell}: passes and is not pinned; add it to PASSING."
+                "{cell}: passes and the ledger omits it; add it to PASSING."
             ));
         }
     }
