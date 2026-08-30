@@ -53,11 +53,15 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     }
 
     if !matches!(sym.kind, SymbolKind::Variable | SymbolKind::Constant) {
-        anyhow::bail!(
-            "'{}' is {}; only a variable or a constant inlines",
-            sym.name,
-            sym.kind.with_article()
-        );
+        return Err(Refusal::NotHere {
+            operation: "inline".into(),
+            detail: format!(
+                "'{}' is {}; only a variable or a constant inlines",
+                sym.name,
+                sym.kind.with_article()
+            ),
+        }
+        .into());
     }
 
     let source = crate::vfs::read_to_string(&sym.file)?;
@@ -69,10 +73,12 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         .descendant_for_byte_range(sym.full_span.start, sym.full_span.end)
         .ok_or_else(|| anyhow::anyhow!("could not locate the binding"))?;
     let value = crate::parse::declaration_value(node).ok_or_else(|| {
-        anyhow::anyhow!(
-            "'{}' has no initialiser, so there is nothing to inline",
-            sym.name
-        )
+        anyhow::Error::from(Refusal::Declined {
+            detail: format!(
+                "'{}' has no initialiser, so there is nothing to inline",
+                sym.name
+            ),
+        })
     })?;
     let value_span = Span::from(value);
     let value_text = value_span.text(&source).to_string();
@@ -80,10 +86,13 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
 
     let references = index.references_to(symbol);
     if references.is_empty() {
-        anyhow::bail!(
+        return Err(Refusal::Declined {
+            detail: format!(
             "'{}' has no uses; inlining would only delete it. Use `fr delete` if that is the intent.",
             sym.name
-        );
+        ),
+        }
+        .into());
     }
 
     // Every use must be provably this binding.
@@ -107,21 +116,26 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     // Reassignment means the value differs per use, so a single substitution is wrong.
     if let Some(second) = other_assignment(index, symbol, &source, &parsed, sym.name.as_str()) {
         let pos = LineIndex::new(&source).line_col(second, &source);
-        anyhow::bail!(
-            "'{}' takes a second assignment at line {}; inlining would change behaviour",
-            sym.name,
-            pos.line
-        );
+        return Err(Refusal::Declined {
+            detail: format!(
+                "'{}' takes a second assignment at line {}; inlining would change behaviour",
+                sym.name, pos.line
+            ),
+        }
+        .into());
     }
 
     if references.len() > 1 && may_run_code(&value_text) {
-        anyhow::bail!(
-            "{1} sites use '{0}' and `{2}` is not a simple value; \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "{1} sites use '{0}' and `{2}` is not a simple value; \
              inlining would evaluate it more than once",
-            sym.name,
-            references.len(),
-            value_text
-        );
+                sym.name,
+                references.len(),
+                value_text
+            ),
+        }
+        .into());
     }
 
     // A name inside the value must mean the same thing at every use site, or the
@@ -615,11 +629,16 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
     if let Some(info) = index.file(file) {
         crate::capabilities::record(crate::capabilities::Capability::InlineCall, info.language);
     }
-    let reference = index
-        .reference_at(file, offset)
-        .ok_or_else(|| anyhow::anyhow!("no call at that position"))?;
+    let reference = index.reference_at(file, offset).ok_or_else(|| {
+        anyhow::Error::from(Refusal::Declined {
+            detail: "no call at that position".to_string(),
+        })
+    })?;
     if reference.kind != crate::model::ReferenceKind::Call {
-        anyhow::bail!("'{}' at that position is not a call", reference.name);
+        return Err(Refusal::Declined {
+            detail: format!("'{}' at that position is not a call", reference.name),
+        }
+        .into());
     }
     if !reference.confidence.is_safe_to_rewrite() {
         return Err(Refusal::TooWeak {
@@ -639,10 +658,13 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
 
     // Inlining a function into itself would not terminate.
     if callee.file == *file && callee.full_span.contains_offset(offset) {
-        anyhow::bail!(
-            "'{}' calls itself here; inlining would not terminate",
-            callee.name
-        );
+        return Err(Refusal::Declined {
+            detail: format!(
+                "'{}' calls itself here; inlining would not terminate",
+                callee.name
+            ),
+        }
+        .into());
     }
 
     let callee_source = crate::vfs::read_to_string(&callee.file)?;
@@ -732,13 +754,16 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
     }
     let arguments = arguments_at(call_node, &caller_source, callee.language);
     if parameters.len() != arguments.len() {
-        anyhow::bail!(
-            "'{}' takes {} parameter(s) but the call passes {}; inlining would change \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "'{}' takes {} parameter(s) but the call passes {}; inlining would change \
              the meaning",
-            callee.name,
-            parameters.len(),
-            arguments.len()
-        );
+                callee.name,
+                parameters.len(),
+                arguments.len()
+            ),
+        }
+        .into());
     }
 
     let body_text = body_expression.text(&callee_source);
@@ -746,10 +771,13 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
         let uses = count_word(body_text, parameter);
         if uses > 1 && !is_duplicable(&argument.text) {
             let text = &argument.text;
-            anyhow::bail!(
-                "the body uses '{parameter}' {uses} times and the argument `{text}` is \
+            return Err(Refusal::Declined {
+                detail: format!(
+                    "the body uses '{parameter}' {uses} times and the argument `{text}` is \
                  not a simple value; inlining would evaluate it more than once"
-            );
+                ),
+            }
+            .into());
         }
     }
 
@@ -1231,11 +1259,14 @@ fn hcl_local(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
 
     let references = index.references_to(symbol);
     if references.is_empty() {
-        anyhow::bail!(
-            "local.{} has no uses; inlining would only delete it. Use `fr delete` if \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "local.{} has no uses; inlining would only delete it. Use `fr delete` if \
              that is the intent",
-            sym.name
-        );
+                sym.name
+            ),
+        }
+        .into());
     }
     for reference in &references {
         if !reference.confidence.is_safe_to_rewrite() {
@@ -1258,17 +1289,20 @@ fn hcl_local(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     // A local belongs to one module, which in Terraform is one directory.
     let foreign = hcl_foreign_local_uses(index, &sym.file, &sym.name);
     if !foreign.is_empty() {
-        anyhow::bail!(
-            "{1} also uses `local.{0}`, and it is a different Terraform module \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "{1} also uses `local.{0}`, and it is a different Terraform module \
              directory. Locals are module-scoped, so nothing here can rewrite those \
              uses, and they would go on naming a local that no longer exists",
-            sym.name,
-            foreign
-                .iter()
-                .map(|p| p.display().to_string())
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
+                sym.name,
+                foreign
+                    .iter()
+                    .map(|p| p.display().to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+        }
+        .into());
     }
 
     let mut edits = EditSet::new();
@@ -1307,13 +1341,14 @@ fn hcl_local(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         // has no such attribute would produce a configuration that does not evaluate.
         if let Some(next) = site_source[traversal.end..].chars().next() {
             if next == '.' || next == '[' {
-                anyhow::bail!(
-                    "`local.{}` at byte {} carries a further `{}`; this cannot inline a \
+                return Err(Refusal::Declined {
+                    detail: format!(
+                        "`local.{}` at byte {} carries a further `{}`; this cannot inline a \
                      value underneath an attribute or an index",
-                    sym.name,
-                    traversal.start,
-                    next
-                );
+                        sym.name, traversal.start, next
+                    ),
+                }
+                .into());
             }
         }
 
@@ -1404,38 +1439,50 @@ fn yaml_anchor(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         value_start += 1;
     }
     if value_start >= sym.full_span.end {
-        anyhow::bail!(
-            "'&{}' anchors an empty node, so there is nothing to inline",
-            sym.name
-        );
+        return Err(Refusal::Declined {
+            detail: format!(
+                "'&{}' anchors an empty node, so there is nothing to inline",
+                sym.name
+            ),
+        }
+        .into());
     }
     let value_text = source[value_start..sym.full_span.end]
         .trim_end()
         .to_string();
     if value_text.contains('\n') {
-        anyhow::bail!(
-            "'&{}' anchors a block collection spanning several lines. Substituting it \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "'&{}' anchors a block collection spanning several lines. Substituting it \
              at an alias would have to re-indent the spliced lines to each alias's \
              depth, and that is not a byte-preserving edit; only an anchor on a \
              single-line value inlines",
-            sym.name
-        );
+                sym.name
+            ),
+        }
+        .into());
     }
 
     let references = index.references_to(symbol);
     if references.is_empty() {
-        anyhow::bail!(
-            "'&{}' has no aliases; inlining would only delete the anchor",
-            sym.name
-        );
+        return Err(Refusal::Declined {
+            detail: format!(
+                "'&{}' has no aliases; inlining would only delete the anchor",
+                sym.name
+            ),
+        }
+        .into());
     }
     if let Some(elsewhere) = references.iter().find(|r| r.file != sym.file) {
-        anyhow::bail!(
-            "{1} uses '*{0}', and a YAML anchor reaches only inside the document that \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "{1} uses '*{0}', and a YAML anchor reaches only inside the document that \
              declares it; that use names something else",
-            sym.name,
-            elsewhere.file.display()
-        );
+                sym.name,
+                elsewhere.file.display()
+            ),
+        }
+        .into());
     }
 
     let mut edits = EditSet::new();
@@ -1455,11 +1502,14 @@ fn yaml_anchor(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         // `<<: *name` splices a mapping in, and nothing can merge a scalar.
         let line = full_line_span(&source, start);
         if line.text(&source).trim_start().starts_with("<<:") {
-            anyhow::bail!(
-                "'*{}' serves as a merge key (`<<:`), which requires a mapping; the \
+            return Err(Refusal::Declined {
+                detail: format!(
+                    "'*{}' serves as a merge key (`<<:`), which requires a mapping; the \
                  anchor holds a scalar, so nothing can inline the merge",
-                sym.name
-            );
+                    sym.name
+                ),
+            }
+            .into());
         }
         edits.add(
             reference.file.clone(),
@@ -1504,28 +1554,34 @@ fn css_custom_property(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
             .filter_map(|id| index.symbol(*id))
             .map(|s| s.file.display().to_string())
             .collect();
-        anyhow::bail!(
-            "{1} declarations spell '{0}' ({2}); which one wins at a given use site \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "{1} declarations spell '{0}' ({2}); which one wins at a given use site \
              is a cascade question, so inlining one value everywhere would change meaning",
-            sym.name,
-            group.len(),
-            sites.join(", ")
-        );
+                sym.name,
+                group.len(),
+                sites.join(", ")
+            ),
+        }
+        .into());
     }
 
     let source = crate::vfs::read_to_string(&sym.file)?;
     let parsed = Parsers::new().parse(sym.language, &source)?;
     if parsed.has_errors() {
-        anyhow::bail!(
-            "{} does not parse cleanly{}; nothing can place the declaration reliably",
-            sym.file.display(),
-            if sym.language == Language::Scss {
-                ". Check for SCSS syntax its grammar does not yet cover, such as \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "{} does not parse cleanly{}; nothing can place the declaration reliably",
+                sym.file.display(),
+                if sym.language == Language::Scss {
+                    ". Check for SCSS syntax its grammar does not yet cover, such as \
                  empty `@mixin m()` parentheses or a namespaced `@include t.m(…)`"
-            } else {
-                ""
-            }
-        );
+                } else {
+                    ""
+                }
+            ),
+        }
+        .into());
     }
 
     let declaration = node_covering(&parsed, sym.full_span)
@@ -1538,11 +1594,14 @@ fn css_custom_property(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
 
     let references = index.references_to(symbol);
     if references.is_empty() {
-        anyhow::bail!(
-            "'{}' has no `var()` uses; inlining would only delete it. Use `fr delete` \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "'{}' has no `var()` uses; inlining would only delete it. Use `fr delete` \
              if that is the intent",
-            sym.name
-        );
+                sym.name
+            ),
+        }
+        .into());
     }
 
     // An SCSS `$variable` stands bare at its uses.
@@ -1683,19 +1742,25 @@ fn markdown_link_definition(index: &Index, symbol: SymbolId) -> Result<InlinePla
 
     let references = index.references_to(symbol);
     if references.is_empty() {
-        anyhow::bail!(
-            "'[{}]' has no reference links; inlining would only delete it. Use \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "'[{}]' has no reference links; inlining would only delete it. Use \
              `fr delete` if that is the intent",
-            sym.name
-        );
+                sym.name
+            ),
+        }
+        .into());
     }
     if let Some(elsewhere) = references.iter().find(|r| r.file != sym.file) {
-        anyhow::bail!(
-            "{1} uses '[{0}]', and a link reference definition reaches only the \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "{1} uses '[{0}]', and a link reference definition reaches only the \
              document that holds it; that use resolves to nothing there",
-            sym.name,
-            elsewhere.file.display()
-        );
+                sym.name,
+                elsewhere.file.display()
+            ),
+        }
+        .into());
     }
 
     let mut edits = EditSet::new();
@@ -1805,21 +1870,27 @@ fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         .ok_or_else(|| anyhow::anyhow!("unknown symbol"))?;
 
     if sym.exported {
-        anyhow::bail!(
-            "`{}` is exported, so it is part of the environment of every command this \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "`{}` is exported, so it is part of the environment of every command this \
              script runs. Inlining it here would take it out of that environment, and \
              nothing in this workspace can show that no child process reads it",
-            sym.name
-        );
+                sym.name
+            ),
+        }
+        .into());
     }
 
     let source = crate::vfs::read_to_string(&sym.file)?;
     let parsed = Parsers::new().parse(sym.language, &source)?;
     if parsed.has_errors() {
-        anyhow::bail!(
-            "{} has syntax errors, so nothing can place the declaration reliably",
-            sym.file.display()
-        );
+        return Err(Refusal::Declined {
+            detail: format!(
+                "{} has syntax errors, so nothing can place the declaration reliably",
+                sym.file.display()
+            ),
+        }
+        .into());
     }
 
     let assignment = node_covering(&parsed, sym.full_span)
@@ -1837,12 +1908,14 @@ fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     // `FOO=bar cmd` sets FOO for that one command only; `$FOO` anywhere else is a different
     // variable.
     if assignment.parent().is_some_and(|p| p.kind() == "command") {
-        anyhow::bail!(
-            "`{}=…` is a prefix of a single command, so it is visible only inside that \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "`{}=…` is a prefix of a single command, so it is visible only inside that \
              command's environment; a `${}` elsewhere is not a use of it",
-            sym.name,
-            sym.name
-        );
+                sym.name, sym.name
+            ),
+        }
+        .into());
     }
 
     let value = assignment.child_by_field_name("value").ok_or_else(|| {
@@ -1856,33 +1929,42 @@ fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     // Shell has no block scope: a later assignment changes every use after it.
     if let Some(other) = bash_other_binding(&parsed, &source, &sym.name, sym.full_span) {
         let pos = LineIndex::new(&source).line_col(other, &source);
-        anyhow::bail!(
+        return Err(Refusal::Declined {
+            detail: format!(
             "a second assignment writes `{}` at line {}. Shell has no block scope, so every use \
              after that line reads the second value and one substitution cannot be \
              right for both",
             sym.name,
             pos.line
-        );
+        ),
+        }
+        .into());
     }
 
     if let Some(quoted) = bash_single_quoted_mention(&parsed, &source, &sym.name) {
-        anyhow::bail!(
-            "`{}` at bytes {} is inside single quotes, where the shell expands nothing. \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "`{}` at bytes {} is inside single quotes, where the shell expands nothing. \
              That text is a literal `${}` and not a use. Removing the assignment \
              would leave it reading like one",
-            Span::from(quoted).text(&source),
-            Span::from(quoted),
-            sym.name
-        );
+                Span::from(quoted).text(&source),
+                Span::from(quoted),
+                sym.name
+            ),
+        }
+        .into());
     }
 
     let references = index.references_to(symbol);
     if references.is_empty() {
-        anyhow::bail!(
-            "`{}` has no uses; inlining would only delete it. Use `fr delete` if that \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "`{}` has no uses; inlining would only delete it. Use `fr delete` if that \
              is the intent",
-            sym.name
-        );
+                sym.name
+            ),
+        }
+        .into());
     }
     for reference in &references {
         if !reference.confidence.is_safe_to_rewrite() {
@@ -1901,14 +1983,17 @@ fn bash_variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         }
         // Shell's namespace is global across everything a script sources.
         if reference.file != sym.file {
-            anyhow::bail!(
-                "{1} uses `{0}`, and it is a different script. Shell variables share one \
+            return Err(Refusal::Declined {
+                detail: format!(
+                    "{1} uses `{0}`, and it is a different script. Shell variables share one \
                  global namespace across everything a run sources, so what that use \
                  reads depends on the order the scripts run in, which nothing here \
                  can see",
-                sym.name,
-                reference.file.display()
-            );
+                    sym.name,
+                    reference.file.display()
+                ),
+            }
+            .into());
         }
     }
 
@@ -2018,7 +2103,10 @@ fn bash_mentions(text: &str, name: &str) -> bool {
 /// The `$name` / `${name}` a reference span sits inside.
 fn bash_expansion_of<'a>(node: Node<'a>, source: &str, name: &str) -> Result<Node<'a>> {
     let Some(parent) = node.parent() else {
-        anyhow::bail!("a use of `{name}` has no enclosing expansion");
+        return Err(Refusal::Declined {
+            detail: format!("a use of `{name}` has no enclosing expansion"),
+        }
+        .into());
     };
     match parent.kind() {
         "simple_expansion" => Ok(parent),
@@ -2029,10 +2117,13 @@ fn bash_expansion_of<'a>(node: Node<'a>, source: &str, name: &str) -> Result<Nod
             if text == format!("${{{name}}}") {
                 Ok(parent)
             } else {
-                anyhow::bail!(
-                    "the use `{text}` applies a parameter expansion operator to \
+                Err(Refusal::Declined {
+                    detail: format!(
+                        "the use `{text}` applies a parameter expansion operator to \
                      `{name}`, and no substitution keeps that without dropping it"
-                )
+                    ),
+                }
+                .into())
             }
         }
         other => anyhow::bail!(
@@ -2079,12 +2170,15 @@ fn bash_substitution(
             "raw_string" => {
                 let text = inner();
                 if text.contains(['$', '`', '\\', '"']) {
-                    anyhow::bail!(
-                        "`{name}` holds the single-quoted text `{text}`, which is \
+                    return Err(Refusal::Declined {
+                        detail: format!(
+                            "`{name}` holds the single-quoted text `{text}`, which is \
                          literal, but the use site is inside double quotes where `$`, \
                          backtick, `\\` and `\"` are not. Substituting it would change \
                          what the shell reads"
-                    );
+                        ),
+                    }
+                    .into());
                 }
                 Ok(text)
             }
@@ -2103,12 +2197,15 @@ fn bash_substitution(
             if bash_is_one_plain_word(&text) {
                 Ok(text)
             } else {
-                anyhow::bail!(
-                    "`{name}` holds `{verbatim}` and this use is unquoted, where the \
+                Err(Refusal::Declined {
+                    detail: format!(
+                        "`{name}` holds `{verbatim}` and this use is unquoted, where the \
                      shell splits on `$IFS` and expands globs. `\"$` `{name}\"` never \
                      did either, so there is no substitution here that keeps the \
                      meaning. Quote the use site first"
-                )
+                    ),
+                }
+                .into())
             }
         }
         _ => Ok(verbatim.to_string()),
@@ -2150,10 +2247,13 @@ pub fn xml_entity(file: &std::path::Path, name: &str) -> Result<InlinePlan> {
     let source = crate::vfs::read_to_string(file)?;
     let parsed = Parsers::new().parse(Language::Xml, &source)?;
     if parsed.has_errors() {
-        anyhow::bail!(
-            "{} has syntax errors, so nothing can place the declaration reliably",
-            file.display()
-        );
+        return Err(Refusal::Declined {
+            detail: format!(
+                "{} has syntax errors, so nothing can place the declaration reliably",
+                file.display()
+            ),
+        }
+        .into());
     }
 
     let doctype = collect_nodes(parsed.root(), |n| n.kind() == "doctypedecl")
@@ -2187,21 +2287,27 @@ pub fn xml_entity(file: &std::path::Path, name: &str) -> Result<InlinePlan> {
     let value = source[value_span.start + 1..value_span.end - 1].to_string();
 
     if value.contains(['&', '%', '<']) {
-        anyhow::bail!(
-            "`{name}` expands to `{value}`, which contains markup (`&`, `%` or `<`). \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "`{name}` expands to `{value}`, which contains markup (`&`, `%` or `<`). \
              The parser reads that again at every reference to the entity, so pasting the \
              text in would not mean the same thing"
-        );
+            ),
+        }
+        .into());
     }
 
     let uses: Vec<Node> = collect_nodes(parsed.root(), |n| {
         n.kind() == "EntityRef" && xml_child_name(n, &source).as_deref() == Some(name)
     });
     if uses.is_empty() {
-        anyhow::bail!(
-            "nothing references `&{name};`; inlining would only delete the declaration \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "nothing references `&{name};`; inlining would only delete the declaration \
 . Use `fr delete` if that is the intent"
-        );
+            ),
+        }
+        .into());
     }
 
     let mut edits = EditSet::new();
@@ -2211,12 +2317,15 @@ pub fn xml_entity(file: &std::path::Path, name: &str) -> Result<InlinePlan> {
         if let Some(attribute) = strict_ancestor_of_kind(*use_site, "AttValue") {
             let quote = source.as_bytes()[attribute.start_byte()] as char;
             if value.contains(quote) {
-                anyhow::bail!(
-                    "`{name}` expands to `{value}`, which contains the `{quote}` that \
+                return Err(Refusal::Declined {
+                    detail: format!(
+                        "`{name}` expands to `{value}`, which contains the `{quote}` that \
                      delimits the attribute value at byte {}; substituting it would end \
                      the attribute early",
-                    attribute.start_byte()
-                );
+                        attribute.start_byte()
+                    ),
+                }
+                .into());
             }
         }
         edits.add(

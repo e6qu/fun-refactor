@@ -1949,7 +1949,6 @@ fn cmd_translate(
         );
     }
 
-    // Containment first.
     if crate::translate::targets(from).contains(&to) {
         let plan = crate::translate::plan_to(&path, to, out, force)?;
         let summary = format!(

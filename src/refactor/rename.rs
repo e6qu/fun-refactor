@@ -48,7 +48,10 @@ pub fn plan(index: &Index, symbol_id: SymbolId, new_name: &str) -> Result<Rename
     validate_name(new_name, symbol.language, symbol.kind)?;
 
     if new_name == symbol.name {
-        anyhow::bail!("'{new_name}' is already the name of this symbol.");
+        return Err(Refusal::Declined {
+            detail: format!("'{new_name}' is already the name of this symbol."),
+        }
+        .into());
     }
 
     check_collision(index, symbol, new_name)?;

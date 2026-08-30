@@ -306,7 +306,10 @@ fn fragment_shapes(
     }
     if shapes.is_empty() {
         // Name the mistake, which is nearly always a pattern that is not a whole piece of code.
-        anyhow::bail!("'{display}' is not valid {language}; check for unbalanced brackets.");
+        return Err(Refusal::Declined {
+            detail: format!("'{display}' is not valid {language}; check for unbalanced brackets."),
+        }
+        .into());
     }
     Ok(shapes)
 }

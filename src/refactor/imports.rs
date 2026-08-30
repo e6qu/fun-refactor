@@ -431,12 +431,15 @@ pub(crate) fn plan_in_consulting(
     }
 
     if let Some(gap) = info.gaps.first() {
-        anyhow::bail!(
-            "refusing to organize imports in {}: {}, so a use hidden in the part that did \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "refusing to organize imports in {}: {}, so a use hidden in the part that did \
              not reach the index could make a live import look unused",
-            file.display(),
-            gap.cause()
-        );
+                file.display(),
+                gap.cause()
+            ),
+        }
+        .into());
     }
 
     let line_index = LineIndex::new(source);

@@ -364,7 +364,7 @@ names the commit it measures.
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 18 |
 | Supported pairs | 299 of 432, every other one carrying its reason |
-| Defects fixed | 658 |
+| Defects fixed | 659 |
 | Defects open | 1 |
 
 Every cell that `fr capabilities` marks `n/a` carries the reason the tool refuses. That
@@ -2711,3 +2711,128 @@ The last of those found a defect of its own. `EXAMPLES.md` and `TUTORIAL.md` bot
 quote `fr delete` refusing, and the quoted line stopped matching the command the
 moment the pass above reworded it. Nothing noticed. Nothing runs the commands in
 those two files and compares. That is the next thing worth building.
+
+## The nineteenth language: Lean
+
+**Planned, not built.** Nothing below exists yet. It sits here to fix the shape of the work
+before anybody starts it, which is how every other capability on this page began.
+
+Lean 4 is a dependently typed language and a proof assistant. It is a programming
+language whose types can state theorems, so a definition and a proof are the same kind
+of object. That makes it worth adding for a reason none of the other eighteen have.
+It is the only target where a translation can carry a claim about the source, and
+not only the source's behaviour.
+
+### Why Lean and not another proof assistant
+
+Lean 4 has a tree-sitter grammar, a real package manager, and a standard library
+(`mathlib4`) large enough to test against. Its surface syntax is close enough to an ML
+that the readers already here have somewhere to land. Coq and Isabelle have neither the
+grammar nor the syntax proximity, so the same work would cost several times as much.
+
+### Tier
+
+**Tier D**, functional and dependently typed, standing on its own. Lean shares its
+feature shape with nothing already here. The tiers above split on tooling and on
+imperative-versus-config; Lean splits on evaluation model.
+
+### Parsing and facts
+
+The first half is the ordinary half, and it is the same work as any other language:
+
+- A grammar pin under `grammars/lean`, with the upstream commit, licence, patch and the
+  measurement that shows a patch additive. Measure against `mathlib4`, which is the
+  bootstrap corpus the SCSS and TypeScript work used a public repository for.
+- `queries/lean/facts.scm`, declaring the symbols and references. `def`, `theorem`,
+  `lemma`, `abbrev`, `instance`, `structure`, `inductive`, `class`, `namespace`,
+  `section`, `variable`. A `theorem` and a `def` are the same declaration form with a
+  different intent, so both are symbols and the kind records which.
+- Namespaces and `open` are Lean's import surface. A name resolves through the open
+  namespaces in scope, which is the same shape as Rust's `use` and asks for the same
+  resolution tier.
+- Instance resolution is the hard part. type-class search finds an `instance`
+  declaration rather than a name, so a call site names no instance at all. Every reference to one
+  is a dispatch candidate and nothing stronger. That is `field-based` confidence by
+  another name, and D5 already says what to do with it.
+
+### Refactoring
+
+Rename, move, extract, inline, delete and change-signature all mean something in Lean,
+and each has a Lean-shaped hazard:
+
+- **Rename** has to reach the namespace-qualified spellings and the `open`ed bare ones,
+  the same problem SCSS namespaces posed in B731.
+- **Delete** has to treat a `theorem` nothing cites as live where a `simp` attribute
+  reaches it. `@[simp]` puts a lemma in a set the elaborator searches by shape. A lemma reached that way carries no reference at its use site. That is the
+  same shape as B700, a foreign trait's impl, and takes the same answer: spare it, and
+  say why.
+- **Change signature** on a `theorem` changes what the theorem says. That is not a
+  refactoring, and the command has to refuse it by name rather than do it. A `def` may
+  change; a `theorem` may not.
+- **Extract** on a proof term is sound where the extracted piece typechecks on its
+  own. The only honest way to know is to ask Lean. See the gate below.
+
+### Translating into Lean
+
+The goal, bounded: every one of the seven languages that already has a reader (Rust, Go,
+Java, Python, TypeScript, Zig, Bash) translates into Lean. Lean is a **target only**.
+Nothing translates out of it. A dependently typed definition has no counterpart in a
+language without dependent types, and D8 forbids pretending otherwise.
+
+HTML, CSS, XML, Markdown, YAML, Helm, HCL and JSON are out of scope in both directions.
+They are string-keyed configuration and markup with no functions to carry.
+
+The IR needs nothing new for the first pass. A function, a record, a sum, a literal and
+an expression all have Lean spellings:
+
+- A record becomes a `structure`.
+- A sum becomes an `inductive`.
+- A function becomes a `def`, with `partial def` where the source's recursion is not
+  obviously structural. Lean demands a termination argument, and this tool has no
+  business inventing one.
+- A loop becomes a fold or a `for` in `do` notation, whichever the body's shape admits.
+- Mutation becomes `do` notation over `Id` or `StateM`. Lean has real mutable locals
+  inside `do`, so an imperative body does not have to leave its shape behind.
+
+What refuses, and says so:
+
+- **Unbounded recursion whose termination this cannot show.** `partial def` is the
+  honest answer and the note says the proof obligation went unmet.
+- **Anything reaching a runtime this cannot model**: a socket, a thread, a clock.
+  `IO` is the right type and the body carries verbatim under the marker.
+- **Reflection and dynamic dispatch through a value.** Lean has no counterpart that
+  preserves the source's meaning.
+
+### The gate
+
+This is the part that makes Lean worth doing, and it is stricter than any gate here.
+
+Every other target proves a translation by compiling it and diffing a transcript.
+Lean's compiler typechecks, which for a total function is a proof that it does what its
+type says. So the conformance suite gains a Lean column, and `lake build` checks
+it rather than a run. A cell passes when it elaborates with no
+`sorry` and no `partial` the source did not force.
+
+`sorry` is Lean's admitted-without-proof marker. A translation that emits one has
+produced a lie that typechecks. So the gate counts `sorry` and holds it at zero, the
+way the `CARRIED` ledger came down.
+
+The conformance programs print a transcript in six renderings today. Lean makes seven. The arithmetic on
+the corpus sweep changes, and `tests/corpus_compile.rs` gains a toolchain: `lake`,
+named in the output when absent, never skipped in silence.
+
+### What this is not
+
+This does not attempt to prove that a translation preserves the source's behaviour.
+That is a research problem and this plan does not pretend otherwise. The claim is narrower and
+checkable. The Lean this writes typechecks, admits nothing, and states in its types
+what the source's signature stated in its own.
+
+### Cost, honestly
+
+Larger than any language added so far. Java, the last one, cost one query file, five
+lines of enum and three transpiler cases. Lean costs a grammar pin, a fact query, a
+resolution tier for type-class search, and seven writers' worth of lowering decisions.
+It also costs a new toolchain in the compile gate, and a termination story for every
+recursive function in the corpora. Nothing here is blocked. It is the largest single item on this
+page.

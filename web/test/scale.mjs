@@ -192,31 +192,11 @@ if (missed.length) {
 /**
  * A refusal names a rule; anything else that fails is a defect.
  *
- * The list below is the fallback. It reads the sentence, which means rewording a refusal
- * reclassifies it as a defect — and that happened, when five refusals stopped saying
- * "is not supported for {language}" about a path and started saying what was actually
- * wrong. The API reports `refused` now, and the patterns are only for the errors that do
- * not carry it.
+ * This used to read the sentence, through a list of phrases, and rewording a refusal
+ * moved it into the defect column twice. Every decline carries `Refusal` now, so the API
+ * reports `refused` and the list is gone. An error arriving without the flag is a defect
+ * by definition: either an invariant broke, or a decline forgot to say it was one.
  */
-const REFUSAL = [
-  /at that position/i,                 // no `if` / no negation / no symbol here
-  /refus|declin/i,
-  /not supported|unsupported|cannot|does not|is not|would not|has no|there is no|neither/i,
-  /\bonly\b.*\b(can|are|have)\b/i,     // "only top-level declarations can be moved"
-  /would change behaviour|is assigned again/i,
-  /declares a package|no go\.mod|would make it unreachable/i,
-  /nested inside another definition/i,
-  /is a \w[\w-]*, not a|is a `\w+` block, not a/i,   // "is a link-def, not a heading"
-  /is still read \d+ time|would leave those/i,        // removing an input still used
-  /is a block in \w+|names a module signature/i,
-  /has \d+ selectors|which is a rewrite instead of a move/i,
-  /part of the module's call surface/i,
-  /invert it instead|guard it instead|has an `?else`?/i,
-  /nothing to act on|nothing is|no reference|not part of|already defined|is already/i,
-  /is a \w+;|outside|no crate/i,
-];
-const isRefusal = (text) => REFUSAL.some((r) => r.test(text));
-
 function outcomeOf(raw) {
   let value;
   try {
@@ -225,11 +205,7 @@ function outcomeOf(raw) {
     return { kind: "UNPARSEABLE", detail: String(e) };
   }
   if (value && typeof value === "object" && "error" in value) {
-    // What the tool says about itself, before what its wording suggests.
-    if (value.refused === true) {
-      return { kind: "refused", detail: value.error };
-    }
-    return isRefusal(value.error)
+    return value.refused === true
       ? { kind: "refused", detail: value.error }
       : { kind: "BROKE", detail: value.error };
   }

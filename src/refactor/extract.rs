@@ -70,26 +70,36 @@ pub fn variable(
     let parsed = Parsers::new().parse(language, &source)?;
 
     let expr = expression_at(&parsed, span).ok_or_else(|| {
-        anyhow::anyhow!(
-            "no expression at bytes {span} in {}; select a complete expression",
-            file.display()
-        )
+        anyhow::Error::from(Refusal::Declined {
+            detail: format!(
+                "no expression at bytes {span} in {}; select a complete expression",
+                file.display()
+            ),
+        })
     })?;
     let expr_span = Span::from(expr);
     let expr_text = expr_span.text(&source).to_string();
 
     // A statement is not a value.
     if expr.kind().contains("statement") || expr.kind().contains("declaration") {
-        anyhow::bail!(
-            "the selection is a {}, and a binding holds an expression; \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "the selection is a {}, and a binding holds an expression; \
              `--function` extracts statements into a function",
-            expr.kind().replace('_', " ")
-        );
+                expr.kind().replace('_', " ")
+            ),
+        }
+        .into());
     }
 
     // Extracting a bare name would only alias it, which is never the intent.
     if expr.child_count() == 0 && expr.kind().contains("identifier") {
-        anyhow::bail!("'{expr_text}' is already a name; extracting it would only create an alias");
+        return Err(Refusal::Declined {
+            detail: format!(
+                "'{expr_text}' is already a name; extracting it would only create an alias"
+            ),
+        }
+        .into());
     }
 
     // An expression that *is* its statement has nothing left behind it.
@@ -97,10 +107,13 @@ pub fn variable(
         .parent()
         .is_some_and(|p| p.kind().contains("expression_statement") && p.named_child_count() == 1)
     {
-        anyhow::bail!(
-            "`{expr_text}` is the whole of its statement; extracting it would leave a \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "`{expr_text}` is the whole of its statement; extracting it would leave a \
              statement that only names the binding"
-        );
+            ),
+        }
+        .into());
     }
 
     // A name already defined in this file would collide or shadow.
@@ -113,7 +126,9 @@ pub fn variable(
     }
 
     let statement = enclosing_statement(expr).ok_or_else(|| {
-        anyhow::anyhow!("could not find a statement to insert the binding before")
+        anyhow::Error::from(Refusal::Declined {
+            detail: "could not find a statement to insert the binding before".to_string(),
+        })
     })?;
     let statement_span = Span::from(statement);
 
@@ -121,10 +136,13 @@ pub fn variable(
     if let Some(unreachable) =
         a_name_that_does_not_reach(index, info, expr_span, statement_span.start)
     {
-        anyhow::bail!(
-            "`{unreachable}` is introduced between the binding's position and this \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "`{unreachable}` is introduced between the binding's position and this \
              expression, so the binding would not compile"
-        );
+            ),
+        }
+        .into());
     }
 
     let targets = if all_occurrences {
@@ -688,22 +706,26 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
     };
 
     if yields_to_caller(&parsed, region) {
-        anyhow::bail!(
-            "the selected code contains a `yield`, which belongs to the function whose \
+        return Err(Refusal::Declined {
+            detail: "the selected code contains a `yield`, which belongs to the function whose \
              iteration the caller is driving; a call cannot hand that back, so nothing can lift this \
-             region as it stands"
-        );
+             region as it stands".to_string(),
+        }
+        .into());
     }
 
     // Carry an `await` across by marking the extracted function async and awaiting the
     // call.
     let is_async = awaits(&parsed, region);
     if is_async && !awaits_with_a_keyword(language) {
-        anyhow::bail!(
-            "the selected code awaits, and {language} does not spell that as a prefix \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "the selected code awaits, and {language} does not spell that as a prefix \
              keyword this can move onto the extracted function, so nothing can lift the \
              region as it stands"
-        );
+            ),
+        }
+        .into());
     }
 
     let enclosing = enclosing_function(index, file, region.start).ok_or_else(|| {
@@ -784,12 +806,15 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
     }
     carried.sort();
     if !carried.is_empty() && language == Language::Zig {
-        anyhow::bail!(
-            "the selected code assigns to {}, declared outside it and read after it. \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "the selected code assigns to {}, declared outside it and read after it. \
              Nothing can assign a Zig parameter, so the change cannot travel back, \
              and this region has to stay where it is.",
-            carried.join(", ")
-        );
+                carried.join(", ")
+            ),
+        }
+        .into());
     }
     for parameter in parameters.iter_mut() {
         parameter.mutated = carried.contains(&parameter.name);
@@ -842,12 +867,15 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
             .map(|p| p.name.as_str())
             .collect();
         if !untyped.is_empty() {
-            anyhow::bail!(
-                "cannot extract: {language} requires a type on every parameter, and the \
+            return Err(Refusal::Declined {
+                detail: format!(
+                    "cannot extract: {language} requires a type on every parameter, and the \
                  declaration of {} names no type, so there is none to copy. Annotate \
                  the declaration(s) and try again",
-                untyped.join(", ")
-            );
+                    untyped.join(", ")
+                ),
+            }
+            .into());
         }
         let unknown: Vec<&str> = returns
             .iter()
@@ -856,23 +884,29 @@ pub fn function(index: &Index, file: &Path, span: Span, name: &str) -> Result<Ex
             .map(|(name, _)| name.as_str())
             .collect();
         if !unknown.is_empty() {
-            anyhow::bail!(
-                "cannot extract: {language} requires a return type, and nothing states \
+            return Err(Refusal::Declined {
+                detail: format!(
+                    "cannot extract: {language} requires a return type, and nothing states \
                  or derives the type of {}. Annotate the declaration(s) and try again",
-                unknown.join(", ")
-            );
+                    unknown.join(", ")
+                ),
+            }
+            .into());
         }
     }
 
     // More than one out-value needs a tuple or struct, which differs enough per
     // language that guessing would produce something unidiomatic.
     if returns.len() > 1 && !matches!(language, Language::Python | Language::Go) {
-        anyhow::bail!(
-            "the selected code produces {} values used afterwards ({}); returning several \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "the selected code produces {} values used afterwards ({}); returning several \
              values is not supported for {language} yet",
-            returns.len(),
-            returns.join(", ")
-        );
+                returns.len(),
+                returns.join(", ")
+            ),
+        }
+        .into());
     }
 
     // Go spells several results as a parenthesised list of types.
@@ -2124,9 +2158,12 @@ fn hcl_local(
                 .chars()
                 .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
         {
-            anyhow::bail!(
+            return Err(Refusal::Declined {
+                detail: format!(
                 "`{trimmed}` is already a named value; extracting it would only create an alias"
-            );
+            ),
+            }
+            .into());
         }
     }
 
@@ -2269,12 +2306,15 @@ fn yaml_anchor(
     let parsed = Parsers::new().parse(language, &source)?;
 
     if let Some(action) = parsed.masked_spans.iter().find(|a| a.overlaps(span)) {
-        anyhow::bail!(
-            "the selection at bytes {span} overlaps the template action `{}`. Helm \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "the selection at bytes {span} overlaps the template action `{}`. Helm \
              `{{{{ ... }}}}` actions sit behind a mask before the YAML parse, so nothing \
              inside one shows up as YAML and no anchor has anywhere to go",
-            action.text(&source)
-        );
+                action.text(&source)
+            ),
+        }
+        .into());
     }
 
     let node = descendant_at(&parsed, span)
@@ -2326,10 +2366,13 @@ fn yaml_anchor(
         .iter()
         .find(|s| parsed.masked_spans.iter().any(|a| a.overlaps(**s)))
     {
-        anyhow::bail!(
-            "an occurrence at bytes {clash} overlaps a masked Helm template action; \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "an occurrence at bytes {clash} overlaps a masked Helm template action; \
              refusing to rewrite bytes the YAML parse never saw"
-        );
+            ),
+        }
+        .into());
     }
 
     // The anchor has to come first in document order or the aliases dangle.
@@ -2415,21 +2458,27 @@ fn css_custom_property(
     // `$name` asks for an SCSS variable, which only the SCSS grammar understands.
     let scss_variable = name.starts_with('$');
     if scss_variable && !matches!(language, Language::Scss | Language::Sass) {
-        anyhow::bail!(
-            "`{name}` asks for an SCSS `$variable`, but {} is plain CSS, which has no \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "`{name}` asks for an SCSS `$variable`, but {} is plain CSS, which has no \
              such syntax. Use a name without the `$` to extract a CSS custom property, \
              which works in both dialects",
-            file.display()
-        );
+                file.display()
+            ),
+        }
+        .into());
     }
 
     let source = crate::vfs::read_to_string(file)?;
     let parsed = Parsers::new().parse(language, &source)?;
     if parsed.has_errors() {
-        anyhow::bail!(
-            "{} has syntax errors, so nothing can place the selection reliably",
-            file.display()
-        );
+        return Err(Refusal::Declined {
+            detail: format!(
+                "{} has syntax errors, so nothing can place the selection reliably",
+                file.display()
+            ),
+        }
+        .into());
     }
 
     // An SCSS variable keeps its `$`; a custom property is normalised to `--name`.
@@ -2619,12 +2668,15 @@ fn sass_variable_insertion_point(
         }
         let end = source[..declaration.end_byte()].trim_end().len();
         if end > first_use {
-            anyhow::bail!(
-                "{0} declares `{name}` after the use this extracts from, so the new \
+            return Err(Refusal::Declined {
+                detail: format!(
+                    "{0} declares `{name}` after the use this extracts from, so the new \
                  declaration has nowhere to stand: it would read a variable that does \
                  not exist yet. Move `{name}` above that use first",
-                file.display()
-            );
+                    file.display()
+                ),
+            }
+            .into());
         }
         // The line the declaration ends on, and the newline after it.
         after = after.max(match source[end..].find('\n') {
@@ -2880,7 +2932,10 @@ fn helm_named_template(file: &Path, span: Span, name: &str) -> Result<ExtractFun
     let source = crate::vfs::read_to_string(file)?;
     let region = whole_lines(&source, span);
     if region.text(&source).trim().is_empty() {
-        anyhow::bail!("the selection at bytes {span} is blank; select the lines to extract");
+        return Err(Refusal::Declined {
+            detail: format!("the selection at bytes {span} is blank; select the lines to extract"),
+        }
+        .into());
     }
     let body = region.text(&source).to_string();
 
@@ -3058,20 +3113,26 @@ fn bash_variable(
     let source = crate::vfs::read_to_string(file)?;
     let parsed = Parsers::new().parse(Language::Bash, &source)?;
     if parsed.has_errors() {
-        anyhow::bail!(
-            "{} has syntax errors, so nothing can place the selection reliably",
-            file.display()
-        );
+        return Err(Refusal::Declined {
+            detail: format!(
+                "{} has syntax errors, so nothing can place the selection reliably",
+                file.display()
+            ),
+        }
+        .into());
     }
 
     let node = descendant_at(&parsed, span)
         .ok_or_else(|| anyhow::anyhow!("bytes {span} are outside {}", file.display()))?;
 
     if let Some(existing) = bash_expansion_at(node) {
-        anyhow::bail!(
-            "`{}` is already a variable expansion; extracting it would only create an alias",
-            Span::from(existing).text(&source)
-        );
+        return Err(Refusal::Declined {
+            detail: format!(
+                "`{}` is already a variable expansion; extracting it would only create an alias",
+                Span::from(existing).text(&source)
+            ),
+        }
+        .into());
     }
 
     let value = bash_extractable(node).ok_or_else(|| {
@@ -3082,17 +3143,22 @@ fn bash_variable(
         )
     })?;
     if strict_ancestor_of_kind(value, "command_name").is_some() || value.parent().is_none() {
-        anyhow::bail!(
-            "`{}` is the name of a command, not a value; a variable in command position \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "`{}` is the name of a command, not a value; a variable in command position \
              would be re-split and re-globbed before the shell looked it up",
-            Span::from(value).text(&source)
-        );
+                Span::from(value).text(&source)
+            ),
+        }
+        .into());
     }
     if strict_ancestor_of_kind(value, "heredoc_body").is_some() {
-        anyhow::bail!(
-            "the selection is inside a here-document body, whose bytes are data rather \
+        return Err(Refusal::Declined {
+            detail: "the selection is inside a here-document body, whose bytes are data rather \
              than a value position, so a binding has nowhere to go in front of it"
-        );
+                .to_string(),
+        }
+        .into());
     }
 
     let value_span = Span::from(value);
@@ -3198,7 +3264,10 @@ fn bash_statement(node: Node<'_>) -> Result<Node<'_>> {
     let mut current = node;
     loop {
         let Some(parent) = current.parent() else {
-            anyhow::bail!("the selection is not inside a statement");
+            return Err(Refusal::Declined {
+                detail: "the selection is not inside a statement".to_string(),
+            }
+            .into());
         };
         if bash_is_statement_container(parent.kind()) {
             return Ok(current);
@@ -3283,50 +3352,68 @@ fn bash_function(
     let source = crate::vfs::read_to_string(file)?;
     let parsed = Parsers::new().parse(Language::Bash, &source)?;
     if parsed.has_errors() {
-        anyhow::bail!(
-            "{} has syntax errors, so nothing can place the selection reliably",
-            file.display()
-        );
+        return Err(Refusal::Declined {
+            detail: format!(
+                "{} has syntax errors, so nothing can place the selection reliably",
+                file.display()
+            ),
+        }
+        .into());
     }
 
     let region = whole_lines(&source, span);
     if region.text(&source).trim().is_empty() {
-        anyhow::bail!("the selection at bytes {span} is blank; select the lines to extract");
+        return Err(Refusal::Declined {
+            detail: format!("the selection at bytes {span} is blank; select the lines to extract"),
+        }
+        .into());
     }
 
     if let Some(cut) = bash_straddling_node(&parsed, region) {
-        anyhow::bail!(
-            "the selection cuts across a `{}` at bytes {}; select whole statements. A \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "the selection cuts across a `{}` at bytes {}; select whole statements. A \
              call can replace a statement but not part of one",
-            cut.kind(),
-            Span::from(cut)
-        );
+                cut.kind(),
+                Span::from(cut)
+            ),
+        }
+        .into());
     }
 
     let positional = bash_positional_parameters(&parsed, region, &source);
     if !positional.is_empty() {
-        anyhow::bail!(
-            "the selected code reads the positional parameter(s) {}. Inside a shell \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "the selected code reads the positional parameter(s) {}. Inside a shell \
              function those name that function's own arguments, so moving the code \
              would rebind them to whatever the call passes, which is nothing. Read \
              them into named variables first",
-            positional.join(", ")
-        );
+                positional.join(", ")
+            ),
+        }
+        .into());
     }
 
     if let Some(word) = bash_escaping_control_flow(&parsed, region, &source) {
-        anyhow::bail!(
-            "the selected code contains a `{word}` that leaves the enclosing function or \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "the selected code contains a `{word}` that leaves the enclosing function or \
              loop; a call cannot reproduce that, so nothing can lift this region as it stands"
-        );
+            ),
+        }
+        .into());
     }
 
     if let Some(local) = bash_local_used_after(&parsed, region, &source) {
-        anyhow::bail!(
-            "the selection declares `local {local}` and later code reads `{local}`. A \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "the selection declares `local {local}` and later code reads `{local}`. A \
              `local` belongs to the function that declares it, so moving the declaration \
              into a new function would leave the later read seeing the outer value"
-        );
+            ),
+        }
+        .into());
     }
 
     let enclosing = bash_enclosing_function(&parsed, region.start);
@@ -3524,10 +3611,13 @@ fn sass_mixin(
     let source = crate::vfs::read_to_string(file)?;
     let parsed = Parsers::new().parse(language, &source)?;
     if parsed.has_errors() {
-        anyhow::bail!(
-            "{} does not parse cleanly, so nothing can place the selection reliably",
-            file.display()
-        );
+        return Err(Refusal::Declined {
+            detail: format!(
+                "{} does not parse cleanly, so nothing can place the selection reliably",
+                file.display()
+            ),
+        }
+        .into());
     }
 
     // A line selection starts on the line's indentation, which belongs to no
@@ -3537,7 +3627,12 @@ fn sass_mixin(
     let trail = text.len() - text.trim_end().len();
     let content = Span::new(span.start + lead, span.end.saturating_sub(trail));
     if content.is_empty() {
-        anyhow::bail!("the selection at bytes {span} is blank; select the declarations to extract");
+        return Err(Refusal::Declined {
+            detail: format!(
+                "the selection at bytes {span} is blank; select the declarations to extract"
+            ),
+        }
+        .into());
     }
 
     // The node covering the whole selection, and not the one standing at its first byte.
@@ -3552,14 +3647,17 @@ fn sass_mixin(
         )
     })?;
     if !block.parent().is_some_and(|p| p.kind() == "rule_set") {
-        anyhow::bail!(
-            "the selection is inside a `{}`, not a rule. Only declarations written \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "the selection is inside a `{}`, not a rule. Only declarations written \
              directly in a rule can move into a mixin",
-            block
-                .parent()
-                .map(|p| p.kind().to_string())
-                .unwrap_or_default()
-        );
+                block
+                    .parent()
+                    .map(|p| p.kind().to_string())
+                    .unwrap_or_default()
+            ),
+        }
+        .into());
     }
 
     let mut cursor = block.walk();
@@ -3568,14 +3666,20 @@ fn sass_mixin(
         .filter(|c| Span::from(*c).overlaps(content))
         .collect();
     let (Some(first), Some(last)) = (selected.first(), selected.last()) else {
-        anyhow::bail!("the selection at bytes {span} covers no complete declaration");
+        return Err(Refusal::Declined {
+            detail: format!("the selection at bytes {span} covers no complete declaration"),
+        }
+        .into());
     };
     if let Some(other) = selected.iter().find(|c| c.kind() != "declaration") {
-        anyhow::bail!(
-            "the selection contains a `{}`; only declarations move into a mixin \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "the selection contains a `{}`; only declarations move into a mixin \
              unchanged, so this region refuses and not reinterpreted",
-            other.kind()
-        );
+                other.kind()
+            ),
+        }
+        .into());
     }
     // A declaration in the indented syntax ends at the start of the next line.
     let end = source[..last.end_byte()].trim_end().len();
@@ -3695,10 +3799,13 @@ fn xml_entity(file: &Path, span: Span, name: &str, all_occurrences: bool) -> Res
     let source = crate::vfs::read_to_string(file)?;
     let parsed = Parsers::new().parse(Language::Xml, &source)?;
     if parsed.has_errors() {
-        anyhow::bail!(
-            "{} has syntax errors, so nothing can place the selection reliably",
-            file.display()
-        );
+        return Err(Refusal::Declined {
+            detail: format!(
+                "{} has syntax errors, so nothing can place the selection reliably",
+                file.display()
+            ),
+        }
+        .into());
     }
 
     let doctype = collect_nodes(parsed.root(), |n| n.kind() == "doctypedecl")
@@ -3732,20 +3839,26 @@ fn xml_entity(file: &Path, span: Span, name: &str, all_occurrences: bool) -> Res
     let trail = raw.len() - raw.trim_end().len();
     let target = Span::new(start + lead, end.saturating_sub(trail));
     if target.is_empty() {
-        anyhow::bail!(
-            "the selection at bytes {span} covers no text in {}; select the characters \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "the selection at bytes {span} covers no text in {}; select the characters \
              the entity should stand for",
-            file.display()
-        );
+                file.display()
+            ),
+        }
+        .into());
     }
     let value_text = target.text(&source).to_string();
 
     if value_text.contains(['<', '&', '%']) {
-        anyhow::bail!(
-            "`{value_text}` contains `<`, `&` or `%`. Those are markup inside an entity \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "`{value_text}` contains `<`, `&` or `%`. Those are markup inside an entity \
              value and would be re-parsed and not copied, so the entity would not \
              stand for the same text"
-        );
+            ),
+        }
+        .into());
     }
     let quote = match (value_text.contains('"'), value_text.contains('\'')) {
         (false, _) => '"',

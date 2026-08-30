@@ -140,6 +140,9 @@ pub enum Refusal {
     },
     /// Something the tool cannot establish at all.
     Unknowable { detail: String },
+    /// A decline the refusing site worded in full. Prefer a variant above where one fits;
+    /// each carries structure a caller reads, and this carries only the sentence.
+    Declined { detail: String },
 }
 
 impl std::fmt::Display for Refusal {
@@ -201,6 +204,7 @@ impl std::fmt::Display for Refusal {
             Refusal::Unknowable { detail } => {
                 write!(f, "{detail}. Refusing to change what nothing can check")
             }
+            Refusal::Declined { detail } => f.write_str(detail),
         }
     }
 }

@@ -35,7 +35,6 @@ fn blames_the_language(said: &str, language: Language) -> bool {
 
 #[test]
 fn a_rust_move_to_the_wrong_place_does_not_blame_rust() {
-    // The one the capability audit found.
     let (_tmp, root, index) = workspace(&[
         (
             "Cargo.toml",
@@ -101,7 +100,6 @@ fn a_terraform_move_between_directories_does_not_blame_terraform() {
 
 #[test]
 fn a_language_that_really_cannot_still_says_so() {
-    // The other half.
     let (_tmp, _root, index) = workspace(&[(
         "main.tf",
         "variable \"enabled\" {\n  type = bool\n}\n\noutput \"e\" {\n  value = var.enabled\n}\n",
@@ -137,4 +135,36 @@ fn no_refusal_calls_a_language_unsupported_that_the_matrix_supports() {
             }
         }
     }
+}
+
+/// A decline carries `Refusal`, so `web/test/scale.mjs` reads a flag and not a sentence.
+#[test]
+fn a_refusal_is_typed_as_one_rather_than_recognised_by_its_words() {
+    let (_tmp, root, index) = workspace(&[
+        ("a.py", "def helper():\n    return 1\n"),
+        (
+            "conf/pipeline.yaml",
+            "image:\n  runs-on: ubuntu\nreplicas: 2\n",
+        ),
+        ("conf/extra.yaml", "other: 1\n"),
+    ]);
+
+    let function = symbol(&index, "helper");
+    let err = fun_refactor::refactor::inline::variable(&index, function)
+        .expect_err("a function does not inline");
+    assert!(
+        err.downcast_ref::<fun_refactor::refactor::Refusal>()
+            .is_some(),
+        "inlining a function declines on purpose, so it carries `Refusal`: {err}"
+    );
+
+    let nested = symbol(&index, "runs-on");
+    let err =
+        fun_refactor::refactor::move_symbol::to_file(&index, nested, &root.join("conf/extra.yaml"))
+            .expect_err("a nested key does not move to a top level");
+    assert!(
+        err.downcast_ref::<fun_refactor::refactor::Refusal>()
+            .is_some(),
+        "moving a nested key declines on purpose, so it carries `Refusal`: {err}"
+    );
 }

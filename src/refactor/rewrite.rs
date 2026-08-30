@@ -164,7 +164,10 @@ fn hoist_function(
     }
     let node = parsed
         .descendant_at(offset, offset)
-        .ok_or_else(|| anyhow::anyhow!("nothing at that position"))?;
+        .ok_or_else(|| Refusal::Declined {
+            detail: "nothing at that position".to_string(),
+        })
+        .map_err(anyhow::Error::from)?;
 
     // The innermost function containing the offset, and the top-level item above it.
     let mut nested = None;
@@ -180,10 +183,17 @@ fn hoist_function(
         current = at.parent();
     }
     let (Some(nested), Some(top)) = (nested, top) else {
-        anyhow::bail!("that position is not inside a function");
+        return Err(Refusal::Declined {
+            detail: "that position is not inside a function".to_string(),
+        }
+        .into());
     };
     if Span::from(nested) == Span::from(top) {
-        anyhow::bail!("that function is already at module scope; point inside a nested one");
+        return Err(Refusal::Declined {
+            detail: "that function is already at module scope; point inside a nested one"
+                .to_string(),
+        }
+        .into());
     }
 
     let name = nested
@@ -199,10 +209,13 @@ fn hoist_function(
                 .is_some_and(|n| Span::from(n).text(source) == name)
         })
     {
-        anyhow::bail!(
-            "the module already defines `{name}`, so the hoisted function would collide \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "the module already defines `{name}`, so the hoisted function would collide \
              with it"
-        );
+            ),
+        }
+        .into());
     }
 
     // The lines the nested function occupies, indentation and doc comments included.
@@ -368,25 +381,33 @@ fn invert_if(
     offset: usize,
     language: Language,
 ) -> Result<(Span, String)> {
-    let node =
-        enclosing_if(parsed, offset).ok_or_else(|| anyhow::anyhow!("no `if` at that position"))?;
+    let node = enclosing_if(parsed, offset)
+        .ok_or_else(|| Refusal::Declined {
+            detail: "no `if` at that position".to_string(),
+        })
+        .map_err(anyhow::Error::from)?;
     if binds_a_payload(node) {
-        anyhow::bail!(
-            "this `if` binds what it tested; there is no condition here to negate, and \
+        return Err(Refusal::Declined {
+            detail: "this `if` binds what it tested; there is no condition here to negate, and \
              the payload would have nothing to bind"
-        );
+                .to_string(),
+        }
+        .into());
     }
 
     let parts = if_parts(node)
         .ok_or_else(|| anyhow::anyhow!("could not find the condition and branches"))?;
     if parts.chained {
-        anyhow::bail!(
-            "this `if` continues into an `else if`; it reaches its later conditions only when this one is false, so swapping the branches would change \
-             which of them run"
-        );
+        return Err(Refusal::Declined {
+            detail: "this `if` continues into an `else if`; it reaches its later conditions only when this one is false, so swapping the branches would change \
+             which of them run".to_string(),
+        }
+        .into());
     }
     let alternative = parts.alternative.ok_or_else(|| {
-        anyhow::anyhow!("this `if` has no `else`; there is nothing to swap it with")
+        anyhow::Error::from(Refusal::Declined {
+            detail: "this `if` has no `else`; there is nothing to swap it with".to_string(),
+        })
     })?;
     let negated = negate(parts.condition.text(source), language);
 
@@ -437,13 +458,19 @@ fn de_morgan(
     let unary = enclosing_kind(parsed, offset, |k| {
         k.contains("unary") || k.contains("not_operator") || k == "error_union_type"
     })
-    .ok_or_else(|| anyhow::anyhow!("no negation at that position"))?;
+    .ok_or_else(|| Refusal::Declined {
+        detail: "no negation at that position".to_string(),
+    })
+    .map_err(anyhow::Error::from)?;
 
     let span = Span::from(unary);
     let text = span.text(source);
     let (not_token, and_op, or_op) = boolean_spelling(language);
     if !text.trim_start().starts_with(not_token.trim()) {
-        anyhow::bail!("the expression at that position is not a negation");
+        return Err(Refusal::Declined {
+            detail: "the expression at that position is not a negation".to_string(),
+        }
+        .into());
     }
 
     // The operand, with any wrapping parentheses removed.
@@ -457,7 +484,10 @@ fn de_morgan(
 
     // Split on the top-level boolean operator.
     let (left, op, right) = split_boolean(inner_text, and_op, or_op)
-        .ok_or_else(|| anyhow::anyhow!("the negated expression is not an `and`/`or`"))?;
+        .ok_or_else(|| Refusal::Declined {
+            detail: "the negated expression is not an `and`/`or`".to_string(),
+        })
+        .map_err(anyhow::Error::from)?;
 
     let flipped = if op == and_op { or_op } else { and_op };
     let rewritten = format!(
@@ -470,10 +500,12 @@ fn de_morgan(
     // held them together with it.
     if unary.parent().is_some_and(|p| binds_operands(p.kind())) {
         if language == Language::Bash {
-            anyhow::bail!(
-                "the result needs grouping to keep its meaning here, and `( … )` \
+            return Err(Refusal::Declined {
+                detail: "the result needs grouping to keep its meaning here, and `( … )` \
                  opens a subshell in shell"
-            );
+                    .to_string(),
+            }
+            .into());
         }
         return Ok((span, format!("({rewritten})")));
     }
@@ -495,35 +527,48 @@ fn guard_clause(
     offset: usize,
     language: Language,
 ) -> Result<(Span, String)> {
-    let node =
-        enclosing_if(parsed, offset).ok_or_else(|| anyhow::anyhow!("no `if` at that position"))?;
+    let node = enclosing_if(parsed, offset)
+        .ok_or_else(|| Refusal::Declined {
+            detail: "no `if` at that position".to_string(),
+        })
+        .map_err(anyhow::Error::from)?;
     if binds_a_payload(node) {
-        anyhow::bail!(
-            "this `if` binds what it tested; there is no condition here to negate, and \
+        return Err(Refusal::Declined {
+            detail: "this `if` binds what it tested; there is no condition here to negate, and \
              the payload would have nothing to bind"
-        );
+                .to_string(),
+        }
+        .into());
     }
 
     let parts = if_parts(node)
         .ok_or_else(|| anyhow::anyhow!("could not find the condition and branches"))?;
     if parts.alternative.is_some() {
-        anyhow::bail!("this `if` has an `else`; invert it instead of guarding");
+        return Err(Refusal::Declined {
+            detail: "this `if` has an `else`; invert it instead of guarding".to_string(),
+        }
+        .into());
     }
 
     // The `if` must come last in its enclosing block, or an early return would skip whatever
     // follows.
     let (statement, block) = statement_in_block(node)
-        .ok_or_else(|| anyhow::anyhow!("the `if` has no enclosing block"))?;
+        .ok_or_else(|| Refusal::Declined {
+            detail: "the `if` has no enclosing block".to_string(),
+        })
+        .map_err(anyhow::Error::from)?;
     let mut cursor = block.walk();
     let siblings: Vec<Node> = block
         .named_children(&mut cursor)
         .filter(|c| !c.kind().contains("comment"))
         .collect();
     if siblings.last().copied().map(Span::from) != Some(Span::from(statement)) {
-        anyhow::bail!(
-            "the `if` is not the last statement in its block; returning early would \
+        return Err(Refusal::Declined {
+            detail: "the `if` is not the last statement in its block; returning early would \
              skip the statements after it"
-        );
+                .to_string(),
+        }
+        .into());
     }
 
     // The block decides what "early exit" means.
@@ -596,10 +641,12 @@ fn early_exit(block: Node<'_>, source: &str, language: Language) -> Result<&'sta
         }
         if kind.contains("function") || kind.contains("method") || kind.contains("closure") {
             if declares_a_return_value(parent, source, language) {
-                anyhow::bail!(
-                    "this function returns a value, so an early exit needs one too, and \
+                return Err(Refusal::Declined {
+                    detail: "this function returns a value, so an early exit needs one too, and \
                      what to return is not something this can decide"
-                );
+                        .to_string(),
+                }
+                .into());
             }
             return Ok("return");
         }

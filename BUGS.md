@@ -429,6 +429,42 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   mid-clause. A `fr translate` refusal carries a run of stray spaces through the
   middle of a sentence. Both had shipped.
 
+- [x] B816: **rewording a refusal moved it into the defect column.** The browser
+  sweep, `web/test/scale.mjs`, sorts a failure into `refused` or `BROKE`. It reads
+  the `refused` flag the API sets. For an error carrying no flag it falls back to a
+  list of phrases. Its own doc comment says a rewording had already broken it once.
+
+  It broke again, on B813 and B815. Three deliberate declines raised a bare
+  `bail!`, so `refused` was false and the sweep read the sentence. Inlining a
+  symbol that is not a variable, moving a nested YAML key to a top level, moving
+  between two languages. Two of the three lost the word the list keyed on.
+
+  All three carry `Refusal::NotHere` now, so the flag answers and the phrase list
+  never runs for them. `fr inline` on a function also exits 5 rather than 1, which
+  is the code the help text promises for a refusal.
+
+  `tests/refusals_mean_what_they_say.rs` pins the property, and found the third one
+  while pinning the first two.
+
+  **The class, closed.** 75 `bail!` sites and 9 `anyhow!` ones across the
+  refactorings were deliberate declines raising a plain error. Each reported no
+  refusal and exited 1, so a script could not tell a rule from a crash. All of them
+  carry `Refusal::Declined` now, a variant that prints its detail and adds nothing,
+  so not one sentence a person reads changed.
+
+  What stays a plain error is what should: a broken invariant. "unknown symbol",
+  "not in the index", "could not locate the declaration after reparsing". Those are
+  defects rather than rules, and exit 1 says so. Four sites parsing a declaration
+  the caller typed stay too, because invalid input exits 2.
+
+  `fr rewrite … guard-clause` on a line with no `if` now exits 5 where it exited 1,
+  and so do 80-odd others.
+
+  With every decline carrying the flag, the phrase list has nothing left to catch.
+  Running the sweep with it disabled found the four sites that still leaned on it,
+  and those went too. The list is gone. An error arriving without the flag is now
+  a defect by definition: either an invariant broke, or a decline forgot to say so.
+
 - [x] B814: **`fr unused` said "1 of these are exported".** Found by running the
   command rather than reading it. The count picks the verb now.
 

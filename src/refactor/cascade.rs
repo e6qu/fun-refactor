@@ -5,6 +5,7 @@ use crate::index::Index;
 use crate::lang::Language;
 use crate::model::SymbolKind;
 use crate::parse::{Parsed, Parsers};
+use crate::refactor::Refusal;
 #[cfg(feature = "cli")]
 use crate::scan::{scan, ScanOptions};
 use crate::span::{LineIndex, Span};
@@ -121,10 +122,15 @@ pub fn remove_flag_in_for(
             },
             FlagTarget::At(path, offset) => match index.definition_at(path, *offset) {
                 Some(symbol) => symbol.name.clone(),
-                None => anyhow::bail!(
-                    "no declaration at {}:{offset}; this changed nothing",
-                    path.display()
-                ),
+                None => {
+                    return Err(Refusal::Declined {
+                        detail: format!(
+                            "no declaration at {}:{offset}; this changed nothing",
+                            path.display()
+                        ),
+                    }
+                    .into())
+                }
             },
         }
     };
@@ -180,7 +186,10 @@ pub fn remove_flag_in_for(
         let changes = if !removed_definition {
             match substitute_flag(&index, &sources, target, value)? {
                 None if round == 0 => {
-                    anyhow::bail!("no symbol named '{flag}' to remove; this changed nothing")
+                    return Err(Refusal::Declined {
+                        detail: format!("no symbol named '{flag}' to remove; this changed nothing"),
+                    }
+                    .into())
                 }
                 None => Vec::new(),
                 Some((substituted, kind)) => {
@@ -262,10 +271,13 @@ pub fn remove_flag_in_for(
     // A cascade that changed nothing is a refusal, and reporting it as a plan of zero edits
     // would read as success.
     if edits.is_empty() {
-        anyhow::bail!(
-            "nothing about '{flag}' came out; this changed nothing:\n  {}",
-            unfinished.join("\n  ")
-        );
+        return Err(Refusal::Declined {
+            detail: format!(
+                "nothing about '{flag}' came out; this changed nothing:\n  {}",
+                unfinished.join("\n  ")
+            ),
+        }
+        .into());
     }
 
     Ok(CascadePlan {
@@ -297,10 +309,15 @@ fn substitute_flag(
     let definition = match target {
         FlagTarget::At(path, offset) => match index.definition_at(path, *offset) {
             Some(symbol) => symbol,
-            None => anyhow::bail!(
-                "no declaration at {}:{offset}; this changed nothing",
-                path.display()
-            ),
+            None => {
+                return Err(Refusal::Declined {
+                    detail: format!(
+                        "no declaration at {}:{offset}; this changed nothing",
+                        path.display()
+                    ),
+                }
+                .into())
+            }
         },
         FlagTarget::Named(name) => {
             let definitions = index.symbols_written(name, None);
@@ -320,11 +337,14 @@ fn substitute_flag(
                         format!("{}:{line}", s.file.display())
                     })
                     .collect();
-                anyhow::bail!(
-                    "'{name}' is defined {} times; say which one as `path:line:col`: {}",
-                    definitions.len(),
-                    where_they_are.join(", ")
-                );
+                return Err(Refusal::Declined {
+                    detail: format!(
+                        "'{name}' is defined {} times; say which one as `path:line:col`: {}",
+                        definitions.len(),
+                        where_they_are.join(", ")
+                    ),
+                }
+                .into());
             }
             definitions[0]
         }
@@ -351,11 +371,14 @@ fn substitute_flag(
     if let Some((language, source)) = sources.get(&definition.file) {
         let parsed = parsers.parse(*language, source)?;
         if let Some(what) = not_a_flag(definition, &parsed, source) {
-            anyhow::bail!(
-                "'{flag}' is not a flag: it {what}. Removing a flag replaces every use of \
+            return Err(Refusal::Declined {
+                detail: format!(
+                    "'{flag}' is not a flag: it {what}. Removing a flag replaces every use of \
                  the name with `{literal}`, and that only reads correctly where the name \
                  held a boolean. This changed nothing."
-            );
+                ),
+            }
+            .into());
         }
         trees.insert(definition.file.clone(), parsed);
     }
@@ -367,18 +390,24 @@ fn substitute_flag(
         // occurrences are the evidence against it.
         let weak = weak_occurrences(index, sources, definition);
         if !weak.is_empty() {
-            anyhow::bail!(
-                "{0} declares '{flag}', and no use of it resolves firmly enough to \
+            return Err(Refusal::Declined {
+                detail: format!(
+                    "{0} declares '{flag}', and no use of it resolves firmly enough to \
                  rewrite. These name it and may read it:\n  {1}\nThis changed nothing.",
-                definition.file.display(),
-                weak.join("\n  ")
-            );
+                    definition.file.display(),
+                    weak.join("\n  ")
+                ),
+            }
+            .into());
         }
-        anyhow::bail!(
-            "{0} declares '{flag}' and nothing reads it, so there is no flag to \
+        return Err(Refusal::Declined {
+            detail: format!(
+                "{0} declares '{flag}' and nothing reads it, so there is no flag to \
              remove. `fr delete` removes a declaration nothing uses. This changed nothing.",
-            definition.file.display()
-        );
+                definition.file.display()
+            ),
+        }
+        .into());
     }
 
     // A name means one thing throughout, so one use naming a type settles every other
@@ -400,12 +429,15 @@ fn substitute_flag(
                 let line = LineIndex::new(source)
                     .line_col(reference.span.start, source)
                     .line;
-                anyhow::bail!(
-                    "'{flag}' is not a flag: it names a type at {}:{line}. Removing a flag \
+                return Err(Refusal::Declined {
+                    detail: format!(
+                        "'{flag}' is not a flag: it names a type at {}:{line}. Removing a flag \
                      replaces every use of the name with `{literal}`, and a boolean is not \
                      a type. This changed nothing.",
-                    reference.file.display()
-                );
+                        reference.file.display()
+                    ),
+                }
+                .into());
             }
         }
     }

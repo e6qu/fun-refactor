@@ -371,7 +371,6 @@ impl CommitLocks {
 /// cannot leave a half-applied refactoring.
 #[cfg(feature = "cli")]
 fn commit_via_staging(outcomes: &[FileOutcome]) -> Result<usize> {
-    // The locks first, then the check, then the writes.
     let locks = CommitLocks::acquire(outcomes)?;
     verify_basis_unchanged(outcomes)?;
 
