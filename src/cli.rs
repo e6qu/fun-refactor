@@ -1539,8 +1539,9 @@ const UNUSED_CAVEAT: &str =
      value or a base class is no longer listed. A function held in a map or a \n\
      struct field and called through it, and a name assembled at runtime, still \n\
      can be. This leaves off, on purpose, every symbol whose name appears in a \n\
-     string literal. It also leaves off every name beginning with an underscore, \n\
-     which says the author meant it to go unused.";
+     string literal. It leaves off a name beginning with an underscore, which says \n\
+     the author meant it to go unused. It leaves off a file a tool writes, such as \n\
+     a lock file.";
 
 fn cmd_unused(
     cli: &Cli,

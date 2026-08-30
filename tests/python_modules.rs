@@ -1,19 +1,9 @@
 //! Python reads a name out of a module object, and the import says which module.
 
-use fun_refactor::index::Index;
 use fun_refactor::model::Confidence;
-use fun_refactor::scan::{scan, ScanOptions};
 
-fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, Index) {
-    let tmp = tempfile::tempdir().unwrap();
-    for (name, content) in files {
-        let path = tmp.path().join(name);
-        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-        std::fs::write(&path, content).unwrap();
-    }
-    let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
-    (tmp, Index::build_from_scan(&scanned).unwrap())
-}
+mod common;
+use common::workspace;
 
 /// The package, the flag module and one reader written the way the test names.
 fn app(reader: &str) -> Vec<(String, String)> {

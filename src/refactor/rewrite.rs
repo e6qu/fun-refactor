@@ -482,7 +482,6 @@ fn de_morgan(
     let inner = strip_parentheses(Span::from(operand), source);
     let inner_text = inner.text(source);
 
-    // Split on the top-level boolean operator.
     let (left, op, right) = split_boolean(inner_text, and_op, or_op)
         .ok_or_else(|| Refusal::Declined {
             detail: "the negated expression is not an `and`/`or`".to_string(),

@@ -213,6 +213,23 @@ pub fn plan(index: &Index, symbol: SymbolId) -> Result<DeletePlan> {
     })
 }
 
+/// Does a tool write this file? A lock file's keys buried seven functions under 127.
+fn generated_file(path: &Path) -> bool {
+    const GENERATED: [&str; 8] = [
+        "package-lock.json",
+        "pnpm-lock.yaml",
+        "yarn.lock",
+        "Cargo.lock",
+        "go.sum",
+        "poetry.lock",
+        "Gemfile.lock",
+        "composer.lock",
+    ];
+    path.file_name()
+        .and_then(|n| n.to_str())
+        .is_some_and(|name| GENERATED.contains(&name))
+}
+
 /// Why the list spares a symbol the resolved call graph calls dead.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SparedReason {
@@ -245,6 +262,8 @@ pub enum SparedReason {
     ImplementsForeignTrait,
     /// It structures a document instead of naming code: a Markdown heading.
     StructuresProse,
+    /// A tool writes its file: `package-lock.json`, `go.sum`.
+    Generated,
 }
 
 /// [`find_unused`]'s answer with its reasoning attached.
@@ -290,6 +309,11 @@ impl UnusedReport {
             SparedReason::StructuresProse => {
                 "it structures a document; a heading without a link into it is normal, \
                  not dead"
+                    .to_string()
+            }
+            SparedReason::Generated => {
+                "a tool writes this file and nobody edits it, so nothing in it is code \
+                 to delete"
                     .to_string()
             }
             SparedReason::HoldsAnEntryPoint => {
@@ -496,6 +520,10 @@ pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedRep
         };
         let orphaned = !reached && !referenced.contains(&symbol.id);
         if orphaned || dead_cycles.contains(&symbol.id) {
+            if generated_file(&symbol.file) {
+                report.spared.push((symbol.id, SparedReason::Generated));
+                continue;
+            }
             if hcl_block_with_no_address(symbol) {
                 report
                     .spared

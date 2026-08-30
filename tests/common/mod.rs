@@ -8,6 +8,18 @@ use fun_refactor::scan::{scan, ScanOptions};
 use std::path::PathBuf;
 use std::process::Command;
 
+/// A workspace on disk, indexed. `src/testing.rs` serves the unit tests instead.
+pub fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, Index) {
+    let tmp = tempfile::tempdir().unwrap();
+    for (name, content) in files {
+        let path = tmp.path().join(name);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, content).unwrap();
+    }
+    let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
+    (tmp, Index::build_from_scan(&scanned).unwrap())
+}
+
 /// Hold a gate to its coverage, where a hole would otherwise be invisible.
 pub fn require_on_ci(what: &str, missing: &[String]) {
     if missing.is_empty() || std::env::var("CI").is_err() {

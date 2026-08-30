@@ -190,7 +190,6 @@ fn walk_backward(
         return Ok(());
     }
 
-    // The value assigned to this definition.
     let Some(value_node) = value_of_definition(&parsed, symbol.full_span, symbol.name_span) else {
         result.stops.push((
             depth,

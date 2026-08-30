@@ -530,7 +530,6 @@ fn infer_expression(
     let kind = node.kind();
     let text = Span::from(node).text(source).trim();
 
-    // A literal states its own type, in every language that has literals.
     if let Some(ty) = literal_type(language, kind, text) {
         return Some(Inferred {
             ty,

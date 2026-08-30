@@ -807,7 +807,6 @@ impl Extractor {
         containers.sort();
         containers.dedup();
 
-        // Pass 2: build the scope tree.
         let scopes = build_scopes(&mut raw_scopes);
 
         let scope_at = |offset: usize| -> ScopeId {

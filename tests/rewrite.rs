@@ -3,19 +3,10 @@
 use fun_refactor::edit::apply_to_string;
 use fun_refactor::index::Index;
 use fun_refactor::refactor::rewrite::{self, Rewrite};
-use fun_refactor::scan::{scan, ScanOptions};
 use std::path::{Path, PathBuf};
 
-fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, Index) {
-    let tmp = tempfile::tempdir().unwrap();
-    for (name, content) in files {
-        let path = tmp.path().join(name);
-        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-        std::fs::write(&path, content).unwrap();
-    }
-    let scanned = scan(tmp.path(), &ScanOptions::default()).unwrap();
-    (tmp, Index::build_from_scan(&scanned).unwrap())
-}
+mod common;
+use common::workspace;
 
 fn rewritten(index: &Index, path: &PathBuf, offset: usize, r: Rewrite) -> String {
     let plan = rewrite::apply(index, path, offset, r)
