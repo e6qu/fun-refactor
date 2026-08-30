@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.2](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.5.1...fun-refactor-v0.5.2) (2026-08-30)
+
+
+### Fixes
+
+* a group that lost its own symbol, and the sample that hid it ([#185](https://github.com/e6qu/fun-refactor/issues/185)) ([fc393a4](https://github.com/e6qu/fun-refactor/commit/fc393a4f0dabbe09b6d6f8ad6b9a07a8922ba94c))
+
 ## [0.5.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.5.0...fun-refactor-v0.5.1) (2026-08-30)
 
 
