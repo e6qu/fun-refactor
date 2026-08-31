@@ -1,5 +1,12 @@
 # The parse tables are generated from the grammar beside them. Reviewers read
 # `grammar.js` and the patch; the tables are output.
-grammars/*/src/parser.c linguist-generated=true
-grammars/*/src/grammar.json linguist-generated=true
-grammars/*/src/node-types.json linguist-generated=true
+#
+# `-diff` as well as `linguist-generated`, because the two do different jobs.
+# `linguist-generated` collapses the file in a review. It does not stop the diff being
+# computed, and Lean's `parser.c` is 46 MB: GitHub gave up on the whole pull request
+# with "this diff is taking too long to generate", so a review saw no changes at all.
+# `-diff` says the file has no readable diff, which is true of a parse table, and the
+# rest of the change renders.
+grammars/*/src/parser.c linguist-generated=true -diff
+grammars/*/src/grammar.json linguist-generated=true -diff
+grammars/*/src/node-types.json linguist-generated=true -diff
