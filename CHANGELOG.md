@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.6.0...fun-refactor-v0.7.0) (2026-08-31)
+
+
+### Features
+
+* Lean is a translate target, and the reader and writer lists part ([#191](https://github.com/e6qu/fun-refactor/issues/191)) ([623abea](https://github.com/e6qu/fun-refactor/commit/623abeacf3c0e9583fba1ec49d341d6099da819f))
+
+
+### Documentation
+
+* a plan for specs in Lean, and four headings that had stopped being true ([#189](https://github.com/e6qu/fun-refactor/issues/189)) ([7d4f6f4](https://github.com/e6qu/fun-refactor/commit/7d4f6f419b2f4170b9dcf17f619fec91a013823d))
+
 ## [0.6.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.5.2...fun-refactor-v0.6.0) (2026-08-30)
 
 
