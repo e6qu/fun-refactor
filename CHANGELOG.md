@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.3](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.8.2...fun-refactor-v0.8.3) (2026-08-31)
+
+
+### Fixes
+
+* keep Python reassignments live ([#199](https://github.com/e6qu/fun-refactor/issues/199)) ([e169e91](https://github.com/e6qu/fun-refactor/commit/e169e9181a733c71d920f624d8896902e70485c0))
+
 ## [0.8.2](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.8.1...fun-refactor-v0.8.2) (2026-08-31)
 
 
