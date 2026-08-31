@@ -422,10 +422,6 @@ Two different promises share this command.
   a counterpart, and the report counts it. The intermediary language
   this goes through is documented in [IR.md](IR.md).
 
-Lean is a target and not a source. A file becomes Lean and nothing reads one back,
-so `fr translate` offers it among the targets and refuses it as an input, naming the
-missing reader.
-
 `--out` chooses the destination and `--force` overwrites. The original always
 stays: nobody can read a deleted input back out of the diff.
 

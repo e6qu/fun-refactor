@@ -278,6 +278,10 @@ fn every_output_parses_as_the_language_it_claims_to_be() {
             "# Add two things.\nadd() {\n    local a=\"$1\"\n    local b=\"$2\"\n    \
              echo $(( a + b ))\n}\n",
         ),
+        (
+            "h.lean",
+            "-- Add two things.\ndef add (a : Int) (b : Int) : Int := a + b\n",
+        ),
     ];
     let (_tmp, root) = common::tree(&sources);
     let parsers = fun_refactor::parse::Parsers::new();

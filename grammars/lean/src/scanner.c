@@ -20,6 +20,11 @@
  * Special case: `|` at the start of a line does NOT get a LAYOUT_SEMICOLON.
  * This matches Lean 4's parser where match arms are delimited by `|` tokens
  * rather than by the indentation-based semicolon mechanism.
+ *
+ * `else`, `catch` and `finally` are the same case in words. Each continues the
+ * construct above it rather than opening an element beside it, so a semicolon
+ * before one of them turns the `else` of a `do`-level `if` into an application of
+ * a name called `else`. Lean reads the file; the tree said something else.
  */
 
 #include "tree_sitter/parser.h"
@@ -132,8 +137,31 @@ static bool starts_with_pipe(TSLexer *lexer) {
   return lexer->lookahead == '|';
 }
 
+/**
+ * `else`, `catch` and `finally` continue the construct above them. Reading the word
+ * costs an advance, so only the three letters that could open one pay it, and the
+ * caller marks the token's end first: an advance past that point is a look and not a
+ * consumption.
+ */
+static bool starts_with_continuation(TSLexer *lexer) {
+  if (lexer->lookahead != 'e' && lexer->lookahead != 'c' &&
+      lexer->lookahead != 'f') {
+    return false;
+  }
+  char word[10];
+  size_t n = 0;
+  while (n + 1 < sizeof(word) && lexer->lookahead >= 'a' &&
+         lexer->lookahead <= 'z') {
+    word[n++] = (char)lexer->lookahead;
+    lexer->advance(lexer, true);
+  }
+  word[n] = '\0';
+  return strcmp(word, "else") == 0 || strcmp(word, "catch") == 0 ||
+         strcmp(word, "finally") == 0;
+}
+
 static bool should_suppress_semicolon(TSLexer *lexer) {
-  return starts_with_pipe(lexer);
+  return starts_with_pipe(lexer) || starts_with_continuation(lexer);
 }
 
 /**
@@ -224,6 +252,7 @@ bool tree_sitter_lean_external_scanner_scan(
     uint32_t ci = top_indent(s);
 
     if (qi < ci && valid_symbols[LAYOUT_END]) {
+      lexer->mark_end(lexer);
       // Top-level match arms below the body's indent (`def f := match X with
       // | ...`): when `:=` is the only layout open and the next token is `|`,
       // the arms belong to the match. Closing the layout would terminate the
@@ -255,6 +284,7 @@ bool tree_sitter_lean_external_scanner_scan(
         lexer->advance(lexer, true);
         skip_spaces(lexer);
       }
+      lexer->mark_end(lexer);
       if (should_suppress_semicolon(lexer)) {
         s->queued_indent = NO_QUEUED;
         return false;

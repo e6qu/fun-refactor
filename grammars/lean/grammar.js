@@ -960,15 +960,19 @@ module.exports = grammar({
       $._expression,
     ),
 
-    // Let in do-block: `let x := e` or `let [x] := e | fallback`
-    do_let: $ => prec.right(2, seq(
+    // Let in do-block: `let x := e` or `let [x] := e | fallback`.
+    //
+    // Dynamic precedence, because both readings succeed. A term `let` takes the rest of
+    // the block as its body, so a `let` followed by a `for` parsed as a term whose body
+    // was an application called `for`. Inside a `do`, Lean reads the do-let.
+    do_let: $ => prec.dynamic(2, prec.right(2, seq(
       'let',
       field('pattern', choice($._pattern, $.list_pattern)),
       optional($._type_spec),
       ':=',
       field('value', $._expression),
       optional(seq('|', field('fallback', $._expression))),
-    )),
+    ))),
 
     // Monadic bind: `let x ← e` or `let (a, b) ← e` or `let x : T ← e`
     let_bind: $ => seq(
@@ -979,15 +983,18 @@ module.exports = grammar({
       field('value', $._expression),
     ),
 
-    // Mutable let: `let mut x := e` or `let mut x : Type := e`
-    let_mut: $ => seq(
+    // Mutable let: `let mut x := e` or `let mut x : Type := e`.
+    //
+    // Dynamic precedence for the same reason `do_let` has it, and one more: a term
+    // `let` reads `let mut x` as a binding of `mut` taking a parameter `x`.
+    let_mut: $ => prec.dynamic(2, seq(
       'let',
       'mut',
       field('name', $.identifier),
       optional($._type_spec),
       choice('<-', '←', ':='),
       field('value', $._expression),
-    ),
+    )),
 
     // Reassignment: `x := e`
     // Low precedence so binary operators (+, *, etc.) shift into the value expression
