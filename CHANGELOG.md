@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.8.0...fun-refactor-v0.8.1) (2026-08-31)
+
+
+### Build
+
+* a parse table has no readable diff, and saying so lets a review load ([#195](https://github.com/e6qu/fun-refactor/issues/195)) ([2803d35](https://github.com/e6qu/fun-refactor/commit/2803d353c7a53b91e438420d4dc97f7554d7a7f6))
+
 ## [0.8.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.7.0...fun-refactor-v0.8.0) (2026-08-31)
 
 
