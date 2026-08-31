@@ -22,8 +22,13 @@
 (by) @scope
 
 ; `def f (x : Nat) : Nat := …`, and `theorem`, `lemma` and `abbrev` with it.
+;
+; The anchor takes the last part of the name. `def Box.get` declares `get` in the
+; namespace `Box`, and a query binds a field once: without the anchor the declaration
+; indexed under `Box` and `get` was nowhere.
 (definition
-  name: [(identifier) (escaped_identifier)] @name) @definition.function
+  name: (qualified_name
+    [(identifier) (escaped_identifier)] @name .)) @definition.function
 
 ; A structure is a record, and its fields qualify under it.
 (structure
@@ -39,24 +44,29 @@
 
 (inductive
   constructors: (constructor
-    name: [(identifier) (escaped_identifier)] @name) @definition.field)
+    name: (qualified_name
+      [(identifier) (escaped_identifier)] @name .)) @definition.field)
 
 (class_inductive
   name: (identifier) @name @container.name) @definition.enum
 
 (class_inductive
   constructors: (constructor
-    name: [(identifier) (escaped_identifier)] @name) @definition.field)
+    name: (qualified_name
+      [(identifier) (escaped_identifier)] @name .)) @definition.field)
 
 ; `axiom`, `opaque` and `constant` name a value the file does not compute.
 (axiom
-  name: [(identifier) (escaped_identifier)] @name) @definition.constant
+  name: (qualified_name
+    [(identifier) (escaped_identifier)] @name .)) @definition.constant
 
 (opaque
-  name: [(identifier) (escaped_identifier)] @name) @definition.constant
+  name: (qualified_name
+    [(identifier) (escaped_identifier)] @name .)) @definition.constant
 
 (constant
-  name: [(identifier) (escaped_identifier)] @name) @definition.constant
+  name: (qualified_name
+    [(identifier) (escaped_identifier)] @name .)) @definition.constant
 
 ; A binder names a parameter, whichever bracket holds it.
 (explicit_binder

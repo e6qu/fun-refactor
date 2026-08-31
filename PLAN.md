@@ -370,8 +370,8 @@ names the commit it measures.
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 674 |
-| Defects open | 5 |
+| Defects fixed | 675 |
+| Defects open | 4 |
 
 Every cell that `fr capabilities` marks `n/a` carries the reason the tool refuses. That
 keeps the column a commitment.
@@ -2777,8 +2777,7 @@ files. The same fact is why organising imports refuses: nothing tells a live imp
 a dead one by the names a file spells.
 
 What remains, each cell of the matrix carrying its reason: dispatch through
-type-class search, the refactorings wanting a type this build does not infer, and
-B833.
+type-class search, and the refactorings wanting a type this build does not infer.
 
 ---
 

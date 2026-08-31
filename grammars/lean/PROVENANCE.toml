@@ -7,6 +7,8 @@
 #
 # Re-apply the patch when taking a newer release, and regenerate `src/parser.c`.
 
+# `src/scanner.c` carries a change of its own, recorded under `[[scanner]]` below.
+
 # `src/parser.c` is 48 MB, and committed on purpose. `grammars/README.md` has the
 # measurement and the reasoning: git packs it to 2.68 MB, and generating it at build
 # time instead would make the tree-sitter CLI a hard dependency of every clone. The
@@ -20,6 +22,13 @@ crate_version = "0.3.0"
 grammar_version = "0.2.2"
 license = "MIT"
 generated_with = "tree-sitter-cli 0.26.13"
+
+[[patch]]
+subject = "a declaration's name as one node"
+rule = "qualified_name"
+change = "`definition`, `constant`, `opaque`, `axiom` and `constructor` take a visible `qualified_name` where they took the hidden `_name`"
+accepts = ["def Box.get (self : Box) : Int := self.value"]
+why = "a hidden rule gives its parts the field that held it, so `def Box.get` had two `name` fields and a query binds a field once; the declaration indexed under `Box`"
 
 [[patch]]
 subject = "a mutual block"
@@ -36,3 +45,8 @@ grammar_manifest = "tree-sitter.json, metadata.license"
 readme = "https://github.com/wvhulle/tree-sitter-lean#license"
 authors = ["Julian Berman", "Willem Vanhulle"]
 note = "no LICENSE file exists upstream; nothing here fabricates one"
+
+[[scanner]]
+subject = "the layout semicolon before a continuation word"
+change = "`should_suppress_semicolon` covers `else`, `catch` and `finally` as well as `|`"
+why = "each continues the construct above it rather than opening an element beside it, so the semicolon turned the `else` of a `do`-level `if` into an application of a name called `else`"

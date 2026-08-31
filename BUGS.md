@@ -66,16 +66,6 @@ a translation surface it does not yet write.
   uses. Zig (comptime duck typing) and Bash declare no implements-relationship at all, so
   neither has a hierarchy to read.
 
-- [ ] B833: **the index files a Lean declaration under the namespace it sits in.**
-  `def Box.get` comes back as `Box`. `get` is nowhere. `_name` is a hidden rule,
-  `identifier ('.' identifier)*`, so the `name` field lands on every part and the
-  extractor takes the first.
-
-  A query cannot say "the last one": each field is its own match, and the specific
-  pattern loses to the general one. The fix is a visible node for a dotted name. That
-  changes what `import`, `namespace`, `open` and `end` produce, and every query that
-  reads them. `tests/lean.rs` pins what it does and what it loses.
-
 - [ ] B832: **the Lean grammar cannot read `else if` on one line.**
   The second `else` of a `do`-level chain becomes an argument of an application. Nesting each `if` inside the `else` above it reads
   cleanly, and the writer emits that: `chain` in `write/lean.rs`. The short
@@ -106,6 +96,16 @@ a translation surface it does not yet write.
   form this build emits. This one is not.
 
 ## Fixed
+
+- [x] B833: **the index filed a Lean declaration under the namespace it sat in.**
+  `def Box.get` came back as `Box`, and `get` was nowhere. `_name` is hidden, so its
+  parts each inherited the field that held it, and a query binds a field once and
+  takes the first.
+
+  A declaration's name is now one `qualified_name` node with the parts inside it, and
+  the query anchors on the last. The entry said the fix would change what `import`,
+  `namespace` and `open` produce: it does not, because only the five declaration rules
+  take the new node and those three keep the hidden one.
 
 - [x] B836: **a Lean file defined an entry point and ran nothing.**
   The reader adds the call to `main` where a runtime makes it. Lean runs `main` itself and was missing from that
