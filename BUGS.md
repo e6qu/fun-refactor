@@ -66,41 +66,6 @@ a translation surface it does not yet write.
   uses. Zig (comptime duck typing) and Bash declare no implements-relationship at all, so
   neither has a hierarchy to read.
 
-- [ ] B832: **a trailing `else` that dedents past its own `if` becomes an argument.**
-  In a `do`-level `if / then / else if / then / else`, the last `else` belongs to the
-  inner `if`, and Lean takes it wherever it sits. The scanner ends the inner `then`
-  block when the column drops. By the time `else` arrives its own `if` has closed, so
-  the application above takes it as an argument.
-
-  The boundary is the column, not the `else if`. Written under the inner `if`, the
-  whole chain reads correctly:
-
-  ```lean
-  if d == 1 then
-    return "a"
-  else if d == 2 then
-    return "b"
-       else
-         return "c"
-  ```
-
-  Nobody writes that, which is why the writer nests each arm inside the `else` above
-  it instead: `chain` in `write/lean.rs`. Fixing it needs the scanner to know it is
-  inside an `if` awaiting an `else`, which is state it does not keep. Nesting each `if` inside the `else` above it reads
-  cleanly, and the writer emits that: `chain` in `write/lean.rs`. The short
-  form says the same thing and reads better, and the tree said something else.
-
-- [ ] B828: **the Lean grammar cannot end a block that finishes on a comment.**
-  A `do` block whose last line is `-- something` never ends: the scanner closes a
-  block on indentation and a comment carries none, so the declaration after it lands
-  inside the block. Lean itself reads a comment as whitespace wherever it stands.
-
-  The Lean writer never leaves a block ending that way. A body whose statements all
-  carried, or that holds only comments, gets the one value its type has, or
-  `panic! "not translated"` where its type has more than one. That answer was needed
-  anyway, since a `do` with nothing in it is also a syntax error.
-  `tests/known_grammar_gaps.rs` pins both sides.
-
 - [ ] B824: **the Lean grammar cannot read two chained `let`s inside a branch.** A term
   whose `else` opens `let a := n` and then `let b := a` is ordinary Lean, and the
   published grammar reports an error on the second one. One `let` in a branch reads
@@ -125,6 +90,20 @@ a translation surface it does not yet write.
   the query anchors on the last. The entry said the fix would change what `import`,
   `namespace` and `open` produce. It does not: only the five declaration rules take
   the new node, and those three keep the hidden one.
+
+- [x] B832: **a trailing `else` that dedented past its own `if` became an argument.**
+  The `else` belongs to the inner `if`, wherever it sits. The dedent that reaches it
+  ends every `then` block between, and `_do_then_else` took one end.
+
+  It takes as many as arrive now, and only where an `else` follows them. `repeat` on
+  its own was too greedy. A statement after the chain needs those same ends to close
+  the same blocks. The chain swallowed them, and `return "large"` became the last arm
+  of the `if` it stood after.
+
+- [x] B828: **a block that finished on a comment did not end.**
+  The scanner reads the next line's indent, and it measured the comment. A comment is
+  an extra, not an element, so the declaration after it landed inside the block. `measure_indent` skips comment lines now and measures the next line that
+  carries something.
 
 - [x] B836: **a Lean file defined an entry point and ran nothing.**
   The reader adds the call to `main` where a runtime makes it. Lean runs `main` itself and was missing from that
@@ -178,7 +157,7 @@ a translation surface it does not yet write.
   depend on each other. A name a body binds now belongs to that body.
 
 - [x] B825: **a value standing where a `return` would go lost its place.**
-  Rust and Zig end a function with the value, and write no `return`. The Lean writer put every pure statement behind
+  Rust and Zig end a function with the value. They write no `return`. The Lean writer put every pure statement behind
   `let _ :=`, which compiles and answers with the wrong thing. A `do` block answers
   with its last element, so the writer leaves that element bare.
 
@@ -3848,7 +3827,7 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   rule has others, it widens to that selector and its comma.
 
 - [x] B4: import liveness was name-based, so anything a language brings into scope
-  invisibly looked unused. Per-language guards now hold back and report: Python
+  invisibly looked unused. Per-language guards now hold back and report. Python
   `__future__` imports, `__all__` re-exports and dotted registration imports;
   TypeScript type-only imports, JSDoc `{Foo}` mentions, JSX pragmas and `typeof X`;
   and Go blank imports. So are packages whose path yields no clause name.

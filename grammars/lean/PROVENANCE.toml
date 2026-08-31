@@ -46,6 +46,18 @@ readme = "https://github.com/wvhulle/tree-sitter-lean#license"
 authors = ["Julian Berman", "Willem Vanhulle"]
 note = "no LICENSE file exists upstream; nothing here fabricates one"
 
+[[patch]]
+subject = "every layout end a dedent gives, where an `else` follows"
+rule = "_do_then_else"
+change = "`repeat($._layout_end)` before `else`, inside the branch that takes one, and a declared conflict so GLR chooses by what follows"
+accepts = ["if d == 1 then\n  return \"a\"\nelse if d == 2 then\n  return \"b\"\nelse\n  return \"c\""]
+why = "the `else` of a chain sits at the outermost `if`'s column, so the dedent that reaches it ends every `then` block between; taking one left the rest for the application above, which took the `else` as an argument"
+
+[[scanner]]
+subject = "the indent a comment line reports"
+change = "`measure_indent` skips comment lines and measures the next line that carries something"
+why = "a comment is an extra, not an element, so its column kept a block open past its last statement and the declaration after it landed inside"
+
 [[scanner]]
 subject = "the layout semicolon before a continuation word"
 change = "`should_suppress_semicolon` covers `else`, `catch` and `finally` as well as `|`"

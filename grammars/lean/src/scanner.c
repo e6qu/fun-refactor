@@ -118,12 +118,27 @@ static bool is_nl(int32_t c) { return c == '\n' || c == '\r'; }
  * If EOF is reached, return 0 (dedent everything).
  * After this call, lexer->lookahead is the first non-blank character.
  */
+/**
+ * The indent of the next line that carries something.
+ *
+ * A comment is an extra, not an element, so its column says nothing about where the
+ * block ends. Measuring it kept a block open past its last statement, and the
+ * declaration after the comment landed inside it.
+ */
 static uint32_t measure_indent(TSLexer *lexer) {
-  while (is_nl(lexer->lookahead))
+  for (;;) {
+    while (is_nl(lexer->lookahead))
+      lexer->advance(lexer, true);
+    skip_spaces(lexer);
+    if (lexer->eof(lexer)) return 0;
+    if (lexer->lookahead != '-') return lexer->get_column(lexer);
+    // `-` opens a line comment only when a second one follows. Anything else is an
+    // operator or a negative number, and the line carries it.
     lexer->advance(lexer, true);
-  skip_spaces(lexer);
-  if (lexer->eof(lexer)) return 0;
-  return lexer->get_column(lexer);
+    if (lexer->lookahead != '-') return lexer->get_column(lexer);
+    while (!lexer->eof(lexer) && !is_nl(lexer->lookahead))
+      lexer->advance(lexer, true);
+  }
 }
 
 /**
@@ -163,6 +178,7 @@ static bool starts_with_continuation(TSLexer *lexer) {
 static bool should_suppress_semicolon(TSLexer *lexer) {
   return starts_with_pipe(lexer) || starts_with_continuation(lexer);
 }
+
 
 /**
  * Push indent for a layout-start-like token (shared by LAYOUT_START
