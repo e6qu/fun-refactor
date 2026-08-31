@@ -421,6 +421,34 @@ fn an_unused_symbol_from_find_unused_can_then_be_deleted() {
 }
 
 #[test]
+fn a_python_reassignment_is_not_a_second_unused_variable() {
+    let source = "def clamp(value):\n    limit = 1\n    if value > limit:\n        limit = value\n    return limit\n";
+    let (_tmp, index) = workspace(&[("a.py", source)]);
+    let limits: Vec<_> = index
+        .symbols
+        .iter()
+        .filter(|symbol| symbol.name == "limit")
+        .map(|symbol| symbol.id)
+        .collect();
+    assert_eq!(
+        limits.len(),
+        2,
+        "the extractor retains both assignment sites"
+    );
+
+    let unused = delete::find_unused(&index, &Entrypoints::none());
+    assert!(
+        limits.iter().all(|id| !unused.contains(id)),
+        "a read of either assignment's binding keeps both sites live: {unused:?}"
+    );
+    let error = delete::plan(&index, limits[1]).unwrap_err();
+    assert!(
+        error.to_string().contains("1 reference(s)"),
+        "the read of `limit` must block deletion: {error}"
+    );
+}
+
+#[test]
 fn the_edits_survive_the_engines_reparse_check() {
     // A plan is only useful if `edit::plan` will accept it: the file must still parse.
     let source = "fn orphan() {}\n\nfn main() {\n    let x = 1;\n}\n";

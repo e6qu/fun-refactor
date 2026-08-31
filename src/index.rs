@@ -1583,6 +1583,21 @@ impl Index {
                     return peers;
                 }
             }
+            if sym.language == Language::Python && sym.kind == SymbolKind::Variable {
+                let peers: Vec<SymbolId> = self
+                    .named_like(&sym.name)
+                    .filter(|s| {
+                        s.name == sym.name
+                            && s.kind == sym.kind
+                            && s.file == sym.file
+                            && s.scope == sym.scope
+                    })
+                    .map(|s| s.id)
+                    .collect();
+                if peers.len() > 1 {
+                    return peers;
+                }
+            }
             // A chart value declared in values.yaml and again in values-prod.yaml is one value
             // with two override layers.
             if sym.kind == SymbolKind::Key
