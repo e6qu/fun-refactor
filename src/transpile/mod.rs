@@ -85,11 +85,10 @@ pub const READABLE: &[Language] = &[
     Language::TypeScript,
     Language::Zig,
     Language::Bash,
+    Language::Lean,
 ];
 
-/// The languages a file may become. Wider than [`READABLE`]: reading a language means
-/// deciding what each of its constructs meant, and writing one means only spelling
-/// constructs already decided.
+/// The languages a file may become.
 pub const WRITABLE: &[Language] = &[
     Language::Rust,
     Language::Go,

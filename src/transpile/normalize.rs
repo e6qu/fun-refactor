@@ -445,6 +445,7 @@ fn normalize_language(module: &mut Module, language: Language) {
             settle_result_idiom(module);
             zig_exprs
         }
+        Language::Lean => lean,
         _ => return,
     };
     for item in &mut module.items {
@@ -1105,6 +1106,19 @@ fn fold_concat(expr: &Expr) -> Option<Expr> {
         }
     }
     Some(Expr::Template(parts))
+}
+
+// ----------------------------------------------------------------------- Lean
+
+/// Lean's own idioms that are not already the canonical spelling.
+///
+/// `a ++ b ++ c` on text is the concatenation every reader here folds into a template.
+/// The fold keeps a target from spelling it as an operator that moves its left operand.
+fn lean(expr: Expr) -> Expr {
+    match fold_concat(&expr) {
+        Some(folded) => folded,
+        None => expr,
+    }
 }
 
 // ------------------------------------------------------------------------ Zig

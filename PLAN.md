@@ -369,9 +369,9 @@ names the commit it measures.
 | Query sets | 17 |
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
-| Supported pairs | 310 of 456, every other one carrying its reason |
-| Defects fixed | 671 |
-| Defects open | 3 |
+| Supported pairs | 311 of 456, every other one carrying its reason |
+| Defects fixed | 674 |
+| Defects open | 5 |
 
 Every cell that `fr capabilities` marks `n/a` carries the reason the tool refuses. That
 keeps the column a commitment.
@@ -1095,8 +1095,8 @@ groups had never touched:
 ## Progress log
 
 Every stage is complete except the optional LSP delegation backend. Every
-capability a language can meaningfully support now stands: **310 of 456 capability ×
-language pairs supported, 146 not applicable, none refused.**
+capability a language can meaningfully support now stands: **311 of 456 capability ×
+language pairs supported, 145 not applicable, none refused.**
 
 Nobody maintains the matrix by hand any more. `src/capabilities.rs` computes it by
 asking each refactoring's own predicate, and `fr capabilities` prints it with the reason
@@ -1863,8 +1863,8 @@ commands, one over `translate` with compilers waiting on the other side, one
 over the query surface. Twenty-three findings survived verification. The
 refactoring side gained the refusals it owed (B387 through B391). The index
 stopped conflating a field with a method (B392) and learned Python's instance
-attributes (B398). The translator crossed the gap between "parses" and "runs":
-tuples (B393), class fields and constructors (B394), entrypoints, field
+attributes (B398). The translator crossed the gap between "parses" and "runs".
+Tuples (B393), class fields and constructors (B394), entrypoints, field
 defaults and record returns (B395), the builtin table (B396) and properties
 (B397). The everyday Zig forms crossed too, and a failed initializer keeps its
 binding instead of poisoning the lines after it.
@@ -2742,15 +2742,14 @@ proof.
 
 ## The nineteenth language: Lean
 
-**Both halves work.** `fr` parses Lean, indexes it, and renames and moves a declaration
-across it. Every one of the seven languages with a reader translates into it. The conformance
-suite runs what comes out: fourteen groups against seven sources, and Lean prints the
-transcript the other six print.
+**Both halves work, both directions.**
+`fr` parses Lean and indexes it. It renames and moves a declaration across it. It
+translates every other language into Lean, and translates Lean back out. The conformance suite runs both halves: fourteen groups, eight languages, 630 cells,
+and every one prints the same transcript.
 
-Lean is the first target with no reader, which is why `SUPPORTED` had to become
-`READABLE` and `WRITABLE`. Reading a language means deciding what each of its constructs
-meant; writing one means spelling constructs already decided. The second is the smaller
-job, and the two lists had been one only because nothing had needed them apart.
+Lean was the first target with no reader, which is why `SUPPORTED` became `READABLE` and
+`WRITABLE`. The two lists hold the same eight languages again, and now for a reason
+rather than by accident.
 
 What the grammar gave, and what it cost. `grammars/lean` holds the published grammar
 regenerated against this build's tree-sitter, because the crate on crates.io links 0.25
@@ -2777,9 +2776,9 @@ what a glob import is everywhere else, and marking it as one made a name resolve
 files. The same fact is why organising imports refuses: nothing tells a live import from
 a dead one by the names a file spells.
 
-What remains, with the matrix carrying a reason for each cell: a reader, so that Lean is
-a source and not only a target. Dispatch through type-class search. The refactorings
-that want a type this build does not infer.
+What remains, each cell of the matrix carrying its reason: dispatch through
+type-class search, the refactorings wanting a type this build does not infer, and
+B833.
 
 ---
 

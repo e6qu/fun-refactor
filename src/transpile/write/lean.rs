@@ -790,29 +790,12 @@ fn stmt(out: &mut Out, s: &Stmt, tail: bool) {
             arms,
             default,
         } => {
-            let over = arg(out, subject);
-            for (at, (literals, arm)) in arms.iter().enumerate() {
-                let test = literals
-                    .iter()
-                    .map(|l| {
-                        let value = arg(out, l);
-                        format!("{over} == {value}")
-                    })
-                    .collect::<Vec<_>>()
-                    .join(" || ");
-                let word = match at {
-                    0 => "if",
-                    _ => "else if",
-                };
-                out.line(&format!("{word} {test} then"));
-                nested(out, arm, tail);
-            }
             if arms.is_empty() {
                 statements(out, default, tail);
                 return;
             }
-            out.line("else");
-            nested(out, default, tail);
+            let over = arg(out, subject);
+            chain(out, &over, arms, default, tail);
         }
         Stmt::MatchVariants {
             subject,
@@ -936,6 +919,33 @@ fn stmt(out: &mut Out, s: &Stmt, tail: bool) {
         }
         Stmt::Unsupported(u) => carry(out, u),
     }
+}
+
+/// The arms of a choice, each `if` inside the `else` of the one before it.
+///
+/// `else if` on one line says the same thing and reads better, and the grammar cannot
+/// read it: B832. One shape for both is worth more than the line it saves.
+fn chain(out: &mut Out, over: &str, arms: &[(Vec<Expr>, Vec<Stmt>)], default: &[Stmt], tail: bool) {
+    let Some(((literals, body), rest)) = arms.split_first() else {
+        statements(out, default, tail);
+        return;
+    };
+    let test = literals
+        .iter()
+        .map(|l| {
+            let value = arg(out, l);
+            format!("{over} == {value}")
+        })
+        .collect::<Vec<_>>()
+        .join(" || ");
+    out.line(&format!("if {test} then"));
+    nested(out, body, tail);
+    out.line("else");
+    out.open();
+    let before = out.text.len();
+    chain(out, over, rest, default, tail);
+    close_block(out, before, None);
+    out.close();
 }
 
 /// A counted loop: a range where the header walks one, and a `while` where it does not.

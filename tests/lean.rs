@@ -180,3 +180,31 @@ fn the_capability_matrix_says_what_lean_does_and_does_not() {
         }
     }
 }
+
+/// The index files a declaration under the namespace it sits in, and loses its own
+/// name. B833.
+///
+/// `_name` is a hidden rule in the grammar, `identifier ('.' identifier)*`, so the
+/// `name` field lands on every part. The extractor takes the first, which for
+/// `def Box.get` is `Box`.
+#[test]
+fn a_dotted_declaration_is_indexed_under_its_namespace() {
+    let (_tmp, index) = common::workspace(&[(
+        "a.lean",
+        "structure Box where\n  value : Int\n\ndef Box.get (self : Box) : Int := self.value\n",
+    )]);
+    let named: Vec<&str> = index
+        .symbols
+        .iter()
+        .filter(|s| s.kind == SymbolKind::Function)
+        .map(|s| s.name.as_str())
+        .collect();
+    assert!(
+        named.contains(&"Box"),
+        "B833: the index files the definition under its namespace. Found {named:?}"
+    );
+    assert!(
+        !named.contains(&"get"),
+        "B833 says `get` is lost. If the index holds it now, close the entry. {named:?}"
+    );
+}

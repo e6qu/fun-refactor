@@ -7,6 +7,8 @@ use anyhow::{bail, Result};
 use tree_sitter::Node;
 
 /// `file_stem` is the source file's own name, and only Zig wants it.
+mod lean;
+
 pub(crate) fn function_at(language: Language, source: &str, node: Node<'_>) -> Result<Function> {
     let lines = LineIndex::new(source);
     let cx = Cx {
@@ -38,6 +40,7 @@ pub fn read(
         Language::Zig => zig::module(&cx, root, file_stem),
         Language::TypeScript | Language::Tsx => typescript::module(&cx, root),
         Language::Bash => bash::module(&cx, root),
+        Language::Lean => lean::module(&cx, root),
         other => bail!(
             "there is no reader for {other}: translating out of it would mean inventing \
              what its constructs mean."
@@ -54,10 +57,11 @@ pub fn read(
     // Each language's spelling of the shared builtins, folded to the canonical one the writers'
     // tables spell back out.
     super::normalize::normalize(&mut module, language);
-    // Only for the languages that run `main` implicitly.
+    // Only for the languages that run `main` implicitly. A target that does not needs
+    // the call, or it defines an entry point and runs nothing.
     if matches!(
         language,
-        Language::Rust | Language::Go | Language::Java | Language::Zig
+        Language::Rust | Language::Go | Language::Java | Language::Zig | Language::Lean
     ) {
         settle_entry(&mut module);
     }

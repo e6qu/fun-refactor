@@ -17,18 +17,18 @@ fn lean(name: &str, source: &str) -> String {
 }
 
 #[test]
-fn lean_is_a_target_and_not_a_source() {
+fn lean_is_read_and_written_both() {
     assert!(
         transpile::can_be_written(Language::Lean),
         "a file becomes Lean"
     );
     assert!(
-        !transpile::can_be_read(Language::Lean),
-        "and nothing reads one back, which is where the two lists part"
+        transpile::can_be_read(Language::Lean),
+        "and a Lean file becomes something else"
     );
     assert!(
         transpile::WRITABLE.contains(&Language::Lean)
-            && !transpile::READABLE.contains(&Language::Lean),
+            && transpile::READABLE.contains(&Language::Lean),
         "and both lists say so"
     );
 }
@@ -270,8 +270,11 @@ pub fn name(day: i64) -> String {
 ";
     let out = lean("a.rs", source);
     assert!(out.contains("if day == 1 then"), "got:\n{out}");
-    assert!(out.contains("else if day == 2 then"), "got:\n{out}");
+    assert!(out.contains("if day == 2 then"), "got:\n{out}");
     assert!(!out.contains("match day with"), "got:\n{out}");
+    // Each arm inside the `else` of the one before it. Not `else if` on one line:
+    // B832 says the grammar cannot read that.
+    assert!(!out.contains("else if"), "got:\n{out}");
 }
 
 #[test]

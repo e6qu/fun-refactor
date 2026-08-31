@@ -3,7 +3,7 @@
 A plan, not a build. One tier of it exists: the writer under "Tier 2" below. The rest
 does not.
 
-`fr` reads Lean and writes it. This says what it would take to make Lean the place this
+`fr` reads Lean and writes it, and the conformance suite runs both. This says what it would take to make Lean the place this
 project writes down what its code should do. It also says which parts of that idea are
 worth doing and which are not.
 
@@ -106,10 +106,12 @@ says so. A deferred block in a scope something leaves early carries, because Lea
 hook that runs on the way out. A runtime type test carries, because a Lean value has one
 type and the elaborator already knows it.
 
-The reader is what remains, and it is the only new machinery the rest of this plan needs.
-It goes over the restricted subset the writer produces, and it is the smaller job. The
-writer had to decide what every construct of six languages means in Lean. The reader
-reads back only what the writer wrote.
+**The reader exists too.** It goes over the subset the writer produces, and over Lean a
+person wrote. Fourteen native programs sit in the conformance suite, each translating
+into the other seven languages and printing the same transcript.
+
+That was the last machinery the rest of this plan needed. `fr translate Foo.lean rust`
+works now, which is what "generate from a spec that is a `def`" asks for.
 
 ### Tier 3: the kernel pattern
 

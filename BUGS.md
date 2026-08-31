@@ -66,6 +66,21 @@ a translation surface it does not yet write.
   uses. Zig (comptime duck typing) and Bash declare no implements-relationship at all, so
   neither has a hierarchy to read.
 
+- [ ] B833: **the index files a Lean declaration under the namespace it sits in.**
+  `def Box.get` comes back as `Box`. `get` is nowhere. `_name` is a hidden rule,
+  `identifier ('.' identifier)*`, so the `name` field lands on every part and the
+  extractor takes the first.
+
+  A query cannot say "the last one": each field is its own match, and the specific
+  pattern loses to the general one. The fix is a visible node for a dotted name. That
+  changes what `import`, `namespace`, `open` and `end` produce, and every query that
+  reads them. `tests/lean.rs` pins what it does and what it loses.
+
+- [ ] B832: **the Lean grammar cannot read `else if` on one line.**
+  The second `else` of a `do`-level chain becomes an argument of an application. Nesting each `if` inside the `else` above it reads
+  cleanly, and the writer emits that: `chain` in `write/lean.rs`. The short
+  form says the same thing and reads better, and the tree said something else.
+
 - [ ] B828: **the Lean grammar cannot end a block that finishes on a comment.**
   A `do` block whose last line is `-- something` never ends: the scanner closes a
   block on indentation and a comment carries none, so the declaration after it lands
@@ -92,6 +107,29 @@ a translation surface it does not yet write.
 
 ## Fixed
 
+- [x] B836: **a Lean file defined an entry point and ran nothing.**
+  The reader adds the call to `main` where a runtime makes it. Lean runs `main` itself and was missing from that
+  list. Every translation out of Lean into Python, TypeScript or Bash defined `main`
+  and stopped.
+
+- [x] B835: **a Lean string concatenation moved its left operand.**
+  Every reader here folds a `+` chain over text into a template. The Lean one did
+  not, so `a ++ b` came out as Rust's `+`, which moves the left side. A program that
+  concatenated a name and then read it again would not compile. The fold is one line
+  in `normalize.rs`, beside the four already there.
+
+- [x] B834: **a `do` block's `else` came back as an application of a name called
+  `else`.**
+  The scanner ends a layout block on indentation. It emits a semicolon between
+  elements at the same one. `else` sits at the `if`'s indentation, so the
+  semicolon fired and the branch became a fresh element. No error node: Lean reads the
+  file, and the tree said something else.
+
+  The scanner already suppresses that semicolon before `|`, where match arms have the
+  same shape. It now does the same for `else`, `catch` and `finally`. Reading the word
+  costs an advance, so the caller marks the token's end first, and only the three
+  letters that could open one pay it.
+
 - [x] B830: **a field called `prefix` swallowed the declaration after it.**
   `prefix` opens a notation declaration in Lean. So `prefix : String` inside a
   `structure` ate the `deriving` line and everything past it. A hand-written list
@@ -106,7 +144,7 @@ a translation surface it does not yet write.
   `Out::carried` counts a construct in the fidelity report. The free `carry` also
   writes the marker and the original. The Lean writer called the first where every
   other writer calls the second. So it counted a Python `with` block as carried and
-  then dropped it, and a function whose body held one came out as an empty `do`.
+  then dropped it. A function whose body held one came out as an empty `do`.
 
 - [x] B827: **a field-less `structure` carried a line the grammar could not read.**
   A Java class holding only methods has no fields. The writer produced
@@ -121,8 +159,7 @@ a translation surface it does not yet write.
   depend on each other. A name a body binds now belongs to that body.
 
 - [x] B825: **a value standing where a `return` would go lost its place.**
-  Rust and Zig end a function with the value and no `return`. The reader gives
-  that as a plain statement. The Lean writer put every pure statement behind
+  Rust and Zig end a function with the value and no `return`. The Lean writer put every pure statement behind
   `let _ :=`, which compiles and answers with the wrong thing. A `do` block answers
   with its last element, so the writer leaves that element bare.
 

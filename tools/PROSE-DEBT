@@ -14,11 +14,12 @@
 # records came down too. It reached zero once before, on a word list too short to
 # see 365 of them; the list now names every participle that reads as a verb here.
 #
-# `comment-line` is a ratchet on comment volume, and a new writer is new code rather
-# than old debt. Lean's reader cost 9 lines. Lean's writer cost 330 more, in a module
-# of 2,357 lines that decides where Lean disagrees with every other target here: which
-# way division rounds, what order a file declares things in, when a body needs a monad.
-# Each of those lines carries a constraint, and the count rose by them and nothing else.
+# `comment-line` is a ratchet on comment volume, and new code is not old debt. Lean's
+# fact query cost 9 lines. Lean's writer cost 330 more, deciding where Lean disagrees
+# with every other target: which way division rounds, what order a file declares things
+# in, when a body needs a monad. Lean's reader cost 189 more, most of them naming a
+# place the published grammar reads a construct one way and Lean reads it another.
+# Each line carries a constraint, and the count rose by them and nothing else.
 #
 # Measured before any of this work: 2050 em-dashes, 240 false comparisons, 350
 # fillers, 222 self-references and 2339 long sentences. `comment-line` opened at 20169
@@ -29,4 +30,4 @@ filler 0
 self-reference 0
 passive-voice 0
 long-sentence 280
-comment-line 9143
+comment-line 9332
