@@ -135,6 +135,7 @@ module.exports = grammar({
         $.notation, $.attribute, $.initialize,
       )),
       // Other commands (no modifiers)
+      $.mutual,
       $.namespace,
       $.section,
       $.end,
@@ -161,6 +162,14 @@ module.exports = grammar({
     // Modifier keywords consumed transparently (no node created)
     _modifier: _ => choice('noncomputable', 'partial', 'protected', 'private', 'public', 'meta', 'unsafe', 'scoped', 'local'),
 
+
+    // Mutual block: `mutual def a := b  def b := a  end`. The declarations inside see
+    // one another, and it is the only way Lean writes a cycle.
+    mutual: $ => seq(
+      'mutual',
+      repeat1(seq(repeat($._modifier), choice($._declaration, $.declaration))),
+      'end',
+    ),
 
     // Namespace: `namespace Foo` or `namespace Foo.Bar.Baz`
     namespace: $ => seq('namespace', field('name', $._name)),

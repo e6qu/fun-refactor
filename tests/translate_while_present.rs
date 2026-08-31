@@ -1,17 +1,9 @@
 //! Looping on an optional's payload crosses every boundary here.
 
+mod common;
+
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
-use std::path::PathBuf;
-
-fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, PathBuf) {
-    let tmp = tempfile::tempdir().unwrap();
-    for (name, content) in files {
-        std::fs::write(tmp.path().join(name), content).unwrap();
-    }
-    let root = tmp.path().to_path_buf();
-    (tmp, root)
-}
 
 const DRAIN_RS: &str = "fn drain(mut it: Iter) -> i64 {\n    let mut total = 0;\n    \
                         while let Some(v) = it.next() {\n        total += v;\n    }\n    \
@@ -19,7 +11,7 @@ const DRAIN_RS: &str = "fn drain(mut it: Iter) -> i64 {\n    let mut total = 0;\
 
 #[test]
 fn a_while_let_crosses_into_every_target() {
-    let (_tmp, root) = workspace(&[("w.rs", DRAIN_RS)]);
+    let (_tmp, root) = common::tree(&[("w.rs", DRAIN_RS)]);
     let cases = [
         (Language::Zig, "while (it.next()) |v| {"),
         (Language::Python, "while True:"),
@@ -50,7 +42,7 @@ fn a_while_let_crosses_into_every_target() {
 fn a_zig_while_payload_becomes_while_let() {
     let source = "fn drain(it: Iter) i64 {\n    var total: i64 = 0;\n    \
                   while (it.next()) |v| {\n        total += v;\n    }\n    return total;\n}\n";
-    let (_tmp, root) = workspace(&[("w.zig", source)]);
+    let (_tmp, root) = common::tree(&[("w.zig", source)]);
     let plan = transpile::plan(&root.join("w.zig"), Language::Rust).expect("a draft");
     assert!(
         plan.output.contains("while let Some(v) = it.next() {"),
@@ -64,7 +56,7 @@ fn a_while_with_a_continue_expression_steps_at_the_bottom() {
     // `while (c) |v| : (i += 1)` runs the step after each pass.
     let source = "fn walk(it: Iter) void {\n    var i: usize = 0;\n    \
                   while (it.next()) |v| : (i += 1) {\n        use(v, i);\n    }\n}\n";
-    let (_tmp, root) = workspace(&[("c.zig", source)]);
+    let (_tmp, root) = common::tree(&[("c.zig", source)]);
     let plan = transpile::plan(&root.join("c.zig"), Language::Rust).expect("a draft");
     assert!(
         plan.output.contains("while let Some(v) = it.next() {")
@@ -111,7 +103,7 @@ fn compound_assignment_desugars_from_every_reader() {
         ),
     ];
     for (name, source) in sources {
-        let (_tmp, root) = workspace(&[(name, source)]);
+        let (_tmp, root) = common::tree(&[(name, source)]);
         let plan = transpile::plan(&root.join(name), Language::Rust).expect("a draft");
         assert!(
             plan.output.contains("total = total + item;"),
@@ -128,7 +120,7 @@ fn compound_assignment_desugars_from_every_reader() {
 
 #[test]
 fn a_rust_compound_assignment_desugars() {
-    let (_tmp, root) = workspace(&[("w.rs", DRAIN_RS)]);
+    let (_tmp, root) = common::tree(&[("w.rs", DRAIN_RS)]);
     let plan = transpile::plan(&root.join("w.rs"), Language::Python).expect("a draft");
     assert!(plan.output.contains("total = total + v"), "{}", plan.output);
 }
@@ -137,7 +129,7 @@ fn a_rust_compound_assignment_desugars() {
 fn an_unknown_compound_operator_carries() {
     // `>>=` has no BinaryOp; carrying beats quietly writing `=`.
     let source = "def halve(n):\n    n >>= 1\n    return n\n";
-    let (_tmp, root) = workspace(&[("h.py", source)]);
+    let (_tmp, root) = common::tree(&[("h.py", source)]);
     let plan = transpile::plan(&root.join("h.py"), Language::Rust).expect("a draft");
     assert!(
         plan.output.contains(transpile::MARKER),

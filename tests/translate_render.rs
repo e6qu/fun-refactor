@@ -1,20 +1,12 @@
 //! Markdown renders to the HTML it describes, one way.
 
+mod common;
+
 use fun_refactor::lang::Language;
 use fun_refactor::translate;
-use std::path::PathBuf;
-
-fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, PathBuf) {
-    let tmp = tempfile::tempdir().unwrap();
-    for (name, content) in files {
-        std::fs::write(tmp.path().join(name), content).unwrap();
-    }
-    let root = tmp.path().to_path_buf();
-    (tmp, root)
-}
 
 fn rendered(source: &str) -> String {
-    let (_tmp, root) = workspace(&[("doc.md", source)]);
+    let (_tmp, root) = common::tree(&[("doc.md", source)]);
     let plan = translate::plan(&root.join("doc.md"), Language::Html).expect("a render");
     let (_, edits) = plan.edits.iter().next().expect("one edit");
     edits[0].replacement.clone()
@@ -58,7 +50,7 @@ fn text_is_escaped_and_raw_html_passes_through() {
 
 #[test]
 fn the_reverse_direction_refuses_with_the_reason() {
-    let (_tmp, root) = workspace(&[("page.html", "<p>hello</p>\n")]);
+    let (_tmp, root) = common::tree(&[("page.html", "<p>hello</p>\n")]);
     let refused = translate::plan(&root.join("page.html"), Language::Markdown);
     assert!(refused.is_err(), "html does not become markdown");
 }

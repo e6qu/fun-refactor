@@ -1,23 +1,15 @@
 //! The Zig file-as-struct idiom crosses as a record.
 
-use fun_refactor::lang::Language;
-use std::path::PathBuf;
+mod common;
 
-fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, PathBuf) {
-    let tmp = tempfile::tempdir().unwrap();
-    for (name, content) in files {
-        std::fs::write(tmp.path().join(name), content).unwrap();
-    }
-    let root = tmp.path().to_path_buf();
-    (tmp, root)
-}
+use fun_refactor::lang::Language;
 
 const STORE: &str = "const Store = @This();\n\nio: i64,\nconfig: i64,\n\n\
                      pub fn size(self: *Store) i64 {\n    return self.io;\n}\n";
 
 #[test]
 fn a_named_this_binding_becomes_the_record() {
-    let (_tmp, root) = workspace(&[("store.zig", STORE)]);
+    let (_tmp, root) = common::tree(&[("store.zig", STORE)]);
     let plan = fun_refactor::transpile::plan(&root.join("store.zig"), Language::TypeScript)
         .expect("a draft");
     assert_eq!(plan.fidelity.records, 1, "the file is one record");
@@ -36,7 +28,7 @@ fn a_named_this_binding_becomes_the_record() {
 
 #[test]
 fn the_receiver_method_joins_the_record() {
-    let (_tmp, root) = workspace(&[("store.zig", STORE)]);
+    let (_tmp, root) = common::tree(&[("store.zig", STORE)]);
     let plan =
         fun_refactor::transpile::plan(&root.join("store.zig"), Language::Rust).expect("a draft");
     assert!(
@@ -57,7 +49,7 @@ fn a_self_binding_takes_the_file_name() {
     // file uses for the type is the file's.
     let source = "const Self = @This();\n\nlimit: i64,\n\n\
                   pub fn room(self: *Self) i64 {\n    return self.limit;\n}\n";
-    let (_tmp, root) = workspace(&[("Budget.zig", source)]);
+    let (_tmp, root) = common::tree(&[("Budget.zig", source)]);
     let plan =
         fun_refactor::transpile::plan(&root.join("Budget.zig"), Language::Rust).expect("a draft");
     assert!(
@@ -79,7 +71,7 @@ fn a_self_binding_takes_the_file_name() {
 #[test]
 fn a_file_that_is_not_a_struct_is_untouched() {
     let source = "pub fn twice(n: i64) i64 {\n    return n * 2;\n}\n";
-    let (_tmp, root) = workspace(&[("math.zig", source)]);
+    let (_tmp, root) = common::tree(&[("math.zig", source)]);
     let plan = fun_refactor::transpile::plan(&root.join("math.zig"), Language::TypeScript)
         .expect("a draft");
     assert_eq!(

@@ -440,6 +440,13 @@ pub fn support(capability: Capability, language: Language) -> Support {
             let containment = !crate::translate::targets(language).is_empty();
             if crate::transpile::can_be_read(language) || containment {
                 Support::Yes
+            } else if crate::transpile::can_be_written(language) {
+                Support::NotApplicable {
+                    because: "a file becomes this language and nothing reads one back. \
+                              The writer exists and the reader does not, so this stands \
+                              among the targets `fr translate` offers and never among \
+                              the sources it takes",
+                }
             } else if language.class() == LanguageClass::Imperative {
                 Support::NotApplicable {
                     because: "there is no reader or writer for this language yet. A \

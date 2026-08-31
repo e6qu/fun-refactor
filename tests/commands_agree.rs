@@ -198,10 +198,19 @@ fn impact_covers_every_reference_it_could_rewrite() {
             let line = fun_refactor::span::LineIndex::new(text)
                 .line_col(reference.span.start, text)
                 .line;
+            let declared = sources
+                .entry(symbol.file.clone())
+                .or_insert_with(|| std::fs::read_to_string(&symbol.file).unwrap_or_default());
+            let at = fun_refactor::span::LineIndex::new(declared)
+                .line_col(symbol.name_span.start, declared)
+                .line;
             assert!(
                 covered.contains(&(reference.file.clone(), line)),
-                "impact on {:?} omits {}:{line}",
+                "impact on `{}`, declared at {}:{at}, omits the reference at \
+                 {}:{line}. This repository declares one name hundreds of times, so \
+                 the declaration site is what says which symbol this is.",
                 symbol.name,
+                symbol.file.display(),
                 reference.file.display()
             );
         }

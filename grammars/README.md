@@ -28,23 +28,42 @@ grammar here keeps the generated file anyway, so `cargo build` needs a C compile
 nothing else. Generating at build time instead would make that CLI a hard dependency of
 every clone and every CI run.
 
-Lean is the one that makes the question worth asking. Its `parser.c` is 44 MB and 1.2
+Lean is the one that makes the question worth asking. Its `parser.c` is 48 MB and 1.3
 million lines, seven times the largest grammar before it. 91% of that is a single dense
-array: tree-sitter gives a state a full `STATE x SYMBOL` row once its action set is wide
-enough, and Lean's expression grammar leaves 9,850 of its 14,669 states in that state.
-Python leaves 194 of 2,894.
+array. Tree-sitter gives a state a full `STATE x SYMBOL` row once its action set is wide
+enough. Lean's expression grammar leaves most of its states there, and Python 194 of
+2,894.
 
 The number that decides it is smaller. That array is repeated small integers, so git
-packs the file to 3.47 MB, and a first visit to the playground grows 2.09 MB gzipped to
-3.55 MB. The 44 MB costs an editor and a `grep`, not a clone.
+packs the file to 2.68 MB. A first visit to the playground grows 2.09 MB gzipped to
+3.62 MB. The 48 MB costs an editor and a `grep`, not a clone.
+
+The same arithmetic decides which patches Lean gets. `mutual` cost 4 MB of source and
+0.22 MB packed. This build's Lean writer emits one wherever the declaration order it
+computes finds a cycle, and without the rule that translation refuses. Two chained `let`s
+inside a branch is also ordinary Lean the published grammar cannot read, and it stays
+unpatched, because nothing here writes that form. B824 records it and a test pins it.
+
+## lean
+
+`mutual def a := b  def b := a  end` is the only form Lean has for mutual recursion.
+The published grammar has no rule for it, and the declarations inside come back as
+errors.
+The patch adds `mutual <declaration>+ end` to `_command`, which is where every other
+block-shaped command already sits.
+
+This build's Lean writer sorts a module's declarations so that each comes after
+everything it names, and a cycle has no such order. `mutual` is what it emits there, so
+without the rule the reparse gate refuses the translation outright.
 
 ## zig
 
 `struct {}` is ordinary Zig. The four container rules take `$._container_members`, which
 needs at least one member, while `source_file` takes `optional($._container_members)` and
-reads an empty file. Given `struct {}` the published grammar reports no error and returns
-a `container_field` whose name is zero bytes long: a member no line of the file declares.
-The patch gives the four containers the same `optional`, so `struct {}`, `enum {}`,
+reads an empty file. Given `struct {}` the published grammar reports no error. It
+returns a `container_field` whose name is zero bytes long: a member no line of the file
+declares.
+The patch gives the four containers the same `optional`. So `struct {}`, `enum {}`,
 `union {}` and `opaque {}` come back as the empty containers they are.
 
 Checked over `zls`, 77 files and 231,518 nodes: the patched parser returns the same tree
@@ -103,8 +122,8 @@ whole, 67 of 67.
 
 Two forms of ordinary TypeScript failed. An import type, `import("@babel/types").Statement`,
 was a whole `type` and nothing smaller, so it took no `[]` and no type arguments. And a
-member called `in` ended the interface it sat in, because the scanner never ends a line
-before `in`, which is an operator in an expression. Both were found in `vuejs/core`.
+member called `in` ended the interface it sat in. The scanner never ends a line before
+`in`, which is an operator in an expression. Both were found in `vuejs/core`.
 
 The import-type forms move to `primary_type`, which is what an array type and a generic
 type are built from, and `generic_type` takes one as a name. In a type there is no `in`

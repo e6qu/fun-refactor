@@ -19,6 +19,8 @@ enum Kind {
 }
 
 /// Does this expression call one of the module's failing functions anywhere?
+mod lean;
+
 fn contains_failing_call(out: &Out, e: &Expr) -> bool {
     match e {
         Expr::Call { callee, args } => {
@@ -702,6 +704,8 @@ fn spellings(language: Language, module: &Module) -> Spellings {
                 Language::Go => go_name(name, exported),
                 // Zig does not shout.
                 Language::Zig => snake_always(name),
+                // Neither does Lean, where a constant is a `def` like any other.
+                Language::Lean => camel(name),
                 _ => screaming(name),
             },
             Kind::Function => match language {
@@ -1092,6 +1096,7 @@ fn reserved(language: Language, name: &str) -> bool {
         Language::Python => PYTHON,
         Language::Zig => ZIG,
         Language::TypeScript | Language::Tsx => TYPESCRIPT,
+        Language::Lean => lean::RESERVED,
         _ => return false,
     };
     list.contains(&name)
@@ -1355,6 +1360,7 @@ pub fn write_in_context(
         Language::Zig => zig(&mut out, module),
         Language::TypeScript | Language::Tsx => typescript(&mut out, module),
         Language::Bash => bash(&mut out, module),
+        Language::Lean => lean::write(&mut out, module),
         other => bail!(
             "there is no writer for {other}: it has no functions or records to write \
              these into"
@@ -1475,6 +1481,19 @@ struct Out {
     ts_exceptions: std::collections::BTreeSet<&'static str>,
     /// Did this Rust body ask for floor division?
     needs_floor_div: bool,
+    /// The functions whose Lean answers in `IO`, because they reach a runtime.
+    lean_io: std::collections::BTreeSet<String>,
+    /// The functions whose Lean is `partial`, because Lean cannot see them terminate.
+    lean_partial: std::collections::BTreeSet<String>,
+    /// The names the Lean body under the writer assigns to: its `let mut` ones.
+    lean_mut: std::collections::BTreeSet<String>,
+    /// Whether the Lean function under the writer answers in `IO`.
+    lean_in_io: bool,
+    /// The records whose module writes a constructor for them, so that a call naming one
+    /// reaches the constructor and not the plain construction.
+    lean_constructed: std::collections::BTreeSet<String>,
+    /// The definitions the Lean this writer produced turned out to need.
+    lean_helpers: std::collections::BTreeSet<&'static str>,
 }
 
 impl Out {
@@ -1527,6 +1546,12 @@ impl Out {
             catch_bindings: Vec::new(),
             ts_exceptions: std::collections::BTreeSet::new(),
             needs_floor_div: false,
+            lean_io: std::collections::BTreeSet::new(),
+            lean_partial: std::collections::BTreeSet::new(),
+            lean_mut: std::collections::BTreeSet::new(),
+            lean_in_io: false,
+            lean_constructed: std::collections::BTreeSet::new(),
+            lean_helpers: std::collections::BTreeSet::new(),
         }
     }
 
@@ -1679,16 +1704,27 @@ impl Out {
         }
     }
 
+    /// One level of indentation, in the width the target's own sources use.
+    fn step(&self) -> &'static str {
+        match self.language {
+            // Lean's layout rules make indentation part of the syntax, and its own
+            // sources indent by two.
+            Language::Lean => "  ",
+            _ => "    ",
+        }
+    }
+
     /// One line of output, at the current indent.
     fn line(&mut self, text: &str) {
         if text.is_empty() {
             self.text.push('\n');
             return;
         }
+        let step = self.step();
         for piece in text.split('\n') {
             if !piece.is_empty() {
                 for _ in 0..self.indent {
-                    self.text.push_str("    ");
+                    self.text.push_str(step);
                 }
                 self.text.push_str(piece);
             }
@@ -1734,6 +1770,7 @@ impl Out {
     fn comment(&self, text: &str) -> String {
         let marker = match self.language {
             Language::Python | Language::Bash => "#",
+            Language::Lean => "--",
             _ => "//",
         };
         // Zig rejects a tab inside a comment, and carried source brings the indentation the
@@ -3930,7 +3967,16 @@ fn rust_expr(out: &mut Out, e: &Expr) -> String {
         Expr::MapLit(entries) => {
             let rendered: Vec<String> = entries
                 .iter()
-                .map(|(k, v)| format!("({}, {})", rust_expr(out, k), rust_expr(out, v)))
+                .map(|(k, v)| {
+                    // The literal fixes the key type. A borrowed key here makes the map
+                    // a `HashMap<&str, _>`, and the next `insert` of an owned string
+                    // does not compile.
+                    let key = match k {
+                        Expr::Str(_) => format!("{}.to_string()", rust_expr(out, k)),
+                        _ => rust_expr(out, k),
+                    };
+                    format!("({key}, {})", rust_expr(out, v))
+                })
                 .collect();
             format!("std::collections::HashMap::from([{}])", rendered.join(", "))
         }
@@ -4949,10 +4995,17 @@ fn declared_bindings(f: &Function) -> std::collections::BTreeMap<String, Type> {
                         Expr::Int(_) => Some(Type::Int),
                         Expr::Float(_) => Some(Type::Float),
                         Expr::Bool(_) => Some(Type::Bool),
-                        Expr::MapLit(_) => Some(Type::Map(
-                            Box::new(Type::named("")),
-                            Box::new(Type::named("")),
-                        )),
+                        // A map literal says what it holds by holding it. Where an
+                        // entry does not say, the nameless type stands for "a map, and
+                        // the rest is not settled here". Every reader of this asks
+                        // whether the binding holds a map, and none writes it out.
+                        Expr::MapLit(entries) => {
+                            let (key, value) = map_literal_types(entries);
+                            Some(Type::Map(
+                                Box::new(key.unwrap_or_else(|| Type::named(""))),
+                                Box::new(value.unwrap_or_else(|| Type::named(""))),
+                            ))
+                        }
                         // A list literal says what it holds by holding it.
                         Expr::ListLit(items) => items
                             .first()

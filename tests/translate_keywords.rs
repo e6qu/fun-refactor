@@ -1,23 +1,15 @@
 //! Keyword arguments settle into their declared positions.
 
+mod common;
+
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
-use std::path::PathBuf;
-
-fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, PathBuf) {
-    let tmp = tempfile::tempdir().unwrap();
-    for (name, content) in files {
-        std::fs::write(tmp.path().join(name), content).unwrap();
-    }
-    let root = tmp.path().to_path_buf();
-    (tmp, root)
-}
 
 #[test]
 fn keywords_settle_into_declared_positions() {
     let source = "def greet(name: str, punct: str) -> str:\n    return name + punct\n\n\n\
                   def main() -> str:\n    return greet(punct=\"?\", name=\"hi\")\n";
-    let (_tmp, root) = workspace(&[("kw.py", source)]);
+    let (_tmp, root) = common::tree(&[("kw.py", source)]);
     let spelled = [
         (
             Language::Rust,
@@ -45,7 +37,7 @@ fn keywords_settle_into_declared_positions() {
 fn a_declared_default_fills_the_gap() {
     let source = "def greet(name: str, punct: str = \"!\") -> str:\n    return name + punct\n\n\n\
                   def main() -> str:\n    return greet(name=\"hi\")\n";
-    let (_tmp, root) = workspace(&[("d.py", source)]);
+    let (_tmp, root) = common::tree(&[("d.py", source)]);
     let plan = transpile::plan(&root.join("d.py"), Language::Rust).expect("a draft");
     assert!(
         plan.output
@@ -60,7 +52,7 @@ fn a_keyword_for_an_unknown_callee_passes_by_position_and_says_so() {
     // Nothing here can check a foreign signature, so the value crosses in the
     // order written and the note says the name had nowhere to go.
     let source = "def main() -> str:\n    return elsewhere(punct=\"?\")\n";
-    let (_tmp, root) = workspace(&[("u.py", source)]);
+    let (_tmp, root) = common::tree(&[("u.py", source)]);
     let plan = transpile::plan(&root.join("u.py"), Language::Rust).expect("a draft");
     assert!(
         plan.output.contains("elsewhere(\"?\")"),
@@ -81,7 +73,7 @@ fn a_keyword_for_an_unknown_callee_passes_by_position_and_says_so() {
 fn a_hole_with_no_default_still_carries() {
     let source = "def greet(name: str, punct: str) -> str:\n    return name + punct\n\n\n\
                   def main() -> str:\n    return greet(punct=\"?\")\n";
-    let (_tmp, root) = workspace(&[("h.py", source)]);
+    let (_tmp, root) = common::tree(&[("h.py", source)]);
     let plan = transpile::plan(&root.join("h.py"), Language::Rust).expect("a draft");
     assert!(
         plan.output.contains(transpile::MARKER),

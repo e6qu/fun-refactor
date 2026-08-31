@@ -66,7 +66,97 @@ a translation surface it does not yet write.
   uses. Zig (comptime duck typing) and Bash declare no implements-relationship at all, so
   neither has a hierarchy to read.
 
+- [ ] B828: **the Lean grammar cannot end a block that finishes on a comment.**
+  A `do` block whose last line is `-- something` never ends: the scanner closes a
+  block on indentation and a comment carries none, so the declaration after it lands
+  inside the block. Lean itself reads a comment as whitespace wherever it stands.
+
+  The Lean writer never leaves a block ending that way. A body whose statements all
+  carried, or that holds only comments, gets the one value its type has, or
+  `panic! "not translated"` where its type has more than one. That answer was needed
+  anyway, since a `do` with nothing in it is also a syntax error.
+  `tests/known_grammar_gaps.rs` pins both sides.
+
+- [ ] B824: **the Lean grammar cannot read two chained `let`s inside a branch.** A term
+  whose `else` opens `let a := n` and then `let b := a` is ordinary Lean, and the
+  published grammar reports an error on the second one. One `let` in a branch reads
+  cleanly. So do two at the top of a `def`, and two inside a `do`. That is the boundary.
+
+  Nothing this build writes takes the failing form: the Lean writer's bodies are `do`
+  blocks and its helpers are `Id.run do`. So the gap costs a reader of hand-written Lean
+  an `ERROR` node in one shape, and costs the writer nothing.
+  `tests/known_grammar_gaps.rs` pins it from both sides.
+
+  Patching it is the trade `mutual` was, and it came out the other way. `mutual` is a
+  form this build emits. This one is not.
+
 ## Fixed
+
+- [x] B830: **a field called `prefix` swallowed the declaration after it.**
+  `prefix` opens a notation declaration in Lean. So `prefix : String` inside a
+  `structure` ate the `deriving` line and everything past it. A hand-written list
+  named 56 reserved words where the grammar refuses 58. It missed `prefix`,
+  `postfix`, `infix`, `lemma`, `export` and fifteen more.
+
+  The list now holds the union of both, and `tests/translate_lean.rs` asks the grammar
+  which words it refuses in an identifier position, one file per word. A list that
+  falls behind the grammar fails a build.
+
+- [x] B829: **a carried statement recorded itself and wrote nothing.**
+  `Out::carried` counts a construct in the fidelity report. The free `carry` also
+  writes the marker and the original. The Lean writer called the first where every
+  other writer calls the second. So it counted a Python `with` block as carried and
+  then dropped it, and a function whose body held one came out as an empty `do`.
+
+- [x] B827: **a field-less `structure` carried a line the grammar could not read.**
+  A Java class holding only methods has no fields. The writer produced
+  `structure E where` followed by `mk ::`, and the grammar rejects the second line.
+  Lean takes `structure E where` on its own. Until it did, every translation of a
+  field-less class refused at the reparse gate.
+
+- [x] B826: **a parameter shadowing a function invented a cycle.** The Lean writer
+  sorts declarations by what they name. `fn celsius(fahrenheit: f64)` reads
+  `fahrenheit` meaning its own parameter. The ordering graph took it for the
+  function beside it, so the two came out inside a `mutual` block claiming they
+  depend on each other. A name a body binds now belongs to that body.
+
+- [x] B825: **a value standing where a `return` would go lost its place.**
+  Rust and Zig end a function with the value and no `return`. The reader gives
+  that as a plain statement. The Lean writer put every pure statement behind
+  `let _ :=`, which compiles and answers with the wrong thing. A `do` block answers
+  with its last element, so the writer leaves that element bare.
+
+- [x] B823: **the vendored Lean grammar has no `mutual`, and this build's writer emits
+  one.** `mutual def a := b  def b := a  end` is the only way Lean writes a cycle, and
+  the Lean writer produces one wherever the declaration order it computes finds a cycle.
+  Upstream `tree-sitter-lean` has no rule for the form at all. Every such translation hit
+  the reparse gate and refused: "that is a defect in the translator". The
+  grammar carries the rule now: `grammars/lean/PROVENANCE.toml` records it, and
+  `tests/known_grammar_gaps.rs` pins it from both sides. It cost 4 MB of generated
+  parser and 0.22 MB packed, which is the whole of what the rule is worth arguing about.
+
+- [x] B822: **a map literal's binding type carried a nameless key and value.**
+  `declared_bindings` mapped every `MapLit` to `Map(Named(""), Named(""))`, whatever the
+  literal held. `map_literal_types` sat beside it and answers the question.
+  Every writer that asked only "does this hold a map" got the right answer, so nothing
+  showed. The Lean writer, which writes the annotation out, produced
+  `Std.HashMap Unwritable_ Unwritable_`. Two nameless types were the only spelling for "a map,
+  contents unknown", and only an empty literal needs it now.
+
+  Fixing it uncovered the second half: the Rust writer built a map literal with borrowed
+  keys, `HashMap::from([("ada", 36)])`, and then inserted an owned one. The two had
+  agreed only because neither knew the key was a string. The literal owns its keys now.
+
+- [x] B821: **`fr translate` offered every language as a source for a writable target.**
+  `sources_for` asked whether a writer answers in the target. It never asked whether a
+  reader takes the source, so it answered that a stylesheet becomes Rust. Nothing acted
+  on the answer, which is why it stood.
+
+- [x] B820: **the conformance suite skipped a missing toolchain on CI in silence.**
+  Every other gate here calls `require_on_ci`. It turns a skip into a failure where the
+  skip means a column checked nowhere. The differential suite printed a line and went
+  green. Lean is the toolchain that made this matter: a run without it checks 87 fewer
+  cells and says so in a line nobody reads.
 
 - [x] B760: **a Rust comprehension collected into nothing.** `collect` is
   generic over what it builds. A bare one waits for a later use to say which. There
@@ -1086,13 +1176,13 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   attribute. CSS-in-JS `styles.x` is a different subject, because no
   stylesheet selector stands behind it.
 
-- [x] B730: **the comments carried banners, history and hedging.** 277
-  rules of dashes separated sections in the source, and 86 more in the
-  site scripts, the tooling and the tree-sitter queries. Comment bodies
+- [x] B730: **the comments carried banners, history and hedging.**
+  277 rules of dashes separated sections in the source. 86 more sat in
+  the site scripts, the tooling and the tree-sitter queries. Comment bodies
   told the story of the defect behind them, in the past tense, with an
   opinion about how bad it had been. The petstore fixtures the contract
-  page renders carried doc comments repeating what the code did, and one
-  repeating the page's own note almost word for word. All of it went.
+  page renders carried doc comments repeating what the code did. One
+  repeated the page's own note almost word for word. All of it went.
   `docs/style.md` now says a comment is timeless, gives the reason
   rather than the behaviour, and states what is true rather than what is
   absent.
@@ -2385,10 +2475,9 @@ Eleven comments went, from the four typed fixtures and the two geometry ones.
   the plan, so a multi-site delete still empties cleanly.
   Pinned in `tests/python_attributes.rs`.
 
-- [x] B407: **instance attributes and locals fed each other's renames.** A bare
-  `count` never names a member in the languages that spell members through a
-  receiver. `self.count` in a sibling method is a member of the enclosing
-  class wherever its definition sites sit. Both resolutions said otherwise, so
+- [x] B407: **instance attributes and locals fed each other's renames.**
+  A bare `count` never names a member where members go through a receiver. `self.count` in a sibling method is a member of the
+  enclosing class wherever its definition sites sit. Both resolutions said otherwise, so
   a local's rename took one line of three, and an attribute's skipped the
   sibling method and the subclass. Bare names now exclude members, the
   enclosing instance resolves by the class the code sits in, and the attribute

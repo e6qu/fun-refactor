@@ -1,17 +1,9 @@
 //! A `Result` in the signature crosses as each target's own way of failing.
 
+mod common;
+
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
-use std::path::PathBuf;
-
-fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, PathBuf) {
-    let tmp = tempfile::tempdir().unwrap();
-    for (name, content) in files {
-        std::fs::write(tmp.path().join(name), content).unwrap();
-    }
-    let root = tmp.path().to_path_buf();
-    (tmp, root)
-}
 
 const CONFIG_RS: &str = "struct Config {\n    name: String,\n    port: i64,\n}\n\n\
     fn parse(s: &str) -> Result<Config, String> {\n    if s.is_empty() {\n        \
@@ -27,7 +19,7 @@ const LEDGER_ZIG: &str = "const ParseError = error{Empty};\n\n\
 
 #[test]
 fn a_rust_result_becomes_gos_value_and_error_pair() {
-    let (_tmp, root) = workspace(&[("config.rs", CONFIG_RS)]);
+    let (_tmp, root) = common::tree(&[("config.rs", CONFIG_RS)]);
     let plan = transpile::plan(&root.join("config.rs"), Language::Go).expect("a draft");
     for expected in [
         "func parse(s string) (Config, error) {",
@@ -55,7 +47,7 @@ fn a_rust_result_becomes_gos_value_and_error_pair() {
 
 #[test]
 fn a_zig_error_union_becomes_a_rust_result() {
-    let (_tmp, root) = workspace(&[("ledger.zig", LEDGER_ZIG)]);
+    let (_tmp, root) = common::tree(&[("ledger.zig", LEDGER_ZIG)]);
     let plan = transpile::plan(&root.join("ledger.zig"), Language::Rust).expect("a draft");
     // The canonical failure is its message: the declared set stays as the
     // enum it names, and the failure that crosses is the variant's name.
@@ -79,7 +71,7 @@ fn a_zig_error_union_becomes_a_rust_result() {
 
 #[test]
 fn a_zig_error_union_inherits_the_go_mapping() {
-    let (_tmp, root) = workspace(&[("ledger.zig", LEDGER_ZIG)]);
+    let (_tmp, root) = common::tree(&[("ledger.zig", LEDGER_ZIG)]);
     let plan = transpile::plan(&root.join("ledger.zig"), Language::Go).expect("a draft");
     for expected in [
         "func parseLen(s string) (int, error) {",
@@ -101,7 +93,7 @@ fn a_zig_error_union_inherits_the_go_mapping() {
 
 #[test]
 fn a_returned_err_is_raised_where_failure_is_an_exception() {
-    let (_tmp, root) = workspace(&[("config.rs", CONFIG_RS)]);
+    let (_tmp, root) = common::tree(&[("config.rs", CONFIG_RS)]);
     let python = transpile::plan(&root.join("config.rs"), Language::Python).expect("a draft");
     assert!(
         python
@@ -125,7 +117,7 @@ fn a_returned_err_is_raised_where_failure_is_an_exception() {
 
 #[test]
 fn a_rust_result_comes_back_as_zigs_own_error_union() {
-    let (_tmp, root) = workspace(&[("config.rs", CONFIG_RS)]);
+    let (_tmp, root) = common::tree(&[("config.rs", CONFIG_RS)]);
     let plan = transpile::plan(&root.join("config.rs"), Language::Zig).expect("a draft");
     assert!(
         plan.output
@@ -146,7 +138,7 @@ const CLASSIFY_ZIG: &str = "// The demo switch.\nfn classify(n: i64) i64 {\n    
 
 #[test]
 fn a_zig_switch_in_value_position_becomes_a_match_expression() {
-    let (_tmp, root) = workspace(&[("c.zig", CLASSIFY_ZIG)]);
+    let (_tmp, root) = common::tree(&[("c.zig", CLASSIFY_ZIG)]);
     let plan = transpile::plan(&root.join("c.zig"), Language::Rust).expect("a draft");
     assert!(
         plan.output
@@ -163,7 +155,7 @@ fn a_zig_switch_in_value_position_becomes_a_match_expression() {
 
 #[test]
 fn the_lowered_value_switch_declares_then_assigns_everywhere_else() {
-    let (_tmp, root) = workspace(&[("c.zig", CLASSIFY_ZIG)]);
+    let (_tmp, root) = common::tree(&[("c.zig", CLASSIFY_ZIG)]);
     let plan = transpile::plan(&root.join("c.zig"), Language::Python).expect("a draft");
     for expected in ["label = None", "match n:", "case 1 | 2:", "label = 200"] {
         assert!(

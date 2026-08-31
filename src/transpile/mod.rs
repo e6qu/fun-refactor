@@ -76,8 +76,8 @@ pub const COMPLETE: &[Language] = &[
     Language::Zig,
 ];
 
-/// The languages a file may become.
-pub const SUPPORTED: &[Language] = &[
+/// The languages this reads a file out of.
+pub const READABLE: &[Language] = &[
     Language::Rust,
     Language::Go,
     Language::Java,
@@ -87,14 +87,28 @@ pub const SUPPORTED: &[Language] = &[
     Language::Bash,
 ];
 
+/// The languages a file may become. Wider than [`READABLE`]: reading a language means
+/// deciding what each of its constructs meant, and writing one means only spelling
+/// constructs already decided.
+pub const WRITABLE: &[Language] = &[
+    Language::Rust,
+    Language::Go,
+    Language::Java,
+    Language::Python,
+    Language::TypeScript,
+    Language::Zig,
+    Language::Bash,
+    Language::Lean,
+];
+
 /// Whether a reader takes this language into the shared representation.
 pub fn can_be_read(language: Language) -> bool {
-    SUPPORTED.contains(&language) || language == Language::Tsx
+    READABLE.contains(&language) || language == Language::Tsx
 }
 
 /// Whether a writer answers in this language.
 pub fn can_be_written(language: Language) -> bool {
-    SUPPORTED.contains(&language)
+    WRITABLE.contains(&language)
 }
 
 /// A translation that has been worked out but not applied.
@@ -509,6 +523,7 @@ fn banner(
 ) -> String {
     let comment = |line: &str| match to {
         Language::Python | Language::Bash => format!("# {line}\n"),
+        Language::Lean => format!("-- {line}\n"),
         _ => format!("// {line}\n"),
     };
     let mut out = String::new();
