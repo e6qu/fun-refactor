@@ -628,19 +628,11 @@
     "named": true,
     "fields": {
       "name": {
-        "multiple": true,
+        "multiple": false,
         "required": true,
         "types": [
           {
-            "type": ".",
-            "named": false
-          },
-          {
-            "type": "escaped_identifier",
-            "named": true
-          },
-          {
-            "type": "identifier",
+            "type": "qualified_name",
             "named": true
           }
         ]
@@ -1011,19 +1003,11 @@
         ]
       },
       "name": {
-        "multiple": true,
+        "multiple": false,
         "required": true,
         "types": [
           {
-            "type": ".",
-            "named": false
-          },
-          {
-            "type": "escaped_identifier",
-            "named": true
-          },
-          {
-            "type": "identifier",
+            "type": "qualified_name",
             "named": true
           }
         ]
@@ -1055,19 +1039,11 @@
         ]
       },
       "name": {
-        "multiple": true,
+        "multiple": false,
         "required": true,
         "types": [
           {
-            "type": ".",
-            "named": false
-          },
-          {
-            "type": "escaped_identifier",
-            "named": true
-          },
-          {
-            "type": "identifier",
+            "type": "qualified_name",
             "named": true
           }
         ]
@@ -1215,19 +1191,15 @@
         ]
       },
       "name": {
-        "multiple": true,
+        "multiple": false,
         "required": false,
         "types": [
           {
-            "type": ".",
-            "named": false
-          },
-          {
-            "type": "escaped_identifier",
+            "type": "identifier",
             "named": true
           },
           {
-            "type": "identifier",
+            "type": "qualified_name",
             "named": true
           }
         ]
@@ -3308,19 +3280,11 @@
         ]
       },
       "name": {
-        "multiple": true,
+        "multiple": false,
         "required": true,
         "types": [
           {
-            "type": ".",
-            "named": false
-          },
-          {
-            "type": "escaped_identifier",
-            "named": true
-          },
-          {
-            "type": "identifier",
+            "type": "qualified_name",
             "named": true
           }
         ]
@@ -3564,6 +3528,25 @@
           }
         ]
       }
+    }
+  },
+  {
+    "type": "qualified_name",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "escaped_identifier",
+          "named": true
+        },
+        {
+          "type": "identifier",
+          "named": true
+        }
+      ]
     }
   },
   {

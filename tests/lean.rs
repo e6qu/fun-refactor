@@ -181,14 +181,13 @@ fn the_capability_matrix_says_what_lean_does_and_does_not() {
     }
 }
 
-/// The index files a declaration under the namespace it sits in, and loses its own
-/// name. B833.
+/// A declaration in a namespace goes under its own name, not the namespace's.
 ///
-/// `_name` is a hidden rule in the grammar, `identifier ('.' identifier)*`, so the
-/// `name` field lands on every part. The extractor takes the first, which for
-/// `def Box.get` is `Box`.
+/// `def Box.get` is one `qualified_name` node holding two identifiers, and the query
+/// anchors on the last. Before the node existed, `_name` was hidden and its parts each
+/// inherited the field, so the query bound `Box` and `get` was nowhere.
 #[test]
-fn a_dotted_declaration_is_indexed_under_its_namespace() {
+fn a_dotted_declaration_takes_its_own_name() {
     let (_tmp, index) = common::workspace(&[(
         "a.lean",
         "structure Box where\n  value : Int\n\ndef Box.get (self : Box) : Int := self.value\n",
@@ -200,11 +199,11 @@ fn a_dotted_declaration_is_indexed_under_its_namespace() {
         .map(|s| s.name.as_str())
         .collect();
     assert!(
-        named.contains(&"Box"),
-        "B833: the index files the definition under its namespace. Found {named:?}"
+        named.contains(&"get"),
+        "the declaration is `get`. Found {named:?}"
     );
     assert!(
-        !named.contains(&"get"),
-        "B833 says `get` is lost. If the index holds it now, close the entry. {named:?}"
+        !named.contains(&"Box"),
+        "`Box` is the namespace and the structure, not the function. Found {named:?}"
     );
 }

@@ -171,7 +171,10 @@ fn sum(cx: &Cx, node: Node<'_>) -> Item {
         exported: true,
     };
     for constructor in fields(cx, node, "constructors") {
-        let Some(name) = cx.field_text(constructor, "name") else {
+        let Some(name) = cx
+            .field(constructor, "name")
+            .and_then(|n| cx.children(n).last().map(|part| cx.text(*part)))
+        else {
             continue;
         };
         let mut variant = Variant {
@@ -216,13 +219,16 @@ fn binder_names(cx: &Cx, binder: Node<'_>) -> Vec<(String, Option<Type>)> {
 
 /// A `def`, an `abbrev` or a `theorem`. Which one decides what it becomes.
 fn definition(cx: &Cx, node: Node<'_>) -> Item {
-    let names = fields(cx, node, "name");
+    let names = cx
+        .field(node, "name")
+        .map(|n| cx.children(n))
+        .unwrap_or_default();
     let Some(last) = names.last() else {
         return Item::Unsupported(cx.unsupported(node));
     };
     let name = cx.text(*last);
-    // `def Reading.label` gives the namespace and the name as two fields, and the
-    // namespace is the type the method belongs to.
+    // `def Reading.label` names the namespace and the declaration, and the namespace is
+    // the type the method belongs to.
     let owner = (names.len() > 1).then(|| cx.text(names[0]));
     let binders: Vec<Node<'_>> = cx
         .field(node, "binders")

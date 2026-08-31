@@ -319,7 +319,7 @@ module.exports = grammar({
     // Modifiers (noncomputable, partial, etc.) are consumed transparently.
     definition: $ => seq(
       field('kind', choice('def', 'theorem', 'lemma', 'abbrev')),
-      field('name', $._name),
+      field('name', $.qualified_name),
       optional(field('binders', $.binders)),
       optional($._type_spec),
       $._declaration_body,
@@ -358,7 +358,7 @@ module.exports = grammar({
     // `constant foo : T` — opaque constant declaration
     constant: $ => seq(
       'constant',
-      field('name', $._name),
+      field('name', $.qualified_name),
       optional($._type_spec),
       optional(seq(':=', field('body', $._expression))),
     ),
@@ -366,7 +366,7 @@ module.exports = grammar({
     // `opaque foo : T := e` — opaque definition
     opaque: $ => seq(
       'opaque',
-      field('name', $._name),
+      field('name', $.qualified_name),
       optional(field('binders', $.binders)),
       optional($._type_spec),
       optional(seq(':=', field('body', $._expression))),
@@ -375,7 +375,7 @@ module.exports = grammar({
     // `axiom foo : T` — axiomatic declaration
     axiom: $ => seq(
       'axiom',
-      field('name', $._name),
+      field('name', $.qualified_name),
       $._type_spec,
     ),
 
@@ -428,7 +428,7 @@ module.exports = grammar({
 
     constructor: $ => seq(
       '|',
-      field('name', $._name),
+      field('name', $.qualified_name),
       optional(field('binders', $.binders)),
       optional($._type_spec),
     ),
@@ -588,6 +588,17 @@ module.exports = grammar({
     // Qualified name: `foo` or `Foo.Bar.baz` - used for declarations and references.
     // prec.right so the longest dotted run wins (set_option/import disambiguation).
     _name: $ => prec.right(seq(
+      choice($.identifier, $.escaped_identifier),
+      repeat(seq(token.immediate('.'), choice($.identifier, $.escaped_identifier))),
+    )),
+
+    // The same thing, as a node of its own.
+    //
+    // `_name` is hidden, so its parts each inherit the field that holds it: `def
+    // Box.get` gives a `definition` with two `name` fields. A query binds a field once,
+    // and takes the first, so the declaration indexed under `Box` and `get` was
+    // nowhere. A declaration's name is one node, and the parts are inside it.
+    qualified_name: $ => prec.right(seq(
       choice($.identifier, $.escaped_identifier),
       repeat(seq(token.immediate('.'), choice($.identifier, $.escaped_identifier))),
     )),

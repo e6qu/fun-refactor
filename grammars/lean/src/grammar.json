@@ -1261,7 +1261,7 @@
           "name": "name",
           "content": {
             "type": "SYMBOL",
-            "name": "_name"
+            "name": "qualified_name"
           }
         },
         {
@@ -1550,7 +1550,7 @@
           "name": "name",
           "content": {
             "type": "SYMBOL",
-            "name": "_name"
+            "name": "qualified_name"
           }
         },
         {
@@ -1604,7 +1604,7 @@
           "name": "name",
           "content": {
             "type": "SYMBOL",
-            "name": "_name"
+            "name": "qualified_name"
           }
         },
         {
@@ -1674,7 +1674,7 @@
           "name": "name",
           "content": {
             "type": "SYMBOL",
-            "name": "_name"
+            "name": "qualified_name"
           }
         },
         {
@@ -2270,7 +2270,7 @@
           "name": "name",
           "content": {
             "type": "SYMBOL",
-            "name": "_name"
+            "name": "qualified_name"
           }
         },
         {
@@ -3023,6 +3023,56 @@
       }
     },
     "_name": {
+      "type": "PREC_RIGHT",
+      "value": 0,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "identifier"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "escaped_identifier"
+              }
+            ]
+          },
+          {
+            "type": "REPEAT",
+            "content": {
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "IMMEDIATE_TOKEN",
+                  "content": {
+                    "type": "STRING",
+                    "value": "."
+                  }
+                },
+                {
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "SYMBOL",
+                      "name": "identifier"
+                    },
+                    {
+                      "type": "SYMBOL",
+                      "name": "escaped_identifier"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "qualified_name": {
       "type": "PREC_RIGHT",
       "value": 0,
       "content": {
