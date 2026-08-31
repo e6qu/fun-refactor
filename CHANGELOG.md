@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.2](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.8.1...fun-refactor-v0.8.2) (2026-08-31)
+
+
+### Tests
+
+* name the column where a `do`-level `else` stops belonging to its own `if` ([#197](https://github.com/e6qu/fun-refactor/issues/197)) ([95f7ba9](https://github.com/e6qu/fun-refactor/commit/95f7ba9d6888794d71afd2a626d699ed754a6e9b))
+
 ## [0.8.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.8.0...fun-refactor-v0.8.1) (2026-08-31)
 
 
