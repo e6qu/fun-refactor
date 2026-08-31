@@ -78,6 +78,9 @@ module.exports = grammar({
     [$.import, $._modifier],
     [$._syntax_atom, $._atom],
     [$.return, $.do_return],
+    // A dedent after a `then` block either reaches an `else` of the chain or ends the
+    // chain. GLR decides by what follows the ends.
+    [$._do_then_else],
   ],
 
   rules: {
@@ -512,7 +515,7 @@ module.exports = grammar({
       'try',
       $._layout_start,
       field('body', $._do_seq),
-      optional($._layout_end),
+      repeat($._layout_end),
       'catch',
       optional(field('var', choice($.identifier, $.hole))),
       '=>',
@@ -1050,17 +1053,28 @@ module.exports = grammar({
     )),
 
     // Shared `then do_seq [else do_seq]` for do_if and do_if_let.
+    //
+    // `repeat` and not `optional` before `else`. The `else` of a chain sits at the
+    // column of the outermost `if`, so the dedent that reaches it closes every `then`
+    // block between: one end per block, and the `else` still belongs to its own `if`.
     _do_then_else: $ => prec.right(seq(
       'then',
       $._layout_start,
       field('then', $._do_seq),
-      optional($._layout_end),
-      optional(seq(
-        'else',
-        $._layout_start,
-        field('else', $._do_seq),
+      choice(
+        // The `else` of a chain sits at the column of the outermost `if`, so the
+        // dedent that reaches it closes every `then` block between. The extra ends
+        // are consumable only when an `else` follows: a statement after the chain
+        // needs them to close the same blocks and then start its own.
+        seq(
+          repeat($._layout_end),
+          'else',
+          $._layout_start,
+          field('else', $._do_seq),
+          optional($._layout_end),
+        ),
         optional($._layout_end),
-      )),
+      ),
     )),
 
     // If-let in do-block: `if let some x := e then ...`

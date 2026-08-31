@@ -637,6 +637,57 @@ fn lean_reads_a_bracketed_while_condition() {
     );
 }
 
+/// A trailing `else` belongs to its own `if`, at whatever column it sits.
+///
+/// The dedent that reaches it ends every `then` block between. `_do_then_else` takes
+/// as many layout ends as arrive, and only where an `else` follows them: a statement
+/// after the chain needs those same ends.
+#[test]
+fn lean_reads_a_trailing_else_at_any_column() {
+    let arms = |body: &str| {
+        format!("def f (d : Int) : String := Id.run do\n  if d == 1 then\n    return \"a\"\n  else if d == 2 then\n{body}")
+    };
+    for body in [
+        // Under the inner `if`.
+        "    return \"b\"\n       else\n         return \"c\"\n",
+        // Dedented to the outer column, which is how anybody writes it.
+        "    return \"b\"\n  else\n    return \"c\"\n",
+    ] {
+        let source = arms(body);
+        assert_eq!(error_nodes(Language::Lean, &source), 0, "{source}");
+        let tree = Parsers::new()
+            .parse(Language::Lean, &source)
+            .expect("the grammar loads");
+        assert_eq!(
+            branches(tree.root()),
+            2,
+            "both arms belong to an `if`:\n{source}"
+        );
+    }
+
+    // And a statement after the chain is a statement of the block, not an `else`.
+    let after = "def f (d : Int) : String := Id.run do\n  if d == 1 then\n    return \"a\"\n  else\n    if d == 2 then\n      return \"b\"\n  return \"c\"\n";
+    assert_eq!(error_nodes(Language::Lean, after), 0, "{after}");
+    let tree = Parsers::new()
+        .parse(Language::Lean, after)
+        .expect("the grammar loads");
+    assert_eq!(
+        branches(tree.root()),
+        1,
+        "the inner `if` has no `else`. {after}"
+    );
+}
+
+/// How many `if` nodes in this tree carry an `else`.
+fn branches(node: tree_sitter::Node<'_>) -> usize {
+    let mut found = node.child_by_field_name("else").is_some() as usize;
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        found += branches(child);
+    }
+    found
+}
+
 /// Two chained `let`s inside a branch, which the published grammar cannot read. Nothing
 /// this build writes takes the form: the Lean writer's bodies are `do` blocks.
 #[test]
@@ -661,18 +712,15 @@ fn lean_leaves_a_chained_let_in_a_branch_visibly_wrong() {
     }
 }
 
-/// A comment as the last line of a `do` block leaves the layout open, and the
-/// declaration after it lands inside the block. Lean reads a comment as whitespace
-/// anywhere; the scanner here ends a block on indentation and a comment carries none.
+/// A block that finishes on a comment still ends where its last statement did.
+///
+/// A comment is an extra, not an element, so its column says nothing about where the
+/// block ends. Measuring it kept the block open, and the declaration after it landed
+/// inside.
 #[test]
-fn lean_leaves_a_block_ending_in_a_comment_visibly_wrong() {
-    let trailing = "def a : Unit := Id.run do\n  let mut s := 0\n  s := s + 1\n  -- a trailing comment\n\ndef b : Int := 1\n";
-    assert!(
-        error_nodes(Language::Lean, trailing) > 0,
-        "B828 names this shape. If it reads cleanly now, close the entry."
-    );
-    // The same block with an element after the comment, which the writer emits.
+fn lean_ends_a_block_that_finishes_on_a_comment() {
     for source in [
+        "def a : Unit := Id.run do\n  let mut s := 0\n  s := s + 1\n  -- a trailing comment\n\ndef b : Int := 1\n",
         "def a : Unit := Id.run do\n  let mut s := 0\n  s := s + 1\n  -- a comment\n  ()\n\ndef b : Int := 1\n",
         "def a : Unit := Id.run do\n  -- only a comment\n  ()\n\ndef b : Int := 1\n",
         "def a : Unit := Id.run do\n  let mut s := 0\n  s := s + 1\n\ndef b : Int := 1\n",
@@ -680,7 +728,21 @@ fn lean_leaves_a_block_ending_in_a_comment_visibly_wrong() {
         assert_eq!(
             error_nodes(Language::Lean, source),
             0,
-            "the boundary of B828 should read cleanly.\n{source}"
+            "a block ending on a comment still ends:\n{source}"
+        );
+        // And `b` is a declaration of the file, not something inside `a`.
+        let tree = Parsers::new()
+            .parse(Language::Lean, source)
+            .expect("the grammar loads");
+        let mut cursor = tree.root().walk();
+        let declarations = tree
+            .root()
+            .named_children(&mut cursor)
+            .filter(|c| c.kind() == "definition")
+            .count();
+        assert_eq!(
+            declarations, 2,
+            "both declarations belong to the module:\n{source}"
         );
     }
 }
