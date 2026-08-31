@@ -17,11 +17,29 @@ def order : List Edit -> List Edit
   | [] => []
   | head :: tail => insert head (order tail)
 
-def splice (source : List Char) (edit : Edit) : List Char :=
-  source.take edit.start ++ edit.replacement.toList ++ source.drop edit.stop
+def byteToCharIndex (source : List Char) (offset : Nat) : Option Nat :=
+  go source offset 0
+where
+  go : List Char -> Nat -> Nat -> Option Nat
+    | [], 0, index => some index
+    | [], _ + 1, _ => none
+    | _ :: _, 0, index => some index
+    | character :: rest, offset + 1, index =>
+      if character.utf8Size <= offset + 1 then
+        go rest (offset + 1 - character.utf8Size) (index + 1)
+      else
+        none
+
+def splice (source : String) (edit : Edit) : String :=
+  match byteToCharIndex source.toList edit.start, byteToCharIndex source.toList edit.stop with
+  | some start, some stop =>
+    String.ofList <| source.toList.take start ++ edit.replacement.toList ++ source.toList.drop stop
+  | _, _ => source
 
 def within (source : String) (edit : Edit) : Bool :=
-  edit.start <= edit.stop && edit.stop <= source.length
+  edit.start <= edit.stop &&
+    (byteToCharIndex source.toList edit.start).isSome &&
+      (byteToCharIndex source.toList edit.stop).isSome
 
 def disjoint : List Edit -> Bool
   | [] => true
@@ -32,25 +50,33 @@ def valid (source : String) (edits : List Edit) : Bool :=
   edits.all (within source) && disjoint (order edits)
 
 def apply (source : String) (edits : List Edit) : String :=
-  String.ofList <| (order edits).reverse.foldl splice source.toList
+  (order edits).reverse.foldl splice source
 
 def applyChecked (source : String) (edits : List Edit) : Option String :=
   if valid source edits then some (apply source edits) else none
 
-theorem splice_is_one_prefix_replacement_suffix (source : List Char) (edit : Edit) :
-    splice source edit = source.take edit.start ++ edit.replacement.toList ++ source.drop edit.stop := by
-  rfl
+theorem splice_is_one_prefix_replacement_suffix (source : String) (edit : Edit)
+    (start stop : Nat)
+    (startAt : byteToCharIndex source.toList edit.start = some start)
+    (stopAt : byteToCharIndex source.toList edit.stop = some stop) :
+    splice source edit = String.ofList
+      (source.toList.take start ++ edit.replacement.toList ++ source.toList.drop stop) := by
+  simp [splice, startAt, stopAt]
 
-theorem splice_keeps_the_prefix (source : List Char) (edit : Edit)
-    (inside : edit.start ≤ source.length) :
-    (splice source edit).take edit.start = source.take edit.start := by
-  rw [splice, List.take_append_of_le_length (by simp [List.length_take, inside])]
-  rw [List.take_append_of_le_length (by simp [List.length_take, inside])]
+theorem splice_keeps_the_prefix (source : String) (edit : Edit) (start stop : Nat)
+    (startAt : byteToCharIndex source.toList edit.start = some start)
+    (stopAt : byteToCharIndex source.toList edit.stop = some stop)
+    (startIn : start ≤ source.toList.length) :
+    (splice source edit).toList.take start = source.toList.take start := by
+  rw [splice_is_one_prefix_replacement_suffix source edit start stop startAt stopAt]
+  simp only [String.toList_ofList]
+  have startInChars : start ≤ source.length := by simpa using startIn
+  rw [List.take_append_of_le_length (by simp [List.length_take]; omega)]
+  rw [List.take_append_of_le_length (by simp [List.length_take]; omega)]
   rw [List.take_take, Nat.min_self]
 
 theorem no_edits_leave_the_source_alone (source : String) : apply source [] = source := by
-  change String.ofList source.toList = source
-  exact String.ofList_toList
+  simp [apply, order]
 
 theorem rejected_plan_has_no_result (source : String) (edits : List Edit)
     (invalid : valid source edits = false) : applyChecked source edits = none := by
@@ -73,5 +99,7 @@ example : valid "abcdef" [
   { start := 0, stop := 3, replacement := "X" },
   { start := 2, stop := 5, replacement := "Y" }
 ] = false := by decide
+example : valid "aé" [{ start := 1, stop := 2, replacement := "X" }] = false := by decide
+example : valid "aé" [{ start := 1, stop := 3, replacement := "λ" }] = true := by decide
 
 end FrKernels
