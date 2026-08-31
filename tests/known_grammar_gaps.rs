@@ -637,6 +637,54 @@ fn lean_reads_a_bracketed_while_condition() {
     );
 }
 
+/// A trailing `else` that dedents past the `if` it belongs to. B832.
+///
+/// The boundary is the column, not the `else if`: written under the inner `if` the
+/// whole chain reads, and nobody writes it that way.
+#[test]
+fn lean_leaves_a_dedented_trailing_else_visibly_wrong() {
+    let arms = |body: &str| {
+        format!("def f (d : Int) : String := Id.run do\n  if d == 1 then\n    return \"a\"\n  else if d == 2 then\n{body}")
+    };
+    // Both `else` branches attach when the last one sits under the inner `if`.
+    let indented = arms("    return \"b\"\n       else\n         return \"c\"\n");
+    assert_eq!(error_nodes(Language::Lean, &indented), 0, "{indented}");
+    let tree = Parsers::new()
+        .parse(Language::Lean, &indented)
+        .expect("the grammar loads");
+    assert_eq!(
+        branches(tree.root()),
+        2,
+        "both arms belong to an `if`:\n{indented}"
+    );
+
+    // Dedented to the outer column, the second one does not.
+    let dedented = arms("    return \"b\"\n  else\n    return \"c\"\n");
+    assert_eq!(
+        error_nodes(Language::Lean, &dedented),
+        0,
+        "B832 is a wrong tree and not an error node"
+    );
+    let tree = Parsers::new()
+        .parse(Language::Lean, &dedented)
+        .expect("the grammar loads");
+    assert_eq!(
+        branches(tree.root()),
+        1,
+        "B832 says the second `else` is lost. If both attach now, close the entry."
+    );
+}
+
+/// How many `if` nodes in this tree carry an `else`.
+fn branches(node: tree_sitter::Node<'_>) -> usize {
+    let mut found = node.child_by_field_name("else").is_some() as usize;
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        found += branches(child);
+    }
+    found
+}
+
 /// Two chained `let`s inside a branch, which the published grammar cannot read. Nothing
 /// this build writes takes the form: the Lean writer's bodies are `do` blocks.
 #[test]

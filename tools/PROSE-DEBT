@@ -19,7 +19,9 @@
 # with every other target: which way division rounds, what order a file declares things
 # in, when a body needs a monad. Lean's reader cost 189 more, most of them naming a
 # place the published grammar reads a construct one way and Lean reads it another.
-# Each line carries a constraint, and the count rose by them and nothing else.
+# Each line carries a constraint, and the count rose by them and nothing else. The
+# grammar-gap tests carry 7 more, naming the column where a `do`-level `else` stops
+# belonging to its own `if`.
 #
 # Measured before any of this work: 2050 em-dashes, 240 false comparisons, 350
 # fillers, 222 self-references and 2339 long sentences. `comment-line` opened at 20169
@@ -29,5 +31,5 @@ false-comparison 0
 filler 0
 self-reference 0
 passive-voice 0
-long-sentence 280
-comment-line 9331
+long-sentence 278
+comment-line 9338

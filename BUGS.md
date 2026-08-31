@@ -66,8 +66,27 @@ a translation surface it does not yet write.
   uses. Zig (comptime duck typing) and Bash declare no implements-relationship at all, so
   neither has a hierarchy to read.
 
-- [ ] B832: **the Lean grammar cannot read `else if` on one line.**
-  The second `else` of a `do`-level chain becomes an argument of an application. Nesting each `if` inside the `else` above it reads
+- [ ] B832: **a trailing `else` that dedents past its own `if` becomes an argument.**
+  In a `do`-level `if / then / else if / then / else`, the last `else` belongs to the
+  inner `if`, and Lean takes it wherever it sits. The scanner ends the inner `then`
+  block when the column drops. By the time `else` arrives its own `if` has closed, so
+  the application above takes it as an argument.
+
+  The boundary is the column, not the `else if`. Written under the inner `if`, the
+  whole chain reads correctly:
+
+  ```lean
+  if d == 1 then
+    return "a"
+  else if d == 2 then
+    return "b"
+       else
+         return "c"
+  ```
+
+  Nobody writes that, which is why the writer nests each arm inside the `else` above
+  it instead: `chain` in `write/lean.rs`. Fixing it needs the scanner to know it is
+  inside an `if` awaiting an `else`, which is state it does not keep. Nesting each `if` inside the `else` above it reads
   cleanly, and the writer emits that: `chain` in `write/lean.rs`. The short
   form says the same thing and reads better, and the tree said something else.
 
@@ -104,8 +123,8 @@ a translation surface it does not yet write.
 
   A declaration's name is now one `qualified_name` node with the parts inside it, and
   the query anchors on the last. The entry said the fix would change what `import`,
-  `namespace` and `open` produce: it does not, because only the five declaration rules
-  take the new node and those three keep the hidden one.
+  `namespace` and `open` produce. It does not: only the five declaration rules take
+  the new node, and those three keep the hidden one.
 
 - [x] B836: **a Lean file defined an entry point and ran nothing.**
   The reader adds the call to `main` where a runtime makes it. Lean runs `main` itself and was missing from that
@@ -159,7 +178,7 @@ a translation surface it does not yet write.
   depend on each other. A name a body binds now belongs to that body.
 
 - [x] B825: **a value standing where a `return` would go lost its place.**
-  Rust and Zig end a function with the value and no `return`. The Lean writer put every pure statement behind
+  Rust and Zig end a function with the value, and write no `return`. The Lean writer put every pure statement behind
   `let _ :=`, which compiles and answers with the wrong thing. A `do` block answers
   with its last element, so the writer leaves that element bare.
 
