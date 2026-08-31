@@ -72,7 +72,10 @@ fn kernel_accepts(source: &str, edits: &[Edit], expected: &str) {
         edits,
         lean_string(expected),
     );
-    let dir = tempfile::tempdir().expect("temporary Lean plan");
+    let dir = tempfile::Builder::new()
+        .prefix(".fr-kernel-")
+        .tempdir_in(root().join("kernels"))
+        .expect("temporary Lean plan in the kernel package");
     let file = dir.path().join("plan.lean");
     std::fs::write(&file, program).expect("write Lean plan");
     let output = Command::new("lake")
@@ -82,8 +85,9 @@ fn kernel_accepts(source: &str, edits: &[Edit], expected: &str) {
         .expect("Lean is installed for the kernel gate");
     assert!(
         output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr),
     );
 }
 
