@@ -585,3 +585,102 @@ fn helm_masking_produces_parseable_yaml() {
 fn helm_leaves_a_templated_key_visibly_wrong() {
     assert!(error_nodes(Language::Helm, "params:\n  {{ $key }}:\n    - a\n") > 0);
 }
+
+/// `mutual` is the only form Lean has for a cycle, and the published grammar has no rule
+/// for it at all. This build's Lean writer emits one wherever the order it computes finds
+/// a cycle, so the rule is in `grammars/lean`.
+#[test]
+fn lean_reads_a_mutual_block() {
+    for source in [
+        "mutual\npartial def a (n : Int) : Int := b n\npartial def b (n : Int) : Int := a n\nend\n",
+        "mutual\ndef a : Int := 1\ndef b : Int := 2\nend\n",
+        "mutual\nstructure A where\n  x : Int\nstructure B where\n  y : Int\nend\n",
+    ] {
+        assert_eq!(
+            error_nodes(Language::Lean, source),
+            0,
+            "`mutual` is ordinary Lean:\n{source}"
+        );
+    }
+}
+
+/// The boundary of that rule, so a fix that over-corrects shows up.
+#[test]
+fn lean_reads_the_forms_around_a_mutual_block() {
+    for source in [
+        "def a : Int := 1\n",
+        "namespace N\ndef a : Int := 1\nend N\n",
+        "section\ndef a : Int := 1\nend\n",
+    ] {
+        assert_eq!(
+            error_nodes(Language::Lean, source),
+            0,
+            "`{}` should read cleanly",
+            source.trim()
+        );
+    }
+}
+
+/// A `while` whose condition is a comparison needs brackets around it. Lean applies a
+/// function by writing its argument beside it, and `3 do ...` is an application. Lean
+/// itself forbids that reading. The grammar cannot, so the writer brackets instead.
+#[test]
+fn lean_reads_a_bracketed_while_condition() {
+    let bracketed =
+        "def g : IO Unit := do\n  let mut i : Int := 0\n  while (i < 3) do\n    i := i + 1\n";
+    assert_eq!(error_nodes(Language::Lean, bracketed), 0, "{bracketed}");
+    let bare = "def g : IO Unit := do\n  let mut i : Int := 0\n  while i < 3 do\n    i := i + 1\n";
+    assert!(
+        error_nodes(Language::Lean, bare) > 0,
+        "the bare form is the one the writer avoids; if it reads cleanly now, the \
+         brackets in `write/lean.rs` have stopped earning their place"
+    );
+}
+
+/// Two chained `let`s inside a branch, which the published grammar cannot read. Nothing
+/// this build writes takes the form: the Lean writer's bodies are `do` blocks.
+#[test]
+fn lean_leaves_a_chained_let_in_a_branch_visibly_wrong() {
+    let chained =
+        "def f (n : Int) : Int :=\n  if n < 0 then n else\n    let a := n\n    let b := a\n    b\n";
+    assert!(
+        error_nodes(Language::Lean, chained) > 0,
+        "B824 names this shape. If it reads cleanly now, close the entry."
+    );
+    // The forms around it, which do read, and which the writer uses instead.
+    for source in [
+        "def f (n : Int) : Int :=\n  if n < 0 then n else\n    let a := n\n    a\n",
+        "def f (n : Int) : Int :=\n  let a := n\n  let b := a\n  b\n",
+        "def f (n : Int) : Int := Id.run do\n  let a := n\n  let b := a\n  return b\n",
+    ] {
+        assert_eq!(
+            error_nodes(Language::Lean, source),
+            0,
+            "the boundary of B824 should read cleanly.\n{source}"
+        );
+    }
+}
+
+/// A comment as the last line of a `do` block leaves the layout open, and the
+/// declaration after it lands inside the block. Lean reads a comment as whitespace
+/// anywhere; the scanner here ends a block on indentation and a comment carries none.
+#[test]
+fn lean_leaves_a_block_ending_in_a_comment_visibly_wrong() {
+    let trailing = "def a : Unit := Id.run do\n  let mut s := 0\n  s := s + 1\n  -- a trailing comment\n\ndef b : Int := 1\n";
+    assert!(
+        error_nodes(Language::Lean, trailing) > 0,
+        "B828 names this shape. If it reads cleanly now, close the entry."
+    );
+    // The same block with an element after the comment, which the writer emits.
+    for source in [
+        "def a : Unit := Id.run do\n  let mut s := 0\n  s := s + 1\n  -- a comment\n  ()\n\ndef b : Int := 1\n",
+        "def a : Unit := Id.run do\n  -- only a comment\n  ()\n\ndef b : Int := 1\n",
+        "def a : Unit := Id.run do\n  let mut s := 0\n  s := s + 1\n\ndef b : Int := 1\n",
+    ] {
+        assert_eq!(
+            error_nodes(Language::Lean, source),
+            0,
+            "the boundary of B828 should read cleanly.\n{source}"
+        );
+    }
+}

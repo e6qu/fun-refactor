@@ -3100,6 +3100,10 @@
           "named": true
         },
         {
+          "type": "mutual",
+          "named": true
+        },
+        {
           "type": "namespace",
           "named": true
         },
@@ -3169,6 +3173,25 @@
         },
         {
           "type": "variable",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "mutual",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "_declaration",
+          "named": true
+        },
+        {
+          "type": "declaration",
           "named": true
         }
       ]
@@ -3411,6 +3434,10 @@
         },
         {
           "type": "initialize",
+          "named": true
+        },
+        {
+          "type": "mutual",
           "named": true
         },
         {
@@ -5243,6 +5270,10 @@
   },
   {
     "type": "mut",
+    "named": false
+  },
+  {
+    "type": "mutual",
     "named": false
   },
   {

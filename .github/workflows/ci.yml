@@ -178,6 +178,34 @@ jobs:
         run: npm ci --no-fund --no-audit
         working-directory: tests/typesafety/typescript
 
+      # Lean is a translation target, so the conformance suite runs what it writes.
+      # The toolchain is half a gigabyte, which is why it is cached and why its fetch
+      # gets a deadline of its own rather than the two minutes the others take.
+      - name: Cache the Lean toolchain
+        id: lean-cache
+        uses: actions/cache@v4
+        with:
+          path: /opt/lean
+          key: lean-4.28.0-linux-x86_64
+      - name: Install Lean
+        if: steps.lean-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          LEAN=4.28.0
+          LEAN_SHA=ceb3a3f844f7aebf63245e2b51c28d5b0ed38942c19f93cf3febd520302160bd
+          curl -fsSL --retry 3 --retry-delay 5 --retry-connrefused \
+            --connect-timeout 20 --max-time 600 -o /tmp/lean.tar.zst \
+            "https://github.com/leanprover/lean4/releases/download/v${LEAN}/lean-${LEAN}-linux.tar.zst" \
+            || { echo "could not fetch the Lean toolchain within the time allowed"; exit 1; }
+          echo "${LEAN_SHA}  /tmp/lean.tar.zst" | sha256sum -c -
+          sudo mkdir -p /opt/lean
+          sudo tar --zstd -xf /tmp/lean.tar.zst -C /opt/lean --strip-components=1
+      - name: Put Lean on the path
+        run: |
+          echo "/opt/lean/bin" >> "$GITHUB_PATH"
+          /opt/lean/bin/lean --version
+
       # The tree-sitter grammars are C, and there is one per language, so a cold
       # build is minutes and not seconds. Keyed by slice, because each slice compiles
       # its own feature set and one cache holding both halves evicts itself.

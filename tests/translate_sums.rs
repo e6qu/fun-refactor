@@ -1,24 +1,16 @@
 //! A closed choice crosses every language boundary here.
 
+mod common;
+
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
-use std::path::PathBuf;
-
-fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, PathBuf) {
-    let tmp = tempfile::tempdir().unwrap();
-    for (name, content) in files {
-        std::fs::write(tmp.path().join(name), content).unwrap();
-    }
-    let root = tmp.path().to_path_buf();
-    (tmp, root)
-}
 
 const SHAPE_RS: &str = "pub enum Shape {\n    Empty,\n    Circle { radius: f64 },\n    \
                         Tagged(String),\n}\n";
 
 #[test]
 fn a_rust_enum_crosses_into_every_target() {
-    let (_tmp, root) = workspace(&[("shape.rs", SHAPE_RS)]);
+    let (_tmp, root) = common::tree(&[("shape.rs", SHAPE_RS)]);
     let cases = [
         (
             Language::TypeScript,
@@ -59,7 +51,7 @@ fn a_rust_enum_crosses_into_every_target() {
 
 #[test]
 fn a_zig_tagged_union_crosses() {
-    let (_tmp, root) = workspace(&[(
+    let (_tmp, root) = common::tree(&[(
         "answer.zig",
         "pub const Answer = union(enum) {\n    none: void,\n    value: i64,\n    \
          span: struct { start: i64, end: i64 },\n};\n",
@@ -81,7 +73,7 @@ fn a_zig_tagged_union_crosses() {
 
 #[test]
 fn a_zig_plain_enum_is_a_choice_with_bare_variants() {
-    let (_tmp, root) = workspace(&[(
+    let (_tmp, root) = common::tree(&[(
         "mode.zig",
         "pub const Mode = enum {\n    fast,\n    careful,\n};\n",
     )]);
@@ -96,7 +88,7 @@ fn a_zig_plain_enum_is_a_choice_with_bare_variants() {
 #[test]
 fn an_untagged_zig_union_stays_carried() {
     // A bare `union` overlays its members and knows nothing about which is live.
-    let (_tmp, root) = workspace(&[(
+    let (_tmp, root) = common::tree(&[(
         "raw.zig",
         "pub const Raw = union {\n    as_int: i64,\n    as_float: f64,\n};\n",
     )]);
@@ -111,7 +103,7 @@ fn an_untagged_zig_union_stays_carried() {
 
 #[test]
 fn a_typescript_discriminated_union_becomes_an_enum() {
-    let (_tmp, root) = workspace(&[(
+    let (_tmp, root) = common::tree(&[(
         "payment.ts",
         "export interface Card {\n    readonly kind: \"card\";\n    number: string;\n}\n\n\
          export interface Cash {\n    readonly kind: \"cash\";\n}\n\n\
@@ -138,7 +130,7 @@ fn a_typescript_discriminated_union_becomes_an_enum() {
 
 #[test]
 fn a_python_union_of_dataclasses_becomes_a_discriminated_union() {
-    let (_tmp, root) = workspace(&[(
+    let (_tmp, root) = common::tree(&[(
         "pay.py",
         "from dataclasses import dataclass\n\n@dataclass\nclass Card:\n    number: str\n\n\
          class Cash:\n    pass\n\nPayment = Card | Cash\n",
@@ -158,12 +150,12 @@ fn a_python_union_of_dataclasses_becomes_a_discriminated_union() {
 
 #[test]
 fn a_sum_round_trips_through_typescript() {
-    let (_tmp, root) = workspace(&[("shape.rs", SHAPE_RS)]);
+    let (_tmp, root) = common::tree(&[("shape.rs", SHAPE_RS)]);
     let ts = transpile::plan(&root.join("shape.rs"), Language::TypeScript)
         .expect("a draft")
         .output;
 
-    let (_tmp2, root2) = workspace(&[("shape.ts", &ts)]);
+    let (_tmp2, root2) = common::tree(&[("shape.ts", &ts)]);
     let back = transpile::plan(&root2.join("shape.ts"), Language::Rust).expect("a draft");
     assert_eq!(back.fidelity.sums, 1, "{}", back.output);
     assert!(back.output.contains("enum Shape {"), "{}", back.output);
@@ -177,12 +169,12 @@ fn a_sum_round_trips_through_typescript() {
 
 #[test]
 fn a_sum_round_trips_through_python() {
-    let (_tmp, root) = workspace(&[("shape.rs", SHAPE_RS)]);
+    let (_tmp, root) = common::tree(&[("shape.rs", SHAPE_RS)]);
     let py = transpile::plan(&root.join("shape.rs"), Language::Python)
         .expect("a draft")
         .output;
 
-    let (_tmp2, root2) = workspace(&[("shape.py", &py)]);
+    let (_tmp2, root2) = common::tree(&[("shape.py", &py)]);
     let back = transpile::plan(&root2.join("shape.py"), Language::Rust).expect("a draft");
     assert_eq!(back.fidelity.sums, 1, "{}", back.output);
     assert!(
@@ -194,7 +186,7 @@ fn a_sum_round_trips_through_python() {
 
 #[test]
 fn an_explicit_discriminant_is_kept_as_words() {
-    let (_tmp, root) = workspace(&[(
+    let (_tmp, root) = common::tree(&[(
         "status.rs",
         "pub enum Status {\n    Ok = 200,\n    Missing = 404,\n}\n",
     )]);

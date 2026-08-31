@@ -1,17 +1,9 @@
 //! The element beside its position crosses every boundary here.
 
+mod common;
+
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
-use std::path::PathBuf;
-
-fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, PathBuf) {
-    let tmp = tempfile::tempdir().unwrap();
-    for (name, content) in files {
-        std::fs::write(tmp.path().join(name), content).unwrap();
-    }
-    let root = tmp.path().to_path_buf();
-    (tmp, root)
-}
 
 const IDX_ZIG: &str = "fn tally(xs: []const i64) i64 {\n    var total: i64 = 0;\n    \
                        for (xs, 0..) |x, i| {\n        total = total + x * i;\n    }\n    \
@@ -19,7 +11,7 @@ const IDX_ZIG: &str = "fn tally(xs: []const i64) i64 {\n    var total: i64 = 0;\
 
 #[test]
 fn a_zig_counted_for_crosses_into_every_target() {
-    let (_tmp, root) = workspace(&[("idx.zig", IDX_ZIG)]);
+    let (_tmp, root) = common::tree(&[("idx.zig", IDX_ZIG)]);
     let cases = [
         (Language::Python, "for i, x in enumerate(xs):"),
         (Language::Go, "for i, x := range xs {"),
@@ -48,7 +40,7 @@ fn a_zig_counted_for_crosses_into_every_target() {
 fn a_python_enumerate_reads_and_zig_writes_it_back() {
     let source = "def tally(xs: list[int]) -> int:\n    total = 0\n    \
                   for i, x in enumerate(xs):\n        total = total + x * i\n    return total\n";
-    let (_tmp, root) = workspace(&[("en.py", source)]);
+    let (_tmp, root) = common::tree(&[("en.py", source)]);
     let plan = transpile::plan(&root.join("en.py"), Language::Zig).expect("a draft");
     assert!(
         plan.output.contains("for (xs, 0..) |x, i| {"),
@@ -61,7 +53,7 @@ fn a_python_enumerate_reads_and_zig_writes_it_back() {
 fn two_real_sequences_walk_by_one_index() {
     let source = "fn pair(xs: []const i64, ys: []const i64) void {\n    \
                   for (xs, ys) |x, y| {\n        use(x, y);\n    }\n}\n";
-    let (_tmp, root) = workspace(&[("z.zig", source)]);
+    let (_tmp, root) = common::tree(&[("z.zig", source)]);
     let plan = transpile::plan(&root.join("z.zig"), Language::Python).expect("a draft");
     assert!(
         plan.output.contains("for fr_i, x in enumerate(xs):")

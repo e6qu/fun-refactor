@@ -4,17 +4,17 @@ What a translation crosses, and where it stops.
 
 `fr translate` never rewrites one language into another directly. It reads the
 source into a single representation, and writes that out again. Seven languages
-have a reader and a writer: Rust, Go, Java, Python, TypeScript, Zig and Bash.
-Forty-two ordered pairs go through one vocabulary.
+have a reader: Rust, Go, Java, Python, TypeScript, Zig and Bash. Eight have a
+writer: those seven and Lean. Forty-nine ordered pairs go through one vocabulary.
 
 The vocabulary lives in `src/transpile/ir.rs`. This document says what is in it,
 why each piece earned a place, and what a writer does when it cannot spell one.
 
 ## Why a middle at all
 
-Direct translation costs a reader and a writer per pair. Seven languages need
-forty-two of them. A middle costs seven of each, and every improvement to one
-reader reaches six targets at once.
+Direct translation costs a reader and a writer per pair. Forty-nine pairs need
+forty-nine of each. A middle costs seven readers and eight writers, and every
+improvement to one reader reaches every target at once.
 
 The middle also decides the honest thing. A pair-to-pair translator either finds
 a spelling or produces nothing. A middle holds the construct, hands it to a

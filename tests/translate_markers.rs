@@ -1,24 +1,16 @@
 //! A marker is a draft's honesty, and a draft must still compile around it.
 
+mod common;
+
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
-use std::path::PathBuf;
-
-fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, PathBuf) {
-    let tmp = tempfile::tempdir().unwrap();
-    for (name, content) in files {
-        std::fs::write(tmp.path().join(name), content).unwrap();
-    }
-    let root = tmp.path().to_path_buf();
-    (tmp, root)
-}
 
 #[test]
 fn gos_inline_marker_asserts_the_type_a_bare_nil_has_not() {
     // A coalesce has no Go counterpart, so its stand-in must at least bind.
     let source = "export function pick(a: number | null, b: number): void {\n    \
                   const merged = a ?? b;\n    console.log(merged);\n}\n";
-    let (_tmp, root) = workspace(&[("pick.ts", source)]);
+    let (_tmp, root) = common::tree(&[("pick.ts", source)]);
     let plan = transpile::plan(&root.join("pick.ts"), Language::Go).expect("a draft");
     assert!(
         plan.output.contains("merged := func() any {"),
@@ -39,7 +31,7 @@ fn rusts_todo_marker_doubles_the_braces_the_source_carried() {
     let source =
         "fn caught() usize {\n    const n = @cmpxchgWeak(usize, p, .{ .a = 1 }, v, o, o);\n    \
                   return n;\n}\n";
-    let (_tmp, root) = workspace(&[("caught.zig", source)]);
+    let (_tmp, root) = common::tree(&[("caught.zig", source)]);
     let plan = transpile::plan(&root.join("caught.zig"), Language::Rust).expect("a draft");
     assert!(
         plan.output.contains("todo!(\"") && plan.output.contains("{{"),
@@ -53,7 +45,7 @@ fn a_composed_error_set_keeps_its_spelling_as_text() {
     // `error{A} || B` composes error sets, which no target's error model can hold.
     let source = "const LoadError = error{Unsupported} || SomethingElse;\n\n\
                   pub fn answer() i64 {\n    return 7;\n}\n";
-    let (_tmp, root) = workspace(&[("sets.zig", source)]);
+    let (_tmp, root) = common::tree(&[("sets.zig", source)]);
     let plan = transpile::plan(&root.join("sets.zig"), Language::Rust).expect("a draft");
     assert!(
         plan.output.contains("error{Unsupported} || SomethingElse"),

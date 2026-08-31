@@ -1,17 +1,9 @@
 //! Bash crosses as its computational subset.
 
+mod common;
+
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
-use std::path::PathBuf;
-
-fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, PathBuf) {
-    let tmp = tempfile::tempdir().unwrap();
-    for (name, content) in files {
-        std::fs::write(tmp.path().join(name), content).unwrap();
-    }
-    let root = tmp.path().to_path_buf();
-    (tmp, root)
-}
 
 const TALLY_SH: &str = "#!/usr/bin/env bash\n\n# Square a number.\nsquare() {\n    \
                         local n=\"$1\"\n    echo $(( n * n ))\n}\n\ntotal=0\n\
@@ -22,7 +14,7 @@ const TALLY_SH: &str = "#!/usr/bin/env bash\n\n# Square a number.\nsquare() {\n 
 
 #[test]
 fn a_bash_function_reads_its_stdout_as_its_return() {
-    let (_tmp, root) = workspace(&[("tally.sh", TALLY_SH)]);
+    let (_tmp, root) = common::tree(&[("tally.sh", TALLY_SH)]);
     let plan = transpile::plan(&root.join("tally.sh"), Language::Python).expect("a draft");
     assert!(
         plan.output.contains("def square(a1) -> int:"),
@@ -51,7 +43,7 @@ fn a_python_function_writes_its_return_onto_stdout() {
     let source = "def shout(word, times):\n    line = \"\"\n    i = 0\n    \
                   while i < times:\n        line = line + word\n        i = i + 1\n    \
                   return line\n\n\nprint(shout(\"ha\", 3))\n";
-    let (_tmp, root) = workspace(&[("shout.py", source)]);
+    let (_tmp, root) = common::tree(&[("shout.py", source)]);
     let plan = transpile::plan(&root.join("shout.py"), Language::Bash).expect("a draft");
     assert!(
         plan.output.contains("local word=\"$1\""),
@@ -81,7 +73,7 @@ fn a_case_and_a_counted_loop_cross_in_both_directions() {
               echo 1\n            ;;\n        two|three)\n            echo 23\n            ;;\n        \
               *)\n            echo 0\n            ;;\n    esac\n}\n\n\
               walk() {\n    for (( i=0; i < 3; i++ )); do\n        echo \"$i\"\n    done\n}\n";
-    let (_tmp, root) = workspace(&[("kind.sh", sh)]);
+    let (_tmp, root) = common::tree(&[("kind.sh", sh)]);
     let plan = transpile::plan(&root.join("kind.sh"), Language::Go).expect("a draft");
     assert!(
         plan.output.contains("switch label {") && plan.output.contains("case \"two\", \"three\":"),
@@ -99,7 +91,7 @@ fn a_case_and_a_counted_loop_cross_in_both_directions() {
 fn what_bash_cannot_say_carries_loudly() {
     // A pipeline into an external program has no counterpart the targets share.
     let sh = "count() {\n    ls | wc -l\n}\n";
-    let (_tmp, root) = workspace(&[("count.sh", sh)]);
+    let (_tmp, root) = common::tree(&[("count.sh", sh)]);
     let plan = transpile::plan(&root.join("count.sh"), Language::Python).expect("a draft");
     assert!(
         plan.output.contains(transpile::MARKER) && plan.output.contains("ls | wc -l"),
@@ -111,7 +103,7 @@ fn what_bash_cannot_say_carries_loudly() {
     // And toward bash, a record has nowhere to go and says so.
     let py =
         "from dataclasses import dataclass\n\n\n@dataclass\nclass Point:\n    x: int\n    y: int\n";
-    let (_tmp2, root2) = workspace(&[("p.py", py)]);
+    let (_tmp2, root2) = common::tree(&[("p.py", py)]);
     let plan = transpile::plan(&root2.join("p.py"), Language::Bash).expect("a draft");
     assert!(
         plan.output.contains(transpile::MARKER),
@@ -123,9 +115,9 @@ fn what_bash_cannot_say_carries_loudly() {
 #[test]
 fn a_bash_round_trip_keeps_the_program() {
     // bash -> python -> bash: the program's meaning survives two crossings.
-    let (_tmp, root) = workspace(&[("tally.sh", TALLY_SH)]);
+    let (_tmp, root) = common::tree(&[("tally.sh", TALLY_SH)]);
     let plan = transpile::plan(&root.join("tally.sh"), Language::Python).expect("a draft");
-    let (_tmp2, root2) = workspace(&[("tally.py", &plan.output)]);
+    let (_tmp2, root2) = common::tree(&[("tally.py", &plan.output)]);
     let back = transpile::plan(&root2.join("tally.py"), Language::Bash).expect("a draft");
     assert!(
         back.output.contains("square() {") && back.output.contains("printf '%s\\n' $(( n * n ))"),

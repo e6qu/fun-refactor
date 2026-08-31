@@ -23,7 +23,7 @@ DOCS = [
     "README.md", "PLAN.md", "BUGS.md", "TUTORIAL.md", "RECIPES.md",
     "API_CONTRACTS.md", "CROSS_LANGUAGE.md", "EXAMPLES.md", "RESEARCH.md",
     "CLI.md", "IR.md",
-    "docs/terminology.md",
+    "docs/terminology.md", "docs/lean-specs.md",
 ]
 
 # Each rule is a name, a pattern and one line that says what to write instead.

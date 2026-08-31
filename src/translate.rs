@@ -78,7 +78,7 @@ pub fn options_for(path: &Path) -> Vec<Option_> {
     // Then every language this translates into. A weaker promise: a draft rather than
     // the same bytes.
     if crate::transpile::can_be_read(from) {
-        for target in crate::transpile::SUPPORTED {
+        for target in crate::transpile::WRITABLE {
             if *target == from || out.iter().any(|o| o.target == *target) {
                 continue;
             }
@@ -139,7 +139,7 @@ pub fn why_not(from: Language, to: Language) -> String {
 pub fn why_nothing(from: Language) -> String {
     use crate::lang::LanguageClass;
     if from.class() == LanguageClass::Imperative {
-        let supported: Vec<String> = crate::transpile::SUPPORTED
+        let supported: Vec<String> = crate::transpile::READABLE
             .iter()
             .map(|language| language.to_string())
             .collect();
@@ -161,7 +161,10 @@ pub fn sources_for(to: Language) -> Vec<Language> {
         .iter()
         .copied()
         .filter(|from| *from != to)
-        .filter(|from| targets(*from).contains(&to) || crate::transpile::can_be_written(to))
+        .filter(|from| {
+            targets(*from).contains(&to)
+                || (crate::transpile::can_be_read(*from) && crate::transpile::can_be_written(to))
+        })
         .collect()
 }
 
@@ -173,7 +176,7 @@ pub fn why_nothing_into(to: Language) -> String {
             "{to} is a programming language, and there is no writer for it here. \
              Translating into a programming language needs one, and this build has \
              writers for {}. See `src/transpile/`.",
-            crate::transpile::SUPPORTED
+            crate::transpile::WRITABLE
                 .iter()
                 .map(|language| language.to_string())
                 .collect::<Vec<_>>()

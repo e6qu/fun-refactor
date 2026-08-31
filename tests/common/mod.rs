@@ -20,6 +20,19 @@ pub fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, Index) {
     (tmp, Index::build_from_scan(&scanned).unwrap())
 }
 
+/// A workspace on disk, unindexed. The translation tests want the directory and not the
+/// index: they hand a path to `transpile::plan` and read what comes back.
+pub fn tree(files: &[(&str, &str)]) -> (tempfile::TempDir, PathBuf) {
+    let tmp = tempfile::tempdir().unwrap();
+    for (name, content) in files {
+        let path = tmp.path().join(name);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, content).unwrap();
+    }
+    let root = tmp.path().to_path_buf();
+    (tmp, root)
+}
+
 /// Hold a gate to its coverage, where a hole would otherwise be invisible.
 pub fn require_on_ci(what: &str, missing: &[String]) {
     if missing.is_empty() || std::env::var("CI").is_err() {

@@ -1,10 +1,11 @@
 # Specs in Lean
 
-A plan, not a build. Nothing here exists yet.
+A plan, not a build. One tier of it exists: the writer under "Tier 2" below. The rest
+does not.
 
-`fr` reads Lean as of 0.6.0. This is what it would take to make Lean the place this
-project writes down what its code is supposed to do, and to keep the two from drifting
-apart. It also says which parts of that idea are worth doing and which are not.
+`fr` reads Lean and writes it. This says what it would take to make Lean the place this
+project writes down what its code should do. It also says which parts of that idea are
+worth doing and which are not.
 
 ## The one idea the design rests on
 
@@ -17,8 +18,8 @@ is unproved, generates code from a spec, and runs `lake` to accept or reject an 
 never decides that a proof is good. An agent writes the proof and hands it back, and
 `lake` is the only thing that says yes.
 
-That gives a work list a tool can compute and an answer a tool can check, with the
-judgement in between belonging to whoever is better at judgement.
+That gives a work list a tool can compute and an answer a tool can check. The judgement
+in between belongs to whoever is better at judgement.
 
 ## Four things worth arguing about first
 
@@ -30,8 +31,8 @@ Sync means three different things and only one of them is decidable.
    decide this, cheaply, forever. This is what `tests/docs_cli.rs` already does for
    prose, and it is the whole of what a tool can promise.
 2. **The behaviours agree on the cases we ran.** Generate the target-language code from
-   the Lean, run both, diff. `fr` already does exactly this for 87 conformance cells
-   across six languages. Real, checkable, and not a proof.
+   the Lean, run both, diff. `fr` already does this for every cell of the
+   conformance suite, Lean included. Real, checkable, and not a proof.
 3. **The implementation refines the spec.** A theorem, and nothing generates it. Proving
    a hand-written Rust function meets a Lean spec needs a formal semantics of Rust, which
    nobody has. This one is unavailable at any price and the plan should not imply it.
@@ -45,7 +46,7 @@ A Lean `def` has computational content and can become Rust. A `theorem` is a pro
 proposition holds, and its content is erased. So "generate the implementation from the
 spec" only works where the spec *is* the implementation, written in Lean.
 
-That is not a limitation to work around, it is the shape of the feature: **a spec written
+That is the shape of the feature and not a limitation to work around: **a spec written
 as a `def` is executable and generates code; a spec written as a `theorem` is a claim
 about that code and generates a test obligation.** Both are useful. Conflating them
 produces a feature that appears to work and quietly emits stubs.
@@ -58,8 +59,8 @@ Lean 4 compiles to C. Nothing extracts it to Rust. Three ways out:
   everything. Against the grain of a tool whose build needs a C compiler and nothing else.
 - **Hand-write the Rust and prove correspondence.** See (3) above.
 - **Generate the Rust from a restricted Lean, with `fr`.** `fr` is already a transpiler
-  with a canonical IR and a harness that proves six languages print the same transcript.
-  Lean as a source is one more reader.
+  with a canonical IR. Its harness proves seven languages print the same transcript,
+  Lean among them. Lean as a source is one more reader.
 
 The third is the only one that fits, and it costs a Lean reader rather than a research
 programme.
@@ -70,9 +71,9 @@ The tempting target is "prove `fr rename` preserves meaning". It needs a formal 
 for nineteen tree-sitter grammars. It will not happen.
 
 The IR is the opposite: 9 items, 26 statements, 34 expressions, self-contained, and the
-place the real risk lives. A wrong lowering is silent, and the ledger that went from 1,756
-carried constructs to zero is a count of shapes that cross, not a claim that they cross
-correctly. **Specify the IR, prove things about the writers, and leave the grammars
+place the real risk lives. A wrong lowering is silent. The ledger that went from 1,756
+carried constructs to zero counts shapes that cross, and claims nothing about how they
+cross. **Specify the IR, prove things about the writers, and leave the grammars
 alone.**
 
 ## What Lean is worth here, in order
@@ -89,17 +90,26 @@ that has one. Then the properties worth having:
 - Division and remainder agree with each target's own rounding, which is B633 and the
   `Math.trunc` family written down instead of remembered.
 
-This is the highest-value tier because it is where `fr` is actually most likely to be
-wrong, and it needs no code generation at all.
+This is the highest-value tier because it is where `fr` is most likely to be wrong, and
+it needs no code generation at all.
 
 ### Tier 2: Lean is a translate target and a source
 
-The writer first: `Record` becomes a `structure`, `Sum` an `inductive`, `Function` a
-`def`, `Newtype` an `abbrev`. It refuses what it should: mutation outside a monad,
-recursion it cannot show terminates, anything reaching a runtime.
+**The writer exists.** `Record` became a `structure`, `Sum` an `inductive`, `Function` a
+`def`, `Newtype` an `abbrev`. Every one of the seven languages with a reader translates
+into Lean. The conformance suite runs the result: 87 cells, and Lean prints the
+transcript the other six print. `PLAN.md` has what it cost and where Lean disagreed with
+every other target.
 
-Then the reader, over the same restricted subset. That is what makes generation possible,
-and it is the only new machinery the whole plan requires.
+It refuses what it should. Recursion it cannot show terminates becomes `partial def` and
+says so. A deferred block in a scope something leaves early carries, because Lean has no
+hook that runs on the way out. A runtime type test carries, because a Lean value has one
+type and the elaborator already knows it.
+
+The reader is what remains, and it is the only new machinery the rest of this plan needs.
+It goes over the restricted subset the writer produces, and it is the smaller job. The
+writer had to decide what every construct of six languages means in Lean. The reader
+reads back only what the writer wrote.
 
 ### Tier 3: the kernel pattern
 
@@ -107,8 +117,8 @@ Mark a module `@[fr.kernel]`. `fr` generates the target-language implementation 
 and adds a conformance cell that runs both and diffs the transcript. Not a proof of
 correspondence, and a much stronger claim than a comment saying the two agree.
 
-This is where "write the kernel in Lean" becomes a thing a person can actually do, and it
-reuses a harness that already exists.
+This is where "write the kernel in Lean" becomes a thing a person can do, and it reuses
+a harness that already exists.
 
 ## The commands
 
@@ -133,18 +143,18 @@ def plan (index : Index) (symbol : SymbolId) (newName : String) :
 ```
 
 The hash is the function's own bytes. When it changes, `fr spec check` says which spec
-went stale and why. That is the `docs_cli.rs` trick pointed at code instead of prose, and
-it is the whole sync story: a tool that notices, not a tool that promises.
+went stale and why. That is the `docs_cli.rs` trick pointed at code instead of prose.
+It is the whole sync story: a tool that notices, not a tool that promises.
 
 ## The lifecycle, which is the part that usually goes wrong
 
 Generation that only writes stubs is a demo. The three later moves are the feature.
 
 - **Generate.** The output carries `fr:from-spec` anchors around each generated region.
-- **Regenerate.** A region nobody touched gets replaced. A region a person edited stops
+- **Regenerate.** This replaces a region nobody touched. A region a person edited stops
   the run and names the file and line. `fr` already refuses rather than overwrite, and
   this is that discipline applied to a second author.
-- **Reverse.** A signature changed in the code, and `fr spec sync` carries it back to the
+- **Reverse.** A signature changed in the code. `fr spec sync` carries it back to the
   Lean and leaves the proofs standing, so the next `lake` run says which ones broke.
 
 The proofs breaking is the point. A spec that survives a change to the thing it specifies
@@ -154,10 +164,10 @@ was not specifying much.
 
 `fr` computes the work list and owns the oracle. The agent does the search.
 
-- **`lean-prover`** — takes one `sorry` and its context, tries to discharge it, and
+- **`lean-prover`**: takes one `sorry` and its context, tries to discharge it, and
   offers a patch. The loop ends when `lake build` accepts, and `fr` runs `lake`, not the
   agent. Parallel over independent obligations, since each is its own question.
-- **`spec-author`** — takes a drift report and writes or repairs the claims. This is the
+- **`spec-author`**: takes a drift report and writes or repairs the claims. This is the
   judgement-heavy end: which properties are worth stating at all.
 
 Both are advisory. Nothing reaches a file without `lake` having accepted it, which is why
@@ -168,11 +178,13 @@ the non-determinism upstream is safe.
 `SPEC-DEBT`, next to `PROSE-DEBT`, holding `sorry` at a number that only falls. An
 unproved obligation is debt with a name, which is better than an intention.
 
-## Order, and the one to build first
+## Order, and the one to build next
 
-Tier 2's writer, because everything else waits on it and it extends machinery that
-already works. Then the anchor and `fr spec check`, which is deterministic, cheap, and
-useful on its own before a single proof exists. Then the reader, then the kernel cell.
+Tier 2's writer was the first, because everything else waited on it and it extended
+machinery that already worked. It exists now.
+
+Next is the anchor and `fr spec check`, which is deterministic, cheap, and useful on its
+own before a single proof exists. Then the reader, then the kernel cell.
 
 Tier 1 can start any time and is the most valuable thing here. It is also the easiest to
 put off, being the only part with no visible output.

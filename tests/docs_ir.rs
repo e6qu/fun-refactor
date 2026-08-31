@@ -37,6 +37,12 @@ fn variants_of(enum_name: &str) -> BTreeSet<String> {
     found
 }
 
+/// The document with every run of whitespace flattened to one space. A claim about a
+/// sentence should survive the day someone rewraps the paragraph it sits in.
+fn flat() -> String {
+    DOC.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
 /// Does the document name this variant, spelled as code?
 fn names(variant: &str) -> bool {
     // `Named { name, args }`, `List(T)`, `` `Set` ``: the shape or the closing backtick follows
@@ -143,9 +149,12 @@ fn the_counts_the_document_states_are_right() {
 }
 
 #[test]
-fn every_language_with_a_writer_is_named() {
-    // The document opens by listing them.
-    for language in fun_refactor::transpile::SUPPORTED {
+fn every_language_the_middle_touches_is_named() {
+    // The document opens by listing them, on both sides.
+    for language in fun_refactor::transpile::READABLE
+        .iter()
+        .chain(fun_refactor::transpile::WRITABLE)
+    {
         // `Language`'s own `Display` is the lowercase name the CLI takes.
         let title = match format!("{language}").as_str() {
             "typescript" => "TypeScript".to_string(),
@@ -153,39 +162,94 @@ fn every_language_with_a_writer_is_named() {
         };
         assert!(
             DOC.contains(&title),
-            "IR.md never names {title:?}, which has a reader and a writer."
+            "IR.md never names {title:?}, which the middle reads or writes."
         );
     }
 }
 
+/// A number as this document writes it. The prose spells them out, so a test that
+/// checks the prose has to as well.
+fn in_words(n: usize) -> String {
+    const UNITS: [&str; 20] = [
+        "zero",
+        "one",
+        "two",
+        "three",
+        "four",
+        "five",
+        "six",
+        "seven",
+        "eight",
+        "nine",
+        "ten",
+        "eleven",
+        "twelve",
+        "thirteen",
+        "fourteen",
+        "fifteen",
+        "sixteen",
+        "seventeen",
+        "eighteen",
+        "nineteen",
+    ];
+    const TENS: [&str; 10] = [
+        "", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety",
+    ];
+    assert!(n < 100, "IR.md counts nothing this large");
+    match (n, n % 10) {
+        (n, _) if n < 20 => UNITS[n].to_string(),
+        (n, 0) => TENS[n / 10].to_string(),
+        (n, unit) => format!("{}-{}", TENS[n / 10], UNITS[unit]),
+    }
+}
+
+/// The same word, opening a sentence.
+fn capitalised(word: &str) -> String {
+    format!("{}{}", word[..1].to_uppercase(), &word[1..])
+}
+
 #[test]
-fn the_counts_of_readers_and_pairs_are_right() {
-    // The opening paragraph states both, and both move when a language gains a reader and a
-    // writer.
-    let n = fun_refactor::transpile::SUPPORTED.len();
-    let pairs = n * (n - 1);
-    let (word, pairs_word) = match (n, pairs) {
-        (6, 30) => ("Six", "Thirty"),
-        (7, 42) => ("Seven", "Forty-two"),
-        (8, 56) => ("Eight", "Fifty-six"),
-        _ => panic!(
-            "{n} language(s) have a reader and a writer, giving {pairs} ordered \
-             pairs, and this test has no words for those numbers."
-        ),
-    };
+fn the_counts_of_readers_writers_and_pairs_are_right() {
+    // The opening paragraph states all three, and each moves when a language gains a
+    // reader or a writer.
+    let readers = fun_refactor::transpile::READABLE.len();
+    let writers = fun_refactor::transpile::WRITABLE.len();
+    // Every readable source against every writable target that is not itself.
+    let pairs: usize = fun_refactor::transpile::READABLE
+        .iter()
+        .map(|from| {
+            fun_refactor::transpile::WRITABLE
+                .iter()
+                .filter(|to| *to != from)
+                .count()
+        })
+        .sum();
+    let doc = flat();
     for claim in [
-        format!("{word} languages\nhave a reader and a writer"),
-        format!("{pairs_word} ordered pairs go through one vocabulary."),
         format!(
-            "{word} languages need\n{} of them.",
-            pairs_word.to_lowercase()
+            "{} languages have a reader",
+            capitalised(&in_words(readers))
         ),
-        format!("A middle costs {} of each", word.to_lowercase()),
+        format!("{} have a writer", capitalised(&in_words(writers))),
+        format!(
+            "{} ordered pairs go through one vocabulary.",
+            capitalised(&in_words(pairs))
+        ),
+        format!(
+            "{} pairs need {} of each",
+            capitalised(&in_words(pairs)),
+            in_words(pairs)
+        ),
+        format!(
+            "A middle costs {} readers and {} writers",
+            in_words(readers),
+            in_words(writers)
+        ),
     ] {
         assert!(
-            DOC.contains(&claim),
-            "IR.md does not say {claim:?}. {n} language(s) have a reader and a \
-             writer, giving {pairs} ordered pairs."
+            doc.contains(&claim),
+            "IR.md does not say {claim:?}. {readers} language(s) have a reader and \
+             {writers} have a writer, giving {pairs} ordered pairs."
         );
     }
 }

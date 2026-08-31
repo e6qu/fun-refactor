@@ -1,20 +1,12 @@
 //! Translating a file into another programming language.
 
+mod common;
+
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
-use std::path::PathBuf;
-
-fn workspace(files: &[(&str, &str)]) -> (tempfile::TempDir, PathBuf) {
-    let tmp = tempfile::tempdir().unwrap();
-    for (name, content) in files {
-        std::fs::write(tmp.path().join(name), content).unwrap();
-    }
-    let root = tmp.path().to_path_buf();
-    (tmp, root)
-}
 
 fn translate(files: &[(&str, &str)], from: &str, to: Language) -> (String, transpile::Fidelity) {
-    let (_tmp, root) = workspace(files);
+    let (_tmp, root) = common::tree(files);
     let plan = transpile::plan(&root.join(from), to).expect("a translation");
     (plan.output.clone(), plan.fidelity)
 }
@@ -287,13 +279,13 @@ fn every_output_parses_as_the_language_it_claims_to_be() {
              echo $(( a + b ))\n}\n",
         ),
     ];
-    let (_tmp, root) = workspace(&sources);
+    let (_tmp, root) = common::tree(&sources);
     let parsers = fun_refactor::parse::Parsers::new();
 
     let mut checked = 0;
     for (name, _) in sources {
         let from = fun_refactor::lang::detect(&root.join(name)).unwrap();
-        for to in transpile::SUPPORTED {
+        for to in transpile::WRITABLE {
             if *to == from {
                 continue;
             }
@@ -312,10 +304,13 @@ fn every_output_parses_as_the_language_it_claims_to_be() {
     }
     // The count stands here so that adding a language without adding a source for
     // it fails here and not quietly testing a fraction of the matrix.
-    let languages = transpile::SUPPORTED.len();
+    // One source per readable language, against every writable target but itself.
+    let expected: usize = transpile::READABLE
+        .iter()
+        .map(|from| transpile::WRITABLE.iter().filter(|to| *to != from).count())
+        .sum();
     assert_eq!(
-        checked,
-        languages * (languages - 1),
+        checked, expected,
         "every ordered pair should have been exercised"
     );
 }
@@ -338,7 +333,7 @@ fn the_real_sample_files_translate_into_something_that_parses() {
     for name in sources {
         let path = root.join(name);
         let from = fun_refactor::lang::detect(&path).expect("a known language");
-        for to in transpile::SUPPORTED {
+        for to in transpile::WRITABLE {
             if *to == from {
                 continue;
             }
@@ -368,7 +363,7 @@ fn the_real_sample_files_translate_into_something_that_parses() {
 
 #[test]
 fn translating_into_a_language_with_no_writer_is_refused() {
-    let (_tmp, root) = workspace(&[("a.rs", RUST_SOURCE)]);
+    let (_tmp, root) = common::tree(&[("a.rs", RUST_SOURCE)]);
     let error = transpile::plan(&root.join("a.rs"), Language::Yaml).expect_err("no writer");
     assert!(
         error.to_string().contains("no writer"),
@@ -411,7 +406,7 @@ fn the_receiver_is_spelled_the_way_the_target_spells_it() {
     // Six languages, and the parameter list holds no receiver to rename with the rest.
     for (name, source) in METHODS {
         let from = fun_refactor::lang::detect(std::path::Path::new(name)).unwrap();
-        for to in transpile::SUPPORTED {
+        for to in transpile::WRITABLE {
             if *to == from {
                 continue;
             }
@@ -624,7 +619,7 @@ fn a_method_is_written_with_its_type() {
 fn a_rust_number_leaves_its_width_behind() {
     // `0usize` writes the type into the literal, which is a spelling only Rust has.
     let source = "pub fn f() -> i64 {\n    let n = 0usize;\n    return 1i32;\n}\n";
-    for target in transpile::SUPPORTED {
+    for target in transpile::WRITABLE {
         if *target == Language::Rust {
             continue;
         }

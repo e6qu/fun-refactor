@@ -370,8 +370,8 @@ names the commit it measures.
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 310 of 456, every other one carrying its reason |
-| Defects fixed | 662 |
-| Defects open | 1 |
+| Defects fixed | 671 |
+| Defects open | 3 |
 
 Every cell that `fr capabilities` marks `n/a` carries the reason the tool refuses. That
 keeps the column a commitment.
@@ -388,8 +388,9 @@ it stops being true.
   B231/B232, B133 and B283. `tests/known_grammar_gaps.rs` pins every patched form from
   both sides: the form that failed, and the neighbouring forms that always worked. A fix
   that over-corrects fails there too.
-- **B5 is an incomplete answer that the tool reports.** It states what dispatch can be
-  known without types: what the source declares, and what it assigns.
+- **B5 is an incomplete answer that the tool reports.**
+  It states the dispatch knowable without types: what the source declares and
+  what it assigns.
   `tests/open_defects.rs` asserts both halves. A call that quietly skipped the value edge
   would satisfy the first half and fail the second.
 - **A dispatch family renames, re-signs and deletes as a unit (B382, B383).**
@@ -2436,9 +2437,9 @@ endpoints, thirteen panes, each one saying twice what it had already
 said once.
 
 The page now diffs the route against the file it became. The engine
-grew `unified_diff_between` for it, because a patch whose two sides
-carry different names needs both in its header, and `git apply` reads
-that header. A reader sees which block of TypeScript each block of
+grew `unified_diff_between` for it. A patch whose two sides carry
+different names needs both in its header, and `git apply` reads that
+header. A reader sees which block of TypeScript each block of
 Python answers, with seven or eight lines of context where the two
 files agree.
 
@@ -2741,18 +2742,26 @@ proof.
 
 ## The nineteenth language: Lean
 
-**The reading half works.** `fr` parses Lean, indexes it, and renames and moves a
-declaration across it. The writing half does not exist: nothing translates into Lean
-yet. The capability matrix says so cell by cell.
+**Both halves work.** `fr` parses Lean, indexes it, and renames and moves a declaration
+across it. Every one of the seven languages with a reader translates into it. The conformance
+suite runs what comes out: fourteen groups against seven sources, and Lean prints the
+transcript the other six print.
+
+Lean is the first target with no reader, which is why `SUPPORTED` had to become
+`READABLE` and `WRITABLE`. Reading a language means deciding what each of its constructs
+meant; writing one means spelling constructs already decided. The second is the smaller
+job, and the two lists had been one only because nothing had needed them apart.
 
 What the grammar gave, and what it cost. `grammars/lean` holds the published grammar
 regenerated against this build's tree-sitter, because the crate on crates.io links 0.25
-and this workspace links 0.26.
+and this workspace links 0.26. It carries one added rule, `mutual`, which upstream has
+none for at all and which is the only form Lean has for a cycle. The rule cost 4 MB of
+generated parser and 0.22 MB packed.
 
 The cost is the largest any language here has carried, and it wants a decision rather
-than a shrug. `parser.c` is 44 MB, seven times the largest grammar before it, and
-upstream ships the same size, so nothing here made it big. A first visit to the
-playground goes from 2.09 MB gzipped to 3.55 MB. One language, seventy per cent.
+than a shrug. `parser.c` is 48 MB, seven times the largest grammar before it, and
+upstream ships nearly the same size, so nothing here made it big. A first visit to the
+playground goes from 2.09 MB gzipped to 3.62 MB. One language, seventy per cent.
 
 `lang-lean` is a feature like every other, so a browser build can leave it out and the
 command line keep it. Nothing does that yet. A matrix that reads differently in two
@@ -2768,9 +2777,9 @@ what a glob import is everywhere else, and marking it as one made a name resolve
 files. The same fact is why organising imports refuses: nothing tells a live import from
 a dead one by the names a file spells.
 
-What remains, with the matrix carrying a reason for each cell: the translation pair and
-the `lake` compile gate. Dispatch through type-class search. The refactorings that want
-a type this build does not infer.
+What remains, with the matrix carrying a reason for each cell: a reader, so that Lean is
+a source and not only a target. Dispatch through type-class search. The refactorings
+that want a type this build does not infer.
 
 ---
 
@@ -2832,67 +2841,70 @@ and each has a Lean-shaped hazard:
 - **Extract** on a proof term is sound where the extracted piece typechecks on its
   own. The only honest way to know is to ask Lean. See the gate below.
 
-### Translating into Lean
+### Translating into Lean, as it turned out
 
-The goal, bounded: every one of the seven languages that already has a reader (Rust, Go,
-Java, Python, TypeScript, Zig, Bash) translates into Lean. Lean is a **target only**.
-Nothing translates out of it. A dependently typed definition has no counterpart in a
-language without dependent types, and D8 forbids pretending otherwise.
+Every one of the seven languages with a reader (Rust, Go, Java, Python, TypeScript, Zig,
+Bash) translates into Lean. Lean is a **target only**. Nothing translates out of it. A
+dependently typed definition has no counterpart in a language without dependent types,
+and D8 forbids pretending otherwise.
 
 HTML, CSS, XML, Markdown, YAML, Helm, HCL and JSON are out of scope in both directions.
 They are string-keyed configuration and markup with no functions to carry.
 
-The IR needs nothing new for the first pass. A function, a record, a sum, a literal and
-an expression all have Lean spellings:
+The IR needed nothing new. A record becomes a `structure` and a sum an `inductive`, both
+deriving `Repr`, `Inhabited` and `BEq`. A distinct type becomes an `abbrev`. The note says why it is
+not a type of its own. One over `Int` needs its own arithmetic and coercions, and the
+source declared none. A function becomes a
+`def` whose body is a `do` block, `Id.run do` where it computes and plain `do` where it
+acts. A method goes in the namespace its structure opens, so `p.area` resolves without
+a word changing at the call site.
 
-- A record becomes a `structure`.
-- A sum becomes an `inductive`.
-- A function becomes a `def`, with `partial def` where the source's recursion is not
-  obviously structural. Lean demands a termination argument, and this tool has no
-  business inventing one.
-- A loop becomes a fold or a `for` in `do` notation, whichever the body's shape admits.
-- Mutation becomes `do` notation over `Id` or `StateM`. Lean has real mutable locals
-  inside `do`, so an imperative body does not have to leave its shape behind.
+Three things the plan did not foresee, each a place where Lean disagrees with every
+other target here:
+
+- **Order is load-bearing.** Lean reads a file once and refuses a name it has not yet
+  met. No other target cares. So the writer sorts the module's declarations by what they
+  name, with Tarjan's algorithm, and puts a cycle inside `mutual`.
+- **`/` and `%` are not the C-family ones.** Lean's `Int` division rounds toward
+  negative infinity and its remainder is the Euclidean one. `Int.tdiv` and `Int.tmod`
+  are what a source whose `/` truncates meant, and `Int.fdiv` and `Int.fmod` are what
+  Python's `//` and `%` meant.
+- **A fraction prints differently.** Lean's `toString` writes six decimal places where
+  every other target writes none for a whole value. So the writer emits `frShow`, and a
+  transcript agrees on the number rather than on the formatting.
 
 What refuses, and says so:
 
 - **Unbounded recursion whose termination this cannot show.** `partial def` is the
   honest answer and the note says the proof obligation went unmet.
-- **Anything reaching a runtime this cannot model**: a socket, a thread, a clock.
-  `IO` is the right type and the body carries verbatim under the marker.
 - **Reflection and dynamic dispatch through a value.** Lean has no counterpart that
   preserves the source's meaning.
+- **A deferred block in a scope something leaves early.** Lean has no hook that runs on
+  the way out. Where nothing between the deferral and the end of the scope leaves it, the
+  deferral is a reordering and the writer performs it.
 
-### The gate
+### The gate, and the one the plan asked for
 
-This is the part that makes Lean worth doing, and it is stricter than any gate here.
+Every other target proves a translation by compiling it and diffing a transcript. Lean
+does the same: `lean --run` elaborates the file and calls its `main`, and a cell passes
+when the transcript matches. Eighty-seven cells, fourteen groups, seven sources.
 
-Every other target proves a translation by compiling it and diffing a transcript.
-Lean's compiler typechecks, which for a total function is a proof that it does what its
-type says. So the conformance suite gains a Lean column, and `lake build` checks
-it rather than a run. A cell passes when it elaborates with no
-`sorry` and no `partial` the source did not force.
-
-`sorry` is Lean's admitted-without-proof marker. A translation that emits one has
-produced a lie that typechecks. So the gate counts `sorry` and holds it at zero, the
-way the `CARRIED` ledger came down.
-
-The conformance programs print a transcript in six renderings today. Lean makes seven. The arithmetic on
-the corpus sweep changes, and `tests/corpus_compile.rs` gains a toolchain: `lake`,
-named in the output when absent, never skipped in silence.
+The plan asked for something stricter and different: `lake build`, with no `sorry` and
+no `partial` the source did not force. That gate is not this one, and nobody has built it.
+It is the right gate for Lean the proof assistant, and this is the right gate for Lean
+the seventh rendering of one program. The second is what a translation claims, so it is
+what the suite checks. The first waits on `docs/lean-specs.md`.
 
 ### What this is not
 
-This does not attempt to prove that a translation preserves the source's behaviour.
-That is a research problem and this plan does not pretend otherwise. The claim is narrower and
-checkable. The Lean this writes typechecks, admits nothing, and states in its types
-what the source's signature stated in its own.
+This does not prove that a translation preserves the source's behaviour. That is a
+research problem and this plan does not pretend otherwise. The claim is narrower and
+checkable: the Lean this writes elaborates, runs, and prints what the source printed on
+the cases the suite runs.
 
 ### Cost, honestly
 
 Larger than any language added so far. Java, the last one, cost one query file, five
-lines of enum and three transpiler cases. Lean costs a grammar pin, a fact query, a
-resolution tier for type-class search, and seven writers' worth of lowering decisions.
-It also costs a new toolchain in the compile gate, and a termination story for every
-recursive function in the corpora. Nothing here is blocked. It is the largest single item on this
-page.
+lines of enum and three transpiler cases. Lean cost a grammar pin, a fact query, one
+grammar rule, and a writer of its own file. It also cost a split of the reader and
+writer lists, which had been one list since the first translation. Nothing here is blocked.
