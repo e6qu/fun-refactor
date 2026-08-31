@@ -1,0 +1,10 @@
+name = "fr-kernels"
+version = "0.1.0"
+defaultTargets = ["FrKernels", "fr-edit-kernel"]
+
+[[lean_lib]]
+name = "FrKernels"
+
+[[lean_exe]]
+name = "fr-edit-kernel"
+root = "Main"

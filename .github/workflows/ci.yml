@@ -178,7 +178,7 @@ jobs:
         run: npm ci --no-fund --no-audit
         working-directory: tests/typesafety/typescript
 
-      # Lean is a translation target, so the conformance suite runs what it writes.
+      # Lean runs the translation conformance cells and the checked kernel project.
       # The toolchain is half a gigabyte, which is why it is cached and why its fetch
       # gets a deadline of its own rather than the two minutes the others take.
       - name: Cache the Lean toolchain
