@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.7.0...fun-refactor-v0.8.0) (2026-08-31)
+
+
+### Features
+
+* Lean is a source as well as a target, and the two lists meet again ([#192](https://github.com/e6qu/fun-refactor/issues/192)) ([dfb4a48](https://github.com/e6qu/fun-refactor/commit/dfb4a48625a86878a63c8781dce9f542dea62bda))
+
 ## [0.7.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.6.0...fun-refactor-v0.7.0) (2026-08-31)
 
 
