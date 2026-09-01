@@ -441,3 +441,25 @@ fn the_edit_kernel_accepts_a_self_inline_plan() {
         .expect("self inline edits");
     kernel_accepts_file_edits(&source, edits);
 }
+
+#[test]
+fn the_edit_kernel_accepts_a_self_inline_call_plan() {
+    let source_root = root().join("src");
+    let scanned = scan(&source_root, &ScanOptions::default()).expect("scan fr source");
+    let index = Index::build_from_scan(&scanned).expect("index fr source");
+    let position_engine = source_root.join("span.rs");
+    let source = std::fs::read_to_string(&position_engine).expect("read fr position engine");
+    let call = source.find("self.line_end(line)").expect("line end call") + "self.".len();
+    let plan = inline::call(&index, &position_engine, call).expect("self inline call plan");
+    assert!(
+        plan.expansion.contains("match self.line_starts"),
+        "the self inline call substitutes the callee expression"
+    );
+    fun_refactor::edit::plan(&plan.edits, fun_refactor::edit::Validation::ReparseStrict)
+        .expect("the self inline call reparses");
+    let edits = plan
+        .edits
+        .edits_for(&position_engine)
+        .expect("self inline call edits");
+    kernel_accepts_file_edits(&source, edits);
+}
