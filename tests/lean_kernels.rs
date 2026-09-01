@@ -1,6 +1,6 @@
 use fun_refactor::edit::{apply_to_string, Edit, EditSet};
 use fun_refactor::index::Index;
-use fun_refactor::refactor::{extract, move_symbol, rename, signature};
+use fun_refactor::refactor::{extract, inline, move_symbol, rename, signature};
 use fun_refactor::scan::{scan, ScanOptions};
 use fun_refactor::span::{LineCol, LineIndex, Span};
 use std::fmt::Write as _;
@@ -205,6 +205,23 @@ fn kernel_accepts_edit_set(edits: &EditSet) {
     kernel_accepts_all(&lean_checks);
 }
 
+fn kernel_accepts_file_edits(source: &str, edits: &[Edit]) {
+    let checks = kernel_windows(source, edits);
+    assert_eq!(
+        checks
+            .iter()
+            .map(|(_, edits, _)| edits.len())
+            .sum::<usize>(),
+        edits.len(),
+        "every single-file self-plan edit reaches the Lean audit."
+    );
+    let lean_checks: Vec<(&str, &[Edit], &str)> = checks
+        .iter()
+        .map(|(source, edits, expected)| (source.as_str(), edits.as_slice(), expected.as_str()))
+        .collect();
+    kernel_accepts_all(&lean_checks);
+}
+
 #[test]
 fn the_lossless_edit_kernel_agrees_with_rust() {
     build_kernel();
@@ -399,18 +416,28 @@ fn the_edit_kernel_accepts_a_self_extract_plan() {
         .edits
         .edits_for(&edit_engine)
         .expect("self extraction edits");
-    let checks = kernel_windows(&source, edits);
-    assert_eq!(
-        checks
-            .iter()
-            .map(|(_, edits, _)| edits.len())
-            .sum::<usize>(),
-        edits.len(),
-        "every self-extraction edit reaches the Lean audit"
-    );
-    let lean_checks: Vec<(&str, &[Edit], &str)> = checks
-        .iter()
-        .map(|(source, edits, expected)| (source.as_str(), edits.as_slice(), expected.as_str()))
-        .collect();
-    kernel_accepts_all(&lean_checks);
+    kernel_accepts_file_edits(&source, edits);
+}
+
+#[test]
+fn the_edit_kernel_accepts_a_self_inline_plan() {
+    let source_root = root().join("src");
+    let scanned = scan(&source_root, &ScanOptions::default()).expect("scan fr source");
+    let index = Index::build_from_scan(&scanned).expect("index fr source");
+    let position_engine = source_root.join("span.rs");
+    let source = std::fs::read_to_string(&position_engine).expect("read fr position engine");
+    let binding = source
+        .find("line_start = self.line_starts[line]")
+        .expect("line start binding");
+    let target = index
+        .definition_at(&position_engine, binding)
+        .expect("line start definition")
+        .id;
+    let plan = inline::variable(&index, target).expect("self inline plan");
+    assert_eq!(plan.use_sites, 2, "the self inline rewrites both uses");
+    let edits = plan
+        .edits
+        .edits_for(&position_engine)
+        .expect("self inline edits");
+    kernel_accepts_file_edits(&source, edits);
 }
