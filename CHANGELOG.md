@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.9.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.8.3...fun-refactor-v0.9.0) (2026-09-01)
+
+
+### Features
+
+* **kernels:** check byte-native positions ([#205](https://github.com/e6qu/fun-refactor/issues/205)) ([67be33e](https://github.com/e6qu/fun-refactor/commit/67be33edaee8e577996d7af54482f2cbbc21e857))
+
+
+### Tests
+
+* **kernels:** audit self signature edits ([#204](https://github.com/e6qu/fun-refactor/issues/204)) ([b3c9105](https://github.com/e6qu/fun-refactor/commit/b3c910504ded67be3f765205208ffff2f6066c56))
+* **kernels:** dogfood edit plans on fr ([#202](https://github.com/e6qu/fun-refactor/issues/202)) ([39ff80f](https://github.com/e6qu/fun-refactor/commit/39ff80fa42e7f4185769b07b04459dbb4cefb021))
+
 ## [0.8.3](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.8.2...fun-refactor-v0.8.3) (2026-08-31)
 
 
