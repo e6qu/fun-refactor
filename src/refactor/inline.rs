@@ -691,8 +691,31 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
     let call_node = enclosing_call(&caller_parsed, reference.span)
         .ok_or_else(|| anyhow::anyhow!("could not locate the call expression"))?;
     let call_span = Span::from(call_node);
+    if argument_nodes(call_node)
+        .iter()
+        .any(|argument| !is_positional_argument(argument.kind()))
+    {
+        return Err(Refusal::Declined {
+            detail: "a keyword or expanded argument cannot pair with the callee's parameters \
+                     positionally"
+                .to_string(),
+        }
+        .into());
+    }
 
     let parameters = parameter_names(declaration, &callee_source);
+    if let Some(parameter) = parameters
+        .iter()
+        .find(|parameter| !is_simple_parameter(parameter))
+    {
+        return Err(Refusal::Declined {
+            detail: format!(
+                "parameter '{parameter}' is not a simple name, so a textual substitution \
+                 would leave part of its pattern behind"
+            ),
+        }
+        .into());
+    }
 
     // The body may read names from the callee's own module, a constant two lines above it.
     if callee.file != *file {
@@ -788,6 +811,15 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
             detail: format!(
                 "the body binds parameter '{parameter}' in a closure; textual substitution \
                  would change what it means"
+            ),
+        }
+        .into());
+    }
+    if let Some(parameter) = shorthand_parameter(body_node, &parameters, &callee_source) {
+        return Err(Refusal::Declined {
+            detail: format!(
+                "the body uses '{parameter}' as a Rust struct shorthand; textual substitution \
+                 would make invalid syntax"
             ),
         }
         .into());
@@ -911,9 +943,14 @@ fn parameter_names(declaration: tree_sitter::Node<'_>, source: &str) -> Vec<Stri
         .filter(|n| !n.kind().contains("comment"))
         .map(|n| {
             // A typed parameter names itself in its first identifier child.
+            let mut children = n.walk();
+            let child_name = n
+                .named_children(&mut children)
+                .find(|child| child.kind().contains("identifier"));
             let name = n
                 .child_by_field_name("pattern")
                 .or_else(|| n.child_by_field_name("name"))
+                .or(child_name)
                 .unwrap_or(n);
             let written = Span::from(name).text(source).trim();
             match written {
@@ -922,6 +959,13 @@ fn parameter_names(declaration: tree_sitter::Node<'_>, source: &str) -> Vec<Stri
             }
         })
         .collect()
+}
+
+fn is_simple_parameter(parameter: &str) -> bool {
+    !parameter.is_empty()
+        && parameter
+            .chars()
+            .all(|character| character.is_alphanumeric() || matches!(character, '_' | '$'))
 }
 
 /// Argument texts of a call, in order.
@@ -983,6 +1027,10 @@ fn argument_nodes(call: tree_sitter::Node<'_>) -> Vec<tree_sitter::Node<'_>> {
     list.named_children(&mut cursor)
         .filter(|n| !n.kind().contains("comment"))
         .collect()
+}
+
+fn is_positional_argument(kind: &str) -> bool {
+    !matches!(kind, "keyword_argument" | "list_splat" | "dictionary_splat")
 }
 
 /// The call expression containing `span`.
@@ -1108,6 +1156,31 @@ fn shadowed_parameter(
                     if parameters.iter().any(|parameter| parameter == written) {
                         return Some(written.to_string());
                     }
+                }
+            }
+        }
+        nodes.extend(node.named_children(&mut cursor));
+    }
+    None
+}
+
+fn shorthand_parameter(
+    body: tree_sitter::Node<'_>,
+    parameters: &[String],
+    source: &str,
+) -> Option<String> {
+    let mut cursor = body.walk();
+    let mut nodes = vec![body];
+    while let Some(node) = nodes.pop() {
+        if node.kind() == "shorthand_field_initializer" {
+            let mut fields = node.walk();
+            let name = node
+                .named_children(&mut fields)
+                .find(|child| child.kind().contains("identifier"));
+            if let Some(name) = name {
+                let written = Span::from(name).text(source).trim();
+                if parameters.iter().any(|parameter| parameter == written) {
+                    return Some(written.to_string());
                 }
             }
         }

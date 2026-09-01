@@ -104,6 +104,65 @@ fn refuses_to_substitute_through_an_arrow_functions_parameter() {
 }
 
 #[test]
+fn refuses_to_expand_a_rust_struct_shorthand() {
+    let src = "struct Point { x: i32 }\nfn point(x: i32) -> Point { Point { x } }\nfn main() { let p = point(3); }\n";
+    let (tmp, index) = workspace(&[("a.rs", src)]);
+    let path = tmp.path().join("a.rs");
+
+    let at = src.rfind("point").unwrap() + 1;
+    let err = inline::call(&index, &path, at).unwrap_err().to_string();
+    assert!(err.contains("shorthand"), "got: {err}");
+}
+
+#[test]
+fn refuses_to_substitute_a_python_keyword_argument() {
+    let src = "def double(x):\n    return x * 2\n\ndef main():\n    y = double(x=3)\n";
+    let (tmp, index) = workspace(&[("a.py", src)]);
+    let path = tmp.path().join("a.py");
+
+    let at = src.rfind("double").unwrap() + 1;
+    let err = inline::call(&index, &path, at).unwrap_err().to_string();
+    assert!(err.contains("keyword"), "got: {err}");
+}
+
+#[test]
+fn refuses_to_substitute_a_python_expanded_argument() {
+    let src = "def double(x):\n    return x * 2\n\ndef main(values):\n    y = double(*values)\n";
+    let (tmp, index) = workspace(&[("a.py", src)]);
+    let path = tmp.path().join("a.py");
+
+    let at = src.rfind("double").unwrap() + 1;
+    let err = inline::call(&index, &path, at).unwrap_err().to_string();
+    assert!(err.contains("expanded"), "got: {err}");
+}
+
+#[test]
+fn substitutes_a_typed_python_parameter() {
+    let src =
+        "def double(x: int) -> int:\n    return x * 2\n\ndef main() -> None:\n    y = double(3)\n";
+    let (tmp, index) = workspace(&[("a.py", src)]);
+    let path = tmp.path().join("a.py");
+
+    let at = src.rfind("double").unwrap() + 1;
+    let out = apply(&inline::call(&index, &path, at).unwrap(), &path);
+    assert!(out.contains("y = 3 * 2"), "got:\n{out}");
+}
+
+#[test]
+fn refuses_to_substitute_a_destructured_parameter() {
+    let src = concat!(
+        "function double({ value }: { value: number }): number { return value * 2; }\n",
+        "function main() { const y = double({ value: 3 }); }\n",
+    );
+    let (tmp, index) = workspace(&[("a.ts", src)]);
+    let path = tmp.path().join("a.ts");
+
+    let at = src.rfind("double").unwrap() + 1;
+    let err = inline::call(&index, &path, at).unwrap_err().to_string();
+    assert!(err.contains("simple name"), "got: {err}");
+}
+
+#[test]
 fn parenthesises_so_precedence_is_preserved() {
     // Without brackets `2 + one() * 3` would re-associate and change the answer.
     let src = "fn sum() -> i32 { 1 + 1 }\nfn main() { let n = 2 * sum(); }\n";
