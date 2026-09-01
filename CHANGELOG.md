@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.4](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.9.3...fun-refactor-v0.9.4) (2026-09-01)
+
+
+### Fixes
+
+* **signature:** refuse positional changes after keywords ([#220](https://github.com/e6qu/fun-refactor/issues/220)) ([ade1077](https://github.com/e6qu/fun-refactor/commit/ade1077b6f579aaa652205904c3ecd88b58e1861))
+
 ## [0.9.3](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.9.2...fun-refactor-v0.9.3) (2026-09-01)
 
 
