@@ -5,6 +5,11 @@ structure LineCol where
   col : Nat
   deriving Repr, DecidableEq
 
+structure ByteSpan where
+  start : Nat
+  stop : Nat
+  deriving Repr, DecidableEq
+
 def byteLength : List Char -> Nat
   | [] => 0
   | character :: rest => character.utf8Size + byteLength rest
@@ -60,6 +65,27 @@ def offsetAt (source : String) (position : LineCol) : Option Nat :=
   if position.line == 0 then none
   else offsetAtLines (lines source.toList) position.line 1 0 position.col
 
+def trailingNewline (characters : List Char) : Bool :=
+  match characters.reverse with
+  | '\n' :: _ => true
+  | _ => false
+
+def fullLineSpanAt (all : List (List Char)) (trailing : Bool)
+    (wanted current start : Nat) : Option ByteSpan :=
+  match all with
+  | [] => none
+  | line :: rest =>
+    if wanted == current then
+      let stop := start + byteLength line
+      some { start, stop := if rest.isEmpty && !trailing then stop else stop + 1 }
+    else fullLineSpanAt rest trailing wanted (current + 1) (start + byteLength line + 1)
+
+def fullLineSpan (source : String) (offset : Nat) : ByteSpan :=
+  match fullLineSpanAt (lines source.toList) (trailingNewline source.toList)
+      (lineCol source offset).line 1 0 with
+  | some span => span
+  | none => { start := 0, stop := 0 }
+
 theorem empty_source_has_one_position (offset : Nat) :
     lineCol "" offset = { line := 1, col := 1 } := by
   simp [lineCol, lineColFrom]
@@ -73,5 +99,7 @@ example : lineCol "a\n" 2 = { line := 1, col := 2 } := by decide
 example : lineCol "a\n" 3 = { line := 1, col := 2 } := by decide
 example : offsetAt "aé\n🙂" { line := 2, col := 2 } = some 8 := by decide
 example : offsetAt "a\nb\n" { line := 3, col := 1 } = none := by decide
+example : fullLineSpan "a\nb\n" 1 = { start := 0, stop := 2 } := by decide
+example : fullLineSpan "a\nb\n" 4 = { start := 2, stop := 4 } := by decide
 
 end FrKernels

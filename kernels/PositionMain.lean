@@ -23,6 +23,8 @@ def main : IO Unit :=
   for source in sources do
     for offset in List.range (source.utf8ByteSize + 3) do
       IO.println (renderOffset source offset)
+      let span := fullLineSpan source offset
+      IO.println s!"span\t{span.start}\t{span.stop}"
     for line in List.range 6 do
       for column in List.range 9 do
         IO.println (renderPosition source line column)

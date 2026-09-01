@@ -133,8 +133,8 @@ It converts them to character positions only at UTF-8 boundaries. It refuses off
 multibyte character. Replacements include ASCII and UTF-8 text. A second check creates a Unicode
 Rust rename plan through `fr`'s scanner and resolver. Lean checks its emitted spans and output.
 
-The position kernel mirrors `LineIndex`. It turns byte offsets into one-based
-line and character columns, and maps positions back to byte boundaries. Its
+The position kernel mirrors `LineIndex` and `full_line_span`. It turns byte offsets into one-based
+line and character columns, maps positions back to byte boundaries, and finds whole source lines. Its
 corpus has every string up to four symbols from ASCII, UTF-8 and newline text.
 
 `lake build --wfail` checks the model and rejects warnings, including `sorry`. The shared
