@@ -752,7 +752,19 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
             }
         }
     }
-    let arguments = arguments_at(call_node, &caller_source, callee.language);
+    let mut arguments = arguments_at(call_node, &caller_source, callee.language);
+    if callee.language == Language::Rust && parameters.first().is_some_and(|p| p == "self") {
+        let receiver =
+            receiver_at(call_node, &caller_source, callee.language).ok_or_else(|| {
+                anyhow::Error::from(Refusal::Declined {
+                    detail: format!(
+                        "'{}' takes self, but this call has no receiver to inline",
+                        callee.name
+                    ),
+                })
+            })?;
+        arguments.insert(0, receiver);
+    }
     if parameters.len() != arguments.len() {
         return Err(Refusal::Declined {
             detail: format!(
@@ -890,7 +902,11 @@ fn parameter_names(declaration: tree_sitter::Node<'_>, source: &str) -> Vec<Stri
                 .child_by_field_name("pattern")
                 .or_else(|| n.child_by_field_name("name"))
                 .unwrap_or(n);
-            Span::from(name).text(source).trim().to_string()
+            let written = Span::from(name).text(source).trim();
+            match written {
+                "self" | "&self" | "mut self" | "&mut self" => "self".to_string(),
+                _ => written.to_string(),
+            }
         })
         .collect()
 }
@@ -913,6 +929,22 @@ fn arguments_at(call: tree_sitter::Node<'_>, source: &str, language: Language) -
             Argument { text, grouped }
         })
         .collect()
+}
+
+fn receiver_at(call: tree_sitter::Node<'_>, source: &str, language: Language) -> Option<Argument> {
+    if language != Language::Rust {
+        return None;
+    }
+    let function = call.child_by_field_name("function")?;
+    if function.kind() != "field_expression" {
+        return None;
+    }
+    let receiver = function.child_by_field_name("value")?;
+    let text = Span::from(receiver).text(source).trim().to_string();
+    Some(Argument {
+        grouped: substitution(language, receiver, &text),
+        text,
+    })
 }
 
 fn argument_nodes(call: tree_sitter::Node<'_>) -> Vec<tree_sitter::Node<'_>> {
