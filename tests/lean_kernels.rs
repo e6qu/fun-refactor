@@ -1,6 +1,6 @@
 use fun_refactor::edit::{apply_to_string, Edit, EditSet};
 use fun_refactor::index::Index;
-use fun_refactor::refactor::{extract, inline, move_symbol, rename, signature};
+use fun_refactor::refactor::{extract, imports, inline, move_symbol, rename, signature};
 use fun_refactor::scan::{scan, ScanOptions};
 use fun_refactor::span::{LineCol, LineIndex, Span};
 use std::fmt::Write as _;
@@ -462,4 +462,24 @@ fn the_edit_kernel_accepts_a_self_inline_call_plan() {
         .edits_for(&position_engine)
         .expect("self inline call edits");
     kernel_accepts_file_edits(&source, edits);
+}
+
+#[test]
+fn a_self_imports_plan_reparses() {
+    let source_root = root().join("src");
+    let scanned = scan(&source_root, &ScanOptions::default()).expect("scan fr source");
+    let index = Index::build_from_scan(&scanned).expect("index fr source");
+    let command_surface = source_root.join("cli.rs");
+    let plan = imports::plan(&index, &command_surface).expect("self imports plan");
+    assert_eq!(
+        plan.removed.len(),
+        1,
+        "the self plan drops its unused import"
+    );
+    assert_eq!(
+        plan.sorted_blocks, 1,
+        "the self plan reorders its import block"
+    );
+    fun_refactor::edit::plan(&plan.edits, fun_refactor::edit::Validation::ReparseStrict)
+        .expect("the self imports plan reparses");
 }
