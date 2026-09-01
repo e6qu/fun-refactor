@@ -6,9 +6,28 @@ use fun_refactor::span::Span;
 use std::fmt::Write as _;
 use std::path::PathBuf;
 use std::process::Command;
+use std::sync::Once;
+
+static KERNEL_IS_BUILT: Once = Once::new();
 
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+}
+
+fn build_kernel() {
+    KERNEL_IS_BUILT.call_once(|| {
+        let output = Command::new("lake")
+            .args(["build", "--wfail"])
+            .current_dir(root().join("kernels"))
+            .output()
+            .expect("Lean is installed for the kernel gate");
+        assert!(
+            output.status.success(),
+            "stdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr),
+        );
+    });
 }
 
 fn edits_for(source: &str) -> Vec<(usize, usize, &'static str)> {
@@ -54,6 +73,7 @@ fn lean_string(value: &str) -> String {
 }
 
 fn kernel_accepts(source: &str, edits: &[Edit], expected: &str) {
+    build_kernel();
     let edits = edits
         .iter()
         .map(|edit| {
@@ -93,6 +113,7 @@ fn kernel_accepts(source: &str, edits: &[Edit], expected: &str) {
 
 #[test]
 fn the_lossless_edit_kernel_agrees_with_rust() {
+    build_kernel();
     let output = Command::new("lake")
         .args(["exe", "fr-edit-kernel"])
         .current_dir(root().join("kernels"))
