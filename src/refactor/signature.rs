@@ -387,6 +387,17 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
             }
             .into());
         }
+        if named_arguments_block_change(call, reference.language, &change) {
+            return Err(Refusal::Declined {
+                detail: format!(
+                    "the call to `{}` at {} has a keyword argument; adding or moving a \
+                     positional argument would change its meaning or make invalid syntax",
+                    sym.name,
+                    location(&reference.file, reference.span.start)
+                ),
+            }
+            .into());
+        }
 
         match call_arguments(call) {
             Some((opens_at, arg_spans)) => {
@@ -498,6 +509,12 @@ pub fn change(index: &Index, symbol: SymbolId, change: Change) -> Result<Signatu
             };
             if call.has_error() {
                 return Err(out_of_reach("that call does not parse cleanly"));
+            }
+            if named_arguments_block_change(call, reference.language, &change) {
+                return Err(out_of_reach(
+                    "it has a keyword argument, so adding or moving a positional argument \
+                     would not preserve its meaning",
+                ));
             }
             let Some((opens_at, arg_spans)) = call_arguments(call) else {
                 return Err(out_of_reach("that call has no argument list to rewrite"));
@@ -864,6 +881,20 @@ fn call_arguments(node: Node<'_>) -> Option<(usize, Vec<Span>)> {
         .filter(|span| !span.is_empty())
         .collect();
     Some((open.start_byte(), arguments))
+}
+
+fn named_arguments_block_change(call: Node<'_>, language: Language, change: &Change) -> bool {
+    if language != Language::Python || matches!(change, Change::Remove(_)) {
+        return false;
+    }
+    let Some(arguments) = argument_list(call) else {
+        return false;
+    };
+    let mut cursor = arguments.walk();
+    let has_keyword = arguments
+        .named_children(&mut cursor)
+        .any(|argument| argument.kind() == "keyword_argument");
+    has_keyword
 }
 
 /// The call expression whose callee is at `span`.
