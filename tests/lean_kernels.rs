@@ -1,6 +1,6 @@
-use fun_refactor::edit::{apply_to_string, Edit};
+use fun_refactor::edit::{apply_to_string, Edit, EditSet};
 use fun_refactor::index::Index;
-use fun_refactor::refactor::rename;
+use fun_refactor::refactor::{rename, signature};
 use fun_refactor::scan::{scan, ScanOptions};
 use fun_refactor::span::Span;
 use std::fmt::Write as _;
@@ -162,6 +162,30 @@ fn kernel_windows(source: &str, edits: &[Edit]) -> Vec<(String, Vec<Edit>, Strin
     windows
 }
 
+fn kernel_accepts_edit_set(edits: &EditSet) {
+    let checks: Vec<(String, Vec<Edit>, String)> = edits
+        .iter()
+        .flat_map(|(path, edits)| {
+            let source = std::fs::read_to_string(path).expect("read fr source");
+            kernel_windows(&source, edits)
+        })
+        .collect();
+    assert!(checks.len() > 1, "the self plan changes multiple fr files");
+    assert_eq!(
+        checks
+            .iter()
+            .map(|(_, edits, _)| edits.len())
+            .sum::<usize>(),
+        edits.edit_count(),
+        "every self-plan edit reaches the Lean audit"
+    );
+    let lean_checks: Vec<(&str, &[Edit], &str)> = checks
+        .iter()
+        .map(|(source, edits, expected)| (source.as_str(), edits.as_slice(), expected.as_str()))
+        .collect();
+    kernel_accepts_all(&lean_checks);
+}
+
 #[test]
 fn the_lossless_edit_kernel_agrees_with_rust() {
     build_kernel();
@@ -243,29 +267,33 @@ fn the_edit_kernel_accepts_every_edit_in_a_self_rename_plan() {
         "the self rename reaches its callers"
     );
 
-    let checks: Vec<(String, Vec<Edit>, String)> = plan
-        .edits
-        .iter()
-        .flat_map(|(path, edits)| {
-            let source = std::fs::read_to_string(path).expect("read fr source");
-            kernel_windows(&source, edits)
-        })
-        .collect();
+    kernel_accepts_edit_set(&plan.edits);
+}
+
+#[test]
+fn the_edit_kernel_accepts_every_edit_in_a_self_signature_plan() {
+    let source_root = root().join("src");
+    let scanned = scan(&source_root, &ScanOptions::default()).expect("scan fr source");
+    let index = Index::build_from_scan(&scanned).expect("index fr source");
+    let edit_engine = source_root.join("edit.rs");
+    let target = index
+        .find_symbols("line_indent", Some(&edit_engine))
+        .first()
+        .expect("fr line indentation helper")
+        .id;
+    let plan = signature::change(
+        &index,
+        target,
+        signature::Change::Add {
+            at: 2,
+            declaration: "kernel_marker: bool".to_string(),
+            argument: "false".to_string(),
+        },
+    )
+    .expect("self signature change");
     assert!(
-        checks.len() > 1,
-        "the self rename changes multiple fr files"
+        plan.call_sites > 10,
+        "the self signature plan reaches its callers"
     );
-    assert_eq!(
-        checks
-            .iter()
-            .map(|(_, edits, _)| edits.len())
-            .sum::<usize>(),
-        plan.edits.edit_count(),
-        "every self-rename edit reaches the Lean audit"
-    );
-    let lean_checks: Vec<(&str, &[Edit], &str)> = checks
-        .iter()
-        .map(|(source, edits, expected)| (source.as_str(), edits.as_slice(), expected.as_str()))
-        .collect();
-    kernel_accepts_all(&lean_checks);
+    kernel_accepts_edit_set(&plan.edits);
 }
