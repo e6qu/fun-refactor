@@ -1,6 +1,6 @@
 use fun_refactor::edit::{apply_to_string, Edit, EditSet};
 use fun_refactor::index::Index;
-use fun_refactor::refactor::{move_symbol, rename, signature};
+use fun_refactor::refactor::{extract, move_symbol, rename, signature};
 use fun_refactor::scan::{scan, ScanOptions};
 use fun_refactor::span::{LineCol, LineIndex, Span};
 use std::fmt::Write as _;
@@ -374,4 +374,43 @@ fn the_edit_kernel_accepts_every_edit_in_a_self_move_plan() {
         "the self move plan changes declarations, imports, and callers"
     );
     kernel_accepts_edit_set(&plan.edits);
+}
+
+#[test]
+fn the_edit_kernel_accepts_a_self_extract_plan() {
+    let source_root = root().join("src");
+    let scanned = scan(&source_root, &ScanOptions::default()).expect("scan fr source");
+    let index = Index::build_from_scan(&scanned).expect("index fr source");
+    let edit_engine = source_root.join("edit.rs");
+    let source = std::fs::read_to_string(&edit_engine).expect("read fr edit engine");
+    let start = source
+        .find("source.to_string()")
+        .expect("source copy expression");
+    let plan = extract::variable(
+        &index,
+        &edit_engine,
+        Span::new(start, start + "source.to_string()".len()),
+        "kernel_source_copy",
+        false,
+    )
+    .expect("self extraction plan");
+    assert_eq!(plan.occurrences, 1, "the selected expression changes once");
+    let edits = plan
+        .edits
+        .edits_for(&edit_engine)
+        .expect("self extraction edits");
+    let checks = kernel_windows(&source, edits);
+    assert_eq!(
+        checks
+            .iter()
+            .map(|(_, edits, _)| edits.len())
+            .sum::<usize>(),
+        edits.len(),
+        "every self-extraction edit reaches the Lean audit"
+    );
+    let lean_checks: Vec<(&str, &[Edit], &str)> = checks
+        .iter()
+        .map(|(source, edits, expected)| (source.as_str(), edits.as_slice(), expected.as_str()))
+        .collect();
+    kernel_accepts_all(&lean_checks);
 }
