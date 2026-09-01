@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.9.2](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.9.1...fun-refactor-v0.9.2) (2026-09-01)
+
+
+### Fixes
+
+* **inline:** substitute Rust method receivers ([#212](https://github.com/e6qu/fun-refactor/issues/212)) ([1abc39a](https://github.com/e6qu/fun-refactor/commit/1abc39a1fb6cbb6cfa0d13f6644a3a6b747c7f39))
+
+
+### Tests
+
+* **kernels:** audit self extraction edits ([#209](https://github.com/e6qu/fun-refactor/issues/209)) ([741163a](https://github.com/e6qu/fun-refactor/commit/741163a59bcb09ff325dccb1c198d23af0e9ae8e))
+* **kernels:** audit self inline edits ([#211](https://github.com/e6qu/fun-refactor/issues/211)) ([bc7c325](https://github.com/e6qu/fun-refactor/commit/bc7c325f75e966e896eb1b7a2c1dbc7f499a3fb4))
+
 ## [0.9.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.9.0...fun-refactor-v0.9.1) (2026-09-01)
 
 
