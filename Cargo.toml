@@ -3,7 +3,7 @@ members = [".", "crates/wasm-libc", "grammars/zig", "grammars/python", "grammars
 
 [package]
 name = "fun-refactor"
-version = "0.8.2"
+version = "0.8.3"
 edition = "2021"
 authors = ["e6qu"]
 license = "AGPL-3.0-or-later"
@@ -124,7 +124,7 @@ tempfile = { version = "3.27", optional = true }
 # version, and its rewrite of a `target.*` dependency writes to a `version` key without
 # checking for one first. Absent, the release job fails on the first release.
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-fun-refactor-wasm-libc = { version = "0.8.2", path = "crates/wasm-libc", optional = true }
+fun-refactor-wasm-libc = { version = "0.8.3", path = "crates/wasm-libc", optional = true }
 
 [dev-dependencies]
 # Also an optional runtime dependency (the edit engine stages through it); tests need
