@@ -72,26 +72,31 @@ fn lean_string(value: &str) -> String {
     out
 }
 
-fn kernel_accepts(source: &str, edits: &[Edit], expected: &str) {
+fn kernel_accepts_all(plans: &[(&str, &[Edit], &str)]) {
     build_kernel();
-    let edits = edits
-        .iter()
-        .map(|edit| {
-            format!(
-                "-- fn generated edit\n{{ start := {}, stop := {}, replacement := {} }}",
-                edit.span.start,
-                edit.span.end,
-                lean_string(&edit.replacement),
-            )
-        })
-        .collect::<Vec<_>>()
-        .join(", ");
-    let program = format!(
-        "-- fn generated plan\nimport FrKernels.Edit\n\nopen FrKernels\n\ndef source : String := {}\ndef edits : List Edit := [{}]\n\nexample : applyChecked source edits = some {} := by decide\n",
-        lean_string(source),
-        edits,
-        lean_string(expected),
-    );
+    let mut program =
+        String::from("import FrKernels.Edit\n\nset_option maxRecDepth 5000\n\nopen FrKernels\n");
+    for (number, (source, edits, expected)) in plans.iter().enumerate() {
+        let edits = edits
+            .iter()
+            .map(|edit| {
+                format!(
+                    "-- fn generated edit\n{{ start := {}, stop := {}, replacement := {} }}",
+                    edit.span.start,
+                    edit.span.end,
+                    lean_string(&edit.replacement),
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+        write!(
+            program,
+            "\n-- fn generated plan\ndef source_{number} : String := {}\ndef edits_{number} : List Edit := [{edits}]\n\nexample : applyChecked source_{number} edits_{number} = some {} := by decide\n",
+            lean_string(source),
+            lean_string(expected),
+        )
+        .unwrap();
+    }
     let dir = tempfile::Builder::new()
         .prefix(".fr-kernel-")
         .tempdir_in(root().join("kernels"))
@@ -109,6 +114,52 @@ fn kernel_accepts(source: &str, edits: &[Edit], expected: &str) {
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr),
     );
+}
+
+fn kernel_accepts(source: &str, edits: &[Edit], expected: &str) {
+    kernel_accepts_all(&[(source, edits, expected)]);
+}
+
+fn kernel_windows(source: &str, edits: &[Edit]) -> Vec<(String, Vec<Edit>, String)> {
+    const CONTEXT: usize = 32;
+    const MAX_BYTES: usize = 256;
+
+    let mut ordered: Vec<&Edit> = edits.iter().collect();
+    ordered.sort_by_key(|edit| (edit.span.start, edit.span.end));
+    let mut windows = Vec::new();
+    let mut next = 0;
+    while next < ordered.len() {
+        let first = ordered[next];
+        let mut start = first.span.start.saturating_sub(CONTEXT);
+        while !source.is_char_boundary(start) {
+            start -= 1;
+        }
+        let mut stop = first.span.end;
+        let mut last = next + 1;
+        while last < ordered.len() && ordered[last].span.end - start <= MAX_BYTES {
+            stop = ordered[last].span.end;
+            last += 1;
+        }
+        stop = (stop + CONTEXT).min(source.len());
+        while !source.is_char_boundary(stop) {
+            stop += 1;
+        }
+        let local_edits = ordered[next..last]
+            .iter()
+            .map(|edit| {
+                Edit::new(
+                    Span::new(edit.span.start - start, edit.span.end - start),
+                    edit.replacement.clone(),
+                    edit.reason.clone(),
+                )
+            })
+            .collect::<Vec<_>>();
+        let local_source = source[start..stop].to_string();
+        let expected = apply_to_string(&local_source, &local_edits).expect("windowed edits apply");
+        windows.push((local_source, local_edits, expected));
+        next = last;
+    }
+    windows
 }
 
 #[test]
@@ -173,4 +224,48 @@ fn the_edit_kernel_accepts_a_real_rename_plan() {
     let expected = apply_to_string(source, edits).expect("Rust applies rename plan");
 
     kernel_accepts(source, edits, &expected);
+}
+
+#[test]
+fn the_edit_kernel_accepts_every_edit_in_a_self_rename_plan() {
+    let source_root = root().join("src");
+    let scanned = scan(&source_root, &ScanOptions::default()).expect("scan fr source");
+    let index = Index::build_from_scan(&scanned).expect("index fr source");
+    let edit_engine = source_root.join("edit.rs");
+    let target = index
+        .find_symbols("apply_to_string", Some(&edit_engine))
+        .first()
+        .expect("fr edit engine")
+        .id;
+    let plan = rename::plan(&index, target, "apply_kernel_to_string").expect("self rename");
+    assert!(
+        plan.reference_edits > 1,
+        "the self rename reaches its callers"
+    );
+
+    let checks: Vec<(String, Vec<Edit>, String)> = plan
+        .edits
+        .iter()
+        .flat_map(|(path, edits)| {
+            let source = std::fs::read_to_string(path).expect("read fr source");
+            kernel_windows(&source, edits)
+        })
+        .collect();
+    assert!(
+        checks.len() > 1,
+        "the self rename changes multiple fr files"
+    );
+    assert_eq!(
+        checks
+            .iter()
+            .map(|(_, edits, _)| edits.len())
+            .sum::<usize>(),
+        plan.edits.edit_count(),
+        "every self-rename edit reaches the Lean audit"
+    );
+    let lean_checks: Vec<(&str, &[Edit], &str)> = checks
+        .iter()
+        .map(|(source, edits, expected)| (source.as_str(), edits.as_slice(), expected.as_str()))
+        .collect();
+    kernel_accepts_all(&lean_checks);
 }
