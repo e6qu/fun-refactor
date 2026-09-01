@@ -266,6 +266,8 @@ fn the_position_kernel_agrees_with_rust() {
         for offset in 0..source.len() + 3 {
             let position = index.line_col(offset, &source);
             expected.push(format!("position\t{}\t{}", position.line, position.col));
+            let span = fun_refactor::edit::full_line_span(&source, offset);
+            expected.push(format!("span\t{}\t{}", span.start, span.end));
         }
         for line in 0..6 {
             for col in 0..9 {
