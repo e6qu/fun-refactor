@@ -779,6 +779,19 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
     }
 
     let body_text = body_expression.text(&callee_source);
+    let body_node = callee_parsed
+        .root()
+        .descendant_for_byte_range(body_expression.start, body_expression.end)
+        .ok_or_else(|| anyhow::anyhow!("could not locate the callee body"))?;
+    if let Some(parameter) = shadowed_parameter(body_node, &parameters, &callee_source) {
+        return Err(Refusal::Declined {
+            detail: format!(
+                "the body binds parameter '{parameter}' in a closure; textual substitution \
+                 would change what it means"
+            ),
+        }
+        .into());
+    }
     for (parameter, argument) in parameters.iter().zip(arguments.iter()) {
         let uses = count_word(body_text, parameter);
         if uses > 1 && !is_duplicable(&argument.text) {
@@ -1061,6 +1074,46 @@ fn count_word(haystack: &str, word: &str) -> usize {
         .match_indices(word)
         .filter(|(i, _)| word_boundary(haystack, *i, word.len()))
         .count()
+}
+
+fn shadowed_parameter(
+    body: tree_sitter::Node<'_>,
+    parameters: &[String],
+    source: &str,
+) -> Option<String> {
+    let mut cursor = body.walk();
+    let mut nodes = vec![body];
+    while let Some(node) = nodes.pop() {
+        let kind = node.kind();
+        let binds_names = kind.contains("closure")
+            || kind.contains("lambda")
+            || kind.contains("arrow_function")
+            || kind.contains("function_expression");
+        if binds_names {
+            if let Some(bound) = node
+                .child_by_field_name("parameters")
+                .or_else(|| node.child_by_field_name("parameter"))
+            {
+                let mut parameters_cursor = bound.walk();
+                let mut names: Vec<_> = bound.named_children(&mut parameters_cursor).collect();
+                if names.is_empty() {
+                    names.push(bound);
+                }
+                for parameter in names {
+                    let name = parameter
+                        .child_by_field_name("pattern")
+                        .or_else(|| parameter.child_by_field_name("name"))
+                        .unwrap_or(parameter);
+                    let written = Span::from(name).text(source).trim();
+                    if parameters.iter().any(|parameter| parameter == written) {
+                        return Some(written.to_string());
+                    }
+                }
+            }
+        }
+        nodes.extend(node.named_children(&mut cursor));
+    }
+    None
 }
 
 /// Replace whole-word occurrences of each name with its argument.

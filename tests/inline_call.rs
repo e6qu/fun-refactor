@@ -82,6 +82,28 @@ fn substitutes_a_typed_rust_method_receiver_for_self() {
 }
 
 #[test]
+fn refuses_to_substitute_through_a_closures_parameter() {
+    let src = "fn make_offset(x: i32) -> impl Fn(i32) -> i32 { |x| x + 1 }\nfn main() { let offset = make_offset(3); }\n";
+    let (tmp, index) = workspace(&[("a.rs", src)]);
+    let path = tmp.path().join("a.rs");
+
+    let at = src.rfind("make_offset").unwrap() + 1;
+    let err = inline::call(&index, &path, at).unwrap_err().to_string();
+    assert!(err.contains("binds parameter 'x'"), "got: {err}");
+}
+
+#[test]
+fn refuses_to_substitute_through_an_arrow_functions_parameter() {
+    let src = "function makeOffset(x: number): (x: number) => number { return x => x + 1; }\nfunction main() { const offset = makeOffset(3); }\n";
+    let (tmp, index) = workspace(&[("a.ts", src)]);
+    let path = tmp.path().join("a.ts");
+
+    let at = src.rfind("makeOffset").unwrap() + 1;
+    let err = inline::call(&index, &path, at).unwrap_err().to_string();
+    assert!(err.contains("binds parameter 'x'"), "got: {err}");
+}
+
+#[test]
 fn parenthesises_so_precedence_is_preserved() {
     // Without brackets `2 + one() * 3` would re-associate and change the answer.
     let src = "fn sum() -> i32 { 1 + 1 }\nfn main() { let n = 2 * sum(); }\n";
