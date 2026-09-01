@@ -54,6 +54,9 @@ if [ "$slice" != wasm ]; then
     printf '\n\033[1m==> capability coverage\033[0m\n'
     cargo run --quiet --features cli --bin fr -- capabilities --json > "$matrix"
     python3 tools/capability-report.py "$matrix" "$log"
+
+    printf '\n\033[1m==> Lean kernels\033[0m\n'
+    bash tools/check-kernels.sh
 fi
 
 if [ "$slice" != default ]; then

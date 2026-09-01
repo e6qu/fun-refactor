@@ -1,7 +1,7 @@
 # Specs in Lean
 
-A plan, not a build. One tier of it exists: the writer under "Tier 2" below. The rest
-does not.
+A plan with one kernel. The writer under "Tier 2" and the checked kernel project exist.
+The remaining tiers do not.
 
 `fr` reads Lean and writes it, and the conformance suite runs both. This says what it would take to make Lean the place this
 project writes down what its code should do. It also says which parts of that idea are
@@ -121,6 +121,21 @@ correspondence, and a much stronger claim than a comment saying the two agree.
 
 This is where "write the kernel in Lean" becomes a thing a person can do, and it reuses
 a harness that already exists.
+
+`kernels/` starts with the lossless edit engine. Its Lean model orders edits and rejects invalid
+plans. It applies accepted edits from high offsets to low offsets. It states one splice as prefix,
+replacement, and suffix. The Rust test runs Lean's cases
+and compares every result with `apply_to_string`.
+
+The shared corpus has 11,992 one- and two-edit plans over five ASCII and three UTF-8 sources.
+It also has an out-of-bounds plan for each source. The kernel models Rust's byte offsets.
+It converts them to character positions only at UTF-8 boundaries. It refuses offsets inside a
+multibyte character. Replacements include ASCII and UTF-8 text. A second check creates a Unicode
+Rust rename plan through `fr`'s scanner and resolver. Lean checks its emitted spans and output.
+
+`lake build --wfail` checks the model and rejects warnings, including `sorry`. The shared
+cases check the Rust implementation against the executable Lean model. They do not prove
+the implementation refines the model for every possible string and edit list.
 
 ## The commands
 
