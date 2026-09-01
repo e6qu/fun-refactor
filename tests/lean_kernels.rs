@@ -1,6 +1,6 @@
 use fun_refactor::edit::{apply_to_string, Edit, EditSet};
 use fun_refactor::index::Index;
-use fun_refactor::refactor::{rename, signature};
+use fun_refactor::refactor::{move_symbol, rename, signature};
 use fun_refactor::scan::{scan, ScanOptions};
 use fun_refactor::span::{LineCol, LineIndex, Span};
 use std::fmt::Write as _;
@@ -92,8 +92,9 @@ fn lean_string(value: &str) -> String {
 
 fn kernel_accepts_all(plans: &[(&str, &[Edit], &str)]) {
     build_kernel();
-    let mut program =
-        String::from("import FrKernels.Edit\n\nset_option maxRecDepth 5000\n\nopen FrKernels\n");
+    let mut program = String::from(
+        "-- fn kernel program\nimport FrKernels.Edit\n\nset_option maxRecDepth 5000\nset_option maxHeartbeats 1000000\n\nopen FrKernels\n",
+    );
     for (number, (source, edits, expected)) in plans.iter().enumerate() {
         let edits = edits
             .iter()
@@ -350,7 +351,27 @@ fn the_edit_kernel_accepts_every_edit_in_a_self_signature_plan() {
     .expect("self signature change");
     assert!(
         plan.call_sites > 10,
-        "the self signature plan reaches its callers"
+        "the self signature plan reaches its callers."
+    );
+    kernel_accepts_edit_set(&plan.edits);
+}
+
+#[test]
+fn the_edit_kernel_accepts_every_edit_in_a_self_move_plan() {
+    let source_root = root().join("src");
+    let scanned = scan(&source_root, &ScanOptions::default()).expect("scan fr source");
+    let index = Index::build_from_scan(&scanned).expect("index fr source");
+    let edit_engine = source_root.join("edit.rs");
+    let target = index
+        .find_symbols("indent_unit", Some(&edit_engine))
+        .first()
+        .expect("fr indentation helper")
+        .id;
+    let plan =
+        move_symbol::to_file(&index, target, &source_root.join("span.rs")).expect("self move plan");
+    assert!(
+        plan.edits.file_count() > 3,
+        "the self move plan changes declarations, imports, and callers"
     );
     kernel_accepts_edit_set(&plan.edits);
 }
