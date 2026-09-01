@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.9.3](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.9.2...fun-refactor-v0.9.3) (2026-09-01)
+
+
+### Fixes
+
+* **inline:** refuse shadowed closure parameters ([#218](https://github.com/e6qu/fun-refactor/issues/218)) ([4fdf63a](https://github.com/e6qu/fun-refactor/commit/4fdf63a69530a414ade40f1449fa057582bf2ee4))
+* **inline:** refuse unsupported substitutions ([#219](https://github.com/e6qu/fun-refactor/issues/219)) ([6076f6a](https://github.com/e6qu/fun-refactor/commit/6076f6a52e8a5dcc7633d7072cd7c42c2d5c6709))
+
+
+### Tests
+
+* **imports:** dogfood self cleanup plan ([#213](https://github.com/e6qu/fun-refactor/issues/213)) ([db220f6](https://github.com/e6qu/fun-refactor/commit/db220f67fefd9901d4bd90790875b80f40d8feba))
+* **inline:** cover mutable Rust receivers ([#216](https://github.com/e6qu/fun-refactor/issues/216)) ([d9456c6](https://github.com/e6qu/fun-refactor/commit/d9456c67cad5b83bbd27d1ada87b369e4bafb0b9))
+* **inline:** cover Rust method receivers ([#215](https://github.com/e6qu/fun-refactor/issues/215)) ([09fff5f](https://github.com/e6qu/fun-refactor/commit/09fff5f9b21a92958086b7106529c44daf9c00ea))
+* **inline:** cover typed Rust receivers ([#217](https://github.com/e6qu/fun-refactor/issues/217)) ([dd0dfcb](https://github.com/e6qu/fun-refactor/commit/dd0dfcbe819328d8aa0a48741d12638f8e113358))
+
 ## [0.9.2](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.9.1...fun-refactor-v0.9.2) (2026-09-01)
 
 
