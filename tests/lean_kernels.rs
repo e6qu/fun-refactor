@@ -2,7 +2,7 @@ use fun_refactor::edit::{apply_to_string, Edit, EditSet};
 use fun_refactor::index::Index;
 use fun_refactor::refactor::{rename, signature};
 use fun_refactor::scan::{scan, ScanOptions};
-use fun_refactor::span::Span;
+use fun_refactor::span::{LineCol, LineIndex, Span};
 use std::fmt::Write as _;
 use std::path::PathBuf;
 use std::process::Command;
@@ -53,6 +53,24 @@ fn plans_for(source: &str) -> Vec<Vec<(usize, usize, &'static str)>> {
     }
     plans.push(vec![(source.len(), source.len() + 1, "X")]);
     plans
+}
+
+fn position_sources() -> Vec<String> {
+    let alphabet = ["a", "é", "\n", "名"];
+    let mut sources = vec![String::new()];
+    let mut words = sources.clone();
+    for _ in 0..4 {
+        words = words
+            .iter()
+            .flat_map(|prefix| {
+                alphabet
+                    .iter()
+                    .map(move |character| format!("{prefix}{character}"))
+            })
+            .collect();
+        sources.extend(words.clone());
+    }
+    sources
 }
 
 fn lean_string(value: &str) -> String {
@@ -224,6 +242,43 @@ fn the_lossless_edit_kernel_agrees_with_rust() {
         .collect();
     let actual: Vec<&str> = lean.lines().collect();
     assert_eq!(actual.len(), expected.len(), "Lean cases:\n{lean}");
+    for (at, (actual, expected)) in actual.iter().zip(expected.iter()).enumerate() {
+        assert_eq!(actual, expected, "case {at}");
+    }
+}
+
+#[test]
+fn the_position_kernel_agrees_with_rust() {
+    build_kernel();
+    let output = Command::new("lake")
+        .args(["exe", "fr-position-kernel"])
+        .current_dir(root().join("kernels"))
+        .output()
+        .expect("Lean is installed for the kernel gate");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let mut expected = Vec::new();
+    for source in position_sources() {
+        let index = LineIndex::new(&source);
+        for offset in 0..source.len() + 3 {
+            let position = index.line_col(offset, &source);
+            expected.push(format!("position\t{}\t{}", position.line, position.col));
+        }
+        for line in 0..6 {
+            for col in 0..9 {
+                expected.push(match index.offset(LineCol { line, col }, &source) {
+                    Some(offset) => format!("offset\t{offset}"),
+                    None => "none".to_string(),
+                });
+            }
+        }
+    }
+    let lean = String::from_utf8(output.stdout).expect("Lean writes text");
+    let actual: Vec<&str> = lean.lines().collect();
+    assert_eq!(actual.len(), expected.len(), "Lean cases:\n{actual:#?}");
     for (at, (actual, expected)) in actual.iter().zip(expected.iter()).enumerate() {
         assert_eq!(actual, expected, "case {at}");
     }
