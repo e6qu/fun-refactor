@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.9.0...fun-refactor-v0.9.1) (2026-09-01)
+
+
+### Tests
+
+* **kernels:** audit self move edits ([#207](https://github.com/e6qu/fun-refactor/issues/207)) ([72892c4](https://github.com/e6qu/fun-refactor/commit/72892c4a85b0d9c5be689a4403d3a83c536965ef))
+
 ## [0.9.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.8.3...fun-refactor-v0.9.0) (2026-09-01)
 
 
