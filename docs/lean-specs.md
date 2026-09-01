@@ -122,7 +122,7 @@ correspondence, and a much stronger claim than a comment saying the two agree.
 This is where "write the kernel in Lean" becomes a thing a person can do, and it reuses
 a harness that already exists.
 
-`kernels/` starts with the lossless edit engine. Its Lean model orders edits and rejects invalid
+`kernels/` holds the lossless edit engine and byte-native source positions. The edit model orders edits and rejects invalid
 plans. It applies accepted edits from high offsets to low offsets. It states one splice as prefix,
 replacement, and suffix. The Rust test runs Lean's cases
 and compares every result with `apply_to_string`.
@@ -132,6 +132,10 @@ It also has an out-of-bounds plan for each source. The kernel models Rust's byte
 It converts them to character positions only at UTF-8 boundaries. It refuses offsets inside a
 multibyte character. Replacements include ASCII and UTF-8 text. A second check creates a Unicode
 Rust rename plan through `fr`'s scanner and resolver. Lean checks its emitted spans and output.
+
+The position kernel mirrors `LineIndex`. It turns byte offsets into one-based
+line and character columns, and maps positions back to byte boundaries. Its
+corpus has every string up to four symbols from ASCII, UTF-8 and newline text.
 
 `lake build --wfail` checks the model and rejects warnings, including `sorry`. The shared
 cases check the Rust implementation against the executable Lean model. They do not prove
