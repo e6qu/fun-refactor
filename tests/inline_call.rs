@@ -68,6 +68,20 @@ fn substitutes_a_mutable_rust_method_receiver_for_self() {
 }
 
 #[test]
+fn substitutes_a_typed_rust_method_receiver_for_self() {
+    let src = "struct Scale { amount: i32 }\n\nimpl Scale {\n    fn take(self: Box<Self>) -> i32 { self.amount }\n    fn run(self: Box<Self>) -> i32 { self.take() }\n}\n";
+    let (tmp, index) = workspace(&[("a.rs", src)]);
+    let path = tmp.path().join("a.rs");
+
+    let at = src.rfind("take").unwrap() + 1;
+    let out = apply(&inline::call(&index, &path, at).unwrap(), &path);
+    assert!(
+        out.contains("fn run(self: Box<Self>) -> i32 { self.amount }"),
+        "got:\n{out}"
+    );
+}
+
+#[test]
 fn parenthesises_so_precedence_is_preserved() {
     // Without brackets `2 + one() * 3` would re-associate and change the answer.
     let src = "fn sum() -> i32 { 1 + 1 }\nfn main() { let n = 2 * sum(); }\n";
