@@ -153,6 +153,34 @@ fn refuses_to_substitute_a_typescript_member_name() {
 }
 
 #[test]
+fn refuses_to_substitute_inside_a_rust_string_literal() {
+    let src = concat!(
+        "fn label(x: i32) -> &'static str { \"x\" }\n",
+        "fn main() { let label_text = label(3); }\n",
+    );
+    let (tmp, index) = workspace(&[("a.rs", src)]);
+    let path = tmp.path().join("a.rs");
+
+    let at = src.rfind("label").unwrap() + 1;
+    let err = inline::call(&index, &path, at).unwrap_err().to_string();
+    assert!(err.contains("string literal"), "got: {err}");
+}
+
+#[test]
+fn refuses_to_substitute_inside_a_typescript_string_literal() {
+    let src = concat!(
+        "function label(x: number): string { return \"x\"; }\n",
+        "function main() { const labelText = label(3); }\n",
+    );
+    let (tmp, index) = workspace(&[("a.ts", src)]);
+    let path = tmp.path().join("a.ts");
+
+    let at = src.rfind("label").unwrap() + 1;
+    let err = inline::call(&index, &path, at).unwrap_err().to_string();
+    assert!(err.contains("string literal"), "got: {err}");
+}
+
+#[test]
 fn refuses_to_substitute_a_python_keyword_argument() {
     let src = "def double(x):\n    return x * 2\n\ndef main():\n    y = double(x=3)\n";
     let (tmp, index) = workspace(&[("a.py", src)]);

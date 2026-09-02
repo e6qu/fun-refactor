@@ -901,6 +901,15 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
         }
         .into());
     }
+    if let Some(parameter) = literal_parameter(body_node, &parameters, &callee_source) {
+        return Err(Refusal::Declined {
+            detail: format!(
+                "the body writes '{parameter}' inside a string literal; textual substitution \\
+                 would change literal data"
+            ),
+        }
+        .into());
+    }
     for (parameter, argument) in parameters.iter().zip(arguments.iter()) {
         let uses = count_word(body_text, parameter);
         if uses > 1 && !is_duplicable(&argument.text) {
@@ -1293,6 +1302,28 @@ fn member_name_parameter(
             let written = Span::from(field).text(source).trim();
             if parameters.iter().any(|parameter| parameter == written) {
                 return Some(written.to_string());
+            }
+        }
+        nodes.extend(node.named_children(&mut cursor));
+    }
+    None
+}
+
+fn literal_parameter(
+    body: tree_sitter::Node<'_>,
+    parameters: &[String],
+    source: &str,
+) -> Option<String> {
+    let mut cursor = body.walk();
+    let mut nodes = vec![body];
+    while let Some(node) = nodes.pop() {
+        if node.kind().contains("string") {
+            let text = Span::from(node).text(source);
+            if let Some(parameter) = parameters
+                .iter()
+                .find(|parameter| count_word(text, parameter) > 0)
+            {
+                return Some(parameter.clone());
             }
         }
         nodes.extend(node.named_children(&mut cursor));
