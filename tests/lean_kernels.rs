@@ -326,6 +326,7 @@ fn the_edit_kernel_accepts_a_real_rename_plan() {
 }
 
 #[test]
+#[ignore = "the full self-audit runs after merge and on demand."]
 fn the_edit_kernel_accepts_every_edit_in_a_self_rename_plan() {
     let source_root = root().join("src");
     let scanned = scan(&source_root, &ScanOptions::default()).expect("scan fr source");
@@ -374,6 +375,7 @@ fn the_edit_kernel_accepts_every_edit_in_a_self_signature_plan() {
 }
 
 #[test]
+#[ignore = "the full self-audit runs after merge and on demand."]
 fn the_edit_kernel_accepts_every_edit_in_a_self_move_plan() {
     let source_root = root().join("src");
     let scanned = scan(&source_root, &ScanOptions::default()).expect("scan fr source");
