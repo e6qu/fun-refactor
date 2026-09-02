@@ -153,7 +153,7 @@ fn refuses_to_substitute_a_typescript_member_name() {
 }
 
 #[test]
-fn refuses_to_substitute_inside_a_rust_string_literal() {
+fn preserves_a_rust_string_literal_while_inlining() {
     let src = concat!(
         "fn label(x: i32) -> &'static str { \"x\" }\n",
         "fn main() { let label_text = label(3); }\n",
@@ -162,12 +162,12 @@ fn refuses_to_substitute_inside_a_rust_string_literal() {
     let path = tmp.path().join("a.rs");
 
     let at = src.rfind("label").unwrap() + 1;
-    let err = inline::call(&index, &path, at).unwrap_err().to_string();
-    assert!(err.contains("string literal"), "got: {err}");
+    let out = apply(&inline::call(&index, &path, at).unwrap(), &path);
+    assert!(out.contains("let label_text = \"x\";"), "got:\n{out}");
 }
 
 #[test]
-fn refuses_to_substitute_inside_a_rust_character_literal() {
+fn preserves_a_rust_character_literal_while_inlining() {
     let src = concat!(
         "fn label(x: char) -> char { 'x' }\n",
         "fn main() { let label_char = label('a'); }\n",
@@ -176,12 +176,12 @@ fn refuses_to_substitute_inside_a_rust_character_literal() {
     let path = tmp.path().join("a.rs");
 
     let at = src.rfind("label").unwrap() + 1;
-    let err = inline::call(&index, &path, at).unwrap_err().to_string();
-    assert!(err.contains("character literal"), "got: {err}");
+    let out = apply(&inline::call(&index, &path, at).unwrap(), &path);
+    assert!(out.contains("let label_char = 'x';"), "got:\n{out}");
 }
 
 #[test]
-fn refuses_to_substitute_inside_a_typescript_string_literal() {
+fn preserves_a_typescript_string_literal_while_inlining() {
     let src = concat!(
         "function label(x: number): string { return \"x\"; }\n",
         "function main() { const labelText = label(3); }\n",
@@ -190,8 +190,43 @@ fn refuses_to_substitute_inside_a_typescript_string_literal() {
     let path = tmp.path().join("a.ts");
 
     let at = src.rfind("label").unwrap() + 1;
-    let err = inline::call(&index, &path, at).unwrap_err().to_string();
-    assert!(err.contains("string literal"), "got: {err}");
+    let out = apply(&inline::call(&index, &path, at).unwrap(), &path);
+    assert!(out.contains("const labelText = \"x\";"), "got:\n{out}");
+}
+
+#[test]
+fn preserves_a_comment_and_allows_its_single_effectful_use() {
+    let src = concat!(
+        "fn add_one(x: i32) -> i32 { x /* x stays prose */ + 1 }\n",
+        "fn next() -> i32 { 3 }\n",
+        "fn main() { let total = add_one(next()); }\n",
+    );
+    let (tmp, index) = workspace(&[("a.rs", src)]);
+    let path = tmp.path().join("a.rs");
+
+    let at = src.rfind("add_one").unwrap() + 1;
+    let out = apply(&inline::call(&index, &path, at).unwrap(), &path);
+    assert!(
+        out.contains("let total = next() /* x stays prose */ + 1;"),
+        "got:\n{out}"
+    );
+}
+
+#[test]
+fn preserves_a_typescript_regular_expression_while_inlining() {
+    let src = concat!(
+        "function matches(x: string, value: string): boolean { return /x/.test(value); }\n",
+        "function main(input: string) { const matched = matches(\"a\", input); }\n",
+    );
+    let (tmp, index) = workspace(&[("a.ts", src)]);
+    let path = tmp.path().join("a.ts");
+
+    let at = src.rfind("matches").unwrap() + 1;
+    let out = apply(&inline::call(&index, &path, at).unwrap(), &path);
+    assert!(
+        out.contains("const matched = /x/.test(input);"),
+        "got:\n{out}"
+    );
 }
 
 #[test]
