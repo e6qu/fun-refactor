@@ -197,6 +197,50 @@ fn refuses_to_move_a_parameter_across_a_python_keyword() {
 }
 
 #[test]
+fn refuses_to_add_a_parameter_at_a_python_expansion() {
+    let source = "def greet(name: str) -> str:\n    return \"hello\"\n\n\ndef run(values):\n    return greet(*values)\n";
+    let (tmp, index) = workspace(&[("defs.py", source)]);
+    let _ = &tmp;
+    let id = method_at(&index, source, "def greet");
+    let err = signature::change(
+        &index,
+        id,
+        signature::Change::Add {
+            at: 1,
+            declaration: "punct: str".to_string(),
+            argument: "\"!\"".to_string(),
+        },
+    )
+    .unwrap_err()
+    .to_string();
+    assert!(err.contains("expanded argument"), "got: {err}");
+}
+
+#[test]
+fn refuses_to_remove_a_parameter_at_a_python_expansion() {
+    let source = "def greet(name: str) -> str:\n    return \"hello\"\n\n\ndef run(values):\n    return greet(*values)\n";
+    let (tmp, index) = workspace(&[("defs.py", source)]);
+    let _ = &tmp;
+    let id = method_at(&index, source, "def greet");
+    let err = signature::change(&index, id, signature::Change::Remove(0))
+        .unwrap_err()
+        .to_string();
+    assert!(err.contains("expanded argument"), "got: {err}");
+}
+
+#[test]
+fn refuses_to_change_a_parameter_at_a_python_keyword_expansion() {
+    let source = "def greet(name: str) -> str:\n    return \"hello\"\n\n\ndef run(values):\n    return greet(**values)\n";
+    let (tmp, index) = workspace(&[("defs.py", source)]);
+    let _ = &tmp;
+    let id = method_at(&index, source, "def greet");
+    let err = signature::change(&index, id, signature::Change::Remove(0))
+        .unwrap_err()
+        .to_string();
+    assert!(err.contains("expanded argument"), "got: {err}");
+}
+
+#[test]
 fn a_body_that_reads_the_parameter_still_refuses() {
     let source = "def greet(name: str, punct: str = \"!\") -> str:\n    \
         return name + punct\n\n\nprint(greet(\"a\"))\n";
