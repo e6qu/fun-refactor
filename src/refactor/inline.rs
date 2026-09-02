@@ -884,7 +884,7 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
     if let Some(parameter) = shorthand_parameter(body_node, &parameters, &callee_source) {
         return Err(Refusal::Declined {
             detail: format!(
-                "the body uses '{parameter}' as a Rust struct shorthand; textual substitution \
+                "the body uses '{parameter}' as struct or object shorthand; textual substitution \
                  would make invalid syntax"
             ),
         }
@@ -1238,16 +1238,21 @@ fn shorthand_parameter(
     let mut cursor = body.walk();
     let mut nodes = vec![body];
     while let Some(node) = nodes.pop() {
-        if node.kind() == "shorthand_field_initializer" {
-            let mut fields = node.walk();
-            let name = node
-                .named_children(&mut fields)
-                .find(|child| child.kind().contains("identifier"));
-            if let Some(name) = name {
-                let written = Span::from(name).text(source).trim();
-                if parameters.iter().any(|parameter| parameter == written) {
-                    return Some(written.to_string());
-                }
+        let name = match node.kind() {
+            "shorthand_property_identifier" => Some(node),
+            "shorthand_field_initializer" => {
+                let mut fields = node.walk();
+                let field = node
+                    .named_children(&mut fields)
+                    .find(|child| child.kind().contains("identifier"));
+                field
+            }
+            _ => None,
+        };
+        if let Some(name) = name {
+            let written = Span::from(name).text(source).trim();
+            if parameters.iter().any(|parameter| parameter == written) {
+                return Some(written.to_string());
             }
         }
         nodes.extend(node.named_children(&mut cursor));
