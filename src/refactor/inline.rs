@@ -890,6 +890,17 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
         }
         .into());
     }
+    if let Some(parameter) =
+        member_name_parameter(body_node, &parameters, &callee_source, callee.language)
+    {
+        return Err(Refusal::Declined {
+            detail: format!(
+                "the body uses '{parameter}' as a field name; textual substitution would \
+                 make invalid syntax"
+            ),
+        }
+        .into());
+    }
     for (parameter, argument) in parameters.iter().zip(arguments.iter()) {
         let uses = count_word(body_text, parameter);
         if uses > 1 && !is_duplicable(&argument.text) {
@@ -1251,6 +1262,35 @@ fn shorthand_parameter(
         };
         if let Some(name) = name {
             let written = Span::from(name).text(source).trim();
+            if parameters.iter().any(|parameter| parameter == written) {
+                return Some(written.to_string());
+            }
+        }
+        nodes.extend(node.named_children(&mut cursor));
+    }
+    None
+}
+
+fn member_name_parameter(
+    body: tree_sitter::Node<'_>,
+    parameters: &[String],
+    source: &str,
+    language: Language,
+) -> Option<String> {
+    let mut cursor = body.walk();
+    let mut nodes = vec![body];
+    while let Some(node) = nodes.pop() {
+        let field = match language {
+            Language::Rust if node.kind() == "field_expression" => {
+                node.child_by_field_name("field")
+            }
+            Language::TypeScript | Language::Tsx if node.kind() == "member_expression" => {
+                node.child_by_field_name("property")
+            }
+            _ => None,
+        };
+        if let Some(field) = field {
+            let written = Span::from(field).text(source).trim();
             if parameters.iter().any(|parameter| parameter == written) {
                 return Some(written.to_string());
             }
