@@ -6,7 +6,7 @@ use crate::span::{LineIndex, Span};
 use anyhow::Result;
 use std::path::PathBuf;
 
-/// One appearance of a name inside a comment or a string.
+/// One appearance of a name inside literal data or a comment.
 #[derive(Debug, Clone)]
 pub struct Mention {
     pub file: PathBuf,
@@ -15,7 +15,7 @@ pub struct Mention {
     pub col: usize,
 }
 
-/// Every appearance of `name` in the comments and strings of the workspace.
+/// Every appearance of `name` in the comments and literal data of the workspace.
 pub fn of(index: &Index, name: &str) -> Result<Vec<Mention>> {
     let parsers = Parsers::new();
     let mut found = Vec::new();
@@ -50,7 +50,7 @@ pub fn of(index: &Index, name: &str) -> Result<Vec<Mention>> {
     Ok(found)
 }
 
-/// The spans a grammar calls a string or a comment, plus the spans masking replaced.
+/// The spans a grammar calls literal data or a comment, plus the spans masking replaced.
 pub fn string_and_comment_spans(parsed: &Parsed) -> Vec<Span> {
     let mut spans: Vec<Span> = parsed.masked_spans.clone();
     let mut cursor = parsed.root().walk();
@@ -59,14 +59,16 @@ pub fn string_and_comment_spans(parsed: &Parsed) -> Vec<Span> {
     loop {
         let node = cursor.node();
         let kind = node.kind();
-        // Grammars name these differently: string_literal, raw_string_literal,
-        // interpreted_string_literal, line_comment, block_comment, comment.
+        // Grammars name these differently: string_literal, raw_string_literal, interpreted_string_literal,
+        // char_literal, rune_literal, regex, line_comment, block_comment, comment.
         let prose = parsed.language == crate::lang::Language::Markdown
             && matches!(kind, "inline" | "code_fence_content");
         if prose
             || kind.contains("string")
             || kind.contains("comment")
-            || kind.contains("char_literal")
+            || kind.contains("char")
+            || kind.contains("rune")
+            || kind.contains("regex")
         {
             spans.push(Span::from(node));
             recurse = false;

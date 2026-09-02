@@ -867,7 +867,6 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
         .into());
     }
 
-    let body_text = body_expression.text(&callee_source);
     let body_node = callee_parsed
         .root()
         .descendant_for_byte_range(body_expression.start, body_expression.end)
@@ -901,19 +900,10 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
         }
         .into());
     }
-    if let Some((parameter, literal_kind)) =
-        literal_parameter(body_node, &parameters, &callee_source)
-    {
-        return Err(Refusal::Declined {
-            detail: format!(
-                "the body writes '{parameter}' inside a {literal_kind}; textual substitution \\
-                 would change literal data"
-            ),
-        }
-        .into());
-    }
+    let protected_spans = protected_body_spans(&callee_parsed, body_expression);
     for (parameter, argument) in parameters.iter().zip(arguments.iter()) {
-        let uses = count_word(body_text, parameter);
+        let uses =
+            count_unprotected_words(&callee_source, body_expression, &protected_spans, parameter);
         if uses > 1 && !is_duplicable(&argument.text) {
             let text = &argument.text;
             return Err(Refusal::Declined {
@@ -928,7 +918,13 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
 
     // The body may bind an argument more tightly than the caller wrote it.
     let grouped: Vec<String> = arguments.iter().map(|a| a.grouped.clone()).collect();
-    let mut expansion = substitute_words(body_text, &parameters, &grouped);
+    let mut expansion = substitute_unprotected_words(
+        &callee_source,
+        body_expression,
+        &protected_spans,
+        &parameters,
+        &grouped,
+    );
     // The body was an expression in its own right; parenthesise it so it keeps its meaning
     // inside whatever expression the call sat in.
     let exposed = match call_node.parent() {
@@ -1311,35 +1307,61 @@ fn member_name_parameter(
     None
 }
 
-fn literal_parameter(
-    body: tree_sitter::Node<'_>,
-    parameters: &[String],
-    source: &str,
-) -> Option<(String, &'static str)> {
-    let mut cursor = body.walk();
-    let mut nodes = vec![body];
-    while let Some(node) = nodes.pop() {
-        let literal_kind = if node.kind().contains("string") {
-            Some("string literal")
-        } else if node.kind().contains("char") || node.kind().contains("rune") {
-            Some("character literal")
-        } else if node.kind().contains("regex") {
-            Some("regular expression")
-        } else {
-            None
-        };
-        if let Some(literal_kind) = literal_kind {
-            let text = Span::from(node).text(source);
-            if let Some(parameter) = parameters
-                .iter()
-                .find(|parameter| count_word(text, parameter) > 0)
-            {
-                return Some((parameter.clone(), literal_kind));
+fn protected_body_spans(parsed: &Parsed, body: Span) -> Vec<Span> {
+    let mut spans: Vec<Span> = crate::mentions::string_and_comment_spans(parsed)
+        .into_iter()
+        .filter_map(|span| {
+            let start = span.start.max(body.start);
+            let end = span.end.min(body.end);
+            if start < end {
+                Some(Span::new(start, end))
+            } else {
+                None
             }
+        })
+        .collect();
+    spans.sort();
+
+    let mut merged: Vec<Span> = Vec::new();
+    for span in spans {
+        if let Some(previous) = merged
+            .last_mut()
+            .filter(|previous| span.start <= previous.end)
+        {
+            previous.end = previous.end.max(span.end);
+        } else {
+            merged.push(span);
         }
-        nodes.extend(node.named_children(&mut cursor));
     }
-    None
+    merged
+}
+
+fn count_unprotected_words(source: &str, body: Span, protected: &[Span], word: &str) -> usize {
+    let mut next = body.start;
+    let mut count = 0;
+    for span in protected {
+        count += count_word(&source[next..span.start], word);
+        next = span.end;
+    }
+    count + count_word(&source[next..body.end], word)
+}
+
+fn substitute_unprotected_words(
+    source: &str,
+    body: Span,
+    protected: &[Span],
+    names: &[String],
+    values: &[String],
+) -> String {
+    let mut next = body.start;
+    let mut expansion = String::with_capacity(body.len());
+    for span in protected {
+        expansion.push_str(&substitute_words(&source[next..span.start], names, values));
+        expansion.push_str(span.text(source));
+        next = span.end;
+    }
+    expansion.push_str(&substitute_words(&source[next..body.end], names, values));
+    expansion
 }
 
 /// Replace whole-word occurrences of each name with its argument.
