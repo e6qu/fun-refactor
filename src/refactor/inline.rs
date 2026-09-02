@@ -901,10 +901,12 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
         }
         .into());
     }
-    if let Some(parameter) = literal_parameter(body_node, &parameters, &callee_source) {
+    if let Some((parameter, literal_kind)) =
+        literal_parameter(body_node, &parameters, &callee_source)
+    {
         return Err(Refusal::Declined {
             detail: format!(
-                "the body writes '{parameter}' inside a string literal; textual substitution \\
+                "the body writes '{parameter}' inside a {literal_kind}; textual substitution \\
                  would change literal data"
             ),
         }
@@ -1313,17 +1315,26 @@ fn literal_parameter(
     body: tree_sitter::Node<'_>,
     parameters: &[String],
     source: &str,
-) -> Option<String> {
+) -> Option<(String, &'static str)> {
     let mut cursor = body.walk();
     let mut nodes = vec![body];
     while let Some(node) = nodes.pop() {
-        if node.kind().contains("string") {
+        let literal_kind = if node.kind().contains("string") {
+            Some("string literal")
+        } else if node.kind().contains("char") || node.kind().contains("rune") {
+            Some("character literal")
+        } else if node.kind().contains("regex") {
+            Some("regular expression")
+        } else {
+            None
+        };
+        if let Some(literal_kind) = literal_kind {
             let text = Span::from(node).text(source);
             if let Some(parameter) = parameters
                 .iter()
                 .find(|parameter| count_word(text, parameter) > 0)
             {
-                return Some(parameter.clone());
+                return Some((parameter.clone(), literal_kind));
             }
         }
         nodes.extend(node.named_children(&mut cursor));

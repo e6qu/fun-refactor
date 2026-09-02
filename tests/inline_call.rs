@@ -167,6 +167,20 @@ fn refuses_to_substitute_inside_a_rust_string_literal() {
 }
 
 #[test]
+fn refuses_to_substitute_inside_a_rust_character_literal() {
+    let src = concat!(
+        "fn label(x: char) -> char { 'x' }\n",
+        "fn main() { let label_char = label('a'); }\n",
+    );
+    let (tmp, index) = workspace(&[("a.rs", src)]);
+    let path = tmp.path().join("a.rs");
+
+    let at = src.rfind("label").unwrap() + 1;
+    let err = inline::call(&index, &path, at).unwrap_err().to_string();
+    assert!(err.contains("character literal"), "got: {err}");
+}
+
+#[test]
 fn refuses_to_substitute_inside_a_typescript_string_literal() {
     let src = concat!(
         "function label(x: number): string { return \"x\"; }\n",
