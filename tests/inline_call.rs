@@ -127,6 +127,32 @@ fn refuses_to_expand_a_typescript_object_shorthand() {
 }
 
 #[test]
+fn refuses_to_substitute_a_rust_field_name() {
+    let src = "struct Point { x: i32 }\nfn read(x: i32, point: Point) -> i32 { point.x }\nfn main() { let point = Point { x: 1 }; let y = read(3, point); }\n";
+    let (tmp, index) = workspace(&[("a.rs", src)]);
+    let path = tmp.path().join("a.rs");
+
+    let at = src.rfind("read").unwrap() + 1;
+    let err = inline::call(&index, &path, at).unwrap_err().to_string();
+    assert!(err.contains("field name"), "got: {err}");
+}
+
+#[test]
+fn refuses_to_substitute_a_typescript_member_name() {
+    let src = concat!(
+        "type Point = { x: number };\n",
+        "function read(x: number, point: Point): number { return point.x; }\n",
+        "function main() { const point = { x: 1 }; const y = read(3, point); }\n",
+    );
+    let (tmp, index) = workspace(&[("a.ts", src)]);
+    let path = tmp.path().join("a.ts");
+
+    let at = src.rfind("read").unwrap() + 1;
+    let err = inline::call(&index, &path, at).unwrap_err().to_string();
+    assert!(err.contains("field name"), "got: {err}");
+}
+
+#[test]
 fn refuses_to_substitute_a_python_keyword_argument() {
     let src = "def double(x):\n    return x * 2\n\ndef main():\n    y = double(x=3)\n";
     let (tmp, index) = workspace(&[("a.py", src)]);
