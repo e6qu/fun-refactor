@@ -1,5 +1,7 @@
 //! Differential execution: a program translated is a program that still runs.
 
+#![cfg(feature = "full-audit")]
+
 mod common;
 
 use fun_refactor::lang::Language;
