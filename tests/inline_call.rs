@@ -115,6 +115,18 @@ fn refuses_to_expand_a_rust_struct_shorthand() {
 }
 
 #[test]
+fn refuses_to_expand_a_typescript_object_shorthand() {
+    let src =
+        "function point(x: number) { return { x }; }\nfunction main() { const p = point(3); }\n";
+    let (tmp, index) = workspace(&[("a.ts", src)]);
+    let path = tmp.path().join("a.ts");
+
+    let at = src.rfind("point").unwrap() + 1;
+    let err = inline::call(&index, &path, at).unwrap_err().to_string();
+    assert!(err.contains("shorthand"), "got: {err}");
+}
+
+#[test]
 fn refuses_to_substitute_a_python_keyword_argument() {
     let src = "def double(x):\n    return x * 2\n\ndef main():\n    y = double(x=3)\n";
     let (tmp, index) = workspace(&[("a.py", src)]);
