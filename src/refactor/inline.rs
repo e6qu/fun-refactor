@@ -148,6 +148,29 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
         .into());
     }
 
+    for reference in &references {
+        if reference.language != Language::Rust {
+            continue;
+        }
+        let shorthand = if reference.file == sym.file {
+            rust_struct_shorthand(&parsed, reference.span)
+        } else {
+            let text = crate::vfs::read_to_string(&reference.file)?;
+            let tree = Parsers::new().parse(reference.language, &text)?;
+            rust_struct_shorthand(&tree, reference.span)
+        };
+        if shorthand {
+            return Err(Refusal::Declined {
+                detail: format!(
+                    "Rust struct shorthand uses '{}'; inlining it would make invalid \
+                     syntax",
+                    sym.name
+                ),
+            }
+            .into());
+        }
+    }
+
     // Wrap a compound value only where the use site needs it.
     let mut trees: std::collections::HashMap<std::path::PathBuf, (String, crate::parse::Parsed)> =
         std::collections::HashMap::new();
@@ -289,6 +312,12 @@ fn use_site_shielded(parsed: &Parsed, span: Span) -> bool {
         Some(parent) => shielded(parent.kind()),
         None => true,
     }
+}
+
+fn rust_struct_shorthand(parsed: &Parsed, span: Span) -> bool {
+    node_covering(parsed, span)
+        .and_then(|node| ancestor_of_kind(node, "shorthand_field_initializer"))
+        .is_some()
 }
 
 fn other_assignment(
@@ -515,6 +544,18 @@ mod tests {
         assert!(out.contains("// keep me"), "got:\n{out}");
         assert!(out.contains("// and me"), "got:\n{out}");
         assert!(out.contains("g(1);"), "got:\n{out}");
+    }
+
+    #[test]
+    fn refuses_to_inline_a_rust_struct_shorthand() {
+        let src =
+            "struct Point { x: i32 }\nfn f() {\n    let x = 3;\n    let p = Point { x };\n}\n";
+        let (tmp, index) = workspace(&[("a.rs", src)]);
+        let path = tmp.path().join("a.rs");
+        let id = var_at(&index, &path, src.find("let x").unwrap() + 4);
+
+        let err = variable(&index, id).unwrap_err().to_string();
+        assert!(err.contains("struct shorthand"), "got: {err}");
     }
 
     #[test]
