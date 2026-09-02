@@ -104,41 +104,41 @@ fn refuses_to_substitute_through_an_arrow_functions_parameter() {
 }
 
 #[test]
-fn refuses_to_expand_a_rust_struct_shorthand() {
+fn expands_a_rust_struct_shorthand() {
     let src = "struct Point { x: i32 }\nfn point(x: i32) -> Point { Point { x } }\nfn main() { let p = point(3); }\n";
     let (tmp, index) = workspace(&[("a.rs", src)]);
     let path = tmp.path().join("a.rs");
 
     let at = src.rfind("point").unwrap() + 1;
-    let err = inline::call(&index, &path, at).unwrap_err().to_string();
-    assert!(err.contains("shorthand"), "got: {err}");
+    let out = apply(&inline::call(&index, &path, at).unwrap(), &path);
+    assert!(out.contains("let p = Point { x: 3 };"), "got:\n{out}");
 }
 
 #[test]
-fn refuses_to_expand_a_typescript_object_shorthand() {
+fn expands_a_typescript_object_shorthand() {
     let src =
         "function point(x: number) { return { x }; }\nfunction main() { const p = point(3); }\n";
     let (tmp, index) = workspace(&[("a.ts", src)]);
     let path = tmp.path().join("a.ts");
 
     let at = src.rfind("point").unwrap() + 1;
-    let err = inline::call(&index, &path, at).unwrap_err().to_string();
-    assert!(err.contains("shorthand"), "got: {err}");
+    let out = apply(&inline::call(&index, &path, at).unwrap(), &path);
+    assert!(out.contains("const p = { x: 3 };"), "got:\n{out}");
 }
 
 #[test]
-fn refuses_to_substitute_a_rust_field_name() {
+fn preserves_a_rust_field_name() {
     let src = "struct Point { x: i32 }\nfn read(x: i32, point: Point) -> i32 { point.x }\nfn main() { let point = Point { x: 1 }; let y = read(3, point); }\n";
     let (tmp, index) = workspace(&[("a.rs", src)]);
     let path = tmp.path().join("a.rs");
 
     let at = src.rfind("read").unwrap() + 1;
-    let err = inline::call(&index, &path, at).unwrap_err().to_string();
-    assert!(err.contains("field name"), "got: {err}");
+    let out = apply(&inline::call(&index, &path, at).unwrap(), &path);
+    assert!(out.contains("let y = point.x;"), "got:\n{out}");
 }
 
 #[test]
-fn refuses_to_substitute_a_typescript_member_name() {
+fn preserves_a_typescript_member_name() {
     let src = concat!(
         "type Point = { x: number };\n",
         "function read(x: number, point: Point): number { return point.x; }\n",
@@ -148,8 +148,51 @@ fn refuses_to_substitute_a_typescript_member_name() {
     let path = tmp.path().join("a.ts");
 
     let at = src.rfind("read").unwrap() + 1;
+    let out = apply(&inline::call(&index, &path, at).unwrap(), &path);
+    assert!(out.contains("const y = point.x;"), "got:\n{out}");
+}
+
+#[test]
+fn refuses_to_skip_an_unused_effectful_argument() {
+    let src = concat!(
+        "fn ignore(x: i32) -> i32 { 1 }\n",
+        "fn next() -> i32 { 3 }\n",
+        "fn main() { let value = ignore(next()); }\n",
+    );
+    let (tmp, index) = workspace(&[("a.rs", src)]);
+    let path = tmp.path().join("a.rs");
+
+    let at = src.rfind("ignore").unwrap() + 1;
     let err = inline::call(&index, &path, at).unwrap_err().to_string();
-    assert!(err.contains("field name"), "got: {err}");
+    assert!(err.contains("skip evaluating"), "got: {err}");
+}
+
+#[test]
+fn refuses_to_defer_a_parameter_read_into_a_closure() {
+    let src = concat!(
+        "fn delayed(x: i32) -> impl Fn() -> i32 { || x + 1 }\n",
+        "fn main() { let callback = delayed(3); }\n",
+    );
+    let (tmp, index) = workspace(&[("a.rs", src)]);
+    let path = tmp.path().join("a.rs");
+
+    let at = src.rfind("delayed").unwrap() + 1;
+    let err = inline::call(&index, &path, at).unwrap_err().to_string();
+    assert!(err.contains("in a closure"), "got: {err}");
+}
+
+#[test]
+fn refuses_to_write_to_a_typescript_parameter() {
+    let src = concat!(
+        "function reset(x: number): number { return x = 1; }\n",
+        "function main() { let value = 3; const result = reset(value); }\n",
+    );
+    let (tmp, index) = workspace(&[("a.ts", src)]);
+    let path = tmp.path().join("a.ts");
+
+    let at = src.rfind("reset").unwrap() + 1;
+    let err = inline::call(&index, &path, at).unwrap_err().to_string();
+    assert!(err.contains("assigns to parameter"), "got: {err}");
 }
 
 #[test]

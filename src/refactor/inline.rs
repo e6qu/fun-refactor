@@ -874,57 +874,84 @@ pub fn call(index: &Index, file: &std::path::Path, offset: usize) -> Result<Inli
     if let Some(parameter) = shadowed_parameter(body_node, &parameters, &callee_source) {
         return Err(Refusal::Declined {
             detail: format!(
-                "the body binds parameter '{parameter}' in a closure; textual substitution \
-                 would change what it means"
+                "the body binds parameter '{parameter}' in a closure; inlining would change \
+                 what it means"
             ),
         }
         .into());
     }
-    if let Some(parameter) = shorthand_parameter(body_node, &parameters, &callee_source) {
-        return Err(Refusal::Declined {
-            detail: format!(
-                "the body uses '{parameter}' as struct or object shorthand; textual substitution \
-                 would make invalid syntax"
-            ),
-        }
-        .into());
-    }
-    if let Some(parameter) =
-        member_name_parameter(body_node, &parameters, &callee_source, callee.language)
+    let parameter_ids = parameter_ids(index, callee, &parameters)?;
+    let mut replacements = Vec::new();
+    for ((parameter, parameter_id), argument) in
+        parameters.iter().zip(parameter_ids).zip(arguments.iter())
     {
-        return Err(Refusal::Declined {
-            detail: format!(
-                "the body uses '{parameter}' as a field name; textual substitution would \
-                 make invalid syntax"
-            ),
-        }
-        .into());
-    }
-    let protected_spans = protected_body_spans(&callee_parsed, body_expression);
-    for (parameter, argument) in parameters.iter().zip(arguments.iter()) {
-        let uses =
-            count_unprotected_words(&callee_source, body_expression, &protected_spans, parameter);
-        if uses > 1 && !is_duplicable(&argument.text) {
+        let mut uses: Vec<Span> = match parameter_id {
+            Some(parameter_id) => index
+                .references_to(parameter_id)
+                .into_iter()
+                .filter(|reference| {
+                    reference.file == callee.file
+                        && body_expression.contains(reference.span)
+                        && !matches!(
+                            reference.kind,
+                            crate::model::ReferenceKind::StringRef
+                                | crate::model::ReferenceKind::Textual
+                        )
+                })
+                .map(|reference| reference.span)
+                .collect(),
+            None => self_references(body_node),
+        };
+        uses.sort();
+        uses.dedup();
+        if uses.is_empty() && !is_duplicable(&argument.text) {
             let text = &argument.text;
             return Err(Refusal::Declined {
                 detail: format!(
-                    "the body uses '{parameter}' {uses} times and the argument `{text}` is \
-                 not a simple value; inlining would evaluate it more than once"
+                    "the body does not use '{parameter}', so inlining would skip evaluating \
+                     {text}"
                 ),
             }
             .into());
         }
+        if uses.len() > 1 && !is_duplicable(&argument.text) {
+            let text = &argument.text;
+            return Err(Refusal::Declined {
+                detail: format!(
+                    "the body uses '{parameter}' {} times and the argument `{text}` is \
+                 not a simple value; inlining would evaluate it more than once",
+                    uses.len()
+                ),
+            }
+            .into());
+        }
+        for reference in uses {
+            if parameter_is_written(body_node, reference) {
+                return Err(Refusal::Declined {
+                    detail: format!(
+                        "the body assigns to parameter '{parameter}'; inlining would assign \
+                         to the caller's argument"
+                    ),
+                }
+                .into());
+            }
+            if parameter_is_deferred(body_node, reference) {
+                return Err(Refusal::Declined {
+                    detail: format!(
+                        "the body reads parameter '{parameter}' in a closure; inlining would \
+                         delay evaluating its argument"
+                    ),
+                }
+                .into());
+            }
+            let (span, replacement) =
+                replacement_at_reference(body_node, reference, parameter, &argument.grouped);
+            replacements.push((span, replacement));
+        }
     }
 
     // The body may bind an argument more tightly than the caller wrote it.
-    let grouped: Vec<String> = arguments.iter().map(|a| a.grouped.clone()).collect();
-    let mut expansion = substitute_unprotected_words(
-        &callee_source,
-        body_expression,
-        &protected_spans,
-        &parameters,
-        &grouped,
-    );
+    let mut expansion = substitute_references(&callee_source, body_expression, replacements)?;
     // The body was an expression in its own right; parenthesise it so it keeps its meaning
     // inside whatever expression the call sat in.
     let exposed = match call_node.parent() {
@@ -1150,7 +1177,7 @@ pub fn supports_call(language: crate::lang::Language) -> bool {
 fn is_duplicable(argument: &str) -> bool {
     // A bare name or a literal has no effects and costs nothing to repeat.
     let trimmed = argument.trim();
-    if whole_string_literal(trimmed) {
+    if whole_string_literal(trimmed) || whole_character_literal(trimmed) {
         return true;
     }
     !trimmed.is_empty()
@@ -1200,12 +1227,68 @@ fn whole_string_literal(text: &str) -> bool {
     true
 }
 
-/// Count whole-word occurrences of `word`.
-fn count_word(haystack: &str, word: &str) -> usize {
-    haystack
-        .match_indices(word)
-        .filter(|(i, _)| word_boundary(haystack, *i, word.len()))
-        .count()
+fn whole_character_literal(text: &str) -> bool {
+    text.len() >= 3 && text.starts_with('\'') && text.ends_with('\'')
+}
+
+/// Resolved declarations of the callee's direct parameters.
+fn parameter_ids(
+    index: &Index,
+    callee: &crate::model::Symbol,
+    parameters: &[String],
+) -> Result<Vec<Option<SymbolId>>> {
+    let mut declared: Vec<_> = index
+        .symbols
+        .iter()
+        .filter(|symbol| {
+            symbol.file == callee.file
+                && symbol.kind == SymbolKind::Parameter
+                && callee.full_span.contains(symbol.name_span)
+                && symbol.container == Some(callee.id)
+        })
+        .collect();
+    declared.sort_by_key(|symbol| symbol.name_span);
+    let mut ids = Vec::with_capacity(parameters.len());
+    for parameter in parameters {
+        if let Some(at) = declared.iter().position(|symbol| symbol.name == *parameter) {
+            ids.push(Some(declared.remove(at).id));
+        } else if parameter == "self" {
+            ids.push(None);
+        } else {
+            return Err(Refusal::Declined {
+                detail: format!(
+                    "could not resolve parameter '{parameter}' of '{}'; inlining needs resolved \
+                     parameter references",
+                    callee.name
+                ),
+            }
+            .into());
+        }
+    }
+    if !declared.is_empty() {
+        return Err(Refusal::Declined {
+            detail: format!(
+                "could not match every parameter of '{}'; inlining needs resolved parameter \
+                 references",
+                callee.name
+            ),
+        }
+        .into());
+    }
+    Ok(ids)
+}
+
+fn self_references(body: tree_sitter::Node<'_>) -> Vec<Span> {
+    let mut cursor = body.walk();
+    let mut nodes = vec![body];
+    let mut references = Vec::new();
+    while let Some(node) = nodes.pop() {
+        if node.kind() == "self" {
+            references.push(Span::from(node));
+        }
+        nodes.extend(node.named_children(&mut cursor));
+    }
+    references
 }
 
 fn shadowed_parameter(
@@ -1248,156 +1331,103 @@ fn shadowed_parameter(
     None
 }
 
-fn shorthand_parameter(
-    body: tree_sitter::Node<'_>,
-    parameters: &[String],
-    source: &str,
-) -> Option<String> {
-    let mut cursor = body.walk();
-    let mut nodes = vec![body];
-    while let Some(node) = nodes.pop() {
-        let name = match node.kind() {
-            "shorthand_property_identifier" => Some(node),
-            "shorthand_field_initializer" => {
-                let mut fields = node.walk();
-                let field = node
-                    .named_children(&mut fields)
-                    .find(|child| child.kind().contains("identifier"));
-                field
-            }
-            _ => None,
-        };
-        if let Some(name) = name {
-            let written = Span::from(name).text(source).trim();
-            if parameters.iter().any(|parameter| parameter == written) {
-                return Some(written.to_string());
+fn parameter_is_written(body: tree_sitter::Node<'_>, reference: Span) -> bool {
+    let Some(mut node) = body.descendant_for_byte_range(reference.start, reference.end) else {
+        return false;
+    };
+    loop {
+        let kind = node.kind();
+        if kind.contains("assignment") {
+            let target = node
+                .child_by_field_name("left")
+                .or_else(|| node.child_by_field_name("target"));
+            if target.is_none_or(|target| Span::from(target).contains(reference)) {
+                return true;
             }
         }
-        nodes.extend(node.named_children(&mut cursor));
-    }
-    None
-}
-
-fn member_name_parameter(
-    body: tree_sitter::Node<'_>,
-    parameters: &[String],
-    source: &str,
-    language: Language,
-) -> Option<String> {
-    let mut cursor = body.walk();
-    let mut nodes = vec![body];
-    while let Some(node) = nodes.pop() {
-        let field = match language {
-            Language::Rust if node.kind() == "field_expression" => {
-                node.child_by_field_name("field")
-            }
-            Language::TypeScript | Language::Tsx if node.kind() == "member_expression" => {
-                node.child_by_field_name("property")
-            }
-            _ => None,
-        };
-        if let Some(field) = field {
-            let written = Span::from(field).text(source).trim();
-            if parameters.iter().any(|parameter| parameter == written) {
-                return Some(written.to_string());
-            }
+        if kind.contains("update") && Span::from(node).contains(reference) {
+            return true;
         }
-        nodes.extend(node.named_children(&mut cursor));
+        if node.id() == body.id() {
+            return false;
+        }
+        let Some(parent) = node.parent() else {
+            return false;
+        };
+        node = parent;
     }
-    None
 }
 
-fn protected_body_spans(parsed: &Parsed, body: Span) -> Vec<Span> {
-    let mut spans: Vec<Span> = crate::mentions::string_and_comment_spans(parsed)
-        .into_iter()
-        .filter_map(|span| {
-            let start = span.start.max(body.start);
-            let end = span.end.min(body.end);
-            if start < end {
-                Some(Span::new(start, end))
-            } else {
-                None
-            }
-        })
-        .collect();
-    spans.sort();
-
-    let mut merged: Vec<Span> = Vec::new();
-    for span in spans {
-        if let Some(previous) = merged
-            .last_mut()
-            .filter(|previous| span.start <= previous.end)
+fn parameter_is_deferred(body: tree_sitter::Node<'_>, reference: Span) -> bool {
+    let Some(mut node) = body.descendant_for_byte_range(reference.start, reference.end) else {
+        return false;
+    };
+    loop {
+        let kind = node.kind();
+        if kind.contains("closure")
+            || kind.contains("lambda")
+            || kind.contains("arrow_function")
+            || kind.contains("function_expression")
         {
-            previous.end = previous.end.max(span.end);
-        } else {
-            merged.push(span);
+            return true;
         }
+        if node.id() == body.id() {
+            return false;
+        }
+        let Some(parent) = node.parent() else {
+            return false;
+        };
+        node = parent;
     }
-    merged
 }
 
-fn count_unprotected_words(source: &str, body: Span, protected: &[Span], word: &str) -> usize {
-    let mut next = body.start;
-    let mut count = 0;
-    for span in protected {
-        count += count_word(&source[next..span.start], word);
-        next = span.end;
+fn replacement_at_reference(
+    body: tree_sitter::Node<'_>,
+    reference: Span,
+    parameter: &str,
+    argument: &str,
+) -> (Span, String) {
+    let Some(mut node) = body.descendant_for_byte_range(reference.start, reference.end) else {
+        return (reference, argument.to_string());
+    };
+    loop {
+        if node.kind() == "shorthand_field_initializer" {
+            return (Span::from(node), format!("{parameter}: {argument}"));
+        }
+        if node.kind() == "shorthand_property_identifier" {
+            return (reference, format!("{parameter}: {argument}"));
+        }
+        if node.id() == body.id() {
+            return (reference, argument.to_string());
+        }
+        let Some(parent) = node.parent() else {
+            return (reference, argument.to_string());
+        };
+        node = parent;
     }
-    count + count_word(&source[next..body.end], word)
 }
 
-fn substitute_unprotected_words(
+/// Splice resolved references into the body without touching other source bytes.
+fn substitute_references(
     source: &str,
     body: Span,
-    protected: &[Span],
-    names: &[String],
-    values: &[String],
-) -> String {
+    mut replacements: Vec<(Span, String)>,
+) -> Result<String> {
+    replacements.sort_by_key(|(span, _)| *span);
     let mut next = body.start;
     let mut expansion = String::with_capacity(body.len());
-    for span in protected {
-        expansion.push_str(&substitute_words(&source[next..span.start], names, values));
-        expansion.push_str(span.text(source));
+    for (span, replacement) in replacements {
+        if span.start < next {
+            return Err(anyhow::anyhow!(
+                "resolved parameter references overlap at {span}"
+            ));
+        }
+        expansion.push_str(&source[next..span.start]);
+        expansion.push_str(&replacement);
         next = span.end;
     }
-    expansion.push_str(&substitute_words(&source[next..body.end], names, values));
-    expansion
-}
-
-/// Replace whole-word occurrences of each name with its argument.
-fn substitute_words(body: &str, names: &[String], values: &[String]) -> String {
-    let mut out = body.to_string();
-    for (name, value) in names.iter().zip(values.iter()) {
-        let mut result = String::with_capacity(out.len());
-        let mut rest = out.as_str();
-        let mut base = 0usize;
-        while let Some(found) = rest.find(name.as_str()) {
-            let absolute = base + found;
-            if word_boundary(&out, absolute, name.len()) {
-                result.push_str(&rest[..found]);
-                result.push_str(value);
-            } else {
-                result.push_str(&rest[..found + name.len()]);
-            }
-            rest = &rest[found + name.len()..];
-            base = absolute + name.len();
-        }
-        result.push_str(rest);
-        out = result;
-    }
-    out
-}
-
-fn word_boundary(haystack: &str, offset: usize, len: usize) -> bool {
-    let before = haystack[..offset]
-        .chars()
-        .next_back()
-        .is_none_or(|c| !(c.is_alphanumeric() || c == '_'));
-    let after = haystack[offset + len..]
-        .chars()
-        .next()
-        .is_none_or(|c| !(c.is_alphanumeric() || c == '_'));
-    before && after
+    expansion.push_str(&source[next..body.end]);
+    Ok(expansion)
 }
 
 /// Does the expansion need wrapping to survive its new context?
