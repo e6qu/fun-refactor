@@ -149,20 +149,23 @@ pub fn variable(index: &Index, symbol: SymbolId) -> Result<InlinePlan> {
     }
 
     for reference in &references {
-        if reference.language != Language::Rust {
+        if !matches!(
+            reference.language,
+            Language::Rust | Language::TypeScript | Language::Tsx
+        ) {
             continue;
         }
         let shorthand = if reference.file == sym.file {
-            rust_struct_shorthand(&parsed, reference.span)
+            structural_shorthand(&parsed, reference.span)
         } else {
             let text = crate::vfs::read_to_string(&reference.file)?;
             let tree = Parsers::new().parse(reference.language, &text)?;
-            rust_struct_shorthand(&tree, reference.span)
+            structural_shorthand(&tree, reference.span)
         };
         if shorthand {
             return Err(Refusal::Declined {
                 detail: format!(
-                    "Rust struct shorthand uses '{}'; inlining it would make invalid \
+                    "struct or object shorthand uses '{}'; inlining it would make invalid \
                      syntax",
                     sym.name
                 ),
@@ -314,10 +317,21 @@ fn use_site_shielded(parsed: &Parsed, span: Span) -> bool {
     }
 }
 
-fn rust_struct_shorthand(parsed: &Parsed, span: Span) -> bool {
-    node_covering(parsed, span)
-        .and_then(|node| ancestor_of_kind(node, "shorthand_field_initializer"))
-        .is_some()
+fn structural_shorthand(parsed: &Parsed, span: Span) -> bool {
+    const SHORTHANDS: &[&str] = &[
+        "shorthand_field_initializer",
+        "shorthand_property_identifier",
+    ];
+    node_covering(parsed, span).is_some_and(|node| {
+        let mut current = Some(node);
+        while let Some(candidate) = current {
+            if SHORTHANDS.contains(&candidate.kind()) {
+                return true;
+            }
+            current = candidate.parent();
+        }
+        false
+    })
 }
 
 fn other_assignment(
@@ -555,7 +569,18 @@ mod tests {
         let id = var_at(&index, &path, src.find("let x").unwrap() + 4);
 
         let err = variable(&index, id).unwrap_err().to_string();
-        assert!(err.contains("struct shorthand"), "got: {err}");
+        assert!(err.contains("shorthand"), "got: {err}");
+    }
+
+    #[test]
+    fn refuses_to_inline_a_typescript_object_shorthand() {
+        let src = "function f() {\n    const x = 3;\n    const point = { x };\n}\n";
+        let (tmp, index) = workspace(&[("a.ts", src)]);
+        let path = tmp.path().join("a.ts");
+        let id = var_at(&index, &path, src.find("const x").unwrap() + 6);
+
+        let err = variable(&index, id).unwrap_err().to_string();
+        assert!(err.contains("object shorthand"), "got: {err}");
     }
 
     #[test]
