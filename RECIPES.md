@@ -4,8 +4,10 @@ A **recipe** is a refactoring written down: a file that says what to find, what 
 to it, and what must be true afterwards. A reviewer can read it, you can run it again,
 and it fails loudly.
 
-**Built.** Run `fr recipe <file>` to apply one. `src/recipe/` implements the runner and
-`tests/recipe.rs` covers it. The tutorial at
+**Built.** Run `fr recipe <file>` to plan or apply one workspace transaction. A file
+may hold several recipes: each sees the virtual workspace its predecessor left, and
+`--write` commits only when every recipe succeeds. `src/recipe/` implements the runner
+and `tests/recipe.rs` covers it. The tutorial at
 [docs/recipes.html](https://e6qu.github.io/fun-refactor/recipes.html) works five of
 them, in five languages, with the output the tool produced.
 
@@ -55,6 +57,11 @@ The work people bring does not fit it:
 Today you write a shell loop over `fr`. The refusals scroll past, the ordering stays
 implicit, and nowhere does a reviewer find what you did written down. A recipe makes
 the *plan* the artifact and the diff its product.
+
+Several recipes in one file are one larger transaction, not a shell loop with nicer
+syntax. They run in file order against one virtual workspace. The preview and JSON
+report describe the complete file, and a failed later recipe keeps an earlier recipe's
+successful result out of the working tree.
 
 ## Non-goals
 

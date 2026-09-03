@@ -501,8 +501,11 @@ fn a_recipe_stopped_by_a_refusal_exits_5_with_the_blocking_positions() {
         .expect("running fr");
     assert_eq!(out.status.code(), Some(5), "a refusal-stop is a refusal");
     let printed: serde_json::Value = serde_json::from_slice(&out.stdout).expect("a report");
-    assert!(printed["stopped"].is_string(), "{printed}");
-    let refusal = &printed["steps"][0]["refusals"][0];
+    assert!(
+        printed["stopped_by_refusal"].as_bool().unwrap_or(false),
+        "{printed}"
+    );
+    let refusal = &printed["recipes"][0]["steps"][0]["refusals"][0];
     let references = refusal["references"].as_array().expect("references");
     assert_eq!(references.len(), 1, "got {refusal}");
     assert!(
@@ -531,7 +534,7 @@ fn a_recipe_warning_has_the_same_shape_as_a_standalone_one() {
     ]);
     let (printed, _, ok) = run_json(&tmp, &["recipe", "tidy.recipe", "--json"]);
     assert!(ok, "{printed}");
-    let warnings = printed["steps"][0]["warnings"]
+    let warnings = printed["recipes"][0]["steps"][0]["warnings"]
         .as_array()
         .expect("warnings");
     let textual = warnings
@@ -549,6 +552,58 @@ fn a_recipe_warning_has_the_same_shape_as_a_standalone_one() {
         "{textual}"
     );
     assert!(textual["detail"].is_string(), "{textual}");
+}
+
+#[test]
+fn one_recipe_file_rolls_back_every_earlier_recipe() {
+    let tmp = workspace(&[
+        ("m.py", RENDER_PY),
+        (
+            "whole.recipe",
+            "schema 1\n\nrecipe rename-render {\n  rename to \"draw\" where name=\"render\" kind=function\n}\n\nrecipe rename-user {\n  rename to \"paint\" where name=\"user\" kind=function\n  expect changed >= 5 files\n}\n",
+        ),
+    ]);
+    let (printed, _, ok) = run_json(&tmp, &["recipe", "whole.recipe", "--write", "--json"]);
+    assert!(
+        !ok,
+        "a failed later recipe must abort the file transaction."
+    );
+    assert_eq!(printed["failed_recipe"], "rename-user", "{printed}");
+    assert_eq!(
+        printed["recipes"].as_array().map(Vec::len),
+        Some(2),
+        "{printed}"
+    );
+    assert_eq!(printed["applied"], false, "{printed}");
+    assert_eq!(printed["rolled_back"], true, "{printed}");
+    assert_eq!(
+        std::fs::read_to_string(tmp.path().join("m.py")).expect("the file"),
+        RENDER_PY,
+        "the first recipe must not reach disk before the second has passed"
+    );
+}
+
+#[test]
+fn one_recipe_file_commits_the_complete_virtual_workspace() {
+    let tmp = workspace(&[
+        ("m.py", RENDER_PY),
+        (
+            "whole.recipe",
+            "schema 1\n\nrecipe rename-render {\n  rename to \"draw\" where name=\"render\" kind=function\n}\n\nrecipe rename-again {\n  rename to \"paint\" where name=\"draw\" kind=function\n}\n",
+        ),
+    ]);
+    let (printed, _, ok) = run_json(&tmp, &["recipe", "whole.recipe", "--write", "--json"]);
+    assert!(ok, "{printed}");
+    assert_eq!(printed["applied"], true, "{printed}");
+    assert_eq!(printed["files_changed"], 1, "{printed}");
+    assert_eq!(
+        printed["recipes"].as_array().map(Vec::len),
+        Some(2),
+        "{printed}"
+    );
+    let text = std::fs::read_to_string(tmp.path().join("m.py")).expect("the file");
+    assert!(text.contains("paint()"), "{text}");
+    assert!(!text.contains("render") && !text.contains("draw"), "{text}");
 }
 
 #[test]

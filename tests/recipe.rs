@@ -225,6 +225,33 @@ fn each_step_sees_what_the_previous_one_left() {
 }
 
 #[test]
+fn each_recipe_sees_the_workspace_the_previous_recipe_left() {
+    let (tmp, sources) = workspace(&[(
+        "a.py",
+        "def render():\n    return 1\n\ndef user():\n    return render()\n",
+    )]);
+    let file = recipe::parse(
+        "schema 1\n\nrecipe first {\n  rename to \"draw\" where name=\"render\" kind=function\n}\n\nrecipe second {\n  rename to \"paint\" where name=\"draw\" kind=function\n}\n",
+    )
+    .expect("the recipe file parses");
+    let (report, after) = recipe::run_file(
+        &file,
+        sources,
+        &Options {
+            root: tmp.path(),
+            catalogs: &[],
+        },
+    )
+    .expect("the transaction runs");
+    fun_refactor::vfs::use_filesystem();
+    assert!(report.ok, "{report:?}");
+    assert_eq!(report.recipes.len(), 2, "{report:?}");
+    let text = &after[&tmp.path().join("a.py")].1;
+    assert!(text.contains("paint()"), "{text}");
+    assert!(!text.contains("render") && !text.contains("draw"), "{text}");
+}
+
+#[test]
 fn two_symbols_in_one_file_do_not_produce_conflicting_edits() {
     // Each subject is planned against a freshly built index over the text the previous one
     // left.

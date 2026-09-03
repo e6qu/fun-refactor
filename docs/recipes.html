@@ -154,9 +154,10 @@ recipe <em>name</em> {
       reaches the report, and the only question is what it costs.
     </p>
     <p>
-      A recipe runs as <strong>one transaction</strong>. Either every step's edits land
-      or none do, and each step sees the workspace as the previous step left it, which
-      takes a re-index between them. It dry runs by default, as everything here does.
+      A recipe file runs as <strong>one transaction</strong>. Either every recipe's edits
+      land or none do, and each step and recipe sees the workspace as the previous one
+      left it, which takes a re-index between them. It dry runs by default, as everything
+      here does.
     </p>
   </div>
 </section>

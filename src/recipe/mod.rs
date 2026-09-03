@@ -14,7 +14,7 @@ pub use parse::{
 #[cfg(feature = "cli")]
 pub(crate) use run::distance;
 pub use run::{
-    run, ExpectReport, Options, Refusal, Report, StepReport, StepWarning, FILE_PREDICATES,
-    PREDICATES,
+    run, run_file, ExpectReport, Options, Refusal, Report, Sources, StepReport, StepWarning,
+    WorkspaceReport, FILE_PREDICATES, PREDICATES,
 };
 pub use vocabulary::{render, vocabulary, Verb, Vocabulary};
