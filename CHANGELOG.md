@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.11.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.10.0...fun-refactor-v0.11.0) (2026-09-03)
+
+
+### Features
+
+* **recipe:** replay settled renames ([#241](https://github.com/e6qu/fun-refactor/issues/241)) ([42131aa](https://github.com/e6qu/fun-refactor/commit/42131aae770b2d8935450cfd78b93004fea2d427))
+* **recipe:** run recipe files as workspace transactions ([#238](https://github.com/e6qu/fun-refactor/issues/238)) ([4018362](https://github.com/e6qu/fun-refactor/commit/4018362bc8aaf7c9e8758f1901387a732f3104b7))
+
+
+### Fixes
+
+* **imports:** preserve hidden Rust import uses ([#239](https://github.com/e6qu/fun-refactor/issues/239)) ([d23c0ac](https://github.com/e6qu/fun-refactor/commit/d23c0acefa72b25308aabf83c86d4d4762d0d173))
+
+
+### Performance
+
+* **graph:** cache workspace call graphs ([#236](https://github.com/e6qu/fun-refactor/issues/236)) ([0e7aa64](https://github.com/e6qu/fun-refactor/commit/0e7aa64530efc6ba00d35920d07b88961474dcb3))
+* **mentions:** cache parsed textual spans ([#240](https://github.com/e6qu/fun-refactor/issues/240)) ([2bacb32](https://github.com/e6qu/fun-refactor/commit/2bacb32f6bd61f91c8b378ac1d4b6c16e225f143))
+
 ## [0.10.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.9.4...fun-refactor-v0.10.0) (2026-09-03)
 
 
