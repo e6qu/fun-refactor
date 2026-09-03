@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.11.0...fun-refactor-v0.12.0) (2026-09-03)
+
+
+### Features
+
+* **recipe:** assert selected actions ([#243](https://github.com/e6qu/fun-refactor/issues/243)) ([36a31ea](https://github.com/e6qu/fun-refactor/commit/36a31ea51317ec3d2e6de478c5017a44af7c5f64))
+
 ## [0.11.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.10.0...fun-refactor-v0.11.0) (2026-09-03)
 
 
