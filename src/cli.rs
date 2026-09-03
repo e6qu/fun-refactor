@@ -861,7 +861,7 @@ fn cmd_trace(cli: &Cli, target: &str, depth: usize, direction: Direction2) -> Re
         .into());
     }
 
-    let graph = CallGraph::build(&index);
+    let graph = build_call_graph(cli, &index);
     let trace = graph.trace(symbol.id, direction, depth);
 
     if cli.json {
@@ -1556,7 +1556,8 @@ fn cmd_unused(
         catalog.load_dir(dir)?;
     }
     let entrypoints = crate::analysis::entrypoints::Entrypoints::from_catalog(&catalog, &index);
-    let unused = crate::refactor::delete::find_unused(&index, &entrypoints);
+    let graph = build_call_graph(cli, &index);
+    let unused = crate::refactor::delete::find_unused_with_graph(&index, &entrypoints, &graph);
 
     let wanted = parse_languages(languages)?;
     let roots = absolute_paths(cli, paths)?;
@@ -3348,7 +3349,8 @@ fn cmd_impact(cli: &Cli, target: &str, caller_depth: usize) -> Result<()> {
 
     let index = build_index(cli, &[])?;
     let symbol = resolve_target(cli, &index, target)?;
-    let result = impact::analyse(&index, symbol.id, caller_depth)?;
+    let graph = build_call_graph(cli, &index);
+    let result = impact::analyse_with_graph(&index, symbol.id, caller_depth, &graph)?;
 
     if cli.json {
         let items: Vec<_> = result
@@ -3388,7 +3390,7 @@ fn cmd_graph(cli: &Cli, dot: bool) -> Result<()> {
         anyhow::bail!("graph prints one format at a time; drop --dot or --json.");
     }
     let index = build_index(cli, &[])?;
-    let graph = CallGraph::build(&index);
+    let graph = build_call_graph(cli, &index);
     let root = cli.root.canonicalize().unwrap_or_else(|_| cli.root.clone());
 
     if dot {
@@ -3497,7 +3499,7 @@ fn cmd_entrypoints(
         .collect();
 
     if unreachable {
-        let graph = CallGraph::build(&index);
+        let graph = build_call_graph(cli, &index);
         let seeds: Vec<_> = entries.iter().map(|e| e.symbol).collect();
         let reachable = graph.reachable_from(&seeds);
         let orphans: Vec<_> = crate::analysis::call_graph::callables(&index)
@@ -4143,6 +4145,15 @@ fn build_index(cli: &Cli, languages: &[String]) -> Result<Index> {
     Ok(index)
 }
 
+fn build_call_graph(cli: &Cli, index: &Index) -> CallGraph {
+    if !cli.no_cache {
+        if let Some(cache) = crate::cache::Cache::open() {
+            return CallGraph::build_cached(index, &cache);
+        }
+    }
+    CallGraph::build(index)
+}
+
 /// One progress line for a JSON caller's stderr, while a cold index builds.
 fn indexing_progress_line(done: usize, total: usize) -> String {
     serde_json::json!({ "indexing": { "done": done, "total": total } }).to_string()
@@ -4233,8 +4244,9 @@ fn cmd_cache(cli: &Cli, clear: bool) -> Result<()> {
         println!("location  {}", cache.location().display());
         println!("size      {} KiB", bytes / 1024);
         println!(
-            "\nAn entry takes its key from the file's content and the query set, so editing a \n\
-             query file makes every stale entry unreachable and not wrong."
+            "\nAn entry takes its key from every workspace file, the query set and the analysis \n\
+             code, so an edit makes every stale answer unreachable rather than serving a \n\
+             result that described an earlier tree."
         );
     }
     Ok(())

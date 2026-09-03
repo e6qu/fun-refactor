@@ -106,6 +106,17 @@ impl Impact {
 
 /// Compute the blast radius of `symbol`.
 pub fn analyse(index: &Index, symbol: SymbolId, caller_depth: usize) -> Result<Impact> {
+    let graph = CallGraph::built(index);
+    analyse_with_graph(index, symbol, caller_depth, &graph)
+}
+
+/// [`analyse`], reusing a call graph the caller already built.
+pub fn analyse_with_graph(
+    index: &Index,
+    symbol: SymbolId,
+    caller_depth: usize,
+    graph: &CallGraph,
+) -> Result<Impact> {
     if let Some(language) = index.symbol(symbol).map(|s| s.language) {
         crate::capabilities::record(crate::capabilities::Capability::Impact, language);
     }
@@ -146,8 +157,7 @@ pub fn analyse(index: &Index, symbol: SymbolId, caller_depth: usize) -> Result<I
     // Transitive callers, when the symbol is callable.
     let mut callers_beyond_the_depth_limit = 0;
     if caller_depth > 0 && sym.kind.is_callable() {
-        let graph = CallGraph::built(index);
-        let walk = tainted_callers(&graph, symbol, caller_depth);
+        let walk = tainted_callers(graph, symbol, caller_depth);
         callers_beyond_the_depth_limit = walk.stopped_short;
         for (id, confidence, depth) in walk.callers {
             let Some(caller) = index.symbol(id) else {

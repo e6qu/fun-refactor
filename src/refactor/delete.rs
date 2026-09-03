@@ -351,6 +351,14 @@ pub fn find_unused(index: &Index, entrypoints: &Entrypoints) -> Vec<SymbolId> {
     find_unused_report(index, entrypoints).unused
 }
 
+pub fn find_unused_with_graph(
+    index: &Index,
+    entrypoints: &Entrypoints,
+    call_graph: &CallGraph,
+) -> Vec<SymbolId> {
+    find_unused_report_with_graph(index, entrypoints, call_graph).unused
+}
+
 /// The property a JavaBean accessor exposes: `getAddress` and `isActive` expose `address` and
 /// `active`.
 fn bean_property(symbol: &crate::model::Symbol) -> Option<String> {
@@ -400,9 +408,17 @@ fn declared_unused(symbol: &crate::model::Symbol) -> bool {
 
 /// [`find_unused`], with the reason each spared symbol was spared.
 pub fn find_unused_report(index: &Index, entrypoints: &Entrypoints) -> UnusedReport {
+    let call_graph = CallGraph::build(index);
+    find_unused_report_with_graph(index, entrypoints, &call_graph)
+}
+
+pub fn find_unused_report_with_graph(
+    index: &Index,
+    entrypoints: &Entrypoints,
+    call_graph: &CallGraph,
+) -> UnusedReport {
     crate::capabilities::record_workspace(crate::capabilities::Capability::DeadCode, index);
     let entrypoints = entrypoints.as_slice();
-    let call_graph = CallGraph::build(index);
 
     // Two reachability answers, because a library has no `main`.
     let exported_roots: Vec<SymbolId> = index

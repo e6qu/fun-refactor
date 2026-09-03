@@ -254,22 +254,7 @@ impl Index {
         }
 
         // Resolution is a pure function of the merged facts and costs most of a warm command.
-        let workspace_key = cache.map(|_| {
-            use sha2::{Digest, Sha256};
-            let mut hasher = Sha256::new();
-            for (path, info) in &index.files {
-                hasher.update(path.to_string_lossy().as_bytes());
-                hasher.update([0]);
-                hasher.update(info.language.name().as_bytes());
-                hasher.update([0]);
-                let hash = index.content_hashes.get(path).copied().unwrap_or(0);
-                hasher.update(hash.to_le_bytes());
-                hasher.update([1]);
-            }
-            let digest = hasher.finalize();
-            let hex: String = digest.iter().map(|b| format!("{b:02x}")).collect();
-            format!("resolved-{hex}")
-        });
+        let workspace_key = cache.map(|_| index.workspace_cache_key("resolved"));
         let cached = workspace_key.as_ref().and_then(|key| {
             cache?
                 .get_resolutions(key)
@@ -376,6 +361,25 @@ impl Index {
     /// The hash of `path`'s text as this index read it, if this index read it.
     pub fn content_hash(&self, path: &Path) -> Option<u64> {
         self.content_hashes.get(path).copied()
+    }
+
+    #[cfg(feature = "cli")]
+    pub(crate) fn workspace_cache_key(&self, kind: &str) -> String {
+        use sha2::{Digest, Sha256};
+
+        let mut hasher = Sha256::new();
+        for (path, info) in &self.files {
+            hasher.update(path.to_string_lossy().as_bytes());
+            hasher.update([0]);
+            hasher.update(info.language.name().as_bytes());
+            hasher.update([0]);
+            let hash = self.content_hashes.get(path).copied().unwrap_or(0);
+            hasher.update(hash.to_le_bytes());
+            hasher.update([1]);
+        }
+        let digest = hasher.finalize();
+        let hex: String = digest.iter().map(|b| format!("{b:02x}")).collect();
+        format!("{kind}-{hex}")
     }
 
     /// Record the text hash a caller built this index from.

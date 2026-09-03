@@ -7,12 +7,13 @@ use crate::parse::Parsers;
 use petgraph::graph::{DiGraph, NodeIndex};
 use petgraph::visit::EdgeRef;
 use petgraph::Direction;
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::path::{Path, PathBuf};
 use tree_sitter::Node;
 
 /// A call edge between two functions.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CallEdge {
     /// Byte offset of the call site.
     pub offset: usize,
@@ -23,7 +24,7 @@ pub struct CallEdge {
 }
 
 /// Where a call edge came from.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum EdgeOrigin {
     /// A reference the index resolved to this definition.
     Resolved,
@@ -55,7 +56,7 @@ impl EdgeOrigin {
 }
 
 /// What licensed a hierarchy edge, strongest evidence first.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum HierarchyBasis {
     /// The receiver's type is settled, by an annotation or by the inference behind `held_by`,
     /// and it names this owner.
@@ -97,8 +98,18 @@ pub struct CallGraph {
     pub hierarchy_gaps: Vec<(PathBuf, String)>,
 }
 
+#[cfg(feature = "cli")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CallGraphSnapshot {
+    nodes: Vec<SymbolId>,
+    edges: Vec<(SymbolId, SymbolId, CallEdge)>,
+    unresolved: Vec<UnresolvedCall>,
+    file_scope: Vec<FileScopeCall>,
+    hierarchy_gaps: Vec<(PathBuf, String)>,
+}
+
 /// A call written at file scope, whose callee the index did resolve.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FileScopeCall {
     pub callee: SymbolId,
     pub callee_name: String,
@@ -108,7 +119,7 @@ pub struct FileScopeCall {
 }
 
 /// A call site we could see but not resolve to a definition.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UnresolvedCall {
     pub caller: Option<SymbolId>,
     pub callee_name: String,
@@ -144,6 +155,20 @@ impl CallGraph {
         Self::build_with(index, &hierarchy)
     }
 
+    #[cfg(feature = "cli")]
+    pub fn build_cached(index: &Index, cache: &crate::cache::Cache) -> Self {
+        crate::capabilities::record_workspace(crate::capabilities::Capability::CallGraph, index);
+        let key = index.workspace_cache_key("call-graph-v1");
+        if let Some(snapshot) = cache.get_analysis::<CallGraphSnapshot>(&key) {
+            if let Some(graph) = Self::from_snapshot(index, snapshot) {
+                return graph;
+            }
+        }
+        let graph = Self::build(index);
+        cache.put_analysis(&key, &graph.snapshot());
+        graph
+    }
+
     /// [`CallGraph::build`], answered once per index.
     pub fn built(index: &Index) -> std::rc::Rc<Self> {
         thread_local! {
@@ -162,6 +187,55 @@ impl CallGraph {
             cache.insert(index.generation, graph.clone());
             graph
         })
+    }
+
+    #[cfg(feature = "cli")]
+    fn snapshot(&self) -> CallGraphSnapshot {
+        let mut nodes = self.nodes.keys().copied().collect::<Vec<_>>();
+        nodes.sort();
+        let mut edges = self
+            .edges()
+            .into_iter()
+            .map(|(from, to, edge)| (from, to, edge.clone()))
+            .collect::<Vec<_>>();
+        edges.sort_by_key(|(from, to, edge)| (*from, *to, edge.offset));
+        CallGraphSnapshot {
+            nodes,
+            edges,
+            unresolved: self.unresolved.clone(),
+            file_scope: self.file_scope.clone(),
+            hierarchy_gaps: self.hierarchy_gaps.clone(),
+        }
+    }
+
+    #[cfg(feature = "cli")]
+    fn from_snapshot(index: &Index, snapshot: CallGraphSnapshot) -> Option<Self> {
+        if snapshot.nodes.iter().any(|id| {
+            !index
+                .symbol(*id)
+                .is_some_and(|symbol| symbol.kind.is_callable())
+        }) || snapshot
+            .edges
+            .iter()
+            .any(|(from, to, _)| !snapshot.nodes.contains(from) || !snapshot.nodes.contains(to))
+        {
+            return None;
+        }
+        let mut graph = CallGraph {
+            unresolved: snapshot.unresolved,
+            file_scope: snapshot.file_scope,
+            hierarchy_gaps: snapshot.hierarchy_gaps,
+            ..CallGraph::default()
+        };
+        for id in snapshot.nodes {
+            graph.node_for(id);
+        }
+        for (from, to, edge) in snapshot.edges {
+            let from = graph.node_for(from);
+            let to = graph.node_for(to);
+            graph.graph.add_edge(from, to, edge);
+        }
+        Some(graph)
     }
 
     /// Build against a hierarchy an earlier scan produced.
@@ -815,10 +889,32 @@ impl CallGraph {
 
     /// Every edge with both of its endpoints.
     pub fn edges(&self) -> Vec<(SymbolId, SymbolId, &CallEdge)> {
-        self.graph
+        let mut edges: Vec<_> = self
+            .graph
             .edge_references()
             .map(|e| (self.graph[e.source()], self.graph[e.target()], e.weight()))
-            .collect()
+            .collect();
+        edges.sort_by(
+            |(left_from, left_to, left), (right_from, right_to, right)| {
+                (
+                    left_from,
+                    left_to,
+                    left.offset,
+                    &left.file,
+                    left.confidence,
+                    left.origin,
+                )
+                    .cmp(&(
+                        right_from,
+                        right_to,
+                        right.offset,
+                        &right.file,
+                        right.confidence,
+                        right.origin,
+                    ))
+            },
+        );
+        edges
     }
 
     /// Render as Graphviz DOT.
@@ -1264,75 +1360,145 @@ impl Hierarchy {
     }
 
     pub fn scan(index: &Index) -> Self {
-        let parsers = Parsers::new();
-        let mut hierarchy = Hierarchy::default();
+        let files: Vec<_> = index
+            .files()
+            .filter(|(_, info)| Family::of(info.language).is_some())
+            .map(|(path, info)| (path, info.language, info.imports.as_slice()))
+            .collect();
 
-        for (path, info) in index.files() {
-            let Some(family) = Family::of(info.language) else {
-                continue;
-            };
-            let source = match crate::vfs::read_to_string(path) {
-                Ok(source) => source,
-                Err(error) => {
-                    hierarchy.gaps.push((path.clone(), error.to_string()));
-                    continue;
-                }
-            };
-            let parsed = match parsers.parse(info.language, &source) {
-                Ok(parsed) => parsed,
-                Err(error) => {
-                    hierarchy.gaps.push((path.clone(), error.to_string()));
-                    continue;
-                }
-            };
+        #[cfg(feature = "cli")]
+        let parts: Vec<_> = {
+            use rayon::prelude::*;
 
-            hierarchy.aliases = info
-                .imports
+            files
+                .par_iter()
+                .map(|(path, language, imports)| {
+                    thread_local! {
+                        static WORKER: Parsers = Parsers::new();
+                    }
+                    WORKER.with(|parsers| Self::scan_file(parsers, path, *language, imports))
+                })
+                .collect()
+        };
+        #[cfg(not(feature = "cli"))]
+        let parts: Vec<_> = {
+            let parsers = Parsers::new();
+            files
                 .iter()
-                .flat_map(|import| import.names.iter())
-                .filter(|name| name.local != name.original)
-                .map(|name| (name.local.clone(), name.original.clone()))
-                .collect();
-            let mut sites: Vec<CallSite> = Vec::new();
-            let mut bindings: Vec<FunctionValueBinding> = Vec::new();
-            let mut returns: Vec<FunctionValueReturn> = Vec::new();
-            let mut calls: Vec<FunctionValueCall> = Vec::new();
-            let mut visit = |node: Node| {
-                // A leaf is neither a binding nor a call, and most nodes are leaves.
-                if node.child_count() > 1 {
-                    collect_function_value(node, family, &source, &mut bindings);
-                    collect_called_name(node, &source, &mut calls);
-                    collect_function_value_return(node, &source, &mut returns);
-                }
-                match family {
-                    Family::Rust => hierarchy.visit_rust(node, &source, &mut sites),
-                    Family::Go => hierarchy.visit_go(node, &source, &mut sites),
-                    Family::Ts => hierarchy.visit_ts(node, &source, &mut sites),
-                    Family::Java => hierarchy.visit_java(node, &source, &mut sites),
-                    Family::Python => hierarchy.visit_python(node, &source, &mut sites),
-                }
-            };
-            walk(parsed.root(), &mut visit);
-            if !sites.is_empty() {
-                hierarchy.call_sites.insert(path.clone(), sites);
+                .map(|(path, language, imports)| {
+                    Self::scan_file(&parsers, path, *language, imports)
+                })
+                .collect()
+        };
+
+        let mut hierarchy = Hierarchy::default();
+        for part in parts {
+            hierarchy.merge(part);
+        }
+        hierarchy.gaps.sort();
+        hierarchy.gaps.dedup();
+        hierarchy
+    }
+
+    fn scan_file(
+        parsers: &Parsers,
+        path: &Path,
+        language: Language,
+        imports: &[crate::model::Import],
+    ) -> Self {
+        let mut hierarchy = Hierarchy::default();
+        let Some(family) = Family::of(language) else {
+            return hierarchy;
+        };
+        let source = match crate::vfs::read_to_string(path) {
+            Ok(source) => source,
+            Err(error) => {
+                hierarchy.gaps.push((path.to_path_buf(), error.to_string()));
+                return hierarchy;
             }
-            if !bindings.is_empty() {
-                bindings.sort();
-                bindings.dedup();
-                hierarchy.function_values.insert(path.clone(), bindings);
+        };
+        let parsed = match parsers.parse(language, &source) {
+            Ok(parsed) => parsed,
+            Err(error) => {
+                hierarchy.gaps.push((path.to_path_buf(), error.to_string()));
+                return hierarchy;
             }
-            if !returns.is_empty() {
-                returns.sort();
-                returns.dedup();
-                hierarchy.function_returns.insert(path.clone(), returns);
+        };
+
+        hierarchy.aliases = imports
+            .iter()
+            .flat_map(|import| import.names.iter())
+            .filter(|name| name.local != name.original)
+            .map(|name| (name.local.clone(), name.original.clone()))
+            .collect();
+        let mut sites: Vec<CallSite> = Vec::new();
+        let mut bindings: Vec<FunctionValueBinding> = Vec::new();
+        let mut returns: Vec<FunctionValueReturn> = Vec::new();
+        let mut calls: Vec<FunctionValueCall> = Vec::new();
+        let mut visit = |node: Node| {
+            if node.child_count() > 1 {
+                collect_function_value(node, family, &source, &mut bindings);
+                collect_called_name(node, &source, &mut calls);
+                collect_function_value_return(node, &source, &mut returns);
             }
-            if !calls.is_empty() {
-                calls.sort();
-                calls.dedup();
-                hierarchy.calls.insert(path.clone(), calls);
+            match family {
+                Family::Rust => hierarchy.visit_rust(node, &source, &mut sites),
+                Family::Go => hierarchy.visit_go(node, &source, &mut sites),
+                Family::Ts => hierarchy.visit_ts(node, &source, &mut sites),
+                Family::Java => hierarchy.visit_java(node, &source, &mut sites),
+                Family::Python => hierarchy.visit_python(node, &source, &mut sites),
             }
+        };
+        walk(parsed.root(), &mut visit);
+        if !sites.is_empty() {
+            hierarchy.call_sites.insert(path.to_path_buf(), sites);
+        }
+        if !bindings.is_empty() {
+            bindings.sort();
+            bindings.dedup();
+            hierarchy
+                .function_values
+                .insert(path.to_path_buf(), bindings);
+        }
+        if !returns.is_empty() {
+            returns.sort();
+            returns.dedup();
+            hierarchy
+                .function_returns
+                .insert(path.to_path_buf(), returns);
+        }
+        if !calls.is_empty() {
+            calls.sort();
+            calls.dedup();
+            hierarchy.calls.insert(path.to_path_buf(), calls);
         }
         hierarchy
+    }
+
+    fn merge(&mut self, other: Self) {
+        for (key, methods) in other.declares {
+            self.declares.entry(key).or_default().extend(methods);
+        }
+        for (key, signatures) in other.signatures {
+            self.signatures.entry(key).or_default().extend(signatures);
+        }
+        for (key, owners) in other.declarers {
+            self.declarers.entry(key).or_default().extend(owners);
+        }
+        for (key, subtypes) in other.direct_subtypes {
+            self.direct_subtypes
+                .entry(key)
+                .or_default()
+                .extend(subtypes);
+        }
+        for (key, methods) in other.method_sets {
+            self.method_sets.entry(key).or_default().extend(methods);
+        }
+        self.call_sites.extend(other.call_sites);
+        self.function_values.extend(other.function_values);
+        self.function_returns.extend(other.function_returns);
+        self.calls.extend(other.calls);
+        self.gaps.extend(other.gaps);
     }
 
     /// The types a call to `method` could dispatch to, with the evidence for each.
