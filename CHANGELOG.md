@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.10.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.9.4...fun-refactor-v0.10.0) (2026-09-03)
+
+
+### Features
+
+* **graph:** trace lexical callable values ([#235](https://github.com/e6qu/fun-refactor/issues/235)) ([3a6c1ec](https://github.com/e6qu/fun-refactor/commit/3a6c1ec23ea74632307d00fcc78fcaddd4cf5fb5))
+* **inline:** substitute around literal data ([#230](https://github.com/e6qu/fun-refactor/issues/230)) ([472752d](https://github.com/e6qu/fun-refactor/commit/472752db9be05014b4cc1a8aadd91e24d4c3141c))
+* **inline:** substitute resolved parameter references ([#231](https://github.com/e6qu/fun-refactor/issues/231)) ([a1b3602](https://github.com/e6qu/fun-refactor/commit/a1b3602e7f1d756ceffb95705c24d5980157aa41))
+
+
+### Fixes
+
+* **inline:** refuse parameter field-name collisions ([#227](https://github.com/e6qu/fun-refactor/issues/227)) ([caae510](https://github.com/e6qu/fun-refactor/commit/caae510099a1b72fdd07bf24dc866f9d44cf17ca))
+* **inline:** refuse Rust struct shorthand ([#224](https://github.com/e6qu/fun-refactor/issues/224)) ([d049d8e](https://github.com/e6qu/fun-refactor/commit/d049d8e0e38553c573012ce2a482bbc830841ca2))
+* **inline:** refuse substitutions inside character literals ([#229](https://github.com/e6qu/fun-refactor/issues/229)) ([5cfafab](https://github.com/e6qu/fun-refactor/commit/5cfafab64d42b9661b9882fc0bead52ed6a05e62))
+* **inline:** refuse substitutions inside literals ([#228](https://github.com/e6qu/fun-refactor/issues/228)) ([47c53c4](https://github.com/e6qu/fun-refactor/commit/47c53c4edf55478ad54419f59d1bcc15d754a006))
+* **inline:** refuse TypeScript object shorthand ([#225](https://github.com/e6qu/fun-refactor/issues/225)) ([ba24020](https://github.com/e6qu/fun-refactor/commit/ba24020679dc3f79567e053cc720f2e09aa9d406))
+* **inline:** refuse TypeScript object shorthand calls ([#226](https://github.com/e6qu/fun-refactor/issues/226)) ([80f9416](https://github.com/e6qu/fun-refactor/commit/80f9416edc45945bd949bd6611853e3bd5f6f3b2))
+* **lean:** resolve chained branch bindings ([#234](https://github.com/e6qu/fun-refactor/issues/234)) ([5a98387](https://github.com/e6qu/fun-refactor/commit/5a983871956ea999224e6c682b7e679558f55c26))
+* **signature:** refuse changes through expansions ([#222](https://github.com/e6qu/fun-refactor/issues/222)) ([d565ec9](https://github.com/e6qu/fun-refactor/commit/d565ec923fe9db7f0f796482aceebbfb991c66a5))
+
 ## [0.9.4](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.9.3...fun-refactor-v0.9.4) (2026-09-01)
 
 
