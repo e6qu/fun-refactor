@@ -348,6 +348,131 @@ fn a_rust_trait_imported_only_for_its_methods_is_kept() {
 }
 
 #[test]
+fn a_rust_inner_attribute_stays_before_the_sorted_import_block() {
+    let (plan, updated, _) = organize(
+        &[(
+            "a.rs",
+            "#![allow(dead_code)]\n\nuse zebra::Thing;\nuse apple::Other;\n\nfn f() {\n    g(Thing);\n    g(Other);\n}\n",
+        )],
+        "a.rs",
+    );
+
+    assert_eq!(plan.sorted_blocks, 1, "got {:?}", plan.edits);
+    assert!(
+        updated.starts_with("#![allow(dead_code)]\n\nuse apple::Other;"),
+        "got:\n{updated}"
+    );
+}
+
+#[test]
+fn an_external_rust_trait_stays_despite_an_unrelated_workspace_type() {
+    // A local type shares the external trait's spelling.
+    let (plan, updated, _) = organize(
+        &[
+            (
+                "a.rs",
+                "use anyhow::Context;\n\nfn f(result: Result<(), ()>) {\n    let _ = result.context(\"while working\");\n}\n",
+            ),
+            ("elsewhere.rs", "struct Context;\n"),
+        ],
+        "a.rs",
+    );
+
+    assert!(plan.removed.is_empty(), "got {:?}", plan.removed);
+    assert!(updated.contains("use anyhow::Context;"), "got:\n{updated}");
+    assert!(
+        plan.warnings
+            .iter()
+            .any(|warning| warning.detail.contains("trait")),
+        "the protected import needs an explanation: {:?}.",
+        plan.warnings
+    );
+}
+
+#[test]
+fn an_unused_workspace_concrete_rust_import_still_goes() {
+    let (plan, updated, _) = organize(
+        &[
+            ("a.rs", "use crate::model::Unused;\n\nfn f() {}\n"),
+            ("model.rs", "pub struct Unused;\n"),
+        ],
+        "a.rs",
+    );
+
+    assert_eq!(plan.removed.len(), 1, "got {:?}", plan.removed);
+    assert!(
+        !updated.contains("use crate::model::Unused;"),
+        "got:\n{updated}"
+    );
+}
+
+#[test]
+fn a_rust_public_reexport_stays_without_a_workspace_reader() {
+    let (plan, updated, _) = organize(
+        &[
+            ("mod.rs", "pub use crate::api::Public;\n"),
+            ("api.rs", "pub struct Public;\n"),
+        ],
+        "mod.rs",
+    );
+
+    assert!(plan.removed.is_empty(), "got {:?}", plan.removed);
+    assert!(
+        updated.contains("pub use crate::api::Public;"),
+        "got:\n{updated}"
+    );
+    assert!(
+        plan.warnings
+            .iter()
+            .any(|warning| warning.detail.contains("outside this workspace")),
+        "the public surface needs an explanation: {:?}.",
+        plan.warnings
+    );
+}
+
+#[test]
+fn a_typescript_reexport_stays_without_a_workspace_reader() {
+    let (plan, updated, _) = organize(
+        &[
+            ("barrel.ts", "export { publicName } from './api';\n"),
+            ("api.ts", "export const publicName = 1;\n"),
+        ],
+        "barrel.ts",
+    );
+
+    assert!(plan.removed.is_empty(), "got {:?}", plan.removed);
+    assert!(
+        updated.contains("export { publicName } from './api';"),
+        "got:\n{updated}"
+    );
+}
+
+#[test]
+fn a_rust_import_a_child_reaches_through_super_stays() {
+    let (plan, updated, _) = organize(
+        &[
+            ("parent/mod.rs", "use crate::dep::shared;\n"),
+            ("parent/child.rs", "fn f() { super::shared(); }\n"),
+            ("dep.rs", "pub fn shared() {}\n"),
+        ],
+        "parent/mod.rs",
+    );
+
+    assert!(plan.removed.is_empty(), "got {:?}", plan.removed);
+    assert!(
+        updated.contains("use crate::dep::shared;"),
+        "got:\n{updated}"
+    );
+    assert!(
+        plan.warnings
+            .iter()
+            .any(|warning| warning.detail.contains("child module")),
+        "the child binding needs an explanation: {:?}.",
+        plan.warnings
+    );
+}
+
+#[test]
 fn sorts_a_block_by_path() {
     let (plan, updated, _) = organize(
         &[(

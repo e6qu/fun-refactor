@@ -11,9 +11,9 @@ only ever drifts down without being written down stops measuring anything.
 Run `--report` to see the budget file this run would write.
 """
 
+from pathlib import Path
 import re
 import sys
-from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 BUDGET = ROOT / "tools" / "PROSE-DEBT"

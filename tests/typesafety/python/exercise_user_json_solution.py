@@ -2,8 +2,8 @@
 # run: yes
 # title: parse_user builds the User once, and the checks disappear downstream
 # improves: exercise_user_json_start
-import json
 from dataclasses import dataclass
+import json
 
 
 @dataclass(frozen=True)

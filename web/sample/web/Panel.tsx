@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import { averages, fetchReadings, formatCelsius, type Reading } from "./dashboard";
+import { useEffect, useState } from "react";
 
 interface PanelProps {
   base: string;

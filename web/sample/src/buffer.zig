@@ -1,6 +1,5 @@
 //! A fixed-size ring the collector writes readings into.
 
-const std = @import("std");
 
 pub const Reading = struct {
     sensor: []const u8,

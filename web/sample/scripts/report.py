@@ -1,8 +1,8 @@
 """Offline reporting over a day of readings."""
 
+from collections import defaultdict
 import json
 import os
-from collections import defaultdict
 
 MIN_CELSIUS = -80.0
 MAX_CELSIUS = 120.0

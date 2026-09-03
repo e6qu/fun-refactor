@@ -18,21 +18,21 @@
 // Monaco ships a syntax mode for every language it knows, but Vite code-splits each
 // into its own chunk that the editor fetches only when a file needs it. What loads up
 // front is the editor core.
-import * as monaco from "monaco-editor";
-import editorWorker from "monaco-editor/editor/editor.worker.start.js?worker";
-import init, { Workspace } from "./wasm/fun_refactor.js";
-import wasmUrl from "./wasm/fun_refactor_bg.wasm?url";
-import { loadRepository, parseTarget } from "./github";
 import { ACTIONS, GROUPS, type Action, type Context } from "./actions";
+import { loadRepository, parseTarget } from "./github";
+import { draw, type Drawing, type GraphNode } from "./graph";
+import { installHelp, openHelp, livePages, PAGES } from "./help";
+import { decorate } from "./icons";
+import * as menu from "./menu";
+import { patchOf } from "./patch";
 import { escapeHtml, render } from "./render";
 import { installShell, setResizeHandler } from "./shell";
-import { patchOf } from "./patch";
-import { decorate } from "./icons";
-import { draw, type Drawing, type GraphNode } from "./graph";
-import { installTheme, onThemeChange, current as currentTheme, toggle as toggleTheme } from "./theme";
-import { installHelp, openHelp, livePages, PAGES } from "./help";
-import * as menu from "./menu";
 import "./style.css";
+import { installTheme, onThemeChange, current as currentTheme, toggle as toggleTheme } from "./theme";
+import init, { Workspace } from "./wasm/fun_refactor.js";
+import wasmUrl from "./wasm/fun_refactor_bg.wasm?url";
+import * as monaco from "monaco-editor";
+import editorWorker from "monaco-editor/editor/editor.worker.start.js?worker";
 
 // Monaco wants a worker per language service. Only the core editor is loaded here —
 // no TypeScript or JSON service, because the analysis *is* the language service — so

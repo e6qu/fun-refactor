@@ -18,11 +18,11 @@
  * demonstration instead of a tool.
  */
 
+import { ACTIONS, GROUPS } from "./actions";
+import { loadRepository, parseTarget } from "./github";
+import type { Mode } from "./main";
 import init, { Workspace } from "./wasm/fun_refactor.js";
 import wasmUrl from "./wasm/fun_refactor_bg.wasm?url";
-import { loadRepository, parseTarget } from "./github";
-import { ACTIONS, GROUPS } from "./actions";
-import type { Mode } from "./main";
 
 const SAMPLE = import.meta.glob("../sample/**/*", {
   query: "?raw",
