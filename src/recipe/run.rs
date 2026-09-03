@@ -1,6 +1,8 @@
 //! Running a recipe: select, act, re-index, and say what happened.
 
-use super::parse::{Expect, OnRefusal, Operation, Predicate, Recipe, Requirement, Step};
+use super::parse::{
+    Expect, OnRefusal, Operation, Predicate, Recipe, Requirement, Step, StepMeasure,
+};
 use crate::analysis::entrypoints::Entrypoints;
 use crate::edit::EditSet;
 use crate::index::Index;
@@ -171,16 +173,17 @@ pub fn run(recipe: &Recipe, sources: Sources, options: &Options) -> Result<(Repo
         let after = analyses(&index, options, &wanted)?;
         let matched: u64 = steps.iter().map(|step| step.matched as u64).sum();
         let applied: u64 = steps.iter().map(|step| step.applied as u64).sum();
+        let context = ExpectationContext {
+            before: &before,
+            after: &after,
+            matched,
+            applied,
+            files_changed: files_changed as u64,
+            refusals: total_refusals as u64,
+            steps: &steps,
+        };
         for expect in &recipe.expects {
-            expectations.push(check_expect(
-                expect,
-                &before,
-                &after,
-                matched,
-                applied,
-                files_changed as u64,
-                total_refusals as u64,
-            ));
+            expectations.push(check_expect(expect, &context));
         }
     }
 
@@ -457,24 +460,33 @@ fn analyses(index: &Index, options: &Options, wanted: &BTreeSet<&str>) -> Result
     Ok(Analyses { unused, duplicates })
 }
 
-fn check_expect(
-    expect: &Expect,
-    before: &Analyses,
-    after: &Analyses,
+struct ExpectationContext<'a> {
+    before: &'a Analyses,
+    after: &'a Analyses,
     matched: u64,
     applied: u64,
     files_changed: u64,
     refusals: u64,
-) -> ExpectReport {
+    steps: &'a [StepReport],
+}
+
+fn check_expect(expect: &Expect, context: &ExpectationContext<'_>) -> ExpectReport {
     match expect {
         Expect::NoNew(what) => {
             let (count, detail) = match what.as_str() {
                 "unused" => {
-                    let fresh: Vec<&String> = after.unused.difference(&before.unused).collect();
+                    let fresh: Vec<&String> = context
+                        .after
+                        .unused
+                        .difference(&context.before.unused)
+                        .collect();
                     (fresh.len() as u64, format!("{} new", fresh.len()))
                 }
                 _ => {
-                    let fresh = after.duplicates.saturating_sub(before.duplicates);
+                    let fresh = context
+                        .after
+                        .duplicates
+                        .saturating_sub(context.before.duplicates);
                     (fresh as u64, format!("{fresh} new"))
                 }
             };
@@ -486,24 +498,54 @@ fn check_expect(
         }
         Expect::Matched { how, count } => ExpectReport {
             expectation: format!("matched {} {count}", how.as_str()),
-            actual: matched.to_string(),
-            held: how.holds(matched, *count),
+            actual: context.matched.to_string(),
+            held: how.holds(context.matched, *count),
         },
         Expect::Applied { how, count } => ExpectReport {
             expectation: format!("applied {} {count}", how.as_str()),
-            actual: applied.to_string(),
-            held: how.holds(applied, *count),
+            actual: context.applied.to_string(),
+            held: how.holds(context.applied, *count),
         },
         Expect::Changed { how, count } => ExpectReport {
             expectation: format!("changed {} {count} files", how.as_str()),
-            actual: format!("{files_changed} files"),
-            held: how.holds(files_changed, *count),
+            actual: format!("{} files", context.files_changed),
+            held: how.holds(context.files_changed, *count),
         },
         Expect::Refusals { how, count } => ExpectReport {
             expectation: format!("refusals {} {count}", how.as_str()),
-            actual: refusals.to_string(),
-            held: how.holds(refusals, *count),
+            actual: context.refusals.to_string(),
+            held: how.holds(context.refusals, *count),
         },
+        Expect::Step {
+            step,
+            measure,
+            how,
+            count,
+            ..
+        } => {
+            let Some(report) = step.checked_sub(1).and_then(|at| context.steps.get(at)) else {
+                return ExpectReport {
+                    expectation: format!("step {step} {} {} {count}", measure.name(), how.as_str()),
+                    actual: "the step did not run".to_string(),
+                    held: false,
+                };
+            };
+            let actual = match measure {
+                StepMeasure::Matched => report.matched as u64,
+                StepMeasure::Applied => report.applied as u64,
+                StepMeasure::Changed => report.files_changed as u64,
+                StepMeasure::Refusals => report.refusals.len() as u64,
+            };
+            ExpectReport {
+                expectation: format!("step {step} {} {} {count}", measure.name(), how.as_str()),
+                actual: if measure.has_file_unit() {
+                    format!("{actual} files")
+                } else {
+                    actual.to_string()
+                },
+                held: how.holds(actual, *count),
+            }
+        }
     }
 }
 

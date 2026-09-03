@@ -47,6 +47,17 @@ fn the_vocabulary_names_every_recipe_requirement() {
 }
 
 #[test]
+fn the_vocabulary_names_every_recipe_expectation() {
+    let text = fr(&["recipe", "--vocabulary"]);
+    for expectation in fun_refactor::recipe::EXPECTATIONS {
+        assert!(
+            text.contains(expectation),
+            "`{expectation}` is missing: a recipe's contract has to be knowable"
+        );
+    }
+}
+
+#[test]
 fn the_vocabulary_names_every_predicate_and_says_which_a_file_takes() {
     let text = fr(&["recipe", "--vocabulary"]);
     for predicate in fun_refactor::recipe::PREDICATES {
@@ -96,6 +107,7 @@ fn the_vocabulary_is_json_a_program_can_read() {
     for key in [
         "schema",
         "requirements",
+        "expectations",
         "verbs",
         "predicates",
         "file_predicates",
@@ -109,6 +121,11 @@ fn the_vocabulary_is_json_a_program_can_read() {
         parsed["requirements"].as_array().map(Vec::len),
         Some(fun_refactor::recipe::REQUIREMENTS.len()),
         "the JSON vocabulary drops a recipe guard"
+    );
+    assert_eq!(
+        parsed["expectations"].as_array().map(Vec::len),
+        Some(fun_refactor::recipe::EXPECTATIONS.len()),
+        "the JSON vocabulary drops a recipe expectation"
     );
     let verbs = parsed["verbs"].as_array().expect("verbs is a list");
     assert_eq!(verbs.len(), 11, "the parser reads eleven operations");

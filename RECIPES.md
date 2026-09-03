@@ -167,7 +167,9 @@ expect      = "expect" , ( "no-new" , IDENT
                          | "matched" , comparison , INT
                          | "applied" , comparison , INT
                          | "changed" , comparison , INT , [ "files" ]
-                         | "refusals" , comparison , INT ) ;
+                         | "refusals" , comparison , INT
+                         | "step" , INT , ( "matched" | "applied" | "changed" | "refusals" ) ,
+                           comparison , INT , [ "files" ] ) ;
 comparison  = "=" | ">" | "<" | ">=" | "<=" ;
 ```
 
@@ -365,6 +367,9 @@ Dry-run is the default, as everywhere else in this tool. `--write` applies.
 expect changed > 0 files
 expect matched = 3
 expect applied = 3
+
+expect step 2 matched = 2
+expect step 2 refusals = 0
 expect no-new unused
 expect no-new duplicates
 expect refusals = 0
@@ -378,6 +383,10 @@ refactoring that removes a call and orphans three functions has not finished, an
 selected subjects the recipe saw; the second says how many selected actions succeeded.
 Put an exact count beside a migration when a wider selection would be dangerous. For a
 rewrite, a file can match while no position changes, so the two deliberately differ.
+
+`step N` applies the same count to one numbered step. It keeps a later cleanup from
+making an earlier broad selector look harmless in the total. Step numbers follow the
+report, start at 1, and must name a step the recipe has.
 
 The engine reparse-checks every edit regardless. You do not opt into that one.
 
