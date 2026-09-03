@@ -2,6 +2,8 @@
 
 use crate::lang::Language;
 use crate::model::FileFacts;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -160,6 +162,45 @@ impl Cache {
             return;
         }
         let Ok(mut tmp) = tempfile::NamedTempFile::new_in(dir) else {
+            return;
+        };
+        use std::io::Write;
+        if tmp.write_all(&bytes).is_err() {
+            return;
+        }
+        let _ = tmp.persist(&path);
+    }
+
+    pub fn get_analysis<T: DeserializeOwned>(&self, key: &str) -> Option<T> {
+        if self.disabled.load(Ordering::Relaxed) {
+            return None;
+        }
+        let path = self.entry_path(key);
+        let bytes = std::fs::read(&path).ok()?;
+        match postcard::from_bytes(&bytes) {
+            Ok(value) => Some(value),
+            Err(_) => {
+                let _ = std::fs::remove_file(path);
+                None
+            }
+        }
+    }
+
+    pub fn put_analysis<T: Serialize>(&self, key: &str, value: &T) {
+        if self.disabled.load(Ordering::Relaxed) {
+            return;
+        }
+        let Ok(bytes) = postcard::to_allocvec(value) else {
+            return;
+        };
+        let path = self.entry_path(key);
+        let Some(dir) = path.parent() else { return };
+        if std::fs::create_dir_all(dir).is_err() {
+            self.disabled.store(true, Ordering::Relaxed);
+            return;
+        }
+        let Ok(mut tmp) = tempfile::NamedTempFile::new_in(dir) else {
+            self.disabled.store(true, Ordering::Relaxed);
             return;
         };
         use std::io::Write;

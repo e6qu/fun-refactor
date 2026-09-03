@@ -39,6 +39,7 @@ const INPUTS: &[&str] = &[
     "src/helm.rs",
     "src/lang.rs",
     "src/index.rs",
+    "src/analysis/call_graph.rs",
     "src/analysis/types.rs",
     "src/refactor/mod.rs",
 ];
