@@ -234,10 +234,24 @@ impl Predicate {
 pub enum Expect {
     /// `expect no-new unused`
     NoNew(String),
+    Matched {
+        how: Comparison,
+        count: u64,
+    },
+    Applied {
+        how: Comparison,
+        count: u64,
+    },
     /// `expect changed > 0 files`
-    Changed { how: Comparison, count: u64 },
+    Changed {
+        how: Comparison,
+        count: u64,
+    },
     /// `expect refusals = 0`
-    Refusals { how: Comparison, count: u64 },
+    Refusals {
+        how: Comparison,
+        count: u64,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -517,6 +531,8 @@ impl Parser {
             }
         };
         match subject.as_str() {
+            "matched" => Ok(Expect::Matched { how, count }),
+            "applied" => Ok(Expect::Applied { how, count }),
             "changed" => {
                 // `files` is optional noise that reads better; it changes nothing.
                 self.eat_word("files");
@@ -524,8 +540,8 @@ impl Parser {
             }
             "refusals" => Ok(Expect::Refusals { how, count }),
             other => bail!(
-                "line {}: `expect {other}`. The expectations are `no-new`, `changed` \
-                 and `refusals`.",
+                "line {}: unknown expectation `{other}`. Use `no-new`, `matched`, `applied`, \
+                 `changed` or `refusals`.",
                 self.line()
             ),
         }

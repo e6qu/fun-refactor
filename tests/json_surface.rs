@@ -708,8 +708,8 @@ fn explain_emits_selectors_and_expectations_as_structures() {
         (
             "plan.recipe",
             "schema 1\n\nrecipe plan {\n  requires symbol \"render\" where kind=function \
-             in=\"m.py\"\n  rename to \"draw\" where name=\"render\" kind=function\n  \
-             expect changed >= 1 files\n}\n",
+             in=\"m.py\"\n  rename to \"draw\" where name=\"render\" kind=function\n\n\
+             expect matched = 1\n  expect applied = 1\n  expect changed >= 1 files\n}\n",
         ),
     ]);
     let (printed, _, ok) = run_json(&tmp, &["recipe", "plan.recipe", "--explain", "--json"]);
@@ -741,7 +741,13 @@ fn explain_emits_selectors_and_expectations_as_structures() {
     let expects = printed[0]["expectations_parts"]
         .as_array()
         .expect("expectation parts");
-    assert_eq!(expects[0]["predicate"], "changed", "{expects:?}");
-    assert_eq!(expects[0]["op"], ">=", "{expects:?}");
+    assert_eq!(expects[0]["predicate"], "matched", "{expects:?}");
+    assert_eq!(expects[0]["op"], "=", "{expects:?}");
     assert_eq!(expects[0]["value"], 1, "{expects:?}");
+    assert_eq!(expects[1]["predicate"], "applied", "{expects:?}");
+    assert_eq!(expects[1]["op"], "=", "{expects:?}");
+    assert_eq!(expects[1]["value"], 1, "{expects:?}");
+    assert_eq!(expects[2]["predicate"], "changed", "{expects:?}");
+    assert_eq!(expects[2]["op"], ">=", "{expects:?}");
+    assert_eq!(expects[2]["value"], 1, "{expects:?}");
 }

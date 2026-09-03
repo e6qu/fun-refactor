@@ -164,6 +164,8 @@ modifier    = "on-refusal" , ( "stop" | "report" | "allow" )
             | "allow-empty" ;
 
 expect      = "expect" , ( "no-new" , IDENT
+                         | "matched" , comparison , INT
+                         | "applied" , comparison , INT
                          | "changed" , comparison , INT , [ "files" ]
                          | "refusals" , comparison , INT ) ;
 comparison  = "=" | ">" | "<" | ">=" | "<=" ;
@@ -361,6 +363,8 @@ Dry-run is the default, as everywhere else in this tool. `--write` applies.
 
 ```
 expect changed > 0 files
+expect matched = 3
+expect applied = 3
 expect no-new unused
 expect no-new duplicates
 expect refusals = 0
@@ -369,6 +373,11 @@ expect refusals = 0
 `no-new` is the interesting one: it re-runs the analysis afterwards and compares. A
 refactoring that removes a call and orphans three functions has not finished, and
 `no-new` says so.
+
+`matched` and `applied` are the totals from every step. The first says how many
+selected subjects the recipe saw; the second says how many selected actions succeeded.
+Put an exact count beside a migration when a wider selection would be dangerous. For a
+rewrite, a file can match while no position changes, so the two deliberately differ.
 
 The engine reparse-checks every edit regardless. You do not opt into that one.
 

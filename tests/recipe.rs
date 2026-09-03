@@ -207,6 +207,8 @@ fn each_step_sees_what_the_previous_one_left() {
            requires symbol \"USE_LEGACY_AUTH\"\n\
            remove-flag \"USE_LEGACY_AUTH\" = false\n\
            delete where kind=function name~\"legacy_auth_*\" unused\n\
+           expect matched = 3\n\
+           expect applied = 3\n\
            expect changed > 0 files\n\
            expect refusals = 0\n\
          }\n",
@@ -283,12 +285,16 @@ fn a_file_the_rewrite_does_not_apply_to_is_not_a_refusal() {
             ),
             ("pkg/b.go", "package pkg\n\nfunc B() int {\n\treturn 1\n}\n"),
         ],
-        "schema 1\nrecipe r { rewrite guard-clause where lang=go in=\"pkg/\" }",
+        "schema 1\n\nrecipe r {\n\
+           rewrite guard-clause where lang=go in=\"pkg/\"\n\
+           expect matched = 2\n\
+           expect applied = 1\n\
+         }\n\n",
     );
     assert_eq!(report.steps[0].matched, 2, "both files are selected");
     assert!(
         report.steps[0].refusals.is_empty(),
-        "a file with nothing to do is not a refusal: {:?}",
+        "a file with nothing to do is not a refusal: {:?}.",
         report.steps[0].refusals
     );
     assert_eq!(
@@ -296,6 +302,23 @@ fn a_file_the_rewrite_does_not_apply_to_is_not_a_refusal() {
         "one site, in the one file that had one"
     );
     assert!(report.ok);
+}
+
+#[test]
+fn a_match_expectation_rejects_an_unexpectedly_wide_selection() {
+    let (_tmp, report, _after) = run(
+        &[
+            ("pkg/a.go", "package pkg\n\nfunc A() {}\n"),
+            ("pkg/b.go", "package pkg\n\nfunc B() {}\n"),
+        ],
+        "schema 1\nrecipe r {\n\
+           rename to \"Renamed\" where kind=function in=\"pkg/\"\n\
+           expect matched = 1\n\
+         }",
+    );
+    assert!(!report.ok, "{report:?}");
+    assert_eq!(report.expectations[0].actual, "2");
+    assert!(!report.expectations[0].held, "{report:?}");
 }
 
 const CALLS_PY: &str = r#"def log(message):

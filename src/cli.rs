@@ -2657,6 +2657,8 @@ fn explain_recipes(cli: &Cli, parsed: &crate::recipe::File) -> Result<()> {
     };
     let expectation = |expect: &Expect| match expect {
         Expect::NoNew(what) => format!("no-new {what}"),
+        Expect::Matched { how, count } => format!("matched {} {count}", how.as_str()),
+        Expect::Applied { how, count } => format!("applied {} {count}", how.as_str()),
         Expect::Changed { how, count } => format!("changed {} {count} files", how.as_str()),
         Expect::Refusals { how, count } => format!("refusals {} {count}", how.as_str()),
     };
@@ -2692,6 +2694,12 @@ fn explain_recipes(cli: &Cli, parsed: &crate::recipe::File) -> Result<()> {
         let expect_json = |expect: &Expect| match expect {
             Expect::NoNew(what) => serde_json::json!({
                 "predicate": "no-new", "op": "=", "value": what,
+            }),
+            Expect::Matched { how, count } => serde_json::json!({
+                "predicate": "matched", "op": how.as_str(), "value": count,
+            }),
+            Expect::Applied { how, count } => serde_json::json!({
+                "predicate": "applied", "op": how.as_str(), "value": count,
             }),
             Expect::Changed { how, count } => serde_json::json!({
                 "predicate": "changed", "op": how.as_str(), "value": count, "unit": "files",
