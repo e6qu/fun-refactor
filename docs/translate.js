@@ -1,5 +1,5 @@
-import { TRANSLATIONS } from "./translate-data.js";
 import { specimen, beforeAfterDiff, escape } from "./panes.js";
+import { TRANSLATIONS } from "./translate-data.js";
 
 const host = document.getElementById("cases");
 

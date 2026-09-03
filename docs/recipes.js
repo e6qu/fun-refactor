@@ -1,6 +1,6 @@
+import { specimen, beforeAfterDiff, escape } from "./panes.js";
 import { LESSONS } from "./recipes-data.js";
 import { TRANSLATIONS } from "./translate-data.js";
-import { specimen, beforeAfterDiff, escape } from "./panes.js";
 
 const lessons = document.getElementById("lessons");
 

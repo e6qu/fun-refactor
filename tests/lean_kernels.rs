@@ -455,7 +455,7 @@ fn the_edit_kernel_accepts_a_self_inline_call_plan() {
     let plan = inline::call(&index, &position_engine, call).expect("self inline call plan");
     assert!(
         plan.expansion.contains("match self.line_starts"),
-        "the self inline call substitutes the callee expression"
+        "the self inline call substitutes the callee expression."
     );
     fun_refactor::edit::plan(&plan.edits, fun_refactor::edit::Validation::ReparseStrict)
         .expect("the self inline call reparses");
@@ -475,8 +475,8 @@ fn a_self_imports_plan_reparses() {
     let plan = imports::plan(&index, &command_surface).expect("self imports plan");
     assert_eq!(
         plan.removed.len(),
-        1,
-        "the self plan drops its unused import"
+        0,
+        "the self plan keeps the external Context trait import."
     );
     assert_eq!(
         plan.sorted_blocks, 1,

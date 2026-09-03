@@ -106,6 +106,7 @@ impl InvisibleUses {
 /// Why an import nothing names stays, or `None` where it may go.
 fn hold_back_reason(
     index: &Index,
+    file: &Path,
     language: Language,
     statement: &Statement,
     uses: &InvisibleUses,
@@ -118,20 +119,32 @@ fn hold_back_reason(
             statement.path
         ));
     }
+    if statement.re_export {
+        return Some(format!(
+            "'{}' re-exports a name. Consumers outside this workspace can name it, so it stays.",
+            statement.path
+        ));
+    }
     match language {
         // Any upper-camel-case name may be a trait, and there is no way to tell from syntax
         // alone for a name another crate declares.
         Language::Rust => {
+            if let Some(binding) = statement
+                .bindings
+                .iter()
+                .find(|binding| rust_child_uses_binding(index, file, binding))
+            {
+                return Some(format!(
+                    "'{}' binds '{binding}' for a child module through `super`, so it stays.",
+                    statement.path
+                ));
+            }
             let binding = statement
                 .bindings
                 .iter()
                 .filter(|binding| binding.chars().next().is_some_and(char::is_uppercase))
                 .find(|binding| {
-                    let declared = index.find_symbols(binding, None);
-                    declared.is_empty()
-                        || declared
-                            .iter()
-                            .any(|s| s.kind == crate::model::SymbolKind::Trait)
+                    !rust_binding_is_known_concrete_type(index, file, statement, binding)
                 })?;
             Some(format!(
                 "'{}' binds '{binding}', which nothing names. Code reaches a trait \
@@ -245,6 +258,54 @@ fn hold_back_reason(
         // use of it spells that const's name.
         _ => None,
     }
+}
+
+fn rust_child_uses_binding(index: &Index, file: &Path, binding: &str) -> bool {
+    let Some(parent) = file.parent() else {
+        return false;
+    };
+    let stem = file
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+        .unwrap_or_default();
+    let child_dir = match file.file_name().and_then(|name| name.to_str()) {
+        Some("mod.rs") | Some("lib.rs") | Some("main.rs") => parent.to_path_buf(),
+        _ if stem.is_empty() => return false,
+        _ => parent.join(stem),
+    };
+    index.files().any(|(candidate, _)| {
+        candidate.parent() == Some(child_dir.as_path())
+            && index.references_in(candidate).any(|reference| {
+                reference.name == binding
+                    && reference.receiver.as_deref() == Some("super")
+                    && reference.receiver_is_path
+            })
+    })
+}
+
+fn rust_binding_is_known_concrete_type(
+    index: &Index,
+    file: &Path,
+    statement: &Statement,
+    binding: &str,
+) -> bool {
+    let path = statement
+        .named
+        .iter()
+        .find(|name| name.local == binding)
+        .map(|name| name.path.as_str())
+        .unwrap_or(statement.path.as_str());
+    let Some((module, declared_name)) = path.rsplit_once("::") else {
+        return false;
+    };
+    let Some(module_file) = index.resolve_import_path(file, module) else {
+        return false;
+    };
+    let declared = index.find_symbols(declared_name, Some(&module_file));
+    !declared.is_empty()
+        && declared
+            .iter()
+            .all(|symbol| symbol.kind != SymbolKind::Trait)
 }
 
 /// Call `f` on `node` and every descendant, anonymous tokens included.
@@ -530,21 +591,22 @@ pub(crate) fn plan_in_consulting(
             continue;
         }
         // Nothing names it, which for some constructs means nothing *can* name it.
-        let held = hold_back_reason(oracle, info.language, statement, &invisible).or_else(|| {
-            statement
-                .named
-                .iter()
-                .filter(|name| name.path != statement.path)
-                .find_map(|name| {
-                    let alone = Statement {
-                        path: name.path.clone(),
-                        bindings: vec![name.local.clone()],
-                        named: vec![name.clone()],
-                        ..statement.clone()
-                    };
-                    hold_back_reason(oracle, info.language, &alone, &invisible)
-                })
-        });
+        let held =
+            hold_back_reason(oracle, file, info.language, statement, &invisible).or_else(|| {
+                statement
+                    .named
+                    .iter()
+                    .filter(|name| name.path != statement.path)
+                    .find_map(|name| {
+                        let alone = Statement {
+                            path: name.path.clone(),
+                            bindings: vec![name.local.clone()],
+                            named: vec![name.clone()],
+                            ..statement.clone()
+                        };
+                        hold_back_reason(oracle, file, info.language, &alone, &invisible)
+                    })
+            });
         if let Some(detail) = held {
             warnings.push(Warning {
                 kind: WarningKind::WeaklyResolved,
@@ -582,7 +644,7 @@ pub(crate) fn plan_in_consulting(
                     named: vec![(*name).clone()],
                     ..(*statement).clone()
                 };
-                hold_back_reason(oracle, info.language, &alone, &invisible).is_none()
+                hold_back_reason(oracle, file, info.language, &alone, &invisible).is_none()
             })
             .collect();
         if dead.is_empty() || dead.len() == statement.named.len() {
@@ -751,6 +813,7 @@ struct Statement {
     named: Vec<NamedImport>,
     /// True when an attribute sits above the statement.
     guarded: bool,
+    re_export: bool,
     /// Replacement text for [`Statement::lines`], where some of the names it binds went
     /// and the rest stayed.
     narrowed: Option<String>,
@@ -884,7 +947,7 @@ fn statements<'a>(
 
     let mut attributes: Vec<Span> = Vec::new();
     for_each_node(parsed.root(), |node| {
-        if node.kind().contains("attribute") {
+        if node.kind().contains("attribute") && !text_of(node, source).starts_with("#![") {
             attributes.push(Span::from(node));
         }
     });
@@ -939,6 +1002,9 @@ fn statements<'a>(
             let path = records[0].path.clone();
             let binding_certain =
                 explicit_binding || language != Language::Go || go_binding_is_certain(&path);
+            let re_export = records.iter().any(|record| record.re_export)
+                || (language == Language::Rust
+                    && span.text(source).trim_start().starts_with("pub use "));
 
             Statement {
                 span,
@@ -952,6 +1018,7 @@ fn statements<'a>(
                 named,
                 narrowed: None,
                 guarded,
+                re_export,
             }
         })
         .collect()
@@ -1060,7 +1127,6 @@ fn blocks(statements: &[Statement]) -> Vec<std::ops::Range<usize>> {
     out
 }
 
-/// The statements of a block in path order, original order breaking ties.
 fn sorted<'a>(statements: &[&'a Statement]) -> Vec<&'a Statement> {
     let mut out = statements.to_vec();
     out.sort_by(|a, b| a.path.cmp(&b.path));

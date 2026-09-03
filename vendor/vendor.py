@@ -6,13 +6,12 @@ Run from the repository root:  python3 vendor/vendor.py
 Re-running is idempotent: it rewrites every vendored file and regenerates
 MANIFEST.toml, so a diff shows exactly what changed upstream.
 """
-import hashlib
+from datetime import date
 import glob
+import hashlib
 import os
 import shutil
-import subprocess
 import sys
-from datetime import date
 
 # Grammar crate -> (our language name, upstream repository).
 # The repository is recorded because a crate is a mirror of one. The version is the pin:
