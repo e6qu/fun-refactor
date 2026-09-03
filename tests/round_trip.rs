@@ -1,5 +1,7 @@
 //! A signature that goes out and comes back must be the same signature.
 
+#![cfg(feature = "full-audit")]
+
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
 use fun_refactor::transpile::ir::{Expr, Function, Item, Module, ParamKind, TemplatePart, Type};

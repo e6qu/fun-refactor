@@ -63,6 +63,9 @@ lang-all = ["lang-rust", "lang-go", "lang-typescript", "lang-python", "lang-zig"
 
 # The analysis core, compiled for the browser. See src/wasm.rs.
 wasm = ["dep:wasm-bindgen", "dep:console_error_panic_hook", "dep:serde-wasm-bindgen", "dep:fun-refactor-wasm-libc"]
+# Expensive whole-repository audits. They run after merge and nightly; the normal
+# test command keeps the focused regression suite fast enough for review.
+full-audit = []
 
 [dependencies]
 # Tree-sitter parsing. Grammar pins inherited from funveil (github.com/e6qu/funveil
@@ -136,4 +139,3 @@ predicates = "3.1"
 
 [lints.rust]
 unsafe_code = "forbid"
-

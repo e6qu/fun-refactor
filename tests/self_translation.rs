@@ -1,5 +1,7 @@
 //! Translating the tool's own source, and the other real code in this repository.
 
+#![cfg(feature = "full-audit")]
+
 use fun_refactor::transpile;
 use std::path::{Path, PathBuf};
 

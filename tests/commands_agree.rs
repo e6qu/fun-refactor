@@ -1,5 +1,7 @@
 //! The commands that read answer overlapping questions from one index.
 
+#![cfg(feature = "full-audit")]
+
 use fun_refactor::analysis::call_graph::{CallGraph, EdgeOrigin};
 use fun_refactor::analysis::{duplicates, impact};
 use fun_refactor::index::Index;

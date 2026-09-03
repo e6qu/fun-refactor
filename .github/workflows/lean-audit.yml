@@ -1,9 +1,8 @@
-name: Lean audit
+name: Deep validation
 
-# The PR lane runs the kernel build and its compact proof corpus. The two proofs
-# below generate full self-refactor plans and are intentionally exhaustive, which
-# makes them unsuitable for every edit-push cycle. This workflow keeps them as a
-# complete audit of merged main and provides a manual recovery path.
+# The PR lane runs focused regressions and compact proofs. This lane retains the
+# repository-scale cross-checks, where every source is repeatedly indexed or
+# translated, without making each review wait for them.
 on:
   push:
     branches: [main]
@@ -21,14 +20,42 @@ env:
 
 jobs:
   audit:
-    name: Full self-refactor proof audit
+    name: Full repository audit
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # A cold whole-repository audit has five intentionally exhaustive checks.
+    # Forty-five minutes permits that work while still failing a stalled runner.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
       - name: Install the Rust toolchain
         run: rustup toolchain install stable --profile minimal
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.27"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Install Zig for the conformance matrix
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          ZIG=0.16.0
+          ZIG_SHA=70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
+          curl -fsSL --retry 3 --retry-delay 5 --retry-connrefused \
+            --connect-timeout 20 --max-time 120 -o /tmp/zig.tar.xz \
+            "https://ziglang.org/download/${ZIG}/zig-x86_64-linux-${ZIG}.tar.xz" \
+            || { echo "could not fetch Zig within the time allowed"; exit 1; }
+          echo "${ZIG_SHA}  /tmp/zig.tar.xz" | sha256sum -c -
+          tar -xJf /tmp/zig.tar.xz -C /tmp
+          sudo ln -sf "/tmp/zig-x86_64-linux-${ZIG}/zig" /usr/local/bin/zig
+          zig version
 
       - name: Cache the Lean toolchain
         id: lean-cache
@@ -61,5 +88,5 @@ jobs:
         with:
           key: lean-audit
 
-      - name: Prove every compact and whole-project edit plan
-        run: cargo test --test lean_kernels -- --include-ignored
+      - name: Run every repository-scale audit
+        run: ./tools/check.sh deep

@@ -68,11 +68,9 @@ jobs:
           MESSAGE
           exit 1
 
-  # The gate's two feature sets share no compilation, and in one job the two test
-  # suites ran in sequence for nearly all of a 23-minute wall clock. Each slice is a
-  # parallel job now, and `tools/check.sh` stays the one definition of passing: the
-  # slices are its arguments, and a laptop with no argument still runs both. Both
-  # slices run the full test suite, so both need every validator installed.
+  # The default and browser feature sets compile independently, so they run in
+  # parallel. The browser lane checks its public API directly instead of repeating
+  # the default integration suite and its non-browser toolchain setup.
   check:
     strategy:
       fail-fast: false
@@ -96,6 +94,7 @@ jobs:
       # gate that changes under you is not a gate. The versions are the current
       # release of each, which is what this tool targets.
       - name: Install the validators the gate drives
+        if: matrix.slice == 'default'
         timeout-minutes: 12
         run: |
           set -euo pipefail
@@ -152,16 +151,20 @@ jobs:
       # skips when these are missing, and `require_on_ci` turns that skip into a
       # failure here, so a hole cannot read as a pass.
       - uses: actions/setup-python@v5
+        if: matrix.slice == 'default'
         with:
           python-version: "3.14"
       - name: Install the tutorial's Python checker
+        if: matrix.slice == 'default'
         run: pip install "mypy==1.18.2"
       - uses: actions/setup-node@v4
+        if: matrix.slice == 'default'
         with:
           node-version: 26
       # Go took the runner's default, which is the same unpinned toolchain that
       # broke the Java cells. A runner image moves without this repository asking.
       - uses: actions/setup-go@v5
+        if: matrix.slice == 'default'
         with:
           go-version: "1.27"
       # The tool targets the current version of every language it writes, and
@@ -171,10 +174,12 @@ jobs:
       # on any current JDK. A version this repository chooses is a version it
       # can reason about.
       - uses: actions/setup-java@v4
+        if: matrix.slice == 'default'
         with:
           distribution: temurin
           java-version: "25"
       - name: Install the tutorial's TypeScript checker
+        if: matrix.slice == 'default'
         run: npm ci --no-fund --no-audit
         working-directory: tests/typesafety/typescript
 
@@ -182,13 +187,14 @@ jobs:
       # The toolchain is half a gigabyte, which is why it is cached and why its fetch
       # gets a deadline of its own rather than the two minutes the others take.
       - name: Cache the Lean toolchain
+        if: matrix.slice == 'default'
         id: lean-cache
         uses: actions/cache@v4
         with:
           path: /opt/lean
           key: lean-4.28.0-linux-x86_64
       - name: Install Lean
-        if: steps.lean-cache.outputs.cache-hit != 'true'
+        if: matrix.slice == 'default' && steps.lean-cache.outputs.cache-hit != 'true'
         timeout-minutes: 15
         run: |
           set -euo pipefail
@@ -202,6 +208,7 @@ jobs:
           sudo mkdir -p /opt/lean
           sudo tar --zstd -xf /tmp/lean.tar.zst -C /opt/lean --strip-components=1
       - name: Put Lean on the path
+        if: matrix.slice == 'default'
         run: |
           echo "/opt/lean/bin" >> "$GITHUB_PATH"
           /opt/lean/bin/lean --version
@@ -213,19 +220,17 @@ jobs:
         with:
           key: ${{ matrix.slice }}
 
-      # Formatting, clippy and the tests, on the default feature set and again with
-      # the browser API compiled in — the latter because it is a feature set neither
-      # default clippy nor the default test run touches, and a struct field missed at
-      # one of six call sites in `src/wasm.rs` once passed both.
+      # Formatting, clippy and the focused test suite run on the default feature
+      # set. The browser lane compiles its library surface and drives its native API.
       #
       # The commands live in the script so that running it locally and passing here
       # mean the same thing. Listing them twice let a branch be green on a laptop and
       # rejected on push, which is how this arrangement was arrived at.
       #
-      # The script also reports capability coverage, measured on the test run it already
-      # does. A `✓` in the matrix is computed from a predicate and says the command would
-      # accept the language, not that anything ever ran it; the report fails when a claimed
-      # cell went undriven, so the 270/270 is defended here and not merely checkable.
+      # The default script also reports capability coverage, measured on the test run it
+      # already does. A `✓` in the matrix is computed from a predicate and says the command
+      # would accept the language, not that anything ever ran it; the report fails when a
+      # claimed cell went undriven, so the 270/270 is defended here and not merely checkable.
       - name: Check
         run: ./tools/check.sh ${{ matrix.slice }}
 
