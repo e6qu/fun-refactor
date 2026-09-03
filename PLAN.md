@@ -824,10 +824,10 @@ because they read the tiers.
 
 ### Phase 4: a value called through a field knows its record
 
-The function-value layer keys on the bound name alone, so a call through `a.run`
-reaches every function assigned to any `run`. Where the receiver's type is settled
-and the binding site sits in a record literal of a known type, only that record's
-edge remains. The name-keyed fan-out stays for the rest, labelled as it is today.
+The function-value layer keys on the definition a binding names, not its text. Alias
+chains keep that identity, so two local `run` bindings cannot reach each other. A
+factory that returns a callable reaches it when the caller invokes the result. A field
+with no settled receiver still fans out by name, labelled as it is today.
 
 ### Phase 5: Bash crosses
 
