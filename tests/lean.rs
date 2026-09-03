@@ -37,6 +37,22 @@ def area : Shape → Int
 end Geometry
 ";
 
+const BRANCH_BINDINGS: &str = "\
+def magnitude (n : Int) : Int :=
+  if n < 0 then
+    let positive := 0 - n -- first binding.
+    let doubled := positive + positive
+    doubled
+  else n
+";
+
+const SHADOWED_BINDINGS: &str = "\
+def increment (n : Int) : Int :=
+  let total := n
+  let total := total + 1
+  total
+";
+
 fn symbol(index: &Index, name: &str) -> fun_refactor::model::SymbolId {
     index
         .symbols
@@ -205,5 +221,59 @@ fn a_dotted_declaration_takes_its_own_name() {
     assert!(
         !named.contains(&"Box"),
         "`Box` is the namespace and the structure, not the function. Found {named:?}"
+    );
+}
+
+/// The index records each branch-local binding, and rename follows it through the layout body.
+#[test]
+fn chained_branch_bindings_are_local_variables() {
+    let (tmp, index) = common::workspace(&[("a.lean", BRANCH_BINDINGS)]);
+    let variables: Vec<&str> = index
+        .symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Variable)
+        .map(|symbol| symbol.name.as_str())
+        .collect();
+    assert!(variables.contains(&"positive"), "found {variables:?}");
+    assert!(variables.contains(&"doubled"), "found {variables:?}");
+
+    let plan = rename::plan(&index, symbol(&index, "positive"), "absolute").unwrap();
+    let out = applied(tmp.path(), "a.lean", &plan.edits);
+    assert!(out.contains("let absolute := 0 - n"), "got:\n{out}");
+    assert!(
+        out.contains("let doubled := absolute + absolute"),
+        "all reads in the branch follow the binding:\n{out}"
+    );
+    let parsed = Parsers::new().parse(Language::Lean, &out).unwrap();
+    assert!(
+        !parsed.has_errors(),
+        "the renamed branch stays parseable: {:?}",
+        parsed.error_spans()
+    );
+}
+
+/// An inner `let` starts after its initializer. The initializer reads outer state.
+#[test]
+fn a_shadowed_lean_binding_keeps_its_initializer_on_the_outer_name() {
+    let (tmp, index) = common::workspace(&[("a.lean", SHADOWED_BINDINGS)]);
+    let inner = index
+        .symbols
+        .iter()
+        .filter(|symbol| symbol.name == "total" && symbol.kind == SymbolKind::Variable)
+        .max_by_key(|symbol| symbol.name_span.start)
+        .expect("the inner binding is indexed");
+    let plan = rename::plan(&index, inner.id, "next").unwrap();
+    let out = applied(tmp.path(), "a.lean", &plan.edits);
+    assert!(
+        out.contains("let total := n"),
+        "the outer binding stays:\n{out}"
+    );
+    assert!(
+        out.contains("let next := total + 1"),
+        "the initializer reads the outer binding:\n{out}"
+    );
+    assert!(
+        out.ends_with("  next\n"),
+        "the inner read follows its binding:\n{out}"
     );
 }

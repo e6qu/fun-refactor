@@ -40,9 +40,9 @@ packs the file to 2.68 MB. A first visit to the playground grows 2.09 MB gzipped
 
 The same arithmetic decides which patches Lean gets. `mutual` cost 4 MB of source and
 0.22 MB packed. This build's Lean writer emits one wherever the declaration order it
-computes finds a cycle, and without the rule that translation refuses. Two chained `let`s
-inside a branch is also ordinary Lean the published grammar cannot read, and it stays
-unpatched, because nothing here writes that form. B824 records it and a test pins it.
+computes finds a cycle, and without the rule that translation refuses. Chained `let`s
+inside an `if` branch need no new parser state: the layout scanner already emits the
+separator the grammar takes, and now does so for a deeper binding body too.
 
 ## lean
 

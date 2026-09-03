@@ -341,6 +341,18 @@ bool tree_sitter_lean_external_scanner_scan(
       lexer->result_symbol = LAYOUT_SEMICOLON;
       return true;
     }
+    // A term `let` can open a more deeply indented body without a preceding
+    // `do`, `where`, or declaration body to put that column on the stack. A
+    // layout semicolon is valid only at a place the grammar can split, so it
+    // gives the binding's value and body the same boundary as equal columns.
+    if (next > ci && valid_symbols[LAYOUT_SEMICOLON]) {
+      lexer->mark_end(lexer);
+      if (should_suppress_semicolon(lexer)) {
+        return false;
+      }
+      lexer->result_symbol = LAYOUT_SEMICOLON;
+      return true;
+    }
     return false;
   }
 

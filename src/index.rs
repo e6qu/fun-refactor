@@ -657,10 +657,15 @@ impl Index {
                 s.kind,
                 SymbolKind::Variable | SymbolKind::Constant | SymbolKind::Parameter
             ) && s.file == path
-                && s.full_span.contains(reference.span)
                 && s.name_span != reference.span
             {
-                return false;
+                if s.language == Language::Lean && s.kind == SymbolKind::Variable {
+                    if !own_scopes.contains(&s.scope) {
+                        return false;
+                    }
+                } else if s.full_span.contains(reference.span) {
+                    return false;
+                }
             }
             // A local is not usable outside its own scope, in any language here.
             if matches!(

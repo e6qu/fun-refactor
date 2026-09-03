@@ -66,20 +66,14 @@ a translation surface it does not yet write.
   uses. Zig (comptime duck typing) and Bash declare no implements-relationship at all, so
   neither has a hierarchy to read.
 
-- [ ] B824: **the Lean grammar cannot read two chained `let`s inside a branch.** A term
-  whose `else` opens `let a := n` and then `let b := a` is ordinary Lean, and the
-  published grammar reports an error on the second one. One `let` in a branch reads
-  cleanly. So do two at the top of a `def`, and two inside a `do`. That is the boundary.
-
-  Nothing this build writes takes the failing form: the Lean writer's bodies are `do`
-  blocks and its helpers are `Id.run do`. So the gap costs a reader of hand-written Lean
-  an `ERROR` node in one shape, and costs the writer nothing.
-  `tests/known_grammar_gaps.rs` pins it from both sides.
-
-  Patching it is the trade `mutual` was, and it came out the other way. `mutual` is a
-  form this build emits. This one is not.
-
 ## Fixed
+
+- [x] B824: **the Lean grammar could not read two chained `let`s inside a branch**.
+  An `if` branch can indent a `let` body beyond the declaration around it. No layout frame
+  then separates the value from its body. The scanner now emits that separator only where
+  the grammar accepts one. Chained bindings parse in either branch. Their names index as
+  variables, and references resolve and rename inside each body. A shadowed initializer
+  still reads the outer binding.
 
 - [x] B833: **the index filed a Lean declaration under the namespace it sat in.**
   `def Box.get` came back as `Box`, and `get` was nowhere. `_name` is hidden, so its

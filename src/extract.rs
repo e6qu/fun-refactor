@@ -720,6 +720,7 @@ impl Extractor {
             while let Some(m) = matches.next() {
                 let mut def: Option<(SymbolKind, Span)> = None;
                 let mut name: Option<Span> = None;
+                let mut binding_body: Option<Span> = None;
                 let mut exported = false;
                 let mut import_parts = ImportParts::default();
                 let mut is_import = false;
@@ -734,6 +735,8 @@ impl Extractor {
                         raw_scopes.push(span);
                     } else if cap_name == "name" {
                         name = Some(span);
+                    } else if cap_name == "binding.body" {
+                        binding_body = Some(span);
                     } else if cap_name == "export" {
                         exported = true;
                     } else if cap_name == "container" {
@@ -790,6 +793,7 @@ impl Extractor {
                                     full_span,
                                     name_span,
                                     exported,
+                                    binding_body,
                                 });
                             }
                         }
@@ -873,7 +877,10 @@ impl Extractor {
                 full_span: d.full_span,
                 file: path.to_path_buf(),
                 language: lang,
-                scope: declaration_scope(d.name_span.start, d.full_span),
+                scope: d
+                    .binding_body
+                    .map(|body| scope_at(body.start))
+                    .unwrap_or_else(|| declaration_scope(d.name_span.start, d.full_span)),
                 container,
                 qualifier,
                 exported: d.exported,
@@ -971,6 +978,7 @@ struct RawDef {
     full_span: Span,
     name_span: Span,
     exported: bool,
+    binding_body: Option<Span>,
 }
 
 struct RawRef {
@@ -1046,6 +1054,7 @@ fn merge_duplicate_defs(defs: &mut Vec<RawDef>) {
         match merged.last_mut() {
             Some(previous) if previous.name_span == def.name_span => {
                 previous.exported |= def.exported;
+                previous.binding_body = previous.binding_body.or(def.binding_body);
                 if def.full_span.len() > previous.full_span.len() {
                     previous.full_span = def.full_span;
                 }
@@ -1282,12 +1291,14 @@ mod tests {
                 full_span: Span::new(0, 10),
                 name_span: Span::new(4, 5),
                 exported: false,
+                binding_body: None,
             },
             RawDef {
                 kind: SymbolKind::Constant,
                 full_span: Span::new(0, 20),
                 name_span: Span::new(4, 5),
                 exported: true,
+                binding_body: None,
             },
         ];
         merge_duplicate_defs(&mut defs);
@@ -1308,12 +1319,14 @@ mod tests {
                 full_span: Span::new(0, 10),
                 name_span: Span::new(4, 5),
                 exported: false,
+                binding_body: None,
             },
             RawDef {
                 kind: SymbolKind::Variable,
                 full_span: Span::new(11, 20),
                 name_span: Span::new(15, 16),
                 exported: false,
+                binding_body: None,
             },
         ];
         merge_duplicate_defs(&mut defs);
