@@ -199,7 +199,7 @@ for (const [name, act] of CASES) {
 }
 
 check("several refactorings in one session make one patch", () => {
-  // The real shape: a person renames, then deletes, then downloads once.
+  // The real shape: a person renames, deletes, changes a shared name, then downloads once.
   const workspace = new Workspace({ ...original });
   const files = { ...original };
   const steps = [
@@ -211,7 +211,10 @@ check("several refactorings in one session make one patch", () => {
       const p = at("src/ingest.rs", "hottest");
       return workspace.delete(p.path, p.line, p.col);
     },
-    () => workspace.organize_imports("scripts/report.py"),
+    () => {
+      const p = at("web/dashboard.css", "panel-title");
+      return workspace.rename(p.path, p.line, p.col, "panel-heading");
+    },
   ];
   for (const step of steps) {
     const result = JSON.parse(step());
@@ -265,4 +268,3 @@ check("a file without a trailing newline says so", () => {
 
 console.log(`\n${checks - failures}/${checks} passed`);
 process.exit(failures === 0 ? 0 : 1);
-
