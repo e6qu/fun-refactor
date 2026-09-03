@@ -2,7 +2,7 @@ schema 1
 
 recipe individual-report-name {
   description "Keep the per-recipe outcome printer's settled name."
-  requires any symbol "print_recipe_report" "print_recipe_outcome"
+  requires any symbol "print_recipe_report" "print_recipe_outcome" where kind=function in="src/cli.rs"
   rename to "print_recipe_outcome" where name="print_recipe_report" kind=function in="src/cli.rs" allow-empty
   expect changed = 0 files
   expect refusals = 0
@@ -10,7 +10,7 @@ recipe individual-report-name {
 
 recipe transaction-report-name {
   description "Keep the recipe transaction printer's settled name."
-  requires any symbol "print_workspace_recipe_report" "print_recipe_transaction_outcome"
+  requires any symbol "print_workspace_recipe_report" "print_recipe_transaction_outcome" where kind=function in="src/cli.rs"
   rename to "print_recipe_transaction_outcome" where name="print_workspace_recipe_report" kind=function in="src/cli.rs" allow-empty
   expect changed = 0 files
   expect refusals = 0

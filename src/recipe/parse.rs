@@ -48,8 +48,11 @@ pub struct Recipe {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Requirement {
     Language(String),
-    Symbol(String),
-    AnySymbol(Vec<String>),
+    Symbol {
+        names: Vec<String>,
+        selector: Vec<Predicate>,
+        line: usize,
+    },
     Path(String),
 }
 
@@ -450,10 +453,10 @@ impl Parser {
                 self.want_ident("`requires language`")?,
             ));
         }
-        if self.eat_word("symbol") {
-            return Ok(Requirement::Symbol(self.want_string("`requires symbol`")?));
-        }
-        if self.eat_word("any") {
+        let line = self.line();
+        let names = if self.eat_word("symbol") {
+            vec![self.want_string("`requires symbol`")?]
+        } else if self.eat_word("any") {
             self.want_word("symbol", "`requires any`")?;
             let mut names = Vec::new();
             while matches!(self.peek(), Some(Token::Str(_))) {
@@ -466,16 +469,26 @@ impl Parser {
                     self.found()
                 );
             }
-            return Ok(Requirement::AnySymbol(names));
-        }
-        if self.eat_word("path") {
+            names
+        } else if self.eat_word("path") {
             return Ok(Requirement::Path(self.want_string("`requires path`")?));
-        }
-        bail!(
-            "line {}: `requires` takes `language`, `symbol`, `any symbol` or `path`, found {}",
-            self.line(),
-            self.found()
-        )
+        } else {
+            bail!(
+                "line {}: `requires` takes `language`, `symbol`, `any symbol` or `path`, found {}",
+                self.line(),
+                self.found()
+            )
+        };
+        let selector = if self.eat_word("where") {
+            self.selector()?
+        } else {
+            Vec::new()
+        };
+        Ok(Requirement::Symbol {
+            names,
+            selector,
+            line,
+        })
     }
 
     fn expectation(&mut self) -> Result<Expect> {

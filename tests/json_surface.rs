@@ -707,12 +707,29 @@ fn explain_emits_selectors_and_expectations_as_structures() {
         ("m.py", RENDER_PY),
         (
             "plan.recipe",
-            "schema 1\n\nrecipe plan {\n  rename to \"draw\" where name=\"render\" \
-             kind=function\n  expect changed >= 1 files\n}\n",
+            "schema 1\n\nrecipe plan {\n  requires symbol \"render\" where kind=function \
+             in=\"m.py\"\n  rename to \"draw\" where name=\"render\" kind=function\n  \
+             expect changed >= 1 files\n}\n",
         ),
     ]);
     let (printed, _, ok) = run_json(&tmp, &["recipe", "plan.recipe", "--explain", "--json"]);
     assert!(ok, "{printed}");
+    let requirement = &printed[0]["requirement_parts"][0];
+    assert_eq!(requirement["kind"], "symbol", "{requirement}");
+    assert_eq!(
+        requirement["names"],
+        serde_json::json!(["render"]),
+        "{requirement}"
+    );
+    let requirement_selector = requirement["selector_parts"]
+        .as_array()
+        .expect("requirement selector parts");
+    assert!(
+        requirement_selector
+            .iter()
+            .any(|p| p["field"] == "in" && p["value"] == "m.py"),
+        "got {requirement_selector:?}"
+    );
     let step = &printed[0]["steps"][0];
     let parts = step["selector_parts"].as_array().expect("selector parts");
     assert!(

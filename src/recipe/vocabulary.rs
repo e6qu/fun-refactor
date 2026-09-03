@@ -102,8 +102,8 @@ const VERBS: &[Verb] = &[
 
 pub const REQUIREMENTS: &[&str] = &[
     "language <name>",
-    "symbol \"<name>\"",
-    "any symbol \"<old name>\" \"<new name>\" [ \"<more names>\" ... ]",
+    "symbol \"<name>\" [ where <symbol predicate> ... ]",
+    "any symbol \"<old name>\" \"<new name>\" [ \"<more names>\" ... ] [ where <symbol predicate> ... ]",
     "path \"<path>\"",
 ];
 
