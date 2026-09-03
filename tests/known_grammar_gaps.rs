@@ -688,18 +688,13 @@ fn branches(node: tree_sitter::Node<'_>) -> usize {
     found
 }
 
-/// Two chained `let`s inside a branch, which the published grammar cannot read. Nothing
-/// this build writes takes the form: the Lean writer's bodies are `do` blocks.
+/// A branch-local `let` starts a layout body of its own, and can chain another one.
 #[test]
-fn lean_leaves_a_chained_let_in_a_branch_visibly_wrong() {
-    let chained =
-        "def f (n : Int) : Int :=\n  if n < 0 then n else\n    let a := n\n    let b := a\n    b\n";
-    assert!(
-        error_nodes(Language::Lean, chained) > 0,
-        "B824 names this shape. If it reads cleanly now, close the entry."
-    );
-    // The forms around it, which do read, and which the writer uses instead.
+fn lean_reads_chained_lets_inside_branches() {
     for source in [
+        "def f (n : Int) : Int :=\n  if n < 0 then n else\n    let a := n\n    let b := a\n    b\n",
+        "def f (n : Int) : Int :=\n  if n < 0 then\n    let a := n\n    let b := a\n    b\n  else n\n",
+        "def f (n : Int) : Int :=\n  if n < 0 then\n    let a := n\n    let b := a\n    b -- first branch.\n  else\n    let a := n\n    let b := a\n    b\n",
         "def f (n : Int) : Int :=\n  if n < 0 then n else\n    let a := n\n    a\n",
         "def f (n : Int) : Int :=\n  let a := n\n  let b := a\n  b\n",
         "def f (n : Int) : Int := Id.run do\n  let a := n\n  let b := a\n  return b\n",
@@ -707,7 +702,7 @@ fn lean_leaves_a_chained_let_in_a_branch_visibly_wrong() {
         assert_eq!(
             error_nodes(Language::Lean, source),
             0,
-            "the boundary of B824 should read cleanly.\n{source}"
+            "chained branch bindings should read cleanly.\n{source}"
         );
     }
 }

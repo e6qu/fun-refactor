@@ -15,7 +15,8 @@
 (class_inductive) @scope
 (namespace) @scope
 (fun) @scope
-(let) @scope
+(let
+  body: (_) @scope)
 (have) @scope
 (match) @scope
 (do) @scope
@@ -74,6 +75,11 @@
 
 (implicit_binder
   name: (identifier) @name) @definition.parameter
+
+; A term-local name becomes visible at the expression that follows its value.
+(let
+  name: (identifier) @name
+  body: (_) @binding.body) @definition.variable
 
 ; `import Foo` brings the whole of Foo's environment in rather than binding one name,
 ; which is what a glob import is everywhere else.

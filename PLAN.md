@@ -370,8 +370,8 @@ names the commit it measures.
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 677 |
-| Defects open | 2 |
+| Defects fixed | 678 |
+| Defects open | 1 |
 
 Every cell that `fr capabilities` marks `n/a` carries the reason the tool refuses. That
 keeps the column a commitment.

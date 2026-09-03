@@ -62,3 +62,8 @@ why = "a comment is an extra, not an element, so its column kept a block open pa
 subject = "the layout semicolon before a continuation word"
 change = "`should_suppress_semicolon` covers `else`, `catch` and `finally` as well as `|`"
 why = "each continues the construct above it rather than opening an element beside it, so the semicolon turned the `else` of a `do`-level `if` into an application of a name called `else`"
+
+[[scanner]]
+subject = "a chained `let` body beyond its enclosing layout"
+change = "a deeper next line emits `LAYOUT_SEMICOLON` wherever that token is valid"
+why = "a term `let` may be the body of an `if` branch, whose outer layout has a shallower column; its value and next binding need the same separator equal columns receive"
