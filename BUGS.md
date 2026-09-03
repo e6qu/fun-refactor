@@ -35,10 +35,12 @@ a translation surface it does not yet write.
   * a TypeScript `implements`/`extends` clause;
   * a Python base class.
 
-  A fifth reaches through a value. Something assigns a function to a name, `Held { run: candidate }`, and calls it through that, `(h.run)()`. Every such edge carries
-  the tag `field-based`. `fr graph` counts it apart from resolved edges, and the report
-  names it as the reason a symbol was spared. TypeScript also falls back to matching
-  a method name alone where no `implements` appears, under the label `method-name`.
+  A fifth follows a callable value through its binding. `let f = candidate` followed
+  by `f()` reaches `candidate`, and aliases keep the same identity. `factory()()`
+  reaches the callable `factory` returns. An unknown field receiver still fans out by
+  name. Every such edge carries the tag `field-based`, and `fr graph` counts it apart
+  from resolved edges. TypeScript also falls back to matching a method name alone where
+  no `implements` appears, under the label `method-name`.
 
   A receiver the source settles narrows all five. An annotation, an initializer, a
   loop over a typed sequence, `self` and `this`: `held_by` works the type out with its
@@ -53,12 +55,10 @@ a translation surface it does not yet write.
   the workspace never declares, and a generic parameter. And what remains undecidable is
   undecidable from the source: a function this workspace never names.
 
-  Measured against this crate's own source, the function-value layer draws 100
-  edges from 58 call sites, and those sites reach 6 functions between them. 24
-  of the 58 reach exactly one, so most sites are not a fan-out at all. The
-  workspace admits one answer and the layer gives it. 28 reach two, 5 reach
-  three, and one reaches five. The tier stays `field-based` for all of them,
-  because which body runs is the program's choice and not the source's.
+  Measured against this crate's own source, the function-value layer draws 78
+  edges. A lexical slot follows only the callable values assigned to it. An
+  untyped field receiver still names every field binding with that name. The
+  tier stays `field-based`, because the program chooses the body that runs.
 
   Either a caller outside it supplies the value, or the name is assembled at runtime from
   pieces no string literal spells. A symbol used only from a file that failed to parse is

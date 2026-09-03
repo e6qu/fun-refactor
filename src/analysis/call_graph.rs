@@ -274,88 +274,127 @@ impl CallGraph {
         hierarchy: &Hierarchy,
         edges: &mut HashSet<(SymbolId, SymbolId, usize)>,
     ) {
-        if hierarchy.function_values.is_empty() {
+        if hierarchy.function_values.is_empty() && hierarchy.function_returns.is_empty() {
             return;
         }
 
-        let mut behind: HashMap<&str, Vec<(SymbolId, Option<&str>)>> = HashMap::new();
-        for (name, sites) in &hierarchy.function_values {
-            let mut callees: Vec<(SymbolId, Option<&str>)> = sites
-                .iter()
-                .filter_map(|(file, offset)| {
-                    let callee = index
-                        .reference_at(file, *offset)
-                        .and_then(|r| r.target)
-                        .and_then(|t| index.symbol(t))
-                        .filter(|s| s.kind.is_callable())
-                        .map(|s| s.id)?;
-                    let owner = hierarchy
-                        .function_value_owners
-                        .get(&(file.clone(), *offset))
-                        .map(|owner| owner.as_str());
-                    Some((callee, owner))
-                })
-                .collect();
-            callees.sort();
-            callees.dedup();
-            if !callees.is_empty() {
-                behind.insert(name.as_str(), callees);
-            }
-        }
-        if behind.is_empty() {
-            return;
-        }
-        for (path, calls) in &hierarchy.calls {
-            if !calls
-                .iter()
-                .any(|(name, _)| behind.contains_key(name.as_str()))
-            {
-                continue;
-            }
-            let starts: HashMap<usize, &crate::model::Reference> = index
-                .references_in(path)
-                .map(|r| (r.span.start, r))
-                .collect();
-            for (name, at) in calls {
-                // The name first: most calls go through a name nothing was ever put
-                // behind, and that is a map lookup.
-                let Some(callees) = behind.get(name.as_str()) else {
-                    continue;
-                };
-                let resolved = starts
-                    .get(at)
-                    .and_then(|r| r.target)
-                    .and_then(|t| index.symbol(t));
-                if resolved.is_some_and(|s| s.kind.is_callable()) {
+        let mut values: BTreeMap<FunctionValueSlot, BTreeSet<SymbolId>> = BTreeMap::new();
+        let mut aliases: Vec<(FunctionValueSlot, FunctionValueSlot)> = Vec::new();
+        for (path, bindings) in &hierarchy.function_values {
+            for binding in bindings {
+                let bound = function_value_slots(
+                    index,
+                    path,
+                    binding.name_offset,
+                    &binding.name,
+                    binding.owner.as_deref(),
+                    binding.owner.is_some(),
+                );
+                if bound.is_empty() {
                     continue;
                 }
-                let Some(caller_id) = enclosing_callable(index, path, *at) else {
+                let direct = index
+                    .definition_at(path, binding.value_offset)
+                    .filter(|symbol| symbol.kind.is_callable())
+                    .map(|symbol| symbol.id);
+                if let Some(callee) = direct {
+                    for bound in bound {
+                        values.entry(bound).or_default().insert(callee);
+                    }
+                } else if let Some(source) =
+                    function_value_slots(index, path, binding.value_offset, "", None, false)
+                        .into_iter()
+                        .next()
+                {
+                    aliases.extend(bound.into_iter().map(|bound| (bound, source.clone())));
+                }
+            }
+        }
+        let mut changed = true;
+        while changed {
+            changed = false;
+            for (bound, source) in &aliases {
+                let Some(callees) = values.get(source).cloned() else {
                     continue;
                 };
-                // The receiver's settled type keeps only its own record's bindings.
-                let settled = starts.get(at).and_then(|r| {
-                    crate::refactor::receiver_known_type(index, r)
-                        .filter(|ty| index.names_a_type(ty, r.language))
-                        .map(|ty| (ty, Family::of(r.language)))
-                });
-                for (callee, owner) in callees {
-                    if let (Some((ty, family)), Some(owner)) = (&settled, owner) {
-                        let related = owner == ty
-                            || family.is_some_and(|f| hierarchy.kin_of(f, ty).contains(*owner));
-                        if !related {
-                            continue;
-                        }
+                let here = values.entry(bound.clone()).or_default();
+                let before = here.len();
+                here.extend(callees);
+                changed |= here.len() != before;
+            }
+        }
+        let mut returns: BTreeMap<SymbolId, BTreeSet<SymbolId>> = BTreeMap::new();
+        for (path, returned) in &hierarchy.function_returns {
+            for returned in returned {
+                let Some(factory) = enclosing_callable(index, path, returned.value_offset) else {
+                    continue;
+                };
+                let direct = index
+                    .definition_at(path, returned.value_offset)
+                    .filter(|symbol| symbol.kind.is_callable())
+                    .map(|symbol| symbol.id);
+                let callees = match direct {
+                    Some(callee) => Some(BTreeSet::from([callee])),
+                    None => {
+                        function_value_slots(index, path, returned.value_offset, "", None, false)
+                            .into_iter()
+                            .find_map(|slot| values.get(&slot).cloned())
                     }
-                    if !edges.insert((caller_id, *callee, *at)) {
+                };
+                if let Some(callees) = callees {
+                    returns.entry(factory).or_default().extend(callees);
+                }
+            }
+        }
+
+        for (path, calls) in &hierarchy.calls {
+            for call in calls {
+                let reference = index.reference_at(path, call.offset);
+                let resolved = reference
+                    .and_then(|reference| reference.target)
+                    .and_then(|id| index.symbol(id));
+                let callees = if call.invokes_result {
+                    resolved
+                        .filter(|symbol| symbol.kind.is_callable())
+                        .and_then(|symbol| returns.get(&symbol.id).cloned())
+                } else {
+                    if resolved.is_some_and(|symbol| symbol.kind.is_callable()) {
+                        continue;
+                    }
+                    let owner = reference.and_then(|reference| {
+                        crate::refactor::receiver_known_type(index, reference)
+                    });
+                    let field = reference.is_some_and(|reference| reference.receiver.is_some());
+                    let candidates: BTreeSet<SymbolId> = function_value_slots(
+                        index,
+                        path,
+                        call.offset,
+                        &call.name,
+                        owner.as_deref(),
+                        field && owner.is_none(),
+                    )
+                    .into_iter()
+                    .flat_map(|slot| values.get(&slot).into_iter().flatten().copied())
+                    .collect();
+                    (!candidates.is_empty()).then_some(candidates)
+                };
+                let Some(callees) = callees else {
+                    continue;
+                };
+                let Some(caller_id) = enclosing_callable(index, path, call.offset) else {
+                    continue;
+                };
+                for callee in callees {
+                    if !edges.insert((caller_id, callee, call.offset)) {
                         continue;
                     }
                     let from = self.node_for(caller_id);
-                    let to = self.node_for(*callee);
+                    let to = self.node_for(callee);
                     self.graph.add_edge(
                         from,
                         to,
                         CallEdge {
-                            offset: *at,
+                            offset: call.offset,
                             file: path.clone(),
                             confidence: Confidence::FieldBased,
                             origin: EdgeOrigin::FunctionValue,
@@ -958,6 +997,40 @@ struct CallSite {
     family: Family,
 }
 
+/// One `left = right` shape that can carry a callable value.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct FunctionValueBinding {
+    name: String,
+    name_offset: usize,
+    value_offset: usize,
+    owner: Option<String>,
+}
+
+/// A direct return of a name from one callable.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct FunctionValueReturn {
+    value_offset: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct FunctionValueCall {
+    name: String,
+    offset: usize,
+    invokes_result: bool,
+}
+
+/// An assignable place that may hold a callable value.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+enum FunctionValueSlot {
+    Symbol(SymbolId),
+    Name(String),
+    RecordField {
+        family: Family,
+        owner: String,
+        name: String,
+    },
+}
+
 /// The type hierarchy a workspace states outright.
 #[derive(Debug, Default)]
 pub struct Hierarchy {
@@ -977,12 +1050,12 @@ pub struct Hierarchy {
     method_sets: HashMap<TypeKey, BTreeMap<String, usize>>,
     /// Method-call syntax sites per file.
     call_sites: BTreeMap<PathBuf, Vec<CallSite>>,
-    /// Names holding a function, and where each names it.
-    function_values: BTreeMap<String, BTreeSet<(PathBuf, usize)>>,
-    /// The record a bound name belongs to, for value sites where the syntax states one.
-    function_value_owners: HashMap<(PathBuf, usize), String>,
+    /// Places that bind a callable value, with both sides kept as source offsets.
+    function_values: BTreeMap<PathBuf, Vec<FunctionValueBinding>>,
+    /// A callable whose `return` hands back another callable value.
+    function_returns: BTreeMap<PathBuf, Vec<FunctionValueReturn>>,
     /// Every call site: the last name of the callee expression, and its offset.
-    calls: BTreeMap<PathBuf, Vec<(String, usize)>>,
+    calls: BTreeMap<PathBuf, Vec<FunctionValueCall>>,
     /// Files that failed to read or parse.
     pub gaps: Vec<(PathBuf, String)>,
     /// What this file calls the names it imported under another spelling, local to
@@ -1221,13 +1294,15 @@ impl Hierarchy {
                 .map(|name| (name.local.clone(), name.original.clone()))
                 .collect();
             let mut sites: Vec<CallSite> = Vec::new();
-            let mut bindings: Vec<(String, usize, Option<String>)> = Vec::new();
-            let mut calls: Vec<(String, usize)> = Vec::new();
+            let mut bindings: Vec<FunctionValueBinding> = Vec::new();
+            let mut returns: Vec<FunctionValueReturn> = Vec::new();
+            let mut calls: Vec<FunctionValueCall> = Vec::new();
             let mut visit = |node: Node| {
                 // A leaf is neither a binding nor a call, and most nodes are leaves.
                 if node.child_count() > 1 {
                     collect_function_value(node, family, &source, &mut bindings);
                     collect_called_name(node, &source, &mut calls);
+                    collect_function_value_return(node, &source, &mut returns);
                 }
                 match family {
                     Family::Rust => hierarchy.visit_rust(node, &source, &mut sites),
@@ -1241,19 +1316,19 @@ impl Hierarchy {
             if !sites.is_empty() {
                 hierarchy.call_sites.insert(path.clone(), sites);
             }
-            for (name, offset, owner) in bindings {
-                hierarchy
-                    .function_values
-                    .entry(name)
-                    .or_default()
-                    .insert((path.clone(), offset));
-                if let Some(owner) = owner {
-                    hierarchy
-                        .function_value_owners
-                        .insert((path.clone(), offset), owner);
-                }
+            if !bindings.is_empty() {
+                bindings.sort();
+                bindings.dedup();
+                hierarchy.function_values.insert(path.clone(), bindings);
+            }
+            if !returns.is_empty() {
+                returns.sort();
+                returns.dedup();
+                hierarchy.function_returns.insert(path.clone(), returns);
             }
             if !calls.is_empty() {
+                calls.sort();
+                calls.dedup();
                 hierarchy.calls.insert(path.clone(), calls);
             }
         }
@@ -1769,7 +1844,7 @@ fn collect_function_value(
     node: Node,
     family: Family,
     source: &str,
-    out: &mut Vec<(String, usize, Option<String>)>,
+    out: &mut Vec<FunctionValueBinding>,
 ) {
     const VALUE_FIELDS: [&str; 2] = ["value", "right"];
     const NAME_FIELDS: [&str; 5] = ["name", "left", "key", "field", "pattern"];
@@ -1822,11 +1897,16 @@ fn collect_function_value(
     if !is_plain_name(last) {
         return;
     }
-    out.push((
-        last.to_string(),
-        value.start_byte(),
-        owning_record(node, source),
-    ));
+    let name_offset = name.start_byte()
+        + text(name, source)
+            .rfind(last)
+            .expect("the last name comes from this node");
+    out.push(FunctionValueBinding {
+        name: last.to_string(),
+        name_offset,
+        value_offset: value.start_byte(),
+        owner: owning_record(node, source),
+    });
 }
 
 /// The record a bound name belongs to, where the syntax states one.
@@ -1891,16 +1971,21 @@ fn type_name_of_annotation(written: &str) -> Option<String> {
 }
 
 /// The name a call goes through: the last identifier of the callee.
-fn collect_called_name(node: Node, source: &str, out: &mut Vec<(String, usize)>) {
+fn collect_called_name(node: Node, source: &str, out: &mut Vec<FunctionValueCall>) {
     let Some(function) = node.child_by_field_name("function") else {
         return;
     };
+    let invokes_result = call_expression(function);
     // The name is the last one in the expression.
     let mut node = function;
     loop {
         if node.child_count() == 0 {
             if is_plain_name(text(node, source)) {
-                out.push((text(node, source).to_string(), node.start_byte()));
+                out.push(FunctionValueCall {
+                    name: text(node, source).to_string(),
+                    offset: node.start_byte(),
+                    invokes_result,
+                });
                 return;
             }
             // A `)` or a `]` ends the expression; the name is before it.
@@ -1914,6 +1999,54 @@ fn collect_called_name(node: Node, source: &str, out: &mut Vec<(String, usize)>)
             .child(node.child_count() as u32 - 1)
             .expect("a last child");
     }
+}
+
+fn call_expression(node: Node) -> bool {
+    matches!(node.kind(), "call" | "call_expression")
+        || named_children(node).into_iter().any(call_expression)
+}
+
+fn collect_function_value_return(node: Node, source: &str, out: &mut Vec<FunctionValueReturn>) {
+    if !matches!(node.kind(), "return_expression" | "return_statement") {
+        return;
+    }
+    let Some(mut value) = named_children(node).into_iter().next() else {
+        return;
+    };
+    while value.child_count() == 1 {
+        value = value.child(0).expect("one child");
+    }
+    if value.child_count() == 0 && is_plain_name(text(value, source)) {
+        out.push(FunctionValueReturn {
+            value_offset: value.start_byte(),
+        });
+    }
+}
+
+fn function_value_slots(
+    index: &Index,
+    path: &Path,
+    offset: usize,
+    name: &str,
+    owner: Option<&str>,
+    name_fallback: bool,
+) -> Vec<FunctionValueSlot> {
+    let mut slots = Vec::new();
+    if let Some(owner) = owner {
+        if let Some(family) = index.file(path).and_then(|info| Family::of(info.language)) {
+            slots.push(FunctionValueSlot::RecordField {
+                family,
+                owner: owner.to_string(),
+                name: name.to_string(),
+            });
+        }
+    } else if let Some(symbol) = index.definition_at(path, offset) {
+        slots.push(FunctionValueSlot::Symbol(symbol.id));
+    }
+    if name_fallback {
+        slots.push(FunctionValueSlot::Name(name.to_string()));
+    }
+    slots
 }
 
 /// The node before this one, staying inside `root`.

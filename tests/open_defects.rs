@@ -186,3 +186,142 @@ fn an_untyped_receiver_still_reaches_every_function_behind_the_name() {
         "nothing types `pair.0`, so the name reaches both: {reached:?}"
     );
 }
+
+#[test]
+fn callable_aliases_follow_the_binding_that_holds_them() {
+    let cases = [
+        (
+            "a.rs",
+            "fn target() {}\nfn caller() { let first = target; let second = first; second(); }\n",
+        ),
+        (
+            "a.go",
+            "package p\nfunc target() {}\nfunc caller() { first := target; second := first; second() }\n",
+        ),
+        (
+            "a.ts",
+            "function target() {}\nfunction caller() { const first = target; const second = first; second(); }\n",
+        ),
+        (
+            "a.py",
+            "def target():\n    pass\n\ndef caller():\n    first = target\n    second = first\n    second()\n",
+        ),
+    ];
+    for (path, source) in cases {
+        let (_tmp, root) = workspace(&[(path, source)]);
+        let index = index_of(&root);
+        let graph = fun_refactor::analysis::call_graph::CallGraph::build(&index);
+        let reached: Vec<SymbolId> = graph
+            .callees(symbol(&index, "caller"))
+            .into_iter()
+            .map(|(id, _)| id)
+            .collect();
+        assert!(
+            reached.contains(&symbol(&index, "target")),
+            "{path}: {reached:?}"
+        );
+    }
+}
+
+#[test]
+fn a_callable_reached_through_aliases_is_not_unused() {
+    let (_tmp, root) = workspace(&[(
+        "a.rs",
+        "fn target() {}\nfn main() { let first = target; let second = first; second(); }\n",
+    )]);
+    let index = index_of(&root);
+    let entrypoints =
+        fun_refactor::analysis::entrypoints::Entrypoints::exactly(&[symbol(&index, "main")]);
+    let unused = fun_refactor::refactor::delete::find_unused(&index, &entrypoints);
+    assert!(
+        !unused.contains(&symbol(&index, "target")),
+        "the alias call reaches target: {unused:?}."
+    );
+}
+
+#[test]
+fn a_reassigned_callable_keeps_each_written_target_live() {
+    let (_tmp, root) = workspace(&[(
+        "a.rs",
+        "fn one() {}\nfn two() {}\nfn main() { let mut run = one; run = two; run(); }\n",
+    )]);
+    let index = index_of(&root);
+    let entrypoints =
+        fun_refactor::analysis::entrypoints::Entrypoints::exactly(&[symbol(&index, "main")]);
+    let unused = fun_refactor::refactor::delete::find_unused(&index, &entrypoints);
+    for name in ["one", "two"] {
+        assert!(
+            !unused.contains(&symbol(&index, name)),
+            "the reassignment reaches {name}: {unused:?}."
+        );
+    }
+}
+
+#[test]
+fn same_named_callable_bindings_do_not_escape_their_lexical_scope() {
+    let (_tmp, root) = workspace(&[(
+        "a.rs",
+        "fn one() {}\nfn two() {}\nfn left() { let run = one; run(); }\nfn right() { let run = two; run(); }\n",
+    )]);
+    let index = index_of(&root);
+    let graph = fun_refactor::analysis::call_graph::CallGraph::build(&index);
+    let callees = |name| {
+        graph
+            .callees(symbol(&index, name))
+            .into_iter()
+            .map(|(id, _)| id)
+            .collect::<Vec<_>>()
+    };
+    let one = symbol(&index, "one");
+    let two = symbol(&index, "two");
+    let left = callees("left");
+    let right = callees("right");
+    assert!(
+        left.contains(&one) && !left.contains(&two),
+        "left: {left:?}"
+    );
+    assert!(
+        right.contains(&two) && !right.contains(&one),
+        "right: {right:?}"
+    );
+}
+
+#[test]
+fn calling_a_factory_result_reaches_the_returned_callable() {
+    let cases = [
+        (
+            "a.rs",
+            "fn target() {}\nfn factory() -> fn() { let selected = target; return selected; }\nfn caller() { (factory())(); }\n",
+        ),
+        (
+            "a.go",
+            "package p\nfunc target() {}\nfunc factory() func() { return target }\nfunc caller() { factory()() }\n",
+        ),
+        (
+            "a.ts",
+            "function target() {}\nfunction factory(): () => void { return target; }\nfunction caller() { factory()(); }\n",
+        ),
+        (
+            "a.py",
+            "def target():\n    pass\n\ndef factory():\n    return target\n\ndef caller():\n    factory()()\n",
+        ),
+    ];
+    for (path, source) in cases {
+        let (_tmp, root) = workspace(&[(path, source)]);
+        let index = index_of(&root);
+        let graph = fun_refactor::analysis::call_graph::CallGraph::build(&index);
+        let caller = symbol(&index, "caller");
+        let target = symbol(&index, "target");
+        let reached = graph.callees(caller);
+        assert!(
+            reached.iter().any(|(id, _)| *id == target),
+            "{path}: {reached:?}"
+        );
+        let edge = reached
+            .into_iter()
+            .find(|(id, _)| *id == target)
+            .map(|(_, edge)| edge)
+            .expect("the target edge");
+        assert_eq!(edge.origin.as_str(), "function-value");
+    }
+}
