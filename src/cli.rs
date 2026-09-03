@@ -2629,6 +2629,14 @@ fn explain_recipes(cli: &Cli, parsed: &crate::recipe::File) -> Result<()> {
     let requirement = |requirement: &Requirement| match requirement {
         Requirement::Language(name) => format!("language {name}"),
         Requirement::Symbol(name) => format!("symbol \"{name}\""),
+        Requirement::AnySymbol(names) => format!(
+            "any symbol {}",
+            names
+                .iter()
+                .map(|name| format!("\"{name}\""))
+                .collect::<Vec<_>>()
+                .join(" ")
+        ),
         Requirement::Path(path) => format!("path \"{path}\""),
     };
     let expectation = |expect: &Expect| match expect {

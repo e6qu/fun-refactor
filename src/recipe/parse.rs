@@ -49,6 +49,7 @@ pub struct Recipe {
 pub enum Requirement {
     Language(String),
     Symbol(String),
+    AnySymbol(Vec<String>),
     Path(String),
 }
 
@@ -452,11 +453,26 @@ impl Parser {
         if self.eat_word("symbol") {
             return Ok(Requirement::Symbol(self.want_string("`requires symbol`")?));
         }
+        if self.eat_word("any") {
+            self.want_word("symbol", "`requires any`")?;
+            let mut names = Vec::new();
+            while matches!(self.peek(), Some(Token::Str(_))) {
+                names.push(self.want_string("`requires any symbol`")?);
+            }
+            if names.len() < 2 {
+                bail!(
+                    "line {}: `requires any symbol` needs at least two names, found {}",
+                    self.line(),
+                    self.found()
+                );
+            }
+            return Ok(Requirement::AnySymbol(names));
+        }
         if self.eat_word("path") {
             return Ok(Requirement::Path(self.want_string("`requires path`")?));
         }
         bail!(
-            "line {}: `requires` takes `language`, `symbol` or `path`, found {}",
+            "line {}: `requires` takes `language`, `symbol`, `any symbol` or `path`, found {}",
             self.line(),
             self.found()
         )

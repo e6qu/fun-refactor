@@ -135,6 +135,7 @@ directive   = description | requires | step | expect ;
 description = "description" , STRING ;
 requires    = "requires" , ( "language" , IDENT
                            | "symbol"   , STRING
+                           | "any" , "symbol" , STRING , STRING , { STRING }
                            | "path"     , STRING ) ;
 
 step        = operation , [ selector ] , { modifier } ;
@@ -167,6 +168,9 @@ expect      = "expect" , ( "no-new" , IDENT
                          | "refusals" , comparison , INT ) ;
 comparison  = "=" | ">" | "<" | ">=" | "<=" ;
 ```
+
+`requires any symbol "before" "after"` accepts either settled name of a
+migration, but rejects a tree that has neither.
 
 ### The grammar is not the whole story
 
@@ -262,8 +266,8 @@ existing analysis:
 
 ### Asking what a recipe may say
 
-`fr recipe --vocabulary` prints the whole surface: the verbs and their argument
-forms, both predicate lists, the rewrites, the modifiers and the languages. It
+`fr recipe --vocabulary` prints the whole surface: the requirement forms, verbs
+and their arguments, both predicate lists, rewrites, modifiers and languages. It
 comes from the code that reads a recipe, so it says what this build takes rather
 than what a document remembers. `--json` gives the same to a program.
 
