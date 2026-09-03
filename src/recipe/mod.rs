@@ -17,4 +17,4 @@ pub use run::{
     run, run_file, ExpectReport, Options, Refusal, Report, Sources, StepReport, StepWarning,
     WorkspaceReport, FILE_PREDICATES, PREDICATES,
 };
-pub use vocabulary::{render, vocabulary, Verb, Vocabulary};
+pub use vocabulary::{render, vocabulary, Verb, Vocabulary, REQUIREMENTS};

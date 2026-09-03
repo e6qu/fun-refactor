@@ -20,6 +20,7 @@ pub struct Verb {
 #[derive(Debug, Serialize)]
 pub struct Vocabulary {
     pub schema: u32,
+    pub requirements: Vec<&'static str>,
     pub verbs: Vec<Verb>,
     pub predicates: Vec<&'static str>,
     /// The subset a step acting on a file may ask.
@@ -99,9 +100,17 @@ const VERBS: &[Verb] = &[
     },
 ];
 
+pub const REQUIREMENTS: &[&str] = &[
+    "language <name>",
+    "symbol \"<name>\"",
+    "any symbol \"<old name>\" \"<new name>\" [ \"<more names>\" ... ]",
+    "path \"<path>\"",
+];
+
 pub fn vocabulary() -> Vocabulary {
     Vocabulary {
         schema: 1,
+        requirements: REQUIREMENTS.to_vec(),
         verbs: VERBS.iter().map(clone_verb).collect(),
         predicates: PREDICATES.to_vec(),
         file_predicates: FILE_PREDICATES.to_vec(),
@@ -127,7 +136,11 @@ fn clone_verb(verb: &Verb) -> Verb {
 }
 
 pub fn render(vocabulary: &Vocabulary) -> String {
-    let mut out = format!("schema {}\n\nOPERATIONS\n", vocabulary.schema);
+    let mut out = format!("schema {}\n\nREQUIREMENTS\n", vocabulary.schema);
+    for requirement in &vocabulary.requirements {
+        out.push_str(&format!("  {requirement}\n"));
+    }
+    out.push_str("\nOPERATIONS\n");
     for verb in &vocabulary.verbs {
         out.push_str(&format!(
             "  {:<12} {}\n{:<15}acts on a {}, `where` {}\n",

@@ -7,8 +7,9 @@ use fun_refactor::analysis::{duplicates, impact};
 use fun_refactor::index::Index;
 use fun_refactor::model::SymbolId;
 use fun_refactor::navigate;
+use fun_refactor::recipe::{self, Options};
 use fun_refactor::scan::{scan, ScanOptions};
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 /// One index for the whole file.
@@ -20,6 +21,37 @@ fn workspace() -> &'static (PathBuf, Index) {
         let index = Index::build_from_scan(&scanned).expect("index");
         (root, index)
     })
+}
+
+#[test]
+fn the_self_hosted_recipe_replays_without_changing_the_workspace() {
+    let (root, _index) = workspace();
+    let scanned = scan(root, &ScanOptions::default()).expect("scan");
+    let sources = scanned
+        .files
+        .into_iter()
+        .map(|source| {
+            let text = std::fs::read_to_string(&source.path).expect("read source");
+            (source.path, (source.language, text))
+        })
+        .collect::<BTreeMap<_, _>>();
+    let original = sources.clone();
+    let file = recipe::parse(include_str!("../recipes/self-hosted-transaction.recipe"))
+        .expect("the self-hosted recipe parses");
+    let result = recipe::run_file(
+        &file,
+        sources,
+        &Options {
+            root,
+            catalogs: &[],
+        },
+    );
+    fun_refactor::vfs::use_filesystem();
+    let (report, after) = result.expect("the self-hosted recipe runs");
+
+    assert!(report.ok, "{report:?}");
+    assert_eq!(report.files_changed, 0, "{report:?}");
+    assert_eq!(after, original, "the settled recipe proposed an edit");
 }
 
 /// One symbol in every `n`, chosen by what it is rather than where it sits. `step_by`

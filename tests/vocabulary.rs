@@ -36,6 +36,17 @@ fn the_vocabulary_names_every_verb_the_parser_reads() {
 }
 
 #[test]
+fn the_vocabulary_names_every_recipe_requirement() {
+    let text = fr(&["recipe", "--vocabulary"]);
+    for requirement in fun_refactor::recipe::REQUIREMENTS {
+        assert!(
+            text.contains(requirement),
+            "`{requirement}` is missing: the recipe guard is part of the language"
+        );
+    }
+}
+
+#[test]
 fn the_vocabulary_names_every_predicate_and_says_which_a_file_takes() {
     let text = fr(&["recipe", "--vocabulary"]);
     for predicate in fun_refactor::recipe::PREDICATES {
@@ -84,6 +95,7 @@ fn the_vocabulary_is_json_a_program_can_read() {
     let parsed: serde_json::Value = serde_json::from_str(&text).expect("it is JSON");
     for key in [
         "schema",
+        "requirements",
         "verbs",
         "predicates",
         "file_predicates",
@@ -93,6 +105,11 @@ fn the_vocabulary_is_json_a_program_can_read() {
     ] {
         assert!(!parsed[key].is_null(), "`{key}` is missing from the JSON");
     }
+    assert_eq!(
+        parsed["requirements"].as_array().map(Vec::len),
+        Some(fun_refactor::recipe::REQUIREMENTS.len()),
+        "the JSON vocabulary drops a recipe guard"
+    );
     let verbs = parsed["verbs"].as_array().expect("verbs is a list");
     assert_eq!(verbs.len(), 11, "the parser reads eleven operations");
     for verb in verbs {

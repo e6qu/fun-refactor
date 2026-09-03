@@ -372,6 +372,23 @@ fn check_requirements(recipe: &Recipe, index: &Index, sources: &Sources) -> Resu
                     );
                 }
             }
+            Requirement::AnySymbol(names) => {
+                if !index
+                    .symbols
+                    .iter()
+                    .any(|symbol| names.contains(&symbol.name))
+                {
+                    let names = names
+                        .iter()
+                        .map(|name| format!("\"{name}\""))
+                        .collect::<Vec<_>>()
+                        .join(" or ");
+                    bail!(
+                        "`requires any symbol {names}`. Nothing in this workspace carries any of \
+                         those names. The recipe expects a different tree."
+                    );
+                }
+            }
             Requirement::Path(path) => {
                 if !sources.keys().any(|p| p.to_string_lossy().contains(path)) {
                     bail!("`requires path \"{path}\"`. No file in this workspace is under it");

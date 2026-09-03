@@ -76,7 +76,8 @@ recipe <em>name</em> {
 }</code></pre>
     <p>
       <code>requires</code> is the guard. A recipe run against the wrong tree stops
-      there instead of part way through.
+      there instead of part way through. For a settled rename, <code>requires any
+      symbol "before" "after"</code> accepts either name and rejects a tree with neither.
     </p>
     <p>
       <strong>Layout means nothing here</strong>, and no statement takes a terminator. A
