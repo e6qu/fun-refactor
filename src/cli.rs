@@ -2563,82 +2563,60 @@ fn cmd_recipe(
         sources.insert(source_file.path.clone(), (source_file.language, text));
     }
 
-    let mut all_ok = true;
-    let mut stopped_by_refusal = false;
-    for recipe in &parsed.recipes {
-        let options = crate::recipe::Options {
-            root: &root,
-            catalogs,
-        };
-        let (mut report, after) = crate::recipe::run(recipe, sources.clone(), &options)?;
-        crate::vfs::use_filesystem();
-        all_ok &= report.ok;
-        stopped_by_refusal |= report.stopped.is_some();
+    let options = crate::recipe::Options {
+        root: &root,
+        catalogs,
+    };
+    let (mut report, after) = crate::recipe::run_file(&parsed, sources.clone(), &options)?;
+    crate::vfs::use_filesystem();
 
-        // The recipe is one transaction, so the diff covers the whole run and never a
-        // single step.
-        let mut edits = crate::edit::EditSet::new();
-        for (path, (language, text)) in &after {
-            let before = sources.get(path).map(|(_, t)| t.as_str()).unwrap_or("");
-            if before != text {
-                edits.add(
-                    path.clone(),
-                    crate::edit::Edit::new(
-                        crate::span::Span::new(0, before.len()),
-                        text,
-                        format!("recipe {}", report.recipe),
-                    ),
-                );
-                // This, and nothing else, places a file the run created.
-                edits.declare_language(path.clone(), *language);
-            }
+    let mut edits = crate::edit::EditSet::new();
+    for (path, (language, text)) in &after {
+        let before = sources.get(path).map(|(_, t)| t.as_str()).unwrap_or("");
+        if before != text {
+            edits.add(
+                path.clone(),
+                crate::edit::Edit::new(
+                    crate::span::Span::new(0, before.len()),
+                    text,
+                    "recipe transaction",
+                ),
+            );
+            edits.declare_language(path.clone(), *language);
         }
-        // A failed expectation rolls the transaction back the same way a refusal stop does.
-        let apply_this = write && report.ok;
-        report.applied = apply_this && !edits.is_empty();
-        report.rolled_back = write && !report.ok;
+    }
+    let apply_this = write && report.ok;
+    report.applied = apply_this && !edits.is_empty();
+    report.rolled_back = write && !report.ok;
 
-        if cli.json {
-            println!("{}", serde_json::to_string_pretty(&report)?);
-            if apply_this {
-                crate::edit::commit(&crate::edit::plan(
-                    &edits,
-                    crate::edit::Validation::ReparseStrict,
-                )?)?;
+    if cli.json {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+        if apply_this {
+            crate::edit::commit(&crate::edit::plan(
+                &edits,
+                crate::edit::Validation::ReparseStrict,
+            )?)?;
+        }
+    } else {
+        print_recipe_transaction_outcome(&report);
+        if report.rolled_back {
+            let outcomes = crate::edit::plan(&edits, crate::edit::Validation::ReparseStrict)?;
+            for outcome in &outcomes {
+                print!("{}", workspace_diff(cli, outcome));
             }
+            println!(
+                "\nThe transaction failed, so this wrote nothing. The diff above is what \
+                 the complete recipe file would have done."
+            );
         } else {
-            print_recipe_report(&report);
-            if report.rolled_back {
-                // The diff still prints, as the evidence of what failed.
-                let outcomes = crate::edit::plan(&edits, crate::edit::Validation::ReparseStrict)?;
-                for outcome in &outcomes {
-                    print!("{}", workspace_diff(cli, outcome));
-                }
-                println!(
-                    "\nThe run failed, so this wrote nothing. The diff above is what \
-                     the recipe would have done."
-                );
-            } else {
-                present(
-                    cli,
-                    None,
-                    &edits,
-                    &format!("recipe {}", report.recipe),
-                    apply_this,
-                )?;
-            }
-        }
-        // The next recipe in the file starts from what this one really left behind.
-        if report.ok {
-            sources = after;
+            present(cli, None, &edits, "recipe transaction", apply_this)?;
         }
     }
 
-    // A refusal stopped the run: the same exit code a standalone refusal earns.
-    if stopped_by_refusal {
+    if report.stopped_by_refusal {
         std::process::exit(5);
     }
-    if !all_ok {
+    if !report.ok {
         std::process::exit(1);
     }
     Ok(())
@@ -2773,7 +2751,7 @@ fn selector_of(step: &crate::recipe::Step) -> String {
         .join(" ")
 }
 
-fn print_recipe_report(report: &crate::recipe::Report) {
+fn print_recipe_outcome(report: &crate::recipe::Report) {
     // The header describes the file, so it counts the steps the recipe holds.
     println!(
         "recipe {}: {} step(s)",
@@ -2823,6 +2801,31 @@ fn print_recipe_report(report: &crate::recipe::Report) {
                 expectation.expectation,
                 expectation.actual
             );
+        }
+    }
+    println!();
+}
+
+fn print_recipe_transaction_outcome(report: &crate::recipe::WorkspaceReport) {
+    println!(
+        "recipe transaction: schema {}, {} recipe(s), {} file(s) changed.",
+        report.schema,
+        report.recipes.len(),
+        report.files_changed
+    );
+    for recipe in &report.recipes {
+        println!();
+        print_recipe_outcome(recipe);
+    }
+    if let Some(recipe) = &report.failed_recipe {
+        println!("transaction failed in recipe {recipe}");
+    } else {
+        println!("transaction ready: every recipe completed");
+    }
+    if !report.files_created.is_empty() {
+        println!("files created:");
+        for path in &report.files_created {
+            println!("  {}", path.display());
         }
     }
     println!();

@@ -12,7 +12,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 /// The workspace as the run currently believes it to be.
-type Sources = BTreeMap<PathBuf, (Language, String)>;
+/// The workspace a recipe transaction reads and rewrites.
+pub type Sources = BTreeMap<PathBuf, (Language, String)>;
 
 #[derive(Debug, Serialize)]
 pub struct Report {
@@ -32,6 +33,19 @@ pub struct Report {
     pub applied: bool,
     /// True where `--write` asked and the workspace stayed as it stood
     /// because the run failed: a stop, or an expectation that did not hold.
+    pub rolled_back: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct WorkspaceReport {
+    pub schema: u64,
+    pub recipes: Vec<Report>,
+    pub files_changed: usize,
+    pub files_created: Vec<PathBuf>,
+    pub ok: bool,
+    pub failed_recipe: Option<String>,
+    pub stopped_by_refusal: bool,
+    pub applied: bool,
     pub rolled_back: bool,
 }
 
@@ -206,6 +220,64 @@ pub fn run(recipe: &Recipe, sources: Sources, options: &Options) -> Result<(Repo
             rolled_back: false,
         },
         sources,
+    ))
+}
+
+/// Run the recipes in a file in order, retaining one virtual workspace until they all finish.
+///
+/// A later failure prevents the caller from committing every earlier recipe as well. The returned
+/// sources still hold the useful preview: successful earlier recipes and, for an expectation
+/// failure, the failing recipe's proposed result. A refusal stop returns the prior recipe's
+/// workspace because that recipe's own transaction did not complete.
+pub fn run_file(
+    file: &super::parse::File,
+    sources: Sources,
+    options: &Options,
+) -> Result<(WorkspaceReport, Sources)> {
+    let originals = sources.clone();
+    let mut workspace = sources;
+    let mut reports = Vec::with_capacity(file.recipes.len());
+    let mut failed_recipe = None;
+    let mut stopped_by_refusal = false;
+
+    for recipe in &file.recipes {
+        let (report, after) = run(recipe, workspace, options)?;
+        let failed = !report.ok;
+        stopped_by_refusal |= report.stopped.is_some();
+        if failed {
+            failed_recipe = Some(report.recipe.clone());
+        }
+        workspace = after;
+        reports.push(report);
+        if failed {
+            break;
+        }
+    }
+
+    let files_changed = workspace
+        .iter()
+        .filter(|(path, (_, text))| originals.get(*path).map(|(_, before)| before) != Some(text))
+        .count();
+    let files_created = workspace
+        .keys()
+        .filter(|path| !originals.contains_key(*path))
+        .cloned()
+        .collect();
+    let ok = failed_recipe.is_none();
+
+    Ok((
+        WorkspaceReport {
+            schema: file.schema,
+            recipes: reports,
+            files_changed,
+            files_created,
+            ok,
+            failed_recipe,
+            stopped_by_refusal,
+            applied: false,
+            rolled_back: false,
+        },
+        workspace,
     ))
 }
 

@@ -1,0 +1,15 @@
+schema 1
+
+recipe individual-report-name {
+  description "Name the report printer for the outcome it shows."
+  requires symbol "print_recipe_report"
+  rename to "print_recipe_outcome" where name="print_recipe_report" kind=function in="src/cli.rs"
+  expect changed >= 1 files
+}
+
+recipe transaction-report-name {
+  description "Name the aggregate report printer for the transaction it shows."
+  requires symbol "print_workspace_recipe_report"
+  rename to "print_recipe_transaction_outcome" where name="print_workspace_recipe_report" kind=function in="src/cli.rs"
+  expect changed >= 1 files
+}
