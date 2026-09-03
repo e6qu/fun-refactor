@@ -169,11 +169,15 @@ pub fn run(recipe: &Recipe, sources: Sources, options: &Options) -> Result<(Repo
     let mut expectations = Vec::new();
     if stopped.is_none() {
         let after = analyses(&index, options, &wanted)?;
+        let matched: u64 = steps.iter().map(|step| step.matched as u64).sum();
+        let applied: u64 = steps.iter().map(|step| step.applied as u64).sum();
         for expect in &recipe.expects {
             expectations.push(check_expect(
                 expect,
                 &before,
                 &after,
+                matched,
+                applied,
                 files_changed as u64,
                 total_refusals as u64,
             ));
@@ -457,6 +461,8 @@ fn check_expect(
     expect: &Expect,
     before: &Analyses,
     after: &Analyses,
+    matched: u64,
+    applied: u64,
     files_changed: u64,
     refusals: u64,
 ) -> ExpectReport {
@@ -478,6 +484,16 @@ fn check_expect(
                 held: count == 0,
             }
         }
+        Expect::Matched { how, count } => ExpectReport {
+            expectation: format!("matched {} {count}", how.as_str()),
+            actual: matched.to_string(),
+            held: how.holds(matched, *count),
+        },
+        Expect::Applied { how, count } => ExpectReport {
+            expectation: format!("applied {} {count}", how.as_str()),
+            actual: applied.to_string(),
+            held: how.holds(applied, *count),
+        },
         Expect::Changed { how, count } => ExpectReport {
             expectation: format!("changed {} {count} files", how.as_str()),
             actual: format!("{files_changed} files"),
