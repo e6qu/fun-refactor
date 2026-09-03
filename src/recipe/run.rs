@@ -116,7 +116,7 @@ pub fn run(recipe: &Recipe, sources: Sources, options: &Options) -> Result<(Repo
     let mut sources = sources;
 
     let mut index = reindex(&sources)?;
-    check_requirements(recipe, &index, &sources)?;
+    check_requirements(recipe, &index, &sources, options)?;
 
     // Files this run has already touched, which `where changed` selects on.
     let mut changed: BTreeSet<PathBuf> = BTreeSet::new();
@@ -350,7 +350,12 @@ fn apply(sources: &mut Sources, edits: &EditSet) -> Result<()> {
     Ok(())
 }
 
-fn check_requirements(recipe: &Recipe, index: &Index, sources: &Sources) -> Result<()> {
+fn check_requirements(
+    recipe: &Recipe,
+    index: &Index,
+    sources: &Sources,
+    options: &Options,
+) -> Result<()> {
     for requirement in &recipe.requires {
         match requirement {
             Requirement::Language(name) => {
@@ -364,28 +369,46 @@ fn check_requirements(recipe: &Recipe, index: &Index, sources: &Sources) -> Resu
                     );
                 }
             }
-            Requirement::Symbol(name) => {
-                if !index.symbols.iter().any(|s| s.name == *name) {
-                    bail!(
-                        "`requires symbol \"{name}\"`. Nothing in this workspace carries \
-                         that name. The recipe expects a different tree."
-                    );
-                }
-            }
-            Requirement::AnySymbol(names) => {
-                if !index
-                    .symbols
-                    .iter()
-                    .any(|symbol| names.contains(&symbol.name))
-                {
-                    let names = names
+            Requirement::Symbol {
+                names,
+                selector,
+                line,
+            } => {
+                let found = select_subjects(
+                    selector,
+                    *line,
+                    false,
+                    index,
+                    &BTreeSet::new(),
+                    options,
+                )?
+                .into_iter()
+                .any(|subject| matches!(subject, Subject::Symbol { ref name, .. } if names.contains(name)));
+                if !found {
+                    let prefix = match names.as_slice() {
+                        [name] => format!("symbol \"{name}\""),
+                        _ => format!(
+                            "any symbol {}",
+                            names
+                                .iter()
+                                .map(|name| format!("\"{name}\""))
+                                .collect::<Vec<_>>()
+                                .join(" or ")
+                        ),
+                    };
+                    let selector = selector
                         .iter()
-                        .map(|name| format!("\"{name}\""))
+                        .map(Predicate::describe)
                         .collect::<Vec<_>>()
-                        .join(" or ");
+                        .join(" ");
                     bail!(
-                        "`requires any symbol {names}`. Nothing in this workspace carries any of \
-                         those names. The recipe expects a different tree."
+                        "`requires {prefix}{}`. Nothing in this workspace carries that required \
+                         symbol. The recipe expects a different tree.",
+                        if selector.is_empty() {
+                            String::new()
+                        } else {
+                            format!(" where {selector}")
+                        }
                     );
                 }
             }
@@ -1003,14 +1026,31 @@ fn select(
     changed: &BTreeSet<PathBuf>,
     options: &Options,
 ) -> Result<Vec<Subject>> {
-    for predicate in &step.selector {
+    // `imports`, `rewrite` and `translate` act on files; everything else acts on
+    // symbols.
+    let by_file = matches!(
+        step.operation,
+        Operation::Imports | Operation::Rewrite { .. } | Operation::Translate { .. }
+    );
+    select_subjects(&step.selector, step.line, by_file, index, changed, options)
+}
+
+fn select_subjects(
+    selector: &[Predicate],
+    line: usize,
+    by_file: bool,
+    index: &Index,
+    changed: &BTreeSet<PathBuf>,
+    options: &Options,
+) -> Result<Vec<Subject>> {
+    for predicate in selector {
         if !PREDICATES.contains(&predicate.field()) {
             let closest = PREDICATES
                 .iter()
                 .min_by_key(|known| distance(known, predicate.field()));
             bail!(
                 "line {}: there is no predicate called `{}`.{} This build answers: {}.",
-                step.line,
+                line,
                 predicate.field(),
                 match closest {
                     Some(name) if distance(name, predicate.field()) <= 3 =>
@@ -1026,7 +1066,7 @@ fn select(
                     if let Err(e) = serde_json::from_value::<SymbolKind>(serde_json::Value::String(
                         value.clone(),
                     )) {
-                        bail!("line {}: {e}", step.line);
+                        bail!("line {}: {e}", line);
                     }
                 }
                 "lang" if Language::from_name(value).is_none() => {
@@ -1034,7 +1074,7 @@ fn select(
                     let closest = known.iter().min_by_key(|name| distance(name, value));
                     bail!(
                         "line {}: `{value}` is not a language.{} This build answers: {}.",
-                        step.line,
+                        line,
                         match closest {
                             Some(name) if distance(name, value) <= 3 =>
                                 format!(" Did you mean `{name}`?"),
@@ -1048,26 +1088,16 @@ fn select(
         }
     }
 
-    // `imports`, `rewrite` and `translate` act on files; everything else acts on
-    // symbols.
-    let by_file = matches!(
-        step.operation,
-        Operation::Imports | Operation::Rewrite { .. } | Operation::Translate { .. }
-    );
-
     if by_file {
-        let asked: Vec<&str> = step
-            .selector
+        let asked: Vec<&str> = selector
             .iter()
             .map(|p| p.field())
             .filter(|field| !FILE_PREDICATES.contains(field))
             .collect();
         if !asked.is_empty() {
             bail!(
-                "line {}: `{}` acts on a file, and {} {} about a symbol. Select the \
+                "line {line}: this clause acts on a file, and {} {} about a symbol. Select \
                  files with {}.",
-                step.line,
-                step.operation.describe(),
                 asked
                     .iter()
                     .map(|f| format!("`{f}`"))
@@ -1082,14 +1112,14 @@ fn select(
         }
     }
 
-    let facts = gather(step, index, options)?;
+    let facts = gather(selector, line, index, options)?;
 
     if by_file {
         let mut files: Vec<PathBuf> = index
             .files()
             .map(|(path, _)| path)
             .filter(|path| {
-                step.selector
+                selector
                     .iter()
                     .all(|p| file_matches(p, path, index, changed, &facts))
             })
@@ -1103,7 +1133,7 @@ fn select(
         .symbols
         .iter()
         .filter(|symbol| {
-            step.selector
+            selector
                 .iter()
                 .all(|p| symbol_matches(p, symbol, changed, &facts))
         })
@@ -1137,10 +1167,10 @@ fn argument<'a>(selector: &'a [Predicate], field: &str) -> Option<&'a str> {
 }
 
 /// Run the analyses this selector asks for, and only those.
-fn gather(step: &Step, index: &Index, options: &Options) -> Result<Facts> {
+fn gather(selector: &[Predicate], line: usize, index: &Index, options: &Options) -> Result<Facts> {
     let mut facts = Facts::default();
 
-    if wants(&step.selector, "unused") {
+    if wants(selector, "unused") {
         let mut catalog = crate::analysis::entrypoints::Catalog::builtin()?;
         for dir in options.catalogs {
             catalog.load_dir(dir)?;
@@ -1151,7 +1181,7 @@ fn gather(step: &Step, index: &Index, options: &Options) -> Result<Facts> {
             .collect();
     }
 
-    if wants(&step.selector, "duplicated") {
+    if wants(selector, "duplicated") {
         facts.duplicated = crate::analysis::duplicates::find(index, &Default::default())
             .map(|classes| {
                 classes
@@ -1163,9 +1193,9 @@ fn gather(step: &Step, index: &Index, options: &Options) -> Result<Facts> {
     }
 
     // One call graph answers both directions, and only a step asking for one builds it.
-    if wants(&step.selector, "calls") || wants(&step.selector, "called-by") {
+    if wants(selector, "calls") || wants(selector, "called-by") {
         let graph = crate::analysis::call_graph::CallGraph::build(index);
-        if let Some(name) = argument(&step.selector, "calls") {
+        if let Some(name) = argument(selector, "calls") {
             // `calls="x"` selects the callers of x, the symbols with an edge into it.
             for target in named(index, name) {
                 for (caller, _) in graph.callers(target) {
@@ -1173,7 +1203,7 @@ fn gather(step: &Step, index: &Index, options: &Options) -> Result<Facts> {
                 }
             }
         }
-        if let Some(name) = argument(&step.selector, "called-by") {
+        if let Some(name) = argument(selector, "called-by") {
             for caller in named(index, name) {
                 for (callee, _) in graph.callees(caller) {
                     facts.called_by.insert(callee);
@@ -1182,7 +1212,7 @@ fn gather(step: &Step, index: &Index, options: &Options) -> Result<Facts> {
         }
     }
 
-    if let Some(name) = argument(&step.selector, "implements") {
+    if let Some(name) = argument(selector, "implements") {
         let hierarchy = crate::analysis::call_graph::Hierarchy::scanned(index);
         for abstraction in named(index, name) {
             for concrete in hierarchy.implementations_of(index, abstraction) {
@@ -1191,19 +1221,19 @@ fn gather(step: &Step, index: &Index, options: &Options) -> Result<Facts> {
         }
     }
 
-    if let Some(pattern) = argument(&step.selector, "matches") {
+    if let Some(pattern) = argument(selector, "matches") {
         // A structural pattern is per-language, and the selector has to say which:
         // the same text is a different tree in every one of them.
-        let Some(name) = argument(&step.selector, "lang") else {
+        let Some(name) = argument(selector, "lang") else {
             bail!(
                 "line {}: `matches=` needs `lang=` beside it. The same text parses into a \
                  different tree in every language, so there is no language-free answer to \
                  where a shape occurs.",
-                step.line
+                line
             );
         };
         let Some(language) = Language::from_name(name) else {
-            bail!("line {}: no language called '{name}'", step.line);
+            bail!("line {line}: no language called '{name}'");
         };
         facts.matched = crate::refactor::restructure::locate(index, language, pattern)?;
     }

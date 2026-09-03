@@ -2628,15 +2628,31 @@ fn explain_recipes(cli: &Cli, parsed: &crate::recipe::File) -> Result<()> {
 
     let requirement = |requirement: &Requirement| match requirement {
         Requirement::Language(name) => format!("language {name}"),
-        Requirement::Symbol(name) => format!("symbol \"{name}\""),
-        Requirement::AnySymbol(names) => format!(
-            "any symbol {}",
-            names
+        Requirement::Symbol {
+            names, selector, ..
+        } => {
+            let head = match names.as_slice() {
+                [name] => format!("symbol \"{name}\""),
+                _ => format!(
+                    "any symbol {}",
+                    names
+                        .iter()
+                        .map(|name| format!("\"{name}\""))
+                        .collect::<Vec<_>>()
+                        .join(" ")
+                ),
+            };
+            let selector = selector
                 .iter()
-                .map(|name| format!("\"{name}\""))
+                .map(Predicate::describe)
                 .collect::<Vec<_>>()
-                .join(" ")
-        ),
+                .join(" ");
+            if selector.is_empty() {
+                head
+            } else {
+                format!("{head} where {selector}")
+            }
+        }
         Requirement::Path(path) => format!("path \"{path}\""),
     };
     let expectation = |expect: &Expect| match expect {
@@ -2658,6 +2674,21 @@ fn explain_recipes(cli: &Cli, parsed: &crate::recipe::File) -> Result<()> {
                 "field": field, "op": "flag", "value": expected,
             }),
         };
+        let requirement_json = |requirement: &Requirement| match requirement {
+            Requirement::Language(name) => serde_json::json!({
+                "kind": "language", "name": name,
+            }),
+            Requirement::Symbol {
+                names, selector, ..
+            } => serde_json::json!({
+                "kind": if names.len() == 1 { "symbol" } else { "any-symbol" },
+                "names": names,
+                "selector_parts": selector.iter().map(predicate_json).collect::<Vec<_>>(),
+            }),
+            Requirement::Path(path) => serde_json::json!({
+                "kind": "path", "path": path,
+            }),
+        };
         let expect_json = |expect: &Expect| match expect {
             Expect::NoNew(what) => serde_json::json!({
                 "predicate": "no-new", "op": "=", "value": what,
@@ -2677,6 +2708,8 @@ fn explain_recipes(cli: &Cli, parsed: &crate::recipe::File) -> Result<()> {
                     "recipe": recipe.name,
                     "description": recipe.description,
                     "requires": recipe.requires.iter().map(requirement).collect::<Vec<_>>(),
+                    "requirement_parts": recipe.requires.iter().map(requirement_json)
+                        .collect::<Vec<_>>(),
                     "steps": recipe.steps.iter().map(|step| serde_json::json!({
                         "step": step.operation.describe(),
                         "selector": selector_of(step),

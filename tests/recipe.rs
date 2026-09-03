@@ -449,7 +449,7 @@ fn a_requirement_can_accept_either_side_of_a_settled_rename() {
     let file = recipe::parse(concat!(
         "schema 1\nrecipe r {\n",
         "  requires any symbol ",
-        "\"former_name\" \"current_name\"\n",
+        "\"former_name\" \"current_name\" where kind=function in=\"a.py\"\n",
         "  rename to \"current_name\" ",
         "where name=\"former_name\" allow-empty\n",
         "  expect changed = 0 files\n}\n",
@@ -505,6 +505,35 @@ fn an_any_symbol_requirement_names_the_missing_choices() {
     .unwrap_err()
     .to_string();
     assert!(error.contains("at least two names"), "{error}");
+}
+
+#[test]
+fn a_symbol_requirement_can_name_the_declaration_it_means() {
+    let (tmp, sources) = workspace(&[("other.py", "def current_name():\n    return 1\n")]);
+    let file = recipe::parse(concat!(
+        "schema 1\nrecipe r { ",
+        "requires symbol \"current_name\" ",
+        "where kind=function in=\"src/cli.rs\" ",
+        "delete where unused }",
+    ))
+    .expect("the recipe parses");
+    let error = recipe::run(
+        &file.recipes[0],
+        sources,
+        &Options {
+            root: tmp.path(),
+            catalogs: &[],
+        },
+    )
+    .unwrap_err()
+    .to_string();
+    fun_refactor::vfs::use_filesystem();
+
+    assert!(
+        error
+            .contains("requires symbol \"current_name\" where kind=\"function\" in=\"src/cli.rs\""),
+        "{error}"
+    );
 }
 
 #[test]

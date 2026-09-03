@@ -134,8 +134,8 @@ directive   = description | requires | step | expect ;
 
 description = "description" , STRING ;
 requires    = "requires" , ( "language" , IDENT
-                           | "symbol"   , STRING
-                           | "any" , "symbol" , STRING , STRING , { STRING }
+                           | ( "symbol"   , STRING
+                             | "any" , "symbol" , STRING , STRING , { STRING } ) , [ selector ]
                            | "path"     , STRING ) ;
 
 step        = operation , [ selector ] , { modifier } ;
@@ -171,6 +171,9 @@ comparison  = "=" | ">" | "<" | ">=" | "<=" ;
 
 `requires any symbol "before" "after"` accepts either settled name of a
 migration, but rejects a tree that has neither.
+
+A symbol guard may add `where kind=function in="src/cli.rs"`. It accepts a
+name only when the same selector identifies the intended declaration.
 
 ### The grammar is not the whole story
 
