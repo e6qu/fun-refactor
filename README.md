@@ -115,6 +115,7 @@ fr translate openapi.yaml fastapi  # a service skeleton from a contract
 fr recipe <file.recipe>       # a workspace transaction: recipes find, do, expect together
 fr recipe fmt recipes --check # format every recipe in a directory, or reject drift
 fr spec check                 # Lean models whose source anchors still match
+fr spec sync --write          # renew reviewed stale source hashes atomically
 fr openapi [--yaml]           # the contract a Next.js route tree declares
 fr callers <fn> --depth 3     # who calls this
 fr callees <fn> --depth 3     # what does it call

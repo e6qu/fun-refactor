@@ -496,6 +496,13 @@ enum SpecCommand {
         #[arg(help = "Lean spec files or directories; defaults to kernels and specs")]
         paths: Vec<PathBuf>,
     },
+    #[command(about = "Renew stale source hashes without changing Lean declarations")]
+    Sync {
+        #[arg(help = "Lean spec files or directories; defaults to kernels and specs")]
+        paths: Vec<PathBuf>,
+        #[arg(long, help = "Apply the renewed hashes instead of printing a diff")]
+        write: bool,
+    },
 }
 
 #[derive(Clone, Copy, Debug, clap::ValueEnum)]
@@ -805,6 +812,7 @@ fn dispatch(cli: &Cli) -> Result<()> {
         },
         Command::Spec { command } => match command {
             SpecCommand::Check { paths } => cmd_spec_check(cli, paths),
+            SpecCommand::Sync { paths, write } => cmd_spec_sync(cli, paths, *write),
         },
         Command::RemoveFlag { flag, value, write } => {
             cmd_remove_flag(cli, flag, FlagValue(*value), *write)
@@ -923,6 +931,36 @@ fn cmd_spec_check(cli: &Cli, paths: &[PathBuf]) -> Result<()> {
             report.missing()
         )
     }
+}
+
+fn cmd_spec_sync(cli: &Cli, paths: &[PathBuf], write: bool) -> Result<()> {
+    let root = workspace_root(cli);
+    let sync = crate::spec::sync(&root, paths, !cli.no_ignore)?;
+    if sync.report.missing() > 0 {
+        anyhow::bail!(
+            "spec sync found {} missing anchor(s). Nothing written; repair those declarations first.",
+            sync.report.missing()
+        );
+    }
+    let summary = format!(
+        "{} stale source anchor(s) ready to renew; {} fresh; {} unproved obligation(s).",
+        sync.report.stale(),
+        sync.report.fresh(),
+        sync.report.obligations
+    );
+    present_with_commit_guard(
+        cli,
+        None,
+        &sync.edits,
+        &summary,
+        write,
+        || sync.verify_sources(),
+        |report| {
+            report["anchors"] =
+                serde_json::to_value(&sync.report.anchors).expect("spec reports serialize");
+            report["obligations"] = serde_json::json!(sync.report.obligations);
+        },
+    )
 }
 
 fn cmd_trace(cli: &Cli, target: &str, depth: usize, direction: Direction2) -> Result<()> {
@@ -1177,10 +1215,25 @@ fn present_with(
     write: bool,
     decorate: impl FnOnce(&mut serde_json::Value),
 ) -> Result<()> {
+    present_with_commit_guard(cli, index, edits, summary, write, || Ok(()), decorate)
+}
+
+fn present_with_commit_guard(
+    cli: &Cli,
+    index: Option<&Index>,
+    edits: &crate::edit::EditSet,
+    summary: &str,
+    write: bool,
+    commit_guard: impl Fn() -> Result<()>,
+    decorate: impl FnOnce(&mut serde_json::Value),
+) -> Result<()> {
     if let Some(index) = index {
         refuse_stale_plan(index, edits)?;
     }
     let outcomes = crate::edit::plan(edits, crate::edit::Validation::ReparseStrict)?;
+    if write {
+        commit_guard()?;
+    }
 
     if cli.json {
         let changes: Vec<_> = outcomes

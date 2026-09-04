@@ -405,6 +405,7 @@ may write.
 
 ```
 fr spec check [PATH...]
+fr spec sync [PATH...] [--write]
 ```
 
 Check that Lean models still point at the declarations they model. With no path,
@@ -413,6 +414,13 @@ anchor such as `-- fr:spec src/edit.rs::apply_to_string @ 3e192284`. The hash
 comes from the declaration's full source span. A changed hash is stale. A gone or
 ambiguous declaration is missing. The report also counts live `sorry` obligations.
 `--json` returns every anchor as data. Stale and missing anchors exit unsuccessfully.
+
+`sync` turns each stale hash into a reparse-checked Lean edit. It prints the exact
+diff by default and commits every renewal together with `--write`. A missing target
+stops the whole run before it writes, so a partly repaired spec cannot hide a broken
+one. Sync renews the source identity only; it never guesses a Lean signature or edits
+the declaration body and its proofs. Before commit, it rechecks every source declaration
+it planned against.
 
 ## Crossing languages
 

@@ -759,6 +759,57 @@ fn spec_check_reports_the_projects_kernel_anchors_as_json() {
 }
 
 #[test]
+fn spec_sync_previews_then_renews_a_stale_anchor_without_touching_its_model() {
+    let ws = Workspace::new(&[
+        ("src/code.rs", "pub fn current() -> usize { 2 }\n"),
+        (
+            "specs/code.lean",
+            "-- fr:spec src/code.rs::current @ deadbeef\ndef current : Nat := 2\n-- end.\n",
+        ),
+    ]);
+    let before = std::fs::read_to_string(ws.root().join("specs/code.lean")).unwrap();
+
+    let (preview, ok) = ws.run(&["spec", "sync", "specs"]);
+    assert!(ok, "{preview}");
+    assert!(preview.contains("deadbeef"), "{preview}");
+    assert!(preview.contains("Nothing written"), "{preview}");
+    assert_eq!(
+        std::fs::read_to_string(ws.root().join("specs/code.lean")).unwrap(),
+        before
+    );
+
+    let (written, ok) = ws.run(&["spec", "sync", "specs", "--write"]);
+    assert!(ok, "{written}");
+    let after = std::fs::read_to_string(ws.root().join("specs/code.lean")).unwrap();
+    assert!(!after.contains("deadbeef"), "{after}");
+    assert!(
+        after.contains("def current : Nat := 2\n-- end.\n"),
+        "{after}"
+    );
+
+    let (checked, ok) = ws.run(&["spec", "check", "specs"]);
+    assert!(ok, "{checked}");
+}
+
+#[test]
+fn spec_sync_refuses_to_renew_any_anchor_when_one_declaration_is_missing() {
+    let ws = Workspace::new(&[
+        ("src/code.rs", "pub fn current() -> usize { 2 }\n"),
+        (
+            "specs/code.lean",
+            "-- fr:spec src/code.rs::current @ deadbeef\ndef current : Nat := 2\n\n\
+             -- fr:spec src/code.rs::gone @ deadbeef\ndef gone : Nat := 0\n-- end.\n",
+        ),
+    ]);
+    let (out, ok) = ws.run(&["spec", "sync", "specs", "--write"]);
+    assert!(!ok, "{out}");
+    assert!(out.contains("Nothing written"), "{out}");
+    assert!(std::fs::read_to_string(ws.root().join("specs/code.lean"))
+        .unwrap()
+        .contains("current @ deadbeef"));
+}
+
+#[test]
 fn an_import_kept_for_a_reason_says_what_the_reason_was() {
     // The planner works the reason out for every import it holds back, and the command threw
     // all of them away.
