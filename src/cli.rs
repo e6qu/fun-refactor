@@ -495,6 +495,8 @@ enum SpecCommand {
     Check {
         #[arg(help = "Lean spec files or directories; defaults to kernels and specs")]
         paths: Vec<PathBuf>,
+        #[arg(long, help = "Require every anchor to carry an explicit signature map")]
+        strict: bool,
     },
     #[command(about = "Renew stale source hashes without changing Lean declarations")]
     Sync {
@@ -811,7 +813,7 @@ fn dispatch(cli: &Cli) -> Result<()> {
             ),
         },
         Command::Spec { command } => match command {
-            SpecCommand::Check { paths } => cmd_spec_check(cli, paths),
+            SpecCommand::Check { paths, strict } => cmd_spec_check(cli, paths, *strict),
             SpecCommand::Sync { paths, write } => cmd_spec_sync(cli, paths, *write),
         },
         Command::RemoveFlag { flag, value, write } => {
@@ -885,9 +887,12 @@ fn dispatch(cli: &Cli) -> Result<()> {
     }
 }
 
-fn cmd_spec_check(cli: &Cli, paths: &[PathBuf]) -> Result<()> {
+fn cmd_spec_check(cli: &Cli, paths: &[PathBuf], strict: bool) -> Result<()> {
     let root = workspace_root(cli);
-    let report = crate::spec::check(&root, paths, !cli.no_ignore)?;
+    let report = match strict {
+        true => crate::spec::check_strict(&root, paths, !cli.no_ignore)?,
+        false => crate::spec::check(&root, paths, !cli.no_ignore)?,
+    };
     if cli.json {
         println!("{}", serde_json::to_string_pretty(&report)?);
     } else {

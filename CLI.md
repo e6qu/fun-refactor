@@ -428,6 +428,9 @@ semicolon-separated part maps one source surface to the model surface, for examp
 `check` verifies both declarations against that explicit mapping. A stale or malformed
 mapping also blocks `sync`.
 
+Add `--strict` to require a mapping beside every anchor in the selected specs. This is
+the CI mode for a kernel tree that treats a source hash alone as incomplete evidence.
+
 ## Crossing languages
 
 ### `fr translate`
