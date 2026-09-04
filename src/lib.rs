@@ -26,6 +26,8 @@ pub mod refactor;
 #[cfg(feature = "cli")]
 pub mod scan;
 pub mod span;
+#[cfg(feature = "cli")]
+pub mod spec;
 #[cfg(test)]
 pub mod testing;
 pub mod translate;

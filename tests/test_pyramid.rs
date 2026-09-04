@@ -37,6 +37,10 @@ fn workspace() -> tempfile::TempDir {
             "tidy.recipe",
             "schema 1\n\nrecipe tidy {\n  rename to \"Increment\" where name=\"Helper\" kind=function\n}\n",
         ),
+        (
+            "specs/model.lean",
+            "-- fr:spec svc/a.go::gone @ deadbeef\ndef model : Nat := 0\n",
+        ),
         ("run.sh", "#!/bin/bash\nmain() {\n  echo hello\n}\nmain\n"),
     ];
     for (name, content) in files {
@@ -111,6 +115,7 @@ fn invocations() -> Vec<(&'static str, Vec<&'static str>)> {
         ("graph", vec!["graph"]),
         ("entrypoints", vec!["entrypoints"]),
         ("recipe", vec!["recipe", "tidy.recipe"]),
+        ("spec", vec!["spec", "check", "specs"]),
         // The fixture has no Next.js route, so this exercises the refusal.
         ("openapi", vec!["openapi"]),
     ]

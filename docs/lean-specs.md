@@ -1,7 +1,7 @@
 # Specs in Lean
 
-A plan with one kernel. The writer under "Tier 2" and the checked kernel project exist.
-The remaining tiers do not.
+A plan with one kernel. The writer under "Tier 2", the checked kernel project, and
+the anchor checker exist. The remaining tiers do not.
 
 `fr` reads Lean and writes it, and the conformance suite runs both. This says what it would take to make Lean the place this
 project writes down what its code should do. It also says which parts of that idea are
@@ -144,16 +144,12 @@ the implementation refines the model for every possible string and edit list.
 ## The commands
 
 ```
-fr spec extract <path>            derive a Lean skeleton from code: types, signatures,
-                                  an anchor comment, and `sorry` where a claim goes
-fr spec check                     the drift report: shapes that moved, specs whose
-                                  symbol is gone, code a policy says wants a spec,
+fr spec check [path...]           the drift report: stale anchors, missing symbols,
                                   and the count of unproved obligations
-fr spec sync <path>               re-derive the signature half of a spec in place,
-                                  leaving every proof alone
-fr translate Foo.lean rust        generate from a spec that is a `def`
-fr spec verify                    run `lake`, and say what failed and where
 ```
+
+`check` is the implemented command. The other moves remain design work:
+`spec extract`, `spec sync`, `fr translate Foo.lean rust`, and `spec verify`.
 
 `fr spec extract` writes an anchor the rest depends on:
 
@@ -204,8 +200,8 @@ unproved obligation is debt with a name, which is better than an intention.
 Tier 2's writer was the first, because everything else waited on it and it extended
 machinery that already worked. It exists now.
 
-Next is the anchor and `fr spec check`, which is deterministic, cheap, and useful on its
-own before a single proof exists. Then the reader, then the kernel cell.
+The anchor and `fr spec check` now make the models name their Rust declarations and
+report drift before a single proof exists. The next useful move is `spec sync`.
 
 Tier 1 can start any time and is the most valuable thing here. It is also the easiest to
 put off, being the only part with no visible output.
