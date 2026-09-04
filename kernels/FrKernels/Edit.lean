@@ -53,6 +53,7 @@ def apply (source : String) (edits : List Edit) : String :=
   (order edits).reverse.foldl splice source
 
 -- fr:spec src/edit.rs::apply_to_string @ 3e192284
+-- fr:signature source: &str => source: String; edits: &[Edit] => edits: List Edit; return: Result<String> => return: Option String
 def applyChecked (source : String) (edits : List Edit) : Option String :=
   if valid source edits then some (apply source edits) else none
 

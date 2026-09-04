@@ -41,7 +41,16 @@ pub struct AnchorReport {
     pub actual: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub detail: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub signature: Option<SignatureReport>,
     pub status: Status,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SignatureReport {
+    pub status: Status,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub detail: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
@@ -74,8 +83,39 @@ impl Report {
             .count()
     }
 
+    pub fn stale_signatures(&self) -> usize {
+        self.anchors
+            .iter()
+            .filter(|anchor| {
+                anchor
+                    .signature
+                    .as_ref()
+                    .is_some_and(|signature| signature.status == Status::Stale)
+            })
+            .count()
+    }
+
+    pub fn missing_signatures(&self) -> usize {
+        self.anchors
+            .iter()
+            .filter(|anchor| {
+                anchor
+                    .signature
+                    .as_ref()
+                    .is_some_and(|signature| signature.status == Status::Missing)
+            })
+            .count()
+    }
+
     pub fn ok(&self) -> bool {
-        self.stale() == 0 && self.missing() == 0
+        self.stale() == 0
+            && self.missing() == 0
+            && self.anchors.iter().all(|anchor| {
+                anchor
+                    .signature
+                    .as_ref()
+                    .is_none_or(|signature| signature.status == Status::Fresh)
+            })
     }
 }
 
@@ -101,6 +141,7 @@ pub fn check(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result<Re
                     expected,
                     actual: None,
                     detail: Some("a spec anchor may not leave the workspace".to_string()),
+                    signature: None,
                     status: Status::Missing,
                 }
             } else {
@@ -113,6 +154,7 @@ pub fn check(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result<Re
                         expected,
                         actual: Some(actual),
                         detail: None,
+                        signature: None,
                         status: Status::Fresh,
                     },
                     Ok(actual) => AnchorReport {
@@ -123,6 +165,7 @@ pub fn check(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result<Re
                         expected,
                         actual: Some(actual),
                         detail: None,
+                        signature: None,
                         status: Status::Stale,
                     },
                     Err(error) => AnchorReport {
@@ -133,10 +176,35 @@ pub fn check(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result<Re
                         expected,
                         actual: None,
                         detail: Some(error.to_string()),
+                        signature: None,
                         status: Status::Missing,
                     },
                 }
             };
+            let mut report = report;
+            match signature_mapping(&text, line) {
+                Ok(Some(mapping)) => match mapped_signature(&report, &text, line, &mapping) {
+                    Ok(()) => {
+                        report.signature = Some(SignatureReport {
+                            status: Status::Fresh,
+                            detail: None,
+                        })
+                    }
+                    Err(error) => {
+                        report.signature = Some(SignatureReport {
+                            status: Status::Stale,
+                            detail: Some(error.to_string()),
+                        })
+                    }
+                },
+                Ok(None) => {}
+                Err(error) => {
+                    report.signature = Some(SignatureReport {
+                        status: Status::Missing,
+                        detail: Some(error.to_string()),
+                    })
+                }
+            }
             anchors.push(report);
         }
     }
@@ -370,6 +438,157 @@ fn declaration_hash(
     ))
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct SignaturePart {
+    name: String,
+    ty: String,
+}
+
+fn signature_mapping(
+    text: &str,
+    anchor_line: usize,
+) -> Result<Option<Vec<(SignaturePart, SignaturePart)>>> {
+    let Some(line) = text.lines().nth(anchor_line) else {
+        return Ok(None);
+    };
+    let Some(body) = line.trim_start().strip_prefix("-- fr:signature ") else {
+        return Ok(None);
+    };
+    body.split(';')
+        .map(|part| {
+            let (source, model) = part.trim().split_once(" => ").ok_or_else(|| {
+                anyhow::anyhow!(
+                    "line {}: a signature map needs `source: Type => model: Type`",
+                    anchor_line + 1
+                )
+            })?;
+            Ok((signature_part(source)?, signature_part(model)?))
+        })
+        .collect::<Result<Vec<_>>>()
+        .map(Some)
+}
+
+fn signature_part(text: &str) -> Result<SignaturePart> {
+    let (name, ty) = text
+        .trim()
+        .split_once(':')
+        .ok_or_else(|| anyhow::anyhow!("a signature map part needs a name and type"))?;
+    if name.trim().is_empty() || ty.trim().is_empty() {
+        bail!("a signature map part needs a name and type");
+    }
+    Ok(SignaturePart {
+        name: name.trim().to_string(),
+        ty: compact_type(ty),
+    })
+}
+
+fn mapped_signature(
+    anchor: &AnchorReport,
+    spec: &str,
+    anchor_line: usize,
+    mapping: &[(SignaturePart, SignaturePart)],
+) -> Result<()> {
+    let source = rust_signature(&anchor.source, &anchor.symbol)?;
+    let model = lean_signature(spec, anchor_line)?;
+    let expected_source = mapping.iter().map(|(source, _)| source).collect::<Vec<_>>();
+    let expected_model = mapping.iter().map(|(_, model)| model).collect::<Vec<_>>();
+    if source.iter().collect::<Vec<_>>() != expected_source {
+        bail!("the Rust signature no longer matches its explicit map");
+    }
+    if model.iter().collect::<Vec<_>>() != expected_model {
+        bail!("the Lean declaration no longer matches its explicit map");
+    }
+    Ok(())
+}
+
+fn rust_signature(path: &Path, wanted: &str) -> Result<Vec<SignaturePart>> {
+    if path.extension().is_none_or(|extension| extension != "rs") {
+        bail!("explicit signature maps currently require a Rust source declaration");
+    }
+    let text = crate::vfs::read_to_string(path)?;
+    let parsers = Parsers::new();
+    let mut extractor = Extractor::new();
+    let parsed = parsers.parse(crate::lang::Language::Rust, &text)?;
+    let facts = extractor.extract(&parsed, path, &text)?;
+    let matches = facts
+        .symbols
+        .iter()
+        .filter(|symbol| symbol.qualified_name() == wanted)
+        .collect::<Vec<_>>();
+    let [symbol] = matches.as_slice() else {
+        bail!(
+            "{} names {} declarations called {wanted}",
+            path.display(),
+            matches.len()
+        );
+    };
+    let declaration = symbol.full_span.text(&text);
+    let open = declaration
+        .find('(')
+        .context("the Rust declaration has no parameters")?;
+    let close = declaration[open..]
+        .find(')')
+        .map(|offset| open + offset)
+        .context("the Rust declaration has no closing parameter list")?;
+    let mut parts = declaration[open + 1..close]
+        .split(',')
+        .filter(|part| !part.trim().is_empty())
+        .map(signature_part)
+        .collect::<Result<Vec<_>>>()?;
+    let tail = &declaration[close + 1..];
+    let return_type = tail
+        .split_once("->")
+        .map(|(_, ty)| ty.split('{').next().unwrap_or(ty).trim())
+        .unwrap_or("()");
+    parts.push(SignaturePart {
+        name: "return".to_string(),
+        ty: compact_type(return_type),
+    });
+    Ok(parts)
+}
+
+fn lean_signature(spec: &str, anchor_line: usize) -> Result<Vec<SignaturePart>> {
+    let header = spec
+        .lines()
+        .skip(anchor_line)
+        .find(|line| line.trim_start().starts_with("def "))
+        .context("the signature map needs a following Lean definition")?
+        .trim();
+    let before_body = header
+        .split_once(":=")
+        .map(|(head, _)| head)
+        .context("the mapped Lean definition needs `:=` on its declaration line")?;
+    let mut parts = Vec::new();
+    let mut rest = before_body
+        .strip_prefix("def ")
+        .context("a Lean definition starts with `def`")?;
+    rest = rest
+        .split_once(char::is_whitespace)
+        .map(|(_, tail)| tail)
+        .unwrap_or("");
+    while let Some(open) = rest.find('(') {
+        let tail = &rest[open + 1..];
+        let close = tail
+            .find(')')
+            .context("an explicit Lean parameter needs `)`")?;
+        parts.push(signature_part(&tail[..close])?);
+        rest = &tail[close + 1..];
+    }
+    let return_type = rest
+        .split_once(':')
+        .map(|(_, ty)| ty)
+        .context("the mapped Lean definition needs a return type")?;
+    parts.push(SignaturePart {
+        name: "return".to_string(),
+        ty: compact_type(return_type),
+    });
+    Ok(parts)
+}
+
+fn compact_type(text: &str) -> String {
+    text.split_whitespace().collect()
+}
+
 fn obligations_in(text: &str) -> usize {
     text.lines()
         .filter(|line| !line.trim_start().starts_with("--"))
@@ -492,5 +711,52 @@ mod tests {
         let missing = sync(root, &[PathBuf::from("specs")], true).unwrap();
         assert_eq!(missing.report.missing(), 1);
         assert!(missing.edits.is_empty());
+    }
+
+    #[test]
+    fn checks_an_explicit_rust_to_lean_signature_map() {
+        let workspace = tempfile::tempdir().unwrap();
+        let root = workspace.path();
+        fs::create_dir_all(root.join("src")).unwrap();
+        fs::create_dir_all(root.join("specs")).unwrap();
+        let code = root.join("src/code.rs");
+        fs::write(
+            &code,
+            "pub fn current(source: &str, offset: usize) -> String { source.into() }\n",
+        )
+        .unwrap();
+        let hash =
+            declaration_hash(&mut Parsers::new(), &mut Extractor::new(), &code, "current").unwrap();
+        let spec = root.join("specs/code.lean");
+        fs::write(
+            &spec,
+            format!(
+                "-- fr:spec src/code.rs::current @ {}\n-- fr:signature source: &str => source: String; offset: usize => offset: Nat; return: String => return: String\ndef current (source : String) (offset : Nat) : String := source\n-- end.\n",
+                &hash[..8]
+            ),
+        )
+        .unwrap();
+
+        let fresh = check(root, &[PathBuf::from("specs")], true).unwrap();
+        assert_eq!(
+            fresh.anchors[0].signature.as_ref().unwrap().status,
+            Status::Fresh
+        );
+        assert!(fresh.ok());
+
+        fs::write(
+            &spec,
+            format!(
+                "-- fr:spec src/code.rs::current @ {}\n-- fr:signature source: &str => source: String; offset: usize => offset: Nat; return: String => return: Nat\ndef current (source : String) (offset : Nat) : String := source\n-- end.\n",
+                &hash[..8]
+            ),
+        )
+        .unwrap();
+        let stale = check(root, &[PathBuf::from("specs")], true).unwrap();
+        assert_eq!(
+            stale.anchors[0].signature.as_ref().unwrap().status,
+            Status::Stale
+        );
+        assert!(!stale.ok());
     }
 }

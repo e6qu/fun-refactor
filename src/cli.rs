@@ -913,6 +913,24 @@ fn cmd_spec_check(cli: &Cli, paths: &[PathBuf]) -> Result<()> {
                     anchor.detail.as_deref().unwrap_or("no declaration found")
                 ),
             }
+            if let Some(signature) = &anchor.signature {
+                if signature.status != crate::spec::Status::Fresh {
+                    println!(
+                        "signature {}:{} {} ({})",
+                        anchor.spec.display(),
+                        anchor.line,
+                        match signature.status {
+                            crate::spec::Status::Stale => "stale",
+                            crate::spec::Status::Missing => "missing",
+                            crate::spec::Status::Fresh => unreachable!(),
+                        },
+                        signature
+                            .detail
+                            .as_deref()
+                            .unwrap_or("the explicit map did not match")
+                    );
+                }
+            }
         }
         println!(
             "{} fresh, {} stale, {} missing; {} unproved obligation(s).",
@@ -926,9 +944,11 @@ fn cmd_spec_check(cli: &Cli, paths: &[PathBuf]) -> Result<()> {
         Ok(())
     } else {
         anyhow::bail!(
-            "spec check found {} stale and {} missing anchor(s)",
+            "spec check found {} stale and {} missing anchor(s), plus {} stale and {} missing signature map(s).",
             report.stale(),
-            report.missing()
+            report.missing(),
+            report.stale_signatures(),
+            report.missing_signatures()
         )
     }
 }
@@ -936,10 +956,15 @@ fn cmd_spec_check(cli: &Cli, paths: &[PathBuf]) -> Result<()> {
 fn cmd_spec_sync(cli: &Cli, paths: &[PathBuf], write: bool) -> Result<()> {
     let root = workspace_root(cli);
     let sync = crate::spec::sync(&root, paths, !cli.no_ignore)?;
-    if sync.report.missing() > 0 {
+    if sync.report.missing() > 0
+        || sync.report.stale_signatures() > 0
+        || sync.report.missing_signatures() > 0
+    {
         anyhow::bail!(
-            "spec sync found {} missing anchor(s). Nothing written; repair those declarations first.",
-            sync.report.missing()
+            "spec sync found {} missing anchor(s), {} stale signature map(s), and {} missing signature map(s). Nothing written; repair those declarations first.",
+            sync.report.missing(),
+            sync.report.stale_signatures(),
+            sync.report.missing_signatures()
         );
     }
     let summary = format!(

@@ -422,6 +422,12 @@ one. Sync renews the source identity only; it never guesses a Lean signature or 
 the declaration body and its proofs. Before commit, it rechecks every source declaration
 it planned against.
 
+An anchor can carry one `-- fr:signature` line. It goes before the Lean definition. Each
+semicolon-separated part maps one source surface to the model surface, for example
+`source: &str => source: String; return: Result<String> => return: Option String`.
+`check` verifies both declarations against that explicit mapping. A stale or malformed
+mapping also blocks `sync`.
+
 ## Crossing languages
 
 ### `fr translate`
