@@ -10,7 +10,7 @@ use crate::scan::{scan, ScanOptions};
 use crate::span::{LineCol, LineIndex};
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 
 /// Whether [`emit`] ends the write with a newline.
@@ -471,10 +471,10 @@ enum Command {
 
 #[derive(Subcommand)]
 enum RecipeCommand {
-    #[command(about = "Canonicalize a recipe's layout without changing what it means")]
+    #[command(about = "Canonicalize recipe layouts without changing what they mean.")]
     Fmt {
-        #[arg(help = "The recipe file to format")]
-        file: PathBuf,
+        #[arg(required = true, help = "Recipe files or directories to format")]
+        paths: Vec<PathBuf>,
         #[arg(
             long,
             help = "Replace the recipe file instead of writing its canonical form to standard output"
@@ -776,9 +776,11 @@ fn dispatch(cli: &Cli) -> Result<()> {
             catalogs,
             vocabulary,
         } => match command {
-            Some(RecipeCommand::Fmt { file, write, check }) => {
-                cmd_recipe_fmt(cli, file, *write, *check)
-            }
+            Some(RecipeCommand::Fmt {
+                paths,
+                write,
+                check,
+            }) => cmd_recipe_fmt(cli, paths, *write, *check),
             None => cmd_recipe(
                 cli,
                 file.as_deref(),
@@ -2559,7 +2561,7 @@ fn cmd_recipe(
     };
     let root = workspace_root(cli);
     // A relative path is relative to the workspace, as every other file argument is.
-    let recipe_path = if file.is_absolute() || crate::vfs::exists(file) {
+    let recipe_path = if file.is_absolute() {
         file.to_path_buf()
     } else {
         root.join(file)
@@ -2646,56 +2648,161 @@ fn cmd_recipe(
     Ok(())
 }
 
-fn cmd_recipe_fmt(cli: &Cli, file: &std::path::Path, write: bool, check: bool) -> Result<()> {
+struct RecipeFormatFile {
+    path: PathBuf,
+    formatted: String,
+    changed: bool,
+}
+
+fn cmd_recipe_fmt(cli: &Cli, inputs: &[PathBuf], write: bool, check: bool) -> Result<()> {
     if write && check {
         return Err(Fault::invalid_input(
             "`fr recipe fmt` cannot both replace a file and only check it; drop --write or --check."
                 .to_string(),
         ));
     }
-    let root = workspace_root(cli);
-    let path = if file.is_absolute() || crate::vfs::exists(file) {
-        file.to_path_buf()
-    } else {
-        root.join(file)
-    };
-    let before =
-        crate::vfs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
-    let after = crate::recipe::format_source(&before)?;
-    let changed = before != after;
-    let json = || {
-        serde_json::json!({
-            "path": path,
-            "formatted": after,
-            "changed": changed,
-        })
-    };
+    let files = recipe_format_paths(cli, inputs)?;
+    let mut formatted = Vec::with_capacity(files.len());
+    for path in files {
+        let before = crate::vfs::read_to_string(&path)
+            .with_context(|| format!("reading {}", path.display()))?;
+        let after = crate::recipe::format_source(&before)
+            .with_context(|| format!("formatting {}", path.display()))?;
+        formatted.push(RecipeFormatFile {
+            path,
+            changed: before != after,
+            formatted: after,
+        });
+    }
 
     if check {
-        if !changed {
+        let needing_format = formatted
+            .iter()
+            .filter(|file| file.changed)
+            .collect::<Vec<_>>();
+        if needing_format.is_empty() {
             match cli.json {
-                true => println!("{}", serde_json::to_string_pretty(&json())?),
-                false => println!("{} is already in canonical recipe layout.", path.display()),
+                true => print_recipe_format_json(&formatted)?,
+                false if formatted.len() == 1 => println!(
+                    "{} is already in canonical recipe layout.",
+                    formatted[0].path.display()
+                ),
+                false => println!(
+                    "{} recipe files are already in canonical recipe layout.",
+                    formatted.len()
+                ),
             }
             return Ok(());
         }
+        if needing_format.len() > 1 {
+            anyhow::bail!(
+                "{} recipe files are not in canonical recipe layout:\n{}\nRun `fr recipe fmt <paths> --write`.",
+                needing_format.len(),
+                needing_format
+                    .iter()
+                    .map(|file| format!("  {}", file.path.display()))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            );
+        }
+        let file = needing_format[0];
         anyhow::bail!(
             "{} is not in canonical recipe layout. Run `fr recipe fmt {}`.",
-            path.display(),
-            file.display()
+            file.path.display(),
+            file.path.display()
         );
     }
     if write {
-        crate::vfs::write(&path, &after).with_context(|| format!("writing {}", path.display()))?;
+        for file in &formatted {
+            crate::vfs::write(&file.path, &file.formatted)
+                .with_context(|| format!("writing {}", file.path.display()))?;
+        }
         match cli.json {
-            true => println!("{}", serde_json::to_string_pretty(&json())?),
-            false => println!("formatted {}", path.display()),
+            true => print_recipe_format_json(&formatted)?,
+            false => {
+                for file in &formatted {
+                    println!("formatted {}", file.path.display());
+                }
+            }
         }
     } else if cli.json {
-        println!("{}", serde_json::to_string_pretty(&json())?);
+        print_recipe_format_json(&formatted)?;
     } else {
-        print!("{after}");
+        for (index, file) in formatted.iter().enumerate() {
+            if formatted.len() > 1 {
+                if index > 0 {
+                    println!();
+                }
+                println!("==> {} <==", file.path.display());
+            }
+            print!("{}", file.formatted);
+        }
     }
+    Ok(())
+}
+
+fn recipe_format_paths(cli: &Cli, inputs: &[PathBuf]) -> Result<Vec<PathBuf>> {
+    let root = workspace_root(cli);
+    let mut files = BTreeSet::new();
+    for input in inputs {
+        let path = if input.is_absolute() {
+            input.to_path_buf()
+        } else {
+            root.join(input)
+        };
+        let metadata =
+            std::fs::metadata(&path).with_context(|| format!("reading {}", path.display()))?;
+        if metadata.is_file() {
+            files.insert(path);
+            continue;
+        }
+        let mut found = false;
+        let walker = ignore::WalkBuilder::new(&path)
+            .standard_filters(!cli.no_ignore)
+            .hidden(!cli.no_ignore)
+            .git_ignore(!cli.no_ignore)
+            .require_git(false)
+            .build();
+        for entry in walker {
+            let entry = entry?;
+            if entry.file_type().is_some_and(|kind| kind.is_file())
+                && entry
+                    .path()
+                    .extension()
+                    .is_some_and(|extension| extension == "recipe")
+            {
+                found = true;
+                files.insert(entry.into_path());
+            }
+        }
+        if !found {
+            anyhow::bail!("{} contains no .recipe files", path.display());
+        }
+    }
+    Ok(files.into_iter().collect())
+}
+
+fn print_recipe_format_json(formatted: &[RecipeFormatFile]) -> Result<()> {
+    let files = formatted
+        .iter()
+        .map(|file| {
+            serde_json::json!({
+                "path": file.path,
+                "formatted": file.formatted,
+                "changed": file.changed,
+            })
+        })
+        .collect::<Vec<_>>();
+    let changed = formatted.iter().filter(|file| file.changed).count();
+    let report = match files.as_slice() {
+        [file] => file.clone(),
+        _ => serde_json::json!({
+            "files": files,
+            "files_checked": formatted.len(),
+            "files_needing_format": changed,
+        }),
+    };
+    println!("{}", serde_json::to_string_pretty(&report)?);
     Ok(())
 }
 
