@@ -161,14 +161,16 @@ value       = STRING | IDENT | INT | BOOL ;
 
 modifier    = "on-refusal" , ( "stop" | "report" | "allow" )
             | "limit" , INT
-            | "allow-empty" ;
+            | "allow-empty"
+            | "id" , STRING ;
 
 expect      = "expect" , ( "no-new" , IDENT
                          | "matched" , comparison , INT
                          | "applied" , comparison , INT
                          | "changed" , comparison , INT , [ "files" ]
                          | "refusals" , comparison , INT
-                         | "step" , INT , ( "matched" | "applied" | "changed" | "refusals" ) ,
+                         | "step" , ( INT | STRING ) ,
+                           ( "matched" | "applied" | "changed" | "refusals" ) ,
                            comparison , INT , [ "files" ] ) ;
 comparison  = "=" | ">" | "<" | ">=" | "<=" ;
 ```
@@ -370,6 +372,8 @@ expect applied = 3
 
 expect step 2 matched = 2
 expect step 2 refusals = 0
+
+expect step "retire-helpers" applied = 2
 expect no-new unused
 expect no-new duplicates
 expect refusals = 0
@@ -387,6 +391,10 @@ rewrite, a file can match while no position changes, so the two deliberately dif
 `step N` applies the same count to one numbered step. It keeps a later cleanup from
 making an earlier broad selector look harmless in the total. Step numbers follow the
 report, start at 1, and must name a step the recipe has.
+
+Give a step `id "retire-helpers"` when later edits may change its position. An
+expectation may then say `step "retire-helpers"` and stays attached to that phase.
+Ids are unique inside one recipe and appear in both human and JSON reports.
 
 The engine reparse-checks every edit regardless. You do not opt into that one.
 

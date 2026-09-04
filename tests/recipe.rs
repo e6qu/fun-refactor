@@ -80,11 +80,17 @@ fn a_where_clause_runs_across_as_many_lines_as_it_needs() {
 fn where_and_the_modifiers_are_order_independent() {
     // Rejecting `delete on-refusal allow where unused` is a rule nobody remembers and
     // it buys nothing.
-    let file = recipe::parse("schema 1\nrecipe r { delete on-refusal allow where unused }")
-        .expect("this parses");
+    let file = recipe::parse(
+        "schema 1\nrecipe r { delete id \"retire-unused\" on-refusal allow where unused }",
+    )
+    .expect("this parses");
     assert_eq!(
         file.recipes[0].steps[0].on_refusal,
         recipe::OnRefusal::Allow
+    );
+    assert_eq!(
+        file.recipes[0].steps[0].id.as_deref(),
+        Some("retire-unused")
     );
 }
 
@@ -290,14 +296,15 @@ fn a_file_the_rewrite_does_not_apply_to_is_not_a_refusal() {
             ("pkg/b.go", "package pkg\n\nfunc B() int {\n\treturn 1\n}\n"),
         ],
         "schema 1\n\nrecipe r {\n\
-           rewrite guard-clause where lang=go in=\"pkg/\"\n\n\
-           expect step 1 matched = 2\n\
-           expect step 1 applied = 1\n\n\
-           expect step 1 changed = 1 files\n\
-           expect step 1 refusals = 0\n\
+           rewrite guard-clause where lang=go in=\"pkg/\" id \"guard-clauses\"\n\n\
+           expect step \"guard-clauses\" matched = 2\n\
+           expect step \"guard-clauses\" applied = 1\n\n\
+           expect step \"guard-clauses\" changed = 1 files\n\
+           expect step \"guard-clauses\" refusals = 0\n\
          }\n\n",
     );
     assert_eq!(report.steps[0].matched, 2, "both files are selected");
+    assert_eq!(report.steps[0].id.as_deref(), Some("guard-clauses"));
     assert!(
         report.steps[0].refusals.is_empty(),
         "a file with nothing to do is not a refusal: {:?}.",
@@ -342,6 +349,20 @@ fn a_step_expectation_names_a_real_step() {
     .unwrap_err()
     .to_string();
     assert!(beyond.contains("has 1 step"), "{beyond}");
+
+    let missing = recipe::parse(
+        "schema 1\nrecipe r {\n  delete where unused\n  expect step \"gone\" matched = 0\n}\n\n",
+    )
+    .unwrap_err()
+    .to_string();
+    assert!(missing.contains("names no step id"), "{missing}");
+
+    let duplicate = recipe::parse(
+        "schema 1\nrecipe r {\n  delete where unused id \"dead\"\n  delete where unused id \"dead\"\n}\n\n",
+    )
+    .unwrap_err()
+    .to_string();
+    assert!(duplicate.contains("repeats the one"), "{duplicate}");
 }
 
 const CALLS_PY: &str = r#"def log(message):
