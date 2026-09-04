@@ -709,7 +709,7 @@ fn explain_emits_selectors_and_expectations_as_structures() {
             "plan.recipe",
             "schema 1\n\nrecipe plan {\n  requires symbol \"render\" where kind=function \
              in=\"m.py\"\n  rename to \"draw\" where name=\"render\" kind=function\n\n\
-             expect step 1 matched = 1\n  expect step 1 applied = 1\n  expect step 1 changed >= 1 files\n}\n",
+             id \"rename-render\"\n  expect step \"rename-render\" matched = 1\n  expect step \"rename-render\" applied = 1\n  expect step \"rename-render\" changed >= 1 files\n}\n",
         ),
     ]);
     let (printed, _, ok) = run_json(&tmp, &["recipe", "plan.recipe", "--explain", "--json"]);
@@ -731,6 +731,7 @@ fn explain_emits_selectors_and_expectations_as_structures() {
         "got {requirement_selector:?}"
     );
     let step = &printed[0]["steps"][0];
+    assert_eq!(step["id"], "rename-render", "{step}");
     let parts = step["selector_parts"].as_array().expect("selector parts");
     assert!(
         parts
@@ -742,15 +743,15 @@ fn explain_emits_selectors_and_expectations_as_structures() {
         .as_array()
         .expect("expectation parts");
     assert_eq!(expects[0]["predicate"], "matched", "{expects:?}");
-    assert_eq!(expects[0]["step"], 1, "{expects:?}");
+    assert_eq!(expects[0]["step_id"], "rename-render", "{expects:?}");
     assert_eq!(expects[0]["op"], "=", "{expects:?}");
     assert_eq!(expects[0]["value"], 1, "{expects:?}");
     assert_eq!(expects[1]["predicate"], "applied", "{expects:?}");
-    assert_eq!(expects[1]["step"], 1, "{expects:?}");
+    assert_eq!(expects[1]["step_id"], "rename-render", "{expects:?}");
     assert_eq!(expects[1]["op"], "=", "{expects:?}");
     assert_eq!(expects[1]["value"], 1, "{expects:?}");
     assert_eq!(expects[2]["predicate"], "changed", "{expects:?}");
-    assert_eq!(expects[2]["step"], 1, "{expects:?}");
+    assert_eq!(expects[2]["step_id"], "rename-render", "{expects:?}");
     assert_eq!(expects[2]["op"], ">=", "{expects:?}");
     assert_eq!(expects[2]["value"], 1, "{expects:?}");
 }

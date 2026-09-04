@@ -58,6 +58,15 @@ fn the_vocabulary_names_every_recipe_expectation() {
 }
 
 #[test]
+fn the_vocabulary_names_the_step_identity_modifier() {
+    let text = fr(&["recipe", "--vocabulary"]);
+    assert!(
+        text.contains("id \"<name>\""),
+        "a stable step identity has to be discoverable: {text}"
+    );
+}
+
+#[test]
 fn the_vocabulary_names_every_predicate_and_says_which_a_file_takes() {
     let text = fr(&["recipe", "--vocabulary"]);
     for predicate in fun_refactor::recipe::PREDICATES {

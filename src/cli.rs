@@ -2662,13 +2662,14 @@ fn explain_recipes(cli: &Cli, parsed: &crate::recipe::File) -> Result<()> {
         Expect::Changed { how, count } => format!("changed {} {count} files", how.as_str()),
         Expect::Refusals { how, count } => format!("refusals {} {count}", how.as_str()),
         Expect::Step {
-            step,
+            target,
             measure,
             how,
             count,
             ..
         } => format!(
-            "step {step} {} {} {count}{}",
+            "step {} {} {} {count}{}",
+            target.describe(),
             measure.name(),
             how.as_str(),
             if measure.has_file_unit() {
@@ -2724,18 +2725,23 @@ fn explain_recipes(cli: &Cli, parsed: &crate::recipe::File) -> Result<()> {
                 "predicate": "refusals", "op": how.as_str(), "value": count,
             }),
             Expect::Step {
-                step,
+                target,
                 measure,
                 how,
                 count,
                 ..
             } => {
                 let mut value = serde_json::json!({
-                    "step": step,
                     "predicate": measure.name(),
                     "op": how.as_str(),
                     "value": count,
                 });
+                match target {
+                    crate::recipe::StepTarget::Number(step) => {
+                        value["step"] = serde_json::json!(step)
+                    }
+                    crate::recipe::StepTarget::Id(id) => value["step_id"] = serde_json::json!(id),
+                }
                 if measure.has_file_unit() {
                     value["unit"] = serde_json::json!("files");
                 }
@@ -2764,6 +2770,7 @@ fn explain_recipes(cli: &Cli, parsed: &crate::recipe::File) -> Result<()> {
                         },
                         "limit": step.limit,
                         "allow_empty": step.allow_empty,
+                        "id": step.id,
                     })).collect::<Vec<_>>(),
                     "expectations": recipe.expects.iter().map(expectation).collect::<Vec<_>>(),
                     "expectations_parts": recipe.expects.iter().map(expect_json)
@@ -2788,8 +2795,12 @@ fn explain_recipes(cli: &Cli, parsed: &crate::recipe::File) -> Result<()> {
         for (i, step) in recipe.steps.iter().enumerate() {
             let selector = selector_of(step);
             println!(
-                "  {}  {}{}",
+                "  {}{}  {}{}",
                 i + 1,
+                step.id
+                    .as_ref()
+                    .map(|id| format!(" [{id}]"))
+                    .unwrap_or_default(),
                 step.operation.describe(),
                 if selector.is_empty() {
                     String::new()
@@ -2849,8 +2860,12 @@ fn print_recipe_outcome(report: &crate::recipe::Report) {
     println!();
     for (i, step) in report.steps.iter().enumerate() {
         println!(
-            "  {}  {}{}",
+            "  {}{}  {}{}",
             i + 1,
+            step.id
+                .as_ref()
+                .map(|id| format!(" [{id}]"))
+                .unwrap_or_default(),
             step.step,
             if step.selector.is_empty() {
                 String::new()

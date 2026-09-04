@@ -1,7 +1,7 @@
 //! Running a recipe: select, act, re-index, and say what happened.
 
 use super::parse::{
-    Expect, OnRefusal, Operation, Predicate, Recipe, Requirement, Step, StepMeasure,
+    Expect, OnRefusal, Operation, Predicate, Recipe, Requirement, Step, StepMeasure, StepTarget,
 };
 use crate::analysis::entrypoints::Entrypoints;
 use crate::edit::EditSet;
@@ -54,6 +54,8 @@ pub struct WorkspaceReport {
 #[derive(Debug, Serialize)]
 pub struct StepReport {
     pub step: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
     pub selector: String,
     pub matched: usize,
     pub applied: usize,
@@ -517,15 +519,29 @@ fn check_expect(expect: &Expect, context: &ExpectationContext<'_>) -> ExpectRepo
             held: how.holds(context.refusals, *count),
         },
         Expect::Step {
-            step,
+            target,
             measure,
             how,
             count,
             ..
         } => {
-            let Some(report) = step.checked_sub(1).and_then(|at| context.steps.get(at)) else {
+            let report = match target {
+                StepTarget::Number(step) => {
+                    step.checked_sub(1).and_then(|at| context.steps.get(at))
+                }
+                StepTarget::Id(id) => context
+                    .steps
+                    .iter()
+                    .find(|report| report.id.as_deref() == Some(id)),
+            };
+            let Some(report) = report else {
                 return ExpectReport {
-                    expectation: format!("step {step} {} {} {count}", measure.name(), how.as_str()),
+                    expectation: format!(
+                        "step {} {} {} {count}",
+                        target.describe(),
+                        measure.name(),
+                        how.as_str()
+                    ),
                     actual: "the step did not run".to_string(),
                     held: false,
                 };
@@ -537,7 +553,12 @@ fn check_expect(expect: &Expect, context: &ExpectationContext<'_>) -> ExpectRepo
                 StepMeasure::Refusals => report.refusals.len() as u64,
             };
             ExpectReport {
-                expectation: format!("step {step} {} {} {count}", measure.name(), how.as_str()),
+                expectation: format!(
+                    "step {} {} {} {count}",
+                    target.describe(),
+                    measure.name(),
+                    how.as_str()
+                ),
                 actual: if measure.has_file_unit() {
                     format!("{actual} files")
                 } else {
@@ -726,6 +747,7 @@ fn run_step(
     Ok(StepOutcome {
         report: StepReport {
             step: step.operation.describe(),
+            id: step.id.clone(),
             selector,
             matched,
             applied,

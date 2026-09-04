@@ -2,6 +2,7 @@
 
 use super::lex::{lex, Spanned, Token};
 use anyhow::{bail, Result};
+use std::collections::BTreeMap;
 
 /// Every word that can begin a statement.
 pub const RESERVED: &[&str] = &[
@@ -14,6 +15,7 @@ pub const RESERVED: &[&str] = &[
     "on-refusal",
     "limit",
     "allow-empty",
+    "id",
     "to",
     "at",
     "as",
@@ -63,6 +65,7 @@ pub struct Step {
     pub on_refusal: OnRefusal,
     pub limit: Option<u64>,
     pub allow_empty: bool,
+    pub id: Option<String>,
     pub line: usize,
 }
 
@@ -253,12 +256,27 @@ pub enum Expect {
         count: u64,
     },
     Step {
-        step: usize,
+        target: StepTarget,
         measure: StepMeasure,
         how: Comparison,
         count: u64,
         line: usize,
     },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum StepTarget {
+    Number(usize),
+    Id(String),
+}
+
+impl StepTarget {
+    pub fn describe(&self) -> String {
+        match self {
+            Self::Number(step) => step.to_string(),
+            Self::Id(id) => format!("\"{id}\""),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -316,15 +334,15 @@ impl Comparison {
 }
 
 fn expect_measure(
-    step: Option<usize>,
+    target: Option<StepTarget>,
     measure: StepMeasure,
     how: Comparison,
     count: u64,
     line: usize,
 ) -> Expect {
-    match step {
-        Some(step) => Expect::Step {
-            step,
+    match target {
+        Some(target) => Expect::Step {
+            target,
             measure,
             how,
             count,
@@ -466,7 +484,7 @@ impl Parser {
             _ => {
                 self.at -= 1;
                 bail!(
-                    "line {}: `recipe {name}` expects `{{`, found {}",
+                    "line {}: `recipe {name}` expects `{{`, found {}.",
                     self.line(),
                     self.found()
                 )
@@ -512,14 +530,29 @@ impl Parser {
                 recipe.name
             );
         }
-        for expect in &recipe.expects {
-            if let Expect::Step { step, line, .. } = expect {
-                if *step > recipe.steps.len() {
+        let mut ids = BTreeMap::new();
+        for step in &recipe.steps {
+            if let Some(id) = &step.id {
+                if let Some(first) = ids.insert(id.as_str(), step.line) {
                     bail!(
+                        "line {}: step id \"{id}\" repeats the one on line {first}.",
+                        step.line
+                    );
+                }
+            }
+        }
+        for expect in &recipe.expects {
+            if let Expect::Step { target, line, .. } = expect {
+                match target {
+                    StepTarget::Number(step) if *step > recipe.steps.len() => bail!(
                         "line {line}: `expect step {step}` names a step this recipe does not \
                          have. It has {} step(s).",
                         recipe.steps.len()
-                    );
+                    ),
+                    StepTarget::Id(id) if !ids.contains_key(id.as_str()) => bail!(
+                        "line {line}: `expect step \"{id}\"` names no step id in this recipe."
+                    ),
+                    _ => {}
                 }
             }
         }
@@ -583,18 +616,22 @@ impl Parser {
             return Ok(Expect::NoNew(what));
         }
         let line = self.line();
-        let step = if self.eat_word("step") {
+        let target = if self.eat_word("step") {
             match self.next() {
                 Some(Token::Int(0)) => {
                     bail!("line {line}: `expect step 0` names no step. Steps start at 1.")
                 }
-                Some(Token::Int(number)) => usize::try_from(number).map_err(|_| {
-                    anyhow::anyhow!("line {line}: `expect step {number}` is too large.")
-                })?,
+                Some(Token::Int(number)) => {
+                    StepTarget::Number(usize::try_from(number).map_err(|_| {
+                        anyhow::anyhow!("line {line}: `expect step {number}` is too large.")
+                    })?)
+                }
+                Some(Token::Str(id)) if !id.is_empty() => StepTarget::Id(id),
+                Some(Token::Str(_)) => bail!("line {line}: `expect step \"\"` names no step id."),
                 _ => {
                     self.at -= 1;
                     bail!(
-                        "line {line}: `expect step` expects a step number, found {}.",
+                        "line {line}: `expect step` expects a number or quoted id, found {}.",
                         self.found()
                     )
                 }
@@ -617,15 +654,33 @@ impl Parser {
             }
         };
         match subject.as_str() {
-            "matched" => Ok(expect_measure(step, StepMeasure::Matched, how, count, line)),
-            "applied" => Ok(expect_measure(step, StepMeasure::Applied, how, count, line)),
+            "matched" => Ok(expect_measure(
+                target,
+                StepMeasure::Matched,
+                how,
+                count,
+                line,
+            )),
+            "applied" => Ok(expect_measure(
+                target,
+                StepMeasure::Applied,
+                how,
+                count,
+                line,
+            )),
             "changed" => {
                 // `files` is optional noise that reads better; it changes nothing.
                 self.eat_word("files");
-                Ok(expect_measure(step, StepMeasure::Changed, how, count, line))
+                Ok(expect_measure(
+                    target,
+                    StepMeasure::Changed,
+                    how,
+                    count,
+                    line,
+                ))
             }
             "refusals" => Ok(expect_measure(
-                step,
+                target,
                 StepMeasure::Refusals,
                 how,
                 count,
@@ -666,6 +721,7 @@ impl Parser {
             on_refusal: OnRefusal::default(),
             limit: None,
             allow_empty: false,
+            id: None,
             line,
         };
 
@@ -701,6 +757,15 @@ impl Parser {
                 };
             } else if self.eat_word("allow-empty") {
                 step.allow_empty = true;
+            } else if self.eat_word("id") {
+                if step.id.is_some() {
+                    bail!("line {line}: this step already has an `id`.");
+                }
+                let id = self.want_string("`id`")?;
+                if id.is_empty() {
+                    bail!("line {line}: `id` needs a non-empty quoted name.");
+                }
+                step.id = Some(id);
             } else {
                 break;
             }

@@ -114,7 +114,7 @@ pub const EXPECTATIONS: &[&str] = &[
     "applied <comparison> <count>",
     "changed <comparison> <count> [ files ]",
     "refusals <comparison> <count>",
-    "step <number> matched|applied|changed|refusals <comparison> <count> [ files ]",
+    "step <number | \"id\"> matched|applied|changed|refusals <comparison> <count> [ files ]",
 ];
 
 pub fn vocabulary() -> Vocabulary {
@@ -132,6 +132,7 @@ pub fn vocabulary() -> Vocabulary {
             "limit <n>",
             "on-refusal stop|report|allow",
             "allow-empty",
+            "id \"<name>\"",
         ],
         reserved: RESERVED.to_vec(),
     }

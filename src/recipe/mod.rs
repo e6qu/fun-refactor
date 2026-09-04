@@ -7,7 +7,7 @@ mod vocabulary;
 
 pub use parse::{
     parse, Comparison, Expect, File, OnRefusal, Operation, Predicate, Recipe, Requirement, Step,
-    StepMeasure, RESERVED, SCHEMA,
+    StepMeasure, StepTarget, RESERVED, SCHEMA,
 };
 // Only the CLI's did-you-mean asks for edit distance; without that feature the
 // re-export is an unused import the wasm build refuses.
