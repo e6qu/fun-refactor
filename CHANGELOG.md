@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.12.0...fun-refactor-v0.13.0) (2026-09-04)
+
+
+### Features
+
+* **recipe:** assert each step ([#245](https://github.com/e6qu/fun-refactor/issues/245)) ([7cd39f5](https://github.com/e6qu/fun-refactor/commit/7cd39f582de813c9d3b044383c81d1a7b9351b9d))
+
 ## [0.12.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.11.0...fun-refactor-v0.12.0) (2026-09-03)
 
 
