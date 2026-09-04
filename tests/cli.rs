@@ -606,7 +606,57 @@ fn a_run_and_an_explain_agree_on_how_long_the_recipe_is() {
     );
     assert!(
         ran.contains("the run reached 2 of them"),
-        "how far the run got is its own line:\n{ran}"
+        "how far the run got is its own line:\n{ran}."
+    );
+}
+
+#[test]
+fn a_recipe_formatter_prints_checks_and_writes_the_canonical_source() {
+    let ws = Workspace::new(&[(
+        "r.recipe",
+        "schema 1\nrecipe tidy { delete id \"dead\" where unused on-refusal allow\nexpect step \"dead\" changed = 0 }\n\n",
+    )]);
+
+    let (printed, ok) = ws.run(&["recipe", "fmt", "r.recipe"]);
+    assert!(ok, "{printed}");
+    assert!(
+        printed.contains("delete where unused on-refusal allow id \"dead\""),
+        "the formatter keeps the meaning but owns modifier order:\n{printed}."
+    );
+    let output = Command::new(FR)
+        .arg("--json")
+        .arg("-C")
+        .arg(ws.root())
+        .args(["recipe", "fmt", "r.recipe"])
+        .env("FUN_REFACTOR_CACHE", ws.cache.path())
+        .output()
+        .expect("fr should run");
+    assert!(output.status.success());
+    let report: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("--json emits one document");
+    assert_eq!(report["changed"], true);
+    assert!(
+        report["formatted"]
+            .as_str()
+            .is_some_and(|text| text.contains("expect step \"dead\" changed = 0 files")),
+        "the formatted source is machine-readable: {report}."
+    );
+    let (checked, ok) = ws.run(&["recipe", "fmt", "r.recipe", "--check"]);
+    assert!(!ok, "a compact source needs formatting:\n{checked}");
+    assert!(
+        checked.contains("not in canonical recipe layout"),
+        "{checked}"
+    );
+
+    let (written, ok) = ws.run(&["recipe", "fmt", "r.recipe", "--write"]);
+    assert!(ok, "{written}");
+    let (checked, ok) = ws.run(&["recipe", "fmt", "r.recipe", "--check"]);
+    assert!(ok, "{checked}");
+    assert!(
+        std::fs::read_to_string(ws.root().join("r.recipe"))
+            .unwrap()
+            .contains("expect step \"dead\" changed = 0 files"),
+        "the writer owns optional noise too"
     );
 }
 

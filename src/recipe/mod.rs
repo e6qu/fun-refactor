@@ -1,10 +1,12 @@
 //! Refactoring recipes: a refactoring written down.
 
+mod format;
 mod lex;
 mod parse;
 mod run;
 mod vocabulary;
 
+pub use format::{file as format_file, source as format_source};
 pub use parse::{
     parse, Comparison, Expect, File, OnRefusal, Operation, Predicate, Recipe, Requirement, Step,
     StepMeasure, StepTarget, RESERVED, SCHEMA,

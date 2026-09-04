@@ -308,6 +308,8 @@ enum Command {
         about = "Run a refactoring recipe: find, do, expect"
     )]
     Recipe {
+        #[command(subcommand)]
+        command: Option<RecipeCommand>,
         /// The recipe file. Omit it with `--vocabulary`.
         file: Option<PathBuf>,
         /// Apply the changes instead of printing a diff.
@@ -464,6 +466,22 @@ enum Command {
         /// Include weakly-resolved references that share the name.
         #[arg(long)]
         include_unresolved: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum RecipeCommand {
+    #[command(about = "Canonicalize a recipe's layout without changing what it means")]
+    Fmt {
+        #[arg(help = "The recipe file to format")]
+        file: PathBuf,
+        #[arg(
+            long,
+            help = "Replace the recipe file instead of writing its canonical form to standard output"
+        )]
+        write: bool,
+        #[arg(long, help = "Exit unsuccessfully when the recipe needs formatting")]
+        check: bool,
     },
 }
 
@@ -751,19 +769,25 @@ fn dispatch(cli: &Cli) -> Result<()> {
         ),
         Command::Openapi { out, yaml } => cmd_openapi(cli, out.as_deref(), *yaml),
         Command::Recipe {
+            command,
             file,
             write,
             explain,
             catalogs,
             vocabulary,
-        } => cmd_recipe(
-            cli,
-            file.as_deref(),
-            *write,
-            *explain,
-            catalogs,
-            *vocabulary,
-        ),
+        } => match command {
+            Some(RecipeCommand::Fmt { file, write, check }) => {
+                cmd_recipe_fmt(cli, file, *write, *check)
+            }
+            None => cmd_recipe(
+                cli,
+                file.as_deref(),
+                *write,
+                *explain,
+                catalogs,
+                *vocabulary,
+            ),
+        },
         Command::RemoveFlag { flag, value, write } => {
             cmd_remove_flag(cli, flag, FlagValue(*value), *write)
         }
@@ -2618,6 +2642,59 @@ fn cmd_recipe(
     }
     if !report.ok {
         std::process::exit(1);
+    }
+    Ok(())
+}
+
+fn cmd_recipe_fmt(cli: &Cli, file: &std::path::Path, write: bool, check: bool) -> Result<()> {
+    if write && check {
+        return Err(Fault::invalid_input(
+            "`fr recipe fmt` cannot both replace a file and only check it; drop --write or --check."
+                .to_string(),
+        ));
+    }
+    let root = workspace_root(cli);
+    let path = if file.is_absolute() || crate::vfs::exists(file) {
+        file.to_path_buf()
+    } else {
+        root.join(file)
+    };
+    let before =
+        crate::vfs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
+    let after = crate::recipe::format_source(&before)?;
+    let changed = before != after;
+    let json = || {
+        serde_json::json!({
+            "path": path,
+            "formatted": after,
+            "changed": changed,
+        })
+    };
+
+    if check {
+        if !changed {
+            match cli.json {
+                true => println!("{}", serde_json::to_string_pretty(&json())?),
+                false => println!("{} is already in canonical recipe layout.", path.display()),
+            }
+            return Ok(());
+        }
+        anyhow::bail!(
+            "{} is not in canonical recipe layout. Run `fr recipe fmt {}`.",
+            path.display(),
+            file.display()
+        );
+    }
+    if write {
+        crate::vfs::write(&path, &after).with_context(|| format!("writing {}", path.display()))?;
+        match cli.json {
+            true => println!("{}", serde_json::to_string_pretty(&json())?),
+            false => println!("formatted {}", path.display()),
+        }
+    } else if cli.json {
+        println!("{}", serde_json::to_string_pretty(&json())?);
+    } else {
+        print!("{after}");
     }
     Ok(())
 }

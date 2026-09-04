@@ -2,8 +2,11 @@ schema 1
 
 recipe individual-report-name {
   description "Keep the per-recipe outcome printer's settled name."
-  requires any symbol "print_recipe_report" "print_recipe_outcome" where kind=function in="src/cli.rs"
-  rename to "print_recipe_outcome" where name="print_recipe_report" kind=function in="src/cli.rs" allow-empty id "individual-report"
+
+  requires any symbol "print_recipe_report" "print_recipe_outcome" where kind="function" in="src/cli.rs"
+
+  rename to "print_recipe_outcome" where name="print_recipe_report" kind="function" in="src/cli.rs" allow-empty id "individual-report"
+
   expect step "individual-report" matched = 0
   expect step "individual-report" applied = 0
   expect step "individual-report" changed = 0 files
@@ -12,8 +15,11 @@ recipe individual-report-name {
 
 recipe transaction-report-name {
   description "Keep the recipe transaction printer's settled name."
-  requires any symbol "print_workspace_recipe_report" "print_recipe_transaction_outcome" where kind=function in="src/cli.rs"
-  rename to "print_recipe_transaction_outcome" where name="print_workspace_recipe_report" kind=function in="src/cli.rs" allow-empty id "transaction-report"
+
+  requires any symbol "print_workspace_recipe_report" "print_recipe_transaction_outcome" where kind="function" in="src/cli.rs"
+
+  rename to "print_recipe_transaction_outcome" where name="print_workspace_recipe_report" kind="function" in="src/cli.rs" allow-empty id "transaction-report"
+
   expect step "transaction-report" matched = 0
   expect step "transaction-report" applied = 0
   expect step "transaction-report" changed = 0 files
