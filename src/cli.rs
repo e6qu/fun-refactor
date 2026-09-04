@@ -505,6 +505,11 @@ enum SpecCommand {
         #[arg(long, help = "Apply the renewed hashes instead of printing a diff")]
         write: bool,
     },
+    #[command(about = "Check strict spec correspondence, then build every Lean package")]
+    Verify {
+        #[arg(help = "Lean spec files or directories; defaults to kernels and specs")]
+        paths: Vec<PathBuf>,
+    },
 }
 
 #[derive(Clone, Copy, Debug, clap::ValueEnum)]
@@ -815,6 +820,7 @@ fn dispatch(cli: &Cli) -> Result<()> {
         Command::Spec { command } => match command {
             SpecCommand::Check { paths, strict } => cmd_spec_check(cli, paths, *strict),
             SpecCommand::Sync { paths, write } => cmd_spec_sync(cli, paths, *write),
+            SpecCommand::Verify { paths } => cmd_spec_verify(cli, paths),
         },
         Command::RemoveFlag { flag, value, write } => {
             cmd_remove_flag(cli, flag, FlagValue(*value), *write)
@@ -991,6 +997,43 @@ fn cmd_spec_sync(cli: &Cli, paths: &[PathBuf], write: bool) -> Result<()> {
             report["obligations"] = serde_json::json!(sync.report.obligations);
         },
     )
+}
+
+fn cmd_spec_verify(cli: &Cli, paths: &[PathBuf]) -> Result<()> {
+    let root = workspace_root(cli);
+    let verification = crate::spec::verify(&root, paths, !cli.no_ignore)?;
+    if cli.json {
+        println!("{}", serde_json::to_string_pretty(&verification)?);
+    } else {
+        println!(
+            "{} fresh anchor(s); {} unproved obligation(s).",
+            verification.report.fresh(),
+            verification.report.obligations
+        );
+        for package in &verification.packages {
+            let outcome = match package.passed {
+                true => "passed",
+                false => "failed",
+            };
+            println!(
+                "{outcome} lake build --wfail in {}",
+                package.package.display()
+            );
+            if !package.passed && !package.output.trim().is_empty() {
+                print!("{}", package.output);
+            }
+        }
+    }
+    if !verification.report.ok() {
+        anyhow::bail!(
+            "spec verify stopped before Lean build because correspondence checks failed."
+        );
+    }
+    if verification.packages.iter().all(|package| package.passed) {
+        Ok(())
+    } else {
+        anyhow::bail!("spec verify found a Lean package that does not build.")
+    }
 }
 
 fn cmd_trace(cli: &Cli, target: &str, depth: usize, direction: Direction2) -> Result<()> {

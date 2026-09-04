@@ -116,6 +116,7 @@ fr recipe <file.recipe>       # a workspace transaction: recipes find, do, expec
 fr recipe fmt recipes --check # format every recipe in a directory, or reject drift
 fr spec check                 # Lean models whose source anchors still match
 fr spec sync --write          # renew reviewed stale source hashes atomically
+fr spec verify                # strict correspondence plus Lake builds
 fr openapi [--yaml]           # the contract a Next.js route tree declares
 fr callers <fn> --depth 3     # who calls this
 fr callees <fn> --depth 3     # what does it call

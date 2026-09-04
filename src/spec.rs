@@ -9,11 +9,25 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 #[derive(Debug, Serialize)]
 pub struct Report {
     pub anchors: Vec<AnchorReport>,
     pub obligations: usize,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Verification {
+    pub report: Report,
+    pub packages: Vec<PackageReport>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PackageReport {
+    pub package: PathBuf,
+    pub passed: bool,
+    pub output: String,
 }
 
 #[derive(Debug)]
@@ -125,6 +139,58 @@ pub fn check(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result<Re
 
 pub fn check_strict(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result<Report> {
     check_with(root, inputs, respect_ignore, true)
+}
+
+pub fn verify(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result<Verification> {
+    let report = check_strict(root, inputs, respect_ignore)?;
+    if !report.ok() {
+        return Ok(Verification {
+            report,
+            packages: Vec::new(),
+        });
+    }
+    let mut packages = BTreeSet::new();
+    for spec in spec_files(root, inputs, respect_ignore)? {
+        let package = lean_package(root, &spec)?;
+        packages.insert(package);
+    }
+    let packages = packages
+        .into_iter()
+        .map(|package| {
+            let output = Command::new("lake")
+                .args(["build", "--wfail"])
+                .current_dir(&package)
+                .output()
+                .with_context(|| format!("running lake in {}", package.display()))?;
+            let mut text = String::from_utf8_lossy(&output.stdout).to_string();
+            text.push_str(&String::from_utf8_lossy(&output.stderr));
+            Ok(PackageReport {
+                package,
+                passed: output.status.success(),
+                output: text,
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+    Ok(Verification { report, packages })
+}
+
+fn lean_package(root: &Path, spec: &Path) -> Result<PathBuf> {
+    let mut here = spec.parent();
+    while let Some(directory) = here {
+        if crate::vfs::exists(directory.join("lakefile.lean"))
+            || crate::vfs::exists(directory.join("lakefile.toml"))
+        {
+            return Ok(directory.to_path_buf());
+        }
+        if directory == root {
+            break;
+        }
+        here = directory.parent();
+    }
+    bail!(
+        "{} belongs to no Lean package with a lakefile.",
+        spec.display()
+    );
 }
 
 fn check_with(
@@ -672,7 +738,10 @@ fn obligations_in(text: &str) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use super::{anchors_in, check, check_strict, declaration_hash, obligations_in, sync, Status};
+    use super::{
+        anchors_in, check, check_strict, declaration_hash, lean_package, obligations_in, sync,
+        Status,
+    };
     use crate::extract::Extractor;
     use crate::parse::Parsers;
     use std::fs;
@@ -881,5 +950,21 @@ mod tests {
         .unwrap();
         let report = check_strict(root, &[PathBuf::from("specs")], true).unwrap();
         assert!(report.ok(), "{report:#?}");
+    }
+
+    #[test]
+    fn finds_toml_and_lean_package_manifests() {
+        let workspace = tempfile::tempdir().unwrap();
+        let root = workspace.path();
+        let toml_spec = root.join("toml/Spec.lean");
+        let lean_spec = root.join("lean/Spec.lean");
+        fs::create_dir_all(toml_spec.parent().unwrap()).unwrap();
+        fs::create_dir_all(lean_spec.parent().unwrap()).unwrap();
+        fs::write(root.join("toml/lakefile.toml"), "name = \"toml\"\n").unwrap();
+        fs::write(root.join("lean/lakefile.lean"), "package lean\n").unwrap();
+        fs::write(&toml_spec, "def toml := 1\n").unwrap();
+        fs::write(&lean_spec, "def lean := 1\n").unwrap();
+        assert_eq!(lean_package(root, &toml_spec).unwrap(), root.join("toml"));
+        assert_eq!(lean_package(root, &lean_spec).unwrap(), root.join("lean"));
     }
 }

@@ -147,10 +147,11 @@ the implementation refines the model for every possible string and edit list.
 fr spec check [path...]           the drift report: stale anchors, missing symbols,
                                   and the count of unproved obligations.
 fr spec sync [path...] [--write]  renew stale source hashes
+fr spec verify [path...]          check strict correspondence and build Lean packages
 ```
 
-`fr` implements `check` and `sync`. The other moves remain design work:
-`spec extract`, `fr translate Foo.lean rust`, and `spec verify`.
+`fr` implements `check`, `sync`, and `verify`. The other moves remain design work:
+`spec extract` and `fr translate Foo.lean rust`.
 
 `fr spec extract` writes an anchor the rest depends on:
 
@@ -220,6 +221,10 @@ function and following Lean definition, then compares both lists to the map. A s
 signature change therefore remains visible after `spec sync` renews its body hash.
 `fr spec check --strict` requires this map beside every anchor, which makes complete
 signature correspondence a gate rather than an aspiration.
+
+`fr spec verify` runs that strict gate and then builds each owning Lake package with
+`lake build --wfail`. It gives a kernel author one command for correspondence and Lean
+acceptance, while the existing shared corpora continue to test model behavior against Rust.
 
 Tier 1 can start any time and is the most valuable thing here. It is also the easiest to
 put off, being the only part with no visible output.
