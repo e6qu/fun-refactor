@@ -2661,6 +2661,22 @@ fn explain_recipes(cli: &Cli, parsed: &crate::recipe::File) -> Result<()> {
         Expect::Applied { how, count } => format!("applied {} {count}", how.as_str()),
         Expect::Changed { how, count } => format!("changed {} {count} files", how.as_str()),
         Expect::Refusals { how, count } => format!("refusals {} {count}", how.as_str()),
+        Expect::Step {
+            step,
+            measure,
+            how,
+            count,
+            ..
+        } => format!(
+            "step {step} {} {} {count}{}",
+            measure.name(),
+            how.as_str(),
+            if measure.has_file_unit() {
+                " files"
+            } else {
+                ""
+            }
+        ),
     };
 
     if cli.json {
@@ -2707,6 +2723,24 @@ fn explain_recipes(cli: &Cli, parsed: &crate::recipe::File) -> Result<()> {
             Expect::Refusals { how, count } => serde_json::json!({
                 "predicate": "refusals", "op": how.as_str(), "value": count,
             }),
+            Expect::Step {
+                step,
+                measure,
+                how,
+                count,
+                ..
+            } => {
+                let mut value = serde_json::json!({
+                    "step": step,
+                    "predicate": measure.name(),
+                    "op": how.as_str(),
+                    "value": count,
+                });
+                if measure.has_file_unit() {
+                    value["unit"] = serde_json::json!("files");
+                }
+                value
+            }
         };
         let recipes: Vec<_> = parsed
             .recipes

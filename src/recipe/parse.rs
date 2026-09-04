@@ -252,6 +252,36 @@ pub enum Expect {
         how: Comparison,
         count: u64,
     },
+    Step {
+        step: usize,
+        measure: StepMeasure,
+        how: Comparison,
+        count: u64,
+        line: usize,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StepMeasure {
+    Matched,
+    Applied,
+    Changed,
+    Refusals,
+}
+
+impl StepMeasure {
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Matched => "matched",
+            Self::Applied => "applied",
+            Self::Changed => "changed",
+            Self::Refusals => "refusals",
+        }
+    }
+
+    pub fn has_file_unit(self) -> bool {
+        matches!(self, Self::Changed)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -282,6 +312,30 @@ impl Comparison {
             Comparison::Ge => ">=",
             Comparison::Le => "<=",
         }
+    }
+}
+
+fn expect_measure(
+    step: Option<usize>,
+    measure: StepMeasure,
+    how: Comparison,
+    count: u64,
+    line: usize,
+) -> Expect {
+    match step {
+        Some(step) => Expect::Step {
+            step,
+            measure,
+            how,
+            count,
+            line,
+        },
+        None => match measure {
+            StepMeasure::Matched => Expect::Matched { how, count },
+            StepMeasure::Applied => Expect::Applied { how, count },
+            StepMeasure::Changed => Expect::Changed { how, count },
+            StepMeasure::Refusals => Expect::Refusals { how, count },
+        },
     }
 }
 
@@ -458,6 +512,17 @@ impl Parser {
                 recipe.name
             );
         }
+        for expect in &recipe.expects {
+            if let Expect::Step { step, line, .. } = expect {
+                if *step > recipe.steps.len() {
+                    bail!(
+                        "line {line}: `expect step {step}` names a step this recipe does not \
+                         have. It has {} step(s).",
+                        recipe.steps.len()
+                    );
+                }
+            }
+        }
         Ok(recipe)
     }
 
@@ -478,7 +543,7 @@ impl Parser {
             }
             if names.len() < 2 {
                 bail!(
-                    "line {}: `requires any symbol` needs at least two names, found {}",
+                    "line {}: `requires any symbol` needs at least two names, found {}.",
                     self.line(),
                     self.found()
                 );
@@ -517,6 +582,27 @@ impl Parser {
             }
             return Ok(Expect::NoNew(what));
         }
+        let line = self.line();
+        let step = if self.eat_word("step") {
+            match self.next() {
+                Some(Token::Int(0)) => {
+                    bail!("line {line}: `expect step 0` names no step. Steps start at 1.")
+                }
+                Some(Token::Int(number)) => usize::try_from(number).map_err(|_| {
+                    anyhow::anyhow!("line {line}: `expect step {number}` is too large.")
+                })?,
+                _ => {
+                    self.at -= 1;
+                    bail!(
+                        "line {line}: `expect step` expects a step number, found {}.",
+                        self.found()
+                    )
+                }
+            }
+            .into()
+        } else {
+            None
+        };
         let subject = self.want_ident("`expect`")?;
         let how = self.comparison(&subject)?;
         let count = match self.next() {
@@ -531,17 +617,23 @@ impl Parser {
             }
         };
         match subject.as_str() {
-            "matched" => Ok(Expect::Matched { how, count }),
-            "applied" => Ok(Expect::Applied { how, count }),
+            "matched" => Ok(expect_measure(step, StepMeasure::Matched, how, count, line)),
+            "applied" => Ok(expect_measure(step, StepMeasure::Applied, how, count, line)),
             "changed" => {
                 // `files` is optional noise that reads better; it changes nothing.
                 self.eat_word("files");
-                Ok(Expect::Changed { how, count })
+                Ok(expect_measure(step, StepMeasure::Changed, how, count, line))
             }
-            "refusals" => Ok(Expect::Refusals { how, count }),
+            "refusals" => Ok(expect_measure(
+                step,
+                StepMeasure::Refusals,
+                how,
+                count,
+                line,
+            )),
             other => bail!(
                 "line {}: unknown expectation `{other}`. Use `no-new`, `matched`, `applied`, \
-                 `changed` or `refusals`.",
+                 `changed`, `refusals` or `step`.",
                 self.line()
             ),
         }

@@ -207,6 +207,10 @@ fn each_step_sees_what_the_previous_one_left() {
            requires symbol \"USE_LEGACY_AUTH\"\n\
            remove-flag \"USE_LEGACY_AUTH\" = false\n\
            delete where kind=function name~\"legacy_auth_*\" unused\n\
+           expect step 1 matched = 1\n\
+           expect step 1 applied = 1\n\
+           expect step 2 matched = 2\n\
+           expect step 2 applied = 2\n\
            expect matched = 3\n\
            expect applied = 3\n\
            expect changed > 0 files\n\
@@ -286,9 +290,11 @@ fn a_file_the_rewrite_does_not_apply_to_is_not_a_refusal() {
             ("pkg/b.go", "package pkg\n\nfunc B() int {\n\treturn 1\n}\n"),
         ],
         "schema 1\n\nrecipe r {\n\
-           rewrite guard-clause where lang=go in=\"pkg/\"\n\
-           expect matched = 2\n\
-           expect applied = 1\n\
+           rewrite guard-clause where lang=go in=\"pkg/\"\n\n\
+           expect step 1 matched = 2\n\
+           expect step 1 applied = 1\n\n\
+           expect step 1 changed = 1 files\n\
+           expect step 1 refusals = 0\n\
          }\n\n",
     );
     assert_eq!(report.steps[0].matched, 2, "both files are selected");
@@ -313,12 +319,29 @@ fn a_match_expectation_rejects_an_unexpectedly_wide_selection() {
         ],
         "schema 1\nrecipe r {\n\
            rename to \"Renamed\" where kind=function in=\"pkg/\"\n\
-           expect matched = 1\n\
-         }",
+           expect step 1 matched = 1\n\
+         }\n\n",
     );
     assert!(!report.ok, "{report:?}");
     assert_eq!(report.expectations[0].actual, "2");
     assert!(!report.expectations[0].held, "{report:?}");
+}
+
+#[test]
+fn a_step_expectation_names_a_real_step() {
+    let zero = recipe::parse(
+        "schema 1\nrecipe r {\n  delete where unused\n  expect step 0 matched = 0\n}\n\n",
+    )
+    .unwrap_err()
+    .to_string();
+    assert!(zero.contains("Steps start at 1"), "{zero}");
+
+    let beyond = recipe::parse(
+        "schema 1\nrecipe r {\n  delete where unused\n  expect step 2 matched = 0\n}\n\n",
+    )
+    .unwrap_err()
+    .to_string();
+    assert!(beyond.contains("has 1 step"), "{beyond}");
 }
 
 const CALLS_PY: &str = r#"def log(message):

@@ -7,7 +7,7 @@ mod vocabulary;
 
 pub use parse::{
     parse, Comparison, Expect, File, OnRefusal, Operation, Predicate, Recipe, Requirement, Step,
-    RESERVED, SCHEMA,
+    StepMeasure, RESERVED, SCHEMA,
 };
 // Only the CLI's did-you-mean asks for edit distance; without that feature the
 // re-export is an unused import the wasm build refuses.
@@ -17,4 +17,4 @@ pub use run::{
     run, run_file, ExpectReport, Options, Refusal, Report, Sources, StepReport, StepWarning,
     WorkspaceReport, FILE_PREDICATES, PREDICATES,
 };
-pub use vocabulary::{render, vocabulary, Verb, Vocabulary, REQUIREMENTS};
+pub use vocabulary::{render, vocabulary, Verb, Vocabulary, EXPECTATIONS, REQUIREMENTS};

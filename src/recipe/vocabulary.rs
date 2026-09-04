@@ -21,6 +21,7 @@ pub struct Verb {
 pub struct Vocabulary {
     pub schema: u32,
     pub requirements: Vec<&'static str>,
+    pub expectations: Vec<&'static str>,
     pub verbs: Vec<Verb>,
     pub predicates: Vec<&'static str>,
     /// The subset a step acting on a file may ask.
@@ -107,10 +108,20 @@ pub const REQUIREMENTS: &[&str] = &[
     "path \"<path>\"",
 ];
 
+pub const EXPECTATIONS: &[&str] = &[
+    "no-new unused|duplicates",
+    "matched <comparison> <count>",
+    "applied <comparison> <count>",
+    "changed <comparison> <count> [ files ]",
+    "refusals <comparison> <count>",
+    "step <number> matched|applied|changed|refusals <comparison> <count> [ files ]",
+];
+
 pub fn vocabulary() -> Vocabulary {
     Vocabulary {
         schema: 1,
         requirements: REQUIREMENTS.to_vec(),
+        expectations: EXPECTATIONS.to_vec(),
         verbs: VERBS.iter().map(clone_verb).collect(),
         predicates: PREDICATES.to_vec(),
         file_predicates: FILE_PREDICATES.to_vec(),
@@ -139,6 +150,10 @@ pub fn render(vocabulary: &Vocabulary) -> String {
     let mut out = format!("schema {}\n\nREQUIREMENTS\n", vocabulary.schema);
     for requirement in &vocabulary.requirements {
         out.push_str(&format!("  {requirement}\n"));
+    }
+    out.push_str("\nEXPECTATIONS\n");
+    for expectation in &vocabulary.expectations {
+        out.push_str(&format!("  {expectation}\n"));
     }
     out.push_str("\nOPERATIONS\n");
     for verb in &vocabulary.verbs {
