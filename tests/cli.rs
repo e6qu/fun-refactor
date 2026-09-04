@@ -661,6 +661,79 @@ fn a_recipe_formatter_prints_checks_and_writes_the_canonical_source() {
 }
 
 #[test]
+fn a_recipe_formatter_sweeps_directories_without_partial_writes() {
+    let compact = "schema 1\nrecipe tidy { delete where unused }\n";
+    let ws = Workspace::new(&[
+        ("recipes/first.recipe", compact),
+        ("recipes/nested/second.recipe", compact),
+        ("recipes/ignored.recipe", compact),
+        (".gitignore", "recipes/ignored.recipe\n"),
+    ]);
+
+    let (checked, ok) = ws.run(&["recipe", "fmt", "recipes", "--check"]);
+    assert!(
+        !ok,
+        "a directory with compact recipes needs formatting.\n{checked}"
+    );
+    assert!(checked.contains("2 recipe files"), "{checked}");
+    assert!(checked.contains("first.recipe"), "{checked}");
+    assert!(checked.contains("second.recipe"), "{checked}");
+    assert!(!checked.contains("ignored.recipe"), "{checked}");
+
+    let (written, ok) = ws.run(&["recipe", "fmt", "recipes", "--write"]);
+    assert!(ok, "{written}");
+    assert!(
+        std::fs::read_to_string(ws.root().join("recipes/first.recipe"))
+            .unwrap()
+            .contains("\n\nrecipe tidy"),
+        "the sweep formatted its first file."
+    );
+    assert_eq!(
+        std::fs::read_to_string(ws.root().join("recipes/ignored.recipe")).unwrap(),
+        compact,
+        "the sweep honours the workspace ignore rules."
+    );
+
+    let output = Command::new(FR)
+        .arg("--json")
+        .arg("-C")
+        .arg(ws.root())
+        .args(["recipe", "fmt", "recipes"])
+        .env("FUN_REFACTOR_CACHE", ws.cache.path())
+        .output()
+        .expect("fr should run");
+    assert!(output.status.success());
+    let report: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("the sweep is JSON data");
+    assert_eq!(report["files_checked"], 2, "{report}");
+    assert_eq!(report["files_needing_format"], 0, "{report}");
+
+    let atomic = Workspace::new(&[("good.recipe", compact), ("bad.recipe", "schema 1\n")]);
+    let (failed, ok) = atomic.run(&["recipe", "fmt", "good.recipe", "bad.recipe", "--write"]);
+    assert!(!ok, "an invalid recipe stops the complete write.\n{failed}");
+    assert_eq!(
+        std::fs::read_to_string(atomic.root().join("good.recipe")).unwrap(),
+        compact,
+        "a malformed later file did not leave the earlier one half-formatted."
+    );
+
+    let rooted = Workspace::new(&[(
+        "recipes/self-hosted-transaction.recipe",
+        "schema 1\n\nrecipe local-only {\n  delete where unused allow-empty\n}\n",
+    )]);
+    let (explained, ok) = rooted.run(&[
+        "recipe",
+        "recipes/self-hosted-transaction.recipe",
+        "--explain",
+    ]);
+    assert!(ok, "{explained}");
+    assert!(
+        explained.contains("recipe local-only"),
+        "-C resolves a relative recipe below its own workspace.\n{explained}"
+    );
+}
+
+#[test]
 fn an_import_kept_for_a_reason_says_what_the_reason_was() {
     // The planner works the reason out for every import it holds back, and the command threw
     // all of them away.

@@ -90,12 +90,13 @@ things have to come with the language to justify it, and here is where each stan
    it. Built: it parses the file and prints the steps, the selectors and the
    expectations, selecting and running nothing. A terse language repays reading only
    when you can ask it what it means.
-3. **One canonical layout.** Built: `fr recipe fmt file.recipe` prints the parsed
-   meaning in one spelling, and `--write` replaces the file. It makes string quotes,
-   optional `files`, modifier order and phase spacing deliberate, so a diff stays a
-   diff of meaning. `--check` lets a script reject a recipe that needs formatting.
-   Comments stay beside the schema, recipe or directive they explain. Formatting
-   preserves their words and their review context.
+3. **One canonical layout.** Built: `fr recipe fmt paths...` prints each parsed
+   meaning in one spelling, and `--write` replaces the files only after all parse. It
+   makes string quotes, optional `files`, modifier order and phase spacing deliberate,
+   so a diff stays a diff of meaning. Directories find `.recipe` files in path order
+   and honour the workspace's ignore rules. `--check` lets a script reject formatting
+   drift. Comments stay beside the schema, recipe or directive they explain.
+   Formatting preserves their words and their review context.
 
 Weaken either of the first two and the YAML we did not write becomes the better
 choice.
