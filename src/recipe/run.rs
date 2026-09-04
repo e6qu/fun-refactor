@@ -367,7 +367,7 @@ fn check_requirements(
 ) -> Result<()> {
     for requirement in &recipe.requires {
         match requirement {
-            Requirement::Language(name) => {
+            Requirement::Language { name, .. } => {
                 let Some(language) = Language::from_name(name) else {
                     bail!("`requires language {name}`. No such language");
                 };
@@ -421,7 +421,7 @@ fn check_requirements(
                     );
                 }
             }
-            Requirement::Path(path) => {
+            Requirement::Path { path, .. } => {
                 if !sources.keys().any(|p| p.to_string_lossy().contains(path)) {
                     bail!("`requires path \"{path}\"`. No file in this workspace is under it");
                 }

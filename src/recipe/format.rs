@@ -2,60 +2,93 @@ use super::{Comparison, Expect, File, OnRefusal, Operation, Predicate, Requireme
 use anyhow::Result;
 
 pub fn source(source: &str) -> Result<String> {
-    let comments = comments(source);
-    let mut out = file(&super::parse(source)?);
-    if !comments.is_empty() {
-        out = format!("{}\n\n{out}", comments.join("\n"));
-    }
-    Ok(out)
+    Ok(with_comments(
+        render(&super::parse(source)?),
+        comments(source),
+    ))
 }
 
 pub fn file(file: &File) -> String {
-    let mut out = format!("schema {}\n", file.schema);
+    text(render(file))
+}
+
+struct RenderedLine {
+    text: String,
+    source_line: Option<usize>,
+    indent: usize,
+}
+
+fn code(text: impl Into<String>, source_line: usize, indent: usize) -> RenderedLine {
+    RenderedLine {
+        text: format!("{}{}", " ".repeat(indent), text.into()),
+        source_line: Some(source_line),
+        indent,
+    }
+}
+
+fn blank() -> RenderedLine {
+    RenderedLine {
+        text: String::new(),
+        source_line: None,
+        indent: 0,
+    }
+}
+
+fn render(file: &File) -> Vec<RenderedLine> {
+    let mut out = vec![code(format!("schema {}", file.schema), file.schema_line, 0)];
     for recipe in &file.recipes {
-        out.push('\n');
-        out.push_str(&format!("recipe {} {{\n", recipe.name));
+        out.push(blank());
+        out.push(code(format!("recipe {} {{", recipe.name), recipe.line, 0));
 
         if let Some(description) = &recipe.description {
-            line(&mut out, &format!("description {}", string(description)));
+            out.push(code(
+                format!("description {}", string(description)),
+                recipe
+                    .description_line
+                    .expect("a description has a source line"),
+                2,
+            ));
         }
         if recipe.description.is_some() && (!recipe.requires.is_empty() || !recipe.steps.is_empty())
         {
-            out.push('\n');
+            out.push(blank());
         }
 
         for item in &recipe.requires {
-            line(&mut out, &requirement(item));
+            out.push(code(requirement(item), requirement_line(item), 2));
         }
         if !recipe.requires.is_empty() && !recipe.steps.is_empty() {
-            out.push('\n');
+            out.push(blank());
         }
 
         for item in &recipe.steps {
-            line(&mut out, &step(item));
+            out.push(code(step(item), item.line, 2));
         }
         if !recipe.steps.is_empty() && !recipe.expects.is_empty() {
-            out.push('\n');
+            out.push(blank());
         }
 
-        for item in &recipe.expects {
-            line(&mut out, &format!("expect {}", expect(item)));
+        for (item, line) in recipe.expects.iter().zip(&recipe.expect_lines) {
+            out.push(code(format!("expect {}", expect(item)), *line, 2));
         }
-        out.push_str("}\n");
+        out.push(code("}", recipe.end_line, 0));
     }
     out
 }
 
-fn line(out: &mut String, text: &str) {
-    out.push_str("  ");
-    out.push_str(text);
-    out.push('\n');
+fn text(lines: Vec<RenderedLine>) -> String {
+    lines
+        .into_iter()
+        .map(|line| line.text)
+        .collect::<Vec<_>>()
+        .join("\n")
+        + "\n"
 }
 
 fn requirement(requirement: &Requirement) -> String {
     match requirement {
-        Requirement::Language(language) => format!("requires language {language}"),
-        Requirement::Path(path) => format!("requires path {}", string(path)),
+        Requirement::Language { name, .. } => format!("requires language {name}"),
+        Requirement::Path { path, .. } => format!("requires path {}", string(path)),
         Requirement::Symbol {
             names,
             selector: predicates,
@@ -74,6 +107,14 @@ fn requirement(requirement: &Requirement) -> String {
             };
             format!("requires {subject}{}", selector(predicates))
         }
+    }
+}
+
+fn requirement_line(requirement: &Requirement) -> usize {
+    match requirement {
+        Requirement::Language { line, .. }
+        | Requirement::Symbol { line, .. }
+        | Requirement::Path { line, .. } => *line,
     }
 }
 
@@ -179,10 +220,16 @@ fn string(value: &str) -> String {
     format!("\"{}\"", value.replace('\\', "\\\\").replace('"', "\\\""))
 }
 
-fn comments(source: &str) -> Vec<String> {
+struct Comment {
+    line: usize,
+    text: String,
+}
+
+fn comments(source: &str) -> Vec<Comment> {
     source
         .lines()
-        .filter_map(|line| {
+        .enumerate()
+        .filter_map(|(number, line)| {
             let mut quoted = None;
             let mut escaped = false;
             for (at, c) in line.char_indices() {
@@ -192,13 +239,58 @@ fn comments(source: &str) -> Vec<String> {
                     Some(delimiter) if c == delimiter => quoted = None,
                     Some(_) => {}
                     None if matches!(c, '\'' | '"') => quoted = Some(c),
-                    None if c == '#' => return Some(line[at..].trim_end().to_string()),
+                    None if c == '#' => {
+                        return Some(Comment {
+                            line: number + 1,
+                            text: line[at..].trim_end().to_string(),
+                        })
+                    }
                     None => {}
                 }
             }
             None
         })
         .collect()
+}
+
+fn with_comments(mut lines: Vec<RenderedLine>, comments: Vec<Comment>) -> String {
+    let mut out = Vec::new();
+    let mut at = 0;
+    for index in 0..lines.len() {
+        let Some(source_line) = lines[index].source_line else {
+            out.push(lines[index].text.clone());
+            continue;
+        };
+        while comments
+            .get(at)
+            .is_some_and(|comment| comment.line < source_line)
+        {
+            let indent = if lines[index].text.trim() == "}" {
+                lines[..index]
+                    .iter()
+                    .rev()
+                    .find(|line| !line.text.is_empty())
+                    .map_or(0, |line| line.indent)
+            } else {
+                lines[index].indent
+            };
+            out.push(format!("{}{}", " ".repeat(indent), comments[at].text));
+            at += 1;
+        }
+        while comments
+            .get(at)
+            .is_some_and(|comment| comment.line == source_line)
+        {
+            lines[index].text.push(' ');
+            lines[index].text.push_str(&comments[at].text);
+            at += 1;
+        }
+        out.push(lines[index].text.clone());
+    }
+    for comment in &comments[at..] {
+        out.push(comment.text.clone());
+    }
+    out.join("\n") + "\n"
 }
 
 #[cfg(test)]
@@ -224,14 +316,46 @@ mod tests {
     }
 
     #[test]
-    fn keeps_comments_without_treating_hashes_in_strings_as_comments() {
+    fn keeps_comments_beside_the_directives_they_explain() {
         let formatted = source(
-            "schema 1 # schema note\nrecipe r {\n# before work\n delete where name=\"#not-a-note\" # work note\n}\n",
+            "schema 1 # schema note\nrecipe r {\n# before work\n delete where name=\"#not-a-note\" # work note\n}\n# after recipe\n",
         )
         .unwrap();
-        assert!(formatted.starts_with("# schema note\n# before work\n# work note\n\nschema 1"));
-        assert!(formatted.contains("name=\"#not-a-note\""));
+        assert_eq!(
+            formatted,
+            "schema 1 # schema note\n\nrecipe r {\n  # before work\n  delete where name=\"#not-a-note\" # work note\n}\n# after recipe\n"
+        );
         assert_eq!(source(&formatted).unwrap(), formatted);
+    }
+
+    #[test]
+    fn preserves_comments_at_every_recipe_boundary() {
+        let formatted = source(
+            "# file\nschema 1\n\n# recipe\nrecipe r { # opening\n\n# description\ndescription \"desc\" # description tail\n\n# requirement\nrequires language rust # requirement tail\n\n# step\ndelete where unused # step tail\n\n# expectation\nexpect refusals = 0 # expectation tail\n\n# closing\n} # closing tail\n",
+        )
+        .unwrap();
+        let lines = formatted.lines().collect::<Vec<_>>();
+        for expected in [
+            "# file",
+            "schema 1",
+            "# recipe",
+            "recipe r { # opening",
+            "  # description",
+            "  description \"desc\" # description tail",
+            "  # requirement",
+            "  requires language rust # requirement tail",
+            "  # step",
+            "  delete where unused # step tail",
+            "  # expectation",
+            "  expect refusals = 0 # expectation tail",
+            "  # closing",
+            "} # closing tail",
+        ] {
+            assert!(
+                lines.contains(&expected),
+                "missing {expected:?}: {formatted}"
+            );
+        }
     }
 
     #[test]
