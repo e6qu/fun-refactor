@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.13.0...fun-refactor-v0.14.0) (2026-09-04)
+
+
+### Features
+
+* **recipe:** name contract steps ([#247](https://github.com/e6qu/fun-refactor/issues/247)) ([48eac0b](https://github.com/e6qu/fun-refactor/commit/48eac0bc1ef9185acfa85f17ac5484d1111a963b))
+
 ## [0.13.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.12.0...fun-refactor-v0.13.0) (2026-09-04)
 
 
