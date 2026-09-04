@@ -81,6 +81,7 @@ def fullLineSpanAt (all : List (List Char)) (trailing : Bool)
     else fullLineSpanAt rest trailing wanted (current + 1) (start + byteLength line + 1)
 
 -- fr:spec src/edit.rs::full_line_span @ 84a16817
+-- fr:signature source: &str => source: String; offset: usize => offset: Nat; return: Span => return: ByteSpan
 def fullLineSpan (source : String) (offset : Nat) : ByteSpan :=
   match fullLineSpanAt (lines source.toList) (trailingNewline source.toList)
       (lineCol source offset).line 1 0 with

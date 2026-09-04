@@ -204,9 +204,20 @@ unproved obligation is debt with a name, which is better than an intention.
 Tier 2's writer was the first, because everything else waited on it and it extended
 machinery that already worked. It exists now.
 
-The anchor, `fr spec check`, and transactional `fr spec sync` make the models name Rust
-declarations, report drift, and renew reviewed source identities. The next useful move
-is an explicit signature mapping, not a guessed rewrite.
+Anchors, `fr spec check`, and transactional `fr spec sync` make models name Rust
+declarations. They report drift and renew reviewed source identities. Explicit mappings
+make signature correspondence visible without a guessed rewrite.
+
+That mapping now sits immediately below an anchor:
+
+```lean
+-- fr:spec src/edit.rs::apply_to_string @ 3e192284
+-- fr:signature source: &str => source: String
+```
+
+Each side names a parameter or `return` and its type. `fr spec check` reads the Rust
+function and following Lean definition, then compares both lists to the map. A source
+signature change therefore remains visible after `spec sync` renews its body hash.
 
 Tier 1 can start any time and is the most valuable thing here. It is also the easiest to
 put off, being the only part with no visible output.

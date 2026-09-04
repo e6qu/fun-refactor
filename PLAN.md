@@ -2733,8 +2733,10 @@ from the code, a report of where the two drifted, a count of what is unproved,
 generation, and running `lake`. An agent does the search. `lake` alone accepts an
 answer.
 
-The next command needs an explicit cross-language signature mapping. The most valuable
-work is still an IR semantics, where a wrong answer is silent.
+Each kernel can now state an explicit Rust-to-Lean signature mapping. `fr spec check`
+compares the source function and Lean definition to it, while `fr spec sync` refuses a
+hash renewal when the mapping drifted. The most valuable work is still an IR semantics,
+where a wrong answer is silent.
 
 What the plan refuses: proving the refactorings, which needs a formal semantics for
 nineteen grammars. Proving a hand-written implementation refines its spec, which needs one
