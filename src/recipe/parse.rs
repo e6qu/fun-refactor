@@ -35,27 +35,38 @@ pub const RESERVED: &[&str] = &[
 #[derive(Debug, Clone)]
 pub struct File {
     pub schema: u64,
+    pub schema_line: usize,
     pub recipes: Vec<Recipe>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Recipe {
     pub name: String,
+    pub line: usize,
+    pub end_line: usize,
     pub description: Option<String>,
+    pub description_line: Option<usize>,
     pub requires: Vec<Requirement>,
     pub steps: Vec<Step>,
     pub expects: Vec<Expect>,
+    pub expect_lines: Vec<usize>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Requirement {
-    Language(String),
+    Language {
+        name: String,
+        line: usize,
+    },
     Symbol {
         names: Vec<String>,
         selector: Vec<Predicate>,
         line: usize,
     },
-    Path(String),
+    Path {
+        path: String,
+        line: usize,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -454,6 +465,7 @@ impl Parser {
     fn file(&mut self) -> Result<File> {
         // `schema` first and mandatory: a reader has to be able to refuse a file it
         // does not understand before it has parsed a single step.
+        let schema_line = self.line();
         self.want_word("schema", "a recipe file")?;
         let schema = match self.next() {
             Some(Token::Int(value)) => value,
@@ -473,10 +485,15 @@ impl Parser {
         if recipes.is_empty() {
             bail!("this file declares a schema and contains no recipe");
         }
-        Ok(File { schema, recipes })
+        Ok(File {
+            schema,
+            schema_line,
+            recipes,
+        })
     }
 
     fn recipe(&mut self) -> Result<Recipe> {
+        let line = self.line();
         self.want_word("recipe", "a file after its schema")?;
         let name = self.want_ident("`recipe`")?;
         match self.next() {
@@ -493,15 +510,20 @@ impl Parser {
 
         let mut recipe = Recipe {
             name,
+            line,
+            end_line: 0,
             description: None,
+            description_line: None,
             requires: Vec::new(),
             steps: Vec::new(),
             expects: Vec::new(),
+            expect_lines: Vec::new(),
         };
 
         loop {
             match self.peek() {
                 Some(Token::Close) => {
+                    recipe.end_line = self.line();
                     self.at += 1;
                     break;
                 }
@@ -513,12 +535,15 @@ impl Parser {
                 _ => {}
             }
 
+            let line = self.line();
             if self.eat_word("description") {
                 recipe.description = Some(self.want_string("`description`")?);
+                recipe.description_line = Some(line);
             } else if self.eat_word("requires") {
                 recipe.requires.push(self.requirement()?);
             } else if self.eat_word("expect") {
                 recipe.expects.push(self.expectation()?);
+                recipe.expect_lines.push(line);
             } else {
                 recipe.steps.push(self.step()?);
             }
@@ -560,12 +585,13 @@ impl Parser {
     }
 
     fn requirement(&mut self) -> Result<Requirement> {
-        if self.eat_word("language") {
-            return Ok(Requirement::Language(
-                self.want_ident("`requires language`")?,
-            ));
-        }
         let line = self.line();
+        if self.eat_word("language") {
+            return Ok(Requirement::Language {
+                name: self.want_ident("`requires language`")?,
+                line,
+            });
+        }
         let names = if self.eat_word("symbol") {
             vec![self.want_string("`requires symbol`")?]
         } else if self.eat_word("any") {
@@ -583,7 +609,10 @@ impl Parser {
             }
             names
         } else if self.eat_word("path") {
-            return Ok(Requirement::Path(self.want_string("`requires path`")?));
+            return Ok(Requirement::Path {
+                path: self.want_string("`requires path`")?,
+                line,
+            });
         } else {
             bail!(
                 "line {}: `requires` takes `language`, `symbol`, `any symbol` or `path`, found {}",

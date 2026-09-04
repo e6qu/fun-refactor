@@ -2704,7 +2704,7 @@ fn explain_recipes(cli: &Cli, parsed: &crate::recipe::File) -> Result<()> {
     use crate::recipe::{Expect, OnRefusal, Predicate, Requirement};
 
     let requirement = |requirement: &Requirement| match requirement {
-        Requirement::Language(name) => format!("language {name}"),
+        Requirement::Language { name, .. } => format!("language {name}"),
         Requirement::Symbol {
             names, selector, ..
         } => {
@@ -2730,7 +2730,7 @@ fn explain_recipes(cli: &Cli, parsed: &crate::recipe::File) -> Result<()> {
                 format!("{head} where {selector}")
             }
         }
-        Requirement::Path(path) => format!("path \"{path}\""),
+        Requirement::Path { path, .. } => format!("path \"{path}\""),
     };
     let expectation = |expect: &Expect| match expect {
         Expect::NoNew(what) => format!("no-new {what}"),
@@ -2771,7 +2771,7 @@ fn explain_recipes(cli: &Cli, parsed: &crate::recipe::File) -> Result<()> {
             }),
         };
         let requirement_json = |requirement: &Requirement| match requirement {
-            Requirement::Language(name) => serde_json::json!({
+            Requirement::Language { name, .. } => serde_json::json!({
                 "kind": "language", "name": name,
             }),
             Requirement::Symbol {
@@ -2781,7 +2781,7 @@ fn explain_recipes(cli: &Cli, parsed: &crate::recipe::File) -> Result<()> {
                 "names": names,
                 "selector_parts": selector.iter().map(predicate_json).collect::<Vec<_>>(),
             }),
-            Requirement::Path(path) => serde_json::json!({
+            Requirement::Path { path, .. } => serde_json::json!({
                 "kind": "path", "path": path,
             }),
         };
