@@ -1837,7 +1837,7 @@ same problem again.
 
 Commands: `scan`, `parse`, `symbols`, `def`, `refs`, `usages`, `implementations`,
 `rename`, `extract`, `inline`, `signature`, `move`, `delete`, `unused`, `duplicates`,
-`imports`. Then `restructure`, `rewrite`, `remove-flag`, `recipe`, `translate`,
+`imports`. Then `restructure`, `rewrite`, `remove-flag`, `recipe`, `spec`, `translate`,
 `callers`, `callees`, `graph`, `flow`, `impact`, `stitch`, `entrypoints`,
 `capabilities`, `cache`, `openapi`, `type`, `completions`.
 
@@ -2721,9 +2721,9 @@ those two files and compares. That is the next thing worth building.
 
 ## Specs in Lean
 
-**Planned, not built.** `docs/lean-specs.md` holds it. What Lean would specify here,
-what `fr` would own, what an agent would own. And the three things the idea promises
-that nobody can deliver.
+**Started.** `fr spec check` reads Lean anchors, hashes the source declarations they
+name, reports drift, and counts unproved obligations. `docs/lean-specs.md` holds the
+rest: what Lean would specify here, what `fr` would own, and what an agent would own.
 
 The line the design rests on is the one Lean itself draws. Writing a proof is a search;
 checking one is a decision. So `fr` takes everything decidable. A spec's shape derived
@@ -2731,9 +2731,9 @@ from the code, a report of where the two drifted, a count of what is unproved,
 generation, and running `lake`. An agent does the search. `lake` alone accepts an
 answer.
 
-The first thing to build is a Lean writer, because everything waits on it and it extends
-the transpiler that already works. The most valuable thing to build is a semantics for
-the IR, because that is where a wrong answer is silent.
+The next command is `fr spec sync`, which can renew a stale signature while leaving its
+proof alone. The most valuable work is still an IR semantics, where a wrong answer is
+silent.
 
 What the plan refuses: proving the refactorings, which needs a formal semantics for
 nineteen grammars. Proving a hand-written implementation refines its spec, which needs one

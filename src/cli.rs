@@ -327,6 +327,10 @@ enum Command {
         #[arg(long)]
         vocabulary: bool,
     },
+    Spec {
+        #[command(subcommand)]
+        command: SpecCommand,
+    },
     /// Rewrite a file as another language, beside the original.
     Translate {
         /// File to rewrite, or a directory to sweep file by file.
@@ -482,6 +486,15 @@ enum RecipeCommand {
         write: bool,
         #[arg(long, help = "Exit unsuccessfully when the recipe needs formatting")]
         check: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum SpecCommand {
+    #[command(about = "Report stale Lean specification anchors and unproved obligations")]
+    Check {
+        #[arg(help = "Lean spec files or directories; defaults to kernels and specs")]
+        paths: Vec<PathBuf>,
     },
 }
 
@@ -790,6 +803,9 @@ fn dispatch(cli: &Cli) -> Result<()> {
                 *vocabulary,
             ),
         },
+        Command::Spec { command } => match command {
+            SpecCommand::Check { paths } => cmd_spec_check(cli, paths),
+        },
         Command::RemoveFlag { flag, value, write } => {
             cmd_remove_flag(cli, flag, FlagValue(*value), *write)
         }
@@ -858,6 +874,54 @@ fn dispatch(cli: &Cli) -> Result<()> {
             catalogs,
             unreachable,
         } => cmd_entrypoints(cli, kind.as_deref(), catalogs.as_deref(), *unreachable),
+    }
+}
+
+fn cmd_spec_check(cli: &Cli, paths: &[PathBuf]) -> Result<()> {
+    let root = workspace_root(cli);
+    let report = crate::spec::check(&root, paths, !cli.no_ignore)?;
+    if cli.json {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+    } else {
+        for anchor in &report.anchors {
+            let target = format!("{}::{}", anchor.source.display(), anchor.symbol);
+            match anchor.status {
+                crate::spec::Status::Fresh => {
+                    println!("fresh {}:{} {}", anchor.spec.display(), anchor.line, target)
+                }
+                crate::spec::Status::Stale => println!(
+                    "stale {}:{} {} (expected {}, found {})",
+                    anchor.spec.display(),
+                    anchor.line,
+                    target,
+                    anchor.expected,
+                    anchor.actual.as_deref().unwrap_or("nothing")
+                ),
+                crate::spec::Status::Missing => println!(
+                    "missing {}:{} {} ({})",
+                    anchor.spec.display(),
+                    anchor.line,
+                    target,
+                    anchor.detail.as_deref().unwrap_or("no declaration found")
+                ),
+            }
+        }
+        println!(
+            "{} fresh, {} stale, {} missing; {} unproved obligation(s).",
+            report.fresh(),
+            report.stale(),
+            report.missing(),
+            report.obligations
+        );
+    }
+    if report.ok() {
+        Ok(())
+    } else {
+        anyhow::bail!(
+            "spec check found {} stale and {} missing anchor(s)",
+            report.stale(),
+            report.missing()
+        )
     }
 }
 

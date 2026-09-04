@@ -734,6 +734,31 @@ fn a_recipe_formatter_sweeps_directories_without_partial_writes() {
 }
 
 #[test]
+fn spec_check_reports_the_projects_kernel_anchors_as_json() {
+    let output = Command::new(FR)
+        .arg("--json")
+        .arg("-C")
+        .arg(env!("CARGO_MANIFEST_DIR"))
+        .args(["spec", "check"])
+        .output()
+        .expect("fr should run");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("the spec check is JSON data");
+    let anchors = report["anchors"].as_array().expect("anchor reports");
+    assert!(anchors.len() >= 2, "{report}");
+    assert!(
+        anchors.iter().all(|anchor| anchor["status"] == "fresh"),
+        "{report}"
+    );
+    assert_eq!(report["obligations"], 0, "{report}");
+}
+
+#[test]
 fn an_import_kept_for_a_reason_says_what_the_reason_was() {
     // The planner works the reason out for every import it holds back, and the command threw
     // all of them away.

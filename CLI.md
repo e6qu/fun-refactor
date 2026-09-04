@@ -401,6 +401,19 @@ file. The rewrites this build has, and the languages. Every list comes from the
 code that reads a recipe. With `--json`, a program writing a recipe reads what it
 may write.
 
+### `fr spec`
+
+```
+fr spec check [PATH...]
+```
+
+Check that Lean models still point at the declarations they model. With no path,
+the command reads `kernels/` and `specs/`. A model names a declaration with an
+anchor such as `-- fr:spec src/edit.rs::apply_to_string @ 3e192284`. The hash
+comes from the declaration's full source span. A changed hash is stale. A gone or
+ambiguous declaration is missing. The report also counts live `sorry` obligations.
+`--json` returns every anchor as data. Stale and missing anchors exit unsuccessfully.
+
 ## Crossing languages
 
 ### `fr translate`
