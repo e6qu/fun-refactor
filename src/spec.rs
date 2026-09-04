@@ -120,6 +120,19 @@ impl Report {
 }
 
 pub fn check(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result<Report> {
+    check_with(root, inputs, respect_ignore, false)
+}
+
+pub fn check_strict(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result<Report> {
+    check_with(root, inputs, respect_ignore, true)
+}
+
+fn check_with(
+    root: &Path,
+    inputs: &[PathBuf],
+    respect_ignore: bool,
+    require_signatures: bool,
+) -> Result<Report> {
     let files = spec_files(root, inputs, respect_ignore)?;
     let mut anchors = Vec::new();
     let mut obligations = 0;
@@ -197,6 +210,14 @@ pub fn check(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result<Re
                         })
                     }
                 },
+                Ok(None) if require_signatures => {
+                    report.signature = Some(SignatureReport {
+                        status: Status::Missing,
+                        detail: Some(
+                            "the strict check requires an explicit signature map".to_string(),
+                        ),
+                    })
+                }
                 Ok(None) => {}
                 Err(error) => {
                     report.signature = Some(SignatureReport {
@@ -472,9 +493,9 @@ fn signature_part(text: &str) -> Result<SignaturePart> {
     let (name, ty) = text
         .trim()
         .split_once(':')
-        .ok_or_else(|| anyhow::anyhow!("a signature map part needs a name and type"))?;
+        .ok_or_else(|| anyhow::anyhow!("`{text}` needs a name and type"))?;
     if name.trim().is_empty() || ty.trim().is_empty() {
-        bail!("a signature map part needs a name and type");
+        bail!("`{text}` needs a name and type");
     }
     Ok(SignaturePart {
         name: name.trim().to_string(),
@@ -526,12 +547,11 @@ fn rust_signature(path: &Path, wanted: &str) -> Result<Vec<SignaturePart>> {
     let open = declaration
         .find('(')
         .context("the Rust declaration has no parameters")?;
-    let close = declaration[open..]
-        .find(')')
-        .map(|offset| open + offset)
+    let close = matching_delimiter(declaration, open, '(', ')')
         .context("the Rust declaration has no closing parameter list")?;
     let mut parts = declaration[open + 1..close]
-        .split(',')
+        .split_top_level(',')
+        .into_iter()
         .filter(|part| !part.trim().is_empty())
         .map(signature_part)
         .collect::<Result<Vec<_>>>()?;
@@ -548,12 +568,22 @@ fn rust_signature(path: &Path, wanted: &str) -> Result<Vec<SignaturePart>> {
 }
 
 fn lean_signature(spec: &str, anchor_line: usize) -> Result<Vec<SignaturePart>> {
-    let header = spec
-        .lines()
-        .skip(anchor_line)
-        .find(|line| line.trim_start().starts_with("def "))
-        .context("the signature map needs a following Lean definition")?
-        .trim();
+    let mut header = String::new();
+    let mut found = false;
+    for line in spec.lines().skip(anchor_line) {
+        if !found && !line.trim_start().starts_with("def ") {
+            continue;
+        }
+        found = true;
+        header.push_str(line.trim());
+        header.push(' ');
+        if line.contains(":=") {
+            break;
+        }
+    }
+    if !found {
+        bail!("the signature map needs a following Lean definition");
+    }
     let before_body = header
         .split_once(":=")
         .map(|(head, _)| head)
@@ -566,13 +596,14 @@ fn lean_signature(spec: &str, anchor_line: usize) -> Result<Vec<SignaturePart>> 
         .split_once(char::is_whitespace)
         .map(|(_, tail)| tail)
         .unwrap_or("");
-    while let Some(open) = rest.find('(') {
-        let tail = &rest[open + 1..];
-        let close = tail
-            .find(')')
+    while !rest.trim_start().starts_with(':') {
+        let open = rest
+            .find('(')
+            .context("a mapped Lean parameter needs `(`")?;
+        let close = matching_delimiter(rest, open, '(', ')')
             .context("an explicit Lean parameter needs `)`")?;
-        parts.push(signature_part(&tail[..close])?);
-        rest = &tail[close + 1..];
+        parts.push(signature_part(&rest[open + 1..close])?);
+        rest = &rest[close + 1..];
     }
     let return_type = rest
         .split_once(':')
@@ -583,6 +614,48 @@ fn lean_signature(spec: &str, anchor_line: usize) -> Result<Vec<SignaturePart>> 
         ty: compact_type(return_type),
     });
     Ok(parts)
+}
+
+trait SplitTopLevel {
+    fn split_top_level(&self, separator: char) -> Vec<&str>;
+}
+
+impl SplitTopLevel for str {
+    fn split_top_level(&self, separator: char) -> Vec<&str> {
+        let mut parts = Vec::new();
+        let mut start = 0;
+        let mut depth: usize = 0;
+        for (offset, character) in self.char_indices() {
+            match character {
+                '(' | '[' | '{' | '<' => depth += 1,
+                ')' | ']' | '}' | '>' => depth = depth.saturating_sub(1),
+                _ if character == separator && depth == 0 => {
+                    parts.push(&self[start..offset]);
+                    start = offset + character.len_utf8();
+                }
+                _ => {}
+            }
+        }
+        parts.push(&self[start..]);
+        parts
+    }
+}
+
+fn matching_delimiter(text: &str, open: usize, left: char, right: char) -> Option<usize> {
+    let mut depth = 0;
+    for (offset, character) in text[open..].char_indices() {
+        match character {
+            character if character == left => depth += 1,
+            character if character == right => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(open + offset);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
 }
 
 fn compact_type(text: &str) -> String {
@@ -599,7 +672,7 @@ fn obligations_in(text: &str) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use super::{anchors_in, check, declaration_hash, obligations_in, sync, Status};
+    use super::{anchors_in, check, check_strict, declaration_hash, obligations_in, sync, Status};
     use crate::extract::Extractor;
     use crate::parse::Parsers;
     use std::fs;
@@ -758,5 +831,55 @@ mod tests {
             Status::Stale
         );
         assert!(!stale.ok());
+    }
+
+    #[test]
+    fn strict_check_requires_every_anchor_to_map_its_signature() {
+        let workspace = tempfile::tempdir().unwrap();
+        let root = workspace.path();
+        fs::create_dir_all(root.join("src")).unwrap();
+        fs::create_dir_all(root.join("specs")).unwrap();
+        let code = root.join("src/code.rs");
+        fs::write(&code, "pub fn current() -> usize { 1 }\n").unwrap();
+        let hash =
+            declaration_hash(&mut Parsers::new(), &mut Extractor::new(), &code, "current").unwrap();
+        fs::write(
+            root.join("specs/code.lean"),
+            format!(
+                "-- fr:spec src/code.rs::current @ {}\ndef current : Nat := 1\n",
+                &hash[..8]
+            ),
+        )
+        .unwrap();
+        assert!(check(root, &[PathBuf::from("specs")], true).unwrap().ok());
+        let strict = check_strict(root, &[PathBuf::from("specs")], true).unwrap();
+        assert_eq!(strict.missing_signatures(), 1);
+        assert!(!strict.ok());
+    }
+
+    #[test]
+    fn checks_nested_rust_types_against_a_multiline_lean_definition() {
+        let workspace = tempfile::tempdir().unwrap();
+        let root = workspace.path();
+        fs::create_dir_all(root.join("src")).unwrap();
+        fs::create_dir_all(root.join("specs")).unwrap();
+        let code = root.join("src/code.rs");
+        fs::write(
+            &code,
+            "pub fn current(source: Vec<(String, usize)>, callback: impl Fn(&str, usize) -> String) -> Result<(String, usize), ()> { unimplemented!() }\n",
+        )
+        .unwrap();
+        let hash =
+            declaration_hash(&mut Parsers::new(), &mut Extractor::new(), &code, "current").unwrap();
+        fs::write(
+            root.join("specs/code.lean"),
+            format!(
+                "-- fr:spec src/code.rs::current @ {}\n-- fr:signature source: Vec<(String, usize)> => source: List (String × Nat); callback: impl Fn(&str, usize) -> String => callback: String → Nat → String; return: Result<(String, usize), ()> => return: Option (String × Nat)\ndef current\n    (source : List (String × Nat))\n    (callback : String → Nat → String)\n    : Option (String × Nat) := none\n",
+                &hash[..8]
+            ),
+        )
+        .unwrap();
+        let report = check_strict(root, &[PathBuf::from("specs")], true).unwrap();
+        assert!(report.ok(), "{report:#?}");
     }
 }

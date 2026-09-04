@@ -739,7 +739,7 @@ fn spec_check_reports_the_projects_kernel_anchors_as_json() {
         .arg("--json")
         .arg("-C")
         .arg(env!("CARGO_MANIFEST_DIR"))
-        .args(["spec", "check"])
+        .args(["spec", "check", "--strict"])
         .output()
         .expect("fr should run");
     assert!(

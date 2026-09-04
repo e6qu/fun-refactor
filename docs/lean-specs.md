@@ -218,6 +218,8 @@ That mapping now sits immediately below an anchor:
 Each side names a parameter or `return` and its type. `fr spec check` reads the Rust
 function and following Lean definition, then compares both lists to the map. A source
 signature change therefore remains visible after `spec sync` renews its body hash.
+`fr spec check --strict` requires this map beside every anchor, which makes complete
+signature correspondence a gate rather than an aspiration.
 
 Tier 1 can start any time and is the most valuable thing here. It is also the easiest to
 put off, being the only part with no visible output.
