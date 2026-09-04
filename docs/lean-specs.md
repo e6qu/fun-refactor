@@ -145,11 +145,12 @@ the implementation refines the model for every possible string and edit list.
 
 ```
 fr spec check [path...]           the drift report: stale anchors, missing symbols,
-                                  and the count of unproved obligations
+                                  and the count of unproved obligations.
+fr spec sync [path...] [--write]  renew stale source hashes
 ```
 
-`check` is the implemented command. The other moves remain design work:
-`spec extract`, `spec sync`, `fr translate Foo.lean rust`, and `spec verify`.
+`fr` implements `check` and `sync`. The other moves remain design work:
+`spec extract`, `fr translate Foo.lean rust`, and `spec verify`.
 
 `fr spec extract` writes an anchor the rest depends on:
 
@@ -160,8 +161,10 @@ def plan (index : Index) (symbol : SymbolId) (newName : String) :
 ```
 
 The hash is the function's own bytes. When it changes, `fr spec check` says which spec
-went stale and why. That is the `docs_cli.rs` trick pointed at code instead of prose.
-It is the whole sync story: a tool that notices, not a tool that promises.
+went stale and why. `fr spec sync` makes a reparse-checked edit that renews the hash.
+It shows the diff first and needs `--write` to commit. It refuses the whole transaction
+if any target disappeared. Before commit, it rechecks every source declaration it planned.
+This is the `docs_cli.rs` trick pointed at code instead of prose.
 
 ## The lifecycle, which is the part that usually goes wrong
 
@@ -171,8 +174,9 @@ Generation that only writes stubs is a demo. The three later moves are the featu
 - **Regenerate.** This replaces a region nobody touched. A region a person edited stops
   the run and names the file and line. `fr` already refuses rather than overwrite, and
   this is that discipline applied to a second author.
-- **Reverse.** A signature changed in the code. `fr spec sync` carries it back to the
-  Lean and leaves the proofs standing, so the next `lake` run says which ones broke.
+- **Reverse.** A signature changed in the code. A future signature synchronizer carries
+  it back to Lean and leaves the proofs standing, so the next `lake` run says which ones
+  broke. Today's `spec sync` renews the source identity and never guesses that mapping.
 
 The proofs breaking is the point. A spec that survives a change to the thing it specifies
 was not specifying much.
@@ -200,8 +204,9 @@ unproved obligation is debt with a name, which is better than an intention.
 Tier 2's writer was the first, because everything else waited on it and it extended
 machinery that already worked. It exists now.
 
-The anchor and `fr spec check` now make the models name their Rust declarations and
-report drift before a single proof exists. The next useful move is `spec sync`.
+The anchor, `fr spec check`, and transactional `fr spec sync` make the models name Rust
+declarations, report drift, and renew reviewed source identities. The next useful move
+is an explicit signature mapping, not a guessed rewrite.
 
 Tier 1 can start any time and is the most valuable thing here. It is also the easiest to
 put off, being the only part with no visible output.

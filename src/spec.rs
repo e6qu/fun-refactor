@@ -1,6 +1,8 @@
+use crate::edit::{Edit, EditSet};
 use crate::extract::Extractor;
 use crate::lang::detect;
 use crate::parse::Parsers;
+use crate::span::Span;
 use anyhow::{bail, Context, Result};
 use ignore::WalkBuilder;
 use serde::Serialize;
@@ -12,6 +14,20 @@ use std::path::{Path, PathBuf};
 pub struct Report {
     pub anchors: Vec<AnchorReport>,
     pub obligations: usize,
+}
+
+#[derive(Debug)]
+pub struct Sync {
+    pub report: Report,
+    pub edits: EditSet,
+    sources: Vec<SourceHash>,
+}
+
+#[derive(Debug)]
+struct SourceHash {
+    path: PathBuf,
+    symbol: String,
+    hash: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -131,6 +147,79 @@ pub fn check(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result<Re
     })
 }
 
+pub fn sync(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result<Sync> {
+    let report = check(root, inputs, respect_ignore)?;
+    let mut edits = EditSet::new();
+    let mut sources = Vec::new();
+    for anchor in report
+        .anchors
+        .iter()
+        .filter(|anchor| anchor.status == Status::Stale)
+    {
+        let text = crate::vfs::read_to_string(&anchor.spec)
+            .with_context(|| format!("reading {}", anchor.spec.display()))?;
+        let record = anchor_records(&text)?
+            .into_iter()
+            .find(|record| record.line == anchor.line)
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "{}:{} lost its spec anchor",
+                    anchor.spec.display(),
+                    anchor.line
+                )
+            })?;
+        let actual = anchor.actual.as_deref().ok_or_else(|| {
+            anyhow::anyhow!(
+                "{}:{} has no source hash to renew",
+                anchor.spec.display(),
+                anchor.line
+            )
+        })?;
+        sources.push(SourceHash {
+            path: anchor.source.clone(),
+            symbol: anchor.symbol.clone(),
+            hash: actual.to_string(),
+        });
+        edits.declare_language(&anchor.spec, crate::lang::Language::Lean);
+        edits.add(
+            &anchor.spec,
+            Edit::new(
+                record.hash_span,
+                actual,
+                format!(
+                    "renew the source hash for {}::{}",
+                    anchor.source.display(),
+                    anchor.symbol
+                ),
+            ),
+        );
+    }
+    Ok(Sync {
+        report,
+        edits,
+        sources,
+    })
+}
+
+impl Sync {
+    pub fn verify_sources(&self) -> Result<()> {
+        let mut parsers = Parsers::new();
+        let mut extractor = Extractor::new();
+        for source in &self.sources {
+            let actual =
+                declaration_hash(&mut parsers, &mut extractor, &source.path, &source.symbol)?;
+            if actual != source.hash {
+                bail!(
+                    "{}::{} changed after spec sync planned it. Nothing written; re-run against the current source.",
+                    source.path.display(),
+                    source.symbol
+                );
+            }
+        }
+        Ok(())
+    }
+}
+
 fn spec_files(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result<Vec<PathBuf>> {
     let inputs = match inputs.is_empty() {
         true => [root.join("kernels"), root.join("specs")]
@@ -191,36 +280,64 @@ fn lean_file(path: &Path) -> Result<()> {
 }
 
 fn anchors_in(text: &str) -> Result<Vec<(usize, PathBuf, String, String)>> {
-    text.lines()
-        .enumerate()
-        .filter_map(|(number, line)| {
-            line.trim_start()
-                .strip_prefix("-- fr:spec ")
-                .map(|body| (number + 1, body))
-        })
-        .map(|(line, body)| {
-            let (target, expected) = body
-                .split_once(" @ ")
-                .ok_or_else(|| anyhow::anyhow!("line {line}: a spec anchor needs ` @ <hash>`"))?;
-            let (source, symbol) = target.rsplit_once("::").ok_or_else(|| {
-                anyhow::anyhow!("line {line}: a spec anchor needs `<path>::<symbol>`")
-            })?;
-            if source.is_empty()
-                || symbol.is_empty()
-                || expected.len() < 8
-                || expected.len() > 64
-                || !expected.chars().all(|c| c.is_ascii_hexdigit())
-            {
-                bail!("line {line}: a spec anchor needs a path, symbol and hexadecimal hash");
-            }
-            Ok((
-                line,
-                PathBuf::from(source),
-                symbol.to_string(),
-                expected.to_string(),
-            ))
-        })
-        .collect()
+    anchor_records(text).map(|anchors| {
+        anchors
+            .into_iter()
+            .map(|anchor| (anchor.line, anchor.source, anchor.symbol, anchor.expected))
+            .collect()
+    })
+}
+
+struct Anchor {
+    line: usize,
+    source: PathBuf,
+    symbol: String,
+    expected: String,
+    hash_span: Span,
+}
+
+fn anchor_records(text: &str) -> Result<Vec<Anchor>> {
+    const PREFIX: &str = "-- fr:spec ";
+    const SEPARATOR: &str = " @ ";
+    let mut anchors = Vec::new();
+    let mut start = 0;
+    for (number, chunk) in text.split_inclusive('\n').enumerate() {
+        let line = chunk
+            .strip_suffix('\n')
+            .unwrap_or(chunk)
+            .trim_end_matches('\r');
+        let trimmed = line.trim_start();
+        let Some(body) = trimmed.strip_prefix(PREFIX) else {
+            start += chunk.len();
+            continue;
+        };
+        let number = number + 1;
+        let (target, expected) = body
+            .split_once(SEPARATOR)
+            .ok_or_else(|| anyhow::anyhow!("line {number}: a spec anchor needs ` @ <hash>`"))?;
+        let (source, symbol) = target.rsplit_once("::").ok_or_else(|| {
+            anyhow::anyhow!("line {number}: a spec anchor needs `<path>::<symbol>`")
+        })?;
+        if source.is_empty()
+            || symbol.is_empty()
+            || expected.len() < 8
+            || expected.len() > 64
+            || !expected.chars().all(|c| c.is_ascii_hexdigit())
+        {
+            bail!("line {number}: a spec anchor needs a path, symbol and hexadecimal hash");
+        }
+        let indentation = line.len() - trimmed.len();
+        let hash_start = start + indentation + PREFIX.len() + target.len() + SEPARATOR.len();
+        anchors.push(Anchor {
+            line: number,
+            source: PathBuf::from(source),
+            symbol: symbol.to_string(),
+            expected: expected.to_string(),
+            hash_span: Span::new(hash_start, hash_start + expected.len()),
+        });
+        start += chunk.len();
+    }
+    Ok(anchors)
 }
 
 fn declaration_hash(
@@ -263,7 +380,7 @@ fn obligations_in(text: &str) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use super::{anchors_in, check, declaration_hash, obligations_in, Status};
+    use super::{anchors_in, check, declaration_hash, obligations_in, sync, Status};
     use crate::extract::Extractor;
     use crate::parse::Parsers;
     use std::fs;
@@ -328,5 +445,52 @@ mod tests {
             .detail
             .as_deref()
             .is_some_and(|detail| detail.contains("may not leave")));
+    }
+
+    #[test]
+    fn sync_renews_stale_hashes_and_leaves_missing_anchors_unplanned() {
+        let workspace = tempfile::tempdir().unwrap();
+        let root = workspace.path();
+        fs::create_dir_all(root.join("src")).unwrap();
+        fs::create_dir_all(root.join("specs")).unwrap();
+        let code = root.join("src/code.rs");
+        fs::write(&code, "pub fn current() -> usize { 2 }\n").unwrap();
+        let hash =
+            declaration_hash(&mut Parsers::new(), &mut Extractor::new(), &code, "current").unwrap();
+        let spec = root.join("specs/code.lean");
+        fs::write(
+            &spec,
+            "-- fr:spec src/code.rs::current @ deadbeef\ndef current : Nat := 2\n",
+        )
+        .unwrap();
+
+        let planned = sync(root, &[PathBuf::from("specs")], true).unwrap();
+        assert_eq!(planned.report.stale(), 1);
+        assert_eq!(planned.edits.file_count(), 1);
+        let outcome = crate::edit::plan(&planned.edits, crate::edit::Validation::ReparseStrict)
+            .unwrap()
+            .pop()
+            .unwrap();
+        assert!(outcome.updated.contains(&hash));
+        fs::write(&spec, outcome.updated).unwrap();
+        assert!(check(root, &[PathBuf::from("specs")], true).unwrap().ok());
+
+        fs::write(
+            &spec,
+            "-- fr:spec src/code.rs::current @ deadbeef\ndef current : Nat := 2\n",
+        )
+        .unwrap();
+        let stale_source = sync(root, &[PathBuf::from("specs")], true).unwrap();
+        fs::write(&code, "pub fn current() -> usize { 3 }\n").unwrap();
+        assert!(stale_source.verify_sources().is_err());
+
+        fs::write(
+            &spec,
+            "-- fr:spec src/code.rs::gone @ deadbeef\ndef gone : Nat := 0\n",
+        )
+        .unwrap();
+        let missing = sync(root, &[PathBuf::from("specs")], true).unwrap();
+        assert_eq!(missing.report.missing(), 1);
+        assert!(missing.edits.is_empty());
     }
 }

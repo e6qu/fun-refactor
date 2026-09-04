@@ -2722,8 +2722,10 @@ those two files and compares. That is the next thing worth building.
 ## Specs in Lean
 
 **Started.** `fr spec check` reads Lean anchors, hashes the source declarations they
-name, reports drift, and counts unproved obligations. `docs/lean-specs.md` holds the
-rest: what Lean would specify here, what `fr` would own, and what an agent would own.
+name, reports drift, and counts unproved obligations. `fr spec sync` renews reviewed
+stale hashes through the lossless edit transaction and refuses a partial repair.
+`docs/lean-specs.md` holds the rest: what Lean would specify here, what `fr` would own,
+and what an agent would own.
 
 The line the design rests on is the one Lean itself draws. Writing a proof is a search;
 checking one is a decision. So `fr` takes everything decidable. A spec's shape derived
@@ -2731,9 +2733,8 @@ from the code, a report of where the two drifted, a count of what is unproved,
 generation, and running `lake`. An agent does the search. `lake` alone accepts an
 answer.
 
-The next command is `fr spec sync`, which can renew a stale signature while leaving its
-proof alone. The most valuable work is still an IR semantics, where a wrong answer is
-silent.
+The next command needs an explicit cross-language signature mapping. The most valuable
+work is still an IR semantics, where a wrong answer is silent.
 
 What the plan refuses: proving the refactorings, which needs a formal semantics for
 nineteen grammars. Proving a hand-written implementation refines its spec, which needs one
