@@ -8,6 +8,7 @@ mod common;
 
 use fun_refactor::lang::Language;
 use fun_refactor::transpile;
+use std::path::PathBuf;
 
 fn lean(name: &str, source: &str) -> String {
     let (_tmp, root) = common::tree(&[(name, source)]);
@@ -120,6 +121,33 @@ pub fn f() -> i64 {
     let out = lean("a.rs", source);
     assert!(out.contains("let fixed : Int := 1"), "got:\n{out}");
     assert!(out.contains("let mut moving : Int := 2"), "got:\n{out}");
+}
+
+#[test]
+fn a_write_through_a_call_is_carried_not_emitted_as_a_lean_place() {
+    let source = "\
+pub fn update(table: std::collections::HashMap<String, Vec<String>>) {
+    table.entry(\"key\".to_string()).or_default().push(\"value\".to_string());
+    table.entry(\"key\".to_string()).or_default().capacity = 2;
+}
+";
+    let out = lean("a.rs", source);
+    assert!(
+        out.matches("-- fun-refactor:").count() >= 2 && out.contains("or_default"),
+        "the writer puts the unsupported update in a comment instead of a Lean place.\n{out}"
+    );
+}
+
+#[test]
+fn the_edit_engine_drafts_as_parseable_lean() {
+    let source = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/edit.rs");
+    let plan = transpile::plan(&source, Language::Lean)
+        .unwrap_or_else(|error| panic!("{} -> lean: {error}", source.display()));
+    assert!(
+        plan.output.contains("fun-refactor: not translated"),
+        "the draft keeps unsupported Rust visible.\n{}",
+        plan.output
+    );
 }
 
 #[test]

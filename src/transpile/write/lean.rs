@@ -1027,14 +1027,14 @@ fn assign(out: &mut Out, target: &Expr, value: &Expr) {
             out.line(&format!("{spelled} := {rendered}"));
         }
         // `p.x := v` is `p := { p with x := v }`, and Lean's `do` writes the short form.
-        Expr::Field { of, name } => {
+        Expr::Field { of, name } if mutable_holder(of) => {
             let holder = expr(out, of);
             let field = out.field(name);
             out.line(&format!(
                 "{holder} := {{ {holder} with {field} := {rendered} }}"
             ));
         }
-        Expr::Index { of, index } => {
+        Expr::Index { of, index } if mutable_holder(of) => {
             let holder = expr(out, of);
             let at = arg(out, index);
             match holds_a_map(out, of) {
@@ -1055,6 +1055,10 @@ fn assign(out: &mut Out, target: &Expr, value: &Expr) {
     }
 }
 
+fn mutable_holder(expr: &Expr) -> bool {
+    matches!(expr, Expr::Name(_))
+}
+
 /// A statement that is an expression. The ones that grow a collection are assignments in
 /// Lean, since its collections answer with a new value rather than changing in place.
 fn expression_statement(out: &mut Out, e: &Expr, tail: bool) {
@@ -1067,6 +1071,14 @@ fn expression_statement(out: &mut Out, e: &Expr, tail: bool) {
                 _ => None,
             };
             if let (Some(method), [only]) = (grows, args.as_slice()) {
+                if !mutable_holder(receiver) {
+                    let rendered = expr(out, e);
+                    out.note_once(
+                        "Lean cannot update a collection reached through a call or projection.",
+                    );
+                    out.line(&out.comment(&format!("{MARKER}: `{rendered}`")));
+                    return;
+                }
                 let holder = expr(out, &receiver.clone());
                 let value = arg(out, only);
                 out.line(&format!("{holder} := {holder}.{method} {value}"));
