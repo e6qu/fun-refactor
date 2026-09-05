@@ -8,12 +8,12 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 impl Project<'_> {
-    fn relationship_selection(&self, options: &RelationshipOptions) -> Result<usize> {
+    pub(super) fn relationship_selection(&self, options: &RelationshipOptions) -> Result<usize> {
         check_limit(options.limit)?;
         self.target(&self.explicit_handle(&options.target, options.revision.as_deref())?)
     }
 
-    fn scope_file(&self, selected: usize, file: &Path) -> bool {
+    pub(super) fn scope_file(&self, selected: usize, file: &Path) -> bool {
         let node = &self.nodes[selected];
         let Ok(relative) = file.strip_prefix(&self.root) else {
             return false;
@@ -45,7 +45,7 @@ impl Project<'_> {
         })
     }
 
-    fn endpoint(&self, symbol: SymbolId) -> Result<Value> {
+    pub(super) fn endpoint(&self, symbol: SymbolId) -> Result<Value> {
         let node = *self
             .symbol_nodes
             .get(&symbol)
@@ -138,7 +138,7 @@ impl Project<'_> {
             "hierarchy_unsupported_files": hierarchy_unsupported, "scope": "indexed workspace"})
     }
 
-    fn relationship_page(
+    pub(super) fn relationship_page(
         &self,
         query: &str,
         selected: usize,

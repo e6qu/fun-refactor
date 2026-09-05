@@ -1842,3 +1842,265 @@ fn relationship_labels_are_bounded_before_detail_retrieval() {
     )["node"]["name"]
         .is_object());
 }
+
+#[test]
+fn route_pages_preserve_each_pattern_readers_declarations() {
+    use fun_refactor::lang::Language;
+    use fun_refactor::transpile::routes;
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let fixtures = [
+        ("app.ts", Language::TypeScript, "function pets() { return 'BODY_SENTINEL'; }\napp.get('/pets/:id', pets);\n"),
+        ("app.py", Language::Python, "@app.route('/pets/<int:id>', methods=['GET', 'POST'])\ndef pets():\n    return 'BODY_SENTINEL'\n"),
+        ("app.rs", Language::Rust, "fn pets() {}\nfn router() { Router::new().route(\"/pets/:id\", get(pets).post(pets)); }\n"),
+        ("app.go", Language::Go, "package main\nfunc pets() {}\nfunc routes(r *gin.Engine) { r.GET(\"/pets/:id\", pets) }\n"),
+        ("App.java", Language::Java, "class App { @GetMapping(\"/pets/{id}\") String pets() { return \"BODY_SENTINEL\"; } }\n"),
+    ];
+    for (path, _, source) in fixtures {
+        put(root, path, source);
+    }
+    for (path, language, source) in fixtures {
+        let (framework, endpoints) = routes::endpoints_of(source, language).unwrap();
+        let view = ok(root, &["project", "routes", path, "--limit", "500"]);
+        assert_eq!(view["analysis"]["declarations"], endpoints.len());
+        assert_eq!(view["analysis"]["analyzed_files"], 1);
+        let items = view["items"].as_array().unwrap();
+        for endpoint in endpoints {
+            let row = items
+                .iter()
+                .find(|r| r["kind"] == "route" && r["method"] == endpoint.method)
+                .unwrap();
+            assert_eq!(row["url"], endpoint.url);
+            assert_eq!(row["line"], endpoint.line);
+            assert_eq!(row["framework_candidate"], framework.to_string());
+            assert_eq!(row["handler"]["name"].as_str(), endpoint.handler.as_deref());
+            assert_eq!(row["status"], "candidate");
+            assert!(row["confidence"].is_null());
+            assert_eq!(row["handler"]["candidate_count"], 1);
+            let candidate = items
+                .iter()
+                .find(|r| r["kind"] == "route-handler" && r["route"] == row["id"])
+                .unwrap();
+            assert_eq!(candidate["confidence"], "name-only");
+            let detail = ok(
+                root,
+                &[
+                    "project",
+                    "show",
+                    candidate["handler"]["handle"].as_str().unwrap(),
+                ],
+            );
+            assert_eq!(detail["node"]["name"], "pets");
+            let file = ok(
+                root,
+                &["project", "show", row["file_handle"].as_str().unwrap()],
+            );
+            assert_eq!(file["node"]["kind"], "file");
+        }
+        assert!(!view.to_string().contains("BODY_SENTINEL"));
+    }
+}
+
+#[test]
+fn route_handler_matches_keep_ambiguity_and_do_not_resolve_other_files() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "app.ts", "class A { run() {} }\nclass B { run() {} }\napp.get('/ambiguous', run);\napp.get('/external', external);\napp.get('/inline', () => 'PRIVATE_BODY');\n");
+    put(
+        root,
+        "other.ts",
+        "function external() {}\nfunction run() {}\n",
+    );
+    let view = ok(root, &["project", "routes", "app.ts"]);
+    let items = view["items"].as_array().unwrap();
+    let by_url = |url| items.iter().find(|r| r["url"] == url).unwrap();
+    assert_eq!(by_url("/ambiguous")["handler"]["status"], "ambiguous");
+    assert_eq!(by_url("/ambiguous")["handler"]["candidate_count"], 2);
+    assert_eq!(by_url("/external")["handler"]["status"], "unresolved");
+    assert_eq!(by_url("/inline")["handler"]["status"], "unnamed");
+    let candidates: Vec<_> = items
+        .iter()
+        .filter(|r| r["kind"] == "route-handler")
+        .collect();
+    assert_eq!(candidates.len(), 2);
+    assert!(candidates
+        .iter()
+        .all(|r| r["handler"]["path"] == "app.ts" && r["status"] == "candidate"));
+    assert!(!view.to_string().contains("PRIVATE_BODY"));
+}
+
+#[test]
+fn route_pages_bind_scope_revision_and_query_and_page_handler_candidates_separately() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "src/app.ts",
+        "function getPets() {}\napp.get('/pets', getPets);\napp.post('/pets', getPets);\n",
+    );
+    let full = ok(root, &["project", "routes", "--limit", "500"]);
+    let first = ok(root, &["project", "routes", "--limit", "1"]);
+    assert_eq!(first["items"].as_array().unwrap().len(), 1);
+    assert_eq!(first["page"]["total"], 4);
+    let cursor = first["page"]["next"].as_str().unwrap();
+    let mut current = first.clone();
+    let mut collected = Vec::new();
+    loop {
+        collected.extend(current["items"].as_array().unwrap().clone());
+        let Some(next) = current["page"]["next"].as_str() else {
+            break;
+        };
+        current = ok(
+            root,
+            &["project", "routes", "--cursor", next, "--limit", "2"],
+        );
+    }
+    assert_eq!(collected, *full["items"].as_array().unwrap());
+    assert!(!run(root, &["project", "routes", "src", "--cursor", cursor]).0);
+    assert!(!run(root, &["project", "implementations", "--cursor", cursor]).0);
+    for limit in ["0", "501"] {
+        assert!(!run(root, &["project", "routes", "--limit", limit]).0);
+    }
+    let file = relation_handle(root, "app.ts", None);
+    let id = file.rsplit(':').next().unwrap();
+    let file_view = ok(root, &["project", "routes", &file]);
+    assert_eq!(
+        file_view,
+        ok(
+            root,
+            &[
+                "project",
+                "routes",
+                id,
+                "--revision",
+                full["revision"].as_str().unwrap()
+            ]
+        )
+    );
+    assert_eq!(file_view, ok(root, &["project", "routes", "src/app.ts"]));
+    let handler = relation_handle(root, "getPets", None);
+    assert!(!run(root, &["project", "routes", &handler]).0);
+    put(
+        root,
+        "src/app.ts",
+        "function getPets() {}\napp.get('/changed', getPets);\n",
+    );
+    assert!(!run(root, &["project", "routes", "--cursor", cursor]).0);
+    assert!(!run(root, &["project", "routes", &file]).0);
+    assert!(!root.join(".fr-history").exists());
+}
+
+#[test]
+fn route_coverage_reports_broken_and_unsupported_files_and_limits_framework_claims() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "broken.ts",
+        "app.get('/partial', handler);\nfunction broken( {\n",
+    );
+    put(root, "app.zig", "pub fn main() void {}\n");
+    put(
+        root,
+        "app/api/pets/route.ts",
+        "export async function GET() { return Response.json([]); }\n",
+    );
+    put(root, "fast.py", "from fastapi import FastAPI\napp = FastAPI()\n@app.get('/pets')\ndef pets():\n    return []\n");
+    let view = ok(root, &["project", "routes"]);
+    assert_eq!(view["analysis"]["syntax_gaps"], 1);
+    assert_eq!(view["analysis"]["unsupported_files"]["zig"], 1);
+    assert_eq!(view["analysis"]["files_without_patterns"], 1);
+    let items = view["items"].as_array().unwrap();
+    assert!(items
+        .iter()
+        .any(|r| r["kind"] == "analysis-gap" && r["path"] == "broken.ts"));
+    assert!(items
+        .iter()
+        .any(|r| r["kind"] == "coverage-gap" && r["language"] == "zig"));
+    assert!(!items.iter().any(|r| r["url"] == "/partial"));
+    let candidate = items.iter().find(|r| r["kind"] == "route").unwrap();
+    assert_eq!(candidate["framework_candidate"], "flask");
+    assert_eq!(candidate["status"], "candidate");
+    assert!(view["analysis"]["certainty"]
+        .as_str()
+        .unwrap()
+        .contains("does not verify framework identity"));
+    let subset = ok(root, &["project", "routes", "app"]);
+    assert_eq!(subset["page"]["total"], 0);
+    assert_eq!(subset["analysis"]["analyzed_files"], 1);
+    assert_eq!(subset["analysis"]["syntax_gaps"], 0);
+    assert_eq!(
+        subset["analysis"]["unsupported_files"],
+        serde_json::json!({})
+    );
+}
+
+#[test]
+fn route_fields_clip_unicode_without_losing_handler_handles() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let name = "long_".repeat(100);
+    let url = format!("/{}", "名".repeat(300));
+    put(
+        root,
+        "app.ts",
+        &format!("function {name}() {{ return 'HIDDEN_BODY'; }}\napp.get('{url}', {name});\n"),
+    );
+    let view = ok(root, &["project", "routes"]);
+    let items = view["items"].as_array().unwrap();
+    let route = items.iter().find(|r| r["kind"] == "route").unwrap();
+    assert_eq!(route["url"]["text"].as_str().unwrap().len(), 511);
+    assert_eq!(route["url"]["omitted_bytes"], 390);
+    assert_eq!(route["handler"]["name"]["omitted_bytes"], 340);
+    assert_eq!(route["handler"]["candidate_count"], 1);
+    let candidate = items.iter().find(|r| r["kind"] == "route-handler").unwrap();
+    assert!(ok(
+        root,
+        &[
+            "project",
+            "show",
+            candidate["handler"]["handle"].as_str().unwrap()
+        ]
+    )["node"]["name"]
+        .is_object());
+    assert!(!view.to_string().contains("HIDDEN_BODY"));
+}
+
+#[test]
+fn route_analysis_uses_captured_source_and_final_verification_refuses_drift() {
+    use fun_refactor::{
+        index::Index,
+        project::Project,
+        scan::{scan, ScanOptions},
+    };
+    #[derive(clap::Parser)]
+    struct Query {
+        #[command(subcommand)]
+        command: fun_refactor::project::Command,
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    put(
+        &root,
+        "app.ts",
+        "function pets() {}\napp.get('/before', pets);\n",
+    );
+    let options = ScanOptions::default();
+    let scanned = scan(&root, &options).unwrap();
+    let index = Index::build_with_cache(&scanned, None).unwrap();
+    let project = Project::new(&root, &index, &scanned, &options).unwrap();
+    put(
+        &root,
+        "app.ts",
+        "function pets() {}\napp.get('/after', pets);\n",
+    );
+    let query = <Query as clap::Parser>::parse_from(["fr", "routes"]);
+    let view = project.report(&query.command).unwrap();
+    assert!(view["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["url"] == "/before"));
+    assert!(!view.to_string().contains("/after"));
+    assert!(project.verify(&root).is_err());
+}

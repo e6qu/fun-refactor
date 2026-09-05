@@ -14,6 +14,7 @@ use std::path::{Path, PathBuf};
 mod links;
 mod manifests;
 mod relationships;
+mod routes;
 
 #[derive(Subcommand)]
 pub enum Command {
@@ -53,6 +54,8 @@ pub enum Command {
     },
     #[command(about = "Page through implementation candidates for selected declarations.")]
     Implementations(RelationshipOptions),
+    #[command(about = "Page through route declaration patterns and local handler candidates.")]
+    Routes(RelationshipOptions),
     #[command(about = "Page through Cargo and npm package manifest boundaries.")]
     Packages {
         #[arg(long, default_value_t = 40)]
@@ -852,6 +855,7 @@ impl<'a> Project<'a> {
                 direction,
             } => self.calls(selection, *direction),
             Command::Implementations(selection) => self.implementations(selection),
+            Command::Routes(selection) => self.routes(selection),
             Command::Packages { limit, cursor } => self.packages(*limit, cursor.as_deref()),
             Command::Dependencies {
                 manifest,

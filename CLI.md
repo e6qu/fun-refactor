@@ -515,6 +515,8 @@ fr project calls src --direction outgoing --limit 40
 fr project calls '<HANDLE>' --direction incoming
 fr project calls --cursor '<NEXT>'
 fr project implementations '<ID>' --revision '<REVISION>'
+fr project routes src --limit 40
+fr project routes '<FILE_HANDLE>' --cursor '<NEXT>'
 fr project packages --limit 40
 fr project dependencies --manifest Cargo.toml --limit 40
 fr project dependencies --cursor '<NEXT>'
@@ -600,6 +602,29 @@ These queries build the workspace hierarchy, and `calls` also builds its call gr
 Page limits bound output, not analysis work. Relationships themselves are not formally verified.
 Cursors bind the selection, direction, revision and resulting rows; the page size may change.
 The final source and inventory checks also apply before emitting a relationship page.
+
+`routes` pages route declaration patterns in a directory or file, including a file handle or short ID with `--revision`.
+It defaults to the workspace root and 40 rows; limits accept 1 through 500.
+Symbol handles require selecting their containing file instead.
+Each `route` row carries a method, normalized URL, declaration line, file handle and `framework_candidate`.
+The readers recognize Express, Flask, Axum, Gin and Spring patterns. They do not verify framework identity or runtime reachability.
+A Flask-style decorator in FastAPI code can therefore produce a `flask` candidate.
+Methods and URLs describe the reader's interpretation, with `status: candidate` and null confidence.
+
+The handler summary preserves the reader's name and counts callable declarations with that name in the same file.
+Its status is `unnamed`, `unresolved`, `candidate` or `ambiguous`.
+Separate `route-handler` rows carry candidate handles with `confidence: name-only` and `basis: same-file-name`.
+The route row's `id` joins these rows within the revision; it is not a handle for `show`.
+Candidate rows can appear on another page. No handler body or unbounded candidate array accompanies a route.
+URLs and paths cap at 512 UTF-8 bytes; handler names cap at 160, with explicit omitted-byte counts.
+
+Route analysis reads captured source only within selected files, after workspace indexing.
+Syntax errors produce `analysis-gap` rows instead of route guesses from the broken file.
+Unsupported languages produce count-based `coverage-gap` rows. Both diagnostics share the page limit.
+`analysis` reports selected-file totals, files without patterns, reader names and interpretation limits.
+The view has no Next.js or FastAPI-specific reader, request/response schemas, middleware, mounted-router prefixes or cross-file handler resolution.
+An empty page does not prove the absence of routes. Route and handler inference remain outside the Lean paging proofs.
+Revision checks and query-bound cursors apply, including final source and inventory verification.
 
 `packages` pages discovered `Cargo.toml` and `package.json` manifests.
 Each row reports the manifest path, its directory root, ecosystem, declared name/version and declaration count.

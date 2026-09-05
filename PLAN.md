@@ -195,9 +195,22 @@ The existing Lean page-length laws apply. Call resolution, hierarchy inference a
 The 40 project CLI tests pass, including relationship preservation, scope, pagination, coverage and stale-handle checks.
 Validation passes the full native/WASM gate and strict Lean verification, with all five source anchors fresh.
 
+M2b5 is complete. It adds bounded route declarations:
+
+- Paged `project routes` for selected directories and files, using captured source.
+- Express, Flask, Axum, Gin and Spring declaration patterns with explicit framework uncertainty.
+- Separate paged handler candidates preserve same-file name ambiguity and provide inspection handles.
+- Bounded URLs and names, syntax and language gaps, shared revision checks and query-bound cursors.
+
+This view reports pattern candidates. It does not establish framework identity or runtime reachability.
+Request/response contracts, Next.js and FastAPI-specific inspection, mounted routers and cross-file handlers remain pending.
+The shared Lean page-length laws apply; route extraction and handler matching remain outside those proofs.
+Validation passes the full native/WASM gate, all 46 project CLI tests and strict Lean verification with five fresh source anchors.
+
 Next M2b work:
 
-- Connect route contracts, configuration use and relevant tests to bounded project inspection.
+- Expose bounded configuration-to-code chains using captured source, explicit read gaps and separate consumer rows.
+- Extend route declarations into request/response contracts and connect relevant tests to bounded inspection.
 - Extend workspace rules beyond the observed Cargo subset and formalize membership closure.
 - Evaluate bounded inspection tasks on unfamiliar repositories with an agent, a pinned tokenizer and correctness checks.
 - Measure model tokens and task success against file reading, including additional calls and uncertainty.
