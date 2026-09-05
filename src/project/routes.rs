@@ -7,11 +7,11 @@ use serde_json::{json, Value};
 use std::collections::BTreeMap;
 
 impl Project<'_> {
-    pub(super) fn routes(&self, options: &RelationshipOptions) -> Result<Value> {
+    pub(super) fn routes(&self, options: &RelationshipOptions, contracts: bool) -> Result<Value> {
         let selected = self.relationship_selection(options)?;
         ensure!(
             self.nodes[selected].symbol.is_none(),
-            "Routes requires a file or directory. Inspect the returned handler candidate handles with project show."
+            "Route inspection requires a file or directory. Inspect handler candidate handles with project show."
         );
         let mut rows = Vec::new();
         let mut unsupported = BTreeMap::new();
@@ -20,6 +20,8 @@ impl Project<'_> {
         let mut syntax_gaps = 0usize;
         let mut declarations = 0usize;
         let mut handlers = 0usize;
+        let mut contract_fields = 0usize;
+        let mut contract_gaps = 0usize;
         let parsers = Parsers::new();
         for (file, info) in self.index.files() {
             if !self.scope_file(selected, file) {
@@ -88,6 +90,19 @@ impl Project<'_> {
                     "handler": {"name": endpoint.handler.as_deref().map(|name| bounded_text(name, 160)),
                         "candidate_count": candidates.len(), "basis": "same-file-name",
                         "status": if endpoint.handler.is_none() { "unnamed" } else if candidates.is_empty() { "unresolved" } else if candidates.len() == 1 { "candidate" } else { "ambiguous" }}}));
+                if contracts {
+                    let details =
+                        self.contract_rows(&id, endpoint, &candidates, &parsed, source)?;
+                    contract_fields += details
+                        .iter()
+                        .filter(|r| r["kind"] == "route-contract-field")
+                        .count();
+                    contract_gaps += details
+                        .iter()
+                        .filter(|r| r["kind"] == "route-contract-gap")
+                        .count();
+                    rows.extend(details);
+                }
                 for candidate in candidates {
                     rows.push(json!({"kind": "route-handler", "route": id,
                         "handler": self.endpoint(candidate.id)?, "status": "candidate",
@@ -101,14 +116,25 @@ impl Project<'_> {
                 "reason": "no route pattern reader for this language."}),
             );
         }
-        let analysis = json!({"scope": "selected files", "analyzed_files": analyzed,
+        let mut analysis = json!({"scope": "selected files", "analyzed_files": analyzed,
             "files_without_patterns": empty, "syntax_gaps": syntax_gaps,
             "unsupported_files": unsupported, "declarations": declarations, "handler_candidates": handlers,
             "readers": ["express", "flask", "axum", "gin", "spring"],
             "certainty": "Declaration patterns and local handler-name candidates; the reader does not verify framework identity or runtime reachability.",
             "limitations": "No Next.js or FastAPI-specific reader, request/response schemas, middleware, mounted-router prefixes or cross-file handler resolution. Empty results do not prove absence of routes."});
-        let mut result =
-            self.relationship_page("routes", selected, options, None, rows, analysis)?;
+        if contracts {
+            analysis["contract_fields"] = json!(contract_fields);
+            analysis["contract_gaps"] = json!(contract_gaps);
+            analysis["contract_readers"] = json!([
+                "literal-path-segments",
+                "axum-extractor-types",
+                "spring-parameter-annotations",
+                "declared-return-types"
+            ]);
+            analysis["limitations"] = json!("Partial signature evidence only. No type or import resolution, schema expansion, body analysis, runtime validation, response status or media-type inference. Names can match unrelated types or annotations. Other route-reader limits still apply: no Next.js or FastAPI-specific reader, middleware, mounted-router prefixes or cross-file handler resolution.");
+        }
+        let query = if contracts { "contracts" } else { "routes" };
+        let mut result = self.relationship_page(query, selected, options, None, rows, analysis)?;
         result["scope"] = json!("Route declarations, local handler candidates and diagnostics in selected files. Route IDs join rows within this revision.");
         Ok(result)
     }

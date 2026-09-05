@@ -2105,6 +2105,352 @@ fn route_analysis_uses_captured_source_and_final_verification_refuses_drift() {
     assert!(project.verify(&root).is_err());
 }
 
+#[test]
+fn contracts_preserve_axum_extractor_types_and_declared_responses() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "app.rs", "async fn create(Path(id): Path<u64>, Query(filter): axum::extract::Query<Filter>, Json(body): Json<Create>, state: State<App>, optional: Option<Json<Other>>) -> Result<Json<Pet>, StatusCode> { todo!(\"PRIVATE_BODY\") }\nfn router() { Router::new().route(\"/pets/{id}\", post(create)); }\n");
+    let view = ok(root, &["project", "contracts", "app.rs", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    let summary = items
+        .iter()
+        .find(|r| r["kind"] == "route-contract")
+        .unwrap();
+    assert_eq!(summary["request_fields"], 4, "{view}");
+    assert_eq!(summary["response_fields"], 1);
+    assert_eq!(summary["gap_count"], 1);
+    assert_eq!(summary["completeness"], "partial");
+    let inputs: Vec<_> = items
+        .iter()
+        .filter(|r| r["basis"] == "axum-extractor-type")
+        .collect();
+    for (location, ty, inner) in [
+        ("path", "Path<u64>", "u64"),
+        ("query", "axum::extract::Query<Filter>", "Filter"),
+        ("body", "Json<Create>", "Create"),
+    ] {
+        let input = inputs.iter().find(|r| r["location"] == location).unwrap();
+        assert_eq!(input["declared_type"], ty);
+        assert_eq!(input["payload_type"], inner);
+        assert_eq!(input["confidence"], "name-only");
+        assert!(input["required"].is_null());
+        assert!(input["name"].is_null());
+        assert_eq!(
+            ok(
+                root,
+                &[
+                    "project",
+                    "show",
+                    input["handler"]["handle"].as_str().unwrap()
+                ]
+            )["node"]["name"],
+            "create"
+        );
+    }
+    let response = items.iter().find(|r| r["direction"] == "response").unwrap();
+    assert_eq!(response["declared_type"], "Result<Json<Pet>, StatusCode>");
+    assert!(response["confidence"].is_null());
+    assert_eq!(
+        items
+            .iter()
+            .find(|r| r["kind"] == "route-contract-gap")
+            .unwrap()["parameters"],
+        2
+    );
+    assert!(!view.to_string().contains("PRIVATE_BODY"));
+    let routes = ok(root, &["project", "routes", "app.rs", "--limit", "500"]);
+    let old_rows: Vec<_> = items
+        .iter()
+        .filter(|r| r["kind"] == "route" || r["kind"] == "route-handler")
+        .cloned()
+        .collect();
+    assert_eq!(old_rows, *routes["items"].as_array().unwrap());
+}
+
+#[test]
+fn contracts_read_spring_binding_annotations_without_defaults_or_body_values() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root,"App.java","class App {\n@PostMapping(\"/pets/{id}\")\nPet create(@PathVariable(\"id\") long key,@RequestParam(name=\"q\",required=false,defaultValue=\"PRIVATE_DEFAULT\") String query,@RequestBody Create body,@RequestHeader(\"X-Trace\") String trace,@CookieValue(value=\"session\") String token,@Other String ignored) { throw new RuntimeException(\"PRIVATE_BODY\"); }\n}\n");
+    let view = ok(root, &["project", "contracts", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    let inputs: Vec<_> = items
+        .iter()
+        .filter(|r| r["basis"] == "spring-parameter-annotation")
+        .collect();
+    assert_eq!(inputs.len(), 5, "{view}");
+    for (location, name, binding, ty) in [
+        ("path", Some("id"), "key", "long"),
+        ("query", Some("q"), "query", "String"),
+        ("body", None, "body", "Create"),
+        ("header", Some("X-Trace"), "trace", "String"),
+        ("cookie", Some("session"), "token", "String"),
+    ] {
+        let input = inputs.iter().find(|r| r["location"] == location).unwrap();
+        assert_eq!(input["name"].as_str(), name);
+        assert_eq!(input["binding"], binding);
+        assert_eq!(input["declared_type"], ty);
+        assert!(input["required"].is_null());
+    }
+    assert_eq!(
+        items.iter().find(|r| r["direction"] == "response").unwrap()["declared_type"],
+        "Pet"
+    );
+    assert!(!view.to_string().contains("PRIVATE_"));
+}
+
+#[test]
+fn contracts_keep_handler_ambiguity_and_report_unreadable_or_missing_signatures() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "App.java", "class A { @GetMapping(\"/a\") String run(@RequestParam String q) { return \"PRIVATE_A\"; } }\nclass B { Integer run(@RequestBody Input body) { return 1; } }\n");
+    put(root, "app.ts", "function typed(req: Request): Promise<Response> { throw 'PRIVATE_TS'; }\nconst arrow = (req: Request): Response => { throw 'PRIVATE_ARROW'; };\napp.get('/typed', typed);\napp.get('/arrow', arrow);\napp.get('/inline', () => 'PRIVATE_INLINE');\napp.get('/external', external);\n");
+    put(
+        root,
+        "other.ts",
+        "function external(): Secret { throw 'PRIVATE_EXTERNAL'; }\n",
+    );
+    put(root, "app.py", "@app.get('/typed/{id}')\ndef typed(id: int) -> Pet:\n    return 'PRIVATE_PY'\n\n@app.get('/unknown')\ndef unknown():\n    return 'PRIVATE_UNKNOWN'\n");
+    let java = ok(
+        root,
+        &["project", "contracts", "App.java", "--limit", "500"],
+    );
+    let items = java["items"].as_array().unwrap();
+    assert_eq!(
+        items.iter().find(|r| r["kind"] == "route").unwrap()["handler"]["status"],
+        "ambiguous"
+    );
+    let responses: Vec<_> = items
+        .iter()
+        .filter(|r| r["direction"] == "response")
+        .collect();
+    assert_eq!(responses.len(), 2);
+    assert_ne!(
+        responses[0]["handler"]["handle"],
+        responses[1]["handler"]["handle"]
+    );
+    let ts = ok(root, &["project", "contracts", "app.ts", "--limit", "500"]);
+    let types: Vec<_> = ts["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|r| r["direction"] == "response")
+        .map(|r| &r["declared_type"])
+        .collect();
+    assert_eq!(types, vec![&Value::String("Promise<Response>".into())]);
+    assert!(ts["analysis"]["contract_gaps"].as_u64().unwrap() >= 3);
+    let py = ok(root, &["project", "contracts", "app.py", "--limit", "500"]);
+    assert!(py["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["declared_type"] == "Pet"));
+    assert!(py["items"].as_array().unwrap().iter().any(|r| r["reason"]
+        .as_str()
+        .is_some_and(|s| s.starts_with("No explicit return type"))));
+    for view in [java, ts, py] {
+        assert!(!view.to_string().contains("PRIVATE_"));
+    }
+}
+
+#[test]
+fn contract_pages_bind_queries_scope_and_revision_and_page_fields_separately() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "src/app.rs", "fn get(Path(id): Path<u64>) -> Json<Pet> { todo!() }\nfn router() { Router::new().route(\"/pets/{id}\", get(get)); }\n");
+    let full = ok(root, &["project", "contracts", "--limit", "500"]);
+    let first = ok(root, &["project", "contracts", "--limit", "1"]);
+    assert_eq!(first["items"].as_array().unwrap().len(), 1);
+    assert_eq!(full["page"]["total"], 6);
+    let cursor = first["page"]["next"].as_str().unwrap();
+    let mut combined = first["items"].as_array().unwrap().clone();
+    let mut page = first.clone();
+    while let Some(next) = page["page"]["next"].as_str() {
+        page = ok(
+            root,
+            &["project", "contracts", "--cursor", next, "--limit", "2"],
+        );
+        combined.extend(page["items"].as_array().unwrap().iter().cloned());
+    }
+    assert_eq!(combined, *full["items"].as_array().unwrap());
+    assert!(!run(root, &["project", "routes", "--cursor", cursor]).0);
+    assert!(!run(root, &["project", "contracts", "src", "--cursor", cursor]).0);
+    let route = full["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["kind"] == "route")
+        .unwrap();
+    let file = route["file_handle"].as_str().unwrap();
+    let by_file = ok(root, &["project", "contracts", file]);
+    assert_eq!(by_file, ok(root, &["project", "contracts", "src/app.rs"]));
+    assert_eq!(
+        by_file,
+        ok(
+            root,
+            &[
+                "project",
+                "contracts",
+                file.rsplit(':').next().unwrap(),
+                "--revision",
+                full["revision"].as_str().unwrap()
+            ]
+        )
+    );
+    let handler = full["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["kind"] == "route-handler")
+        .unwrap()["handler"]["handle"]
+        .as_str()
+        .unwrap();
+    assert!(!run(root, &["project", "contracts", handler]).0);
+    for limit in ["0", "501"] {
+        assert!(!run(root, &["project", "contracts", "--limit", limit]).0);
+    }
+    put(root, "src/new.rs", "fn new() {}\n");
+    assert!(!run(root, &["project", "contracts", "--cursor", cursor]).0);
+    assert!(!run(root, &["project", "contracts", file]).0);
+    assert!(!root.join(".fr-history").exists());
+}
+
+#[test]
+fn contracts_bound_unicode_types_names_and_report_syntax_and_language_gaps() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let long = "名".repeat(220);
+    let ty = "Type".repeat(170);
+    put(root, "App.java", &format!("class App {{ @GetMapping(\"/pets/{{{long}}}\") {ty} get(@RequestParam(\"{long}\") String q) {{ throw new RuntimeException(\"PRIVATE_BODY\"); }} }}\n"));
+    put(root, "broken.py", "@app.get('/broken')\ndef broken(:\n");
+    put(root, "script.sh", "echo PRIVATE_SHELL\n");
+    let view = ok(root, &["project", "contracts", "--limit", "500"]);
+    assert_eq!(view["analysis"]["syntax_gaps"], 1);
+    assert_eq!(view["analysis"]["unsupported_files"]["bash"], 1);
+    let items = view["items"].as_array().unwrap();
+    let response = items.iter().find(|r| r["direction"] == "response").unwrap();
+    assert_eq!(
+        response["declared_type"]["text"].as_str().unwrap().len(),
+        512
+    );
+    assert_eq!(response["declared_type"]["omitted_bytes"], ty.len() - 512);
+    let named = items
+        .iter()
+        .find(|r| r["basis"] == "literal-path-segment")
+        .unwrap();
+    assert_eq!(named["name"]["text"].as_str().unwrap().len(), 159);
+    assert_eq!(named["name"]["omitted_bytes"], long.len() - 159);
+    assert!(items.iter().any(|r| r["kind"] == "analysis-gap"));
+    assert!(items.iter().any(|r| r["kind"] == "coverage-gap"));
+    assert!(!view.to_string().contains("PRIVATE_"));
+}
+
+#[test]
+fn contract_analysis_uses_captured_types_and_final_verification_refuses_drift() {
+    use fun_refactor::{
+        index::Index,
+        project::Project,
+        scan::{scan, ScanOptions},
+    };
+    #[derive(clap::Parser)]
+    struct Query {
+        #[command(subcommand)]
+        command: fun_refactor::project::Command,
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    put(&root, "app.rs", "fn get(Json(body): Json<Before>) -> Json<Before> { todo!() }\nfn router() { Router::new().route(\"/pets\", get(get)); }\n");
+    let options = ScanOptions::default();
+    let scanned = scan(&root, &options).unwrap();
+    let index = Index::build_with_cache(&scanned, None).unwrap();
+    let project = Project::new(&root, &index, &scanned, &options).unwrap();
+    fs::remove_file(root.join("app.rs")).unwrap();
+    let query = <Query as clap::Parser>::parse_from(["fr", "contracts"]);
+    let view = project.report(&query.command).unwrap();
+    let items = view["items"].as_array().unwrap();
+    assert!(items.iter().any(|r| r["payload_type"] == "Before"));
+    assert!(items
+        .iter()
+        .any(|r| r["declared_type"] == "Json<Before>" && r["direction"] == "response"));
+    assert!(project.verify(&root).is_err());
+}
+
+#[test]
+fn contracts_leave_dynamic_names_and_complex_paths_unknown_and_preserve_type_spellings() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "App.java", "class App {\n@GetMapping(\"/{id}/{id}/{id:[0-9]+}/{bad-name}\")\nvoid get(@org.springframework.web.bind.annotation.RequestParam(name=KEY) String q,@RequestHeader(name=\"one\",value=\"two\") String conflict,@RequestParam(\"\") String empty,@RequestBody @RequestParam String multiple) {}\n}\n");
+    put(root, "app.rs", "fn create(body: axum::Json<Vec<Pet>>, form: Form<Input>, custom: MyJson<Secret>) -> impl IntoResponse { todo!() }\nfn router() { Router::new().route(\"/pets\", post(create)); }\n");
+    put(root, "app.go", "package main\nfunc get(c *gin.Context) {}\nfunc routes(r *gin.Engine) { r.GET(\"/pets/:id\", get) }\n");
+    let java = ok(
+        root,
+        &["project", "contracts", "App.java", "--limit", "500"],
+    );
+    let items = java["items"].as_array().unwrap();
+    let paths: Vec<_> = items
+        .iter()
+        .filter(|r| r["basis"] == "literal-path-segment" && r["kind"] == "route-contract-field")
+        .collect();
+    assert_eq!(paths.len(), 1);
+    assert_eq!(paths[0]["name"], "id");
+    assert!(items
+        .iter()
+        .any(|r| r["basis"] == "literal-path-segment" && r["segments"] == 2));
+    let inputs: Vec<_> = items
+        .iter()
+        .filter(|r| r["basis"] == "spring-parameter-annotation")
+        .collect();
+    assert_eq!(inputs.len(), 3, "{java}");
+    assert!(inputs.iter().all(|r| r["name"].is_null()));
+    assert!(items
+        .iter()
+        .any(|r| r["kind"] == "route-contract-gap" && r["parameters"] == 1));
+    let rust = ok(root, &["project", "contracts", "app.rs", "--limit", "500"]);
+    let items = rust["items"].as_array().unwrap();
+    assert!(items
+        .iter()
+        .any(|r| r["payload_type"] == "Vec<Pet>" && r["declared_type"] == "axum::Json<Vec<Pet>>"));
+    assert!(items
+        .iter()
+        .any(|r| r["payload_type"] == "Input" && r["declared_type"] == "Form<Input>"));
+    assert!(items
+        .iter()
+        .any(|r| r["declared_type"] == "impl IntoResponse" && r["direction"] == "response"));
+    assert!(!rust.to_string().contains("Secret"));
+    let go = ok(root, &["project", "contracts", "app.go", "--limit", "500"]);
+    let summary = go["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["kind"] == "route-contract")
+        .unwrap();
+    assert_eq!(summary["request_fields"], 1);
+    assert_eq!(summary["response_fields"], 0);
+    assert_eq!(summary["gap_count"], 2);
+}
+
+#[test]
+fn contracts_preserve_absolute_rust_types_and_java_array_dimensions() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "app.rs", "fn get() -> ::std::string::String { todo!() }\nfn router() { Router::new().route(\"/pets\", get(get)); }\n");
+    put(root, "App.java", "class App {\n@GetMapping(\"/pets\")\nPet[] get(@RequestParam String names[][])[] { return null; }\n}\n");
+    let rust = ok(root, &["project", "contracts", "app.rs"]);
+    assert!(rust["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["direction"] == "response" && r["declared_type"] == "::std::string::String"));
+    let java = ok(root, &["project", "contracts", "App.java"]);
+    let items = java["items"].as_array().unwrap();
+    assert!(items
+        .iter()
+        .any(|r| r["direction"] == "response" && r["declared_type"] == "Pet[][]"));
+    assert!(items
+        .iter()
+        .any(|r| r["direction"] == "request" && r["declared_type"] == "String[][]"));
+}
+
 fn configuration_fixture() -> tempfile::TempDir {
     let dir = tempfile::tempdir().unwrap();
     put(dir.path(), "deploy/compose.yaml", "services:\n  app:\n    environment:\n      APP_MODE: PRIVATE_LITERAL_VALUE\n      ORPHAN: PRIVATE_ORPHAN_VALUE\n");

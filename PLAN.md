@@ -203,7 +203,7 @@ M2b5 is complete. It adds bounded route declarations:
 - Bounded URLs and names, syntax and language gaps, shared revision checks and query-bound cursors.
 
 This view reports pattern candidates. It does not establish framework identity or runtime reachability.
-Request/response contracts, Next.js and FastAPI-specific inspection, mounted routers and cross-file handlers remain pending.
+Next.js and FastAPI-specific inspection, mounted routers and cross-file handlers remain pending. M2b8 adds partial request/response evidence.
 The shared Lean page-length laws apply; route extraction and handler matching remain outside those proofs.
 Validation passes the full native/WASM gate, all 46 project CLI tests and strict Lean verification with five fresh source anchors.
 
@@ -236,9 +236,22 @@ Output and witness depth are bounded; workspace analysis cost, catalog accuracy 
 Validation passes the full native/WASM gate, 58 project CLI tests and two captured-source catalog tests.
 Strict Lean verification passes with all six source anchors fresh.
 
+M2b8 is complete. It adds partial route request/response contracts:
+
+- Paged `project contracts` shares route IDs and handler handles with the declaration view.
+- Separate path parameter, Axum extractor, Spring binding and declared return-type rows preserve evidence and ambiguity.
+- Captured-source signature inspection omits handler bodies and parameter defaults, with bounded names and type spellings.
+- Explicit gaps cover unsupported parameters, absent return annotations, complex path markers and unresolved handler signatures.
+
+Every contract remains partial. Declared types do not establish serialization, runtime validation, status codes or media types.
+The shared Lean page-length laws apply; signature extraction and wire correspondence remain outside those proofs.
+Schema expansion, type/import resolution and Next.js/FastAPI-specific contract readers remain pending.
+Validation passes the full native/WASM gate and all 66 project CLI tests, including eight new contract regressions.
+Strict Lean verification passes with all six source anchors fresh.
+
 Next M2b work:
 
-- Extend route declarations into request/response contracts.
+- Extend contract readers to Next.js/FastAPI and declared schema fields, preserving ambiguous type references.
 - Extend workspace rules beyond the observed Cargo subset and formalize membership closure.
 - Evaluate bounded inspection tasks on unfamiliar repositories with an agent, a pinned tokenizer and correctness checks.
 - Measure model tokens and task success against file reading, including additional calls and uncertainty.

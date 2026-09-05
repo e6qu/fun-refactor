@@ -517,6 +517,8 @@ fr project calls --cursor '<NEXT>'
 fr project implementations '<ID>' --revision '<REVISION>'
 fr project routes src --limit 40
 fr project routes '<FILE_HANDLE>' --cursor '<NEXT>'
+fr project contracts src --limit 40
+fr project contracts '<FILE_HANDLE>' --cursor '<NEXT>'
 fr project configuration deploy --limit 40
 fr project configuration src/settings.py
 fr project configuration --cursor '<NEXT>'
@@ -631,6 +633,36 @@ Unsupported languages produce count-based `coverage-gap` rows. Both diagnostics 
 The view has no Next.js or FastAPI-specific reader, request/response schemas, middleware, mounted-router prefixes or cross-file handler resolution.
 An empty page does not prove the absence of routes. Route and handler inference remain outside the Lean paging proofs.
 Revision checks and query-bound cursors apply, including final source and inventory verification.
+
+`contracts` extends the route view with partial request and response evidence from captured source.
+It accepts the same directory/file scopes, handles, revision checks and page limits as `routes`.
+Route IDs and handler candidate handles agree across both views; their cursors belong to separate queries.
+Each `route-contract` summary counts request fields, response fields, handler candidates and contract gaps.
+Every summary has `status: candidate`, `completeness: partial` and null confidence, even when its gap count is zero.
+
+Separate `route-contract-field` rows carry the route ID, candidate handler, direction, location, line and evidence basis.
+Simple whole-segment `{name}` URL markers supply path names, with no handler or inferred type.
+Path names repeat only once per route. Complex markers produce a gap row.
+Axum-style `Path<T>`, `Query<T>`, `Json<T>` and `Form<T>` parameters expose their declared type and payload type spelling.
+Qualified extractor names also match. Aliases, optional wrappers and custom extractors remain unknown.
+Spring-style `PathVariable`, `RequestParam`, `RequestBody`, `RequestHeader` and `CookieValue` annotations supply candidate request locations.
+Literal annotation names and parameter bindings remain separate; dynamic, escaped, empty or conflicting explicit names stay null.
+Without an explicit annotation name, the parameter binding supplies a candidate name.
+Requiredness stays null. Defaults and annotation values other than binding names stay outside the output.
+Extractor and annotation matches carry name-only confidence; the reader does not resolve their imports or types.
+
+Declared handler return types produce response fields with null confidence.
+Java array dimensions after a name join the type spelling; Rust absolute type qualifiers remain intact.
+Return types can describe wrappers, context values or implementation types; they do not establish the HTTP payload, status or media type.
+Unsupported parameters and absent return annotations produce `route-contract-gap` rows.
+Missing, inline and unsupported handler declarations also produce gaps. Ambiguous handlers retain separate fields and handles.
+Names and bindings cap at 160 UTF-8 bytes; type spellings cap at 512, with omitted-byte counts.
+Fields, summaries, gaps, route declarations and handlers all share the page limit.
+
+This view reads signatures without analyzing handler bodies or expanding schema definitions.
+The existing route-reader limitations still apply, including Next.js/FastAPI coverage, mounted routers and framework uncertainty.
+Output limits do not bound workspace indexing or selected-file analysis work.
+The Lean page-length laws apply; contract extraction, wire correspondence and type resolution remain outside those proofs.
 
 `configuration` pages environment declarations and candidate consumers across indexed files.
 It accepts a directory, file, file handle or short ID with `--revision`; symbol handles require selecting their containing file.

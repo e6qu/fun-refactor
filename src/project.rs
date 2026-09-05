@@ -12,6 +12,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 mod configuration;
+mod contracts;
 mod links;
 mod manifests;
 mod relationships;
@@ -58,6 +59,8 @@ pub enum Command {
     Implementations(RelationshipOptions),
     #[command(about = "Page through route declaration patterns and local handler candidates.")]
     Routes(RelationshipOptions),
+    #[command(about = "Page through partial route request and response contract candidates.")]
+    Contracts(RelationshipOptions),
     #[command(about = "Page through environment declarations and candidate code consumers.")]
     Configuration(RelationshipOptions),
     #[command(about = "Page through test candidates and call-path witnesses.")]
@@ -874,7 +877,8 @@ impl<'a> Project<'a> {
                 direction,
             } => self.calls(selection, *direction),
             Command::Implementations(selection) => self.implementations(selection),
-            Command::Routes(selection) => self.routes(selection),
+            Command::Routes(selection) => self.routes(selection, false),
+            Command::Contracts(selection) => self.routes(selection, true),
             Command::Configuration(selection) => self.configuration(selection),
             Command::Tests { selection, depth } => self.tests(selection, *depth),
             Command::Packages { limit, cursor } => self.packages(*limit, cursor.as_deref()),
