@@ -59,6 +59,7 @@ pub fn scan(root: &Path, options: &ScanOptions) -> Result<ScanResult> {
         // Honour .gitignore even outside a git repository: refactoring targets are
         // often worktrees, exports or vendored copies with no .git directory.
         .require_git(false)
+        .filter_entry(|entry| entry.file_name() != ".fr-history")
         .build();
 
     for entry in walker {

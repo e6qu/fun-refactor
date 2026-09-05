@@ -115,7 +115,7 @@ fr translate openapi.yaml fastapi  # a service skeleton from a contract
 fr recipe <file.recipe>       # a workspace transaction: recipes find, do, expect together
 fr recipe fmt recipes --check # format every recipe in a directory, or reject drift
 fr spec check                 # Lean models whose source anchors still match
-fr spec sync --write          # renew reviewed stale source hashes atomically
+fr spec sync --write          # renew reviewed stale source hashes
 fr spec verify                # strict correspondence plus Lake builds
 fr openapi [--yaml]           # the contract a Next.js route tree declares
 fr callers <fn> --depth 3     # who calls this
@@ -132,7 +132,7 @@ fr entrypoints --kind http-route
 ```
 
 Every command takes `--json`. Every mutation prints a diff and changes nothing until
-you add `--write`, and it then applies a multi-file change atomically.
+you add `--write`. [CLI.md](CLI.md#write-guarantees) states the commit and recovery guarantees.
 
 `fr` indexes files in parallel and caches the facts it extracts by file content and
 query set. A repeated command therefore re-reads only what changed, roughly 1.7×
@@ -199,10 +199,9 @@ To build it yourself instead:
 cargo install --path .
 ```
 
-`./tools/check.sh` runs everything CI runs: formatting, clippy, the tests, the
-capability report and the prose check. It runs them twice, once for the default build
-and once with the browser API compiled in. CI calls the same script, so a pass here
-and a pass there mean the same thing.
+`./tools/check.sh` runs the native and WASM API PR checks, capability coverage, prose checks and Lean kernels.
+A separate CI job builds and exercises the browser playground.
+`./tools/check.sh deep` runs the repository-scale audits.
 
 ## Third-party material
 
@@ -222,58 +221,54 @@ and nothing reports that.
 
 ## Adding a language
 
-Query files hold what `fr` knows about a language, and Rust holds none of it.
-`queries/<lang>/facts.scm` declares the definitions, references, scopes and imports
-of one language. `src/extract.rs` documents the names a query may attach to a node.
-YAML files in `catalogs/` carry the rules for entry points. To add a language or a
-framework, add data. A language whose published grammar cannot read it needs one thing
-more: a patched copy under `grammars/`, which that directory's README explains.
+`queries/<lang>/facts.scm` declares definitions, references, scopes and imports.
+`src/extract.rs` documents the captures each query can produce.
+YAML catalogs describe recognized entry points.
+
+A new language also needs grammar integration and capability decisions.
+Refactoring and translation rules may require Rust changes and language-specific validation.
+Framework migration needs adapters for its runtime and project conventions.
+See `grammars/README.md` for grammar provenance and local patches.
 
 ## Status
 
-Every stage of [PLAN.md](PLAN.md) is complete. This project has ruled the LSP delegation backend out and deferred the daemon, each with the measurement behind the
-decision. The tool builds every capability a language can meaningfully support:
-**311 of 456 capability × language pairs supported, 145 not applicable, none refused.**
-The code generates the matrix above, and `fr capabilities` prints the reason behind
-every cell that is not a ✓.
+The generated matrix records **311 of 456 capability × language pairs supported, 145 not applicable**.
+Supported operations still report input-specific limitations and confidence.
 
-[TUTORIAL.md](TUTORIAL.md) walks through one real repository, helm/helm, and shows
-the output each command produced. The [project
-site](https://e6qu.github.io/fun-refactor/demo.html) steps through the same session.
+[PLAN.md](PLAN.md) is the active roadmap for agents: compact project understanding,
+reversible changes, Git patches, reusable Lean verification and hierarchical framework migration.
+The original implementation stages are complete. The new milestones remain active.
+LSP delegation stays outside the default engine; daemon/watch mode awaits a measured need.
 
-[EXAMPLES.md](EXAMPLES.md) holds one example for each capability. Each one ran
-against a public repository at a fixed commit: ripgrep, requests, helm,
-terraform-aws-vpc, zls and grafana. It also lists what the tool does not do, and what
-each of those would take.
+The shared commit path recovers earlier writes after a handled failure and reports recovery problems.
+The native CLI now saves plans and supports checked apply, undo, redo and interrupted-write recovery through `fr history`.
+The browser already exports patches and can restore its initial workspace.
+`fr project` now provides compact hierarchy maps and bounded source inspection.
+Its package and dependency pages report Cargo/npm manifest declarations with shared revision checks.
+`fr project links` adds local manifest links and workspace pattern candidates with explicit unresolved cases.
+Complete dependency graphs, framework semantics, Git integration and broader task evaluations remain roadmap work.
 
-[CLI.md](CLI.md) is the command reference: every command, what it answers, and what
-it refuses.
+[TUTORIAL.md](TUTORIAL.md) walks through helm/helm.
+[EXAMPLES.md](EXAMPLES.md) shows capabilities on pinned public repositories.
+[CLI.md](CLI.md) documents the implemented commands.
+[Project view evaluation](docs/project-context-evaluation.md) measures compact output and records the remaining task-level checks.
 
-Four documents cover the work that spans more than one language at a time:
+- [CROSS_LANGUAGE.md](CROSS_LANGUAGE.md) explains reference and translation boundaries.
+- [API_CONTRACTS.md](API_CONTRACTS.md) describes HTTP contract extraction and route conversion.
+- [RECIPES.md](RECIPES.md) defines the local recipe language.
+- [IR.md](IR.md) describes the intermediary language and translation evidence.
+- [docs/lean-specs.md](docs/lean-specs.md) separates implemented Lean checks from the adoption roadmap.
 
-- [CROSS_LANGUAGE.md](CROSS_LANGUAGE.md) for what a name crossing a language
-  boundary can and cannot prove.
-- [API_CONTRACTS.md](API_CONTRACTS.md) for rewriting a service while preserving the
-  contract its callers see.
-- [RECIPES.md](RECIPES.md) for the recipe language `fr recipe` runs.
-- [IR.md](IR.md) for the intermediary language every translation crosses, and what
-  a writer does when it cannot spell a construct.
-- [docs/lean-specs.md](docs/lean-specs.md) for a plan nobody has built: writing this
-  project's specifications in Lean, and the three things that idea promises which nobody
-  can deliver.
+Lean readers, writers, edit and position models, and `spec check`, `sync` and `verify` exist.
+Strict signature correspondence currently accepts Rust source declarations.
+Model proofs and shared execution cases establish different kinds of evidence; neither alone proves every Rust behavior.
 
-[BUGS.md](BUGS.md) tracks the open limitations, and the tool reports each one to you
-instead of answering it wrongly in silence. One stands open: reachability through a
-function value nothing in the workspace names.
+[BUGS.md](BUGS.md) records known limitations and fixed defects.
+B5 tracks reachability that available source evidence cannot settle.
+The list records known findings; it does not establish the absence of other defects.
 
-Where a published grammar could not read source the language accepts, this build
-compiles a patched copy instead: `grammars/` holds one for Go, Python, Sass, SCSS,
-TypeScript and Zig, each with its upstream pin, licence, patch and the corpus measurement
-showing the patch changes no tree the published parser already read.
-
-One piece remains unbuilt: the optional LSP delegation backend. (The plan also lists
-a watch-mode daemon, though the fact cache already recovers most of what it would
-have saved.)
+`grammars/` holds grammar sources and provenance, including the Lean grammar and patched upstream grammars.
+The build uses these where the published grammar cannot read supported source forms.
 
 ## Licence
 

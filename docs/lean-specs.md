@@ -1,236 +1,136 @@
-# Specs in Lean
+# Lean specifications with fr
 
-A plan with one kernel. The writer under "Tier 2", the checked kernel project, and
-the anchor checker exist. The remaining tiers do not.
+`fr` reads and writes Lean. It checks source anchors and explicit signature maps,
+renews reviewed source hashes, and builds the Lean packages that own selected specs.
+The [roadmap](../PLAN.md) extends this foundation into an adoption workflow for other projects.
 
-`fr` reads Lean and writes it, and the conformance suite runs both. This says what it would take to make Lean the place this
-project writes down what its code should do. It also says which parts of that idea are
-worth doing and which are not.
+## What exists
 
-## The one idea the design rests on
+| Surface | Current scope |
+|---|---|
+| Lean translation | Eight programming-language readers and writers, including Lean, over supported constructs |
+| `fr spec check` | Source identity, missing declarations, signature maps and live `sorry` counts |
+| `fr spec check --strict` | Require an explicit signature map beside every source anchor |
+| `fr spec sync` | Preview renewal of stale source hashes; `--write` applies reviewed renewals |
+| `fr spec verify` | Strict correspondence checks, then `lake build --wfail` in each owning package |
+| `kernels/` | Executable edit, position, history and pagination models with shared Rust/Lean cases |
 
-Writing a proof is a search. Checking one is a decision. Lean draws that line for us, and
-it is the same line that separates a tool from an agent.
+Strict signature maps currently require Rust source declarations.
+The checker compares both signatures with the explicit map. It does not infer semantic equivalence between mapped types.
+A changed source signature remains visible after hash synchronization.
 
-So: **`fr` owns everything decidable and the agent owns the search.** `fr` extracts a
-spec's shape from the code, tells you where a spec and its code have drifted, counts what
-is unproved, generates code from a spec, and runs `lake` to accept or reject an answer. It
-never decides that a proof is good. An agent writes the proof and hands it back, and
-`lake` is the only thing that says yes.
+## Source anchors
 
-That gives a work list a tool can compute and an answer a tool can check. The judgement
-in between belongs to whoever is better at judgement.
-
-## Four things worth arguing about first
-
-### "Keep Lean specs in sync with the code" claims more than anyone can deliver
-
-Sync means three different things and only one of them is decidable.
-
-1. **The shapes agree.** The Lean spec's signature still matches the function's. `fr` can
-   decide this, cheaply, forever. This is what `tests/docs_cli.rs` already does for
-   prose, and it is the whole of what a tool can promise.
-2. **The behaviours agree on the cases we ran.** Generate the target-language code from
-   the Lean, run both, diff. `fr` already does this for every cell of the
-   conformance suite, Lean included. Real, checkable, and not a proof.
-3. **The implementation refines the spec.** A theorem, and nothing generates it. Proving
-   a hand-written Rust function meets a Lean spec needs a formal semantics of Rust, which
-   nobody has. This one is unavailable at any price and the plan should not imply it.
-
-Everything below promises (1) and (2). Anywhere the word "verified" would suggest (3),
-the word is wrong.
-
-### A `theorem` generates nothing
-
-A Lean `def` has computational content and can become Rust. A `theorem` is a proof that a
-proposition holds, and its content is erased. So "generate the implementation from the
-spec" only works where the spec *is* the implementation, written in Lean.
-
-That is the shape of the feature and not a limitation to work around: **a spec written
-as a `def` is executable and generates code; a spec written as a `theorem` is a claim
-about that code and generates a test obligation.** Both are useful. Conflating them
-produces a feature that appears to work and quietly emits stubs.
-
-### There is no Lean-to-Rust extraction, and this project does not need one
-
-Lean 4 compiles to C. Nothing extracts it to Rust. Three ways out:
-
-- **Link the C.** Real Lean semantics, and a Lean toolchain becomes a build dependency of
-  everything. Against the grain of a tool whose build needs a C compiler and nothing else.
-- **Hand-write the Rust and prove correspondence.** See (3) above.
-- **Generate the Rust from a restricted Lean, with `fr`.** `fr` is already a transpiler
-  with a canonical IR. Its harness proves seven languages print the same transcript,
-  Lean among them. Lean as a source is one more reader.
-
-The third is the only one that fits, and it costs a Lean reader rather than a research
-programme.
-
-### Proving the refactorings correct is not the place to start
-
-The tempting target is "prove `fr rename` preserves meaning". It needs a formal semantics
-for nineteen tree-sitter grammars. It will not happen.
-
-The IR is the opposite: 9 items, 26 statements, 34 expressions, self-contained, and the
-place the real risk lives. A wrong lowering is silent. The ledger that went from 1,756
-carried constructs to zero counts shapes that cross, and claims nothing about how they
-cross. **Specify the IR, prove things about the writers, and leave the grammars
-alone.**
-
-## What Lean is worth here, in order
-
-### Tier 1: the IR has a semantics
-
-Write `Ir.lean`: the item, statement and expression types, and an evaluator for the subset
-that has one. Then the properties worth having:
-
-- Reading a writer's output returns the term you started with, for every construct the
-  round-trip suite covers.
-- Bracketing preserves meaning: the operator-precedence rule that four separate defects
-  came from.
-- Division and remainder agree with each target's own rounding, which is B633 and the
-  `Math.trunc` family written down instead of remembered.
-
-This is the highest-value tier because it is where `fr` is most likely to be wrong, and
-it needs no code generation at all.
-
-### Tier 2: Lean is a translate target and a source
-
-**The writer exists.** `Record` became a `structure`, `Sum` an `inductive`, `Function` a
-`def`, `Newtype` an `abbrev`. Every one of the seven languages with a reader translates
-into Lean. The conformance suite runs the result: 87 cells, and Lean prints the
-transcript the other six print. `PLAN.md` has what it cost and where Lean disagreed with
-every other target.
-
-It refuses what it should. Recursion it cannot show terminates becomes `partial def` and
-says so. A deferred block in a scope something leaves early carries, because Lean has no
-hook that runs on the way out. A runtime type test carries, because a Lean value has one
-type and the elaborator already knows it.
-
-**The reader exists too.** It goes over the subset the writer produces, and over Lean a
-person wrote. Fourteen native programs sit in the conformance suite, each translating
-into the other seven languages and printing the same transcript.
-
-That was the last machinery the rest of this plan needed. `fr translate Foo.lean rust`
-works now, which is what "generate from a spec that is a `def`" asks for.
-
-### Tier 3: the kernel pattern
-
-Mark a module `@[fr.kernel]`. `fr` generates the target-language implementation from it
-and adds a conformance cell that runs both and diffs the transcript. Not a proof of
-correspondence, and a much stronger claim than a comment saying the two agree.
-
-This is where "write the kernel in Lean" becomes a thing a person can do, and it reuses
-a harness that already exists.
-
-`kernels/` holds the lossless edit engine and byte-native source positions. The edit model orders edits and rejects invalid
-plans. It applies accepted edits from high offsets to low offsets. It states one splice as prefix,
-replacement, and suffix. The Rust test runs Lean's cases
-and compares every result with `apply_to_string`.
-
-The shared corpus has 11,992 one- and two-edit plans over five ASCII and three UTF-8 sources.
-It also has an out-of-bounds plan for each source. The kernel models Rust's byte offsets.
-It converts them to character positions only at UTF-8 boundaries. It refuses offsets inside a
-multibyte character. Replacements include ASCII and UTF-8 text. A second check creates a Unicode
-Rust rename plan through `fr`'s scanner and resolver. Lean checks its emitted spans and output.
-
-The position kernel mirrors `LineIndex` and `full_line_span`. It turns byte offsets into one-based
-line and character columns, maps positions back to byte boundaries, and finds whole source lines. Its
-corpus has every string up to four symbols from ASCII, UTF-8 and newline text.
-
-`lake build --wfail` checks the model and rejects warnings, including `sorry`. The shared
-cases check the Rust implementation against the executable Lean model. They do not prove
-the implementation refines the model for every possible string and edit list.
-
-## The commands
-
-```
-fr spec check [path...]           the drift report: stale anchors, missing symbols,
-                                  and the count of unproved obligations.
-fr spec sync [path...] [--write]  renew stale source hashes
-fr spec verify [path...]          check strict correspondence and build Lean packages
-```
-
-`fr` implements `check`, `sync`, and `verify`. The other moves remain design work:
-`spec extract` and `fr translate Foo.lean rust`.
-
-`fr spec extract` writes an anchor the rest depends on:
-
-```lean
--- fr:spec src/refactor/rename.rs::plan @ 8f2c1a9e
-def plan (index : Index) (symbol : SymbolId) (newName : String) :
-    Except Refusal Plan := sorry
-```
-
-The hash is the function's own bytes. When it changes, `fr spec check` says which spec
-went stale and why. `fr spec sync` makes a reparse-checked edit that renews the hash.
-It shows the diff first and needs `--write` to commit. It refuses the whole transaction
-if any target disappeared. Before commit, it rechecks every source declaration it planned.
-This is the `docs_cli.rs` trick pointed at code instead of prose.
-
-## The lifecycle, which is the part that usually goes wrong
-
-Generation that only writes stubs is a demo. The three later moves are the feature.
-
-- **Generate.** The output carries `fr:from-spec` anchors around each generated region.
-- **Regenerate.** This replaces a region nobody touched. A region a person edited stops
-  the run and names the file and line. `fr` already refuses rather than overwrite, and
-  this is that discipline applied to a second author.
-- **Reverse.** A signature changed in the code. A future signature synchronizer carries
-  it back to Lean and leaves the proofs standing, so the next `lake` run says which ones
-  broke. Today's `spec sync` renews the source identity and never guesses that mapping.
-
-The proofs breaking is the point. A spec that survives a change to the thing it specifies
-was not specifying much.
-
-## Where the agent goes
-
-`fr` computes the work list and owns the oracle. The agent does the search.
-
-- **`lean-prover`**: takes one `sorry` and its context, tries to discharge it, and
-  offers a patch. The loop ends when `lake build` accepts, and `fr` runs `lake`, not the
-  agent. Parallel over independent obligations, since each is its own question.
-- **`spec-author`**: takes a drift report and writes or repairs the claims. This is the
-  judgement-heavy end: which properties are worth stating at all.
-
-Both are advisory. Nothing reaches a file without `lake` having accepted it, which is why
-the non-determinism upstream is safe.
-
-## The ratchet
-
-`SPEC-DEBT`, next to `PROSE-DEBT`, holding `sorry` at a number that only falls. An
-unproved obligation is debt with a name, which is better than an intention.
-
-## Order, and the one to build next
-
-Tier 2's writer was the first, because everything else waited on it and it extended
-machinery that already worked. It exists now.
-
-Anchors, `fr spec check`, and transactional `fr spec sync` make models name Rust
-declarations. They report drift and renew reviewed source identities. Explicit mappings
-make signature correspondence visible without a guessed rewrite.
-
-That mapping now sits immediately below an anchor:
+A spec names the declaration it models and a prefix of its SHA-256 hash:
 
 ```lean
 -- fr:spec src/edit.rs::apply_to_string @ 3e192284
--- fr:signature source: &str => source: String
+-- fr:signature source: &str => source: String; edits: &[Edit] => edits: List Edit; return: Result<String> => return: Option String
+def applyChecked (source : String) (edits : List Edit) : Option String :=
+  if valid source edits then some (apply source edits) else none
 ```
 
-Each side names a parameter or `return` and its type. `fr spec check` reads the Rust
-function and following Lean definition, then compares both lists to the map. A source
-signature change therefore remains visible after `spec sync` renews its body hash.
-`fr spec check --strict` requires this map beside every anchor, which makes complete
-signature correspondence a gate rather than an aspiration.
+The hash covers the source declaration's bytes.
+The mapping lists source and Lean parameters and return types in order.
+Inspect a stale source change before renewing its hash.
+`spec sync` changes source identity markers; it does not rewrite signatures or repair proofs.
 
-`fr spec verify` runs that strict gate and then builds each owning Lake package with
-`lake build --wfail`. It gives a kernel author one command for correspondence and Lean
-acceptance, while the existing shared corpora continue to test model behavior against Rust.
+```sh
+fr spec check --strict
+fr spec sync
+fr spec sync --write
+fr spec verify
+```
 
-Tier 1 can start any time and is the most valuable thing here. It is also the easiest to
-put off, being the only part with no visible output.
+Without paths, these commands inspect existing `kernels/` and `specs/` roots.
+Pass a Lean file or directory to select another location.
+`verify` requires each selected file to belong to a Lake package.
+Lean is an explicit dependency for verification, not for ordinary refactoring.
 
-## What to leave alone
+## What each check establishes
 
-Proving the refactorings. Proving a hand-written implementation refines its spec. Any use
-of the word "verified" for a correspondence that a conformance run established rather than
-a proof.
+A fresh anchor establishes that the named source bytes match the recorded identity.
+An accepted signature map establishes correspondence with the two declared signatures.
+A Lean theorem establishes its proposition under its definitions and assumptions.
+A shared execution test compares the implementation and model on the selected cases.
+
+A theorem about a Lean model alone does not prove the Rust implementation refines that model.
+Translation into Lean does not supply that proof either.
+Implementation correspondence needs its own argument or a justified verified generation path.
+Keep assumptions, accepted axioms and trusted components visible in any verification report.
+
+## Existing kernels
+
+`FrKernels.Edit` models byte-based edits, UTF-8 boundaries, ordering, overlap checks and splice application.
+It states properties of accepted and rejected plans and unchanged source prefixes.
+`FrKernels.Position` models line and column conversion and full-line spans.
+
+`tests/lean_kernels.rs` compares the executable models with Rust over ASCII and Unicode corpora.
+It also checks plans from real refactoring commands.
+`tools/check-kernels.sh` builds the package with warnings as errors and runs all four executables.
+The full self-audits run in `tools/check.sh deep`.
+
+`FrKernels.History` adds snapshot acceptance, inverse laws, mixed-state recovery and undo/redo stack laws.
+Its anchored snapshot predicate has 250 shared Rust/Lean executable cases.
+The inverse and mixed-recovery proofs use Lean’s propositional extensionality axiom. The two stack inverse proofs use no axioms.
+The model assumes durable journal checkpoints and atomic rename. Filesystem and full transaction implementation correspondence remain unproved.
+
+`FrKernels.Project` models the shared page-length calculation and workspace component matcher.
+Its theorems bound each page by the requested limit and remaining items.
+They also prove forward progress and partition the remaining result set.
+The executable corpus includes 1,728 combinations, with 32-bit and 64-bit integer limits.
+Rust compares all cases its `usize` can represent.
+The matcher proves equal directory depth, refusal at different depths, self-matching and literal-or-star head matching.
+Its shared corpus compares 67,081 pairs of component sequences, including Unicode, empty strings and embedded slash characters.
+The caller splits paths into components and restricts pattern syntax before matching; those parsing steps remain outside the proof.
+The model does not establish filesystem containment or package-manager workspace membership.
+Matcher proofs use propositional extensionality; the self-match proof also uses Lean's standard classical-choice and quotient-soundness axioms.
+The model does not prove parser correctness, snapshot-hash collision resistance or agent task success.
+
+## Adopting Lean in another project today
+
+Create a Lake package and write a small executable model with a useful property.
+Choose a pure function whose domain and assumptions can be stated clearly.
+Add its source anchor and explicit signature map, then run `fr spec check --strict`.
+Run `fr spec verify` to check correspondence and build the owning package.
+Add shared input/output cases when the model mirrors an implementation.
+
+This workflow still requires manual model and anchor authoring.
+Package initialization and `spec extract` are planned commands; they do not exist today.
+Use the existing examples under `kernels/` as working references.
+
+## Adoption milestones
+
+The next adoption work should provide:
+
+- Package initialization with a pinned Lean toolchain and CI instructions.
+- Declaration selection and anchored model scaffolds with explicit unsupported types.
+- Named proof obligations and a proof-debt ratchet.
+- Generated-region ownership and regeneration that preserves handwritten work.
+- Explicit signature synchronization that exposes affected proofs.
+- Reports separating proved models, tested correspondence and proved implementation correspondence.
+
+`SPEC-DEBT`, generated-region markers and the kernel-generation annotation remain proposals.
+A zero `sorry` count describes the selected files, not the completeness of their specifications.
+Reject unapproved axioms and expose assumptions before claiming stronger coverage.
+
+## Formalization order
+
+Extend the edit and position models with general laws that their callers need.
+Extend transaction correspondence beyond the snapshot predicate and test storage failure boundaries.
+Define an executable IR semantics for a small subset, then prove selected lowerings against it.
+Arithmetic, precedence, capture avoidance and scope lookup are useful initial targets.
+Expand the subset only with explicit semantics and regression evidence.
+
+A `def` contains executable content. A `theorem` states a proposition and provides no application implementation.
+The existing Lean reader translates supported executable constructs into the code IR.
+Future generation must retain this distinction and report unsupported definitions.
+
+## Agent responsibilities
+
+The tool identifies drift, enumerates obligations and runs the checker.
+An agent chooses useful claims, writes models and searches for proofs.
+It must report a false claim rather than weaken that claim to obtain a successful build.
+
+The local [Lean skill](../.claude/skills/lean-spec/SKILL.md) describes the implemented workflow.
+The broader agent skill package remains part of [PLAN.md](../PLAN.md).

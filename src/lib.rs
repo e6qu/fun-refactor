@@ -14,6 +14,8 @@ extern crate fun_refactor_wasm_libc;
 pub mod edit;
 pub mod extract;
 pub mod helm;
+#[cfg(feature = "cli")]
+pub mod history;
 pub mod index;
 pub mod lang;
 pub mod mentions;
@@ -21,6 +23,8 @@ pub mod model;
 pub mod navigate;
 pub mod openapi;
 pub mod parse;
+#[cfg(feature = "cli")]
+pub mod project;
 pub mod recipe;
 pub mod refactor;
 #[cfg(feature = "cli")]

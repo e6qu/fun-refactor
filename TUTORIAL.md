@@ -514,7 +514,8 @@ engine then:
 3. **Reparses every changed file** and refuses the whole edit if a file that parses
    cleanly now would not afterwards. That check catches a rewrite producing
    `if !(a)` in a language that requires the brackets.
-4. **Commits atomically.** It writes every file, or it writes none.
+4. **Commits with recovery.** It restores earlier writes if a later commit fails.
+   [CLI.md](CLI.md#write-guarantees) states recovery limits.
 
 That reparse check works as a safety net, and it does not stand in for the analysis.
 It misses a change that parses and means something else. A statement moves out from

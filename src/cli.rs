@@ -85,6 +85,10 @@ struct Cli {
     #[arg(long, global = true)]
     no_cache: bool,
 
+    /// Store a checked change plan for later application through `fr history`.
+    #[arg(long, global = true)]
+    save_plan: bool,
+
     #[command(subcommand)]
     command: Command,
 }
@@ -100,6 +104,16 @@ pub fn command_names() -> Vec<String> {
 
 #[derive(Subcommand)]
 enum Command {
+    #[command(about = "Inspect bounded project maps and revision-bound source details.")]
+    Project {
+        #[command(subcommand)]
+        command: crate::project::Command,
+    },
+    /// List, inspect, apply or reverse workspace transactions.
+    History {
+        #[command(subcommand)]
+        action: Option<HistoryCommand>,
+    },
     /// Show what this tool can do, per language.
     Capabilities {
         /// Only this capability, e.g.
@@ -474,6 +488,36 @@ enum Command {
 }
 
 #[derive(Subcommand)]
+enum HistoryCommand {
+    /// Inspect one transaction without printing stored source snapshots.
+    Show { id: u64 },
+    /// Apply a saved plan after checking its source basis.
+    Apply {
+        id: u64,
+        #[arg(long)]
+        write: bool,
+    },
+    /// Reverse the latest applied transaction.
+    Undo {
+        id: u64,
+        #[arg(long)]
+        write: bool,
+    },
+    /// Reapply the next transaction on the redo stack.
+    Redo {
+        id: u64,
+        #[arg(long)]
+        write: bool,
+    },
+    /// Restore an interrupted operation to its starting state.
+    Recover {
+        id: u64,
+        #[arg(long)]
+        write: bool,
+    },
+}
+
+#[derive(Subcommand)]
 enum RecipeCommand {
     #[command(about = "Canonicalize recipe layouts without changing what they mean.")]
     Fmt {
@@ -695,7 +739,40 @@ fn exit_code(error: &anyhow::Error) -> i32 {
 }
 
 fn dispatch(cli: &Cli) -> Result<()> {
+    if cli.save_plan
+        && !matches!(
+            &cli.command,
+            Command::Rename { .. }
+                | Command::Extract { .. }
+                | Command::Inline { .. }
+                | Command::Signature { .. }
+                | Command::Move { .. }
+                | Command::Delete { .. }
+                | Command::Imports { .. }
+                | Command::Translate { .. }
+                | Command::Recipe { .. }
+                | Command::RemoveFlag { .. }
+                | Command::Rewrite { .. }
+                | Command::Restructure { .. }
+                | Command::Spec {
+                    command: SpecCommand::Sync { .. }
+                }
+                | Command::Openapi { out: Some(_), .. }
+        )
+    {
+        anyhow::bail!("--save-plan requires a command that produces a change plan.");
+    }
+    if !matches!(cli.command, Command::History { .. }) {
+        if let Some(pending) = crate::history::History::read(&cli.root)?.pending {
+            eprintln!(
+                "Transaction {} needs recovery: fr history recover {} --write",
+                pending.id, pending.id
+            );
+        }
+    }
     match &cli.command {
+        Command::Project { command } => cmd_project(cli, command),
+        Command::History { action } => cmd_history(cli, action.as_ref()),
         Command::Capabilities {
             capability,
             language,
@@ -1304,7 +1381,7 @@ fn present_with_commit_guard(
         refuse_stale_plan(index, edits)?;
     }
     let outcomes = crate::edit::plan(edits, crate::edit::Validation::ReparseStrict)?;
-    if write {
+    if write || cli.save_plan {
         commit_guard()?;
     }
 
@@ -1314,7 +1391,6 @@ fn present_with_commit_guard(
             .map(|o| {
                 serde_json::json!({
                     "file": o.path,
-                    // The same path under the key older scripts read.
                     "path": o.path,
                     "diff": workspace_diff(cli, o),
                 })
@@ -1329,22 +1405,34 @@ fn present_with_commit_guard(
             "unparsed_files": index.map(unparsed_files_json).unwrap_or_default(),
         });
         decorate(&mut report);
-        println!("{}", serde_json::to_string_pretty(&report)?);
-        if write {
-            crate::edit::commit(&outcomes)?;
-        }
-        return Ok(());
+        return commit_and_print_json(cli, &report, &outcomes, write);
     }
 
     for outcome in &outcomes {
         print!("{}", workspace_diff(cli, outcome));
     }
     println!("\n{summary}");
+    persist_changes(
+        cli,
+        &outcomes
+            .iter()
+            .map(crate::edit::FileChange::from)
+            .collect::<Vec<_>>(),
+        write,
+        "reparse-strict",
+    )?;
     if write {
-        let count = crate::edit::commit(&outcomes)?;
+        let count = outcomes.iter().filter(|o| o.original != o.updated).count();
         println!("Applied to {count} file(s).");
     } else {
-        println!("\nNothing written. Re-run with --write to apply.");
+        println!(
+            "\n{}",
+            if cli.save_plan {
+                "Plan saved. Use fr history apply <id> --write to apply."
+            } else {
+                "Nothing written. Re-run with --write to apply."
+            }
+        );
     }
     Ok(())
 }
@@ -1385,10 +1473,113 @@ fn present_translation(
         "changes": changes,
     });
     decorate(&mut report);
-    println!("{}", serde_json::to_string_pretty(&report)?);
-    if write {
-        crate::edit::commit(&outcomes)?;
+    commit_and_print_json(cli, &report, &outcomes, write)
+}
+
+fn commit_and_print_json(
+    cli: &Cli,
+    report: &impl serde::Serialize,
+    outcomes: &[crate::edit::FileOutcome],
+    write: bool,
+) -> Result<()> {
+    let mut report = serde_json::to_value(report)?;
+    let transaction = persist_changes(
+        cli,
+        &outcomes
+            .iter()
+            .map(crate::edit::FileChange::from)
+            .collect::<Vec<_>>(),
+        write,
+        "reparse-strict",
+    )?;
+    if let Some(id) = transaction {
+        report["transaction"] = serde_json::json!(id);
     }
+    println!("{}", serde_json::to_string_pretty(&report)?);
+    Ok(())
+}
+
+fn persist_changes(
+    cli: &Cli,
+    changes: &[crate::edit::FileChange<'_>],
+    write: bool,
+    validation: &str,
+) -> Result<Option<u64>> {
+    if write && cli.save_plan {
+        anyhow::bail!("choose --save-plan or --write, not both");
+    }
+    if !write && !cli.save_plan {
+        return Ok(None);
+    }
+    let id = crate::history::record(&cli.root, changes, write, validation)?;
+    if let Some(id) = id {
+        if !cli.json {
+            eprintln!(
+                "Transaction {id}: {}",
+                if write { "applied" } else { "saved plan" }
+            );
+        }
+    }
+    Ok(id)
+}
+
+fn cmd_project(cli: &Cli, command: &crate::project::Command) -> Result<()> {
+    let root = workspace_root(cli);
+    let options = scan_options(cli, &[])?;
+    let scanned = scan(&root, &options)?;
+    let cache = if cli.no_cache {
+        None
+    } else {
+        crate::cache::Cache::open()
+    };
+    let index = Index::build_with_cache(&scanned, cache.as_ref())?;
+    let project = crate::project::Project::new(&root, &index, &scanned, &options)?;
+    let report = project.report(command)?;
+    project.verify(&root)?;
+    println!("{}", serde_json::to_string(&report)?);
+    Ok(())
+}
+
+fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
+    use crate::history::Action;
+    let report = match command {
+        Some(HistoryCommand::Apply { id, write }) => {
+            crate::history::act(&cli.root, Action::Apply, *id, *write)?
+        }
+        Some(HistoryCommand::Undo { id, write }) => {
+            crate::history::act(&cli.root, Action::Undo, *id, *write)?
+        }
+        Some(HistoryCommand::Redo { id, write }) => {
+            crate::history::act(&cli.root, Action::Redo, *id, *write)?
+        }
+        Some(HistoryCommand::Recover { id, write }) => {
+            crate::history::act(&cli.root, Action::Recover, *id, *write)?
+        }
+        other => {
+            let history = crate::history::History::read(&cli.root)?;
+            let records = if let Some(HistoryCommand::Show { id }) = other {
+                vec![history.record(*id)?]
+            } else {
+                history.records.iter().collect()
+            };
+            serde_json::json!({ "schema": history.schema, "pending": history.pending, "applied": history.applied, "redo": history.redo,
+                "records": records.iter().map(|r| {
+                    let mut record = serde_json::json!({
+                        "id": r.id, "status": r.status, "basis": r.basis, "source_revision": r.source_revision, "validation": r.validation,
+                        "paths": r.changes.iter().map(|c| &c.path).collect::<Vec<_>>()
+                    });
+                    if other.is_some() {
+                        record["changes"] = serde_json::json!(r.changes.iter().map(|c| serde_json::json!({
+                            "path": c.path, "before_exists": c.before.is_some(), "after_exists": c.after.is_some(),
+                            "before_mode": c.before.as_ref().map(|s| s.mode), "after_mode": c.after.as_ref().map(|s| s.mode),
+                            "diff": crate::edit::unified_diff(c.before.as_ref().map_or("", |s| &s.content), c.after.as_ref().map_or("", |s| &s.content), &c.path.to_string_lossy())
+                        })).collect::<Vec<_>>());
+                    }
+                    record
+                }).collect::<Vec<_>>() })
+        }
+    };
+    println!("{}", serde_json::to_string_pretty(&report)?);
     Ok(())
 }
 
@@ -2362,9 +2553,7 @@ fn cmd_translate_directory(
                 })
             })
             .collect();
-        println!(
-            "{}",
-            serde_json::to_string_pretty(&serde_json::json!({
+        let report = serde_json::json!({
                 "target": to.name(),
                 "translated": translated,
                 "functions": fidelity.functions,
@@ -2384,12 +2573,8 @@ fn cmd_translate_directory(
                     .collect::<Vec<_>>(),
                 "applied": write,
                 "changes": changes,
-            }))?
-        );
-        if write && !outcomes.is_empty() {
-            crate::edit::commit(&outcomes)?;
-        }
-        return Ok(());
+        });
+        return commit_and_print_json(cli, &report, &outcomes, write);
     }
 
     println!(
@@ -2548,11 +2733,7 @@ fn cmd_scaffold(
             "applied": write,
             "changes": changes,
         });
-        println!("{}", serde_json::to_string_pretty(&report)?);
-        if write {
-            crate::edit::commit(&outcomes)?;
-        }
-        return Ok(());
+        return commit_and_print_json(cli, &report, &outcomes, write);
     }
     println!("{} -> {} file(s)", plan.source.display(), plan.files.len());
     for file in &plan.files {
@@ -2658,7 +2839,6 @@ fn cmd_openapi(cli: &Cli, out: Option<&std::path::Path>, yaml: bool) -> Result<(
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_else(|| "workspace".to_string());
-    // Either side of the crossing.
     let mut baseline = crate::openapi::from_routes(&title, &root, &files)?;
     let mut side = "Next.js route tree";
     if baseline.routes.is_empty() {
@@ -2675,13 +2855,28 @@ fn cmd_openapi(cli: &Cli, out: Option<&std::path::Path>, yaml: bool) -> Result<(
         );
     }
 
-    // The same document, spelled the way the reader asked for.
     let text = match yaml {
         true => serde_yaml::to_string(&baseline.document)?,
         false => serde_json::to_string_pretty(&baseline.document)?,
     };
+    let mut transaction = None;
     if let Some(path) = out {
-        crate::vfs::write(path, format!("{text}\n"))?;
+        let original = match crate::vfs::read_to_string(path) {
+            Ok(text) => text,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
+            Err(e) => return Err(e.into()),
+        };
+        let updated = format!("{text}\n");
+        transaction = persist_changes(
+            cli,
+            &[crate::edit::FileChange {
+                path,
+                original: &original,
+                updated: &updated,
+            }],
+            !cli.save_plan,
+            "openapi-serialization",
+        )?;
         if !cli.json {
             println!(
                 "{} route file(s) from a {side} -> {}",
@@ -2694,12 +2889,14 @@ fn cmd_openapi(cli: &Cli, out: Option<&std::path::Path>, yaml: bool) -> Result<(
         // A human run keeps the notes on stderr so the document stays a document.
         let mut payload = baseline.document.clone();
         payload["notes"] = serde_json::json!(baseline.notes);
+        if let Some(id) = transaction {
+            payload["transaction"] = serde_json::json!(id);
+        }
         println!("{}", serde_json::to_string_pretty(&payload)?);
     } else if out.is_none() {
         println!("{text}");
     }
 
-    // The notes go to stderr so the document on stdout stays a document.
     if !baseline.notes.is_empty() && !cli.json {
         eprintln!(
             "\n{} thing(s) this document does not settle:",
@@ -2736,6 +2933,9 @@ fn cmd_recipe(
     catalogs: &[PathBuf],
     vocabulary: bool,
 ) -> Result<()> {
+    if cli.save_plan && (vocabulary || explain) {
+        anyhow::bail!("--save-plan requires an executable recipe.");
+    }
     if vocabulary {
         let words = crate::recipe::vocabulary();
         match cli.json {
@@ -2785,6 +2985,9 @@ fn cmd_recipe(
     };
     let (mut report, after) = crate::recipe::run_file(&parsed, sources.clone(), &options)?;
     crate::vfs::use_filesystem();
+    if cli.save_plan && !report.ok {
+        anyhow::bail!("cannot save a recipe plan that failed its requirements");
+    }
 
     let mut edits = crate::edit::EditSet::new();
     for (path, (language, text)) in &after {
@@ -2806,13 +3009,8 @@ fn cmd_recipe(
     report.rolled_back = write && !report.ok;
 
     if cli.json {
-        println!("{}", serde_json::to_string_pretty(&report)?);
-        if apply_this {
-            crate::edit::commit(&crate::edit::plan(
-                &edits,
-                crate::edit::Validation::ReparseStrict,
-            )?)?;
-        }
+        let outcomes = crate::edit::plan(&edits, crate::edit::Validation::ReparseStrict)?;
+        commit_and_print_json(cli, &report, &outcomes, apply_this)?;
     } else {
         print_recipe_transaction_outcome(&report);
         if report.rolled_back {
@@ -2840,11 +3038,15 @@ fn cmd_recipe(
 
 struct RecipeFormatFile {
     path: PathBuf,
+    original: String,
     formatted: String,
     changed: bool,
 }
 
 fn cmd_recipe_fmt(cli: &Cli, inputs: &[PathBuf], write: bool, check: bool) -> Result<()> {
+    if cli.save_plan && check {
+        anyhow::bail!("choose --save-plan or --check");
+    }
     if write && check {
         return Err(Fault::invalid_input(
             "`fr recipe fmt` cannot both replace a file and only check it; drop --write or --check."
@@ -2861,6 +3063,7 @@ fn cmd_recipe_fmt(cli: &Cli, inputs: &[PathBuf], write: bool, check: bool) -> Re
         formatted.push(RecipeFormatFile {
             path,
             changed: before != after,
+            original: before,
             formatted: after,
         });
     }
@@ -2902,16 +3105,33 @@ fn cmd_recipe_fmt(cli: &Cli, inputs: &[PathBuf], write: bool, check: bool) -> Re
             file.path.display()
         );
     }
-    if write {
-        for file in &formatted {
-            crate::vfs::write(&file.path, &file.formatted)
-                .with_context(|| format!("writing {}", file.path.display()))?;
-        }
+    let transaction = if write || cli.save_plan {
+        let outcomes = formatted
+            .iter()
+            .map(|file| crate::edit::FileChange {
+                path: &file.path,
+                original: &file.original,
+                updated: &file.formatted,
+            })
+            .collect::<Vec<_>>();
+        persist_changes(cli, &outcomes, write, "recipe-parser")?
+    } else {
+        None
+    };
+    if write || cli.save_plan {
         match cli.json {
-            true => print_recipe_format_json(&formatted)?,
+            true => print_recipe_format_json_with_transaction(&formatted, transaction)?,
             false => {
                 for file in &formatted {
-                    println!("formatted {}", file.path.display());
+                    println!(
+                        "{} {}",
+                        if write {
+                            "formatted"
+                        } else {
+                            "planned formatting"
+                        },
+                        file.path.display()
+                    );
                 }
             }
         }
@@ -2973,6 +3193,13 @@ fn recipe_format_paths(cli: &Cli, inputs: &[PathBuf]) -> Result<Vec<PathBuf>> {
 }
 
 fn print_recipe_format_json(formatted: &[RecipeFormatFile]) -> Result<()> {
+    print_recipe_format_json_with_transaction(formatted, None)
+}
+
+fn print_recipe_format_json_with_transaction(
+    formatted: &[RecipeFormatFile],
+    transaction: Option<u64>,
+) -> Result<()> {
     let files = formatted
         .iter()
         .map(|file| {
@@ -2984,7 +3211,7 @@ fn print_recipe_format_json(formatted: &[RecipeFormatFile]) -> Result<()> {
         })
         .collect::<Vec<_>>();
     let changed = formatted.iter().filter(|file| file.changed).count();
-    let report = match files.as_slice() {
+    let mut report = match files.as_slice() {
         [file] => file.clone(),
         _ => serde_json::json!({
             "files": files,
@@ -2992,6 +3219,9 @@ fn print_recipe_format_json(formatted: &[RecipeFormatFile]) -> Result<()> {
             "files_needing_format": changed,
         }),
     };
+    if let Some(id) = transaction {
+        report["transaction"] = serde_json::json!(id);
+    }
     println!("{}", serde_json::to_string_pretty(&report)?);
     Ok(())
 }
@@ -4078,27 +4308,19 @@ fn cmd_rename(cli: &Cli, target: &str, new_name: &str, write: bool) -> Result<()
                 })
             })
             .collect();
-        println!(
-            "{}",
-            serde_json::to_string_pretty(&serde_json::json!({
+        let report = serde_json::json!({
                 "old_name": plan.old_name,
                 "new_name": plan.new_name,
                 "files_changed": outcomes.len(),
                 "reference_edits": plan.reference_edits,
-                // Definition sites edited, kept beside `reference_edits` so the counts add up
-                // for a reader who also ran `fr usages`.
                 "definition_edits": plan.edits.edit_count() - plan.reference_edits,
                 "applied": write,
                 "changes": files,
                 "warnings": plan.warnings,
                 "skipped_files": skipped_files_json(&index),
                 "unparsed_files": unparsed_files_json(&index),
-            }))?
-        );
-        if write {
-            crate::edit::commit(&outcomes)?;
-        }
-        return Ok(());
+        });
+        return commit_and_print_json(cli, &report, &outcomes, write);
     }
 
     for outcome in &outcomes {
@@ -4116,8 +4338,6 @@ fn cmd_rename(cli: &Cli, target: &str, new_name: &str, write: bool) -> Result<()
     if !plan.warnings.is_empty() {
         let grouped = crate::refactor::rename::group_warnings(&plan.warnings);
         let root = workspace_root(cli);
-        // The rename changed each dispatch site, along with the family it can reach, and left
-        // the other kinds alone.
         let show = |kind: &str, warnings: &[&crate::refactor::Warning]| {
             println!("  {} ({}):", kind, warnings.len());
             for w in warnings.iter().take(10) {
@@ -4150,11 +4370,27 @@ fn cmd_rename(cli: &Cli, target: &str, new_name: &str, write: bool) -> Result<()
         }
     }
 
+    persist_changes(
+        cli,
+        &outcomes
+            .iter()
+            .map(crate::edit::FileChange::from)
+            .collect::<Vec<_>>(),
+        write,
+        "reparse-strict",
+    )?;
     if write {
-        let count = crate::edit::commit(&outcomes)?;
+        let count = outcomes.iter().filter(|o| o.original != o.updated).count();
         println!("\nApplied to {count} file(s).");
     } else {
-        println!("\nNothing written. Re-run with --write to apply.");
+        println!(
+            "\n{}",
+            if cli.save_plan {
+                "Plan saved. Use fr history apply <id> --write to apply."
+            } else {
+                "Nothing written. Re-run with --write to apply."
+            }
+        );
     }
     Ok(())
 }
@@ -4252,6 +4488,13 @@ fn report_json_error(error: &anyhow::Error) {
         "kind": kind,
         "message": format!("{error:#}"),
     });
+    if let Some(commit) = error.downcast_ref::<crate::edit::CommitFailure>() {
+        object["commit"] = serde_json::json!({
+            "status": if commit.recovery_failures.is_empty() { "rolled-back" } else { "recovery-required" },
+            "restored_files": commit.restored_files,
+            "recovery_failures": commit.recovery_failures,
+        });
+    }
     if let Some(fault) = fault {
         if !fault.candidates.is_empty() {
             object["candidates"] = fault
@@ -4262,8 +4505,7 @@ fn report_json_error(error: &anyhow::Error) {
                         "name": c.name,
                         "kind": c.kind,
                         "file": c.file,
-                        // The same path under the key older scripts read.
-                        "path": c.file,
+                            "path": c.file,
                         "line": c.line,
                         "col": c.col,
                     })

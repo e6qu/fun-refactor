@@ -9,4 +9,7 @@ cd "$(dirname "$0")/.."
     lake build --wfail
     lake exe fr-edit-kernel >/dev/null
     lake exe fr-position-kernel >/dev/null
+    lake exe fr-history-kernel >/dev/null
+    lake exe fr-project-kernel >/dev/null
+    lake exe fr-project-kernel patterns >/dev/null
 )

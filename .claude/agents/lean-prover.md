@@ -14,7 +14,7 @@ whether the answer is good is not your call, and `lake` decides it.
    a guess.
 2. Try. Prefer what the file already uses: if the surrounding proofs go by `simp` and
    `omega`, go that way before reaching for anything heavier.
-3. Run `lake build` on the file. Read the error rather than the absence of success.
+3. Run `lake build --wfail` in the owning package. Run `fr spec verify` for anchored source correspondence.
 4. Repeat until it builds, or until you have a reason it cannot.
 
 ## Rules

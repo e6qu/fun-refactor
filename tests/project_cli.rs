@@ -1,0 +1,1169 @@
+use serde_json::Value;
+use std::fs;
+use std::path::Path;
+use std::process::Command;
+
+fn run(root: &Path, args: &[&str]) -> (bool, Value) {
+    let output = Command::new(env!("CARGO_BIN_EXE_fr"))
+        .args(["--json", "--no-cache", "-C"])
+        .arg(root)
+        .args(args)
+        .output()
+        .unwrap();
+    let report = serde_json::from_slice(&output.stdout).unwrap_or_else(|e| {
+        panic!(
+            "{args:?}: {e}\n{}\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        )
+    });
+    (output.status.success(), report)
+}
+
+fn ok(root: &Path, args: &[&str]) -> Value {
+    let (success, report) = run(root, args);
+    assert!(success, "{args:?}: {report}");
+    report
+}
+
+fn fixture() -> tempfile::TempDir {
+    let dir = tempfile::tempdir().unwrap();
+    fs::create_dir(dir.path().join("src")).unwrap();
+    fs::write(dir.path().join("src/app.py"), "from lib import helper\n\nclass Service:\n    def run(self, name: str) -> str:\n        local = 'λ名'\n        return helper(name) + local\n\ndef check():\n    return Service().run('ok')\n").unwrap();
+    fs::write(
+        dir.path().join("src/lib.py"),
+        "def helper(name: str) -> str:\n    return name\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("README.md"),
+        "# Example\n\nA service fixture.\n",
+    )
+    .unwrap();
+    dir
+}
+
+fn rows(report: &Value) -> Vec<Value> {
+    let columns = report["columns"].as_array().unwrap();
+    report["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| {
+            let mut result = serde_json::Map::new();
+            for (column, cell) in columns.iter().zip(row.as_array().unwrap()) {
+                result.insert(column.as_str().unwrap().to_owned(), cell.clone());
+            }
+            Value::Object(result)
+        })
+        .collect()
+}
+
+fn mapped(root: &Path) -> Value {
+    ok(
+        root,
+        &[
+            "project",
+            "map",
+            "src/app.py",
+            "--depth",
+            "8",
+            "--fields",
+            "handle,parent,kind,name,children,signature",
+        ],
+    )
+}
+
+fn handle(report: &Value, name: &str) -> String {
+    rows(report)
+        .iter()
+        .find(|row| row["name"] == name)
+        .unwrap_or_else(|| panic!("missing {name}: {report}"))
+        .get("handle")
+        .unwrap()
+        .as_str()
+        .unwrap()
+        .to_owned()
+}
+
+#[test]
+fn map_shows_lexical_hierarchy_hides_locals_and_gives_headers_without_bodies() {
+    let dir = fixture();
+    let report = mapped(dir.path());
+    assert_eq!(report["schema"], "fr-project-1");
+    let class = handle(&report, "Service");
+    let method = handle(&report, "run");
+    let records = rows(&report);
+    let method_row = records.iter().find(|r| r["handle"] == method).unwrap();
+    assert_eq!(method_row["parent"], class.rsplit(':').next().unwrap());
+    assert_eq!(method_row["signature"]["basis"], "syntax-header");
+    let signature = method_row["signature"]["text"].as_str().unwrap();
+    assert!(signature.contains("name: str"), "{signature}");
+    assert!(!signature.contains("local"), "{signature}");
+    assert!(report["omitted"]["locals"].as_u64().unwrap() > 0);
+    assert!(!records.iter().any(|r| r["name"] == "local"));
+    let locals = ok(
+        dir.path(),
+        &["project", "map", "src/app.py", "--depth", "8", "--locals"],
+    );
+    assert!(rows(&locals).iter().any(|r| r["name"] == "local"));
+    let subtree = ok(dir.path(), &["project", "map", &class, "--depth", "1"]);
+    assert_eq!(subtree["root"], class);
+    assert!(rows(&subtree).iter().any(|r| r["name"] == "run"));
+}
+
+#[test]
+fn cursor_pages_cover_results_once_and_refuse_a_changed_query_or_revision() {
+    let dir = fixture();
+    let expected = ok(
+        dir.path(),
+        &["project", "map", "--depth", "8", "--limit", "500"],
+    );
+    let mut page = ok(
+        dir.path(),
+        &["project", "map", "--depth", "8", "--limit", "2"],
+    );
+    let first_cursor = page["page"]["next"].as_str().unwrap().to_owned();
+    let mut combined = Vec::new();
+    loop {
+        combined.extend(rows(&page));
+        let Some(next) = page["page"]["next"].as_str() else {
+            break;
+        };
+        page = ok(
+            dir.path(),
+            &[
+                "project", "map", "--depth", "8", "--limit", "2", "--cursor", next,
+            ],
+        );
+    }
+    assert_eq!(combined, rows(&expected));
+    assert!(
+        !run(
+            dir.path(),
+            &["project", "map", "--depth", "1", "--cursor", &first_cursor]
+        )
+        .0
+    );
+    fs::write(dir.path().join("src/new.py"), "def added(): pass\n").unwrap();
+    let (success, error) = run(
+        dir.path(),
+        &["project", "map", "--depth", "8", "--cursor", &first_cursor],
+    );
+    assert!(!success);
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("stale"));
+}
+
+#[test]
+fn source_pages_reassemble_unicode_and_show_has_no_body_by_default() {
+    let dir = fixture();
+    let report = mapped(dir.path());
+    let method = handle(&report, "run");
+    let plain = ok(dir.path(), &["project", "show", &method]);
+    assert!(plain.get("source").is_none());
+    assert_eq!(
+        plain["node"]["position"],
+        serde_json::json!({"line": 4, "col": 9})
+    );
+    let expected = ok(dir.path(), &["project", "show", &method, "--source"]);
+    let mut offset = 0;
+    let mut text = String::new();
+    loop {
+        let page = ok(
+            dir.path(),
+            &[
+                "project",
+                "show",
+                &method,
+                "--source",
+                "--bytes",
+                "4",
+                "--offset",
+                &offset.to_string(),
+            ],
+        );
+        let part = page["source"]["text"].as_str().unwrap();
+        assert!(part.len() <= 4);
+        text.push_str(part);
+        let Some(next) = page["source"]["next_offset"].as_u64() else {
+            break;
+        };
+        assert!(next > offset);
+        offset = next;
+    }
+    assert_eq!(text, expected["source"]["text"]);
+    let invalid = text.find('λ').unwrap() + 1;
+    assert!(
+        !run(
+            dir.path(),
+            &[
+                "project",
+                "show",
+                &method,
+                "--source",
+                "--offset",
+                &invalid.to_string()
+            ]
+        )
+        .0
+    );
+    fs::write(
+        dir.path().join("src/lib.py"),
+        "def helper(name): return name.upper()\n",
+    )
+    .unwrap();
+    assert!(!run(dir.path(), &["project", "show", &method, "--source"]).0);
+}
+
+#[test]
+fn relations_are_bounded_and_preserve_targets_confidence_and_unknowns() {
+    let dir = fixture();
+    let report = mapped(dir.path());
+    let method = handle(&report, "run");
+    let shown = ok(
+        dir.path(),
+        &["project", "show", &method, "--relations", "--limit", "500"],
+    );
+    let items = shown["relations"]["items"].as_array().unwrap();
+    let call = items
+        .iter()
+        .find(|r| r["direction"] == "outgoing" && r["name"] == "helper")
+        .unwrap();
+    assert_eq!(call["confidence"], "import-qualified");
+    let destination = ok(
+        dir.path(),
+        &["project", "show", call["target"].as_str().unwrap()],
+    );
+    assert_eq!(destination["node"]["name"], "helper");
+    assert!(items.iter().any(|r| r["direction"] == "file-import"));
+    let limited = ok(
+        dir.path(),
+        &["project", "show", &method, "--relations", "--limit", "1"],
+    );
+    assert_eq!(limited["relations"]["items"].as_array().unwrap().len(), 1);
+    let cursor = limited["relations"]["page"]["next"].as_str().unwrap();
+    let next = ok(
+        dir.path(),
+        &[
+            "project",
+            "show",
+            &method,
+            "--relations",
+            "--limit",
+            "1",
+            "--cursor",
+            cursor,
+        ],
+    );
+    assert_eq!(next["relations"]["page"]["before"], 1);
+}
+
+#[test]
+fn coverage_exposes_syntax_gaps_size_exclusions_symlinks_and_unknown_extensions() {
+    let dir = fixture();
+    fs::write(dir.path().join("broken.rs"), "fn broken( {\n").unwrap();
+    fs::write(dir.path().join("large.rs"), "fn large() {}\n".repeat(40)).unwrap();
+    fs::write(dir.path().join("opaque.blob"), "abc").unwrap();
+    std::os::unix::fs::symlink(dir.path().join("src/lib.py"), dir.path().join("alias.py")).unwrap();
+    let report = ok(dir.path(), &["--max-file-size", "256", "project", "map"]);
+    assert_eq!(report["coverage"]["skipped_files"], 1);
+    assert_eq!(report["coverage"]["skipped_symlinks"], 1);
+    assert_eq!(report["coverage"]["unsupported_files"], 1);
+    assert_eq!(
+        report["coverage"]["files_by_gap"]["file has syntax errors"],
+        1
+    );
+    let gaps = ok(dir.path(), &["--max-file-size", "256", "project", "gaps"]);
+    assert!(gaps["items"].to_string().contains("large.rs"));
+    assert!(gaps["items"].to_string().contains("broken.rs"));
+    assert!(gaps["items"].to_string().contains("alias.py"));
+}
+
+#[test]
+fn limits_projection_and_read_only_contract_hold() {
+    let dir = fixture();
+    let shallow = ok(
+        dir.path(),
+        &["project", "map", "--depth", "0", "--fields", "kind,name"],
+    );
+    assert_eq!(shallow["columns"], serde_json::json!(["kind", "name"]));
+    assert_eq!(shallow["rows"], serde_json::json!([["directory", "."]]));
+    assert!(shallow["omitted"]["depth"].as_u64().unwrap() > 0);
+    for args in [
+        vec!["project", "map", "--limit", "0"],
+        vec!["project", "map", "--depth", "65"],
+    ] {
+        assert!(!run(dir.path(), &args).0);
+    }
+    assert!(!dir.path().join(".fr-history").exists());
+}
+
+#[test]
+fn signature_headers_keep_multiline_types_and_do_not_include_one_line_bodies() {
+    let dir = tempfile::tempdir().unwrap();
+    let samples = [
+        ("main.rs", "pub fn process<T: Clone>(\n    value: T,\n) -> T { let secret = 42; value }\n", "process"),
+        ("main.go", "package main\nfunc Process(value string) string { secret := 42; _ = secret; return value }\n", "Process"),
+        ("main.ts", "export function process(value: { label: string }): string { const secret = 42; return value.label; }\n", "process"),
+        ("Main.java", "class Main { public String process(String value) { int secret = 42; return value; } }\n", "process"),
+    ];
+    for (name, source, symbol) in samples {
+        fs::write(dir.path().join(name), source).unwrap();
+        let report = ok(
+            dir.path(),
+            &[
+                "project",
+                "map",
+                name,
+                "--depth",
+                "8",
+                "--fields",
+                "handle,name,signature",
+            ],
+        );
+        let records = rows(&report);
+        let row = records.iter().find(|r| r["name"] == symbol).unwrap();
+        assert_eq!(
+            row["signature"]["basis"], "syntax-header",
+            "{name}: {report}"
+        );
+        let header = row["signature"]["text"].as_str().unwrap();
+        assert!(!header.contains("secret"), "{name}: {header}");
+        assert!(header.contains("value"), "{name}: {header}");
+    }
+}
+
+#[test]
+fn large_labels_and_signatures_report_their_truncation() {
+    let dir = tempfile::tempdir().unwrap();
+    let name = "n".repeat(1200);
+    fs::write(
+        dir.path().join("long.py"),
+        format!("def {name}(value: str) -> str:\n    return value\n"),
+    )
+    .unwrap();
+    let report = ok(
+        dir.path(),
+        &[
+            "project",
+            "map",
+            "long.py",
+            "--fields",
+            "handle,kind,name,signature",
+        ],
+    );
+    let records = rows(&report);
+    let function = records.iter().find(|r| r["kind"] == "function").unwrap();
+    assert_eq!(function["name"]["text"].as_str().unwrap().len(), 160);
+    assert_eq!(function["name"]["omitted_bytes"], 1040);
+    assert!(
+        function["signature"]["text"]["omitted_bytes"]
+            .as_u64()
+            .unwrap()
+            > 0
+    );
+    assert!(serde_json::to_vec(&report).unwrap().len() < 2200);
+}
+
+#[test]
+fn a_query_refuses_source_and_inventory_changes_before_emitting_its_report() {
+    use fun_refactor::{
+        index::Index,
+        project::Project,
+        scan::{scan, ScanOptions},
+    };
+    let dir = fixture();
+    let root = dir.path().canonicalize().unwrap();
+    let options = ScanOptions::default();
+    let scanned = scan(&root, &options).unwrap();
+    let index = Index::build_with_cache(&scanned, None).unwrap();
+    let project = Project::new(&root, &index, &scanned, &options).unwrap();
+    project.verify(&root).unwrap();
+    fs::write(root.join("added.py"), "def added(): pass\n").unwrap();
+    assert!(project.verify(&root).is_err());
+    fs::remove_file(root.join("added.py")).unwrap();
+    fs::write(root.join("src/lib.py"), "def helper(): pass\n").unwrap();
+    assert!(project.verify(&root).is_err());
+    assert!(Project::new(&root, &index, &scanned, &options).is_err());
+}
+
+#[test]
+fn short_ids_require_the_revision_and_cannot_drift_to_another_symbol() {
+    let dir = fixture();
+    let map = ok(
+        dir.path(),
+        &["project", "map", "src/app.py", "--depth", "8"],
+    );
+    let records = rows(&map);
+    let method = records.iter().find(|r| r["name"] == "run").unwrap();
+    let id = method["id"].as_str().unwrap();
+    let revision = map["revision"].as_str().unwrap();
+    assert!(!run(dir.path(), &["project", "show", id]).0);
+    let shown = ok(dir.path(), &["project", "show", id, "--revision", revision]);
+    assert_eq!(shown["node"]["name"], "run");
+    let subtree = ok(dir.path(), &["project", "map", id, "--revision", revision]);
+    assert_eq!(rows(&subtree)[0]["name"], "run");
+    let full = format!("{}{id}", map["handle_prefix"].as_str().unwrap());
+    assert_eq!(shown["node"]["handle"], full);
+    fs::write(dir.path().join("src/lib.py"), "def different(): pass\n").unwrap();
+    assert!(!run(dir.path(), &["project", "show", id, "--revision", revision]).0);
+}
+
+#[test]
+fn an_inspected_location_drives_a_checked_refactoring_without_source_retrieval() {
+    let dir = fixture();
+    let map = ok(dir.path(), &["project", "map", "src/lib.py"]);
+    let records = rows(&map);
+    let symbol = records.iter().find(|r| r["name"] == "helper").unwrap();
+    let shown = ok(
+        dir.path(),
+        &[
+            "project",
+            "show",
+            symbol["id"].as_str().unwrap(),
+            "--revision",
+            map["revision"].as_str().unwrap(),
+        ],
+    );
+    assert!(shown.get("source").is_none());
+    let node = &shown["node"];
+    let target = format!(
+        "{}:{}:{}",
+        node["path"].as_str().unwrap(),
+        node["position"]["line"],
+        node["position"]["col"]
+    );
+    let plan = ok(dir.path(), &["rename", &target, "decorate"]);
+    assert_eq!(plan["applied"], false);
+    assert_eq!(plan["files_changed"], 2);
+    assert!(plan["changes"].to_string().contains("decorate"));
+    assert!(fs::read_to_string(dir.path().join("src/lib.py"))
+        .unwrap()
+        .contains("def helper"));
+}
+
+fn put(root: &Path, path: &str, text: &str) {
+    let path = root.join(path);
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    fs::write(path, text).unwrap();
+}
+
+#[test]
+fn package_views_preserve_cargo_and_npm_declarations_without_resolving_them() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "Cargo.toml",
+        r#"
+[workspace]
+members = ["crates/*"]
+exclude = ["crates/old"]
+default-members = ["crates/core"]
+[workspace.dependencies]
+serde = "1"
+[package]
+name = "server"
+version.workspace = true
+# Package dependencies.
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+util = { package = "actual-util", path = "../external", optional = true, default-features = false }
+remote = { git = "https://example.test/repo", branch = "main" }
+[dev-dependencies]
+test-helper = "2"
+[target.'cfg(unix)'.build-dependencies]
+cc = { version = "1", features = [] }
+"#,
+    );
+    put(
+        root,
+        "crates/core/Cargo.toml",
+        "[package]\nname = 'core'\nversion = '0.1.0'\n",
+    );
+    put(
+        root,
+        "web/package.json",
+        r#"{"name":"web","version":"1.0.0","private":true,"workspaces":{"packages":["apps/*"]},"dependencies":{"react":"^19"},"devDependencies":{"typescript":"*"},"peerDependencies":{"host":"workspace:*"},"optionalDependencies":{"local":"file:../local"}}"#,
+    );
+    let packages = ok(root, &["project", "packages"]);
+    assert_eq!(packages["page"]["total"], 3);
+    assert_eq!(packages["coverage"]["manifests"]["gaps"], 0);
+    assert_eq!(packages["items"][0]["name"], "server");
+    assert_eq!(packages["items"][0]["version"], Value::Null);
+    assert_eq!(packages["items"][0]["version_inherited"], true);
+    assert_eq!(packages["items"][1]["root"], "crates/core");
+    assert_eq!(packages["items"][2]["private"], true);
+    let dependencies = ok(
+        root,
+        &["project", "dependencies", "--manifest", "./Cargo.toml"],
+    );
+    let items = dependencies["items"].as_array().unwrap();
+    assert_eq!(items.len(), 9);
+    assert!(items.iter().any(|r| r["name"] == "util"
+        && r["package"] == "actual-util"
+        && r["path"] == "../external"
+        && r["optional"] == true
+        && r["default-features"] == false));
+    assert!(items
+        .iter()
+        .any(|r| r["name"] == "serde" && r["workspace"] == true && r["feature_count"] == 1));
+    assert!(items
+        .iter()
+        .any(|r| r["name"] == "serde" && r["scope"] == "workspace"));
+    assert!(items.iter().any(|r| r["name"] == "cc"
+        && r["scope"] == "target"
+        && r["target_condition"] == "cfg(unix)"));
+    assert!(items.iter().any(|r| r["kind"] == "workspace-member-pattern"
+        && r["pattern"] == "crates/*"
+        && r["expanded"] == false));
+    for item in items {
+        assert_eq!(item["basis"], "manifest-declaration");
+        if item["kind"] == "dependency" {
+            assert_eq!(item["resolution"], "not-attempted");
+            assert!(item.get("resolved_target").is_none());
+        }
+    }
+    let npm = ok(
+        root,
+        &["project", "dependencies", "--manifest", "web/package.json"],
+    );
+    assert_eq!(npm["page"]["total"], 5);
+    assert!(npm["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["requirement"] == "workspace:*"));
+    assert!(!root.join(".fr-history").exists());
+}
+
+#[test]
+fn manifest_pages_are_bounded_complete_and_bound_to_the_filter() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    for n in 0..3 {
+        put(
+            root,
+            &format!("p{n}/package.json"),
+            r#"{"dependencies":{"a":"1","b":"2","c":"3"}}"#,
+        );
+    }
+    for query in ["packages", "dependencies"] {
+        let full = ok(root, &["project", query]);
+        let mut current = ok(root, &["project", query, "--limit", "1"]);
+        let mut collected = Vec::new();
+        loop {
+            collected.extend(current["items"].as_array().unwrap().clone());
+            let Some(cursor) = current["page"]["next"].as_str() else {
+                break;
+            };
+            current = ok(
+                root,
+                &["project", query, "--limit", "2", "--cursor", cursor],
+            );
+            assert!(current["items"].as_array().unwrap().len() <= 2);
+        }
+        assert_eq!(collected, *full["items"].as_array().unwrap());
+        assert!(!run(root, &["project", query, "--limit", "0"]).0);
+        assert!(!run(root, &["project", query, "--limit", "501"]).0);
+    }
+    let filtered = ok(
+        root,
+        &[
+            "project",
+            "dependencies",
+            "--manifest",
+            "p0/package.json",
+            "--limit",
+            "1",
+        ],
+    );
+    let cursor = filtered["page"]["next"].as_str().unwrap();
+    assert!(
+        !run(
+            root,
+            &[
+                "project",
+                "dependencies",
+                "--manifest",
+                "p1/package.json",
+                "--cursor",
+                cursor
+            ]
+        )
+        .0
+    );
+    assert!(!run(root, &["project", "dependencies", "--cursor", cursor]).0);
+    assert!(!run(root, &["project", "packages", "--cursor", cursor]).0);
+    assert!(
+        !run(
+            root,
+            &["project", "dependencies", "--manifest", "missing.json"]
+        )
+        .0
+    );
+    put(
+        root,
+        "long/package.json",
+        &serde_json::json!({"name": "λ".repeat(300), "dependencies": {"long": "λ".repeat(1000)}})
+            .to_string(),
+    );
+    let long = ok(
+        root,
+        &["project", "dependencies", "--manifest", "long/package.json"],
+    );
+    assert_eq!(
+        long["items"][0]["requirement"]["text"]
+            .as_str()
+            .unwrap()
+            .len(),
+        512
+    );
+    assert_eq!(long["items"][0]["requirement"]["omitted_bytes"], 1488);
+}
+
+#[test]
+fn toml_content_and_manifest_inventory_changes_invalidate_project_handles_and_cursors() {
+    let dir = fixture();
+    let root = dir.path();
+    put(
+        root,
+        "Cargo.toml",
+        "[package]\nname = 'old'\n[dependencies]\na = '1'\nb = '2'\n",
+    );
+    put(root, "other/Cargo.toml", "[workspace]\n");
+    let map = mapped(root);
+    let handle = handle(&map, "run");
+    let old = ok(root, &["project", "packages", "--limit", "1"]);
+    let deps = ok(root, &["project", "dependencies", "--limit", "1"]);
+    let cursor = old["page"]["next"].as_str().unwrap();
+    put(
+        root,
+        "Cargo.toml",
+        "[package]\nname = 'new'\n[dependencies]\na = '1'\nb = '2'\n",
+    );
+    assert!(!run(root, &["project", "show", &handle]).0);
+    assert!(!run(root, &["project", "packages", "--cursor", cursor]).0);
+    assert!(
+        !run(
+            root,
+            &[
+                "project",
+                "dependencies",
+                "--cursor",
+                deps["page"]["next"].as_str().unwrap()
+            ]
+        )
+        .0
+    );
+    let before = ok(root, &["project", "packages"]);
+    fs::rename(root.join("other/Cargo.toml"), root.join("other/other.toml")).unwrap();
+    let after = ok(root, &["project", "packages"]);
+    assert_ne!(before["revision"], after["revision"]);
+    assert_eq!(after["page"]["total"], 1);
+}
+
+#[test]
+fn package_gaps_cover_bad_syntax_and_unsupported_shapes() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "invalid/Cargo.toml", "[package\n");
+    put(root, "invalid/package.json", "[]");
+    put(root, "Cargo.toml", "[package]\nname = 42\n[dependencies]\nbad = 1\n# Partial fields.\nfields = { path = false, optional = 'yes', features = [1], future = true }\n[workspace]\nmembers = [1, 'valid/*']\n");
+    put(
+        root,
+        "package.json",
+        r#"{"dependencies":[],"workspaces":{},"private":"yes"}"#,
+    );
+    let packages = ok(root, &["project", "packages"]);
+    assert_eq!(packages["coverage"]["manifests"]["discovered"], 4);
+    assert_eq!(packages["coverage"]["manifests"]["parsed"], 2);
+    assert!(packages["coverage"]["manifests"]["gaps"].as_u64().unwrap() >= 10);
+    let gaps = ok(root, &["project", "gaps"]);
+    let manifest_gaps: Vec<_> = gaps["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|r| r["scope"] == "manifest")
+        .collect();
+    assert!(manifest_gaps
+        .iter()
+        .any(|r| r["reason"] == "invalid TOML syntax"));
+    assert!(manifest_gaps
+        .iter()
+        .any(|r| r["reason"] == "invalid JSON object"));
+    let declarations = ok(root, &["project", "dependencies"]);
+    assert!(declarations["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["declaration_status"] == "unsupported"));
+    assert!(declarations["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["unreported_fields"] == 1));
+}
+
+#[test]
+fn manifest_discovery_obeys_scan_scope_ignore_size_and_history_exclusion() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "Cargo.toml", "[workspace]\n");
+    put(root, "src/main.rs", "fn main() {}\n");
+    put(root, "ignored/package.json", "{}");
+    put(root, ".hidden/package.json", "{}");
+    put(root, ".fr-history/package.json", "{}");
+    put(root, ".gitignore", "ignored/\n");
+    put(root, "big/Cargo.toml", &format!("#{}\n", "x".repeat(200)));
+    put(root, "bad/Cargo.toml", "");
+    fs::write(root.join("bad/Cargo.toml"), [0xff]).unwrap();
+    let ordinary = ok(root, &["--max-file-size", "100", "project", "packages"]);
+    assert_eq!(ordinary["page"]["total"], 1);
+    assert_eq!(ordinary["coverage"]["manifests"]["discovered"], 3);
+    assert_eq!(ordinary["coverage"]["manifests"]["gaps"], 2);
+    let all = ok(
+        root,
+        &[
+            "--no-ignore",
+            "--max-file-size",
+            "100",
+            "project",
+            "packages",
+        ],
+    );
+    assert_eq!(all["page"]["total"], 3);
+    assert_eq!(all["coverage"]["manifests"]["discovered"], 5);
+    let file = ok(&root.join("src/main.rs"), &["project", "packages"]);
+    assert_eq!(file["page"]["total"], 0);
+    let manifest = ok(&root.join("Cargo.toml"), &["project", "packages"]);
+    assert_eq!(manifest["page"]["total"], 1);
+}
+
+#[cfg(unix)]
+#[test]
+fn manifest_symlinks_are_reported_without_reading_their_targets() {
+    use std::os::unix::fs::symlink;
+    let dir = tempfile::tempdir().unwrap();
+    let outside = tempfile::tempdir().unwrap();
+    put(
+        outside.path(),
+        "Cargo.toml",
+        "[package]\nname = 'outside'\n",
+    );
+    symlink(
+        outside.path().join("Cargo.toml"),
+        dir.path().join("Cargo.toml"),
+    )
+    .unwrap();
+    symlink(outside.path(), dir.path().join("linked")).unwrap();
+    let packages = ok(dir.path(), &["project", "packages"]);
+    assert_eq!(packages["page"]["total"], 0);
+    assert_eq!(packages["coverage"]["manifests"]["discovered"], 1);
+    let gaps = ok(dir.path(), &["project", "gaps"]);
+    assert!(gaps["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["path"] == "Cargo.toml" && r["reason"] == "symlink manifest"));
+    assert!(
+        !run(
+            dir.path(),
+            &["project", "dependencies", "--manifest", "Cargo.toml"]
+        )
+        .0
+    );
+}
+
+#[test]
+fn project_verification_refuses_manifest_content_and_inventory_races() {
+    use fun_refactor::index::Index;
+    use fun_refactor::project::Project;
+    use fun_refactor::scan::{scan, ScanOptions};
+    let dir = fixture();
+    let root = dir.path().canonicalize().unwrap();
+    let source = "[package]\nname = 'original'\n";
+    put(&root, "Cargo.toml", source);
+    let options = ScanOptions::default();
+    let scanned = scan(&root, &options).unwrap();
+    let index = Index::build_with_cache(&scanned, None).unwrap();
+    let project = Project::new(&root, &index, &scanned, &options).unwrap();
+    project.verify(&root).unwrap();
+    put(&root, "Cargo.toml", "[package]\nname = 'modified'\n");
+    assert!(project.verify(&root).is_err());
+    put(&root, "Cargo.toml", source);
+    project.verify(&root).unwrap();
+    fs::rename(root.join("Cargo.toml"), root.join("other.toml")).unwrap();
+    assert!(project.verify(&root).is_err());
+    fs::rename(root.join("other.toml"), root.join("Cargo.toml")).unwrap();
+    put(&root, "nested/Cargo.toml", "[workspace]\n");
+    assert!(project.verify(&root).is_err());
+}
+
+#[test]
+fn local_links_keep_manifest_identity_separate_from_version_resolution() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "Cargo.toml",
+        r#"
+[package]
+name = 'app'
+[dependencies]
+# Local alias.
+alias = { package = 'core', path = 'crates/core', version = '999' }
+wrong = { path = 'crates/core' }
+# Source declarations.
+remote = '1'
+inherited = { workspace = true }
+conflict = { path = 'crates/core', git = 'https://example.test/repo' }
+# Platform dependencies.
+[target.'cfg(unix)'.build-dependencies]
+core = { path = 'crates/core' }
+[workspace.dependencies]
+core = { path = 'crates/core' }
+"#,
+    );
+    put(
+        root,
+        "crates/core/Cargo.toml",
+        "[package]\nname = 'core'\nversion = '1.0.0'\n",
+    );
+    let report = ok(root, &["project", "links", "--manifest", "Cargo.toml"]);
+    let items = report["items"].as_array().unwrap();
+    assert_eq!(items.len(), 6);
+    let alias = items.iter().find(|r| r["name"] == "alias").unwrap();
+    assert_eq!(alias["status"], "linked");
+    assert_eq!(alias["target_manifest"], "crates/core/Cargo.toml");
+    assert_eq!(alias["version_check"], "not-performed");
+    assert!(items.iter().any(|r| r["name"] == "wrong"
+        && r["reason"] == "package-name-mismatch"
+        && r["target_manifest"].is_null()));
+    assert!(items
+        .iter()
+        .any(|r| r["name"] == "inherited" && r["reason"] == "workspace-inheritance-unresolved"));
+    assert!(items
+        .iter()
+        .any(|r| r["name"] == "conflict" && r["reason"] == "conflicting-dependency-sources"));
+    assert!(items.iter().any(|r| r["scope"] == "target"
+        && r["target_condition"] == "cfg(unix)"
+        && r["status"] == "linked"));
+    assert!(items
+        .iter()
+        .any(|r| r["scope"] == "workspace" && r["status"] == "linked"));
+}
+
+#[test]
+fn npm_file_links_allow_aliases_and_workspace_matches_keep_directory_depth() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "package.json",
+        r#"{"workspaces":["apps/*","apps/*/nested","apps/other*","missing/*"],"dependencies":{"alias":"file:apps/a","relative":"./apps/b","registry":"1","workspace":"workspace:*","archive":"file:pkg.tgz"}}"#,
+    );
+    put(root, "apps/a/package.json", r#"{"name":"actual-a"}"#);
+    put(root, "apps/b/package.json", r#"{"name":"b"}"#);
+    put(root, "apps/a/nested/package.json", "{}");
+    put(root, "apps/rust/Cargo.toml", "[package]\nname='rust'\n");
+    let report = ok(root, &["project", "links", "--manifest", "package.json"]);
+    let items = report["items"].as_array().unwrap();
+    assert!(items.iter().any(|r| r["name"] == "alias"
+        && r["target_manifest"] == "apps/a/package.json"
+        && r["target_name"] == "actual-a"));
+    assert!(items
+        .iter()
+        .any(|r| r["name"] == "relative" && r["target_manifest"] == "apps/b/package.json"));
+    assert!(!items
+        .iter()
+        .any(|r| r["name"] == "registry" || r["name"] == "workspace"));
+    assert!(items
+        .iter()
+        .any(|r| r["name"] == "archive" && r["status"] == "unresolved"));
+    let matched: Vec<_> = items
+        .iter()
+        .filter(|r| r["kind"] == "workspace-member-match" && r["status"] == "matched")
+        .collect();
+    assert_eq!(matched.len(), 3);
+    assert_eq!(
+        matched.iter().filter(|r| r["pattern"] == "apps/*").count(),
+        2
+    );
+    assert!(matched.iter().all(|r| r["membership"] == "candidate"));
+    assert!(items
+        .iter()
+        .any(|r| r["pattern"] == "apps/other*" && r["reason"] == "pattern-syntax-unsupported"));
+    assert!(items
+        .iter()
+        .any(|r| r["pattern"] == "missing/*" && r["reason"] == "no-observed-package-match"));
+}
+
+#[test]
+fn workspace_exclusions_and_ownership_ambiguity_prevent_confirmed_matches() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "Cargo.toml",
+        "[workspace]\nmembers=['crates/*']\nexclude=['crates/old']\n",
+    );
+    put(root, "crates/ok/Cargo.toml", "[package]\nname='ok'\n");
+    put(root, "crates/old/Cargo.toml", "[package]\nname='old'\n");
+    put(
+        root,
+        "crates/nested/Cargo.toml",
+        "[package]\nname='nested'\n[workspace]\n",
+    );
+    put(
+        root,
+        "crates/elsewhere/Cargo.toml",
+        "[package]\nname='elsewhere'\nworkspace='../elsewhere'\n",
+    );
+    let report = ok(root, &["project", "links", "--manifest", "Cargo.toml"]);
+    let items = report["items"].as_array().unwrap();
+    assert_eq!(items.iter().filter(|r| r["status"] == "matched").count(), 1);
+    assert!(items
+        .iter()
+        .any(|r| r["status"] == "excluded" && r["excluded_by"] == "crates/old"));
+    assert_eq!(
+        items
+            .iter()
+            .filter(|r| r["reason"] == "workspace-ownership-unresolved")
+            .count(),
+        2
+    );
+    put(
+        root,
+        "Cargo.toml",
+        "[workspace]\nmembers=['crates/*']\nexclude=['crates/**']\n",
+    );
+    let report = ok(root, &["project", "links", "--manifest", "Cargo.toml"]);
+    assert!(report["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|r| r["status"] == "unresolved" && r["reason"] == "unsupported-exclusion"));
+    put(
+        root,
+        "Cargo.toml",
+        "[workspace]\nmembers=[42,'../elsewhere','crates/?','crates/[ab]']\n",
+    );
+    let report = ok(root, &["project", "links", "--manifest", "Cargo.toml"]);
+    assert_eq!(report["page"]["total"], 4);
+    assert!(report["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|r| r["status"] == "unresolved"));
+}
+
+#[test]
+fn link_paths_cannot_escape_the_snapshot_or_normalize_through_unobserved_directories() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "app/Cargo.toml", "[package]\nname='app'\n[dependencies]\ncore={path='../core'}\nescape={path='../../outside'}\nmissing={path='../missing/../core',package='core'}\ninvalid={path=42}\npercent={path='../%63ore'}\n");
+    put(root, "core/Cargo.toml", "[package]\nname='core'\n");
+    let report = ok(root, &["project", "links"]);
+    let items = report["items"].as_array().unwrap();
+    assert!(items
+        .iter()
+        .any(|r| r["name"] == "core" && r["status"] == "linked"));
+    assert!(items
+        .iter()
+        .any(|r| r["name"] == "escape" && r["reason"] == "outside-selected-root"));
+    assert!(items
+        .iter()
+        .any(|r| r["name"] == "missing" && r["reason"] == "directory-not-observed"));
+    assert!(items
+        .iter()
+        .any(|r| r["name"] == "invalid" && r["reason"] == "invalid-path-field"));
+    assert!(items
+        .iter()
+        .any(|r| r["name"] == "percent" && r["reason"] == "path-syntax-unsupported"));
+    let scoped = ok(&root.join("app"), &["project", "links"]);
+    assert!(scoped["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|r| r["status"] == "unresolved"));
+    assert!(!root.join(".fr-history").exists());
+}
+
+#[cfg(unix)]
+#[test]
+fn links_do_not_follow_symlinks_or_ignored_manifests() {
+    use std::os::unix::fs::symlink;
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "Cargo.toml", "[package]\nname='app'\n[dependencies]\nlinked={package='core',path='linked'}\nbypass={package='core',path='linked/../core'}\nignored={path='ignored'}\nskipped={path='skipped'}\n");
+    put(root, "core/Cargo.toml", "[package]\nname='core'\n");
+    put(root, "ignored/Cargo.toml", "[package]\nname='ignored'\n");
+    put(root, ".gitignore", "ignored/\n");
+    fs::create_dir(root.join("skipped")).unwrap();
+    symlink(root.join("core"), root.join("linked")).unwrap();
+    symlink(
+        root.join("core/Cargo.toml"),
+        root.join("skipped/Cargo.toml"),
+    )
+    .unwrap();
+    let report = ok(root, &["project", "links"]);
+    assert_eq!(report["page"]["total"], 4);
+    assert!(report["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|r| r["status"] == "unresolved"));
+}
+
+#[test]
+fn link_pages_are_complete_query_bound_and_invalidated_by_target_manifest_changes() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "Cargo.toml", "[package]\nname='app'\n[dependencies]\na={path='a'}\nb={path='b'}\n[workspace]\nmembers=['*','a']\n");
+    put(root, "a/Cargo.toml", "[package]\nname='a'\n");
+    put(root, "b/Cargo.toml", "[package]\nname='b'\n");
+    let full = ok(root, &["project", "links"]);
+    let first = ok(root, &["project", "links", "--limit", "1"]);
+    let cursor = first["page"]["next"].as_str().unwrap();
+    let mut page = first.clone();
+    let mut items = Vec::new();
+    loop {
+        items.extend(page["items"].as_array().unwrap().clone());
+        let Some(next) = page["page"]["next"].as_str() else {
+            break;
+        };
+        page = ok(
+            root,
+            &["project", "links", "--limit", "2", "--cursor", next],
+        );
+    }
+    assert_eq!(items, *full["items"].as_array().unwrap());
+    assert!(
+        !run(
+            root,
+            &[
+                "project",
+                "links",
+                "--manifest",
+                "a/Cargo.toml",
+                "--cursor",
+                cursor
+            ]
+        )
+        .0
+    );
+    assert!(!run(root, &["project", "dependencies", "--cursor", cursor]).0);
+    assert!(!run(root, &["project", "links", "--limit", "0"]).0);
+    assert!(!run(root, &["project", "links", "--limit", "501"]).0);
+    put(root, "a/Cargo.toml", "[package]\nname='renamed'\n");
+    assert!(!run(root, &["project", "links", "--cursor", cursor]).0);
+    let updated = ok(root, &["project", "links"]);
+    assert!(updated["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["name"] == "a" && r["reason"] == "package-name-mismatch"));
+}
+
+#[test]
+fn link_resolution_uses_full_values_before_clipping_output() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let directory = (0..5)
+        .map(|_| "p".repeat(120))
+        .collect::<Vec<_>>()
+        .join("/");
+    let name = "n".repeat(300);
+    put(
+        root,
+        "Cargo.toml",
+        &format!("[package]\nname='app'\n[dependencies]\n{name}={{path='{directory}'}}\n"),
+    );
+    put(
+        root,
+        &format!("{directory}/Cargo.toml"),
+        &format!("[package]\nname='{name}'\n"),
+    );
+    let report = ok(root, &["project", "links", "--manifest", "Cargo.toml"]);
+    assert_eq!(report["items"][0]["status"], "linked");
+    assert_eq!(report["items"][0]["name"]["omitted_bytes"], 140);
+    assert_eq!(
+        report["items"][0]["target_manifest"]["text"]
+            .as_str()
+            .unwrap()
+            .len(),
+        512
+    );
+}
+
+#[test]
+fn simple_workspace_pattern_matches_agree_with_cargo_metadata() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "Cargo.toml",
+        "[workspace]\nmembers=['crates/*']\nexclude=['crates/old']\nresolver='2'\n",
+    );
+    for name in ["a", "b", "old"] {
+        put(
+            root,
+            &format!("crates/{name}/Cargo.toml"),
+            &format!("[package]\nname='{name}'\nversion='0.1.0'\nedition='2021'\n"),
+        );
+        put(
+            root,
+            &format!("crates/{name}/src/lib.rs"),
+            "pub fn value() -> u32 { 1 }\n",
+        );
+    }
+    let output = Command::new("cargo")
+        .args([
+            "metadata",
+            "--offline",
+            "--no-deps",
+            "--format-version",
+            "1",
+        ])
+        .current_dir(root)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let metadata: Value = serde_json::from_slice(&output.stdout).unwrap();
+    let canonical = root.canonicalize().unwrap();
+    let expected: std::collections::BTreeSet<_> = metadata["packages"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|p| {
+            metadata["workspace_members"]
+                .as_array()
+                .unwrap()
+                .contains(&p["id"])
+        })
+        .map(|p| {
+            Path::new(p["manifest_path"].as_str().unwrap())
+                .strip_prefix(&canonical)
+                .unwrap()
+                .to_string_lossy()
+                .into_owned()
+        })
+        .collect();
+    let report = ok(root, &["project", "links", "--manifest", "Cargo.toml"]);
+    let matched: std::collections::BTreeSet<_> = report["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|r| r["status"] == "matched")
+        .map(|r| r["target_manifest"].as_str().unwrap().to_owned())
+        .collect();
+    assert_eq!(matched, expected);
+}

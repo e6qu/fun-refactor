@@ -7,6 +7,11 @@ use anyhow::{bail, Context, Result};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
+#[cfg(feature = "cli")]
+mod commit;
+#[cfg(feature = "cli")]
+pub use commit::{CommitFailure, RecoveryFailure};
+
 /// A single byte-range replacement within one file.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Edit {
@@ -146,6 +151,29 @@ pub fn apply_to_string(source: &str, edits: &[Edit]) -> Result<String> {
     Ok(out)
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct FileChange<'a> {
+    pub path: &'a Path,
+    pub original: &'a str,
+    pub updated: &'a str,
+}
+
+impl FileChange<'_> {
+    fn changed(&self) -> bool {
+        self.original != self.updated
+    }
+}
+
+impl<'a> From<&'a FileOutcome> for FileChange<'a> {
+    fn from(outcome: &'a FileOutcome) -> Self {
+        Self {
+            path: &outcome.path,
+            original: &outcome.original,
+            updated: &outcome.updated,
+        }
+    }
+}
+
 /// The outcome of applying edits to one file.
 #[derive(Debug, Clone)]
 pub struct FileOutcome {
@@ -261,15 +289,20 @@ fn rejection_evidence(after: &crate::parse::Parsed, updated: &str) -> String {
     )
 }
 
-/// Write planned outcomes to disk atomically across all files.
+/// Commit planned outcomes, recovering earlier writes on handled filesystem failures.
 pub fn commit(outcomes: &[FileOutcome]) -> Result<usize> {
+    commit_changes(&outcomes.iter().map(FileChange::from).collect::<Vec<_>>())
+}
+
+/// Commit text whose producer already validated its format, including recipe files.
+pub fn commit_changes(outcomes: &[FileChange<'_>]) -> Result<usize> {
     // Without a filesystem there is nothing to stage against: a write goes into the same
     // in-memory workspace every read comes from.
     if crate::vfs::is_in_memory() {
         verify_basis_unchanged(outcomes)?;
         let mut written = 0;
         for outcome in outcomes.iter().filter(|o| o.changed()) {
-            crate::vfs::write(&outcome.path, &outcome.updated)?;
+            crate::vfs::write(outcome.path, outcome.updated)?;
             written += 1;
         }
         return Ok(written);
@@ -277,7 +310,7 @@ pub fn commit(outcomes: &[FileOutcome]) -> Result<usize> {
 
     #[cfg(feature = "cli")]
     {
-        commit_via_staging(outcomes)
+        commit::commit(outcomes)
     }
 
     #[cfg(not(feature = "cli"))]
@@ -285,7 +318,7 @@ pub fn commit(outcomes: &[FileOutcome]) -> Result<usize> {
         verify_basis_unchanged(outcomes)?;
         let mut written = 0;
         for outcome in outcomes.iter().filter(|o| o.changed()) {
-            crate::vfs::write(&outcome.path, &outcome.updated)?;
+            crate::vfs::write(outcome.path, outcome.updated)?;
             written += 1;
         }
         Ok(written)
@@ -293,9 +326,9 @@ pub fn commit(outcomes: &[FileOutcome]) -> Result<usize> {
 }
 
 /// Refuse the whole commit when any file no longer holds the text the plan read.
-fn verify_basis_unchanged(outcomes: &[FileOutcome]) -> Result<()> {
+fn verify_basis_unchanged(outcomes: &[FileChange<'_>]) -> Result<()> {
     for outcome in outcomes.iter().filter(|o| o.changed()) {
-        let current = match crate::vfs::read_to_string(&outcome.path) {
+        let current = match crate::vfs::read_to_string(outcome.path) {
             Ok(text) => text,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
             Err(e) => {
@@ -305,7 +338,7 @@ fn verify_basis_unchanged(outcomes: &[FileOutcome]) -> Result<()> {
         };
         if current != outcome.original {
             bail!(
-                "{} changed after the plan read it. Nothing written. \
+                "{} changed after the plan read it. \
                  Re-run the command against the current text.",
                 outcome.path.display()
             );
@@ -316,14 +349,14 @@ fn verify_basis_unchanged(outcomes: &[FileOutcome]) -> Result<()> {
 
 /// Exclusive advisory locks over the commit window, one per directory written to.
 #[cfg(feature = "cli")]
-struct CommitLocks {
+pub(crate) struct CommitLocks {
     /// Held for the locks the open handles carry, never read.
     _held: Vec<std::fs::File>,
 }
 
 #[cfg(feature = "cli")]
 impl CommitLocks {
-    fn acquire(outcomes: &[FileOutcome]) -> Result<CommitLocks> {
+    pub(crate) fn acquire(outcomes: &[FileChange<'_>]) -> Result<CommitLocks> {
         use sha2::{Digest, Sha256};
 
         let mut directories: Vec<PathBuf> = outcomes
@@ -336,6 +369,13 @@ impl CommitLocks {
                     .to_path_buf()
             })
             .collect();
+        for dir in &mut directories {
+            std::fs::create_dir_all(&*dir)
+                .with_context(|| format!("creating {}", dir.display()))?;
+            *dir = dir
+                .canonicalize()
+                .with_context(|| format!("resolving {}", dir.display()))?;
+        }
         directories.sort();
         directories.dedup();
 
@@ -345,12 +385,7 @@ impl CommitLocks {
 
         let mut held = Vec::new();
         for dir in directories {
-            // This creates the directory too.
-            std::fs::create_dir_all(&dir).with_context(|| format!("creating {}", dir.display()))?;
-            let canonical = dir
-                .canonicalize()
-                .with_context(|| format!("resolving {}", dir.display()))?;
-            let digest = Sha256::digest(canonical.as_os_str().as_encoded_bytes());
+            let digest = Sha256::digest(dir.as_os_str().as_encoded_bytes());
             let name: String = digest.iter().take(16).map(|b| format!("{b:02x}")).collect();
             let lock_path = lock_dir.join(format!("{name}.lock"));
             let file = std::fs::OpenOptions::new()
@@ -365,55 +400,6 @@ impl CommitLocks {
         }
         Ok(CommitLocks { _held: held })
     }
-}
-
-/// Stage each file beside its target and rename it into place, so a mid-run failure
-/// cannot leave a half-applied refactoring.
-#[cfg(feature = "cli")]
-fn commit_via_staging(outcomes: &[FileOutcome]) -> Result<usize> {
-    let locks = CommitLocks::acquire(outcomes)?;
-    verify_basis_unchanged(outcomes)?;
-
-    let mut staged: Vec<(PathBuf, PathBuf)> = Vec::new();
-
-    let result = (|| -> Result<()> {
-        for outcome in outcomes.iter().filter(|o| o.changed()) {
-            let dir = outcome.path.parent().unwrap_or_else(|| Path::new("."));
-            std::fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;
-            let mut tmp = tempfile::NamedTempFile::new_in(dir)
-                .with_context(|| format!("staging {}", outcome.path.display()))?;
-            use std::io::Write;
-            tmp.write_all(outcome.updated.as_bytes())
-                .with_context(|| format!("writing staged {}", outcome.path.display()))?;
-            tmp.flush()?;
-            // A staged file takes the private mode a temporary file deserves, and renaming
-            // it over the target hands the target that mode.
-            if let Ok(existing) = std::fs::metadata(&outcome.path) {
-                use std::os::unix::fs::PermissionsExt;
-                let mode = existing.permissions().mode();
-                std::fs::set_permissions(tmp.path(), std::fs::Permissions::from_mode(mode))
-                    .with_context(|| format!("keeping the mode of {}", outcome.path.display()))?;
-            }
-            let (_, tmp_path) = tmp.keep().context("retaining staged file")?;
-            staged.push((tmp_path, outcome.path.clone()));
-        }
-        Ok(())
-    })();
-
-    if let Err(e) = result {
-        for (tmp_path, _) in &staged {
-            let _ = std::fs::remove_file(tmp_path);
-        }
-        return Err(e);
-    }
-
-    let count = staged.len();
-    for (tmp_path, target) in staged {
-        std::fs::rename(&tmp_path, &target)
-            .with_context(|| format!("committing {}", target.display()))?;
-    }
-    drop(locks);
-    Ok(count)
 }
 
 /// Render a unified diff between two texts.

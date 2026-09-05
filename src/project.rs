@@ -1,0 +1,827 @@
+use crate::index::{content_hash_of, Index};
+use crate::model::SymbolId;
+use crate::parse::{Parsed, Parsers};
+use crate::scan::{scan, ScanOptions, ScanResult};
+use crate::span::{LineIndex, Span};
+use anyhow::{bail, Context, Result};
+use clap::{Subcommand, ValueEnum};
+use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
+use std::cell::RefCell;
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
+
+mod links;
+mod manifests;
+
+#[derive(Subcommand)]
+pub enum Command {
+    #[command(about = "Page through a directory, file or symbol hierarchy.")]
+    Map {
+        #[arg(default_value = ".", help = "Workspace path or revision-bound handle")]
+        target: String,
+        #[arg(long, help = "Required when TARGET is a short node ID.")]
+        revision: Option<String>,
+        #[arg(
+            long,
+            default_value_t = 3,
+            help = "Containment levels below the selected root."
+        )]
+        depth: usize,
+        #[arg(long, help = "Include variables and parameters")]
+        locals: bool,
+        #[arg(long, default_value_t = 80)]
+        limit: usize,
+        #[arg(long)]
+        cursor: Option<String>,
+        #[arg(
+            long,
+            value_delimiter = ',',
+            default_value = "id,parent,kind,name,line,children"
+        )]
+        fields: Vec<Field>,
+    },
+    #[command(about = "Inspect a handle, with optional source and reference pages.")]
+    Show(ShowOptions),
+    #[command(about = "Page through Cargo and npm package manifest boundaries.")]
+    Packages {
+        #[arg(long, default_value_t = 40)]
+        limit: usize,
+        #[arg(long)]
+        cursor: Option<String>,
+    },
+    #[command(about = "Page through dependency declarations and workspace patterns.")]
+    Dependencies {
+        #[arg(long, help = "Select a manifest path relative to the project root.")]
+        manifest: Option<PathBuf>,
+        #[arg(long, default_value_t = 40)]
+        limit: usize,
+        #[arg(long)]
+        cursor: Option<String>,
+    },
+    #[command(about = "Page through local manifest links and workspace pattern matches.")]
+    Links {
+        #[arg(long, help = "Select a manifest path relative to the project root.")]
+        manifest: Option<PathBuf>,
+        #[arg(long, default_value_t = 40)]
+        limit: usize,
+        #[arg(long)]
+        cursor: Option<String>,
+    },
+    #[command(about = "Page through skipped files and incomplete facts.")]
+    Gaps {
+        #[arg(long, default_value_t = 40)]
+        limit: usize,
+        #[arg(long)]
+        cursor: Option<String>,
+    },
+}
+
+#[derive(clap::Args)]
+pub struct ShowOptions {
+    handle: String,
+    #[arg(long, help = "Required when HANDLE is a short node ID.")]
+    revision: Option<String>,
+    #[arg(long, help = "Include a bounded source slice")]
+    source: bool,
+    #[arg(long, default_value_t = 0, requires = "source")]
+    offset: usize,
+    #[arg(long, default_value_t = 2048)]
+    bytes: usize,
+    #[arg(
+        long,
+        help = "Include file imports and incoming/outgoing indexed references."
+    )]
+    relations: bool,
+    #[arg(long, default_value_t = 40)]
+    limit: usize,
+    #[arg(long, requires = "relations")]
+    cursor: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Field {
+    Id,
+    Handle,
+    Parent,
+    Kind,
+    Name,
+    Path,
+    Line,
+    Children,
+    Depth,
+    Language,
+    Exported,
+    Signature,
+    Qualifier,
+}
+
+struct Node {
+    name: String,
+    kind: String,
+    path: PathBuf,
+    parent: Option<usize>,
+    children: Vec<usize>,
+    symbol: Option<SymbolId>,
+}
+
+pub struct Project<'a> {
+    root: PathBuf,
+    index: &'a Index,
+    scanned: &'a ScanResult,
+    options: &'a ScanOptions,
+    sources: BTreeMap<PathBuf, String>,
+    lines: BTreeMap<PathBuf, LineIndex>,
+    parses: RefCell<BTreeMap<PathBuf, Parsed>>,
+    nodes: Vec<Node>,
+    symbol_nodes: BTreeMap<SymbolId, usize>,
+    revision: String,
+    manifests: manifests::Manifests,
+}
+
+fn hash(value: impl serde::Serialize) -> Result<String> {
+    Ok(format!("{:x}", Sha256::digest(serde_json::to_vec(&value)?)))
+}
+
+fn bounded_text(text: &str, max: usize) -> Value {
+    let mut end = text.len().min(max);
+    while !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    if end == text.len() {
+        json!(text)
+    } else {
+        json!({"text": &text[..end], "omitted_bytes": text.len() - end})
+    }
+}
+
+fn check_limit(limit: usize) -> Result<()> {
+    if !(1..=500).contains(&limit) {
+        bail!("limit must be between 1 and 500");
+    }
+    Ok(())
+}
+
+pub fn page_length(total: usize, start: usize, limit: usize) -> usize {
+    total.saturating_sub(start).min(limit)
+}
+
+pub fn workspace_pattern_matches(pattern: &[String], path: &[String]) -> bool {
+    pattern.len() == path.len()
+        && pattern
+            .iter()
+            .zip(path)
+            .all(|(p, part)| p == "*" || p == part)
+}
+
+fn page(
+    total: usize,
+    limit: usize,
+    cursor: Option<&str>,
+    key: &str,
+) -> Result<(usize, usize, Value)> {
+    check_limit(limit)?;
+    let start = if let Some(cursor) = cursor {
+        let (basis, offset) = cursor.rsplit_once(':').context("invalid project cursor")?;
+        if basis != key {
+            bail!("stale cursor or different query; restart this project query.");
+        }
+        offset.parse::<usize>().context("invalid cursor offset")?
+    } else {
+        0
+    };
+    if start > total {
+        bail!("cursor is beyond the result set");
+    }
+    let end = start + page_length(total, start, limit);
+    Ok((
+        start,
+        end,
+        json!({"total": total, "returned": end - start, "before": start, "remaining": total - end,
+        "next": (end < total).then(|| format!("{key}:{end}"))}),
+    ))
+}
+
+impl<'a> Project<'a> {
+    pub fn new(
+        root: &Path,
+        index: &'a Index,
+        scanned: &'a ScanResult,
+        options: &'a ScanOptions,
+    ) -> Result<Self> {
+        let selected = root.canonicalize()?;
+        let root = if selected.is_file() {
+            selected
+                .parent()
+                .context("file has no parent")?
+                .to_path_buf()
+        } else {
+            selected.clone()
+        };
+        let manifests = manifests::Manifests::new(&selected, &root, options)?;
+        let mut project = Self {
+            root,
+            index,
+            scanned,
+            options,
+            sources: BTreeMap::new(),
+            lines: BTreeMap::new(),
+            parses: RefCell::new(BTreeMap::new()),
+            nodes: Vec::new(),
+            symbol_nodes: BTreeMap::new(),
+            revision: String::new(),
+            manifests,
+        };
+        project.nodes.push(Node {
+            name: ".".into(),
+            kind: "directory".into(),
+            path: PathBuf::new(),
+            parent: None,
+            children: Vec::new(),
+            symbol: None,
+        });
+        let mut directories = BTreeMap::from([(PathBuf::new(), 0)]);
+        let mut digest = Sha256::new();
+        digest.update(serde_json::to_vec(&(
+            &selected,
+            env!("CARGO_PKG_VERSION"),
+            options.respect_ignore,
+            options.max_file_bytes,
+        ))?);
+        for (path, info) in index.files() {
+            let source = crate::vfs::read_to_string(path)
+                .with_context(|| format!("reading {} for project view", path.display()))?;
+            if index.content_hash(path) != Some(content_hash_of(&source)) {
+                bail!(
+                    "{} changed during indexing; retry project query.",
+                    path.display()
+                );
+            }
+            digest.update(serde_json::to_vec(&(path, hash(&source)?, &info.gaps))?);
+            project.lines.insert(path.clone(), LineIndex::new(&source));
+            project.sources.insert(path.clone(), source);
+            let relative = path.strip_prefix(&project.root)?.to_path_buf();
+            let mut directory = PathBuf::new();
+            let mut parent = 0;
+            for component in relative
+                .parent()
+                .unwrap_or_else(|| Path::new(""))
+                .components()
+            {
+                directory.push(component);
+                parent = if let Some(id) = directories.get(&directory) {
+                    *id
+                } else {
+                    let id = project.add(Node {
+                        name: component.as_os_str().to_string_lossy().into(),
+                        kind: "directory".into(),
+                        path: directory.clone(),
+                        parent: Some(parent),
+                        children: Vec::new(),
+                        symbol: None,
+                    });
+                    directories.insert(directory.clone(), id);
+                    id
+                };
+            }
+            let file = project.add(Node {
+                name: relative.file_name().unwrap().to_string_lossy().into(),
+                kind: "file".into(),
+                path: relative,
+                parent: Some(parent),
+                children: Vec::new(),
+                symbol: None,
+            });
+            let mut symbols = info
+                .symbols
+                .iter()
+                .filter_map(|id| index.symbol(*id))
+                .collect::<Vec<_>>();
+            symbols.sort_by_key(|s| (s.full_span.start, std::cmp::Reverse(s.full_span.end), s.id));
+            let mut stack: Vec<(Span, usize)> = Vec::new();
+            for symbol in symbols {
+                digest.update(serde_json::to_vec(symbol)?);
+                while stack.last().is_some_and(|(span, _)| {
+                    *span == symbol.full_span || !span.contains(symbol.full_span)
+                }) {
+                    stack.pop();
+                }
+                let parent = stack.last().map_or(file, |(_, node)| *node);
+                let id = project.add(Node {
+                    name: symbol.name.clone(),
+                    kind: symbol.kind.as_str().into(),
+                    path: project.nodes[file].path.clone(),
+                    parent: Some(parent),
+                    children: Vec::new(),
+                    symbol: Some(symbol.id),
+                });
+                project.symbol_nodes.insert(symbol.id, id);
+                stack.push((symbol.full_span, id));
+            }
+        }
+        for reference in &index.references {
+            digest.update(serde_json::to_vec(&(&reference.file, reference))?);
+        }
+        digest.update(serde_json::to_vec(&(
+            &index.skipped,
+            &scanned.skipped_symlinks,
+            &scanned.unsupported,
+            &project.manifests.snapshots,
+        ))?);
+        project.revision = format!("{:x}", digest.finalize());
+        Ok(project)
+    }
+
+    fn add(&mut self, node: Node) -> usize {
+        let id = self.nodes.len();
+        if let Some(parent) = node.parent {
+            self.nodes[parent].children.push(id);
+        }
+        self.nodes.push(node);
+        id
+    }
+
+    fn handle(&self, id: usize) -> String {
+        format!("frp1:{}:{id:x}", &self.revision[..32])
+    }
+
+    fn resolve_handle(&self, handle: &str) -> Result<usize> {
+        let mut parts = handle.split(':');
+        if parts.next() != Some("frp1") || parts.next() != Some(&self.revision[..32]) {
+            bail!("stale or invalid project handle; obtain a fresh project map.");
+        }
+        let id = usize::from_str_radix(parts.next().context("missing handle identity")?, 16)
+            .context("invalid handle identity")?;
+        if parts.next().is_some() || id >= self.nodes.len() {
+            bail!("unknown project handle");
+        }
+        Ok(id)
+    }
+
+    fn explicit_handle(&self, id: &str, revision: Option<&str>) -> Result<String> {
+        if let Some(revision) = revision {
+            if revision != self.revision && revision != &self.revision[..32] {
+                bail!("stale revision; obtain a fresh project map.");
+            }
+            Ok(format!("frp1:{}:{id}", &self.revision[..32]))
+        } else {
+            Ok(id.to_owned())
+        }
+    }
+
+    fn target(&self, target: &str) -> Result<usize> {
+        if target.starts_with("frp1:") {
+            return self.resolve_handle(target);
+        }
+        let path = self
+            .root
+            .join(target)
+            .canonicalize()
+            .with_context(|| format!("resolving project path {target}"))?;
+        let relative = path
+            .strip_prefix(&self.root)
+            .context("project path is outside the workspace")?;
+        self.nodes
+            .iter()
+            .position(|n| n.symbol.is_none() && n.path == relative)
+            .context(
+                "path has no indexed project node; inspect project gaps or change scan options.",
+            )
+    }
+
+    fn local(&self, node: usize) -> bool {
+        self.nodes[node]
+            .symbol
+            .and_then(|id| self.index.symbol(id))
+            .is_some_and(|s| s.kind.is_local())
+    }
+
+    fn source(&self, id: usize) -> Result<(&str, Span)> {
+        let node = &self.nodes[id];
+        let path = self.root.join(&node.path);
+        let source = self
+            .sources
+            .get(&path)
+            .context("directory nodes have no source text")?;
+        let span = node
+            .symbol
+            .and_then(|id| self.index.symbol(id))
+            .map_or(Span::new(0, source.len()), |s| s.full_span);
+        if source.get(span.start..span.end).is_none() {
+            bail!("indexed span is outside its source snapshot.");
+        }
+        Ok((source, span))
+    }
+
+    fn signature(&self, id: usize) -> Result<Value> {
+        let Some(symbol) = self.nodes[id].symbol.and_then(|s| self.index.symbol(s)) else {
+            return Ok(Value::Null);
+        };
+        let (source, span) = self.source(id)?;
+        let mut parses = self.parses.borrow_mut();
+        if !parses.contains_key(&symbol.file) {
+            parses.insert(
+                symbol.file.clone(),
+                Parsers::new().parse(symbol.language, source)?,
+            );
+        }
+        let parsed = &parses[&symbol.file];
+        let mut node = parsed
+            .root()
+            .descendant_for_byte_range(symbol.name_span.start, symbol.name_span.end);
+        while let Some(current) = node {
+            if !span.contains(Span::from(current)) {
+                break;
+            }
+            let body = current.child_by_field_name("body").or_else(|| {
+                ["value", "initializer"].iter().find_map(|field| {
+                    current
+                        .child_by_field_name(field)
+                        .and_then(|value| value.child_by_field_name("body"))
+                })
+            });
+            if let Some(body) = body {
+                if body.start_byte() >= symbol.name_span.end && body.start_byte() <= span.end {
+                    let header = source
+                        .get(span.start..body.start_byte())
+                        .context("header crosses a UTF-8 boundary")?
+                        .trim_end();
+                    return Ok(
+                        json!({"basis": "syntax-header", "text": bounded_text(header, 512)}),
+                    );
+                }
+            }
+            node = current.parent();
+        }
+        Ok(json!({"basis": "name-only", "text": bounded_text(&symbol.name, 512)}))
+    }
+
+    fn coverage(&self) -> Value {
+        let mut gaps = BTreeMap::new();
+        for (_, file) in self.index.files() {
+            for gap in &file.gaps {
+                *gaps.entry(gap.cause()).or_insert(0usize) += 1;
+            }
+        }
+        json!({"indexed_files": self.index.file_count(), "skipped_files": self.index.skipped.len(),
+            "skipped_symlinks": self.scanned.skipped_symlinks.len(), "unsupported_files": self.scanned.unsupported.values().sum::<usize>(),
+            "files_by_gap": gaps, "unresolved_references": self.index.references.iter().filter(|r| r.target.is_none()).count(),
+            "respect_ignore": self.options.respect_ignore, "max_file_bytes": self.options.max_file_bytes,
+            "hierarchy": "directories and lexical spans", "architecture": "not inferred",
+            "manifests": {"discovered": self.manifests.snapshots.len(), "parsed": self.manifests.packages.len(),
+                "gaps": self.manifests.gaps.len(), "ecosystems": ["cargo", "npm"],
+                "scope": "selected scan root", "resolution": "not-attempted"}})
+    }
+
+    fn envelope(&self, query: &str) -> Value {
+        json!({"schema": "fr-project-1", "revision": self.revision, "handle_prefix": format!("frp1:{}:", &self.revision[..32]), "query": query, "coverage": self.coverage()})
+    }
+
+    fn map(
+        &self,
+        target: &str,
+        depth: usize,
+        locals: bool,
+        limit: usize,
+        cursor: Option<&str>,
+        fields: &[Field],
+    ) -> Result<Value> {
+        if depth > 64 {
+            bail!("depth must be at most 64");
+        }
+        check_limit(limit)?;
+        if fields.is_empty() || fields.len() > 13 {
+            bail!("choose between 1 and 13 map fields");
+        }
+        let selected = self.target(target)?;
+        let mut stack = vec![(selected, None, 0)];
+        let mut visible = Vec::new();
+        let mut hidden_locals = 0;
+        let mut hidden_depth = 0;
+        while let Some((id, parent, level)) = stack.pop() {
+            let hidden = !locals && self.local(id) && id != selected;
+            if hidden {
+                hidden_locals += 1;
+            } else if level <= depth {
+                visible.push((id, parent, level));
+            } else {
+                hidden_depth += 1;
+            }
+            for child in self.nodes[id].children.iter().rev() {
+                stack.push((
+                    *child,
+                    if hidden { parent } else { Some(id) },
+                    if hidden { level } else { level + 1 },
+                ));
+            }
+        }
+        let key = format!(
+            "frpc1:{}",
+            &hash((&self.revision, "map", selected, depth, locals, fields))?[..32]
+        );
+        let (start, end, page) = page(visible.len(), limit, cursor, &key)?;
+        let mut rows = Vec::new();
+        for (id, parent, level) in &visible[start..end] {
+            let node = &self.nodes[*id];
+            let symbol = node.symbol.and_then(|s| self.index.symbol(s));
+            let mut row = Vec::new();
+            for field in fields {
+                row.push(match field {
+                    Field::Id => json!(format!("{id:x}")),
+                    Field::Handle => json!(self.handle(*id)),
+                    Field::Parent => json!(parent.map(|p| format!("{p:x}"))),
+                    Field::Kind => json!(node.kind),
+                    Field::Name => bounded_text(&node.name, 160),
+                    Field::Path => bounded_text(&node.path.to_string_lossy(), 512),
+                    Field::Line => self.source(*id).ok().map_or(Value::Null, |(source, span)| {
+                        json!(
+                            self.lines[&self.root.join(&node.path)]
+                                .line_col(symbol.map_or(span.start, |s| s.name_span.start), source)
+                                .line
+                        )
+                    }),
+                    Field::Children => json!(node.children.len()),
+                    Field::Depth => json!(level),
+                    Field::Language => json!(self
+                        .index
+                        .file(&self.root.join(&node.path))
+                        .map(|f| f.language.name())),
+                    Field::Exported => json!(symbol.map(|s| s.exported)),
+                    Field::Signature => self.signature(*id)?,
+                    Field::Qualifier => symbol
+                        .and_then(|s| s.qualifier.as_ref())
+                        .map_or(Value::Null, |q| bounded_text(q, 160)),
+                });
+            }
+            rows.push(row);
+        }
+        let mut result = self.envelope("map");
+        result["root"] = json!(self.handle(selected));
+        result["columns"] = json!(fields);
+        result["rows"] = json!(rows);
+        result["page"] = page;
+        result["omitted"] = json!({"locals": hidden_locals, "depth": hidden_depth});
+        Ok(result)
+    }
+
+    fn show(&self, options: &ShowOptions) -> Result<Value> {
+        let ShowOptions {
+            handle,
+            revision,
+            source: source_requested,
+            offset,
+            bytes,
+            relations,
+            limit,
+            cursor,
+        } = options;
+        let (source_requested, offset, bytes, relations, limit, cursor) = (
+            *source_requested,
+            *offset,
+            *bytes,
+            *relations,
+            *limit,
+            cursor.as_deref(),
+        );
+        check_limit(limit)?;
+        if !(4..=65536).contains(&bytes) {
+            bail!("source bytes must be between 4 and 65536.");
+        }
+        let id = self.resolve_handle(&self.explicit_handle(handle, revision.as_deref())?)?;
+        let node = &self.nodes[id];
+        let mut result = self.envelope("show");
+        result["node"] = json!({"handle": self.handle(id), "parent": node.parent.map(|p| self.handle(p)), "kind": node.kind,
+            "name": bounded_text(&node.name, 160), "path": bounded_text(&node.path.to_string_lossy(), 512), "children": node.children.len(),
+            "signature": self.signature(id)?, "qualifier": node.symbol.and_then(|s| self.index.symbol(s)).and_then(|s| s.qualifier.as_ref()).map(|q| bounded_text(q, 160))});
+        if node.kind != "directory" {
+            let (source, span) = self.source(id)?;
+            let name = node
+                .symbol
+                .and_then(|s| self.index.symbol(s))
+                .map_or(span, |s| s.name_span);
+            result["node"]["span"] = json!(span);
+            result["node"]["position"] =
+                json!(self.lines[&self.root.join(&node.path)].line_col(name.start, source));
+        }
+        if source_requested {
+            let (source, span) = self.source(id)?;
+            let text = &source[span.start..span.end];
+            if offset > text.len() || !text.is_char_boundary(offset) {
+                bail!("source offset must be a UTF-8 boundary within the selected node.");
+            }
+            let mut end = offset + page_length(text.len(), offset, bytes);
+            while !text.is_char_boundary(end) {
+                end -= 1;
+            }
+            result["source"] = json!({"text": &text[offset..end], "span": {"start": span.start + offset, "end": span.start + end},
+                "offset": offset, "total_bytes": text.len(), "returned_bytes": end - offset, "next_offset": (end < text.len()).then_some(end)});
+        }
+        if relations {
+            result["relations"] = self.relations(id, limit, cursor)?;
+        }
+        Ok(result)
+    }
+
+    fn relations(&self, id: usize, limit: usize, cursor: Option<&str>) -> Result<Value> {
+        let node = &self.nodes[id];
+        let file = self.root.join(&node.path);
+        let (_, span) = self.source(id)?;
+        let mut rows = Vec::new();
+        if let Some(info) = self.index.file(&file) {
+            for import in &info.imports {
+                rows.push(json!({"direction": "file-import", "path": bounded_text(&import.path, 256), "glob": import.is_glob,
+                    "names": import.names.len(), "basis": "source-declaration"}));
+            }
+        }
+        for reference in &self.index.references {
+            let outgoing = reference.file == file && span.contains(reference.span);
+            let incoming = reference
+                .target
+                .and_then(|s| self.index.symbol(s))
+                .is_some_and(|s| {
+                    if let Some(symbol) = node.symbol {
+                        s.id == symbol
+                    } else {
+                        s.file == file
+                    }
+                });
+            for (direction, include) in [("outgoing", outgoing), ("incoming", incoming)] {
+                if !include {
+                    continue;
+                }
+                let target = reference
+                    .target
+                    .and_then(|s| self.symbol_nodes.get(&s))
+                    .map(|n| self.handle(*n));
+                let source = self
+                    .sources
+                    .get(&reference.file)
+                    .context("reference file is outside the source snapshot.")?;
+                rows.push(json!({"direction": direction, "kind": reference.kind, "name": bounded_text(&reference.name, 160),
+                    "path": bounded_text(&reference.file.strip_prefix(&self.root)?.to_string_lossy(), 512),
+                    "line": self.lines[&reference.file].line_col(reference.span.start, source).line, "target": target, "confidence": reference.confidence}));
+            }
+        }
+        let key = format!("frpc1:{}", &hash((&self.revision, "relations", id))?[..32]);
+        let (start, end, page) = page(rows.len(), limit, cursor, &key)?;
+        Ok(
+            json!({"items": &rows[start..end], "page": page, "scope": "file imports and indexed references; nested source spans included."}),
+        )
+    }
+
+    fn gaps(&self, limit: usize, cursor: Option<&str>) -> Result<Value> {
+        let mut rows = self.manifests.gaps.clone();
+        for (path, reason) in self
+            .index
+            .skipped
+            .iter()
+            .chain(&self.scanned.skipped_symlinks)
+        {
+            rows.push(json!({"path": bounded_text(&path.strip_prefix(&self.root)?.to_string_lossy(), 512), "reason": bounded_text(reason, 512)}));
+        }
+        for (path, file) in self.index.files() {
+            for gap in &file.gaps {
+                rows.push(json!({"path": bounded_text(&path.strip_prefix(&self.root)?.to_string_lossy(), 512), "reason": gap.cause()}));
+            }
+        }
+        for (extension, count) in &self.scanned.unsupported {
+            rows.push(json!({"extension": bounded_text(extension, 160), "count": count, "reason": "unsupported extension"}));
+        }
+        let key = format!("frpc1:{}", &hash((&self.revision, "gaps"))?[..32]);
+        let (start, end, page) = page(rows.len(), limit, cursor, &key)?;
+        let mut result = self.envelope("gaps");
+        result["items"] = json!(&rows[start..end]);
+        result["page"] = page;
+        Ok(result)
+    }
+
+    fn packages(&self, limit: usize, cursor: Option<&str>) -> Result<Value> {
+        let key = format!("frpc1:{}", &hash((&self.revision, "packages"))?[..32]);
+        let (start, end, page) = page(self.manifests.packages.len(), limit, cursor, &key)?;
+        let mut result = self.envelope("packages");
+        result["items"] = json!(&self.manifests.packages[start..end]);
+        result["page"] = page;
+        result["scope"] =
+            json!("Manifest roots; source ownership and workspace membership are not inferred.");
+        Ok(result)
+    }
+
+    fn selected_manifest(&self, manifest: Option<&Path>) -> Result<Option<PathBuf>> {
+        manifest
+            .map(|path| -> Result<PathBuf> {
+                let path = self
+                    .root
+                    .join(path)
+                    .canonicalize()
+                    .context("manifest path cannot be resolved")?;
+                let relative = path
+                    .strip_prefix(&self.root)
+                    .context("manifest is outside the project root")?;
+                if !self.manifests.snapshots.contains_key(&path) {
+                    bail!("manifest was not discovered; check the selected root and scan options.");
+                }
+                Ok(relative.to_path_buf())
+            })
+            .transpose()
+    }
+
+    fn dependencies(
+        &self,
+        manifest: Option<&Path>,
+        limit: usize,
+        cursor: Option<&str>,
+    ) -> Result<Value> {
+        let selected = self.selected_manifest(manifest)?;
+        let rows: Vec<_> = self
+            .manifests
+            .declarations
+            .iter()
+            .filter(|(path, _)| selected.as_ref().is_none_or(|selected| path == selected))
+            .map(|(_, row)| row)
+            .collect();
+        let key = format!(
+            "frpc1:{}",
+            &hash((&self.revision, "dependencies", &selected))?[..32]
+        );
+        let (start, end, page) = page(rows.len(), limit, cursor, &key)?;
+        let mut result = self.envelope("dependencies");
+        result["items"] = json!(&rows[start..end]);
+        result["page"] = page;
+        result["scope"] = json!("Declared constraints and patterns; no lockfile resolution, pattern expansion or inheritance.");
+        Ok(result)
+    }
+
+    fn links(&self, manifest: Option<&Path>, limit: usize, cursor: Option<&str>) -> Result<Value> {
+        check_limit(limit)?;
+        let selected = self.selected_manifest(manifest)?;
+        let rows = links::collect(&self.manifests, &self.root, selected.as_deref());
+        let key = format!(
+            "frpc1:{}",
+            &hash((&self.revision, "links", &selected))?[..32]
+        );
+        let (start, end, page) = page(rows.len(), limit, cursor, &key)?;
+        let mut result = self.envelope("links");
+        result["items"] = json!(&rows[start..end]);
+        result["page"] = page;
+        result["scope"] = json!("Observed local manifests and workspace pattern candidates; package-manager resolution remains unchecked.");
+        Ok(result)
+    }
+
+    pub fn report(&self, command: &Command) -> Result<Value> {
+        match command {
+            Command::Map {
+                target,
+                revision,
+                depth,
+                locals,
+                limit,
+                cursor,
+                fields,
+            } => self.map(
+                &self.explicit_handle(target, revision.as_deref())?,
+                *depth,
+                *locals,
+                *limit,
+                cursor.as_deref(),
+                fields,
+            ),
+            Command::Show(options) => self.show(options),
+            Command::Packages { limit, cursor } => self.packages(*limit, cursor.as_deref()),
+            Command::Dependencies {
+                manifest,
+                limit,
+                cursor,
+            } => self.dependencies(manifest.as_deref(), *limit, cursor.as_deref()),
+            Command::Links {
+                manifest,
+                limit,
+                cursor,
+            } => self.links(manifest.as_deref(), *limit, cursor.as_deref()),
+            Command::Gaps { limit, cursor } => self.gaps(*limit, cursor.as_deref()),
+        }
+    }
+
+    pub fn verify(&self, selected: &Path) -> Result<()> {
+        if manifests::discover(selected, self.options)? != self.manifests.snapshots {
+            bail!("manifest inventory or content changed during the project query; retry.");
+        }
+        for (path, source) in &self.sources {
+            if crate::vfs::read_to_string(path).as_ref().ok() != Some(source) {
+                bail!(
+                    "{} changed during the project query; retry.",
+                    path.display()
+                );
+            }
+        }
+        let current = scan(selected, self.options)?;
+        if current.files != self.scanned.files
+            || current.skipped_too_large != self.scanned.skipped_too_large
+            || current.skipped_symlinks != self.scanned.skipped_symlinks
+            || current.unsupported != self.scanned.unsupported
+        {
+            bail!("workspace inventory changed during the project query; retry.");
+        }
+        Ok(())
+    }
+}

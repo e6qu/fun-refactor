@@ -10,15 +10,39 @@ of what you would otherwise have to look up.
 
 **Every command takes `--json`.** The text output is for reading and the JSON is
 for a program. Both carry the same facts. The JSON writes every path
-absolutely, under the key `file`.
+absolutely, under the key `file`. History records use workspace-relative `path` values.
 
 **Every mutation is a dry run until you say otherwise.** A command that changes
-files prints a unified diff and exits. Pass `--write` to apply it. A multi-file
-write is atomic: all of it lands or none of it does.
+files prints a unified diff and exits. Pass `--write` to apply it. `--save-plan` stores a plan without changing source.
+`openapi --out` also authorizes writing its named output. See [Write guarantees](#write-guarantees) for failure and recovery behavior.
 
 **A refusal names the gap.** Where an operation cannot be done for a language
 or for an input, the tool says which and why. It exits non-zero, does not do
 half the work, and does not do nothing quietly.
+
+## Write guarantees
+
+Native CLI writes record a transaction in `.fr-history/state.json` before changing source.
+The journal stores before/after text, existence, Unix permission modes, validation labels and source digests.
+Replacements use staged files and filesystem renames. Other processes can observe intermediate states.
+A handled failure restores the starting snapshots when the current files still match this transaction.
+A conflicting file prevents recovery; the journal retains the source needed for manual repair.
+The next invocation reports pending recovery. Further writes refuse until recovery succeeds.
+
+`fr history recover <ID> --write` restores an interrupted operation to its starting state.
+It checks all affected files before writing and accepts only the recorded before or after state.
+Recovery can itself fail or stop; the same command can resume it.
+Journal checkpoints, replacement contents and directory updates use filesystem sync operations.
+These guarantees assume the filesystem honors sync and atomic rename.
+Directory locks coordinate `fr` writers. Another program can still race a check and its subsequent rename.
+Changes must stay inside the selected workspace and must not traverse symlinks.
+With a single file as `-C`, its parent owns the journal.
+
+The native library's `edit::commit` retains handled-failure recovery without a persistent journal.
+The browser workspace has no durable filesystem transaction.
+A successful JSON write report follows the commit and includes its `transaction` identity.
+A failed commit emits one error object. Run `fr history` to inspect pending recovery.
+Syntax validation rejects new parser errors; compilation and behavior require their own checks.
 
 ## Naming what to act on
 
@@ -37,6 +61,7 @@ ambiguous, and the tool tells you which case you are in.
 
 | Option | What it does |
 |---|---|
+| `--save-plan` | Store a change plan and return its transaction ID. Conflicts with `--write`. |
 | `--json` | Machine-readable output instead of text |
 | `-C`, `--root <ROOT>` | The workspace to act on. Naming a single file scans that file alone. Default `.` |
 | `--max-file-size <BYTES>` | Skip files larger than this. Default 4 MiB. Every command warns when a scan skipped one |
@@ -391,7 +416,8 @@ fr recipe <FILE> [--write] [--explain] [--catalogs <P>]
 fr recipe --vocabulary [--json]
 ```
 
-Run a refactoring recipe: find, do, expect. One transaction, all or nothing.
+Run a refactoring recipe: find, do, expect. Failed planning prevents the write.
+Accepted plans use the shared commit and recovery path.
 `--explain` prints what the recipe would do without doing it. The language is
 documented in [RECIPES.md](RECIPES.md).
 
@@ -473,6 +499,168 @@ them. Paths, methods and path parameters are exact. Anything the source left
 undeclared stays undeclared here, rather than invented.
 
 ## Housekeeping
+
+### `fr project`
+
+```sh
+fr project map
+fr project map src --depth 4 --limit 80
+fr project map src/app.py --fields id,parent,kind,name,signature
+fr project map --cursor '<NEXT>'
+fr project show '<ID>' --revision '<REVISION>'
+fr project show '<HANDLE>' --source --bytes 2048
+fr project show '<HANDLE>' --source --offset 2048 --bytes 2048
+fr project show '<HANDLE>' --relations --limit 40
+fr project packages --limit 40
+fr project dependencies --manifest Cargo.toml --limit 40
+fr project dependencies --cursor '<NEXT>'
+fr project links --manifest Cargo.toml --limit 40
+fr project links --cursor '<NEXT>'
+fr project gaps --limit 40
+```
+
+`fr project` returns compact JSON under schema `fr-project-1` in both output modes.
+It leaves existing `symbols`, `refs`, `type` and other response shapes unchanged.
+Maps describe directories, indexed files and lexical symbol containment.
+They do not classify packages, frameworks or architectural layers.
+Variables and parameters stay hidden unless `--locals` selects them.
+Named functions inside another function remain visible.
+
+Map responses contain `columns` and corresponding `rows` arrays.
+Default columns are `id,parent,kind,name,line,children`.
+Other fields are `handle,path,depth,language,exported,signature,qualifier`.
+IDs and map parent IDs use hexadecimal strings within the response's revision.
+Use a short ID with `--revision`, or join `handle_prefix` and the ID to obtain a full handle.
+`--fields handle,...` emits full handles directly.
+`map` accepts a path, a full handle, or a short ID with its revision.
+A scoped map treats its selected node as the root; its parent cell is null.
+Other parents can refer to rows on earlier pages. `children` counts all direct indexed children, including hidden locals.
+
+`--depth` defaults to 3 and accepts 0 through 64. Limits accept 1 through 500 rows.
+Maps default to 80 rows; other pages default to 40.
+`page` states the total, returned count, earlier count, remaining count and next cursor.
+`omitted` counts nodes hidden by depth and local-symbol filtering.
+Reuse the same query and fields with a cursor. The page size may change.
+Changed source, manifest content, inventory, scan options or query scope invalidates the corresponding handle or cursor.
+A short ID without its revision cannot identify a symbol for `show`.
+
+`show` returns a bounded signature and node metadata before any source body.
+Its `position` gives the name’s 1-based line and column for existing refactoring targets.
+Its `span` gives the definition’s absolute byte range in the file.
+A `syntax-header` is the source prefix before a grammar-recognized body.
+A `name-only` result means the reader could not recover that header.
+Headers can contain defaults and attributes; they do not establish a complete semantic contract.
+Qualifiers report the index's owner name separately from lexical containment.
+Names cap at 160 UTF-8 bytes; paths and signatures cap at 512.
+A clipped cell becomes `{text, omitted_bytes}` instead of a string.
+
+`--source` adds up to 2048 bytes by default and accepts budgets from 4 through 65536.
+Offsets count bytes from the selected symbol or file's start and must land on UTF-8 boundaries.
+The response includes the absolute byte span and `next_offset`; use that value for the next page.
+The final UTF-8 character may leave a page smaller than its budget.
+A directory has no source slice or reference page.
+
+`--relations` pages file imports and incoming/outgoing indexed references.
+Each reference retains its kind, confidence and resolved target handle, or null when unresolved.
+Outgoing references include nested source spans. Import records describe the containing file.
+This view does not include call-graph dispatch expansion, route contracts or inferred architecture.
+`coverage` reports indexed files, skipped files, unsupported files, syntax gaps and unresolved references.
+`gaps` pages the corresponding diagnostics; unsupported extensions appear as counts.
+Ignore rules and size limits bound discovery. Hidden files follow `--no-ignore`.
+The workspace still requires indexing; output limits do not limit analysis to the returned nodes.
+
+`packages` pages discovered `Cargo.toml` and `package.json` manifests.
+Each row reports the manifest path, its directory root, ecosystem, declared name/version and declaration count.
+Virtual Cargo workspaces have `package_declared: false`.
+These roots describe manifest locations; they do not assign source ownership or establish workspace membership.
+Discovery stays within the selected scan root and does not search its ancestors.
+It respects ignore rules, hidden-file settings and `--max-file-size`, and excludes `.fr-history`.
+Discovery skips symlink manifests. Manifest changes participate in the shared revision and final snapshot check.
+TOML manifests remain outside the source syntax index; their extension may still appear in source coverage gaps.
+
+`dependencies` pages declarations from all discovered manifests, or from one selected with `--manifest PATH`.
+Cargo rows cover ordinary, development, build, target-conditioned and workspace dependencies.
+They retain aliases, version requirements, paths, Git selectors, registry names and inheritance/optional flags.
+Feature lists become `feature_count`; unknown dependency fields become `unreported_fields` counts.
+npm rows cover dependencies, devDependencies, peerDependencies and optionalDependencies.
+Requirements stay literal, including `file:` and `workspace:` strings.
+Workspace member patterns remain separate rows with `expanded: false`.
+The reader includes Cargo exclude/default-member patterns and npm array or `workspaces.packages` forms.
+Names and versions cap at 160 UTF-8 bytes; patterns, selectors and requirements cap at 512.
+
+Every declaration has `basis: manifest-declaration`; dependency rows have `resolution: not-attempted`.
+The declaration view does not invoke package managers, read lockfiles, follow dependency paths or expand globs.
+It does not resolve workspace inheritance, evaluate target conditions or apply overrides, patches and feature activation.
+Malformed manifests and unsupported shapes in inspected fields produce paged manifest diagnostics in `gaps`.
+Affected dependency rows carry `declaration_status: partial` or `unsupported`.
+`coverage.manifests` counts discovered manifests, parsed records and diagnostics.
+This reader extracts selected fields; it does not validate complete package-manager schemas.
+Pagination uses the existing Lean-checked page-length kernel. Manifest extraction has no formal proof yet.
+
+`links` pages local manifest links and workspace member-pattern matches.
+It accepts the same `--manifest`, `--limit` and revision-bound `--cursor` options as `dependencies`.
+Matching uses full manifest values before clipping output; labels and paths retain the existing byte limits.
+Links use only manifests in the current snapshot. They do not run package managers or read additional dependency paths.
+
+For Cargo, `local-dependency` rows inspect explicit `path` fields in package, target and workspace dependency sections.
+A `linked` row identifies a discovered package manifest whose name matches the dependency name or explicit `package` alias.
+For npm, `file:` and `./` or `../` directory specifiers identify discovered package manifests; dependency aliases may differ from target names.
+`target_manifest` and `target_name` describe that local target.
+`version_check: not-performed` means the link does not establish version compatibility or an installed dependency.
+The view preserves target conditions without evaluating them. Workspace inheritance remains unresolved.
+Registry requirements, Git dependencies and npm `workspace:` protocols remain in the declaration view.
+
+Paths resolve relative to their declaring manifest directory and stay inside the selected project root.
+Every traversed directory must occur among the discovered manifests' ancestors, including before a `..` step.
+Symlinks, ignored or missing directories, unreadable target manifests and escaping paths cannot produce confirmed links.
+Absolute paths, home expansion, encoded paths and platform-specific path syntax remain unsupported.
+Unresolved rows state a reason; missing observations do not establish that a dependency is absent from the filesystem.
+
+`workspace-member-match` rows compare Cargo/npm member patterns with observed package directories.
+Supported patterns contain literal components and whole-component `*` wildcards, such as `crates/*`.
+Each wildcard matches one directory level. `**`, partial wildcards, character classes, alternatives and parent traversal remain unsupported.
+Cargo exclude patterns use the same matcher; unsupported exclusions keep matching candidates unresolved.
+Rows report `matched`, `excluded` or `unresolved`, with the source pattern and target or candidate manifest.
+Overlapping patterns retain separate evidence rows. Unmatched patterns remain visible.
+Cargo nested workspaces and explicit `package.workspace` ownership prevent confirmed pattern matches.
+
+Every workspace row retains `membership: candidate`.
+Automatic Cargo path members, root-package membership, default-member selection and full workspace ownership checks remain pending.
+These rules extend beyond glob matching; see the [Cargo workspace reference](https://doc.rust-lang.org/cargo/reference/workspaces.html).
+The Lean matcher model proves depth preservation and literal-or-star matching, with 67,081 Rust/Lean comparison cases.
+It does not prove filesystem interpretation, package-manager membership or Rust refinement for every input.
+
+### `fr history`
+
+```sh
+fr rename OldName NewName --save-plan --json
+fr history
+fr history show 1
+fr history apply 1                  # preview
+fr history apply 1 --write
+fr history undo 1 --write
+fr history redo 1 --write
+fr history recover 1 --write        # only when an operation remains pending
+```
+
+History uses schema 1 and numeric identities local to the workspace.
+`history` lists status, validation labels, paths, applied IDs and the redo stack.
+Commands print JSON in both output modes. `show` and transition previews include diffs and existence/mode changes.
+Applying a saved plan checks its affected-file snapshots and its project source digest.
+That digest covers recognized source files, including hidden and ignored files.
+It excludes `.git`, `.fr-history`, `target`, `node_modules` and `.lake` directories.
+It does not establish build, dependency or behavioral equivalence.
+A changed source digest requires a fresh plan.
+Undo and redo check only the affected files, preserving unrelated edits.
+
+Undo requires the latest applied ID. Redo requires the next ID on the redo stack.
+Saving a plan preserves the redo stack. Applying a new plan clears that stack and marks its old entries `abandoned`.
+Completed records keep their snapshots. There is no automatic pruning in schema 1.
+The journal contains full source text, resides in a private directory and ignores its own contents in Git.
+Deleting `.fr-history` discards all saved plans and recovery data; retain it while an operation needs recovery.
+The workspace scanner excludes this directory even with `--no-ignore`.
+A killed process can leave temporary staging files beside source files; recovery restores targets but leaves those orphaned temporary files.
+History restores file contents, existence and permission modes. It does not restore timestamps, ownership, extended attributes or empty directory topology.
 
 ### `fr cache`
 

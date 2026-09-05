@@ -755,3 +755,57 @@ fn explain_emits_selectors_and_expectations_as_structures() {
     assert_eq!(expects[2]["op"], ">=", "{expects:?}");
     assert_eq!(expects[2]["value"], 1, "{expects:?}");
 }
+
+#[test]
+fn failed_commits_emit_one_error_and_never_a_success_report() {
+    type Case<'a> = (&'a [(&'a str, &'a str)], &'a [&'a str]);
+    let cases: &[Case<'_>] = &[
+        (&[("a.py", "def old():\n    return 1\n")], &["rename", "old", "new"]),
+        (&[("a.py", "import os\n\nx = 1\n")], &["imports", "a.py"]),
+        (&[("a.py", "def one() -> int:\n    return 1\n")], &["translate", "a.py", "typescript"]),
+        (&[("src/a.py", "def one() -> int:\n    return 1\n")], &["translate", "src", "typescript"]),
+        (&[("api.yaml", "openapi: 3.0.0\ninfo: {title: Test, version: '1'}\npaths:\n  /pets:\n    get:\n      responses:\n        '200':\n          description: OK\n")], &["translate", "api.yaml", "fastapi"]),
+        (&[("a.py", "def old():\n    return 1\n"), ("run.recipe", "schema 1\nrecipe rename-old { rename to \"new\" where name=\"old\" }\n")], &["recipe", "run.recipe"]),
+        (&[("run.recipe", "schema 1\nrecipe rename-old { rename to \"new\" where name=\"old\" }\n")], &["recipe", "fmt", "run.recipe"]),
+    ];
+    for (files, args) in cases {
+        let tmp = workspace(files);
+        let locks = tempfile::tempdir().unwrap();
+        std::fs::write(
+            locks.path().join("fun-refactor-locks"),
+            "blocks lock directory",
+        )
+        .unwrap();
+        let output = Command::cargo_bin("fr")
+            .unwrap()
+            .args(*args)
+            .args(["--write", "--json", "--no-cache", "-C"])
+            .arg(tmp.path())
+            .env("TMPDIR", locks.path())
+            .output()
+            .unwrap();
+        assert!(!output.status.success(), "{args:?}");
+        let report: serde_json::Value =
+            serde_json::from_slice(&output.stdout).unwrap_or_else(|error| {
+                panic!(
+                    "{args:?}: {error}: {}",
+                    String::from_utf8_lossy(&output.stdout)
+                )
+            });
+        assert_eq!(report["error"]["kind"], "io", "{args:?}: {report}");
+        assert!(
+            report["error"]["message"]
+                .as_str()
+                .unwrap()
+                .contains("fun-refactor-locks"),
+            "{args:?}: {report}"
+        );
+        assert!(report.get("applied").is_none(), "{args:?}: {report}");
+        for (path, source) in *files {
+            assert_eq!(
+                std::fs::read_to_string(tmp.path().join(path)).unwrap(),
+                *source
+            );
+        }
+    }
+}

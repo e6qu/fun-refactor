@@ -485,3 +485,150 @@ fn a_self_imports_plan_reparses() {
     fun_refactor::edit::plan(&plan.edits, fun_refactor::edit::Validation::ReparseStrict)
         .expect("the self imports plan reparses");
 }
+
+#[test]
+fn history_snapshot_checks_match_lean_for_existence_content_and_modes() {
+    use fun_refactor::history::{matches_snapshot, Snapshot};
+    build_kernel();
+    let output = Command::new("lake")
+        .args(["exe", "fr-history-kernel"])
+        .current_dir(root().join("kernels"))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let samples = [
+        None,
+        Some(Snapshot {
+            content: String::new(),
+            mode: 0o600,
+        }),
+        Some(Snapshot {
+            content: "λ\n".to_string(),
+            mode: 0o600,
+        }),
+        Some(Snapshot {
+            content: "λ\n".to_string(),
+            mode: 0o751,
+        }),
+        Some(Snapshot {
+            content: "名".to_string(),
+            mode: 0o644,
+        }),
+    ];
+    let mut expected = Vec::new();
+    for current in &samples {
+        for before in &samples {
+            for after in &samples {
+                for recovery in [false, true] {
+                    expected.push(matches_snapshot(current, before, after, recovery).to_string());
+                }
+            }
+        }
+    }
+    assert_eq!(
+        String::from_utf8(output.stdout)
+            .unwrap()
+            .lines()
+            .collect::<Vec<_>>(),
+        expected
+    );
+}
+
+#[test]
+fn project_page_lengths_match_lean_including_integer_limits() {
+    build_kernel();
+    let output = Command::new("lake")
+        .args(["exe", "fr-project-kernel"])
+        .current_dir(root().join("kernels"))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let samples: [u64; 12] = [
+        0,
+        1,
+        2,
+        3,
+        4,
+        79,
+        80,
+        499,
+        500,
+        65536,
+        u32::MAX.into(),
+        u64::MAX,
+    ];
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let actual = actual
+        .lines()
+        .map(|line| line.parse::<u64>().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(actual.len(), samples.len().pow(3));
+    let mut index = 0;
+    for total in samples {
+        for start in samples {
+            for limit in samples {
+                if let (Ok(total), Ok(start), Ok(limit)) = (
+                    usize::try_from(total),
+                    usize::try_from(start),
+                    usize::try_from(limit),
+                ) {
+                    assert_eq!(
+                        fun_refactor::project::page_length(total, start, limit) as u64,
+                        actual[index]
+                    );
+                }
+                index += 1;
+            }
+        }
+    }
+}
+
+#[test]
+fn workspace_pattern_matcher_agrees_with_lean_on_component_sequences() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("patterns")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let values: Vec<_> = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect();
+    let alphabet = ["a", "b", "*", "λ", "", "a/b"];
+    let mut paths: Vec<Vec<String>> = vec![vec![]];
+    let mut words = paths.clone();
+    for _ in 0..3 {
+        words = words
+            .iter()
+            .flat_map(|prefix| {
+                alphabet.iter().map(move |part| {
+                    let mut path = prefix.clone();
+                    path.push((*part).to_owned());
+                    path
+                })
+            })
+            .collect();
+        paths.extend(words.clone());
+    }
+    assert_eq!(values.len(), 67_081);
+    let mut values = values.into_iter();
+    for pattern in &paths {
+        for path in &paths {
+            assert_eq!(
+                values.next().unwrap(),
+                fun_refactor::project::workspace_pattern_matches(pattern, path),
+                "{pattern:?} {path:?}"
+            );
+        }
+    }
+}

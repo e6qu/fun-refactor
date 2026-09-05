@@ -1,6 +1,6 @@
 name = "fr-kernels"
 version = "0.1.0"
-defaultTargets = ["FrKernels", "fr-edit-kernel", "fr-position-kernel"]
+defaultTargets = ["FrKernels", "fr-edit-kernel", "fr-position-kernel", "fr-history-kernel", "fr-project-kernel"]
 
 [[lean_lib]]
 name = "FrKernels"
@@ -12,3 +12,11 @@ root = "Main"
 [[lean_exe]]
 name = "fr-position-kernel"
 root = "PositionMain"
+
+[[lean_exe]]
+name = "fr-history-kernel"
+root = "HistoryMain"
+
+[[lean_exe]]
+name = "fr-project-kernel"
+root = "ProjectMain"
