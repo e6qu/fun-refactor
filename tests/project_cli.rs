@@ -2104,3 +2104,269 @@ fn route_analysis_uses_captured_source_and_final_verification_refuses_drift() {
     assert!(!view.to_string().contains("/after"));
     assert!(project.verify(&root).is_err());
 }
+
+fn configuration_fixture() -> tempfile::TempDir {
+    let dir = tempfile::tempdir().unwrap();
+    put(dir.path(), "deploy/compose.yaml", "services:\n  app:\n    environment:\n      APP_MODE: PRIVATE_LITERAL_VALUE\n      ORPHAN: PRIVATE_ORPHAN_VALUE\n");
+    put(
+        dir.path(),
+        "deploy/k8s.yaml",
+        "spec:\n  env:\n    - name: APP_MODE\n      value: PRIVATE_K8S_VALUE\n",
+    );
+    put(dir.path(), "app/a.py", "import os\ndef load():\n    return os.getenv('APP_MODE', 'PRIVATE_DEFAULT')\nx = os.getenv('UNDECLARED')\n");
+    put(
+        dir.path(),
+        "app/b.ts",
+        "const mode = process.env.APP_MODE;\n",
+    );
+    dir
+}
+
+#[test]
+fn configuration_pages_preserve_competing_declarations_and_name_only_consumers() {
+    use fun_refactor::{analysis::stitch, index::Index, scan::ScanOptions};
+    let dir = configuration_fixture();
+    let root = dir.path();
+    let index = Index::build(&root.canonicalize().unwrap(), &ScanOptions::default()).unwrap();
+    let expected = stitch::chains(&index).unwrap();
+    let view = ok(root, &["project", "configuration", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    let declarations: Vec<_> = items
+        .iter()
+        .filter(|r| r["kind"] == "config-declaration")
+        .collect();
+    assert_eq!(declarations.len(), expected.len());
+    assert_eq!(declarations.len(), 3);
+    for chain in expected {
+        let row = declarations
+            .iter()
+            .find(|r| {
+                r["name"] == chain.env_var
+                    && chain
+                        .declared_in
+                        .ends_with(r["site"]["path"].as_str().unwrap())
+            })
+            .unwrap();
+        let consumers: Vec<_> = items
+            .iter()
+            .filter(|r| r["declaration"] == row["id"])
+            .collect();
+        assert_eq!(row["consumer_count"], chain.reads.len());
+        assert_eq!(consumers.len(), chain.reads.len());
+        for read in chain.reads {
+            assert!(consumers.iter().any(|r| read
+                .file
+                .ends_with(r["site"]["path"].as_str().unwrap())
+                && r["site"]["line"] == read.line
+                && r["confidence"] == "name-only"));
+        }
+        let detail = ok(
+            root,
+            &[
+                "project",
+                "show",
+                row["site"]["file_handle"].as_str().unwrap(),
+            ],
+        );
+        assert_eq!(detail["node"]["kind"], "file");
+    }
+    assert!(items
+        .iter()
+        .any(|r| r["name"] == "ORPHAN" && r["consumer_status"] == "no-observed-consumer"));
+    assert!(items.iter().any(|r| r["name"] == "UNDECLARED"
+        && r["declaration"].is_null()
+        && r["status"] == "no-observed-declaration"));
+    assert!(!view.to_string().contains("PRIVATE_"));
+    assert!(items
+        .iter()
+        .all(|r| r.get("source").is_none() && r.get("text").is_none()));
+}
+
+#[test]
+fn configuration_scope_follows_selected_declarations_and_reads() {
+    let dir = configuration_fixture();
+    let root = dir.path();
+    let code = ok(root, &["project", "configuration", "app/a.py"]);
+    assert_eq!(code["analysis"]["selected_declarations"], 2);
+    assert_eq!(code["analysis"]["selected_consumers"], 2);
+    assert_eq!(code["analysis"]["selected_reads_without_declarations"], 1);
+    assert!(code["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|r| r["kind"] == "config-consumer")
+        .all(|r| r["site"]["path"] == "app/a.py"));
+    let manifest = ok(root, &["project", "configuration", "deploy/compose.yaml"]);
+    assert_eq!(manifest["analysis"]["selected_declarations"], 2);
+    assert_eq!(manifest["analysis"]["selected_consumers"], 2);
+    assert_eq!(
+        manifest["analysis"]["selected_reads_without_declarations"],
+        0
+    );
+    let function = relation_handle(root, "load", None);
+    assert!(!run(root, &["project", "configuration", &function]).0);
+}
+
+#[test]
+fn configuration_values_links_keep_heuristic_basis_and_conditions() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "chart/Chart.yaml", "name: demo\nversion: 0.1.0\n");
+    put(
+        root,
+        "chart/values.yaml",
+        "db:\n  url: PRIVATE_VALUE\nenabled: true\n",
+    );
+    put(root, "chart/templates/app.yaml", "spec:\n  env:\n    {{ if .Values.enabled }}\n    - name: DATABASE_URL\n      value: {{ .Values.db.url }}\n    {{ end }}\n");
+    put(root, "app.py", "import os\nos.getenv('DATABASE_URL')\n");
+    let view = ok(root, &["project", "configuration", "chart/values.yaml"]);
+    let declaration = view["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["kind"] == "config-declaration")
+        .unwrap();
+    assert_eq!(declaration["values_path"], "db.url");
+    assert_eq!(declaration["values_path_components"], 2);
+    assert_eq!(
+        declaration["values_file_candidate"]["path"],
+        "chart/values.yaml"
+    );
+    assert!(declaration["values_file_candidate"]["line"].is_null());
+    assert_eq!(
+        declaration["values_file_basis"],
+        "nearest-ancestor-leaf-name"
+    );
+    assert!(declaration["conditional_on"]
+        .as_str()
+        .unwrap()
+        .contains("enabled"));
+    assert_eq!(declaration["selected_consumers"], 1);
+    assert!(!view.to_string().contains("PRIVATE_VALUE"));
+}
+
+#[test]
+fn configuration_pages_are_complete_bounded_and_revision_bound() {
+    let dir = configuration_fixture();
+    let root = dir.path();
+    let full = ok(root, &["project", "configuration", "--limit", "500"]);
+    let first = ok(root, &["project", "configuration", "--limit", "1"]);
+    let cursor = first["page"]["next"].as_str().unwrap();
+    let mut current = first.clone();
+    let mut collected = Vec::new();
+    loop {
+        collected.extend(current["items"].as_array().unwrap().clone());
+        let Some(next) = current["page"]["next"].as_str() else {
+            break;
+        };
+        current = ok(
+            root,
+            &["project", "configuration", "--cursor", next, "--limit", "2"],
+        );
+    }
+    assert_eq!(collected, *full["items"].as_array().unwrap());
+    assert!(
+        !run(
+            root,
+            &["project", "configuration", "app", "--cursor", cursor]
+        )
+        .0
+    );
+    assert!(!run(root, &["project", "routes", "--cursor", cursor]).0);
+    for limit in ["0", "501"] {
+        assert!(!run(root, &["project", "configuration", "--limit", limit]).0);
+    }
+    let file = relation_handle(root, "a.py", None);
+    let id = file.rsplit(':').next().unwrap();
+    assert_eq!(
+        ok(root, &["project", "configuration", &file]),
+        ok(
+            root,
+            &[
+                "project",
+                "configuration",
+                id,
+                "--revision",
+                full["revision"].as_str().unwrap()
+            ]
+        )
+    );
+    put(root, "new.py", "import os\nos.getenv('APP_MODE')\n");
+    assert!(!run(root, &["project", "configuration", "--cursor", cursor]).0);
+    assert!(!run(root, &["project", "configuration", &file]).0);
+    assert!(!root.join(".fr-history").exists());
+}
+
+#[test]
+fn configuration_gaps_and_long_names_do_not_become_false_absence_or_unbounded_rows() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let name = "A".repeat(500);
+    put(
+        root,
+        "compose.yaml",
+        &format!("services:\n  app:\n    environment:\n      {name}: PRIVATE_VALUE\n"),
+    );
+    put(
+        root,
+        "app.ts",
+        &format!("const value = process.env.{name};\n"),
+    );
+    put(
+        root,
+        "broken.py",
+        "import os\nos.getenv('APP_MODE')\nprint(\n",
+    );
+    put(root, "page.html", "<main>hello</main>\n");
+    let view = ok(root, &["project", "configuration"]);
+    assert_eq!(view["analysis"]["gaps"], 1);
+    assert_eq!(view["analysis"]["unsupported_files"]["html"], 1);
+    let items = view["items"].as_array().unwrap();
+    assert!(items
+        .iter()
+        .any(|r| r["kind"] == "analysis-gap" && r["path"] == "broken.py"));
+    assert!(items
+        .iter()
+        .any(|r| r["kind"] == "coverage-gap" && r["language"] == "html"));
+    let declaration = items
+        .iter()
+        .find(|r| r["kind"] == "config-declaration")
+        .unwrap();
+    assert_eq!(declaration["name"]["omitted_bytes"], 340);
+    assert_eq!(declaration["consumer_count"], 1);
+    assert!(items
+        .iter()
+        .any(|r| r["kind"] == "config-consumer" && r["name"]["omitted_bytes"] == 340));
+    assert!(!view.to_string().contains("PRIVATE_VALUE"));
+    let narrow = ok(root, &["project", "configuration", "app.ts"]);
+    assert_eq!(narrow["analysis"]["gaps"], 1);
+}
+
+#[test]
+fn configuration_project_query_reads_its_snapshot_and_refuses_final_source_drift() {
+    use fun_refactor::{
+        index::Index,
+        project::Project,
+        scan::{scan, ScanOptions},
+    };
+    #[derive(clap::Parser)]
+    struct Query {
+        #[command(subcommand)]
+        command: fun_refactor::project::Command,
+    }
+    let dir = configuration_fixture();
+    let root = dir.path().canonicalize().unwrap();
+    let options = ScanOptions::default();
+    let scanned = scan(&root, &options).unwrap();
+    let index = Index::build_with_cache(&scanned, None).unwrap();
+    let project = Project::new(&root, &index, &scanned, &options).unwrap();
+    put(&root, "app/a.py", "print('changed')\n");
+    let query = <Query as clap::Parser>::parse_from(["fr", "configuration"]);
+    let view = project.report(&query.command).unwrap();
+    assert!(view["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["name"] == "UNDECLARED"));
+    assert!(project.verify(&root).is_err());
+}

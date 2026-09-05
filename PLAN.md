@@ -207,10 +207,25 @@ Request/response contracts, Next.js and FastAPI-specific inspection, mounted rou
 The shared Lean page-length laws apply; route extraction and handler matching remain outside those proofs.
 Validation passes the full native/WASM gate, all 46 project CLI tests and strict Lean verification with five fresh source anchors.
 
+M2b6 is complete. It adds bounded configuration-to-code inspection:
+
+- Paged `project configuration` declarations, candidate consumers and reads without observed declarations.
+- Captured-source analysis rejects missing, mismatched and syntactically broken inputs with explicit gaps.
+- Separate consumer rows preserve name-only confidence, competing declarations and bounded page sizes.
+- Directory/file scopes follow selected declarations, candidate values files or code reads across the workspace.
+- Bounded conditions and values paths retain the existing nearest-ancestor leaf-name lookup as a candidate.
+
+Literal environment values and full source lines stay outside the compact response.
+Accessor text can match comments or strings and miss dynamic or lowercase names; deployment identity and precedence remain unchecked.
+The shared Lean page-length laws apply. Configuration inference and general source/model correspondence remain outside those proofs.
+Validation passes the full native/WASM gate, 52 project CLI tests and three snapshot-analysis tests.
+Strict Lean verification passes with all five source anchors fresh.
+The check script now defaults Go's build cache to the checkout, alongside its Zig cache, for sandboxed compiler tests.
+
 Next M2b work:
 
-- Expose bounded configuration-to-code chains using captured source, explicit read gaps and separate consumer rows.
-- Extend route declarations into request/response contracts and connect relevant tests to bounded inspection.
+- Connect test-entry candidates and call relationships to bounded inspection, preserving uncertainty and distinguishing runtime coverage.
+- Extend route declarations into request/response contracts.
 - Extend workspace rules beyond the observed Cargo subset and formalize membership closure.
 - Evaluate bounded inspection tasks on unfamiliar repositories with an agent, a pinned tokenizer and correctness checks.
 - Measure model tokens and task success against file reading, including additional calls and uncertainty.

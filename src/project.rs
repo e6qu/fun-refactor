@@ -11,6 +11,7 @@ use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
+mod configuration;
 mod links;
 mod manifests;
 mod relationships;
@@ -56,6 +57,8 @@ pub enum Command {
     Implementations(RelationshipOptions),
     #[command(about = "Page through route declaration patterns and local handler candidates.")]
     Routes(RelationshipOptions),
+    #[command(about = "Page through environment declarations and candidate code consumers.")]
+    Configuration(RelationshipOptions),
     #[command(about = "Page through Cargo and npm package manifest boundaries.")]
     Packages {
         #[arg(long, default_value_t = 40)]
@@ -856,6 +859,7 @@ impl<'a> Project<'a> {
             } => self.calls(selection, *direction),
             Command::Implementations(selection) => self.implementations(selection),
             Command::Routes(selection) => self.routes(selection),
+            Command::Configuration(selection) => self.configuration(selection),
             Command::Packages { limit, cursor } => self.packages(*limit, cursor.as_deref()),
             Command::Dependencies {
                 manifest,

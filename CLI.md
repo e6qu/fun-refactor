@@ -517,6 +517,9 @@ fr project calls --cursor '<NEXT>'
 fr project implementations '<ID>' --revision '<REVISION>'
 fr project routes src --limit 40
 fr project routes '<FILE_HANDLE>' --cursor '<NEXT>'
+fr project configuration deploy --limit 40
+fr project configuration src/settings.py
+fr project configuration --cursor '<NEXT>'
 fr project packages --limit 40
 fr project dependencies --manifest Cargo.toml --limit 40
 fr project dependencies --cursor '<NEXT>'
@@ -625,6 +628,35 @@ Unsupported languages produce count-based `coverage-gap` rows. Both diagnostics 
 The view has no Next.js or FastAPI-specific reader, request/response schemas, middleware, mounted-router prefixes or cross-file handler resolution.
 An empty page does not prove the absence of routes. Route and handler inference remain outside the Lean paging proofs.
 Revision checks and query-bound cursors apply, including final source and inventory verification.
+
+`configuration` pages environment declarations and candidate consumers across indexed files.
+It accepts a directory, file, file handle or short ID with `--revision`; symbol handles require selecting their containing file.
+The default scope is the workspace root, with 40 rows and limits from 1 through 500.
+Selecting a declaration file or a candidate values file includes all matching consumers in the workspace.
+Selecting a code file includes its candidate reads and their declarations, including declarations outside that file.
+
+`config-declaration` rows preserve competing manifest declarations separately, with `basis: manifest-pattern` and `confidence: name-only`.
+Each row has a revision-bound correlation ID, variable name, declaration site and total/selected consumer counts.
+`config-consumer` rows join that ID and provide a file handle, line, language and the analyzer's name-only confidence.
+These rows share the page limit; consumers can appear on a later page.
+Correlation IDs join rows only; use file handles with `show` and declaration/read lines to narrow further inspection.
+Reads without a matching declaration have a null declaration and `status: no-observed-declaration`.
+Declarations without matching reads have `consumer_status: no-observed-consumer`. Neither status proves absence outside this analysis.
+
+The reader covers YAML/Helm environment lists, Compose environment mappings/lists and selected uppercase accessor patterns in code.
+Accessor text in comments or strings can produce candidates, and overlapping patterns can produce duplicate sites.
+Dynamic and lowercase names can remain unseen. Name equality does not establish deployment identity, runtime use or precedence.
+Helm declarations retain a bounded condition and dotted values path, plus the number of path components.
+A `values_file_candidate` uses the nearest ancestor file containing the leaf key; its line is null.
+Its `nearest-ancestor-leaf-name` basis does not validate the complete path, overlays or deployment inputs.
+Variable names cap at 160 UTF-8 bytes; paths, conditions and dotted values paths cap at 512, with omitted-byte counts.
+The response omits literal environment values and full source lines.
+
+Configuration analysis consumes captured source and checks its indexed content hash before using source spans.
+Missing, mismatched or syntactically broken inputs produce analysis gaps and cannot supply declarations, reads or values-file candidates.
+Workspace-wide analysis and language gaps share the page; `analysis` includes workspace totals and selected relationship counts.
+Cursors bind the revision, scope and resulting rows. Final source and inventory verification still applies.
+Output limits do not bound workspace analysis work. The shared paging proofs do not verify configuration inference or source/model correspondence.
 
 `packages` pages discovered `Cargo.toml` and `package.json` manifests.
 Each row reports the manifest path, its directory root, ecosystem, declared name/version and declaration count.

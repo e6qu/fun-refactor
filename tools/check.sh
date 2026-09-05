@@ -33,11 +33,12 @@ run() {
     "$@"
 }
 
-# Zig defaults to a cache in the account home, which may be read-only in a
-# sandboxed checkout. Keeping the compiler cache under `target` makes the test
-# command self-contained and lets callers still override it when they need to.
+# Compiler caches can default to account directories outside a sandboxed checkout.
+# Keep them under `target` unless the caller supplies a cache path.
 zig_cache="${ZIG_GLOBAL_CACHE_DIR:-$PWD/target/zig-cache}"
-mkdir -p "$zig_cache"
+go_cache="${GOCACHE:-$PWD/target/go-cache}"
+mkdir -p "$zig_cache" "$go_cache"
+export GOCACHE="$go_cache"
 
 if [ "$slice" = all ] || [ "$slice" = default ]; then
     # The capability matrix advertises what each command supports, and a `✓` there is
