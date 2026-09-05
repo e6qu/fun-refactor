@@ -246,6 +246,7 @@ The browser already exports patches and can restore its initial workspace.
 `fr project` now provides compact hierarchy maps and bounded source inspection.
 Its package and dependency pages report Cargo/npm manifest declarations with shared revision checks.
 `fr project links` adds local manifest links and workspace pattern candidates with explicit unresolved cases.
+`fr project workspaces` adds observed Cargo membership and supports inherited local dependency links.
 Complete dependency graphs, framework semantics, Git integration and broader task evaluations remain roadmap work.
 
 [TUTORIAL.md](TUTORIAL.md) walks through helm/helm.

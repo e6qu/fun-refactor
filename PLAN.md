@@ -151,7 +151,7 @@ M2b1 is complete. It adds declared package boundaries and dependencies:
 - Discovery respects scan scope, ignores, size limits and symlink exclusions.
 
 The declaration view preserves raw requirements and patterns separately from links.
-Lockfiles, complete workspace membership, inherited dependency resolution and other ecosystems remain pending.
+Registry and lockfile resolution, complete workspace semantics and other ecosystems remain pending.
 The shared page-length proofs apply; manifest parsing and interpretation are not formally verified.
 Validation passes the full native/WASM gate, strict Lean verification and 18 focused project CLI tests.
 The repository's 11 Cargo/npm manifests produce no manifest diagnostics.
@@ -165,15 +165,28 @@ M2b2 is complete. It adds local manifest links and workspace pattern candidates:
 - Snapshot-only traversal refuses symlinks, unobserved directories and paths outside the selected root.
 - Lean depth-preservation and literal-or-star matcher laws, with 67,081 Rust/Lean comparisons.
 
-Workspace rows remain candidates. Automatic members, root membership and package ownership need further evidence.
+Pattern rows remain candidates. M2b3 adds a separate ownership and membership view.
 The matcher proof does not establish filesystem containment, package-manager resolution or general Rust correspondence.
 Validation passes the full native/WASM gate, strict Lean verification and 26 project CLI tests.
 A simple workspace fixture agrees with `cargo metadata`; the repository view reports eight local links and nine member-pattern matches.
 
+M2b3 is complete. It adds observed Cargo ownership and inherited local links:
+
+- Paged `project workspaces` with root, declared and automatic membership evidence.
+- Own-workspace, explicit-pointer and nearest-ancestor ownership within the selected snapshot.
+- Transitive local path membership, including inherited paths, with exclusions and cycle termination.
+- Inherited local dependencies resolve from the owning workspace root and preserve aliases.
+- Ignored or unreadable ancestor boundaries block inheritance and participate in snapshot checks.
+
+This is a bounded Cargo subset. Registry resolution, feature evaluation and package-manager validation remain unchecked.
+Membership closure has regression tests and Cargo metadata comparisons; its general correctness proof remains pending.
+Validation passes the full native/WASM gate, strict Lean verification and 34 project CLI tests.
+The repository view identifies its root package and eight declared Cargo members.
+
 Next M2b work:
 
-- Resolve workspace ownership and inherited local dependencies, including automatic Cargo members.
 - Connect call-graph dispatch, implementation relationships, route contracts, configuration use and relevant tests.
+- Extend workspace rules beyond the observed Cargo subset and formalize membership closure.
 - Evaluate bounded inspection tasks on unfamiliar repositories with an agent, a pinned tokenizer and correctness checks.
 - Measure model tokens and task success against file reading, including additional calls and uncertainty.
 - Improve repeated-query cost and bound analysis work where measurements justify it.

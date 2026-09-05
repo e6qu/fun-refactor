@@ -845,7 +845,7 @@ core = { path = 'crates/core' }
         && r["target_manifest"].is_null()));
     assert!(items
         .iter()
-        .any(|r| r["name"] == "inherited" && r["reason"] == "workspace-inheritance-unresolved"));
+        .any(|r| r["name"] == "inherited" && r["reason"] == "workspace-dependency-not-declared"));
     assert!(items
         .iter()
         .any(|r| r["name"] == "conflict" && r["reason"] == "conflicting-dependency-sources"));
@@ -1166,4 +1166,390 @@ fn simple_workspace_pattern_matches_agree_with_cargo_metadata() {
         .map(|r| r["target_manifest"].as_str().unwrap().to_owned())
         .collect();
     assert_eq!(matched, expected);
+}
+
+fn cargo_package(root: &Path, path: &str, name: &str, extra: &str) {
+    put(
+        root,
+        &format!("{path}/Cargo.toml"),
+        &format!("[package]\nname='{name}'\nversion='0.1.0'\nedition='2021'\n{extra}"),
+    );
+    put(
+        root,
+        &format!("{path}/src/lib.rs"),
+        "pub fn value() -> u32 { 1 }\n",
+    );
+}
+
+#[test]
+fn inherited_local_paths_and_transitive_members_agree_with_cargo_metadata() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "Cargo.toml", "[workspace]\nmembers=['app']\nresolver='2'\n[workspace.dependencies]\nalias={package='local-lib',path='lib',features=['shared']}\n");
+    cargo_package(
+        root,
+        "app",
+        "app",
+        "[dependencies]\nalias={workspace=true,features=['local'],optional=true}\n",
+    );
+    cargo_package(
+        root,
+        "lib",
+        "local-lib",
+        "[dependencies]\nleaf={path='../leaf'}\n[features]\nshared=[]\nlocal=[]\n",
+    );
+    cargo_package(root, "leaf", "leaf", "");
+    cargo_package(root, "unused", "unused", "");
+    let metadata_output = Command::new("cargo")
+        .args([
+            "metadata",
+            "--offline",
+            "--no-deps",
+            "--format-version",
+            "1",
+        ])
+        .current_dir(root)
+        .output()
+        .unwrap();
+    assert!(
+        metadata_output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&metadata_output.stderr)
+    );
+    let metadata: Value = serde_json::from_slice(&metadata_output.stdout).unwrap();
+    let canonical = root.canonicalize().unwrap();
+    let expected: std::collections::BTreeSet<_> = metadata["packages"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|p| {
+            metadata["workspace_members"]
+                .as_array()
+                .unwrap()
+                .contains(&p["id"])
+        })
+        .map(|p| {
+            Path::new(p["manifest_path"].as_str().unwrap())
+                .strip_prefix(&canonical)
+                .unwrap()
+                .to_string_lossy()
+                .into_owned()
+        })
+        .collect();
+    let view = ok(root, &["project", "workspaces"]);
+    let actual: std::collections::BTreeSet<_> = view["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|r| r["status"] == "member")
+        .map(|r| r["manifest"].as_str().unwrap().to_owned())
+        .collect();
+    assert_eq!(actual, expected);
+    assert_eq!(actual.len(), 3);
+    assert!(view["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["manifest"] == "leaf/Cargo.toml"
+            && r["membership_basis"] == "automatic-path-member"
+            && r["via_manifest"] == "lib/Cargo.toml"));
+    let links = ok(root, &["project", "links", "--manifest", "app/Cargo.toml"]);
+    let inherited = &links["items"][0];
+    assert_eq!(inherited["status"], "linked");
+    assert_eq!(inherited["target_manifest"], "lib/Cargo.toml");
+    assert_eq!(inherited["basis"], "workspace-inheritance");
+    assert_eq!(inherited["workspace_manifest"], "Cargo.toml");
+    assert_eq!(inherited["features_check"], "not-performed");
+    let app = metadata["packages"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["name"] == "app")
+        .unwrap();
+    assert_eq!(
+        Path::new(app["dependencies"][0]["path"].as_str().unwrap()),
+        canonical.join("lib")
+    );
+    assert_eq!(app["dependencies"][0]["rename"], "alias");
+}
+
+#[test]
+fn nearest_workspace_and_explicit_workspace_pointer_choose_the_inheritance_basis() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "Cargo.toml",
+        "[workspace]\nmembers=['nested/app']\n[workspace.dependencies]\ncore={path='outer'}\n",
+    );
+    put(
+        root,
+        "nested/Cargo.toml",
+        "[workspace]\nmembers=['app']\n[workspace.dependencies]\ncore={path='inner'}\n",
+    );
+    cargo_package(root, "outer", "core", "");
+    cargo_package(root, "nested/inner", "core", "");
+    cargo_package(
+        root,
+        "nested/app",
+        "app",
+        "[dependencies]\ncore={workspace=true}\n",
+    );
+    let first = ok(
+        root,
+        &["project", "links", "--manifest", "nested/app/Cargo.toml"],
+    );
+    assert_eq!(
+        first["items"][0]["target_manifest"],
+        "nested/inner/Cargo.toml"
+    );
+    put(
+        root,
+        "nested/app/Cargo.toml",
+        "[package]\nname='app'\nworkspace='../..'\n[dependencies]\ncore={workspace=true}\n",
+    );
+    let second = ok(
+        root,
+        &["project", "links", "--manifest", "nested/app/Cargo.toml"],
+    );
+    assert_eq!(second["items"][0]["target_manifest"], "outer/Cargo.toml");
+    let ownership = ok(
+        root,
+        &[
+            "project",
+            "workspaces",
+            "--manifest",
+            "nested/app/Cargo.toml",
+        ],
+    );
+    assert_eq!(
+        ownership["items"][0]["ownership_basis"],
+        "package-workspace"
+    );
+    assert_eq!(ownership["items"][0]["workspace_manifest"], "Cargo.toml");
+}
+
+#[test]
+fn ignored_and_malformed_ancestor_manifests_block_inheritance_from_farther_roots() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "Cargo.toml",
+        "[workspace]\nmembers=['nested/app']\n[workspace.dependencies]\ncore={path='core'}\n",
+    );
+    cargo_package(root, "core", "core", "");
+    cargo_package(
+        root,
+        "nested/app",
+        "app",
+        "[dependencies]\ncore={workspace=true}\n",
+    );
+    put(root, "nested/Cargo.toml", "[workspace]\nmembers=['app']\n");
+    put(root, ".gitignore", "/nested/Cargo.toml\n");
+    let ignored = ok(
+        root,
+        &["project", "links", "--manifest", "nested/app/Cargo.toml"],
+    );
+    assert_eq!(ignored["items"][0]["status"], "unresolved");
+    assert_eq!(
+        ignored["items"][0]["reason"],
+        "workspace-ancestor-unavailable"
+    );
+    let gaps = ok(root, &["project", "gaps"]);
+    assert!(gaps["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["path"] == "nested/Cargo.toml"
+            && r["reason"] == "workspace ancestor excluded or unavailable"));
+    put(root, ".gitignore", "");
+    put(root, "nested/Cargo.toml", "[workspace\n");
+    let malformed = ok(
+        root,
+        &["project", "links", "--manifest", "nested/app/Cargo.toml"],
+    );
+    assert_eq!(
+        malformed["items"][0]["reason"],
+        "workspace-ancestor-unavailable"
+    );
+    fs::remove_file(root.join("nested/Cargo.toml")).unwrap();
+    let unblocked = ok(
+        root,
+        &["project", "links", "--manifest", "nested/app/Cargo.toml"],
+    );
+    assert_eq!(unblocked["items"][0]["status"], "linked");
+    let scoped = ok(&root.join("nested/app"), &["project", "links"]);
+    assert_eq!(scoped["items"][0]["reason"], "workspace-root-not-observed");
+}
+
+#[test]
+fn inheritance_refuses_unsupported_overrides_and_nonlocal_workspace_definitions() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "Cargo.toml", "[workspace]\nmembers=['app']\n[workspace.dependencies]\nremote='1'\ninvalid={path='core',optional=true}\ncore={path='core'}\n");
+    cargo_package(root, "core", "core", "");
+    cargo_package(root, "app", "app", "[dependencies]\ncore={workspace=true,path='../core'}\nmissing={workspace=true}\nremote={workspace=true}\ninvalid={workspace=true}\nfalseflag={workspace=false}\n");
+    let links = ok(root, &["project", "links", "--manifest", "app/Cargo.toml"]);
+    let items = links["items"].as_array().unwrap();
+    assert!(items.iter().all(|r| r["status"] == "unresolved"));
+    for (name, reason) in [
+        ("core", "unsupported-inherited-fields"),
+        ("missing", "workspace-dependency-not-declared"),
+        ("remote", "workspace-dependency-not-local"),
+        ("invalid", "invalid-workspace-dependency"),
+        ("falseflag", "invalid-inherited-dependency"),
+    ] {
+        assert!(items
+            .iter()
+            .any(|r| r["name"] == name && r["reason"] == reason));
+    }
+    let ownership = ok(
+        root,
+        &["project", "workspaces", "--manifest", "core/Cargo.toml"],
+    );
+    assert_eq!(
+        ownership["items"][0]["reason"],
+        "package-not-observed-member"
+    );
+}
+
+#[test]
+fn automatic_membership_terminates_on_cycles_and_respects_exclusions() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "Cargo.toml",
+        "[workspace]\nmembers=['a']\nexclude=['excluded']\n",
+    );
+    cargo_package(
+        root,
+        "a",
+        "a",
+        "[dependencies]\nb={path='../b'}\nexcluded={path='../excluded'}\n",
+    );
+    cargo_package(root, "b", "b", "[dependencies]\na={path='../a'}\n");
+    cargo_package(root, "excluded", "excluded", "");
+    let view = ok(root, &["project", "workspaces"]);
+    assert_eq!(
+        view["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|r| r["status"] == "member")
+            .count(),
+        2
+    );
+    assert!(view["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["manifest"] == "excluded/Cargo.toml" && r["reason"] == "workspace-excluded"));
+    put(
+        root,
+        "Cargo.toml",
+        "[workspace]\nmembers=['a']\nexclude=['**/excluded']\n",
+    );
+    let unknown = ok(root, &["project", "workspaces"]);
+    assert!(!unknown["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["status"] == "member"));
+}
+
+#[test]
+fn workspace_pages_and_inherited_links_are_revision_bound() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "Cargo.toml",
+        "[workspace]\nmembers=['a','b']\n[workspace.dependencies]\ncore={path='core'}\n",
+    );
+    cargo_package(root, "a", "a", "[dependencies]\ncore={workspace=true}\n");
+    cargo_package(root, "b", "b", "");
+    cargo_package(root, "core", "core", "");
+    let full = ok(root, &["project", "workspaces"]);
+    let first = ok(root, &["project", "workspaces", "--limit", "1"]);
+    let cursor = first["page"]["next"].as_str().unwrap();
+    let mut collected = first["items"].as_array().unwrap().clone();
+    let mut current = first.clone();
+    while let Some(next) = current["page"]["next"].as_str() {
+        current = ok(
+            root,
+            &["project", "workspaces", "--limit", "2", "--cursor", next],
+        );
+        collected.extend(current["items"].as_array().unwrap().clone());
+    }
+    assert_eq!(collected, *full["items"].as_array().unwrap());
+    assert!(
+        !run(
+            root,
+            &[
+                "project",
+                "workspaces",
+                "--manifest",
+                "a/Cargo.toml",
+                "--cursor",
+                cursor
+            ]
+        )
+        .0
+    );
+    assert!(!run(root, &["project", "workspaces", "--limit", "0"]).0);
+    assert!(!run(root, &["project", "workspaces", "--limit", "501"]).0);
+    assert!(!run(root, &["project", "links", "--cursor", cursor]).0);
+    put(
+        root,
+        "Cargo.toml",
+        "[workspace]\nmembers=['b']\n[workspace.dependencies]\ncore={path='core'}\n",
+    );
+    assert!(!run(root, &["project", "workspaces", "--cursor", cursor]).0);
+    let links = ok(root, &["project", "links", "--manifest", "a/Cargo.toml"]);
+    assert_eq!(links["items"][0]["reason"], "package-not-observed-member");
+}
+
+#[test]
+fn root_packages_seed_automatic_membership_without_a_members_list() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "Cargo.toml",
+        "[package]\nname='root'\n[workspace]\n[dependencies]\nchild={path='child'}\n",
+    );
+    cargo_package(root, "child", "child", "");
+    let view = ok(root, &["project", "workspaces"]);
+    assert_eq!(view["items"][0]["membership_basis"], "root-package");
+    assert_eq!(
+        view["items"][1]["membership_basis"],
+        "automatic-path-member"
+    );
+}
+
+#[test]
+fn ignored_workspace_ancestor_metadata_participates_in_snapshot_verification() {
+    use fun_refactor::index::Index;
+    use fun_refactor::project::Project;
+    use fun_refactor::scan::{scan, ScanOptions};
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    put(&root, "Cargo.toml", "[workspace]\nmembers=['nested/app']\n");
+    cargo_package(&root, "nested/app", "app", "");
+    put(&root, ".gitignore", "/nested/Cargo.toml\n");
+    let options = ScanOptions::default();
+    let scanned = scan(&root, &options).unwrap();
+    let index = Index::build_with_cache(&scanned, None).unwrap();
+    let before = Project::new(&root, &index, &scanned, &options).unwrap();
+    before.verify(&root).unwrap();
+    put(&root, "nested/Cargo.toml", "opaque excluded contents");
+    assert!(before.verify(&root).is_err());
+    let blocked = Project::new(&root, &index, &scanned, &options).unwrap();
+    blocked.verify(&root).unwrap();
+    put(&root, "nested/Cargo.toml", "changed excluded contents");
+    blocked.verify(&root).unwrap();
+    fs::remove_file(root.join("nested/Cargo.toml")).unwrap();
+    assert!(blocked.verify(&root).is_err());
 }

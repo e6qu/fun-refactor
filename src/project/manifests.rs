@@ -59,6 +59,30 @@ pub(super) fn discover(
         };
         result.insert(entry.into_path(), snapshot);
     }
+    let scope = if selected.is_file() {
+        selected.parent().unwrap_or(selected)
+    } else {
+        selected
+    };
+    let ancestors: std::collections::BTreeSet<_> = result
+        .keys()
+        .filter(|path| path.file_name().is_some_and(|n| n == "Cargo.toml"))
+        .flat_map(|path| path.parent().into_iter().flat_map(Path::ancestors))
+        .filter(|path| path.starts_with(scope))
+        .map(|path| path.join("Cargo.toml"))
+        .collect();
+    for path in ancestors {
+        if let std::collections::btree_map::Entry::Vacant(entry) = result.entry(path) {
+            match std::fs::symlink_metadata(entry.key()) {
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                _ => {
+                    entry.insert(Snapshot::Skipped(
+                        "workspace ancestor excluded or unavailable".into(),
+                    ));
+                }
+            }
+        }
+    }
     Ok(result)
 }
 

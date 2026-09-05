@@ -68,6 +68,15 @@ pub enum Command {
         #[arg(long)]
         cursor: Option<String>,
     },
+    #[command(about = "Page through observed Cargo workspace ownership and membership.")]
+    Workspaces {
+        #[arg(long, help = "Select a manifest path relative to the project root.")]
+        manifest: Option<PathBuf>,
+        #[arg(long, default_value_t = 40)]
+        limit: usize,
+        #[arg(long)]
+        cursor: Option<String>,
+    },
     #[command(about = "Page through skipped files and incomplete facts.")]
     Gaps {
         #[arg(long, default_value_t = 40)]
@@ -768,6 +777,27 @@ impl<'a> Project<'a> {
         Ok(result)
     }
 
+    fn workspaces(
+        &self,
+        manifest: Option<&Path>,
+        limit: usize,
+        cursor: Option<&str>,
+    ) -> Result<Value> {
+        check_limit(limit)?;
+        let selected = self.selected_manifest(manifest)?;
+        let rows = links::ownership(&self.manifests, &self.root, selected.as_deref());
+        let key = format!(
+            "frpc1:{}",
+            &hash((&self.revision, "workspaces", &selected))?[..32]
+        );
+        let (start, end, page) = page(rows.len(), limit, cursor, &key)?;
+        let mut result = self.envelope("workspaces");
+        result["items"] = json!(&rows[start..end]);
+        result["page"] = page;
+        result["scope"] = json!("Cargo ownership and membership from observed manifests; package-manager validation remains unchecked.");
+        Ok(result)
+    }
+
     pub fn report(&self, command: &Command) -> Result<Value> {
         match command {
             Command::Map {
@@ -798,6 +828,11 @@ impl<'a> Project<'a> {
                 limit,
                 cursor,
             } => self.links(manifest.as_deref(), *limit, cursor.as_deref()),
+            Command::Workspaces {
+                manifest,
+                limit,
+                cursor,
+            } => self.workspaces(manifest.as_deref(), *limit, cursor.as_deref()),
             Command::Gaps { limit, cursor } => self.gaps(*limit, cursor.as_deref()),
         }
     }

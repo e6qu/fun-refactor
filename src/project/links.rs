@@ -4,6 +4,8 @@ use serde_json::{json, Value};
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
+mod workspaces;
+
 fn text(value: &str) -> Value {
     bounded_text(value, 512)
 }
@@ -169,6 +171,7 @@ fn dependencies(
     doc: &Value,
     cargo: bool,
     rows: &mut Vec<Value>,
+    ownership: &workspaces::Analysis,
 ) {
     let mut scopes = vec![("package", None, doc)];
     if cargo {
@@ -201,9 +204,12 @@ fn dependencies(
                 continue;
             };
             for (name, spec) in entries {
-                if let Some(mut row) =
+                let row = if cargo && scope != "workspace" && spec.get("workspace").is_some() {
+                    Some(ownership.inherited(manifests, known, manifest, name, spec))
+                } else {
                     local_dependency(manifests, known, manifest, cargo, name, spec)
-                {
+                };
+                if let Some(mut row) = row {
                     row["manifest"] = path_text(manifest);
                     row["section"] = json!(section);
                     row["scope"] = json!(scope);
@@ -331,6 +337,7 @@ fn workspace(
 
 pub(super) fn collect(manifests: &Manifests, root: &Path, selected: Option<&Path>) -> Vec<Value> {
     let known = directories(manifests, root);
+    let ownership = workspaces::Analysis::new(manifests, root);
     let mut rows = Vec::new();
     for (manifest, doc) in &manifests.documents {
         if selected.is_some_and(|selected| selected != manifest) {
@@ -339,8 +346,14 @@ pub(super) fn collect(manifests: &Manifests, root: &Path, selected: Option<&Path
         let cargo = manifest
             .file_name()
             .is_some_and(|name| name == "Cargo.toml");
-        dependencies(manifests, &known, manifest, doc, cargo, &mut rows);
+        dependencies(
+            manifests, &known, manifest, doc, cargo, &mut rows, &ownership,
+        );
         workspace(manifests, manifest, doc, cargo, &mut rows);
     }
     rows
+}
+
+pub(super) fn ownership(manifests: &Manifests, root: &Path, selected: Option<&Path>) -> Vec<Value> {
+    workspaces::Analysis::new(manifests, root).rows(manifests, selected)
 }

@@ -516,6 +516,8 @@ fr project dependencies --manifest Cargo.toml --limit 40
 fr project dependencies --cursor '<NEXT>'
 fr project links --manifest Cargo.toml --limit 40
 fr project links --cursor '<NEXT>'
+fr project workspaces --limit 40
+fr project workspaces --manifest crates/core/Cargo.toml
 fr project gaps --limit 40
 ```
 
@@ -607,7 +609,7 @@ A `linked` row identifies a discovered package manifest whose name matches the d
 For npm, `file:` and `./` or `../` directory specifiers identify discovered package manifests; dependency aliases may differ from target names.
 `target_manifest` and `target_name` describe that local target.
 `version_check: not-performed` means the link does not establish version compatibility or an installed dependency.
-The view preserves target conditions without evaluating them. Workspace inheritance remains unresolved.
+The view preserves target conditions without evaluating them. Cargo inherited paths use the observed membership described below.
 Registry requirements, Git dependencies and npm `workspace:` protocols remain in the declaration view.
 
 Paths resolve relative to their declaring manifest directory and stay inside the selected project root.
@@ -624,11 +626,38 @@ Rows report `matched`, `excluded` or `unresolved`, with the source pattern and t
 Overlapping patterns retain separate evidence rows. Unmatched patterns remain visible.
 Cargo nested workspaces and explicit `package.workspace` ownership prevent confirmed pattern matches.
 
-Every workspace row retains `membership: candidate`.
-Automatic Cargo path members, root-package membership, default-member selection and full workspace ownership checks remain pending.
+Every pattern-match row retains `membership: candidate`.
+The separate workspace view checks observed Cargo ownership and membership.
 These rules extend beyond glob matching; see the [Cargo workspace reference](https://doc.rust-lang.org/cargo/reference/workspaces.html).
 The Lean matcher model proves depth preservation and literal-or-star matching, with 67,081 Rust/Lean comparison cases.
 It does not prove filesystem interpretation, package-manager membership or Rust refinement for every input.
+
+`workspaces` pages parsed Cargo package ownership and virtual workspace roots.
+Its manifest filter, limits and cursors work like `links`.
+Ownership uses a package's own workspace table, an explicit `package.workspace` pointer, or the nearest observed ancestor workspace.
+Conflicting declarations, unavailable roots and unsupported pointers remain unresolved.
+The selected project root bounds every lookup; a missing observation does not establish that a package is standalone.
+
+The reader checks ancestor manifest metadata inside that scope, including ancestors excluded by ignore rules.
+It does not read excluded contents. An unavailable ancestor blocks inheritance through it and appears in `gaps`.
+These observations participate in the snapshot revision and final verification.
+
+Membership starts with root packages and declared members under the supported pattern and exclusion rules.
+It follows observed local dependency paths transitively, including inherited paths, to find automatic members inside the same workspace.
+Unlisted packages do not acquire membership through directory containment alone.
+Unused workspace dependency definitions do not add members. Cycles terminate after membership stops growing.
+Member rows identify their ownership basis, membership basis and, for automatic members, the referring manifest.
+The result describes observed manifests; `validation: package-manager-unchecked` preserves its limits.
+
+For an observed member, `links` reads `workspace = true` dependencies from its owner's workspace dependency table.
+Local paths resolve relative to that workspace root; dependency aliases retain the declared target package name.
+Inherited rows include `workspace_manifest` and `membership_basis`.
+Missing definitions, unsupported overrides, nonlocal definitions and unresolved membership produce explicit reasons.
+Version compatibility and feature evaluation remain unchecked.
+These rules follow the [Cargo inheritance reference](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#inheriting-a-dependency-from-a-workspace).
+
+Default-member selection, member patterns with parent traversal, broader globs and npm workspace ownership remain pending.
+The membership closure has regression tests and Cargo metadata comparisons, but no formal proof yet.
 
 ### `fr history`
 
