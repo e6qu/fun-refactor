@@ -33,7 +33,7 @@ Implemented foundations:
 - Next.js/FastAPI route conversion and OpenAPI service scaffolds, with explicit limits.
 - Local recipes, expectations, workspace previews and canonical formatting.
 - Native releases, a WASM API, a browser playground and patch downloads.
-- Lean edit, position, history and pagination models, source anchors, signature maps and `spec check`, `sync` and `verify`.
+- Lean edit, position, history, pagination and confidence models, source anchors, signature maps and `spec check`, `sync` and `verify`.
 
 Important gaps:
 
@@ -222,9 +222,22 @@ Validation passes the full native/WASM gate, 52 project CLI tests and three snap
 Strict Lean verification passes with all five source anchors fresh.
 The check script now defaults Go's build cache to the checkout, alongside its Zig cache, for sandboxed compiler tests.
 
+M2b7 is complete. It adds bounded test candidates and call-path witnesses:
+
+- Paged `project tests` for directory, file and symbol scopes, using built-in test catalogs.
+- Captured-source catalog checks report missing, mismatched and syntactically broken inputs.
+- One shortest call-path witness per candidate, with depth limits, cycle termination and separate paged edges.
+- Preserved rule IDs, edge confidence and dispatch origins, with explicit catalog, hierarchy and coverage gaps.
+- An anchored Lean confidence model proves non-strengthening and tier bounds, with 5,461 shared Rust/Lean cases.
+
+Catalog entries include fixtures and helpers; paths establish inferred relevance, without proving runner discovery or runtime coverage.
+The graph uses fresh hierarchy analysis and final snapshot checks, as the existing call view does.
+Output and witness depth are bounded; workspace analysis cost, catalog accuracy and graph correspondence remain outside the model proofs.
+Validation passes the full native/WASM gate, 58 project CLI tests and two captured-source catalog tests.
+Strict Lean verification passes with all six source anchors fresh.
+
 Next M2b work:
 
-- Connect test-entry candidates and call relationships to bounded inspection, preserving uncertainty and distinguishing runtime coverage.
 - Extend route declarations into request/response contracts.
 - Extend workspace rules beyond the observed Cargo subset and formalize membership closure.
 - Evaluate bounded inspection tasks on unfamiliar repositories with an agent, a pinned tokenizer and correctness checks.

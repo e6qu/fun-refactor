@@ -1,5 +1,30 @@
 namespace FrKernels.Project
 
+-- fr:spec src/project.rs::path_confidence @ b5a8549e
+-- fr:signature edges: &[Confidence] => edges: List Nat; return: Confidence => return: Nat
+def pathConfidence (edges : List Nat) : Nat := edges.foldr max 0
+
+theorem path_confidence_empty : pathConfidence [] = 0 := rfl
+
+theorem path_confidence_cannot_strengthen (edges : List Nat) (edge : Nat)
+    (member : edge ∈ edges) : edge ≤ pathConfidence edges := by
+  induction edges with
+  | nil => simp at member
+  | cons head tail ih =>
+    change edge ≤ max head (pathConfidence tail)
+    rcases List.mem_cons.mp member with same | rest
+    · subst edge
+      exact Nat.le_max_left _ _
+    · exact Nat.le_trans (ih rest) (Nat.le_max_right _ _)
+
+theorem path_confidence_stays_in_tiers (edges : List Nat) (ceiling : Nat)
+    (bounded : ∀ edge ∈ edges, edge ≤ ceiling) : pathConfidence edges ≤ ceiling := by
+  induction edges with
+  | nil => exact Nat.zero_le _
+  | cons head tail ih =>
+    change max head (pathConfidence tail) ≤ ceiling
+    exact Nat.max_le.mpr ⟨bounded head (by simp), ih (fun edge member => bounded edge (by simp [member]))⟩
+
 -- fr:spec src/project.rs::page_length @ b4a90c73
 -- fr:signature total: usize => total: Nat; start: usize => start: Nat; limit: usize => limit: Nat; return: usize => return: Nat
 def pageLength (total : Nat) (start : Nat) (limit : Nat) : Nat :=

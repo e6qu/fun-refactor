@@ -1,5 +1,5 @@
 use crate::index::{content_hash_of, Index};
-use crate::model::SymbolId;
+use crate::model::{Confidence, SymbolId};
 use crate::parse::{Parsed, Parsers};
 use crate::scan::{scan, ScanOptions, ScanResult};
 use crate::span::{LineIndex, Span};
@@ -16,6 +16,7 @@ mod links;
 mod manifests;
 mod relationships;
 mod routes;
+mod tests;
 
 #[derive(Subcommand)]
 pub enum Command {
@@ -59,6 +60,17 @@ pub enum Command {
     Routes(RelationshipOptions),
     #[command(about = "Page through environment declarations and candidate code consumers.")]
     Configuration(RelationshipOptions),
+    #[command(about = "Page through test candidates and call-path witnesses.")]
+    Tests {
+        #[command(flatten)]
+        selection: RelationshipOptions,
+        #[arg(
+            long,
+            default_value_t = 3,
+            help = "Maximum call-path length, from 0 through 16."
+        )]
+        depth: usize,
+    },
     #[command(about = "Page through Cargo and npm package manifest boundaries.")]
     Packages {
         #[arg(long, default_value_t = 40)]
@@ -210,6 +222,10 @@ fn check_limit(limit: usize) -> Result<()> {
 
 pub fn page_length(total: usize, start: usize, limit: usize) -> usize {
     total.saturating_sub(start).min(limit)
+}
+
+pub fn path_confidence(edges: &[Confidence]) -> Confidence {
+    edges.iter().copied().max().unwrap_or(Confidence::Exact)
 }
 
 pub fn workspace_pattern_matches(pattern: &[String], path: &[String]) -> bool {
@@ -860,6 +876,7 @@ impl<'a> Project<'a> {
             Command::Implementations(selection) => self.implementations(selection),
             Command::Routes(selection) => self.routes(selection),
             Command::Configuration(selection) => self.configuration(selection),
+            Command::Tests { selection, depth } => self.tests(selection, *depth),
             Command::Packages { limit, cursor } => self.packages(*limit, cursor.as_deref()),
             Command::Dependencies {
                 manifest,

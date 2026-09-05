@@ -13,7 +13,7 @@ The [roadmap](../PLAN.md) extends this foundation into an adoption workflow for 
 | `fr spec check --strict` | Require an explicit signature map beside every source anchor |
 | `fr spec sync` | Preview renewal of stale source hashes; `--write` applies reviewed renewals |
 | `fr spec verify` | Strict correspondence checks, then `lake build --wfail` in each owning package |
-| `kernels/` | Executable edit, position, history and pagination models with shared Rust/Lean cases |
+| `kernels/` | Executable edit, position, history, pagination and confidence models with shared Rust/Lean cases |
 
 Strict signature maps currently require Rust source declarations.
 The checker compares both signatures with the explicit map. It does not infer semantic equivalence between mapped types.
@@ -86,6 +86,14 @@ The caller splits paths into components and restricts pattern syntax before matc
 The model does not establish filesystem containment or package-manager workspace membership.
 Matcher proofs use propositional extensionality; the self-match proof also uses Lean's standard classical-choice and quotient-soundness axioms.
 The model does not prove parser correctness, snapshot-hash collision resistance or agent task success.
+
+The project kernel also models path confidence as the maximum of edge ranks, with zero as the empty-path identity.
+Ranks map `exact`, `import-qualified`, `field-based` and `name-only` to 0 through 3, in that order.
+Theorems show that aggregation cannot strengthen any input edge and stays within the supplied tier bound.
+The compact test view leaves path confidence null for in-scope candidates, which have no witness edges.
+All 5,461 rank sequences through six edges agree with the Rust helper, including the empty sequence.
+The non-strengthening and tier-bound proofs use propositional extensionality; the empty-path proof uses no axioms.
+These laws concern aggregation of supplied edges. Catalog accuracy, graph construction and shortest-path correspondence remain outside these proofs.
 
 ## Adopting Lean in another project today
 

@@ -520,6 +520,9 @@ fr project routes '<FILE_HANDLE>' --cursor '<NEXT>'
 fr project configuration deploy --limit 40
 fr project configuration src/settings.py
 fr project configuration --cursor '<NEXT>'
+fr project tests
+fr project tests src/service.py --depth 3 --limit 40
+fr project tests '<ID>' --revision '<REVISION>' --depth 5
 fr project packages --limit 40
 fr project dependencies --manifest Cargo.toml --limit 40
 fr project dependencies --cursor '<NEXT>'
@@ -657,6 +660,32 @@ Missing, mismatched or syntactically broken inputs produce analysis gaps and can
 Workspace-wide analysis and language gaps share the page; `analysis` includes workspace totals and selected relationship counts.
 Cursors bind the revision, scope and resulting rows. Final source and inventory verification still applies.
 Output limits do not bound workspace analysis work. The shared paging proofs do not verify configuration inference or source/model correspondence.
+
+`tests` pages test-entry candidates in a directory, file or symbol scope, including nested definitions.
+It accepts full handles and short IDs with `--revision`, and defaults to the workspace root and 40 rows.
+Limits accept 1 through 500. `--depth` limits call-path length, defaults to 3 and accepts 0 through 16.
+Candidates within the selection appear with `basis: catalog-in-scope`, zero hops and null path confidence.
+Candidates outside the selection appear when a graph path reaches a selected callable definition within the depth limit.
+Each such row has `basis: catalog-and-call-path`, a target handle, hop count and one shortest witness.
+At depth zero, only in-scope candidates appear.
+
+Each `test-candidate` preserves its built-in catalog rule and an inspection handle, with `status: candidate` and null detection confidence.
+The catalogs include fixtures, setup hooks and convention-matched helpers. A candidate does not establish runner discovery or execution.
+`path_confidence` takes the weakest confidence along the chosen witness; it does not strengthen any edge.
+Alternative paths may have different confidence. Separate `test-path-edge` rows carry the candidate ID, step number, endpoints, call site, confidence and origin.
+Dispatch flags survive unchanged. Witness rows share the page limit and can appear on later pages.
+Candidate IDs join rows only; use endpoint handles for `show` or `calls`.
+Names and rules cap at 160 UTF-8 bytes; paths cap at 512. These pages omit source bodies.
+
+Test-rule detection uses captured source, verifies its indexed hash and reports missing, mismatched or broken inputs as catalog gaps.
+Only built-in test rules participate; this query does not load external catalogs or Python packaging entry points.
+The call graph uses fresh workspace hierarchy analysis, as `project calls` does, with final source and inventory checks before output.
+Catalog gaps, hierarchy gaps and unsupported-language counts share the page as workspace diagnostics.
+`analysis` also reports unresolved and file-scope call counts, which do not extend witnesses.
+`depth_frontier_nodes` counts visited nodes at the limit with callers outside the visited set; it does not count omitted tests.
+Cursors bind the revision, selection, depth, resulting rows and analysis metadata; page sizes may change.
+Page and depth limits do not bound workspace indexing or graph construction.
+Empty results and call paths do not establish runtime coverage. Catalog matching and reachability remain outside the confidence and paging model proofs.
 
 `packages` pages discovered `Cargo.toml` and `package.json` manifests.
 Each row reports the manifest path, its directory root, ecosystem, declared name/version and declaration count.

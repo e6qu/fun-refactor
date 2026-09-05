@@ -2370,3 +2370,266 @@ fn configuration_project_query_reads_its_snapshot_and_refuses_final_source_drift
         .any(|r| r["name"] == "UNDECLARED"));
     assert!(project.verify(&root).is_err());
 }
+
+#[test]
+fn test_pages_preserve_catalog_rules_and_include_helpers_without_claiming_execution() {
+    use fun_refactor::{
+        analysis::entrypoints::{Catalog, EntryKind},
+        index::Index,
+        scan::ScanOptions,
+    };
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "test_app.py",
+        "def helper():\n    return 'PRIVATE_BODY'\n\ndef test_app():\n    helper()\n",
+    );
+    put(
+        root,
+        "other.py",
+        "@pytest.fixture\ndef shared():\n    return 'PRIVATE_FIXTURE'\n",
+    );
+    put(root, "app.rs", "#[test]\nfn arbitrary_name() {}\n");
+    put(root, "app_test.go", "package main\nfunc TestApp() {}\n");
+    let index = Index::build(&root.canonicalize().unwrap(), &ScanOptions::default()).unwrap();
+    let expected: Vec<_> = Catalog::builtin()
+        .unwrap()
+        .detect(&index)
+        .into_iter()
+        .filter(|e| e.kind == EntryKind::Test)
+        .collect();
+    let view = ok(root, &["project", "tests", "--limit", "500"]);
+    let actual: Vec<_> = view["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|r| r["kind"] == "test-candidate")
+        .collect();
+    assert_eq!(actual.len(), expected.len());
+    for entry in expected {
+        let name = &index.symbol(entry.symbol).unwrap().name;
+        let row = actual.iter().find(|r| r["test"]["name"] == *name).unwrap();
+        assert_eq!(row["rule"], entry.rule);
+        assert_eq!(row["basis"], "catalog-in-scope");
+        assert_eq!(row["hops"], 0);
+        assert!(row["confidence"].is_null() && row["path_confidence"].is_null());
+        assert_eq!(
+            ok(
+                root,
+                &["project", "show", row["test"]["handle"].as_str().unwrap()]
+            )["node"]["name"],
+            *name
+        );
+    }
+    assert!(actual.iter().any(|r| r["test"]["name"] == "helper"));
+    assert!(actual.iter().any(|r| r["test"]["name"] == "shared"));
+    assert!(!view.to_string().contains("PRIVATE_"));
+}
+
+fn test_paths_fixture() -> tempfile::TempDir {
+    let dir = tempfile::tempdir().unwrap();
+    put(dir.path(), "app.py", "def leaf():\n    return 1\n\ndef bridge():\n    return leaf()\n\ndef cycle():\n    cycle()\n    bridge()\n\ndef test_direct():\n    leaf()\n\ndef test_indirect():\n    bridge()\n\ndef test_cycle():\n    cycle()\n\ndef test_unrelated():\n    missing()\n");
+    dir
+}
+
+#[test]
+fn test_call_paths_respect_depth_terminate_cycles_and_retain_real_edges() {
+    let dir = test_paths_fixture();
+    let root = dir.path();
+    let target = relation_handle(root, "leaf", None);
+    for (depth, expected) in [("0", 0), ("1", 1), ("2", 2), ("3", 3), ("16", 3)] {
+        let view = ok(
+            root,
+            &[
+                "project", "tests", &target, "--depth", depth, "--limit", "500",
+            ],
+        );
+        assert_eq!(view["analysis"]["selected_candidates"], expected);
+        assert!(view["analysis"]["unresolved_calls"].as_u64().unwrap() > 0);
+        if depth == "0" {
+            assert!(view["analysis"]["depth_frontier_nodes"].as_u64().unwrap() > 0);
+        }
+        let items = view["items"].as_array().unwrap();
+        for row in items.iter().filter(|r| r["kind"] == "test-candidate") {
+            let mut path: Vec<_> = items
+                .iter()
+                .filter(|r| r["test_candidate"] == row["id"])
+                .collect();
+            path.sort_by_key(|r| r["step"].as_u64().unwrap());
+            assert_eq!(path.len() as u64, row["hops"].as_u64().unwrap());
+            assert_eq!(
+                path.first().unwrap()["caller"]["handle"],
+                row["test"]["handle"]
+            );
+            assert_eq!(path.last().unwrap()["callee"]["handle"], target);
+            for pair in path.windows(2) {
+                assert_eq!(pair[0]["callee"]["handle"], pair[1]["caller"]["handle"]);
+            }
+            for edge in path {
+                let calls = ok(
+                    root,
+                    &[
+                        "project",
+                        "calls",
+                        edge["caller"]["handle"].as_str().unwrap(),
+                        "--direction",
+                        "outgoing",
+                    ],
+                );
+                assert!(calls["items"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|call| call["callee"]["handle"] == edge["callee"]["handle"]
+                        && call["site"] == edge["site"]
+                        && call["confidence"] == edge["confidence"]
+                        && call["origin"] == edge["origin"]));
+            }
+            assert_eq!(row["path_confidence"], "exact");
+        }
+    }
+}
+
+#[test]
+fn test_paths_keep_dispatch_evidence_and_the_weakest_confidence() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "app.rs", "trait Shape { fn area(&self); }\nstruct A;\nimpl Shape for A { fn area(&self) {} }\nfn report(s: &dyn Shape) { s.area(); }\n#[test]\nfn check_shape() { report(&A); }\n");
+    let target = relation_handle(root, "area", Some("A"));
+    let view = ok(root, &["project", "tests", &target]);
+    let items = view["items"].as_array().unwrap();
+    let candidate = items
+        .iter()
+        .find(|r| r["kind"] == "test-candidate")
+        .unwrap();
+    assert_eq!(candidate["test"]["name"], "check_shape");
+    assert_eq!(candidate["hops"], 2);
+    assert_eq!(candidate["path_confidence"], "field-based");
+    assert!(candidate["confidence"].is_null());
+    assert!(items.iter().any(|r| r["kind"] == "test-path-edge"
+        && r["dispatch_candidate"] == true
+        && r["confidence"] == "field-based"));
+}
+
+#[test]
+fn test_pages_bind_depth_and_page_witnesses_separately() {
+    let dir = test_paths_fixture();
+    let root = dir.path();
+    let target = relation_handle(root, "leaf", None);
+    let full = ok(
+        root,
+        &[
+            "project", "tests", &target, "--depth", "16", "--limit", "500",
+        ],
+    );
+    let first = ok(
+        root,
+        &["project", "tests", &target, "--depth", "16", "--limit", "1"],
+    );
+    assert_eq!(first["page"]["returned"], 1);
+    let cursor = first["page"]["next"].as_str().unwrap();
+    let mut current = first.clone();
+    let mut collected = Vec::new();
+    loop {
+        collected.extend(current["items"].as_array().unwrap().clone());
+        let Some(next) = current["page"]["next"].as_str() else {
+            break;
+        };
+        current = ok(
+            root,
+            &[
+                "project", "tests", &target, "--depth", "16", "--limit", "2", "--cursor", next,
+            ],
+        );
+    }
+    assert_eq!(collected, *full["items"].as_array().unwrap());
+    assert!(
+        !run(
+            root,
+            &["project", "tests", &target, "--depth", "15", "--cursor", cursor]
+        )
+        .0
+    );
+    assert!(
+        !run(
+            root,
+            &["project", "tests", "--depth", "16", "--cursor", cursor]
+        )
+        .0
+    );
+    assert!(!run(root, &["project", "calls", &target, "--cursor", cursor]).0);
+    assert!(!run(root, &["project", "tests", "--depth", "17"]).0);
+    assert!(!run(root, &["project", "tests", "--limit", "0"]).0);
+    assert!(!run(root, &["project", "tests", "--limit", "501"]).0);
+    let id = target.rsplit(':').next().unwrap();
+    assert_eq!(
+        ok(root, &["project", "tests", &target]),
+        ok(
+            root,
+            &[
+                "project",
+                "tests",
+                id,
+                "--revision",
+                full["revision"].as_str().unwrap()
+            ]
+        )
+    );
+    put(root, "new.py", "def test_added():\n    pass\n");
+    assert!(!run(root, &["project", "tests", &target]).0);
+    assert!(
+        !run(
+            root,
+            &["project", "tests", "--depth", "16", "--cursor", cursor]
+        )
+        .0
+    );
+    assert!(!root.join(".fr-history").exists());
+}
+
+#[test]
+fn test_catalogs_report_broken_inputs_and_missing_language_rules() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "bad.py", "def test_partial():\n    print(\n");
+    put(root, "main.sh", "echo hello\n");
+    put(root, "page.html", "<main>hello</main>\n");
+    let view = ok(root, &["project", "tests"]);
+    assert_eq!(view["analysis"]["catalog_gaps"], 1);
+    assert_eq!(view["analysis"]["files_without_test_rules"]["bash"], 1);
+    let items = view["items"].as_array().unwrap();
+    assert!(items
+        .iter()
+        .any(|r| r["kind"] == "analysis-gap" && r["basis"] == "test-catalog"));
+    assert!(items.iter().any(|r| r["kind"] == "coverage-gap"
+        && r["basis"] == "test-catalog"
+        && r["language"] == "bash"));
+    assert!(!items.iter().any(|r| r["kind"] == "test-candidate"));
+}
+
+#[test]
+fn test_candidate_names_clip_before_source_inspection() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let name = format!("test_{}", "long_".repeat(100));
+    put(
+        root,
+        "app.py",
+        &format!("def {name}():\n    return 'PRIVATE_BODY'\n"),
+    );
+    let view = ok(root, &["project", "tests"]);
+    let row = view["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["kind"] == "test-candidate")
+        .unwrap();
+    assert_eq!(row["test"]["name"]["omitted_bytes"], 345);
+    assert!(!view.to_string().contains("PRIVATE_BODY"));
+    assert!(ok(
+        root,
+        &["project", "show", row["test"]["handle"].as_str().unwrap()]
+    )["node"]["name"]
+        .is_object());
+}

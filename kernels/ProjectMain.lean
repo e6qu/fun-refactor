@@ -5,7 +5,15 @@ open FrKernels.Project
 def samples : List Nat := [0, 1, 2, 3, 4, 79, 80, 499, 500, 65536, 4294967295, 18446744073709551615]
 
 def main (args : List String) : IO Unit := do
-  if args == ["patterns"] then
+  if args == ["confidence"] then
+    let mut paths : List (List Nat) := [[]]
+    let mut words := paths
+    for _ in [0:6] do
+      words := words.flatMap (fun stem => [0, 1, 2, 3].map (fun rank => stem ++ [rank]))
+      paths := paths ++ words
+    for path in paths do
+      IO.println (pathConfidence path)
+  else if args == ["patterns"] then
     let alphabet := ["a", "b", "*", "λ", "", "a/b"]
     let mut paths : List (List String) := [[]]
     let mut words := paths

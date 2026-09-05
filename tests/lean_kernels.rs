@@ -632,3 +632,48 @@ fn workspace_pattern_matcher_agrees_with_lean_on_component_sequences() {
         }
     }
 }
+
+#[test]
+fn test_path_confidence_matches_lean_for_all_tier_sequences_through_six_edges() {
+    use fun_refactor::model::Confidence::{Exact, FieldBased, ImportQualified, NameOnly};
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("confidence")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual: Vec<usize> = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse().unwrap())
+        .collect();
+    let tiers = [Exact, ImportQualified, FieldBased, NameOnly];
+    let mut paths = vec![vec![]];
+    let mut words = paths.clone();
+    for _ in 0..6 {
+        words = words
+            .iter()
+            .flat_map(|path| {
+                tiers.iter().map(move |tier| {
+                    let mut next = path.clone();
+                    next.push(*tier);
+                    next
+                })
+            })
+            .collect();
+        paths.extend(words.clone());
+    }
+    assert_eq!(actual.len(), 5461);
+    assert_eq!(
+        actual,
+        paths
+            .iter()
+            .map(|path| {
+                tiers
+                    .iter()
+                    .position(|tier| *tier == fun_refactor::project::path_confidence(path))
+                    .unwrap()
+            })
+            .collect::<Vec<_>>()
+    );
+}

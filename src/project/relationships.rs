@@ -35,7 +35,7 @@ impl Project<'_> {
                 })
     }
 
-    fn scope_symbol(&self, selected: usize, symbol: SymbolId) -> bool {
+    pub(super) fn scope_symbol(&self, selected: usize, symbol: SymbolId) -> bool {
         self.index.symbol(symbol).is_some_and(|symbol| {
             self.scope_file(selected, &symbol.file)
                 && self.nodes[selected]
@@ -66,7 +66,7 @@ impl Project<'_> {
         )
     }
 
-    fn call_site(&self, file: &Path, offset: usize) -> Result<Value> {
+    pub(super) fn call_site(&self, file: &Path, offset: usize) -> Result<Value> {
         let source = self
             .sources
             .get(file)
@@ -101,7 +101,7 @@ impl Project<'_> {
         })
     }
 
-    fn relationship_gaps(
+    pub(super) fn relationship_gaps(
         &self,
         gaps: &[(PathBuf, String)],
         rows: &mut Vec<Value>,
@@ -150,7 +150,7 @@ impl Project<'_> {
         rows.sort_by_cached_key(Value::to_string);
         let key = format!(
             "frpc1:{}",
-            &hash((&self.revision, query, selected, direction, &rows))?[..32]
+            &hash((&self.revision, query, selected, direction, &rows, &analysis))?[..32]
         );
         let (start, end, page) = page(rows.len(), options.limit, options.cursor.as_deref(), &key)?;
         let mut result = self.envelope(query);

@@ -250,6 +250,7 @@ Its package and dependency pages report Cargo/npm manifest declarations with sha
 `fr project calls` and `implementations` page through call sites and hierarchy candidates, retaining uncertainty and coverage gaps.
 `fr project routes` adds bounded declaration patterns and local handler candidates for five framework readers.
 `fr project configuration` pages environment declarations and candidate code consumers, with captured-source checks and explicit analysis gaps.
+`fr project tests` adds catalog candidates and bounded call-path witnesses, preserving the weakest edge confidence without claiming runtime coverage.
 Complete dependency graphs, framework semantics, Git integration and broader task evaluations remain roadmap work.
 
 [TUTORIAL.md](TUTORIAL.md) walks through helm/helm.
