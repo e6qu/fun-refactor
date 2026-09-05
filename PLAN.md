@@ -37,7 +37,7 @@ Implemented foundations:
 
 Important gaps:
 
-- `fr project` adds bounded maps, revision-bound details and Cargo/npm manifest declarations. Dependency resolution and framework semantics remain pending.
+- `fr project` adds bounded maps, revision-bound details, call relationships and Cargo/npm manifest views. Complete dependency resolution and framework semantics remain pending.
 - Native changes now have persistent history and checked undo/redo. History retention and large-journal scaling need further work.
 - Browser undo restores the loaded workspace; it does not reverse individual transactions.
 - Diff output exists; a shared Git patch and staging workflow remains pending.
@@ -183,9 +183,21 @@ Membership closure has regression tests and Cargo metadata comparisons; its gene
 Validation passes the full native/WASM gate, strict Lean verification and 34 project CLI tests.
 The repository view identifies its root package and eight declared Cargo members.
 
+M2b4 is complete. It adds bounded call and implementation relationships:
+
+- Paged `project calls` for incoming, outgoing and internal call sites, including nested definitions and file-scope calls.
+- Preserved graph confidence, dispatch origins and unresolved sites, with handles for subsequent detail retrieval.
+- Paged `project implementations` for selected declarations, explicitly labeled as hierarchy candidates.
+- Workspace analysis gaps and unsupported-language counts, with cursors bound to scope, direction, revision and resulting rows.
+
+Output is bounded; these queries still build workspace analysis. Empty results do not prove the absence of relationships.
+The existing Lean page-length laws apply. Call resolution, hierarchy inference and snapshot correspondence remain outside those proofs.
+The 40 project CLI tests pass, including relationship preservation, scope, pagination, coverage and stale-handle checks.
+Validation passes the full native/WASM gate and strict Lean verification, with all five source anchors fresh.
+
 Next M2b work:
 
-- Connect call-graph dispatch, implementation relationships, route contracts, configuration use and relevant tests.
+- Connect route contracts, configuration use and relevant tests to bounded project inspection.
 - Extend workspace rules beyond the observed Cargo subset and formalize membership closure.
 - Evaluate bounded inspection tasks on unfamiliar repositories with an agent, a pinned tokenizer and correctness checks.
 - Measure model tokens and task success against file reading, including additional calls and uncertainty.

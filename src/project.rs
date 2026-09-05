@@ -13,6 +13,7 @@ use std::path::{Path, PathBuf};
 
 mod links;
 mod manifests;
+mod relationships;
 
 #[derive(Subcommand)]
 pub enum Command {
@@ -43,6 +44,15 @@ pub enum Command {
     },
     #[command(about = "Inspect a handle, with optional source and reference pages.")]
     Show(ShowOptions),
+    #[command(about = "Page through call sites, dispatch candidates and unresolved calls.")]
+    Calls {
+        #[command(flatten)]
+        selection: RelationshipOptions,
+        #[arg(long, value_enum, default_value = "both")]
+        direction: CallDirection,
+    },
+    #[command(about = "Page through implementation candidates for selected declarations.")]
+    Implementations(RelationshipOptions),
     #[command(about = "Page through Cargo and npm package manifest boundaries.")]
     Packages {
         #[arg(long, default_value_t = 40)]
@@ -84,6 +94,26 @@ pub enum Command {
         #[arg(long)]
         cursor: Option<String>,
     },
+}
+
+#[derive(clap::Args)]
+pub struct RelationshipOptions {
+    #[arg(default_value = ".", help = "Workspace path or revision-bound handle.")]
+    target: String,
+    #[arg(long, help = "Required when TARGET is a short node ID.")]
+    revision: Option<String>,
+    #[arg(long, default_value_t = 40)]
+    limit: usize,
+    #[arg(long)]
+    cursor: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum CallDirection {
+    Incoming,
+    Outgoing,
+    Both,
 }
 
 #[derive(clap::Args)]
@@ -817,6 +847,11 @@ impl<'a> Project<'a> {
                 fields,
             ),
             Command::Show(options) => self.show(options),
+            Command::Calls {
+                selection,
+                direction,
+            } => self.calls(selection, *direction),
+            Command::Implementations(selection) => self.implementations(selection),
             Command::Packages { limit, cursor } => self.packages(*limit, cursor.as_deref()),
             Command::Dependencies {
                 manifest,

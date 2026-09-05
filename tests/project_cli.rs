@@ -1553,3 +1553,292 @@ fn ignored_workspace_ancestor_metadata_participates_in_snapshot_verification() {
     fs::remove_file(root.join("nested/Cargo.toml")).unwrap();
     assert!(blocked.verify(&root).is_err());
 }
+
+fn relation_handle(root: &Path, name: &str, qualifier: Option<&str>) -> String {
+    let map = ok(
+        root,
+        &[
+            "project",
+            "map",
+            "--depth",
+            "64",
+            "--fields",
+            "handle,name,qualifier",
+        ],
+    );
+    rows(&map)
+        .iter()
+        .find(|r| r["name"] == name && r["qualifier"].as_str() == qualifier)
+        .unwrap_or_else(|| panic!("missing {qualifier:?}::{name}: {map}"))["handle"]
+        .as_str()
+        .unwrap()
+        .to_owned()
+}
+
+#[test]
+fn call_pages_preserve_graph_edges_and_candidate_evidence() {
+    use fun_refactor::analysis::call_graph::CallGraph;
+    use fun_refactor::index::Index;
+    use fun_refactor::scan::ScanOptions;
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "app.rs", "trait Shape { fn area(&self); }\nstruct A;\nstruct B;\nimpl Shape for A { fn area(&self) {} }\nimpl Shape for B { fn area(&self) {} }\nfn helper() {}\nfn report(s: &dyn Shape) { s.area(); helper(); unknown(); }\nfn main() { report(&A); }\n");
+    let canonical = root.canonicalize().unwrap();
+    let index = Index::build(&canonical, &ScanOptions::default()).unwrap();
+    let graph = CallGraph::build(&index);
+    let view = ok(root, &["project", "calls", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    assert_eq!(
+        items.len(),
+        graph.edge_count() + graph.file_scope.len() + graph.unresolved.len()
+    );
+    for (caller, callee, edge) in graph.edges() {
+        let caller = index.symbol(caller).unwrap();
+        let callee = index.symbol(callee).unwrap();
+        assert!(items.iter().any(|r| r["caller"]["name"] == caller.name
+            && r["callee"]["name"] == callee.name
+            && r["callee"]["qualifier"].as_str() == callee.qualifier.as_deref()
+            && r["site"]["offset"] == edge.offset
+            && r["origin"] == edge.origin.as_str()
+            && r["confidence"] == edge.confidence.as_str()));
+    }
+    let dispatch: Vec<_> = items
+        .iter()
+        .filter(|r| r["dispatch_candidate"] == true)
+        .collect();
+    assert!(!dispatch.is_empty());
+    assert!(dispatch
+        .iter()
+        .all(|r| r["status"] == "dispatch-candidate" && r["confidence"] == "field-based"));
+    assert!(items
+        .iter()
+        .any(|r| r["status"] == "unresolved" && r["name"] == "unknown" && r["callee"].is_null()));
+    let target = dispatch[0]["callee"]["handle"].as_str().unwrap();
+    let detail = ok(root, &["project", "show", target]);
+    assert_eq!(detail["node"]["name"], "area");
+    assert!(detail.get("source").is_none());
+}
+
+#[test]
+fn call_scope_handles_incoming_outgoing_internal_and_file_scope_calls() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "app.py", "def leaf():\n    return 'BODY_ONLY_SENTINEL'\n\ndef recur():\n    recur()\n    leaf()\n    unknown()\n\ndef outer():\n    def nested():\n        leaf()\n    nested()\n\nrecur()\n");
+    let recur = relation_handle(root, "recur", None);
+    let outgoing = ok(
+        root,
+        &["project", "calls", &recur, "--direction", "outgoing"],
+    );
+    assert!(outgoing["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["callee"]["name"] == "leaf"));
+    assert!(outgoing["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["status"] == "unresolved"));
+    let incoming = ok(
+        root,
+        &["project", "calls", &recur, "--direction", "incoming"],
+    );
+    let items = incoming["items"].as_array().unwrap();
+    assert!(items
+        .iter()
+        .any(|r| r["scope_relation"] == "internal" && r["caller"]["name"] == "recur"));
+    assert!(items
+        .iter()
+        .any(|r| r["caller_scope"] == "file" && r["caller"].is_null()));
+    assert!(!items.iter().any(|r| r["status"] == "unresolved"));
+    let both = ok(root, &["project", "calls", &recur]);
+    assert_eq!(
+        both["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|r| r["scope_relation"] == "internal")
+            .count(),
+        1
+    );
+    assert!(!both.to_string().contains("BODY_ONLY_SENTINEL"));
+    let outer = relation_handle(root, "outer", None);
+    let nested = ok(
+        root,
+        &["project", "calls", &outer, "--direction", "outgoing"],
+    );
+    assert!(nested["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["caller"]["name"] == "nested" && r["callee"]["name"] == "leaf"));
+    let file = ok(root, &["project", "calls", "app.py"]);
+    assert!(file["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["caller_scope"] == "file"));
+}
+
+#[test]
+fn implementation_pages_match_the_hierarchy_without_claiming_runtime_certainty() {
+    use fun_refactor::analysis::call_graph::Hierarchy;
+    use fun_refactor::index::Index;
+    use fun_refactor::scan::ScanOptions;
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "shape.rs", "trait Shape { fn area(&self); }\nstruct A;\nstruct B;\nimpl Shape for A { fn area(&self) { } }\nimpl Shape for B { fn area(&self) { } }\n");
+    let index = Index::build(&root.canonicalize().unwrap(), &ScanOptions::default()).unwrap();
+    let hierarchy = Hierarchy::scan(&index);
+    for (name, qualifier) in [("Shape", None), ("area", Some("Shape"))] {
+        let declaration = index
+            .symbols
+            .iter()
+            .find(|s| s.name == name && s.qualifier.as_deref() == qualifier)
+            .unwrap();
+        let expected = hierarchy.implementations_of(&index, declaration.id);
+        assert_eq!(expected.len(), 2);
+        let expected: Vec<_> = index
+            .symbols
+            .iter()
+            .filter(|s| s.file == declaration.file && declaration.full_span.contains(s.full_span))
+            .flat_map(|s| {
+                let index = &index;
+                hierarchy
+                    .implementations_of(index, s.id)
+                    .into_iter()
+                    .map(move |implementation| (s, index.symbol(implementation).unwrap()))
+            })
+            .collect();
+        let handle = relation_handle(root, name, qualifier);
+        let view = ok(root, &["project", "implementations", &handle]);
+        assert_eq!(view["page"]["total"], expected.len());
+        for row in view["items"].as_array().unwrap() {
+            assert!(expected.iter().any(|(declaration, implementation)| {
+                row["declaration"]["name"] == declaration.name
+                    && row["declaration"]["qualifier"].as_str() == declaration.qualifier.as_deref()
+                    && row["implementation"]["name"] == implementation.name
+                    && row["implementation"]["qualifier"].as_str()
+                        == implementation.qualifier.as_deref()
+            }));
+            assert_eq!(row["status"], "candidate");
+            assert_eq!(row["basis"], "hierarchy-analysis");
+            assert!(row["confidence"].is_null());
+            let target = row["implementation"]["handle"].as_str().unwrap();
+            assert!(
+                ok(root, &["project", "show", target])["node"]["signature"].is_object()
+                    || qualifier.is_none()
+            );
+        }
+    }
+    let concrete = relation_handle(root, "area", Some("A"));
+    assert_eq!(
+        ok(root, &["project", "implementations", &concrete])["page"]["total"],
+        0
+    );
+}
+
+#[test]
+fn relationship_pages_are_complete_and_bound_to_scope_direction_and_revision() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "app.rs", "trait T { fn run(&self); }\nstruct A;\nstruct B;\nimpl T for A { fn run(&self) {} }\nimpl T for B { fn run(&self) {} }\nfn invoke(t: &dyn T) { t.run(); missing(); }\n");
+    for query in ["calls", "implementations"] {
+        let full = ok(root, &["project", query, "--limit", "500"]);
+        let first = ok(root, &["project", query, "--limit", "1"]);
+        let cursor = first["page"]["next"].as_str().unwrap();
+        let mut current = first.clone();
+        let mut collected = Vec::new();
+        loop {
+            collected.extend(current["items"].as_array().unwrap().clone());
+            let Some(next) = current["page"]["next"].as_str() else {
+                break;
+            };
+            current = ok(root, &["project", query, "--limit", "2", "--cursor", next]);
+        }
+        assert_eq!(collected, *full["items"].as_array().unwrap());
+        assert!(!run(root, &["project", query, "app.rs", "--cursor", cursor]).0);
+        assert!(!run(root, &["project", query, "--limit", "0"]).0);
+        assert!(!run(root, &["project", query, "--limit", "501"]).0);
+        if query == "calls" {
+            assert!(
+                !run(
+                    root,
+                    &[
+                        "project",
+                        query,
+                        "--direction",
+                        "outgoing",
+                        "--cursor",
+                        cursor
+                    ]
+                )
+                .0
+            );
+        }
+        let target = relation_handle(root, "T", None);
+        let id = target.rsplit(':').next().unwrap();
+        let short = ok(
+            root,
+            &[
+                "project",
+                query,
+                id,
+                "--revision",
+                full["revision"].as_str().unwrap(),
+            ],
+        );
+        let long = ok(root, &["project", query, &target]);
+        assert_eq!(short, long);
+        put(root, "new.rs", "fn added() {}\n");
+        assert!(!run(root, &["project", query, "--cursor", cursor]).0);
+        assert!(!run(root, &["project", query, &target]).0);
+        fs::remove_file(root.join("new.rs")).unwrap();
+    }
+    assert!(!root.join(".fr-history").exists());
+}
+
+#[test]
+fn relationship_coverage_does_not_turn_unsupported_hierarchies_into_empty_certainty() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "app.zig", "pub fn main() void {}\n");
+    put(root, "page.html", "<main>hello</main>\n");
+    let implementations = ok(root, &["project", "implementations"]);
+    assert_eq!(
+        implementations["analysis"]["hierarchy_unsupported_files"]["zig"],
+        1
+    );
+    assert!(implementations["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["kind"] == "coverage-gap" && r["language"] == "zig"));
+    let calls = ok(root, &["project", "calls"]);
+    assert!(calls["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["kind"] == "coverage-gap" && r["language"] == "html"));
+}
+
+#[test]
+fn relationship_labels_are_bounded_before_detail_retrieval() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let name = "long_".repeat(100);
+    put(
+        root,
+        "app.py",
+        &format!("def {name}():\n    return 'HIDDEN_IMPLEMENTATION'\n\ndef run():\n    {name}()\n"),
+    );
+    let view = ok(root, &["project", "calls"]);
+    let callee = &view["items"][0]["callee"];
+    assert_eq!(callee["name"]["omitted_bytes"], 340);
+    assert!(!view.to_string().contains("HIDDEN_IMPLEMENTATION"));
+    assert!(ok(
+        root,
+        &["project", "show", callee["handle"].as_str().unwrap()]
+    )["node"]["name"]
+        .is_object());
+}

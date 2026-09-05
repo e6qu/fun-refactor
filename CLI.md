@@ -511,6 +511,10 @@ fr project show '<ID>' --revision '<REVISION>'
 fr project show '<HANDLE>' --source --bytes 2048
 fr project show '<HANDLE>' --source --offset 2048 --bytes 2048
 fr project show '<HANDLE>' --relations --limit 40
+fr project calls src --direction outgoing --limit 40
+fr project calls '<HANDLE>' --direction incoming
+fr project calls --cursor '<NEXT>'
+fr project implementations '<ID>' --revision '<REVISION>'
 fr project packages --limit 40
 fr project dependencies --manifest Cargo.toml --limit 40
 fr project dependencies --cursor '<NEXT>'
@@ -570,6 +574,32 @@ This view does not include call-graph dispatch expansion, route contracts or inf
 `gaps` pages the corresponding diagnostics; unsupported extensions appear as counts.
 Ignore rules and size limits bound discovery. Hidden files follow `--no-ignore`.
 The workspace still requires indexing; output limits do not limit analysis to the returned nodes.
+
+`calls` and `implementations` accept a directory, file, full handle or short ID with `--revision`.
+Both default to the workspace root and 40 rows, with limits from 1 through 500.
+Endpoints contain bounded names, qualifiers, paths, kinds, lines and handles for subsequent inspection.
+They omit source bodies. Nested definitions participate in the selected scope.
+
+`calls --direction outgoing` selects call sites within the scope; `incoming` selects callee definitions within it.
+The default `both` combines these selections. A call within both appears once with `scope_relation: internal`.
+Call rows preserve the graph's confidence and origin, including dispatch and function-value candidates.
+`status: indexed-target` means the index supplied a target; its confidence still governs uncertainty.
+Dispatch rows have `status: dispatch-candidate` and `dispatch_candidate: true`.
+Unresolved sites have a null callee and appear only in outgoing or combined queries.
+A site can have both unresolved and candidate rows. Indexed file-scope calls have a null caller and `caller_scope: file`.
+Site offsets count absolute file bytes; line and column are 1-based.
+
+`implementations` selects declarations within the scope and pages their hierarchy candidates.
+Each row links a declaration to an implementation with `basis: hierarchy-analysis` and `status: candidate`.
+Its `confidence` is null because the analyzer supplies no per-implementation confidence or runtime guarantee.
+An empty result does not establish that no implementation exists.
+
+Both queries include workspace-wide `analysis-gap` and `coverage-gap` rows in their paged items.
+The `analysis` object gives workspace totals and unsupported-language counts, including missing hierarchy support.
+These queries build the workspace hierarchy, and `calls` also builds its call graph.
+Page limits bound output, not analysis work. Relationships themselves are not formally verified.
+Cursors bind the selection, direction, revision and resulting rows; the page size may change.
+The final source and inventory checks also apply before emitting a relationship page.
 
 `packages` pages discovered `Cargo.toml` and `package.json` manifests.
 Each row reports the manifest path, its directory root, ecosystem, declared name/version and declaration count.
