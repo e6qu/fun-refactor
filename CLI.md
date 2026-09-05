@@ -406,6 +406,7 @@ may write.
 ```
 fr spec check [PATH...]
 fr spec sync [PATH...] [--write]
+fr spec verify [PATH...]
 ```
 
 Check that Lean models still point at the declarations they model. With no path,
@@ -430,6 +431,11 @@ mapping also blocks `sync`.
 
 Add `--strict` to require a mapping beside every anchor in the selected specs. This is
 the CI mode for a kernel tree that treats a source hash alone as incomplete evidence.
+
+`verify` always runs that strict correspondence check first. When it passes, the command
+finds the `lakefile.lean` or `lakefile.toml` owning each selected spec and runs
+`lake build --wfail` once per package. It writes nothing. JSON includes the strict report,
+each package, its result, and Lean's output.
 
 ## Crossing languages
 
