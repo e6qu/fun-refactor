@@ -4976,3 +4976,235 @@ fn workspace_closure_cannot_cross_excluded_or_different_owner_packages() {
         "nested/seed/Cargo.toml"
     );
 }
+
+#[test]
+fn cargo_subtree_exclusions_and_literal_member_overrides_match_metadata() {
+    use std::collections::BTreeSet;
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    for (path, name) in [
+        ("ws/zone/a", "a"),
+        ("ws/zone/b", "b"),
+        ("ws/zone/a/child", "child"),
+        ("ws/zone/a-sibling", "a-sibling"),
+        ("ws/λ名/a", "unicode"),
+        ("ws/λ名extra/a", "unicode-neighbor"),
+    ] {
+        cargo_package(root, path, name, "");
+    }
+    cargo_package(
+        root,
+        "ws/zone/a",
+        "a",
+        "[dependencies]\nchild={path='child'}\n",
+    );
+    for (members, exclude) in [
+        ("['zone/*']", "['zone']"),
+        ("['zone/*','zone/a']", "['zone']"),
+        ("['zone/a']", "['zone/a']"),
+        ("['zone/*']", "['zone/a']"),
+        ("['zone/*']", "['zone/a/child']"),
+        ("['zone/a']", "['zone/a/child']"),
+        ("['zone/*']", "['zone/a/Cargo.toml']"),
+        ("['zone/a']", "['zone/a/Cargo.toml']"),
+        ("['zone/*']", "['./zone/']"),
+        ("['λ名/*','λ名extra/*']", "['λ名']"),
+        ("['λ名/*','λ名extra/*','λ名/a']", "['λ名']"),
+    ] {
+        put(
+            root,
+            "ws/Cargo.toml",
+            &format!("[workspace]\nresolver='2'\nmembers={members}\nexclude={exclude}\n"),
+        );
+        let output = Command::new("cargo")
+            .args([
+                "metadata",
+                "--offline",
+                "--no-deps",
+                "--format-version",
+                "1",
+            ])
+            .current_dir(root.join("ws"))
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{members} {exclude}: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let metadata: Value = serde_json::from_slice(&output.stdout).unwrap();
+        let expected: BTreeSet<_> = metadata["packages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|p| {
+                metadata["workspace_members"]
+                    .as_array()
+                    .unwrap()
+                    .contains(&p["id"])
+            })
+            .map(|p| {
+                Path::new(p["manifest_path"].as_str().unwrap())
+                    .strip_prefix(root.canonicalize().unwrap())
+                    .unwrap()
+                    .to_string_lossy()
+                    .into_owned()
+            })
+            .collect();
+        let view = ok(root, &["project", "workspaces"]);
+        let actual: BTreeSet<_> = view["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|r| r["status"] == "member")
+            .map(|r| r["manifest"].as_str().unwrap().to_owned())
+            .collect();
+        assert_eq!(actual, expected, "{members} {exclude}");
+        let links = ok(root, &["project", "links", "--manifest", "ws/Cargo.toml"]);
+        for row in links["items"].as_array().unwrap() {
+            let target = row["candidate_manifest"].as_str().unwrap();
+            assert_eq!(
+                row["status"],
+                if expected.contains(target) {
+                    "matched"
+                } else {
+                    "excluded"
+                },
+                "{members} {exclude}: {row}"
+            );
+            if row["status"] == "excluded" {
+                assert!(row["target_manifest"].is_null());
+                assert!(row["excluded_by"].is_string());
+            }
+        }
+    }
+}
+
+#[test]
+fn cargo_exclusion_overrides_control_inherited_dependencies_and_transitive_members() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    cargo_package(
+        root,
+        "zone/app",
+        "app",
+        "[dependencies]\ncore={workspace=true}\n",
+    );
+    cargo_package(root, "core", "core", "");
+    for (members, linked) in [("['zone/*']", false), ("['zone/*','zone/app']", true)] {
+        put(root, "Cargo.toml", &format!("[workspace]\nmembers={members}\nexclude=['zone']\n[workspace.dependencies]\ncore={{path='core'}}\n"));
+        let links = ok(
+            root,
+            &["project", "links", "--manifest", "zone/app/Cargo.toml"],
+        );
+        let inherited = &links["items"][0];
+        if linked {
+            assert_eq!(inherited["status"], "linked");
+            assert_eq!(inherited["target_manifest"], "core/Cargo.toml");
+        } else {
+            assert_eq!(inherited["status"], "unresolved");
+            assert_eq!(inherited["reason"], "workspace-excluded");
+        }
+        let view = ok(
+            root,
+            &["project", "workspaces", "--manifest", "core/Cargo.toml"],
+        );
+        assert_eq!(
+            view["items"][0]["status"],
+            if linked { "member" } else { "unresolved" }
+        );
+        if linked {
+            assert_eq!(view["items"][0]["via_manifest"], "zone/app/Cargo.toml");
+        }
+    }
+}
+
+#[test]
+fn cargo_glob_shaped_exclusions_are_unresolved_even_with_explicit_members() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    cargo_package(root, "zone/a", "a", "");
+    cargo_package(root, "zone/b", "b", "");
+    for exclude in ["zone/*", "zone/**", "zone/?", "zone/[ab]"] {
+        put(
+            root,
+            "Cargo.toml",
+            &format!("[workspace]\nmembers=['zone/*','zone/a']\nexclude=['{exclude}']\n"),
+        );
+        let view = ok(root, &["project", "workspaces"]);
+        assert!(view["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|r| r["kind"] == "workspace-membership")
+            .all(|r| r["status"] == "unresolved" && r["reason"] == "unsupported-exclusion"));
+        let links = ok(root, &["project", "links", "--manifest", "Cargo.toml"]);
+        assert!(links["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|r| r["status"] == "unresolved" && r["reason"] == "unsupported-exclusion"));
+    }
+}
+
+#[test]
+fn cargo_subtree_exclusions_use_captured_manifests_and_reject_stale_cursors() {
+    use fun_refactor::index::Index;
+    use fun_refactor::project::{Command as ProjectCommand, Project};
+    use fun_refactor::scan::{scan, ScanOptions};
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    put(
+        &root,
+        "Cargo.toml",
+        "[workspace]\nmembers=['zone/*']\nexclude=['zone']\n",
+    );
+    cargo_package(&root, "zone/a", "a", "");
+    cargo_package(&root, "zone/b", "b", "");
+    let commands = [
+        ProjectCommand::Workspaces {
+            manifest: None,
+            limit: 500,
+            cursor: None,
+        },
+        ProjectCommand::Links {
+            manifest: None,
+            limit: 500,
+            cursor: None,
+        },
+    ];
+    let options = ScanOptions::default();
+    let scanned = scan(&root, &options).unwrap();
+    let index = Index::build_with_cache(&scanned, None).unwrap();
+    let project = Project::new(&root, &index, &scanned, &options).unwrap();
+    let captured: Vec<_> = commands
+        .iter()
+        .map(|command| project.report(command).unwrap())
+        .collect();
+    let cursors: Vec<_> = ["workspaces", "links"]
+        .iter()
+        .map(|command| {
+            ok(&root, &["project", command, "--limit", "1"])["page"]["next"]
+                .as_str()
+                .unwrap()
+                .to_owned()
+        })
+        .collect();
+    put(
+        &root,
+        "Cargo.toml",
+        "[workspace]\nmembers=['zone/*','zone/a']\nexclude=['zone']\n",
+    );
+    for (command, expected) in commands.iter().zip(captured) {
+        assert_eq!(project.report(command).unwrap(), expected);
+    }
+    assert!(project.verify(&root).is_err());
+    for (command, cursor) in ["workspaces", "links"].iter().zip(cursors) {
+        assert!(!run(&root, &["project", command, "--cursor", &cursor]).0);
+    }
+    let view = ok(
+        &root,
+        &["project", "workspaces", "--manifest", "zone/a/Cargo.toml"],
+    );
+    assert_eq!(view["items"][0]["status"], "member");
+}

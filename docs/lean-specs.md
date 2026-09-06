@@ -116,6 +116,12 @@ The reachability induction uses no axioms; the expansion proofs use propositiona
 The convergence and unconditional closure proofs also use Lean's standard classical-choice axiom. These proofs introduce no custom axioms.
 These are model proofs with tested Rust correspondence. Cargo semantics, eligible-edge construction, witness selection and the complete Rust loop remain outside the proofs.
 
+The Cargo reader checks literal exclusion prefixes and explicit-member overrides with `cargo metadata` fixtures.
+These cover nested roots, descendant dependencies, Unicode paths and neighboring directory names.
+The [Cargo implementation](https://doc.rust-lang.org/stable/nightly-rustc/src/cargo/core/workspace.rs.html) uses directory prefixes for exclusions and lets explicit member paths override them.
+Glob-shaped exclusions remain outside the reader's supported subset and produce unresolved rows.
+These fixtures test rule interpretation; they do not extend the Lean proof boundary.
+
 ## Adopting Lean in another project today
 
 Create a Lake package and write a small executable model with a useful property.

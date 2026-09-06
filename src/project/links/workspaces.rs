@@ -1,6 +1,6 @@
 use super::{
-    directories, exclusions, local_dependency, package, path_text, pattern, relative_directory,
-    text,
+    directories, excluded_by, exclusions, local_dependency, package, path_text, pattern,
+    relative_directory, text,
 };
 use crate::project::manifests::Manifests;
 use crate::project::{workspace_membership_step, workspace_pattern_matches};
@@ -114,10 +114,7 @@ fn membership(
         .components()
         .map(|c| c.as_os_str().to_string_lossy().into_owned())
         .collect();
-    if excluded
-        .iter()
-        .any(|(_, p)| workspace_pattern_matches(p, &parts))
-    {
+    if excluded_by(&excluded, &members, &parts).is_some() {
         return Err("workspace-excluded");
     }
     if target == root {

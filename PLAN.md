@@ -179,7 +179,7 @@ M2b3 is complete. It adds observed Cargo ownership and inherited local links:
 - Ignored or unreadable ancestor boundaries block inheritance and participate in snapshot checks.
 
 This is a bounded Cargo subset. Registry resolution, feature evaluation and package-manager validation remain unchecked.
-Membership closure has regression tests and Cargo metadata comparisons; its general correctness proof remains pending.
+M2b15 and M2b16 add general closure model proofs; full implementation correspondence remains pending.
 Validation passes the full native/WASM gate, strict Lean verification and 34 project CLI tests.
 The repository view identifies its root package and eight declared Cargo members.
 
@@ -364,6 +364,18 @@ The proofs cover arbitrary finite seed and edge lists. Cargo interpretation, gra
 The convergence proofs use standard propositional extensionality, quotient soundness and classical choice. They introduce no custom axioms.
 Validation passes the full native/WASM gate, all 116 project CLI tests and 13 Lean integration tests; two exhaustive self-audits remain in the separate deep gate.
 Strict verification passes with seven fresh source anchors, zero `sorry` obligations and all 25 Lean build jobs successful.
+
+M2b17 is complete. It corrects Cargo subtree exclusions and explicit-member precedence:
+
+- Apply literal exclusions to directory subtrees in both membership and pattern-candidate pages.
+- Let explicit member paths override exclusions for their descendants, including automatic path members and inherited dependencies.
+- Report glob-shaped exclusions as unsupported instead of applying wildcard semantics that Cargo does not use here.
+- Compare eleven nested-workspace configurations with `cargo metadata`, including Unicode paths, manifest paths, neighboring names and transitive dependencies.
+- Preserve captured-manifest analysis and reject cursors after exclusion or member declarations change.
+
+Parent-relative members, broader member globs and complete Cargo validation remain pending.
+The existing Lean matcher and closure models retain their scope; exclusion interpretation has regression evidence, not an implementation proof.
+Validation passes the full native/WASM gate, all 120 project CLI tests and strict Lean verification with seven fresh anchors and zero `sorry` obligations.
 
 Next M2b work:
 

@@ -235,12 +235,35 @@ fn exclusions(doc: &Value, cargo: bool) -> Result<Vec<(String, Vec<String>)>, &'
         .iter()
         .map(|entry| {
             let raw = entry.as_str().ok_or("unsupported-exclusion")?;
-            Ok((
-                raw.to_owned(),
-                pattern(raw).map_err(|_| "unsupported-exclusion")?,
-            ))
+            let parts = pattern(raw).map_err(|_| "unsupported-exclusion")?;
+            if parts.iter().any(|part| part == "*") {
+                return Err("unsupported-exclusion");
+            }
+            Ok((raw.to_owned(), parts))
         })
         .collect()
+}
+
+fn excluded_by<'a>(
+    exclusions: &'a [(String, Vec<String>)],
+    members: &[Vec<String>],
+    parts: &[String],
+) -> Option<&'a str> {
+    if exclusions.is_empty() {
+        return None;
+    }
+    let mut manifest = parts.to_vec();
+    manifest.push("Cargo.toml".to_owned());
+    if members
+        .iter()
+        .any(|member| !member.iter().any(|part| part == "*") && manifest.starts_with(member))
+    {
+        return None;
+    }
+    exclusions
+        .iter()
+        .find(|(_, excluded)| manifest.starts_with(excluded))
+        .map(|(raw, _)| raw.as_str())
 }
 
 fn workspace(
@@ -267,6 +290,11 @@ fn workspace(
         return;
     };
     let excluded = exclusions(doc, cargo);
+    let member_patterns: Vec<_> = members
+        .iter()
+        .filter_map(Value::as_str)
+        .filter_map(|raw| pattern(raw).ok())
+        .collect();
     let base = manifest.parent().unwrap_or(Path::new(""));
     for member in members {
         let mut row = template.clone();
@@ -305,10 +333,7 @@ fn workspace(
             match &excluded {
                 Err(reason) => item["reason"] = json!(reason),
                 Ok(exclusions) => {
-                    if let Some((raw, _)) = exclusions
-                        .iter()
-                        .find(|(_, p)| workspace_pattern_matches(p, &components))
-                    {
+                    if let Some(raw) = excluded_by(exclusions, &member_patterns, &components) {
                         item["status"] = json!("excluded");
                         item["excluded_by"] = text(raw);
                     } else if cargo
