@@ -9,10 +9,12 @@ use std::io::Write;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Component, Path, PathBuf};
 
+pub mod files;
 mod patch;
 pub use patch::{
     check_git_patch, check_patch_basis, export_patch, git_mode, git_mode_change_supported,
-    matches_patch_basis, GitPatchCheck, PatchBasisCheck, PatchBasisFile, PatchExport,
+    matches_patch_basis, owner_executable_mode, GitPatchCheck, PatchBasisCheck, PatchBasisFile,
+    PatchExport,
 };
 
 const DIRECTORY: &str = ".fr-history";
@@ -426,6 +428,15 @@ pub fn record(
             after,
         });
     }
+    store_record(&mut history, stored, apply, validation).map(Some)
+}
+
+fn store_record(
+    history: &mut History,
+    changes: Vec<Change>,
+    apply: bool,
+    validation: &str,
+) -> Result<u64> {
     let id = history
         .records
         .iter()
@@ -437,16 +448,16 @@ pub fn record(
     history.records.push(Record {
         id,
         status: Status::Planned,
-        basis: basis(&stored)?,
-        source_revision: source_revision(&root)?,
+        basis: basis(&changes)?,
+        source_revision: source_revision(&history.root)?,
         validation: validation.to_owned(),
-        changes: stored,
+        changes,
     });
     history.save()?;
     if apply {
-        transition(&mut history, Action::Apply, id)?;
+        transition(history, Action::Apply, id)?;
     }
-    Ok(Some(id))
+    Ok(id)
 }
 
 pub fn act(root: &Path, action: Action, id: u64, write: bool) -> Result<serde_json::Value> {

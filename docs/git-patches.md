@@ -118,7 +118,8 @@ It preserves content bytes, including CRLF and missing final newlines.
 Empty file creation and deletion, multiple hunks and unusual UTF-8 filenames are supported.
 Paths use Git quoting, and output is sorted by path.
 Recorded deletion/addition pairs can express moves without rename detection.
-This command does not add deletion or move operations to the transaction recorder.
+Use [`fr file delete` and `fr file executable`](file-transactions.md) to record file deletions and owner-execute changes.
+A dedicated file-move transaction remains pending.
 
 Git mode output distinguishes regular files (`100644`) from executable files (`100755`), using the owner execute bit.
 Other Unix permissions are not reproduced. New files use Git modes rather than private history creation permissions.

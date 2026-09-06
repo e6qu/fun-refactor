@@ -78,6 +78,7 @@ fn invocations() -> Vec<(&'static str, Vec<&'static str>)> {
         ("capabilities", vec!["capabilities"]),
         ("cache", vec!["cache"]),
         ("history", vec!["history"]),
+        ("file", vec!["file", "delete", "svc/a.go"]),
         ("git", vec!["git", "status"]),
         ("project", vec!["project", "map"]),
         ("completions", vec!["completions", "bash"]),

@@ -572,6 +572,38 @@ fn patch_modes_match_lean_across_permission_bits_and_u32_boundaries() {
 }
 
 #[test]
+fn owner_executable_settings_match_lean_across_permission_bits_and_u32_boundaries() {
+    use fun_refactor::history::owner_executable_mode;
+    build_kernel();
+    let output = Command::new("lake")
+        .args(["exe", "fr-history-kernel", "owner-executable"])
+        .current_dir(root().join("kernels"))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let mut expected = Vec::new();
+    for mode in (0..4096u32)
+        .chain((0..32).map(|bit| 1u32 << bit))
+        .chain([u32::MAX])
+    {
+        for executable in [false, true] {
+            expected.push(owner_executable_mode(mode, executable).to_string());
+        }
+    }
+    assert_eq!(expected.len(), 8_258);
+    let observed = String::from_utf8(output.stdout).unwrap();
+    let observed = observed.lines().collect::<Vec<_>>();
+    assert_eq!(observed.len(), expected.len());
+    for (case, (observed, expected)) in observed.iter().zip(&expected).enumerate() {
+        assert_eq!(observed, expected, "executable case {case}");
+    }
+}
+
+#[test]
 fn patch_basis_matches_lean_for_existence_contents_and_projected_permissions() {
     use fun_refactor::history::{matches_patch_basis, matches_snapshot, Snapshot};
     build_kernel();

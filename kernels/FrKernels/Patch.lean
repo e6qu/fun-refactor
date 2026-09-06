@@ -50,6 +50,41 @@ theorem accepted_change_preserves_other_permission_bits (before after : UInt32)
     before &&& ~~~(73 : UInt32) = after &&& ~~~(73 : UInt32) := by
   exact ((mode_change_supported_iff before after).mp accepted).1
 
+-- fr:spec src/history/patch.rs::owner_executable_mode @ eb802953
+-- fr:signature mode: u32 => mode: UInt32; executable: bool => executable: Bool; return: u32 => return: UInt32
+def ownerExecutableMode (mode : UInt32) (executable : Bool) : UInt32 :=
+  if executable then mode ||| 64 else mode &&& ~~~(64 : UInt32)
+
+theorem owner_execute_setting_has_requested_bit (mode : UInt32) (executable : Bool) :
+    ownerExecutableMode mode executable &&& 64 = if executable then 64 else 0 := by
+  unfold ownerExecutableMode
+  bv_decide
+
+theorem owner_execute_setting_preserves_other_bits (mode : UInt32) (executable : Bool) :
+    ownerExecutableMode mode executable &&& ~~~(64 : UInt32) = mode &&& ~~~(64 : UInt32) := by
+  unfold ownerExecutableMode
+  bv_decide
+
+theorem owner_execute_setting_is_idempotent (mode : UInt32) (executable : Bool) :
+    ownerExecutableMode (ownerExecutableMode mode executable) executable = ownerExecutableMode mode executable := by
+  unfold ownerExecutableMode
+  bv_decide
+
+theorem owner_execute_setting_is_supported (mode : UInt32) (executable : Bool) :
+    gitModeChangeSupported mode (ownerExecutableMode mode executable) = true := by
+  unfold gitModeChangeSupported gitMode ownerExecutableMode bne
+  bv_decide
+
+theorem owner_execute_setting_has_requested_git_mode (mode : UInt32) (executable : Bool) :
+    gitMode (ownerExecutableMode mode executable) = if executable then 33261 else 33188 := by
+  unfold gitMode ownerExecutableMode
+  bv_decide
+
+theorem owner_execute_setting_preserves_recorded_mode_bound (mode : UInt32) (executable : Bool)
+    (valid : mode ≤ 4095) : ownerExecutableMode mode executable ≤ 4095 := by
+  unfold ownerExecutableMode
+  bv_decide
+
 structure FileSnapshot where
   content : String
   mode : UInt32

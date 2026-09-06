@@ -245,8 +245,10 @@ The native CLI now saves plans and supports checked apply, undo, redo and interr
 `fr history patch ID` exports stored text changes for Git, with reverse export and optional JSON metadata.
 Add `--check` to compare the receiving files with the recorded starting state; `--against DIR` selects another workspace.
 Use `--git-check` for Git's application verdict, with `--index` to include the index.
-Patch-basis and executable-mode helpers have anchored Lean models with 47,100 shared execution comparisons.
+Patch-basis and executable-mode helpers have anchored Lean models with 55,358 shared execution comparisons.
 See [recorded transaction patches](docs/git-patches.md) for application checks, mode scope and limitations.
+`fr file delete` and `fr file executable --set on|off` add explicit file operations with saved plans, undo/redo and patch export.
+See [file transactions](docs/file-transactions.md) for owner-execute semantics and validation scope.
 `fr git status` pages through repository changes with filters, rename sources and continuation cursors.
 See [Git status](docs/git-status.md) for observation limits, omitted submodules and configuration scope.
 The browser already exports patches and can restore its initial workspace.

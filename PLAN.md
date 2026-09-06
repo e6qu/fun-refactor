@@ -478,9 +478,25 @@ The standalone basis predicate accepts arbitrary strings; export still refuses b
 Validation passes the full native/WASM gate, all Git and patch CLI regressions, 311/311 capability coverage and all 27 Lean build jobs.
 Strict Lean verification passes with ten fresh source anchors and signature maps and zero `sorry` obligations.
 
+M3f: recorded file deletion and owner-execute authoring (complete).
+
+- Add `fr file delete PATH...` and `fr file executable PATH... --set on|off` with compact JSON previews.
+- Record explicit regular text-file operations through `--save-plan` or `--write`, sharing the existing durable transaction engine.
+- Validate complete snapshots again under locks, skip unchanged modes and preserve every other permission bit.
+- Support empty-file deletion, checked undo/redo, interrupted-write recovery and recorded forward/reverse patch export.
+- Refuse unsafe, duplicate, missing, non-regular or binary targets before applying a batch.
+- Anchor the owner-execute setter to six additional Lean laws and compare 8,258 results with Rust.
+
+See [file transaction scope and guarantees](docs/file-transactions.md).
+Five CLI scenarios cover previews, saved plans, writes, stale bases, refusals, no-ops and preservation of unrelated Git state.
+Recovery tests cover handled failures and process exit after every write during apply, undo and redo for both operation kinds.
+The `file-snapshots` label does not claim dependency, compilation or behavioral validation after deletion.
+The new model retains the bitvector checker's compiler-trust assumptions. File planning and general Rust correspondence remain unproved.
+Validation passes the full native/WASM gate, 311/311 capability coverage and all 27 Lean build jobs.
+Strict Lean verification passes with eleven fresh source anchors and signature maps and zero `sorry` obligations.
+
 Next M3 work:
 
-Extend recording for deletion and executable-mode operations before advertising those as authoring commands.
 Add bounded change details and structural impact since a revision, building on the status pages.
 
 Add explicit staging, commits and isolated worktree workflows after patch correctness.

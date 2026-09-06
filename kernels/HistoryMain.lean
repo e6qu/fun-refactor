@@ -26,6 +26,11 @@ def patchBasisCases : IO Unit := do
     for expected in patchSamples do
       IO.println (FrKernels.Patch.matchesPatchBasis actual expected)
 
+def ownerExecutableCases : IO Unit := do
+  for mode in patchModes do
+    for executable in [false, true] do
+      IO.println (FrKernels.Patch.ownerExecutableMode mode executable).toNat
+
 def historyCases : IO Unit :=
   for current in samples do
     for before in samples do
@@ -38,4 +43,5 @@ def main (args : List String) : IO Unit :=
   | [] => historyCases
   | ["patch-modes"] => patchModeCases
   | ["patch-basis"] => patchBasisCases
-  | _ => throw (IO.userError "expected patch-modes, patch-basis or no arguments")
+  | ["owner-executable"] => ownerExecutableCases
+  | _ => throw (IO.userError "expected patch-modes, patch-basis, owner-executable or no arguments")

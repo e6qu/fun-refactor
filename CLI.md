@@ -1002,6 +1002,32 @@ The workspace scanner excludes this directory even with `--no-ignore`.
 A killed process can leave temporary staging files beside source files; recovery restores targets but leaves those orphaned temporary files.
 History restores file contents, existence and permission modes. It does not restore timestamps, ownership, extended attributes or empty directory topology.
 
+### `fr file`
+
+```sh
+fr file delete obsolete.txt empty.txt
+fr file delete obsolete.txt --save-plan
+fr file executable scripts/build.sh --set on --write
+fr file executable scripts/build.sh --set off
+```
+
+Preview or record operations on 1 through 500 explicit workspace-relative regular text files.
+Both output modes print JSON metadata without source bodies. Paths sort before recording and reporting.
+The default previews without writing. `--save-plan` saves a transaction; `--write` records and applies it.
+Choose either flag. Apply a saved transaction with `fr history apply ID --write`.
+The same history commands provide undo, redo, recovery and Git patch export.
+
+`delete` removes whole files, including empty files, without checking references or project behavior.
+`executable --set on|off` changes only the owner-execute bit and preserves content and all other permission bits.
+For example, setting `on` changes `0644` to `0744`; Git patches project that result to `100755`.
+Already-correct modes produce no transaction and leave any existing journal unchanged.
+The `file-snapshots` validation label covers existence, complete contents and full recorded modes; it does not claim compilation or dependency validation.
+
+Absolute paths, parent traversal, duplicate targets, symlinks, directories, missing files, non-UTF-8 files and NUL-containing contents cause refusal.
+Targets cannot traverse `.git` or `.fr-history`. Explicit paths can name ignored files.
+Git is optional; operations preserve its index and use the native journal for checked writes.
+See [file transactions](docs/file-transactions.md) for the report, permission scope and recovery limits.
+
 ### `fr git`
 
 ```sh

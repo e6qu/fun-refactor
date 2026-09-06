@@ -56,6 +56,14 @@ pub fn git_mode_change_supported(before: u32, after: u32) -> bool {
     changed & !0o111 == 0 && (changed == 0 || git_mode(before) != git_mode(after))
 }
 
+pub fn owner_executable_mode(mode: u32, executable: bool) -> u32 {
+    if executable {
+        mode | 0o100
+    } else {
+        mode & !0o100
+    }
+}
+
 pub fn matches_patch_basis(actual: &Option<Snapshot>, expected: &Option<Snapshot>) -> bool {
     actual.as_ref().map(|s| (&s.content, git_mode(s.mode)))
         == expected.as_ref().map(|s| (&s.content, git_mode(s.mode)))

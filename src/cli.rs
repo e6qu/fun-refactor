@@ -104,6 +104,11 @@ pub fn command_names() -> Vec<String> {
 
 #[derive(Subcommand)]
 enum Command {
+    #[command(about = "Preview and record file deletions or executable-mode changes.")]
+    File {
+        #[command(subcommand)]
+        command: crate::history::files::Command,
+    },
     #[command(about = "Inspect bounded Git repository status.")]
     Git {
         #[command(subcommand)]
@@ -780,7 +785,8 @@ fn dispatch(cli: &Cli) -> Result<()> {
     if cli.save_plan
         && !matches!(
             &cli.command,
-            Command::Rename { .. }
+            Command::File { .. }
+                | Command::Rename { .. }
                 | Command::Extract { .. }
                 | Command::Inline { .. }
                 | Command::Signature { .. }
@@ -809,6 +815,11 @@ fn dispatch(cli: &Cli) -> Result<()> {
         }
     }
     match &cli.command {
+        Command::File { command } => {
+            let report = crate::history::files::execute(&cli.root, command, cli.save_plan)?;
+            println!("{}", serde_json::to_string(&report)?);
+            Ok(())
+        }
         Command::Git { command } => {
             println!(
                 "{}",
