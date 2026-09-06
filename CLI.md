@@ -1002,6 +1002,27 @@ The workspace scanner excludes this directory even with `--no-ignore`.
 A killed process can leave temporary staging files beside source files; recovery restores targets but leaves those orphaned temporary files.
 History restores file contents, existence and permission modes. It does not restore timestamps, ownership, extended attributes or empty directory topology.
 
+### `fr git`
+
+```sh
+fr git status
+fr git status --kind staged --limit 20
+fr git status --kind staged --cursor TOKEN
+```
+
+Print JSON pages of repository-relative paths, raw Git status codes, rename sources and whole-repository counts.
+`--kind` accepts `all` (default), `staged`, `unstaged`, `untracked` or `conflicted`.
+`--limit` defaults to 50 and accepts 1 through 500. Continue using `page.next` with the same kind.
+Nested `-C` directories still select the entire repository; linked worktrees select their own working tree.
+Conflicts have a separate count. A file with both staged and unstaged changes belongs to both ordinary counts.
+
+Cursors reject changed Git status observations, repository roots or query kinds.
+They do not detect content edits that leave the observed status fields unchanged.
+Submodules and ignored files are outside this report's scope, including its `clean` value.
+Git is required; transaction history is not. The command preserves the index and working files.
+Content filters on any tracked path cause refusal, even outside the requested page.
+See [Git status scope and cursors](docs/git-status.md) for configuration, output fields and collection limits.
+
 ### `fr cache`
 
 ```

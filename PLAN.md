@@ -40,7 +40,7 @@ Important gaps:
 - `fr project` adds bounded maps, revision-bound details, call relationships and Cargo/npm manifest views. Complete dependency resolution and framework semantics remain pending.
 - Native changes now have persistent history and checked undo/redo. History retention and large-journal scaling need further work.
 - Browser undo restores the loaded workspace; it does not reverse individual transactions.
-- Native history exports Git text patches. Repository status, staging and shared browser patch semantics remain pending.
+- Native history exports Git text patches and checks receiving files and indexes. Git status pages exist; staging and shared browser patch semantics remain pending.
 - Strict spec signature maps currently accept Rust source declarations only.
 - Framework readers cover selected patterns. Whole applications still need dependency and runtime work.
 - Model proofs and shared executable cases do not establish general correspondence with the Rust implementation.
@@ -446,12 +446,27 @@ Git checks do not freeze concurrent state or establish snapshot equality, write 
 Validation passes the full native/WASM gate, all five Git CLI scenarios and Git checks across 18 patch cases.
 Strict Lean verification retains seven fresh anchors and zero `sorry` obligations.
 
+M3d: bounded repository status pages (complete).
+
+- Add `fr git status` with JSON pages and staged, unstaged, untracked and conflicted filters.
+- Report whole-repository counts, sorted paths, rename sources and raw Git status codes without source bodies.
+- Bind continuation cursors to repository identity, query kind and observed status records.
+- Keep conflicts separate from ordinary staged/unstaged counts and document omitted submodule state.
+- Share the guarded Git runner with patch checks, refusing content filters on every tracked path.
+- Inspect nested directories and linked worktrees independently of transaction history loading.
+
+See [Git status scope and cursors](docs/git-status.md).
+Status revisions identify Git observations, not complete working-file contents or a safe edit basis.
+Page sizing reuses the anchored pagination helper. Git execution and parser correspondence remain unproved.
+Three parser tests and five Git CLI scenarios cover pagination, unusual paths, conflicts, filters, submodule scope and preservation of index bytes.
+Validation passes the full native/WASM gate, 311/311 capability coverage and all 25 Lean build jobs.
+Strict Lean verification retains seven fresh anchors and zero `sorry` obligations.
+
 Next M3 work:
 
-Add bounded repository status pages for staged, unstaged and untracked files.
 Extend Lean coverage to patch basis and executable modes, with shared Rust cases.
 Extend recording for deletion and executable-mode operations before advertising those as authoring commands.
-Expose changed files, staged and unstaged changes, and structural impact since a revision.
+Add bounded change details and structural impact since a revision, building on the status pages.
 
 Add explicit staging, commits and isolated worktree workflows after patch correctness.
 Keep Git optional for ordinary analysis and transaction history.

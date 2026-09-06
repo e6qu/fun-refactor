@@ -104,6 +104,11 @@ pub fn command_names() -> Vec<String> {
 
 #[derive(Subcommand)]
 enum Command {
+    #[command(about = "Inspect bounded Git repository status.")]
+    Git {
+        #[command(subcommand)]
+        command: crate::git::Command,
+    },
     #[command(about = "Inspect bounded project maps and revision-bound source details.")]
     Project {
         #[command(subcommand)]
@@ -795,7 +800,7 @@ fn dispatch(cli: &Cli) -> Result<()> {
     {
         anyhow::bail!("--save-plan requires a command that produces a change plan.");
     }
-    if !matches!(cli.command, Command::History { .. }) {
+    if !matches!(cli.command, Command::History { .. } | Command::Git { .. }) {
         if let Some(pending) = crate::history::History::read(&cli.root)?.pending {
             eprintln!(
                 "Transaction {} needs recovery: fr history recover {} --write",
@@ -804,6 +809,13 @@ fn dispatch(cli: &Cli) -> Result<()> {
         }
     }
     match &cli.command {
+        Command::Git { command } => {
+            println!(
+                "{}",
+                serde_json::to_string(&crate::git::report(&cli.root, command)?)?
+            );
+            Ok(())
+        }
         Command::Project { command } => cmd_project(cli, command),
         Command::History { action } => cmd_history(cli, action.as_ref()),
         Command::Capabilities {

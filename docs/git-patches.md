@@ -127,7 +127,8 @@ Use history apply/undo/redo when full recorded permissions must be restored.
 Binary snapshots containing NUL, non-UTF-8 source, symlinks and submodules are outside this text patch scope.
 An unsupported change fails the entire export before any patch is printed.
 The exporter does not include blob IDs, binary hunks or three-way merge support.
-Git status summaries, staging, commits and worktree workflows remain roadmap work.
+[Git status pages](git-status.md) report repository changes independently of history.
+Staging, commits and worktree authoring workflows remain roadmap work.
 
 The format follows Git's [patch format documentation](https://git-scm.com/docs/diff-format).
 Application behavior is described in [git apply](https://git-scm.com/docs/git-apply).

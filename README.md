@@ -246,6 +246,8 @@ The native CLI now saves plans and supports checked apply, undo, redo and interr
 Add `--check` to compare the receiving files with the recorded starting state; `--against DIR` selects another workspace.
 Use `--git-check` for Git's application verdict, with `--index` to include the index.
 See [recorded transaction patches](docs/git-patches.md) for application checks, mode scope and limitations.
+`fr git status` pages through repository changes with filters, rename sources and continuation cursors.
+See [Git status](docs/git-status.md) for observation limits, omitted submodules and configuration scope.
 The browser already exports patches and can restore its initial workspace.
 `fr project` now provides compact hierarchy maps and bounded source inspection.
 Its package and dependency pages report Cargo/npm manifest declarations with shared revision checks.
@@ -266,7 +268,7 @@ FastAPI contract rows include explicit parameter markers and decorator response 
 `fr project contracts --types` adds optional declaration links from supported signature types, preserving ambiguity and unresolved names.
 `fr project configuration` pages environment declarations and candidate code consumers, with captured-source checks and explicit analysis gaps.
 `fr project tests` adds catalog candidates and bounded call-path witnesses, preserving the weakest edge confidence without claiming runtime coverage.
-Complete dependency graphs, framework semantics, Git status/staging and broader task evaluations remain roadmap work.
+Complete dependency graphs, framework semantics, Git staging and broader task evaluations remain roadmap work.
 
 [TUTORIAL.md](TUTORIAL.md) walks through helm/helm.
 [EXAMPLES.md](EXAMPLES.md) shows capabilities on pinned public repositories.

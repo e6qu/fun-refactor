@@ -13,6 +13,8 @@ extern crate fun_refactor_wasm_libc;
 
 pub mod edit;
 pub mod extract;
+#[cfg(feature = "cli")]
+pub mod git;
 pub mod helm;
 #[cfg(feature = "cli")]
 pub mod history;
