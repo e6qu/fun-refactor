@@ -489,6 +489,15 @@ enum Command {
 
 #[derive(Subcommand)]
 enum HistoryCommand {
+    #[command(about = "Export stored transaction snapshots as a Git text patch.")]
+    Patch {
+        id: u64,
+        #[arg(
+            long,
+            help = "Export the change from the recorded result back to its basis."
+        )]
+        reverse: bool,
+    },
     /// Inspect one transaction without printing stored source snapshots.
     Show { id: u64 },
     /// Apply a saved plan after checking its source basis.
@@ -1542,6 +1551,18 @@ fn cmd_project(cli: &Cli, command: &crate::project::Command) -> Result<()> {
 
 fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
     use crate::history::Action;
+    if let Some(HistoryCommand::Patch { id, reverse }) = command {
+        let report = crate::history::export_patch(&cli.root, *id, *reverse)?;
+        if cli.json {
+            println!("{}", serde_json::to_string_pretty(&report)?);
+        } else {
+            use std::io::Write;
+            std::io::stdout()
+                .lock()
+                .write_all(report.patch.as_bytes())?;
+        }
+        return Ok(());
+    }
     let report = match command {
         Some(HistoryCommand::Apply { id, write }) => {
             crate::history::act(&cli.root, Action::Apply, *id, *write)?

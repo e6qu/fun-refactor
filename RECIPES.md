@@ -498,6 +498,7 @@ None of these are answered here. They are the reason v1 does not fetch.
 
 Recipes already include expectations, named steps, refusal policies and formatting.
 Recipe writes and formatting now share persistent transaction identities with other CLI changes.
-`fr history` provides checked apply, undo, redo and recovery. Patch export remains pending.
+`fr history` provides checked apply, undo, redo and recovery.
+`fr history patch ID` exports recorded text changes; see [patch usage and limits](docs/git-patches.md).
 The agent workflow also needs bounded previews for large selections.
 These changes belong to the [active roadmap](PLAN.md).

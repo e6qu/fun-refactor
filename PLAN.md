@@ -40,7 +40,7 @@ Important gaps:
 - `fr project` adds bounded maps, revision-bound details, call relationships and Cargo/npm manifest views. Complete dependency resolution and framework semantics remain pending.
 - Native changes now have persistent history and checked undo/redo. History retention and large-journal scaling need further work.
 - Browser undo restores the loaded workspace; it does not reverse individual transactions.
-- Diff output exists; a shared Git patch and staging workflow remains pending.
+- Native history exports Git text patches. Repository status, staging and shared browser patch semantics remain pending.
 - Strict spec signature maps currently accept Rust source declarations only.
 - Framework readers cover selected patterns. Whole applications still need dependency and runtime work.
 - Model proofs and shared executable cases do not establish general correspondence with the Rust implementation.
@@ -403,9 +403,25 @@ The current byte comparisons do not close that acceptance requirement.
 
 ### M3. Git patches and repository integration
 
-Export a recorded transaction as a clean patch, separate from diagnostics and summaries.
-Cover additions, deletions, moves, modes, unusual paths and missing final newlines.
-Check patches with Git against their stated basis.
+M3a: recorded text patch export (complete).
+
+- Add `fr history patch ID`, reverse export and optional JSON metadata.
+- Generate from recorded snapshots without Git or working-tree content reads.
+- Cover text additions/deletions, empty files, executable modes, unusual paths and missing final newlines.
+- Represent recorded moves as deletion/addition pairs without adding new mutation commands.
+- Refuse binary snapshots and permission changes that Git modes cannot represent.
+- Check Git application in both directions and preserve unrelated staged, unstaged and untracked changes.
+
+See [patch scope and usage](docs/git-patches.md).
+Tests check patch rendering against Git; implementation correspondence remains unproved.
+The existing recorder does not yet expose every change kind that history snapshots can represent.
+Validation passes the full native/WASM gate and Git round trips across 18 change cases.
+Strict Lean verification retains seven fresh anchors and zero `sorry` obligations.
+
+Next M3 work:
+
+Add receiving-basis inspection and patch checks through `fr` itself.
+Extend recording for deletion and executable-mode operations before advertising those as authoring commands.
 Expose changed files, staged and unstaged changes, and structural impact since a revision.
 
 Add explicit staging, commits and isolated worktree workflows after patch correctness.

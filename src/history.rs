@@ -9,6 +9,9 @@ use std::io::Write;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Component, Path, PathBuf};
 
+mod patch;
+pub use patch::{export_patch, PatchExport};
+
 const DIRECTORY: &str = ".fr-history";
 
 fn workspace(root: &Path) -> Result<PathBuf> {

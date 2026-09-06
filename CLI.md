@@ -962,6 +962,8 @@ The membership closure has regression tests and Cargo metadata comparisons, but 
 fr rename OldName NewName --save-plan --json
 fr history
 fr history show 1
+fr history patch 1 > /tmp/change.patch
+fr history patch 1 --reverse > /tmp/reverse.patch
 fr history apply 1                  # preview
 fr history apply 1 --write
 fr history undo 1 --write
@@ -971,7 +973,11 @@ fr history recover 1 --write        # only when an operation remains pending
 
 History uses schema 1 and numeric identities local to the workspace.
 `history` lists status, validation labels, paths, applied IDs and the redo stack.
-Commands print JSON in both output modes. `show` and transition previews include diffs and existence/mode changes.
+`patch` prints a Git text patch, or metadata with a `patch` string under `--json`.
+Other history commands print JSON in both output modes. `show` and transition previews include diffs and existence/mode changes.
+Patch export reads recorded snapshots and leaves history, working files and the Git index unchanged.
+Use `git apply --check /tmp/change.patch` to check application in the receiving workspace.
+See [recorded transaction patches](docs/git-patches.md) for reverse export, permissions and text scope.
 Applying a saved plan checks its affected-file snapshots and its project source digest.
 That digest covers recognized source files, including hidden and ignored files.
 It excludes `.git`, `.fr-history`, `target`, `node_modules` and `.lake` directories.

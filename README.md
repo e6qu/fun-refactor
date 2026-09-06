@@ -242,6 +242,8 @@ LSP delegation stays outside the default engine; daemon/watch mode awaits a meas
 
 The shared commit path recovers earlier writes after a handled failure and reports recovery problems.
 The native CLI now saves plans and supports checked apply, undo, redo and interrupted-write recovery through `fr history`.
+`fr history patch ID` exports stored text changes for Git, with reverse export and optional JSON metadata.
+See [recorded transaction patches](docs/git-patches.md) for application checks, mode scope and limitations.
 The browser already exports patches and can restore its initial workspace.
 `fr project` now provides compact hierarchy maps and bounded source inspection.
 Its package and dependency pages report Cargo/npm manifest declarations with shared revision checks.
@@ -262,7 +264,7 @@ FastAPI contract rows include explicit parameter markers and decorator response 
 `fr project contracts --types` adds optional declaration links from supported signature types, preserving ambiguity and unresolved names.
 `fr project configuration` pages environment declarations and candidate code consumers, with captured-source checks and explicit analysis gaps.
 `fr project tests` adds catalog candidates and bounded call-path witnesses, preserving the weakest edge confidence without claiming runtime coverage.
-Complete dependency graphs, framework semantics, Git integration and broader task evaluations remain roadmap work.
+Complete dependency graphs, framework semantics, Git status/staging and broader task evaluations remain roadmap work.
 
 [TUTORIAL.md](TUTORIAL.md) walks through helm/helm.
 [EXAMPLES.md](EXAMPLES.md) shows capabilities on pinned public repositories.
