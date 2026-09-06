@@ -10,7 +10,7 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::{Component, Path, PathBuf};
 
 mod patch;
-pub use patch::{export_patch, PatchExport};
+pub use patch::{check_patch_basis, export_patch, PatchBasisCheck, PatchBasisFile, PatchExport};
 
 const DIRECTORY: &str = ".fr-history";
 

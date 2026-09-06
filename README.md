@@ -243,6 +243,7 @@ LSP delegation stays outside the default engine; daemon/watch mode awaits a meas
 The shared commit path recovers earlier writes after a handled failure and reports recovery problems.
 The native CLI now saves plans and supports checked apply, undo, redo and interrupted-write recovery through `fr history`.
 `fr history patch ID` exports stored text changes for Git, with reverse export and optional JSON metadata.
+Add `--check` to compare the receiving files with the recorded starting state; `--against DIR` selects another workspace.
 See [recorded transaction patches](docs/git-patches.md) for application checks, mode scope and limitations.
 The browser already exports patches and can restore its initial workspace.
 `fr project` now provides compact hierarchy maps and bounded source inspection.

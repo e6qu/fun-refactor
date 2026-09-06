@@ -150,6 +150,11 @@ fn git_round_trips_text_paths_empty_files_modes_and_moves() {
     let mut reordered = record.clone();
     reordered.changes.reverse();
     assert_eq!(forward, render(&reordered, false).unwrap());
+    let stored = tempfile::tempdir().unwrap();
+    let mut history = History::read(stored.path()).unwrap();
+    history.records.push(record.clone());
+    fs::create_dir(stored.path().join(".fr-history")).unwrap();
+    history.save().unwrap();
     for exported_reverse in [false, true] {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
@@ -165,11 +170,38 @@ fn git_round_trips_text_paths_empty_files_modes_and_moves() {
         }
         git_ok(root, &["add", "."], "");
         let index = fs::read(root.join(".git/index")).unwrap();
+        let before = check_patch_basis(stored.path(), 1, false, Some(root)).unwrap();
+        assert!(before.matches_patch_basis);
+        assert!(before.matches_recorded_snapshots);
+        assert_eq!(before.checked_files, record.changes.len());
+        assert!(before
+            .files
+            .windows(2)
+            .all(|pair| pair[0].path < pair[1].path));
+        fs::write(root.join("empty-add"), "collision").unwrap();
+        let collision = check_patch_basis(stored.path(), 1, false, Some(root)).unwrap();
+        assert!(!collision.matches_patch_basis);
+        let row = collision
+            .files
+            .iter()
+            .find(|file| file.path == Path::new("empty-add"))
+            .unwrap();
+        assert!(!row.expected_exists);
+        assert!(row.actual_exists);
+        fs::remove_file(root.join("empty-add")).unwrap();
         git_ok(root, &["apply", "--check", "-"], &forward);
         git_ok(root, &["apply", "--whitespace=nowarn", "-"], &forward);
         for change in &record.changes {
             assert_snapshot(root, change, false);
         }
+        assert!(
+            !check_patch_basis(stored.path(), 1, false, Some(root))
+                .unwrap()
+                .matches_patch_basis
+        );
+        let after = check_patch_basis(stored.path(), 1, true, Some(root)).unwrap();
+        assert!(after.matches_patch_basis);
+        assert!(!after.matches_recorded_snapshots);
         let (args, patch) = if exported_reverse {
             (vec!["apply", "--check", "-"], &reverse)
         } else {
@@ -185,6 +217,11 @@ fn git_round_trips_text_paths_empty_files_modes_and_moves() {
         for change in &record.changes {
             assert_snapshot(root, change, true);
         }
+        assert!(
+            check_patch_basis(stored.path(), 1, false, Some(root))
+                .unwrap()
+                .matches_patch_basis
+        );
         assert_eq!(fs::read(root.join(".git/index")).unwrap(), index);
     }
 }

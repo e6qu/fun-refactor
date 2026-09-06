@@ -418,9 +418,23 @@ The existing recorder does not yet expose every change kind that history snapsho
 Validation passes the full native/WASM gate and Git round trips across 18 change cases.
 Strict Lean verification retains seven fresh anchors and zero `sorry` obligations.
 
+M3b: receiving patch basis checks (complete).
+
+- Add `fr history patch ID --check`, with optional `--against DIR` and reverse direction.
+- Report affected-file content, existence and Git mode matches without source text or a patch.
+- Keep full recorded-permission equality separate from patch basis equality.
+- Return a failing exit code for mismatches and preserve source, history and Git state.
+- Reject unsafe receiving paths, unreadable files and unsupported exports before printing a report.
+- Compare results with Git application and cover differences outside patch hunks.
+
+Full snapshot equality reuses the anchored history predicate.
+Filesystem observation, Git mode projection and report correspondence remain unproved.
+The check does not run Git or establish index, attribute, write-permission or project-digest compatibility.
+Validation passes the full native/WASM gate, receiving checks across 18 Git round-trip cases and strict Lean verification.
+
 Next M3 work:
 
-Add receiving-basis inspection and patch checks through `fr` itself.
+Add explicit Git application checks through `fr` and repository status inspection.
 Extend recording for deletion and executable-mode operations before advertising those as authoring commands.
 Expose changed files, staged and unstaged changes, and structural impact since a revision.
 

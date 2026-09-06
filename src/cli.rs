@@ -497,6 +497,17 @@ enum HistoryCommand {
             help = "Export the change from the recorded result back to its basis."
         )]
         reverse: bool,
+        #[arg(
+            long,
+            help = "Check affected files against the starting content and Git modes."
+        )]
+        check: bool,
+        #[arg(
+            long,
+            requires = "check",
+            help = "Receiving directory; defaults to the history workspace."
+        )]
+        against: Option<PathBuf>,
     },
     /// Inspect one transaction without printing stored source snapshots.
     Show { id: u64 },
@@ -1551,7 +1562,22 @@ fn cmd_project(cli: &Cli, command: &crate::project::Command) -> Result<()> {
 
 fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
     use crate::history::Action;
-    if let Some(HistoryCommand::Patch { id, reverse }) = command {
+    if let Some(HistoryCommand::Patch {
+        id,
+        reverse,
+        check,
+        against,
+    }) = command
+    {
+        if *check {
+            let report =
+                crate::history::check_patch_basis(&cli.root, *id, *reverse, against.as_deref())?;
+            println!("{}", serde_json::to_string_pretty(&report)?);
+            if !report.matches_patch_basis {
+                std::process::exit(1);
+            }
+            return Ok(());
+        }
         let report = crate::history::export_patch(&cli.root, *id, *reverse)?;
         if cli.json {
             println!("{}", serde_json::to_string_pretty(&report)?);

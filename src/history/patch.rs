@@ -4,6 +4,9 @@ use serde::Serialize;
 use std::fmt::Write;
 use std::path::Path;
 
+mod check;
+pub use check::{check_patch_basis, PatchBasisCheck, PatchBasisFile};
+
 #[cfg(test)]
 mod tests;
 
