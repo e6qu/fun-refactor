@@ -6,6 +6,7 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::path::Path;
 
+mod diff;
 pub(crate) mod process;
 mod status;
 
@@ -13,6 +14,8 @@ mod status;
 pub enum Command {
     #[command(about = "Page through Git status without source text or index writes.")]
     Status(StatusOptions),
+    #[command(about = "Inspect bounded hunk and line details for one Git path.")]
+    Diff(diff::Options),
 }
 
 #[derive(Args)]
@@ -41,7 +44,13 @@ enum Kind {
 }
 
 pub fn report(root: &Path, command: &Command) -> Result<Value> {
-    let Command::Status(options) = command;
+    match command {
+        Command::Status(options) => status_report(root, options),
+        Command::Diff(options) => diff::report(root, options),
+    }
+}
+
+fn status_report(root: &Path, options: &StatusOptions) -> Result<Value> {
     if !(1..=500).contains(&options.limit) {
         bail!("limit must be between 1 and 500");
     }

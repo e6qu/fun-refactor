@@ -251,6 +251,8 @@ See [recorded transaction patches](docs/git-patches.md) for application checks, 
 See [file transactions](docs/file-transactions.md) for owner-execute semantics and validation scope.
 `fr git status` pages through repository changes with filters, rename sources and continuation cursors.
 See [Git status](docs/git-status.md) for observation limits, omitted submodules and configuration scope.
+`fr git diff PATH` pages through hunks and capped source excerpts, with staged and commit-based comparisons.
+See [Git diff details](docs/git-diff.md) for cursor identity and supported paths.
 The browser already exports patches and can restore its initial workspace.
 `fr project` now provides compact hierarchy maps and bounded source inspection.
 Its package and dependency pages report Cargo/npm manifest declarations with shared revision checks.

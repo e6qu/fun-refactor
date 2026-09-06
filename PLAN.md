@@ -40,7 +40,7 @@ Important gaps:
 - `fr project` adds bounded maps, revision-bound details, call relationships and Cargo/npm manifest views. Complete dependency resolution and framework semantics remain pending.
 - Native changes now have persistent history and checked undo/redo. History retention and large-journal scaling need further work.
 - Browser undo restores the loaded workspace; it does not reverse individual transactions.
-- Native history exports Git text patches and checks receiving files and indexes. Git status pages exist; staging and shared browser patch semantics remain pending.
+- Native history exports Git text patches and checks receiving files and indexes. Git status and diff pages exist; staging and shared browser patch semantics remain pending.
 - Strict spec signature maps currently accept Rust source declarations only.
 - Framework readers cover selected patterns. Whole applications still need dependency and runtime work.
 - Model proofs and shared executable cases do not establish general correspondence with the Rust implementation.
@@ -495,9 +495,25 @@ The new model retains the bitvector checker's compiler-trust assumptions. File p
 Validation passes the full native/WASM gate, 311/311 capability coverage and all 27 Lean build jobs.
 Strict Lean verification passes with eleven fresh source anchors and signature maps and zero `sorry` obligations.
 
+M3g: bounded file diff details (complete).
+
+- Add `fr git diff PATH` for index-to-worktree, staged and commit-to-worktree comparisons.
+- Page through hunk headers, line coordinates and capped UTF-8 excerpts with explicit truncation metadata.
+- Bind continuation cursors to the complete observed diff, literal path, comparison and canonical repository root.
+- Report binary, mode-only and empty-file changes through metadata; refuse unsupported paths and conflicts.
+- Guard selected paths against content filters and disable external diff, text conversion and index refresh.
+- Disable demand fetching of missing objects in the shared Git runner.
+
+See [Git diff detail scope and cursors](docs/git-diff.md).
+Three parser tests and seven CLI scenarios cover comparison bases, coordinates, excerpts, cursors, refusals, linked worktrees and Git execution guards.
+Page sizing reuses the anchored pagination helper; parser and Git execution correspondence remain unproved.
+Git conversion semantics and concurrent changes limit observation identity. Collection work and memory remain unbounded by the page size.
+Validation passes the full native/WASM gate, 311/311 capability coverage and all 27 Lean build jobs.
+Strict verification passes with eleven fresh source anchors and signature maps and zero `sorry` obligations.
+
 Next M3 work:
 
-Add bounded change details and structural impact since a revision, building on the status pages.
+Add structural impact since a revision, connecting Git line changes with bounded symbol hierarchy and relationship details.
 
 Add explicit staging, commits and isolated worktree workflows after patch correctness.
 Keep Git optional for ordinary analysis and transaction history.

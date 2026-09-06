@@ -96,7 +96,7 @@ Linked worktrees are supported. The command preserves the worktree, history, ind
 The `configuration` field identifies the selected configuration scope.
 Git reads repository configuration, including its includes, and repository attributes.
 The command clears inherited `GIT_*` overrides, disables system/global configuration and ignores external attributes files.
-It also disables filesystem-monitor hooks and optional index locks.
+It also disables filesystem-monitor hooks, optional index locks and demand fetching of missing objects.
 This makes the selected receiving directory control repository discovery.
 Results can differ from a Git command using user or system settings.
 
@@ -139,3 +139,5 @@ Tests run Git checks and forward/reverse applications against recorded contents 
 They also cover conflicting files and preservation of unrelated staged, unstaged and untracked changes.
 These tests provide compatibility evidence; patch rendering has no Lean correspondence proof yet.
 The mode-change acceptance helper also has an anchored Lean model covering 32-bit masks and forward/reverse symmetry.
+
+Git inspection requires support for [`--no-lazy-fetch`](https://git-scm.com/docs/git); older Git versions refuse the command.

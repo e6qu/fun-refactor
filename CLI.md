@@ -1049,6 +1049,21 @@ Git is required; transaction history is not. The command preserves the index and
 Content filters on any tracked path cause refusal, even outside the requested page.
 See [Git status scope and cursors](docs/git-status.md) for configuration, output fields and collection limits.
 
+```sh
+fr git diff src/main.rs --limit 20
+fr git diff src/main.rs --cursor TOKEN
+fr git diff src/main.rs --staged
+fr git diff src/main.rs --since HEAD~1
+```
+
+Print hunk and line pages for one literal repository-relative file path.
+The default compares the index with working files; `--staged` compares HEAD with the index; `--since` compares a commit with working files.
+Each source excerpt retains at most 1,024 bytes, with original length and truncation metadata.
+`--limit` accepts 1 through 500 rows. Cursors bind the full observed diff, selected path, comparison and repository.
+Binary and mode-only changes can have metadata without line rows. Symlinks, submodules and conflicts cause refusal.
+Content filters on the selected path cause refusal. Git collection work and total memory remain unbounded by the page size.
+See [Git diff detail pages](docs/git-diff.md) for fields, comparison semantics and limits.
+
 ### `fr cache`
 
 ```

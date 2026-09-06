@@ -56,7 +56,7 @@ Successful inspection exits zero even when changes or conflicts exist. Setup or 
 `configuration: "repository-only-without-content-filters"` identifies the selected settings.
 Git reads repository configuration and its includes, plus repository attributes and ignore files.
 The runner clears inherited `GIT_*` overrides and disables system/global configuration, external attributes and external ignore files.
-It disables filesystem-monitor hooks and optional index locks, preserving index bytes during inspection.
+It disables filesystem-monitor hooks, optional index locks and demand fetching of missing objects, preserving index bytes during inspection.
 Results can differ from a Git command using user or system settings.
 
 Before collecting status, the command checks filter attributes for every tracked path, deduplicating unmerged entries.
@@ -66,8 +66,11 @@ Configuration and attributes must remain stable during collection; these checks 
 
 Output row counts are bounded. Git still enumerates the repository and the command collects the complete observation in memory.
 Collection work, individual path lengths and total internal memory are not bounded by the page limit.
-There are no change hunks, ahead/behind counts, structural impact, staging or commit operations in this command.
+Use [Git diff detail pages](git-diff.md) for hunks and capped source excerpts on one path.
+Status does not report ahead/behind counts or structural impact, or perform staging and commits.
 
 Page sizing reuses the existing Lean-anchored pagination helper.
 Parser and Git regression tests cover status classes, malformed records, cursors, conflicts, linked worktrees and preservation of index bytes.
 These checks do not prove correspondence between Git execution, the parser and a Lean status model.
+
+Git inspection requires support for [`--no-lazy-fetch`](https://git-scm.com/docs/git); older Git versions refuse the command.

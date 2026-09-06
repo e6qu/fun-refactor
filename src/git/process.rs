@@ -20,6 +20,7 @@ pub(crate) fn run(root: &Path, args: &[OsString], input: Option<&[u8]>) -> Resul
         .env("LC_ALL", "C")
         .args([
             "--no-pager",
+            "--no-lazy-fetch",
             "-c",
             "core.fsmonitor=false",
             "-c",
