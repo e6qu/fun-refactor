@@ -6,6 +6,8 @@ use std::path::Path;
 
 mod check;
 pub use check::{check_patch_basis, PatchBasisCheck, PatchBasisFile};
+mod git;
+pub use git::{check_git_patch, GitPatchCheck};
 
 #[cfg(test)]
 mod tests;

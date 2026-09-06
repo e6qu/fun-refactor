@@ -244,6 +244,7 @@ The shared commit path recovers earlier writes after a handled failure and repor
 The native CLI now saves plans and supports checked apply, undo, redo and interrupted-write recovery through `fr history`.
 `fr history patch ID` exports stored text changes for Git, with reverse export and optional JSON metadata.
 Add `--check` to compare the receiving files with the recorded starting state; `--against DIR` selects another workspace.
+Use `--git-check` for Git's application verdict, with `--index` to include the index.
 See [recorded transaction patches](docs/git-patches.md) for application checks, mode scope and limitations.
 The browser already exports patches and can restore its initial workspace.
 `fr project` now provides compact hierarchy maps and bounded source inspection.

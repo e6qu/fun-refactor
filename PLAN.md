@@ -432,9 +432,24 @@ Filesystem observation, Git mode projection and report correspondence remain unp
 The check does not run Git or establish index, attribute, write-permission or project-digest compatibility.
 Validation passes the full native/WASM gate, receiving checks across 18 Git round-trip cases and strict Lean verification.
 
+M3c: Git application checks (complete).
+
+- Add `fr history patch ID --git-check`, with optional receiving directory, reverse direction and index checks.
+- Resolve repository roots and prefix nested paths so Git cannot silently skip the patch through subdirectory filtering.
+- Support linked worktrees and preserve working files, history, indexes and worktree pointers.
+- Report Git's verdict and bounded diagnostics without including the patch.
+- Use repository configuration, clear inherited Git overrides and disable system/global configuration, monitor hooks and optional locks.
+- Refuse affected content filters and ambiguous reserved filter-driver names before application checks.
+
+Tests cover Git execution and attribute handling; Lean correspondence remains unproved.
+Git checks do not freeze concurrent state or establish snapshot equality, write permissions or project validation.
+Validation passes the full native/WASM gate, all five Git CLI scenarios and Git checks across 18 patch cases.
+Strict Lean verification retains seven fresh anchors and zero `sorry` obligations.
+
 Next M3 work:
 
-Add explicit Git application checks through `fr` and repository status inspection.
+Add bounded repository status pages for staged, unstaged and untracked files.
+Extend Lean coverage to patch basis and executable modes, with shared Rust cases.
 Extend recording for deletion and executable-mode operations before advertising those as authoring commands.
 Expose changed files, staged and unstaged changes, and structural impact since a revision.
 

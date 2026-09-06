@@ -49,7 +49,7 @@ The report totals files in `checked_files` and aggregates both comparisons.
 A permission difference outside Git's executable distinction can pass `matches_patch_basis` while failing `matches_recorded_snapshots`.
 
 The receiving directory defaults to the history workspace.
-`--against` requires `--check`; relative receiving paths resolve from the process working directory.
+`--against` requires a check mode; relative receiving paths resolve from the process working directory.
 The command canonicalizes that directory and does not require history or Git there.
 The source history stays under `-C`, including when the receiving directory differs.
 `--reverse` checks the recorded result as the starting state; `record_basis` still names the original before snapshots.
@@ -64,6 +64,50 @@ It does not check the transaction's project source digest or freeze the files ag
 Use `git apply --check` for Git application rules, or history apply for transaction validation and writes.
 The full-permission comparison reuses the anchored history snapshot predicate.
 Filesystem observation, Git mode projection and this report have no Lean correspondence proof yet.
+
+## Ask Git to check application
+
+```sh
+fr history patch 1 --git-check
+fr history patch 1 --git-check --against /path/to/receiving/workspace
+fr history patch 1 --git-check --index --reverse
+```
+
+`--git-check` runs Git's application check and prints a JSON report in both output modes.
+It requires Git and a receiving directory inside a Git working tree.
+Export and `--check` continue to work without Git.
+Choose either `--check` or `--git-check`; `--index` requires `--git-check`.
+
+The default scope is `worktree`.
+Adding `--index` selects `index-and-worktree` and requires matching index entries and working files for affected paths.
+Git's documented [`--check` and `--index` rules](https://git-scm.com/docs/git-apply) govern that verdict.
+`applicable` reflects Git's exit status; the CLI exits zero for success and one for a failed check.
+The report includes `git_exit_code`, direction, transaction identity, file count, receiving root and repository root.
+`stdout` and `stderr` retain the first 16 KiB of each Git stream, with `diagnostics_truncated` indicating omitted bytes.
+Git diagnostics can contain source excerpts. The report does not include the patch.
+Setup errors use the standard error response instead of an application verdict.
+
+Checks run from the repository root and prefix patch paths for nested receiving directories.
+This avoids Git's subdirectory filtering silently skipping affected paths.
+Linked worktrees are supported. The command preserves the worktree, history, index and Git worktree pointer.
+
+The `configuration` field identifies the selected configuration scope.
+Git reads repository configuration, including its includes, and repository attributes.
+The command clears inherited `GIT_*` overrides, disables system/global configuration and ignores external attributes files.
+It also disables filesystem-monitor hooks and optional index locks.
+This makes the selected receiving directory control repository discovery.
+Results can differ from a Git command using user or system settings.
+
+Git's [content conversion path](https://github.com/git/git/blob/master/apply.c) can invoke configured filters while checking a file.
+The command refuses affected paths with content filters before running the application check.
+Configured drivers named `unset` or `unspecified` also cause refusal because their names overlap Git's attribute-report states.
+Other filter drivers on unrelated paths do not prevent a check.
+Symlinks and non-regular affected targets remain unsupported.
+
+Checks observe current state and do not freeze files or configuration against concurrent changes.
+A successful Git verdict does not establish exact snapshot equality, write permissions or project validation.
+Use the snapshot check when complete starting content and executable modes must match.
+Git execution and attribute handling have regression tests, without a Lean correspondence proof.
 
 ## Supported scope
 

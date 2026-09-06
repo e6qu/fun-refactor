@@ -966,6 +966,8 @@ fr history patch 1 > /tmp/change.patch
 fr history patch 1 --reverse > /tmp/reverse.patch
 fr history patch 1 --check
 fr history patch 1 --check --against /path/to/receiving/workspace
+fr history patch 1 --git-check
+fr history patch 1 --git-check --index
 fr history apply 1                  # preview
 fr history apply 1 --write
 fr history undo 1 --write
@@ -978,6 +980,8 @@ History uses schema 1 and numeric identities local to the workspace.
 `patch` prints a Git text patch, or metadata with a `patch` string under `--json`.
 `patch --check` prints a JSON basis report and exits unsuccessfully when affected contents, existence or executable modes differ.
 `--against` selects a receiving directory; `--reverse` checks the recorded result as the starting state.
+`patch --git-check` reports Git application checks; `--index` also checks the affected index entries.
+Git checks require a working tree and refuse affected content filters. They use repository configuration.
 Other history commands print JSON in both output modes. `show` and transition previews include diffs and existence/mode changes.
 Patch export reads recorded snapshots and leaves history, working files and the Git index unchanged.
 Use `git apply --check /tmp/change.patch` to check application in the receiving workspace.

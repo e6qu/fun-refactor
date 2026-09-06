@@ -499,12 +499,25 @@ enum HistoryCommand {
         reverse: bool,
         #[arg(
             long,
+            group = "patch_check",
             help = "Check affected files against the starting content and Git modes."
         )]
         check: bool,
         #[arg(
             long,
-            requires = "check",
+            group = "patch_check",
+            help = "Run Git application checks without applying the patch."
+        )]
+        git_check: bool,
+        #[arg(
+            long,
+            requires = "git_check",
+            help = "Also require the Git index to match the working files."
+        )]
+        index: bool,
+        #[arg(
+            long,
+            requires = "patch_check",
             help = "Receiving directory; defaults to the history workspace."
         )]
         against: Option<PathBuf>,
@@ -1566,9 +1579,25 @@ fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
         id,
         reverse,
         check,
+        git_check,
+        index,
         against,
     }) = command
     {
+        if *git_check {
+            let report = crate::history::check_git_patch(
+                &cli.root,
+                *id,
+                *reverse,
+                against.as_deref(),
+                *index,
+            )?;
+            println!("{}", serde_json::to_string_pretty(&report)?);
+            if !report.applicable {
+                std::process::exit(1);
+            }
+            return Ok(());
+        }
         if *check {
             let report =
                 crate::history::check_patch_basis(&cli.root, *id, *reverse, against.as_deref())?;

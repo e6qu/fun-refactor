@@ -171,6 +171,16 @@ fn git_round_trips_text_paths_empty_files_modes_and_moves() {
         git_ok(root, &["add", "."], "");
         let index = fs::read(root.join(".git/index")).unwrap();
         let before = check_patch_basis(stored.path(), 1, false, Some(root)).unwrap();
+        assert!(
+            check_git_patch(stored.path(), 1, false, Some(root), false)
+                .unwrap()
+                .applicable
+        );
+        assert!(
+            check_git_patch(stored.path(), 1, false, Some(root), true)
+                .unwrap()
+                .applicable
+        );
         assert!(before.matches_patch_basis);
         assert!(before.matches_recorded_snapshots);
         assert_eq!(before.checked_files, record.changes.len());
@@ -200,6 +210,16 @@ fn git_round_trips_text_paths_empty_files_modes_and_moves() {
                 .matches_patch_basis
         );
         let after = check_patch_basis(stored.path(), 1, true, Some(root)).unwrap();
+        assert!(
+            check_git_patch(stored.path(), 1, true, Some(root), false)
+                .unwrap()
+                .applicable
+        );
+        assert!(
+            !check_git_patch(stored.path(), 1, true, Some(root), true)
+                .unwrap()
+                .applicable
+        );
         assert!(after.matches_patch_basis);
         assert!(!after.matches_recorded_snapshots);
         let (args, patch) = if exported_reverse {
