@@ -203,7 +203,7 @@ M2b5 is complete. It adds bounded route declarations:
 - Bounded URLs and names, syntax and language gaps, shared revision checks and query-bound cursors.
 
 This view reports pattern candidates. It does not establish framework identity or runtime reachability.
-FastAPI-specific inspection, mounted routers and cross-file handlers remain pending. M2b8 adds partial contracts; M2b9 adds a Next.js App Router subset.
+Mounted routers and cross-file handlers remain pending. Later milestones add partial contracts and bounded Next.js/FastAPI inspection.
 The shared Lean page-length laws apply; route extraction and handler matching remain outside those proofs.
 Validation passes the full native/WASM gate, all 46 project CLI tests and strict Lean verification with five fresh source anchors.
 
@@ -245,7 +245,7 @@ M2b8 is complete. It adds partial route request/response contracts:
 
 Every contract remains partial. Declared types do not establish serialization, runtime validation, status codes or media types.
 The shared Lean page-length laws apply; signature extraction and wire correspondence remain outside those proofs.
-Schema expansion, type/import resolution and FastAPI-specific contract readers remain pending. M2b9 adds partial Next.js contract evidence.
+Schema expansion and type/import resolution remain pending. M2b9 and M2b10 add partial Next.js and FastAPI contract evidence.
 Validation passes the full native/WASM gate and all 66 project CLI tests, including eight new contract regressions.
 Strict Lean verification passes with all six source anchors fresh.
 
@@ -265,9 +265,22 @@ Validation passes the full native/WASM gate and all 73 project CLI tests, includ
 Strict Lean verification passes with all six source anchors fresh.
 The Petstore fixture yields 12 route candidates and a catch-all gap; a five-row contract page retains a continuation cursor.
 
+M2b10 is complete. It adds FastAPI declaration and contract evidence:
+
+- Captured imports and direct constructor assignments identify candidate receivers for top-level verb decorators.
+- Handler matches use declaration positions; FastAPI evidence replaces overlapping Flask guesses, including unsupported-path diagnostics.
+- Paged explicit parameter markers preserve aliases and type spellings while omitting defaults and validation metadata.
+- Separate decorator response models and Python return annotations preserve stacked-decorator metadata and explicit disabled models.
+- Dynamic paths, unsupported bindings, computed models and expanded decorator options retain explicit gaps or null fields.
+
+Schema expansion, implicit parameter classification, dependency injection, imports at runtime and routing composition remain unchecked.
+The shared Lean page-length laws apply; FastAPI extraction and wire correspondence remain outside those proofs.
+Validation passes the full native/WASM gate and all 81 project CLI tests, including eight new FastAPI regressions.
+Strict Lean verification passes with all six source anchors fresh.
+
 Next M2b work:
 
-- Add FastAPI contract evidence and declared schema fields, preserving ambiguous type references.
+- Add declared schema fields and type references, preserving ambiguous definitions and validation gaps.
 - Extend the Next.js path and export subsets, with explicit routing and binding evidence.
 - Extend workspace rules beyond the observed Cargo subset and formalize membership closure.
 - Evaluate bounded inspection tasks on unfamiliar repositories with an agent, a pinned tokenizer and correctness checks.

@@ -2022,7 +2022,7 @@ fn route_coverage_reports_broken_and_unsupported_files_and_limits_framework_clai
         .iter()
         .find(|r| r["kind"] == "route" && r["path"] == "fast.py")
         .unwrap();
-    assert_eq!(candidate["framework_candidate"], "flask");
+    assert_eq!(candidate["framework_candidate"], "fastapi");
     assert_eq!(candidate["status"], "candidate");
     assert!(view["analysis"]["certainty"]
         .as_str()
@@ -2390,6 +2390,293 @@ fn next_route_analysis_uses_captured_exports_after_source_removal() {
     let items = view["items"].as_array().unwrap();
     assert!(items.iter().any(|r| r["url"] == "/api/{petId}"));
     assert!(items.iter().any(|r| r["declared_type"] == "Before"));
+    assert!(project.verify(&root).is_err());
+}
+
+#[test]
+fn fastapi_routes_use_observed_constructor_aliases_and_declaration_positions() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "app.py", "from fastapi import FastAPI as API, APIRouter as Router\nservice = API()\nroutes = Router(prefix='/PREFIX_NOT_APPLIED')\n\n@service.get('/pets')\n@routes.post(path='/pets')\ndef pets():\n    return 'PRIVATE_ONE'\n\n@service.delete('/pets/{petId}')\ndef pets():\n    return 'PRIVATE_TWO'\n\nclass Other:\n    def pets(self):\n        return 'PRIVATE_OTHER'\n\n@bp.get('/legacy')\ndef legacy():\n    pass\n");
+    put(
+        root,
+        "other.py",
+        "import fastapi as fa\napi = fa.FastAPI()\n@api.patch('/other')\ndef other():\n    pass\n",
+    );
+    let view = ok(root, &["project", "routes", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    let fast: Vec<_> = items
+        .iter()
+        .filter(|r| r["framework_candidate"] == "fastapi")
+        .collect();
+    assert_eq!(fast.len(), 4, "{view}");
+    assert_eq!(view["analysis"]["declarations"], 5);
+    for route in fast {
+        assert_eq!(route["basis"], "fastapi-import-constructor-decorator");
+        assert_eq!(route["handler"]["candidate_count"], 1);
+        assert_eq!(route["handler"]["basis"], "declaration-span");
+        let handler = items
+            .iter()
+            .find(|r| r["kind"] == "route-handler" && r["route"] == route["id"])
+            .unwrap();
+        assert!(handler["confidence"].is_null());
+        if route["method"] == "DELETE" {
+            assert_eq!(handler["handler"]["line"], 11);
+        }
+        assert_eq!(
+            ok(
+                root,
+                &[
+                    "project",
+                    "show",
+                    handler["handler"]["handle"].as_str().unwrap()
+                ]
+            )["node"]["name"],
+            route["handler"]["name"]
+        );
+    }
+    assert!(items
+        .iter()
+        .any(|r| r["framework_candidate"] == "flask" && r["url"] == "/legacy"));
+    assert!(!view.to_string().contains("PREFIX_NOT_APPLIED"));
+    assert!(!view.to_string().contains("PRIVATE_"));
+}
+
+#[test]
+fn fastapi_contracts_read_default_markers_without_leaking_defaults_or_constraints() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "app.py", "from fastapi import FastAPI, Path, Query, Body, Header, Cookie, Form, File, Depends\napp=FastAPI()\n\n@app.post('/pets/{id}')\ndef create(id: int=Path(...), q: str=Query('PRIVATE_DEFAULT',alias='search',description='PRIVATE_DESCRIPTION'), body: Create=Body(...), x_trace: str=Header(...), token: str=Cookie(alias='session'), form: FormData=Form(...), upload=File(...), expanded: str=Query(**options), implicit: str='', user=Depends(load_user)) -> Pet:\n    return 'PRIVATE_BODY'\n");
+    let view = ok(root, &["project", "contracts", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    let inputs: Vec<_> = items
+        .iter()
+        .filter(|r| r["basis"] == "fastapi-explicit-binding" && r["kind"] == "route-contract-field")
+        .collect();
+    assert_eq!(inputs.len(), 8, "{view}");
+    for (binding, location, name, ty) in [
+        ("id", "path", Some("id"), Some("int")),
+        ("q", "query", Some("search"), Some("str")),
+        ("body", "body", None, Some("Create")),
+        ("x_trace", "header", None, Some("str")),
+        ("token", "cookie", Some("session"), Some("str")),
+        ("form", "body", None, Some("FormData")),
+        ("upload", "body", None, None),
+        ("expanded", "query", None, Some("str")),
+    ] {
+        let field = inputs.iter().find(|r| r["binding"] == binding).unwrap();
+        assert_eq!(field["location"], location);
+        assert_eq!(field["name"].as_str(), name);
+        assert_eq!(field["declared_type"].as_str(), ty);
+        assert!(field["required"].is_null());
+        assert_eq!(field["confidence"], "name-only");
+    }
+    assert!(items
+        .iter()
+        .any(|r| r["parameters"] == 2 && r["basis"] == "fastapi-explicit-binding"));
+    assert!(items
+        .iter()
+        .any(|r| r["declared_type"] == "Pet" && r["location"] == "return"));
+    assert!(!view.to_string().contains("PRIVATE_"));
+}
+
+#[test]
+fn fastapi_annotated_bindings_strip_metadata_and_keep_unknown_types_explicit() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "app.py", "import fastapi\nfrom typing import Annotated\napi = fastapi.FastAPI()\n\n@api.get('/pets/{id}')\ndef get(id: Annotated[int, fastapi.Path(ge=1)], q: Annotated[str | None, fastapi.Query(alias='search', description='PRIVATE_METADATA')] = 'PRIVATE_DEFAULT', tags: Annotated[list[str], fastapi.Query()] = [], conflict: Annotated[str, fastapi.Query(), fastapi.Header()] = '', dep: Annotated[User, Depends(load_user)] = None, dynamic: Strange['PRIVATE_TYPE'] = fastapi.Body(...)):\n    return 'PRIVATE_BODY'\n");
+    let view = ok(root, &["project", "contracts", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    let inputs: Vec<_> = items
+        .iter()
+        .filter(|r| r["basis"] == "fastapi-explicit-binding" && r["kind"] == "route-contract-field")
+        .collect();
+    assert_eq!(inputs.len(), 4, "{view}");
+    assert!(inputs
+        .iter()
+        .any(|r| r["binding"] == "id" && r["declared_type"] == "int"));
+    assert!(inputs.iter().any(|r| r["binding"] == "q"
+        && r["declared_type"] == "str | None"
+        && r["name"] == "search"));
+    assert!(inputs
+        .iter()
+        .any(|r| r["binding"] == "tags" && r["declared_type"] == "list[str]"));
+    assert!(inputs
+        .iter()
+        .any(|r| r["binding"] == "dynamic" && r["declared_type"].is_null()));
+    assert!(items.iter().any(|r| r["parameters"] == 2));
+    assert!(!view.to_string().contains("PRIVATE_"));
+}
+
+#[test]
+fn fastapi_response_models_remain_separate_from_return_annotations_and_disabled_models() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "app.py", "from fastapi import FastAPI\napp = FastAPI()\n\n@app.get('/pets', response_model=list[Pet], status_code=201)\ndef pets() -> Any:\n    return 'PRIVATE_BODY'\n\n@app.get('/raw', response_model=None)\ndef raw() -> Response:\n    return 'PRIVATE_RAW'\n\n@app.get('/declared', response_model=Pet | None)\n@app.post('/declared', response_model=Create)\ndef declared():\n    pass\n\n@app.get('/dynamic', response_model=build_model('PRIVATE_MODEL'))\ndef dynamic():\n    pass\n");
+    let view = ok(root, &["project", "contracts", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    let models: Vec<_> = items
+        .iter()
+        .filter(|r| r["kind"] == "route-contract-field" && r["basis"] == "fastapi-response-model")
+        .collect();
+    assert_eq!(models.len(), 4, "{view}");
+    assert!(models
+        .iter()
+        .any(|r| r["declared_type"] == "list[Pet]" && r["model_state"] == "declared"));
+    assert!(models
+        .iter()
+        .any(|r| r["declared_type"] == "None" && r["model_state"] == "disabled"));
+    assert!(models.iter().any(|r| r["declared_type"] == "Pet | None"));
+    let created = items
+        .iter()
+        .find(|r| r["url"] == "/declared" && r["method"] == "POST")
+        .unwrap();
+    assert!(models
+        .iter()
+        .any(|r| r["route"] == created["id"] && r["declared_type"] == "Create"));
+    assert!(!models
+        .iter()
+        .any(|r| r["route"] == created["id"] && r["declared_type"] == "Pet | None"));
+    for (url, ty) in [("/pets", "Any"), ("/raw", "Response")] {
+        let route = items.iter().find(|r| r["url"] == url).unwrap();
+        assert!(items.iter().any(|r| r["route"] == route["id"]
+            && r["location"] == "return"
+            && r["declared_type"] == ty));
+    }
+    let declared = items.iter().find(|r| r["url"] == "/declared").unwrap();
+    assert!(!items
+        .iter()
+        .any(|r| r["route"] == declared["id"] && r["kind"] == "route-contract-gap"));
+    assert!(items
+        .iter()
+        .any(|r| r["basis"] == "fastapi-response-model" && r["kind"] == "route-contract-gap"));
+    assert!(!view.to_string().contains("PRIVATE_"));
+}
+
+#[test]
+fn fastapi_gaps_replace_legacy_guesses_for_unsupported_decorators() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "app.py", "from fastapi import FastAPI\napp = FastAPI()\n\n@app.get(PATH)\ndef dynamic():\n    pass\n\n@app.get('/prefix' + suffix)\ndef joined():\n    pass\n\n@app.api_route('/many', methods=['GET', 'POST'])\ndef many():\n    pass\n\n@app.get('/literal', path='/other')\ndef conflicting():\n    pass\n\n@app.get('/ok', **options)\ndef ok():\n    pass\n");
+    put(root, "unknown.py", "from fastapi import FastAPI\nrouter = FastAPI()\nrouter = Other()\n@router.get('/rebound')\ndef rebound():\n    pass\n");
+    let view = ok(root, &["project", "contracts", "--limit", "500"]);
+    assert_eq!(view["analysis"]["fastapi_gaps"], 4);
+    let items = view["items"].as_array().unwrap();
+    let routes: Vec<_> = items.iter().filter(|r| r["kind"] == "route").collect();
+    assert_eq!(routes.len(), 1, "{view}");
+    assert_eq!(routes[0]["url"], "/ok");
+    assert!(items.iter().any(|r| r["reason"]
+        .as_str()
+        .is_some_and(|s| s.starts_with("Expanded decorator options"))));
+    assert!(items
+        .iter()
+        .any(|r| r["kind"] == "analysis-gap" && r["basis"] == "fastapi-reader"));
+}
+
+#[test]
+fn fastapi_contract_pages_preserve_all_fields_and_bind_scope_query_and_revision() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "src/app.py", "from fastapi import FastAPI, Query\napp = FastAPI()\n@app.get('/pets', response_model=Pet)\ndef pets(q: str = Query(alias='search')) -> Any:\n    pass\n");
+    let full = ok(root, &["project", "contracts", "--limit", "500"]);
+    let first = ok(root, &["project", "contracts", "--limit", "1"]);
+    let cursor = first["page"]["next"].as_str().unwrap();
+    let mut combined = first["items"].as_array().unwrap().clone();
+    let mut page = first.clone();
+    while let Some(next) = page["page"]["next"].as_str() {
+        page = ok(
+            root,
+            &["project", "contracts", "--cursor", next, "--limit", "2"],
+        );
+        combined.extend(page["items"].as_array().unwrap().iter().cloned());
+    }
+    assert_eq!(combined, *full["items"].as_array().unwrap());
+    assert_eq!(combined.len(), 6);
+    assert!(!run(root, &["project", "routes", "--cursor", cursor]).0);
+    assert!(!run(root, &["project", "contracts", "src", "--cursor", cursor]).0);
+    let file = relation_handle(root, "app.py", None);
+    let by_file = ok(root, &["project", "contracts", &file]);
+    assert_eq!(
+        by_file,
+        ok(
+            root,
+            &[
+                "project",
+                "contracts",
+                file.rsplit(':').next().unwrap(),
+                "--revision",
+                full["revision"].as_str().unwrap()
+            ]
+        )
+    );
+    let routes = ok(root, &["project", "routes", "--limit", "500"]);
+    assert_eq!(
+        combined
+            .into_iter()
+            .filter(|r| r["kind"] == "route" || r["kind"] == "route-handler")
+            .collect::<Vec<_>>(),
+        *routes["items"].as_array().unwrap()
+    );
+    put(root, "src/new.py", "x = 1\n");
+    assert!(!run(root, &["project", "contracts", "--cursor", cursor]).0);
+    assert!(!run(root, &["project", "contracts", &file]).0);
+    assert!(!root.join(".fr-history").exists());
+}
+
+#[test]
+fn fastapi_contract_fields_bound_names_and_types_and_keep_dynamic_aliases_unknown() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let name = "名".repeat(80);
+    let ty = "Type".repeat(160);
+    put(root, "app.py", &format!("from fastapi import FastAPI, Query\napp = FastAPI()\n@app.get('/pets', response_model={ty})\ndef pets(q: {ty} = Query(alias='{name}'), dynamic: str = Query(alias=NAME), escaped: str = Query(alias='a\\nb')):\n    pass\n"));
+    let view = ok(root, &["project", "contracts", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    let q = items.iter().find(|r| r["binding"] == "q").unwrap();
+    assert_eq!(q["name"]["text"].as_str().unwrap().len(), 159);
+    assert_eq!(q["name"]["omitted_bytes"], name.len() - 159);
+    assert_eq!(q["declared_type"]["text"].as_str().unwrap().len(), 512);
+    assert_eq!(q["declared_type"]["omitted_bytes"], ty.len() - 512);
+    assert!(items
+        .iter()
+        .any(|r| r["binding"] == "dynamic" && r["name"].is_null()));
+    assert!(items
+        .iter()
+        .any(|r| r["binding"] == "escaped" && r["name"].is_null()));
+}
+
+#[test]
+fn fastapi_contracts_use_captured_imports_decorators_and_markers_after_source_removal() {
+    use fun_refactor::{
+        index::Index,
+        project::Project,
+        scan::{scan, ScanOptions},
+    };
+    #[derive(clap::Parser)]
+    struct Query {
+        #[command(subcommand)]
+        command: fun_refactor::project::Command,
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    put(&root, "app.py", "from fastapi import FastAPI, Query\napp = FastAPI()\n@app.get('/before', response_model=Before)\ndef get(q: str = Query(alias='before')):\n    pass\n");
+    let options = ScanOptions::default();
+    let scanned = scan(&root, &options).unwrap();
+    let index = Index::build_with_cache(&scanned, None).unwrap();
+    let project = Project::new(&root, &index, &scanned, &options).unwrap();
+    fs::remove_file(root.join("app.py")).unwrap();
+    let query = <Query as clap::Parser>::parse_from(["fr", "contracts"]);
+    let view = project.report(&query.command).unwrap();
+    let items = view["items"].as_array().unwrap();
+    assert!(items
+        .iter()
+        .any(|r| r["url"] == "/before" && r["framework_candidate"] == "fastapi"));
+    assert!(items
+        .iter()
+        .any(|r| r["declared_type"] == "Before" && r["basis"] == "fastapi-response-model"));
+    assert!(items
+        .iter()
+        .any(|r| r["name"] == "before" && r["binding"] == "q"));
     assert!(project.verify(&root).is_err());
 }
 

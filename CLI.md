@@ -615,9 +615,9 @@ The final source and inventory checks also apply before emitting a relationship 
 It defaults to the workspace root and 40 rows; limits accept 1 through 500.
 Symbol handles require selecting their containing file instead.
 Each `route` row carries a method, normalized URL, declaration line, file handle and `framework_candidate`.
-The readers recognize Express, Flask, Axum, Gin and Spring patterns, plus a Next.js App Router subset.
+The readers recognize Express, Flask, Axum, Gin and Spring patterns, plus Next.js App Router and FastAPI subsets.
 They do not verify framework identity or runtime reachability.
-A Flask-style decorator in FastAPI code can therefore produce a `flask` candidate.
+A Flask-style decorator without sufficient FastAPI evidence can still produce a `flask` candidate.
 Methods and URLs describe the reader's interpretation, with `status: candidate` and null confidence.
 
 For the five pattern readers, the handler summary counts callable declarations with the reader's name in the same file.
@@ -644,11 +644,21 @@ Pages Router, custom extensions and nested package roots remain outside this rea
 Package identity, layout precedence, route validity, `basePath` and rewrites remain unchecked.
 Both root layouts produce candidates when both exist. Empty results do not establish a complete application route inventory.
 
+The `fastapi` reader recognizes top-level verb decorators on a direct `FastAPI()` or `APIRouter()` assignment.
+The file must contain the corresponding top-level `fastapi` import; constructor and module import aliases also match.
+Repeated direct assignments to a receiver exclude it from this subset. Conditional rebinding and general shadowing analysis remain unchecked.
+One plain absolute string supplies the path, either positionally or through `path=`.
+Escapes, concatenation, dynamic paths and method-list decorators produce `analysis-gap` rows for recognized receivers.
+FastAPI evidence replaces the older Flask interpretation of the same decorator, including when the FastAPI reader reports a gap.
+Handler matches use `basis: declaration-span`, with null confidence. Stacked decorators retain separate route IDs and metadata.
+`analysis.fastapi_gaps` counts reader diagnostics; `analysis.fastapi_limitations` records the supported subset.
+Imports supply syntax evidence only. Factories, nested definitions, prefixes, router includes and runtime framework identity remain unchecked.
+
 Route analysis reads captured source only within selected files, after workspace indexing.
 Syntax errors produce `analysis-gap` rows instead of route guesses from the broken file.
 Unsupported languages produce count-based `coverage-gap` rows. Both diagnostics share the page limit.
 `analysis` reports selected-file totals, files without patterns, reader names and interpretation limits.
-The view has no FastAPI-specific reader, request/response schemas, middleware, mounted-router prefixes or cross-file handler resolution.
+The view has no expanded request/response schemas, middleware, mounted-router prefixes or cross-file handler resolution.
 An empty page does not prove the absence of routes. Route and handler inference remain outside the Lean paging proofs.
 Revision checks and query-bound cursors apply, including final source and inventory verification.
 
@@ -677,9 +687,26 @@ Missing, inline and unsupported handler declarations also produce gaps. Ambiguou
 Names and bindings cap at 160 UTF-8 bytes; type spellings cap at 512, with omitted-byte counts.
 Fields, summaries, gaps, route declarations and handlers all share the page limit.
 
+FastAPI request fields recognize `Path`, `Query`, `Body`, `Header`, `Cookie`, `Form` and `File` calls.
+Markers can occupy a default value or `Annotated` metadata; qualified names also match by their final component.
+Exactly one supported marker must identify the binding. Conflicting markers, dependencies, aliases and implicit parameter classification remain unknown.
+`binding_kind` preserves the marker name. Form and file markers use the body location without inferring a media type.
+Literal aliases supply candidate names; header and body bindings without aliases leave the name null.
+Dynamic, escaped, empty, competing or expanded alias arguments also leave it null. Requiredness stays null throughout.
+The reader strips `Annotated` metadata before emitting the type; defaults, descriptions and validation arguments stay outside the output.
+Unsupported type expressions leave `declared_type` null. These patterns follow FastAPI's [parameter declarations](https://fastapi.tiangolo.com/tutorial/body-multiple-params/).
+
+Explicit `response_model` arguments produce separate response fields with `basis: fastapi-response-model` and `location: response-model`.
+Names, qualified names, generic subscriptions, unions and `None` form the supported type subset, with a depth limit of 16.
+`model_state` distinguishes a declared model from explicit `None`, which denotes disabled model handling.
+Python return annotations remain separate fields; the decorator model takes precedence in FastAPI's [response-model rules](https://fastapi.tiangolo.com/tutorial/response-model/).
+Runtime framework identity and wire correspondence remain unchecked, and every summary stays partial.
+Computed models and competing arguments produce gaps. Expanded decorator options report potentially missing response metadata.
+Schema fields, status codes, serialization, model validation and implicit request classification remain outside this view.
+
 This view reads signatures without analyzing handler bodies or expanding schema definitions.
 Next.js candidates expose path names and declared return types through the same contract rows; request/context bindings remain unknown.
-The existing route-reader limitations still apply, including FastAPI coverage, mounted routers and framework uncertainty.
+The existing route-reader limitations still apply, including mounted routers and framework uncertainty.
 Output limits do not bound workspace indexing or selected-file analysis work.
 The Lean page-length laws apply; contract extraction, wire correspondence and type resolution remain outside those proofs.
 

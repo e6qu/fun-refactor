@@ -1,10 +1,18 @@
-use super::{bounded_text, hash, next_routes, Project, RelationshipOptions};
+use super::{bounded_text, fast_routes, hash, next_routes, Project, RelationshipOptions};
 use crate::lang::Language;
 use crate::parse::Parsers;
 use crate::transpile::routes;
 use anyhow::{ensure, Context, Result};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
+
+pub(super) struct RouteDeclaration {
+    pub endpoint: routes::Endpoint,
+    pub framework: String,
+    pub name_offset: Option<usize>,
+    pub basis: &'static str,
+    pub fast_decorator: Option<usize>,
+}
 
 impl Project<'_> {
     pub(super) fn routes(&self, options: &RelationshipOptions, contracts: bool) -> Result<Value> {
@@ -23,6 +31,7 @@ impl Project<'_> {
         let mut contract_fields = 0usize;
         let mut contract_gaps = 0usize;
         let mut next_gaps = 0usize;
+        let mut fast_gaps = 0usize;
         let parsers = Parsers::new();
         for (file, info) in self.index.files() {
             if !self.scope_file(selected, file) {
@@ -54,13 +63,12 @@ impl Project<'_> {
             let mut endpoints: Vec<_> = routes::endpoints_of(source, info.language)
                 .into_iter()
                 .flat_map(|(framework, endpoints)| {
-                    endpoints.into_iter().map(move |endpoint| {
-                        (
-                            endpoint,
-                            framework.to_string(),
-                            None,
-                            "route-pattern-reader",
-                        )
+                    endpoints.into_iter().map(move |endpoint| RouteDeclaration {
+                        endpoint,
+                        framework: framework.to_string(),
+                        name_offset: None,
+                        basis: "route-pattern-reader",
+                        fast_decorator: None,
                     })
                 })
                 .collect();
@@ -71,13 +79,28 @@ impl Project<'_> {
                     rows.push(json!({"kind": "analysis-gap", "path": path, "line": line,
                         "basis": "nextjs-app-reader", "reason": reason}));
                 }
-                endpoints.extend(next.entries.into_iter().map(|entry| {
-                    (
-                        entry.endpoint,
-                        "nextjs-app".to_owned(),
-                        Some(entry.name_offset),
-                        "nextjs-app-function-export",
-                    )
+                endpoints.extend(next.entries.into_iter().map(|entry| RouteDeclaration {
+                    endpoint: entry.endpoint,
+                    framework: "nextjs-app".to_owned(),
+                    name_offset: Some(entry.name_offset),
+                    basis: "nextjs-app-function-export",
+                    fast_decorator: None,
+                }));
+            }
+            if info.language == Language::Python {
+                let fast = fast_routes::read(&parsed, source);
+                fast_gaps += fast.gaps.len();
+                endpoints.retain(|entry| !fast.claimed_lines.contains(&entry.endpoint.line));
+                for (line, reason) in fast.gaps {
+                    rows.push(json!({"kind": "analysis-gap", "path": path, "line": line,
+                        "basis": "fastapi-reader", "reason": reason}));
+                }
+                endpoints.extend(fast.entries.into_iter().map(|entry| RouteDeclaration {
+                    endpoint: entry.endpoint,
+                    framework: "fastapi".to_owned(),
+                    name_offset: Some(entry.name_offset),
+                    basis: "fastapi-import-constructor-decorator",
+                    fast_decorator: Some(entry.decorator_offset),
                 }));
             }
             if endpoints.is_empty() {
@@ -89,8 +112,14 @@ impl Project<'_> {
                 .iter()
                 .position(|node| node.kind == "file" && node.path == relative)
                 .context("route declaration has no project file node")?;
-            for (ordinal, (endpoint, framework, name_offset, basis)) in endpoints.iter().enumerate()
-            {
+            for (ordinal, declaration) in endpoints.iter().enumerate() {
+                let RouteDeclaration {
+                    endpoint,
+                    framework,
+                    name_offset,
+                    basis,
+                    ..
+                } = declaration;
                 declarations += 1;
                 let id = format!(
                     "frpr1:{}",
@@ -136,7 +165,7 @@ impl Project<'_> {
                         "status": if endpoint.handler.is_none() { "unnamed" } else if candidates.is_empty() { "unresolved" } else if candidates.len() == 1 { "candidate" } else { "ambiguous" }}}));
                 if contracts {
                     let details =
-                        self.contract_rows(&id, endpoint, &candidates, &parsed, source)?;
+                        self.contract_rows(&id, declaration, &candidates, &parsed, source)?;
                     contract_fields += details
                         .iter()
                         .filter(|r| r["kind"] == "route-contract-field")
@@ -163,11 +192,13 @@ impl Project<'_> {
         let mut analysis = json!({"scope": "selected files", "analyzed_files": analyzed,
             "files_without_patterns": empty, "syntax_gaps": syntax_gaps,
             "unsupported_files": unsupported, "declarations": declarations, "handler_candidates": handlers,
-            "readers": ["express", "flask", "axum", "gin", "spring", "nextjs-app"],
+            "readers": ["express", "flask", "axum", "gin", "spring", "nextjs-app", "fastapi"],
+            "fastapi_gaps": fast_gaps,
+            "fastapi_limitations": "Top-level verb decorators on a direct FastAPI/APIRouter constructor assignment with an observed fastapi import. No runtime import validation, shadowing analysis, factories, nested routers, prefixes, includes or method-list decorators.",
             "nextjs_gaps": next_gaps,
             "nextjs_limitations": "Only route.ts and route.js under root app or src/app. Package identity, layout precedence, route validity, basePath, rewrites and implicit methods remain unchecked.",
             "certainty": "Declaration patterns and local handler-name candidates; the reader does not verify framework identity or runtime reachability.",
-            "limitations": "No FastAPI-specific reader, request/response schemas, middleware, mounted-router prefixes or cross-file handler resolution. Next.js covers root app and src/app named HTTP function exports with static, grouped or single dynamic segments. Other path forms, Pages Router, variable handlers and re-exports remain unsupported. Empty results do not prove absence of routes."});
+            "limitations": "No request/response schema expansion, middleware, mounted-router prefixes or cross-file handler resolution. Next.js covers root app and src/app named HTTP function exports with static, grouped or single dynamic segments. Other path forms, Pages Router, variable handlers and re-exports remain unsupported. Empty results do not prove absence of routes."});
         if contracts {
             analysis["contract_fields"] = json!(contract_fields);
             analysis["contract_gaps"] = json!(contract_gaps);
@@ -175,9 +206,11 @@ impl Project<'_> {
                 "literal-path-segments",
                 "axum-extractor-types",
                 "spring-parameter-annotations",
-                "declared-return-types"
+                "declared-return-types",
+                "fastapi-explicit-bindings",
+                "fastapi-response-model"
             ]);
-            analysis["limitations"] = json!("Partial signature evidence only. No type or import resolution, schema expansion, body analysis, runtime validation, response status or media-type inference. Names can match unrelated types or annotations. Next.js input bindings remain unknown; its route subset covers root app and src/app named HTTP function exports with static, grouped or single dynamic segments. No FastAPI-specific reader, middleware, mounted-router prefixes or cross-file handler resolution.");
+            analysis["limitations"] = json!("Partial signature evidence only. No type resolution, schema expansion, body analysis, runtime validation, response status or media-type inference. Names can match unrelated types or annotations. FastAPI covers explicit binding markers and response_model expressions; implicit parameter classification and binding aliases remain unknown. Next.js input bindings remain unknown; its route subset covers root app and src/app named HTTP function exports with static, grouped or single dynamic segments. No middleware, mounted-router prefixes or cross-file handler resolution.");
         }
         let query = if contracts { "contracts" } else { "routes" };
         let mut result = self.relationship_page(query, selected, options, None, rows, analysis)?;

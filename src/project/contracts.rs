@@ -1,8 +1,7 @@
-use super::{bounded_text, Project};
+use super::{bounded_text, fast_routes, routes::RouteDeclaration, Project};
 use crate::lang::Language;
 use crate::model::Symbol;
 use crate::parse::Parsed;
-use crate::transpile::routes::Endpoint;
 use anyhow::Result;
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
@@ -128,16 +127,80 @@ fn spring_input(parameter: Node<'_>, source: &str) -> Option<(&'static str, Opti
     (found.len() == 1).then(|| found.remove(0))
 }
 
+fn fastapi_fields(
+    route: &str,
+    handler: &Value,
+    function: Node<'_>,
+    decorator: Node<'_>,
+    source: &str,
+) -> Vec<Value> {
+    let mut rows = Vec::new();
+    let mut unknown = 0usize;
+    for parameter in function
+        .child_by_field_name("parameters")
+        .into_iter()
+        .flat_map(fast_routes::children)
+        .filter(|n| !matches!(n.kind(), "keyword_separator" | "positional_separator"))
+    {
+        let Some(input) = fast_routes::input(parameter, source) else {
+            unknown += 1;
+            continue;
+        };
+        rows.push(json!({"kind": "route-contract-field", "route": route, "handler": handler,
+            "direction": "request", "location": input.location, "name": input.name.as_deref().map(|s| bounded_text(s, 160)),
+            "binding": bounded_text(&input.binding, 160), "declared_type": input.ty.as_deref().map(|s| bounded_text(s, 512)),
+            "payload_type": null, "required": null, "binding_kind": input.marker,
+            "line": parameter.start_position().row + 1, "basis": "fastapi-explicit-binding", "status": "candidate", "confidence": "name-only"}));
+    }
+    if unknown > 0 {
+        rows.push(json!({"kind": "route-contract-gap", "route": route, "handler": handler,
+            "parameters": unknown, "basis": "fastapi-explicit-binding",
+            "reason": "Parameters lack one supported explicit binding; implicit classification, aliases and dependencies remain unknown."}));
+    }
+    if let Some(call) = fast_routes::children(decorator)
+        .into_iter()
+        .find(|n| n.kind() == "call")
+    {
+        let models = fast_routes::keyword(call, "response_model", source);
+        if let [model] = models.as_slice() {
+            if fast_routes::simple_type(*model, source, 0) {
+                rows.push(json!({"kind": "route-contract-field", "route": route, "handler": handler,
+                    "direction": "response", "location": "response-model", "name": null, "binding": null,
+                    "declared_type": bounded_text(fast_routes::text(*model, source), 512), "payload_type": null, "required": null,
+                    "model_state": if model.kind() == "none" { "disabled" } else { "declared" },
+                    "line": model.start_position().row + 1, "basis": "fastapi-response-model", "status": "candidate", "confidence": null}));
+            } else {
+                rows.push(json!({"kind": "route-contract-gap", "route": route, "handler": handler,
+                    "basis": "fastapi-response-model", "reason": "The response_model expression exceeds the supported type subset."}));
+            }
+        } else if !models.is_empty() {
+            rows.push(json!({"kind": "route-contract-gap", "route": route, "handler": handler,
+                "basis": "fastapi-response-model", "reason": "Competing response_model arguments leave model selection unknown."}));
+        }
+        if call
+            .child_by_field_name("arguments")
+            .into_iter()
+            .flat_map(fast_routes::children)
+            .any(|n| n.kind() == "dictionary_splat")
+        {
+            rows.push(json!({"kind": "route-contract-gap", "route": route, "handler": handler,
+                "basis": "fastapi-response-model", "reason": "Expanded decorator options may carry additional response metadata."}));
+        }
+    }
+    rows
+}
+
 impl Project<'_> {
     pub(super) fn contract_rows(
         &self,
         route: &str,
-        endpoint: &Endpoint,
+        declaration: &RouteDeclaration,
         candidates: &[&Symbol],
         parsed: &Parsed,
         source: &str,
     ) -> Result<Vec<Value>> {
         let mut rows = Vec::new();
+        let endpoint = &declaration.endpoint;
         let mut names = BTreeSet::new();
         let mut unsupported_segments = 0usize;
         for segment in endpoint.url.split('/') {
@@ -168,13 +231,27 @@ impl Project<'_> {
         }
         for candidate in candidates {
             let handler = self.endpoint(candidate.id)?;
-            let Some(function) = declaration(parsed, candidate) else {
+            let Some(function) = self::declaration(parsed, candidate) else {
                 rows.push(json!({"kind": "route-contract-gap", "route": route, "handler": handler,
                     "basis": "handler-signature", "reason": "No supported declaration node for this handler candidate."}));
                 continue;
             };
+            let mut has_response_model = false;
+            if let Some(decorator) = declaration
+                .fast_decorator
+                .and_then(|offset| parsed.node_at(offset))
+            {
+                let fields = fastapi_fields(route, &handler, function, decorator, source);
+                has_response_model = fields.iter().any(|r| {
+                    r["basis"] == "fastapi-response-model" && r["kind"] == "route-contract-field"
+                });
+                rows.extend(fields);
+            }
             let mut unknown_inputs = 0usize;
-            if let Some(parameters) = function.child_by_field_name("parameters") {
+            if let Some(parameters) = function
+                .child_by_field_name("parameters")
+                .filter(|_| declaration.fast_decorator.is_none())
+            {
                 let mut cursor = parameters.walk();
                 for parameter in parameters
                     .named_children(&mut cursor)
@@ -229,7 +306,7 @@ impl Project<'_> {
                     "name": null, "binding": null, "declared_type": bounded_text(&spelling, 512),
                     "payload_type": null, "required": null, "line": ty.start_position().row + 1,
                     "basis": "declared-return-type", "status": "candidate", "confidence": null}));
-            } else {
+            } else if !has_response_model {
                 rows.push(json!({"kind": "route-contract-gap", "route": route, "handler": handler,
                     "basis": "handler-signature", "reason": "No explicit return type; response shape remains unknown."}));
             }

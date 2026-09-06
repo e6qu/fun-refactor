@@ -13,6 +13,7 @@ use std::path::{Path, PathBuf};
 
 mod configuration;
 mod contracts;
+mod fast_routes;
 mod links;
 mod manifests;
 mod next_routes;
