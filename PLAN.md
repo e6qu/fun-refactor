@@ -245,7 +245,8 @@ M2b8 is complete. It adds partial route request/response contracts:
 
 Every contract remains partial. Declared types do not establish serialization, runtime validation, status codes or media types.
 The shared Lean page-length laws apply; signature extraction and wire correspondence remain outside those proofs.
-Schema expansion and type/import resolution remain pending. M2b9 and M2b10 add partial Next.js and FastAPI contract evidence.
+M2b11 adds separate declared-field inspection; recursive expansion and type/import resolution remain pending.
+M2b9 and M2b10 add partial Next.js and FastAPI contract evidence.
 Validation passes the full native/WASM gate and all 66 project CLI tests, including eight new contract regressions.
 Strict Lean verification passes with all six source anchors fresh.
 
@@ -273,15 +274,31 @@ M2b10 is complete. It adds FastAPI declaration and contract evidence:
 - Separate decorator response models and Python return annotations preserve stacked-decorator metadata and explicit disabled models.
 - Dynamic paths, unsupported bindings, computed models and expanded decorator options retain explicit gaps or null fields.
 
-Schema expansion, implicit parameter classification, dependency injection, imports at runtime and routing composition remain unchecked.
+M2b11 adds separate declared-field inspection. Implicit parameter classification, dependency injection, imports at runtime and routing composition remain unchecked.
 The shared Lean page-length laws apply; FastAPI extraction and wire correspondence remain outside those proofs.
 Validation passes the full native/WASM gate and all 81 project CLI tests, including eight new FastAPI regressions.
 Strict Lean verification passes with all six source anchors fresh.
 
+M2b11 is complete. It adds bounded declared schema inspection:
+
+- `project schemas` pages direct Python class annotations and TypeScript interface/object-alias properties from captured source.
+- Separate fields, type references and candidate endpoints preserve duplicate definitions and support following declaration handles.
+- Same-file matching uses full type spellings before clipping, with unresolved imports, qualified names, builtins and lexical scope.
+- TypeScript optional/readonly markers describe syntax; wire requiredness and runtime schema identity remain unknown.
+- Explicit gaps cover validation, inheritance, generics, decorators, duplicate fields and unsupported members or types.
+- Types and names have UTF-8 limits; metadata, defaults and bodies stay outside the output, and references do not recursively expand cycles.
+
+This view does not resolve contract types to schemas or infer wire models.
+Runtime schema builders such as Zod remain outside this declaration subset.
+The shared Lean page-length laws apply; schema extraction and type resolution remain outside those proofs.
+Validation passes the full native/WASM gate and all 90 project CLI tests, including nine new schema regressions.
+Strict Lean verification passes with all six source anchors fresh.
+The FastAPI fixture exposes 19 declarations and 44 direct fields; five-row pages retain continuation cursors.
+
 Next M2b work:
 
-- Add declared schema fields and type references, preserving ambiguous definitions and validation gaps.
 - Extend the Next.js path and export subsets, with explicit routing and binding evidence.
+- Extend schema language coverage and contract-to-declaration evidence without guessing imports or runtime validation.
 - Extend workspace rules beyond the observed Cargo subset and formalize membership closure.
 - Evaluate bounded inspection tasks on unfamiliar repositories with an agent, a pinned tokenizer and correctness checks.
 - Measure model tokens and task success against file reading, including additional calls and uncertainty.

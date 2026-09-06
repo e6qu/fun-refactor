@@ -251,6 +251,7 @@ Its package and dependency pages report Cargo/npm manifest declarations with sha
 `fr project routes` adds bounded declarations and handler candidates for five pattern readers, Next.js App Router exports and direct FastAPI decorators.
 `fr project contracts` adds paged path parameters, Axum/Spring request type candidates and declared handler return types, with explicit gaps.
 FastAPI contract rows include explicit parameter markers and decorator response models, with separate return annotations and no inferred wire schemas.
+`fr project schemas` pages direct Python class and TypeScript interface/object-alias fields, with followable type candidates and explicit validation gaps.
 `fr project configuration` pages environment declarations and candidate code consumers, with captured-source checks and explicit analysis gaps.
 `fr project tests` adds catalog candidates and bounded call-path witnesses, preserving the weakest edge confidence without claiming runtime coverage.
 Complete dependency graphs, framework semantics, Git integration and broader task evaluations remain roadmap work.

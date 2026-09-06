@@ -19,6 +19,7 @@ mod manifests;
 mod next_routes;
 mod relationships;
 mod routes;
+mod schemas;
 mod tests;
 
 #[derive(Subcommand)]
@@ -63,6 +64,8 @@ pub enum Command {
     Routes(RelationshipOptions),
     #[command(about = "Page through partial route request and response contract candidates.")]
     Contracts(RelationshipOptions),
+    #[command(about = "Page through declared schema fields and local type-reference candidates.")]
+    Schemas(RelationshipOptions),
     #[command(about = "Page through environment declarations and candidate code consumers.")]
     Configuration(RelationshipOptions),
     #[command(about = "Page through test candidates and call-path witnesses.")]
@@ -881,6 +884,7 @@ impl<'a> Project<'a> {
             Command::Implementations(selection) => self.implementations(selection),
             Command::Routes(selection) => self.routes(selection, false),
             Command::Contracts(selection) => self.routes(selection, true),
+            Command::Schemas(selection) => self.schemas(selection),
             Command::Configuration(selection) => self.configuration(selection),
             Command::Tests { selection, depth } => self.tests(selection, *depth),
             Command::Packages { limit, cursor } => self.packages(*limit, cursor.as_deref()),

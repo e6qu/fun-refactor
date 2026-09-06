@@ -703,12 +703,59 @@ Python return annotations remain separate fields; the decorator model takes prec
 Runtime framework identity and wire correspondence remain unchecked, and every summary stays partial.
 Computed models and competing arguments produce gaps. Expanded decorator options report potentially missing response metadata.
 Schema fields, status codes, serialization, model validation and implicit request classification remain outside this view.
+Use `project schemas` on the route's file to inspect supported declarations separately.
 
 This view reads signatures without analyzing handler bodies or expanding schema definitions.
 Next.js candidates expose path names and declared return types through the same contract rows; request/context bindings remain unknown.
 The existing route-reader limitations still apply, including mounted routers and framework uncertainty.
 Output limits do not bound workspace indexing or selected-file analysis work.
 The Lean page-length laws apply; contract extraction, wire correspondence and type resolution remain outside those proofs.
+
+`schemas` pages direct declared fields and type-reference candidates from captured Python, TypeScript and TSX source.
+It accepts directory, file and symbol scopes, full handles, or short IDs with `--revision`.
+Symbol scopes include supported declarations within that symbol; a schema handle selects its declaration and any nested declarations.
+The default scope is the workspace root, with 40 rows and limits from 1 through 500.
+
+```sh
+fr project schemas src/models.py --limit 12
+fr project schemas '<schema-declaration-handle>' --limit 12
+
+fr project schemas src/models.py --cursor '<next-cursor>' --limit 12
+fr project show '<type-candidate-handle>' --source --bytes 512
+```
+
+Python classes expose direct annotated assignments. TypeScript interfaces and direct object type aliases expose property signatures.
+Classes need not inherit from a known model library; these are declaration candidates, with no inferred runtime schema identity.
+Every `schema` summary has a declaration endpoint, field/reference/gap counts, `completeness: partial`, `status: candidate` and null confidence.
+Separate `schema-field` rows join its declaration handle through `schema`, with their own revision-bound `id`.
+Fields carry names, lines and supported type spellings. TypeScript `optional_marker` and `readonly_marker` record syntax only.
+Python leaves those markers null. Wire requiredness remains null for both languages.
+
+Supported types include names, qualified names, generic applications, unions and TypeScript arrays, tuples and intersections.
+Type traversal stops beyond depth 16. Top-level Python `Annotated` exposes its first type argument without metadata.
+Quoted forward references, literal values, computed types, inline object/function types and types containing comments remain unknown.
+Unsupported type syntax leaves `declared_type` null and produces a gap; the reader emits no partial references for that field.
+Defaults, validation arguments, decorators and method bodies stay outside the output.
+
+Each `schema-type-reference` records a field ID, full-name matching basis and candidate count.
+It has `status: unresolved`, `candidate` or `ambiguous`; repeated names within one field produce one reference row.
+Separate `schema-type-candidate` rows join the reference ID and carry followable declaration endpoints with name-only confidence.
+Matching uses the full spelling before output clipping and retains every matching class, interface or type alias in the same file.
+It does not resolve imports, qualified names, lexical scope, builtins or type parameters. Candidates can lie outside the selected symbol.
+Duplicate declarations remain separate, including TypeScript interface declarations that may merge under compiler rules.
+References do not recursively expand definitions, so cycles require no special traversal.
+Use the candidate handle with `schemas` or `show`; field/reference IDs only join rows within a revision.
+
+Every supported schema has a gap for unchecked wire names, requiredness, validation, serialization and runtime identity.
+Additional `schema-gap` rows cover inheritance, generics, decorators, duplicate fields and unsupported members or declaration forms.
+Python class/instance distinctions and inherited or computed fields remain unchecked.
+Runtime schema builders such as Zod calls do not supply declared fields in this subset.
+Syntax errors skip the file with an `analysis-gap`; unsupported languages produce count-based `coverage-gap` rows.
+Empty results do not establish a complete schema inventory. Contract fields have no automatic resolved link to these declarations.
+Names cap at 160 UTF-8 bytes, type spellings and endpoint paths at 512, with explicit omitted-byte counts.
+Fields, references, candidates, summaries and diagnostics share the page limit, with query/scope/revision-bound cursors and final snapshot checks.
+Output limits do not bound indexing or selected-file analysis work.
+The shared Lean page-length laws apply; schema extraction and type resolution remain outside those proofs.
 
 `configuration` pages environment declarations and candidate consumers across indexed files.
 It accepts a directory, file, file handle or short ID with `--revision`; symbol handles require selecting their containing file.

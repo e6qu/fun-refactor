@@ -2681,6 +2681,335 @@ fn fastapi_contracts_use_captured_imports_decorators_and_markers_after_source_re
 }
 
 #[test]
+fn schemas_python_fields_omit_defaults_and_metadata_and_preserve_type_candidates() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "models.py", "from typing import Annotated\n\nclass Other:\n    code: str\n\nclass Pet(Base):\n    id: int = 42\n    other: list[Other | None] = Field(default_factory=PRIVATE_FACTORY)\n    label: Annotated[str, Field(description='PRIVATE_METADATA')]\n    model_config = {'PRIVATE_CONFIG': True}\n    def validate(self):\n        return 'PRIVATE_BODY'\n");
+    let view = ok(root, &["project", "schemas", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    let pet = items
+        .iter()
+        .find(|r| r["kind"] == "schema" && r["declaration"]["name"] == "Pet")
+        .unwrap();
+    assert_eq!(pet["field_count"], 3, "{view}");
+    assert_eq!(pet["gap_count"], 4);
+    assert_eq!(pet["completeness"], "partial");
+    assert!(items
+        .iter()
+        .any(|r| r["name"] == "other" && r["declared_type"] == "list[Other | None]"));
+    assert!(items
+        .iter()
+        .any(|r| r["name"] == "label" && r["declared_type"] == "str"));
+    assert!(items.iter().any(|r| r["kind"] == "schema-type-reference"
+        && r["name"] == "Other"
+        && r["candidate_count"] == 1));
+    for field in items.iter().filter(|r| r["kind"] == "schema-field") {
+        assert!(field["required"].is_null());
+        assert!(field["optional_marker"].is_null());
+        assert!(field["readonly_marker"].is_null());
+    }
+    assert!(!view.to_string().contains("PRIVATE_"));
+}
+
+#[test]
+fn schemas_typescript_interfaces_object_aliases_and_declared_markers() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "models.ts", "export interface Pet<T> extends Base {\n readonly id?: string;\n tags: Array<Other | null>;\n item: ns.Item;\n tuple: [string, Other];\n [key: string]: Other;\n method(): void;\n}\n\ntype Other = { value: Pet[] };\n\ntype ID = string;\n");
+    let view = ok(root, &["project", "schemas", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    assert_eq!(view["analysis"]["declarations"], 2, "{view}");
+    assert_eq!(view["analysis"]["fields"], 5);
+    let id = items
+        .iter()
+        .find(|r| r["kind"] == "schema-field" && r["name"] == "id")
+        .unwrap();
+    assert_eq!(id["optional_marker"], true);
+    assert_eq!(id["readonly_marker"], true);
+    assert!(id["required"].is_null());
+    for (name, spelling) in [
+        ("tags", "Array<Other | null>"),
+        ("item", "ns.Item"),
+        ("tuple", "[string, Other]"),
+        ("value", "Pet[]"),
+    ] {
+        let field = items
+            .iter()
+            .find(|r| r["kind"] == "schema-field" && r["name"] == name)
+            .unwrap();
+        assert_eq!(field["declared_type"], spelling);
+        assert_eq!(field["optional_marker"], false);
+    }
+    assert!(items.iter().any(|r| r["kind"] == "schema-type-reference"
+        && r["name"] == "ns.Item"
+        && r["status"] == "unresolved"));
+    assert!(items.iter().any(|r| r["reason"]
+        .as_str()
+        .is_some_and(|s| s.contains("object type aliases"))));
+}
+
+#[test]
+fn schemas_preserve_ambiguous_definitions_and_cycles_without_cross_file_guesses() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "models.ts", "interface Duplicate { a: string; }\n\ninterface Duplicate { b: number; }\n\ninterface Cycle { self: Cycle; value: Duplicate; external: External; }\n");
+    put(root, "other.ts", "interface External { hidden: string; }\n");
+    let full = ok(root, &["project", "schemas", "models.ts", "--limit", "500"]);
+    let items = full["items"].as_array().unwrap();
+    assert_eq!(full["analysis"]["declarations"], 3);
+    let reference = items
+        .iter()
+        .find(|r| r["kind"] == "schema-type-reference" && r["name"] == "Duplicate")
+        .unwrap();
+    assert_eq!(reference["status"], "ambiguous");
+    assert_eq!(reference["candidate_count"], 2);
+    let candidates: Vec<_> = items
+        .iter()
+        .filter(|r| r["reference"] == reference["id"])
+        .collect();
+    assert_eq!(candidates.len(), 2);
+    assert_ne!(
+        candidates[0]["target"]["handle"],
+        candidates[1]["target"]["handle"]
+    );
+    assert!(items.iter().any(|r| r["kind"] == "schema-type-reference"
+        && r["name"] == "External"
+        && r["candidate_count"] == 0));
+    let cycle = items
+        .iter()
+        .find(|r| r["kind"] == "schema" && r["declaration"]["name"] == "Cycle")
+        .unwrap();
+    let scoped = ok(
+        root,
+        &[
+            "project",
+            "schemas",
+            cycle["declaration"]["handle"].as_str().unwrap(),
+            "--limit",
+            "500",
+        ],
+    );
+    assert_eq!(scoped["analysis"]["declarations"], 1);
+    assert_eq!(scoped["analysis"]["fields"], 3);
+    assert!(scoped["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["kind"] == "schema-type-candidate" && r["target"]["name"] == "Duplicate"));
+}
+
+#[test]
+fn schemas_report_unsupported_fields_without_partial_type_or_value_leaks() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "models.py", "@decorate(PRIVATE_DECORATOR)\nclass Pet:\n    forward: 'PRIVATE_FORWARD'\n    computed: make_type('PRIVATE_COMPUTED')\n    nested: list[Annotated[str, PRIVATE_NESTED]]\n    same: int\n    same: str\n    if True:\n        hidden: str = 'PRIVATE_CONDITIONAL'\n");
+    put(root, "models.ts", "interface Shape {\n literal: 'PRIVATE_LITERAL';\n object: { hidden: string };\n callback: () => Private;\n comment: Array</* PRIVATE_COMMENT */ string>;\n ['PRIVATE_KEY']: string;\n}\n");
+    let view = ok(root, &["project", "schemas", "--limit", "500"]);
+    assert!(!view.to_string().contains("PRIVATE_"), "{view}");
+    assert!(!view.to_string().contains("Private"));
+    let items = view["items"].as_array().unwrap();
+    for name in [
+        "forward", "computed", "nested", "literal", "object", "callback", "comment",
+    ] {
+        let field = items
+            .iter()
+            .find(|r| r["kind"] == "schema-field" && r["name"] == name)
+            .unwrap();
+        assert!(field["declared_type"].is_null());
+        assert!(!items
+            .iter()
+            .any(|r| r["kind"] == "schema-type-reference" && r["field"] == field["id"]));
+    }
+    assert_eq!(
+        items
+            .iter()
+            .filter(|r| r["kind"] == "schema-field" && r["name"] == "same")
+            .count(),
+        2
+    );
+    assert!(items.iter().any(|r| r["reason"]
+        .as_str()
+        .is_some_and(|s| s.contains("Duplicate field"))));
+}
+
+#[test]
+fn schemas_pages_bind_query_scope_revision_and_support_followable_handles() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "models.py",
+        "class Pet:\n    value: Pet\n    id: int\n",
+    );
+    let full = ok(root, &["project", "schemas", "--limit", "500"]);
+    let first = ok(root, &["project", "schemas", "--limit", "2"]);
+    let first_cursor = first["page"]["next"].as_str().unwrap().to_owned();
+    let mut page = first;
+    let mut combined = Vec::new();
+    loop {
+        assert!(page["items"].as_array().unwrap().len() <= 2);
+        combined.extend(page["items"].as_array().unwrap().iter().cloned());
+        let Some(cursor) = page["page"]["next"].as_str() else {
+            break;
+        };
+        page = ok(
+            root,
+            &["project", "schemas", "--limit", "2", "--cursor", cursor],
+        );
+    }
+    assert_eq!(combined, *full["items"].as_array().unwrap());
+    assert!(!run(root, &["project", "contracts", "--cursor", &first_cursor]).0);
+    assert!(
+        !run(
+            root,
+            &["project", "schemas", "models.py", "--cursor", &first_cursor]
+        )
+        .0
+    );
+    for limit in ["0", "501"] {
+        assert!(!run(root, &["project", "schemas", "--limit", limit]).0);
+    }
+    let schema = combined.iter().find(|r| r["kind"] == "schema").unwrap();
+    let handle = schema["declaration"]["handle"].as_str().unwrap();
+    ok(root, &["project", "show", handle]);
+    let scoped = ok(root, &["project", "schemas", handle]);
+    assert_eq!(
+        scoped,
+        ok(
+            root,
+            &[
+                "project",
+                "schemas",
+                handle.rsplit(':').next().unwrap(),
+                "--revision",
+                full["revision"].as_str().unwrap()
+            ]
+        )
+    );
+    assert!(
+        !run(
+            root,
+            &["project", "schemas", handle.rsplit(':').next().unwrap()]
+        )
+        .0
+    );
+    put(root, "models.py", "class Pet:\n    changed: str\n");
+    assert!(!run(root, &["project", "schemas", "--cursor", &first_cursor]).0);
+    assert!(!run(root, &["project", "schemas", handle]).0);
+    assert!(!root.join(".fr-history").exists());
+}
+
+#[test]
+fn schemas_bound_utf8_fields_and_resolve_full_type_names_before_clipping() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let name = "名".repeat(80);
+    let ty = "Type".repeat(160);
+    put(
+        root,
+        "models.py",
+        &format!("class {ty}:\n    pass\n\nclass Pet:\n    {name}: {ty}\n"),
+    );
+    let view = ok(root, &["project", "schemas", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    let field = items.iter().find(|r| r["kind"] == "schema-field").unwrap();
+    assert_eq!(field["name"]["text"].as_str().unwrap().len(), 159);
+    assert_eq!(field["name"]["omitted_bytes"], name.len() - 159);
+    assert_eq!(field["declared_type"]["text"].as_str().unwrap().len(), 512);
+    assert_eq!(field["declared_type"]["omitted_bytes"], ty.len() - 512);
+    let reference = items
+        .iter()
+        .find(|r| r["kind"] == "schema-type-reference")
+        .unwrap();
+    assert_eq!(reference["candidate_count"], 1);
+    assert_eq!(reference["name"]["omitted_bytes"], ty.len() - 160);
+}
+
+#[test]
+fn schemas_bound_type_depth_and_deduplicate_names_without_partial_references() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let deep = format!("{}A{}", "Array<".repeat(20), ">".repeat(20));
+    put(root, "models.tsx", &format!("interface A {{ id: string; }}\n\ntype Holder = {{ deep: {deep}; repeated: A | A; }};\n"));
+    let view = ok(root, &["project", "schemas", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    let deep = items
+        .iter()
+        .find(|r| r["kind"] == "schema-field" && r["name"] == "deep")
+        .unwrap();
+    assert!(deep["declared_type"].is_null());
+    assert!(!items
+        .iter()
+        .any(|r| r["kind"] == "schema-type-reference" && r["field"] == deep["id"]));
+    let references: Vec<_> = items
+        .iter()
+        .filter(|r| r["kind"] == "schema-type-reference")
+        .collect();
+    assert_eq!(references.len(), 1);
+    assert_eq!(references[0]["name"], "A");
+    assert_eq!(references[0]["candidate_count"], 1);
+}
+
+#[test]
+fn schemas_report_syntax_and_language_gaps_without_claiming_empty_coverage() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "bad.py", "class Pet:\n    field: [\n");
+    put(root, "other.rs", "struct Other { id: u64 }\n");
+    put(root, "empty.ts", "const value = 1;\n");
+    let view = ok(root, &["project", "schemas", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    assert!(items
+        .iter()
+        .any(|r| r["kind"] == "analysis-gap" && r["path"] == "bad.py"));
+    assert!(items
+        .iter()
+        .any(|r| r["kind"] == "coverage-gap" && r["language"] == "rust"));
+    assert_eq!(view["analysis"]["fields"], 0);
+    let empty = ok(root, &["project", "schemas", "empty.ts"]);
+    assert!(empty["items"].as_array().unwrap().is_empty());
+    assert!(!empty["analysis"]["limitations"]
+        .as_array()
+        .unwrap()
+        .is_empty());
+}
+
+#[test]
+fn schemas_read_captured_declarations_after_source_removal_and_verify_drift() {
+    use fun_refactor::{
+        index::Index,
+        project::Project,
+        scan::{scan, ScanOptions},
+    };
+    #[derive(clap::Parser)]
+    struct Query {
+        #[command(subcommand)]
+        command: fun_refactor::project::Command,
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    put(&root, "models.py", "class Pet:\n    before: Pet\n");
+    let options = ScanOptions::default();
+    let scanned = scan(&root, &options).unwrap();
+    let index = Index::build_with_cache(&scanned, None).unwrap();
+    let project = Project::new(&root, &index, &scanned, &options).unwrap();
+    fs::remove_file(root.join("models.py")).unwrap();
+    let query = <Query as clap::Parser>::parse_from(["fr", "schemas"]);
+    let view = project.report(&query.command).unwrap();
+    assert!(view["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["kind"] == "schema-field" && r["name"] == "before"));
+    assert!(view["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["kind"] == "schema-type-reference" && r["candidate_count"] == 1));
+    assert!(project.verify(&root).is_err());
+}
+
+#[test]
 fn contracts_preserve_axum_extractor_types_and_declared_responses() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
