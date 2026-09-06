@@ -249,6 +249,7 @@ Its package and dependency pages report Cargo/npm manifest declarations with sha
 `fr project workspaces` adds observed Cargo membership and supports inherited local dependency links.
 `fr project calls` and `implementations` page through call sites and hierarchy candidates, retaining uncertainty and coverage gaps.
 `fr project routes` adds bounded declarations and handler candidates for five pattern readers, Next.js App Router exports and direct FastAPI decorators.
+Next.js candidates include local function export aliases and terminal catch-all paths; contract rows retain catch-all cardinality.
 `fr project contracts` adds paged path parameters, Axum/Spring request type candidates and declared handler return types, with explicit gaps.
 FastAPI contract rows include explicit parameter markers and decorator response models, with separate return annotations and no inferred wire schemas.
 `fr project schemas` pages direct Python class and TypeScript interface/object-alias fields, with followable type candidates and explicit validation gaps.

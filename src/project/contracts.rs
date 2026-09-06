@@ -203,7 +203,19 @@ impl Project<'_> {
         let endpoint = &declaration.endpoint;
         let mut names = BTreeSet::new();
         let mut unsupported_segments = 0usize;
+        if let Some(parameter) = &declaration.next_catch_all {
+            rows.push(json!({"kind": "route-contract-field", "route": route,
+                "handler": null, "direction": "request", "location": "path",
+                "name": bounded_text(&parameter.name, 160), "binding": null, "declared_type": null,
+                "payload_type": null, "required": null, "line": endpoint.line,
+                "segment_kind": if parameter.optional { "optional-catch-all" } else { "catch-all" },
+                "min_segments": if parameter.optional { 0 } else { 1 }, "max_segments": null,
+                "basis": "nextjs-catch-all-path", "status": "candidate", "confidence": null}));
+        }
         for segment in endpoint.url.split('/') {
+            if declaration.next_catch_all.is_some() && segment.starts_with("{...") {
+                continue;
+            }
             let name = segment
                 .strip_prefix('{')
                 .and_then(|s| s.strip_suffix('}'))

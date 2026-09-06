@@ -12,6 +12,7 @@ pub(super) struct RouteDeclaration {
     pub name_offset: Option<usize>,
     pub basis: &'static str,
     pub fast_decorator: Option<usize>,
+    pub next_catch_all: Option<next_routes::CatchAll>,
 }
 
 impl Project<'_> {
@@ -69,6 +70,7 @@ impl Project<'_> {
                         name_offset: None,
                         basis: "route-pattern-reader",
                         fast_decorator: None,
+                        next_catch_all: None,
                     })
                 })
                 .collect();
@@ -83,8 +85,9 @@ impl Project<'_> {
                     endpoint: entry.endpoint,
                     framework: "nextjs-app".to_owned(),
                     name_offset: Some(entry.name_offset),
-                    basis: "nextjs-app-function-export",
+                    basis: entry.basis,
                     fast_decorator: None,
+                    next_catch_all: entry.catch_all,
                 }));
             }
             if info.language == Language::Python {
@@ -101,6 +104,7 @@ impl Project<'_> {
                     name_offset: Some(entry.name_offset),
                     basis: "fastapi-import-constructor-decorator",
                     fast_decorator: Some(entry.decorator_offset),
+                    next_catch_all: None,
                 }));
             }
             if endpoints.is_empty() {
@@ -198,7 +202,7 @@ impl Project<'_> {
             "nextjs_gaps": next_gaps,
             "nextjs_limitations": "Only route.ts and route.js under root app or src/app. Package identity, layout precedence, route validity, basePath, rewrites and implicit methods remain unchecked.",
             "certainty": "Declaration patterns and local handler-name candidates; the reader does not verify framework identity or runtime reachability.",
-            "limitations": "No request/response schema expansion, middleware, mounted-router prefixes or cross-file handler resolution. Next.js covers root app and src/app named HTTP function exports with static, grouped or single dynamic segments. Other path forms, Pages Router, variable handlers and re-exports remain unsupported. Empty results do not prove absence of routes."});
+            "limitations": "No request/response schema expansion, middleware, mounted-router prefixes or cross-file handler resolution. Next.js covers direct and local function exports with static, grouped, single dynamic and terminal catch-all segments. Other path forms, Pages Router, variable handlers and cross-file re-exports remain unsupported. Empty results do not prove absence of routes."});
         if contracts {
             analysis["contract_fields"] = json!(contract_fields);
             analysis["contract_gaps"] = json!(contract_gaps);
@@ -207,10 +211,11 @@ impl Project<'_> {
                 "axum-extractor-types",
                 "spring-parameter-annotations",
                 "declared-return-types",
+                "nextjs-catch-all-path",
                 "fastapi-explicit-bindings",
                 "fastapi-response-model"
             ]);
-            analysis["limitations"] = json!("Partial signature evidence only. No type resolution, schema expansion, body analysis, runtime validation, response status or media-type inference. Names can match unrelated types or annotations. FastAPI covers explicit binding markers and response_model expressions; implicit parameter classification and binding aliases remain unknown. Next.js input bindings remain unknown; its route subset covers root app and src/app named HTTP function exports with static, grouped or single dynamic segments. No middleware, mounted-router prefixes or cross-file handler resolution.");
+            analysis["limitations"] = json!("Partial signature evidence only. No type resolution, schema expansion, body analysis, runtime validation, response status or media-type inference. Names can match unrelated types or annotations. FastAPI covers explicit binding markers and response_model expressions; implicit parameter classification and binding aliases remain unknown. Next.js input bindings remain unknown; its route subset covers direct and local function exports, including terminal catch-all paths. No middleware, mounted-router prefixes or cross-file handler resolution.");
         }
         let query = if contracts { "contracts" } else { "routes" };
         let mut result = self.relationship_page(query, selected, options, None, rows, analysis)?;

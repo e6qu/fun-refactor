@@ -635,9 +635,18 @@ Handler rows use `basis: declaration-span` and null confidence; names elsewhere 
 The reader preserves duplicate HTTP exports as separate declaration candidates and adds a diagnostic.
 It does not infer implicit methods. These conventions follow the [Next.js route reference](https://nextjs.org/docs/app/api-reference/file-conventions/route).
 
-Catch-all, optional, private, parallel, intercepting and other complex path forms produce `analysis-gap` rows.
-HTTP variable exports, named HTTP re-exports, plain star exports and default exports produce gaps.
-The reader does not follow exports to another declaration. Other export forms do not establish HTTP handlers.
+Terminal `[...parts]` and `[[...parts]]` segments also supply route candidates, including beneath route groups.
+The URL display uses `{...parts}` for catch-all and `{...parts?}` for optional catch-all segments; these are templates, not literal request URLs.
+Malformed or repeated parameter names, nonterminal catch-alls, private, parallel and intercepting paths produce `analysis-gap` rows.
+
+Local named exports such as `export { handle as GET }` follow matching top-level function declarations in the captured file.
+Unaliased `export { GET }` also matches. Their route basis is `nextjs-app-local-function-export`.
+The method comes from the export name; the handler name and position come from the function declaration.
+Route lines identify the export specifier, while handler lines identify the declaration. Nested functions cannot supply local export matches.
+Every matching declaration remains a candidate when names repeat; duplicate HTTP exports produce a diagnostic.
+The reader does not verify lexical binding validity, reassignment, declaration merging or runtime reachability.
+Type-only exports supply no HTTP candidates. Other export forms do not establish HTTP handlers.
+HTTP variable exports, unresolved local exports, cross-file HTTP re-exports, plain star exports and default exports produce gaps.
 Files without supported HTTP exports report a gap. All Next.js diagnostics share the page limit.
 `analysis.nextjs_gaps` counts these diagnostics; `analysis.nextjs_limitations` records the scope.
 Pages Router, custom extensions and nested package roots remain outside this reader.
@@ -671,6 +680,10 @@ Every summary has `status: candidate`, `completeness: partial` and null confiden
 Separate `route-contract-field` rows carry the route ID, candidate handler, direction, location, line and evidence basis.
 Simple whole-segment `{name}` URL markers supply path names, with no handler or inferred type.
 Path names repeat only once per route. Complex markers produce a gap row.
+Next.js catch-all path fields instead use `basis: nextjs-catch-all-path` and retain the original parameter name.
+Their `segment_kind` distinguishes `catch-all` from `optional-catch-all`, with `min_segments` of one or zero and no finite maximum (`max_segments: null`).
+This cardinality follows [Next.js dynamic-segment conventions](https://nextjs.org/docs/app/api-reference/file-conventions/dynamic-routes); declared types and wire requiredness remain null.
+The reader carries path metadata before URL clipping, without reinterpreting display templates as source annotations.
 Axum-style `Path<T>`, `Query<T>`, `Json<T>` and `Form<T>` parameters expose their declared type and payload type spelling.
 Qualified extractor names also match. Aliases, optional wrappers and custom extractors remain unknown.
 Spring-style `PathVariable`, `RequestParam`, `RequestBody`, `RequestHeader` and `CookieValue` annotations supply candidate request locations.

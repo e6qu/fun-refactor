@@ -259,12 +259,12 @@ M2b9 is complete. It adds Next.js App Router declaration and contract inspection
 - Unsupported paths and export forms produce paged diagnostics with explicit interpretation limits.
 
 This covers `route.ts` and `route.js`, static segments, route groups and simple dynamic segments.
-Catch-all paths, Pages Router, variable handlers, re-exports, custom extensions and nested package roots remain outside the reader.
+M2b12 adds terminal catch-all paths and local function export aliases.
+Pages Router, variable handlers, cross-file re-exports, custom extensions and nested package roots remain outside the reader.
 Framework identity, layout precedence, runtime route validity, `basePath`, rewrites and implicit methods remain unchecked.
 The shared Lean page-length laws apply; URL extraction and handler correspondence remain outside those proofs.
 Validation passes the full native/WASM gate and all 73 project CLI tests, including seven new Next.js regressions.
 Strict Lean verification passes with all six source anchors fresh.
-The Petstore fixture yields 12 route candidates and a catch-all gap; a five-row contract page retains a continuation cursor.
 
 M2b10 is complete. It adds FastAPI declaration and contract evidence:
 
@@ -295,9 +295,23 @@ Validation passes the full native/WASM gate and all 90 project CLI tests, includ
 Strict Lean verification passes with all six source anchors fresh.
 The FastAPI fixture exposes 19 declarations and 44 direct fields; five-row pages retain continuation cursors.
 
+M2b12 is complete. It extends Next.js routing and binding evidence:
+
+- Terminal catch-all and optional catch-all paths retain distinct URL templates and paged parameter cardinality.
+- Malformed names, repeated parameters and nonterminal catch-alls produce explicit diagnostics.
+- Local named HTTP exports follow top-level function declarations, with separate export and handler positions.
+- Duplicate definitions remain separate candidates; type-only exports supply no HTTP candidates.
+- Unresolved bindings, variable handlers and cross-file exports retain gaps without loading handler bodies.
+
+Runtime route validity, reassignment, import resolution and implicit methods remain unchecked.
+The shared Lean page-length laws apply; path extraction and export correspondence remain outside those proofs.
+Validation passes the full native/WASM gate and all 98 project CLI tests, including eight new Next.js regressions.
+Strict Lean verification passes with all six source anchors fresh.
+The Petstore fixture now yields 13 route candidates without Next.js reader gaps; five-row contract pages retain continuation cursors.
+
 Next M2b work:
 
-- Extend the Next.js path and export subsets, with explicit routing and binding evidence.
+- Extend Next.js variable-handler and project-layout evidence while preserving unresolved routing behavior.
 - Extend schema language coverage and contract-to-declaration evidence without guessing imports or runtime validation.
 - Extend workspace rules beyond the observed Cargo subset and formalize membership closure.
 - Evaluate bounded inspection tasks on unfamiliar repositories with an agent, a pinned tokenizer and correctness checks.
