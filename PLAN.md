@@ -347,14 +347,27 @@ M2b15 is complete. It isolates and formalizes observed workspace membership expa
 - Compare 20,750 shared Rust/Lean rounds across all directed graphs and seed sets through three nodes, plus four 64-bit duplicate/limit cases.
 - Independently check final reachability with a queue traversal and retain CLI coverage for competing paths, disconnected cycles, excluded packages and distinct owners.
 
-General convergence, graph construction, witness selection and full Rust implementation correspondence remain unproved.
+M2b15 leaves general convergence to M2b16. Graph construction, witness selection and full Rust implementation correspondence remain unproved.
 Cargo rule coverage is unchanged; the next rule extension remains separate from these model claims.
 Validation passes the full native/WASM gate, all 116 project CLI tests and 13 Lean integration tests; two exhaustive self-audits remain in the separate deep gate.
 Strict Lean verification passes with all seven source anchors fresh and zero `sorry` obligations.
 
+M2b16 is complete. It proves general convergence of the workspace membership model:
+
+- Prove that equal membership yields equal sorted, duplicate-free representations.
+- Show that every changing round removes a missing candidate, with stabilization within the number of supplied edges.
+- Derive unconditional exact reachability, least-closure correctness and persistence of the fixed point.
+- Compare the executable closure with Rust across 4,165 small graph/seed configurations, a 64-bit limit case and three longer chains.
+- Exercise the round bound on chains requiring exactly 4, 16 and 64 changing rounds.
+
+The proofs cover arbitrary finite seed and edge lists. Cargo interpretation, graph construction and complete Rust correspondence remain separate obligations.
+The convergence proofs use standard propositional extensionality, quotient soundness and classical choice. They introduce no custom axioms.
+Validation passes the full native/WASM gate, all 116 project CLI tests and 13 Lean integration tests; two exhaustive self-audits remain in the separate deep gate.
+Strict verification passes with seven fresh source anchors, zero `sorry` obligations and all 25 Lean build jobs successful.
+
 Next M2b work:
 
-- Extend workspace rules beyond the observed Cargo subset; prove general closure convergence and strengthen implementation correspondence.
+- Extend workspace rules beyond the observed Cargo subset and strengthen implementation correspondence.
 - Extend request/model reference evidence and remaining schema subsets without guessing imports or runtime validation.
 - Evaluate bounded inspection tasks on unfamiliar repositories with an agent, a pinned tokenizer and correctness checks.
 - Measure model tokens and task success against file reading, including additional calls and uncertainty.

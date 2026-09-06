@@ -693,6 +693,15 @@ fn workspace_membership_rounds_match_lean_and_independent_reachability() {
     let mut values = actual
         .lines()
         .map(|line| serde_json::from_str::<Vec<u64>>(line).unwrap());
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("closure")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let closures = String::from_utf8(output.stdout).unwrap();
+    let mut closures = closures
+        .lines()
+        .map(|line| serde_json::from_str::<Vec<u64>>(line).unwrap());
     let mut cases = 0;
     for size in 0..4 {
         for seed_mask in 0..(1 << size) {
@@ -730,6 +739,11 @@ fn workspace_membership_rounds_match_lean_and_independent_reachability() {
                     }
                     current = next;
                 }
+                assert_eq!(
+                    current.iter().map(|v| *v as u64).collect::<Vec<_>>(),
+                    closures.next().unwrap(),
+                    "closure: size={size}, seeds={seed_mask}, edges={edge_mask}"
+                );
             }
         }
     }
@@ -760,4 +774,29 @@ fn workspace_membership_rounds_match_lean_and_independent_reachability() {
         }
     }
     assert!(values.next().is_none());
+    let expected = closures.next().unwrap();
+    if usize::try_from(u64::MAX).is_ok() {
+        assert_eq!(current, expected);
+    }
+    for size in [4, 16, 64] {
+        let edges: Vec<_> = (0..size).map(|node| (node, node + 1)).collect();
+        let mut members = vec![0];
+        let mut changing_rounds = 0;
+        loop {
+            let next = workspace_membership_step(&members, &edges);
+            if next == members {
+                break;
+            }
+            changing_rounds += 1;
+            assert!(changing_rounds <= edges.len());
+            members = next;
+        }
+        assert_eq!(changing_rounds, size);
+        assert_eq!(members, (0..=size).collect::<Vec<_>>());
+        assert_eq!(
+            members.iter().map(|v| *v as u64).collect::<Vec<_>>(),
+            closures.next().unwrap()
+        );
+    }
+    assert!(closures.next().is_none());
 }

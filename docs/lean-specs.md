@@ -99,14 +99,21 @@ The workspace membership kernel models one synchronous expansion over supplied p
 The Rust workspace reader uses this anchored helper after capturing ownership, exclusions and local dependency evidence.
 The model proves that a step preserves existing members, adds exactly targets of edges from existing members, and is monotone.
 Repeated expansion preserves seeds and adds only reachable nodes. Every round stays within any closed superset of the seeds.
-If expansion stabilizes, the result is exactly the nodes reachable from the seeds, hence the least closed superset.
-Stabilization is an explicit hypothesis; a general convergence theorem remains pending.
+`FrKernels.Workspace` proves general convergence: expansion stabilizes within the number of supplied dependency edges.
+The argument covers arbitrary finite lists of IDs, seeds and edges, including duplicates, cycles and disconnected components.
+Each changing round removes at least one entry from the finite list of missing candidates.
+Sorted, duplicate-free representation makes equal membership imply the list equality used by the stopping condition.
+The executable closure model runs to the proved bound and returns exactly the reachable nodes, hence the least closed superset of the seeds.
+Every later round returns the same list. These conclusions require no separate stabilization hypothesis.
 
 Shared execution compares 20,750 rounds across every directed graph and seed set on zero through three nodes.
 An independent Rust queue traversal checks final reachability and stabilization within the node count for those cases.
 Four further shared rounds cover duplicate seeds/edges, unsorted IDs and 64-bit limits on hosts that can represent them.
 CLI regressions retain exclusions, distinct owners, cycles, inherited paths and deterministic first-round witnesses.
-The reachability induction uses no axioms; the other membership proofs use propositional extensionality and quotient soundness from Lean's standard library.
+Closure comparisons cover all 4,165 small graph/seed configurations, a 64-bit duplicate/limit case and chains of 4, 16 and 64 edges.
+The chains require exactly their edge count in changing Rust rounds, exercising the bound without an early-stop assumption.
+The reachability induction uses no axioms; the expansion proofs use propositional extensionality and quotient soundness from Lean's standard library.
+The convergence and unconditional closure proofs also use Lean's standard classical-choice axiom. These proofs introduce no custom axioms.
 These are model proofs with tested Rust correspondence. Cargo semantics, eligible-edge construction, witness selection and the complete Rust loop remain outside the proofs.
 
 ## Adopting Lean in another project today

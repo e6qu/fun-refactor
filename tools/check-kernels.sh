@@ -14,4 +14,5 @@ cd "$(dirname "$0")/.."
     lake exe fr-project-kernel patterns >/dev/null
     lake exe fr-project-kernel confidence >/dev/null
     lake exe fr-project-kernel membership >/dev/null
+    lake exe fr-project-kernel closure >/dev/null
 )

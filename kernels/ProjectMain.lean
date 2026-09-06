@@ -1,11 +1,11 @@
-import FrKernels.Project
+import FrKernels.Workspace
 
 open FrKernels.Project
 
 def samples : List Nat := [0, 1, 2, 3, 4, 79, 80, 499, 500, 65536, 4294967295, 18446744073709551615]
 
 def main (args : List String) : IO Unit := do
-  if args == ["membership"] then
+  if args == ["membership"] || args == ["closure"] then
     for size in [0:4] do
       let nodes := List.range size
       let allEdges := nodes.flatMap (fun source => nodes.map (fun target => (source, target)))
@@ -14,12 +14,21 @@ def main (args : List String) : IO Unit := do
         for edgeMask in [0:2^(size*size)] do
           let edges := allEdges.zipIdx.filterMap (fun (edge, index) =>
             if edgeMask / 2^index % 2 == 1 then some edge else none)
-          for rounds in [0:size+2] do
-            IO.println (membershipRounds seeds edges rounds)
+          if args == ["closure"] then
+            IO.println (workspaceClosure seeds edges)
+          else
+            for rounds in [0:size+2] do
+              IO.println (membershipRounds seeds edges rounds)
     let seeds := [4294967295, 7, 7]
     let edges := [(7, 18446744073709551615), (7, 3), (7, 3), (3, 7), (99, 2)]
-    for rounds in [0:4] do
-      IO.println (membershipRounds seeds edges rounds)
+    if args == ["closure"] then
+      IO.println (workspaceClosure seeds edges)
+      for size in [4, 16, 64] do
+        let edges := (List.range size).map (fun node => (node, node + 1))
+        IO.println (workspaceClosure [0] edges)
+    else
+      for rounds in [0:4] do
+        IO.println (membershipRounds seeds edges rounds)
   else if args == ["confidence"] then
     let mut paths : List (List Nat) := [[]]
     let mut words := paths
