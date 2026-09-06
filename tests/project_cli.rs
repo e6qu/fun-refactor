@@ -4853,3 +4853,126 @@ fn test_candidate_names_clip_before_source_inspection() {
     )["node"]["name"]
         .is_object());
 }
+
+#[test]
+fn workspace_closure_keeps_first_round_witnesses_and_declared_members() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "Cargo.toml",
+        "[workspace]\nmembers=['a','z','declared']\n",
+    );
+    cargo_package(
+        root,
+        "a",
+        "a",
+        "[dependencies]\nz={path='../z'}\nshared={path='../shared'}\n",
+    );
+    cargo_package(
+        root,
+        "z",
+        "z",
+        "[build-dependencies]\nshared={path='../shared'}\nleaf={path='../leaf'}\n",
+    );
+    cargo_package(
+        root,
+        "shared",
+        "shared",
+        "[dev-dependencies]\nleaf={path='../leaf'}\ndeclared={path='../declared'}\n",
+    );
+    cargo_package(
+        root,
+        "leaf",
+        "leaf",
+        "[target.'cfg(unix)'.dependencies]\ntail={path='../tail'}\n",
+    );
+    cargo_package(root, "tail", "tail", "[dependencies]\na={path='../a'}\n");
+    cargo_package(root, "declared", "declared", "");
+    cargo_package(
+        root,
+        "unused",
+        "unused",
+        "[dependencies]\ndisconnected={path='../disconnected'}\n",
+    );
+    cargo_package(
+        root,
+        "disconnected",
+        "disconnected",
+        "[dependencies]\nunused={path='../unused'}\n",
+    );
+    let view = ok(root, &["project", "workspaces"]);
+    let rows = view["items"].as_array().unwrap();
+    let row = |manifest: &str| rows.iter().find(|r| r["manifest"] == manifest).unwrap();
+    for (manifest, source) in [
+        ("shared/Cargo.toml", "a/Cargo.toml"),
+        ("leaf/Cargo.toml", "z/Cargo.toml"),
+        ("tail/Cargo.toml", "leaf/Cargo.toml"),
+    ] {
+        assert_eq!(row(manifest)["status"], "member");
+        assert_eq!(row(manifest)["membership_basis"], "automatic-path-member");
+        assert_eq!(row(manifest)["via_manifest"], source);
+    }
+    assert_eq!(
+        row("declared/Cargo.toml")["membership_basis"],
+        "declared-member"
+    );
+    assert!(row("declared/Cargo.toml")["via_manifest"].is_null());
+    for manifest in ["unused/Cargo.toml", "disconnected/Cargo.toml"] {
+        assert_eq!(row(manifest)["status"], "unresolved");
+        assert_eq!(row(manifest)["reason"], "package-not-observed-member");
+    }
+}
+
+#[test]
+fn workspace_closure_cannot_cross_excluded_or_different_owner_packages() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "Cargo.toml",
+        "[workspace]\nmembers=['app']\nexclude=['blocked']\n",
+    );
+    cargo_package(
+        root,
+        "app",
+        "app",
+        "[dependencies]\nblocked={path='../blocked'}\nforeign={path='../nested/foreign'}\n",
+    );
+    cargo_package(
+        root,
+        "blocked",
+        "blocked",
+        "[dependencies]\nleak={path='../leak'}\n",
+    );
+    cargo_package(root, "leak", "leak", "");
+    put(root, "nested/Cargo.toml", "[workspace]\nmembers=['seed']\n");
+    cargo_package(
+        root,
+        "nested/seed",
+        "seed",
+        "[dependencies]\nchild={path='../child'}\n",
+    );
+    cargo_package(root, "nested/child", "child", "");
+    cargo_package(
+        root,
+        "nested/foreign",
+        "foreign",
+        "[dependencies]\nleak={path='../../leak'}\n",
+    );
+    let view = ok(root, &["project", "workspaces"]);
+    let rows = view["items"].as_array().unwrap();
+    let row = |manifest: &str| rows.iter().find(|r| r["manifest"] == manifest).unwrap();
+    assert_eq!(row("blocked/Cargo.toml")["reason"], "workspace-excluded");
+    assert_eq!(row("leak/Cargo.toml")["status"], "unresolved");
+    assert_eq!(row("nested/foreign/Cargo.toml")["status"], "unresolved");
+    assert_eq!(row("nested/child/Cargo.toml")["status"], "member");
+    assert_eq!(
+        row("nested/child/Cargo.toml")["workspace_manifest"],
+        "nested/Cargo.toml"
+    );
+    assert_eq!(
+        row("nested/child/Cargo.toml")["via_manifest"],
+        "nested/seed/Cargo.toml"
+    );
+}

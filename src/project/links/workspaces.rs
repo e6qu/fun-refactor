@@ -3,7 +3,7 @@ use super::{
     text,
 };
 use crate::project::manifests::Manifests;
-use crate::project::workspace_pattern_matches;
+use crate::project::{workspace_membership_step, workspace_pattern_matches};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -13,7 +13,6 @@ struct Owner {
     basis: &'static str,
 }
 
-#[derive(Clone)]
 struct Member {
     root: PathBuf,
     basis: &'static str,
@@ -247,44 +246,64 @@ impl Analysis {
                 }
             }
         }
-        loop {
-            let before = result.members.len();
-            for (source, member) in result.members.clone() {
-                for (name, spec) in specs(&manifests.documents[&source]) {
+        let paths: Vec<_> = result.owners.keys().cloned().collect();
+        let indices: BTreeMap<_, _> = paths.iter().enumerate().map(|(i, p)| (p, i)).collect();
+        let mut edges = BTreeSet::new();
+        for (source, owner) in &result.owners {
+            if let Ok(workspace) = &owner.root {
+                for (name, spec) in specs(&manifests.documents[source]) {
                     let (base, effective) = if spec.get("workspace").is_some() {
-                        let Ok(spec) = inherited_spec(manifests, &member.root, name, spec) else {
+                        let Ok(spec) = inherited_spec(manifests, workspace, name, spec) else {
                             continue;
                         };
-                        (&member.root, spec)
+                        (workspace, spec)
                     } else {
-                        (&source, spec)
+                        (source, spec)
                     };
                     let Some(target) = path_target(manifests, &known, base, name, effective) else {
                         continue;
                     };
-                    if result.members.contains_key(&target)
-                        || !result
-                            .owners
-                            .get(&target)
-                            .is_some_and(|o| o.root.as_ref().ok() == Some(&member.root))
-                        || membership(manifests, &member.root, &target).is_err()
+                    if !result
+                        .owners
+                        .get(&target)
+                        .is_some_and(|o| o.root.as_ref().ok() == Some(workspace))
+                        || membership(manifests, workspace, &target).is_err()
                     {
                         continue;
                     }
-                    result.reasons.remove(&target);
+                    edges.insert((indices[source], indices[&target]));
+                }
+            }
+        }
+        let edges: Vec<_> = edges.into_iter().collect();
+        let mut current: Vec<_> = result.members.keys().map(|p| indices[p]).collect();
+        loop {
+            let next = workspace_membership_step(&current, &edges);
+            if next == current {
+                break;
+            }
+            let mut witnesses = BTreeMap::new();
+            for &(source, target) in &edges {
+                if current.binary_search(&source).is_ok() {
+                    witnesses.entry(target).or_insert(source);
+                }
+            }
+            for &target in &next {
+                if !result.members.contains_key(&paths[target]) {
+                    let source = witnesses[&target];
+                    let workspace = result.members[&paths[source]].root.clone();
+                    result.reasons.remove(&paths[target]);
                     result.members.insert(
-                        target,
+                        paths[target].clone(),
                         Member {
-                            root: member.root.clone(),
+                            root: workspace,
                             basis: "automatic-path-member",
-                            via: Some(source.clone()),
+                            via: Some(paths[source].clone()),
                         },
                     );
                 }
             }
-            if before == result.members.len() {
-                break;
-            }
+            current = next;
         }
         result
     }

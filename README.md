@@ -247,6 +247,7 @@ The browser already exports patches and can restore its initial workspace.
 Its package and dependency pages report Cargo/npm manifest declarations with shared revision checks.
 `fr project links` adds local manifest links and workspace pattern candidates with explicit unresolved cases.
 `fr project workspaces` adds observed Cargo membership and supports inherited local dependency links.
+Its expansion helper has an anchored Lean model with reachability laws and shared graph cases; Cargo interpretation remains outside the proofs.
 `fr project calls` and `implementations` page through call sites and hierarchy candidates, retaining uncertainty and coverage gaps.
 `fr project routes` adds bounded declarations and handler candidates for five pattern readers, Next.js App Router exports and direct FastAPI decorators.
 Next.js candidates include local function export aliases and terminal catch-all paths; contract rows retain catch-all cardinality.

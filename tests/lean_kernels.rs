@@ -677,3 +677,87 @@ fn test_path_confidence_matches_lean_for_all_tier_sequences_through_six_edges() 
             .collect::<Vec<_>>()
     );
 }
+
+#[test]
+fn workspace_membership_rounds_match_lean_and_independent_reachability() {
+    use fun_refactor::project::workspace_membership_step;
+    use std::collections::{BTreeSet, VecDeque};
+
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("membership")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let mut values = actual
+        .lines()
+        .map(|line| serde_json::from_str::<Vec<u64>>(line).unwrap());
+    let mut cases = 0;
+    for size in 0..4 {
+        for seed_mask in 0..(1 << size) {
+            let seeds: Vec<_> = (0..size)
+                .filter(|node| seed_mask & (1 << node) != 0)
+                .collect();
+            for edge_mask in 0..(1 << (size * size)) {
+                let edges: Vec<_> = (0..size)
+                    .flat_map(|source| (0..size).map(move |target| (source, target)))
+                    .enumerate()
+                    .filter_map(|(index, edge)| (edge_mask & (1 << index) != 0).then_some(edge))
+                    .collect();
+                let mut reachable: BTreeSet<_> = seeds.iter().copied().collect();
+                let mut pending: VecDeque<_> = seeds.iter().copied().collect();
+                while let Some(source) = pending.pop_front() {
+                    for &(from, target) in &edges {
+                        if from == source && reachable.insert(target) {
+                            pending.push_back(target);
+                        }
+                    }
+                }
+                let mut current = seeds.clone();
+                for round in 0..size + 2 {
+                    assert_eq!(
+                        current.iter().map(|v| *v as u64).collect::<Vec<_>>(),
+                        values.next().unwrap(),
+                        "size={size}, seeds={seed_mask}, edges={edge_mask}, round={round}"
+                    );
+                    cases += 1;
+                    let next = workspace_membership_step(&current, &edges);
+                    assert!(current.iter().all(|node| next.contains(node)));
+                    if round >= size {
+                        assert_eq!(current, next);
+                        assert_eq!(current, reachable.iter().copied().collect::<Vec<_>>());
+                    }
+                    current = next;
+                }
+            }
+        }
+    }
+    assert_eq!(cases, 20_750);
+    let seeds = [u32::MAX as u64, 7, 7];
+    let edges = [(7, u64::MAX), (7, 3), (7, 3), (3, 7), (99, 2)];
+    let mut current = vec![7, u32::MAX as u64];
+    for round in 0..4 {
+        let expected = values.next().unwrap();
+        if usize::try_from(u64::MAX).is_ok() {
+            let members: Vec<_> = if round == 0 {
+                seeds.to_vec()
+            } else {
+                current.clone()
+            }
+            .into_iter()
+            .map(|v| usize::try_from(v).unwrap())
+            .collect();
+            let edges: Vec<_> = edges
+                .iter()
+                .map(|&(s, t)| (usize::try_from(s).unwrap(), usize::try_from(t).unwrap()))
+                .collect();
+            assert_eq!(current, expected);
+            current = workspace_membership_step(&members, &edges)
+                .into_iter()
+                .map(|v| v as u64)
+                .collect();
+        }
+    }
+    assert!(values.next().is_none());
+}

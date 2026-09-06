@@ -33,7 +33,7 @@ Implemented foundations:
 - Next.js/FastAPI route conversion and OpenAPI service scaffolds, with explicit limits.
 - Local recipes, expectations, workspace previews and canonical formatting.
 - Native releases, a WASM API, a browser playground and patch downloads.
-- Lean edit, position, history, pagination and confidence models, source anchors, signature maps and `spec check`, `sync` and `verify`.
+- Lean edit, position, history, pagination, confidence and workspace membership models, source anchors, signature maps and `spec check`, `sync` and `verify`.
 
 Important gaps:
 
@@ -339,9 +339,22 @@ The shared Lean page-length laws apply; schema extraction and reference correspo
 Validation passes the full native/WASM gate and all 114 project CLI tests, including eight new schema/reference regressions.
 Strict Lean verification passes with all six source anchors fresh.
 
+M2b15 is complete. It isolates and formalizes observed workspace membership expansion:
+
+- Build eligible dependency edges once, then use an anchored synchronous expansion helper while preserving deterministic membership witnesses.
+- Prove seed preservation, exact one-step additions, monotonicity and reachability soundness for every round.
+- Prove containment in any closed superset and exact reachable membership when expansion stabilizes.
+- Compare 20,750 shared Rust/Lean rounds across all directed graphs and seed sets through three nodes, plus four 64-bit duplicate/limit cases.
+- Independently check final reachability with a queue traversal and retain CLI coverage for competing paths, disconnected cycles, excluded packages and distinct owners.
+
+General convergence, graph construction, witness selection and full Rust implementation correspondence remain unproved.
+Cargo rule coverage is unchanged; the next rule extension remains separate from these model claims.
+Validation passes the full native/WASM gate, all 116 project CLI tests and 13 Lean integration tests; two exhaustive self-audits remain in the separate deep gate.
+Strict Lean verification passes with all seven source anchors fresh and zero `sorry` obligations.
+
 Next M2b work:
 
-- Extend workspace rules beyond the observed Cargo subset and formalize membership closure.
+- Extend workspace rules beyond the observed Cargo subset; prove general closure convergence and strengthen implementation correspondence.
 - Extend request/model reference evidence and remaining schema subsets without guessing imports or runtime validation.
 - Evaluate bounded inspection tasks on unfamiliar repositories with an agent, a pinned tokenizer and correctness checks.
 - Measure model tokens and task success against file reading, including additional calls and uncertainty.

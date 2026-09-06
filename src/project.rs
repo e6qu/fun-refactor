@@ -8,7 +8,7 @@ use clap::{Subcommand, ValueEnum};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::cell::RefCell;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 mod configuration;
@@ -242,6 +242,17 @@ pub fn page_length(total: usize, start: usize, limit: usize) -> usize {
 
 pub fn path_confidence(edges: &[Confidence]) -> Confidence {
     edges.iter().copied().max().unwrap_or(Confidence::Exact)
+}
+
+pub fn workspace_membership_step(members: &[usize], edges: &[(usize, usize)]) -> Vec<usize> {
+    let current: BTreeSet<_> = members.iter().copied().collect();
+    let mut next = current.clone();
+    for &(source, target) in edges {
+        if current.contains(&source) {
+            next.insert(target);
+        }
+    }
+    next.into_iter().collect()
 }
 
 pub fn workspace_pattern_matches(pattern: &[String], path: &[String]) -> bool {

@@ -13,7 +13,7 @@ The [roadmap](../PLAN.md) extends this foundation into an adoption workflow for 
 | `fr spec check --strict` | Require an explicit signature map beside every source anchor |
 | `fr spec sync` | Preview renewal of stale source hashes; `--write` applies reviewed renewals |
 | `fr spec verify` | Strict correspondence checks, then `lake build --wfail` in each owning package |
-| `kernels/` | Executable edit, position, history, pagination and confidence models with shared Rust/Lean cases |
+| `kernels/` | Executable edit, position, history, pagination, confidence and workspace membership models with shared Rust/Lean cases |
 
 Strict signature maps currently require Rust source declarations.
 The checker compares both signatures with the explicit map. It does not infer semantic equivalence between mapped types.
@@ -94,6 +94,20 @@ The compact test view leaves path confidence null for in-scope candidates, which
 All 5,461 rank sequences through six edges agree with the Rust helper, including the empty sequence.
 The non-strengthening and tier-bound proofs use propositional extensionality; the empty-path proof uses no axioms.
 These laws concern aggregation of supplied edges. Catalog accuracy, graph construction and shortest-path correspondence remain outside these proofs.
+
+The workspace membership kernel models one synchronous expansion over supplied package IDs and eligible dependency edges.
+The Rust workspace reader uses this anchored helper after capturing ownership, exclusions and local dependency evidence.
+The model proves that a step preserves existing members, adds exactly targets of edges from existing members, and is monotone.
+Repeated expansion preserves seeds and adds only reachable nodes. Every round stays within any closed superset of the seeds.
+If expansion stabilizes, the result is exactly the nodes reachable from the seeds, hence the least closed superset.
+Stabilization is an explicit hypothesis; a general convergence theorem remains pending.
+
+Shared execution compares 20,750 rounds across every directed graph and seed set on zero through three nodes.
+An independent Rust queue traversal checks final reachability and stabilization within the node count for those cases.
+Four further shared rounds cover duplicate seeds/edges, unsorted IDs and 64-bit limits on hosts that can represent them.
+CLI regressions retain exclusions, distinct owners, cycles, inherited paths and deterministic first-round witnesses.
+The reachability induction uses no axioms; the other membership proofs use propositional extensionality and quotient soundness from Lean's standard library.
+These are model proofs with tested Rust correspondence. Cargo semantics, eligible-edge construction, witness selection and the complete Rust loop remain outside the proofs.
 
 ## Adopting Lean in another project today
 
