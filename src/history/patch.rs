@@ -43,12 +43,22 @@ pub fn export_patch(root: &Path, id: u64, reverse: bool) -> Result<PatchExport> 
     })
 }
 
-fn git_mode(snapshot: &Snapshot) -> u32 {
-    if snapshot.mode & 0o100 == 0 {
+pub fn git_mode(mode: u32) -> u32 {
+    if mode & 0o100 == 0 {
         0o100644
     } else {
         0o100755
     }
+}
+
+pub fn git_mode_change_supported(before: u32, after: u32) -> bool {
+    let changed = before ^ after;
+    changed & !0o111 == 0 && (changed == 0 || git_mode(before) != git_mode(after))
+}
+
+pub fn matches_patch_basis(actual: &Option<Snapshot>, expected: &Option<Snapshot>) -> bool {
+    actual.as_ref().map(|s| (&s.content, git_mode(s.mode)))
+        == expected.as_ref().map(|s| (&s.content, git_mode(s.mode)))
 }
 
 fn quote(path: &str) -> String {
@@ -89,8 +99,7 @@ fn render(record: &Record, reverse: bool) -> Result<String> {
             }
         }
         if let (Some(before), Some(after)) = (before, after) {
-            let changed = before.mode ^ after.mode;
-            if changed & !0o111 != 0 || (changed != 0 && git_mode(before) == git_mode(after)) {
+            if !git_mode_change_supported(before.mode, after.mode) {
                 bail!("cannot represent recorded permission change in a Git patch: {name:?}");
             }
         }
@@ -98,11 +107,13 @@ fn render(record: &Record, reverse: bool) -> Result<String> {
         let new = quote(&format!("b/{name}"));
         writeln!(patch, "diff --git {old} {new}")?;
         match (before, after) {
-            (None, Some(after)) => writeln!(patch, "new file mode {:06o}", git_mode(after))?,
-            (Some(before), None) => writeln!(patch, "deleted file mode {:06o}", git_mode(before))?,
-            (Some(before), Some(after)) if git_mode(before) != git_mode(after) => {
-                writeln!(patch, "old mode {:06o}", git_mode(before))?;
-                writeln!(patch, "new mode {:06o}", git_mode(after))?;
+            (None, Some(after)) => writeln!(patch, "new file mode {:06o}", git_mode(after.mode))?,
+            (Some(before), None) => {
+                writeln!(patch, "deleted file mode {:06o}", git_mode(before.mode))?
+            }
+            (Some(before), Some(after)) if git_mode(before.mode) != git_mode(after.mode) => {
+                writeln!(patch, "old mode {:06o}", git_mode(before.mode))?;
+                writeln!(patch, "new mode {:06o}", git_mode(after.mode))?;
             }
             _ => (),
         }

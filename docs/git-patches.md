@@ -63,7 +63,9 @@ It does not run Git, inspect the index, evaluate Git attributes or check whether
 It does not check the transaction's project source digest or freeze the files against concurrent changes.
 Use `git apply --check` for Git application rules, or history apply for transaction validation and writes.
 The full-permission comparison reuses the anchored history snapshot predicate.
-Filesystem observation, Git mode projection and this report have no Lean correspondence proof yet.
+Patch-basis equality and Git mode projection now use separate anchored helpers with Lean models and shared execution cases.
+See [patch verification evidence](lean-specs.md#existing-kernels) for the model laws and compiler-trust assumptions.
+Filesystem observation and report aggregation remain outside the model; general Rust correspondence remains unproved.
 
 ## Ask Git to check application
 
@@ -135,3 +137,4 @@ Application behavior is described in [git apply](https://git-scm.com/docs/git-ap
 Tests run Git checks and forward/reverse applications against recorded contents and executable modes.
 They also cover conflicting files and preservation of unrelated staged, unstaged and untracked changes.
 These tests provide compatibility evidence; patch rendering has no Lean correspondence proof yet.
+The mode-change acceptance helper also has an anchored Lean model covering 32-bit masks and forward/reverse symmetry.

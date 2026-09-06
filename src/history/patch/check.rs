@@ -1,4 +1,4 @@
-use super::{git_mode, render, History, Status};
+use super::{git_mode, matches_patch_basis, render, History, Status};
 use crate::history::{matches_snapshot, snapshot, target};
 use anyhow::{bail, Result};
 use serde::Serialize;
@@ -56,7 +56,8 @@ pub fn check_patch_basis(
         let actual = snapshot(&target(&receiving_root, &change.path)?)?;
         let content_matches =
             actual.as_ref().map(|s| &s.content) == expected.as_ref().map(|s| &s.content);
-        let git_mode_matches = actual.as_ref().map(git_mode) == expected.as_ref().map(git_mode);
+        let git_mode_matches = actual.as_ref().map(|s| git_mode(s.mode))
+            == expected.as_ref().map(|s| git_mode(s.mode));
         files.push(PatchBasisFile {
             path: change.path.clone(),
             expected_exists: expected.is_some(),
@@ -65,7 +66,7 @@ pub fn check_patch_basis(
             actual_mode: actual.as_ref().map(|s| s.mode),
             content_matches,
             git_mode_matches,
-            matches_patch_basis: content_matches && git_mode_matches,
+            matches_patch_basis: matches_patch_basis(&actual, expected),
             matches_recorded_snapshot: matches_snapshot(&actual, expected, &None, false),
         });
     }

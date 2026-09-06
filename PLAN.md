@@ -33,7 +33,7 @@ Implemented foundations:
 - Next.js/FastAPI route conversion and OpenAPI service scaffolds, with explicit limits.
 - Local recipes, expectations, workspace previews and canonical formatting.
 - Native releases, a WASM API, a browser playground and patch downloads.
-- Lean edit, position, history, pagination, confidence and workspace membership models, source anchors, signature maps and `spec check`, `sync` and `verify`.
+- Lean edit, position, history, patch, pagination, confidence and workspace membership models, source anchors, signature maps and `spec check`, `sync` and `verify`.
 
 Important gaps:
 
@@ -462,9 +462,24 @@ Three parser tests and five Git CLI scenarios cover pagination, unusual paths, c
 Validation passes the full native/WASM gate, 311/311 capability coverage and all 25 Lean build jobs.
 Strict Lean verification retains seven fresh anchors and zero `sorry` obligations.
 
+M3e: patch basis and executable-mode models (complete).
+
+- Extract the mode projection, supported-mode-change predicate and patch-basis comparison into pure Rust helpers used by export and receiving checks.
+- Anchor each helper to a Lean model with explicit signatures and 32-bit mode values.
+- Prove the two projected modes, owner-execute equivalence, idempotence, supported-change characterization and reversal symmetry.
+- Prove basis reflexivity, symmetry, transitivity, existence preservation and exact content/owner-execute requirements.
+- Show full snapshot equality implies patch-basis acceptance and prove that the converse fails for other permission bits.
+- Compare 45,419 mode results and 1,681 snapshot pairs between Rust and Lean.
+
+The module contains 14 theorems. Its bitwise proofs use Lean 4.28's compiled bitvector checker.
+The axiom audit includes `Lean.ofReduceBool` and `Lean.trustCompiler`; [the verification guide](docs/lean-specs.md) records the complete assumptions.
+Model proofs and finite execution comparisons do not establish general Rust correspondence, filesystem correctness or Git behavior.
+The standalone basis predicate accepts arbitrary strings; export still refuses binary snapshots before checking a receiving workspace.
+Validation passes the full native/WASM gate, all Git and patch CLI regressions, 311/311 capability coverage and all 27 Lean build jobs.
+Strict Lean verification passes with ten fresh source anchors and signature maps and zero `sorry` obligations.
+
 Next M3 work:
 
-Extend Lean coverage to patch basis and executable modes, with shared Rust cases.
 Extend recording for deletion and executable-mode operations before advertising those as authoring commands.
 Add bounded change details and structural impact since a revision, building on the status pages.
 

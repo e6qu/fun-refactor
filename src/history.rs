@@ -11,8 +11,8 @@ use std::path::{Component, Path, PathBuf};
 
 mod patch;
 pub use patch::{
-    check_git_patch, check_patch_basis, export_patch, GitPatchCheck, PatchBasisCheck,
-    PatchBasisFile, PatchExport,
+    check_git_patch, check_patch_basis, export_patch, git_mode, git_mode_change_supported,
+    matches_patch_basis, GitPatchCheck, PatchBasisCheck, PatchBasisFile, PatchExport,
 };
 
 const DIRECTORY: &str = ".fr-history";

@@ -164,8 +164,11 @@ fn git_round_trips_text_paths_empty_files_modes_and_moves() {
                 let path = root.join(&change.path);
                 fs::create_dir_all(path.parent().unwrap()).unwrap();
                 fs::write(&path, &before.content).unwrap();
-                fs::set_permissions(&path, fs::Permissions::from_mode(git_mode(before) & 0o777))
-                    .unwrap();
+                fs::set_permissions(
+                    &path,
+                    fs::Permissions::from_mode(git_mode(before.mode) & 0o777),
+                )
+                .unwrap();
             }
         }
         git_ok(root, &["add", "."], "");

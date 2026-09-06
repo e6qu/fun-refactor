@@ -539,6 +539,83 @@ fn history_snapshot_checks_match_lean_for_existence_content_and_modes() {
 }
 
 #[test]
+fn patch_modes_match_lean_across_permission_bits_and_u32_boundaries() {
+    use fun_refactor::history::{git_mode, git_mode_change_supported};
+    build_kernel();
+    let output = Command::new("lake")
+        .args(["exe", "fr-history-kernel", "patch-modes"])
+        .current_dir(root().join("kernels"))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let modes = (0..4096u32)
+        .chain((0..32).map(|bit| 1u32 << bit))
+        .chain([u32::MAX]);
+    let mut expected = Vec::new();
+    for mode in modes {
+        expected.push(git_mode(mode).to_string());
+        for mask in [0, 1, 8, 9, 64, 65, 72, 73, 0o222, u32::MAX] {
+            expected.push(git_mode_change_supported(mode, mode ^ mask).to_string());
+        }
+    }
+    assert_eq!(expected.len(), 45_419);
+    let observed = String::from_utf8(output.stdout).unwrap();
+    let observed = observed.lines().collect::<Vec<_>>();
+    assert_eq!(observed.len(), expected.len());
+    for (case, (observed, expected)) in observed.iter().zip(&expected).enumerate() {
+        assert_eq!(observed, expected, "mode case {case}");
+    }
+}
+
+#[test]
+fn patch_basis_matches_lean_for_existence_contents_and_projected_permissions() {
+    use fun_refactor::history::{matches_patch_basis, matches_snapshot, Snapshot};
+    build_kernel();
+    let output = Command::new("lake")
+        .args(["exe", "fr-history-kernel", "patch-basis"])
+        .current_dir(root().join("kernels"))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let mut samples = vec![None];
+    for content in ["", "λ\n", "名", "a\0b"] {
+        for mode in [0, 1, 64, 73, 0o600, 0o644, 0o700, 0o755, 0o7777, u32::MAX] {
+            samples.push(Some(Snapshot {
+                content: content.into(),
+                mode,
+            }));
+        }
+    }
+    let mut expected = Vec::new();
+    let mut permissions_only = 0;
+    for actual in &samples {
+        for basis in &samples {
+            let matches = matches_patch_basis(actual, basis);
+            let exact = matches_snapshot(actual, basis, &None, false);
+            assert!(!exact || matches);
+            permissions_only += usize::from(matches && !exact);
+            expected.push(matches.to_string());
+        }
+    }
+    assert!(permissions_only > 0);
+    assert_eq!(expected.len(), 1_681);
+    let observed = String::from_utf8(output.stdout).unwrap();
+    let observed = observed.lines().collect::<Vec<_>>();
+    assert_eq!(observed.len(), expected.len());
+    for (case, (observed, expected)) in observed.iter().zip(&expected).enumerate() {
+        assert_eq!(observed, expected, "basis case {case}");
+    }
+}
+
+#[test]
 fn project_page_lengths_match_lean_including_integer_limits() {
     build_kernel();
     let output = Command::new("lake")
