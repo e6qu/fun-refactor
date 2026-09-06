@@ -4,7 +4,9 @@ use serde_json::{json, Value};
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
+mod patterns;
 mod workspaces;
+use patterns::MemberPattern;
 
 fn text(value: &str) -> Value {
     bounded_text(value, 512)
@@ -246,23 +248,25 @@ fn exclusions(doc: &Value, cargo: bool) -> Result<Vec<(String, Vec<String>)>, &'
 
 fn excluded_by<'a>(
     exclusions: &'a [(String, Vec<String>)],
-    members: &[Vec<String>],
-    parts: &[String],
+    members: &[MemberPattern],
+    base: &Path,
+    manifest: &Path,
 ) -> Option<&'a str> {
     if exclusions.is_empty() {
         return None;
     }
-    let mut manifest = parts.to_vec();
-    manifest.push("Cargo.toml".to_owned());
-    if members
-        .iter()
-        .any(|member| !member.iter().any(|part| part == "*") && manifest.starts_with(member))
-    {
+    if members.iter().any(|member| member.literal_prefix(manifest)) {
         return None;
     }
+    let parts: Vec<_> = manifest
+        .strip_prefix(base)
+        .ok()?
+        .components()
+        .map(|part| part.as_os_str().to_string_lossy().into_owned())
+        .collect();
     exclusions
         .iter()
-        .find(|(_, excluded)| manifest.starts_with(excluded))
+        .find(|(_, excluded)| parts.starts_with(excluded))
         .map(|(raw, _)| raw.as_str())
 }
 
@@ -290,12 +294,12 @@ fn workspace(
         return;
     };
     let excluded = exclusions(doc, cargo);
+    let base = manifest.parent().unwrap_or(Path::new(""));
     let member_patterns: Vec<_> = members
         .iter()
         .filter_map(Value::as_str)
-        .filter_map(|raw| pattern(raw).ok())
+        .filter_map(|raw| MemberPattern::new(base, raw, cargo).ok())
         .collect();
-    let base = manifest.parent().unwrap_or(Path::new(""));
     for member in members {
         let mut row = template.clone();
         row["pattern"] = member.as_str().map(text).unwrap_or(Value::Null);
@@ -303,7 +307,7 @@ fn workspace(
         let parts = match member
             .as_str()
             .ok_or("invalid-member-pattern")
-            .and_then(pattern)
+            .and_then(|raw| MemberPattern::new(base, raw, cargo))
         {
             Ok(parts) => parts,
             Err(reason) => {
@@ -317,14 +321,10 @@ fn workspace(
             if target.file_name() != manifest.file_name() || package(target_doc, cargo).is_none() {
                 continue;
             }
-            let Some(relative) = target.parent().and_then(|p| p.strip_prefix(base).ok()) else {
-                continue;
-            };
-            let components: Vec<_> = relative
-                .components()
-                .map(|c| c.as_os_str().to_string_lossy().into_owned())
-                .collect();
-            if !workspace_pattern_matches(&parts, &components) {
+            if !target
+                .parent()
+                .is_some_and(|directory| parts.matches(directory))
+            {
                 continue;
             }
             matched = true;
@@ -333,7 +333,7 @@ fn workspace(
             match &excluded {
                 Err(reason) => item["reason"] = json!(reason),
                 Ok(exclusions) => {
-                    if let Some(raw) = excluded_by(exclusions, &member_patterns, &components) {
+                    if let Some(raw) = excluded_by(exclusions, &member_patterns, base, target) {
                         item["status"] = json!("excluded");
                         item["excluded_by"] = text(raw);
                     } else if cargo

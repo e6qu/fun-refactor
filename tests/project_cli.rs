@@ -5007,6 +5007,7 @@ fn cargo_subtree_exclusions_and_literal_member_overrides_match_metadata() {
         ("['zone/a']", "['zone/a/child']"),
         ("['zone/*']", "['zone/a/Cargo.toml']"),
         ("['zone/a']", "['zone/a/Cargo.toml']"),
+        ("['zone/*','../ws/zone/a']", "['zone']"),
         ("['zone/*']", "['./zone/']"),
         ("['λ名/*','λ名extra/*']", "['λ名']"),
         ("['λ名/*','λ名extra/*','λ名/a']", "['λ名']"),
@@ -5091,7 +5092,11 @@ fn cargo_exclusion_overrides_control_inherited_dependencies_and_transitive_membe
         "[dependencies]\ncore={workspace=true}\n",
     );
     cargo_package(root, "core", "core", "");
-    for (members, linked) in [("['zone/*']", false), ("['zone/*','zone/app']", true)] {
+    for (members, linked) in [
+        ("['zone/*']", false),
+        ("['zone/*','zone/app']", true),
+        ("['./zone/app']", true),
+    ] {
         put(root, "Cargo.toml", &format!("[workspace]\nmembers={members}\nexclude=['zone']\n[workspace.dependencies]\ncore={{path='core'}}\n"));
         let links = ok(
             root,
@@ -5207,4 +5212,270 @@ fn cargo_subtree_exclusions_use_captured_manifests_and_reject_stale_cursors() {
         &["project", "workspaces", "--manifest", "zone/a/Cargo.toml"],
     );
     assert_eq!(view["items"][0]["status"], "member");
+}
+
+#[test]
+fn cargo_parent_relative_members_and_inheritance_agree_with_metadata() {
+    use std::collections::BTreeSet;
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    cargo_package(
+        root,
+        "workspaces/ws/app",
+        "app",
+        "[dependencies]\ndetached={path='../../../detached'}\n",
+    );
+    cargo_package(root, "detached", "detached", "");
+    cargo_package(
+        root,
+        "crates/shared",
+        "shared",
+        "workspace='../../workspaces/ws'\n[dependencies]\nleaf={workspace=true}\n",
+    );
+    cargo_package(
+        root,
+        "crates/leaf",
+        "leaf",
+        "workspace='../../workspaces/ws'\n",
+    );
+    cargo_package(
+        root,
+        "crates/unused",
+        "unused",
+        "workspace='../../workspaces/ws'\n",
+    );
+    for members in [
+        "['app','../../crates/shared']",
+        "['app','./../../crates/shared']",
+        "['app','../../crates/*']",
+    ] {
+        put(root, "workspaces/ws/Cargo.toml", &format!("[workspace]\nresolver='2'\nmembers={members}\n[workspace.dependencies]\nleaf={{path='../../crates/leaf'}}\n"));
+        let output = Command::new("cargo")
+            .args([
+                "metadata",
+                "--offline",
+                "--no-deps",
+                "--format-version",
+                "1",
+            ])
+            .current_dir(root.join("workspaces/ws"))
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{members}: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let metadata: Value = serde_json::from_slice(&output.stdout).unwrap();
+        let canonical = root.canonicalize().unwrap();
+        let expected: BTreeSet<_> = metadata["packages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|p| {
+                metadata["workspace_members"]
+                    .as_array()
+                    .unwrap()
+                    .contains(&p["id"])
+            })
+            .map(|p| {
+                Path::new(p["manifest_path"].as_str().unwrap())
+                    .strip_prefix(&canonical)
+                    .unwrap()
+                    .to_string_lossy()
+                    .into_owned()
+            })
+            .collect();
+        let view = ok(root, &["project", "workspaces"]);
+        let actual: BTreeSet<_> = view["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|r| r["status"] == "member")
+            .map(|r| r["manifest"].as_str().unwrap().to_owned())
+            .collect();
+        assert_eq!(actual, expected, "{members}");
+        assert!(actual.contains("crates/shared/Cargo.toml"));
+        assert!(actual.contains("crates/leaf/Cargo.toml"));
+        assert!(!actual.contains("detached/Cargo.toml"));
+        let inherited = ok(
+            root,
+            &["project", "links", "--manifest", "crates/shared/Cargo.toml"],
+        );
+        assert_eq!(inherited["items"][0]["status"], "linked");
+        assert_eq!(
+            inherited["items"][0]["workspace_manifest"],
+            "workspaces/ws/Cargo.toml"
+        );
+        assert_eq!(
+            inherited["items"][0]["target_manifest"],
+            "crates/leaf/Cargo.toml"
+        );
+        let links = ok(
+            root,
+            &["project", "links", "--manifest", "workspaces/ws/Cargo.toml"],
+        );
+        let sibling = links["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["candidate_manifest"] == "crates/shared/Cargo.toml")
+            .unwrap();
+        assert_eq!(sibling["status"], "unresolved");
+        assert_eq!(sibling["reason"], "workspace-ownership-unresolved");
+        assert_eq!(sibling["membership"], "candidate");
+    }
+}
+
+#[test]
+fn cargo_parent_patterns_preserve_distinct_and_unavailable_owners() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "ws/Cargo.toml",
+        "[workspace]\nmembers=['../crates/*']\n",
+    );
+    put(root, "other/Cargo.toml", "[workspace]\nmembers=[]\n");
+    cargo_package(root, "crates/yes", "yes", "workspace='../../ws'\n");
+    cargo_package(root, "crates/no-pointer", "no-pointer", "");
+    cargo_package(root, "crates/other", "other", "workspace='../../other'\n");
+    cargo_package(root, "crates/own", "own", "[workspace]\n");
+    cargo_package(
+        root,
+        "crates/missing",
+        "missing",
+        "workspace='../../missing'\n",
+    );
+    cargo_package(root, "crates/ignored", "ignored", "workspace='../../ws'\n");
+    put(root, ".gitignore", "/crates/ignored/\n");
+    let view = ok(root, &["project", "workspaces"]);
+    let rows = view["items"].as_array().unwrap();
+    let row = |path: &str| rows.iter().find(|r| r["manifest"] == path).unwrap();
+    assert_eq!(row("crates/yes/Cargo.toml")["status"], "member");
+    assert_eq!(
+        row("crates/yes/Cargo.toml")["workspace_manifest"],
+        "ws/Cargo.toml"
+    );
+    assert_eq!(
+        row("crates/no-pointer/Cargo.toml")["reason"],
+        "workspace-root-not-observed"
+    );
+    assert_eq!(row("crates/other/Cargo.toml")["status"], "unresolved");
+    assert_eq!(
+        row("crates/other/Cargo.toml")["workspace_manifest"],
+        "other/Cargo.toml"
+    );
+    assert_eq!(
+        row("crates/own/Cargo.toml")["workspace_manifest"],
+        "crates/own/Cargo.toml"
+    );
+    assert_eq!(row("crates/missing/Cargo.toml")["status"], "unresolved");
+    assert!(!rows
+        .iter()
+        .any(|r| r["manifest"] == "crates/ignored/Cargo.toml"));
+    let links = ok(root, &["project", "links", "--manifest", "ws/Cargo.toml"]);
+    assert!(!links["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["candidate_manifest"] == "crates/ignored/Cargo.toml"));
+}
+
+#[test]
+fn parent_member_patterns_refuse_scope_escape_internal_parents_and_npm_expansion() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    cargo_package(root, "crates/a", "a", "workspace='../../ws'\n");
+    for (pattern, reason) in [
+        ("../../crates/a", "pattern-outside-selected-root"),
+        ("../missing/../crates/a", "pattern-syntax-unsupported"),
+        ("../*/../crates/a", "pattern-syntax-unsupported"),
+    ] {
+        put(
+            root,
+            "ws/Cargo.toml",
+            &format!("[workspace]\nmembers=['{pattern}']\n"),
+        );
+        let links = ok(root, &["project", "links", "--manifest", "ws/Cargo.toml"]);
+        assert_eq!(links["items"][0]["status"], "unresolved");
+        assert_eq!(links["items"][0]["reason"], reason);
+        let view = ok(
+            root,
+            &["project", "workspaces", "--manifest", "crates/a/Cargo.toml"],
+        );
+        assert_eq!(view["items"][0]["reason"], "unsupported-members");
+    }
+    put(
+        root,
+        "web/package.json",
+        r#"{"workspaces":["../crates/*"]}"#,
+    );
+    let npm = ok(
+        root,
+        &["project", "links", "--manifest", "web/package.json"],
+    );
+    assert_eq!(npm["items"][0]["reason"], "pattern-syntax-unsupported");
+    put(
+        root,
+        "ws/Cargo.toml",
+        "[workspace]\nmembers=['../crates/*']\nexclude=['../crates/a']\n",
+    );
+    let view = ok(
+        root,
+        &["project", "workspaces", "--manifest", "crates/a/Cargo.toml"],
+    );
+    assert_eq!(view["items"][0]["reason"], "unsupported-exclusion");
+}
+
+#[test]
+fn parent_workspace_members_stay_snapshot_bound_and_page_without_widening_scope() {
+    use fun_refactor::index::Index;
+    use fun_refactor::project::{Command as ProjectCommand, Project};
+    use fun_refactor::scan::{scan, ScanOptions};
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    put(
+        &root,
+        "ws/Cargo.toml",
+        "[workspace]\nmembers=['app','../crates/*']\n",
+    );
+    cargo_package(&root, "ws/app", "app", "");
+    cargo_package(&root, "crates/a", "a", "workspace='../../ws'\n");
+    cargo_package(&root, "crates/b", "b", "workspace='../../ws'\n");
+    for command in ["workspaces", "links"] {
+        let full = ok(&root, &["project", command]);
+        let mut page = ok(&root, &["project", command, "--limit", "1"]);
+        let mut rows = page["items"].as_array().unwrap().clone();
+        while let Some(next) = page["page"]["next"].as_str() {
+            page = ok(
+                &root,
+                &["project", command, "--limit", "1", "--cursor", next],
+            );
+            rows.extend(page["items"].as_array().unwrap().clone());
+        }
+        assert_eq!(rows, *full["items"].as_array().unwrap());
+    }
+    let scoped = ok(&root.join("ws"), &["project", "workspaces"]);
+    assert!(!scoped["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["status"] == "member"));
+    let options = ScanOptions::default();
+    let scanned = scan(&root, &options).unwrap();
+    let index = Index::build_with_cache(&scanned, None).unwrap();
+    let project = Project::new(&root, &index, &scanned, &options).unwrap();
+    let command = ProjectCommand::Workspaces {
+        manifest: None,
+        limit: 500,
+        cursor: None,
+    };
+    let captured = project.report(&command).unwrap();
+    let first = ok(&root, &["project", "workspaces", "--limit", "1"]);
+    let cursor = first["page"]["next"].as_str().unwrap();
+    fs::remove_file(root.join("crates/a/Cargo.toml")).unwrap();
+    assert_eq!(project.report(&command).unwrap(), captured);
+    assert!(project.verify(&root).is_err());
+    assert!(!run(&root, &["project", "workspaces", "--cursor", cursor]).0);
 }

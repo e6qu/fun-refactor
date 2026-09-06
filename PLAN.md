@@ -373,9 +373,21 @@ M2b17 is complete. It corrects Cargo subtree exclusions and explicit-member prec
 - Compare eleven nested-workspace configurations with `cargo metadata`, including Unicode paths, manifest paths, neighboring names and transitive dependencies.
 - Preserve captured-manifest analysis and reject cursors after exclusion or member declarations change.
 
-Parent-relative members, broader member globs and complete Cargo validation remain pending.
+Parent-relative members follow in M2b18. Broader member globs and complete Cargo validation remain pending.
 The existing Lean matcher and closure models retain their scope; exclusion interpretation has regression evidence, not an implementation proof.
 Validation passes the full native/WASM gate, all 120 project CLI tests and strict Lean verification with seven fresh anchors and zero `sorry` obligations.
+
+M2b18 is complete. It adds parent-relative Cargo member patterns within the captured snapshot:
+
+- Resolve leading parent components without escaping the selected project root or reading additional files.
+- Match literal and fixed-depth sibling member patterns, with explicit-pointer ownership and transitive inherited path membership.
+- Retain candidate-page ownership gaps and refuse missing, excluded or distinct workspace owners.
+- Preserve declared-path exclusion precedence, including Cargo's refusal to treat parent aliases as equivalent literal overrides.
+- Compare sibling configurations with `cargo metadata` and cover pagination, captured sources and narrower inspection scopes.
+
+Parent components after literals or wildcards, parent-relative exclusions and npm parent patterns remain unsupported.
+The existing Lean matcher and closure proofs apply to supplied components and edges; path interpretation and ownership correspondence remain unproved.
+Validation passes the full native/WASM gate, all 124 project CLI tests and strict Lean verification with seven fresh anchors and zero `sorry` obligations.
 
 Next M2b work:
 

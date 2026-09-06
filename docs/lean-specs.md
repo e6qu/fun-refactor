@@ -122,6 +122,13 @@ The [Cargo implementation](https://doc.rust-lang.org/stable/nightly-rustc/src/ca
 Glob-shaped exclusions remain outside the reader's supported subset and produce unresolved rows.
 These fixtures test rule interpretation; they do not extend the Lean proof boundary.
 
+Cargo member patterns also support leading parent components within the selected project root, followed by the existing fixed-depth pattern subset.
+Matching reads captured manifests only. Explicit workspace pointers can establish ownership for sibling packages and their transitive inherited path dependencies.
+Pattern-candidate pages retain their separate ownership gaps, even when membership pages have enough evidence.
+Declared literal paths retain parent components for exclusion precedence; normalizing such aliases would incorrectly override some Cargo exclusions.
+Snapshot escapes, parent components after a literal or wildcard, parent-relative exclusions and npm parent patterns remain unsupported.
+Cargo metadata fixtures check sibling membership, inheritance and the alias/exclusion interaction. Path interpretation and ownership still remain outside the Lean proofs.
+
 ## Adopting Lean in another project today
 
 Create a Lake package and write a small executable model with a useful property.

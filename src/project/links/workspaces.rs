@@ -1,9 +1,9 @@
 use super::{
-    directories, excluded_by, exclusions, local_dependency, package, path_text, pattern,
-    relative_directory, text,
+    directories, excluded_by, exclusions, local_dependency, package, path_text, relative_directory,
+    text, MemberPattern,
 };
 use crate::project::manifests::Manifests;
-use crate::project::{workspace_membership_step, workspace_pattern_matches};
+use crate::project::workspace_membership_step;
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -93,6 +93,7 @@ fn membership(
 ) -> Result<Option<&'static str>, &'static str> {
     let doc = &manifests.documents[root];
     let workspace = &doc["workspace"];
+    let base = root.parent().unwrap_or(Path::new(""));
     let members = match workspace.get("members") {
         None => Vec::new(),
         Some(value) => value
@@ -100,21 +101,13 @@ fn membership(
             .ok_or("unsupported-members")?
             .iter()
             .map(|v| {
-                pattern(v.as_str().ok_or("unsupported-members")?).map_err(|_| "unsupported-members")
+                MemberPattern::new(base, v.as_str().ok_or("unsupported-members")?, true)
+                    .map_err(|_| "unsupported-members")
             })
             .collect::<Result<Vec<_>, _>>()?,
     };
     let excluded = exclusions(doc, true)?;
-    let relative = target
-        .parent()
-        .unwrap_or(Path::new(""))
-        .strip_prefix(root.parent().unwrap_or(Path::new("")))
-        .map_err(|_| "member-outside-workspace-subset")?;
-    let parts: Vec<_> = relative
-        .components()
-        .map(|c| c.as_os_str().to_string_lossy().into_owned())
-        .collect();
-    if excluded_by(&excluded, &members, &parts).is_some() {
+    if excluded_by(&excluded, &members, base, target).is_some() {
         return Err("workspace-excluded");
     }
     if target == root {
@@ -122,7 +115,7 @@ fn membership(
     }
     Ok(members
         .iter()
-        .any(|p| workspace_pattern_matches(p, &parts))
+        .any(|p| p.matches(target.parent().unwrap_or(Path::new(""))))
         .then_some("declared-member"))
 }
 
