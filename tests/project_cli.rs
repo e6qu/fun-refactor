@@ -2009,7 +2009,7 @@ fn route_coverage_reports_broken_and_unsupported_files_and_limits_framework_clai
     let view = ok(root, &["project", "routes"]);
     assert_eq!(view["analysis"]["syntax_gaps"], 1);
     assert_eq!(view["analysis"]["unsupported_files"]["zig"], 1);
-    assert_eq!(view["analysis"]["files_without_patterns"], 1);
+    assert_eq!(view["analysis"]["files_without_patterns"], 0);
     let items = view["items"].as_array().unwrap();
     assert!(items
         .iter()
@@ -2018,7 +2018,10 @@ fn route_coverage_reports_broken_and_unsupported_files_and_limits_framework_clai
         .iter()
         .any(|r| r["kind"] == "coverage-gap" && r["language"] == "zig"));
     assert!(!items.iter().any(|r| r["url"] == "/partial"));
-    let candidate = items.iter().find(|r| r["kind"] == "route").unwrap();
+    let candidate = items
+        .iter()
+        .find(|r| r["kind"] == "route" && r["path"] == "fast.py")
+        .unwrap();
     assert_eq!(candidate["framework_candidate"], "flask");
     assert_eq!(candidate["status"], "candidate");
     assert!(view["analysis"]["certainty"]
@@ -2026,7 +2029,7 @@ fn route_coverage_reports_broken_and_unsupported_files_and_limits_framework_clai
         .unwrap()
         .contains("does not verify framework identity"));
     let subset = ok(root, &["project", "routes", "app"]);
-    assert_eq!(subset["page"]["total"], 0);
+    assert_eq!(subset["page"]["total"], 2);
     assert_eq!(subset["analysis"]["analyzed_files"], 1);
     assert_eq!(subset["analysis"]["syntax_gaps"], 0);
     assert_eq!(
@@ -2102,6 +2105,291 @@ fn route_analysis_uses_captured_source_and_final_verification_refuses_drift() {
         .iter()
         .any(|r| r["url"] == "/before"));
     assert!(!view.to_string().contains("/after"));
+    assert!(project.verify(&root).is_err());
+}
+
+#[test]
+fn next_routes_preserve_api_and_parameter_spelling_and_match_export_declarations() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "app/(shop)/api/pets/[petId]/route.ts", "class Cache { GET(): string { return 'PRIVATE_CACHE'; } }\n\nfunction wrapper() { function GET() { return 'PRIVATE_NESTED'; } }\n\nexport async function GET(request: Request): Promise<Response> { return Response.json('PRIVATE_GET'); }\n\nexport function POST(): Response { return Response.json('PRIVATE_POST'); }\n\nfunction DELETE() {}\n\n");
+    put(
+        root,
+        "src/app/health/route.js",
+        "export function GET() { return new Response('PRIVATE_HEALTH'); }\n",
+    );
+    let view = ok(root, &["project", "routes", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    assert_eq!(view["analysis"]["declarations"], 3);
+    assert_eq!(view["analysis"]["handler_candidates"], 3);
+    assert_eq!(view["analysis"]["nextjs_gaps"], 0);
+    for route in items.iter().filter(|r| r["kind"] == "route") {
+        assert_eq!(route["framework_candidate"], "nextjs-app");
+        assert_eq!(route["basis"], "nextjs-app-function-export");
+        assert_eq!(route["handler"]["basis"], "declaration-span");
+        assert_eq!(route["handler"]["candidate_count"], 1);
+        assert!(route["confidence"].is_null());
+        let handler = items
+            .iter()
+            .find(|r| r["kind"] == "route-handler" && r["route"] == route["id"])
+            .unwrap();
+        assert_eq!(handler["basis"], "declaration-span");
+        assert!(handler["confidence"].is_null());
+        let shown = ok(
+            root,
+            &[
+                "project",
+                "show",
+                handler["handler"]["handle"].as_str().unwrap(),
+            ],
+        );
+        assert_eq!(shown["node"]["name"], route["method"]);
+        if route["path"] == "src/app/health/route.js" {
+            assert_eq!(route["url"], "/health");
+        } else {
+            assert_eq!(route["url"], "/api/pets/{petId}");
+            assert_eq!(handler["handler"]["line"], route["line"]);
+            assert_eq!(route["line"], if route["method"] == "GET" { 5 } else { 7 });
+        }
+    }
+    assert!(!view.to_string().contains("PRIVATE_"));
+}
+
+#[test]
+fn next_contracts_share_route_ids_and_keep_input_bindings_and_status_unknown() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "app/api/[petId]/route.ts", "export async function POST(request: Request, context: Context): Promise<Response> { return Response.json({ secret: 'PRIVATE_BODY' }, { status: 201 }); }\n");
+    let view = ok(root, &["project", "contracts", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    let summary = items
+        .iter()
+        .find(|r| r["kind"] == "route-contract")
+        .unwrap();
+    assert_eq!(summary["request_fields"], 1);
+    assert_eq!(summary["response_fields"], 1);
+    assert_eq!(summary["gap_count"], 1);
+    assert_eq!(summary["completeness"], "partial");
+    assert!(items
+        .iter()
+        .any(|r| r["direction"] == "request" && r["name"] == "petId" && r["location"] == "path"));
+    assert!(items
+        .iter()
+        .any(|r| r["direction"] == "response" && r["declared_type"] == "Promise<Response>"));
+    assert!(items
+        .iter()
+        .any(|r| r["kind"] == "route-contract-gap" && r["parameters"] == 2));
+    let routes = ok(root, &["project", "routes", "--limit", "500"]);
+    let declarations: Vec<_> = items
+        .iter()
+        .filter(|r| r["kind"] == "route" || r["kind"] == "route-handler")
+        .cloned()
+        .collect();
+    assert_eq!(declarations, *routes["items"].as_array().unwrap());
+    assert!(!view.to_string().contains("PRIVATE_BODY"));
+    assert!(!items.iter().any(|r| r["status_code"] == 201));
+}
+
+#[test]
+fn next_routes_report_unsupported_paths_and_exports_without_guessing_methods() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    for path in [
+        "app/files/[...path]/route.ts",
+        "app/docs/[[...parts]]/route.ts",
+        "app/_private/route.ts",
+        "app/@slot/route.ts",
+        "app/(.)photo/route.ts",
+        "app/api/[bad-name]/route.ts",
+        "app/%5Fsecret/route.ts",
+        "app/query?name/route.ts",
+        "app/fragment#name/route.ts",
+    ] {
+        put(root, path, "export function GET() {}\n");
+    }
+    put(
+        root,
+        "app/variable/route.ts",
+        "export const GET = () => new Response('PRIVATE');\n",
+    );
+    put(
+        root,
+        "app/reexport/route.ts",
+        "export { handler as POST } from './other';\n",
+    );
+    put(root, "app/star/route.ts", "export * from './other';\n");
+    put(
+        root,
+        "app/default/route.ts",
+        "export default function GET() {}\n",
+    );
+    put(
+        root,
+        "app/config/route.ts",
+        "export const runtime = 'edge';\n",
+    );
+    put(
+        root,
+        "pages/api/legacy.ts",
+        "export default function handler(req, res) {}\n",
+    );
+    put(
+        root,
+        "packages/client/app/api/route.ts",
+        "export function GET() {}\n",
+    );
+    let view = ok(root, &["project", "routes", "--limit", "500"]);
+    assert_eq!(view["analysis"]["declarations"], 0);
+    assert_eq!(view["analysis"]["nextjs_gaps"], 14, "{view}");
+    let items = view["items"].as_array().unwrap();
+    assert!(items
+        .iter()
+        .all(|r| r["kind"] == "analysis-gap" && r["basis"] == "nextjs-app-reader"));
+    assert!(items.iter().all(|r| r["line"].as_u64().unwrap() >= 1));
+    assert!(!view.to_string().contains("PRIVATE"));
+}
+
+#[test]
+fn next_routes_keep_duplicate_exports_and_ignore_method_names_inside_config() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "app/route.ts", "export function GET(): Response { throw 'PRIVATE_ONE'; }\n\nexport function GET(): OtherResponse { throw 'PRIVATE_TWO'; }\n\nexport const config = { GET: 'not a handler' };\n\nexport type POST = string;\n\n");
+    let view = ok(root, &["project", "contracts", "--limit", "500"]);
+    assert_eq!(view["analysis"]["declarations"], 2);
+    assert_eq!(view["analysis"]["nextjs_gaps"], 1);
+    let items = view["items"].as_array().unwrap();
+    let handlers: Vec<_> = items
+        .iter()
+        .filter(|r| r["kind"] == "route-handler")
+        .collect();
+    assert_eq!(handlers.len(), 2);
+    assert_ne!(
+        handlers[0]["handler"]["handle"],
+        handlers[1]["handler"]["handle"]
+    );
+    for route in items.iter().filter(|r| r["kind"] == "route") {
+        assert_eq!(route["url"], "/");
+        assert_eq!(route["handler"]["candidate_count"], 1);
+    }
+    assert!(items.iter().any(|r| r["declared_type"] == "Response"));
+    assert!(items.iter().any(|r| r["declared_type"] == "OtherResponse"));
+}
+
+#[test]
+fn next_route_pages_bind_scope_revision_and_contract_queries() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"];
+    let source: String = methods
+        .iter()
+        .map(|method| format!("export function {method}(): Response {{ throw 'PRIVATE'; }}\n"))
+        .collect();
+    put(root, "app/api/route.ts", &source);
+    let full = ok(root, &["project", "routes", "--limit", "500"]);
+    assert_eq!(full["page"]["total"], 14);
+    let first = ok(root, &["project", "routes", "--limit", "1"]);
+    let cursor = first["page"]["next"].as_str().unwrap();
+    let mut combined = first["items"].as_array().unwrap().clone();
+    let mut page = first.clone();
+    while let Some(next) = page["page"]["next"].as_str() {
+        page = ok(
+            root,
+            &["project", "routes", "--cursor", next, "--limit", "3"],
+        );
+        combined.extend(page["items"].as_array().unwrap().iter().cloned());
+    }
+    assert_eq!(combined, *full["items"].as_array().unwrap());
+    assert!(!run(root, &["project", "contracts", "--cursor", cursor]).0);
+    assert!(!run(root, &["project", "routes", "app", "--cursor", cursor]).0);
+    let file = relation_handle(root, "route.ts", None);
+    let by_file = ok(root, &["project", "routes", &file, "--limit", "500"]);
+    assert_eq!(by_file["items"], full["items"]);
+    assert_eq!(
+        by_file,
+        ok(
+            root,
+            &[
+                "project",
+                "routes",
+                file.rsplit(':').next().unwrap(),
+                "--revision",
+                full["revision"].as_str().unwrap(),
+                "--limit",
+                "500"
+            ]
+        )
+    );
+    put(
+        root,
+        "app/api/route.ts",
+        &source.replace("GET", "GET_CHANGED"),
+    );
+    assert!(!run(root, &["project", "routes", "--cursor", cursor]).0);
+    assert!(!run(root, &["project", "routes", &file]).0);
+    assert!(!root.join(".fr-history").exists());
+}
+
+#[test]
+fn next_contract_fields_clip_paths_and_names_without_losing_handles() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let name = "名".repeat(75);
+    let path = format!(
+        "app/{}/[{name}]/route.ts",
+        vec!["s".repeat(100); 6].join("/")
+    );
+    put(
+        root,
+        &path,
+        "export function GET(): Response { throw 'PRIVATE'; }\n",
+    );
+    let view = ok(root, &["project", "contracts", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    let route = items.iter().find(|r| r["kind"] == "route").unwrap();
+    assert_eq!(route["url"]["text"].as_str().unwrap().len(), 512);
+    assert!(route["url"]["omitted_bytes"].as_u64().unwrap() > 0);
+    let field = items.iter().find(|r| r["direction"] == "request").unwrap();
+    assert_eq!(field["name"]["text"].as_str().unwrap().len(), 159);
+    assert_eq!(field["name"]["omitted_bytes"], name.len() - 159);
+    assert_eq!(
+        ok(
+            root,
+            &["project", "show", route["file_handle"].as_str().unwrap()]
+        )["node"]["kind"],
+        "file"
+    );
+    assert!(!view.to_string().contains("PRIVATE"));
+}
+
+#[test]
+fn next_route_analysis_uses_captured_exports_after_source_removal() {
+    use fun_refactor::{
+        index::Index,
+        project::Project,
+        scan::{scan, ScanOptions},
+    };
+    #[derive(clap::Parser)]
+    struct Query {
+        #[command(subcommand)]
+        command: fun_refactor::project::Command,
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    put(
+        &root,
+        "app/api/[petId]/route.ts",
+        "export function GET(): Before { throw 'PRIVATE'; }\n",
+    );
+    let options = ScanOptions::default();
+    let scanned = scan(&root, &options).unwrap();
+    let index = Index::build_with_cache(&scanned, None).unwrap();
+    let project = Project::new(&root, &index, &scanned, &options).unwrap();
+    fs::remove_dir_all(root.join("app")).unwrap();
+    let query = <Query as clap::Parser>::parse_from(["fr", "contracts"]);
+    let view = project.report(&query.command).unwrap();
+    let items = view["items"].as_array().unwrap();
+    assert!(items.iter().any(|r| r["url"] == "/api/{petId}"));
+    assert!(items.iter().any(|r| r["declared_type"] == "Before"));
     assert!(project.verify(&root).is_err());
 }
 

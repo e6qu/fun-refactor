@@ -15,6 +15,7 @@ mod configuration;
 mod contracts;
 mod links;
 mod manifests;
+mod next_routes;
 mod relationships;
 mod routes;
 mod tests;

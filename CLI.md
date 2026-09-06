@@ -615,22 +615,40 @@ The final source and inventory checks also apply before emitting a relationship 
 It defaults to the workspace root and 40 rows; limits accept 1 through 500.
 Symbol handles require selecting their containing file instead.
 Each `route` row carries a method, normalized URL, declaration line, file handle and `framework_candidate`.
-The readers recognize Express, Flask, Axum, Gin and Spring patterns. They do not verify framework identity or runtime reachability.
+The readers recognize Express, Flask, Axum, Gin and Spring patterns, plus a Next.js App Router subset.
+They do not verify framework identity or runtime reachability.
 A Flask-style decorator in FastAPI code can therefore produce a `flask` candidate.
 Methods and URLs describe the reader's interpretation, with `status: candidate` and null confidence.
 
-The handler summary preserves the reader's name and counts callable declarations with that name in the same file.
+For the five pattern readers, the handler summary counts callable declarations with the reader's name in the same file.
 Its status is `unnamed`, `unresolved`, `candidate` or `ambiguous`.
 Separate `route-handler` rows carry candidate handles with `confidence: name-only` and `basis: same-file-name`.
 The route row's `id` joins these rows within the revision; it is not a handle for `show`.
 Candidate rows can appear on another page. No handler body or unbounded candidate array accompanies a route.
 URLs and paths cap at 512 UTF-8 bytes; handler names cap at 160, with explicit omitted-byte counts.
 
+The `nextjs-app` reader recognizes `route.ts` and `route.js` beneath `app` or `src/app` at the selected project root.
+Top-level named function exports identify GET, POST, PUT, PATCH, DELETE, HEAD and OPTIONS candidates.
+It preserves static segments, including `/api`, removes route groups and spells `[petId]` as `{petId}` without changing the parameter name.
+Static segments accept letters, digits, hyphens, underscores, dots and tildes; names beginning with an underscore produce a private-directory gap.
+Handler rows use `basis: declaration-span` and null confidence; names elsewhere in the file cannot supply these matches.
+The reader preserves duplicate HTTP exports as separate declaration candidates and adds a diagnostic.
+It does not infer implicit methods. These conventions follow the [Next.js route reference](https://nextjs.org/docs/app/api-reference/file-conventions/route).
+
+Catch-all, optional, private, parallel, intercepting and other complex path forms produce `analysis-gap` rows.
+HTTP variable exports, named HTTP re-exports, plain star exports and default exports produce gaps.
+The reader does not follow exports to another declaration. Other export forms do not establish HTTP handlers.
+Files without supported HTTP exports report a gap. All Next.js diagnostics share the page limit.
+`analysis.nextjs_gaps` counts these diagnostics; `analysis.nextjs_limitations` records the scope.
+Pages Router, custom extensions and nested package roots remain outside this reader.
+Package identity, layout precedence, route validity, `basePath` and rewrites remain unchecked.
+Both root layouts produce candidates when both exist. Empty results do not establish a complete application route inventory.
+
 Route analysis reads captured source only within selected files, after workspace indexing.
 Syntax errors produce `analysis-gap` rows instead of route guesses from the broken file.
 Unsupported languages produce count-based `coverage-gap` rows. Both diagnostics share the page limit.
 `analysis` reports selected-file totals, files without patterns, reader names and interpretation limits.
-The view has no Next.js or FastAPI-specific reader, request/response schemas, middleware, mounted-router prefixes or cross-file handler resolution.
+The view has no FastAPI-specific reader, request/response schemas, middleware, mounted-router prefixes or cross-file handler resolution.
 An empty page does not prove the absence of routes. Route and handler inference remain outside the Lean paging proofs.
 Revision checks and query-bound cursors apply, including final source and inventory verification.
 
@@ -660,7 +678,8 @@ Names and bindings cap at 160 UTF-8 bytes; type spellings cap at 512, with omitt
 Fields, summaries, gaps, route declarations and handlers all share the page limit.
 
 This view reads signatures without analyzing handler bodies or expanding schema definitions.
-The existing route-reader limitations still apply, including Next.js/FastAPI coverage, mounted routers and framework uncertainty.
+Next.js candidates expose path names and declared return types through the same contract rows; request/context bindings remain unknown.
+The existing route-reader limitations still apply, including FastAPI coverage, mounted routers and framework uncertainty.
 Output limits do not bound workspace indexing or selected-file analysis work.
 The Lean page-length laws apply; contract extraction, wire correspondence and type resolution remain outside those proofs.
 

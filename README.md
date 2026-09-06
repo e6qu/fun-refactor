@@ -248,7 +248,7 @@ Its package and dependency pages report Cargo/npm manifest declarations with sha
 `fr project links` adds local manifest links and workspace pattern candidates with explicit unresolved cases.
 `fr project workspaces` adds observed Cargo membership and supports inherited local dependency links.
 `fr project calls` and `implementations` page through call sites and hierarchy candidates, retaining uncertainty and coverage gaps.
-`fr project routes` adds bounded declaration patterns and local handler candidates for five framework readers.
+`fr project routes` adds bounded declarations and handler candidates for five pattern readers and named Next.js App Router exports.
 `fr project contracts` adds paged path parameters, Axum/Spring request type candidates and declared handler return types, with explicit gaps.
 `fr project configuration` pages environment declarations and candidate code consumers, with captured-source checks and explicit analysis gaps.
 `fr project tests` adds catalog candidates and bounded call-path witnesses, preserving the weakest edge confidence without claiming runtime coverage.

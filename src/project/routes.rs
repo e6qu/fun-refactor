@@ -1,4 +1,4 @@
-use super::{bounded_text, hash, Project, RelationshipOptions};
+use super::{bounded_text, hash, next_routes, Project, RelationshipOptions};
 use crate::lang::Language;
 use crate::parse::Parsers;
 use crate::transpile::routes;
@@ -22,6 +22,7 @@ impl Project<'_> {
         let mut handlers = 0usize;
         let mut contract_fields = 0usize;
         let mut contract_gaps = 0usize;
+        let mut next_gaps = 0usize;
         let parsers = Parsers::new();
         for (file, info) in self.index.files() {
             if !self.scope_file(selected, file) {
@@ -50,16 +51,46 @@ impl Project<'_> {
                 continue;
             }
             analyzed += 1;
-            let Some((framework, endpoints)) = routes::endpoints_of(source, info.language) else {
+            let mut endpoints: Vec<_> = routes::endpoints_of(source, info.language)
+                .into_iter()
+                .flat_map(|(framework, endpoints)| {
+                    endpoints.into_iter().map(move |endpoint| {
+                        (
+                            endpoint,
+                            framework.to_string(),
+                            None,
+                            "route-pattern-reader",
+                        )
+                    })
+                })
+                .collect();
+            if matches!(info.language, Language::TypeScript | Language::Tsx) {
+                let next = next_routes::read(relative, &parsed, source);
+                next_gaps += next.gaps.len();
+                for (line, reason) in next.gaps {
+                    rows.push(json!({"kind": "analysis-gap", "path": path, "line": line,
+                        "basis": "nextjs-app-reader", "reason": reason}));
+                }
+                endpoints.extend(next.entries.into_iter().map(|entry| {
+                    (
+                        entry.endpoint,
+                        "nextjs-app".to_owned(),
+                        Some(entry.name_offset),
+                        "nextjs-app-function-export",
+                    )
+                }));
+            }
+            if endpoints.is_empty() {
                 empty += 1;
                 continue;
-            };
+            }
             let file_node = self
                 .nodes
                 .iter()
                 .position(|node| node.kind == "file" && node.path == relative)
                 .context("route declaration has no project file node")?;
-            for (ordinal, endpoint) in endpoints.iter().enumerate() {
+            for (ordinal, (endpoint, framework, name_offset, basis)) in endpoints.iter().enumerate()
+            {
                 declarations += 1;
                 let id = format!(
                     "frpr1:{}",
@@ -79,16 +110,29 @@ impl Project<'_> {
                             .find_symbols(name, None)
                             .into_iter()
                             .filter(|symbol| symbol.file == *file && symbol.kind.is_callable())
+                            .filter(|symbol| {
+                                name_offset.is_none_or(|offset| symbol.name_span.start == offset)
+                            })
                             .collect()
                     })
                     .unwrap_or_default();
                 handlers += candidates.len();
+                let handler_basis = if name_offset.is_some() {
+                    "declaration-span"
+                } else {
+                    "same-file-name"
+                };
+                let handler_confidence = if name_offset.is_some() {
+                    Value::Null
+                } else {
+                    json!("name-only")
+                };
                 rows.push(json!({"kind": "route", "id": id, "path": path,
                     "file_handle": self.handle(file_node), "line": endpoint.line,
                     "method": endpoint.method, "url": bounded_text(&endpoint.url, 512),
-                    "framework_candidate": framework.to_string(), "basis": "route-pattern-reader", "status": "candidate", "confidence": null,
+                    "framework_candidate": framework, "basis": basis, "status": "candidate", "confidence": null,
                     "handler": {"name": endpoint.handler.as_deref().map(|name| bounded_text(name, 160)),
-                        "candidate_count": candidates.len(), "basis": "same-file-name",
+                        "candidate_count": candidates.len(), "basis": handler_basis,
                         "status": if endpoint.handler.is_none() { "unnamed" } else if candidates.is_empty() { "unresolved" } else if candidates.len() == 1 { "candidate" } else { "ambiguous" }}}));
                 if contracts {
                     let details =
@@ -106,7 +150,7 @@ impl Project<'_> {
                 for candidate in candidates {
                     rows.push(json!({"kind": "route-handler", "route": id,
                         "handler": self.endpoint(candidate.id)?, "status": "candidate",
-                        "basis": "same-file-name", "confidence": "name-only"}));
+                        "basis": handler_basis, "confidence": handler_confidence}));
                 }
             }
         }
@@ -119,9 +163,11 @@ impl Project<'_> {
         let mut analysis = json!({"scope": "selected files", "analyzed_files": analyzed,
             "files_without_patterns": empty, "syntax_gaps": syntax_gaps,
             "unsupported_files": unsupported, "declarations": declarations, "handler_candidates": handlers,
-            "readers": ["express", "flask", "axum", "gin", "spring"],
+            "readers": ["express", "flask", "axum", "gin", "spring", "nextjs-app"],
+            "nextjs_gaps": next_gaps,
+            "nextjs_limitations": "Only route.ts and route.js under root app or src/app. Package identity, layout precedence, route validity, basePath, rewrites and implicit methods remain unchecked.",
             "certainty": "Declaration patterns and local handler-name candidates; the reader does not verify framework identity or runtime reachability.",
-            "limitations": "No Next.js or FastAPI-specific reader, request/response schemas, middleware, mounted-router prefixes or cross-file handler resolution. Empty results do not prove absence of routes."});
+            "limitations": "No FastAPI-specific reader, request/response schemas, middleware, mounted-router prefixes or cross-file handler resolution. Next.js covers root app and src/app named HTTP function exports with static, grouped or single dynamic segments. Other path forms, Pages Router, variable handlers and re-exports remain unsupported. Empty results do not prove absence of routes."});
         if contracts {
             analysis["contract_fields"] = json!(contract_fields);
             analysis["contract_gaps"] = json!(contract_gaps);
@@ -131,7 +177,7 @@ impl Project<'_> {
                 "spring-parameter-annotations",
                 "declared-return-types"
             ]);
-            analysis["limitations"] = json!("Partial signature evidence only. No type or import resolution, schema expansion, body analysis, runtime validation, response status or media-type inference. Names can match unrelated types or annotations. Other route-reader limits still apply: no Next.js or FastAPI-specific reader, middleware, mounted-router prefixes or cross-file handler resolution.");
+            analysis["limitations"] = json!("Partial signature evidence only. No type or import resolution, schema expansion, body analysis, runtime validation, response status or media-type inference. Names can match unrelated types or annotations. Next.js input bindings remain unknown; its route subset covers root app and src/app named HTTP function exports with static, grouped or single dynamic segments. No FastAPI-specific reader, middleware, mounted-router prefixes or cross-file handler resolution.");
         }
         let query = if contracts { "contracts" } else { "routes" };
         let mut result = self.relationship_page(query, selected, options, None, rows, analysis)?;

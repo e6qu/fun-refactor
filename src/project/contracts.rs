@@ -45,7 +45,7 @@ fn type_spelling(ty: Node<'_>, owner: Node<'_>, source: &str) -> String {
     spelling
 }
 
-fn simple_name(name: &str) -> bool {
+pub(super) fn simple_name(name: &str) -> bool {
     let mut chars = name.chars();
     chars.next().is_some_and(|c| c.is_alphabetic() || c == '_')
         && chars.all(|c| c.is_alphanumeric() || c == '_')

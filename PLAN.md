@@ -203,7 +203,7 @@ M2b5 is complete. It adds bounded route declarations:
 - Bounded URLs and names, syntax and language gaps, shared revision checks and query-bound cursors.
 
 This view reports pattern candidates. It does not establish framework identity or runtime reachability.
-Next.js and FastAPI-specific inspection, mounted routers and cross-file handlers remain pending. M2b8 adds partial request/response evidence.
+FastAPI-specific inspection, mounted routers and cross-file handlers remain pending. M2b8 adds partial contracts; M2b9 adds a Next.js App Router subset.
 The shared Lean page-length laws apply; route extraction and handler matching remain outside those proofs.
 Validation passes the full native/WASM gate, all 46 project CLI tests and strict Lean verification with five fresh source anchors.
 
@@ -245,13 +245,30 @@ M2b8 is complete. It adds partial route request/response contracts:
 
 Every contract remains partial. Declared types do not establish serialization, runtime validation, status codes or media types.
 The shared Lean page-length laws apply; signature extraction and wire correspondence remain outside those proofs.
-Schema expansion, type/import resolution and Next.js/FastAPI-specific contract readers remain pending.
+Schema expansion, type/import resolution and FastAPI-specific contract readers remain pending. M2b9 adds partial Next.js contract evidence.
 Validation passes the full native/WASM gate and all 66 project CLI tests, including eight new contract regressions.
 Strict Lean verification passes with all six source anchors fresh.
 
+M2b9 is complete. It adds Next.js App Router declaration and contract inspection:
+
+- Captured-source readers recognize named HTTP function exports under root `app` and `src/app` layouts.
+- URLs preserve `/api`, parameter spelling and static segments, with route groups outside the URL.
+- Handler matches use declaration positions, with separate candidates and diagnostics for duplicate exports.
+- Existing contract pages expose path names and declared return types, while input bindings remain unknown.
+- Unsupported paths and export forms produce paged diagnostics with explicit interpretation limits.
+
+This covers `route.ts` and `route.js`, static segments, route groups and simple dynamic segments.
+Catch-all paths, Pages Router, variable handlers, re-exports, custom extensions and nested package roots remain outside the reader.
+Framework identity, layout precedence, runtime route validity, `basePath`, rewrites and implicit methods remain unchecked.
+The shared Lean page-length laws apply; URL extraction and handler correspondence remain outside those proofs.
+Validation passes the full native/WASM gate and all 73 project CLI tests, including seven new Next.js regressions.
+Strict Lean verification passes with all six source anchors fresh.
+The Petstore fixture yields 12 route candidates and a catch-all gap; a five-row contract page retains a continuation cursor.
+
 Next M2b work:
 
-- Extend contract readers to Next.js/FastAPI and declared schema fields, preserving ambiguous type references.
+- Add FastAPI contract evidence and declared schema fields, preserving ambiguous type references.
+- Extend the Next.js path and export subsets, with explicit routing and binding evidence.
 - Extend workspace rules beyond the observed Cargo subset and formalize membership closure.
 - Evaluate bounded inspection tasks on unfamiliar repositories with an agent, a pinned tokenizer and correctness checks.
 - Measure model tokens and task success against file reading, including additional calls and uncertainty.
