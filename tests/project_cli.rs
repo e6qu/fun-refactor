@@ -2210,7 +2210,7 @@ fn next_routes_report_unsupported_paths_and_exports_without_guessing_methods() {
     put(
         root,
         "app/variable/route.ts",
-        "export const GET = () => new Response('PRIVATE');\n",
+        "export const GET = wrap(() => new Response('PRIVATE'));\n",
     );
     put(
         root,
@@ -2412,7 +2412,7 @@ fn next_local_exports_preserve_duplicate_definitions_and_export_conflicts() {
 fn next_local_export_reader_leaves_imports_variables_and_type_exports_unresolved() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
-    put(root, "app/route.ts", "import { remote } from './other';\n\nfunction local(): Response { throw 0; }\n\nconst variable = () => new Response('PRIVATE_BODY');\n\nexport { local as GET, variable as POST, remote as PATCH, missing as DELETE };\n\nexport { local as PUT } from './other';\n\nexport type { local as HEAD };\n\nexport { type local as OPTIONS };\n");
+    put(root, "app/route.ts", "import { remote } from './other';\n\nfunction local(): Response { throw 0; }\n\nconst variable = wrap(() => new Response('PRIVATE_BODY'));\n\nexport { local as GET, variable as POST, remote as PATCH, missing as DELETE };\n\nexport { local as PUT } from './other';\n\nexport type { local as HEAD };\n\nexport { type local as OPTIONS };\n");
     put(
         root,
         "app/other.ts",
@@ -2555,6 +2555,347 @@ fn next_catch_all_alias_analysis_uses_captured_declarations_and_exports() {
         .any(|r| r["name"] == "parts" && r["segment_kind"] == "catch-all"));
     assert!(items.iter().any(|r| r["declared_type"] == "Before"));
     assert!(project.verify(&root).is_err());
+}
+
+#[test]
+fn next_variable_handlers_read_initializer_signatures_and_keep_inputs_unknown() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "app/route.ts", "export const GET = async (req: Request = PRIVATE_DEFAULT): Promise<Response> => { throw 'PRIVATE_BODY'; };\n\nexport let POST = function inner(): Created { throw 'PRIVATE_INNER'; };\n\nexport var PUT = (): Updated => make();\n\nexport const PATCH = req => req;\n\nexport const DELETE: Handler = () => make(), HEAD = (): HeadResult => make();\n\nexport const OPTIONS = function(): OptionResult { return make(); };\n");
+    let view = ok(root, &["project", "contracts", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    assert_eq!(view["analysis"]["declarations"], 7, "{view}");
+    assert_eq!(view["analysis"]["handler_candidates"], 7);
+    assert_eq!(view["analysis"]["nextjs_gaps"], 0);
+    for (method, ty) in [
+        ("GET", "Promise<Response>"),
+        ("POST", "Created"),
+        ("PUT", "Updated"),
+        ("HEAD", "HeadResult"),
+        ("OPTIONS", "OptionResult"),
+    ] {
+        let route = items.iter().find(|r| r["method"] == method).unwrap();
+        assert_eq!(route["basis"], "nextjs-app-variable-export");
+        assert!(items
+            .iter()
+            .any(|r| r["route"] == route["id"] && r["declared_type"] == ty));
+        let candidate = items
+            .iter()
+            .find(|r| r["kind"] == "route-handler" && r["route"] == route["id"])
+            .unwrap();
+        let shown = ok(
+            root,
+            &[
+                "project",
+                "show",
+                candidate["handler"]["handle"].as_str().unwrap(),
+            ],
+        );
+        assert_eq!(shown["node"]["name"], method);
+    }
+    for method in ["GET", "PATCH"] {
+        let route = items.iter().find(|r| r["method"] == method).unwrap();
+        assert!(items.iter().any(|r| r["route"] == route["id"]
+            && r["kind"] == "route-contract-gap"
+            && r["parameters"] == 1));
+    }
+    assert!(!items.iter().any(|r| r["declared_type"] == "Handler"));
+    assert!(!view.to_string().contains("PRIVATE_"));
+}
+
+#[test]
+fn next_variable_aliases_preserve_binding_positions_and_duplicate_candidates() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "app/route.ts", "const handle = (): One => make();\n\nconst handle = function internal(): Two { return make(); };\n\nfunction wrapper() { const handle = (): Wrong => make(); }\n\nexport { handle as GET, handle as POST };\n");
+    let view = ok(root, &["project", "contracts", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    assert_eq!(view["analysis"]["declarations"], 4);
+    assert_eq!(view["analysis"]["handler_candidates"], 4);
+    assert_eq!(view["analysis"]["nextjs_gaps"], 1);
+    for route in items.iter().filter(|r| r["kind"] == "route") {
+        assert_eq!(route["basis"], "nextjs-app-local-variable-export");
+        assert_eq!(route["line"], 7);
+        assert_eq!(route["handler"]["name"], "handle");
+    }
+    assert!(items.iter().any(|r| r["declared_type"] == "One"));
+    assert!(items.iter().any(|r| r["declared_type"] == "Two"));
+    assert!(!view.to_string().contains("Wrong"));
+    let handles: std::collections::BTreeSet<_> = items
+        .iter()
+        .filter(|r| r["kind"] == "route-handler")
+        .map(|r| r["handler"]["handle"].as_str().unwrap())
+        .collect();
+    assert_eq!(handles.len(), 2);
+}
+
+#[test]
+fn next_variable_reader_reports_wrappers_aliases_generators_and_assertions_as_gaps() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    for (name, source) in [
+        ("wrapper", "export const GET = wrap(() => make());"),
+        (
+            "alias",
+            "const local = () => make(); export const GET = local;",
+        ),
+        (
+            "generator",
+            "export const GET = function*() { yield make(); };",
+        ),
+        ("assertion", "export const GET = (() => make()) as Handler;"),
+        ("member", "export const GET = handlers.get;"),
+        ("destructure", "export const { GET } = makeHandlers();"),
+    ] {
+        put(root, &format!("app/{name}/route.ts"), source);
+    }
+    let view = ok(root, &["project", "contracts", "--limit", "500"]);
+    assert_eq!(view["analysis"]["declarations"], 0, "{view}");
+    assert_eq!(view["analysis"]["nextjs_gaps"], 6);
+}
+
+#[test]
+fn next_nested_projects_use_captured_next_dependencies_and_package_relative_urls() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "apps/shop/package.json",
+        r#"{"dependencies":{"next":"PRIVATE_VERSION"}}"#,
+    );
+    put(
+        root,
+        "apps/shop/app/api/[id]/route.ts",
+        "export const GET = (): Response => make();\n",
+    );
+    put(
+        root,
+        "apps/shop/src/app/status/route.js",
+        "export const POST = () => make();\n",
+    );
+    put(
+        root,
+        "apps/docs/package.json",
+        r#"{"devDependencies":{"next":"16"}}"#,
+    );
+    put(
+        root,
+        "apps/docs/src/app/[[...parts]]/route.ts",
+        "const local = (): Response => make(); export { local as GET };\n",
+    );
+    put(
+        root,
+        "apps/unknown/app/route.ts",
+        "export function GET() {}\n",
+    );
+    put(root, "app/route.ts", "export function GET() {}\n");
+    let view = ok(root, &["project", "routes", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    assert_eq!(view["analysis"]["declarations"], 4, "{view}");
+    for (url, package) in [
+        ("/api/{id}", "apps/shop"),
+        ("/status", "apps/shop"),
+        ("/{...parts?}", "apps/docs"),
+    ] {
+        let route = items.iter().find(|r| r["url"] == url).unwrap();
+        assert_eq!(route["nextjs_project"]["root"], package);
+        assert_eq!(
+            route["nextjs_project"]["manifest"],
+            format!("{package}/package.json")
+        );
+        assert_eq!(
+            route["nextjs_project"]["basis"],
+            "observed-npm-next-dependency"
+        );
+    }
+    assert!(items
+        .iter()
+        .any(|r| r["url"] == "/" && r["nextjs_project"]["basis"] == "project-root-layout"));
+    assert!(!view.to_string().contains("PRIVATE_VERSION"));
+}
+
+#[test]
+fn next_nested_projects_stop_at_nearest_manifest_and_preserve_invalid_boundary_gaps() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "apps/shop/package.json",
+        r#"{"dependencies":{"next":"16"}}"#,
+    );
+    for (directory, manifest) in [
+        ("plain", "{}"),
+        ("bad", "{ broken"),
+        ("typed", r#"{"dependencies":{"next":true}}"#),
+        ("peer", r#"{"peerDependencies":{"next":"16"}}"#),
+    ] {
+        put(
+            root,
+            &format!("apps/shop/app/{directory}/package.json"),
+            manifest,
+        );
+        put(
+            root,
+            &format!("apps/shop/app/{directory}/app/route.ts"),
+            "export const GET = () => make();\n",
+        );
+    }
+    put(
+        root,
+        "apps/shop/app/child/package.json",
+        r#"{"dependencies":{"next":"16"}}"#,
+    );
+    put(
+        root,
+        "apps/shop/app/child/app/route.ts",
+        "export const GET = () => make();\n",
+    );
+    let view = ok(root, &["project", "routes", "--limit", "500"]);
+    assert_eq!(view["analysis"]["declarations"], 1, "{view}");
+    assert_eq!(view["analysis"]["nextjs_gaps"], 4);
+    assert!(view["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["url"] == "/" && r["nextjs_project"]["root"] == "apps/shop/app/child"));
+}
+
+#[test]
+fn next_nested_variable_pages_bind_manifest_revision_scope_and_handler_handles() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "apps/site/package.json",
+        r#"{"dependencies":{"next":"16"}}"#,
+    );
+    let file = "apps/site/app/[...parts]/route.ts";
+    put(
+        root,
+        file,
+        "const local = (): Response => make(); export { local as GET, local as POST };\n",
+    );
+    let full = ok(root, &["project", "contracts", "--limit", "500"]);
+    let first = ok(root, &["project", "contracts", "--limit", "1"]);
+    let cursor = first["page"]["next"].as_str().unwrap().to_owned();
+    let mut page = first;
+    let mut combined = page["items"].as_array().unwrap().clone();
+    while let Some(next) = page["page"]["next"].as_str() {
+        page = ok(
+            root,
+            &["project", "contracts", "--limit", "2", "--cursor", next],
+        );
+        combined.extend(page["items"].as_array().unwrap().iter().cloned());
+    }
+    assert_eq!(combined, *full["items"].as_array().unwrap());
+    let routes = ok(root, &["project", "routes", "--limit", "500"]);
+    assert_eq!(
+        combined
+            .iter()
+            .filter(|r| r["kind"] == "route"
+                || r["kind"] == "route-handler"
+                || r["kind"] == "coverage-gap")
+            .cloned()
+            .collect::<Vec<_>>(),
+        *routes["items"].as_array().unwrap()
+    );
+    assert!(
+        !run(
+            root,
+            &["project", "contracts", "apps/site", "--cursor", &cursor]
+        )
+        .0
+    );
+    let candidate = combined
+        .iter()
+        .find(|r| r["kind"] == "route-handler")
+        .unwrap()["handler"]["handle"]
+        .as_str()
+        .unwrap();
+    ok(root, &["project", "show", candidate]);
+    let scoped = ok(root, &["project", "contracts", file]);
+    assert_eq!(scoped["analysis"]["declarations"], 2);
+    put(root, "apps/site/package.json", "{}");
+    assert!(!run(root, &["project", "contracts", "--cursor", &cursor]).0);
+    assert!(!run(root, &["project", "show", candidate]).0);
+    assert_eq!(
+        ok(root, &["project", "routes"])["analysis"]["declarations"],
+        0
+    );
+    assert!(!root.join(".fr-history").exists());
+}
+
+#[test]
+fn next_nested_variables_read_captured_manifests_and_sources_after_removal() {
+    use fun_refactor::{
+        index::Index,
+        project::Project,
+        scan::{scan, ScanOptions},
+    };
+    #[derive(clap::Parser)]
+    struct Query {
+        #[command(subcommand)]
+        command: fun_refactor::project::Command,
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    put(
+        &root,
+        "nested/package.json",
+        r#"{"dependencies":{"next":"16"}}"#,
+    );
+    put(
+        &root,
+        "nested/app/route.ts",
+        "export const GET = (): Before => make();\n",
+    );
+    let options = ScanOptions::default();
+    let scanned = scan(&root, &options).unwrap();
+    let index = Index::build_with_cache(&scanned, None).unwrap();
+    let project = Project::new(&root, &index, &scanned, &options).unwrap();
+    fs::remove_file(root.join("nested/package.json")).unwrap();
+    fs::remove_file(root.join("nested/app/route.ts")).unwrap();
+    let query = <Query as clap::Parser>::parse_from(["fr", "contracts"]);
+    let view = project.report(&query.command).unwrap();
+    assert!(view["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["declared_type"] == "Before"));
+    assert!(view["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["nextjs_project"]["manifest"] == "nested/package.json"));
+    assert!(project.verify(&root).is_err());
+}
+
+#[test]
+fn next_variable_aliases_bound_names_and_initializer_return_types() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let name = "名".repeat(80);
+    let ty = "Type".repeat(160);
+    put(
+        root,
+        "app/route.ts",
+        &format!("const {name} = (): {ty} => make();\n\nexport {{ {name} as GET }};\n"),
+    );
+    let view = ok(root, &["project", "contracts", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    let route = items.iter().find(|r| r["kind"] == "route").unwrap();
+    assert_eq!(route["handler"]["candidate_count"], 1);
+    assert_eq!(
+        route["handler"]["name"]["text"].as_str().unwrap().len(),
+        159
+    );
+    assert_eq!(route["handler"]["name"]["omitted_bytes"], name.len() - 159);
+    let returned = items.iter().find(|r| r["location"] == "return").unwrap();
+    assert_eq!(
+        returned["declared_type"]["text"].as_str().unwrap().len(),
+        512
+    );
+    assert_eq!(returned["declared_type"]["omitted_bytes"], ty.len() - 512);
 }
 
 #[test]
@@ -3423,7 +3764,24 @@ fn contracts_keep_handler_ambiguity_and_report_unreadable_or_missing_signatures(
         .filter(|r| r["direction"] == "response")
         .map(|r| &r["declared_type"])
         .collect();
-    assert_eq!(types, vec![&Value::String("Promise<Response>".into())]);
+    assert_eq!(
+        types,
+        vec![
+            &Value::String("Promise<Response>".into()),
+            &Value::String("Response".into())
+        ]
+    );
+    let items = ts["items"].as_array().unwrap();
+    let arrow = items.iter().find(|r| r["url"] == "/arrow").unwrap();
+    assert!(items.iter().any(|r| r["route"] == arrow["id"]
+        && r["declared_type"] == "Response"
+        && r["handler"]["name"] == "arrow"));
+    for path in ["/inline", "/external"] {
+        let route = items.iter().find(|r| r["url"] == path).unwrap();
+        assert!(!items
+            .iter()
+            .any(|r| r["route"] == route["id"] && r["direction"] == "response"));
+    }
     assert!(ts["analysis"]["contract_gaps"].as_u64().unwrap() >= 3);
     let py = ok(root, &["project", "contracts", "app.py", "--limit", "500"]);
     assert!(py["items"]

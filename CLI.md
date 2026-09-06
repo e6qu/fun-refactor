@@ -627,7 +627,7 @@ The route row's `id` joins these rows within the revision; it is not a handle fo
 Candidate rows can appear on another page. No handler body or unbounded candidate array accompanies a route.
 URLs and paths cap at 512 UTF-8 bytes; handler names cap at 160, with explicit omitted-byte counts.
 
-The `nextjs-app` reader recognizes `route.ts` and `route.js` beneath `app` or `src/app` at the selected project root.
+The `nextjs-app` reader recognizes `route.ts` and `route.js` beneath `app` or `src/app` at the selected project root or supported nested packages.
 Top-level named function exports identify GET, POST, PUT, PATCH, DELETE, HEAD and OPTIONS candidates.
 It preserves static segments, including `/api`, removes route groups and spells `[petId]` as `{petId}` without changing the parameter name.
 Static segments accept letters, digits, hyphens, underscores, dots and tildes; names beginning with an underscore produce a private-directory gap.
@@ -646,12 +646,28 @@ Route lines identify the export specifier, while handler lines identify the decl
 Every matching declaration remains a candidate when names repeat; duplicate HTTP exports produce a diagnostic.
 The reader does not verify lexical binding validity, reassignment, declaration merging or runtime reachability.
 Type-only exports supply no HTTP candidates. Other export forms do not establish HTTP handlers.
-HTTP variable exports, unresolved local exports, cross-file HTTP re-exports, plain star exports and default exports produce gaps.
+Direct exported `const`, `let` and `var` bindings also match when the initializer is an arrow function or function expression.
+Their route basis is `nextjs-app-variable-export`; local export aliases use `nextjs-app-local-variable-export`.
+Matching uses the binding's name and position, including named function expressions whose inner name differs.
+Multiple bindings and duplicate declarations remain separate candidates. The reader does not follow rebinding, initializer aliases or wrapper calls.
+Parenthesized/asserted initializers, generators, destructuring and other unsupported initializers remain gaps.
+Unresolved local exports, cross-file HTTP re-exports, plain star exports and default exports also produce gaps.
 Files without supported HTTP exports report a gap. All Next.js diagnostics share the page limit.
 `analysis.nextjs_gaps` counts these diagnostics; `analysis.nextjs_limitations` records the scope.
-Pages Router, custom extensions and nested package roots remain outside this reader.
+Pages Router and custom extensions remain outside this reader.
 Package identity, layout precedence, route validity, `basePath` and rewrites remain unchecked.
 Both root layouts produce candidates when both exist. Empty results do not establish a complete application route inventory.
+
+Nested package layouts require a captured `package.json` with a nonempty string `next` entry in `dependencies` or `devDependencies`.
+The nearest observed package manifest bounds each candidate layout; an inner package cannot borrow an outer package's dependency evidence.
+Missing dependency declarations, malformed manifests and skipped manifests produce gaps for App Router-shaped files within observed nested packages.
+Nested folders without an observed package boundary do not establish an app root. Peer/optional dependencies and hoisted dependency resolution remain outside this subset.
+Next.js route rows carry `nextjs_project` with bounded root/manifest paths and `basis: observed-npm-next-dependency` for nested packages.
+Project-root layouts retain `basis: project-root-layout`, root `.` and a null manifest, without requiring dependency evidence.
+Other frameworks leave `nextjs_project` null. URLs start at the candidate app root; route paths and handles retain workspace-relative locations.
+Package version validity, installation, configuration, workspace membership and runtime framework identity remain unchecked.
+Both root layouts remain candidates under each package; the reader does not apply the [Next.js layout precedence rules](https://nextjs.org/docs/app/api-reference/file-conventions/src-folder).
+Package metadata comes from the project snapshot; manifest changes invalidate revisions and cursors before output.
 
 The `fastapi` reader recognizes top-level verb decorators on a direct `FastAPI()` or `APIRouter()` assignment.
 The file must contain the corresponding top-level `fastapi` import; constructor and module import aliases also match.
@@ -693,6 +709,9 @@ Requiredness stays null. Defaults and annotation values other than binding names
 Extractor and annotation matches carry name-only confidence; the reader does not resolve their imports or types.
 
 Declared handler return types produce response fields with null confidence.
+For direct variable handlers, contract inspection reads parameters and return annotations from the arrow/function-expression initializer.
+This also applies to same-file Express handler candidates; inline handlers and cross-file targets remain unresolved.
+Bare arrow parameters also report unknown input bindings. A binding's callable type annotation does not supply an inferred initializer return type.
 Java array dimensions after a name join the type spelling; Rust absolute type qualifiers remain intact.
 Return types can describe wrappers, context values or implementation types; they do not establish the HTTP payload, status or media type.
 Unsupported parameters and absent return annotations produce `route-contract-gap` rows.

@@ -10,6 +10,16 @@ use tree_sitter::Node;
 fn declaration<'a>(parsed: &'a Parsed, symbol: &Symbol) -> Option<Node<'a>> {
     let mut node = parsed.node_at(symbol.name_span.start)?;
     loop {
+        if node.kind() == "variable_declarator"
+            && node.child_by_field_name("name").is_some_and(|name| {
+                name.start_byte() == symbol.name_span.start
+                    && name.end_byte() == symbol.name_span.end
+            })
+        {
+            return node
+                .child_by_field_name("value")
+                .filter(|n| matches!(n.kind(), "arrow_function" | "function_expression"));
+        }
         if matches!(
             node.kind(),
             "function_item"
@@ -260,6 +270,9 @@ impl Project<'_> {
                 rows.extend(fields);
             }
             let mut unknown_inputs = 0usize;
+            if function.child_by_field_name("parameter").is_some() {
+                unknown_inputs += 1;
+            }
             if let Some(parameters) = function
                 .child_by_field_name("parameters")
                 .filter(|_| declaration.fast_decorator.is_none())

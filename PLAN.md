@@ -260,7 +260,8 @@ M2b9 is complete. It adds Next.js App Router declaration and contract inspection
 
 This covers `route.ts` and `route.js`, static segments, route groups and simple dynamic segments.
 M2b12 adds terminal catch-all paths and local function export aliases.
-Pages Router, variable handlers, cross-file re-exports, custom extensions and nested package roots remain outside the reader.
+M2b13 adds direct variable handlers and nested npm package evidence.
+Pages Router, wrapped handlers, cross-file re-exports and custom extensions remain outside the reader.
 Framework identity, layout precedence, runtime route validity, `basePath`, rewrites and implicit methods remain unchecked.
 The shared Lean page-length laws apply; URL extraction and handler correspondence remain outside those proofs.
 Validation passes the full native/WASM gate and all 73 project CLI tests, including seven new Next.js regressions.
@@ -301,7 +302,7 @@ M2b12 is complete. It extends Next.js routing and binding evidence:
 - Malformed names, repeated parameters and nonterminal catch-alls produce explicit diagnostics.
 - Local named HTTP exports follow top-level function declarations, with separate export and handler positions.
 - Duplicate definitions remain separate candidates; type-only exports supply no HTTP candidates.
-- Unresolved bindings, variable handlers and cross-file exports retain gaps without loading handler bodies.
+- Unresolved bindings and cross-file exports retain gaps without loading handler bodies; M2b13 extends direct variable handlers.
 
 Runtime route validity, reassignment, import resolution and implicit methods remain unchecked.
 The shared Lean page-length laws apply; path extraction and export correspondence remain outside those proofs.
@@ -309,9 +310,23 @@ Validation passes the full native/WASM gate and all 98 project CLI tests, includ
 Strict Lean verification passes with all six source anchors fresh.
 The Petstore fixture now yields 13 route candidates without Next.js reader gaps; five-row contract pages retain continuation cursors.
 
+M2b13 is complete. It adds Next.js variable handlers and nested package evidence:
+
+- Direct arrow/function-expression bindings support exported variables and local aliases, with precise binding handles.
+- Contract rows read initializer annotations, omit defaults and bodies, and report unknown inputs including bare arrow parameters.
+- The shared contract reader also exposes initializer annotations for same-file Express handler candidates.
+- Captured npm dependencies identify nested app candidates, with explicit root/manifest evidence and package-relative URLs.
+- The nearest observed package boundary prevents borrowing an outer package's dependency evidence.
+- Unsupported initializers and missing or invalid nested package evidence retain explicit gaps.
+
+Runtime layout precedence, configuration, reassignment, dependency installation and import resolution remain unchecked.
+The shared Lean page-length laws apply; binding extraction and package-to-framework correspondence remain outside those proofs.
+Validation passes the full native/WASM gate and all 106 project CLI tests, including eight new Next.js regressions.
+The existing Express regression now checks initializer annotations and preserves unresolved inline/external handlers.
+Strict Lean verification passes with all six source anchors fresh.
+
 Next M2b work:
 
-- Extend Next.js variable-handler and project-layout evidence while preserving unresolved routing behavior.
 - Extend schema language coverage and contract-to-declaration evidence without guessing imports or runtime validation.
 - Extend workspace rules beyond the observed Cargo subset and formalize membership closure.
 - Evaluate bounded inspection tasks on unfamiliar repositories with an agent, a pinned tokenizer and correctness checks.

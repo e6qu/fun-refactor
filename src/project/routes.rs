@@ -5,6 +5,12 @@ use crate::transpile::routes;
 use anyhow::{ensure, Context, Result};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
+
+struct NextProject {
+    path: PathBuf,
+    evidence: Value,
+}
 
 pub(super) struct RouteDeclaration {
     pub endpoint: routes::Endpoint,
@@ -13,9 +19,59 @@ pub(super) struct RouteDeclaration {
     pub basis: &'static str,
     pub fast_decorator: Option<usize>,
     pub next_catch_all: Option<next_routes::CatchAll>,
+    pub next_project: Option<Value>,
 }
 
 impl Project<'_> {
+    fn next_project(&self, relative: &Path) -> Result<Option<NextProject>, &'static str> {
+        if !matches!(
+            relative.file_name().and_then(|n| n.to_str()),
+            Some("route.ts" | "route.js")
+        ) {
+            return Ok(None);
+        }
+        let manifest = relative
+            .parent()
+            .into_iter()
+            .flat_map(Path::ancestors)
+            .map(|dir| dir.join("package.json"))
+            .find(|path| self.manifests.snapshots.contains_key(&self.root.join(path)));
+        let directory = manifest
+            .as_deref()
+            .and_then(Path::parent)
+            .unwrap_or(Path::new(""));
+        let path = relative
+            .strip_prefix(directory)
+            .map_err(|_| "The route exceeds its observed package boundary.")?;
+        if !path.starts_with("app") && !path.starts_with("src/app") {
+            return Ok(None);
+        }
+        if directory.as_os_str().is_empty() {
+            return Ok(Some(NextProject {
+                path: path.to_path_buf(),
+                evidence: json!({"root": ".", "manifest": null, "basis": "project-root-layout"}),
+            }));
+        }
+        let Some(document) = manifest
+            .as_ref()
+            .and_then(|path| self.manifests.documents.get(path))
+        else {
+            return Err("The nearest nested package manifest is unavailable or invalid; its App Router layout remains unknown.");
+        };
+        if !["dependencies", "devDependencies"].iter().any(|section| {
+            document[*section]["next"]
+                .as_str()
+                .is_some_and(|version| !version.trim().is_empty())
+        }) {
+            return Err("The nearest nested package has no string-valued next dependency or devDependency; its App Router layout remains unknown.");
+        }
+        Ok(Some(NextProject {
+            path: path.to_path_buf(),
+            evidence: json!({"root": bounded_text(&directory.to_string_lossy(), 512),
+            "manifest": manifest.map(|path| bounded_text(&path.to_string_lossy(), 512)), "basis": "observed-npm-next-dependency"}),
+        }))
+    }
+
     pub(super) fn routes(&self, options: &RelationshipOptions, contracts: bool) -> Result<Value> {
         let selected = self.relationship_selection(options)?;
         ensure!(
@@ -71,11 +127,26 @@ impl Project<'_> {
                         basis: "route-pattern-reader",
                         fast_decorator: None,
                         next_catch_all: None,
+                        next_project: None,
                     })
                 })
                 .collect();
             if matches!(info.language, Language::TypeScript | Language::Tsx) {
-                let next = next_routes::read(relative, &parsed, source);
+                let project = self.next_project(relative);
+                let (next, evidence) = match project {
+                    Ok(Some(project)) => (
+                        next_routes::read(&project.path, &parsed, source),
+                        Some(project.evidence),
+                    ),
+                    Ok(None) => (next_routes::NextRoutes::default(), None),
+                    Err(reason) => (
+                        next_routes::NextRoutes {
+                            entries: Vec::new(),
+                            gaps: vec![(1, reason)],
+                        },
+                        None,
+                    ),
+                };
                 next_gaps += next.gaps.len();
                 for (line, reason) in next.gaps {
                     rows.push(json!({"kind": "analysis-gap", "path": path, "line": line,
@@ -88,6 +159,7 @@ impl Project<'_> {
                     basis: entry.basis,
                     fast_decorator: None,
                     next_catch_all: entry.catch_all,
+                    next_project: evidence.clone(),
                 }));
             }
             if info.language == Language::Python {
@@ -105,6 +177,7 @@ impl Project<'_> {
                     basis: "fastapi-import-constructor-decorator",
                     fast_decorator: Some(entry.decorator_offset),
                     next_catch_all: None,
+                    next_project: None,
                 }));
             }
             if endpoints.is_empty() {
@@ -164,6 +237,7 @@ impl Project<'_> {
                     "file_handle": self.handle(file_node), "line": endpoint.line,
                     "method": endpoint.method, "url": bounded_text(&endpoint.url, 512),
                     "framework_candidate": framework, "basis": basis, "status": "candidate", "confidence": null,
+                    "nextjs_project": declaration.next_project,
                     "handler": {"name": endpoint.handler.as_deref().map(|name| bounded_text(name, 160)),
                         "candidate_count": candidates.len(), "basis": handler_basis,
                         "status": if endpoint.handler.is_none() { "unnamed" } else if candidates.is_empty() { "unresolved" } else if candidates.len() == 1 { "candidate" } else { "ambiguous" }}}));
@@ -200,9 +274,9 @@ impl Project<'_> {
             "fastapi_gaps": fast_gaps,
             "fastapi_limitations": "Top-level verb decorators on a direct FastAPI/APIRouter constructor assignment with an observed fastapi import. No runtime import validation, shadowing analysis, factories, nested routers, prefixes, includes or method-list decorators.",
             "nextjs_gaps": next_gaps,
-            "nextjs_limitations": "Only route.ts and route.js under root app or src/app. Package identity, layout precedence, route validity, basePath, rewrites and implicit methods remain unchecked.",
+            "nextjs_limitations": "Only route.ts and route.js under app or src/app at the project root or an observed nested npm Next.js package. Nearest observed manifests bound nested layouts. Runtime package identity, layout precedence, route validity, basePath, rewrites and implicit methods remain unchecked.",
             "certainty": "Declaration patterns and local handler-name candidates; the reader does not verify framework identity or runtime reachability.",
-            "limitations": "No request/response schema expansion, middleware, mounted-router prefixes or cross-file handler resolution. Next.js covers direct and local function exports with static, grouped, single dynamic and terminal catch-all segments. Other path forms, Pages Router, variable handlers and cross-file re-exports remain unsupported. Empty results do not prove absence of routes."});
+            "limitations": "No request/response schema expansion, middleware, mounted-router prefixes or cross-file handler resolution. Next.js covers function declarations and direct arrow/function-expression bindings with static, grouped, single dynamic and terminal catch-all segments. Other path forms, Pages Router, wrapped handlers and cross-file re-exports remain unsupported. Empty results do not prove absence of routes."});
         if contracts {
             analysis["contract_fields"] = json!(contract_fields);
             analysis["contract_gaps"] = json!(contract_gaps);
@@ -215,7 +289,7 @@ impl Project<'_> {
                 "fastapi-explicit-bindings",
                 "fastapi-response-model"
             ]);
-            analysis["limitations"] = json!("Partial signature evidence only. No type resolution, schema expansion, body analysis, runtime validation, response status or media-type inference. Names can match unrelated types or annotations. FastAPI covers explicit binding markers and response_model expressions; implicit parameter classification and binding aliases remain unknown. Next.js input bindings remain unknown; its route subset covers direct and local function exports, including terminal catch-all paths. No middleware, mounted-router prefixes or cross-file handler resolution.");
+            analysis["limitations"] = json!("Partial signature evidence only. No type resolution, schema expansion, body analysis, runtime validation, response status or media-type inference. Names can match unrelated types or annotations. FastAPI covers explicit binding markers and response_model expressions; implicit parameter classification and binding aliases remain unknown. Next.js input bindings remain unknown; its route subset covers function declarations and direct arrow/function-expression bindings, including local exports and terminal catch-all paths. No middleware, mounted-router prefixes or cross-file handler resolution.");
         }
         let query = if contracts { "contracts" } else { "routes" };
         let mut result = self.relationship_page(query, selected, options, None, rows, analysis)?;

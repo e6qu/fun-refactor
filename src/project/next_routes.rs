@@ -122,6 +122,17 @@ fn has_token(node: Node<'_>, token: &str) -> bool {
     found
 }
 
+fn direct_handler(node: Node<'_>) -> bool {
+    node.kind() == "function_declaration"
+        || (node.kind() == "variable_declarator"
+            && node
+                .child_by_field_name("name")
+                .is_some_and(|n| n.kind() == "identifier")
+            && node
+                .child_by_field_name("value")
+                .is_some_and(|n| matches!(n.kind(), "arrow_function" | "function_expression")))
+}
+
 impl NextRoutes {
     fn push(
         &mut self,
@@ -169,7 +180,14 @@ pub(super) fn read(path: &Path, parsed: &Parsed, source: &str) -> NextRoutes {
                 Some(node)
             }
         })
-        .filter(|n| n.kind() == "function_declaration")
+        .flat_map(|node| {
+            if matches!(node.kind(), "lexical_declaration" | "variable_declaration") {
+                named_children(node)
+            } else {
+                vec![node]
+            }
+        })
+        .filter(|n| direct_handler(*n))
         .collect();
     for export in named_children(parsed.root())
         .into_iter()
@@ -208,12 +226,27 @@ pub(super) fn read(path: &Path, parsed: &Parsed, source: &str) -> NextRoutes {
                 declaration.kind(),
                 "lexical_declaration" | "variable_declaration"
             ) {
-                bindings.extend(
-                    named_children(declaration)
-                        .into_iter()
-                        .filter(|n| n.kind() == "variable_declarator")
-                        .filter_map(|n| n.child_by_field_name("name")),
-                );
+                for binding in named_children(declaration)
+                    .into_iter()
+                    .filter(|n| n.kind() == "variable_declarator")
+                {
+                    let Some(name) = binding.child_by_field_name("name") else {
+                        continue;
+                    };
+                    let method = &source[name.byte_range()];
+                    if METHODS.contains(&method) && direct_handler(binding) {
+                        result.push(
+                            binding,
+                            method,
+                            binding.start_position().row + 1,
+                            &url,
+                            "nextjs-app-variable-export",
+                            source,
+                        );
+                    } else {
+                        bindings.push(name);
+                    }
+                }
             } else if declaration.kind() == "function_signature" {
                 bindings.extend(declaration.child_by_field_name("name"));
             }
@@ -258,7 +291,11 @@ pub(super) fn read(path: &Path, parsed: &Parsed, source: &str) -> NextRoutes {
                         method,
                         specifier.start_position().row + 1,
                         &url,
-                        "nextjs-app-local-function-export",
+                        if function.kind() == "variable_declarator" {
+                            "nextjs-app-local-variable-export"
+                        } else {
+                            "nextjs-app-local-function-export"
+                        },
                         source,
                     );
                 }
@@ -269,7 +306,7 @@ pub(super) fn read(path: &Path, parsed: &Parsed, source: &str) -> NextRoutes {
             .any(|node| METHODS.contains(&source[node.byte_range()].trim_matches(['\'', '"'])));
         let mut cursor = export.walk();
         if unsupported || export.children(&mut cursor).any(|n| n.kind() == "*") {
-            result.gaps.push((export.start_position().row + 1, "Variable handlers, cross-file re-exports and unresolved local exports need further inspection; only direct function declarations supply handler evidence."));
+            result.gaps.push((export.start_position().row + 1, "Unsupported initializers, cross-file re-exports and unresolved local exports need further inspection; direct functions and arrow/function-expression bindings supply handler evidence."));
         }
     }
     let mut counts = BTreeMap::new();
