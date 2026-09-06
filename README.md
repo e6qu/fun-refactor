@@ -253,7 +253,8 @@ Next.js candidates include local function export aliases and terminal catch-all 
 Direct variable handlers expose initializer annotations. Nested app candidates retain captured npm dependency and package-boundary evidence.
 `fr project contracts` adds paged path parameters, Axum/Spring request type candidates and declared handler return types, with explicit gaps.
 FastAPI contract rows include explicit parameter markers and decorator response models, with separate return annotations and no inferred wire schemas.
-`fr project schemas` pages direct Python class and TypeScript interface/object-alias fields, with followable type candidates and explicit validation gaps.
+`fr project schemas` pages Python class, TypeScript interface/object-alias and Rust struct fields, with followable candidates and explicit validation gaps.
+`fr project contracts --types` adds optional declaration links from supported signature types, preserving ambiguity and unresolved names.
 `fr project configuration` pages environment declarations and candidate code consumers, with captured-source checks and explicit analysis gaps.
 `fr project tests` adds catalog candidates and bounded call-path witnesses, preserving the weakest edge confidence without claiming runtime coverage.
 Complete dependency graphs, framework semantics, Git integration and broader task evaluations remain roadmap work.

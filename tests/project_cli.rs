@@ -3578,7 +3578,11 @@ fn schemas_report_syntax_and_language_gaps_without_claiming_empty_coverage() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
     put(root, "bad.py", "class Pet:\n    field: [\n");
-    put(root, "other.rs", "struct Other { id: u64 }\n");
+    put(
+        root,
+        "other.go",
+        "package models\ntype Other struct { ID uint64 }\n",
+    );
     put(root, "empty.ts", "const value = 1;\n");
     let view = ok(root, &["project", "schemas", "--limit", "500"]);
     let items = view["items"].as_array().unwrap();
@@ -3587,7 +3591,7 @@ fn schemas_report_syntax_and_language_gaps_without_claiming_empty_coverage() {
         .any(|r| r["kind"] == "analysis-gap" && r["path"] == "bad.py"));
     assert!(items
         .iter()
-        .any(|r| r["kind"] == "coverage-gap" && r["language"] == "rust"));
+        .any(|r| r["kind"] == "coverage-gap" && r["language"] == "go"));
     assert_eq!(view["analysis"]["fields"], 0);
     let empty = ok(root, &["project", "schemas", "empty.ts"]);
     assert!(empty["items"].as_array().unwrap().is_empty());
@@ -3629,6 +3633,332 @@ fn schemas_read_captured_declarations_after_source_removal_and_verify_drift() {
         .unwrap()
         .iter()
         .any(|r| r["kind"] == "schema-type-reference" && r["candidate_count"] == 1));
+    assert!(project.verify(&root).is_err());
+}
+
+#[test]
+fn schemas_rust_structs_keep_declared_fields_without_attribute_values_or_wire_guesses() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "models.rs", "struct Child { id: u64 }\n\n#[derive(Serialize)]\n#[serde(rename = \"PRIVATE_MODEL\")]\nstruct Pet<'a, T> {\n #[serde(rename = \"PRIVATE_FIELD\")]\n pub child: Option<Box<Child>>,\n borrowed: &'a mut Child,\n slice: &'a [Child],\n qualified: crate::Child,\n raw: [u8; PRIVATE_COUNT],\n}\n\nstruct Unit;\n\nstruct Tuple(Child);\n\ntype Alias = Child;\n\nimpl Child { fn private() { panic!(\"PRIVATE_BODY\"); } }\n");
+    let view = ok(root, &["project", "schemas", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    assert_eq!(view["analysis"]["declarations"], 3, "{view}");
+    assert_eq!(view["analysis"]["fields"], 6);
+    for (name, ty) in [
+        ("child", "Option<Box<Child>>"),
+        ("borrowed", "&'a mut Child"),
+        ("slice", "&'a [Child]"),
+        ("qualified", "crate::Child"),
+    ] {
+        let field = items
+            .iter()
+            .find(|r| r["kind"] == "schema-field" && r["name"] == name)
+            .unwrap();
+        assert_eq!(field["declared_type"], ty, "{view}");
+        assert!(field["required"].is_null());
+        assert!(field["optional_marker"].is_null());
+        assert!(field["readonly_marker"].is_null());
+    }
+    assert!(items
+        .iter()
+        .any(|r| r["name"] == "raw" && r["declared_type"].is_null()));
+    assert!(items
+        .iter()
+        .any(|r| r["name"] == "crate::Child" && r["status"] == "unresolved"));
+    assert!(items.iter().any(|r| r["kind"] == "schema"
+        && r["declaration"]["name"] == "Unit"
+        && r["field_count"] == 0));
+    assert!(!view.to_string().contains("PRIVATE_"));
+}
+
+#[test]
+fn schemas_rust_references_preserve_duplicates_cycles_and_file_boundaries() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "models.rs", "mod a { pub struct Pet { id: u64 } }\n\nmod b { pub struct Pet { name: String } }\n\nstruct Body { item: Pet, next: Box<Body>, external: External }\n");
+    put(root, "other.rs", "struct External;\n");
+    let view = ok(root, &["project", "schemas", "models.rs", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    let reference = items
+        .iter()
+        .find(|r| r["kind"] == "schema-type-reference" && r["name"] == "Pet")
+        .unwrap();
+    assert_eq!(reference["candidate_count"], 2);
+    assert_eq!(reference["status"], "ambiguous");
+    assert_eq!(
+        items
+            .iter()
+            .filter(|r| r["reference"] == reference["id"])
+            .count(),
+        2
+    );
+    assert!(items.iter().any(|r| r["kind"] == "schema-type-reference"
+        && r["name"] == "External"
+        && r["candidate_count"] == 0));
+    let body = items
+        .iter()
+        .find(|r| r["kind"] == "schema" && r["declaration"]["name"] == "Body")
+        .unwrap();
+    let scoped = ok(
+        root,
+        &[
+            "project",
+            "schemas",
+            body["declaration"]["handle"].as_str().unwrap(),
+            "--limit",
+            "500",
+        ],
+    );
+    assert_eq!(scoped["analysis"]["declarations"], 1);
+    assert_eq!(scoped["analysis"]["fields"], 3);
+}
+
+#[test]
+fn contract_types_link_axum_requests_and_returns_to_followable_rust_structs() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "app.rs", "struct Create { name: String }\n\nstruct Pet { id: u64 }\n\nasync fn create(Json(body): Json<Create>) -> Json<Pet> { todo!(\"PRIVATE_BODY\") }\n\nfn router() { Router::new().route(\"/pets\", post(create)); }\n");
+    let plain = ok(root, &["project", "contracts", "--limit", "500"]);
+    assert!(!plain["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["kind"] == "route-contract-type-reference"));
+    let view = ok(root, &["project", "contracts", "--types", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    assert_eq!(view["analysis"]["type_references"], 4, "{view}");
+    assert_eq!(view["analysis"]["type_candidates"], 2);
+    for (name, direction) in [("Create", "request"), ("Pet", "response")] {
+        let reference = items
+            .iter()
+            .find(|r| r["kind"] == "route-contract-type-reference" && r["name"] == name)
+            .unwrap();
+        let field = items
+            .iter()
+            .find(|r| r["kind"] == "route-contract-field" && r["id"] == reference["field"])
+            .unwrap();
+        assert_eq!(field["direction"], direction);
+        assert_eq!(field["type_reference_count"], 2);
+        let target = items
+            .iter()
+            .find(|r| r["reference"] == reference["id"])
+            .unwrap();
+        assert_eq!(target["confidence"], "name-only");
+        let handle = target["target"]["handle"].as_str().unwrap();
+        let schema = ok(root, &["project", "schemas", handle]);
+        assert_eq!(schema["analysis"]["declarations"], 1);
+        assert_eq!(schema["analysis"]["fields"], 1);
+        ok(root, &["project", "show", handle]);
+    }
+    assert!(!view.to_string().contains("PRIVATE_BODY"));
+}
+
+#[test]
+fn contract_types_preserve_ambiguous_types_and_skip_fastapi_model_metadata() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "app/route.ts", "interface Pet { id: string; }\n\ninterface Pet { name: string; }\n\nexport const GET = (): Promise<Pet | Pet> => make();\n");
+    put(root, "api.py", "from fastapi import FastAPI\n\nclass Pet:\n    id: int\n\napp = FastAPI()\n\n@app.get('/pets', response_model=Other)\ndef pets() -> list[Pet]:\n    pass\n");
+    let view = ok(root, &["project", "contracts", "--types", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    let pets: Vec<_> = items
+        .iter()
+        .filter(|r| r["kind"] == "route-contract-type-reference" && r["name"] == "Pet")
+        .collect();
+    assert_eq!(pets.len(), 2);
+    assert!(pets
+        .iter()
+        .any(|r| r["candidate_count"] == 2 && r["status"] == "ambiguous"));
+    assert!(pets.iter().any(|r| r["candidate_count"] == 1));
+    assert!(items
+        .iter()
+        .any(|r| r["kind"] == "route-contract-type-reference"
+            && r["name"] == "Promise"
+            && r["candidate_count"] == 0));
+    assert!(!items
+        .iter()
+        .any(|r| r["kind"] == "route-contract-type-reference" && r["name"] == "Other"));
+    assert!(items
+        .iter()
+        .any(|r| r["basis"] == "fastapi-response-model" && r["declared_type"] == "Other"));
+}
+
+#[test]
+fn contract_types_gap_on_complex_or_deep_types_without_partial_references() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let deep = format!("{}Pet{}", "Array<".repeat(20), ">".repeat(20));
+    put(root, "app/route.ts", &format!("interface Pet {{ id: string; }}\n\nexport function GET(): {deep} {{ throw 0; }}\n\nexport function POST(): Wrapper<Pet, 'literal'> {{ throw 0; }}\n"));
+    put(root, "app.rs", "struct Pet;\n\nfn get() -> Wrapper<Pet, 4> { todo!() }\n\nfn router() { Router::new().route(\"/pets\", get(get)); }\n");
+    let view = ok(root, &["project", "contracts", "--types", "--limit", "500"]);
+    assert_eq!(view["analysis"]["type_references"], 0, "{view}");
+    assert!(view["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|r| r["kind"] == "route-contract-field")
+        .all(|r| r["type_reference_count"].is_null()));
+    assert_eq!(
+        view["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(
+                |r| r["kind"] == "route-contract-gap" && r["basis"] == "declared-type-references"
+            )
+            .count(),
+        3
+    );
+}
+
+#[test]
+fn contract_types_pages_bind_mode_scope_revision_and_preserve_declarations() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "app/route.ts",
+        "interface Pet { id: string; }\n\nexport function GET(): Promise<Pet> { throw 0; }\n",
+    );
+    let full = ok(root, &["project", "contracts", "--types", "--limit", "500"]);
+    let first = ok(root, &["project", "contracts", "--types", "--limit", "1"]);
+    let cursor = first["page"]["next"].as_str().unwrap().to_owned();
+    let mut page = first;
+    let mut combined = page["items"].as_array().unwrap().clone();
+    while let Some(next) = page["page"]["next"].as_str() {
+        page = ok(
+            root,
+            &[
+                "project",
+                "contracts",
+                "--types",
+                "--limit",
+                "2",
+                "--cursor",
+                next,
+            ],
+        );
+        assert!(page["items"].as_array().unwrap().len() <= 2);
+        combined.extend(page["items"].as_array().unwrap().iter().cloned());
+    }
+    assert_eq!(combined, *full["items"].as_array().unwrap());
+    let routes = ok(root, &["project", "routes", "--limit", "500"]);
+    assert_eq!(
+        combined
+            .iter()
+            .filter(|r| r["kind"] == "route" || r["kind"] == "route-handler")
+            .cloned()
+            .collect::<Vec<_>>(),
+        *routes["items"].as_array().unwrap()
+    );
+    assert!(!run(root, &["project", "contracts", "--cursor", &cursor]).0);
+    assert!(
+        !run(
+            root,
+            &[
+                "project",
+                "contracts",
+                "app",
+                "--types",
+                "--cursor",
+                &cursor
+            ]
+        )
+        .0
+    );
+    let plain = ok(root, &["project", "contracts", "--limit", "1"]);
+    assert!(
+        !run(
+            root,
+            &[
+                "project",
+                "contracts",
+                "--types",
+                "--cursor",
+                plain["page"]["next"].as_str().unwrap()
+            ]
+        )
+        .0
+    );
+    put(
+        root,
+        "app/route.ts",
+        "interface Other { id: string; }\n\nexport function GET(): Other { throw 0; }\n",
+    );
+    assert!(
+        !run(
+            root,
+            &["project", "contracts", "--types", "--cursor", &cursor]
+        )
+        .0
+    );
+    assert!(!root.join(".fr-history").exists());
+}
+
+#[test]
+fn contract_types_match_full_names_before_clipping_and_preserve_reference_ids() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let name = "名".repeat(180);
+    put(
+        root,
+        "app/route.ts",
+        &format!(
+            "interface {name} {{ id: string; }}\n\nexport function GET(): {name} {{ throw 0; }}\n"
+        ),
+    );
+    let view = ok(root, &["project", "contracts", "--types", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    let field = items.iter().find(|r| r["location"] == "return").unwrap();
+    assert_eq!(field["declared_type"]["text"].as_str().unwrap().len(), 510);
+    assert_eq!(field["declared_type"]["omitted_bytes"], name.len() - 510);
+    let reference = items
+        .iter()
+        .find(|r| r["kind"] == "route-contract-type-reference")
+        .unwrap();
+    assert_eq!(reference["field"], field["id"]);
+    assert_eq!(reference["name"]["text"].as_str().unwrap().len(), 159);
+    assert_eq!(reference["candidate_count"], 1);
+    assert!(items.iter().any(|r| r["reference"] == reference["id"]
+        && r["target"]["name"]["omitted_bytes"] == name.len() - 159));
+}
+
+#[test]
+fn contract_types_and_rust_schemas_use_captured_source_after_removal() {
+    use fun_refactor::{
+        index::Index,
+        project::Project,
+        scan::{scan, ScanOptions},
+    };
+    #[derive(clap::Parser)]
+    struct Query {
+        #[command(subcommand)]
+        command: fun_refactor::project::Command,
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    put(&root, "app.rs", "struct Pet { id: u64 }\n\nfn get() -> Pet { todo!() }\n\nfn router() { Router::new().route(\"/pets\", get(get)); }\n");
+    let options = ScanOptions::default();
+    let scanned = scan(&root, &options).unwrap();
+    let index = Index::build_with_cache(&scanned, None).unwrap();
+    let project = Project::new(&root, &index, &scanned, &options).unwrap();
+    fs::remove_file(root.join("app.rs")).unwrap();
+    let query = <Query as clap::Parser>::parse_from(["fr", "contracts", "--types"]);
+    let contracts = project.report(&query.command).unwrap();
+    let target = contracts["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["kind"] == "route-contract-type-candidate")
+        .unwrap();
+    let query = <Query as clap::Parser>::parse_from([
+        "fr",
+        "schemas",
+        target["target"]["handle"].as_str().unwrap(),
+    ]);
+    let schemas = project.report(&query.command).unwrap();
+    assert_eq!(schemas["analysis"]["fields"], 1);
     assert!(project.verify(&root).is_err());
 }
 

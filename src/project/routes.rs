@@ -72,7 +72,12 @@ impl Project<'_> {
         }))
     }
 
-    pub(super) fn routes(&self, options: &RelationshipOptions, contracts: bool) -> Result<Value> {
+    pub(super) fn routes(
+        &self,
+        options: &RelationshipOptions,
+        contracts: bool,
+        types: bool,
+    ) -> Result<Value> {
         let selected = self.relationship_selection(options)?;
         ensure!(
             self.nodes[selected].symbol.is_none(),
@@ -243,7 +248,7 @@ impl Project<'_> {
                         "status": if endpoint.handler.is_none() { "unnamed" } else if candidates.is_empty() { "unresolved" } else if candidates.len() == 1 { "candidate" } else { "ambiguous" }}}));
                 if contracts {
                     let details =
-                        self.contract_rows(&id, declaration, &candidates, &parsed, source)?;
+                        self.contract_rows(&id, declaration, &candidates, &parsed, source, types)?;
                     contract_fields += details
                         .iter()
                         .filter(|r| r["kind"] == "route-contract-field")
@@ -278,6 +283,18 @@ impl Project<'_> {
             "certainty": "Declaration patterns and local handler-name candidates; the reader does not verify framework identity or runtime reachability.",
             "limitations": "No request/response schema expansion, middleware, mounted-router prefixes or cross-file handler resolution. Next.js covers function declarations and direct arrow/function-expression bindings with static, grouped, single dynamic and terminal catch-all segments. Other path forms, Pages Router, wrapped handlers and cross-file re-exports remain unsupported. Empty results do not prove absence of routes."});
         if contracts {
+            analysis["type_references_requested"] = json!(types);
+            if types {
+                analysis["type_reference_limitations"] = json!("Supported declared returns and Axum request types only. Same-file names supply candidates, without import or lexical resolution. FastAPI marker types and response_model expressions remain outside reference inspection.");
+                analysis["type_references"] = json!(rows
+                    .iter()
+                    .filter(|r| r["kind"] == "route-contract-type-reference")
+                    .count());
+                analysis["type_candidates"] = json!(rows
+                    .iter()
+                    .filter(|r| r["kind"] == "route-contract-type-candidate")
+                    .count());
+            }
             analysis["contract_fields"] = json!(contract_fields);
             analysis["contract_gaps"] = json!(contract_gaps);
             analysis["contract_readers"] = json!([

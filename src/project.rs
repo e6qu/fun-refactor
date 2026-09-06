@@ -63,7 +63,15 @@ pub enum Command {
     #[command(about = "Page through route declaration patterns and local handler candidates.")]
     Routes(RelationshipOptions),
     #[command(about = "Page through partial route request and response contract candidates.")]
-    Contracts(RelationshipOptions),
+    Contracts {
+        #[command(flatten)]
+        selection: RelationshipOptions,
+        #[arg(
+            long,
+            help = "Include paged type references from supported handler signatures."
+        )]
+        types: bool,
+    },
     #[command(about = "Page through declared schema fields and local type-reference candidates.")]
     Schemas(RelationshipOptions),
     #[command(about = "Page through environment declarations and candidate code consumers.")]
@@ -882,8 +890,8 @@ impl<'a> Project<'a> {
                 direction,
             } => self.calls(selection, *direction),
             Command::Implementations(selection) => self.implementations(selection),
-            Command::Routes(selection) => self.routes(selection, false),
-            Command::Contracts(selection) => self.routes(selection, true),
+            Command::Routes(selection) => self.routes(selection, false, false),
+            Command::Contracts { selection, types } => self.routes(selection, true, *types),
             Command::Schemas(selection) => self.schemas(selection),
             Command::Configuration(selection) => self.configuration(selection),
             Command::Tests { selection, depth } => self.tests(selection, *depth),

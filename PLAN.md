@@ -289,7 +289,7 @@ M2b11 is complete. It adds bounded declared schema inspection:
 - Explicit gaps cover validation, inheritance, generics, decorators, duplicate fields and unsupported members or types.
 - Types and names have UTF-8 limits; metadata, defaults and bodies stay outside the output, and references do not recursively expand cycles.
 
-This view does not resolve contract types to schemas or infer wire models.
+M2b14 adds Rust structs and optional contract type-name candidates. Type resolution and wire-model inference remain unchecked.
 Runtime schema builders such as Zod remain outside this declaration subset.
 The shared Lean page-length laws apply; schema extraction and type resolution remain outside those proofs.
 Validation passes the full native/WASM gate and all 90 project CLI tests, including nine new schema regressions.
@@ -325,10 +325,24 @@ Validation passes the full native/WASM gate and all 106 project CLI tests, inclu
 The existing Express regression now checks initializer annotations and preserves unresolved inline/external handlers.
 Strict Lean verification passes with all six source anchors fresh.
 
+M2b14 is complete. It adds Rust schema fields and optional contract type references:
+
+- Named and unit Rust structs join schema pages, with explicit gaps for unsupported declarations, attributes, conditions and type expressions.
+- `contracts --types` pages references from supported declared returns and Axum request types, with field IDs and reference counts.
+- Separate same-file declaration candidates preserve duplicate definitions and unresolved names, with followable `schemas`/`show` handles.
+- Full names drive matching before UTF-8 clipping; cycles do not recursively expand, and unsupported expressions produce no partial references.
+- Type-reference pages bind the mode, scope and revision and retain captured-source analysis with final drift checks.
+
+FastAPI marker/model references, Spring request types and broader language coverage remain pending.
+Type/import resolution, const/type namespaces, serialization and runtime validation remain unchecked.
+The shared Lean page-length laws apply; schema extraction and reference correspondence remain outside those proofs.
+Validation passes the full native/WASM gate and all 114 project CLI tests, including eight new schema/reference regressions.
+Strict Lean verification passes with all six source anchors fresh.
+
 Next M2b work:
 
-- Extend schema language coverage and contract-to-declaration evidence without guessing imports or runtime validation.
 - Extend workspace rules beyond the observed Cargo subset and formalize membership closure.
+- Extend request/model reference evidence and remaining schema subsets without guessing imports or runtime validation.
 - Evaluate bounded inspection tasks on unfamiliar repositories with an agent, a pinned tokenizer and correctness checks.
 - Measure model tokens and task success against file reading, including additional calls and uncertainty.
 - Improve repeated-query cost and bound analysis work where measurements justify it.

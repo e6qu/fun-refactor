@@ -743,7 +743,27 @@ The existing route-reader limitations still apply, including mounted routers and
 Output limits do not bound workspace indexing or selected-file analysis work.
 The Lean page-length laws apply; contract extraction, wire correspondence and type resolution remain outside those proofs.
 
-`schemas` pages direct declared fields and type-reference candidates from captured Python, TypeScript and TSX source.
+`contracts --types` adds bounded type-name references from supported declared handler returns and Axum request parameter types.
+The type reader supports Python, TypeScript/TSX and Rust syntax. Other return languages and unsupported expressions produce `route-contract-gap` diagnostics.
+FastAPI marker types, decorator response models and Spring request types remain outside reference inspection.
+Ordinary contract pages omit these reference rows. `analysis.type_references_requested` records the mode; cursors cannot cross modes.
+
+```sh
+fr project contracts src/app.rs --types --limit 12
+fr project schemas '<type-candidate-handle>' --limit 12
+```
+
+Inspected fields gain a revision-bound `id` and `type_reference_count`; a null count denotes unsupported syntax, while zero denotes no reference names.
+Fields outside this inspection subset have neither field. Supported spellings use the schema reader's depth limit and syntax rules.
+Matching uses full names before output clipping. Existing bounded type spellings remain on the contract fields even when reference inspection reports a gap.
+Separate `route-contract-type-reference` rows join the route and field IDs, with bounded names, candidate counts and unresolved/candidate/ambiguous status.
+Separate `route-contract-type-candidate` rows join each reference ID and provide declaration handles with name-only confidence.
+Only classes, interfaces, type aliases and structs in the same file supply candidates; lexical scope, imports, qualified names and namespaces remain unresolved.
+Repeated names within one field produce one reference; duplicate declarations remain separate candidates, with no recursive expansion.
+Follow candidate handles through `schemas` or `show`. A candidate does not establish the serialized payload or runtime schema identity.
+Fields, references, candidates and gaps share the page limit; the existing revision and snapshot checks apply.
+
+`schemas` pages direct declared fields and type-reference candidates from captured Python, TypeScript/TSX and Rust source.
 It accepts directory, file and symbol scopes, full handles, or short IDs with `--revision`.
 Symbol scopes include supported declarations within that symbol; a schema handle selects its declaration and any nested declarations.
 The default scope is the workspace root, with 40 rows and limits from 1 through 500.
@@ -757,13 +777,16 @@ fr project show '<type-candidate-handle>' --source --bytes 512
 ```
 
 Python classes expose direct annotated assignments. TypeScript interfaces and direct object type aliases expose property signatures.
+Rust named structs expose field declarations; unit structs have no declared fields, while tuple structs and Rust aliases produce gaps.
 Classes need not inherit from a known model library; these are declaration candidates, with no inferred runtime schema identity.
 Every `schema` summary has a declaration endpoint, field/reference/gap counts, `completeness: partial`, `status: candidate` and null confidence.
 Separate `schema-field` rows join its declaration handle through `schema`, with their own revision-bound `id`.
 Fields carry names, lines and supported type spellings. TypeScript `optional_marker` and `readonly_marker` record syntax only.
-Python leaves those markers null. Wire requiredness remains null for both languages.
+Python and Rust leave those markers null. Wire requiredness remains null throughout.
 
 Supported types include names, qualified names, generic applications, unions and TypeScript arrays, tuples and intersections.
+Rust also supports primitive types, references, pointers, slices and tuples, including lifetime/mutability spelling without lifetime reference rows.
+Rust array-length expressions, const literals in generic arguments, associated bindings and raw type identifiers remain outside this syntax subset.
 Type traversal stops beyond depth 16. Top-level Python `Annotated` exposes its first type argument without metadata.
 Quoted forward references, literal values, computed types, inline object/function types and types containing comments remain unknown.
 Unsupported type syntax leaves `declared_type` null and produces a gap; the reader emits no partial references for that field.
@@ -772,7 +795,7 @@ Defaults, validation arguments, decorators and method bodies stay outside the ou
 Each `schema-type-reference` records a field ID, full-name matching basis and candidate count.
 It has `status: unresolved`, `candidate` or `ambiguous`; repeated names within one field produce one reference row.
 Separate `schema-type-candidate` rows join the reference ID and carry followable declaration endpoints with name-only confidence.
-Matching uses the full spelling before output clipping and retains every matching class, interface or type alias in the same file.
+Matching uses the full spelling before output clipping and retains every matching class, interface, type alias or struct in the same file.
 It does not resolve imports, qualified names, lexical scope, builtins or type parameters. Candidates can lie outside the selected symbol.
 Duplicate declarations remain separate, including TypeScript interface declarations that may merge under compiler rules.
 References do not recursively expand definitions, so cycles require no special traversal.
@@ -781,9 +804,10 @@ Use the candidate handle with `schemas` or `show`; field/reference IDs only join
 Every supported schema has a gap for unchecked wire names, requiredness, validation, serialization and runtime identity.
 Additional `schema-gap` rows cover inheritance, generics, decorators, duplicate fields and unsupported members or declaration forms.
 Python class/instance distinctions and inherited or computed fields remain unchecked.
+Rust attributes, derives, `cfg`, visibility, generic bounds and const/type namespaces remain unchecked; attribute values stay outside the output.
 Runtime schema builders such as Zod calls do not supply declared fields in this subset.
 Syntax errors skip the file with an `analysis-gap`; unsupported languages produce count-based `coverage-gap` rows.
-Empty results do not establish a complete schema inventory. Contract fields have no automatic resolved link to these declarations.
+Empty results do not establish a complete schema inventory. `contracts --types` supplies optional declaration candidates without resolving types or wire models.
 Names cap at 160 UTF-8 bytes, type spellings and endpoint paths at 512, with explicit omitted-byte counts.
 Fields, references, candidates, summaries and diagnostics share the page limit, with query/scope/revision-bound cursors and final snapshot checks.
 Output limits do not bound indexing or selected-file analysis work.

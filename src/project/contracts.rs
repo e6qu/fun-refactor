@@ -1,4 +1,4 @@
-use super::{bounded_text, fast_routes, routes::RouteDeclaration, Project};
+use super::{bounded_text, fast_routes, hash, routes::RouteDeclaration, schemas, Project};
 use crate::lang::Language;
 use crate::model::Symbol;
 use crate::parse::Parsed;
@@ -201,6 +201,49 @@ fn fastapi_fields(
 }
 
 impl Project<'_> {
+    fn contract_type_rows(
+        &self,
+        route: &str,
+        symbol: &Symbol,
+        ty: Node<'_>,
+        source: &str,
+        field: &mut Value,
+    ) -> Result<Vec<Value>> {
+        let id = format!(
+            "frpctf1:{}",
+            &hash((
+                route,
+                symbol.id,
+                ty.start_byte(),
+                &field["basis"],
+                &field["location"]
+            ))?[..32]
+        );
+        field["id"] = json!(id);
+        field["type_reference_count"] = Value::Null;
+        let Some(names) = schemas::declared_type_names(ty, source, symbol.language) else {
+            return Ok(vec![
+                json!({"kind": "route-contract-gap", "route": route, "field": id,
+                "basis": "declared-type-references", "reason": "The type expression or language exceeds reference inspection; no partial type-name candidates accompany this field."}),
+            ]);
+        };
+        field["type_reference_count"] = json!(names.len());
+        let mut rows = Vec::new();
+        for name in names {
+            let candidates = self.type_candidates(&name, &symbol.file);
+            let reference = format!("frpctr1:{}", &hash((&id, &name))?[..32]);
+            rows.push(json!({"kind": "route-contract-type-reference", "id": reference, "route": route, "field": id,
+                "name": bounded_text(&name, 160), "candidate_count": candidates.len(),
+                "status": match candidates.len() { 0 => "unresolved", 1 => "candidate", _ => "ambiguous" },
+                "basis": "same-file-type-name", "confidence": null}));
+            for candidate in candidates {
+                rows.push(json!({"kind": "route-contract-type-candidate", "route": route, "reference": reference,
+                    "target": self.endpoint(candidate.id)?, "basis": "same-file-type-name", "status": "candidate", "confidence": "name-only"}));
+            }
+        }
+        Ok(rows)
+    }
+
     pub(super) fn contract_rows(
         &self,
         route: &str,
@@ -208,6 +251,7 @@ impl Project<'_> {
         candidates: &[&Symbol],
         parsed: &Parsed,
         source: &str,
+        types: bool,
     ) -> Result<Vec<Value>> {
         let mut rows = Vec::new();
         let endpoint = &declaration.endpoint;
@@ -304,14 +348,20 @@ impl Project<'_> {
                     let binding = parameter
                         .child_by_field_name("name")
                         .or_else(|| parameter.child_by_field_name("pattern"));
-                    rows.push(json!({"kind": "route-contract-field", "route": route,
+                    let mut field = json!({"kind": "route-contract-field", "route": route,
                         "handler": handler, "direction": "request", "location": location,
                         "name": name.as_deref().map(|n| bounded_text(n, 160)),
                         "binding": binding.map(|n| bounded_text(text(n, source), 160)),
                         "declared_type": bounded_text(&type_spelling(ty, parameter, source), 512),
                         "payload_type": inner.map(|n| bounded_text(text(n, source), 512)),
                         "required": null, "line": parameter.start_position().row + 1,
-                        "basis": basis, "status": "candidate", "confidence": "name-only"}));
+                        "basis": basis, "status": "candidate", "confidence": "name-only"});
+                    if types && parsed.language == Language::Rust {
+                        rows.extend(
+                            self.contract_type_rows(route, candidate, ty, source, &mut field)?,
+                        );
+                    }
+                    rows.push(field);
                 }
             }
             if unknown_inputs > 0 {
@@ -326,11 +376,15 @@ impl Project<'_> {
             };
             if let Some(ty) = returned {
                 let spelling = type_spelling(ty, function, source);
-                rows.push(json!({"kind": "route-contract-field", "route": route,
+                let mut field = json!({"kind": "route-contract-field", "route": route,
                     "handler": handler, "direction": "response", "location": "return",
                     "name": null, "binding": null, "declared_type": bounded_text(&spelling, 512),
                     "payload_type": null, "required": null, "line": ty.start_position().row + 1,
-                    "basis": "declared-return-type", "status": "candidate", "confidence": null}));
+                    "basis": "declared-return-type", "status": "candidate", "confidence": null});
+                if types {
+                    rows.extend(self.contract_type_rows(route, candidate, ty, source, &mut field)?);
+                }
+                rows.push(field);
             } else if !has_response_model {
                 rows.push(json!({"kind": "route-contract-gap", "route": route, "handler": handler,
                     "basis": "handler-signature", "reason": "No explicit return type; response shape remains unknown."}));

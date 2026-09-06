@@ -12,7 +12,7 @@ use tree_sitter::Node;
 fn schema_kind(kind: SymbolKind) -> bool {
     matches!(
         kind,
-        SymbolKind::Class | SymbolKind::Interface | SymbolKind::TypeAlias
+        SymbolKind::Class | SymbolKind::Interface | SymbolKind::TypeAlias | SymbolKind::Struct
     )
 }
 
@@ -21,7 +21,11 @@ fn declaration<'a>(parsed: &'a Parsed, symbol: &Symbol) -> Option<Node<'a>> {
     loop {
         if matches!(
             node.kind(),
-            "class_definition" | "interface_declaration" | "type_alias_declaration"
+            "class_definition"
+                | "interface_declaration"
+                | "type_alias_declaration"
+                | "struct_item"
+                | "type_item"
         ) && node.child_by_field_name("name").is_some_and(|name| {
             name.start_byte() == symbol.name_span.start && name.end_byte() == symbol.name_span.end
         }) {
@@ -62,11 +66,17 @@ fn field_type<'a>(node: Node<'a>, source: &str, python: bool) -> Option<Node<'a>
 fn type_names(
     node: Node<'_>,
     source: &str,
-    python: bool,
+    language: Language,
     depth: usize,
     names: &mut BTreeSet<String>,
 ) -> bool {
-    if depth > 16 || (python && annotated(node, source)) {
+    if depth > 16 || (language == Language::Python && annotated(node, source)) {
+        return false;
+    }
+    if language == Language::Rust
+        && node.kind() == "array_type"
+        && node.child_by_field_name("length").is_some()
+    {
         return false;
     }
     let mut cursor = node.walk();
@@ -82,16 +92,30 @@ fn type_names(
             names.insert(name.to_owned());
             true
         }
-        "none" | "predefined_type" | "null" => true,
+        "scoped_type_identifier" if language == Language::Rust => {
+            let name = text(node, source);
+            if !name
+                .strip_prefix("::")
+                .unwrap_or(name)
+                .split("::")
+                .all(super::contracts::simple_name)
+            {
+                return false;
+            }
+            names.insert(name.to_owned());
+            true
+        }
+        "none" | "predefined_type" | "null" | "primitive_type" | "unit_type" | "lifetime"
+        | "mutable_specifier" => true,
         "literal_type" => children(node).as_slice().iter().all(|n| n.kind() == "null"),
         "type" | "type_annotation" | "generic_type" | "type_parameter" | "type_arguments"
         | "union_type" | "intersection_type" | "array_type" | "tuple_type"
-        | "parenthesized_type" => {
+        | "parenthesized_type" | "reference_type" | "pointer_type" | "slice_type" => {
             let parts = children(node);
             !parts.is_empty()
                 && parts
                     .into_iter()
-                    .all(|n| type_names(n, source, python, depth + 1, names))
+                    .all(|n| type_names(n, source, language, depth + 1, names))
         }
         "binary_operator"
             if node
@@ -100,10 +124,26 @@ fn type_names(
         {
             children(node)
                 .into_iter()
-                .all(|n| type_names(n, source, python, depth + 1, names))
+                .all(|n| type_names(n, source, language, depth + 1, names))
         }
         _ => false,
     }
+}
+
+pub(super) fn declared_type_names(
+    node: Node<'_>,
+    source: &str,
+    language: Language,
+) -> Option<BTreeSet<String>> {
+    if !matches!(
+        language,
+        Language::Python | Language::TypeScript | Language::Tsx | Language::Rust
+    ) {
+        return None;
+    }
+    let node = field_type(node, source, language == Language::Python)?;
+    let mut names = BTreeSet::new();
+    type_names(node, source, language, 0, &mut names).then_some(names)
 }
 
 fn gap(schema: &Value, line: usize, reason: &'static str) -> Value {
@@ -112,6 +152,14 @@ fn gap(schema: &Value, line: usize, reason: &'static str) -> Value {
 }
 
 impl Project<'_> {
+    pub(super) fn type_candidates(&self, name: &str, file: &std::path::Path) -> Vec<&Symbol> {
+        self.index
+            .find_symbols(name, Some(file))
+            .into_iter()
+            .filter(|s| schema_kind(s.kind))
+            .collect()
+    }
+
     fn schema_field(
         &self,
         symbol: &Symbol,
@@ -122,8 +170,12 @@ impl Project<'_> {
     ) -> Result<Vec<Value>> {
         let line = node.start_position().row + 1;
         let name = node.child_by_field_name(if python { "left" } else { "name" });
-        let Some(name) = name.filter(|n| matches!(n.kind(), "identifier" | "property_identifier"))
-        else {
+        let Some(name) = name.filter(|n| {
+            matches!(
+                n.kind(),
+                "identifier" | "property_identifier" | "field_identifier"
+            )
+        }) else {
             return Ok(vec![gap(
                 schema,
                 line,
@@ -138,12 +190,13 @@ impl Project<'_> {
         let ty = node
             .child_by_field_name("type")
             .and_then(|n| field_type(n, source, python))
-            .filter(|n| type_names(*n, source, python, 0, &mut names));
+            .filter(|n| type_names(*n, source, symbol.language, 0, &mut names));
+        let typescript = matches!(symbol.language, Language::TypeScript | Language::Tsx);
         let mut cursor = node.walk();
-        let optional = (!python).then(|| node.children(&mut cursor).any(|n| n.kind() == "?"));
+        let optional = typescript.then(|| node.children(&mut cursor).any(|n| n.kind() == "?"));
         let mut cursor = node.walk();
         let readonly =
-            (!python).then(|| node.children(&mut cursor).any(|n| n.kind() == "readonly"));
+            typescript.then(|| node.children(&mut cursor).any(|n| n.kind() == "readonly"));
         let mut rows = vec![
             json!({"kind": "schema-field", "id": id, "schema": schema["handle"],
             "name": bounded_text(text(name, source), 160), "line": line,
@@ -156,12 +209,7 @@ impl Project<'_> {
             return Ok(rows);
         }
         for name in names {
-            let candidates: Vec<_> = self
-                .index
-                .find_symbols(&name, Some(&symbol.file))
-                .into_iter()
-                .filter(|s| schema_kind(s.kind))
-                .collect();
+            let candidates = self.type_candidates(&name, &symbol.file);
             let reference = format!("frpst1:{}", &hash((&id, &name))?[..32]);
             rows.push(json!({"kind": "schema-type-reference", "id": reference, "schema": schema["handle"],
                 "field": id, "name": bounded_text(&name, 160), "line": line,
@@ -183,7 +231,7 @@ impl Project<'_> {
         let line = schema["line"].as_u64().unwrap_or(1) as usize;
         let python = symbol.language == Language::Python;
         let Some(declaration) = declaration(parsed, symbol) else {
-            return Ok(vec![gap(&schema, line, "This declaration form is outside the Python class and TypeScript interface/object-alias reader.")]);
+            return Ok(vec![gap(&schema, line, "This declaration form is outside the Python class, TypeScript object and Rust struct reader.")]);
         };
         let body =
             declaration.child_by_field_name(if declaration.kind() == "type_alias_declaration" {
@@ -191,16 +239,15 @@ impl Project<'_> {
             } else {
                 "body"
             });
-        let Some(body) =
-            body.filter(|n| matches!(n.kind(), "block" | "interface_body" | "object_type"))
-        else {
-            return Ok(vec![gap(
-                &schema,
-                line,
-                "Only direct object type aliases have fields in this reader.",
-            )]);
+        let members = match body {
+            Some(body) if matches!(body.kind(), "block" | "interface_body" | "object_type" | "field_declaration_list") => children(body),
+            None if declaration.kind() == "struct_item" => Vec::new(),
+            _ => return Ok(vec![gap(&schema, line, "Only direct object type aliases and named or unit Rust structs have fields in this reader.")]),
         };
         let mut rows = vec![gap(&schema, line, "Wire names, requiredness, validation, serialization and runtime schema identity remain unchecked.")];
+        if symbol.language == Language::Rust {
+            rows.push(gap(&schema, line, "Rust attributes, derives, cfg conditions, visibility and generic bounds remain unchecked; attribute values stay outside the output."));
+        }
         if declaration.child_by_field_name("superclasses").is_some()
             || declaration.child_by_field_name("type_parameters").is_some()
             || children(declaration)
@@ -216,14 +263,15 @@ impl Project<'_> {
             rows.push(gap(&schema, line, "Class decorators may change fields and behavior; the reader omits decorator metadata."));
         }
         let mut field_names = BTreeSet::new();
-        for member in children(body) {
+        for member in members {
             let field = if python && member.kind() == "expression_statement" {
                 children(member)
                     .first()
                     .copied()
                     .filter(|n| n.kind() == "assignment" && n.child_by_field_name("type").is_some())
             } else {
-                (member.kind() == "property_signature").then_some(member)
+                matches!(member.kind(), "property_signature" | "field_declaration")
+                    .then_some(member)
             };
             if let Some(field) = field {
                 if let Some(name) = field.child_by_field_name(if python { "left" } else { "name" })
@@ -244,7 +292,7 @@ impl Project<'_> {
         let count = |kind| rows.iter().filter(|r| r["kind"] == kind).count();
         rows.push(json!({"kind": "schema", "declaration": schema, "status": "candidate", "completeness": "partial",
             "field_count": count("schema-field"), "type_references": count("schema-type-reference"), "gap_count": count("schema-gap"),
-            "basis": if python { "python-class-annotations" } else { "typescript-object-declaration" }, "confidence": null}));
+            "basis": match symbol.language { Language::Python => "python-class-annotations", Language::Rust => "rust-struct-declaration", _ => "typescript-object-declaration" }, "confidence": null}));
         Ok(rows)
     }
 
@@ -260,7 +308,7 @@ impl Project<'_> {
             }
             if !matches!(
                 info.language,
-                Language::Python | Language::TypeScript | Language::Tsx
+                Language::Python | Language::TypeScript | Language::Tsx | Language::Rust
             ) {
                 *unsupported.entry(info.language.name()).or_insert(0usize) += 1;
                 continue;
@@ -284,7 +332,7 @@ impl Project<'_> {
         }
         for (language, files) in &unsupported {
             rows.push(json!({"kind": "coverage-gap", "language": language, "files": files,
-                "reason": "Declared schema inspection supports Python classes and TypeScript interfaces/object aliases."}));
+                "reason": "Declared schema inspection supports Python classes, TypeScript interfaces/object aliases and named or unit Rust structs."}));
         }
         let analysis = json!({"analyzed_files": analyzed, "unsupported_language_files": unsupported,
             "declarations": rows.iter().filter(|r| r["kind"] == "schema").count(),
