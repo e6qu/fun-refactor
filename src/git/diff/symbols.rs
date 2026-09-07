@@ -1,5 +1,6 @@
 use super::{checked, patch};
 use crate::extract::Extractor;
+use crate::git::snapshot::blob_oid;
 use crate::lang::Language;
 use crate::parse::Parsers;
 use crate::project::CallDirection;
@@ -48,28 +49,6 @@ fn source(root: &Path, path: &str, oid: &str, working: bool) -> Result<String> {
         bail!("symbol snapshot differs from the Git diff. Retry, or inspect conversion attributes with fr git diff without --symbols.");
     }
     Ok(text)
-}
-
-fn blob_oid(root: &Path, text: &str) -> Result<String> {
-    let output = crate::git::process::run(
-        root,
-        &[
-            "hash-object".into(),
-            "--no-filters".into(),
-            "--stdin".into(),
-        ],
-        Some(text.as_bytes()),
-    )?;
-    if !output.status.success() {
-        bail!("cannot hash captured source bytes");
-    }
-    let oid = std::str::from_utf8(&output.stdout)?
-        .strip_suffix('\n')
-        .context("invalid captured source hash")?;
-    if !patch::oid(oid) {
-        bail!("invalid captured source hash");
-    }
-    Ok(oid.to_owned())
 }
 
 fn bounded(text: &str) -> Value {

@@ -593,9 +593,24 @@ The checks do not freeze concurrent state or detect changes fully restored betwe
 Validation passes the full native/WASM gate, all 24 call CLI scenarios, 311/311 capability coverage and all 29 Lean build jobs.
 Strict verification passes with thirteen fresh source anchors and signature maps and zero `sorry` obligations.
 
+M3m: explicit-path staging previews (complete).
+
+- Add `fr git stage PATH...` for up to 32 literal paths, reporting raw proposed entries and action counts without source bodies.
+- Bind a reusable basis token to selected index identities, working bytes and projected owner-executable modes.
+- Recheck selected sources and index entries while allowing unrelated staged changes and conflicts.
+- Share snapshot readers with call inspection, retaining filter, path, encoding and symlink guards.
+- Support untracked additions, tracked updates/removals, unborn repositories, linked worktrees and SHA-256 identities.
+- Report preview-only operation explicitly; no index writes, object writes, history records or `--write` option exist yet.
+
+See [staging preview semantics and limits](docs/git-staging.md).
+Eight CLI scenarios cover actions, no-write behavior, basis drift, raw conversion differences, ignored files, modes, conflicts and source/index races.
+The existing mode model applies. Classification, snapshot coherence and general Rust correspondence remain outside its proofs.
+Validation passes the full native/WASM gate, eight staging CLI scenarios, 311/311 capability coverage and all 29 Lean build jobs.
+Strict verification passes with thirteen fresh source anchors and signature maps and zero `sorry` obligations.
+
 Next M3 work:
 
-Add explicit-path staging with previews and basis checks that preserve unrelated index entries.
+Apply reviewed raw staging proposals through a prepared index, with lock ownership, basis checks and preservation of unrelated entries.
 
 Add explicit staging, commits and isolated worktree workflows after patch correctness.
 Keep Git optional for ordinary analysis and transaction history.

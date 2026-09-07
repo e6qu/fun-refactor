@@ -40,6 +40,14 @@ pub(crate) fn run(root: &Path, args: &[OsString], input: Option<&[u8]>) -> Resul
         .context("running Git; install Git to use this inspection.")
 }
 
+pub(crate) fn checked(root: &Path, args: &[OsString]) -> Result<Vec<u8>> {
+    let output = run(root, args, None)?;
+    if !output.status.success() {
+        bail!("Git inspection failed: {}", diagnostic(&output.stderr));
+    }
+    Ok(output.stdout)
+}
+
 pub(crate) fn diagnostic(bytes: &[u8]) -> String {
     String::from_utf8_lossy(&bytes[..bytes.len().min(16 * 1024)]).into_owned()
 }

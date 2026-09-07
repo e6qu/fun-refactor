@@ -843,6 +843,6 @@ fn context_refuses_index_symlinks_conflicts_and_excess_paths() {
     error(
         root,
         &["app.py", "--calls", "--staged", "--include", "caller.py"],
-        "unmerged call context",
+        "unmerged Git snapshot",
     );
 }

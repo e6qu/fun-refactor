@@ -1,6 +1,7 @@
 use super::{process, status};
 use anyhow::{bail, Context, Result};
 use clap::Args;
+use process::checked;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::ffi::OsString;
@@ -51,17 +52,6 @@ pub struct Options {
     limit: usize,
     #[arg(long, help = "Continue the same observed diff.")]
     cursor: Option<String>,
-}
-
-fn checked(root: &Path, args: &[OsString]) -> Result<Vec<u8>> {
-    let output = process::run(root, args, None)?;
-    if !output.status.success() {
-        bail!(
-            "Git diff inspection failed: {}",
-            process::diagnostic(&output.stderr)
-        );
-    }
-    Ok(output.stdout)
 }
 
 pub(super) fn commit(root: &Path, revision: &str, optional: bool) -> Result<Option<String>> {

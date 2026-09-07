@@ -75,3 +75,6 @@ Parser and Git regression tests cover status classes, malformed records, cursors
 These checks do not prove correspondence between Git execution, the parser and a Lean status model.
 
 Git inspection requires support for [`--no-lazy-fetch`](https://git-scm.com/docs/git); older Git versions refuse the command.
+
+Use [staging previews](git-staging.md) to inspect proposed raw entries for explicit paths, including eligible untracked files.
+The preview makes no index writes.

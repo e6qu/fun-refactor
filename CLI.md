@@ -1110,6 +1110,17 @@ Comparison flags match `fr git diff`. Follow a path with `fr git diff PATH --sym
 Untracked files and submodules are outside this scope. Unmerged paths and content filters in the index or selected commit cause refusal.
 See [repository change pages](docs/git-changes.md) for fields, configuration and observation limits.
 
+```sh
+fr git stage src/main.rs src/api.rs
+fr git stage src/main.rs src/api.rs --basis TOKEN
+```
+
+Preview raw staging entries for up to 32 explicit files, with add, update, remove and unchanged counts, without source bodies.
+This command currently makes no writes and does not accept `--write`.
+Proposals preserve raw working bytes and project owner-executable modes; they do not reproduce Git's content conversion rules.
+The basis binds selected index and working identities. Unrelated changes leave it valid; selected drift causes refusal.
+See [staging preview semantics](docs/git-staging.md) for fields, supported files and observation limits.
+
 ### `fr cache`
 
 ```

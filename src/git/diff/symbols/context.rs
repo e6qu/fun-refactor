@@ -1,16 +1,15 @@
-use super::{blob_oid, checked, language, patch, source};
+use super::{language, patch, source};
 use crate::analysis::call_graph::Family;
 use crate::capabilities::{support, Capability};
 use crate::extract::Extractor;
+use crate::git::snapshot::{inventory, working_file, Inventory};
 use crate::lang::Language;
 use crate::model::FileFacts;
 use crate::parse::Parsers;
 use anyhow::{bail, ensure, Context as _, Result};
-use serde::Serialize;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
-use std::ffi::OsString;
 use std::path::{Component, Path, PathBuf};
 
 pub(super) struct Snapshot {
@@ -20,14 +19,6 @@ pub(super) struct Snapshot {
     pub facts: FileFacts,
 }
 
-#[derive(Clone, PartialEq, Eq, Serialize)]
-struct Blob {
-    mode: String,
-    oid: String,
-}
-
-type Inventory = BTreeMap<String, Blob>;
-
 pub(in crate::git::diff) struct Context {
     pub(super) sides: [Vec<Snapshot>; 2],
     pub(super) coverage: Value,
@@ -36,95 +27,6 @@ pub(in crate::git::diff) struct Context {
     before: Inventory,
     working: Option<Inventory>,
     focus_text: Option<String>,
-}
-
-fn inventory(root: &Path, paths: &BTreeSet<String>, commit: Option<&str>) -> Result<Inventory> {
-    let mut args: Vec<OsString> = vec!["--literal-pathspecs".into()];
-    if let Some(commit) = commit {
-        args.extend(["ls-tree".into(), "-z".into(), commit.into()]);
-    } else {
-        args.extend(["ls-files".into(), "--stage".into(), "-z".into()]);
-    }
-    args.push("--".into());
-    args.extend(paths.iter().map(Into::into));
-    let output = checked(root, &args)?;
-    let mut result = Inventory::new();
-    for row in crate::git::status::records(&output)? {
-        let row = std::str::from_utf8(row).context("non-UTF-8 call context inventory")?;
-        let (metadata, path) = row
-            .split_once('\t')
-            .context("invalid call context inventory")?;
-        ensure!(
-            paths.contains(path),
-            "call context requires explicit file paths; directories are unsupported."
-        );
-        let fields = metadata.split(' ').collect::<Vec<_>>();
-        ensure!(fields.len() == 3, "invalid call context inventory fields.");
-        let oid = if commit.is_some() {
-            ensure!(
-                fields[1] == "blob",
-                "call context requires regular file blobs."
-            );
-            fields[2]
-        } else {
-            ensure!(
-                fields[2] == "0",
-                "unmerged call context requires conflict inspection."
-            );
-            fields[1]
-        };
-        ensure!(
-            matches!(fields[0], "100644" | "100755") && patch::oid(oid),
-            "call context requires regular file blobs."
-        );
-        ensure!(
-            result
-                .insert(
-                    path.to_owned(),
-                    Blob {
-                        mode: fields[0].to_owned(),
-                        oid: oid.to_owned()
-                    }
-                )
-                .is_none(),
-            "duplicate call context inventory path."
-        );
-    }
-    Ok(result)
-}
-
-fn working_file(root: &Path, path: &str) -> Result<Option<(Blob, String)>> {
-    let mut selected = root.to_path_buf();
-    for component in Path::new(path).components() {
-        selected.push(component);
-        let metadata = match std::fs::symlink_metadata(&selected) {
-            Ok(metadata) => metadata,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-            Err(error) => return Err(error.into()),
-        };
-        ensure!(
-            !metadata.file_type().is_symlink(),
-            "working call context traverses a symlink."
-        );
-    }
-    let metadata = std::fs::symlink_metadata(&selected)?;
-    ensure!(
-        metadata.is_file(),
-        "working call context requires a regular file."
-    );
-    #[cfg(unix)]
-    let mode = {
-        use std::os::unix::fs::PermissionsExt;
-        format!(
-            "{:o}",
-            crate::history::git_mode(metadata.permissions().mode())
-        )
-    };
-    #[cfg(not(unix))]
-    let mode = "100644".to_owned();
-    let text = crate::vfs::read_to_string(&selected).context("reading working call context")?;
-    let oid = blob_oid(root, &text)?;
-    Ok(Some((Blob { mode, oid }, text)))
 }
 
 impl Context {

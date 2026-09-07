@@ -332,7 +332,7 @@ fn working_context_reports_partial_sources_and_rejects_binary_or_non_utf8_contex
     fs::write(root.join("dependency.py"), b"a\0b").unwrap();
     error(root, &args, "binary call context");
     fs::write(root.join("dependency.py"), [0xff, 0xfe]).unwrap();
-    error(root, &args, "reading working call context");
+    error(root, &args, "reading working Git snapshot");
 }
 
 #[cfg(unix)]

@@ -9,6 +9,8 @@ use std::path::Path;
 mod changes;
 mod diff;
 pub(crate) mod process;
+mod snapshot;
+mod stage;
 mod status;
 
 #[derive(Subcommand)]
@@ -19,6 +21,8 @@ pub enum Command {
     Diff(diff::Options),
     #[command(about = "Page through changed paths and line counts for one Git comparison.")]
     Changes(changes::Options),
+    #[command(about = "Preview raw staging entries for explicit paths without index writes.")]
+    Stage(stage::Options),
 }
 
 #[derive(Args)]
@@ -51,6 +55,7 @@ pub fn report(root: &Path, command: &Command) -> Result<Value> {
         Command::Status(options) => status_report(root, options),
         Command::Diff(options) => diff::report(root, options),
         Command::Changes(options) => changes::report(root, options),
+        Command::Stage(options) => stage::report(root, options),
     }
 }
 
