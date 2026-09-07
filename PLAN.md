@@ -569,7 +569,7 @@ M3k: explicit file context for staged calls (complete).
 - Bind cursors to context blobs and modes, including body changes that leave call rows identical.
 - Guard all selected paths against filters and unsupported inventories, and recheck index entries before returning a page.
 
-See [staged context scope and consistency](docs/git-diff.md#explicit-context-for-staged-calls).
+See [staged context scope and consistency](docs/git-diff.md#explicit-file-context).
 Nine new CLI scenarios cover resolution, snapshot sides, cursors, additions/deletions, unborn branches, literal paths, SHA-256, dispatch, refusals and index races.
 The workspace-isolation regression now exercises both single-file and selected-file analysis.
 Working source bytes and omitted dependencies remain outside these graphs. Observations do not freeze concurrent Git state.
@@ -577,9 +577,25 @@ The existing Lean selection and page laws apply; inventory interpretation, file 
 Validation passes the full native/WASM gate, all 16 call CLI scenarios, 311/311 capability coverage and all 29 Lean build jobs.
 Strict verification passes with thirteen fresh source anchors and signature maps and zero `sorry` obligations.
 
+M3l: working and commit-based call context (complete).
+
+- Extend `--calls --include FILE` to default and `--since REV` comparisons, retaining staged blob-only analysis.
+- Capture the selected index or commit before side and raw tracked working files after, without expanding omitted dependencies.
+- Feed captured focus text to analysis and recheck selected content, existence, projected modes and index entries before returning pages.
+- Bind cursors to raw working identities, including context body changes with identical call rows and modes ignored by Git configuration.
+- Preserve raw context CRLF while requiring focus bytes to match the observed diff; report source bases and missing sides explicitly.
+- Exclude working replacements absent from the index and retain refusals for symlinks, unsupported files and invalid source encodings.
+
+See [explicit context and observation limits](docs/git-diff.md#explicit-file-context).
+Eight CLI scenarios cover comparison bases, cursors, conversions, missing files, executable modes, partial sources, source races, linked worktrees and SHA-256 identities.
+The existing selection, pagination and Git mode models apply. Inventory interpretation and snapshot consistency remain regression-tested, without general Rust correspondence proofs.
+The checks do not freeze concurrent state or detect changes fully restored between observations.
+Validation passes the full native/WASM gate, all 24 call CLI scenarios, 311/311 capability coverage and all 29 Lean build jobs.
+Strict verification passes with thirteen fresh source anchors and signature maps and zero `sorry` obligations.
+
 Next M3 work:
 
-Extend explicit call context to working-tree and commit-based comparisons, with coordinated source-drift checks and clear observation limits.
+Add explicit-path staging with previews and basis checks that preserve unrelated index entries.
 
 Add explicit staging, commits and isolated worktree workflows after patch correctness.
 Keep Git optional for ordinary analysis and transaction history.

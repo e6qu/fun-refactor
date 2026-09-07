@@ -661,12 +661,13 @@ fn context_refuses_unsupported_selections_and_checks_selected_filters() {
         let value: Value = serde_json::from_slice(&out.stdout).unwrap();
         assert!(value.get("entries").is_none());
     }
-    for flags in [
-        vec!["app.py", "--calls", "--include", "dir/dep.py"],
-        vec!["app.py", "--staged", "--include", "dir/dep.py"],
-    ] {
-        assert!(!fr(root, &flags).output().unwrap().status.success());
-    }
+    assert!(
+        !fr(root, &["app.py", "--staged", "--include", "dir/dep.py"])
+            .output()
+            .unwrap()
+            .status
+            .success()
+    );
     fs::write(root.join(".gitattributes"), "style.css filter=blocked\n").unwrap();
     let args = ["app.py", "--calls", "--staged", "--include", "dir/dep.py"];
     assert!(report(root, &args)["page"]["total"].as_u64().unwrap() > 0);

@@ -124,7 +124,8 @@ The Git model also anchors the boolean direction predicate used by snapshot call
 Six laws characterize empty selections, disabled directions, incoming-only, outgoing-only, both-direction and symmetric selection.
 All six proofs use no axioms. Shared execution compares all 16 boolean inputs with Rust.
 The predicate receives endpoint membership and direction flags; their derivation, enum mapping, call graph construction and complete Rust correspondence remain unproved.
-Staged call context reuses this predicate. Its selected-file inventory, file-aware containment and snapshot consistency checks have regression evidence, without additional model proofs.
+Explicit call context reuses this predicate and the anchored Git mode projection for working files.
+Its selected-file inventory, file-aware containment and snapshot consistency checks have regression evidence, without additional model proofs.
 
 The project kernel also models path confidence as the maximum of edge ranks, with zero as the empty-path identity.
 Ranks map `exact`, `import-qualified`, `field-based` and `name-only` to 0 through 3, in that order.

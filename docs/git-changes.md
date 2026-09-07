@@ -27,7 +27,7 @@ fr git diff src/main.rs --symbols --since COMMIT_ID
 ```
 
 Use `--calls` instead of `--symbols` for call candidates touching changed declarations within each file snapshot.
-For staged comparisons, add `--include FILE` for explicit caller and target context from the selected HEAD/index bases.
+Add `--include FILE` for explicit caller and target context from the selected comparison bases, with working-source drift checks where applicable.
 Copy `base_commit` from the first report to pin the second command's commit basis.
 Pass paths literally, including whitespace or pathspec-like characters. Put a path beginning with a dash after `--`.
 Discovery and detail commands observe independently; a path or its state can change between them.

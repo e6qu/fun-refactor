@@ -88,7 +88,7 @@ Page sizing reuses the Lean-anchored pagination helper.
 Parser and CLI tests cover coordinates, excerpts, cursors, comparison bases, unusual paths, conflicts, linked worktrees and guarded Git execution.
 They do not prove parser or Git execution correspondence with Lean.
 Use `--symbols` for changed declarations or `--calls` for snapshot-local call candidates, described below.
-Staged call pages can include explicitly selected files. Working-tree cross-file relationships and transitive impact remain roadmap work.
+Call pages can include explicitly selected files for each comparison. Transitive impact remains roadmap work.
 
 Git inspection requires support for [`--no-lazy-fetch`](https://git-scm.com/docs/git); older Git versions refuse the command.
 
@@ -140,7 +140,7 @@ Language detection uses the extension only, without consulting the current files
 In particular, neighboring Helm chart files do not change a YAML snapshot's language.
 The symbol view does not run dependency resolution or call analysis.
 Use project navigation separately to inspect current declarations and candidate relationships.
-The call view below inspects historical callers within the selected file. Staged historical relationships can include selected files, as described below.
+The call view below inspects historical callers within the selected file. Historical relationships can include selected files, as described below.
 
 Symbol cursors use a separate identity from line pages.
 They bind the complete diff, tool version, full declaration result and coverage before paging.
@@ -206,32 +206,47 @@ Pagination bounds response rows; complete snapshot extraction and call analysis 
 The direction predicate has a source anchor, signature map and six Lean laws, proved without axioms.
 Shared execution compares all 16 boolean inputs with Rust.
 Those laws cover supplied selection flags; extraction, graph construction, enum mapping and complete report correspondence remain outside the proof.
-Working-tree cross-file relationships and transitive impact remain pending.
+Automatic dependency expansion and transitive impact remain pending.
 
 
-## Explicit context for staged calls
+## Explicit file context
 
 ```sh
 fr git diff src/main.rs --calls --staged --include src/api.rs
 fr git diff src/main.rs --calls --staged --include src/api.rs --include src/consumer.rs
 ```
 
-`--include FILE` adds a literal repository-relative file to staged call analysis.
-It requires `--calls --staged`; working-tree and `--since` comparisons do not accept it yet.
+`--include FILE` adds a literal repository-relative file to call analysis and requires `--calls`.
+It supports default, staged and commit-based comparisons.
+
+```sh
+fr git diff src/main.rs --calls --include src/api.rs
+fr git diff src/main.rs --calls --since HEAD~1 --include src/api.rs
+```
 Repeat it up to 32 times. Paths normalize and deduplicate, and their order does not affect the result or cursor.
 The focus path itself is ignored in the context list; at least one distinct context path must remain.
 Directories, absolute paths and parent traversal cause refusal.
 
-Only changed declarations in the focus file select rows. Included files supply caller and target candidates, even when those files have no staged changes.
+Only changed declarations in the focus file select rows. Included files supply caller and target candidates, even when those files have no changes in the selected comparison.
 A changed declaration in a context file does not become another selection root.
 Containment checks include the file path, so equal byte offsets in distinct files do not imply selection membership.
 Endpoints in context files have `changed_declaration: false` and `in_selection: false`.
 Imports and hierarchy analysis operate on the captured files, without automatically loading further dependencies or package metadata.
 Candidates retain their confidence and origins; selecting more files can change resolution and ambiguity.
 
-Before-side context comes from the report's pinned HEAD commit, or the empty tree on an unborn branch.
-After-side context comes from stage-zero index entries captured for all selected paths in one inventory.
-Each loaded blob must match its Git object identity. Working source bytes do not enter either side's graph.
+For staged queries, before-side context comes from pinned HEAD, or the empty tree on an unborn branch; after-side context uses captured stage-zero index entries.
+Default queries use the captured index before and raw working files after.
+`--since REV` uses the pinned commit before and raw working files after.
+Every Git blob read must match its object identity. Staged graphs never read working source bytes.
+
+Working after-side context includes only paths present in the captured index.
+Untracked files, including replacements for staged deletions, remain outside that side even when present on disk.
+A tracked file missing from the working tree supplies no after-side declarations.
+Selected working paths reject symlink traversal and non-regular files.
+The command captures their raw UTF-8 bytes and projected owner-executable modes, without running content conversion or writing Git objects.
+Working context can therefore retain CRLF even when Git normalizes it to LF.
+The focus source must still match its observed diff identity; a focus conversion mismatch causes refusal.
+Focus analysis uses the captured working text, and all selected working sources undergo a final drift check.
 A file absent from one side supplies no declarations there. A path absent from both selected inventories causes refusal.
 Selected index or commit symlinks, submodules, conflicts, unsupported context languages, non-UTF-8 blobs and NUL-containing context blobs also cause refusal.
 Partial parses retain their extracted facts and report gaps.
@@ -239,14 +254,18 @@ Partial parses retain their extracted facts and report gaps.
 Content-filter checks cover the focus and every included file, even files with no staged changes.
 The focus diff must agree with the captured object identities.
 Before returning a page, the command rereads the selected index inventory and refuses changed paths, modes or blob identities.
-Unrelated index entries remain outside that check. The index, source files and object database receive no writes.
-These checks detect observed drift; they do not freeze concurrent index changes or detect a change that is fully restored between observations.
+Working comparisons also reread the selected working files, checking existence, content hashes and projected modes, then recheck the index again.
+Unrelated index entries and working files remain outside those checks. The index, source files and object database receive no writes.
+These checks detect observed drift; they do not freeze concurrent files or index entries, or detect a change fully restored between observations.
 Configuration and attributes must remain stable, as with ordinary Git inspection.
 
 `structure.relationships` becomes `selected-file-call-candidates`.
-`structure.coverage.context` contains `scope: "explicit-staged-files"`, the focus path and sorted `files` metadata.
+`structure.coverage.context` contains the focus path and sorted `files` metadata.
+Its scope is `explicit-staged-files` or `explicit-working-files`. `working_revision` binds the selected raw working identities and is null for staged queries.
 Each context entry contains its path, language, hierarchy support and `before`/`after` coverage.
-Present sides report status (`parsed` or `partial`), blob identity, Git mode, source byte count and parser gaps.
+Present sides report status (`parsed` or `partial`), blob identity, mode, source byte count, parser gaps and `source_basis`.
+The source basis is `git-blob` or `raw-worktree`. Raw working identities use Git's blob hash but need not exist in its object database.
+Raw working modes project the owner-executable bit, independently of Git's `core.filemode` setting; other permission bits do not affect that projection.
 Absent sides report `status: "absent"`, with null blob and mode.
 When focus analysis runs, call coverage uses `scope: "selected-file-snapshot"` and `cross_file: "explicit-files-only"`.
 Hierarchy gaps in that report identify both their path and bounded reason.
@@ -258,5 +277,6 @@ Keep the same include set when continuing; include order, duplicates and page si
 All selected sources and graphs are collected before paging. The path-count limit does not bound source sizes or total internal memory.
 
 The existing Lean selection and pagination laws still apply to supplied flags and counts.
+Working modes reuse the anchored Git mode projection; its proof assumptions remain documented in [Lean specifications](lean-specs.md).
 Inventory parsing, file containment, snapshot coherence, graph construction and complete Rust correspondence remain outside those proofs.
-Regression tests exercise separate comparison sides, cross-file dispatch, unchanged contexts, hidden body changes and index races.
+Regression tests exercise comparison sides, cross-file dispatch, hidden body changes, raw conversion differences, index/source races and linked worktrees.

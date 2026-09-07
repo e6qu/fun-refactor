@@ -43,8 +43,8 @@ pub struct Options {
     #[arg(
         long,
         value_name = "FILE",
-        requires_all = ["calls", "staged"],
-        help = "Include a literal file in staged call analysis; repeat for more files."
+        requires = "calls",
+        help = "Include a literal file in call analysis; repeat for more files."
     )]
     include: Vec<PathBuf>,
     #[arg(long, default_value_t = 50, help = "Maximum rows, from 1 to 500.")]
@@ -198,6 +198,7 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
             path,
             &options.include,
             base.as_deref(),
+            options.staged,
         )?)
     };
     let scope = if options.staged {

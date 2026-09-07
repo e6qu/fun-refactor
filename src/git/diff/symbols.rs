@@ -44,6 +44,13 @@ fn source(root: &Path, path: &str, oid: &str, working: bool) -> Result<String> {
         )?)
         .context("non-UTF-8 symbol snapshot")?
     };
+    if blob_oid(root, &text)? != oid {
+        bail!("symbol snapshot differs from the Git diff. Retry, or inspect conversion attributes with fr git diff without --symbols.");
+    }
+    Ok(text)
+}
+
+fn blob_oid(root: &Path, text: &str) -> Result<String> {
     let output = crate::git::process::run(
         root,
         &[
@@ -53,10 +60,16 @@ fn source(root: &Path, path: &str, oid: &str, working: bool) -> Result<String> {
         ],
         Some(text.as_bytes()),
     )?;
-    if !output.status.success() || output.stdout != format!("{oid}\n").as_bytes() {
-        bail!("symbol snapshot differs from the Git diff. Retry, or inspect conversion attributes with fr git diff without --symbols.");
+    if !output.status.success() {
+        bail!("cannot hash captured source bytes");
     }
-    Ok(text)
+    let oid = std::str::from_utf8(&output.stdout)?
+        .strip_suffix('\n')
+        .context("invalid captured source hash")?;
+    if !patch::oid(oid) {
+        bail!("invalid captured source hash");
+    }
+    Ok(oid.to_owned())
 }
 
 fn bounded(text: &str) -> Value {
@@ -215,7 +228,18 @@ pub(super) fn collect(
             )
         } else {
             let oid = oid.context("Git diff lacks a blob identity required for symbol mapping")?;
-            let text = source(root, path, oid, index == 1 && !staged)?;
+            let captured = if index == 1 {
+                context
+                    .map(|context| context.focus_source(path, oid))
+                    .transpose()?
+                    .flatten()
+            } else {
+                None
+            };
+            let text = match captured {
+                Some(text) => text.to_owned(),
+                None => source(root, path, oid, index == 1 && !staged)?,
+            };
             side(
                 Path::new(path),
                 name,

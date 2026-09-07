@@ -1085,9 +1085,16 @@ Cursors bind the call result and direction.
 fr git diff src/main.rs --calls --staged --include src/api.rs
 ```
 
-`--include FILE` requires `--calls --staged`; repeat it up to 32 times to add explicit caller and target context.
-Only changed declarations in the focus file select rows. Context uses captured HEAD/index blobs, with per-file coverage and final index checks.
-Cursors also bind context paths and blob identities. Working-tree cross-file inspection remains pending.
+`--include FILE` requires `--calls`; repeat it up to 32 times to add explicit caller and target context.
+It supports default, staged and `--since` comparisons. Only changed declarations in the focus file select rows.
+Context uses the chosen index/commit before-side basis and captured index blobs or raw working bytes after, with per-file coverage and final drift checks.
+Cursors bind context paths, source identities and projected modes. Working files absent from the captured index stay outside the after side.
+
+```sh
+fr git diff src/main.rs --calls --include src/api.rs
+fr git diff src/main.rs --calls --since HEAD~1 --include src/api.rs
+```
+
 See [Git diff detail pages](docs/git-diff.md) for fields, comparison semantics and limits.
 
 ```sh
