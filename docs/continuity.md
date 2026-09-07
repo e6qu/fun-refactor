@@ -67,7 +67,8 @@ The retained report is `tests/agent-eval/history-context.json`; `tools/history-c
 Strict verification passes in `/tmp/fr-m4j-spec-verify.json`, with twenty-two fresh anchors and signature maps and zero obligations.
 The full native/WASM gate passes in `/tmp/fr-m4j-full-check.log`, retaining 311/311 capability coverage and 29 Lean build jobs.
 The acceptance regression also replays all eight earlier patches and runs ten harness regressions.
-The M4j commit includes implementation, skill examples, controlled measurements, regression coverage and refreshed local docs.
+M4j implementation commit `4ae00eb` includes skill examples, controlled measurements, regression coverage and refreshed local docs.
+Repeating the measurement after the full gate produced identical reports and counts; the retained report identifies the final rebuilt binary.
 
 ## Next steps
 
