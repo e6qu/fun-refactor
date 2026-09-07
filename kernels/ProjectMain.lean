@@ -6,7 +6,13 @@ open FrKernels.Project
 def samples : List Nat := [0, 1, 2, 3, 4, 79, 80, 499, 500, 65536, 4294967295, 18446744073709551615]
 
 def main (args : List String) : IO Unit := do
-  if args == ["staging-transition"] then
+  if args == ["commit-basis"] then
+    for expectedBranch in ["refs/heads/main", "refs/heads/other", "名"] do
+      for observedBranch in ["refs/heads/main", "refs/heads/other", "名"] do
+        for expectedParent in [none, some "aa", some "bb"] do
+          for observedParent in [none, some "aa", some "bb"] do
+            IO.println (FrKernels.Git.commitBasisMatches expectedBranch observedBranch expectedParent observedParent)
+  else if args == ["staging-transition"] then
     for before in [false, true] do
       for after in [false, true] do
         for recovery in [false, true] do

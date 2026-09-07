@@ -29,6 +29,7 @@ The journal records only changed paths. An explicitly selected path with an unch
 Undo and redo follow separate stacks. The newest applied transaction is undone first; the most recently undone transaction is redone first.
 A new changed staging transaction abandons the redo branch only after successful installation and journal finalization.
 Records remain available for inspection after abandonment.
+[Reviewed commits](git-commit.md) preserve completed staging history. A later staging undo changes the index relative to HEAD without removing the commit.
 
 The transition basis binds the full journal state, action, transaction and current selected index identities.
 A later unrelated index change leaves the basis valid; a journal change invalidates it.

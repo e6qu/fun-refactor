@@ -11,7 +11,7 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::path::{Component, Path, PathBuf};
 
-mod apply;
+pub(super) mod apply;
 pub(super) mod journal;
 
 #[derive(Args)]

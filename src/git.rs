@@ -7,6 +7,7 @@ use std::collections::BTreeSet;
 use std::path::Path;
 
 mod changes;
+mod commit;
 mod diff;
 pub(crate) mod process;
 mod snapshot;
@@ -23,6 +24,8 @@ pub enum Command {
     Changes(changes::Options),
     #[command(about = "Preview or apply reviewed raw staging entries for explicit paths.")]
     Stage(stage::Options),
+    #[command(about = "Preview or create a commit from the entire reviewed index.")]
+    Commit(commit::Options),
     #[command(about = "Inspect, undo, redo or recover recorded index staging.")]
     StageHistory {
         #[command(subcommand)]
@@ -61,6 +64,7 @@ pub fn report(root: &Path, command: &Command) -> Result<Value> {
         Command::Diff(options) => diff::report(root, options),
         Command::Changes(options) => changes::report(root, options),
         Command::Stage(options) => stage::report(root, options),
+        Command::Commit(options) => commit::report(root, options),
         Command::StageHistory { command } => stage::journal::report(root, command),
     }
 }
@@ -185,4 +189,13 @@ pub fn staging_transition_allowed(
     recovery: bool,
 ) -> bool {
     matches_before || (recovery && matches_after)
+}
+
+pub fn commit_basis_matches(
+    expected_branch: &str,
+    observed_branch: &str,
+    expected_parent: &Option<String>,
+    observed_parent: &Option<String>,
+) -> bool {
+    expected_branch == observed_branch && expected_parent == observed_parent
 }

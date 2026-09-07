@@ -40,7 +40,7 @@ Important gaps:
 - `fr project` adds bounded maps, revision-bound details, call relationships and Cargo/npm manifest views. Complete dependency resolution and framework semantics remain pending.
 - Native changes now have persistent history and checked undo/redo. History retention and large-journal scaling need further work.
 - Browser undo restores the loaded workspace; it does not reverse individual transactions.
-- Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist. Raw staging and journaled index undo/redo are available on Unix. Reviewed commits and shared browser patch semantics remain pending.
+- Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist. Raw staging and journaled index undo/redo are available on Unix. Reviewed commits are available with explicit index and HEAD bases. Shared browser patch semantics remain pending.
 - Strict spec signature maps currently accept Rust source declarations only.
 - Framework readers cover selected patterns. Whole applications still need dependency and runtime work.
 - Model proofs and shared executable cases do not establish general correspondence with the Rust implementation.
@@ -640,9 +640,25 @@ An additional executable comparison covers every transition-predicate input. Fil
 Validation passes the full native/WASM gate, all 27 staging CLI scenarios, 311/311 capability coverage and all 29 Lean build jobs.
 Strict verification passes with fourteen fresh source anchors and signature maps and zero `sorry` obligations.
 
+M3p: reviewed index commits (complete).
+
+- Add `fr git commit -m MESSAGE` with a complete index basis, reviewed branch/parent, identities, tree and bounded changed-path reporting.
+- Prepare previews in temporary index/object storage without repository writes, retaining raw indexed binary and symlink blobs.
+- Publish only with `--basis TOKEN --write`, preserving working files, index bytes and completed staging history.
+- Let Git prepare and lock HEAD and its branch before the final basis checks and publication request.
+- Distinguish confirmed publication from uncertain outcomes, retaining the candidate commit identity and inspection guidance.
+- Refuse unsupported Git states; disable hooks, signing, replacement objects and inherited Git environment overrides.
+- Anchor branch/parent acceptance in Lean and prove abstract index and unrelated-reference preservation laws.
+
+See [reviewed commits and publication limits](docs/git-commit.md).
+Twelve CLI scenarios cover no-write previews, initial and linked commits, raw blobs, stale bases, ref locks, index races and publication failures.
+Shared Rust/Lean cases cover branch and parent changes. Git locking, object handling and complete Rust correspondence remain outside the model proofs.
+Validation passes the full native/WASM gate, twelve commit CLI scenarios, 311/311 capability coverage and all 29 Lean build jobs.
+Strict verification passes with fifteen fresh source anchors and signature maps and zero `sorry` obligations.
+
 Next M3 work:
 
-Add reviewed commits with explicit index and HEAD bases, then isolated worktree workflows.
+Add isolated worktree inspection and reviewed creation workflows.
 Extend selected flag replay and add staging journal retention and compaction.
 Keep Git optional for ordinary analysis and transaction history.
 Undo an `fr` transaction without resetting unrelated Git changes.

@@ -1014,3 +1014,34 @@ fn staging_transition_matches_lean_for_every_boolean_input() {
     }
     assert_eq!(actual, expected);
 }
+
+#[test]
+fn commit_basis_matches_lean_for_branch_and_parent_changes() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("commit-basis")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let actual = actual
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for branch in ["refs/heads/main", "refs/heads/other", "名"] {
+        for observed in ["refs/heads/main", "refs/heads/other", "名"] {
+            for parent in [None, Some("aa".to_owned()), Some("bb".to_owned())] {
+                for observed_parent in [None, Some("aa".to_owned()), Some("bb".to_owned())] {
+                    expected.push(fun_refactor::git::commit_basis_matches(
+                        branch,
+                        observed,
+                        &parent,
+                        &observed_parent,
+                    ));
+                }
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}

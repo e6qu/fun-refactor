@@ -109,4 +109,54 @@ theorem staging_restore_preserves_later_unselected (original later : StagingInde
     replaceSelected later original selected path = later path := by
   exact staging_preserves_unselected later original selected path outside
 
+-- fr:spec src/git.rs::commit_basis_matches @ a3140234999167c8f8c9754eda749da3e7357744a6f2efdfed12758aa1256247
+-- fr:signature expected_branch: &str => expectedBranch: String; observed_branch: &str => observedBranch: String; expected_parent: &Option<String> => expectedParent: Option String; observed_parent: &Option<String> => observedParent: Option String; return: bool => return: Bool
+def commitBasisMatches (expectedBranch : String) (observedBranch : String)
+    (expectedParent : Option String) (observedParent : Option String) : Bool :=
+  decide (expectedBranch = observedBranch ∧ expectedParent = observedParent)
+
+theorem commit_accepts_reviewed_head (branch : String) (parent : Option String) :
+    commitBasisMatches branch branch parent parent = true := by
+  simp [commitBasisMatches]
+
+theorem commit_refuses_switched_branch (expected observed : String) (parent : Option String)
+    (changed : expected ≠ observed) :
+    commitBasisMatches expected observed parent parent = false := by
+  simp [commitBasisMatches, changed]
+
+theorem commit_refuses_changed_parent (branch : String) (expected observed : Option String)
+    (changed : expected ≠ observed) :
+    commitBasisMatches branch branch expected observed = false := by
+  simp [commitBasisMatches, changed]
+
+structure CommitState where
+  branch : String
+  refs : String → Option String
+  index : StagingIndex
+
+def publishChecked (expectedBranch : String) (expectedParent : Option String)
+    (commit : String) (state : CommitState) : Option CommitState :=
+  if commitBasisMatches expectedBranch state.branch expectedParent (state.refs state.branch) then
+    some { state with refs := fun name => if name = state.branch then some commit else state.refs name }
+  else none
+
+theorem commit_preserves_index (branch : String) (parent : Option String) (commit : String)
+    (before after : CommitState) (published : publishChecked branch parent commit before = some after) :
+    after.index = before.index := by
+  unfold publishChecked at published
+  split at published
+  · cases published
+    rfl
+  · contradiction
+
+theorem commit_preserves_other_refs (branch : String) (parent : Option String) (commit name : String)
+    (before after : CommitState) (other : name ≠ before.branch)
+    (published : publishChecked branch parent commit before = some after) :
+    after.refs name = before.refs name := by
+  unfold publishChecked at published
+  split at published
+  · cases published
+    simp [other]
+  · contradiction
+
 end FrKernels.Git

@@ -164,7 +164,7 @@ mod host {
             path.file_type().is_file() && open.dev() == path.dev() && open.ino() == path.ino()
         }
 
-        fn check(&self, root: &Path) -> Result<()> {
+        pub(crate) fn check(&self, root: &Path) -> Result<()> {
             ensure!(
                 self.owns_path(),
                 "Git index lock ownership changed; staging refused."
@@ -176,7 +176,7 @@ mod host {
             Ok(())
         }
 
-        pub(crate) fn apply(
+        pub(in crate::git::stage) fn apply(
             self,
             root: &Path,
             entries: &[Entry],
@@ -201,7 +201,7 @@ mod host {
             })
         }
 
-        pub(crate) fn replay(
+        pub(in crate::git::stage) fn replay(
             self,
             root: &Path,
             entries: &[Entry],
@@ -348,10 +348,10 @@ mod host {
 }
 
 #[cfg(unix)]
-pub(super) use host::{index_path, IndexLock};
+pub(in crate::git) use host::{index_path, IndexLock};
 
 #[cfg(not(unix))]
-pub(super) struct IndexLock;
+pub(in crate::git) struct IndexLock;
 
 #[cfg(not(unix))]
 impl IndexLock {
@@ -370,7 +370,7 @@ impl IndexLock {
 }
 
 #[cfg(not(unix))]
-pub(super) fn index_path(_: &std::path::Path) -> anyhow::Result<std::path::PathBuf> {
+pub(in crate::git) fn index_path(_: &std::path::Path) -> anyhow::Result<std::path::PathBuf> {
     anyhow::bail!("staging history requires Unix index lock ownership checks.")
 }
 

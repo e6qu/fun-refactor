@@ -14,6 +14,15 @@ pub(super) fn run_with_index(
     input: Option<&[u8]>,
     index: Option<&Path>,
 ) -> Result<Output> {
+    run_with_objects(root, args, input, index, None)
+}
+
+pub(super) fn command(
+    root: &Path,
+    args: &[OsString],
+    index: Option<&Path>,
+    objects: Option<&Path>,
+) -> Command {
     let mut command = Command::new("git");
     for (name, _) in std::env::vars_os() {
         if name.to_str().is_some_and(|name| name.starts_with("GIT_")) {
@@ -22,6 +31,9 @@ pub(super) fn run_with_index(
     }
     if let Some(index) = index {
         command.env("GIT_INDEX_FILE", index);
+    }
+    if let Some(objects) = objects {
+        command.env("GIT_OBJECT_DIRECTORY", objects);
     }
     command
         .current_dir(root)
@@ -41,6 +53,17 @@ pub(super) fn run_with_index(
             "core.hooksPath=/dev/null",
         ])
         .args(args);
+    command
+}
+
+pub(super) fn run_with_objects(
+    root: &Path,
+    args: &[OsString],
+    input: Option<&[u8]>,
+    index: Option<&Path>,
+    objects: Option<&Path>,
+) -> Result<Output> {
+    let mut command = command(root, args, index, objects);
     if let Some(input) = input {
         let mut file = tempfile::tempfile()?;
         file.write_all(input)?;

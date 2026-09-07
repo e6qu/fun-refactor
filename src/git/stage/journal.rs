@@ -81,7 +81,7 @@ struct State {
     pending: Option<Pending>,
 }
 
-pub(super) struct Journal {
+pub(in crate::git) struct Journal {
     path: PathBuf,
     original: Option<Vec<u8>>,
     state: State,
@@ -120,7 +120,7 @@ fn directory(path: &Path) -> Result<bool> {
 }
 
 impl Journal {
-    pub(super) fn read(root: &Path, index: &Path) -> Result<Self> {
+    pub(in crate::git) fn read(root: &Path, index: &Path) -> Result<Self> {
         let dir = index
             .parent()
             .context("missing Git index directory")?
@@ -234,7 +234,7 @@ impl Journal {
             .context("unknown staging transaction")
     }
 
-    pub(super) fn ready(&self) -> Result<()> {
+    pub(in crate::git) fn ready(&self) -> Result<()> {
         ensure!(
             self.state.pending.is_none(),
             "staging transaction needs recovery; inspect `fr git stage-history recover`."
@@ -242,7 +242,7 @@ impl Journal {
         Ok(())
     }
 
-    pub(super) fn check(&self) -> Result<()> {
+    pub(in crate::git) fn check(&self) -> Result<()> {
         directory(
             self.path
                 .parent()
@@ -443,7 +443,7 @@ impl Journal {
     }
 }
 
-pub(super) fn require_plain_entries(root: &Path, paths: &BTreeSet<String>) -> Result<()> {
+pub(in crate::git) fn require_plain_entries(root: &Path, paths: &BTreeSet<String>) -> Result<()> {
     if paths.is_empty() {
         return Ok(());
     }

@@ -222,3 +222,7 @@ Staging history adds an anchored transition predicate, checked against all boole
 Those laws establish undo/redo round trips and preservation of unselected entries.
 Index locking, journal durability, basis hashing and prepared installation remain outside complete correspondence proofs.
 See [staging history assurance](git-stage-history.md#formal-coverage) for assumptions and tested behavior.
+
+Reviewed commits add an anchored branch/parent predicate and abstract publication laws that preserve the index and unrelated refs.
+Shared Rust/Lean cases cover branch switches with identical parents, changed parents and unborn states.
+See [commit assurance](git-commit.md#formal-coverage) for the Git-locking assumptions and remaining implementation boundaries.

@@ -1138,6 +1138,16 @@ Changed staging writes record index snapshots separately from source history. Un
 They preserve working files and unrelated staged entries. Pending operations block further staging writes until recovery.
 See [staging history](docs/git-stage-history.md) for stack order, storage, flag restrictions and durability limits.
 
+```sh
+fr git commit -m "Describe the change"
+fr git commit -m "Describe the change" --basis TOKEN --write
+```
+
+Preview a commit of the entire index, with branch, parent, tree, message, identities and bounded changed paths.
+`--write` requires the preview basis and preserves working files and index bytes. Hooks and signing are disabled; identities require repository-local configuration.
+Only `applied: true` confirms publication. An uncertain Git result reports `applied: null` with the candidate commit ID and inspection guidance.
+See [reviewed commits](docs/git-commit.md) for supported states, reference locking, message handling and publication limits.
+
 ### `fr cache`
 
 ```
