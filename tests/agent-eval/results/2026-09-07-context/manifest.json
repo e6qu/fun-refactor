@@ -1,0 +1,61 @@
+{
+  "schema": "fr-agent-eval-evidence-1",
+  "trials": [
+    "unicode-dice-fr",
+    "unicode-dice-files",
+    "normalized-osa-fr",
+    "normalized-osa-files"
+  ],
+  "project": "rapidfuzz/strsim-rs published crate 0.11.1; complete release snapshot, without Git history",
+  "upstream_commit": "76c5a900e6e12cfc605eee5ab6e36300384c8682",
+  "archive_sha256": "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f",
+  "implementation_commit": "0498c6bfe3190aeac1dee847bcf94baa5b66facf",
+  "agent_execution": "Four fresh collaboration agents, fork_turns=none, inherited parent model and effort, no overrides or task corrections. Cooperative tool boundary.",
+  "pilots": {
+    "interrupted": [],
+    "reason": null,
+    "included_in_scored_trials": false
+  },
+  "versions": {
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "git": "git version 2.55.0",
+    "python3": "Python 3.14.6"
+  },
+  "evaluator_files": {
+    "tools/agent-eval.py": "7409ee2f2cd73ad4de748cb74c621ba75e3a698dde905d7f4854500eb9bab899",
+    "tools/agent_eval/oracle.py": "cf938812a50d1a7ce41d2c3e9b6ba9dc1abff2fa0f6fec84ff33bd2b28e7bf09"
+  },
+  "files": {
+    "normalized-osa-files/change.patch": "d82b01aad85aace309bfcf1d480309c263b2b2ac99d1d1acd9b8967ce2c3a0e7",
+    "normalized-osa-files/events.jsonl": "785c1756fd1d714feebddcf83ff6497fcac447bf026f8e49c282fd4ef391ddf2",
+    "normalized-osa-files/prompt.txt": "e22f1e2a5d8dafda5593605778c5284b61c9a0e7ac9ab2aa1473341bb9f5d313",
+    "normalized-osa-files/result.json": "93768489edd7a10dc80b67f1bb2692fbec023f3f5b88d41c84626d4c36d659bc",
+    "normalized-osa-files/session.json": "84e3d8e8b3fbb46ebee64425a475e3e0aef60f41e158e75414f57969aeaac53f",
+    "normalized-osa-fr/change.patch": "ab6c9737815dfa11c8ce35fef40547fc15286588412832e6f024cd215cac7e13",
+    "normalized-osa-fr/events.jsonl": "5f72abc7a61fdac0df3b5c3734106b84b20622c8a700f1de65c28f3a5c0e6a01",
+    "normalized-osa-fr/prompt.txt": "231fa95afca72490941d8923d8db229426461a5841081aa59682a279b210bc62",
+    "normalized-osa-fr/result.json": "00e70b490457c6e3716a5857589e2d6a9414c81b8d4eb41dcb5040c327ce9574",
+    "normalized-osa-fr/session.json": "2dfc25b1ce67c8749499e9e9174892a02506ff12fe7e80b7d914fbd95b056cb0",
+    "skill/SKILL.md": "9c188e2dca57f772adf0ab40482f3daf8065b0f411d25a406ba15dd9267be23a",
+    "skill/references/author.md": "b462509e79d620407c63640b8382b264da581ccf79909f99813d05adbe1a87e8",
+    "skill/references/change.md": "da72cb5ff685177f78fac884f8db6b465031ef457577707b2b7008735751db56",
+    "skill/references/checks.md": "b55516b944cecd9ae643d0ce6e40aa315a8741b7897a76232a8be826e1b272b8",
+    "skill/references/explore.md": "ef2970bf481e729442bf5346603a457837871cf70d7a4f0405bb8591c1c0049e",
+    "skill/references/git-admin.md": "006e92b39ec734cd81436e7545029da4469e2e35d5cc94f8daef99629facbb47",
+    "skill/references/git.md": "e808545a818cb58bc5a47b5230a27f705e5ffee8c9ee3f874efb7ccc176e1abc",
+    "skill/references/history.md": "509e19dfee4c78ac906b4ae23b54d742d062bcdae461aae453f8225f28528988",
+    "skill/references/lean.md": "f423b374cbe8328a23d9123f8a01f810a7f03048a22c7e71e84d78b565fc2998",
+    "skill/references/recipes.md": "f764bef0a648638b82e1be20b544ec2481ed00fba306cfcf801fa5c31dd49e3b",
+    "unicode-dice-files/change.patch": "28099a756c100db6a3abecd92126fc1528f7432449207120248e9e71c9bb71c5",
+    "unicode-dice-files/events.jsonl": "22fb1cf16da22794325884dcd20d3a03dd374a02eb95c429fd641bf5840fd0aa",
+    "unicode-dice-files/prompt.txt": "a590968481b184ca88bd0e96e900380a06aa07d7e7657f4ac4d20fdc4ee52d51",
+    "unicode-dice-files/result.json": "a4851e876fca053b916bbc7b25481620f848bdbc1750b0dcb25a0cd30f0ed255",
+    "unicode-dice-files/session.json": "765f2b93091ab308da96d43d65c4f35bdccb5309478f283f23a0bb739b64ff38",
+    "unicode-dice-fr/change.patch": "4f66d0d5f380c28b3ab344fc8d36250b1334e65e89e50674dd54f9a7b762a2ce",
+    "unicode-dice-fr/events.jsonl": "ac74538c5773b7c892a4fa537a2856ee365893ae833653658801b05dcdefd3b6",
+    "unicode-dice-fr/prompt.txt": "6ac11151ee9e087774d99c8059ff4a9845c5b0696cb828f729d8707b8fc01cab",
+    "unicode-dice-fr/result.json": "a59c53d95917a67be7962878e068356adaae0e6a9a09acd2c4a52305dcb9724c",
+    "unicode-dice-fr/session.json": "7072b73f1c087262d669b3467a257da9507adb45340fc510b341f6afd6c85dc7"
+  }
+}

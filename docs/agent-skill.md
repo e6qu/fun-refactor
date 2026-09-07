@@ -71,7 +71,8 @@ The native packaging change has a local archive check; release uploads and other
 
 The [first real-agent evaluation](agent-acceptance.md) now records two fr tasks and their ordinary-file comparisons on a pinned public Rust release.
 Both fr tasks pass independent behavioral oracles, declared checks and reversible patch workflows without human corrections.
-They consume more retrieved context than the file trials. The evidence supports those workflows and leaves context optimization open.
+The [follow-up evaluation](agent-context-followup.md) reduces fr context by 34.0% and 24.5% against its first trials.
+The fresh file trials also improve and still use less context. The evidence supports these workflows while leaving broader efficiency open.
 
 ## Remaining roadmap
 

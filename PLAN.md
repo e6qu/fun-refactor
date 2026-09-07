@@ -889,7 +889,7 @@ Ten harness regressions and replay of all four patches pass. The full native/WAS
 Validation retains 311/311 capability coverage, 29 Lean build jobs and twenty-two fresh source anchors with zero `sorry` obligations.
 See [real-agent acceptance](docs/agent-acceptance.md) for provenance, pilot failures, measurement scope and limits.
 
-M4i: context reduction (implementation complete; evidence retention next).
+M4i: measured context reduction (complete).
 
 Targeted declaration lookup, quiet successful checks and a more selective skill handoff reduce retrieved output.
 `project find` returns paged handles and optional headers with exact or literal substring matching and subtree selection.
@@ -897,7 +897,11 @@ Targeted declaration lookup, quiet successful checks and a more selective skill 
 Skill references separate authoring from recipes and patch delivery from Git administration.
 The full native/WASM gate, 127 project CLI scenarios, ten check scenarios and all 33 skill examples pass.
 Strict verification retains twenty-two fresh source anchors and signature maps, zero `sorry` obligations and 29 Lean build jobs.
-All four fresh paired trials pass. Archive their evidence and audit the measured reduction before closing this milestone.
+Four fresh paired trials exercise implementation commit `0498c6b`, all passing without human corrections or tool failures.
+The fr trials use 12,287 and 13,109 retrieved-context tokens, 34.0% and 24.5% below the first fr trials.
+Fresh ordinary-file trials use 6,087 and 8,397 tokens; fr still costs more context on these small tasks.
+Both evidence bundles are retained, with eight patches covered by behavioral replay and exact follow-up token auditing.
+See the [context-reduction follow-up](docs/agent-context-followup.md) for comparisons, protocol changes and measurement limits.
 
 Next M4 work:
 

@@ -25,7 +25,9 @@ For an agent handoff, use the portable [fr skill](skills/fr/SKILL.md).
 [Function authoring](docs/body-authoring.md) adds bounded Rust, TypeScript and TSX implementation changes through project handles and source-history transactions.
 [Project checks](docs/project-checks.md) selects declared validation commands and reports bounded results and coverage claims.
 [Development continuity](docs/continuity.md) records the active milestone, evidence and remaining work for the next session.
-[Real-agent acceptance](docs/agent-acceptance.md) records four passing trials, reversible patches and the measured context overhead against ordinary file tools.
+[Real-agent acceptance](docs/agent-acceptance.md) records the first paired trials and reversible patches.
+The [context-reduction follow-up](docs/agent-context-followup.md) measures targeted lookup, quiet successful checks and selective skill loading against fresh file-tool trials.
+Use `fr project find NAME --signature` to locate a known declaration without requesting a broad map.
 Rust function declaration replacement also supports combined signature and implementation changes.
 Declaration insertion appends a Rust function through a file handle while retaining existing code.
 

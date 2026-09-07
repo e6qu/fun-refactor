@@ -16,9 +16,10 @@ fn acceptance_grading_requires_correct_behavior_and_ordered_evidence() {
 
 #[test]
 fn recorded_agent_patches_pass_upstream_tests_and_independent_oracles() {
-    python(&[
-        "tools/agent-eval.py",
-        "replay",
+    for directory in [
         "tests/agent-eval/results/2026-09-07",
-    ]);
+        "tests/agent-eval/results/2026-09-07-context",
+    ] {
+        python(&["tools/agent-eval.py", "replay", directory]);
+    }
 }

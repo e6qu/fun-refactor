@@ -50,8 +50,8 @@ Scoring refuses a different package version or vocabulary and needs no network o
 The fr trials used 96.7% and 67.1% more retrieved context, respectively.
 Skill overhead does not explain the whole difference: project inspection and transaction reporting also cost more here.
 The traces include broad file maps and repeated maps after writes.
-The next optimization should target bounded declaration lookup, avoid unnecessary handle refreshes and reduce successful validation/reporting output.
-Another paired run must measure any resulting improvement before the docs claim savings.
+Those observations motivated bounded declaration lookup, fewer handle refreshes and quieter successful validation output.
+The [context-reduction follow-up](agent-context-followup.md) records those changes and four fresh paired trials, preserving this initial evidence.
 
 ## Trial protocol and limits
 

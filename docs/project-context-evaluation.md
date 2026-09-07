@@ -47,6 +47,8 @@ These proofs do not establish parser correctness or agent task success.
 
 The [real-agent acceptance evaluation](agent-acceptance.md) now measures four task outcomes and retrieved context with a pinned reference tokenizer.
 Both fr tasks pass, but their retrieved context exceeds the ordinary-file baseline on the small Rust project.
+The [context-reduction follow-up](agent-context-followup.md) adds targeted lookup and repeats those tasks with four fresh agents.
+Its fr trials retrieve less context than before, while still exceeding the fresh file-tool baseline.
 Those task measurements do not replace this script's structural identity checks.
 `tools/project-context.py` still reports `model_tokens: null` rather than estimating tokens from byte counts.
 Broader evaluation must cover package boundaries, implementation relationships, framework facts and relevant tests on additional projects.

@@ -26,3 +26,4 @@ Choose expectations from the task's actual scope, rather than copying the exampl
 Save a recipe with `--save-plan` and apply its returned transaction through history.
 All steps see the preceding virtual result, and failed expectations prevent source writes.
 A recipe composes existing operations; it cannot authorize an unsupported transformation.
+
