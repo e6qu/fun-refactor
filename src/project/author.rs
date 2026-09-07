@@ -13,7 +13,9 @@ use std::path::{Path, PathBuf};
 
 #[derive(Subcommand)]
 pub enum Command {
-    #[command(about = "Replace one Rust function body while retaining its surrounding source.")]
+    #[command(
+        about = "Replace one Rust, TypeScript or TSX function body, retaining surrounding source."
+    )]
     ReplaceBody(ReplaceBodyOptions),
 }
 
@@ -56,7 +58,62 @@ fn digest(source: &str) -> String {
     format!("{:x}", Sha256::digest(source.as_bytes()))
 }
 
-fn replacement(path: &Path) -> Result<String> {
+struct BodySyntax {
+    prefix: &'static str,
+    item: &'static str,
+    block: &'static str,
+    targets: &'static [&'static str],
+}
+
+impl BodySyntax {
+    fn for_language(language: Language) -> Result<Self> {
+        match language {
+            Language::Rust => Ok(Self {
+                prefix: "fn __fr_body__() ",
+                item: "function_item",
+                block: "block",
+                targets: &["function_item"],
+            }),
+            Language::TypeScript | Language::Tsx => Ok(Self {
+                prefix: "function __fr_body__() ",
+                item: "function_declaration",
+                block: "statement_block",
+                targets: &[
+                    "function_declaration",
+                    "generator_function_declaration",
+                    "method_definition",
+                ],
+            }),
+            _ => anyhow::bail!(
+                "body replacement supports Rust, TypeScript and TSX; select a supported function."
+            ),
+        }
+    }
+
+    fn block_span(&self, body: tree_sitter::Node<'_>) -> Result<Span> {
+        ensure!(
+            body.kind() == self.block,
+            "selected function needs a block body."
+        );
+        let mut cursor = body.walk();
+        let mut braces = body
+            .children(&mut cursor)
+            .filter(|child| matches!(child.kind(), "{" | "}"));
+        let open = braces.next().context("body needs an opening brace.")?;
+        let close = braces.next().context("body needs a closing brace.")?;
+        ensure!(
+            open.kind() == "{"
+                && close.kind() == "}"
+                && !open.is_missing()
+                && !close.is_missing()
+                && braces.next().is_none(),
+            "body needs exactly one pair of outer braces."
+        );
+        Ok(Span::new(open.start_byte(), close.end_byte()))
+    }
+}
+
+fn replacement(path: &Path, language: Language, syntax: &BodySyntax) -> Result<String> {
     ensure!(
         fs::symlink_metadata(path)?.is_file(),
         "replacement input must be a regular file."
@@ -75,24 +132,24 @@ fn replacement(path: &Path) -> Result<String> {
         "replacement input contains a NUL byte."
     );
     let text = text.trim();
-    let prefix = "fn __fr_body__() ";
+    let prefix = syntax.prefix;
     let wrapped = format!("{prefix}{text}");
-    let parsed = Parsers::new().parse(Language::Rust, &wrapped)?;
+    let parsed = Parsers::new().parse(language, &wrapped)?;
     let item = parsed
         .root()
         .named_child(0)
-        .context("replacement needs a Rust block.")?;
+        .context("replacement needs a block in the selected language.")?;
     let body = item
         .child_by_field_name("body")
-        .context("replacement needs a Rust block.")?;
+        .context("replacement needs a block in the selected language.")?;
+    let span = syntax.block_span(body)?;
     ensure!(
         !parsed.has_errors()
             && parsed.root().named_child_count() == 1
-            && item.kind() == "function_item"
-            && body.kind() == "block"
-            && body.start_byte() == prefix.len()
-            && body.end_byte() == wrapped.len(),
-        "replacement must contain exactly one complete Rust block."
+            && item.kind() == syntax.item
+            && span.start == prefix.len()
+            && span.end == wrapped.len(),
+        "replacement must contain exactly one complete block in the selected language."
     );
     Ok(text.to_owned())
 }
@@ -109,12 +166,10 @@ impl Project<'_> {
             .symbol
             .and_then(|id| self.index.symbol(id))
             .context("body replacement requires a function handle.")?;
-        ensure!(
-            symbol.language == Language::Rust,
-            "body replacement currently supports Rust functions only."
-        );
+        let language = symbol.language;
+        let syntax = BodySyntax::for_language(language)?;
         let source = &self.sources[&symbol.file];
-        let parsed = Parsers::new().parse(Language::Rust, source)?;
+        let parsed = Parsers::new().parse(language, source)?;
         ensure!(
             !parsed.has_errors(),
             "body replacement requires a file without parser errors."
@@ -123,9 +178,10 @@ impl Project<'_> {
             .root()
             .descendant_for_byte_range(symbol.name_span.start, symbol.name_span.end);
         let function = loop {
-            let node =
-                selected.context("selected declaration is not a Rust function with a body.")?;
-            if node.kind() == "function_item" {
+            let node = selected.context(
+                "select a named function declaration or method with a body; expressions are unsupported.",
+            )?;
+            if syntax.targets.contains(&node.kind()) {
                 ensure!(
                     node.child_by_field_name("name")
                         .is_some_and(|name| Span::from(name) == symbol.name_span),
@@ -138,13 +194,9 @@ impl Project<'_> {
         let body = function
             .child_by_field_name("body")
             .context("selected function has no body.")?;
-        ensure!(
-            body.kind() == "block",
-            "selected function does not have a Rust block body."
-        );
-        let span = Span::from(body);
+        let span = syntax.block_span(body)?;
         let before = &source[span.start..span.end];
-        let after = replacement(&self.root.join(&options.from))?;
+        let after = replacement(&self.root.join(&options.from), language, &syntax)?;
         ensure!(
             super::body_replacement_budget(before.len(), after.len()),
             "old and new bodies must each fit 2 through 65536 bytes."
@@ -159,7 +211,7 @@ impl Project<'_> {
         let updated =
             crate::edit::apply_to_string(source, edits.edits_for(&symbol.file).unwrap_or(&[]))?;
         ensure!(
-            !Parsers::new().parse(Language::Rust, &updated)?.has_errors(),
+            !Parsers::new().parse(language, &updated)?.has_errors(),
             "replacement introduces parser errors in its destination context."
         );
         let mut report = self.envelope("replace-body");

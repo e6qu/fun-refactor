@@ -52,11 +52,14 @@ Save a recipe with `--save-plan` and apply its returned transaction through hist
 All steps see the preceding virtual result, and failed expectations prevent source writes.
 A recipe composes existing operations; it cannot authorize an unsupported transformation.
 
-For a Rust function implementation, `fr author replace-body HANDLE --from FILE` accepts a current project handle and a complete block from a UTF-8 file.
+For a Rust, TypeScript or TSX implementation, use `fr author replace-body HANDLE --from FILE`.
+It accepts a current function handle and a complete block from a UTF-8 file in that language.
+Named function declarations and methods are supported; arrows, function expressions and bodyless declarations refuse.
+Select the implementation's handle when overloads or accessors share a name. JSX bodies need a TSX or JSX target.
 Both blocks and the input file must fit 64 KiB. Keep the fragment outside the project to avoid invalidating an earlier map.
 The command preserves all bytes outside the body and rejects parser errors; it does not check types or behavior.
 Its JSON diff defaults to 4096 bytes; a clipped diff has `text` and `omitted_bytes`.
 Inspect the fragment and selected body as needed, then use `--save-plan` and source history to apply the exact replacement.
-This command accepts project handles directly. Other languages, whole declarations and insertion remain pending.
+This command accepts project handles directly. Further languages, function expressions, whole declarations and insertion remain pending.
 If no operation expresses the requested change, use the normal editor on the needed source and run appropriate checks.
 Those editor writes do not automatically join an `fr` transaction. Translation produces a draft for supported constructs; inspect unsupported cases and validate the target project.

@@ -1,6 +1,7 @@
-# Bounded Rust function-body authoring
+# Bounded function-body authoring
 
-`fr author replace-body HANDLE --from FILE` replaces the block of one Rust function through a current project handle.
+`fr author replace-body HANDLE --from FILE` replaces one function block through a current project handle.
+It supports Rust, TypeScript and TSX.
 It retains the signature, outer attributes, documentation and every byte outside that block.
 This native command complements the existing refactorings when an agent needs to write a new implementation.
 
@@ -20,7 +21,8 @@ Source, manifest and inventory changes invalidate handles; obtain a new map afte
 
 ## Input and supported scope
 
-The input file contains exactly one complete Rust block, including braces:
+The input file contains exactly one complete block in the target language, including braces.
+For Rust:
 
 ```rust
 {
@@ -36,19 +38,34 @@ It refuses non-UTF-8 input, NUL bytes, symlink inputs and nonregular files.
 Relative input paths resolve from the workspace root. Input files can reside outside the workspace.
 Writing the fragment outside the project avoids invalidating a previously obtained map through inventory changes.
 
-Supported targets include ordinary Rust functions, methods, default trait method bodies and nested function items.
-Generics, modifiers and surrounding attributes stay in place.
-A bodyless declaration, closure, variable, constant, file or non-Rust function refuses.
+Rust targets include ordinary functions, methods, default trait method bodies and nested function items.
+TypeScript and TSX targets include named function declarations, generators, class and object methods, accessors and constructors.
+Nested declarations, exports, generics, modifiers, signatures and surrounding attributes stay in place.
+Select the specific implementation handle when multiple declarations share a name, such as overloads or getter/setter pairs.
+Arrow functions, function expressions, fields containing functions, bodyless declarations, variables and file handles refuse.
+Computed and quoted method names are outside the indexed method subset.
+JavaScript extensions use the existing TypeScript grammar; JSX extensions use TSX.
+This does not impose JavaScript-only syntax rules on `.js` files.
 The target file must have no parser errors before the edit.
 The replacement must parse as exactly one block in a temporary function, and the resulting destination file must also parse without errors.
 Additional declarations outside the replacement block, trailing comments and unmatched braces refuse.
 Nested declarations inside the new block are allowed.
 
 The command does not update callers, signatures or imports and does not check types, control flow or behavior.
-Macros retain the parser's syntax coverage limits.
+Macros and language context rules retain the parser's syntax coverage limits.
 Choose project compiler and test commands that establish the intended behavior after applying.
 An implementation change may deliberately change behavior; syntax acceptance does not validate that intention.
-Other languages, declaration insertion and whole-declaration replacement remain roadmap work.
+Further languages, function expressions, declaration insertion and whole-declaration replacement remain roadmap work.
+
+For a TSX component, the fragment may contain JSX:
+
+```tsx
+{
+    return <span>{value * 2}</span>;
+}
+```
+
+Use a handle from a `.tsx` or `.jsx` file for JSX bodies; a `.ts` target retains its TypeScript grammar.
 
 ## Review and transactions
 
@@ -79,9 +96,13 @@ Source verification and recording are separate observations; this command does n
 
 ## Evidence
 
-Eight CLI scenarios cover saved replacement identity, compiled behavior, undo/redo, patch export, stale handles and revisions, unsupported targets and malformed input.
+Fourteen CLI scenarios cover saved replacement identity, compiled behavior, undo/redo, patch export, stale handles and revisions, unsupported targets and malformed input.
 They also check exact size limits, diff omission, method and nested-function contexts, Unicode and CRLF preservation, no-op writes, symlink inputs and Unix permissions.
+TypeScript and TSX fixtures compile with `tsc --strict` and run in Node before and after saved replacements.
+The tests cover JSX, supported declaration forms, extension aliases and refusal of expressions without editing an enclosing function.
+Brace-token spans preserve external comments and semicolons; duplicate names retain separate implementation selections.
 The size predicate has a source anchor and signature map into Lean, with 64 shared boundary cases including machine limits.
 Lean proves its lower and upper bounds and symmetry between old and new body sizes.
 The existing edit model describes a splice as an unchanged prefix, replacement and unchanged suffix.
-These proofs do not establish general correspondence for AST selection, Rust parsing, type correctness, filesystem operations or the full authoring command.
+The same size guard and edit model apply to all three languages.
+These proofs do not establish general correspondence for AST selection, parsing, type correctness, filesystem operations or the full authoring command.

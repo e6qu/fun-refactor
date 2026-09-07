@@ -19,7 +19,7 @@ A request to inspect or export does not grant permission to commit or publish.
 
 The initial map requests twelve rows at depth two.
 Subsequent queries select a declaration, read its signature and relationships, and request source slices only as needed.
-The skill distinguishes revision-bound project handles from source positions used by mutations.
+Body authoring accepts project handles; built-in refactorings use names or source positions.
 It uses saved transaction IDs for exact plan application, and keeps source history separate from Git bases and journals.
 
 ## Executable evidence
@@ -66,7 +66,7 @@ The native packaging change has a local archive check; release uploads and other
 ## Remaining roadmap
 
 M4a provides the introductory handoff and executable command examples.
-Rust body replacement now provides the first bounded authoring operation.
+Body replacement now supports Rust, TypeScript and TSX declarations and methods.
 Real-agent evaluation, further authoring operations and declared project-check selection remain open.
 M5 still owns automated Lean package initialization and model scaffolding.
 The skill does not claim complete framework migration, worktree undo/redo or general implementation verification.

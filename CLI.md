@@ -473,7 +473,8 @@ fr author replace-body '<HANDLE>' --from /tmp/body.txt --save-plan
 fr history apply '<TX>' --write
 ```
 
-Replace one Rust function's block while preserving all surrounding bytes, including its signature and attributes.
+Replace a Rust, TypeScript or TSX function block while preserving surrounding bytes, including its signature and attributes.
+Named declarations and methods are supported; arrow functions and function expressions remain unsupported.
 Use a current project handle; this command accepts structural identities directly.
 The input is a regular UTF-8 file containing one complete block, at most 64 KiB. The old block must also fit 64 KiB.
 Both original and resulting files must parse without errors. Types, imports, callers and behavior require separate checks.
