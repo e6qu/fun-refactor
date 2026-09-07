@@ -10,6 +10,8 @@ use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 
 mod checkout;
+mod ownership;
+pub(super) mod recovery;
 
 pub(super) fn args(values: &[&str]) -> Vec<OsString> {
     [
@@ -269,7 +271,10 @@ pub(super) fn report(root: &Path, options: &CreateOptions) -> Result<Value> {
         );
         let outcome = checkout::apply(&plan, &blobs);
         match outcome {
-            Ok(()) => result["applied"] = json!(true),
+            Ok(receipt) => {
+                result["applied"] = json!(true);
+                result["ownership_record"] = json!(receipt);
+            }
             Err(error) => {
                 result["applied"] = Value::Null;
                 result["warning"] = json!("Creation is incomplete or unconfirmed. Inspect the destination, branch and worktree registrations before retrying.");
@@ -280,6 +285,9 @@ pub(super) fn report(root: &Path, options: &CreateOptions) -> Result<Value> {
                     json!(commit(&plan.root, &format!("refs/heads/{}", plan.branch)).ok());
                 result["destination_present"] =
                     json!(absent(&plan.destination).ok().map(|absent| !absent));
+                result["recovery_hint"] = json!(
+                    "Use fr git worktree recover PATH if creation recorded an ownership receipt."
+                );
             }
         }
     }

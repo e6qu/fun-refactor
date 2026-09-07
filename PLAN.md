@@ -40,7 +40,7 @@ Important gaps:
 - `fr project` adds bounded maps, revision-bound details, call relationships and Cargo/npm manifest views. Complete dependency resolution and framework semantics remain pending.
 - Native changes now have persistent history and checked undo/redo. History retention and large-journal scaling need further work.
 - Browser undo restores the loaded workspace; it does not reverse individual transactions.
-- Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist. Raw staging and journaled index undo/redo are available on Unix. Reviewed commits are available with explicit index and HEAD bases. Worktree inspection reports registered workspaces with revision-bound pages. Reviewed creation adds new branches and raw checkouts on Unix. Shared browser patch semantics remain pending.
+- Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist. Raw staging and journaled index undo/redo are available on Unix. Reviewed commits are available with explicit index and HEAD bases. Worktree inspection reports registered workspaces with revision-bound pages. Reviewed creation adds new branches and raw checkouts on Unix. Ownership receipts support checked completion of incomplete worktrees. Shared browser patch semantics remain pending.
 - Strict spec signature maps currently accept Rust source declarations only.
 - Framework readers cover selected patterns. Whole applications still need dependency and runtime work.
 - Model proofs and shared executable cases do not establish general correspondence with the Rust implementation.
@@ -686,9 +686,26 @@ Shared Rust/Lean cases cover payload boundaries; Git and filesystem operations r
 Validation passes the full native/WASM gate, all nine creation CLI scenarios, 311/311 capability coverage and all 29 Lean build jobs.
 Strict verification passes with sixteen fresh source anchors and signature maps and zero `sorry` obligations.
 
+M3s: ownership receipts and checked worktree recovery (complete).
+
+- Record pending ownership receipts after Git registration and finalize them after checkout checks.
+- Add `fr git worktree recover PATH` with bounded missing paths, captured ownership and a reviewed checkout basis.
+- Fill missing committed files while preserving matching files and index bytes; refuse changed, extra or unsupported content.
+- Refuse completed receipts so recovery cannot reverse later intentional deletions.
+- Prepare absent indexes privately, install without replacement and hold Git's index lock through completion.
+- Coordinate receipt writers with owned locks and preserve replacement locks during cleanup.
+- Anchor recovery acceptance in Lean and prove abstract preservation of existing files.
+
+See [recorded worktree recovery](docs/git-worktree-recovery.md) for ownership scope and partial-failure limits.
+Seven recovery CLI scenarios cover registered failures, preserved inodes, stale bases, unsupported states, ownership replacement and retryable failures.
+Two lock tests cover exclusion, release and replacement preservation. Shared Rust/Lean cases cover all predicate inputs.
+Validation passes the full native/WASM gate, all seven recovery CLI scenarios, 311/311 capability coverage and all 29 Lean build jobs.
+Strict verification passes with seventeen fresh source anchors and signature maps and zero `sorry` obligations.
+
 Next M3 work:
 
-Add ownership-aware recovery and removal for created worktrees, then extend supported checkout modes and configuration.
+Add reviewed removal using creation receipts, then extend supported checkout modes and configuration.
+Extend recovery across failures before receipt publication and improve stale-lock and crash-state inspection.
 Extend selected flag replay and add staging journal retention and compaction.
 Keep Git optional for ordinary analysis and transaction history.
 Undo an `fr` transaction without resetting unrelated Git changes.

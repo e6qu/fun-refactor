@@ -230,3 +230,7 @@ See [commit assurance](git-commit.md#formal-coverage) for the Git-locking assump
 Reviewed worktree creation adds an anchored payload budget predicate and abstract fresh-destination preservation laws.
 Shared cases check file, total-byte and per-blob limits at their boundaries.
 See [worktree creation assurance](git-worktree-creation.md#formal-coverage) for namespace assumptions and host workflow limits.
+
+Recorded worktree recovery adds an anchored file-acceptance predicate and abstract existing-file preservation laws.
+Shared Rust/Lean cases cover every boolean input. Ownership receipts and filesystem durability still require host-level evidence.
+See [worktree recovery](git-worktree-recovery.md) for the tested protocol and proof boundaries.

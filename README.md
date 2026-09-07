@@ -267,6 +267,8 @@ See [reviewed commits](docs/git-commit.md) for identity configuration, disabled 
 See [worktree inspection](docs/git-worktrees.md) for observation limits and cursor identity.
 `fr git worktree create PATH --branch NAME` previews a fresh raw checkout; `--basis TOKEN --write` creates it on Unix.
 See [reviewed worktree creation](docs/git-worktree-creation.md) for branch checks and partial-failure outcomes.
+`fr git worktree recover PATH` previews completion of a recorded incomplete checkout, with checked application through `--basis TOKEN --write`.
+See [recorded recovery](docs/git-worktree-recovery.md) for ownership receipts and preservation rules.
 The browser already exports patches and can restore its initial workspace.
 `fr project` now provides compact hierarchy maps and bounded source inspection.
 Its package and dependency pages report Cargo/npm manifest declarations with shared revision checks.

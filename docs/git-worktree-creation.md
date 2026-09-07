@@ -45,6 +45,8 @@ No preview reserves the destination or branch. Concurrent Git or filesystem chan
 ## Raw checkout
 
 The writer registers the new branch and worktree with Git's `--no-checkout` mode and builds a separate index.
+It records ownership after registration checks, prepares the index privately and installs it without replacing an existing index.
+It holds Git's index lock through checkout verification and ownership receipt completion.
 It creates each file exclusively, copies committed bytes and preserves Git executable modes.
 Binary regular files and committed empty trees are supported, including SHA-256 repositories.
 New workspace directories have mode `0700`; regular files have `0644` or `0755`.
@@ -84,7 +86,9 @@ The second command requires a usable checkout and follows the status command's f
 After successful creation, ordinary project inspection, edits and reviewed commits can run with `-C ../task`.
 Use `git worktree unlock ../task` when you intend to allow ordinary worktree removal or movement.
 
-Creation has no `fr` undo/redo or automatic recovery journal yet.
+Creation now records ownership receipts for checked forward recovery of incomplete registered checkouts.
+See [recorded worktree recovery](git-worktree-recovery.md) for receipt scope, refusals and crash limits.
+Worktree undo/redo and reviewed removal remain pending.
 File and directory synchronization does not establish an atomic crash transaction across Git refs, registrations and checkout files.
 Directory and file checks detect observed replacements; they do not protect against every hostile concurrent filesystem race.
 

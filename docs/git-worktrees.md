@@ -57,3 +57,5 @@ The parser, Git subprocess and complete observation protocol have tests, without
 
 `fr git worktree create` previews and applies a new branch and raw checkout with a separate review basis.
 See [reviewed creation](git-worktree-creation.md) for supported destinations, checkout limits and partial-failure reporting.
+`fr git worktree recover` can finish an incomplete checkout that has a pending ownership receipt.
+See [recorded recovery](git-worktree-recovery.md) for preservation rules and unsupported states.

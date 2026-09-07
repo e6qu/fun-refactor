@@ -10,8 +10,8 @@ use std::path::{Component, Path, PathBuf};
 
 #[derive(Serialize)]
 pub(super) struct Entry {
-    path: String,
-    mode: String,
+    pub(super) path: String,
+    pub(super) mode: String,
     oid: String,
     pub(super) size: usize,
 }
@@ -127,7 +127,7 @@ pub(super) fn blobs(plan: &Proposal) -> Result<Vec<Vec<u8>>> {
     Ok(blobs)
 }
 
-fn check_directory(plan: &Proposal, identity: (u64, u64)) -> Result<()> {
+pub(super) fn check_directory(plan: &Proposal, identity: (u64, u64)) -> Result<()> {
     ensure!(
         directory(plan.destination.parent().unwrap())? == plan.parent_identity
             && directory(&plan.destination)? == identity
@@ -137,7 +137,7 @@ fn check_directory(plan: &Proposal, identity: (u64, u64)) -> Result<()> {
     Ok(())
 }
 
-fn check_registration(plan: &Proposal) -> Result<()> {
+pub(super) fn check_registration(plan: &Proposal) -> Result<()> {
     ensure!(
         process::repository_root(&plan.destination)? == plan.destination
             && common(&plan.destination)? == plan.common,
@@ -169,7 +169,7 @@ fn check_registration(plan: &Proposal) -> Result<()> {
     Ok(())
 }
 
-fn index_path(plan: &Proposal) -> Result<PathBuf> {
+pub(super) fn index_path(plan: &Proposal) -> Result<PathBuf> {
     let output = checked(
         &plan.destination,
         &["rev-parse", "--path-format=absolute", "--git-path", "index"],
@@ -188,7 +188,12 @@ fn index_path(plan: &Proposal) -> Result<PathBuf> {
     Ok(parent.join("index"))
 }
 
-fn populate(plan: &Proposal, blobs: &[Vec<u8>], identity: (u64, u64)) -> Result<()> {
+pub(super) fn populate(
+    plan: &Proposal,
+    blobs: &[Vec<u8>],
+    identity: (u64, u64),
+    resume: bool,
+) -> Result<()> {
     let mut directories = BTreeMap::from([(plan.destination.clone(), identity)]);
     let mut files = BTreeMap::new();
     for (entry, bytes) in plan.files.iter().zip(blobs) {
@@ -202,11 +207,24 @@ fn populate(plan: &Proposal, blobs: &[Vec<u8>], identity: (u64, u64)) -> Result<
                     "checkout directory changed."
                 );
             } else {
-                DirBuilder::new().mode(0o700).create(&parent)?;
+                if !resume || absent(&parent)? {
+                    DirBuilder::new().mode(0o700).create(&parent)?;
+                }
                 directories.insert(parent.clone(), directory(&parent)?);
             }
         }
         let path = plan.destination.join(&entry.path);
+        if resume && !absent(&path)? {
+            let stat = fs::symlink_metadata(&path)?;
+            ensure!(
+                stat.file_type().is_file()
+                    && (stat.mode() & 0o100 != 0) == (entry.mode == "100755")
+                    && super::ownership::bytes(&path, entry.size as u64)? == *bytes,
+                "existing recovery file differs from its committed bytes or mode."
+            );
+            files.insert(path, (stat.dev(), stat.ino()));
+            continue;
+        }
         let mut file = OpenOptions::new()
             .write(true)
             .create_new(true)
@@ -241,7 +259,7 @@ fn populate(plan: &Proposal, blobs: &[Vec<u8>], identity: (u64, u64)) -> Result<
     Ok(())
 }
 
-pub(super) fn apply(plan: &Proposal, blobs: &[Vec<u8>]) -> Result<()> {
+pub(super) fn apply(plan: &Proposal, blobs: &[Vec<u8>]) -> Result<PathBuf> {
     ensure!(
         directory(plan.destination.parent().unwrap())? == plan.parent_identity
             && directory(&plan.common)? == plan.common_identity,
@@ -250,7 +268,7 @@ pub(super) fn apply(plan: &Proposal, blobs: &[Vec<u8>]) -> Result<()> {
     DirBuilder::new().mode(0o700).create(&plan.destination)?;
     let identity = directory(&plan.destination)?;
     check_directory(plan, identity)?;
-    checked(
+    let registration = checked(
         &plan.root,
         &[
             "worktree",
@@ -267,36 +285,108 @@ pub(super) fn apply(plan: &Proposal, blobs: &[Vec<u8>]) -> Result<()> {
             &plan.commit,
         ],
     )
-    .context("registering reviewed worktree")?;
+    .context("registering reviewed worktree");
     check_directory(plan, identity)?;
     check_registration(plan)?;
+    let (receipt, lease) = super::ownership::Receipt::record(plan, identity)?;
+    let receipt_bytes = super::ownership::bytes(&receipt.path(), 64 * 1024)?;
+    registration?;
+    let index_lease = prepare_index(plan, None)?;
+    populate(plan, blobs, identity, false)?;
+    verify_index(plan)?;
+    sync(plan)?;
+    check_directory(plan, identity)?;
+    check_registration(plan)?;
+    index_lease.check()?;
+    receipt.finish(&lease, &receipt_bytes)
+}
+
+pub(super) fn prepare_index(
+    plan: &Proposal,
+    expected: Option<&[u8]>,
+) -> Result<super::ownership::Lease> {
     let index = index_path(plan)?;
+    let lease = super::ownership::Lease::acquire(index.with_extension("lock"))?;
+    if let Some(expected) = expected {
+        ensure!(
+            super::ownership::bytes(&index, 64 * 1024 * 1024)? == expected,
+            "recovery index changed."
+        );
+        verify_index(plan)?;
+        lease.check()?;
+        return Ok(lease);
+    }
     ensure!(absent(&index)?, "new worktree index already exists.");
+    let temp = tempfile::tempdir_in(index.parent().unwrap())?;
+    let prepared = temp.path().join("index");
     let output = process::run_with_index(
         &plan.destination,
         &args(&["read-tree", "--no-sparse-checkout", "--reset", &plan.commit]),
         None,
-        Some(&index),
+        Some(&prepared),
     )?;
     ensure!(
         output.status.success(),
         "preparing new worktree index: {}",
         process::diagnostic(&output.stderr)
     );
-    populate(plan, blobs, identity)?;
-    let output = checked(&plan.destination, &["ls-files", "--stage", "-z"])?;
+    let file = File::open(&prepared)?;
+    ensure!(
+        file.metadata()?.is_file(),
+        "prepared index is not a regular file."
+    );
+    file.sync_all()?;
+    lease.check()?;
+    ensure!(
+        absent(&index)?,
+        "new worktree index appeared during preparation."
+    );
+    fs::hard_link(&prepared, &index)
+        .context("installing fresh worktree index without replacement")?;
+    File::open(index.parent().unwrap())?.sync_all()?;
+    Ok(lease)
+}
+
+pub(super) fn verify_index(plan: &Proposal) -> Result<()> {
+    let output = checked(&plan.destination, &["ls-files", "--stage", "-v", "-z"])?;
     let observed = status::records(&output)?
         .into_iter()
         .collect::<BTreeSet<_>>();
     let expected = plan
         .files
         .iter()
-        .map(|entry| format!("{} {} 0\t{}", entry.mode, entry.oid, entry.path))
+        .map(|entry| format!("H {} {} 0\t{}", entry.mode, entry.oid, entry.path))
         .collect::<Vec<_>>();
     ensure!(
         observed == expected.iter().map(|entry| entry.as_bytes()).collect(),
         "new worktree index differs from the reviewed tree."
     );
+    let diff = |visibility| {
+        checked(
+            &plan.destination,
+            &[
+                "diff",
+                "--cached",
+                "--name-only",
+                "-z",
+                "--no-renames",
+                "--no-ext-diff",
+                "--no-textconv",
+                visibility,
+                &plan.commit,
+                "--",
+            ],
+        )
+    };
+    ensure!(
+        diff("--ita-visible-in-index")? == diff("--ita-invisible-in-index")?,
+        "intent-to-add entries are unsupported for worktree recovery."
+    );
+    Ok(())
+}
+
+pub(super) fn sync(plan: &Proposal) -> Result<()> {
+    let index = index_path(plan)?;
     ensure!(
         fs::symlink_metadata(&index)?.file_type().is_file(),
         "new worktree index is not a regular file."
@@ -304,7 +394,5 @@ pub(super) fn apply(plan: &Proposal, blobs: &[Vec<u8>]) -> Result<()> {
     File::open(&index)?.sync_all()?;
     File::open(index.parent().unwrap())?.sync_all()?;
     File::open(plan.destination.parent().unwrap())?.sync_all()?;
-    check_directory(plan, identity)?;
-    check_registration(plan)?;
     Ok(())
 }

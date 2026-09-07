@@ -6,7 +6,12 @@ open FrKernels.Project
 def samples : List Nat := [0, 1, 2, 3, 4, 79, 80, 499, 500, 65536, 4294967295, 18446744073709551615]
 
 def main (args : List String) : IO Unit := do
-  if args == ["worktree-budget"] then
+  if args == ["worktree-recovery"] then
+    for present in [false, true] do
+      for bytesMatch in [false, true] do
+        for modeMatches in [false, true] do
+          IO.println (FrKernels.Git.worktreeRecoveryFileAllowed present bytesMatch modeMatches)
+  else if args == ["worktree-budget"] then
     for files in [0, 1, 19999, 20000, 20001, 18446744073709551615] do
       for bytes in [0, 268435455, 268435456, 268435457, 18446744073709551615] do
         for blobBytes in [0, 33554431, 33554432, 33554433, 18446744073709551615] do

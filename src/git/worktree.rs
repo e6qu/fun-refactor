@@ -15,6 +15,31 @@ pub enum Command {
     List(ListOptions),
     #[command(about = "Preview or create a new branch and raw worktree from a reviewed commit.")]
     Create(CreateOptions),
+    #[command(about = "Preview or finish a recorded incomplete raw checkout.")]
+    Recover(RecoverOptions),
+}
+
+#[derive(Args)]
+pub struct RecoverOptions {
+    #[arg(help = "Recorded worktree path, relative to the invoking repository root or absolute.")]
+    path: std::path::PathBuf,
+    #[arg(
+        long,
+        help = "Require the reviewed ownership receipt and incomplete checkout."
+    )]
+    basis: Option<String>,
+    #[arg(
+        long,
+        requires = "basis",
+        help = "Create missing committed files and finish the receipt."
+    )]
+    write: bool,
+    #[arg(
+        long,
+        default_value_t = 20,
+        help = "Maximum missing paths, from 1 to 500."
+    )]
+    limit: usize,
 }
 
 #[derive(Args)]
@@ -57,8 +82,12 @@ pub(super) fn report(root: &Path, command: &Command) -> Result<Value> {
         Command::List(options) => list(root, options),
         #[cfg(unix)]
         Command::Create(options) => create::report(root, options),
+        #[cfg(unix)]
+        Command::Recover(options) => create::recovery::report(root, options),
         #[cfg(not(unix))]
         Command::Create(_) => bail!("worktree creation requires Unix directory ownership checks."),
+        #[cfg(not(unix))]
+        Command::Recover(_) => bail!("worktree recovery requires Unix ownership checks."),
     }
 }
 

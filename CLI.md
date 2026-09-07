@@ -1168,6 +1168,15 @@ Writes copy raw committed blobs and preserve the source index and working files.
 Only `applied: true` confirms completion; partial or uncertain creation reports `applied: null` with inspection guidance.
 See [reviewed worktree creation](docs/git-worktree-creation.md) for destination checks, raw checkout semantics and recovery limits.
 
+```sh
+fr git worktree recover ../task
+fr git worktree recover ../task --basis TOKEN --write
+```
+
+Finish a recorded incomplete raw checkout with a separate review basis. Previews list missing committed paths and the required index action.
+Recovery preserves matching files and indexes and refuses changed or extra content. Completed receipts prevent recovery from reversing later deletions.
+See [recorded worktree recovery](docs/git-worktree-recovery.md) for ownership checks, locks and partial-failure outcomes.
+
 ### `fr cache`
 
 ```

@@ -197,4 +197,35 @@ theorem worktree_creation_refuses_occupied (before : String → Option String) (
     (occupied : before destination ≠ none) : createFresh before destination commit = none := by
   simp [createFresh, occupied]
 
+-- fr:spec src/git.rs::worktree_recovery_file_allowed @ 6e5dee8d0967f3ebc7e3bacfae326fd311c58af820a88f36af26b58b642a1733
+-- fr:signature present: bool => present: Bool; bytes_match: bool => bytesMatch: Bool; mode_matches: bool => modeMatches: Bool; return: bool => return: Bool
+def worktreeRecoveryFileAllowed (present : Bool) (bytesMatch : Bool) (modeMatches : Bool) : Bool :=
+  !present || (bytesMatch && modeMatches)
+
+theorem recovery_accepts_missing (bytesMatch modeMatches : Bool) :
+    worktreeRecoveryFileAllowed false bytesMatch modeMatches = true := by
+  cases bytesMatch <;> cases modeMatches <;> rfl
+
+theorem recovery_requires_existing_match (bytesMatch modeMatches : Bool) :
+    worktreeRecoveryFileAllowed true bytesMatch modeMatches = (bytesMatch && modeMatches) := by
+  cases bytesMatch <;> cases modeMatches <;> rfl
+
+def resumeFile (before : Option (String × Nat)) (target : String × Nat) : Option (String × Nat) :=
+  if before = none ∨ before = some target then some target else none
+
+theorem recovery_preserves_existing_file (before target after : String × Nat)
+    (accepted : resumeFile (some before) target = some after) : after = before := by
+  simp only [resumeFile, Option.some_ne_none, false_or, Option.some.injEq] at accepted
+  split at accepted
+  · rename_i same
+    simpa [same] using accepted.symm
+  · contradiction
+
+theorem recovery_fills_missing_file (target : String × Nat) : resumeFile none target = some target := by
+  simp [resumeFile]
+
+theorem recovery_refuses_changed_file (before target : String × Nat) (changed : before ≠ target) :
+    resumeFile (some before) target = none := by
+  simp [resumeFile, changed]
+
 end FrKernels.Git

@@ -210,3 +210,11 @@ pub fn commit_basis_matches(
 pub fn worktree_budget_allows(files: usize, bytes: usize, blob_bytes: usize) -> bool {
     files <= 20_000 && bytes <= 268_435_456 && blob_bytes <= 33_554_432
 }
+
+pub fn worktree_recovery_file_allowed(
+    present: bool,
+    bytes_match: bool,
+    mode_matches: bool,
+) -> bool {
+    !present || (bytes_match && mode_matches)
+}
