@@ -9,11 +9,11 @@ mod tests;
 
 #[derive(Default, Debug, Serialize)]
 pub(super) struct Entry {
-    path: String,
+    pub(super) path: String,
     main: bool,
     current: bool,
     head: Option<String>,
-    branch: Option<String>,
+    pub(super) branch: Option<String>,
     pub(super) bare: bool,
     pub(super) detached: bool,
     pub(super) unborn: bool,

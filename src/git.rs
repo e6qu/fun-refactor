@@ -206,3 +206,7 @@ pub fn commit_basis_matches(
 ) -> bool {
     expected_branch == observed_branch && expected_parent == observed_parent
 }
+
+pub fn worktree_budget_allows(files: usize, bytes: usize, blob_bytes: usize) -> bool {
+    files <= 20_000 && bytes <= 268_435_456 && blob_bytes <= 33_554_432
+}

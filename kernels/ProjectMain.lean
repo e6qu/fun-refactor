@@ -6,7 +6,12 @@ open FrKernels.Project
 def samples : List Nat := [0, 1, 2, 3, 4, 79, 80, 499, 500, 65536, 4294967295, 18446744073709551615]
 
 def main (args : List String) : IO Unit := do
-  if args == ["commit-basis"] then
+  if args == ["worktree-budget"] then
+    for files in [0, 1, 19999, 20000, 20001, 18446744073709551615] do
+      for bytes in [0, 268435455, 268435456, 268435457, 18446744073709551615] do
+        for blobBytes in [0, 33554431, 33554432, 33554433, 18446744073709551615] do
+          IO.println (FrKernels.Git.worktreeBudgetAllows files bytes blobBytes)
+  else if args == ["commit-basis"] then
     for expectedBranch in ["refs/heads/main", "refs/heads/other", "名"] do
       for observedBranch in ["refs/heads/main", "refs/heads/other", "名"] do
         for expectedParent in [none, some "aa", some "bb"] do

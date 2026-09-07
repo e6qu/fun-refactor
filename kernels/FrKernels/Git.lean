@@ -159,4 +159,42 @@ theorem commit_preserves_other_refs (branch : String) (parent : Option String) (
     simp [other]
   · contradiction
 
+-- fr:spec src/git.rs::worktree_budget_allows @ 42e4892a9187679c23705f30391bd951273e890b2c759546c3cb87671a65e934
+-- fr:signature files: usize => files: Nat; bytes: usize => bytes: Nat; blob_bytes: usize => blobBytes: Nat; return: bool => return: Bool
+def worktreeBudgetAllows (files : Nat) (bytes : Nat) (blobBytes : Nat) : Bool :=
+  decide (files ≤ 20000 ∧ bytes ≤ 268435456 ∧ blobBytes ≤ 33554432)
+
+theorem worktree_budget_bounds (files bytes blobBytes : Nat)
+    (allowed : worktreeBudgetAllows files bytes blobBytes = true) :
+    files ≤ 20000 ∧ bytes ≤ 268435456 ∧ blobBytes ≤ 33554432 := by
+  simpa [worktreeBudgetAllows] using allowed
+
+theorem worktree_budget_accepts_empty : worktreeBudgetAllows 0 0 0 = true := by decide
+
+theorem worktree_budget_downward_closed (files bytes blobBytes fewer smaller blobSmaller : Nat)
+    (allowed : worktreeBudgetAllows files bytes blobBytes = true)
+    (hf : fewer ≤ files) (hb : smaller ≤ bytes) (hs : blobSmaller ≤ blobBytes) :
+    worktreeBudgetAllows fewer smaller blobSmaller = true := by
+  have bounds := worktree_budget_bounds files bytes blobBytes allowed
+  simp only [worktreeBudgetAllows, decide_eq_true_eq]
+  omega
+
+def createFresh (before : String → Option String) (destination commit : String) : Option (String → Option String) :=
+  if before destination = none then
+    some (fun path => if path = destination then some commit else before path)
+  else none
+
+theorem worktree_creation_preserves_other (before after : String → Option String) (destination commit path : String)
+    (created : createFresh before destination commit = some after) (other : path ≠ destination) :
+    after path = before path := by
+  unfold createFresh at created
+  split at created
+  · cases created
+    simp [other]
+  · contradiction
+
+theorem worktree_creation_refuses_occupied (before : String → Option String) (destination commit : String)
+    (occupied : before destination ≠ none) : createFresh before destination commit = none := by
+  simp [createFresh, occupied]
+
 end FrKernels.Git

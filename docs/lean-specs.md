@@ -226,3 +226,7 @@ See [staging history assurance](git-stage-history.md#formal-coverage) for assump
 Reviewed commits add an anchored branch/parent predicate and abstract publication laws that preserve the index and unrelated refs.
 Shared Rust/Lean cases cover branch switches with identical parents, changed parents and unborn states.
 See [commit assurance](git-commit.md#formal-coverage) for the Git-locking assumptions and remaining implementation boundaries.
+
+Reviewed worktree creation adds an anchored payload budget predicate and abstract fresh-destination preservation laws.
+Shared cases check file, total-byte and per-blob limits at their boundaries.
+See [worktree creation assurance](git-worktree-creation.md#formal-coverage) for namespace assumptions and host workflow limits.

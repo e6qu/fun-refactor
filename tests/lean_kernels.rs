@@ -1045,3 +1045,29 @@ fn commit_basis_matches_lean_for_branch_and_parent_changes() {
     }
     assert_eq!(actual, expected);
 }
+
+#[test]
+fn worktree_budget_matches_lean_at_limits_and_machine_boundaries() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("worktree-budget")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for files in [0, 1, 19999, 20000, 20001, usize::MAX] {
+        for bytes in [0, 268435455, 268435456, 268435457, usize::MAX] {
+            for blob_bytes in [0, 33554431, 33554432, 33554433, usize::MAX] {
+                expected.push(fun_refactor::git::worktree_budget_allows(
+                    files, bytes, blob_bytes,
+                ));
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}

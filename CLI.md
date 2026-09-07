@@ -1158,6 +1158,16 @@ Rows identify the primary and invoking worktree. Reasons have byte caps; cursors
 Inspection preserves indexes and working files. It does not assess dirty state or reserve branches for creation.
 See [worktree inspection](docs/git-worktrees.md) for metadata scope, expiry policy and continuation limits.
 
+```sh
+fr git worktree create ../task --branch agent/task
+fr git worktree create ../task --branch agent/task --basis TOKEN --write
+```
+
+Preview a fresh workspace and new local branch from `--from REVISION`, which defaults to `HEAD`.
+Writes copy raw committed blobs and preserve the source index and working files. Successful worktrees retain a Git registration lock.
+Only `applied: true` confirms completion; partial or uncertain creation reports `applied: null` with inspection guidance.
+See [reviewed worktree creation](docs/git-worktree-creation.md) for destination checks, raw checkout semantics and recovery limits.
+
 ### `fr cache`
 
 ```

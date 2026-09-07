@@ -5,12 +5,43 @@ use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::path::Path;
 
+#[cfg(unix)]
+mod create;
 mod records;
 
 #[derive(Subcommand)]
 pub enum Command {
     #[command(about = "Page through registered worktree paths, HEADs and lock metadata.")]
     List(ListOptions),
+    #[command(about = "Preview or create a new branch and raw worktree from a reviewed commit.")]
+    Create(CreateOptions),
+}
+
+#[derive(Args)]
+pub struct CreateOptions {
+    #[arg(help = "Fresh destination, relative to the repository root or absolute.")]
+    path: std::path::PathBuf,
+    #[arg(long, help = "New local branch name.")]
+    branch: String,
+    #[arg(
+        long,
+        default_value = "HEAD",
+        help = "Commit to copy into the new worktree."
+    )]
+    from: String,
+    #[arg(
+        long,
+        help = "Require the reviewed destination, branch, commit and registrations."
+    )]
+    basis: Option<String>,
+    #[arg(long, requires = "basis", help = "Create the reviewed worktree.")]
+    write: bool,
+    #[arg(
+        long,
+        default_value_t = 20,
+        help = "Maximum file metadata rows, from 1 to 500."
+    )]
+    limit: usize,
 }
 
 #[derive(Args)]
@@ -22,7 +53,16 @@ pub struct ListOptions {
 }
 
 pub(super) fn report(root: &Path, command: &Command) -> Result<Value> {
-    let Command::List(options) = command;
+    match command {
+        Command::List(options) => list(root, options),
+        #[cfg(unix)]
+        Command::Create(options) => create::report(root, options),
+        #[cfg(not(unix))]
+        Command::Create(_) => bail!("worktree creation requires Unix directory ownership checks."),
+    }
+}
+
+fn list(root: &Path, options: &ListOptions) -> Result<Value> {
     if !(1..=500).contains(&options.limit) {
         bail!("limit must be between 1 and 500");
     }

@@ -18,6 +18,7 @@ cd "$(dirname "$0")/.."
     lake exe fr-project-kernel call-selection >/dev/null
     lake exe fr-project-kernel staging-transition >/dev/null
     lake exe fr-project-kernel commit-basis >/dev/null
+    lake exe fr-project-kernel worktree-budget >/dev/null
     lake exe fr-project-kernel patterns >/dev/null
     lake exe fr-project-kernel confidence >/dev/null
     lake exe fr-project-kernel membership >/dev/null

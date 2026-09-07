@@ -265,6 +265,8 @@ See [staging semantics and limits](docs/git-staging.md) for raw byte and mode se
 See [reviewed commits](docs/git-commit.md) for identity configuration, disabled hooks/signing and publication limits.
 `fr git worktree list` pages through registered workspaces, branches, HEADs and lock metadata.
 See [worktree inspection](docs/git-worktrees.md) for observation limits and cursor identity.
+`fr git worktree create PATH --branch NAME` previews a fresh raw checkout; `--basis TOKEN --write` creates it on Unix.
+See [reviewed worktree creation](docs/git-worktree-creation.md) for branch checks and partial-failure outcomes.
 The browser already exports patches and can restore its initial workspace.
 `fr project` now provides compact hierarchy maps and bounded source inspection.
 Its package and dependency pages report Cargo/npm manifest declarations with shared revision checks.

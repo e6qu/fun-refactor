@@ -55,5 +55,5 @@ Git still reads all registrations to construct a page; output bounds do not impl
 Pagination reuses the source-anchored `page_length` kernel and its Lean bound and progress laws.
 The parser, Git subprocess and complete observation protocol have tests, without a general formal correspondence proof.
 
-Reviewed creation is the next worktree milestone.
-It needs a destination and start-commit basis, branch checks, controlled checkout behavior and explicit partial-failure reporting.
+`fr git worktree create` previews and applies a new branch and raw checkout with a separate review basis.
+See [reviewed creation](git-worktree-creation.md) for supported destinations, checkout limits and partial-failure reporting.

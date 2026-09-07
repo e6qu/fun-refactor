@@ -1,0 +1,310 @@
+use super::{absent, args, checked, common, directory, line, Proposal};
+use crate::git::{process, status};
+use anyhow::{ensure, Context, Result};
+use serde::Serialize;
+use std::collections::{BTreeMap, BTreeSet};
+use std::fs::{self, DirBuilder, File, OpenOptions, Permissions};
+use std::io::Write;
+use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
+use std::path::{Component, Path, PathBuf};
+
+#[derive(Serialize)]
+pub(super) struct Entry {
+    path: String,
+    mode: String,
+    oid: String,
+    pub(super) size: usize,
+}
+
+pub(super) fn inventory(root: &Path, commit: &str) -> Result<Vec<Entry>> {
+    let output = checked(
+        root,
+        &["ls-tree", "-r", "--full-tree", "-z", "--long", commit],
+    )?;
+    let mut entries = Vec::new();
+    let mut paths = BTreeSet::new();
+    let mut total = 0usize;
+    for record in status::records(&output)? {
+        let record = std::str::from_utf8(record).context("worktree paths must use UTF-8.")?;
+        let (metadata, path) = record
+            .split_once('\t')
+            .context("invalid worktree tree entry.")?;
+        let fields = metadata.split_whitespace().collect::<Vec<_>>();
+        ensure!(
+            fields.len() == 4
+                && matches!(fields[0], "100644" | "100755")
+                && fields[1] == "blob"
+                && process::oid(fields[2]),
+            "raw worktree creation supports regular blobs only."
+        );
+        ensure!(
+            !path.is_empty()
+                && Path::new(path)
+                    .components()
+                    .all(|part| matches!(part, Component::Normal(_)))
+                && path
+                    .split('/')
+                    .all(|part| !part.eq_ignore_ascii_case(".git")),
+            "unsafe raw worktree path."
+        );
+        ensure!(
+            paths.insert(path.to_lowercase()),
+            "worktree paths collide under case folding."
+        );
+        let size = fields[3]
+            .parse::<usize>()
+            .context("worktree blob is missing or has an invalid size.")?;
+        total = total.checked_add(size).context("worktree size overflow.")?;
+        ensure!(
+            crate::git::worktree_budget_allows(entries.len() + 1, total, size),
+            "worktree exceeds 20000 files, 256 MiB total or 32 MiB per blob."
+        );
+        entries.push(Entry {
+            path: path.to_owned(),
+            mode: fields[0].to_owned(),
+            oid: fields[2].to_owned(),
+            size,
+        });
+    }
+    let mut spellings = BTreeMap::new();
+    for entry in &entries {
+        for path in Path::new(&entry.path).ancestors() {
+            let spelling = path.to_str().context("worktree paths must use UTF-8.")?;
+            if let Some(previous) = spellings.insert(spelling.to_lowercase(), spelling) {
+                ensure!(
+                    previous == spelling,
+                    "worktree directory paths collide under case folding."
+                );
+            }
+        }
+        for parent in Path::new(&entry.path).ancestors().skip(1) {
+            ensure!(
+                !paths.contains(&parent.to_string_lossy().to_lowercase()),
+                "worktree file and directory paths collide."
+            );
+        }
+    }
+    Ok(entries)
+}
+
+pub(super) fn blobs(plan: &Proposal) -> Result<Vec<Vec<u8>>> {
+    let mut input = String::new();
+    for entry in &plan.files {
+        input.push_str(&entry.oid);
+        input.push('\n');
+    }
+    let output = process::run(
+        &plan.root,
+        &args(&["cat-file", "--batch"]),
+        Some(input.as_bytes()),
+    )?;
+    ensure!(
+        output.status.success(),
+        "reading worktree blobs: {}",
+        process::diagnostic(&output.stderr)
+    );
+    let mut rest = output.stdout.as_slice();
+    let mut blobs = Vec::new();
+    for entry in &plan.files {
+        let end = rest
+            .iter()
+            .position(|byte| *byte == b'\n')
+            .context("incomplete worktree blob header.")?;
+        let expected = format!("{} blob {}", entry.oid, entry.size);
+        ensure!(
+            rest[..end] == *expected.as_bytes(),
+            "worktree blob metadata changed."
+        );
+        rest = &rest[end + 1..];
+        ensure!(
+            rest.len() > entry.size && rest[entry.size] == b'\n',
+            "incomplete worktree blob body."
+        );
+        blobs.push(rest[..entry.size].to_vec());
+        rest = &rest[entry.size + 1..];
+    }
+    ensure!(rest.is_empty(), "unexpected trailing worktree blob data.");
+    Ok(blobs)
+}
+
+fn check_directory(plan: &Proposal, identity: (u64, u64)) -> Result<()> {
+    ensure!(
+        directory(plan.destination.parent().unwrap())? == plan.parent_identity
+            && directory(&plan.destination)? == identity
+            && directory(&plan.common)? == plan.common_identity,
+        "worktree directory identity changed."
+    );
+    Ok(())
+}
+
+fn check_registration(plan: &Proposal) -> Result<()> {
+    ensure!(
+        process::repository_root(&plan.destination)? == plan.destination
+            && common(&plan.destination)? == plan.common,
+        "new worktree resolves to another repository."
+    );
+    let head = checked(
+        &plan.destination,
+        &["symbolic-ref", "--quiet", "--no-recurse", "HEAD"],
+    )?;
+    ensure!(
+        line(&head)? == format!("refs/heads/{}", plan.branch),
+        "new worktree branch changed."
+    );
+    let commit = checked(&plan.destination, &["rev-parse", "--verify", "HEAD"])?;
+    ensure!(
+        line(&commit)? == plan.commit,
+        "new worktree commit changed."
+    );
+    let registrations = checked(
+        &plan.root,
+        &["worktree", "list", "--porcelain", "-z", "--expire=now"],
+    )?;
+    ensure!(
+        super::records::parse(&registrations, &plan.root)?
+            .iter()
+            .any(|entry| Path::new(&entry.path) == plan.destination && entry.locked),
+        "new worktree registration is missing or unlocked."
+    );
+    Ok(())
+}
+
+fn index_path(plan: &Proposal) -> Result<PathBuf> {
+    let output = checked(
+        &plan.destination,
+        &["rev-parse", "--path-format=absolute", "--git-path", "index"],
+    )?;
+    let path = Path::new(line(&output)?);
+    let parent = path
+        .parent()
+        .context("new worktree index lacks a directory.")?
+        .canonicalize()?;
+    ensure!(
+        parent.starts_with(plan.common.join("worktrees"))
+            && path.file_name() == Some("index".as_ref()),
+        "new worktree index is outside linked metadata."
+    );
+    directory(&parent)?;
+    Ok(parent.join("index"))
+}
+
+fn populate(plan: &Proposal, blobs: &[Vec<u8>], identity: (u64, u64)) -> Result<()> {
+    let mut directories = BTreeMap::from([(plan.destination.clone(), identity)]);
+    let mut files = BTreeMap::new();
+    for (entry, bytes) in plan.files.iter().zip(blobs) {
+        check_directory(plan, identity)?;
+        let mut parent = plan.destination.clone();
+        for component in Path::new(&entry.path).parent().unwrap().components() {
+            parent.push(component);
+            if let Some(expected) = directories.get(&parent) {
+                ensure!(
+                    directory(&parent)? == *expected,
+                    "checkout directory changed."
+                );
+            } else {
+                DirBuilder::new().mode(0o700).create(&parent)?;
+                directories.insert(parent.clone(), directory(&parent)?);
+            }
+        }
+        let path = plan.destination.join(&entry.path);
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .open(&path)
+            .with_context(|| format!("creating fresh worktree file {:?}", entry.path))?;
+        file.write_all(bytes)?;
+        file.set_permissions(Permissions::from_mode(if entry.mode == "100755" {
+            0o755
+        } else {
+            0o644
+        }))?;
+        file.sync_all()?;
+        let metadata = file.metadata()?;
+        files.insert(path, (metadata.dev(), metadata.ino()));
+    }
+    for (path, expected) in directories.iter().rev() {
+        ensure!(directory(path)? == *expected, "checkout directory changed.");
+        File::open(path)?.sync_all()?;
+    }
+    for (entry, bytes) in plan.files.iter().zip(blobs) {
+        let path = plan.destination.join(&entry.path);
+        let metadata = fs::symlink_metadata(&path)?;
+        ensure!(
+            metadata.file_type().is_file()
+                && files.get(&path) == Some(&(metadata.dev(), metadata.ino()))
+                && (metadata.mode() & 0o100 != 0) == (entry.mode == "100755")
+                && fs::read(&path)? == *bytes,
+            "raw worktree file changed during creation."
+        );
+    }
+    Ok(())
+}
+
+pub(super) fn apply(plan: &Proposal, blobs: &[Vec<u8>]) -> Result<()> {
+    ensure!(
+        directory(plan.destination.parent().unwrap())? == plan.parent_identity
+            && directory(&plan.common)? == plan.common_identity,
+        "worktree parent or repository changed before creation."
+    );
+    DirBuilder::new().mode(0o700).create(&plan.destination)?;
+    let identity = directory(&plan.destination)?;
+    check_directory(plan, identity)?;
+    checked(
+        &plan.root,
+        &[
+            "worktree",
+            "add",
+            "--no-checkout",
+            "--no-track",
+            "--lock",
+            "--reason",
+            "fr: reviewed raw worktree",
+            "-b",
+            &plan.branch,
+            "--",
+            plan.destination.to_str().unwrap(),
+            &plan.commit,
+        ],
+    )
+    .context("registering reviewed worktree")?;
+    check_directory(plan, identity)?;
+    check_registration(plan)?;
+    let index = index_path(plan)?;
+    ensure!(absent(&index)?, "new worktree index already exists.");
+    let output = process::run_with_index(
+        &plan.destination,
+        &args(&["read-tree", "--no-sparse-checkout", "--reset", &plan.commit]),
+        None,
+        Some(&index),
+    )?;
+    ensure!(
+        output.status.success(),
+        "preparing new worktree index: {}",
+        process::diagnostic(&output.stderr)
+    );
+    populate(plan, blobs, identity)?;
+    let output = checked(&plan.destination, &["ls-files", "--stage", "-z"])?;
+    let observed = status::records(&output)?
+        .into_iter()
+        .collect::<BTreeSet<_>>();
+    let expected = plan
+        .files
+        .iter()
+        .map(|entry| format!("{} {} 0\t{}", entry.mode, entry.oid, entry.path))
+        .collect::<Vec<_>>();
+    ensure!(
+        observed == expected.iter().map(|entry| entry.as_bytes()).collect(),
+        "new worktree index differs from the reviewed tree."
+    );
+    ensure!(
+        fs::symlink_metadata(&index)?.file_type().is_file(),
+        "new worktree index is not a regular file."
+    );
+    File::open(&index)?.sync_all()?;
+    File::open(index.parent().unwrap())?.sync_all()?;
+    File::open(plan.destination.parent().unwrap())?.sync_all()?;
+    check_directory(plan, identity)?;
+    check_registration(plan)?;
+    Ok(())
+}
