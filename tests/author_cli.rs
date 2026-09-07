@@ -904,3 +904,189 @@ fn declaration_syntax_acceptance_does_not_claim_callers_still_typecheck() {
     ok(&root, &["history", "undo", &id, "--write"]);
     assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
 }
+
+fn insert_declaration(root: &Path, handle: &str, input: &Path, flags: &[&str]) -> (bool, Value) {
+    let mut args = vec![
+        "author",
+        "insert-declaration",
+        handle,
+        "--from",
+        input.to_str().unwrap(),
+    ];
+    args.extend(flags);
+    run(root, &args)
+}
+
+#[test]
+fn insertion_preserves_file_bytes_and_runs_new_function_through_saved_history() {
+    let source = "// π\r\nfn seed(n: i32) -> i32 { n + 1 }\r\n// Keep this final comment.";
+    let added = "fn main() { println!(\"{}\", seed(3)); }";
+    let (_temp, root, input) = fixture(source, added.as_bytes());
+    let (handle, _) = selection(&root, "app.rs");
+    let (success, preview) = insert_declaration(&root, &handle, &input, &["--diff-bytes", "0"]);
+    assert!(success, "{preview}");
+    assert_eq!(preview["query"], "insert-declaration");
+    assert_eq!(preview["schema"], "fr-author-1");
+    assert_eq!(preview["insertion"]["before_span"]["start"], source.len());
+    assert_eq!(preview["insertion"]["before_span"]["end"], source.len());
+    assert_eq!(preview["insertion"]["leading_separator"], "\r\n");
+    assert_eq!(preview["insertion"]["trailing_separator"], "\r\n");
+    assert_eq!(preview["declaration"]["span"]["start"], source.len() + 2);
+    assert_eq!(preview["name_resolution_checked"], false);
+    assert_eq!(preview["diff"]["text"], "");
+    assert!(!root.join(".fr-history").exists());
+    let (success, saved) = insert_declaration(&root, &handle, &input, &["--save-plan"]);
+    assert!(success, "{saved}");
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+    let id = saved["transaction"].as_u64().unwrap().to_string();
+    fs::write(&input, b"fn changed() {}").unwrap();
+    ok(&root, &["history", "apply", &id, "--write"]);
+    let expected = format!("{source}\r\n{added}\r\n");
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), expected);
+    assert_eq!(compiled_result(&root), b"4\n");
+    assert!(!insert_declaration(&root, &handle, &input, &["--write"]).0);
+    fs::write(root.join("other.rs"), "fn other() {}\n").unwrap();
+    ok(&root, &["history", "undo", &id, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+    ok(&root, &["history", "patch", &id, "--check"]);
+    assert!(ok(&root, &["history", "patch", &id])["patch"]
+        .as_str()
+        .unwrap()
+        .contains(added));
+    ok(&root, &["history", "redo", &id, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), expected);
+    assert_eq!(
+        fs::read_to_string(root.join("other.rs")).unwrap(),
+        "fn other() {}\n"
+    );
+    fs::write(root.join("app.rs"), expected + "// Later change.\n").unwrap();
+    assert!(!run(&root, &["history", "undo", &id, "--write"]).0);
+}
+
+#[test]
+fn insertion_handles_empty_files_inner_attributes_comments_and_nested_names() {
+    for source in [
+        "",
+        "\n",
+        "// Final comment.",
+        "//// Ordinary comment.",
+        "/* Ordinary. */",
+        "//! Crate documentation.\n#![allow(dead_code)]\n",
+        "#!/usr/bin/env rust-script\n",
+        "fn outer() { fn calc() {} }\n",
+        "mod inner { pub fn calc() {} }\n",
+        "#[inline]\nfn other() {}\n",
+        "const TEXT: &str = \"/// A string.\";\n",
+    ] {
+        let (_temp, root, input) = fixture(source, b"\nfn calc() {}\n");
+        let (handle, _) = selection(&root, "app.rs");
+        let (success, report) = insert_declaration(&root, &handle, &input, &["--write"]);
+        assert!(success, "{source:?}: {report}");
+        let leading = if source.is_empty() || source.ends_with('\n') {
+            ""
+        } else {
+            "\n"
+        };
+        assert_eq!(
+            fs::read_to_string(root.join("app.rs")).unwrap(),
+            format!("{source}{leading}fn calc() {{}}\n")
+        );
+        let (fresh, _) = selection(&root, "app.rs");
+        assert!(!insert_declaration(&root, &fresh, &input, &["--write"]).0);
+    }
+}
+
+#[test]
+fn insertion_refuses_duplicate_direct_names_and_unattached_outer_metadata() {
+    for source in [
+        "fn calc() {}\n",
+        "fn r#calc() {}\n",
+        "struct calc;\n",
+        "type calc = i32;\n",
+        "const calc: i32 = 1;\n",
+        "mod calc {}\n",
+        "trait calc {}\n",
+        "#[cfg(any())]\nfn calc() {}\n",
+        "macro_rules! calc { () => {} }\n",
+        "fn other() {}\n/// Waiting documentation.\n",
+        "fn other() {}\n/** Waiting documentation. */\n",
+        "#[inline]\n",
+        "fn other() {}\n#[inline]\n// Ordinary comment after attribute.\n",
+        "/// Waiting documentation.\n// Ordinary comment.\n",
+    ] {
+        let (_temp, root, input) = fixture(source, b"fn calc() {}");
+        let (handle, _) = selection(&root, "app.rs");
+        let (success, report) = insert_declaration(&root, &handle, &input, &["--save-plan"]);
+        assert!(!success, "{source}: {report}");
+        assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+        assert!(!root.join(".fr-history").exists());
+    }
+    let (_temp, root, input) = fixture("fn calc() {}\n", b"fn r#calc() {}");
+    let (handle, _) = selection(&root, "app.rs");
+    assert!(!insert_declaration(&root, &handle, &input, &["--write"]).0);
+}
+
+#[test]
+fn insertion_refuses_bad_fragments_targets_revisions_and_conflicting_flags() {
+    for text in [
+        "",
+        "fn calc();",
+        "fn calc() {} fn other() {}",
+        "#[inline]\nfn calc() {}",
+        "fn calc() {} // Trailing.",
+        "struct calc;",
+        "fn calc() { let x = ; }",
+        "fn calc() {\0}",
+    ] {
+        let (_temp, root, input) = fixture("fn other() {}\n", text.as_bytes());
+        let (handle, _) = selection(&root, "app.rs");
+        assert!(!insert_declaration(&root, &handle, &input, &["--write"]).0);
+        assert!(!root.join(".fr-history").exists());
+    }
+    for (file, source) in [
+        ("app.ts", "function other() {}\n"),
+        ("app.rs", "fn other() { let x = ; }\n"),
+    ] {
+        let (_temp, root, input) = fixture_file(file, source, b"fn calc() {}");
+        let (handle, _) = selection(&root, file);
+        assert!(!insert_declaration(&root, &handle, &input, &["--write"]).0);
+    }
+    let (_temp, root, input) = fixture("fn other() {}\n", b"fn calc() {}");
+    let (function, _) = selection(&root, "other");
+    assert!(!insert_declaration(&root, &function, &input, &["--write"]).0);
+    let (handle, revision) = selection(&root, "app.rs");
+    let short = handle.rsplit(':').next().unwrap();
+    assert!(!insert_declaration(&root, short, &input, &["--write"]).0);
+    assert!(insert_declaration(&root, short, &input, &["--revision", &revision]).0);
+    assert!(!insert_declaration(&root, &handle, &input, &["--write", "--save-plan"]).0);
+    assert!(!insert_declaration(&root, &handle, &input, &["--diff-bytes", "65537"]).0);
+    fs::write(
+        root.join("Cargo.toml"),
+        "[package]\nname=\"changed\"\nversion=\"0.1.0\"\n",
+    )
+    .unwrap();
+    assert!(!insert_declaration(&root, &handle, &input, &["--write"]).0);
+    assert!(!root.join(".fr-history").exists());
+}
+
+#[test]
+fn insertion_bounds_fragment_bytes_and_reports_separators_separately() {
+    let header = "fn calc() ";
+    let text = format!("{header}{{{}}}", " ".repeat(65536 - header.len() - 2));
+    let source = "// First.\r\n// Last.";
+    let (_temp, root, input) = fixture(source, text.as_bytes());
+    let (handle, _) = selection(&root, "app.rs");
+    let (success, report) =
+        insert_declaration(&root, &handle, &input, &["--diff-bytes", "0", "--write"]);
+    assert!(success, "{report}");
+    assert_eq!(report["declaration"]["bytes"], 65536);
+    assert_eq!(report["insertion"]["added_bytes"], 65540);
+    assert_eq!(
+        fs::read_to_string(root.join("app.rs")).unwrap(),
+        format!("{source}\r\n{text}\r\n")
+    );
+    fs::write(root.join("app.rs"), source).unwrap();
+    fs::write(&input, text + " ").unwrap();
+    let (handle, _) = selection(&root, "app.rs");
+    assert!(!insert_declaration(&root, &handle, &input, &["--save-plan"]).0);
+}

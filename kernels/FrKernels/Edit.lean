@@ -99,6 +99,17 @@ theorem rejected_plan_has_no_result (source : String) (edits : List Edit)
     (invalid : valid source edits = false) : applyChecked source edits = none := by
   simp [applyChecked, invalid]
 
+theorem removing_inserted_characters_recovers_source (source : String) (edit : Edit) (position : Nat)
+    (emptyRange : edit.stop = edit.start)
+    (startAt : byteToCharIndex source.toList edit.start = some position)
+    (startIn : position ≤ source.toList.length) :
+    (splice source edit).toList.take position ++
+      (splice source edit).toList.drop (position + edit.replacement.toList.length) = source.toList := by
+  have stopAt : byteToCharIndex source.toList edit.stop = some position := by rw [emptyRange, startAt]
+  rw [splice_keeps_the_prefix source edit position position startAt stopAt startIn,
+      splice_keeps_the_suffix source edit position position startAt stopAt startIn,
+      List.take_append_drop]
+
 theorem accepted_plan_has_one_result (source : String) (edits : List Edit)
     (accepted : valid source edits = true) : applyChecked source edits = some (apply source edits) := by
   simp [applyChecked, accepted]

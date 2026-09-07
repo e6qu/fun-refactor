@@ -1621,7 +1621,9 @@ fn cmd_project(cli: &Cli, command: &crate::project::Command) -> Result<()> {
 
 fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()> {
     use crate::project::author::Command;
-    let (Command::ReplaceBody(options) | Command::ReplaceDeclaration(options)) = command;
+    let (Command::ReplaceBody(options)
+    | Command::ReplaceDeclaration(options)
+    | Command::InsertDeclaration(options)) = command;
     anyhow::ensure!(
         !(options.write && cli.save_plan),
         "choose --save-plan or --write, not both."
@@ -1630,6 +1632,7 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
         let mut plan = match command {
             Command::ReplaceBody(options) => project.replace_body(options)?,
             Command::ReplaceDeclaration(options) => project.replace_declaration(options)?,
+            Command::InsertDeclaration(options) => project.insert_declaration(options)?,
         };
         let outcomes = crate::edit::plan(&plan.edits, crate::edit::Validation::ReparseStrict)?;
         project.verify(root)?;

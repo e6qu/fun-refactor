@@ -489,6 +489,11 @@ It can change the signature and body, retaining outer attributes and surrounding
 Supply exactly one function without outer attributes or trailing comments; both complete declarations must fit 64 KiB.
 Callers and imports need separate changes and checks. The same preview, saved-plan and history flags apply.
 
+`fr author insert-declaration FILE_HANDLE --from FILE` appends one Rust function, preserving every existing file byte.
+Use a Rust file handle and a function fragment without outer attributes, at most 64 KiB.
+The report accounts separately for LF or CRLF separators. Direct duplicate item names and pending outer documentation or attributes refuse.
+Imports, macro expansion and full name resolution remain unchecked. Saved plans, undo/redo and patches use source history.
+
 ## Crossing languages
 
 ### `fr translate`

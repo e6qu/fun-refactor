@@ -141,12 +141,26 @@ fn kernel_accepts(source: &str, edits: &[Edit], expected: &str) {
 
 #[test]
 fn the_edit_kernel_accepts_a_reported_declaration_replacement() {
+    reported_declaration_plan("replace-declaration", "calc");
+}
+
+#[test]
+fn the_edit_kernel_accepts_a_reported_declaration_insertion() {
+    reported_declaration_plan("insert-declaration", "app.rs");
+}
+
+fn reported_declaration_plan(operation: &str, selected: &str) {
     let temp = tempfile::tempdir().unwrap();
     let workspace = temp.path().join("workspace");
     std::fs::create_dir(&workspace).unwrap();
     let old = "fn calc(n: i32) -> i32 { n + 1 }";
     let new = "pub fn calc(n: i64) -> i64 { n * 2 }";
-    let source = format!("// π\r\n#[inline]\r\n{old}\r\nfn other() {{}}\r\n");
+    let inserting = operation == "insert-declaration";
+    let source = if inserting {
+        "// π\r\nfn other() {}\r\n// Final comment.".to_owned()
+    } else {
+        format!("// π\r\n#[inline]\r\n{old}\r\nfn other() {{}}\r\n")
+    };
     std::fs::write(workspace.join("app.rs"), &source).unwrap();
     let fragment = temp.path().join("function.txt");
     std::fs::write(&fragment, new).unwrap();
@@ -169,25 +183,44 @@ fn the_edit_kernel_accepts_a_reported_declaration_replacement() {
         .as_array()
         .unwrap()
         .iter()
-        .find(|row| row[1] == "calc")
+        .find(|row| row[1] == selected)
         .unwrap();
     let report = run(&[
         "author",
-        "replace-declaration",
+        operation,
         row[0].as_str().unwrap(),
         "--from",
         fragment.to_str().unwrap(),
     ]);
-    let span = &report["declaration"]["before_span"];
+    let key = if inserting {
+        "insertion"
+    } else {
+        "declaration"
+    };
+    let span = &report[key]["before_span"];
+    let replacement = if inserting {
+        format!(
+            "{}{}{}",
+            report["insertion"]["leading_separator"].as_str().unwrap(),
+            new,
+            report["insertion"]["trailing_separator"].as_str().unwrap()
+        )
+    } else {
+        new.to_owned()
+    };
     let edits = [Edit::new(
         Span::new(
             span["start"].as_u64().unwrap() as usize,
             span["end"].as_u64().unwrap() as usize,
         ),
-        new,
+        &replacement,
         "kernel",
     )];
-    let expected = source.replace(old, new);
+    let expected = if inserting {
+        format!("{source}\r\n{new}\r\n")
+    } else {
+        source.replace(old, new)
+    };
     assert_eq!(apply_to_string(&source, &edits).unwrap(), expected);
     kernel_accepts(&source, &edits, &expected);
 }

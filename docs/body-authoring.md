@@ -60,7 +60,7 @@ The command does not update callers, signatures or imports and does not check ty
 Macros and language context rules retain the parser's syntax coverage limits.
 Choose project compiler and test commands that establish the intended behavior after applying.
 An implementation change may deliberately change behavior; syntax acceptance does not validate that intention.
-Further languages, wrapped initializers and declaration insertion remain roadmap work.
+Further languages, wrapped initializers and insertion into nested scopes remain roadmap work.
 For complete Rust function changes, see [declaration replacement](#declaration-replacement).
 
 For a TSX component, the fragment may contain JSX:
@@ -90,14 +90,38 @@ Changing the signature may break compilation even though both parses are clean.
 
 The report uses query `replace-declaration`, with `declaration` spans, byte counts and fingerprints.
 It includes the old `signature` and bounded `replacement_signature`.
-The saved-plan, diff-budget and history rules below apply to both authoring operations.
+The saved-plan, diff-budget and history rules below apply to all authoring operations.
+
+## Declaration insertion
+
+`fr author insert-declaration FILE_HANDLE --from FILE` appends one Rust function to an indexed Rust file.
+Select the file's handle from the project map. Function, directory, module and non-Rust handles refuse.
+Empty files are supported. The fragment must contain one function with a body, without outer attributes or surrounding comments.
+The raw input and trimmed function must fit 64 KiB.
+
+Every existing source byte stays in place. The operation appends at EOF and does not format existing code.
+It chooses LF or CRLF from the file's first newline, defaulting to LF when there is none.
+It adds a leading newline only for a nonempty file without a final LF, and always adds a trailing newline.
+Fragment bytes retain their own line endings. The added separators can total four bytes beyond the fragment limit.
+Trailing ordinary comments remain intact. Pending outer documentation or attributes refuse because they could attach to the new function.
+Existing crate attributes and inner documentation continue to apply to the file.
+
+The name check refuses matching direct item names, treating `calc` and `r#calc` as the same spelling.
+It checks direct syntax and does not distinguish Rust namespaces or evaluate conditional compilation.
+Nested names do not block insertion. Imports, macro expansion and full name resolution remain unchecked; run the compiler after applying.
+An identical existing function also refuses; insertion has no no-op case.
+
+The report uses query `insert-declaration` and provides the new declaration's name, span, byte count and fingerprint.
+`insertion` contains the empty original span, complete added span, separator strings, added-byte count and fingerprint.
+Its `signature` describes the new function. `name_resolution_checked: false` makes the name-check boundary explicit.
+Use the returned source-history transaction for exact application, undo/redo and patches.
 
 ## Review and transactions
 
 Both output modes return JSON with schema `fr-author-1`.
 The report includes the reviewed revision and handle, bounded path and signature, coverage and absolute body byte spans.
 For function bindings, the signature starts at the selected declarator or field and excludes neighboring bindings and their bodies.
-Body fingerprints use SHA-256 over the exact block bytes; byte counts describe the old and new blocks.
+Fingerprints use SHA-256 over the exact bytes of the reported fragment or insertion.
 `validation: reparse-strict` and `behavior_checked: false` separate syntax evidence from behavioral checks.
 
 The default diff budget is 4,096 UTF-8 bytes. `--diff-bytes` accepts 0 through 65,536.
@@ -111,7 +135,7 @@ Previewing writes neither source nor a history record.
 Apply that ID after review; later changes to the fragment file do not change the saved transaction.
 Applying checks the recorded source basis and affected snapshots, including existence and modes.
 A direct `--write` computes and applies a new plan from the current fragment. It conflicts with `--save-plan`.
-An identical block produces no transaction and returns `changed: false` and `applied: false`.
+An identical replacement produces no transaction and returns `changed: false` and `applied: false`.
 
 Use source-history undo, redo, recovery and patch export with the returned ID.
 Undo/redo preserve unrelated edits and refuse conflicts in affected files.
@@ -122,7 +146,7 @@ Source verification and recording are separate observations; this command does n
 
 ## Evidence
 
-Twenty-four CLI scenarios cover saved replacement identity, compiled behavior, undo/redo, patch export, stale handles and revisions, unsupported targets and malformed input.
+Twenty-nine CLI scenarios cover saved edit identity, compiled behavior, undo/redo, patch export, stale handles and revisions, unsupported targets and malformed input.
 They also check exact size limits, diff omission, method and nested-function contexts, Unicode and CRLF preservation, no-op writes, symlink inputs and Unix permissions.
 TypeScript and TSX fixtures compile with `tsc --strict` and run in Node before and after saved replacements.
 The tests cover JSX, supported declaration forms, extension aliases and unsupported selections without editing an enclosing function.
@@ -136,4 +160,7 @@ Declaration cases cover compiled signature changes, preserved outer attributes, 
 Lean proves both prefix and suffix preservation for valid splice boundaries, including replacements that change length.
 An edit reported by the declaration CLI also passes through Rust and Lean with matching results.
 An incompatible signature fixture confirms that syntax acceptance can still leave a compiler error in a caller.
+Insertion cases cover EOF placement, empty files, separators, duplicate names and unattached outer metadata.
+Lean proves that removing inserted characters at a valid boundary recovers the original source.
+A reported insertion, including its separators, also produces matching Rust and Lean results.
 These proofs do not establish general correspondence for AST selection, parsing, type correctness, filesystem operations or the full authoring command.

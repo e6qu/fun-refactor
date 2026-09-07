@@ -43,7 +43,7 @@ Important gaps:
 - Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist. Raw staging and journaled index undo/redo are available on Unix. Reviewed commits are available with explicit index and HEAD bases. Worktree inspection reports registered workspaces with revision-bound pages. Reviewed creation adds raw checkouts on new or unused existing branches on Unix. Ownership receipts support checked completion of incomplete worktrees and reviewed removal of clean worktrees. Removal archives support inspection, checked resumption and reviewed compaction to audit summaries. Shared browser patch semantics remain pending.
 - Strict spec signature maps currently accept Rust source declarations only.
 - Framework readers cover selected patterns. Whole applications still need dependency and runtime work.
-- The portable agent skill covers exploration, changes, history, Git and Lean. Rust, TypeScript and TSX body replacement uses project handles and source history. Direct TypeScript/TSX function bindings support block bodies. Rust function declaration replacement can change signatures and implementations together. Real-agent evaluation, wrapped initializers and declaration insertion remain pending.
+- The portable agent skill covers exploration, changes, history, Git and Lean. Rust, TypeScript and TSX body replacement uses project handles and source history. Direct TypeScript/TSX function bindings support block bodies. Rust function declaration replacement can change signatures and implementations together. Rust function insertion appends through file handles. Real-agent evaluation, wrapped initializers and nested declaration insertion remain pending.
 - Model proofs and shared executable cases do not establish general correspondence with the Rust implementation.
 
 ## Product contract
@@ -849,12 +849,27 @@ Validation passes the full native/WASM gate, 311/311 capability coverage and all
 Strict verification retains twenty-two fresh source anchors and signature maps and zero `sorry` obligations.
 Prefix and suffix preservation have model proofs; AST selection, parsing and filesystem operations retain test-based evidence.
 
+M4f: bounded Rust function insertion (complete).
+
+- Append one complete function through a Rust file handle while retaining every existing source byte.
+- Report EOF placement, fragment size, newline separators and full inserted spans separately.
+- Refuse duplicate direct names and pending outer documentation or attributes; disclose incomplete name resolution.
+- Reuse syntax checks, bounded previews, source revisions, saved plans, undo/redo and patches.
+- Prove recovery of original model text after removing an insertion and compare a reported insertion with Lean.
+- Cover empty files, CRLF, comments, name normalization, fragment limits, refusals and compiled behavior.
+
+Twenty-nine authoring scenarios pass, including saved insertion identity, compiled execution, undo/redo and patch export.
+Reported insertion and replacement edits produce matching results in Rust and Lean.
+Validation passes the full native/WASM gate, 311/311 capability coverage and all 29 Lean build jobs.
+Strict verification retains twenty-two fresh source anchors and signature maps and zero `sorry` obligations.
+The insertion-recovery theorem covers the edit model; full name resolution, parsing and filesystem behavior remain outside that proof.
+
 Next M4 work:
 
 Evaluate the handoff with real agents on pinned projects and measure correctness, context use and refusals.
 Keep examples compatible with the distributed binary and load specialized references only when needed.
 
-Extend body authoring to selected wrapped initializers or additional languages, and add declaration insertion or replacement of further declaration kinds.
+Extend body authoring to selected wrapped initializers or additional languages, and support nested insertion or further declaration kinds.
 Reuse revision checks, edit planning, syntax validation and history.
 Compose high-level intentions as inspectable recipe steps with explicit postconditions.
 Select project checks from declared configuration and report what each check covers.

@@ -68,6 +68,7 @@ The native packaging change has a local archive check; release uploads and other
 M4a provides the introductory handoff and executable command examples.
 Body replacement supports Rust, TypeScript and TSX declarations and methods, plus direct TypeScript/TSX function bindings with block bodies.
 Rust function declaration replacement can change signatures and implementations together, preserving the name and outer attributes.
+Declaration insertion appends a Rust function through a file handle, retaining all existing source bytes.
 Real-agent evaluation, further authoring operations and declared project-check selection remain open.
 M5 still owns automated Lean package initialization and model scaffolding.
 The skill does not claim complete framework migration, worktree undo/redo or general implementation verification.

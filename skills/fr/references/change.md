@@ -65,6 +65,12 @@ Inspect the fragment and selected body as needed, then use `--save-plan` and sou
 For a combined Rust signature and implementation change, use `fr author replace-declaration HANDLE --from FILE`.
 Supply one complete function with the same name, excluding outer attributes and surrounding comments.
 Both declarations and the input must fit 64 KiB. Outer attributes stay in place; callers and imports need separate edits and checks.
-Use the same diff budget, saved-plan and history workflow. Other declarations, wrapped initializers and insertion remain pending.
+Use the same diff budget, saved-plan and history workflow.
+
+To append a Rust function, use `fr author insert-declaration FILE_HANDLE --from FILE` with the file's handle.
+Supply one function without outer attributes or surrounding comments, at most 64 KiB.
+Existing bytes stay in place; the report lists added newline separators separately.
+Duplicate direct item names and pending outer documentation or attributes refuse. Imports and macro expansion still need compiler checks.
+Apply the saved transaction and refresh handles. Nested insertion, other declarations and wrapped initializers remain pending.
 If no operation expresses the requested change, use the normal editor on the needed source and run appropriate checks.
 Those editor writes do not automatically join an `fr` transaction. Translation produces a draft for supported constructs; inspect unsupported cases and validate the target project.

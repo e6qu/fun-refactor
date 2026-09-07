@@ -1,7 +1,7 @@
 use super::{bounded_text, Project};
 use crate::edit::{Edit, EditSet};
 use crate::lang::Language;
-use crate::parse::Parsers;
+use crate::parse::{Parsed, Parsers};
 use crate::span::Span;
 use anyhow::{ensure, Context, Result};
 use clap::{Args, Subcommand};
@@ -21,6 +21,10 @@ pub enum Command {
         about = "Replace one Rust function declaration while retaining its name and outer attributes."
     )]
     ReplaceDeclaration(ReplaceBodyOptions),
+    #[command(
+        about = "Append one Rust function through a file handle, retaining existing source bytes."
+    )]
+    InsertDeclaration(ReplaceBodyOptions),
 }
 
 #[derive(Args)]
@@ -42,7 +46,7 @@ pub struct ReplaceBodyOptions {
     pub diff_bytes: usize,
     #[arg(
         long,
-        help = "Record and apply the replacement after checking the source revision."
+        help = "Record and apply the edit after checking the source revision."
     )]
     pub write: bool,
 }
@@ -165,7 +169,123 @@ fn replacement(path: &Path, language: Language, syntax: &BodySyntax) -> Result<S
     Ok(text)
 }
 
+fn function_fragment<'tree>(parsed: &'tree Parsed, text: &str) -> Result<tree_sitter::Node<'tree>> {
+    let item = parsed
+        .root()
+        .named_child(0)
+        .context("fragment needs one Rust function declaration.")?;
+    ensure!(
+        !parsed.has_errors() && parsed.root().named_child_count() == 1
+            && item.kind() == "function_item" && Span::from(item) == Span::new(0, text.len())
+            && item.child_by_field_name("body").is_some(),
+        "fragment must contain exactly one Rust function with a body, without outer attributes or surrounding comments."
+    );
+    Ok(item)
+}
+
 impl Project<'_> {
+    pub fn insert_declaration(&self, options: &ReplaceBodyOptions) -> Result<Plan> {
+        ensure!(
+            options.diff_bytes <= 65536,
+            "diff bytes must be between 0 and 65536."
+        );
+        let handle = self.explicit_handle(&options.handle, options.revision.as_deref())?;
+        let id = self.resolve_handle(&handle)?;
+        ensure!(
+            self.nodes[id].kind == "file",
+            "declaration insertion requires a Rust file handle."
+        );
+        let path = self.root.join(&self.nodes[id].path);
+        let info = self
+            .index
+            .file(&path)
+            .context("selected file is not indexed.")?;
+        ensure!(
+            info.language == Language::Rust,
+            "declaration insertion supports Rust files only."
+        );
+        let source = &self.sources[&path];
+        let parsed = Parsers::new().parse(Language::Rust, source)?;
+        ensure!(
+            !parsed.has_errors(),
+            "declaration insertion requires a file without parser errors."
+        );
+        let text = fragment(&self.root.join(&options.from))?;
+        let fragment_tree = Parsers::new().parse(Language::Rust, &text)?;
+        let function = function_fragment(&fragment_tree, &text)?;
+        let name = Span::from(
+            function
+                .child_by_field_name("name")
+                .context("function needs a name.")?,
+        )
+        .text(&text);
+        let normalized = name.strip_prefix("r#").unwrap_or(name);
+        let mut pending_outer = false;
+        let mut cursor = parsed.root().walk();
+        for item in parsed.root().named_children(&mut cursor) {
+            if let Some(existing) = item.child_by_field_name("name") {
+                let existing = Span::from(existing).text(source);
+                ensure!(
+                    existing.strip_prefix("r#").unwrap_or(existing) != normalized,
+                    "a direct item already has this name; use replacement or choose a new name."
+                );
+            }
+            match item.kind() {
+                "attribute_item" => pending_outer = true,
+                "line_comment" | "block_comment" => {
+                    pending_outer |= item.child_by_field_name("outer").is_some();
+                }
+                "inner_attribute_item" => {}
+                _ => pending_outer = false,
+            }
+        }
+        ensure!(!pending_outer, "trailing outer attributes or documentation could attach to the insertion; resolve them first.");
+        let newline = if source
+            .find('\n')
+            .is_some_and(|at| at > 0 && source.as_bytes()[at - 1] == b'\r')
+        {
+            "\r\n"
+        } else {
+            "\n"
+        };
+        let leading = if source.is_empty() || source.ends_with('\n') {
+            ""
+        } else {
+            newline
+        };
+        let inserted = format!("{leading}{text}{newline}");
+        let span = Span::new(source.len(), source.len());
+        let mut edits = EditSet::new();
+        edits.add(
+            &path,
+            Edit::new(span, &inserted, "Append the new function declaration."),
+        );
+        let updated = crate::edit::apply_to_string(source, edits.edits_for(&path).unwrap_or(&[]))?;
+        ensure!(
+            !Parsers::new().parse(Language::Rust, &updated)?.has_errors(),
+            "insertion introduces parser errors in its destination context."
+        );
+        let body = function
+            .child_by_field_name("body")
+            .context("function needs a body.")?;
+        let mut report = self.envelope("insert-declaration");
+        report["schema"] = json!("fr-author-1");
+        report["handle"] = json!(self.handle(id));
+        report["path"] = bounded_text(&self.nodes[id].path.to_string_lossy(), 512);
+        report["signature"] = json!({"basis": "syntax-header", "text": bounded_text(text[..body.start_byte()].trim_end(), 512)});
+        report["declaration"] = json!({"name": bounded_text(name, 512), "kind": "function", "span": Span::new(source.len()+leading.len(), source.len()+leading.len()+text.len()), "bytes": text.len(), "sha256": digest(&text)});
+        report["insertion"] = json!({"before_span": span, "after_span": Span::new(span.start, span.start+inserted.len()), "added_bytes": inserted.len(), "leading_separator": leading, "trailing_separator": newline, "sha256": digest(&inserted)});
+        report["name_check"] =
+            json!("direct top-level item names; Rust namespaces are not distinguished");
+        report["name_resolution_checked"] = json!(false);
+        report["changed"] = json!(true);
+        report["validation"] = json!("reparse-strict");
+        report["preservation"] = json!("all existing source bytes");
+        report["behavior_checked"] = json!(false);
+        report["atomic_snapshot"] = json!(false);
+        Ok(Plan { edits, report })
+    }
+
     pub fn replace_declaration(&self, options: &ReplaceBodyOptions) -> Result<Plan> {
         ensure!(
             options.diff_bytes <= 65536,
@@ -210,15 +330,7 @@ impl Project<'_> {
             "old and new declarations must each fit 2 through 65536 bytes."
         );
         let replacement = Parsers::new().parse(Language::Rust, &after)?;
-        let item = replacement
-            .root()
-            .named_child(0)
-            .context("replacement needs one Rust function declaration.")?;
-        ensure!(
-            !replacement.has_errors() && replacement.root().named_child_count() == 1
-                && item.kind() == "function_item" && Span::from(item) == Span::new(0, after.len()),
-            "replacement must contain exactly one Rust function; outer attributes and comments stay in the destination."
-        );
+        let item = function_fragment(&replacement, &after)?;
         let name = item
             .child_by_field_name("name")
             .context("replacement function needs a name.")?;
