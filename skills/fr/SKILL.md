@@ -25,7 +25,7 @@ Load only the reference needed for the task:
 - [Lean](references/lean.md): source drift, signature maps and proof evidence.
 
 Keep the workspace root and review identity attached to each result.
-Project handles expire after source changes; use a new map. Refactoring commands take names or source positions, not project handles.
+Project handles expire after source changes; use a new map. Built-in refactorings take names or positions; body authoring takes project handles.
 Read only the necessary body slices when a header and relationships cannot answer the task.
 
 Mutations preview by default. Within the user's authorized scope, inspect the result before applying the same saved transaction or Git basis.

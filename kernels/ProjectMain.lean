@@ -6,7 +6,11 @@ open FrKernels.Project
 def samples : List Nat := [0, 1, 2, 3, 4, 79, 80, 499, 500, 65536, 4294967295, 18446744073709551615]
 
 def main (args : List String) : IO Unit := do
-  if args == ["worktree-archive-compaction"] then
+  if args == ["body-replacement-budget"] then
+    for before in [0, 1, 2, 3, 65535, 65536, 65537, 18446744073709551615] do
+      for after in [0, 1, 2, 3, 65535, 65536, 65537, 18446744073709551615] do
+        IO.println (bodyReplacementBudget before after)
+  else if args == ["worktree-archive-compaction"] then
     for complete in [false, true] do
       for checkoutAbsent in [false, true] do
         for metadataAbsent in [false, true] do

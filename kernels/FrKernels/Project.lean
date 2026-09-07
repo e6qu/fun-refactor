@@ -178,4 +178,18 @@ theorem stabilized_membership_is_exact (seeds : List Nat) (edges : List (Nat × 
       rw [← stable]
       exact (membership_step_iff _ edges target).mpr (Or.inr ⟨source, edge, known⟩)
 
+-- fr:spec src/project.rs::body_replacement_budget @ 89b1e41a04d2eb0ad8fc0cebc7446a7f292c86ca0bd4de3ffe2b247ec7b99066
+-- fr:signature before: usize => before: Nat; after: usize => after: Nat; return: bool => return: Bool
+def bodyReplacementBudget (before : Nat) (after : Nat) : Bool :=
+  decide (2 ≤ before ∧ before ≤ 65536 ∧ 2 ≤ after ∧ after ≤ 65536)
+
+theorem body_replacement_bounds (before after : Nat)
+    (accepted : bodyReplacementBudget before after = true) :
+    2 ≤ before ∧ before ≤ 65536 ∧ 2 ≤ after ∧ after ≤ 65536 := by
+  simpa [bodyReplacementBudget] using accepted
+
+theorem body_replacement_budget_is_symmetric (before after : Nat) :
+    bodyReplacementBudget before after = bodyReplacementBudget after before := by
+  simp [bodyReplacementBudget, and_comm, and_left_comm, and_assoc]
+
 end FrKernels.Project

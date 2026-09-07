@@ -465,6 +465,23 @@ finds the `lakefile.lean` or `lakefile.toml` owning each selected spec and runs
 `lake build --wfail` once per package. Lake can write build artifacts; `fr` does not edit source. JSON includes the strict report,
 each package, its result, and Lean's output.
 
+### `fr author`
+
+```sh
+fr author replace-body '<HANDLE>' --from /tmp/body.txt
+fr author replace-body '<HANDLE>' --from /tmp/body.txt --save-plan
+fr history apply '<TX>' --write
+```
+
+Replace one Rust function's block while preserving all surrounding bytes, including its signature and attributes.
+Use a current project handle; this command accepts structural identities directly.
+The input is a regular UTF-8 file containing one complete block, at most 64 KiB. The old block must also fit 64 KiB.
+Both original and resulting files must parse without errors. Types, imports, callers and behavior require separate checks.
+Both output modes return bounded JSON. The diff defaults to 4096 bytes and reports omitted bytes when clipped.
+`--save-plan` records the exact replacement for later application; `--write` records and applies it immediately.
+History provides undo/redo, recovery and patch export. A no-op produces no record.
+See [body authoring](docs/body-authoring.md) for supported targets, input rules and review limits.
+
 ## Crossing languages
 
 ### `fr translate`

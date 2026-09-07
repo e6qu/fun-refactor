@@ -104,6 +104,11 @@ pub fn command_names() -> Vec<String> {
 
 #[derive(Subcommand)]
 enum Command {
+    #[command(about = "Author bounded structural changes through project handles.")]
+    Author {
+        #[command(subcommand)]
+        command: crate::project::author::Command,
+    },
     #[command(about = "Preview and record file deletions or executable-mode changes.")]
     File {
         #[command(subcommand)]
@@ -785,7 +790,8 @@ fn dispatch(cli: &Cli) -> Result<()> {
     if cli.save_plan
         && !matches!(
             &cli.command,
-            Command::File { .. }
+            Command::Author { .. }
+                | Command::File { .. }
                 | Command::Rename { .. }
                 | Command::Extract { .. }
                 | Command::Inline { .. }
@@ -815,6 +821,7 @@ fn dispatch(cli: &Cli) -> Result<()> {
         }
     }
     match &cli.command {
+        Command::Author { command } => cmd_author(cli, command),
         Command::File { command } => {
             let report = crate::history::files::execute(&cli.root, command, cli.save_plan)?;
             println!("{}", serde_json::to_string(&report)?);
@@ -1586,7 +1593,10 @@ fn persist_changes(
     Ok(id)
 }
 
-fn cmd_project(cli: &Cli, command: &crate::project::Command) -> Result<()> {
+fn with_project(
+    cli: &Cli,
+    action: impl FnOnce(&crate::project::Project<'_>, &std::path::Path) -> Result<()>,
+) -> Result<()> {
     let root = workspace_root(cli);
     let options = scan_options(cli, &[])?;
     let scanned = scan(&root, &options)?;
@@ -1597,10 +1607,48 @@ fn cmd_project(cli: &Cli, command: &crate::project::Command) -> Result<()> {
     };
     let index = Index::build_with_cache(&scanned, cache.as_ref())?;
     let project = crate::project::Project::new(&root, &index, &scanned, &options)?;
-    let report = project.report(command)?;
-    project.verify(&root)?;
-    println!("{}", serde_json::to_string(&report)?);
-    Ok(())
+    action(&project, &root)
+}
+
+fn cmd_project(cli: &Cli, command: &crate::project::Command) -> Result<()> {
+    with_project(cli, |project, root| {
+        let report = project.report(command)?;
+        project.verify(root)?;
+        println!("{}", serde_json::to_string(&report)?);
+        Ok(())
+    })
+}
+
+fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()> {
+    let crate::project::author::Command::ReplaceBody(options) = command;
+    anyhow::ensure!(
+        !(options.write && cli.save_plan),
+        "choose --save-plan or --write, not both."
+    );
+    with_project(cli, |project, root| {
+        let mut plan = project.replace_body(options)?;
+        let outcomes = crate::edit::plan(&plan.edits, crate::edit::Validation::ReparseStrict)?;
+        project.verify(root)?;
+        let diff = outcomes
+            .iter()
+            .map(|outcome| workspace_diff(cli, outcome))
+            .collect::<String>();
+        plan.set_diff(&diff, options.diff_bytes);
+        let transaction = persist_changes(
+            cli,
+            &outcomes
+                .iter()
+                .map(crate::edit::FileChange::from)
+                .collect::<Vec<_>>(),
+            options.write,
+            "reparse-strict",
+        )?;
+        plan.report["transaction"] = serde_json::json!(transaction);
+        plan.report["applied"] = serde_json::json!(options.write && transaction.is_some());
+        plan.report["saved"] = serde_json::json!(cli.save_plan && transaction.is_some());
+        println!("{}", serde_json::to_string(&plan.report)?);
+        Ok(())
+    })
 }
 
 fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {

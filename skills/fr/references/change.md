@@ -2,7 +2,7 @@
 
 Check the relevant operation in the installed binary. A supported language cell still permits input-specific refusals.
 For a rename, `<TARGET>` is a unique name or the file and `position` from `project show`, such as `app.py:1:5`.
-A project handle is not a mutation target.
+A rename does not accept a project handle.
 
 ```sh
 fr --json capabilities --capability rename
@@ -52,6 +52,11 @@ Save a recipe with `--save-plan` and apply its returned transaction through hist
 All steps see the preceding virtual result, and failed expectations prevent source writes.
 A recipe composes existing operations; it cannot authorize an unsupported transformation.
 
-Bounded arbitrary declaration/body authoring remains roadmap work.
+For a Rust function implementation, `fr author replace-body HANDLE --from FILE` accepts a current project handle and a complete block from a UTF-8 file.
+Both blocks and the input file must fit 64 KiB. Keep the fragment outside the project to avoid invalidating an earlier map.
+The command preserves all bytes outside the body and rejects parser errors; it does not check types or behavior.
+Its JSON diff defaults to 4096 bytes; a clipped diff has `text` and `omitted_bytes`.
+Inspect the fragment and selected body as needed, then use `--save-plan` and source history to apply the exact replacement.
+This command accepts project handles directly. Other languages, whole declarations and insertion remain pending.
 If no operation expresses the requested change, use the normal editor on the needed source and run appropriate checks.
 Those editor writes do not automatically join an `fr` transaction. Translation produces a draft for supported constructs; inspect unsupported cases and validate the target project.

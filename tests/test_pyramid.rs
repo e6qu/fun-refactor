@@ -81,6 +81,10 @@ fn invocations() -> Vec<(&'static str, Vec<&'static str>)> {
         ("file", vec!["file", "delete", "svc/a.go"]),
         ("git", vec!["git", "status"]),
         ("project", vec!["project", "map"]),
+        (
+            "author",
+            vec!["author", "replace-body", "invalid", "--from", "missing.txt"],
+        ),
         ("completions", vec!["completions", "bash"]),
         ("scan", vec!["scan"]),
         ("parse", vec!["parse", "--stats"]),

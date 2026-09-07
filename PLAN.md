@@ -43,7 +43,7 @@ Important gaps:
 - Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist. Raw staging and journaled index undo/redo are available on Unix. Reviewed commits are available with explicit index and HEAD bases. Worktree inspection reports registered workspaces with revision-bound pages. Reviewed creation adds raw checkouts on new or unused existing branches on Unix. Ownership receipts support checked completion of incomplete worktrees and reviewed removal of clean worktrees. Removal archives support inspection, checked resumption and reviewed compaction to audit summaries. Shared browser patch semantics remain pending.
 - Strict spec signature maps currently accept Rust source declarations only.
 - Framework readers cover selected patterns. Whole applications still need dependency and runtime work.
-- The portable agent skill covers exploration, changes, history, Git and Lean. Real-agent evaluation and bounded declaration/body authoring remain pending.
+- The portable agent skill covers exploration, changes, history, Git and Lean. Bounded Rust function-body replacement uses project handles and source history. Real-agent evaluation, other languages and declaration insertion remain pending.
 - Model proofs and shared executable cases do not establish general correspondence with the Rust implementation.
 
 ## Product contract
@@ -791,12 +791,26 @@ Validation passes the full native/WASM gate, 311/311 capability coverage and all
 Strict verification retains twenty-one fresh source anchors and signature maps and zero `sorry` obligations.
 The skill validator and local archive check pass. Real-agent evaluation and release-platform execution remain separate work.
 
+M4b: bounded Rust function-body replacement (complete).
+
+- Add `fr author replace-body HANDLE --from FILE` with current project handles and explicit short-ID revisions.
+- Replace one complete Rust block, retaining signatures, attributes and all source bytes outside it.
+- Require clean original and resulting parses, and cap both blocks and input files at 64 KiB.
+- Return bounded JSON diffs with omission counts, source fingerprints and explicit syntax-only validation.
+- Save exact replacement plans through existing source history, including apply, undo/redo, recovery and patches.
+- Anchor the body-size guard in Lean and compare 64 boundary cases with Rust.
+
+See [body authoring](docs/body-authoring.md) for supported targets and verification limits.
+Eight CLI scenarios cover behavior, preserved source, history, stale identities, refusals, byte limits and permissions.
+Validation passes the full native/WASM gate, 311/311 capability coverage and all 29 Lean build jobs.
+Strict verification passes with twenty-two fresh source anchors and signature maps and zero `sorry` obligations.
+
 Next M4 work:
 
 Evaluate the handoff with real agents on pinned projects and measure correctness, context use and refusals.
 Keep examples compatible with the distributed binary and load specialized references only when needed.
 
-Add bounded insertion and replacement of declarations or bodies where existing refactorings cannot express a change.
+Extend body authoring to selected additional languages and add bounded declaration insertion or replacement.
 Reuse revision checks, edit planning, syntax validation and history.
 Compose high-level intentions as inspectable recipe steps with explicit postconditions.
 Select project checks from declared configuration and report what each check covers.

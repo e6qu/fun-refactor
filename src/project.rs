@@ -11,6 +11,7 @@ use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
+pub mod author;
 mod configuration;
 mod contracts;
 mod fast_routes;
@@ -234,6 +235,10 @@ fn check_limit(limit: usize) -> Result<()> {
         bail!("limit must be between 1 and 500");
     }
     Ok(())
+}
+
+pub fn body_replacement_budget(before: usize, after: usize) -> bool {
+    (2..=65536).contains(&before) && (2..=65536).contains(&after)
 }
 
 pub fn page_length(total: usize, start: usize, limit: usize) -> usize {

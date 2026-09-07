@@ -66,6 +66,7 @@ The native packaging change has a local archive check; release uploads and other
 ## Remaining roadmap
 
 M4a provides the introductory handoff and executable command examples.
-Real-agent evaluation on pinned projects, bounded declaration/body authoring and declared project-check selection remain open.
+Rust body replacement now provides the first bounded authoring operation.
+Real-agent evaluation, further authoring operations and declared project-check selection remain open.
 M5 still owns automated Lean package initialization and model scaffolding.
 The skill does not claim complete framework migration, worktree undo/redo or general implementation verification.
