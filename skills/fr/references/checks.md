@@ -4,7 +4,7 @@ When `.fr/checks.json` exists, inspect its declared commands and coverage before
 
 ```sh
 fr checks
-fr checks --run unit --basis '<CHECK_BASIS>' --quiet-success --output-bytes 2048
+fr checks --run unit --basis '<CHECK_BASIS>' --quiet-success --no-declarations --output-bytes 2048
 ```
 
 Choose names from the listing for the task. `unit` is the example's name; projects can declare different names.
@@ -16,6 +16,7 @@ It has no command sandbox; commands can write files outside source history. Use 
 Read `passed`, every selected result and `not_run`. Coverage labels are project claims.
 `passed: null` means no command ran. A nonzero exit or failed result means validation failed, even if parsing succeeded.
 Quiet success omits stream text with byte counts; failures retain diagnostics.
+`--no-declarations` omits reviewed command metadata, marked by `declarations_omitted: true`; match result names to the listing with the same basis.
 Output includes omitted-byte counts. Increase `--output-bytes` up to 65536 when the reported failure needs more detail.
 Source snapshots are not locked or verified by this command. Relevant later edits require another check run.
 

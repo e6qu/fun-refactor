@@ -179,3 +179,10 @@ CARGO_HOME="$PWD/target/cargo-home" CARGO_NET_OFFLINE=true cargo test --test age
 Default acceptance tests retain the sixteen harness regressions and eight earlier patch replays without requiring the additional workspace dependencies.
 The M4k full native/WASM gate and strict kernel verification passed before these trials.
 This milestone adds evidence, replay coverage and documentation; production code and formal claims are unchanged.
+
+## Subsequent check-report reduction
+
+M4m adds opt-in `checks --no-declarations` for executions after reviewing the configuration listing.
+It retains the basis, result names, outcomes, diagnostics, omitted-byte counts and names of unselected checks.
+The [controlled comparison](project-checks.md#controlled-report-measurement) projects 33.7% less check-execution output in each retained fr trial.
+It also validates real CLI reports against the pinned workspace. This is not a fresh autonomous measurement, and the scores above remain unchanged.

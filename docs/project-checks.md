@@ -40,6 +40,12 @@ Failed commands, spawn failures, timeouts and excessive captured output produce 
 Malformed configuration and selection errors produce the ordinary CLI error object with a nonzero exit status.
 Each failure emits one JSON document.
 
+After reviewing the listing, `--no-declarations` omits its repeated `checks` array and each result's `argv`, `cwd` and `covers`.
+The report marks `declarations_omitted: true` and retains names, root, configuration basis, unselected names and every execution outcome and diagnostic.
+Join result names to the listing with the same basis to recover command metadata, including declared timeouts and coverage.
+The flag requires `--run`; stale or missing bases still refuse before any command starts.
+It combines with `--quiet-success`. Default reports and listings keep their declarations.
+
 Coverage descriptions come from project declarations. They do not establish test coverage, behavior preservation or formal verification.
 The report states `source_snapshot_checked: false`. Concurrent source changes can invalidate the evidence.
 
@@ -69,3 +75,34 @@ Each command has at most 128 arguments of 4,096 bytes each and 32 coverage descr
 
 CLI regressions cover preview, stale configuration, selection, failure reports, output truncation, timeouts, literal arguments and path refusals.
 The execution layer has test evidence; no Lean proof covers process behavior or project-check semantics.
+
+## Controlled report measurement
+
+The [workspace agent traces](agent-workspace-evaluation.md) repeat the reviewed declarations in four check execution reports per trial.
+Applying declaration omission to those frozen payloads gives this deterministic projection:
+
+| Retained fr trial | Execution reports | Original payload tokens | Projected tokens |
+|---|---:|---:|---:|
+| regex repetition 1 | 4 | 2,720 | 1,804 |
+| regex repetition 2 | 4 | 2,720 | 1,804 |
+
+Each projection removes 916 tokens, or 33.7% of check-execution output, with all other fields held fixed.
+These counts exclude the listing, prompts, skill reads, generated requests and other task outputs.
+They use the original instrumented JSON wrapper and pinned tiktoken 0.12.0/o200k_base tokenizer.
+No fresh agent ran with this option; the twelve autonomous trial scores remain unchanged.
+
+The [retained comparison](../tests/agent-eval/checks-context.json) also runs the real CLI against a pristine pinned regex workspace.
+After warming its checks, it compares quiet-success reports with and without declaration omission.
+Joining results to the reviewed listing reconstructs the full report, apart from execution timings and varying successful stream lengths.
+Both declared checks pass, and tracked source and index bytes stay unchanged.
+The live stdout uses CLI formatting; its token counts differ from the instrumented transcript projection.
+
+Reproduce the comparison after the [workspace dependency bootstrap](agent-workspace-evaluation.md#reproduction-and-trial-design):
+
+```sh
+python3 tools/checks-context.py --fr target/debug/fr
+target/agent-eval-venv/bin/python tools/checks-context.py --fr target/debug/fr --tokens
+```
+
+CLI regressions separately check failed exits, spawn errors, truncated invalid UTF-8, quiet-success composition and exact declaration reconstruction.
+They also check that omitted declarations cannot bypass configuration review or cause an unselected command to execute.

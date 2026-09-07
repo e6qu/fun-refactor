@@ -943,6 +943,19 @@ The complete cohort is retained in `tests/agent-eval/results/2026-09-08-regex`; 
 Workspace replay is an explicit integration test after dependency bootstrap, preserving default CI's dependency requirements.
 This localized facade change does not establish general context savings or coordinated editing across packages.
 
+M4m: smaller check execution reports (complete).
+
+Workspace traces repeat reviewed command metadata in every check execution report.
+Opt-in `checks --no-declarations` omits that metadata while retaining result names, configuration basis, outcomes, diagnostics and unselected names.
+Listing and default execution reports remain unchanged; missing or stale bases still refuse before execution.
+Twelve check CLI scenarios and all 33 executable skill examples pass, including reconstruction against the reviewed listing and failure diagnostics.
+A live controlled comparison passes both pinned workspace checks and preserves tracked source and index bytes.
+Projection onto each retained fr trial reduces four check-execution payloads from 2,720 to 1,804 tokens, a 33.7% reduction.
+This does not measure fresh agents or total task context. Existing autonomous scores remain immutable.
+The full native/WASM gate passes with 311/311 capability coverage and 29 Lean build jobs.
+Strict verification retains twenty-two fresh source anchors and signature maps and zero obligations; process execution remains outside the proofs.
+See [check report measurements](docs/project-checks.md#controlled-report-measurement) for the retained evidence and reproduction.
+
 Next M4 work:
 
 Use the retained workspace traces to reduce repeated report metadata and skill-loading costs, preserving coverage, source bases, guards and reviewable changes.

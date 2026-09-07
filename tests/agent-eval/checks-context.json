@@ -1,0 +1,66 @@
+{
+  "schema": "fr-checks-context-1",
+  "passed": true,
+  "binary_sha256": "4ccb44340fc1dd9ab7c9c558bd33256d518b9e884c65f3c91b818f57b1d80444",
+  "archive_sha256": "7f8beace6ed6c94b2eec3c5aa92219e10e73bd8ad696035877bed01d3ee47255",
+  "dependency_lock_sha256": "7ae225f5fbac82509d5c259dd3613a809c75a8bd4e2124b9cb69ed29d98de3a0",
+  "evidence_manifest_sha256": "1c5bf106b16ec74e2d5ecbe602ea5650c256594354440cfb4a2d303b49654e8f",
+  "measurement_files": {
+    "tools/checks-context.py": "2175a845adbdee1d69a262d35dd20669f845952c215753ee5f819325681a6b39",
+    "tools/agent-eval.py": "1136ec0ea7644ee4011785576a280483b41e37e17ea54f0d5d9f5071c578b07f",
+    "tools/agent_eval/regex_workspace.py": "d7003500c07c3c5b1b12916ffdcd094b3dddf2e59f6d8aa8510246d42b9fb08c"
+  },
+  "tokenizer": {
+    "package": "tiktoken",
+    "version": "0.12.0",
+    "encoding": "o200k_base",
+    "vocabulary_sha256": "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d"
+  },
+  "live": {
+    "passed": true,
+    "listing_stdout": "{\"basis\":\"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\",\"checks\":[{\"argv\":[\"cargo\",\"test\",\"-p\",\"regex\",\"-p\",\"regex-syntax\",\"--lib\",\"--locked\",\"--offline\"],\"covers\":[\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"],\"cwd\":\".\",\"name\":\"upstream\",\"timeout_seconds\":120},{\"argv\":[\"cargo\",\"check\",\"-p\",\"regex\",\"--no-default-features\",\"--locked\",\"--offline\"],\"covers\":[\"regex library compilation without default features\"],\"cwd\":\".\",\"name\":\"minimal\",\"timeout_seconds\":120}],\"configuration\":\".fr/checks.json\",\"coverage_authority\":\"project declarations; passing commands do not prove coverage or equivalence\",\"executed\":false,\"execution\":\"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\",\"not_run\":[\"upstream\",\"minimal\"],\"passed\":null,\"results\":[],\"root\":\"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-checks-context-5whdce90/project\",\"schema\":\"fr-checks-1\",\"source_snapshot_checked\":false}\n",
+    "reports": {
+      "quiet_success": "{\"basis\":\"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\",\"checks\":[{\"argv\":[\"cargo\",\"test\",\"-p\",\"regex\",\"-p\",\"regex-syntax\",\"--lib\",\"--locked\",\"--offline\"],\"covers\":[\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"],\"cwd\":\".\",\"name\":\"upstream\",\"timeout_seconds\":120},{\"argv\":[\"cargo\",\"check\",\"-p\",\"regex\",\"--no-default-features\",\"--locked\",\"--offline\"],\"covers\":[\"regex library compilation without default features\"],\"cwd\":\".\",\"name\":\"minimal\",\"timeout_seconds\":120}],\"configuration\":\".fr/checks.json\",\"coverage_authority\":\"project declarations; passing commands do not prove coverage or equivalence\",\"executed\":true,\"execution\":\"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\",\"not_run\":[],\"passed\":true,\"results\":[{\"argv\":[\"cargo\",\"test\",\"-p\",\"regex\",\"-p\",\"regex-syntax\",\"--lib\",\"--locked\",\"--offline\"],\"covers\":[\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"],\"cwd\":\".\",\"elapsed_ms\":103,\"error\":null,\"exit_code\":0,\"name\":\"upstream\",\"output_limit_exceeded\":false,\"passed\":true,\"stderr\":{\"encoding\":\"UTF-8 with replacement; byte counts precede decoding\",\"omitted_bytes\":232,\"retained_bytes\":0,\"text\":\"\"},\"stdout\":{\"encoding\":\"UTF-8 with replacement; byte counts precede decoding\",\"omitted_bytes\":7913,\"retained_bytes\":0,\"text\":\"\"},\"timed_out\":false},{\"argv\":[\"cargo\",\"check\",\"-p\",\"regex\",\"--no-default-features\",\"--locked\",\"--offline\"],\"covers\":[\"regex library compilation without default features\"],\"cwd\":\".\",\"elapsed_ms\":31,\"error\":null,\"exit_code\":0,\"name\":\"minimal\",\"output_limit_exceeded\":false,\"passed\":true,\"stderr\":{\"encoding\":\"UTF-8 with replacement; byte counts precede decoding\",\"omitted_bytes\":70,\"retained_bytes\":0,\"text\":\"\"},\"stdout\":{\"encoding\":\"UTF-8 with replacement; byte counts precede decoding\",\"omitted_bytes\":0,\"retained_bytes\":0,\"text\":\"\"},\"timed_out\":false}],\"root\":\"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-checks-context-5whdce90/project\",\"schema\":\"fr-checks-1\",\"source_snapshot_checked\":false}\n",
+      "quiet_success_no_declarations": "{\"basis\":\"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\",\"configuration\":\".fr/checks.json\",\"coverage_authority\":\"project declarations; passing commands do not prove coverage or equivalence\",\"declarations_omitted\":true,\"executed\":true,\"execution\":\"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\",\"not_run\":[],\"passed\":true,\"results\":[{\"elapsed_ms\":110,\"error\":null,\"exit_code\":0,\"name\":\"upstream\",\"output_limit_exceeded\":false,\"passed\":true,\"stderr\":{\"encoding\":\"UTF-8 with replacement; byte counts precede decoding\",\"omitted_bytes\":232,\"retained_bytes\":0,\"text\":\"\"},\"stdout\":{\"encoding\":\"UTF-8 with replacement; byte counts precede decoding\",\"omitted_bytes\":7913,\"retained_bytes\":0,\"text\":\"\"},\"timed_out\":false},{\"elapsed_ms\":58,\"error\":null,\"exit_code\":0,\"name\":\"minimal\",\"output_limit_exceeded\":false,\"passed\":true,\"stderr\":{\"encoding\":\"UTF-8 with replacement; byte counts precede decoding\",\"omitted_bytes\":70,\"retained_bytes\":0,\"text\":\"\"},\"stdout\":{\"encoding\":\"UTF-8 with replacement; byte counts precede decoding\",\"omitted_bytes\":0,\"retained_bytes\":0,\"text\":\"\"},\"timed_out\":false}],\"root\":\"/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-checks-context-5whdce90/project\",\"schema\":\"fr-checks-1\",\"source_snapshot_checked\":false}\n"
+    },
+    "measures": {
+      "quiet_success": {
+        "bytes": 2164,
+        "tokens": 570
+      },
+      "quiet_success_no_declarations": {
+        "bytes": 1316,
+        "tokens": 365
+      }
+    },
+    "comparison": "Rejoined declarations match; elapsed times and successful omitted-stream byte counts may vary between executions.",
+    "source_and_index_unchanged": true
+  },
+  "projected_execution_payloads": [
+    {
+      "trial": "regex-escape-into-fr-r1",
+      "executions": 4,
+      "recorded": {
+        "bytes": 9558,
+        "tokens": 2720
+      },
+      "projected": {
+        "bytes": 5930,
+        "tokens": 1804
+      }
+    },
+    {
+      "trial": "regex-escape-into-fr-r2",
+      "executions": 4,
+      "recorded": {
+        "bytes": 9557,
+        "tokens": 2720
+      },
+      "projected": {
+        "bytes": 5929,
+        "tokens": 1804
+      }
+    }
+  ],
+  "scope": "Controlled check-report measurement and deterministic frozen-payload projection; no autonomous agents or total-task context measurement. Live runs use a pristine workspace and a warm-up execution. Projection preserves original timing and stream counts; listing, prompts and other task outputs are excluded."
+}

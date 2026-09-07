@@ -1,11 +1,25 @@
 # Development continuity
 
-M4l is complete: all four fresh regex workspace trials pass, and the full cohort is retained.
+M4m is complete: opt-in `checks --no-declarations` reduces repeated execution-report metadata.
 The user authorized local commits. Publishing and pushing remain outside this request.
-Production behavior last changed in M4k (`6d0928b`); M4l preparation is `811591e`.
-The current evidence milestone changes recordings, replay coverage and documentation only.
+M4l's four passing workspace trials are retained in `3c8231c`; preparation is `811591e` and documented insertion is `6d0928b`.
 
-## Current result
+## Current implementation
+
+After reviewing `fr checks`, execution can omit repeated declarations while retaining names, basis, outcomes, diagnostics and unselected names.
+The report marks `declarations_omitted: true`; join results to the reviewed listing with the same basis for command metadata.
+Default reports and listings retain their fields. Configuration guards and execution behavior stay unchanged.
+The portable skill's existing check example combines this option with quiet-success output; all 33 examples pass.
+Twelve check CLI scenarios pass, including failed/spawned commands, bounded invalid UTF-8 and reconstruction against the listing.
+
+`tools/checks-context.py` compares real reports on the pinned regex workspace and projects omission onto frozen trial payloads.
+Each retained fr trial's four execution reports fall from 2,720 to 1,804 tokens, a 33.7% reduction.
+The live comparison preserves tracked source and index bytes; successful output lengths and execution timings can vary.
+`tests/agent-eval/checks-context.json` retains actual stdout, fixed-projection counts, binary digest and input provenance.
+No new agents ran. These measurements exclude the listing and other task context and do not replace autonomous trial scores.
+See [check report measurements](project-checks.md#controlled-report-measurement) for reproduction and boundaries.
+
+## Latest autonomous result
 
 The regex task adds a documented public buffer-writing API by discovering and using an existing workspace helper.
 It exercises a real seven-package repository with 227 Rust files and 5,553,380 Rust source bytes.
@@ -42,7 +56,7 @@ Each cohort retains prompts, transcripts, scores, patches and its original skill
 All twelve autonomous trials pass. Recording also supports scored failures; behavioral replay refuses failed trials.
 Replay checks recorded patches and transition evidence without rerunning agents. Token auditing recounts retained payloads.
 The initial and follow-up strsim findings remain in the [context report](agent-context-followup.md).
-Controlled reports are separate: `tests/agent-eval/history-context.json` and `tests/agent-eval/regex/rehearsal.json`.
+Controlled reports are separate: `tests/agent-eval/history-context.json`, `tests/agent-eval/regex/rehearsal.json` and `tests/agent-eval/checks-context.json`.
 The regex rehearsal uses a prescribed solution and rejects three compiled negative controls; it is not autonomous evidence.
 
 Temporary regex sessions remain under `/private/tmp/fr-regex-agent-eval-2026-09-08`, one directory per retained trial name.
@@ -52,6 +66,13 @@ It, the skills, prompts, evaluator and oracle stayed unchanged throughout both p
 Temporary projects are disposable after retention; use repository evidence for replay and audits.
 
 ## Validation and commands
+
+M4m passes the full native/WASM gate in `/tmp/fr-m4m-full-check.log`, including all twelve check CLI scenarios and 33 skill examples.
+Capability coverage remains 311/311. Strict verification passes in `/tmp/fr-m4m-spec-verify.json`.
+It retains twenty-two fresh source anchors and signature maps, zero obligations and 29 Lean build jobs.
+The controlled report passes in `/tmp/fr-m4m-checks-context-final.json`, with the final binary digest checked before and after execution.
+Documentation checks pass in `/tmp/fr-m4m-docs-check.log`; formatting, prose budgets and the skill validator also pass.
+These are presentation and execution regressions, not a new formal proof of process behavior.
 
 M4k passed 31 authoring CLI scenarios and the full native/WASM gate in `/tmp/fr-m4k-full-check.log`.
 Capability coverage remains 311/311. Strict verification passed in `/tmp/fr-m4k-spec-verify.json`.
@@ -82,7 +103,8 @@ The integration regression is opt-in so default CI does not acquire this additio
 
 ## Next steps
 
-Use the retained traces to reduce repeated report metadata and skill-loading costs while preserving coverage, source bases, guards and reviewable edits.
+Check execution metadata is now optional; use retained traces to reduce remaining project/transaction metadata and skill-loading costs.
+Preserve coverage, source bases, guards and reviewable edits.
 Measure proposed reductions on fixed transcripts or controlled workflows before requesting another autonomous cohort.
 Treat repeated indexing cost separately from returned-context size; these trials explicitly disable the cache.
 A later paired task should require coordinated changes across files; the current larger repository task is still a localized facade addition.

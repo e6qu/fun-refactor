@@ -39,6 +39,12 @@ pub struct Options {
         help = "Omit successful stream text; retain bounded failure diagnostics."
     )]
     pub quiet_success: bool,
+    #[arg(
+        long,
+        requires = "run",
+        help = "Omit reviewed command declarations; retain names, basis and execution results."
+    )]
+    pub no_declarations: bool,
 }
 
 #[derive(Deserialize)]
@@ -200,6 +206,9 @@ fn execute(root: &Path, check: &Check, limit: usize, quiet_success: bool) -> Res
 }
 
 pub fn report(root: &Path, options: &Options) -> Result<Value> {
+    if options.no_declarations && options.run.is_empty() {
+        bail!("Declaration omission requires selected checks and a reviewed configuration basis.");
+    }
     if options.output_bytes > 65536 {
         bail!("Check output budget must be between 0 and 65536 bytes.");
     }
@@ -229,7 +238,7 @@ pub fn report(root: &Path, options: &Options) -> Result<Value> {
     }
     let passed =
         (!results.is_empty()).then(|| results.iter().all(|result| result["passed"] == true));
-    Ok(json!({
+    let mut report = json!({
         "schema": "fr-checks-1", "root": root, "configuration": CONFIG, "basis": basis,
         "executed": !results.is_empty(), "passed": passed,
         "checks": config.checks, "results": results,
@@ -237,5 +246,15 @@ pub fn report(root: &Path, options: &Options) -> Result<Value> {
         "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
         "execution": "inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture",
         "source_snapshot_checked": false
-    }))
+    });
+    if options.no_declarations {
+        report.as_object_mut().unwrap().remove("checks");
+        for result in report["results"].as_array_mut().unwrap() {
+            for key in ["argv", "cwd", "covers"] {
+                result.as_object_mut().unwrap().remove(key);
+            }
+        }
+        report["declarations_omitted"] = json!(true);
+    }
+    Ok(report)
 }

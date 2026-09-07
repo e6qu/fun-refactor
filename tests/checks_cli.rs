@@ -63,6 +63,108 @@ fn quiet_success_omits_success_text_but_retains_failed_diagnostics() {
 }
 
 #[test]
+fn omitted_declarations_rejoin_the_reviewed_listing_without_losing_outcomes() {
+    let mut missing = check("missing", "");
+    missing["argv"] = json!(["fr-fixture-executable-that-does-not-exist"]);
+    let root = fixture(vec![
+        check("pass", "print('success')"),
+        check(
+            "fail",
+            "import os; os.write(2, b'\\xffbad'); raise SystemExit(7)\n\n",
+        ),
+        missing,
+        check("unselected", "open('marker', 'w').write('ran')"),
+    ]);
+    let listing = run(&root, &[], 0);
+    assert!(listing.get("declarations_omitted").is_none());
+    for quiet in [false, true] {
+        let mut args = vec![
+            "--run",
+            "missing,pass,fail",
+            "--basis",
+            listing["basis"].as_str().unwrap(),
+            "--output-bytes",
+            "3",
+        ];
+        if quiet {
+            args.push("--quiet-success");
+        }
+        let mut full = run(&root, &args, 1);
+        args.push("--no-declarations");
+        let mut compact = run(&root, &args, 1);
+        assert_eq!(compact["declarations_omitted"], true);
+        assert!(compact.get("checks").is_none());
+        assert_eq!(compact["basis"], listing["basis"]);
+        assert_eq!(compact["not_run"], json!(["unselected"]));
+        assert_eq!(compact["results"][0]["name"], "pass");
+        assert_eq!(compact["results"][1]["exit_code"], 7);
+        assert_eq!(compact["results"][1]["stderr"]["text"], "\u{fffd}ba");
+        assert_eq!(compact["results"][1]["stderr"]["omitted_bytes"], 1);
+        assert!(compact["results"][2]["error"].is_string());
+        for (before, after) in full["results"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .zip(compact["results"].as_array_mut().unwrap())
+        {
+            let declaration = listing["checks"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|check| check["name"] == after["name"])
+                .unwrap();
+            for key in ["argv", "cwd", "covers"] {
+                assert!(after.get(key).is_none());
+                after[key] = declaration[key].clone();
+            }
+            assert!(after["elapsed_ms"].is_number());
+            before.as_object_mut().unwrap().remove("elapsed_ms");
+            after.as_object_mut().unwrap().remove("elapsed_ms");
+        }
+        compact["checks"] = listing["checks"].clone();
+        compact
+            .as_object_mut()
+            .unwrap()
+            .remove("declarations_omitted");
+        assert_eq!(compact, full);
+    }
+    assert!(!root.path().join("marker").exists());
+}
+
+#[test]
+fn declaration_omission_requires_execution_and_a_current_review() {
+    let root = fixture(vec![check("unit", "open('marker', 'w').write('ran')")]);
+    let output = Command::new(env!("CARGO_BIN_EXE_fr"))
+        .args([
+            "-C",
+            root.path().to_str().unwrap(),
+            "checks",
+            "--no-declarations",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    let old = basis(&root);
+    for names in ["unit", "unit,absent", "unit,unit"] {
+        let mut args = vec!["--run", names, "--no-declarations"];
+        if names != "unit" {
+            args.extend(["--basis", &old]);
+        }
+        run(&root, &args, 1);
+    }
+    configure(
+        &root,
+        vec![check("unit", "open('marker', 'w').write('changed')")],
+    );
+    run(
+        &root,
+        &["--run", "unit", "--basis", &old, "--no-declarations"],
+        1,
+    );
+    assert!(!root.path().join("marker").exists());
+}
+
+#[test]
 fn listing_never_executes_and_selection_reports_declared_coverage() {
     let root = fixture(vec![
         check("unit", "print('unit passed')"),

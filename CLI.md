@@ -86,6 +86,7 @@ The listing provides the configuration token, argv, working directory, timeout a
 Execution reports bounded output, individual failures and checks that did not run.
 See [project checks](docs/project-checks.md) for the schema, limits and process boundaries.
 Use `--quiet-success` to omit successful stream text while retaining bounded failure diagnostics.
+After reviewing the listing, add `--no-declarations` to omit repeated command metadata; names, basis, outcomes and diagnostics remain.
 
 
 ### `fr scan`

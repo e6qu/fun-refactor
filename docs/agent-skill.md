@@ -57,6 +57,7 @@ The checker enforces a 3 KiB entrypoint budget, a 6 KiB budget per reference and
 
 The initial macOS run against the development binary executed 31 fenced command examples.
 Declared project-check listing and execution now bring the checker to 33 examples.
+The execution example combines quiet-success output with declaration omission after reviewing the configuration basis.
 The initial measurements were:
 
 | Measure | UTF-8 bytes |
