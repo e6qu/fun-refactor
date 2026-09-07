@@ -239,3 +239,7 @@ The Git removal kernel anchors the identity, bytes and mode guard used before de
 Lean proves that acceptance requires all three matches. Shared executable tests cover all eight input combinations.
 An abstract namespace model proves that selected removal preserves other paths.
 The host filesystem, Git branch leases and removal archive durability remain outside full correspondence proofs.
+
+Removal resumption adds an anchored predicate for absent paths and matching survivors, with all sixteen boolean cases checked against Lean.
+Lean proves absent-path acceptance, required matches for present paths and idempotence of abstract selected removal.
+See [removal resumption assurance](git-worktree-removal-resumption.md#formal-coverage) for the host workflow boundaries.

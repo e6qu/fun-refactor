@@ -226,3 +226,12 @@ pub fn worktree_removal_file_allowed(
 ) -> bool {
     identity_matches && bytes_match && mode_matches
 }
+
+pub fn worktree_removal_resume_allowed(
+    present: bool,
+    identity_matches: bool,
+    bytes_match: bool,
+    mode_matches: bool,
+) -> bool {
+    !present || worktree_removal_file_allowed(identity_matches, bytes_match, mode_matches)
+}

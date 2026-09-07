@@ -1,14 +1,15 @@
 use super::{absent, args, checked, common, directory, line, Proposal};
 use crate::git::{process, status};
 use anyhow::{ensure, Context, Result};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, DirBuilder, File, OpenOptions, Permissions};
 use std::io::Write;
 use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Component, Path, PathBuf};
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub(super) struct Entry {
     pub(super) path: String,
     pub(super) mode: String,

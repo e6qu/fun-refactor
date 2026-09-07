@@ -6,7 +6,13 @@ open FrKernels.Project
 def samples : List Nat := [0, 1, 2, 3, 4, 79, 80, 499, 500, 65536, 4294967295, 18446744073709551615]
 
 def main (args : List String) : IO Unit := do
-  if args == ["worktree-removal"] then
+  if args == ["worktree-removal-resume"] then
+    for present in [false, true] do
+      for identityMatches in [false, true] do
+        for bytesMatch in [false, true] do
+          for modeMatches in [false, true] do
+            IO.println (FrKernels.Git.worktreeRemovalResumeAllowed present identityMatches bytesMatch modeMatches)
+  else if args == ["worktree-removal"] then
     for identityMatches in [false, true] do
       for bytesMatch in [false, true] do
         for modeMatches in [false, true] do

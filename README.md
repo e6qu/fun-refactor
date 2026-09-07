@@ -271,6 +271,7 @@ See [reviewed worktree creation](docs/git-worktree-creation.md) for branch check
 See [recorded recovery](docs/git-worktree-recovery.md) for ownership receipts and preservation rules.
 `fr git worktree remove PATH` previews removal of a clean owned worktree; `--basis TOKEN --write` archives metadata and removes reviewed files.
 [Reviewed removal](docs/git-worktree-removal.md) retains the branch and refuses extra content.
+[Removal resumption](docs/git-worktree-removal-resumption.md) uses `fr git worktree resume-removal RECORD` to inspect partial removals and `--basis TOKEN --write` to finish them.
 The browser already exports patches and can restore its initial workspace.
 `fr project` now provides compact hierarchy maps and bounded source inspection.
 Its package and dependency pages report Cargo/npm manifest declarations with shared revision checks.

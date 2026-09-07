@@ -1182,7 +1182,14 @@ See [recorded worktree recovery](docs/git-worktree-recovery.md) for ownership ch
 The branch is retained at its current commit. Later commits on the owned branch are supported.
 Extra content, changed files, unknown private metadata and active locks refuse.
 Only `applied: true` confirms removal; partial or uncertain outcomes return `applied: null` with a `removal_record` path.
-See [reviewed worktree removal](docs/git-worktree-removal.md) for supported layouts and manual recovery limits.
+See [reviewed worktree removal](docs/git-worktree-removal.md) for supported layouts and recovery limits.
+
+`fr git worktree resume-removal RECORD [--limit N]` inspects remaining paths and blockers in an archived removal.
+`--basis TOKEN --write` deletes matching survivors, skips missing paths and marks completion after both target directories are absent.
+The command accepts partial checkout and private metadata deletion. Changed or replacement paths and existing locks refuse.
+Inspection returns `can_resume`, bounded rows and full counts, with blockers first.
+Only `applied: true` confirms completion; inspect the same record again after an uncertain result.
+See [removal resumption](docs/git-worktree-removal-resumption.md) for archive validation and remaining limits.
 
 ### `fr cache`
 

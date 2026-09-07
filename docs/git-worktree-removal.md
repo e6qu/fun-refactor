@@ -37,7 +37,7 @@ The basis binds ownership, registrations, current commit, checkout identities an
 Changing the row limit preserves the basis. Changes to the observation require a new preview.
 Source bodies and private metadata bytes stay out of the preview.
 
-The writer acquires owned receipt, index and private HEAD locks.
+The writer acquires owned receipt, index and private HEAD locks. An archive lease coordinates removal with later resumption.
 A prepared, verify-only [Git reference transaction](https://git-scm.com/docs/git-update-ref) holds the branch while removal runs.
 Closing that transaction releases its locks without updating the branch or reflog.
 Hooks, content filters, replacement objects and inherited Git environment overrides remain disabled or bypassed.
@@ -61,9 +61,9 @@ Failures after archiving report `applied: null`, a bounded diagnostic and `remov
 These JSON outcomes exit successfully, so agents must inspect `applied`.
 
 A failure can leave missing committed files, empty directories or partially removed private metadata.
-The archive retains the reviewed metadata and identifies the retained source commit for manual reconstruction.
+The archive retains the reviewed metadata and identifies the retained source commit for inspection, checked resumption or manual reconstruction.
 Absence of a `complete` marker requires inspection; it does not establish which deletions occurred.
-Automatic resumption of removal and worktree undo/redo remain pending.
+[Removal inspection and checked resumption](git-worktree-removal-resumption.md) accept missing paths and matching survivors. Worktree undo/redo remains pending.
 Creation recovery refuses completed receipts and must not be used to reverse partial removal.
 Archives currently have no retention or compaction command.
 

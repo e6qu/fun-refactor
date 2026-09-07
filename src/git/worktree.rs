@@ -19,6 +19,31 @@ pub enum Command {
     Recover(RecoverOptions),
     #[command(about = "Preview or remove an owned clean worktree while retaining its branch.")]
     Remove(RemoveOptions),
+    #[command(about = "Inspect or resume a recorded incomplete worktree removal.")]
+    ResumeRemoval(ResumeRemovalOptions),
+}
+
+#[derive(Args)]
+pub struct ResumeRemovalOptions {
+    #[arg(help = "Removal record.json path, relative to the repository root or absolute.")]
+    record: std::path::PathBuf,
+    #[arg(
+        long,
+        help = "Require the reviewed removal record and remaining paths."
+    )]
+    basis: Option<String>,
+    #[arg(
+        long,
+        requires = "basis",
+        help = "Remove remaining reviewed paths and confirm completion."
+    )]
+    write: bool,
+    #[arg(
+        long,
+        default_value_t = 20,
+        help = "Maximum inspection rows, from 1 to 500."
+    )]
+    limit: usize,
 }
 
 #[derive(Args)]
@@ -104,6 +129,10 @@ pub(super) fn report(root: &Path, command: &Command) -> Result<Value> {
         Command::Recover(options) => create::recovery::report(root, options),
         #[cfg(unix)]
         Command::Remove(options) => create::removal::report(root, options),
+        #[cfg(unix)]
+        Command::ResumeRemoval(options) => create::removal::resume::report(root, options),
+        #[cfg(not(unix))]
+        Command::ResumeRemoval(_) => bail!("removal resumption requires Unix ownership checks."),
         #[cfg(not(unix))]
         Command::Remove(_) => bail!("worktree removal requires Unix ownership checks."),
         #[cfg(not(unix))]

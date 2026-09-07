@@ -1,7 +1,7 @@
 use super::{absent, checked, checkout, common, directory, line, ownership, Proposal};
 use crate::git::worktree::RecoverOptions;
 use anyhow::{ensure, Context, Result};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -15,7 +15,8 @@ pub(super) struct Capture {
     pub(super) blobs: Vec<Vec<u8>>,
 }
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub(super) struct Observation {
     pub(super) missing: Vec<String>,
     pub(super) files: BTreeMap<String, (u64, u64, u32, String)>,
@@ -95,7 +96,7 @@ pub(super) fn capture(root: &Path, path: &Path, removal: bool) -> Result<Capture
         &["worktree", "list", "--porcelain", "-z", "--expire=now"],
     )?;
     let plan = Proposal {
-        version: env!("CARGO_PKG_VERSION"),
+        version: env!("CARGO_PKG_VERSION").to_owned(),
         root,
         common: shared,
         common_identity: receipt.common_identity,

@@ -1,7 +1,7 @@
 use super::{records, CreateOptions};
 use crate::git::process;
 use anyhow::{ensure, Context, Result};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::ffi::OsString;
@@ -117,9 +117,10 @@ fn branch_available(root: &Path, branch: &str) -> Result<()> {
     Ok(())
 }
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 struct Proposal {
-    version: &'static str,
+    version: String,
     root: PathBuf,
     common: PathBuf,
     common_identity: (u64, u64),
@@ -220,7 +221,7 @@ fn proposal(requested: &Path, options: &CreateOptions) -> Result<Proposal> {
     ensure!(process::oid(&tree), "invalid worktree tree identity.");
     let files = checkout::inventory(&root, &commit)?;
     Ok(Proposal {
-        version: env!("CARGO_PKG_VERSION"),
+        version: env!("CARGO_PKG_VERSION").to_owned(),
         parent_identity: directory(&parent)?,
         common_identity: directory(&common)?,
         root,

@@ -20,6 +20,7 @@ cd "$(dirname "$0")/.."
     lake exe fr-project-kernel commit-basis >/dev/null
     lake exe fr-project-kernel worktree-budget >/dev/null
     lake exe fr-project-kernel worktree-removal >/dev/null
+    lake exe fr-project-kernel worktree-removal-resume >/dev/null
     lake exe fr-project-kernel worktree-recovery >/dev/null
     lake exe fr-project-kernel patterns >/dev/null
     lake exe fr-project-kernel confidence >/dev/null

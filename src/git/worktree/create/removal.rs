@@ -1,7 +1,7 @@
 use super::{absent, directory, ownership, recovery};
 use crate::git::worktree::RemoveOptions;
 use anyhow::{ensure, Context, Result};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::fs::{self, File};
@@ -10,8 +10,10 @@ use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 
 mod branch;
+pub(in crate::git::worktree) mod resume;
 
-#[derive(Serialize, PartialEq)]
+#[derive(Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
 struct FileState {
     identity: (u64, u64),
     mode: u32,
@@ -22,8 +24,12 @@ struct FileState {
 
 impl FileState {
     fn read(path: &Path) -> Result<Self> {
+        Self::read_limited(path, 64 * 1024 * 1024)
+    }
+
+    fn read_limited(path: &Path, limit: u64) -> Result<Self> {
         let before = fs::symlink_metadata(path)?;
-        let bytes = ownership::bytes(path, 64 * 1024 * 1024)?;
+        let bytes = ownership::bytes(path, limit)?;
         let after = fs::symlink_metadata(path)?;
         ensure!(
             before.dev() == after.dev()
@@ -54,7 +60,8 @@ impl FileState {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 struct Snapshot {
     checkout: recovery::Observation,
     metadata: BTreeMap<String, FileState>,
@@ -345,6 +352,7 @@ pub(in crate::git::worktree) fn report(root: &Path, options: &RemoveOptions) -> 
     );
     let record = archive(&capture, &snapshot)?;
     result["removal_record"] = json!(record);
+    let _archive_lease = ownership::Lease::acquire(record.with_file_name("resume.lock"))?;
     let outcome = (|| -> Result<()> {
         ensure!(
             basis(&capture, &observe(&capture, &leases)?)? == token,
@@ -367,7 +375,7 @@ pub(in crate::git::worktree) fn report(root: &Path, options: &RemoveOptions) -> 
         Ok(()) => result["applied"] = json!(true),
         Err(error) => {
             result["applied"] = Value::Null;
-            result["warning"] = json!("Removal is incomplete or unconfirmed. Inspect the removal record and remaining paths before manual recovery; do not retry creation recovery.");
+            result["warning"] = json!("Removal is incomplete or unconfirmed. Inspect with worktree resume-removal before retrying; do not retry creation recovery.");
             let diagnostic = format!("{error:#}");
             result["diagnostic"] = json!(crate::git::process::diagnostic(diagnostic.as_bytes()));
             result["diagnostic_truncated"] = json!(diagnostic.len() > 16 * 1024);

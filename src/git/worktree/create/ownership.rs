@@ -70,20 +70,20 @@ pub(super) fn bytes(path: &Path, limit: u64) -> Result<Vec<u8>> {
     Ok(bytes)
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub(super) struct Receipt {
-    schema: u32,
+    pub(super) schema: u32,
     pub(super) complete: bool,
     pub(super) common: PathBuf,
     pub(super) common_identity: (u64, u64),
     pub(super) destination: PathBuf,
     pub(super) parent_identity: (u64, u64),
     pub(super) destination_identity: (u64, u64),
-    metadata: PathBuf,
-    metadata_identity: (u64, u64),
-    gitfile_identity: (u64, u64),
-    gitfile_digest: String,
+    pub(super) metadata: PathBuf,
+    pub(super) metadata_identity: (u64, u64),
+    pub(super) gitfile_identity: (u64, u64),
+    pub(super) gitfile_digest: String,
     pub(super) branch: String,
     pub(super) commit: String,
     pub(super) tree: String,

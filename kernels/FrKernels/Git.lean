@@ -249,4 +249,23 @@ theorem removal_erases_selected (before : String → Option String) (selected : 
     (chosen : path ∈ selected) : removeSelected before selected path = none := by
   simp [removeSelected, chosen]
 
+-- fr:spec src/git.rs::worktree_removal_resume_allowed @ 043123a18970992a594713f5248af27824291da933321641a3658f40fb199f1c
+-- fr:signature present: bool => present: Bool; identity_matches: bool => identityMatches: Bool; bytes_match: bool => bytesMatch: Bool; mode_matches: bool => modeMatches: Bool; return: bool => return: Bool
+def worktreeRemovalResumeAllowed (present : Bool) (identityMatches : Bool) (bytesMatch : Bool) (modeMatches : Bool) : Bool :=
+  !present || worktreeRemovalFileAllowed identityMatches bytesMatch modeMatches
+
+theorem removal_resume_accepts_absent (identityMatches bytesMatch modeMatches : Bool) :
+    worktreeRemovalResumeAllowed false identityMatches bytesMatch modeMatches = true := by
+  rfl
+
+theorem removal_resume_requires_existing_match (identityMatches bytesMatch modeMatches : Bool)
+    (allowed : worktreeRemovalResumeAllowed true identityMatches bytesMatch modeMatches = true) :
+    identityMatches = true ∧ bytesMatch = true ∧ modeMatches = true := by
+  exact removal_requires_all_matches identityMatches bytesMatch modeMatches allowed
+
+theorem selected_removal_is_idempotent (before : String → Option String) (selected : List String) :
+    removeSelected (removeSelected before selected) selected = removeSelected before selected := by
+  funext path
+  by_cases chosen : path ∈ selected <;> simp [removeSelected, chosen]
+
 end FrKernels.Git
