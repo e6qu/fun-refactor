@@ -205,6 +205,7 @@ fn refuses_nonfunctions_missing_bodies_and_original_syntax_errors() {
     for source in [
         "const calc: i32 = 1;\n",
         "fn outer() { let calc = 1; }\n",
+        "fn outer() { let calc = || { 1 }; }\n",
         "trait T { fn calc(&self); }\n",
         "fn calc() { let broken = ; }\n",
     ] {
@@ -340,16 +341,24 @@ fn typescript_and_tsx_declarations_and_methods_preserve_their_headers() {
 }
 
 #[test]
-fn typescript_refuses_expression_handles_and_never_edits_the_enclosing_function() {
+fn typescript_refuses_unsupported_handles_and_never_edits_the_enclosing_function() {
     for extension in ["ts", "tsx"] {
         for source in [
-            "const calc = () => { return 1; };\n",
             "const calc = () => 1;\n",
-            "const calc = function named() { return 1; };\n",
-            "const calc = function* () { yield 1; };\n",
-            "class C { calc = () => { return 1; }; }\n",
-            "class C { calc = function () { return 1; }; }\n",
-            "function outer() { const calc = () => { return 1; }; return calc(); }\n",
+            "const calc = () => ({ value: 1 });\n",
+            "const calc = (() => { return 1; });\n",
+            "const calc = (() => { return 1; }) as () => number;\n",
+            "const calc = (() => { return 1; }) satisfies () => number;\n",
+            "const calc = wrap(() => { return 1; });\n",
+            "const calc = condition ? () => { return 1; } : () => { return 2; };\n",
+            "const { calc } = { calc: () => { return 1; } };\n",
+            "class C { calc = () => 1; }\n",
+            "class C { calc = (() => { return 1; }); }\n",
+            "function outer() { const calc = wrap(() => { return 1; }); return calc(); }\n",
+            "const outer = () => { let calc = 1; return calc; };\n",
+            "const outer = function () { let calc = 1; return calc; };\n",
+            "const outer = (calc: number) => { return calc; };\n",
+            "class C { outer = (calc: number) => { return calc; }; }\n",
             "function outer() { let calc = 1; return calc; }\n",
             "class C { outer() { const calc = 1; return calc; } }\n",
             "abstract class C { abstract calc(): number; }\n",
@@ -546,5 +555,125 @@ fn duplicate_names_select_only_the_specific_implementation_body() {
         assert_eq!(bodies, expected_bodies);
         assert_eq!(fs::read_to_string(root.join("app.ts")).unwrap(), source);
         assert!(!root.join(".fr-history").exists());
+    }
+}
+
+#[test]
+fn direct_function_bindings_preserve_initializers_and_neighboring_declarations() {
+    for extension in ["ts", "tsx"] {
+        for (name, source) in [
+            ("calc", "// π\r\nexport const calc = (n: number): number => /* Before. */ { return 1; }; // Outside.\r\n"),
+            ("calc", "export let calc: (n: number) => number = n => { return 1; };\n"),
+            ("calc", "var calc = function (n: number): number { return 1; };\n"),
+            ("calc", "export const calc = function named<T>(n: T): number { return 1; };\n"),
+            ("calc", "const calc = async <T,>(n: T): Promise<number> => { return 1; };\n"),
+            ("calc", "const calc = async function (n: number): Promise<number> { return 1; };\n"),
+            ("calc", "const before = () => { return 0; }, calc = () => { return 1; }, after = () => { return 3; };\n"),
+            ("calc", "function outer() { const calc = () => { return 1; }; return calc(); }\n"),
+            ("calc", "const outer = () => { const calc = () => { return 1; }; return calc(); };\n"),
+            ("calc", "class C { public readonly calc = (n: number): number => { return 1; }; }\n"),
+            ("calc", "class C { static calc: () => number = function named() { return 1; }; }\n"),
+            ("#calc", "class C { #calc = () => { return 1; }; }\n"),
+        ] {
+            let file = format!("app.{extension}");
+            let (_temp, root, input) = fixture_file(&file, source, b"{ return 2; }");
+            let (handle, _) = selection(&root, name);
+            let (success, report) = replace(&root, &handle, &input, &["--write"]);
+            assert!(success, "{source}: {report}");
+            assert_eq!(report["applied"], true);
+            assert!(!report["signature"]["text"].as_str().unwrap().contains("return 1"));
+            assert!(!report["signature"]["text"].as_str().unwrap().contains("return 0"));
+            assert_eq!(fs::read_to_string(root.join(file)).unwrap(), source.replace("{ return 1; }", "{ return 2; }"));
+        }
+        for source in [
+            "const calc = function* named(): Generator<number> { yield 1; };\n",
+            "export const calc = async function* (): AsyncGenerator<number> { yield 1; };\n",
+            "class C { calc = function* () { yield 1; }; }\n",
+        ] {
+            let file = format!("app.{extension}");
+            let (_temp, root, input) = fixture_file(&file, source, b"{ yield 2; }");
+            let (handle, _) = selection(&root, "calc");
+            let (success, report) = replace(&root, &handle, &input, &["--write"]);
+            assert!(success, "{source}: {report}");
+            assert_eq!(
+                fs::read_to_string(root.join(file)).unwrap(),
+                source.replace("{ yield 1; }", "{ yield 2; }")
+            );
+        }
+    }
+}
+
+#[test]
+fn shadowed_function_bindings_select_one_body_by_handle() {
+    let source = "const calc = () => { return 1; };\nfunction outer() { const calc = function () { return 1; }; return calc(); }\n";
+    for selected in 0..2 {
+        let (_temp, root, input) = fixture_file("app.ts", source, b"{ return 2; }");
+        let map = ok(
+            &root,
+            &[
+                "project",
+                "map",
+                "--locals",
+                "--depth",
+                "64",
+                "--fields",
+                "handle,name",
+            ],
+        );
+        let rows: Vec<_> = map["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|row| row[1] == "calc")
+            .collect();
+        assert_eq!(rows.len(), 2);
+        let (success, report) = replace(
+            &root,
+            rows[selected][0].as_str().unwrap(),
+            &input,
+            &["--write"],
+        );
+        assert!(success, "{report}");
+        let start = source
+            .match_indices("{ return 1; }")
+            .nth(selected)
+            .unwrap()
+            .0;
+        let mut expected = source.to_owned();
+        expected.replace_range(start..start + "{ return 1; }".len(), "{ return 2; }");
+        assert_eq!(fs::read_to_string(root.join("app.ts")).unwrap(), expected);
+    }
+}
+
+#[test]
+fn expression_body_changes_keep_lexical_receivers_recursion_and_jsx_through_history() {
+    for (file, source, old, new) in [
+        ("app.ts", "class C { base = 3; calc = (): number => { return this.base + 1; }; }\nconst detached = new C().calc; console.log(detached());\n", "{ return this.base + 1; }", "{ return this.base * 2; }"),
+        ("app.ts", "const calc = function self(n: number): number { return n === 0 ? 1 : self(n - 1) + 1; };\nconsole.log(calc(3));\n", "{ return n === 0 ? 1 : self(n - 1) + 1; }", "{ return n === 0 ? 0 : self(n - 1) + 2; }"),
+        ("app.ts", "const calc = function* (n: number): Generator<number> { yield n + 1; };\nconsole.log(calc(3).next().value);\n", "{ yield n + 1; }", "{ yield n * 2; }"),
+        ("app.tsx", concat!("declare namespace JSX { type Element = string; interface IntrinsicElements { span: {}; } }\n\n", "function h(tag: string, props: unknown, child: unknown): string { return String(child); }\n", "const calc = (value: number): JSX.Element => { return <span>{value + 1}</span>; };\nconsole.log(calc(3));\n"), "{ return <span>{value + 1}</span>; }", "{ return <span>{value * 2}</span>; }"),
+    ] {
+        let (_temp, root, input) = fixture_file(file, source, new.as_bytes());
+        assert_eq!(typescript_result(&root, file), b"4\n");
+        let (handle, _) = selection(&root, "calc");
+        let (success, preview) = replace(&root, &handle, &input, &["--diff-bytes", "0"]);
+        assert!(success, "{preview}");
+        assert_eq!(preview["diff"]["text"], "");
+        assert!(!root.join(".fr-history").exists());
+        let (success, saved) = replace(&root, &handle, &input, &["--save-plan"]);
+        assert!(success, "{saved}");
+        let id = saved["transaction"].as_u64().unwrap().to_string();
+        fs::write(&input, b"{}").unwrap();
+        ok(&root, &["history", "apply", &id, "--write"]);
+        assert_eq!(fs::read_to_string(root.join(file)).unwrap(), source.replace(old, new));
+        assert_eq!(typescript_result(&root, file), b"6\n");
+        assert!(!replace(&root, &handle, &input, &["--write"]).0);
+        ok(&root, &["history", "undo", &id, "--write"]);
+        assert_eq!(fs::read_to_string(root.join(file)).unwrap(), source);
+        ok(&root, &["history", "patch", &id, "--check"]);
+        let patch = ok(&root, &["history", "patch", &id]);
+        assert!(patch["patch"].as_str().unwrap().contains(new));
+        ok(&root, &["history", "redo", &id, "--write"]);
+        assert_eq!(fs::read_to_string(root.join(file)).unwrap(), source.replace(old, new));
     }
 }

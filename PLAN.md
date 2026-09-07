@@ -43,7 +43,7 @@ Important gaps:
 - Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist. Raw staging and journaled index undo/redo are available on Unix. Reviewed commits are available with explicit index and HEAD bases. Worktree inspection reports registered workspaces with revision-bound pages. Reviewed creation adds raw checkouts on new or unused existing branches on Unix. Ownership receipts support checked completion of incomplete worktrees and reviewed removal of clean worktrees. Removal archives support inspection, checked resumption and reviewed compaction to audit summaries. Shared browser patch semantics remain pending.
 - Strict spec signature maps currently accept Rust source declarations only.
 - Framework readers cover selected patterns. Whole applications still need dependency and runtime work.
-- The portable agent skill covers exploration, changes, history, Git and Lean. Rust, TypeScript and TSX body replacement uses project handles and source history. Real-agent evaluation, function expressions and declaration insertion remain pending.
+- The portable agent skill covers exploration, changes, history, Git and Lean. Rust, TypeScript and TSX body replacement uses project handles and source history. Direct TypeScript/TSX function bindings support block bodies. Real-agent evaluation, wrapped initializers and declaration insertion remain pending.
 - Model proofs and shared executable cases do not establish general correspondence with the Rust implementation.
 
 ## Product contract
@@ -810,7 +810,7 @@ M4c: TypeScript and TSX function-body replacement (complete).
 - Extend handle-based body replacement to named declarations, generators, methods, accessors and constructors.
 - Parse fragments and resulting files with the selected language grammar, including JSX for TSX targets.
 - Preserve surrounding bytes and reuse the existing size guard, saved plans, undo/redo and patch export.
-- Refuse function expressions and local selections without editing enclosing functions.
+- Refuse unrelated local selections without editing enclosing functions.
 - Select brace-token spans to preserve external comments and semicolons across parser node boundaries.
 - Check typed and JSX behavior with TypeScript compilation and Node execution.
 - Refresh the portable skill and document parser and target-selection limits.
@@ -820,12 +820,26 @@ Validation passes the full native/WASM gate, 311/311 capability coverage and all
 Strict verification retains twenty-two fresh source anchors and signature maps and zero `sorry` obligations.
 The existing size and edit models apply unchanged; AST selection and parsing retain test-based evidence.
 
+M4d: direct TypeScript and TSX function-binding bodies (complete).
+
+- Select direct arrow, function-expression and generator initializers through variable or class-field handles.
+- Require block bodies and preserve bindings, lexical receivers, signatures and neighboring source.
+- Refuse wrapped initializers, expression bodies and unrelated local selections.
+- Bound signature output to the selected binding, including declarations sharing one statement.
+- Check shadowed selections, typed behavior, JSX, saved plans, undo/redo and patch export.
+- Refresh agent instructions while retaining the existing Lean size and edit models.
+
+Seventeen authoring scenarios pass, including compiled checks for lexical receivers, recursion, generators and JSX.
+Validation passes the full native/WASM gate, 311/311 capability coverage and all 29 Lean build jobs.
+Strict verification retains twenty-two fresh source anchors and signature maps and zero `sorry` obligations.
+AST selection retains test-based evidence; the command reports syntax validation without claiming type or behavioral verification.
+
 Next M4 work:
 
 Evaluate the handoff with real agents on pinned projects and measure correctness, context use and refusals.
 Keep examples compatible with the distributed binary and load specialized references only when needed.
 
-Extend body authoring to selected function expressions or additional languages, and add bounded declaration insertion or replacement.
+Extend body authoring to selected wrapped initializers or additional languages, and add bounded declaration insertion or replacement.
 Reuse revision checks, edit planning, syntax validation and history.
 Compose high-level intentions as inspectable recipe steps with explicit postconditions.
 Select project checks from declared configuration and report what each check covers.

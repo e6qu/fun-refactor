@@ -63,6 +63,7 @@ struct BodySyntax {
     item: &'static str,
     block: &'static str,
     targets: &'static [&'static str],
+    bindings: &'static [&'static str],
 }
 
 impl BodySyntax {
@@ -73,6 +74,7 @@ impl BodySyntax {
                 item: "function_item",
                 block: "block",
                 targets: &["function_item"],
+                bindings: &[],
             }),
             Language::TypeScript | Language::Tsx => Ok(Self {
                 prefix: "function __fr_body__() ",
@@ -83,6 +85,7 @@ impl BodySyntax {
                     "generator_function_declaration",
                     "method_definition",
                 ],
+                bindings: &["variable_declarator", "public_field_definition"],
             }),
             _ => anyhow::bail!(
                 "body replacement supports Rust, TypeScript and TSX; select a supported function."
@@ -177,16 +180,32 @@ impl Project<'_> {
         let mut selected = parsed
             .root()
             .descendant_for_byte_range(symbol.name_span.start, symbol.name_span.end);
+        let mut binding_start = None;
         let function = loop {
             let node = selected.context(
-                "select a named function declaration or method with a body; expressions are unsupported.",
+                "select a function declaration, method or direct function binding with a block body.",
             )?;
-            if syntax.targets.contains(&node.kind()) {
+            let binding = syntax.bindings.contains(&node.kind());
+            if binding || syntax.targets.contains(&node.kind()) {
                 ensure!(
                     node.child_by_field_name("name")
                         .is_some_and(|name| Span::from(name) == symbol.name_span),
                     "selected handle does not name this function."
                 );
+                if binding {
+                    let value = node
+                        .child_by_field_name("value")
+                        .context("selected binding has no initializer.")?;
+                    ensure!(
+                        matches!(
+                            value.kind(),
+                            "arrow_function" | "function_expression" | "generator_function"
+                        ),
+                        "select a direct arrow or function initializer; wrapped expressions are unsupported."
+                    );
+                    binding_start = Some(node.start_byte());
+                    break value;
+                }
                 break node;
             }
             selected = node.parent();
@@ -218,7 +237,11 @@ impl Project<'_> {
         report["schema"] = json!("fr-author-1");
         report["handle"] = json!(self.handle(id));
         report["path"] = bounded_text(&self.nodes[id].path.to_string_lossy(), 512);
-        report["signature"] = self.signature(id)?;
+        report["signature"] = if let Some(start) = binding_start {
+            json!({"basis": "syntax-header", "text": bounded_text(source[start..span.start].trim_end(), 512)})
+        } else {
+            self.signature(id)?
+        };
         report["body"] = json!({"before_span":span,"after_span":Span::new(span.start,span.start+after.len()),
             "before_bytes":before.len(),"after_bytes":after.len(),"before_sha256":digest(before),"after_sha256":digest(&after)});
         report["changed"] = json!(before != after);

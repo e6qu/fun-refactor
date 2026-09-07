@@ -40,9 +40,14 @@ Writing the fragment outside the project avoids invalidating a previously obtain
 
 Rust targets include ordinary functions, methods, default trait method bodies and nested function items.
 TypeScript and TSX targets include named function declarations, generators, class and object methods, accessors and constructors.
+They also include direct variable or class-field initializers containing block-bodied arrows, ordinary function expressions or generator expressions.
+Use the variable or field's handle, including when a function expression has a separate inner name.
+The operation retains the binding, function expression, parameters and arrow token; it replaces only the braces and their contents.
 Nested declarations, exports, generics, modifiers, signatures and surrounding attributes stay in place.
 Select the specific implementation handle when multiple declarations share a name, such as overloads or getter/setter pairs.
-Arrow functions, function expressions, fields containing functions, bodyless declarations, variables and file handles refuse.
+Expression-bodied arrows, wrapped initializers, destructured bindings, bodyless declarations, nonfunction variables and file handles refuse.
+Wrappers include parentheses, casts, `satisfies`, conditionals and calls such as `memo(...)`.
+Object properties containing function expressions and anonymous callbacks remain outside this selection path.
 Computed and quoted method names are outside the indexed method subset.
 JavaScript extensions use the existing TypeScript grammar; JSX extensions use TSX.
 This does not impose JavaScript-only syntax rules on `.js` files.
@@ -55,7 +60,7 @@ The command does not update callers, signatures or imports and does not check ty
 Macros and language context rules retain the parser's syntax coverage limits.
 Choose project compiler and test commands that establish the intended behavior after applying.
 An implementation change may deliberately change behavior; syntax acceptance does not validate that intention.
-Further languages, function expressions, declaration insertion and whole-declaration replacement remain roadmap work.
+Further languages, wrapped initializers, declaration insertion and whole-declaration replacement remain roadmap work.
 
 For a TSX component, the fragment may contain JSX:
 
@@ -71,6 +76,7 @@ Use a handle from a `.tsx` or `.jsx` file for JSX bodies; a `.ts` target retains
 
 Both output modes return JSON with schema `fr-author-1`.
 The report includes the reviewed revision and handle, bounded path and signature, coverage and absolute body byte spans.
+For function bindings, the signature starts at the selected declarator or field and excludes neighboring bindings and their bodies.
 Body fingerprints use SHA-256 over the exact block bytes; byte counts describe the old and new blocks.
 `validation: reparse-strict` and `behavior_checked: false` separate syntax evidence from behavioral checks.
 
@@ -96,10 +102,11 @@ Source verification and recording are separate observations; this command does n
 
 ## Evidence
 
-Fourteen CLI scenarios cover saved replacement identity, compiled behavior, undo/redo, patch export, stale handles and revisions, unsupported targets and malformed input.
+Seventeen CLI scenarios cover saved replacement identity, compiled behavior, undo/redo, patch export, stale handles and revisions, unsupported targets and malformed input.
 They also check exact size limits, diff omission, method and nested-function contexts, Unicode and CRLF preservation, no-op writes, symlink inputs and Unix permissions.
 TypeScript and TSX fixtures compile with `tsc --strict` and run in Node before and after saved replacements.
-The tests cover JSX, supported declaration forms, extension aliases and refusal of expressions without editing an enclosing function.
+The tests cover JSX, supported declaration forms, extension aliases and unsupported selections without editing an enclosing function.
+Function-binding cases preserve neighboring declarations, shadowed bindings, lexical receivers, named recursion and generator behavior through saved transactions.
 Brace-token spans preserve external comments and semicolons; duplicate names retain separate implementation selections.
 The size predicate has a source anchor and signature map into Lean, with 64 shared boundary cases including machine limits.
 Lean proves its lower and upper bounds and symmetry between old and new body sizes.
