@@ -234,3 +234,8 @@ See [worktree creation assurance](git-worktree-creation.md#formal-coverage) for 
 Recorded worktree recovery adds an anchored file-acceptance predicate and abstract existing-file preservation laws.
 Shared Rust/Lean cases cover every boolean input. Ownership receipts and filesystem durability still require host-level evidence.
 See [worktree recovery](git-worktree-recovery.md) for the tested protocol and proof boundaries.
+
+The Git removal kernel anchors the identity, bytes and mode guard used before deleting reviewed worktree files.
+Lean proves that acceptance requires all three matches. Shared executable tests cover all eight input combinations.
+An abstract namespace model proves that selected removal preserves other paths.
+The host filesystem, Git branch leases and removal archive durability remain outside full correspondence proofs.

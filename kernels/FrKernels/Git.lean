@@ -228,4 +228,25 @@ theorem recovery_refuses_changed_file (before target : String × Nat) (changed :
     resumeFile (some before) target = none := by
   simp [resumeFile, changed]
 
+-- fr:spec src/git.rs::worktree_removal_file_allowed @ 9f88589cab69e74e85d6194c51d37505cf95f76958b3f72822c9c9d845e5dad1
+-- fr:signature identity_matches: bool => identityMatches: Bool; bytes_match: bool => bytesMatch: Bool; mode_matches: bool => modeMatches: Bool; return: bool => return: Bool
+def worktreeRemovalFileAllowed (identityMatches : Bool) (bytesMatch : Bool) (modeMatches : Bool) : Bool :=
+  identityMatches && bytesMatch && modeMatches
+
+theorem removal_requires_all_matches (identityMatches bytesMatch modeMatches : Bool)
+    (allowed : worktreeRemovalFileAllowed identityMatches bytesMatch modeMatches = true) :
+    identityMatches = true ∧ bytesMatch = true ∧ modeMatches = true := by
+  cases identityMatches <;> cases bytesMatch <;> cases modeMatches <;> simp_all [worktreeRemovalFileAllowed]
+
+def removeSelected (before : String → Option String) (selected : List String) : String → Option String :=
+  fun path => if path ∈ selected then none else before path
+
+theorem removal_preserves_unselected (before : String → Option String) (selected : List String) (path : String)
+    (other : path ∉ selected) : removeSelected before selected path = before path := by
+  simp [removeSelected, other]
+
+theorem removal_erases_selected (before : String → Option String) (selected : List String) (path : String)
+    (chosen : path ∈ selected) : removeSelected before selected path = none := by
+  simp [removeSelected, chosen]
+
 end FrKernels.Git

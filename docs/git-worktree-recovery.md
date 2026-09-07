@@ -82,4 +82,4 @@ Abstract file models prove preservation of accepted existing contents and modes,
 Shared Rust/Lean tests exercise all boolean predicate inputs.
 Filesystem ownership, locks, receipt durability and the complete Rust workflow remain outside general correspondence proofs.
 
-Reviewed removal remains a separate roadmap milestone. Completed receipts provide ownership evidence for that work.
+Completed receipts support [reviewed removal](git-worktree-removal.md) of clean owned worktrees.

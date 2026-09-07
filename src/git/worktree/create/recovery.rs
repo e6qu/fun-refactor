@@ -8,31 +8,31 @@ use std::fs;
 use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 
-struct Capture {
-    plan: Proposal,
-    receipt: ownership::Receipt,
-    receipt_bytes: Vec<u8>,
-    blobs: Vec<Vec<u8>>,
+pub(super) struct Capture {
+    pub(super) plan: Proposal,
+    pub(super) receipt: ownership::Receipt,
+    pub(super) receipt_bytes: Vec<u8>,
+    pub(super) blobs: Vec<Vec<u8>>,
 }
 
 #[derive(Serialize)]
-struct Observation {
-    missing: Vec<String>,
-    files: BTreeMap<String, (u64, u64, u32, String)>,
-    directories: BTreeMap<String, (u64, u64)>,
-    index_digest: Option<String>,
+pub(super) struct Observation {
+    pub(super) missing: Vec<String>,
+    pub(super) files: BTreeMap<String, (u64, u64, u32, String)>,
+    pub(super) directories: BTreeMap<String, (u64, u64)>,
+    pub(super) index_digest: Option<String>,
     #[serde(skip)]
-    index: Option<Vec<u8>>,
+    pub(super) index: Option<Vec<u8>>,
 }
 
-fn capture(root: &Path, options: &RecoverOptions) -> Result<Capture> {
+pub(super) fn capture(root: &Path, path: &Path, removal: bool) -> Result<Capture> {
     let requested = root.canonicalize()?;
     let root = crate::git::process::repository_root(&requested)?;
     ensure!(
         requested.starts_with(&root),
         "Git resolved a working tree outside the requested directory."
     );
-    let input = root.join(&options.path);
+    let input = root.join(path);
     directory(&input)?;
     let destination = input.canonicalize()?;
     ensure!(
@@ -57,25 +57,37 @@ fn capture(root: &Path, options: &RecoverOptions) -> Result<Capture> {
         "recovery requires a linked worktree."
     );
     let (receipt, receipt_bytes) = ownership::Receipt::read(&metadata.join("fr-creation.json"))?;
-    ensure!(
-        !receipt.complete,
-        "worktree creation is already complete; recovery will not restore later deletions."
-    );
+    if removal {
+        ensure!(
+            receipt.complete,
+            "removal requires a completed ownership receipt."
+        );
+    } else {
+        ensure!(
+            !receipt.complete,
+            "worktree creation is already complete; recovery will not restore later deletions."
+        );
+    }
     ensure!(
         receipt.common == shared && receipt.destination == destination,
         "ownership receipt belongs to another worktree."
     );
-    let files = checkout::inventory(&root, &receipt.commit)?;
+    let selected = if removal {
+        ensure!(
+            !root.starts_with(&destination),
+            "cannot remove the invoking worktree or its ancestor."
+        );
+        super::commit(&destination, "HEAD")?
+    } else {
+        receipt.commit.clone()
+    };
+    let files = checkout::inventory(&root, &selected)?;
     let tree = checked(
         &root,
-        &[
-            "rev-parse",
-            "--verify",
-            &format!("{}^{{tree}}", receipt.commit),
-        ],
+        &["rev-parse", "--verify", &format!("{selected}^{{tree}}")],
     )?;
     ensure!(
-        line(&tree)? == receipt.tree,
+        removal || line(&tree)? == receipt.tree,
         "ownership receipt tree differs from its commit."
     );
     let registrations = checked(
@@ -91,8 +103,8 @@ fn capture(root: &Path, options: &RecoverOptions) -> Result<Capture> {
         parent_identity: receipt.parent_identity,
         branch: receipt.branch.clone(),
         from: receipt.commit.clone(),
-        commit: receipt.commit.clone(),
-        tree: receipt.tree.clone(),
+        commit: selected,
+        tree: line(&tree)?.to_owned(),
         registrations: ownership::digest(&registrations),
         files,
     };
@@ -106,7 +118,7 @@ fn capture(root: &Path, options: &RecoverOptions) -> Result<Capture> {
     })
 }
 
-fn observe(capture: &Capture) -> Result<Observation> {
+pub(super) fn observe(capture: &Capture) -> Result<Observation> {
     let plan = &capture.plan;
     capture.receipt.check()?;
     checkout::check_registration(plan)?;
@@ -240,7 +252,7 @@ pub(in crate::git::worktree) fn report(root: &Path, options: &RecoverOptions) ->
         (1..=500).contains(&options.limit),
         "limit must be between 1 and 500."
     );
-    let capture = capture(root, options)?;
+    let capture = capture(root, &options.path, false)?;
     let lease = options
         .write
         .then(|| ownership::Lease::acquire(capture.receipt.path().with_extension("lock")))

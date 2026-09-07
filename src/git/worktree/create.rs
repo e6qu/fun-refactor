@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 mod checkout;
 mod ownership;
 pub(super) mod recovery;
+pub(super) mod removal;
 
 pub(super) fn args(values: &[&str]) -> Vec<OsString> {
     [

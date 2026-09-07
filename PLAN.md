@@ -40,7 +40,7 @@ Important gaps:
 - `fr project` adds bounded maps, revision-bound details, call relationships and Cargo/npm manifest views. Complete dependency resolution and framework semantics remain pending.
 - Native changes now have persistent history and checked undo/redo. History retention and large-journal scaling need further work.
 - Browser undo restores the loaded workspace; it does not reverse individual transactions.
-- Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist. Raw staging and journaled index undo/redo are available on Unix. Reviewed commits are available with explicit index and HEAD bases. Worktree inspection reports registered workspaces with revision-bound pages. Reviewed creation adds new branches and raw checkouts on Unix. Ownership receipts support checked completion of incomplete worktrees. Shared browser patch semantics remain pending.
+- Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist. Raw staging and journaled index undo/redo are available on Unix. Reviewed commits are available with explicit index and HEAD bases. Worktree inspection reports registered workspaces with revision-bound pages. Reviewed creation adds new branches and raw checkouts on Unix. Ownership receipts support checked completion of incomplete worktrees and reviewed removal of clean worktrees. Shared browser patch semantics remain pending.
 - Strict spec signature maps currently accept Rust source declarations only.
 - Framework readers cover selected patterns. Whole applications still need dependency and runtime work.
 - Model proofs and shared executable cases do not establish general correspondence with the Rust implementation.
@@ -702,9 +702,24 @@ Two lock tests cover exclusion, release and replacement preservation. Shared Rus
 Validation passes the full native/WASM gate, all seven recovery CLI scenarios, 311/311 capability coverage and all 29 Lean build jobs.
 Strict verification passes with seventeen fresh source anchors and signature maps and zero `sorry` obligations.
 
+M3t: reviewed owned-worktree removal (complete).
+
+- Add `fr git worktree remove PATH` with bounded previews and a basis covering ownership, contents and private metadata.
+- Accept clean raw checkouts at the owned branch's current commit, including later commits; retain that branch.
+- Hold receipt, index, HEAD and branch leases while archiving metadata and deleting only reviewed files.
+- Refuse extra content, unknown private metadata, active operations and unsupported configuration.
+- Preserve late content through checked unlinks and empty-directory removal, with explicit partial-failure records.
+- Anchor the deletion guard in Lean and prove abstract preservation of unselected paths.
+
+See [reviewed worktree removal](docs/git-worktree-removal.md) for supported states and manual recovery limits.
+Eight CLI scenarios cover later commits, SHA-256, linked invocation, stale bases, refusal states and late-content failures.
+Unit tests check branch lease exclusion and selective cleanup. Shared Rust/Lean cases cover all deletion-guard inputs.
+Validation passes the full native/WASM gate, 311/311 capability coverage and all 29 Lean build jobs.
+Strict verification passes with eighteen fresh source anchors and signature maps and zero `sorry` obligations.
+
 Next M3 work:
 
-Add reviewed removal using creation receipts, then extend supported checkout modes and configuration.
+Add removal-state inspection and safe resumption from archived records, then extend supported checkout modes and configuration.
 Extend recovery across failures before receipt publication and improve stale-lock and crash-state inspection.
 Extend selected flag replay and add staging journal retention and compaction.
 Keep Git optional for ordinary analysis and transaction history.

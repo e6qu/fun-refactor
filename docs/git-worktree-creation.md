@@ -88,7 +88,7 @@ Use `git worktree unlock ../task` when you intend to allow ordinary worktree rem
 
 Creation now records ownership receipts for checked forward recovery of incomplete registered checkouts.
 See [recorded worktree recovery](git-worktree-recovery.md) for receipt scope, refusals and crash limits.
-Worktree undo/redo and reviewed removal remain pending.
+[Reviewed removal](git-worktree-removal.md) uses completed receipts and retains the branch. Worktree undo/redo remains pending.
 File and directory synchronization does not establish an atomic crash transaction across Git refs, registrations and checkout files.
 Directory and file checks detect observed replacements; they do not protect against every hostile concurrent filesystem race.
 

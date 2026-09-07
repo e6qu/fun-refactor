@@ -1177,6 +1177,13 @@ Finish a recorded incomplete raw checkout with a separate review basis. Previews
 Recovery preserves matching files and indexes and refuses changed or extra content. Completed receipts prevent recovery from reversing later deletions.
 See [recorded worktree recovery](docs/git-worktree-recovery.md) for ownership checks, locks and partial-failure outcomes.
 
+`fr git worktree remove PATH [--limit N]` previews removal of a clean linked worktree with a completed ownership receipt.
+`--basis TOKEN --write` archives private metadata, then removes only reviewed files and empty directories.
+The branch is retained at its current commit. Later commits on the owned branch are supported.
+Extra content, changed files, unknown private metadata and active locks refuse.
+Only `applied: true` confirms removal; partial or uncertain outcomes return `applied: null` with a `removal_record` path.
+See [reviewed worktree removal](docs/git-worktree-removal.md) for supported layouts and manual recovery limits.
+
 ### `fr cache`
 
 ```

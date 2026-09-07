@@ -1099,3 +1099,31 @@ fn worktree_recovery_matches_lean_for_all_file_states() {
     }
     assert_eq!(actual, expected);
 }
+
+#[test]
+fn worktree_removal_matches_lean_for_all_file_states() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("worktree-removal")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for identity_matches in [false, true] {
+        for bytes_match in [false, true] {
+            for mode_matches in [false, true] {
+                expected.push(fun_refactor::git::worktree_removal_file_allowed(
+                    identity_matches,
+                    bytes_match,
+                    mode_matches,
+                ));
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}

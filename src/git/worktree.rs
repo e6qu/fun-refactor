@@ -17,6 +17,24 @@ pub enum Command {
     Create(CreateOptions),
     #[command(about = "Preview or finish a recorded incomplete raw checkout.")]
     Recover(RecoverOptions),
+    #[command(about = "Preview or remove an owned clean worktree while retaining its branch.")]
+    Remove(RemoveOptions),
+}
+
+#[derive(Args)]
+pub struct RemoveOptions {
+    #[arg(help = "Owned linked worktree path, relative to the repository root or absolute.")]
+    path: std::path::PathBuf,
+    #[arg(long, help = "Require the reviewed checkout and private Git metadata.")]
+    basis: Option<String>,
+    #[arg(
+        long,
+        requires = "basis",
+        help = "Archive metadata and remove reviewed files."
+    )]
+    write: bool,
+    #[arg(long, default_value_t = 20, help = "Maximum file rows, from 1 to 500.")]
+    limit: usize,
 }
 
 #[derive(Args)]
@@ -84,6 +102,10 @@ pub(super) fn report(root: &Path, command: &Command) -> Result<Value> {
         Command::Create(options) => create::report(root, options),
         #[cfg(unix)]
         Command::Recover(options) => create::recovery::report(root, options),
+        #[cfg(unix)]
+        Command::Remove(options) => create::removal::report(root, options),
+        #[cfg(not(unix))]
+        Command::Remove(_) => bail!("worktree removal requires Unix ownership checks."),
         #[cfg(not(unix))]
         Command::Create(_) => bail!("worktree creation requires Unix directory ownership checks."),
         #[cfg(not(unix))]
