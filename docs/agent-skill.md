@@ -83,6 +83,7 @@ M4a provides the introductory handoff and executable command examples.
 Body replacement supports Rust, TypeScript and TSX declarations and methods, plus direct TypeScript/TSX function bindings with block bodies.
 Rust function declaration replacement can change signatures and implementations together, preserving the name and outer attributes.
 Declaration insertion appends a Rust function through a file handle, retaining all existing source bytes.
+It accepts leading outer documentation comments, so agents can satisfy a project's missing-docs lint without changing crate policy.
 Declared project-check selection now has a configuration digest and bounded execution reports.
 Broader real-agent evaluation, context optimization and further authoring operations remain open.
 M5 still owns automated Lean package initialization and model scaffolding.

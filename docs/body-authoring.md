@@ -96,8 +96,10 @@ The saved-plan, diff-budget and history rules below apply to all authoring opera
 
 `fr author insert-declaration FILE_HANDLE --from FILE` appends one Rust function to an indexed Rust file.
 Select the file's handle from the project map. Function, directory, module and non-Rust handles refuse.
-Empty files are supported. The fragment must contain one function with a body, without outer attributes or surrounding comments.
-The raw input and trimmed function must fit 64 KiB.
+Empty files are supported. The fragment must contain one function with a body, optionally preceded by outer Rust documentation comments.
+Leading `///` and `/** ... */` comments attach to the inserted function, including under a crate-level `deny(missing_docs)` lint.
+Inner documentation, ordinary surrounding comments and explicit outer attributes, including `#[doc]`, refuse. Replacement declarations still preserve existing documentation and reject new leading comments.
+The raw input and trimmed fragment, including documentation, must fit 64 KiB.
 
 Every existing source byte stays in place. The operation appends at EOF and does not format existing code.
 It chooses LF or CRLF from the file's first newline, defaulting to LF when there is none.
@@ -113,7 +115,10 @@ An identical existing function also refuses; insertion has no no-op case.
 
 The report uses query `insert-declaration` and provides the new declaration's name, span, byte count and fingerprint.
 `insertion` contains the empty original span, complete added span, separator strings, added-byte count and fingerprint.
-Its `signature` describes the new function. `name_resolution_checked: false` makes the name-check boundary explicit.
+Its `signature` describes the new function, excluding leading documentation even when that documentation exceeds the header output budget.
+For documented insertions, `documentation` identifies the leading comment region and intervening whitespace by span, byte count and fingerprint.
+The declaration span and fingerprint cover the complete fragment, including that documentation region.
+`name_resolution_checked: false` makes the name-check boundary explicit.
 Use the returned source-history transaction for exact application, undo/redo and patches.
 
 ## Review and transactions
@@ -146,7 +151,7 @@ Source verification and recording are separate observations; this command does n
 
 ## Evidence
 
-Twenty-nine CLI scenarios cover saved edit identity, compiled behavior, undo/redo, patch export, stale handles and revisions, unsupported targets and malformed input.
+Thirty-one CLI scenarios cover saved edit identity, compiled behavior, undo/redo, patch export, stale handles and revisions, unsupported targets and malformed input.
 They also check exact size limits, diff omission, method and nested-function contexts, Unicode and CRLF preservation, no-op writes, symlink inputs and Unix permissions.
 TypeScript and TSX fixtures compile with `tsc --strict` and run in Node before and after saved replacements.
 The tests cover JSX, supported declaration forms, extension aliases and unsupported selections without editing an enclosing function.

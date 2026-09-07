@@ -8,7 +8,7 @@ Choose an operation:
 
 - `fr author replace-body HANDLE --from FILE`: one Rust, TypeScript or TSX block. Direct function bindings need block bodies; wrappers and expression bodies refuse.
 - `fr author replace-declaration HANDLE --from FILE`: one complete Rust function with the same name; outer attributes remain. Callers need separate edits if the signature changes.
-- `fr author insert-declaration FILE_HANDLE --from FILE`: append one Rust function without outer attributes or surrounding comments. Duplicate direct names and pending outer metadata refuse.
+- `fr author insert-declaration FILE_HANDLE --from FILE`: append one Rust function, optionally preceded by `///` or `/** ... */` documentation. Other outer attributes and surrounding comments refuse. Duplicate direct names and pending outer metadata refuse.
 
 Keep the UTF-8 fragment outside the project; the input and affected declarations/blocks must fit 64 KiB.
 Use `--save-plan` to preview and freeze the edit. Inspect the bounded diff and omissions, then `fr history apply TX --write --no-diff` applies that exact transaction.

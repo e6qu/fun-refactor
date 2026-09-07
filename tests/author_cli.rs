@@ -753,6 +753,13 @@ fn declaration_replacements_refuse_renames_attributes_escaped_items_and_invalid_
         "",
         "fn other() {}",
         "fn calc();",
+        "/// Documentation without a function.",
+        "//! Inner documentation.\nfn calc() {}",
+        "/*! Inner documentation. */ fn calc() {}",
+        "// Ordinary comment.\nfn calc() {}",
+        "/// Documentation.\n// Ordinary comment.\nfn calc() {}",
+        "#[doc = \"Documentation.\"] fn calc() {}",
+        "/// Documentation.\n#[inline] fn calc() {}",
         "fn calc() { let x = ; }",
         "struct calc;",
         "fn calc() {} fn escaped() {}",
@@ -760,6 +767,7 @@ fn declaration_replacements_refuse_renames_attributes_escaped_items_and_invalid_
         "// Leading.\nfn calc() {}",
         "#[inline]\nfn calc() {}",
         "#![allow(dead_code)]\nfn calc() {}",
+        "/// Replacement documentation.\nfn calc() {}",
         "fn calc() {\0}",
     ] {
         let source = "#[inline]\nfn calc() {}\n";
@@ -1031,6 +1039,13 @@ fn insertion_refuses_bad_fragments_targets_revisions_and_conflicting_flags() {
     for text in [
         "",
         "fn calc();",
+        "/// Documentation without a function.",
+        "//! Inner documentation.\nfn calc() {}",
+        "/*! Inner documentation. */ fn calc() {}",
+        "// Ordinary comment.\nfn calc() {}",
+        "/// Documentation.\n// Ordinary comment.\nfn calc() {}",
+        "#[doc = \"Documentation.\"] fn calc() {}",
+        "/// Documentation.\n#[inline] fn calc() {}",
         "fn calc() {} fn other() {}",
         "#[inline]\nfn calc() {}",
         "fn calc() {} // Trailing.",
@@ -1089,4 +1104,68 @@ fn insertion_bounds_fragment_bytes_and_reports_separators_separately() {
     fs::write(&input, text + " ").unwrap();
     let (handle, _) = selection(&root, "app.rs");
     assert!(!insert_declaration(&root, &handle, &input, &["--save-plan"]).0);
+}
+
+#[test]
+fn inserted_outer_documentation_compiles_under_missing_docs_and_travels_with_history() {
+    for documentation in [
+        "/// Returns π plus one.\r\n/// Keeps the argument.\r\n",
+        "/** Returns the next value. */\n",
+        "/// Returns the next value.\n/** Accepts any i32. */\n\n",
+    ] {
+        let source = "//! Fixture.\r\n#![deny(missing_docs)]\r\nfn main() { assert_eq!(calc(3), 4); }\r\n// Keep this final comment.";
+        let function = "pub fn calc(n: i32) -> i32 { n + 1 }";
+        let added = format!("{documentation}{function}");
+        let (_temp, root, input) = fixture(source, added.as_bytes());
+        let (handle, _) = selection(&root, "app.rs");
+        let (success, report) = insert_declaration(&root, &handle, &input, &["--save-plan"]);
+        assert!(success, "{report}");
+        assert_eq!(report["signature"]["text"], "pub fn calc(n: i32) -> i32");
+        assert_eq!(report["documentation"]["kind"], "outer-doc-comments");
+        assert_eq!(report["documentation"]["bytes"], documentation.len());
+        assert_eq!(report["documentation"]["span"]["start"], source.len() + 2);
+        assert_eq!(
+            report["documentation"]["span"]["end"],
+            source.len() + 2 + documentation.len()
+        );
+        assert_eq!(report["declaration"]["bytes"], added.len());
+        assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+        fs::write(&input, "fn different() {}\n").unwrap();
+        ok(&root, &["history", "apply", "1", "--write", "--no-diff"]);
+        let expected = format!("{source}\r\n{added}\r\n");
+        assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), expected);
+        assert!(compiled_result(&root).is_empty());
+        let patch = ok(&root, &["history", "patch", "1"]);
+        assert!(patch["patch"]
+            .as_str()
+            .unwrap()
+            .contains(documentation.lines().next().unwrap()));
+        fs::write(root.join("unrelated.rs"), "fn later() {}\n").unwrap();
+        ok(&root, &["history", "undo", "1", "--write"]);
+        assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+        ok(&root, &["history", "redo", "1", "--write"]);
+        assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), expected);
+        assert_eq!(
+            fs::read_to_string(root.join("unrelated.rs")).unwrap(),
+            "fn later() {}\n"
+        );
+    }
+}
+
+#[test]
+fn insertion_counts_documentation_in_the_fragment_budget_without_hiding_the_signature() {
+    let function = "pub fn calc() {}";
+    let documentation = format!("/// {}\n", "x".repeat(65536 - function.len() - 5));
+    let added = format!("{documentation}{function}");
+    assert_eq!(added.len(), 65536);
+    let (_temp, root, input) = fixture("", added.as_bytes());
+    let (handle, _) = selection(&root, "app.rs");
+    let (success, report) = insert_declaration(&root, &handle, &input, &["--diff-bytes", "0"]);
+    assert!(success, "{report}");
+    assert_eq!(report["signature"]["text"], "pub fn calc()");
+    assert_eq!(report["documentation"]["bytes"], documentation.len());
+    assert_eq!(report["declaration"]["bytes"], 65536);
+    fs::write(&input, format!(" {added}")).unwrap();
+    assert!(!insert_declaration(&root, &handle, &input, &["--save-plan"]).0);
+    assert!(!root.join(".fr-history").exists());
 }

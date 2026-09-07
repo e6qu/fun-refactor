@@ -501,7 +501,8 @@ Supply exactly one function without outer attributes or trailing comments; both 
 Callers and imports need separate changes and checks. The same preview, saved-plan and history flags apply.
 
 `fr author insert-declaration FILE_HANDLE --from FILE` appends one Rust function, preserving every existing file byte.
-Use a Rust file handle and a function fragment without outer attributes, at most 64 KiB.
+Use a Rust file handle and a function fragment, optionally preceded by `///` or `/** ... */` documentation, at most 64 KiB total.
+Other outer attributes and surrounding comments refuse. The signature excludes leading documentation; a separate field reports its span, size and fingerprint.
 The report accounts separately for LF or CRLF separators. Direct duplicate item names and pending outer documentation or attributes refuse.
 Imports, macro expansion and full name resolution remain unchecked. Saved plans, undo/redo and patches use source history.
 
