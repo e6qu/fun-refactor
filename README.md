@@ -251,6 +251,8 @@ See [recorded transaction patches](docs/git-patches.md) for application checks, 
 See [file transactions](docs/file-transactions.md) for owner-execute semantics and validation scope.
 `fr git status` pages through repository changes with filters, rename sources and continuation cursors.
 See [Git status](docs/git-status.md) for observation limits, omitted submodules and configuration scope.
+`fr git changes` discovers changed paths and line counts across the repository, including comparisons since a commit.
+See [repository change pages](docs/git-changes.md) for scope and metadata identity.
 `fr git diff PATH` pages through hunks and capped source excerpts, with staged and commit-based comparisons.
 Add `--symbols` for changed declarations and their containing hierarchy, with snapshot checks and no source bodies.
 See [Git diff details](docs/git-diff.md) for cursor identity and supported paths.

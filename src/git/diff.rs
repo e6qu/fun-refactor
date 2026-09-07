@@ -40,7 +40,7 @@ fn checked(root: &Path, args: &[OsString]) -> Result<Vec<u8>> {
     Ok(output.stdout)
 }
 
-fn commit(root: &Path, revision: &str, optional: bool) -> Result<Option<String>> {
+pub(super) fn commit(root: &Path, revision: &str, optional: bool) -> Result<Option<String>> {
     let output = process::run(
         root,
         &[

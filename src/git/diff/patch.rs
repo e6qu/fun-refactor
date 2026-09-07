@@ -93,9 +93,7 @@ pub(super) struct Observation {
     pub blobs: Option<(Option<String>, Option<String>)>,
 }
 
-pub(super) fn oid(value: &str) -> bool {
-    matches!(value.len(), 40 | 64) && value.bytes().all(|b| b.is_ascii_hexdigit())
-}
+pub(super) use crate::git::process::oid;
 
 fn mode(value: &str) -> Result<Option<String>> {
     match value {

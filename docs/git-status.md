@@ -66,6 +66,7 @@ Configuration and attributes must remain stable during collection; these checks 
 
 Output row counts are bounded. Git still enumerates the repository and the command collects the complete observation in memory.
 Collection work, individual path lengths and total internal memory are not bounded by the page limit.
+Use [repository change pages](git-changes.md) for comparison-specific paths and counts, including changes since a commit.
 Use [Git diff detail pages](git-diff.md) for hunks and capped source excerpts on one path.
 Status does not report ahead/behind counts or structural impact, or perform staging and commits.
 

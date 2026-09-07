@@ -6,6 +6,7 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::path::Path;
 
+mod changes;
 mod diff;
 pub(crate) mod process;
 mod status;
@@ -16,6 +17,8 @@ pub enum Command {
     Status(StatusOptions),
     #[command(about = "Inspect bounded hunk and line details for one Git path.")]
     Diff(diff::Options),
+    #[command(about = "Page through changed paths and line counts for one Git comparison.")]
+    Changes(changes::Options),
 }
 
 #[derive(Args)]
@@ -47,6 +50,7 @@ pub fn report(root: &Path, command: &Command) -> Result<Value> {
     match command {
         Command::Status(options) => status_report(root, options),
         Command::Diff(options) => diff::report(root, options),
+        Command::Changes(options) => changes::report(root, options),
     }
 }
 

@@ -118,3 +118,7 @@ pub(crate) fn require_no_filters(root: &Path, paths: &[u8]) -> Result<()> {
     }
     Ok(())
 }
+
+pub(crate) fn oid(value: &str) -> bool {
+    matches!(value.len(), 40 | 64) && value.bytes().all(|b| b.is_ascii_hexdigit())
+}

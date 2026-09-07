@@ -1072,6 +1072,19 @@ Symbol cursors bind the declaration result and cannot continue ordinary line pag
 This view reports direct line overlap; cross-file callers and transitive impact remain pending.
 See [Git diff detail pages](docs/git-diff.md) for fields, comparison semantics and limits.
 
+```sh
+fr git changes --limit 20
+fr git changes --staged
+fr git changes --since HEAD~1
+fr git changes --since HEAD~1 --cursor TOKEN
+```
+
+Page through repository-wide changed paths, raw modes and object IDs, binary flags and numeric line counts, without source bodies.
+Comparison flags match `fr git diff`. Follow a path with `fr git diff PATH --symbols`, using the reported commit identity when applicable.
+`--limit` accepts 1 through 500 paths. Cursors bind the complete metadata result and comparison, but cannot detect every content edit.
+Untracked files and submodules are outside this scope. Unmerged paths and content filters in the index or selected commit cause refusal.
+See [repository change pages](docs/git-changes.md) for fields, configuration and observation limits.
+
 ### `fr cache`
 
 ```

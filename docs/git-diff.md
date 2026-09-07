@@ -8,6 +8,7 @@ fr git diff src/main.rs --staged
 fr git diff src/main.rs --since HEAD~1
 ```
 
+Use [repository change pages](git-changes.md) to discover paths for the same comparison before requesting detail.
 The native command requires Git and prints JSON in both output modes.
 It inspects one literal UTF-8 file path relative to the repository root, even when `-C` selects a nested directory.
 Paths containing whitespace, glob characters or Git pathspec magic retain their literal meaning.

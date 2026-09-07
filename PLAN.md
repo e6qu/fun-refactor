@@ -40,7 +40,7 @@ Important gaps:
 - `fr project` adds bounded maps, revision-bound details, call relationships and Cargo/npm manifest views. Complete dependency resolution and framework semantics remain pending.
 - Native changes now have persistent history and checked undo/redo. History retention and large-journal scaling need further work.
 - Browser undo restores the loaded workspace; it does not reverse individual transactions.
-- Native history exports Git text patches and checks receiving files and indexes. Git status, diff and changed-declaration pages exist; staging and shared browser patch semantics remain pending.
+- Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff and changed-declaration pages exist; staging and shared browser patch semantics remain pending.
 - Strict spec signature maps currently accept Rust source declarations only.
 - Framework readers cover selected patterns. Whole applications still need dependency and runtime work.
 - Model proofs and shared executable cases do not establish general correspondence with the Rust implementation.
@@ -527,9 +527,25 @@ The Lean laws establish range behavior; Git capture, hashing, extraction, hierar
 Validation passes the full native/WASM gate, 311/311 capability coverage and all 29 Lean build jobs.
 Strict verification passes with twelve fresh source anchors and signature maps and zero `sorry` obligations.
 
+M3i: repository-wide change discovery (complete).
+
+- Add `fr git changes` for working, staged and commit-based comparisons, with sorted path pages and complete metadata counts.
+- Join raw modes and object identities with numeric line counts, without collecting patch bodies.
+- Preserve binary, empty-file, mode-only and symlink/type-change metadata, with explicit regular-file detail candidates.
+- Bind cursors to comparison metadata and resolved commit identity; document content changes that metadata cannot detect.
+- Guard the union of index and selected commit paths against content filters, and refuse unmerged index state.
+- Hand discovered literal paths and pinned commit identities to the existing diff and changed-declaration views.
+
+See [repository change scope and cursors](docs/git-changes.md).
+Three parser tests and seven CLI scenarios cover joins, scopes, pagination, unusual paths, filters, conflicts, worktrees and SHA-256 detail handoff.
+The command excludes untracked files and submodules. Collection work and memory remain unbounded by the page limit.
+Page sizing reuses the anchored helper. Git execution, metadata correspondence and aggregation remain unproved.
+Validation passes the full native/WASM gate, 311/311 capability coverage and all 29 Lean build jobs.
+Strict verification passes with twelve fresh source anchors and signature maps and zero `sorry` obligations.
+
 Next M3 work:
 
-Extend changed-declaration views with relationship candidates and repository-wide change selection.
+Extend changed-declaration views with relationship candidates.
 
 Add explicit staging, commits and isolated worktree workflows after patch correctness.
 Keep Git optional for ordinary analysis and transaction history.
