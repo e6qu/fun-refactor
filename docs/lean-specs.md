@@ -112,6 +112,14 @@ The model does not establish filesystem containment or package-manager workspace
 Matcher proofs use propositional extensionality; the self-match proof also uses Lean's standard classical-choice and quotient-soundness axioms.
 The model does not prove parser correctness, snapshot-hash collision resistance or agent task success.
 
+`FrKernels.Git` models the inclusive line-range predicate used by changed-declaration views.
+Six theorems characterize membership, reject lines before/after or within reversed bounds, characterize singletons, and preserve matches when bounds widen.
+Shared execution compares 1,728 cases, including zero, reversed ranges and 32-bit/64-bit maximum values.
+The axiom audit reports `propext`, with `Quot.sound` and `Classical.choice` used by some proofs.
+These proofs do not add compiler-trust axioms.
+The source anchor and signature map identify the Rust predicate; general Rust/model correspondence remains unproved.
+Git capture, hashing, syntax extraction, byte-to-line conversion, hierarchy and report aggregation remain outside these laws.
+
 The project kernel also models path confidence as the maximum of edge ranks, with zero as the empty-path identity.
 Ranks map `exact`, `import-qualified`, `field-based` and `name-only` to 0 through 3, in that order.
 Theorems show that aggregation cannot strengthen any input edge and stays within the supplied tier bound.

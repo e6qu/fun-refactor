@@ -150,3 +150,7 @@ fn status_report(root: &Path, options: &StatusOptions) -> Result<Value> {
         "diagnostics_truncated": output.stderr.len() > 16 * 1024
     }))
 }
+
+pub fn line_in_range(start: usize, end: usize, line: usize) -> bool {
+    start <= line && line <= end
+}

@@ -79,3 +79,22 @@ fn metadata_only_binary_and_empty_changes_are_distinct() {
         assert!(parse(broken.as_bytes(), "file.txt").is_err());
     }
 }
+
+#[test]
+fn full_patch_identities_must_agree_with_raw_metadata() {
+    let raw = header("100644", 40);
+    let old = "a".repeat(40);
+    let new = "b".repeat(40);
+    let line = format!("index {old}..{new} 100644\n");
+    let body = "--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new\n";
+    let valid = format!("{raw}{line}{body}");
+    let value = parse(valid.as_bytes(), "file.txt").unwrap();
+    assert_eq!(value.blobs, Some((Some(old.clone()), Some(new))));
+    for invalid in [
+        format!("{raw}{line}{line}{body}"),
+        valid.replace(&line, &line.replace(&old, &"c".repeat(40))),
+        valid.replacen(&"0".repeat(40), &"d".repeat(40), 1),
+    ] {
+        assert!(parse(invalid.as_bytes(), "file.txt").is_err());
+    }
+}

@@ -86,6 +86,67 @@ Successful inspection exits zero even when changes exist. Setup, unsupported inp
 Page sizing reuses the Lean-anchored pagination helper.
 Parser and CLI tests cover coordinates, excerpts, cursors, comparison bases, unusual paths, conflicts, linked worktrees and guarded Git execution.
 They do not prove parser or Git execution correspondence with Lean.
-Symbol hierarchy, callers and structural impact since a revision remain roadmap work.
+Use `--symbols` for the changed-declaration view below. Caller relationships and transitive structural impact remain roadmap work.
 
 Git inspection requires support for [`--no-lazy-fetch`](https://git-scm.com/docs/git); older Git versions refuse the command.
+
+## Changed declarations
+
+```sh
+fr git diff src/main.rs --symbols --limit 20
+fr git diff src/main.rs --symbols --staged
+fr git diff src/main.rs --symbols --since HEAD~1
+fr git diff src/main.rs --symbols --since HEAD~1 --cursor TOKEN
+```
+
+`--symbols` sets `view: "symbols"` and pages through declarations that overlap added or deleted lines, without source bodies or signatures.
+Deleted lines select declarations from the before snapshot; added lines select declarations from the after snapshot.
+Context lines do not select declarations. Insertions alone can therefore produce only after-side rows, even inside an existing function.
+Newline markers share their preceding changed line and do not increase its count.
+Mode-only, binary and empty-file changes can have metadata without declaration rows.
+
+The view reads before-side blobs from Git's object database.
+Staged after-side blobs also come from that database, independently of working files.
+Other after-side snapshots come from regular working files, rejecting symlink traversal.
+Each snapshot used for mapping must hash to its observed Git blob identity, without content conversion or object writes.
+A changed file or conversion difference causes refusal before any page appears.
+For example, a CRLF working file can differ from Git's normalized LF blob; ordinary diff inspection still works in that case.
+Missing objects cannot trigger demand fetching. Parsing covers captured snapshots, without freezing subsequent repository changes.
+
+Rows sort by side (before, then after), declaration start, descending end and extractor ID.
+Each row contains `id`, `side`, `parent`, `kind`, `name`, `qualifier`, `exported`, byte `span`, `line`, `end_line` and `changed_lines`.
+Line bounds are inclusive. A declaration ending at a line boundary excludes the following line.
+`name` and non-null `qualifier` are excerpts with `text`, original `bytes` and `truncated`, capped at 256 UTF-8 bytes each.
+Variables and parameters are outside this view. Remaining kinds follow the language extractor's declarations.
+
+Hierarchy uses strict byte-span containment, as in project maps.
+Every overlapping containing declaration also appears, so changed-line counts can repeat across ancestors and children.
+These rows identify line overlap rather than semantic changes: multiple declarations sharing a changed line can all appear.
+`parent` can refer to a row on an earlier page.
+IDs are local to `structure.revision`, not project handles or identities shared across comparison sides.
+There is no automatic rename or before/after declaration matching.
+
+`structure.coverage` reports each side's status, observed `blob`, changed-line count and declaration count.
+Parsed sides also include `language`, `gaps`, `mapped_lines` and `unmapped_lines`.
+Mapped counts deduplicate lines across declarations. Unmapped lines can include imports, comments, top-level statements or extractor omissions.
+A `parsed` status means extraction reports no known gaps; it does not establish complete language semantics.
+Syntax or template gaps yield `partial` coverage with any available declarations.
+Other statuses are `no-changed-lines`, `binary` and `unsupported-language`; mapped/unmapped counts remain null when mapping does not run.
+Unsupported grammars, invalid spans, non-UTF-8 snapshots and inconsistent object identities cause refusal.
+
+Language detection uses the extension only, without consulting the current filesystem for historical framework markers.
+In particular, neighboring Helm chart files do not change a YAML snapshot's language.
+Repository dependency resolution and call relationships do not run.
+Use project navigation separately to inspect current declarations and candidate relationships.
+Cross-repository impact and callers of historical declarations remain roadmap work.
+
+Symbol cursors use a separate identity from line pages.
+They bind the complete diff, tool version, full declaration result and coverage before paging.
+Keep `--symbols`, the path and comparison unchanged when continuing. The limit can change.
+Each side requires a complete snapshot and extraction before paging; pagination bounds response rows only.
+
+The line-range predicate carries a source anchor, signature map and six Lean laws in `FrKernels.Git`.
+Shared execution checks 1,728 boundary combinations, including machine-integer limits.
+The proofs establish inclusive range membership, refusal outside or across reversed bounds, singleton behavior and preservation by enclosing ranges.
+Git capture, blob-hash assumptions, parsers, declaration spans, hierarchy construction and report aggregation remain outside that proof.
+See [Lean specifications](lean-specs.md) for proof assumptions.

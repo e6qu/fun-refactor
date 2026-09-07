@@ -1062,6 +1062,14 @@ Each source excerpt retains at most 1,024 bytes, with original length and trunca
 `--limit` accepts 1 through 500 rows. Cursors bind the full observed diff, selected path, comparison and repository.
 Binary and mode-only changes can have metadata without line rows. Symlinks, submodules and conflicts cause refusal.
 Content filters on the selected path cause refusal. Git collection work and total memory remain unbounded by the page size.
+```sh
+fr git diff src/main.rs --symbols --since HEAD~1
+```
+
+`--symbols` pages through declarations overlapping changed lines on each side, with containing declarations and explicit coverage gaps.
+It omits source bodies and requires each parsed snapshot to match Git's observed blob identity.
+Symbol cursors bind the declaration result and cannot continue ordinary line pages.
+This view reports direct line overlap; cross-file callers and transitive impact remain pending.
 See [Git diff detail pages](docs/git-diff.md) for fields, comparison semantics and limits.
 
 ### `fr cache`

@@ -7,6 +7,7 @@ use std::ffi::OsString;
 use std::path::{Component, Path, PathBuf};
 
 mod patch;
+mod symbols;
 
 #[derive(Args)]
 pub struct Options {
@@ -20,6 +21,8 @@ pub struct Options {
         help = "Compare one commit with the working tree."
     )]
     since: Option<String>,
+    #[arg(long, help = "Page through declarations overlapping changed lines.")]
+    symbols: bool,
     #[arg(long, default_value_t = 50, help = "Maximum rows, from 1 to 500.")]
     limit: usize,
     #[arg(long, help = "Continue the same observed diff.")]
@@ -221,7 +224,32 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
     digest.update([0]);
     digest.update(&output.stdout);
     let revision = format!("{:x}", digest.finalize());
-    let key = format!("frd1:{revision}");
+    let symbol_view = if options.symbols {
+        Some(symbols::collect(&root, path, options.staged, &observed)?)
+    } else {
+        None
+    };
+    let (total, structure, key) = if let Some(view) = &symbol_view {
+        let identity = format!(
+            "{:x}",
+            Sha256::digest(serde_json::to_vec(&(
+                &revision,
+                env!("CARGO_PKG_VERSION"),
+                &view.entries,
+                &view.coverage,
+            ))?)
+        );
+        let structure = json!({"revision": identity, "coverage": view.coverage,
+            "scope": "changed-line-overlap", "hierarchy": "strict-span-containment", "locals": "omitted",
+            "cross_side_matching": "none", "relationships": "not-collected", "text_bytes": 256});
+        (
+            view.entries.len(),
+            Some(structure),
+            format!("frs1:{identity}"),
+        )
+    } else {
+        (observed.rows.len(), None, format!("frd1:{revision}"))
+    };
     let start = if let Some(cursor) = &options.cursor {
         let (basis, offset) = cursor.rsplit_once(':').context("invalid Git diff cursor")?;
         if basis != key {
@@ -231,18 +259,23 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
     } else {
         0
     };
-    if start > observed.rows.len() {
+    if start > total {
         bail!("Git diff cursor is beyond the result set");
     }
-    let end = start + crate::project::page_length(observed.rows.len(), start, options.limit);
+    let end = start + crate::project::page_length(total, start, options.limit);
+    let entries = if let Some(view) = &symbol_view {
+        serde_json::to_value(&view.entries[start..end])?
+    } else {
+        serde_json::to_value(&observed.rows[start..end])?
+    };
     Ok(json!({
         "schema": 1, "repository_root": root, "path": path, "scope": scope, "base_commit": base,
         "configuration": "repository-only-without-content-filters", "renames": "disabled", "submodules": "unsupported",
         "diff_revision": revision, "changed": observed.change.is_some(), "change": observed.change, "binary": observed.binary,
         "counts": {"hunks": observed.hunks, "added": (!observed.binary).then_some(observed.added), "deleted": (!observed.binary).then_some(observed.deleted)},
         "limits": {"line_bytes": 1024, "heading_bytes": 256, "context_lines": 3},
-        "page": {"total": observed.rows.len(), "returned": end-start, "before": start, "remaining": observed.rows.len()-end,
-            "next": (end < observed.rows.len()).then(|| format!("{key}:{end}"))},
-        "entries": observed.rows[start..end], "diagnostics": process::diagnostic(&output.stderr), "diagnostics_truncated": output.stderr.len() > 16*1024
+        "page": {"total": total, "returned": end-start, "before": start, "remaining": total-end,
+            "next": (end < total).then(|| format!("{key}:{end}"))},
+        "entries": entries, "view": if options.symbols {"symbols"} else {"lines"}, "structure": structure, "diagnostics": process::diagnostic(&output.stderr), "diagnostics_truncated": output.stderr.len() > 16*1024
     }))
 }

@@ -909,3 +909,51 @@ fn workspace_membership_rounds_match_lean_and_independent_reachability() {
     }
     assert!(closures.next().is_none());
 }
+
+#[test]
+fn git_line_ranges_match_lean_including_integer_limits() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("line-ranges")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let actual = actual
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let samples: [u64; 12] = [
+        0,
+        1,
+        2,
+        3,
+        4,
+        79,
+        80,
+        499,
+        500,
+        65536,
+        u32::MAX.into(),
+        u64::MAX,
+    ];
+    assert_eq!(actual.len(), samples.len().pow(3));
+    let mut index = 0;
+    for start in samples {
+        for end in samples {
+            for line in samples {
+                if let (Ok(start), Ok(end), Ok(line)) = (
+                    usize::try_from(start),
+                    usize::try_from(end),
+                    usize::try_from(line),
+                ) {
+                    assert_eq!(
+                        fun_refactor::git::line_in_range(start, end, line),
+                        actual[index]
+                    );
+                }
+                index += 1;
+            }
+        }
+    }
+}

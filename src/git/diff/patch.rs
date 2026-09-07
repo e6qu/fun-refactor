@@ -90,6 +90,7 @@ pub(super) struct Observation {
     pub added: usize,
     pub deleted: usize,
     pub rows: Vec<Row>,
+    pub blobs: Option<(Option<String>, Option<String>)>,
 }
 
 pub(super) fn oid(value: &str) -> bool {
@@ -112,6 +113,7 @@ pub(super) fn parse(bytes: &[u8], path: &str) -> Result<Observation> {
         added: 0,
         deleted: 0,
         rows: Vec::new(),
+        blobs: None,
     };
     if bytes.is_empty() {
         return Ok(out);
@@ -166,6 +168,11 @@ pub(super) fn parse(bytes: &[u8], path: &str) -> Result<Observation> {
             .any(|b| b != b'0')
             .then(|| fields[3].into()),
     });
+    out.blobs = out
+        .change
+        .as_ref()
+        .map(|c| (c.before_oid.clone(), c.after_oid.clone()));
+    let mut index_seen = false;
     let text = std::str::from_utf8(patch).context("non-UTF-8 Git patch text")?;
     let text = text
         .strip_suffix('\n')
@@ -275,9 +282,26 @@ pub(super) fn parse(bytes: &[u8], path: &str) -> Result<Observation> {
             let (old, new) = ids
                 .split_once("..")
                 .context("invalid Git patch object identities")?;
-            if !oid(old) || !oid(new) {
+            if index_seen || !oid(old) || !oid(new) || old.len() != new.len() {
                 bail!("invalid Git patch object identities");
             }
+            index_seen = true;
+            let ids = [old, new].map(|id| id.bytes().any(|b| b != b'0').then(|| id.to_owned()));
+            let change = out.change.as_ref().unwrap();
+            if change
+                .before_oid
+                .as_ref()
+                .is_some_and(|id| Some(id) != ids[0].as_ref())
+                || change
+                    .after_oid
+                    .as_ref()
+                    .is_some_and(|id| Some(id) != ids[1].as_ref())
+                || (change.before_mode.is_none() && ids[0].is_some())
+                || (change.after_mode.is_none() && ids[1].is_some())
+            {
+                bail!("Git patch object identities disagree with its raw record.");
+            }
+            out.blobs = Some((ids[0].clone(), ids[1].clone()));
         } else if [
             "old mode ",
             "new mode ",

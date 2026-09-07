@@ -40,7 +40,7 @@ Important gaps:
 - `fr project` adds bounded maps, revision-bound details, call relationships and Cargo/npm manifest views. Complete dependency resolution and framework semantics remain pending.
 - Native changes now have persistent history and checked undo/redo. History retention and large-journal scaling need further work.
 - Browser undo restores the loaded workspace; it does not reverse individual transactions.
-- Native history exports Git text patches and checks receiving files and indexes. Git status and diff pages exist; staging and shared browser patch semantics remain pending.
+- Native history exports Git text patches and checks receiving files and indexes. Git status, diff and changed-declaration pages exist; staging and shared browser patch semantics remain pending.
 - Strict spec signature maps currently accept Rust source declarations only.
 - Framework readers cover selected patterns. Whole applications still need dependency and runtime work.
 - Model proofs and shared executable cases do not establish general correspondence with the Rust implementation.
@@ -511,9 +511,25 @@ Git conversion semantics and concurrent changes limit observation identity. Coll
 Validation passes the full native/WASM gate, 311/311 capability coverage and all 27 Lean build jobs.
 Strict verification passes with eleven fresh source anchors and signature maps and zero `sorry` obligations.
 
+M3h: changed declarations on Git comparison sides (complete).
+
+- Add `fr git diff PATH --symbols` for working, staged and commit-based comparisons.
+- Page through declarations overlapping changed lines, with containing declarations, side identities and coverage counts, without source bodies.
+- Read historical and staged blobs directly; require each parsed snapshot to match the observed blob identity without conversion.
+- Report partial parses, unmapped lines, unsupported languages and metadata-only changes explicitly.
+- Bind symbol cursors to the diff, tool version, declaration results and coverage; reject line-view cursors.
+- Anchor the inclusive line-range predicate to six Lean laws and compare 1,728 boundary cases with Rust.
+
+See [changed declarations and scope](docs/git-diff.md#changed-declarations).
+Seven new CLI scenarios cover hierarchy, pagination, selected snapshots, gaps, conversions, source races, Unicode bounds and SHA-256 repositories.
+The view uses extension-based language detection and strict span containment. It does not match declarations across sides or resolve callers.
+The Lean laws establish range behavior; Git capture, hashing, extraction, hierarchy and general Rust correspondence remain unproved.
+Validation passes the full native/WASM gate, 311/311 capability coverage and all 29 Lean build jobs.
+Strict verification passes with twelve fresh source anchors and signature maps and zero `sorry` obligations.
+
 Next M3 work:
 
-Add structural impact since a revision, connecting Git line changes with bounded symbol hierarchy and relationship details.
+Extend changed-declaration views with relationship candidates and repository-wide change selection.
 
 Add explicit staging, commits and isolated worktree workflows after patch correctness.
 Keep Git optional for ordinary analysis and transaction history.

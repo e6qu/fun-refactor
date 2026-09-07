@@ -1,11 +1,17 @@
 import FrKernels.Workspace
+import FrKernels.Git
 
 open FrKernels.Project
 
 def samples : List Nat := [0, 1, 2, 3, 4, 79, 80, 499, 500, 65536, 4294967295, 18446744073709551615]
 
 def main (args : List String) : IO Unit := do
-  if args == ["membership"] || args == ["closure"] then
+  if args == ["line-ranges"] then
+    for start in samples do
+      for finish in samples do
+        for line in samples do
+          IO.println (FrKernels.Git.lineInRange start finish line)
+  else if args == ["membership"] || args == ["closure"] then
     for size in [0:4] do
       let nodes := List.range size
       let allEdges := nodes.flatMap (fun source => nodes.map (fun target => (source, target)))
