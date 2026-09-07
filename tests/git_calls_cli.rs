@@ -392,3 +392,456 @@ fn unresolved_names_are_utf8_bounded_and_conversion_mismatches_refuse() {
     fs::write(root.join("code.py"), after.replace('\n', "\r\n")).unwrap();
     error(root, &["code.py", "--calls"], "snapshot");
 }
+
+#[test]
+fn staged_context_resolves_only_selected_files_and_keeps_file_boundaries() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    init(root);
+    let before = "from dependency import leaf\nfrom excluded import external\ndef changed():\n    number = 1\n    leaf()\n    external()\n";
+    fs::write(root.join("app.py"), before).unwrap();
+    fs::write(root.join("dependency.py"), "def leaf():\n    pass\n").unwrap();
+    fs::write(root.join("excluded.py"), "def external():\n    pass\n").unwrap();
+    fs::write(
+        root.join("caller.py"),
+        "from app import changed\ndef invoke():\n    changed()\nchanged()\n",
+    )
+    .unwrap();
+    commit(root);
+    fs::write(
+        root.join("app.py"),
+        before.replace("number = 1", "number = 2"),
+    )
+    .unwrap();
+    git(root, &["add", "app.py"]);
+    let index = fs::read(root.join(".git/index")).unwrap();
+    let args = [
+        "app.py",
+        "--calls",
+        "--staged",
+        "--include",
+        "dependency.py",
+        "--include",
+        "caller.py",
+    ];
+    let value = report(root, &args);
+    assert_eq!(
+        value["structure"]["relationships"],
+        "selected-file-call-candidates"
+    );
+    assert_eq!(value["page"]["total"], 8, "{value}");
+    for side in ["before", "after"] {
+        let rows = value["entries"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|r| r["side"] == side)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            rows.iter()
+                .filter(|r| r["scope_relation"] == "incoming")
+                .count(),
+            2
+        );
+        assert!(rows
+            .iter()
+            .filter(|r| r["scope_relation"] == "incoming")
+            .all(|r| r["site"]["path"] == "caller.py" && r["callee"]["path"] == "app.py"));
+        let leaf = rows
+            .iter()
+            .find(|r| r["callee"]["name"]["text"] == "leaf")
+            .unwrap();
+        assert_eq!(leaf["scope_relation"], "outgoing");
+        assert_eq!(leaf["callee"]["path"], "dependency.py");
+        assert_eq!(leaf["callee"]["changed_declaration"], false);
+        assert_eq!(leaf["callee"]["in_selection"], false);
+        assert_eq!(leaf["caller"]["changed_declaration"], true);
+        assert!(rows
+            .iter()
+            .any(|r| r["name"]["text"] == "external" && r["status"] == "unresolved"));
+        assert_eq!(
+            value["structure"]["coverage"][side]["calls"]["cross_file"],
+            "explicit-files-only"
+        );
+    }
+    assert_eq!(fs::read(root.join(".git/index")).unwrap(), index);
+    assert!(!value.to_string().contains("number ="));
+    let mut incoming = args.to_vec();
+    incoming.extend(["--direction", "incoming"]);
+    assert_eq!(report(root, &incoming)["page"]["total"], 4);
+}
+
+#[test]
+fn staged_context_uses_independent_blob_sides_and_ignores_working_bytes() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    init(root);
+    let before = "from dependency import old\ndef changed():\n    old()\n";
+    fs::write(root.join("app.py"), before).unwrap();
+    fs::write(root.join("dependency.py"), "def old():\n    pass\n").unwrap();
+    commit(root);
+    fs::write(root.join("app.py"), before.replace("old", "new")).unwrap();
+    fs::write(root.join("dependency.py"), "def new():\n    pass\n").unwrap();
+    git(root, &["add", "."]);
+    fs::write(root.join("app.py"), b"working\0garbage").unwrap();
+    fs::write(root.join("dependency.py"), b"working\0garbage").unwrap();
+    let value = report(
+        root,
+        &[
+            "app.py",
+            "--calls",
+            "--staged",
+            "--include",
+            "dependency.py",
+        ],
+    );
+    assert_eq!(value["page"]["total"], 2, "{value}");
+    for (side, name) in [("before", "old"), ("after", "new")] {
+        let row = value["entries"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["side"] == side)
+            .unwrap();
+        assert_eq!(row["callee"]["name"]["text"], name);
+        assert_eq!(row["callee"]["path"], "dependency.py");
+    }
+    let coverage = &value["structure"]["coverage"]["context"]["files"][0];
+    assert_ne!(coverage["before"]["blob"], coverage["after"]["blob"]);
+    assert!(!value.to_string().contains("garbage"));
+}
+
+#[test]
+fn context_cursors_bind_blobs_even_when_call_rows_stay_equal() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    init(root);
+    let before = "from dependency import leaf\ndef changed():\n    number = 1\n    leaf()\n";
+    fs::write(root.join("app.py"), before).unwrap();
+    fs::write(root.join("dependency.py"), "def leaf():\n    return 1\n").unwrap();
+    fs::write(
+        root.join("caller.py"),
+        "from app import changed\nchanged()\n",
+    )
+    .unwrap();
+    commit(root);
+    fs::write(
+        root.join("app.py"),
+        before.replace("number = 1", "number = 2"),
+    )
+    .unwrap();
+    git(root, &["add", "app.py"]);
+    let args = [
+        "app.py",
+        "--calls",
+        "--staged",
+        "--include",
+        "dependency.py",
+        "--include",
+        "caller.py",
+    ];
+    let all = report(root, &args);
+    let equivalent = report(
+        root,
+        &[
+            "app.py",
+            "--calls",
+            "--staged",
+            "--include",
+            "caller.py",
+            "--include",
+            "dependency.py",
+            "--include",
+            "caller.py",
+        ],
+    );
+    assert_eq!(all, equivalent);
+    let mut page = args.to_vec();
+    page.extend(["--limit", "1"]);
+    let first = report(root, &page);
+    let token = first["page"]["next"].as_str().unwrap();
+    let mut continued = args.to_vec();
+    continued.extend(["--cursor", token]);
+    assert_eq!(
+        report(root, &continued)["entries"],
+        json!(&all["entries"].as_array().unwrap()[1..])
+    );
+    error(
+        root,
+        &["app.py", "--calls", "--staged", "--cursor", token],
+        "stale cursor",
+    );
+    error(
+        root,
+        &[
+            "app.py",
+            "--calls",
+            "--staged",
+            "--include",
+            "caller.py",
+            "--cursor",
+            token,
+        ],
+        "stale cursor",
+    );
+    fs::write(root.join("dependency.py"), "def leaf():\n    return 2\n").unwrap();
+    git(root, &["add", "dependency.py"]);
+    assert_eq!(report(root, &args)["entries"], all["entries"]);
+    error(root, &continued, "stale cursor");
+}
+
+#[test]
+fn context_preserves_additions_deletions_and_unborn_sides() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    init(root);
+    fs::write(
+        root.join("app.py"),
+        "from dependency import leaf\ndef changed():\n    leaf()\n",
+    )
+    .unwrap();
+    fs::write(root.join("dependency.py"), "def leaf():\n    pass\n").unwrap();
+    git(root, &["add", "."]);
+    let args = [
+        "app.py",
+        "--calls",
+        "--staged",
+        "--include",
+        "dependency.py",
+    ];
+    let added = report(root, &args);
+    assert_eq!(added["page"]["total"], 1, "{added}");
+    assert_eq!(added["entries"][0]["side"], "after");
+    assert_eq!(
+        added["structure"]["coverage"]["context"]["files"][0]["before"]["status"],
+        "absent"
+    );
+    commit(root);
+    git(root, &["rm", "app.py", "dependency.py"]);
+    let removed = report(root, &args);
+    assert_eq!(removed["page"]["total"], 1, "{removed}");
+    assert_eq!(removed["entries"][0]["side"], "before");
+    assert_eq!(
+        removed["structure"]["coverage"]["context"]["files"][0]["after"]["status"],
+        "absent"
+    );
+}
+
+#[test]
+fn context_refuses_unsupported_selections_and_checks_selected_filters() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    init(root);
+    fs::create_dir(root.join("dir")).unwrap();
+    fs::write(root.join("app.py"), "def changed():\n    pass\n").unwrap();
+    fs::write(root.join("dir/dep.py"), "def leaf():\n    pass\n").unwrap();
+    fs::write(root.join("binary.py"), b"a\0b").unwrap();
+    fs::write(root.join("style.css"), "a {}\n").unwrap();
+    fs::write(root.join("unknown"), "unknown").unwrap();
+    commit(root);
+    fs::write(root.join("app.py"), "def changed():\n    missing()\n").unwrap();
+    git(root, &["add", "app.py"]);
+    for include in [
+        "../dir/dep.py",
+        "/tmp/dep.py",
+        "app.py",
+        "dir",
+        "missing.py",
+        "binary.py",
+        "style.css",
+        "unknown",
+    ] {
+        let out = fr(
+            root,
+            &["app.py", "--calls", "--staged", "--include", include],
+        )
+        .output()
+        .unwrap();
+        assert!(!out.status.success(), "{include}");
+        let value: Value = serde_json::from_slice(&out.stdout).unwrap();
+        assert!(value.get("entries").is_none());
+    }
+    for flags in [
+        vec!["app.py", "--calls", "--include", "dir/dep.py"],
+        vec!["app.py", "--staged", "--include", "dir/dep.py"],
+    ] {
+        assert!(!fr(root, &flags).output().unwrap().status.success());
+    }
+    fs::write(root.join(".gitattributes"), "style.css filter=blocked\n").unwrap();
+    let args = ["app.py", "--calls", "--staged", "--include", "dir/dep.py"];
+    assert!(report(root, &args)["page"]["total"].as_u64().unwrap() > 0);
+    fs::write(root.join(".gitattributes"), "dir/dep.py filter=blocked\n").unwrap();
+    error(root, &args, "content filters");
+}
+
+#[test]
+fn context_paths_are_literal_and_partial_parses_retain_coverage() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    git(
+        root,
+        &["init", "-q", "-b", "main", "--object-format=sha256"],
+    );
+    let context = "caller 名[*].py";
+    fs::write(root.join("app.py"), "def changed():\n    pass\n").unwrap();
+    fs::write(
+        root.join(context),
+        "from app import changed\ndef invoke():\n    changed()\n",
+    )
+    .unwrap();
+    commit(root);
+    fs::write(root.join("app.py"), "def changed():\n    return 1\n").unwrap();
+    fs::write(
+        root.join(context),
+        "from app import changed\ndef invoke():\n    changed()\ndef broken(:\n",
+    )
+    .unwrap();
+    git(root, &["add", "."]);
+    let value = report(
+        root,
+        &["app.py", "--calls", "--staged", "--include", context],
+    );
+    assert_eq!(value["page"]["total"], 2, "{value}");
+    assert!(value["entries"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|r| r["site"]["path"] == context));
+    assert_eq!(
+        value["structure"]["coverage"]["after"]["calls"]["status"],
+        "partial"
+    );
+    let coverage = &value["structure"]["coverage"]["context"]["files"][0];
+    assert_eq!(coverage["after"]["status"], "partial");
+    assert_eq!(coverage["after"]["blob"].as_str().unwrap().len(), 64);
+}
+
+#[cfg(unix)]
+#[test]
+fn context_refuses_an_index_change_after_blob_capture() {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    init(root);
+    fs::write(root.join("app.py"), "def changed():\n    pass\n").unwrap();
+    fs::write(
+        root.join("caller.py"),
+        "from app import changed\nchanged()\n",
+    )
+    .unwrap();
+    commit(root);
+    fs::write(root.join("app.py"), "def changed():\n    return 1\n").unwrap();
+    git(root, &["add", "app.py"]);
+    fs::write(
+        root.join("caller.py"),
+        "from app import changed\nchanged()\nchanged()\n",
+    )
+    .unwrap();
+    let actual = Command::new("sh")
+        .args(["-c", "command -v git"])
+        .output()
+        .unwrap();
+    assert!(actual.status.success());
+    let actual = String::from_utf8(actual.stdout).unwrap();
+    let shim = root.join("shim");
+    fs::create_dir(&shim).unwrap();
+    fs::write(shim.join("git"), "#!/bin/sh\ncase \" $* \" in\n*' cat-file '*)\n  \"$FR_ACTUAL_GIT\" \"$@\" || exit $?\n  \"$FR_ACTUAL_GIT\" add caller.py\n  ;;\n*) exec \"$FR_ACTUAL_GIT\" \"$@\" ;;\nesac\n").unwrap();
+    fs::set_permissions(shim.join("git"), fs::Permissions::from_mode(0o755)).unwrap();
+    let output = fr(
+        root,
+        &["app.py", "--calls", "--staged", "--include", "caller.py"],
+    )
+    .env("FR_ACTUAL_GIT", actual.trim())
+    .env(
+        "PATH",
+        format!("{}:{}", shim.display(), std::env::var("PATH").unwrap()),
+    )
+    .output()
+    .unwrap();
+    assert!(!output.status.success());
+    let value: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert!(
+        value["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("index entries changed"),
+        "{value}"
+    );
+    assert!(value.get("entries").is_none());
+}
+
+#[test]
+fn staged_context_merges_cross_file_dispatch_candidates() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    init(root);
+    let before = "use crate::api::Task;\nfn changed(value: &dyn Task) {\n    value.run();\n    let number = 1;\n}\n";
+    fs::write(root.join("app.rs"), before).unwrap();
+    fs::write(root.join("api.rs"), "pub trait Task { fn run(&self); }\nstruct A;\nimpl Task for A { fn run(&self) {} }\nstruct B;\nimpl Task for B { fn run(&self) {} }\n").unwrap();
+    commit(root);
+    fs::write(
+        root.join("app.rs"),
+        before.replace("number = 1", "number = 2"),
+    )
+    .unwrap();
+    git(root, &["add", "app.rs"]);
+    let value = report(
+        root,
+        &["app.rs", "--calls", "--staged", "--include", "api.rs"],
+    );
+    for side in ["before", "after"] {
+        let rows = value["entries"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|r| r["side"] == side && r["dispatch_candidate"] == true)
+            .collect::<Vec<_>>();
+        assert!(!rows.is_empty(), "{value}");
+        assert!(rows.iter().all(|r| r["callee"]["path"] == "api.rs"
+            && r["site"]["path"] == "app.rs"
+            && r["scope_relation"] == "outgoing"
+            && r["confidence"] == "field-based"));
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn context_refuses_index_symlinks_conflicts_and_excess_paths() {
+    use std::os::unix::fs::symlink;
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    init(root);
+    fs::write(root.join("app.py"), "def changed():\n    pass\n").unwrap();
+    fs::write(
+        root.join("caller.py"),
+        "from app import changed\nchanged()\n",
+    )
+    .unwrap();
+    symlink("caller.py", root.join("link.py")).unwrap();
+    commit(root);
+    fs::write(root.join("app.py"), "def changed():\n    return 1\n").unwrap();
+    git(root, &["add", "app.py"]);
+    error(
+        root,
+        &["app.py", "--calls", "--staged", "--include", "link.py"],
+        "regular file blobs",
+    );
+    let mut args = vec!["app.py", "--calls", "--staged"];
+    for _ in 0..33 {
+        args.extend(["--include", "caller.py"]);
+    }
+    error(root, &args, "at most 32");
+    commit(root);
+    git(root, &["checkout", "-qb", "other"]);
+    fs::write(root.join("caller.py"), "other branch\n").unwrap();
+    commit(root);
+    git(root, &["checkout", "-q", "main"]);
+    fs::write(root.join("caller.py"), "main branch\n").unwrap();
+    commit(root);
+    assert!(!git_output(root, &["merge", "other"]).status.success());
+    error(
+        root,
+        &["app.py", "--calls", "--staged", "--include", "caller.py"],
+        "unmerged call context",
+    );
+}

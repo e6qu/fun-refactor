@@ -560,9 +560,26 @@ The proofs cover supplied flags; source capture, extraction, graph construction,
 Validation passes the full native/WASM gate, 311/311 capability coverage and all 29 Lean build jobs.
 Strict verification passes with thirteen fresh source anchors and signature maps and zero `sorry` obligations.
 
+M3k: explicit file context for staged calls (complete).
+
+- Add repeatable `--include FILE` to `fr git diff PATH --calls --staged`, with at most 32 explicit context arguments.
+- Capture HEAD/index blobs for included files, including unchanged files and paths absent from one side.
+- Resolve caller, target and dispatch candidates across those files while selecting changed declarations in the focus file only.
+- Report endpoint and site paths, context identities, partial parses and explicit cross-file coverage boundaries.
+- Bind cursors to context blobs and modes, including body changes that leave call rows identical.
+- Guard all selected paths against filters and unsupported inventories, and recheck index entries before returning a page.
+
+See [staged context scope and consistency](docs/git-diff.md#explicit-context-for-staged-calls).
+Nine new CLI scenarios cover resolution, snapshot sides, cursors, additions/deletions, unborn branches, literal paths, SHA-256, dispatch, refusals and index races.
+The workspace-isolation regression now exercises both single-file and selected-file analysis.
+Working source bytes and omitted dependencies remain outside these graphs. Observations do not freeze concurrent Git state.
+The existing Lean selection and page laws apply; inventory interpretation, file containment and snapshot consistency remain outside their proofs.
+Validation passes the full native/WASM gate, all 16 call CLI scenarios, 311/311 capability coverage and all 29 Lean build jobs.
+Strict verification passes with thirteen fresh source anchors and signature maps and zero `sorry` obligations.
+
 Next M3 work:
 
-Extend historical relationship inspection across explicitly selected files, with coherent snapshot bases and coverage boundaries.
+Extend explicit call context to working-tree and commit-based comparisons, with coordinated source-drift checks and clear observation limits.
 
 Add explicit staging, commits and isolated worktree workflows after patch correctness.
 Keep Git optional for ordinary analysis and transaction history.

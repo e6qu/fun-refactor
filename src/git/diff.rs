@@ -40,6 +40,13 @@ pub struct Options {
         help = "Select incoming, outgoing or both call directions."
     )]
     direction: Option<crate::project::CallDirection>,
+    #[arg(
+        long,
+        value_name = "FILE",
+        requires_all = ["calls", "staged"],
+        help = "Include a literal file in staged call analysis; repeat for more files."
+    )]
+    include: Vec<PathBuf>,
     #[arg(long, default_value_t = 50, help = "Maximum rows, from 1 to 500.")]
     limit: usize,
     #[arg(long, help = "Continue the same observed diff.")]
@@ -183,6 +190,16 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
         None
     };
     selection(&root, path, base.as_deref())?;
+    let context = if options.include.is_empty() {
+        None
+    } else {
+        Some(symbols::Context::capture(
+            &root,
+            path,
+            &options.include,
+            base.as_deref(),
+        )?)
+    };
     let scope = if options.staged {
         "head-to-index"
     } else if options.since.is_some() {
@@ -260,6 +277,7 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
             options.staged,
             &observed,
             direction,
+            context.as_ref(),
         )?)
     } else {
         None
@@ -278,7 +296,7 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
         );
         let structure = json!({"revision": identity, "coverage": view.coverage,
             "scope": if options.calls {"calls-touching-changed-declarations"} else {"changed-line-overlap"}, "hierarchy": "strict-span-containment", "locals": "omitted",
-            "cross_side_matching": "none", "relationships": if options.calls {"single-file-call-candidates"} else {"not-collected"}, "direction": direction, "text_bytes": 256});
+            "cross_side_matching": "none", "relationships": if context.is_some() {"selected-file-call-candidates"} else if options.calls {"single-file-call-candidates"} else {"not-collected"}, "direction": direction, "text_bytes": 256});
         (
             view.entries.len(),
             Some(structure),
@@ -308,6 +326,9 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
     } else {
         serde_json::to_value(&observed.rows[start..end])?
     };
+    if let Some(context) = &context {
+        context.recheck(&root, path, &observed)?;
+    }
     Ok(json!({
         "schema": 1, "repository_root": root, "path": path, "scope": scope, "base_commit": base,
         "configuration": "repository-only-without-content-filters", "renames": "disabled", "submodules": "unsupported",

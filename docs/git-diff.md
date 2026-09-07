@@ -88,7 +88,7 @@ Page sizing reuses the Lean-anchored pagination helper.
 Parser and CLI tests cover coordinates, excerpts, cursors, comparison bases, unusual paths, conflicts, linked worktrees and guarded Git execution.
 They do not prove parser or Git execution correspondence with Lean.
 Use `--symbols` for changed declarations or `--calls` for snapshot-local call candidates, described below.
-Cross-file relationships and transitive structural impact remain roadmap work.
+Staged call pages can include explicitly selected files. Working-tree cross-file relationships and transitive impact remain roadmap work.
 
 Git inspection requires support for [`--no-lazy-fetch`](https://git-scm.com/docs/git); older Git versions refuse the command.
 
@@ -140,7 +140,7 @@ Language detection uses the extension only, without consulting the current files
 In particular, neighboring Helm chart files do not change a YAML snapshot's language.
 The symbol view does not run dependency resolution or call analysis.
 Use project navigation separately to inspect current declarations and candidate relationships.
-The call view below inspects historical callers within the selected file. Cross-file historical relationships remain roadmap work.
+The call view below inspects historical callers within the selected file. Staged historical relationships can include selected files, as described below.
 
 Symbol cursors use a separate identity from line pages.
 They bind the complete diff, tool version, full declaration result and coverage before paging.
@@ -166,8 +166,8 @@ fr git diff src/main.rs --calls --since HEAD~1
 `--calls` sets `view: "calls"` and returns call candidates touching the changed declarations selected above, without source bodies.
 It cannot combine with `--symbols`. `--direction` requires `--calls` and accepts `incoming`, `outgoing` or `both` (default).
 Before and after snapshots are analyzed independently, with the same blob checks, conversion refusals and extension-based language detection as symbol pages.
-Only the selected file enters each index and hierarchy analysis. Source-dependent receiver inference reads that captured snapshot.
-Neighboring working files do not supply historical targets. Imported or otherwise unresolved targets remain explicit unresolved rows.
+Without `--include`, only the selected file enters each index and hierarchy analysis. Source-dependent receiver inference reads that captured snapshot.
+Neighboring working files do not supply historical targets. Calls without an indexed target remain explicit unresolved rows.
 
 Selection includes every declaration overlapping changed lines and the declarations and sites contained within those spans.
 A changed class can therefore select calls inside unchanged sibling methods.
@@ -177,8 +177,8 @@ Otherwise it is `incoming` or `outgoing`. This describes containment, without cl
 Sides with no changed lines do not run call analysis.
 
 Each row contains `kind: "call"`, `side`, `scope_relation`, `caller`, `callee`, `site`, `confidence`, `origin`, `dispatch_candidate` and `status`.
-Sites contain byte `offset` and one-based `line` and `column` coordinates.
-Non-null endpoints contain `id`, `name`, `kind`, `qualifier`, declaration `line`, `changed_declaration` and `in_selection`.
+Sites contain repository-relative `path`, byte `offset` and one-based `line` and `column` coordinates.
+Non-null endpoints contain `id`, repository-relative `path`, `name`, `kind`, `qualifier`, declaration `line`, `changed_declaration` and `in_selection`.
 `changed_declaration` reports direct line overlap; `in_selection` also includes declarations inside selected containers.
 Endpoint IDs belong to that side's complete snapshot and are local to `structure.revision`.
 They are not project handles, and endpoints need not appear in a changed-declaration page.
@@ -190,11 +190,11 @@ Statuses distinguish `indexed-target`, `dispatch-candidate` and `unresolved`.
 Confidence and origin retain the existing call graph's evidence, including weaker dispatch candidates.
 An indexed target does not establish a unique runtime destination or permission to rewrite.
 
-`structure.scope` is `calls-touching-changed-declarations`; `relationships` is `single-file-call-candidates`.
+`structure.scope` is `calls-touching-changed-declarations`; without included context, `relationships` is `single-file-call-candidates`.
 `structure.direction` records the normalized direction. Each analyzed side adds `calls` to its existing declaration coverage.
 Call coverage reports `status` (`analyzed`, `partial` or `unsupported-language`), `scope: "single-file-snapshot"` and, when analysis runs, `cross_file: "not-collected"`.
 Analyzed sides include hierarchy support and gaps, callable-node and edge counts, file-scope and unresolved-call counts, and `selected_rows`.
-Graph counts cover the complete single-file snapshot; `selected_rows` counts only rows matching this selection and direction.
+Graph counts cover the complete captured snapshot; `selected_rows` counts only rows matching this selection and direction.
 `analyzed` means no reported parser or hierarchy gaps; unresolved calls can still exist.
 Binary, unsupported-extension and unchanged sides retain their declaration status without nested call coverage.
 
@@ -206,4 +206,57 @@ Pagination bounds response rows; complete snapshot extraction and call analysis 
 The direction predicate has a source anchor, signature map and six Lean laws, proved without axioms.
 Shared execution compares all 16 boolean inputs with Rust.
 Those laws cover supplied selection flags; extraction, graph construction, enum mapping and complete report correspondence remain outside the proof.
-Cross-file historical relationships and transitive impact remain pending.
+Working-tree cross-file relationships and transitive impact remain pending.
+
+
+## Explicit context for staged calls
+
+```sh
+fr git diff src/main.rs --calls --staged --include src/api.rs
+fr git diff src/main.rs --calls --staged --include src/api.rs --include src/consumer.rs
+```
+
+`--include FILE` adds a literal repository-relative file to staged call analysis.
+It requires `--calls --staged`; working-tree and `--since` comparisons do not accept it yet.
+Repeat it up to 32 times. Paths normalize and deduplicate, and their order does not affect the result or cursor.
+The focus path itself is ignored in the context list; at least one distinct context path must remain.
+Directories, absolute paths and parent traversal cause refusal.
+
+Only changed declarations in the focus file select rows. Included files supply caller and target candidates, even when those files have no staged changes.
+A changed declaration in a context file does not become another selection root.
+Containment checks include the file path, so equal byte offsets in distinct files do not imply selection membership.
+Endpoints in context files have `changed_declaration: false` and `in_selection: false`.
+Imports and hierarchy analysis operate on the captured files, without automatically loading further dependencies or package metadata.
+Candidates retain their confidence and origins; selecting more files can change resolution and ambiguity.
+
+Before-side context comes from the report's pinned HEAD commit, or the empty tree on an unborn branch.
+After-side context comes from stage-zero index entries captured for all selected paths in one inventory.
+Each loaded blob must match its Git object identity. Working source bytes do not enter either side's graph.
+A file absent from one side supplies no declarations there. A path absent from both selected inventories causes refusal.
+Selected index or commit symlinks, submodules, conflicts, unsupported context languages, non-UTF-8 blobs and NUL-containing context blobs also cause refusal.
+Partial parses retain their extracted facts and report gaps.
+
+Content-filter checks cover the focus and every included file, even files with no staged changes.
+The focus diff must agree with the captured object identities.
+Before returning a page, the command rereads the selected index inventory and refuses changed paths, modes or blob identities.
+Unrelated index entries remain outside that check. The index, source files and object database receive no writes.
+These checks detect observed drift; they do not freeze concurrent index changes or detect a change that is fully restored between observations.
+Configuration and attributes must remain stable, as with ordinary Git inspection.
+
+`structure.relationships` becomes `selected-file-call-candidates`.
+`structure.coverage.context` contains `scope: "explicit-staged-files"`, the focus path and sorted `files` metadata.
+Each context entry contains its path, language, hierarchy support and `before`/`after` coverage.
+Present sides report status (`parsed` or `partial`), blob identity, Git mode, source byte count and parser gaps.
+Absent sides report `status: "absent"`, with null blob and mode.
+When focus analysis runs, call coverage uses `scope: "selected-file-snapshot"` and `cross_file: "explicit-files-only"`.
+Hierarchy gaps in that report identify both their path and bounded reason.
+Graph counts include the focus and all present context files on that side; selected rows still touch the focus selection only.
+
+Cursors bind the context paths, blob identities, modes and coverage as well as call rows and direction.
+Changing a context body invalidates continuation even when its visible call rows remain identical.
+Keep the same include set when continuing; include order, duplicates and page size may change.
+All selected sources and graphs are collected before paging. The path-count limit does not bound source sizes or total internal memory.
+
+The existing Lean selection and pagination laws still apply to supplied flags and counts.
+Inventory parsing, file containment, snapshot coherence, graph construction and complete Rust correspondence remain outside those proofs.
+Regression tests exercise separate comparison sides, cross-file dispatch, unchanged contexts, hidden body changes and index races.

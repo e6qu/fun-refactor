@@ -1489,7 +1489,7 @@ impl Hierarchy {
         hierarchy
     }
 
-    fn merge(&mut self, other: Self) {
+    pub(crate) fn merge(&mut self, other: Self) {
         for (key, methods) in other.declares {
             self.declares.entry(key).or_default().extend(methods);
         }

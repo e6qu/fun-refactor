@@ -6,7 +6,9 @@ use crate::project::CallDirection;
 use crate::span::{LineIndex, Span};
 
 mod calls;
-use anyhow::{bail, Context, Result};
+mod context;
+use anyhow::{bail, Context as _, Result};
+pub(super) use context::Context;
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
 use std::path::Path;
@@ -72,6 +74,7 @@ fn side(
     changed: &BTreeSet<usize>,
     language: Language,
     calls: Option<CallDirection>,
+    context: Option<&[context::Snapshot]>,
 ) -> Result<(Vec<Value>, Value)> {
     let parsed = Parsers::new().parse(language, source)?;
     let facts = Extractor::new().extract(&parsed, path, source)?;
@@ -140,7 +143,18 @@ fn side(
         "language": language, "gaps": gaps, "changed_lines": changed.len(),
         "mapped_lines": mapped.len(), "unmapped_lines": changed.len()-mapped.len(), "declarations": entries.len()});
     if let Some(direction) = calls {
-        let result = calls::collect(path, side, source, language, &facts, &selected, direction)?;
+        let result = calls::collect(
+            calls::Focus {
+                path,
+                side,
+                source,
+                language,
+                facts: &facts,
+                selected: &selected,
+            },
+            direction,
+            context,
+        )?;
         entries = result.0;
         coverage["calls"] = result.1;
     }
@@ -153,16 +167,9 @@ pub(super) fn collect(
     staged: bool,
     observed: &patch::Observation,
     calls: Option<CallDirection>,
+    context: Option<&Context>,
 ) -> Result<View> {
-    let extension = Path::new(path)
-        .extension()
-        .and_then(|s| s.to_str())
-        .unwrap_or("")
-        .to_ascii_lowercase();
-    let language = Language::ALL
-        .iter()
-        .copied()
-        .find(|lang| lang.extensions().contains(&extension.as_str()));
+    let language = language(Path::new(path));
     let mut changed = [BTreeSet::new(), BTreeSet::new()];
     for row in &observed.rows {
         if let patch::Row::Line {
@@ -216,11 +223,27 @@ pub(super) fn collect(
                 &changed[index],
                 language.unwrap(),
                 calls,
+                context.map(|context| context.sides[index].as_slice()),
             )?
         };
         coverage["blob"] = json!(oid);
         view.coverage[name] = coverage;
         view.entries.extend(entries);
     }
+    if let Some(context) = context {
+        view.coverage["context"] = context.coverage.clone();
+    }
     Ok(view)
+}
+
+fn language(path: &Path) -> Option<Language> {
+    let extension = path
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    Language::ALL
+        .iter()
+        .copied()
+        .find(|lang| lang.extensions().contains(&extension.as_str()))
 }

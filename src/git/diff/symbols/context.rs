@@ -1,0 +1,209 @@
+use super::{checked, language, patch, source};
+use crate::analysis::call_graph::Family;
+use crate::capabilities::{support, Capability};
+use crate::extract::Extractor;
+use crate::lang::Language;
+use crate::model::FileFacts;
+use crate::parse::Parsers;
+use anyhow::{bail, ensure, Context as _, Result};
+use serde_json::{json, Value};
+use std::collections::{BTreeMap, BTreeSet};
+use std::ffi::OsString;
+use std::path::{Component, Path, PathBuf};
+
+pub(super) struct Snapshot {
+    pub path: PathBuf,
+    pub language: Language,
+    pub source: String,
+    pub facts: FileFacts,
+}
+
+#[derive(PartialEq, Eq)]
+struct Blob {
+    mode: String,
+    oid: String,
+}
+
+type Inventory = BTreeMap<String, Blob>;
+
+pub(in crate::git::diff) struct Context {
+    pub(super) sides: [Vec<Snapshot>; 2],
+    pub(super) coverage: Value,
+    paths: BTreeSet<String>,
+    index: Inventory,
+    before: Inventory,
+}
+
+fn inventory(root: &Path, paths: &BTreeSet<String>, commit: Option<&str>) -> Result<Inventory> {
+    let mut args: Vec<OsString> = vec!["--literal-pathspecs".into()];
+    if let Some(commit) = commit {
+        args.extend(["ls-tree".into(), "-z".into(), commit.into()]);
+    } else {
+        args.extend(["ls-files".into(), "--stage".into(), "-z".into()]);
+    }
+    args.push("--".into());
+    args.extend(paths.iter().map(Into::into));
+    let output = checked(root, &args)?;
+    let mut result = Inventory::new();
+    for row in crate::git::status::records(&output)? {
+        let row = std::str::from_utf8(row).context("non-UTF-8 call context inventory")?;
+        let (metadata, path) = row
+            .split_once('\t')
+            .context("invalid call context inventory")?;
+        ensure!(
+            paths.contains(path),
+            "call context requires explicit file paths; directories are unsupported."
+        );
+        let fields = metadata.split(' ').collect::<Vec<_>>();
+        ensure!(fields.len() == 3, "invalid call context inventory fields.");
+        let oid = if commit.is_some() {
+            ensure!(
+                fields[1] == "blob",
+                "call context requires regular file blobs."
+            );
+            fields[2]
+        } else {
+            ensure!(
+                fields[2] == "0",
+                "unmerged call context requires conflict inspection."
+            );
+            fields[1]
+        };
+        ensure!(
+            matches!(fields[0], "100644" | "100755") && patch::oid(oid),
+            "call context requires regular file blobs."
+        );
+        ensure!(
+            result
+                .insert(
+                    path.to_owned(),
+                    Blob {
+                        mode: fields[0].to_owned(),
+                        oid: oid.to_owned()
+                    }
+                )
+                .is_none(),
+            "duplicate call context inventory path."
+        );
+    }
+    Ok(result)
+}
+
+impl Context {
+    pub(in crate::git::diff) fn capture(
+        root: &Path,
+        focus: &str,
+        include: &[PathBuf],
+        base: Option<&str>,
+    ) -> Result<Self> {
+        ensure!(
+            include.len() <= 32,
+            "include accepts at most 32 context paths."
+        );
+        let mut paths = BTreeSet::new();
+        for path in include {
+            ensure!(
+                !path.as_os_str().is_empty()
+                    && path.components().all(|p| matches!(p, Component::Normal(_))),
+                "call context requires repository-relative file paths without parent traversal."
+            );
+            let path = path.components().collect::<PathBuf>();
+            let path = path.to_str().context("call context paths must use UTF-8")?;
+            if path != focus {
+                paths.insert(path.to_owned());
+            }
+        }
+        ensure!(
+            !paths.is_empty(),
+            "include requires a context file distinct from the focus path."
+        );
+        paths.insert(focus.to_owned());
+        let filter_paths = paths
+            .iter()
+            .flat_map(|path| path.bytes().chain([0]))
+            .collect::<Vec<_>>();
+        crate::git::process::require_no_filters(root, &filter_paths)?;
+        let index = inventory(root, &paths, None)?;
+        let before = if let Some(base) = base {
+            inventory(root, &paths, Some(base))?
+        } else {
+            Inventory::new()
+        };
+        let mut sides = [Vec::new(), Vec::new()];
+        let mut coverage = Vec::new();
+        let parsers = Parsers::new();
+        let mut extractor = Extractor::new();
+        for path in &paths {
+            ensure!(
+                index.contains_key(path) || before.contains_key(path),
+                "call context path is absent from the selected index and commit: {path:?}."
+            );
+            if path == focus {
+                continue;
+            }
+            let path = Path::new(path);
+            let language = language(path).context("unsupported call context file extension")?;
+            ensure!(
+                support(Capability::CallGraph, language).is_yes(),
+                "unsupported call context language: {language:?}."
+            );
+            let mut entry = json!({"path":path,"language":language,"hierarchy_supported":Family::of(language).is_some()});
+            for (side, inventory) in [&before, &index].into_iter().enumerate() {
+                let name = ["before", "after"][side];
+                let Some(blob) = inventory.get(path.to_str().unwrap()) else {
+                    entry[name] = json!({"status":"absent","blob":null,"mode":null});
+                    continue;
+                };
+                let text = source(root, path.to_str().unwrap(), &blob.oid, false)?;
+                if text.contains('\0') {
+                    bail!("binary call context is unsupported: {:?}.", path);
+                }
+                let parsed = parsers.parse(language, &text)?;
+                let facts = extractor.extract(&parsed, path, &text)?;
+                entry[name] = json!({"status":if facts.gaps.is_empty() {"parsed"} else {"partial"},
+                    "blob":blob.oid,"mode":blob.mode,"bytes":text.len(),"gaps":facts.gaps.iter().map(|gap|gap.as_str()).collect::<Vec<_>>()});
+                sides[side].push(Snapshot {
+                    path: path.to_path_buf(),
+                    language,
+                    source: text,
+                    facts,
+                });
+            }
+            coverage.push(entry);
+        }
+        Ok(Self {
+            sides,
+            coverage: json!({"scope":"explicit-staged-files","focus":focus,"files":coverage}),
+            paths,
+            index,
+            before,
+        })
+    }
+
+    pub(in crate::git::diff) fn recheck(
+        &self,
+        root: &Path,
+        focus: &str,
+        observed: &patch::Observation,
+    ) -> Result<()> {
+        ensure!(
+            inventory(root, &self.paths, None)? == self.index,
+            "selected Git index entries changed during call inspection; retry the query."
+        );
+        let before = self.before.get(focus);
+        let after = self.index.get(focus);
+        if observed.change.is_some() {
+            let ids = (before.map(|b| b.oid.clone()), after.map(|b| b.oid.clone()));
+            ensure!(
+                observed.blobs.as_ref() == Some(&ids),
+                "focus diff differs from captured call context basis; retry the query."
+            );
+        } else {
+            ensure!(
+                before == after,
+                "focus diff differs from captured call context basis; retry the query."
+            );
+        }
+        Ok(())
+    }
+}

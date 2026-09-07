@@ -1078,8 +1078,16 @@ fr git diff src/main.rs --calls --staged
 `--calls` pages through calls touching changed declarations within each selected file snapshot, with confidence and unresolved targets.
 `--direction` accepts `incoming`, `outgoing` or `both` (default). It requires `--calls`, which cannot combine with `--symbols`.
 Containing declarations also select nested sites and targets, including unchanged sibling methods inside a changed class.
-Call analysis uses captured source, omits bodies and does not load neighboring files.
-Cursors bind the call result and direction. Cross-file historical relationships remain pending.
+Call analysis uses captured source and omits bodies. Without included context, each side analyzes one file.
+Cursors bind the call result and direction.
+
+```sh
+fr git diff src/main.rs --calls --staged --include src/api.rs
+```
+
+`--include FILE` requires `--calls --staged`; repeat it up to 32 times to add explicit caller and target context.
+Only changed declarations in the focus file select rows. Context uses captured HEAD/index blobs, with per-file coverage and final index checks.
+Cursors also bind context paths and blob identities. Working-tree cross-file inspection remains pending.
 See [Git diff detail pages](docs/git-diff.md) for fields, comparison semantics and limits.
 
 ```sh
