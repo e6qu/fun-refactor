@@ -4,7 +4,7 @@ The examples use a project containing `app.py`. Substitute the relevant path in 
 Keep the repository as the scan root when callers elsewhere matter; a single-file `-C` restricts discovery to that file.
 
 ```sh
-fr project map app.py --fields handle,parent,kind,name,line --limit 12
+fr project find greet --in app.py --signature --limit 12
 fr project show '<HANDLE>'
 fr project show '<HANDLE>' --relations --limit 8
 fr project show '<HANDLE>' --source --bytes 256
@@ -13,7 +13,9 @@ fr project tests app.py --limit 8
 fr project gaps --limit 8
 ```
 
-Choose `<HANDLE>` from the row for the relevant declaration. Full handles include their source revision.
+Use exact `project find NAME` for known declarations; add `--contains` for a literal substring.
+Find matches names before clipping and reports all candidates with pagination and source coverage.
+Use maps when the hierarchy itself matters. Choose `<HANDLE>` from the relevant declaration row. Full handles include their source revision.
 Alternatively use a short ID with the returned `--revision`; never reuse a bare ID across revisions.
 `show` gives the declaration's `position`, a 1-based line and column suitable for a refactoring target.
 Its syntax header can contain defaults and attributes; it is not a complete semantic contract.

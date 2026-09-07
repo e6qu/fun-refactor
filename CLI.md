@@ -85,6 +85,8 @@ List `.fr/checks.json` declarations without execution, then select names with `-
 The listing provides the configuration token, argv, working directory, timeout and declared coverage.
 Execution reports bounded output, individual failures and checks that did not run.
 See [project checks](docs/project-checks.md) for the schema, limits and process boundaries.
+Use `--quiet-success` to omit successful stream text while retaining bounded failure diagnostics.
+
 
 ### `fr scan`
 
@@ -995,6 +997,19 @@ These rules follow the [Cargo inheritance reference](https://doc.rust-lang.org/c
 
 Default-member selection, member patterns with parent traversal, broader globs and npm workspace ownership remain pending.
 The membership closure has regression tests and Cargo metadata comparisons, but no formal proof yet.
+
+#### `fr project find NAME`
+
+Find declaration handles by exact, case-sensitive name without loading a whole file map.
+Add `--contains` for literal substring matching, `--in PATH_OR_HANDLE` for a subtree, or `--signature` for syntax headers.
+Names must contain 1 through 512 UTF-8 bytes. Matching precedes label clipping; no regex or Unicode normalization applies.
+Results retain handles, parent IDs, kinds, bounded names and paths, source lines, coverage and pagination.
+Locals stay hidden unless `--locals` selects them. The report counts matching hidden locals.
+The default page contains at most twelve rows. Use the returned cursor with the same query and revision to continue.
+Use `--revision` when selecting a short scope ID. Source changes invalidate handles and cursors.
+Empty results only describe indexed source; inspect coverage before claiming absence.
+Lookup still indexes the selected project. Existing Lean page-length proofs apply; name matching and traversal have test evidence.
+
 
 ### `fr history`
 

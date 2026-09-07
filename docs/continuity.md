@@ -1,12 +1,12 @@
 # Development continuity
 
-The first real-agent acceptance milestone is complete, with local commits, tests and refreshed documentation.
+The first real-agent acceptance milestone is complete. The active follow-up reduces its observed context overhead and repeats the paired experiment.
 The user authorized local commits. Publishing and pushing remain outside this request.
 
 ## Current work
 
 M4g adds declared project checks through `.fr/checks.json` and `fr checks`, committed as `893b9db`.
-Nine focused CLI scenarios now pass. The portable skill has 33 executable examples and passes its validator.
+The original nine focused CLI scenarios pass. The portable skill has 33 executable examples and passes its validator.
 The full native/WASM gate passed, including 311/311 capability coverage and 29 Lean build jobs.
 Its log is `/tmp/fr-m4g-full-check.log`.
 
@@ -28,10 +28,18 @@ The frozen binary is `target/agent-eval-bin/fr`.
 
 ## Next steps
 
+M4i adds `project find`, opt-in quiet-success check output and more selective skill references.
+The full native/WASM gate passes, including 127 project CLI scenarios, ten check scenarios and 33 skill examples.
+Its log is `/tmp/fr-m4i-full-check.log`. Strict verification passes with twenty-two fresh anchors and signature maps and zero obligations.
+The report is `/tmp/fr-m4i-spec-verify.json`; all 29 Lean build jobs pass.
+Four fresh trials pass with the frozen `target/agent-eval-bin/fr-m4i` binary and unchanged task oracles.
+Sessions are under `/private/tmp/fr-context-followup-2026-09-07`. Retain and audit their evidence after committing the implementation.
+Report improvements against the original evidence separately from the new ordinary-file comparison.
+
 Ten harness regressions, four-patch behavioral replay and exact token auditing pass.
 The final full gate passed; its log is `/tmp/fr-m4h-full-check.log`.
 The acceptance commit contains the harness, evidence, extra output-limit regression and refreshed documentation.
-The next product work should reduce declaration lookup, unnecessary handle refreshes and successful report verbosity, then repeat the paired experiment.
+Further product work should target the remaining inspection and transaction report overhead using measured traces.
 Broader project evaluation, M5 automated Lean adoption and M6 feature migrations remain open in PLAN.md.
 Do not claim general context savings from a small experiment or count hidden model reasoning as measured data.
 

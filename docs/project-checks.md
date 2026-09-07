@@ -32,6 +32,9 @@ The digest identifies configuration bytes, including whitespace. It does not ide
 Run the selected checks after applying the reviewed change. Rerun them after any subsequent relevant source change.
 
 The `fr-checks-1` JSON report includes each command's status, exit code, timing and bounded stdout/stderr.
+`--quiet-success` omits successful stream text while preserving byte counts and every outcome field.
+Failed checks still return diagnostics within `--output-bytes`; timeouts and excessive output remain failures.
+This opt-in changes presentation only. Defaults, execution, coverage declarations and configuration digests remain unchanged.
 It lists checks that did not run. A listing has `passed: null`; execution passes only when every selected command passes.
 Failed commands, spawn failures, timeouts and excessive captured output produce a failing report and exit status 1.
 Malformed configuration and selection errors produce the ordinary CLI error object with a nonzero exit status.

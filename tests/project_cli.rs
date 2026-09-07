@@ -43,6 +43,109 @@ fn fixture() -> tempfile::TempDir {
     dir
 }
 
+#[test]
+fn find_returns_followable_scoped_declarations_without_unrelated_bodies() {
+    let dir = fixture();
+    let found = ok(dir.path(), &["project", "find", "run", "--signature"]);
+    assert_eq!(found["page"]["total"], 1);
+    let selected = handle(&found, "run");
+    let shown = ok(dir.path(), &["project", "show", &selected, "--source"]);
+    assert!(shown["source"]["text"]
+        .as_str()
+        .unwrap()
+        .contains("helper(name)"));
+    assert!(!found.to_string().contains("helper(name)"));
+    assert_eq!(
+        ok(
+            dir.path(),
+            &["project", "find", "run", "--in", "src/lib.py"]
+        )["page"]["total"],
+        0
+    );
+    assert_eq!(
+        ok(dir.path(), &["project", "find", "local"])["omitted"]["matching_locals"],
+        1
+    );
+    assert_eq!(
+        ok(dir.path(), &["project", "find", "local", "--locals"])["page"]["total"],
+        1
+    );
+    assert_eq!(
+        ok(dir.path(), &["project", "find", "RUN"])["page"]["total"],
+        0
+    );
+}
+
+#[test]
+fn find_pages_duplicate_unicode_names_and_refuses_changed_queries_and_sources() {
+    let dir = fixture();
+    fs::write(
+        dir.path().join("src/more.py"),
+        "def café():\n    pass\n\nclass Other:\n    def café(self):\n        pass\n",
+    )
+    .unwrap();
+    let first = ok(dir.path(), &["project", "find", "café", "--limit", "1"]);
+    let cursor = first["page"]["next"].as_str().unwrap();
+    let second = ok(
+        dir.path(),
+        &[
+            "project", "find", "café", "--limit", "1", "--cursor", cursor,
+        ],
+    );
+    assert_eq!(first["page"]["total"], 2);
+    assert_ne!(handle(&first, "café"), handle(&second, "café"));
+    for extra in [
+        vec!["--contains"],
+        vec!["--signature"],
+        vec!["--locals"],
+        vec!["--in", "src/more.py"],
+    ] {
+        let mut args = vec!["project", "find", "café", "--cursor", cursor];
+        args.extend(extra);
+        assert!(!run(dir.path(), &args).0);
+    }
+    assert_eq!(
+        ok(dir.path(), &["project", "find", "afé", "--contains"])["page"]["total"],
+        2
+    );
+    assert!(!run(dir.path(), &["project", "find", ""]).0);
+    assert!(!run(dir.path(), &["project", "find", &"x".repeat(513)]).0);
+    fs::write(
+        dir.path().join("src/more.py"),
+        "def replacement():\n    pass\n",
+    )
+    .unwrap();
+    assert!(!run(dir.path(), &["project", "find", "café", "--cursor", cursor]).0);
+    assert!(!run(dir.path(), &["project", "show", &handle(&first, "café")]).0);
+}
+
+#[test]
+fn find_matches_full_names_before_clipping_and_discloses_skipped_source() {
+    let dir = fixture();
+    let first = format!("{}x", "a".repeat(200));
+    let second = format!("{}y", "a".repeat(200));
+    fs::write(
+        dir.path().join("src/long.py"),
+        format!("def {first}():\n    pass\n\ndef {second}():\n    pass\n"),
+    )
+    .unwrap();
+    let found = ok(dir.path(), &["project", "find", &second]);
+    assert_eq!(found["page"]["total"], 1);
+    assert!(rows(&found)[0]["name"]["omitted_bytes"].as_u64().unwrap() > 0);
+    let root = mapped(dir.path());
+    let scoped = ok(
+        dir.path(),
+        &["project", "find", "run", "--in", &handle(&root, "Service")],
+    );
+    assert_eq!(scoped["page"]["total"], 1);
+    let skipped = ok(
+        dir.path(),
+        &["--max-file-size", "4", "project", "find", "run"],
+    );
+    assert_eq!(skipped["page"]["total"], 0);
+    assert!(skipped["coverage"]["skipped_files"].as_u64().unwrap() > 0);
+}
+
 fn rows(report: &Value) -> Vec<Value> {
     let columns = report["columns"].as_array().unwrap();
     report["rows"]

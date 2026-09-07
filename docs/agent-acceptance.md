@@ -123,7 +123,7 @@ python3 tools/agent-eval.py record /tmp/fr-acceptance-new /tmp/fr-acceptance-evi
 target/agent-eval-venv/bin/python tools/agent-eval.py audit-tokens tests/agent-eval/results/2026-09-07
 ```
 
-Repeat scoring for the other three session directories before recording a complete passing replay bundle.
-Failed sessions retain their prompts, events and scores in place; preserve them when reporting an experiment.
+Repeat scoring for the other three session directories before recording a complete evidence bundle.
+Recording preserves scored failures too; replay still fails for unsuccessful trials. Preserve all results when reporting an experiment.
 The optional `record --pilots DIRECTORY` includes interrupted infrastructure runs in the archive.
 The evidence manifest records tool versions, implementation commit, binary and archive digests, and evaluator file hashes.

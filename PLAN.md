@@ -889,10 +889,20 @@ Ten harness regressions and replay of all four patches pass. The full native/WAS
 Validation retains 311/311 capability coverage, 29 Lean build jobs and twenty-two fresh source anchors with zero `sorry` obligations.
 See [real-agent acceptance](docs/agent-acceptance.md) for provenance, pilot failures, measurement scope and limits.
 
+M4i: context reduction (implementation complete; evidence retention next).
+
+Targeted declaration lookup, quiet successful checks and a more selective skill handoff reduce retrieved output.
+`project find` returns paged handles and optional headers with exact or literal substring matching and subtree selection.
+`checks --quiet-success` preserves failure diagnostics, outcomes and omission counts while dropping successful stream text.
+Skill references separate authoring from recipes and patch delivery from Git administration.
+The full native/WASM gate, 127 project CLI scenarios, ten check scenarios and all 33 skill examples pass.
+Strict verification retains twenty-two fresh source anchors and signature maps, zero `sorry` obligations and 29 Lean build jobs.
+All four fresh paired trials pass. Archive their evidence and audit the measured reduction before closing this milestone.
+
 Next M4 work:
 
-Extend paired real-agent evaluation beyond the first Rust project and reduce the observed context overhead.
-Prioritize bounded declaration lookup, unnecessary handle refreshes and successful check/report verbosity, then repeat the paired measurement.
+Extend paired real-agent evaluation beyond the first Rust project and reduce the remaining context overhead.
+Prioritize inspection and transaction reports using retained traces, then repeat paired measurements.
 Keep examples compatible with the distributed binary and load specialized references only when needed.
 
 Extend body authoring to selected wrapped initializers or additional languages, and support nested insertion or further declaration kinds.

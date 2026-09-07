@@ -39,6 +39,30 @@ fn basis(root: &tempfile::TempDir) -> String {
 }
 
 #[test]
+fn quiet_success_omits_success_text_but_retains_failed_diagnostics() {
+    let root = fixture(vec![
+        check("pass", "print('success')"),
+        check("fail", "print('diagnostic'); raise SystemExit(3)"),
+    ]);
+    let report = run(
+        &root,
+        &[
+            "--run",
+            "pass,fail",
+            "--basis",
+            &basis(&root),
+            "--quiet-success",
+        ],
+        1,
+    );
+    assert_eq!(report["results"][0]["stdout"]["text"], "");
+    assert_eq!(report["results"][0]["stdout"]["omitted_bytes"], 8);
+    assert_eq!(report["results"][1]["stdout"]["text"], "diagnostic\n");
+    assert_eq!(report["results"][1]["exit_code"], 3);
+    assert_eq!(report["passed"], false);
+}
+
+#[test]
 fn listing_never_executes_and_selection_reports_declared_coverage() {
     let root = fixture(vec![
         check("unit", "print('unit passed')"),

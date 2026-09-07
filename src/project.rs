@@ -15,6 +15,7 @@ pub mod author;
 mod configuration;
 mod contracts;
 mod fast_routes;
+mod find;
 mod links;
 mod manifests;
 mod next_routes;
@@ -25,6 +26,8 @@ mod tests;
 
 #[derive(Subcommand)]
 pub enum Command {
+    #[command(about = "Find declaration handles by literal name without loading file maps.")]
+    Find(find::Options),
     #[command(about = "Page through a directory, file or symbol hierarchy.")]
     Map {
         #[arg(default_value = ".", help = "Workspace path or revision-bound handle")]
@@ -614,8 +617,23 @@ impl<'a> Project<'a> {
             &hash((&self.revision, "map", selected, depth, locals, fields))?[..32]
         );
         let (start, end, page) = page(visible.len(), limit, cursor, &key)?;
+        let rows = self.rows(&visible[start..end], fields)?;
+        let mut result = self.envelope("map");
+        result["root"] = json!(self.handle(selected));
+        result["columns"] = json!(fields);
+        result["rows"] = json!(rows);
+        result["page"] = page;
+        result["omitted"] = json!({"locals": hidden_locals, "depth": hidden_depth});
+        Ok(result)
+    }
+
+    fn rows(
+        &self,
+        visible: &[(usize, Option<usize>, usize)],
+        fields: &[Field],
+    ) -> Result<Vec<Vec<Value>>> {
         let mut rows = Vec::new();
-        for (id, parent, level) in &visible[start..end] {
+        for (id, parent, level) in visible {
             let node = &self.nodes[*id];
             let symbol = node.symbol.and_then(|s| self.index.symbol(s));
             let mut row = Vec::new();
@@ -649,13 +667,7 @@ impl<'a> Project<'a> {
             }
             rows.push(row);
         }
-        let mut result = self.envelope("map");
-        result["root"] = json!(self.handle(selected));
-        result["columns"] = json!(fields);
-        result["rows"] = json!(rows);
-        result["page"] = page;
-        result["omitted"] = json!({"locals": hidden_locals, "depth": hidden_depth});
-        Ok(result)
+        Ok(rows)
     }
 
     fn show(&self, options: &ShowOptions) -> Result<Value> {
@@ -884,6 +896,7 @@ impl<'a> Project<'a> {
 
     pub fn report(&self, command: &Command) -> Result<Value> {
         match command {
+            Command::Find(options) => self.find(options),
             Command::Map {
                 target,
                 revision,

@@ -33,6 +33,12 @@ pub struct Options {
         help = "Retained bytes per output stream, at most 65536."
     )]
     pub output_bytes: usize,
+    #[arg(
+        long,
+        requires = "run",
+        help = "Omit successful stream text; retain bounded failure diagnostics."
+    )]
+    pub quiet_success: bool,
 }
 
 #[derive(Deserialize)]
@@ -137,7 +143,7 @@ fn output(file: &mut File, limit: usize) -> Result<Value> {
     }))
 }
 
-fn execute(root: &Path, check: &Check, limit: usize) -> Result<Value> {
+fn execute(root: &Path, check: &Check, limit: usize, quiet_success: bool) -> Result<Value> {
     let cwd = confined(root, &check.cwd, true)?;
     let mut stdout = tempfile::tempfile()?;
     let mut stderr = tempfile::tempfile()?;
@@ -181,13 +187,15 @@ fn execute(root: &Path, check: &Check, limit: usize) -> Result<Value> {
     };
     output_limit |=
         stdout.metadata()?.len() > MAX_CAPTURE || stderr.metadata()?.len() > MAX_CAPTURE;
+    let passed = status.is_some_and(|s| s.success()) && !timed_out && !output_limit;
+    let retained = if passed && quiet_success { 0 } else { limit };
     Ok(json!({
         "name": check.name, "argv": check.argv, "cwd": check.cwd, "covers": check.covers,
-        "passed": status.is_some_and(|s| s.success()) && !timed_out && !output_limit,
+        "passed": passed,
         "exit_code": status.and_then(|s| s.code()), "error": error,
         "timed_out": timed_out, "output_limit_exceeded": output_limit,
         "elapsed_ms": started.elapsed().as_millis(),
-        "stdout": output(&mut stdout, limit)?, "stderr": output(&mut stderr, limit)?
+        "stdout": output(&mut stdout, retained)?, "stderr": output(&mut stderr, retained)?
     }))
 }
 
@@ -211,7 +219,12 @@ pub fn report(root: &Path, options: &Options) -> Result<Value> {
     let mut results = Vec::new();
     for check in &config.checks {
         if selected.contains(&check.name) {
-            results.push(execute(&root, check, options.output_bytes)?);
+            results.push(execute(
+                &root,
+                check,
+                options.output_bytes,
+                options.quiet_success,
+            )?);
         }
     }
     let passed =

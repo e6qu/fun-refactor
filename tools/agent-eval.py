@@ -106,7 +106,7 @@ Tool objects:
 {{"tool":"receiver"}} checks and applies the saved patch in a clean separate receiver and compares tracked content with your project.
 {{"tool":"finish","summary":"..."}} records your final conclusion; independent oracles run later.
 
-Workflow: inspect; list and run declared checks on the original; implement the task; run checks on the change; export the patch; add the sentinel; undo and check; redo and check; verify the receiver; finish. fr arm: preview/save/apply an authoring transaction and use history undo/redo. Every check run needs the configuration basis from its listing. Refresh handles after source changes. Keep tool output bounded and request only relevant context. Leave the requested change applied. Report uncertainty and tool refusals honestly.
+Workflow: inspect; list and run declared checks on the original; implement the task; run checks on the change; export the patch; add the sentinel; undo and check; redo and check; verify the receiver; finish. fr arm: preview/save/apply an authoring transaction and use history undo/redo. Every check run needs the configuration basis from its listing. Keep project handles revision-bound when using them. Keep tool output bounded and request only relevant context. Leave the requested change applied. Report uncertainty and tool refusals honestly.
 
 The harness records visible tool payload tokens, calls, latency and final correctness. It does not measure your hidden reasoning, system context or billed tokens. The task directory is {session / 'project'}.
 """
@@ -456,8 +456,8 @@ def record(sessions, directory, pilots=None):
             name = f"{task}-{arm}"
             source, destination = sessions / name, directory / name
             result = json.loads((source / "result.json").read_text())
-            if not result["passed"]:
-                raise ValueError(f"Only complete passing acceptance bundles can seed regression replay: {name}")
+            if not isinstance(result.get("passed"), bool):
+                raise ValueError(f"Score every completed trial before recording evidence: {name}")
             destination.mkdir()
             for filename in ("session.json", "prompt.txt", "events.jsonl", "result.json"):
                 shutil.copyfile(source / filename, destination / filename)
@@ -480,7 +480,7 @@ def record(sessions, directory, pilots=None):
         "upstream_commit": "76c5a900e6e12cfc605eee5ab6e36300384c8682", "archive_sha256": ARCHIVE_SHA,
         "implementation_commit": git(ROOT, "rev-parse", "HEAD").stdout.decode().strip(),
         "agent_execution": "Four fresh collaboration agents, fork_turns=none, inherited parent model and effort, no overrides or task corrections. Cooperative tool boundary.",
-        "pilots": {"interrupted": pilot_names, "reason": "Cargo inherited the containing fr workspace; no valid baseline build. Restarted all trials with fresh agents outside Cargo projects after adding preflight.", "included_in_scored_trials": False},
+        "pilots": {"interrupted": pilot_names, "reason": "Cargo inherited the containing fr workspace; no valid baseline build. Restarted outside Cargo projects after preflight." if pilot_names else None, "included_in_scored_trials": False},
         "versions": {tool: subprocess.check_output([tool, "--version"], text=True).strip() for tool in ("rustc", "cargo", "git", "python3")},
         "evaluator_files": {str(path.relative_to(ROOT)): digest(path.read_bytes()) for path in
                             [Path(__file__), ROOT / "tools/agent_eval/oracle.py"]},

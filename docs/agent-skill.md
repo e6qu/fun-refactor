@@ -1,7 +1,7 @@
 # Handing fr to an agent
 
 The portable [fr skill](../skills/fr/SKILL.md) teaches bounded project exploration and reviewed code changes.
-Its six references cover exploration, changes, project checks, history, Git and Lean.
+Its references separate exploration, authoring, built-in changes, recipes, checks, history, patches, Git administration and Lean.
 The entrypoint routes to those references only when the task needs them.
 
 ## Distribution and use
@@ -17,10 +17,14 @@ Git commands need Git; strict model verification also needs the project's Lean/L
 Use the target project's root and existing task authorization.
 A request to inspect or export does not grant permission to commit or publish.
 
-The initial map requests twelve rows at depth two.
+Known names can go directly to `project find`; the initial map remains available when the hierarchy needs inspection.
+The default lookup and introductory map each request at most twelve rows.
 Subsequent queries select a declaration, read its signature and relationships, and request source slices only as needed.
 Body authoring accepts project handles; built-in refactorings use names or source positions.
 It uses saved transaction IDs for exact plan application, and keeps source history separate from Git bases and journals.
+History and check commands do not require refreshing project handles after every write.
+The authoring reference avoids loading recipe vocabulary for a body edit; patch guidance loads Git administration only when needed.
+The check example uses `--quiet-success` and retains diagnostics for failed commands.
 
 ## Executable evidence
 
@@ -34,7 +38,7 @@ The checker uses temporary projects and executes every fenced shell example from
 It obtains real handles, positions and transaction IDs from command output, then substitutes them into the example commands.
 The source fixture checks:
 
-- A bounded map, selected signature, relationships, source slice, call edges, candidate tests and coverage gaps.
+- Bounded declaration lookup, selected signature, relationships, source slice, call edges, candidate tests and coverage gaps.
 - A recipe preview with file-count expectations, then a saved two-file Python rename.
 - Refusal of a stale plan and an old project handle after a source change.
 - Applied behavior, undo/redo and preservation of an unrelated later edit.

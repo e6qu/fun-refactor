@@ -87,7 +87,7 @@ def source_workflow(exercise, root):
         "app.py": 'def greet(name: str) -> str:\n    return "hello " + name\n\ndef run():\n    return greet("Ada")\n',
         "test_app.py": 'from app import greet\n\ndef test_greeting():\n    assert greet("Ada") == "hello Ada"\n',
         "background.py": "# Unrelated implementation context that this task does not need.\n" * 1024,
-        "rename.recipe": blocks(reference / "change.md", "recipe")[0],
+        "rename.recipe": blocks(reference / "recipes.md", "recipe")[0],
     }
     for name, source in original.items():
         (root / name).write_text(source)
@@ -100,7 +100,7 @@ def source_workflow(exercise, root):
     for path in [SKILL / "SKILL.md", reference / "explore.md"]:
         for command in commands(path):
             value = exercise.example(root, path, command)
-            if value.get("query") == "map":
+            if value.get("query") in ("map", "find"):
                 rows = [dict(zip(value["columns"], row)) for row in value["rows"]]
                 selected = [row for row in rows if row["name"] == "greet" and "handle" in row]
                 if selected:
@@ -118,10 +118,11 @@ def source_workflow(exercise, root):
 
     path = reference / "change.md"
     examples = commands(path)
-    recipe_examples = [command for command in examples if "recipe" in command]
+    recipe_path = reference / "recipes.md"
+    recipe_examples = commands(recipe_path)
     rename_examples = [command for command in examples if "recipe" not in command]
     for command in recipe_examples:
-        exercise.example(root, path, command)
+        exercise.example(root, recipe_path, command)
         assert (root / "app.py").read_text() == original["app.py"]
     for command in rename_examples:
         if "--write" in command:
