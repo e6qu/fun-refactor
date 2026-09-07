@@ -1148,6 +1148,16 @@ Preview a commit of the entire index, with branch, parent, tree, message, identi
 Only `applied: true` confirms publication. An uncertain Git result reports `applied: null` with the candidate commit ID and inspection guidance.
 See [reviewed commits](docs/git-commit.md) for supported states, reference locking, message handling and publication limits.
 
+```sh
+fr git worktree list --limit 10
+fr git worktree list --cursor TOKEN
+```
+
+Page through registered worktrees with paths, HEADs, branches, locks and pruning annotations.
+Rows identify the primary and invoking worktree. Reasons have byte caps; cursors bind the complete registration observation.
+Inspection preserves indexes and working files. It does not assess dirty state or reserve branches for creation.
+See [worktree inspection](docs/git-worktrees.md) for metadata scope, expiry policy and continuation limits.
+
 ### `fr cache`
 
 ```

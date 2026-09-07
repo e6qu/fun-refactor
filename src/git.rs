@@ -13,6 +13,7 @@ pub(crate) mod process;
 mod snapshot;
 mod stage;
 mod status;
+mod worktree;
 
 #[derive(Subcommand)]
 pub enum Command {
@@ -26,6 +27,11 @@ pub enum Command {
     Stage(stage::Options),
     #[command(about = "Preview or create a commit from the entire reviewed index.")]
     Commit(commit::Options),
+    #[command(about = "Inspect registered worktrees with bounded metadata pages.")]
+    Worktree {
+        #[command(subcommand)]
+        command: worktree::Command,
+    },
     #[command(about = "Inspect, undo, redo or recover recorded index staging.")]
     StageHistory {
         #[command(subcommand)]
@@ -65,6 +71,7 @@ pub fn report(root: &Path, command: &Command) -> Result<Value> {
         Command::Changes(options) => changes::report(root, options),
         Command::Stage(options) => stage::report(root, options),
         Command::Commit(options) => commit::report(root, options),
+        Command::Worktree { command } => worktree::report(root, command),
         Command::StageHistory { command } => stage::journal::report(root, command),
     }
 }

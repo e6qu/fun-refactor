@@ -40,7 +40,7 @@ Important gaps:
 - `fr project` adds bounded maps, revision-bound details, call relationships and Cargo/npm manifest views. Complete dependency resolution and framework semantics remain pending.
 - Native changes now have persistent history and checked undo/redo. History retention and large-journal scaling need further work.
 - Browser undo restores the loaded workspace; it does not reverse individual transactions.
-- Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist. Raw staging and journaled index undo/redo are available on Unix. Reviewed commits are available with explicit index and HEAD bases. Shared browser patch semantics remain pending.
+- Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist. Raw staging and journaled index undo/redo are available on Unix. Reviewed commits are available with explicit index and HEAD bases. Worktree inspection reports registered workspaces with revision-bound pages. Shared browser patch semantics remain pending.
 - Strict spec signature maps currently accept Rust source declarations only.
 - Framework readers cover selected patterns. Whole applications still need dependency and runtime work.
 - Model proofs and shared executable cases do not establish general correspondence with the Rust implementation.
@@ -656,9 +656,24 @@ Shared Rust/Lean cases cover branch and parent changes. Git locking, object hand
 Validation passes the full native/WASM gate, twelve commit CLI scenarios, 311/311 capability coverage and all 29 Lean build jobs.
 Strict verification passes with fifteen fresh source anchors and signature maps and zero `sorry` obligations.
 
+M3q: registered worktree inspection (complete).
+
+- Add `fr git worktree list` with bounded registration pages and shared repository identity.
+- Identify primary and invoking worktrees, attached and detached HEADs, unborn branches, locks and pruning annotations.
+- Preserve paths with newlines and cap optional reasons at UTF-8 boundaries.
+- Bind cursors to all registration bytes, including omitted rows and truncated reason suffixes.
+- Preserve source files, indexes and registrations without content inspection or filter execution.
+- Reuse the anchored pagination kernel and document concurrent observation limits.
+
+See [worktree inspection](docs/git-worktrees.md).
+Eight CLI scenarios cover linked and bare-primary repositories, stale cursors, raw metadata and dirty-index preservation.
+Three parser tests cover framing, contradictory records, UTF-8 handling and bounded reasons.
+Validation passes the full native/WASM gate, all eight worktree CLI scenarios, 311/311 capability coverage and all 29 Lean build jobs.
+Strict verification passes with fifteen fresh source anchors and signature maps and zero `sorry` obligations.
+
 Next M3 work:
 
-Add isolated worktree inspection and reviewed creation workflows.
+Add reviewed worktree creation with destination and commit bases, branch checks and explicit checkout failure outcomes.
 Extend selected flag replay and add staging journal retention and compaction.
 Keep Git optional for ordinary analysis and transaction history.
 Undo an `fr` transaction without resetting unrelated Git changes.

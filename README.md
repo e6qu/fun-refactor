@@ -263,6 +263,8 @@ See [staging semantics and limits](docs/git-staging.md) for raw byte and mode se
 `fr git stage-history` inspects staging records and previews checked undo, redo and recovery; see [staging history](docs/git-stage-history.md).
 `fr git commit -m MESSAGE` previews the entire index; `--basis TOKEN --write` publishes it after index and HEAD checks.
 See [reviewed commits](docs/git-commit.md) for identity configuration, disabled hooks/signing and publication limits.
+`fr git worktree list` pages through registered workspaces, branches, HEADs and lock metadata.
+See [worktree inspection](docs/git-worktrees.md) for observation limits and cursor identity.
 The browser already exports patches and can restore its initial workspace.
 `fr project` now provides compact hierarchy maps and bounded source inspection.
 Its package and dependency pages report Cargo/npm manifest declarations with shared revision checks.
