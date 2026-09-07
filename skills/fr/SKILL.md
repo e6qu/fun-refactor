@@ -20,6 +20,7 @@ Load only the reference needed for the task:
 
 - [Explore](references/explore.md): handles, signatures, relationships and bounded source.
 - [Change](references/change.md): capability discovery, recipes and a reviewed saved plan.
+- [Checks](references/checks.md): declared project validation and bounded execution reports.
 - [History](references/history.md): apply, undo/redo, conflicts and interrupted source writes.
 - [Git](references/git.md): patches, indexes and the separate worktree lifecycle.
 - [Lean](references/lean.md): source drift, signature maps and proof evidence.

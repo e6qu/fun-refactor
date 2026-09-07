@@ -185,6 +185,21 @@ def size_of_source(value):
     return len(source["text"].encode())
 
 
+def checks_workflow(exercise, root):
+    (root / ".fr").mkdir()
+    (root / ".fr/checks.json").write_text(json.dumps({"schema": 1, "checks": [{
+        "name": "unit", "argv": [sys.executable, "-B", "-c", "import test_app; test_app.test_greeting()"],
+        "cwd": ".", "timeout_seconds": 30, "covers": ["greeting behavior"]}]}))
+    path = SKILL / "references/checks.md"
+    for command in commands(path):
+        value = exercise.example(root, path, command)
+        if "--run" not in command:
+            assert value["executed"] is False and value["passed"] is None
+            exercise.values["<CHECK_BASIS>"] = value["basis"]
+        else:
+            assert value["passed"] is True and value["not_run"] == []
+
+
 def lean_workflow(exercise, root):
     path = SKILL / "references/lean.md"
     (root / "src").mkdir()
@@ -220,6 +235,7 @@ def main():
         (root / "source").mkdir()
         (root / "proof").mkdir()
         source_bytes = source_workflow(exercise, root / "source")
+        checks_workflow(exercise, root / "source")
         lean_workflow(exercise, root / "proof")
     expected = [(path, tuple(command)) for path in files for command in commands(path)]
     assert sorted(exercise.executed) == sorted(expected), "Every fenced shell example must execute."

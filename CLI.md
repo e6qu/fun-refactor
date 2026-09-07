@@ -3,7 +3,8 @@
 Every command `fr` has, what it answers, and what it refuses.
 
 The binary is `fr`. It reads a workspace, answers questions about it, and
-changes it. There is no daemon, no index to warm and no configuration file.
+changes it. Ordinary analysis needs no daemon, index warmup or configuration file.
+Optional project checks use `.fr/checks.json`.
 
 The portable [fr skill](skills/fr/SKILL.md) teaches an agent how to select bounded queries, review changes and use recovery evidence.
 
@@ -17,6 +18,7 @@ absolutely, under the key `file`. History records use workspace-relative `path` 
 **Every mutation is a dry run until you say otherwise.** A command that changes
 files prints a unified diff and exits. Pass `--write` to apply it. `--save-plan` stores a plan without changing source.
 `openapi --out` also authorizes writing its named output. See [Write guarantees](#write-guarantees) for failure and recovery behavior.
+`checks --run` executes declared project commands; their side effects do not enter source history.
 
 **A refusal names the gap.** Where an operation cannot be done for a language
 or for an input, the tool says which and why. It exits non-zero, does not do
@@ -76,6 +78,13 @@ every analysis, so a rename can miss uses inside it. The warning is there so a
 silent gap cannot read as a clean answer.
 
 ## Understanding a workspace
+
+### `fr checks`
+
+List `.fr/checks.json` declarations without execution, then select names with `--run NAME --basis TOKEN`.
+The listing provides the configuration token, argv, working directory, timeout and declared coverage.
+Execution reports bounded output, individual failures and checks that did not run.
+See [project checks](docs/project-checks.md) for the schema, limits and process boundaries.
 
 ### `fr scan`
 

@@ -5,6 +5,8 @@ pub mod analysis;
 pub mod cache;
 pub mod capabilities;
 #[cfg(feature = "cli")]
+pub mod checks;
+#[cfg(feature = "cli")]
 pub mod cli;
 pub mod vfs;
 // The C the grammars call, which `wasm32-unknown-unknown` does not supply.

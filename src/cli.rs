@@ -104,6 +104,8 @@ pub fn command_names() -> Vec<String> {
 
 #[derive(Subcommand)]
 enum Command {
+    #[command(about = "Inspect or execute checks explicitly declared by the project.")]
+    Checks(crate::checks::Options),
     #[command(about = "Author bounded structural changes through project handles.")]
     Author {
         #[command(subcommand)]
@@ -821,6 +823,14 @@ fn dispatch(cli: &Cli) -> Result<()> {
         }
     }
     match &cli.command {
+        Command::Checks(options) => {
+            let report = crate::checks::report(&workspace_root(cli), options)?;
+            println!("{}", serde_json::to_string(&report)?);
+            if report["passed"] == false {
+                std::process::exit(1);
+            }
+            Ok(())
+        }
         Command::Author { command } => cmd_author(cli, command),
         Command::File { command } => {
             let report = crate::history::files::execute(&cli.root, command, cli.save_plan)?;

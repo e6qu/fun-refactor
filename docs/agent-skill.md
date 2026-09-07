@@ -1,7 +1,7 @@
 # Handing fr to an agent
 
 The portable [fr skill](../skills/fr/SKILL.md) teaches bounded project exploration and reviewed code changes.
-Its five references cover exploration, changes, history, Git and Lean.
+Its six references cover exploration, changes, project checks, history, Git and Lean.
 The entrypoint routes to those references only when the task needs them.
 
 ## Distribution and use
@@ -49,7 +49,9 @@ The standard native test gate runs this checker through `tests/agent_skill.rs`.
 The skill validator also checks its frontmatter and unfinished placeholders during authoring.
 The checker enforces a 3 KiB entrypoint budget, a 6 KiB budget per reference and valid links inside the portable folder.
 
-The initial macOS run against the development binary executed 31 fenced command examples:
+The initial macOS run against the development binary executed 31 fenced command examples.
+Declared project-check listing and execution now bring the checker to 33 examples.
+The initial measurements were:
 
 | Measure | UTF-8 bytes |
 |---|---:|
@@ -69,6 +71,7 @@ M4a provides the introductory handoff and executable command examples.
 Body replacement supports Rust, TypeScript and TSX declarations and methods, plus direct TypeScript/TSX function bindings with block bodies.
 Rust function declaration replacement can change signatures and implementations together, preserving the name and outer attributes.
 Declaration insertion appends a Rust function through a file handle, retaining all existing source bytes.
-Real-agent evaluation, further authoring operations and declared project-check selection remain open.
+Declared project-check selection now has a configuration digest and bounded execution reports.
+Real-agent evaluation and further authoring operations remain open.
 M5 still owns automated Lean package initialization and model scaffolding.
 The skill does not claim complete framework migration, worktree undo/redo or general implementation verification.

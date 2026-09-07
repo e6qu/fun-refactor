@@ -864,6 +864,22 @@ Validation passes the full native/WASM gate, 311/311 capability coverage and all
 Strict verification retains twenty-two fresh source anchors and signature maps and zero `sorry` obligations.
 The insertion-recovery theorem covers the edit model; full name resolution, parsing and filesystem behavior remain outside that proof.
 
+M4g: declared project checks (complete).
+
+`fr checks` previews `.fr/checks.json` and executes selected names against a reviewed configuration digest.
+Reports separate declared coverage, process outcomes, omitted output and checks that did not run.
+Focused tests cover selection, stale configuration, failures, timeouts, output bounds and path refusals.
+The portable skill now exercises 33 examples. Its validator and the full native/WASM gate pass.
+Validation retains 311/311 capability coverage and all 29 Lean build jobs.
+Process execution and declared coverage have test evidence; they do not carry formal correctness claims.
+
+M4h: measured real-agent acceptance (in progress).
+
+Two tasks on the pinned strsim 0.11.1 release pair fresh agents using fr and ordinary file tools.
+The harness records visible context, calls, timing, refusals and exact source transitions.
+Independent oracles check Unicode similarity and normalized OSA behavior, including clean patch receivers.
+Trials include declared checks, patch export, undo/redo and preservation of an unrelated edit.
+
 Next M4 work:
 
 Evaluate the handoff with real agents on pinned projects and measure correctness, context use and refusals.
@@ -872,7 +888,7 @@ Keep examples compatible with the distributed binary and load specialized refere
 Extend body authoring to selected wrapped initializers or additional languages, and support nested insertion or further declaration kinds.
 Reuse revision checks, edit planning, syntax validation and history.
 Compose high-level intentions as inspectable recipe steps with explicit postconditions.
-Select project checks from declared configuration and report what each check covers.
+Extend declared checks only where real task evidence requires additional selection or execution support.
 
 Exit: an agent locates, changes, validates, exports and reverses a real task using the skills.
 Measure correctness and context use together. A refusal should direct the next useful inspection.

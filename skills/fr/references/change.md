@@ -20,6 +20,7 @@ A plain rerun with `--write` computes a new plan. Apply the saved ID when the re
 After a stale-plan refusal, inspect the changed basis and create a new plan; do not edit journal digests to force acceptance.
 
 Check the applied report, then run the project's relevant compiler or tests.
+Use [declared checks](checks.md) when the project supplies `.fr/checks.json`.
 Syntax validation rejects new parser errors; it does not prove imports resolve, tests pass, or behavior stays equivalent.
 Refresh project handles after a write. Keep the transaction ID for [history](history.md) and [patch export](git.md).
 
