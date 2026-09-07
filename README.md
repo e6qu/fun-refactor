@@ -255,6 +255,7 @@ See [Git status](docs/git-status.md) for observation limits, omitted submodules 
 See [repository change pages](docs/git-changes.md) for scope and metadata identity.
 `fr git diff PATH` pages through hunks and capped source excerpts, with staged and commit-based comparisons.
 Add `--symbols` for changed declarations and their containing hierarchy, with snapshot checks and no source bodies.
+Add `--calls` for incoming and outgoing candidates within each file snapshot, retaining confidence and unresolved targets.
 See [Git diff details](docs/git-diff.md) for cursor identity and supported paths.
 The browser already exports patches and can restore its initial workspace.
 `fr project` now provides compact hierarchy maps and bounded source inspection.

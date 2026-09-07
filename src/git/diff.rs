@@ -21,8 +21,25 @@ pub struct Options {
         help = "Compare one commit with the working tree."
     )]
     since: Option<String>,
-    #[arg(long, help = "Page through declarations overlapping changed lines.")]
+    #[arg(
+        long,
+        group = "detail_view",
+        help = "Page through declarations overlapping changed lines."
+    )]
     symbols: bool,
+    #[arg(
+        long,
+        group = "detail_view",
+        help = "Page through snapshot-local calls touching changed declarations."
+    )]
+    calls: bool,
+    #[arg(
+        long,
+        value_enum,
+        requires = "calls",
+        help = "Select incoming, outgoing or both call directions."
+    )]
+    direction: Option<crate::project::CallDirection>,
     #[arg(long, default_value_t = 50, help = "Maximum rows, from 1 to 500.")]
     limit: usize,
     #[arg(long, help = "Continue the same observed diff.")]
@@ -224,8 +241,26 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
     digest.update([0]);
     digest.update(&output.stdout);
     let revision = format!("{:x}", digest.finalize());
-    let symbol_view = if options.symbols {
-        Some(symbols::collect(&root, path, options.staged, &observed)?)
+    let direction = options.calls.then_some(
+        options
+            .direction
+            .unwrap_or(crate::project::CallDirection::Both),
+    );
+    let view_name = if options.calls {
+        "calls"
+    } else if options.symbols {
+        "symbols"
+    } else {
+        "lines"
+    };
+    let symbol_view = if options.symbols || options.calls {
+        Some(symbols::collect(
+            &root,
+            path,
+            options.staged,
+            &observed,
+            direction,
+        )?)
     } else {
         None
     };
@@ -234,18 +269,23 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
             "{:x}",
             Sha256::digest(serde_json::to_vec(&(
                 &revision,
+                view_name,
+                direction,
                 env!("CARGO_PKG_VERSION"),
                 &view.entries,
                 &view.coverage,
             ))?)
         );
         let structure = json!({"revision": identity, "coverage": view.coverage,
-            "scope": "changed-line-overlap", "hierarchy": "strict-span-containment", "locals": "omitted",
-            "cross_side_matching": "none", "relationships": "not-collected", "text_bytes": 256});
+            "scope": if options.calls {"calls-touching-changed-declarations"} else {"changed-line-overlap"}, "hierarchy": "strict-span-containment", "locals": "omitted",
+            "cross_side_matching": "none", "relationships": if options.calls {"single-file-call-candidates"} else {"not-collected"}, "direction": direction, "text_bytes": 256});
         (
             view.entries.len(),
             Some(structure),
-            format!("frs1:{identity}"),
+            format!(
+                "{}:{identity}",
+                if options.calls { "frgc1" } else { "frs1" }
+            ),
         )
     } else {
         (observed.rows.len(), None, format!("frd1:{revision}"))
@@ -276,6 +316,6 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
         "limits": {"line_bytes": 1024, "heading_bytes": 256, "context_lines": 3},
         "page": {"total": total, "returned": end-start, "before": start, "remaining": total-end,
             "next": (end < total).then(|| format!("{key}:{end}"))},
-        "entries": entries, "view": if options.symbols {"symbols"} else {"lines"}, "structure": structure, "diagnostics": process::diagnostic(&output.stderr), "diagnostics_truncated": output.stderr.len() > 16*1024
+        "entries": entries, "view": view_name, "structure": structure, "diagnostics": process::diagnostic(&output.stderr), "diagnostics_truncated": output.stderr.len() > 16*1024
     }))
 }

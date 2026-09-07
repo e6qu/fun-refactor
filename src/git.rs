@@ -158,3 +158,12 @@ fn status_report(root: &Path, options: &StatusOptions) -> Result<Value> {
 pub fn line_in_range(start: usize, end: usize, line: usize) -> bool {
     start <= line && line <= end
 }
+
+pub fn call_in_selection(
+    incoming: bool,
+    outgoing: bool,
+    include_incoming: bool,
+    include_outgoing: bool,
+) -> bool {
+    (incoming && include_incoming) || (outgoing && include_outgoing)
+}

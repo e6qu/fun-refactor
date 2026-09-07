@@ -40,7 +40,7 @@ Important gaps:
 - `fr project` adds bounded maps, revision-bound details, call relationships and Cargo/npm manifest views. Complete dependency resolution and framework semantics remain pending.
 - Native changes now have persistent history and checked undo/redo. History retention and large-journal scaling need further work.
 - Browser undo restores the loaded workspace; it does not reverse individual transactions.
-- Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff and changed-declaration pages exist; staging and shared browser patch semantics remain pending.
+- Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist; staging and shared browser patch semantics remain pending.
 - Strict spec signature maps currently accept Rust source declarations only.
 - Framework readers cover selected patterns. Whole applications still need dependency and runtime work.
 - Model proofs and shared executable cases do not establish general correspondence with the Rust implementation.
@@ -543,9 +543,26 @@ Page sizing reuses the anchored helper. Git execution, metadata correspondence a
 Validation passes the full native/WASM gate, 311/311 capability coverage and all 29 Lean build jobs.
 Strict verification passes with twelve fresh source anchors and signature maps and zero `sorry` obligations.
 
+M3j: snapshot-local calls touching changed declarations (complete).
+
+- Add `fr git diff PATH --calls` with incoming, outgoing and both-direction pages for working, staged and commit-based comparisons.
+- Analyze each verified file snapshot independently, retaining confidence, dispatch origins, unresolved targets and coverage gaps, without source bodies.
+- Include nested declarations and call sites under changed containers, and distinguish direct overlap from containment.
+- Isolate source-dependent resolution in a worker using captured source, preserving the caller's active workspace.
+- Bind call cursors to the diff, normalized direction, tool version, rows and coverage.
+- Anchor the boolean selection predicate to six axiom-free Lean laws and compare all 16 inputs with Rust.
+
+See [snapshot call scope and fields](docs/git-diff.md#calls-touching-changed-declarations).
+Seven CLI scenarios cover directions, pagination, containers, selected snapshots, receiver inference, dispatch, gaps, Unicode limits and conversion refusal.
+A library regression checks preservation of the caller's active workspace.
+The view does not load neighboring files, match edges across sides or establish runtime impact.
+The proofs cover supplied flags; source capture, extraction, graph construction, enum mapping and general Rust correspondence remain unproved.
+Validation passes the full native/WASM gate, 311/311 capability coverage and all 29 Lean build jobs.
+Strict verification passes with thirteen fresh source anchors and signature maps and zero `sorry` obligations.
+
 Next M3 work:
 
-Extend changed-declaration views with relationship candidates.
+Extend historical relationship inspection across explicitly selected files, with coherent snapshot bases and coverage boundaries.
 
 Add explicit staging, commits and isolated worktree workflows after patch correctness.
 Keep Git optional for ordinary analysis and transaction history.

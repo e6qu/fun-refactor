@@ -120,6 +120,11 @@ These proofs do not add compiler-trust axioms.
 The source anchor and signature map identify the Rust predicate; general Rust/model correspondence remains unproved.
 Git capture, hashing, syntax extraction, byte-to-line conversion, hierarchy and report aggregation remain outside these laws.
 
+The Git model also anchors the boolean direction predicate used by snapshot call pages.
+Six laws characterize empty selections, disabled directions, incoming-only, outgoing-only, both-direction and symmetric selection.
+All six proofs use no axioms. Shared execution compares all 16 boolean inputs with Rust.
+The predicate receives endpoint membership and direction flags; their derivation, enum mapping, call graph construction and complete Rust correspondence remain unproved.
+
 The project kernel also models path confidence as the maximum of edge ranks, with zero as the empty-path identity.
 Ranks map `exact`, `import-qualified`, `field-based` and `name-only` to 0 through 3, in that order.
 Theorems show that aggregation cannot strengthen any input edge and stays within the supplied tier bound.

@@ -2,7 +2,10 @@ use super::{checked, patch};
 use crate::extract::Extractor;
 use crate::lang::Language;
 use crate::parse::Parsers;
+use crate::project::CallDirection;
 use crate::span::{LineIndex, Span};
+
+mod calls;
 use anyhow::{bail, Context, Result};
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
@@ -68,9 +71,10 @@ fn side(
     source: &str,
     changed: &BTreeSet<usize>,
     language: Language,
+    calls: Option<CallDirection>,
 ) -> Result<(Vec<Value>, Value)> {
     let parsed = Parsers::new().parse(language, source)?;
-    let mut facts = Extractor::new().extract(&parsed, path, source)?;
+    let facts = Extractor::new().extract(&parsed, path, source)?;
     let lines = LineIndex::new(source);
     if changed
         .iter()
@@ -78,8 +82,12 @@ fn side(
     {
         bail!("changed line is outside its symbol snapshot");
     }
-    facts.symbols.retain(|symbol| !symbol.kind.is_local());
-    facts.symbols.sort_by_key(|symbol| {
+    let mut symbols = facts
+        .symbols
+        .iter()
+        .filter(|symbol| !symbol.kind.is_local())
+        .collect::<Vec<_>>();
+    symbols.sort_by_key(|symbol| {
         (
             symbol.full_span.start,
             std::cmp::Reverse(symbol.full_span.end),
@@ -89,7 +97,8 @@ fn side(
     let mut stack: Vec<(Span, String)> = Vec::new();
     let mut entries = Vec::new();
     let mut mapped = BTreeSet::new();
-    for symbol in &facts.symbols {
+    let mut selected = BTreeSet::new();
+    for symbol in symbols {
         let span = symbol.full_span;
         if span.start >= span.end || source.get(span.start..span.end).is_none() {
             bail!("invalid declaration span in symbol snapshot");
@@ -113,6 +122,7 @@ fn side(
         }
         let id = format!("{side}:{}", symbol.id.0);
         if !overlaps.is_empty() {
+            selected.insert(symbol.id);
             mapped.extend(overlaps.iter().copied());
             entries.push(json!({"id": id, "side": side, "parent": stack.last().map(|(_, id)| id),
                 "kind": symbol.kind.as_str(), "name": bounded(&symbol.name), "qualifier": symbol.qualifier.as_deref().map(bounded),
@@ -126,9 +136,14 @@ fn side(
         .iter()
         .map(|gap| gap.as_str())
         .collect::<Vec<_>>();
-    let coverage = json!({"status": if gaps.is_empty() {"parsed"} else {"partial"},
+    let mut coverage = json!({"status": if gaps.is_empty() {"parsed"} else {"partial"},
         "language": language, "gaps": gaps, "changed_lines": changed.len(),
         "mapped_lines": mapped.len(), "unmapped_lines": changed.len()-mapped.len(), "declarations": entries.len()});
+    if let Some(direction) = calls {
+        let result = calls::collect(path, side, source, language, &facts, &selected, direction)?;
+        entries = result.0;
+        coverage["calls"] = result.1;
+    }
     Ok((entries, coverage))
 }
 
@@ -137,6 +152,7 @@ pub(super) fn collect(
     path: &str,
     staged: bool,
     observed: &patch::Observation,
+    calls: Option<CallDirection>,
 ) -> Result<View> {
     let extension = Path::new(path)
         .extension()
@@ -199,6 +215,7 @@ pub(super) fn collect(
                 &text,
                 &changed[index],
                 language.unwrap(),
+                calls,
             )?
         };
         coverage["blob"] = json!(oid);

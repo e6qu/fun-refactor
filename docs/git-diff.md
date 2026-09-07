@@ -87,7 +87,8 @@ Successful inspection exits zero even when changes exist. Setup, unsupported inp
 Page sizing reuses the Lean-anchored pagination helper.
 Parser and CLI tests cover coordinates, excerpts, cursors, comparison bases, unusual paths, conflicts, linked worktrees and guarded Git execution.
 They do not prove parser or Git execution correspondence with Lean.
-Use `--symbols` for the changed-declaration view below. Caller relationships and transitive structural impact remain roadmap work.
+Use `--symbols` for changed declarations or `--calls` for snapshot-local call candidates, described below.
+Cross-file relationships and transitive structural impact remain roadmap work.
 
 Git inspection requires support for [`--no-lazy-fetch`](https://git-scm.com/docs/git); older Git versions refuse the command.
 
@@ -137,9 +138,9 @@ Unsupported grammars, invalid spans, non-UTF-8 snapshots and inconsistent object
 
 Language detection uses the extension only, without consulting the current filesystem for historical framework markers.
 In particular, neighboring Helm chart files do not change a YAML snapshot's language.
-Repository dependency resolution and call relationships do not run.
+The symbol view does not run dependency resolution or call analysis.
 Use project navigation separately to inspect current declarations and candidate relationships.
-Cross-repository impact and callers of historical declarations remain roadmap work.
+The call view below inspects historical callers within the selected file. Cross-file historical relationships remain roadmap work.
 
 Symbol cursors use a separate identity from line pages.
 They bind the complete diff, tool version, full declaration result and coverage before paging.
@@ -151,3 +152,58 @@ Shared execution checks 1,728 boundary combinations, including machine-integer l
 The proofs establish inclusive range membership, refusal outside or across reversed bounds, singleton behavior and preservation by enclosing ranges.
 Git capture, blob-hash assumptions, parsers, declaration spans, hierarchy construction and report aggregation remain outside that proof.
 See [Lean specifications](lean-specs.md) for proof assumptions.
+
+
+## Calls touching changed declarations
+
+```sh
+fr git diff src/main.rs --calls --limit 20
+fr git diff src/main.rs --calls --direction incoming
+fr git diff src/main.rs --calls --staged
+fr git diff src/main.rs --calls --since HEAD~1
+```
+
+`--calls` sets `view: "calls"` and returns call candidates touching the changed declarations selected above, without source bodies.
+It cannot combine with `--symbols`. `--direction` requires `--calls` and accepts `incoming`, `outgoing` or `both` (default).
+Before and after snapshots are analyzed independently, with the same blob checks, conversion refusals and extension-based language detection as symbol pages.
+Only the selected file enters each index and hierarchy analysis. Source-dependent receiver inference reads that captured snapshot.
+Neighboring working files do not supply historical targets. Imported or otherwise unresolved targets remain explicit unresolved rows.
+
+Selection includes every declaration overlapping changed lines and the declarations and sites contained within those spans.
+A changed class can therefore select calls inside unchanged sibling methods.
+Incoming rows have a target declaration inside the selection; outgoing rows have a call site inside it.
+`scope_relation` is `internal` when both conditions hold, including when filtering to one direction.
+Otherwise it is `incoming` or `outgoing`. This describes containment, without claiming semantic change or runtime impact.
+Sides with no changed lines do not run call analysis.
+
+Each row contains `kind: "call"`, `side`, `scope_relation`, `caller`, `callee`, `site`, `confidence`, `origin`, `dispatch_candidate` and `status`.
+Sites contain byte `offset` and one-based `line` and `column` coordinates.
+Non-null endpoints contain `id`, `name`, `kind`, `qualifier`, declaration `line`, `changed_declaration` and `in_selection`.
+`changed_declaration` reports direct line overlap; `in_selection` also includes declarations inside selected containers.
+Endpoint IDs belong to that side's complete snapshot and are local to `structure.revision`.
+They are not project handles, and endpoints need not appear in a changed-declaration page.
+Names and qualifiers retain at most 256 UTF-8 bytes, with original lengths and truncation flags.
+
+Resolved file-scope calls have a null caller and `caller_scope: "file"`.
+Unresolved calls have a null callee and a bounded `name`; their caller can also be null.
+Statuses distinguish `indexed-target`, `dispatch-candidate` and `unresolved`.
+Confidence and origin retain the existing call graph's evidence, including weaker dispatch candidates.
+An indexed target does not establish a unique runtime destination or permission to rewrite.
+
+`structure.scope` is `calls-touching-changed-declarations`; `relationships` is `single-file-call-candidates`.
+`structure.direction` records the normalized direction. Each analyzed side adds `calls` to its existing declaration coverage.
+Call coverage reports `status` (`analyzed`, `partial` or `unsupported-language`), `scope: "single-file-snapshot"` and, when analysis runs, `cross_file: "not-collected"`.
+Analyzed sides include hierarchy support and gaps, callable-node and edge counts, file-scope and unresolved-call counts, and `selected_rows`.
+Graph counts cover the complete single-file snapshot; `selected_rows` counts only rows matching this selection and direction.
+`analyzed` means no reported parser or hierarchy gaps; unresolved calls can still exist.
+Binary, unsupported-extension and unchanged sides retain their declaration status without nested call coverage.
+
+Rows sort deterministically within each side, with before rows first. No matching or edge subtraction occurs across sides.
+Call cursors cannot continue line or symbol pages. They bind the complete diff, tool version, normalized direction, rows and coverage.
+Continue with `--calls --cursor TOKEN`, retaining the path, comparison and direction. The limit may change.
+Pagination bounds response rows; complete snapshot extraction and call analysis still run before paging.
+
+The direction predicate has a source anchor, signature map and six Lean laws, proved without axioms.
+Shared execution compares all 16 boolean inputs with Rust.
+Those laws cover supplied selection flags; extraction, graph construction, enum mapping and complete report correspondence remain outside the proof.
+Cross-file historical relationships and transitive impact remain pending.

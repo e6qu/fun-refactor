@@ -36,4 +36,35 @@ theorem enclosing_range_preserves_match (start finish outerStart outerFinish lin
   simp [lineInRange] at *
   omega
 
+-- fr:spec src/git.rs::call_in_selection @ 2d90cfbdd483cfcbed3ee14e4e40f8ef3d794768e793d1fac571c521575c5eca
+-- fr:signature incoming: bool => incoming: Bool; outgoing: bool => outgoing: Bool; include_incoming: bool => includeIncoming: Bool; include_outgoing: bool => includeOutgoing: Bool; return: bool => return: Bool
+def callInSelection (incoming : Bool) (outgoing : Bool)
+    (includeIncoming : Bool) (includeOutgoing : Bool) : Bool :=
+  (incoming && includeIncoming) || (outgoing && includeOutgoing)
+
+theorem no_directions_refuses (incoming outgoing : Bool) :
+    callInSelection incoming outgoing false false = false := by
+  cases incoming <;> cases outgoing <;> rfl
+
+theorem no_endpoints_refuses (includeIncoming includeOutgoing : Bool) :
+    callInSelection false false includeIncoming includeOutgoing = false := by
+  rfl
+
+theorem incoming_only (incoming outgoing : Bool) :
+    callInSelection incoming outgoing true false = incoming := by
+  cases incoming <;> cases outgoing <;> rfl
+
+theorem outgoing_only (incoming outgoing : Bool) :
+    callInSelection incoming outgoing false true = outgoing := by
+  cases incoming <;> cases outgoing <;> rfl
+
+theorem both_directions (incoming outgoing : Bool) :
+    callInSelection incoming outgoing true true = (incoming || outgoing) := by
+  cases incoming <;> cases outgoing <;> rfl
+
+theorem swapping_sides_preserves_selection (incoming outgoing includeIncoming includeOutgoing : Bool) :
+    callInSelection incoming outgoing includeIncoming includeOutgoing =
+      callInSelection outgoing incoming includeOutgoing includeIncoming := by
+  cases incoming <;> cases outgoing <;> cases includeIncoming <;> cases includeOutgoing <;> rfl
+
 end FrKernels.Git

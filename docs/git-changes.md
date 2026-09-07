@@ -26,6 +26,7 @@ fr git changes --since HEAD~1
 fr git diff src/main.rs --symbols --since COMMIT_ID
 ```
 
+Use `--calls` instead of `--symbols` for call candidates touching changed declarations within each file snapshot.
 Copy `base_commit` from the first report to pin the second command's commit basis.
 Pass paths literally, including whitespace or pathspec-like characters. Put a path beginning with a dash after `--`.
 Discovery and detail commands observe independently; a path or its state can change between them.
@@ -72,7 +73,7 @@ A changed observation or query causes refusal; restart the query.
 `identity: "change-metadata"` states the observation limit.
 Further working-file edits can retain the same modes, status, raw IDs and line counts, leaving the cursor valid.
 For example, replacing one changed line with different text of the same shape may preserve all reported metadata.
-Use diff or symbol pages for content-sensitive inspection, and transaction basis checks before edits.
+Use diff, symbol or call pages for content-sensitive inspection, and transaction basis checks before edits.
 None of these Git queries freezes concurrent repository state.
 
 ## Configuration and assurance

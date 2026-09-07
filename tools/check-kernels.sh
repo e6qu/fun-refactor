@@ -15,6 +15,7 @@ cd "$(dirname "$0")/.."
     lake exe fr-history-kernel owner-executable >/dev/null
     lake exe fr-project-kernel >/dev/null
     lake exe fr-project-kernel line-ranges >/dev/null
+    lake exe fr-project-kernel call-selection >/dev/null
     lake exe fr-project-kernel patterns >/dev/null
     lake exe fr-project-kernel confidence >/dev/null
     lake exe fr-project-kernel membership >/dev/null

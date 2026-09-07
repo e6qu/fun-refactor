@@ -1070,6 +1070,16 @@ fr git diff src/main.rs --symbols --since HEAD~1
 It omits source bodies and requires each parsed snapshot to match Git's observed blob identity.
 Symbol cursors bind the declaration result and cannot continue ordinary line pages.
 This view reports direct line overlap; cross-file callers and transitive impact remain pending.
+```sh
+fr git diff src/main.rs --calls --direction incoming
+fr git diff src/main.rs --calls --staged
+```
+
+`--calls` pages through calls touching changed declarations within each selected file snapshot, with confidence and unresolved targets.
+`--direction` accepts `incoming`, `outgoing` or `both` (default). It requires `--calls`, which cannot combine with `--symbols`.
+Containing declarations also select nested sites and targets, including unchanged sibling methods inside a changed class.
+Call analysis uses captured source, omits bodies and does not load neighboring files.
+Cursors bind the call result and direction. Cross-file historical relationships remain pending.
 See [Git diff detail pages](docs/git-diff.md) for fields, comparison semantics and limits.
 
 ```sh

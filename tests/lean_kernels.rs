@@ -957,3 +957,34 @@ fn git_line_ranges_match_lean_including_integer_limits() {
         }
     }
 }
+
+#[test]
+fn git_call_selection_matches_lean_for_every_boolean_input() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("call-selection")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let actual = actual
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for incoming in [false, true] {
+        for outgoing in [false, true] {
+            for include_incoming in [false, true] {
+                for include_outgoing in [false, true] {
+                    expected.push(fun_refactor::git::call_in_selection(
+                        incoming,
+                        outgoing,
+                        include_incoming,
+                        include_outgoing,
+                    ));
+                }
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}

@@ -6,7 +6,13 @@ open FrKernels.Project
 def samples : List Nat := [0, 1, 2, 3, 4, 79, 80, 499, 500, 65536, 4294967295, 18446744073709551615]
 
 def main (args : List String) : IO Unit := do
-  if args == ["line-ranges"] then
+  if args == ["call-selection"] then
+    for incoming in [false, true] do
+      for outgoing in [false, true] do
+        for includeIncoming in [false, true] do
+          for includeOutgoing in [false, true] do
+            IO.println (FrKernels.Git.callInSelection incoming outgoing includeIncoming includeOutgoing)
+  else if args == ["line-ranges"] then
     for start in samples do
       for finish in samples do
         for line in samples do
