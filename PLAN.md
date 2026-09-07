@@ -916,6 +916,26 @@ The full native/WASM gate passes, including eight history CLI scenarios, eightee
 Validation retains 311/311 capability coverage, 29 Lean build jobs and twenty-two fresh anchors and signature maps with zero `sorry` obligations.
 The [follow-up report](docs/agent-context-followup.md#subsequent-history-completion-reports) retains measurements and distinguishes them from paired-agent results.
 
+M4k: documented Rust insertion (complete, `6d0928b`).
+
+Preparing a larger workspace exposed `deny(missing_docs)` as a blocker for public API insertion.
+Insertion now accepts leading outer documentation comments within the existing 64 KiB fragment budget.
+Signatures exclude that documentation; reports identify its region, and saved history retains the complete fragment.
+Thirty-one authoring scenarios pass, including compiler lint enforcement, exact history and boundary refusals.
+The full native/WASM gate passes, with 311/311 capability coverage and 29 Lean build jobs.
+Strict verification retains twenty-two fresh source anchors and signature maps with zero `sorry` obligations.
+
+M4l: repeated workspace evaluation (prepared; autonomous trials pending).
+
+The pinned regex workspace has 227 Rust source files and 5,553,380 Rust source bytes across its real package structure.
+The new task exposes an append-to-buffer API through the public facade using workspace functionality.
+The harness adds project selection, repeated paired trials, locked library and minimal-feature checks, and an independent append/allocation oracle.
+A controlled rehearsal passes all validation stages, exact undo/redo and patch delivery, with 3,174 oracle cases in each final project and receiver.
+Three compiled negative controls fail for clearing prefixes, missing escapes and intermediate allocation. Sixteen harness regressions pass.
+Four independent trial directories are ready, with a frozen binary and two repetitions per arm.
+See [workspace evaluation](docs/agent-workspace-evaluation.md) for source provenance, normalized file modes, dependency setup and reproduction.
+No new autonomous results or context-efficiency claims exist yet. Running the four prepared agents remains the next step.
+
 Next M4 work:
 
 Extend paired real-agent evaluation to larger projects and tasks spanning package boundaries.

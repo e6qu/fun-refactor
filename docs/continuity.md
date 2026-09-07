@@ -1,6 +1,6 @@
 # Development continuity
 
-M4j is complete: history writes can omit repeated diff text after preview. Broader agent efficiency remains open.
+M4k is complete in `6d0928b`. M4l has four prepared regex workspace sessions and awaits autonomous trials.
 The user authorized local commits. Publishing and pushing remain outside this request.
 
 ## Current state
@@ -55,7 +55,7 @@ Prose budgets remain 272 long sentences and 9,335 Rust comment lines, with other
 Scoring uses `target/agent-eval-venv/bin/python`, tiktoken 0.12.0 and a checksum-pinned o200k_base vocabulary.
 Reference tokens measure instrumented text, excluding system context, hidden reasoning and billed usage.
 
-## Latest completed increment
+## History report reduction
 
 M4j adds opt-in `--no-diff` for history apply, undo, redo and recover with `--write`.
 Completion reports retain transaction, action, applied status, paths, existence and modes, with an explicit omission flag.
@@ -77,3 +77,34 @@ The skill now distinguishes full names from fragments; fresh agents must establi
 Use those traces to select further inspection and report changes before claiming general context savings or timing improvements.
 Keep skills selective and executable against the distributed binary.
 Further authoring operations, M5 automated Lean adoption and M6 framework migrations remain open in PLAN.md.
+
+## Active workspace evaluation
+
+The pinned regex source commit is `2b527599eb9eea0dcc288c704584f242f26a5c61`, with an unmodified archive and a separate pinned Cargo.lock.
+The public escape-into task requires following functionality from the regex facade into regex-syntax.
+Its `deny(missing_docs)` lint exposed the need for leading outer documentation in inserted Rust functions.
+The authoring extension passes 31 scenarios. The full native/WASM gate passes in `/tmp/fr-m4k-full-check.log`.
+Strict verification passes in `/tmp/fr-m4k-spec-verify.json`: twenty-two fresh anchors and signature maps, zero obligations and 29 Lean build jobs.
+Capability coverage remains 311/311. Sixteen harness regressions pass in `/tmp/fr-m4l-harness-final.log`.
+The controlled rehearsal passes all four validation stages, exact history and patch delivery.
+Its 3,174-case oracle passes on the project and receiver and rejects three compiled negative controls.
+Durable evidence is `tests/agent-eval/regex/rehearsal.json`; source archive, normalized modes and lock details are in the [workspace report](agent-workspace-evaluation.md).
+The harness now supports `prepare --project regex --repetitions 2`, producing four independent trial directories.
+The default strsim preparation and existing evidence remain compatible.
+Final acceptance replay and documentation links pass in `/tmp/fr-m4l-final-check.log`, including all eight earlier patches and the controlled history comparison.
+Fresh agents have not run this task; controlled results must not count as autonomous acceptance.
+
+Prepared sessions are under `/private/tmp/fr-regex-agent-eval-2026-09-08`:
+
+- `regex-escape-into-fr-r1`
+- `regex-escape-into-files-r1`
+- `regex-escape-into-fr-r2`
+- `regex-escape-into-files-r2`
+
+All four have matching original project/receiver snapshots, 453 tracked paths, 5,553,380 Rust source bytes and no recorded agent events.
+The frozen binary is `target/agent-eval-bin/fr-workspace-eval`, with digest recorded in every session and the rehearsal report.
+Do not rebuild or change the binary, skill snapshots, task prompt, harness or oracle during active trials.
+The current session requires explicit user authorization to spawn sub-agents; a request for the four evaluation agents is pending.
+After authorization, give each prompt to a fresh agent without conversation history and follow the same tool boundary in both arms.
+Record actual runtime and interventions with `record --execution-note`; never label a controlled rehearsal as an autonomous result.
+Score and retain every repetition, including failures, then report per-trial observations before aggregate comparisons.

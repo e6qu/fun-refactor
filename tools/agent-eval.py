@@ -13,7 +13,8 @@ import subprocess
 import tarfile
 import time
 
-from agent_eval.oracle import verify
+from agent_eval.oracle import verify as verify_strsim
+from agent_eval import regex_workspace
 
 ROOT = Path(__file__).resolve().parent.parent
 ARCHIVE = ROOT / "tests/agent-eval/strsim-0.11.1.crate"
@@ -22,6 +23,31 @@ TASKS = {
     "unicode-dice": "Fix Sørensen–Dice similarity for Unicode inputs. Use Unicode scalar-value bigrams and their counts consistently. Preserve whitespace removal, duplicate-bigram multiplicity, equal-input behavior and the public API. Unequal inputs with fewer than two scalars after whitespace removal must score zero. Keep existing ASCII behavior.",
     "normalized-osa": "Add a public normalized_osa_distance(a: &str, b: &str) -> f64 API. Return one minus optimal-string-alignment distance divided by the longer input's Unicode scalar count. Two empty inputs score one. Preserve OSA's restricted transposition semantics and all existing APIs. Match the neighboring normalized APIs; reuse existing distance machinery when suitable.",
 }
+
+STRSIM_TASKS = tuple(TASKS)
+TASKS[regex_workspace.TASK] = regex_workspace.DESCRIPTION
+
+
+def profile(task):
+    if task == regex_workspace.TASK:
+        return {"project": "rust-lang/regex complete workspace snapshot, without Git history",
+                "archive_sha256": regex_workspace.ARCHIVE_SHA, "upstream_commit": regex_workspace.COMMIT,
+                "checks": regex_workspace.CHECKS, "dependency_lock_sha256": regex_workspace.LOCK_SHA}
+    if task not in STRSIM_TASKS:
+        raise ValueError("Unknown evaluation task")
+    return {"project": "rapidfuzz/strsim-rs published crate 0.11.1; complete release snapshot, without Git history",
+            "archive_sha256": ARCHIVE_SHA, "upstream_commit": "76c5a900e6e12cfc605eee5ab6e36300384c8682",
+            "checks": [{"name": "upstream", "argv": ["cargo", "test", "--offline"], "cwd": ".",
+                        "timeout_seconds": 120, "covers": ["Unmodified upstream unit, integration and documentation tests"]}]}
+
+
+def verify(root, task):
+    return regex_workspace.verify(root) if task == regex_workspace.TASK else verify_strsim(root, task)
+
+
+def upstream(root, task):
+    results = [process(check["argv"], root / check["cwd"]) for check in profile(task)["checks"]]
+    return {"exit_code": next((result["exit_code"] for result in results if result["exit_code"] != 0), 0), "checks": results}
 
 
 def digest(data):
@@ -43,7 +69,9 @@ def git(root, *args, data=None, check=True):
     return result
 
 
-def unpack(destination):
+def unpack(destination, task="unicode-dice"):
+    if task == regex_workspace.TASK:
+        return regex_workspace.unpack(destination)
     data = ARCHIVE.read_bytes()
     if digest(data) != ARCHIVE_SHA:
         raise ValueError("Pinned source archive checksum mismatch")
@@ -73,6 +101,8 @@ def snapshot(root):
 def initialize(root):
     git(root, "init", "-q", "-b", "main")
     git(root, "add", ".")
+    if (root / "Cargo.lock").is_file():
+        git(root, "add", "-f", "Cargo.lock")
     git(root, "commit", "-qm", "Pinned public release with evaluation check declarations")
 
 
@@ -82,7 +112,7 @@ def prompt(session, task, arm):
         if arm == "fr" else
         "Use ordinary files, read, search and replace tools for source exploration and edits. Do not use fr project/author/history commands. The shared fr checks command is available for identical project validation. Export and reverse/reapply your patch through the ordinary Git tools."
     )
-    return f"""You are an independent acceptance-test agent. Complete this code task in the supplied unfamiliar published project: {TASKS[task]}
+    return f"""You are an independent acceptance-test agent. Complete this code task in the supplied unfamiliar pinned public project: {TASKS[task]}
 
 {surface}
 
@@ -106,50 +136,65 @@ Tool objects:
 {{"tool":"receiver"}} checks and applies the saved patch in a clean separate receiver and compares tracked content with your project.
 {{"tool":"finish","summary":"..."}} records your final conclusion; independent oracles run later.
 
-Workflow: inspect; list and run declared checks on the original; implement the task; run checks on the change; export the patch; add the sentinel; undo and check; redo and check; verify the receiver; finish. fr arm: preview/save/apply an authoring transaction and use history undo/redo. Every check run needs the configuration basis from its listing. Keep project handles revision-bound when using them. Keep tool output bounded and request only relevant context. Leave the requested change applied. Report uncertainty and tool refusals honestly.
+Workflow: inspect; list and run declared checks on the original; implement the task; run checks on the change; export the patch; add the sentinel; undo and check; redo and check; verify the receiver; finish. fr arm: preview/save/apply an authoring transaction and use history undo/redo. Run all declared checks together at each validation stage using --run with comma-separated names; every run needs the configuration basis from its listing. Keep project handles revision-bound when using them. Keep tool output bounded and request only relevant context. Leave the requested change applied. Report uncertainty and tool refusals honestly.
 
 The harness records visible tool payload tokens, calls, latency and final correctness. It does not measure your hidden reasoning, system context or billed tokens. The task directory is {session / 'project'}.
 """
 
 
-def prepare(out, binary):
+def trial_names(project, repetitions):
+    if project not in ("strsim", "regex") or not 1 <= repetitions <= 8:
+        raise ValueError("Choose strsim or regex and 1..8 repetitions")
+    tasks = STRSIM_TASKS if project == "strsim" else (regex_workspace.TASK,)
+    return [(f"{task}-{arm}" + (f"-r{repeat}" if repetitions > 1 else ""), task, arm, repeat)
+            for repeat in range(1, repetitions + 1) for task in tasks for arm in ("fr", "files")]
+
+
+def prepare(out, binary, project="strsim", repetitions=1):
+    names = trial_names(project, repetitions)
     if any((parent / "Cargo.toml").is_file() for parent in [out, *out.parents]):
         raise ValueError("Prepare outside Cargo projects, for example under /tmp, to avoid inherited workspace membership")
     out.mkdir(parents=True, exist_ok=False)
-    for task in TASKS:
-        for arm in ("fr", "files"):
-            session = out / f"{task}-{arm}"
-            session.mkdir()
-            project = session / "project"
-            unpack(project)
-            (project / ".fr").mkdir()
-            save(project / ".fr/checks.json", {"schema": 1, "checks": [
-                {"name": "upstream", "argv": ["cargo", "test", "--offline"], "cwd": ".",
-                 "timeout_seconds": 120, "covers": ["Unmodified upstream unit, integration and documentation tests"]}
-            ]})
-            initialize(project)
-            preflight = process(["cargo", "test", "--offline"], project)
-            if preflight["exit_code"]:
-                raise RuntimeError(f"Upstream preflight failed: {preflight}")
-            receiver = session / "receiver"
-            shutil.copytree(project, receiver, ignore=shutil.ignore_patterns(".git", "target", "Cargo.lock"))
-            initialize(receiver)
-            (session / "artifacts").mkdir()
-            shutil.copytree(ROOT / "skills/fr", session / "skill")
-            source_files = list(project.rglob("*.rs"))
-            save(session / "session.json", {
-                "schema": "fr-agent-eval-session-1", "task": task, "arm": arm,
-                "archive_sha256": ARCHIVE_SHA, "upstream_commit": "76c5a900e6e12cfc605eee5ab6e36300384c8682",
-                "fr": str(binary.resolve()), "binary_sha256": digest(binary.read_bytes()),
-                "original": snapshot(project), "index_sha256": digest((project / ".git/index").read_bytes()),
-                "receiver_index_sha256": digest((receiver / ".git/index").read_bytes()),
-                "source_bytes": sum(path.stat().st_size for path in source_files),
-                "created_at": time.time(),
-                "original_oracle": verify(project, task),
-                "preflight_passed": True,
-            })
-            (session / "prompt.txt").write_text(prompt(session, task, arm))
-    print(json.dumps({"sessions": [str(path) for path in sorted(out.iterdir())]}))
+    save(out / "experiment.json", {"project": project, "repetitions": repetitions, "trials": [name for name, _, _, _ in names]})
+    for name, task, arm, repeat in names:
+        session = out / name
+        session.mkdir()
+        prepare_trial(session, binary, task, arm, repeat)
+    print(json.dumps({"sessions": [str(out / name) for name, _, _, _ in names]}))
+
+
+def prepare_trial(session, binary, task, arm, repetition):
+    selected = profile(task)
+    project = session / "project"
+    unpack(project, task)
+    (project / ".fr").mkdir()
+    save(project / ".fr/checks.json", {"schema": 1, "checks": selected["checks"]})
+    initialize(project)
+    preflight = upstream(project, task)
+    if preflight["exit_code"]:
+        raise RuntimeError(f"Upstream preflight failed: {preflight}")
+    original_oracle = verify(project, task)
+    expected_stage = 2 if task == "unicode-dice" else 1
+    if original_oracle["passed"] or original_oracle.get("stage") != expected_stage:
+        raise RuntimeError(f"Original oracle failed to establish the expected task baseline: {original_oracle}")
+    receiver = session / "receiver"
+    ignored = (".git", "target") if task == regex_workspace.TASK else (".git", "target", "Cargo.lock")
+    shutil.copytree(project, receiver, ignore=shutil.ignore_patterns(*ignored))
+    initialize(receiver)
+    (session / "artifacts").mkdir()
+    shutil.copytree(ROOT / "skills/fr", session / "skill")
+    source_files = [path for path in project.rglob("*.rs") if "target" not in path.relative_to(project).parts]
+    save(session / "session.json", {
+        "schema": "fr-agent-eval-session-1", "task": task, "arm": arm, "repetition": repetition,
+        "archive_sha256": selected["archive_sha256"], "upstream_commit": selected["upstream_commit"],
+        "dependency_lock_sha256": selected.get("dependency_lock_sha256"),
+        "fr": str(binary.resolve()), "binary_sha256": digest(binary.read_bytes()),
+        "original": snapshot(project), "index_sha256": digest((project / ".git/index").read_bytes()),
+        "receiver_index_sha256": digest((receiver / ".git/index").read_bytes()),
+        "source_bytes": sum(path.stat().st_size for path in source_files), "created_at": time.time(),
+        "original_oracle": original_oracle, "preflight_passed": True,
+    })
+    (session / "prompt.txt").write_text(prompt(session, task, arm))
 
 
 def within(root, name):
@@ -300,14 +345,15 @@ def tokenizer():
     return tiktoken.get_encoding("o200k_base")
 
 
-def workflow(events, original, final):
+def workflow(events, original, final, required_checks=()):
     checks = []
     undo, redo, receivers = [], [], []
     for index, event in enumerate(events):
         result = json.loads(event["visible"])
         report = result.get("result")
         if isinstance(report, dict) and report.get("schema") == "fr-checks-1" and report.get("executed"):
-            checks.append({"event": index, "passed": report["passed"] and result.get("exit_code") == 0,
+            checks.append({"event": index, "passed": report["passed"] and result.get("exit_code") == 0
+                           and set(required_checks).issubset({check["name"] for check in report.get("results", []) if check.get("passed")}),
                            "original": event["before"] == event["after"] == original,
                            "final": event["before"] == event["after"] == final})
         tool, args = event["request"].get("tool"), event["request"].get("args", [])[:2]
@@ -359,7 +405,7 @@ def score(session):
         "refusals_or_failures": sum(bool(json.loads(e["visible"]).get("error")) or json.loads(e["visible"]).get("exit_code", 0) != 0 for e in events),
         "source_edit_steps": sum(e["before"] != e["after"] for e in events),
         "manual_corrections": config.get("manual_corrections", 0), "changed_paths": changed,
-        **workflow(events, original, final),
+        **workflow(events, original, final, [c["name"] for c in regex_workspace.CHECKS] if config["task"] == regex_workspace.TASK else ()),
         "index_unchanged": all(e["index_sha256"] == config["index_sha256"] for e in events),
         "receiver_index_unchanged": digest((session / "receiver/.git/index").read_bytes()) == config["receiver_index_sha256"],
         "receiver_matches": snapshot(session / "receiver") == final,
@@ -367,13 +413,14 @@ def score(session):
         "original_oracle": config["original_oracle"],
         "receiver_oracle": verify(session / "receiver", config["task"]),
         "finished": json.loads(events[-1]["visible"]).get("finished", False),
-        "measurement_scope": "Prompt and instrumented tool payloads; excludes system context, hidden reasoning, framing, caching and billed token usage. Cooperative isolation. One trial per arm and task.",
+        "measurement_scope": "Prompt and instrumented tool payloads; excludes system context, hidden reasoning, framing, caching and billed token usage. Cooperative isolation. One scored session.",
+        "repetition": config.get("repetition", 1),
     }
     result["context_tokens"] = result["prompt_tokens"] + result["visible_output_tokens"]
     result["passed"] = (
         all(result[key] for key in ("workflow_ordered", "undo_exact", "redo_exact", "index_unchanged", "receiver_index_unchanged", "receiver_matches", "finished"))
         and changed == ["src/lib.rs"] and not result["original_oracle"]["passed"]
-        and result["original_oracle"].get("stage") == {"unicode-dice": 2, "normalized-osa": 1}[config["task"]]
+        and result["original_oracle"].get("stage") == (2 if config["task"] == "unicode-dice" else 1)
         and result["oracle"]["passed"] and result["receiver_oracle"]["passed"]
     )
     save(session / "result.json", result)
@@ -392,9 +439,11 @@ def replay(directory):
             path = within(directory, trial)
             config = json.loads((path / "session.json").read_text())
             recorded = json.loads((path / "result.json").read_text())
+            if not recorded["passed"]:
+                raise ValueError(f"Recorded trial failed acceptance: {trial}")
             events = [json.loads(line) for line in (path / "events.jsonl").read_text().splitlines()]
             root = Path(tmp) / trial
-            unpack(root)
+            unpack(root, config["task"])
             original = (root / "src/lib.rs").read_bytes()
             if verify(root, config["task"])["passed"]:
                 raise ValueError("The unmodified project unexpectedly satisfies the task oracle")
@@ -406,7 +455,7 @@ def replay(directory):
             actual = (root / "src/lib.rs").read_bytes()
             if digest(actual) != events[-1]["after"]["src/lib.rs"]["sha256"]:
                 raise ValueError("Patch does not reproduce the recorded agent result")
-            upstream = process(["cargo", "test", "--offline"], root)
+            upstream_result = upstream(root, config["task"])
             oracle = verify(root, config["task"])
             (root / "unrelated.txt").write_text("Preserve this independent later edit.\n")
             git(root, "apply", "--reverse", data=patch)
@@ -417,11 +466,11 @@ def replay(directory):
                 raise ValueError("Patch reapplication lost source or the unrelated edit")
             if (root / ".git/index").read_bytes() != original_index:
                 raise ValueError("Patch workflow changed the index")
-            observed = workflow(events, config["original"], events[-1]["after"])
+            observed = workflow(events, config["original"], events[-1]["after"], [c["name"] for c in regex_workspace.CHECKS] if config["task"] == regex_workspace.TASK else ())
             if any(observed[key] != recorded[key] for key in observed):
                 raise ValueError("Recorded workflow score disagrees with its transcript")
-            if not recorded["passed"] or not observed["workflow_ordered"] or upstream["exit_code"] or not oracle["passed"]:
-                raise ValueError(f"Acceptance replay failed: {trial}: {oracle}: {upstream}")
+            if not recorded["passed"] or not observed["workflow_ordered"] or upstream_result["exit_code"] or not oracle["passed"]:
+                raise ValueError(f"Acceptance replay failed: {trial}: {oracle}: {upstream_result}")
             results.append({"trial": trial, "passed": True, "oracle": oracle})
     return {"passed": True, "trials": results,
             "scope": "Replay recorded patches, tests, oracles and transition evidence; does not rerun an autonomous agent or retokenize payloads."}
@@ -448,22 +497,34 @@ def audit_tokens(directory):
     return {"passed": True, "trials": audited}
 
 
-def record(sessions, directory, pilots=None):
+def record(sessions, directory, pilots=None, execution_note=None):
+    experiment = sessions / "experiment.json"
+    design = json.loads(experiment.read_text()) if experiment.is_file() else {
+        "project": "strsim", "repetitions": 1, "trials": [name for name, _, _, _ in trial_names("strsim", 1)]}
+    expected = [name for name, _, _, _ in trial_names(design["project"], design["repetitions"])]
+    if design["trials"] != expected:
+        raise ValueError("Experiment does not contain every planned paired repetition")
+    for name in expected:
+        result = json.loads((sessions / name / "result.json").read_text())
+        if not isinstance(result.get("passed"), bool):
+            raise ValueError(f"Score every completed trial before recording evidence: {name}")
+        if result["passed"] and not (sessions / name / "artifacts/change.patch").is_file():
+            raise ValueError(f"Passing trial lacks its exported patch: {name}")
     directory.mkdir(parents=True, exist_ok=False)
     trials = []
-    for task in TASKS:
-        for arm in ("fr", "files"):
-            name = f"{task}-{arm}"
-            source, destination = sessions / name, directory / name
-            result = json.loads((source / "result.json").read_text())
-            if not isinstance(result.get("passed"), bool):
-                raise ValueError(f"Score every completed trial before recording evidence: {name}")
-            destination.mkdir()
-            for filename in ("session.json", "prompt.txt", "events.jsonl", "result.json"):
-                shutil.copyfile(source / filename, destination / filename)
-            shutil.copyfile(source / "artifacts/change.patch", destination / "change.patch")
-            trials.append(name)
-    shutil.copytree(sessions / "unicode-dice-fr/skill", directory / "skill")
+    for name in expected:
+        source, destination = sessions / name, directory / name
+        destination.mkdir()
+        for filename in ("session.json", "prompt.txt", "events.jsonl", "result.json"):
+            shutil.copyfile(source / filename, destination / filename)
+        patch = source / "artifacts/change.patch"
+        if patch.is_file():
+            shutil.copyfile(patch, destination / "change.patch")
+        trials.append(name)
+    config = json.loads((sessions / expected[0] / "session.json").read_text())
+    selected = profile(config["task"])
+    shutil.copytree(sessions / expected[0] / "skill", directory / "skill")
+    save(directory / "experiment.json", design)
     pilot_names = []
     if pilots:
         for source in sorted(pilots.iterdir()):
@@ -476,14 +537,14 @@ def record(sessions, directory, pilots=None):
             pilot_names.append(source.name)
     save(directory / "manifest.json", {
         "schema": "fr-agent-eval-evidence-1", "trials": trials,
-        "project": "rapidfuzz/strsim-rs published crate 0.11.1; complete release snapshot, without Git history",
-        "upstream_commit": "76c5a900e6e12cfc605eee5ab6e36300384c8682", "archive_sha256": ARCHIVE_SHA,
+        "project": selected["project"], "upstream_commit": selected["upstream_commit"], "archive_sha256": selected["archive_sha256"],
+        "dependency_lock_sha256": selected.get("dependency_lock_sha256"),
         "implementation_commit": git(ROOT, "rev-parse", "HEAD").stdout.decode().strip(),
-        "agent_execution": "Four fresh collaboration agents, fork_turns=none, inherited parent model and effort, no overrides or task corrections. Cooperative tool boundary.",
+        "agent_execution": execution_note or "Runtime provenance not supplied; consult individual trial transcripts.",
         "pilots": {"interrupted": pilot_names, "reason": "Cargo inherited the containing fr workspace; no valid baseline build. Restarted outside Cargo projects after preflight." if pilot_names else None, "included_in_scored_trials": False},
         "versions": {tool: subprocess.check_output([tool, "--version"], text=True).strip() for tool in ("rustc", "cargo", "git", "python3")},
         "evaluator_files": {str(path.relative_to(ROOT)): digest(path.read_bytes()) for path in
-                            [Path(__file__), ROOT / "tools/agent_eval/oracle.py"]},
+                            [Path(__file__), ROOT / "tools/agent_eval/oracle.py", ROOT / "tools/agent_eval/regex_workspace.py"]},
         "files": {str(path.relative_to(directory)): digest(path.read_bytes()) for path in sorted(directory.rglob("*")) if path.is_file()},
     })
     print(json.dumps({"recorded": str(directory), "trials": trials, "interrupted_pilots": pilot_names}))
@@ -495,6 +556,8 @@ def main():
     prepare_parser = commands.add_parser("prepare")
     prepare_parser.add_argument("--out", type=Path, required=True)
     prepare_parser.add_argument("--fr", type=Path, default=ROOT / "target/debug/fr")
+    prepare_parser.add_argument("--project", choices=("strsim", "regex"), default="strsim")
+    prepare_parser.add_argument("--repetitions", type=int, default=1)
     step_parser = commands.add_parser("step")
     step_parser.add_argument("session", type=Path)
     step_parser.add_argument("request", type=json.loads)
@@ -508,9 +571,10 @@ def main():
     record_parser.add_argument("sessions", type=Path)
     record_parser.add_argument("directory", type=Path)
     record_parser.add_argument("--pilots", type=Path)
+    record_parser.add_argument("--execution-note", help="Actual agent runtime, isolation and intervention details.")
     args = parser.parse_args()
     if args.command == "prepare":
-        prepare(args.out.resolve(), args.fr.resolve())
+        prepare(args.out.resolve(), args.fr.resolve(), args.project, args.repetitions)
     elif args.command == "step":
         step(args.session.resolve(), args.request)
     elif args.command == "score":
@@ -520,7 +584,7 @@ def main():
     elif args.command == "audit-tokens":
         print(json.dumps(audit_tokens(args.directory.resolve()), indent=2))
     else:
-        record(args.sessions.resolve(), args.directory.resolve(), args.pilots.resolve() if args.pilots else None)
+        record(args.sessions.resolve(), args.directory.resolve(), args.pilots.resolve() if args.pilots else None, args.execution_note)
 
 
 if __name__ == "__main__":

@@ -127,3 +127,5 @@ Repeat scoring for the other three session directories before recording a comple
 Recording preserves scored failures too; replay still fails for unsuccessful trials. Preserve all results when reporting an experiment.
 The optional `record --pilots DIRECTORY` includes interrupted infrastructure runs in the archive.
 The evidence manifest records tool versions, implementation commit, binary and archive digests, and evaluator file hashes.
+Use `record --execution-note` to describe the actual runtime and interventions; unspecified provenance remains explicitly unspecified.
+The [workspace evaluation](agent-workspace-evaluation.md) adds project selection and repeated pairs, while retaining this initial evidence.

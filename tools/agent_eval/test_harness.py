@@ -7,6 +7,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 TOOLS = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(TOOLS))
@@ -77,6 +78,21 @@ class WorkflowEvidence(unittest.TestCase):
         events.insert(2, {**self.events[1], "before": intermediate})
         self.assertTrue(self.grade(events)["workflow_ordered"])
 
+    def test_multiple_declared_checks_must_all_pass_at_every_stage(self):
+        events = copy.deepcopy(self.events)
+        for index in (0, 2, 4, 6):
+            visible = json.loads(events[index]["visible"])
+            visible["result"]["results"] = [{"name": name, "passed": True} for name in ("upstream", "minimal")]
+            events[index]["visible"] = json.dumps(visible)
+        required = ("upstream", "minimal")
+        self.assertTrue(harness.workflow(events, self.original, self.changed, required)["workflow_ordered"])
+        for index in (0, 2, 4, 6):
+            changed = copy.deepcopy(events)
+            visible = json.loads(changed[index]["visible"])
+            visible["result"]["results"].pop()
+            changed[index]["visible"] = json.dumps(visible)
+            self.assertFalse(harness.workflow(changed, self.original, self.changed, required)["workflow_ordered"])
+
 
 class Boundaries(unittest.TestCase):
     def test_cargo_ancestor_refuses_before_creating_a_trial(self):
@@ -97,6 +113,63 @@ class Boundaries(unittest.TestCase):
                 result = harness.verify(root, task)
                 self.assertFalse(result["passed"])
                 self.assertEqual(result["stage"], stage, result)
+
+    def test_upstream_signal_failure_is_not_hidden_by_a_later_passing_check(self):
+        with mock.patch.object(harness, "process", side_effect=[{"exit_code": -9}, {"exit_code": 0}]):
+            self.assertEqual(harness.upstream(Path("unused"), "regex-escape-into")["exit_code"], -9)
+
+    def test_repetitions_preserve_pairs_and_legacy_trial_names(self):
+        self.assertEqual([name for name, _, _, _ in harness.trial_names("strsim", 1)],
+                         ["unicode-dice-fr", "unicode-dice-files", "normalized-osa-fr", "normalized-osa-files"])
+        names = harness.trial_names("regex", 2)
+        self.assertEqual(len(set(name for name, _, _, _ in names)), 4)
+        for repetition in (1, 2):
+            self.assertEqual({arm for _, _, arm, repeat in names if repeat == repetition}, {"fr", "files"})
+        for project, repetitions in (("unknown", 1), ("regex", 0), ("regex", 9)):
+            with self.assertRaises(ValueError):
+                harness.trial_names(project, repetitions)
+
+    def test_regex_workspace_retains_real_package_boundaries_and_pinned_lock(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "project"
+            harness.unpack(root, "regex-escape-into")
+            self.assertIn('path = "regex-syntax"', (root / "Cargo.toml").read_text())
+            self.assertIn("pub fn escape_into", (root / "regex-syntax/src/lib.rs").read_text())
+            self.assertNotIn("pub fn escape_into", (root / "src/lib.rs").read_text())
+            self.assertEqual(harness.digest((root / "Cargo.lock").read_bytes()), harness.regex_workspace.LOCK_SHA)
+            harness.initialize(root)
+            self.assertIn("Cargo.lock", harness.snapshot(root))
+            self.assertTrue((root / "LICENSE-MIT").is_file())
+            self.assertGreater(sum(p.stat().st_size for p in root.rglob("*.rs")), 1_000_000)
+
+    def test_record_refuses_an_incomplete_pair_before_creating_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            harness.save(root / "experiment.json", {"project": "regex", "repetitions": 2, "trials": ["regex-escape-into-fr-r1"]})
+            output = root / "evidence"
+            with self.assertRaisesRegex(ValueError, "every planned paired"):
+                harness.record(root, output)
+            self.assertFalse(output.exists())
+
+    def test_scored_failures_without_patches_remain_recordable_and_fail_replay(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            names = [name for name, _, _, _ in harness.trial_names("regex", 1)]
+            harness.save(root / "experiment.json", {"project": "regex", "repetitions": 1, "trials": names})
+            for name in names:
+                trial = root / name
+                (trial / "skill").mkdir(parents=True)
+                (trial / "skill/SKILL.md").write_text("Synthetic test fixture")
+                harness.save(trial / "session.json", {"task": "regex-escape-into"})
+                harness.save(trial / "result.json", {"passed": False})
+                (trial / "prompt.txt").write_text("Synthetic task")
+                (trial / "events.jsonl").write_text("")
+            output = root / "evidence"
+            harness.record(root, output, execution_note="Synthetic regression; no agents")
+            self.assertFalse((output / names[0] / "change.patch").exists())
+            self.assertFalse(json.loads((output / names[0] / "result.json").read_text())["passed"])
+            with self.assertRaisesRegex(ValueError, "Recorded trial failed"):
+                harness.replay(output)
 
     def test_path_escape_and_cross_arm_source_access_refuse(self):
         with tempfile.TemporaryDirectory() as tmp:
