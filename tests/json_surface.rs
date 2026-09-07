@@ -809,3 +809,48 @@ fn failed_commits_emit_one_error_and_never_a_success_report() {
         }
     }
 }
+
+#[test]
+fn failed_spec_checks_emit_one_json_report_with_drift_evidence() {
+    let tmp = workspace(&[
+        ("src/lib.rs", "pub fn allowed(ok: bool) -> bool { ok }\n"),
+        ("specs/Model.lean", ""),
+    ]);
+    for (symbol, mapping) in [
+        (
+            "allowed",
+            "ok: bool => ok: Bool; return: bool => return: Bool",
+        ),
+        (
+            "missing",
+            "ok: bool => ok: Bool; return: bool => return: Bool",
+        ),
+        (
+            "allowed",
+            "ok: usize => ok: Bool; return: bool => return: Bool",
+        ),
+    ] {
+        std::fs::write(
+            tmp.path().join("specs/Model.lean"),
+            format!("-- fr:spec src/lib.rs::{symbol} @ 00000000\n-- fr:signature {mapping}\ndef allowed (ok : Bool) : Bool := ok\n"),
+        )
+        .unwrap();
+        for command in ["check", "verify"] {
+            let mut args = vec!["--json", "spec", command, "specs"];
+            if command == "check" {
+                args.push("--strict");
+            }
+            let (value, _, success) = run_json(&tmp, &args);
+            assert!(!success, "{value}");
+            let report = if command == "verify" {
+                assert_eq!(value["packages"], serde_json::json!([]));
+                &value["report"]
+            } else {
+                &value
+            };
+            assert_eq!(report["anchors"].as_array().unwrap().len(), 1);
+            assert_ne!(report["anchors"][0]["status"], "fresh");
+            assert!(value.get("error").is_none());
+        }
+    }
+}

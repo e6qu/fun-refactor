@@ -5,6 +5,8 @@ Every command `fr` has, what it answers, and what it refuses.
 The binary is `fr`. It reads a workspace, answers questions about it, and
 changes it. There is no daemon, no index to warm and no configuration file.
 
+The portable [fr skill](skills/fr/SKILL.md) teaches an agent how to select bounded queries, review changes and use recovery evidence.
+
 Three conventions hold across the whole surface, and knowing them removes most
 of what you would otherwise have to look up.
 
@@ -440,7 +442,7 @@ the command reads `kernels/` and `specs/`. A model names a declaration with an
 anchor such as `-- fr:spec src/edit.rs::apply_to_string @ 3e192284`. The hash
 comes from the declaration's full source span. A changed hash is stale. A gone or
 ambiguous declaration is missing. The report also counts live `sorry` obligations.
-`--json` returns every anchor as data. Stale and missing anchors exit unsuccessfully.
+`--json` returns every anchor as data. Stale and missing anchors exit unsuccessfully. JSON failures return one report, including its anchor and signature diagnostics.
 
 `sync` turns each stale hash into a reparse-checked Lean edit. It prints the exact
 diff by default and commits every renewal together with `--write`. A missing target
@@ -460,7 +462,7 @@ the CI mode for a kernel tree that treats a source hash alone as incomplete evid
 
 `verify` always runs that strict correspondence check first. When it passes, the command
 finds the `lakefile.lean` or `lakefile.toml` owning each selected spec and runs
-`lake build --wfail` once per package. It writes nothing. JSON includes the strict report,
+`lake build --wfail` once per package. Lake can write build artifacts; `fr` does not edit source. JSON includes the strict report,
 each package, its result, and Lean's output.
 
 ## Crossing languages

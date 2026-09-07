@@ -1034,6 +1034,9 @@ fn cmd_spec_check(cli: &Cli, paths: &[PathBuf], strict: bool) -> Result<()> {
     };
     if cli.json {
         println!("{}", serde_json::to_string_pretty(&report)?);
+        if !report.ok() {
+            std::process::exit(1);
+        }
     } else {
         for anchor in &report.anchors {
             let target = format!("{}::{}", anchor.source.display(), anchor.symbol);
@@ -1137,6 +1140,10 @@ fn cmd_spec_verify(cli: &Cli, paths: &[PathBuf]) -> Result<()> {
     let verification = crate::spec::verify(&root, paths, !cli.no_ignore)?;
     if cli.json {
         println!("{}", serde_json::to_string_pretty(&verification)?);
+        if !verification.report.ok() || verification.packages.iter().any(|package| !package.passed)
+        {
+            std::process::exit(1);
+        }
     } else {
         println!(
             "{} fresh anchor(s); {} unproved obligation(s).",

@@ -67,6 +67,11 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B840: **failed spec checks emitted two JSON objects.**
+  Failures printed a report followed by a second JSON error object.
+  JSON check and verify now emit one structured report and retain their unsuccessful exit status.
+  Agent skill examples and JSON regressions cover these failures.
+
 - [x] B837: **a failed multi-file commit left earlier replacements in place.**
   The commit loop renamed staged files one at a time and had no recovery path.
   It now stages recovery copies, restores earlier targets in reverse order and removes new files on failure.

@@ -20,6 +20,9 @@ reads one language at a time, so it cannot follow a name across that boundary.
 New here? Read [docs/terminology.md](docs/terminology.md) for the words this project
 uses. [TUTORIAL.md](TUTORIAL.md) walks through a real repository.
 
+For an agent handoff, use the portable [fr skill](skills/fr/SKILL.md).
+[Agent skill validation](docs/agent-skill.md) describes its task-specific references, executable examples and measured limits.
+
 ## Why
 
 Language servers work well for the four largest ecosystems. Elsewhere you find a thin

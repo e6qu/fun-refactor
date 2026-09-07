@@ -20,7 +20,7 @@ A supported cell describes an operation's scope; particular inputs can still req
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 681 |
+| Defects fixed | 682 |
 | Defects open | 1 |
 
 Implemented foundations:
@@ -43,6 +43,7 @@ Important gaps:
 - Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist. Raw staging and journaled index undo/redo are available on Unix. Reviewed commits are available with explicit index and HEAD bases. Worktree inspection reports registered workspaces with revision-bound pages. Reviewed creation adds raw checkouts on new or unused existing branches on Unix. Ownership receipts support checked completion of incomplete worktrees and reviewed removal of clean worktrees. Removal archives support inspection, checked resumption and reviewed compaction to audit summaries. Shared browser patch semantics remain pending.
 - Strict spec signature maps currently accept Rust source declarations only.
 - Framework readers cover selected patterns. Whole applications still need dependency and runtime work.
+- The portable agent skill covers exploration, changes, history, Git and Lean. Real-agent evaluation and bounded declaration/body authoring remain pending.
 - Model proofs and shared executable cases do not establish general correspondence with the Rust implementation.
 
 ## Product contract
@@ -776,10 +777,24 @@ Tests cover dirty repositories, staged changes, untracked files and conflicts.
 
 ### M4. Agent skills and bounded code authoring
 
-Ship a small introductory skill with references for exploration, changes, recovery, Git and Lean.
-Validate example commands against the released binary.
-Use capability discovery and the recipe vocabulary when choosing an operation.
-Load specialized instructions only when the task needs them.
+M4a: portable agent handoff and executable examples (complete).
+
+- Add `skills/fr` with a small entrypoint and separate exploration, change, history, Git and Lean references.
+- Include the portable skill in native release archives without installing it globally.
+- Execute every fenced command example against a selected binary in temporary source and Lean projects.
+- Check stale handles and plans, recipe expectations, behavior, undo/redo, patch application and failing Lean claims.
+- Keep failed JSON spec checks parseable as one report while retaining unsuccessful exit status (B840).
+- Bound introductory context and measure fixture output bytes without claiming agent success or token savings.
+
+See [agent skill validation](docs/agent-skill.md) for the 31 examples, measurements and evidence limits.
+Validation passes the full native/WASM gate, 311/311 capability coverage and all 29 Lean build jobs.
+Strict verification retains twenty-one fresh source anchors and signature maps and zero `sorry` obligations.
+The skill validator and local archive check pass. Real-agent evaluation and release-platform execution remain separate work.
+
+Next M4 work:
+
+Evaluate the handoff with real agents on pinned projects and measure correctness, context use and refusals.
+Keep examples compatible with the distributed binary and load specialized references only when needed.
 
 Add bounded insertion and replacement of declarations or bodies where existing refactorings cannot express a change.
 Reuse revision checks, edit planning, syntax validation and history.
