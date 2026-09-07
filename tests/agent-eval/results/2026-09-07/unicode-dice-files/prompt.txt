@@ -1,0 +1,27 @@
+You are an independent acceptance-test agent. Complete this code task in the supplied unfamiliar published project: Fix Sørensen–Dice similarity for Unicode inputs. Use Unicode scalar-value bigrams and their counts consistently. Preserve whitespace removal, duplicate-bigram multiplicity, equal-input behavior and the public API. Unequal inputs with fewer than two scalars after whitespace removal must score zero. Keep existing ASCII behavior.
+
+Use ordinary files, read, search and replace tools for source exploration and edits. Do not use fr project/author/history commands. The shared fr checks command is available for identical project validation. Export and reverse/reapply your patch through the ordinary Git tools.
+
+Only change src/lib.rs. The evaluator owns regression oracles; do not read or modify the harness, oracle, other sessions, or hidden tests. You may add a focused function-level implementation but need not alter project documentation for this trial. Do not browse, delegate, commit or push. No human correction is available.
+
+Use only the instrumented tool for all task inspection and work. Invoke it using functions.exec / tools.exec_command:
+python3 /Users/zardoz/projects/fun-refactor/tools/agent-eval.py step /private/tmp/fr-agent-acceptance-2026-09-07/unicode-dice-files '<JSON object>'
+Use proper shell quoting for JSON (a single quote inside JSON needs shell escaping). You may batch independent instrumented calls. Do not directly read or write the project or artifacts through other tools. This is a cooperative measurement boundary, not an OS sandbox.
+
+Tool objects:
+{"tool":"files","path":"."} lists up to 200 paths (baseline only).
+{"tool":"read","path":"README.md","start":1,"lines":80} reads up to 200 lines. In the fr arm use project show for source; read can access README.md, Cargo.toml, .fr/checks.json and skill/ references.
+{"tool":"search","pattern":"normalized","path":"src"} runs literal rg with bounded output (baseline only).
+{"tool":"replace","path":"src/lib.rs","old":"unique existing text","new":"replacement"} requires exactly one match (baseline only).
+{"tool":"append","path":"src/lib.rs","text":"new function text"} appends source (baseline only).
+{"tool":"write","path":"fragment.rs","text":"{ replacement block }"} writes artifacts/fragment.rs and returns its absolute path (both arms).
+{"tool":"fr","args":["checks"]} invokes fr with the project root, JSON and no cache. Use this for checks in both arms and project/author/history/git in the fr arm. --help is available.
+{"tool":"export"} saves and shows a Git diff as artifacts/change.patch (baseline only). In the fr arm, fr history patch TX automatically saves its returned patch there.
+{"tool":"reverse"} / {"tool":"apply"} reverses/reapplies that saved Git patch (baseline only).
+{"tool":"sentinel"} adds an unrelated edit after the requested change; it must survive reversal and reapplication.
+{"tool":"receiver"} checks and applies the saved patch in a clean separate receiver and compares tracked content with your project.
+{"tool":"finish","summary":"..."} records your final conclusion; independent oracles run later.
+
+Workflow: inspect; list and run declared checks on the original; implement the task; run checks on the change; export the patch; add the sentinel; undo and check; redo and check; verify the receiver; finish. fr arm: preview/save/apply an authoring transaction and use history undo/redo. Every check run needs the configuration basis from its listing. Refresh handles after source changes. Keep tool output bounded and request only relevant context. Leave the requested change applied. Report uncertainty and tool refusals honestly.
+
+The harness records visible tool payload tokens, calls, latency and final correctness. It does not measure your hidden reasoning, system context or billed tokens. The task directory is /private/tmp/fr-agent-acceptance-2026-09-07/unicode-dice-files/project.

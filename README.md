@@ -25,6 +25,7 @@ For an agent handoff, use the portable [fr skill](skills/fr/SKILL.md).
 [Function authoring](docs/body-authoring.md) adds bounded Rust, TypeScript and TSX implementation changes through project handles and source-history transactions.
 [Project checks](docs/project-checks.md) selects declared validation commands and reports bounded results and coverage claims.
 [Development continuity](docs/continuity.md) records the active milestone, evidence and remaining work for the next session.
+[Real-agent acceptance](docs/agent-acceptance.md) records four passing trials, reversible patches and the measured context overhead against ordinary file tools.
 Rust function declaration replacement also supports combined signature and implementation changes.
 Declaration insertion appends a Rust function through a file handle while retaining existing code.
 
@@ -139,8 +140,9 @@ fr stitch                     # config values traced into the code reading them
 fr entrypoints --kind http-route
 ```
 
-Every command takes `--json`. Every mutation prints a diff and changes nothing until
-you add `--write`. [CLI.md](CLI.md#write-guarantees) states the commit and recovery guarantees.
+Every command takes `--json`. Source refactorings preview their diff; `--write` applies it and `--save-plan` records a plan.
+`checks --run` executes declared project commands outside source history.
+[CLI.md](CLI.md#write-guarantees) states the commit and recovery guarantees and command-specific exceptions.
 
 `fr` indexes files in parallel and caches the facts it extracts by file content and
 query set. A repeated command therefore re-reads only what changed, roughly 1.7×

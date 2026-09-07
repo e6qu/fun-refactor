@@ -12,8 +12,8 @@ Three conventions hold across the whole surface, and knowing them removes most
 of what you would otherwise have to look up.
 
 **Every command takes `--json`.** The text output is for reading and the JSON is
-for a program. Both carry the same facts. The JSON writes every path
-absolutely, under the key `file`. History records use workspace-relative `path` values.
+for a program. Both carry the same facts. Analysis records commonly use absolute `file` paths.
+Project, history, Git and check reports also use paths relative to their reported root.
 
 **Every mutation is a dry run until you say otherwise.** A command that changes
 files prints a unified diff and exits. Pass `--write` to apply it. `--save-plan` stores a plan without changing source.
@@ -26,7 +26,7 @@ half the work, and does not do nothing quietly.
 
 ## Write guarantees
 
-Native CLI writes record a transaction in `.fr-history/state.json` before changing source.
+Native source editing commands record a transaction in `.fr-history/state.json` before changing source.
 The journal stores before/after text, existence, Unix permission modes, validation labels and source digests.
 Replacements use staged files and filesystem renames. Other processes can observe intermediate states.
 A handled failure restores the starting snapshots when the current files still match this transaction.

@@ -60,10 +60,14 @@ The initial measurements were:
 | Exploration command output | 11,223 |
 | Fixture Python source | 66,735 |
 
-These figures describe a synthetic project with deliberately unrelated background source.
-They are not model token counts, a real-project benchmark or evidence of autonomous agent success.
+These initial figures describe a synthetic project with deliberately unrelated background source.
+They are not model token counts or evidence of autonomous agent success.
 Path lengths and later documentation changes can change the byte counts; the checker prints fresh measurements.
 The native packaging change has a local archive check; release uploads and other platform builds require their normal release jobs.
+
+The [first real-agent evaluation](agent-acceptance.md) now records two fr tasks and their ordinary-file comparisons on a pinned public Rust release.
+Both fr tasks pass independent behavioral oracles, declared checks and reversible patch workflows without human corrections.
+They consume more retrieved context than the file trials. The evidence supports those workflows and leaves context optimization open.
 
 ## Remaining roadmap
 
@@ -72,6 +76,6 @@ Body replacement supports Rust, TypeScript and TSX declarations and methods, plu
 Rust function declaration replacement can change signatures and implementations together, preserving the name and outer attributes.
 Declaration insertion appends a Rust function through a file handle, retaining all existing source bytes.
 Declared project-check selection now has a configuration digest and bounded execution reports.
-Real-agent evaluation and further authoring operations remain open.
+Broader real-agent evaluation, context optimization and further authoring operations remain open.
 M5 still owns automated Lean package initialization and model scaffolding.
 The skill does not claim complete framework migration, worktree undo/redo or general implementation verification.

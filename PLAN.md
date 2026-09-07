@@ -33,6 +33,8 @@ Implemented foundations:
 - Next.js/FastAPI route conversion and OpenAPI service scaffolds, with explicit limits.
 - Local recipes, expectations, workspace previews and canonical formatting.
 - Native releases, a WASM API, a browser playground and patch downloads.
+- Declared project checks with reviewed configuration digests, command outcomes and bounded output.
+- Four passing agent trials on a pinned Rust release, paired context measurements and replayable patches with independent behavioral oracles.
 - Lean edit, position, history, patch, pagination, confidence and workspace membership models, source anchors, signature maps and `spec check`, `sync` and `verify`.
 
 Important gaps:
@@ -43,7 +45,7 @@ Important gaps:
 - Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist. Raw staging and journaled index undo/redo are available on Unix. Reviewed commits are available with explicit index and HEAD bases. Worktree inspection reports registered workspaces with revision-bound pages. Reviewed creation adds raw checkouts on new or unused existing branches on Unix. Ownership receipts support checked completion of incomplete worktrees and reviewed removal of clean worktrees. Removal archives support inspection, checked resumption and reviewed compaction to audit summaries. Shared browser patch semantics remain pending.
 - Strict spec signature maps currently accept Rust source declarations only.
 - Framework readers cover selected patterns. Whole applications still need dependency and runtime work.
-- The portable agent skill covers exploration, changes, history, Git and Lean. Rust, TypeScript and TSX body replacement uses project handles and source history. Direct TypeScript/TSX function bindings support block bodies. Rust function declaration replacement can change signatures and implementations together. Rust function insertion appends through file handles. Real-agent evaluation, wrapped initializers and nested declaration insertion remain pending.
+- The portable agent skill covers exploration, changes, declared checks, history, Git and Lean. Rust, TypeScript and TSX body replacement uses project handles and source history. Direct TypeScript/TSX function bindings support block bodies. Rust function declaration replacement can change signatures and implementations together. Rust function insertion appends through file handles. Broader agent evaluation, context reduction, wrapped initializers and nested declaration insertion remain pending.
 - Model proofs and shared executable cases do not establish general correspondence with the Rust implementation.
 
 ## Product contract
@@ -394,8 +396,8 @@ Next M2b work:
 
 - Extend workspace rules beyond the observed Cargo subset and strengthen implementation correspondence.
 - Extend request/model reference evidence and remaining schema subsets without guessing imports or runtime validation.
-- Evaluate bounded inspection tasks on unfamiliar repositories with an agent, a pinned tokenizer and correctness checks.
-- Measure model tokens and task success against file reading, including additional calls and uncertainty.
+- Extend the M4h paired agent evaluation to additional repositories and larger tasks with a pinned tokenizer and correctness checks.
+- Reduce the observed inspection overhead, then measure context and task success again, including additional calls and uncertainty.
 - Improve repeated-query cost and bound analysis work where measurements justify it.
 
 Exit: agents answer project questions and identify change sites without loading unrelated implementations.
@@ -873,16 +875,24 @@ The portable skill now exercises 33 examples. Its validator and the full native/
 Validation retains 311/311 capability coverage and all 29 Lean build jobs.
 Process execution and declared coverage have test evidence; they do not carry formal correctness claims.
 
-M4h: measured real-agent acceptance (in progress).
+M4h: measured real-agent acceptance (complete).
 
 Two tasks on the pinned strsim 0.11.1 release pair fresh agents using fr and ordinary file tools.
 The harness records visible context, calls, timing, refusals and exact source transitions.
 Independent oracles check Unicode similarity and normalized OSA behavior, including clean patch receivers.
 Trials include declared checks, patch export, undo/redo and preservation of an unrelated edit.
+All four valid trials pass upstream tests and independent oracles without tool refusals or human task corrections.
+The fr trials consume 18,628 and 17,370 retrieved-context tokens; ordinary-file trials consume 9,469 and 10,393.
+These small-project results establish working agent transactions and identify context overhead for the next optimization.
+Retained prompts, transcripts, patches and token audits support reproducible behavioral replay.
+Ten harness regressions and replay of all four patches pass. The full native/WASM gate and exact token audit pass.
+Validation retains 311/311 capability coverage, 29 Lean build jobs and twenty-two fresh source anchors with zero `sorry` obligations.
+See [real-agent acceptance](docs/agent-acceptance.md) for provenance, pilot failures, measurement scope and limits.
 
 Next M4 work:
 
-Evaluate the handoff with real agents on pinned projects and measure correctness, context use and refusals.
+Extend paired real-agent evaluation beyond the first Rust project and reduce the observed context overhead.
+Prioritize bounded declaration lookup, unnecessary handle refreshes and successful check/report verbosity, then repeat the paired measurement.
 Keep examples compatible with the distributed binary and load specialized references only when needed.
 
 Extend body authoring to selected wrapped initializers or additional languages, and support nested insertion or further declaration kinds.

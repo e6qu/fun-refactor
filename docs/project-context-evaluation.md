@@ -45,6 +45,8 @@ The Lean page-length model proves bounds, progress and partition laws.
 A corpus of 1,728 cases compares its arithmetic with Rust on 64-bit hosts.
 These proofs do not establish parser correctness or agent task success.
 
-M2b must measure model tokens with a pinned tokenizer, tool calls, retrieved contracts and task outcomes.
-It must include package boundaries, implementation relationships, framework facts and relevant tests.
-The current evaluator reports `model_tokens: null` rather than estimating tokens from byte counts.
+The [real-agent acceptance evaluation](agent-acceptance.md) now measures four task outcomes and retrieved context with a pinned reference tokenizer.
+Both fr tasks pass, but their retrieved context exceeds the ordinary-file baseline on the small Rust project.
+Those task measurements do not replace this script's structural identity checks.
+`tools/project-context.py` still reports `model_tokens: null` rather than estimating tokens from byte counts.
+Broader evaluation must cover package boundaries, implementation relationships, framework facts and relevant tests on additional projects.

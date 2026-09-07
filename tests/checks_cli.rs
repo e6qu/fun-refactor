@@ -154,6 +154,30 @@ fn timeout_reports_failure_and_returns_without_waiting_for_inherited_pipes() {
 }
 
 #[test]
+fn oversized_capture_fails_even_when_the_child_exits_successfully() {
+    let root = fixture(vec![check(
+        "excess",
+        "import os; os.write(1, b'\\xff' * (17 * 1024 * 1024))\n\n",
+    )]);
+    let report = run(
+        &root,
+        &[
+            "--run",
+            "excess",
+            "--basis",
+            &basis(&root),
+            "--output-bytes",
+            "1",
+        ],
+        1,
+    );
+    assert_eq!(report["results"][0]["passed"], false);
+    assert_eq!(report["results"][0]["output_limit_exceeded"], true);
+    assert_eq!(report["results"][0]["stdout"]["retained_bytes"], 1);
+    assert_eq!(report["results"][0]["stdout"]["text"], "\u{fffd}");
+}
+
+#[test]
 fn argv_is_literal_and_cwd_is_the_declared_directory() {
     let mut literal = check(
         "literal",
