@@ -6,7 +6,13 @@ open FrKernels.Project
 def samples : List Nat := [0, 1, 2, 3, 4, 79, 80, 499, 500, 65536, 4294967295, 18446744073709551615]
 
 def main (args : List String) : IO Unit := do
-  if args == ["worktree-branch-selection"] then
+  if args == ["worktree-archive-compaction"] then
+    for complete in [false, true] do
+      for checkoutAbsent in [false, true] do
+        for metadataAbsent in [false, true] do
+          for unlocked in [false, true] do
+            IO.println (FrKernels.Git.worktreeArchiveCompactionAllowed complete checkoutAbsent metadataAbsent unlocked)
+  else if args == ["worktree-branch-selection"] then
     for existing in [false, true] do
       for present in [false, true] do
         for occupied in [false, true] do

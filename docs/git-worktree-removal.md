@@ -65,7 +65,7 @@ The archive retains the reviewed metadata and identifies the retained source com
 Absence of a `complete` marker requires inspection; it does not establish which deletions occurred.
 [Removal inspection and checked resumption](git-worktree-removal-resumption.md) accept missing paths and matching survivors. Worktree undo/redo remains pending.
 Creation recovery refuses completed receipts and must not be used to reverse partial removal.
-Archives currently have no retention or compaction command.
+Completed records support [reviewed archive compaction](git-worktree-archive-compaction.md), retaining a small audit summary. Bulk retention remains pending.
 
 Locks coordinate cooperating Git and `fr` writers. Existing and replacement locks are preserved.
 Crashes can leave locks requiring manual ownership review. Readers do not take these locks.

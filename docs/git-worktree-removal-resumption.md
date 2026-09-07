@@ -73,7 +73,9 @@ Resumption does not recreate deleted paths or perform worktree undo/redo.
 Crashes can leave locks requiring manual ownership review.
 Observation and unlinking are separate filesystem operations; hostile concurrent path replacement remains outside complete race protection.
 Neither deletion nor completion is an atomic transaction across all involved paths.
-Archive retention and compaction remain pending.
+Completed records support [reviewed compaction](git-worktree-archive-compaction.md). Bulk archive retention remains pending.
+When a compaction summary is present, this command returns a small audit report with `can_resume: false` and no per-file rows.
+Use the original record path with `compact-removal` to inspect or finish compaction.
 
 ## Formal coverage
 

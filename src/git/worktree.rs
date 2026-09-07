@@ -21,6 +21,25 @@ pub enum Command {
     Remove(RemoveOptions),
     #[command(about = "Inspect or resume a recorded incomplete worktree removal.")]
     ResumeRemoval(ResumeRemovalOptions),
+    #[command(about = "Preview or compact a completed worktree removal archive.")]
+    CompactRemoval(CompactRemovalOptions),
+}
+
+#[derive(Args)]
+pub struct CompactRemovalOptions {
+    #[arg(help = "Removal record.json path, relative to the repository root or absolute.")]
+    record: std::path::PathBuf,
+    #[arg(
+        long,
+        help = "Require the reviewed completed archive and absent worktree paths."
+    )]
+    basis: Option<String>,
+    #[arg(
+        long,
+        requires = "basis",
+        help = "Retain an audit summary and discard the full recovery record."
+    )]
+    write: bool,
 }
 
 #[derive(Args)]
@@ -138,6 +157,10 @@ pub(super) fn report(root: &Path, command: &Command) -> Result<Value> {
         Command::Remove(options) => create::removal::report(root, options),
         #[cfg(unix)]
         Command::ResumeRemoval(options) => create::removal::resume::report(root, options),
+        #[cfg(unix)]
+        Command::CompactRemoval(options) => create::removal::compact::report(root, options),
+        #[cfg(not(unix))]
+        Command::CompactRemoval(_) => bail!("removal compaction requires Unix ownership checks."),
         #[cfg(not(unix))]
         Command::ResumeRemoval(_) => bail!("removal resumption requires Unix ownership checks."),
         #[cfg(not(unix))]

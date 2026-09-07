@@ -8,9 +8,10 @@ use std::io::Write;
 use std::path::Path;
 
 mod inspect;
-mod record;
+pub(super) mod record;
 
-const COMPLETE: &[u8] = b"Removal completed. The recorded branch and commit were retained.\n";
+pub(super) const COMPLETE: &[u8] =
+    b"Removal completed. The recorded branch and commit were retained.\n";
 
 fn basis(loaded: &record::Loaded, observed: &inspect::Observation) -> Result<String> {
     Ok(format!(
@@ -147,6 +148,20 @@ pub(in crate::git::worktree) fn report(
         (1..=500).contains(&options.limit),
         "limit must be between 1 and 500."
     );
+    if let Some(mut result) = super::compact::inspection(root, &options.record)? {
+        ensure!(
+            !options.write,
+            "compaction summaries cannot resume worktree removal."
+        );
+        if let Some(expected) = &options.basis {
+            ensure!(
+                result["basis"].as_str() == Some(expected),
+                "stale compacted removal inspection basis."
+            );
+        }
+        result["basis_verified"] = json!(options.basis.is_some());
+        return Ok(result);
+    }
     let loaded = record::Loaded::read(root, &options.record)?;
     let observed = inspect::observe(&loaded, false)?;
     let token = basis(&loaded, &observed)?;

@@ -292,4 +292,23 @@ theorem attachment_preserves_refs (refs after : String → Option String) (branc
     rfl
   · contradiction
 
+-- fr:spec src/git.rs::worktree_archive_compaction_allowed @ 60422154d4888d098c8a17d82b7d29cbc4da8b5403033342bcc10dd269569ecd
+-- fr:signature complete: bool => complete: Bool; checkout_absent: bool => checkoutAbsent: Bool; metadata_absent: bool => metadataAbsent: Bool; unlocked: bool => unlocked: Bool; return: bool => return: Bool
+def worktreeArchiveCompactionAllowed (complete : Bool) (checkoutAbsent : Bool) (metadataAbsent : Bool) (unlocked : Bool) : Bool :=
+  complete && checkoutAbsent && metadataAbsent && unlocked
+
+theorem archive_compaction_requires_completion_and_absence (complete checkoutAbsent metadataAbsent unlocked : Bool)
+    (allowed : worktreeArchiveCompactionAllowed complete checkoutAbsent metadataAbsent unlocked = true) :
+    complete = true ∧ checkoutAbsent = true ∧ metadataAbsent = true ∧ unlocked = true := by
+  cases complete <;> cases checkoutAbsent <;> cases metadataAbsent <;> cases unlocked <;>
+    simp_all [worktreeArchiveCompactionAllowed]
+
+def compactArchive (archive : String × Option String) : String × Option String := (archive.1, none)
+
+theorem archive_compaction_preserves_audit (archive : String × Option String) :
+    (compactArchive archive).1 = archive.1 := by rfl
+
+theorem archive_compaction_is_idempotent (archive : String × Option String) :
+    compactArchive (compactArchive archive) = compactArchive archive := by rfl
+
 end FrKernels.Git

@@ -10,6 +10,7 @@ use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 
 use super::branch;
+pub(in crate::git::worktree) mod compact;
 pub(in crate::git::worktree) mod resume;
 
 #[derive(Deserialize, Serialize, PartialEq)]
@@ -46,7 +47,11 @@ impl FileState {
     }
 
     fn remove(&self, path: &Path) -> Result<()> {
-        let current = Self::read(path)?;
+        self.remove_limited(path, 64 * 1024 * 1024)
+    }
+
+    fn remove_limited(&self, path: &Path, limit: u64) -> Result<()> {
+        let current = Self::read_limited(path, limit)?;
         ensure!(
             crate::git::worktree_removal_file_allowed(
                 self.identity == current.identity,

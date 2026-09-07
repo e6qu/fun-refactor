@@ -1197,6 +1197,13 @@ Inspection returns `can_resume`, bounded rows and full counts, with blockers fir
 Only `applied: true` confirms completion; inspect the same record again after an uncertain result.
 See [removal resumption](docs/git-worktree-removal-resumption.md) for archive validation and remaining limits.
 
+`fr git worktree compact-removal RECORD` previews compaction of one completed removal archive.
+`--basis TOKEN --write` saves an audit summary before deleting the full recovery record.
+Incomplete removals, reappeared paths and active locks block compaction. Compaction discards recovery data; `fr` cannot restore it.
+Keep the original record path for inspection and retry, including after compaction removes that file.
+`resume-removal` recognizes compaction summaries as audit reports with `can_resume: false`.
+See [archive compaction](docs/git-worktree-archive-compaction.md) for retained data, review fields and interrupted writes.
+
 ### `fr cache`
 
 ```

@@ -239,3 +239,12 @@ pub fn worktree_removal_resume_allowed(
 pub fn worktree_branch_selection_allowed(existing: bool, present: bool, occupied: bool) -> bool {
     !occupied && existing == present
 }
+
+pub fn worktree_archive_compaction_allowed(
+    complete: bool,
+    checkout_absent: bool,
+    metadata_absent: bool,
+    unlocked: bool,
+) -> bool {
+    complete && checkout_absent && metadata_absent && unlocked
+}

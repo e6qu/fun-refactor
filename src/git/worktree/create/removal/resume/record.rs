@@ -17,19 +17,19 @@ struct Record {
     gitfile_bytes: Vec<u8>,
 }
 
-pub(super) struct Tree {
-    pub(super) root: PathBuf,
-    pub(super) files: BTreeMap<String, FileState>,
-    pub(super) directories: BTreeMap<String, (u64, u64)>,
+pub(in crate::git::worktree::create::removal) struct Tree {
+    pub(in crate::git::worktree::create::removal) root: PathBuf,
+    pub(in crate::git::worktree::create::removal) files: BTreeMap<String, FileState>,
+    pub(in crate::git::worktree::create::removal) directories: BTreeMap<String, (u64, u64)>,
 }
 
-pub(super) struct Loaded {
-    pub(super) root: PathBuf,
-    pub(super) path: PathBuf,
-    pub(super) archive_identity: (u64, u64),
-    pub(super) raw: FileState,
-    pub(super) plan: Proposal,
-    pub(super) trees: [Tree; 2],
+pub(in crate::git::worktree::create::removal) struct Loaded {
+    pub(in crate::git::worktree::create::removal) root: PathBuf,
+    pub(in crate::git::worktree::create::removal) path: PathBuf,
+    pub(in crate::git::worktree::create::removal) archive_identity: (u64, u64),
+    pub(in crate::git::worktree::create::removal) raw: FileState,
+    pub(in crate::git::worktree::create::removal) plan: Proposal,
+    pub(in crate::git::worktree::create::removal) trees: [Tree; 2],
 }
 
 fn absolute(path: &Path) -> bool {
@@ -39,31 +39,43 @@ fn absolute(path: &Path) -> bool {
             .all(|part| matches!(part, Component::RootDir | Component::Normal(_)))
 }
 
+pub(in crate::git::worktree::create::removal) fn location(
+    root: &Path,
+    path: &Path,
+) -> Result<(PathBuf, PathBuf, PathBuf)> {
+    let requested = root.canonicalize()?;
+    let root = crate::git::process::repository_root(&requested)?;
+    ensure!(
+        requested.starts_with(&root),
+        "Git resolved a working tree outside the requested directory."
+    );
+    let shared = common(&root)?;
+    let input = root.join(path);
+    let parent = input
+        .parent()
+        .context("removal record needs a directory.")?;
+    directory(parent)?;
+    let parent = parent.canonicalize()?;
+    ensure!(
+        input.file_name().is_some_and(|name| name == "record.json")
+            && parent.parent() == Some(shared.as_path())
+            && parent
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.starts_with("fr-worktree-removal-")),
+        "removal record must be inside its shared repository archive."
+    );
+    let path = parent.join("record.json");
+    Ok((root, shared, path))
+}
+
 impl Loaded {
-    pub(super) fn read(root: &Path, path: &Path) -> Result<Self> {
-        let requested = root.canonicalize()?;
-        let root = crate::git::process::repository_root(&requested)?;
-        ensure!(
-            requested.starts_with(&root),
-            "Git resolved a working tree outside the requested directory."
-        );
-        let shared = common(&root)?;
-        let input = root.join(path);
-        let parent = input
-            .parent()
-            .context("removal record needs a directory.")?;
-        directory(parent)?;
-        let parent = parent.canonicalize()?;
-        ensure!(
-            input.file_name().is_some_and(|name| name == "record.json")
-                && parent.parent() == Some(shared.as_path())
-                && parent
-                    .file_name()
-                    .and_then(|name| name.to_str())
-                    .is_some_and(|name| name.starts_with("fr-worktree-removal-")),
-            "removal record must be inside its shared repository archive."
-        );
-        let path = parent.join("record.json");
+    pub(in crate::git::worktree::create::removal) fn read(
+        root: &Path,
+        path: &Path,
+    ) -> Result<Self> {
+        let (root, shared, path) = location(root, path)?;
+        let parent = path.parent().unwrap().to_owned();
         let raw = FileState::read_limited(&path, 128 * 1024 * 1024)?;
         let mut record: Record =
             serde_json::from_slice(&raw.bytes).context("invalid removal archive.")?;
@@ -283,7 +295,7 @@ impl Loaded {
         })
     }
 
-    pub(super) fn check(&self) -> Result<()> {
+    pub(in crate::git::worktree::create::removal) fn check(&self) -> Result<()> {
         ensure!(
             directory(self.path.parent().unwrap())? == self.archive_identity
                 && FileState::read_limited(&self.path, 128 * 1024 * 1024)? == self.raw,

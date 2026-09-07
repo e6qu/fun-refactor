@@ -40,7 +40,7 @@ Important gaps:
 - `fr project` adds bounded maps, revision-bound details, call relationships and Cargo/npm manifest views. Complete dependency resolution and framework semantics remain pending.
 - Native changes now have persistent history and checked undo/redo. History retention and large-journal scaling need further work.
 - Browser undo restores the loaded workspace; it does not reverse individual transactions.
-- Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist. Raw staging and journaled index undo/redo are available on Unix. Reviewed commits are available with explicit index and HEAD bases. Worktree inspection reports registered workspaces with revision-bound pages. Reviewed creation adds raw checkouts on new or unused existing branches on Unix. Ownership receipts support checked completion of incomplete worktrees and reviewed removal of clean worktrees. Removal archives support inspection and checked resumption. Shared browser patch semantics remain pending.
+- Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist. Raw staging and journaled index undo/redo are available on Unix. Reviewed commits are available with explicit index and HEAD bases. Worktree inspection reports registered workspaces with revision-bound pages. Reviewed creation adds raw checkouts on new or unused existing branches on Unix. Ownership receipts support checked completion of incomplete worktrees and reviewed removal of clean worktrees. Removal archives support inspection, checked resumption and reviewed compaction to audit summaries. Shared browser patch semantics remain pending.
 - Strict spec signature maps currently accept Rust source declarations only.
 - Framework readers cover selected patterns. Whole applications still need dependency and runtime work.
 - Model proofs and shared executable cases do not establish general correspondence with the Rust implementation.
@@ -748,9 +748,24 @@ Shared Rust/Lean cases cover all eight branch-selection inputs.
 Validation passes the full native/WASM gate, 311/311 capability coverage and all 29 Lean build jobs.
 Strict verification passes with twenty fresh source anchors and signature maps and zero `sorry` obligations.
 
+M3w: reviewed compaction of completed removal archives (complete).
+
+- Add `fr git worktree compact-removal RECORD` with a review basis and a bounded audit preview.
+- Require a completed removal, absent target roots and an owned archive lease before discarding recovery data.
+- Save and synchronize a small audit summary before unlinking the exact reviewed full record.
+- Retain the completion marker and unrelated archive files; preserve refs and the invoking worktree.
+- Inspect compacted records through their original paths and resume interrupted compaction with a fresh review.
+- Anchor the compaction guard in Lean and prove abstract audit preservation and idempotence.
+
+See [archive compaction](docs/git-worktree-archive-compaction.md) for retained data, irreversible discard and failure limits.
+Eight CLI scenarios cover audit inspection, blockers, stale bases, unsafe archives, interrupted publication, replacement locks and linked SHA-256 invocation.
+Shared Rust/Lean cases cover all sixteen compaction-guard inputs.
+Validation passes the full native/WASM gate, 311/311 capability coverage and all 29 Lean build jobs.
+Strict verification passes with twenty-one fresh source anchors and signature maps and zero `sorry` obligations.
+
 Next M3 work:
 
-Extend raw file modes and per-worktree configuration support, and add archive retention and compaction.
+Extend raw file modes and per-worktree configuration support, and add bulk archive retention.
 Extend recovery across failures before receipt publication and improve stale-lock and crash-state inspection.
 Extend selected flag replay and add staging journal retention and compaction.
 Keep Git optional for ordinary analysis and transaction history.
