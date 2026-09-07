@@ -40,7 +40,7 @@ Important gaps:
 - `fr project` adds bounded maps, revision-bound details, call relationships and Cargo/npm manifest views. Complete dependency resolution and framework semantics remain pending.
 - Native changes now have persistent history and checked undo/redo. History retention and large-journal scaling need further work.
 - Browser undo restores the loaded workspace; it does not reverse individual transactions.
-- Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist; staging and shared browser patch semantics remain pending.
+- Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist. Raw staging is available on Unix; staging recovery and shared browser patch semantics remain pending.
 - Strict spec signature maps currently accept Rust source declarations only.
 - Framework readers cover selected patterns. Whole applications still need dependency and runtime work.
 - Model proofs and shared executable cases do not establish general correspondence with the Rust implementation.
@@ -600,7 +600,7 @@ M3m: explicit-path staging previews (complete).
 - Recheck selected sources and index entries while allowing unrelated staged changes and conflicts.
 - Share snapshot readers with call inspection, retaining filter, path, encoding and symlink guards.
 - Support untracked additions, tracked updates/removals, unborn repositories, linked worktrees and SHA-256 identities.
-- Report preview-only operation explicitly; no index writes, object writes, history records or `--write` option exist yet.
+- Establish the default preview contract without index writes, object writes or history records.
 
 See [staging preview semantics and limits](docs/git-staging.md).
 Eight CLI scenarios cover actions, no-write behavior, basis drift, raw conversion differences, ignored files, modes, conflicts and source/index races.
@@ -608,11 +608,26 @@ The existing mode model applies. Classification, snapshot coherence and general 
 Validation passes the full native/WASM gate, eight staging CLI scenarios, 311/311 capability coverage and all 29 Lean build jobs.
 Strict verification passes with thirteen fresh source anchors and signature maps and zero `sorry` obligations.
 
+M3n: reviewed staging application (complete).
+
+- Add `fr git stage PATH... --basis TOKEN --write` on Unix, preserving raw bytes and owner-executable modes.
+- Own the worktree index lock before checking the basis; copy the current index and update only reviewed entries.
+- Verify prepared entries and unrelated staged inventories, including conflict stages and assume-unchanged/skip-worktree flags.
+- Recheck sources, live index bytes and lock ownership before syncing and atomically installing the prepared index.
+- Preserve unrelated staging added after preview, support unborn and linked worktrees, and bypass Git hooks and inherited index redirection.
+- Refuse split indexes, sparse checkouts and nonregular indexes; report directory-sync failures as applied with a durability warning.
+
+See [staging application and recovery limits](docs/git-staging.md#applying-a-reviewed-proposal).
+Ten new CLI scenarios cover application, preservation, raw modes, SHA-256, locks, hooks, preparation failures and source/index races.
+The existing mode model applies. Index installation and preservation have regression evidence, without new correspondence or crash-consistency proofs.
+Staging does not create a source-history transaction; source undo and redo do not reverse index application.
+Validation passes the full native/WASM gate, all eighteen staging CLI scenarios, 311/311 capability coverage and all 29 Lean build jobs.
+Strict verification passes with thirteen fresh source anchors and signature maps and zero `sorry` obligations.
+
 Next M3 work:
 
-Apply reviewed raw staging proposals through a prepared index, with lock ownership, basis checks and preservation of unrelated entries.
-
-Add explicit staging, commits and isolated worktree workflows after patch correctness.
+Add a durable staging journal with basis-checked undo and redo that preserve unrelated index entries.
+Then add reviewed commits and isolated worktree workflows.
 Keep Git optional for ordinary analysis and transaction history.
 Undo an `fr` transaction without resetting unrelated Git changes.
 

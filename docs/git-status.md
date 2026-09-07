@@ -76,5 +76,5 @@ These checks do not prove correspondence between Git execution, the parser and a
 
 Git inspection requires support for [`--no-lazy-fetch`](https://git-scm.com/docs/git); older Git versions refuse the command.
 
-Use [staging previews](git-staging.md) to inspect proposed raw entries for explicit paths, including eligible untracked files.
-The preview makes no index writes.
+Use [staging](git-staging.md) to inspect proposed raw entries for explicit paths, including eligible untracked files.
+The default preview makes no index writes. On Unix, `--basis TOKEN --write` applies the reviewed entries while preserving unrelated staging.

@@ -21,7 +21,7 @@ pub enum Command {
     Diff(diff::Options),
     #[command(about = "Page through changed paths and line counts for one Git comparison.")]
     Changes(changes::Options),
-    #[command(about = "Preview raw staging entries for explicit paths without index writes.")]
+    #[command(about = "Preview or apply reviewed raw staging entries for explicit paths.")]
     Stage(stage::Options),
 }
 

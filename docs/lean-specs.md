@@ -217,5 +217,5 @@ It must report a false claim rather than weaken that claim to obtain a successfu
 The local [Lean skill](../.claude/skills/lean-spec/SKILL.md) describes the implemented workflow.
 The broader agent skill package remains part of [PLAN.md](../PLAN.md).
 
-Staging previews reuse the same anchored Git mode projection and shared snapshot readers as explicit call context.
-Their action classification, basis hashing and no-write behavior have regression evidence, without additional model proofs.
+Staging proposals reuse the same anchored Git mode projection and shared snapshot readers as explicit call context.
+Action classification, basis hashing, index locking and prepared installation have regression evidence, without additional model or correspondence proofs.

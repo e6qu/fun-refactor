@@ -11,6 +11,8 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::path::{Component, Path, PathBuf};
 
+mod apply;
+
 #[derive(Args)]
 pub struct Options {
     #[arg(
@@ -24,6 +26,12 @@ pub struct Options {
         help = "Require the same selected index and working snapshots as this preview."
     )]
     basis: Option<String>,
+    #[arg(
+        long,
+        requires = "basis",
+        help = "Apply the reviewed raw entries to the Git index."
+    )]
+    write: bool,
 }
 
 #[derive(Serialize)]
@@ -33,6 +41,9 @@ struct Entry {
     before: Option<Blob>,
     after: Option<Blob>,
     working_bytes: Option<usize>,
+    #[serde(skip)]
+    #[cfg_attr(not(unix), allow(dead_code))]
+    source: Option<String>,
 }
 
 fn require_not_ignored(root: &Path, paths: &BTreeSet<String>) -> Result<()> {
@@ -96,6 +107,10 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
         requested_root.starts_with(&root),
         "Git resolved a working tree outside the requested directory."
     );
+    let lock = options
+        .write
+        .then(|| apply::IndexLock::acquire(&root))
+        .transpose()?;
     let filter_paths = paths
         .iter()
         .flat_map(|path| path.bytes().chain([0]))
@@ -119,7 +134,10 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
             "binary files are unsupported for staging previews."
         );
         let working_bytes = working.as_ref().map(|(_, text)| text.len());
-        let after = working.map(|(blob, _)| blob);
+        let (after, source) = match working {
+            Some((blob, text)) => (Some(blob), options.write.then_some(text)),
+            None => (None, None),
+        };
         ensure!(
             before.is_some() || after.is_some(),
             "staging path is absent from the index and working tree: {path:?}."
@@ -136,6 +154,7 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
             before,
             after,
             working_bytes,
+            source,
         });
     }
     let basis = format!(
@@ -169,6 +188,11 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
         "selected index entries changed during staging preview; retry the query."
     );
     require_not_ignored(&root, &untracked)?;
+    let durability = if let Some(lock) = lock {
+        Some(lock.apply(&root, &entries, &filter_paths, &untracked)?)
+    } else {
+        None
+    };
     let count = |action| {
         entries
             .iter()
@@ -176,7 +200,8 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
             .count()
     };
     Ok(
-        json!({"schema":1,"repository_root":root,"operation":"stage-preview","applied":false,"write_supported":false,
+        json!({"schema":1,"repository_root":root,"operation":if options.write {"stage-apply"} else {"stage-preview"},
+        "applied":options.write,"write_supported":cfg!(unix),"durability":durability,
         "basis":basis,"basis_verified":options.basis.is_some(),"staging_semantics":"raw-bytes-owner-executable",
         "configuration":"repository-only-without-content-filters","source_bodies":"omitted",
         "counts":{"paths":entries.len(),"add":count("add"),"update":count("update"),"remove":count("remove"),"unchanged":count("unchanged")},

@@ -87,7 +87,7 @@ fn stage_preview_reports_actions_without_writing_index_source_or_objects() {
     let value = report(root, &args);
     assert_eq!(value["operation"], "stage-preview");
     assert_eq!(value["applied"], false);
-    assert_eq!(value["write_supported"], false);
+    assert_eq!(value["write_supported"], cfg!(unix));
     assert_eq!(
         value["counts"],
         json!({"paths":4,"add":1,"remove":1,"update":1,"unchanged":1})

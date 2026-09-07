@@ -5,11 +5,23 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 
 pub(crate) fn run(root: &Path, args: &[OsString], input: Option<&[u8]>) -> Result<Output> {
+    run_with_index(root, args, input, None)
+}
+
+pub(super) fn run_with_index(
+    root: &Path,
+    args: &[OsString],
+    input: Option<&[u8]>,
+    index: Option<&Path>,
+) -> Result<Output> {
     let mut command = Command::new("git");
     for (name, _) in std::env::vars_os() {
         if name.to_str().is_some_and(|name| name.starts_with("GIT_")) {
             command.env_remove(name);
         }
+    }
+    if let Some(index) = index {
+        command.env("GIT_INDEX_FILE", index);
     }
     command
         .current_dir(root)
@@ -25,6 +37,8 @@ pub(crate) fn run(root: &Path, args: &[OsString], input: Option<&[u8]>) -> Resul
             "core.fsmonitor=false",
             "-c",
             "core.attributesFile=/dev/null",
+            "-c",
+            "core.hooksPath=/dev/null",
         ])
         .args(args);
     if let Some(input) = input {

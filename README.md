@@ -258,8 +258,8 @@ Add `--symbols` for changed declarations and their containing hierarchy, with sn
 Add `--calls` for incoming and outgoing candidates within each file snapshot, retaining confidence and unresolved targets.
 Repeat `--include FILE` to add explicit caller and target context, with selected blob bases and checked raw working snapshots.
 See [Git diff details](docs/git-diff.md) for cursor identity and supported paths.
-`fr git stage PATH...` previews raw staging entries with a reusable basis token; index application remains pending.
-See [staging previews](docs/git-staging.md) for raw byte and mode semantics.
+`fr git stage PATH...` previews raw staging entries; `--basis TOKEN --write` applies them through a prepared index on Unix.
+See [staging semantics and limits](docs/git-staging.md) for raw byte and mode semantics.
 The browser already exports patches and can restore its initial workspace.
 `fr project` now provides compact hierarchy maps and bounded source inspection.
 Its package and dependency pages report Cargo/npm manifest declarations with shared revision checks.
