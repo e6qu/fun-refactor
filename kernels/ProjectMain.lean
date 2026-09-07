@@ -6,7 +6,12 @@ open FrKernels.Project
 def samples : List Nat := [0, 1, 2, 3, 4, 79, 80, 499, 500, 65536, 4294967295, 18446744073709551615]
 
 def main (args : List String) : IO Unit := do
-  if args == ["call-selection"] then
+  if args == ["staging-transition"] then
+    for before in [false, true] do
+      for after in [false, true] do
+        for recovery in [false, true] do
+          IO.println (FrKernels.Git.stagingTransitionAllowed before after recovery)
+  else if args == ["call-selection"] then
     for incoming in [false, true] do
       for outgoing in [false, true] do
         for includeIncoming in [false, true] do

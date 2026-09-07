@@ -12,6 +12,7 @@ use std::collections::BTreeSet;
 use std::path::{Component, Path, PathBuf};
 
 mod apply;
+pub(super) mod journal;
 
 #[derive(Args)]
 pub struct Options {
@@ -43,7 +44,7 @@ struct Entry {
     working_bytes: Option<usize>,
     #[serde(skip)]
     #[cfg_attr(not(unix), allow(dead_code))]
-    source: Option<String>,
+    source: Option<Vec<u8>>,
 }
 
 fn require_not_ignored(root: &Path, paths: &BTreeSet<String>) -> Result<()> {
@@ -135,7 +136,7 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
         );
         let working_bytes = working.as_ref().map(|(_, text)| text.len());
         let (after, source) = match working {
-            Some((blob, text)) => (Some(blob), options.write.then_some(text)),
+            Some((blob, text)) => (Some(blob), options.write.then(|| text.into_bytes())),
             None => (None, None),
         };
         ensure!(

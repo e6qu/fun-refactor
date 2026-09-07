@@ -1118,10 +1118,25 @@ fr git stage src/main.rs src/api.rs --basis TOKEN --write
 
 Preview raw staging entries for up to 32 explicit files, with add, update, remove and unchanged counts, without source bodies.
 The default makes no writes. On Unix, `--basis TOKEN --write` installs reviewed entries through a locked, prepared index.
-Unrelated staged entries survive. Split indexes and sparse checkouts remain unsupported for writes; source-history undo does not reverse staging.
+Unrelated staged entries survive. Split indexes and sparse checkouts remain unsupported for writes. Use staging history for index undo/redo.
 Proposals preserve raw working bytes and project owner-executable modes; they do not reproduce Git's content conversion rules.
 The basis binds selected index and working identities. Unrelated changes leave it valid; selected drift causes refusal.
 See [staging semantics and application limits](docs/git-staging.md) for fields, supported files and observation limits.
+
+```sh
+fr git stage-history list --limit 20
+fr git stage-history show 1
+
+fr git stage-history undo 1
+fr git stage-history undo 1 --basis TOKEN --write
+
+fr git stage-history redo 1 --basis TOKEN --write
+fr git stage-history recover
+```
+
+Changed staging writes record index snapshots separately from source history. Undo, redo and recovery default to previews and require their own basis for writes.
+They preserve working files and unrelated staged entries. Pending operations block further staging writes until recovery.
+See [staging history](docs/git-stage-history.md) for stack order, storage, flag restrictions and durability limits.
 
 ### `fr cache`
 

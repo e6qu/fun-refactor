@@ -218,4 +218,7 @@ The local [Lean skill](../.claude/skills/lean-spec/SKILL.md) describes the imple
 The broader agent skill package remains part of [PLAN.md](../PLAN.md).
 
 Staging proposals reuse the same anchored Git mode projection and shared snapshot readers as explicit call context.
-Action classification, basis hashing, index locking and prepared installation have regression evidence, without additional model or correspondence proofs.
+Staging history adds an anchored transition predicate, checked against all boolean inputs, and abstract index replacement laws.
+Those laws establish undo/redo round trips and preservation of unselected entries.
+Index locking, journal durability, basis hashing and prepared installation remain outside complete correspondence proofs.
+See [staging history assurance](git-stage-history.md#formal-coverage) for assumptions and tested behavior.

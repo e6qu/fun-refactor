@@ -1,6 +1,8 @@
 #[cfg(unix)]
 mod host {
+    use super::super::journal::{require_plain_entries, Journal};
     use super::super::{process, require_not_ignored, status, working_file, Entry};
+    use crate::history::Action;
     use anyhow::{ensure, Context, Result};
     use serde_json::{json, Value};
     use std::collections::BTreeSet;
@@ -32,7 +34,7 @@ mod host {
         }
     }
 
-    fn index_path(root: &Path) -> Result<PathBuf> {
+    pub(crate) fn index_path(root: &Path) -> Result<PathBuf> {
         let output = process::checked(
             root,
             &[
@@ -95,7 +97,12 @@ mod host {
     }
 
     fn prepared(root: &Path, index: &Path, args: &[&str], input: Option<&[u8]>) -> Result<Vec<u8>> {
-        let mut options = vec!["-c".into(), "core.splitIndex=false".into()];
+        let mut options = vec![
+            "-c".into(),
+            "core.splitIndex=false".into(),
+            "-c".into(),
+            "core.ignorestat=false".into(),
+        ];
         options.extend(args.iter().map(Into::into));
         let output = process::run_with_index(root, &options, input, Some(index))?;
         ensure!(
@@ -170,15 +177,62 @@ mod host {
         }
 
         pub(crate) fn apply(
-            mut self,
+            self,
             root: &Path,
             entries: &[Entry],
             filter_paths: &[u8],
             untracked: &BTreeSet<String>,
         ) -> Result<Value> {
             self.check(root)?;
+            let mut journal = Journal::read(root, &self.index)?;
+            journal.ready()?;
             if entries.iter().all(|entry| entry.action == "unchanged") {
                 return Ok(json!({"index_replaced":false,"directory_synced":null}));
+            }
+            let id = journal.plan(root, entries)?;
+            self.install(root, entries, &mut journal, (Action::Apply, id), || {
+                process::require_no_filters(root, filter_paths)?;
+                require_not_ignored(root, untracked)?;
+                for entry in entries {
+                    ensure!(working_file(root, &entry.path)?.map(|(blob, _)| blob) == entry.after,
+                        "selected working files changed during staging write; request a new preview.");
+                }
+                Ok(())
+            })
+        }
+
+        pub(crate) fn replay(
+            self,
+            root: &Path,
+            entries: &[Entry],
+            journal: &mut Journal,
+            action: Action,
+            id: u64,
+        ) -> Result<Value> {
+            self.install(root, entries, journal, (action, id), || Ok(()))
+        }
+
+        fn install(
+            mut self,
+            root: &Path,
+            entries: &[Entry],
+            journal: &mut Journal,
+            transition: (Action, u64),
+            validate: impl Fn() -> Result<()>,
+        ) -> Result<Value> {
+            let (action, id) = transition;
+            self.check(root)?;
+            journal.check()?;
+            if entries.iter().all(|entry| entry.action == "unchanged") {
+                if self.before.is_some() {
+                    File::open(&self.index)?.sync_all()?;
+                }
+                File::open(self.index.parent().context("missing Git index directory")?)?
+                    .sync_all()?;
+                self.check(root)?;
+                return Ok(
+                    json!({"index_replaced":false,"directory_synced":true,"journal":journal.finish(action, id)}),
+                );
             }
             let parent = self.index.parent().context("missing Git index directory")?;
             let dir = tempfile::Builder::new()
@@ -200,7 +254,7 @@ mod host {
                         root,
                         &alternate,
                         &["hash-object", "-w", "--no-filters", "--stdin"],
-                        Some(source.as_bytes()),
+                        Some(source),
                     )?;
                     ensure!(
                         oid == format!("{}\n", blob.oid).as_bytes(),
@@ -251,28 +305,36 @@ mod host {
             }
             self.file.sync_all()?;
             self.check(root)?;
-            process::require_no_filters(root, filter_paths)?;
-            require_not_ignored(root, untracked)?;
             require_supported(root)?;
-            for entry in entries {
-                ensure!(
-                    working_file(root, &entry.path)?.map(|(blob, _)| blob) == entry.after,
-                    "selected working files changed during staging write; request a new preview."
-                );
-            }
+            validate()?;
+            let changed = entries
+                .iter()
+                .filter(|entry| entry.action != "unchanged")
+                .map(|entry| entry.path.clone())
+                .collect();
+            require_plain_entries(root, &changed)?;
             self.check(root)?;
             ensure!(
                 fs::read(&self.path)? == bytes,
                 "prepared index lock content changed; staging refused."
             );
-            fs::rename(&self.path, &self.index).context("installing prepared Git index")?;
+            journal.begin(action, id)?;
+            self.check(root)?;
+            fs::rename(&self.path, &self.index)
+                .context("installing prepared Git index; inspect staging recovery")?;
             self.installed = true;
-            match File::open(parent).and_then(|directory| directory.sync_all()) {
-                Ok(()) => Ok(json!({"index_replaced":true,"directory_synced":true})),
-                Err(error) => Ok(
-                    json!({"index_replaced":true,"directory_synced":false,"warning":error.to_string()}),
-                ),
-            }
+            let mut result = match File::open(parent).and_then(|directory| directory.sync_all()) {
+                Ok(()) => json!({"index_replaced":true,"directory_synced":true}),
+                Err(error) => {
+                    json!({"index_replaced":true,"directory_synced":false,"warning":error.to_string()})
+                }
+            };
+            result["journal"] = if result["directory_synced"] == true {
+                journal.finish(action, id)
+            } else {
+                json!({"id":id,"finalized":false,"warning":"index installed without confirmed directory sync; inspect staging recovery"})
+            };
+            Ok(result)
         }
     }
 
@@ -286,7 +348,7 @@ mod host {
 }
 
 #[cfg(unix)]
-pub(super) use host::IndexLock;
+pub(super) use host::{index_path, IndexLock};
 
 #[cfg(not(unix))]
 pub(super) struct IndexLock;
@@ -304,5 +366,24 @@ impl IndexLock {
         _: &std::collections::BTreeSet<String>,
     ) -> anyhow::Result<serde_json::Value> {
         anyhow::bail!("staging writes require Unix index lock ownership checks.")
+    }
+}
+
+#[cfg(not(unix))]
+pub(super) fn index_path(_: &std::path::Path) -> anyhow::Result<std::path::PathBuf> {
+    anyhow::bail!("staging history requires Unix index lock ownership checks.")
+}
+
+#[cfg(not(unix))]
+impl IndexLock {
+    pub(super) fn replay(
+        self,
+        _: &std::path::Path,
+        _: &[super::Entry],
+        _: &mut super::journal::Journal,
+        _: crate::history::Action,
+        _: u64,
+    ) -> anyhow::Result<serde_json::Value> {
+        anyhow::bail!("staging history requires Unix index lock ownership checks.")
     }
 }

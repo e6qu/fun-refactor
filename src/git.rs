@@ -23,6 +23,11 @@ pub enum Command {
     Changes(changes::Options),
     #[command(about = "Preview or apply reviewed raw staging entries for explicit paths.")]
     Stage(stage::Options),
+    #[command(about = "Inspect, undo, redo or recover recorded index staging.")]
+    StageHistory {
+        #[command(subcommand)]
+        command: stage::journal::Command,
+    },
 }
 
 #[derive(Args)]
@@ -56,6 +61,7 @@ pub fn report(root: &Path, command: &Command) -> Result<Value> {
         Command::Diff(options) => diff::report(root, options),
         Command::Changes(options) => changes::report(root, options),
         Command::Stage(options) => stage::report(root, options),
+        Command::StageHistory { command } => stage::journal::report(root, command),
     }
 }
 
@@ -171,4 +177,12 @@ pub fn call_in_selection(
     include_outgoing: bool,
 ) -> bool {
     (incoming && include_incoming) || (outgoing && include_outgoing)
+}
+
+pub fn staging_transition_allowed(
+    matches_before: bool,
+    matches_after: bool,
+    recovery: bool,
+) -> bool {
+    matches_before || (recovery && matches_after)
 }

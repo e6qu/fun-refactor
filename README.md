@@ -260,6 +260,7 @@ Repeat `--include FILE` to add explicit caller and target context, with selected
 See [Git diff details](docs/git-diff.md) for cursor identity and supported paths.
 `fr git stage PATH...` previews raw staging entries; `--basis TOKEN --write` applies them through a prepared index on Unix.
 See [staging semantics and limits](docs/git-staging.md) for raw byte and mode semantics.
+`fr git stage-history` inspects staging records and previews checked undo, redo and recovery; see [staging history](docs/git-stage-history.md).
 The browser already exports patches and can restore its initial workspace.
 `fr project` now provides compact hierarchy maps and bounded source inspection.
 Its package and dependency pages report Cargo/npm manifest declarations with shared revision checks.

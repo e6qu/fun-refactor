@@ -40,7 +40,7 @@ Important gaps:
 - `fr project` adds bounded maps, revision-bound details, call relationships and Cargo/npm manifest views. Complete dependency resolution and framework semantics remain pending.
 - Native changes now have persistent history and checked undo/redo. History retention and large-journal scaling need further work.
 - Browser undo restores the loaded workspace; it does not reverse individual transactions.
-- Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist. Raw staging is available on Unix; staging recovery and shared browser patch semantics remain pending.
+- Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist. Raw staging and journaled index undo/redo are available on Unix. Reviewed commits and shared browser patch semantics remain pending.
 - Strict spec signature maps currently accept Rust source declarations only.
 - Framework readers cover selected patterns. Whole applications still need dependency and runtime work.
 - Model proofs and shared executable cases do not establish general correspondence with the Rust implementation.
@@ -624,10 +624,26 @@ Staging does not create a source-history transaction; source undo and redo do no
 Validation passes the full native/WASM gate, all eighteen staging CLI scenarios, 311/311 capability coverage and all 29 Lean build jobs.
 Strict verification passes with thirteen fresh source anchors and signature maps and zero `sorry` obligations.
 
+M3o: durable staging history and checked replay (complete).
+
+- Journal changed staging writes beside each worktree index, retaining before/after raw blobs for replay after object pruning.
+- Add bounded record inspection and basis-checked undo/redo previews, using stack order and preserving working files and unrelated staged entries.
+- Sync pending records before installation and finalize after index directory sync; block further staging writes while recovery is pending.
+- Recover the starting selected state from complete before/after observations, refusing mixtures and external changes.
+- Report completed index writes truthfully when journal finalization fails, with transaction identity and recovery guidance.
+- Refuse changed selected special flags until replay can restore them, while preserving unrelated flags and conflicts.
+- Anchor transition acceptance in Lean and prove abstract undo/redo and unselected-entry preservation laws.
+
+See [staging history and recovery](docs/git-stage-history.md).
+Nine CLI scenarios cover stack order, stale bases, object pruning, binary restoration, linked journals, corruption and recovery before/after installation.
+An additional executable comparison covers every transition-predicate input. Filesystem durability and full Rust correspondence remain outside these model proofs.
+Validation passes the full native/WASM gate, all 27 staging CLI scenarios, 311/311 capability coverage and all 29 Lean build jobs.
+Strict verification passes with fourteen fresh source anchors and signature maps and zero `sorry` obligations.
+
 Next M3 work:
 
-Add a durable staging journal with basis-checked undo and redo that preserve unrelated index entries.
-Then add reviewed commits and isolated worktree workflows.
+Add reviewed commits with explicit index and HEAD bases, then isolated worktree workflows.
+Extend selected flag replay and add staging journal retention and compaction.
 Keep Git optional for ordinary analysis and transaction history.
 Undo an `fr` transaction without resetting unrelated Git changes.
 

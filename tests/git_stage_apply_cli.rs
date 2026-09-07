@@ -134,7 +134,7 @@ fn apply_stages_raw_actions_and_modes_preserving_unrelated_entries_and_flags() {
     );
     assert_eq!(
         result["durability"],
-        json!({"index_replaced":true,"directory_synced":true})
+        json!({"index_replaced":true,"directory_synced":true,"journal":{"id":1,"finalized":true}})
     );
     assert_eq!(git(root, &["show", ":selected.txt"]), b"reviewed\r\n");
     assert_eq!(git(root, &["show", &format!(":{name}")]), b"new raw\r\n");

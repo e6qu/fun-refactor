@@ -10,7 +10,7 @@ fr git stage src/main.rs src/api.rs --basis TOKEN --write
 The default reports `operation: "stage-preview"`, `applied: false` and `durability: null`, without index or object writes.
 On Unix, `--basis TOKEN --write` applies the reviewed entries and reports `operation: "stage-apply"` and `applied: true`.
 `--write` requires a basis. `write_supported` reports host support; writes currently require Unix lock identity checks.
-Working files and HEAD remain unchanged. This command does not create a source-history transaction or commit.
+Working files and HEAD remain unchanged. Changed writes create a separate staging-history record; this command does not create a source-history transaction or commit.
 
 ## Selection and proposed entries
 
@@ -33,7 +33,7 @@ Present entries contain `oid` and `mode`; absent entries are null.
 
 A path absent from both states causes refusal.
 Untracked regular text files can produce additions. Ignored untracked paths cause refusal; tracked paths remain eligible even when ignore patterns match them.
-Present working files must contain UTF-8 text without NUL bytes. Removal previews use index metadata and do not need the old source bytes.
+Present working files must contain UTF-8 text without NUL bytes. Removal previews use index metadata. Applying a removal must read the old blob for staging history.
 Source bodies stay outside the output. `counts` contains `paths`, `add`, `update`, `remove` and `unchanged`; action counts partition the selected paths.
 The argument limit bounds rows, without bounding file sizes, path lengths or internal collection work.
 
@@ -73,11 +73,11 @@ The command copies the locked index into a private temporary directory beside it
 It writes captured raw blobs and feeds their exact modes and identities to Git's NUL-delimited `update-index --index-info` interface.
 It verifies selected entries and compares unrelated staged inventories, including conflict stages and assume-unchanged/skip-worktree flags.
 Tests also cover unrelated intent-to-add entries in a version-four index.
-Selected entries with `unchanged` actions bypass updates, retaining their flags. Git may reset flags on selected entries that change.
+Selected entries with `unchanged` actions bypass updates, retaining their flags. Changed selected entries with assume-unchanged, skip-worktree or intent-to-add flags cause refusal because replay cannot yet restore those flags.
 The implementation uses Git's [alternate index](https://git-scm.com/docs/git#Documentation/git.txt-GITINDEXFILE) and [index-info plumbing](https://git-scm.com/docs/git-update-index#_using_index_info).
 
 Before installation, the command rechecks filters, ignores, supported index configuration, selected working identities, complete live index bytes and lock ownership.
-It syncs the prepared index bytes and renames the owned lock over the live index atomically.
+It syncs the prepared bytes and a pending journal record, then renames the owned lock over the live index atomically.
 Unrelated changes staged after preview survive because application copies the current locked index.
 An observed index change during application causes refusal, including an unrelated change made by a writer that bypasses the lock.
 An entirely unchanged proposal succeeds without replacing the index or writing objects.
@@ -89,6 +89,7 @@ An entirely unchanged proposal succeeds without replacing the index or writing o
 | `index_replaced` | Whether the prepared index replaced the live index |
 | `directory_synced` | True after directory sync; null when no replacement was needed |
 | `warning` | Present if directory sync failed after installation |
+| `journal` | Changed writes report a transaction `id`, `finalized` status and any journal warning |
 
 A directory-sync failure reports `applied: true`, `directory_synced: false` and a warning because installation already happened.
 Failures before the rename leave the live index untouched by `fr`; newly written unreachable blob objects may remain for Git to collect.
@@ -98,7 +99,7 @@ Do not remove a lock while another writer owns it.
 The lock coordinates cooperating Git writers. Working files, configuration and repository directories are not locked.
 Checks cannot detect changes restored between observations or prevent a writer that bypasses the lock from racing the final check and rename.
 Keep repository configuration and directory topology stable during application.
-This is atomic index replacement, without a durable staging journal or crash-recovery protocol for the whole operation.
+A durable staging journal now supports checked undo, redo and recovery; see [staging history](git-stage-history.md) for commands and durability limits.
 `fr history undo` and redo concern source transactions; they do not reverse this index operation.
 Review the resulting staging with `fr git diff PATH --staged` or `fr git changes --staged`.
 
@@ -113,5 +114,6 @@ Configuration and attributes must remain stable during inspection.
 The preview shares index inventory and working snapshot readers with explicit call context.
 Projected modes reuse the anchored Git mode model, with assumptions documented in [Lean specifications](lean-specs.md).
 Inventory interpretation, action classification, hash assumptions and snapshot consistency have regression evidence, without a general implementation proof.
-Index locking, preparation, preservation and installation have regression tests, without a Lean correspondence proof or crash-consistency proof.
+Staging history adds an anchored transition predicate and abstract preservation laws.
+Index locking, journal durability, preparation and installation remain regression-tested, without a complete Lean correspondence or crash-consistency proof.
 Tests cover no-write behavior, dirty repositories, basis drift, ignored files, conflicts, source/index races, linked worktrees and SHA-256 identities.

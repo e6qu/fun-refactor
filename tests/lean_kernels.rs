@@ -988,3 +988,29 @@ fn git_call_selection_matches_lean_for_every_boolean_input() {
     }
     assert_eq!(actual, expected);
 }
+
+#[test]
+fn staging_transition_matches_lean_for_every_boolean_input() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("staging-transition")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let actual = actual
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for before in [false, true] {
+        for after in [false, true] {
+            for recovery in [false, true] {
+                expected.push(fun_refactor::git::staging_transition_allowed(
+                    before, after, recovery,
+                ));
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}

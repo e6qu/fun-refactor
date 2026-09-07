@@ -67,4 +67,46 @@ theorem swapping_sides_preserves_selection (incoming outgoing includeIncoming in
       callInSelection outgoing incoming includeOutgoing includeIncoming := by
   cases incoming <;> cases outgoing <;> cases includeIncoming <;> cases includeOutgoing <;> rfl
 
+-- fr:spec src/git.rs::staging_transition_allowed @ 6efae259027fb6da965260dada7bb6817c1ffac1eb16b6527c99f2d25e4d10bc
+-- fr:signature matches_before: bool => matchesBefore: Bool; matches_after: bool => matchesAfter: Bool; recovery: bool => recovery: Bool; return: bool => return: Bool
+def stagingTransitionAllowed (matchesBefore : Bool) (matchesAfter : Bool) (recovery : Bool) : Bool :=
+  matchesBefore || (recovery && matchesAfter)
+
+theorem staging_requires_before (before after : Bool) :
+    stagingTransitionAllowed before after false = before := by
+  cases before <;> cases after <;> rfl
+
+theorem staging_recovery_accepts_either (before after : Bool) :
+    stagingTransitionAllowed before after true = (before || after) := by
+  cases before <;> cases after <;> rfl
+
+theorem staging_recovery_refuses_other :
+    stagingTransitionAllowed false false true = false := rfl
+
+abbrev StagingIndex := String → Option (Nat × String)
+
+def replaceSelected (current target : StagingIndex) (selected : String → Bool) : StagingIndex :=
+  fun path => if selected path then target path else current path
+
+theorem staging_preserves_unselected (current target : StagingIndex) (selected : String → Bool)
+    (path : String) (outside : selected path = false) :
+    replaceSelected current target selected path = current path := by
+  simp [replaceSelected, outside]
+
+theorem staging_undo_restores_index (current target : StagingIndex) (selected : String → Bool) :
+    replaceSelected (replaceSelected current target selected) current selected = current := by
+  funext path
+  simp only [replaceSelected]
+  split <;> rfl
+
+theorem staging_redo_restores_selected_result (current target : StagingIndex) (selected : String → Bool) :
+    replaceSelected (replaceSelected (replaceSelected current target selected) current selected) target selected =
+      replaceSelected current target selected := by
+  rw [staging_undo_restores_index]
+
+theorem staging_restore_preserves_later_unselected (original later : StagingIndex) (selected : String → Bool)
+    (path : String) (outside : selected path = false) :
+    replaceSelected later original selected path = later path := by
+  exact staging_preserves_unselected later original selected path outside
+
 end FrKernels.Git
