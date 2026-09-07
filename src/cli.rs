@@ -1620,13 +1620,17 @@ fn cmd_project(cli: &Cli, command: &crate::project::Command) -> Result<()> {
 }
 
 fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()> {
-    let crate::project::author::Command::ReplaceBody(options) = command;
+    use crate::project::author::Command;
+    let (Command::ReplaceBody(options) | Command::ReplaceDeclaration(options)) = command;
     anyhow::ensure!(
         !(options.write && cli.save_plan),
         "choose --save-plan or --write, not both."
     );
     with_project(cli, |project, root| {
-        let mut plan = project.replace_body(options)?;
+        let mut plan = match command {
+            Command::ReplaceBody(options) => project.replace_body(options)?,
+            Command::ReplaceDeclaration(options) => project.replace_declaration(options)?,
+        };
         let outcomes = crate::edit::plan(&plan.edits, crate::edit::Validation::ReparseStrict)?;
         project.verify(root)?;
         let diff = outcomes

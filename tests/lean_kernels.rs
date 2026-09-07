@@ -139,6 +139,59 @@ fn kernel_accepts(source: &str, edits: &[Edit], expected: &str) {
     kernel_accepts_all(&[(source, edits, expected)]);
 }
 
+#[test]
+fn the_edit_kernel_accepts_a_reported_declaration_replacement() {
+    let temp = tempfile::tempdir().unwrap();
+    let workspace = temp.path().join("workspace");
+    std::fs::create_dir(&workspace).unwrap();
+    let old = "fn calc(n: i32) -> i32 { n + 1 }";
+    let new = "pub fn calc(n: i64) -> i64 { n * 2 }";
+    let source = format!("// π\r\n#[inline]\r\n{old}\r\nfn other() {{}}\r\n");
+    std::fs::write(workspace.join("app.rs"), &source).unwrap();
+    let fragment = temp.path().join("function.txt");
+    std::fs::write(&fragment, new).unwrap();
+    let run = |args: &[&str]| {
+        let output = Command::new(env!("CARGO_BIN_EXE_fr"))
+            .args(["--json", "--no-cache", "-C"])
+            .arg(&workspace)
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stdout)
+        );
+        serde_json::from_slice::<serde_json::Value>(&output.stdout).unwrap()
+    };
+    let map = run(&["project", "map", "--fields", "handle,name"]);
+    let row = map["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row[1] == "calc")
+        .unwrap();
+    let report = run(&[
+        "author",
+        "replace-declaration",
+        row[0].as_str().unwrap(),
+        "--from",
+        fragment.to_str().unwrap(),
+    ]);
+    let span = &report["declaration"]["before_span"];
+    let edits = [Edit::new(
+        Span::new(
+            span["start"].as_u64().unwrap() as usize,
+            span["end"].as_u64().unwrap() as usize,
+        ),
+        new,
+        "kernel",
+    )];
+    let expected = source.replace(old, new);
+    assert_eq!(apply_to_string(&source, &edits).unwrap(), expected);
+    kernel_accepts(&source, &edits, &expected);
+}
+
 fn kernel_windows(source: &str, edits: &[Edit]) -> Vec<(String, Vec<Edit>, String)> {
     const CONTEXT: usize = 32;
     const MAX_BYTES: usize = 256;

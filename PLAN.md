@@ -43,7 +43,7 @@ Important gaps:
 - Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist. Raw staging and journaled index undo/redo are available on Unix. Reviewed commits are available with explicit index and HEAD bases. Worktree inspection reports registered workspaces with revision-bound pages. Reviewed creation adds raw checkouts on new or unused existing branches on Unix. Ownership receipts support checked completion of incomplete worktrees and reviewed removal of clean worktrees. Removal archives support inspection, checked resumption and reviewed compaction to audit summaries. Shared browser patch semantics remain pending.
 - Strict spec signature maps currently accept Rust source declarations only.
 - Framework readers cover selected patterns. Whole applications still need dependency and runtime work.
-- The portable agent skill covers exploration, changes, history, Git and Lean. Rust, TypeScript and TSX body replacement uses project handles and source history. Direct TypeScript/TSX function bindings support block bodies. Real-agent evaluation, wrapped initializers and declaration insertion remain pending.
+- The portable agent skill covers exploration, changes, history, Git and Lean. Rust, TypeScript and TSX body replacement uses project handles and source history. Direct TypeScript/TSX function bindings support block bodies. Rust function declaration replacement can change signatures and implementations together. Real-agent evaluation, wrapped initializers and declaration insertion remain pending.
 - Model proofs and shared executable cases do not establish general correspondence with the Rust implementation.
 
 ## Product contract
@@ -834,12 +834,27 @@ Validation passes the full native/WASM gate, 311/311 capability coverage and all
 Strict verification retains twenty-two fresh source anchors and signature maps and zero `sorry` obligations.
 AST selection retains test-based evidence; the command reports syntax validation without claiming type or behavioral verification.
 
+M4e: bounded Rust function declaration replacement (complete).
+
+- Replace one complete function through its project handle, retaining its name and outer attributes.
+- Allow combined signature and implementation changes without changing callers or imports.
+- Require exactly one function fragment, clean destination syntax and complete declarations within 64 KiB.
+- Reuse bounded previews, source revisions, saved plans, undo/redo and patches.
+- Prove suffix preservation in the Lean edit model alongside the existing prefix theorem.
+- Cover compiled signature changes, name and attribute refusals, nested contexts, size limits and stale handles.
+
+Twenty-four authoring scenarios pass, including a compiler rejection that remains separate from syntax acceptance.
+A declaration edit reported by the CLI produces matching results in Rust and the Lean edit model.
+Validation passes the full native/WASM gate, 311/311 capability coverage and all 29 Lean build jobs.
+Strict verification retains twenty-two fresh source anchors and signature maps and zero `sorry` obligations.
+Prefix and suffix preservation have model proofs; AST selection, parsing and filesystem operations retain test-based evidence.
+
 Next M4 work:
 
 Evaluate the handoff with real agents on pinned projects and measure correctness, context use and refusals.
 Keep examples compatible with the distributed binary and load specialized references only when needed.
 
-Extend body authoring to selected wrapped initializers or additional languages, and add bounded declaration insertion or replacement.
+Extend body authoring to selected wrapped initializers or additional languages, and add declaration insertion or replacement of further declaration kinds.
 Reuse revision checks, edit planning, syntax validation and history.
 Compose high-level intentions as inspectable recipe steps with explicit postconditions.
 Select project checks from declared configuration and report what each check covers.

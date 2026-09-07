@@ -17,6 +17,10 @@ pub enum Command {
         about = "Replace one Rust, TypeScript or TSX function body, retaining surrounding source."
     )]
     ReplaceBody(ReplaceBodyOptions),
+    #[command(
+        about = "Replace one Rust function declaration while retaining its name and outer attributes."
+    )]
+    ReplaceDeclaration(ReplaceBodyOptions),
 }
 
 #[derive(Args)]
@@ -27,7 +31,7 @@ pub struct ReplaceBodyOptions {
     pub revision: Option<String>,
     #[arg(
         long,
-        help = "UTF-8 block file, absolute or relative to the workspace root; at most 64 KiB."
+        help = "UTF-8 fragment file, absolute or relative to the workspace root; at most 64 KiB."
     )]
     pub from: PathBuf,
     #[arg(
@@ -116,7 +120,7 @@ impl BodySyntax {
     }
 }
 
-fn replacement(path: &Path, language: Language, syntax: &BodySyntax) -> Result<String> {
+fn fragment(path: &Path) -> Result<String> {
     ensure!(
         fs::symlink_metadata(path)?.is_file(),
         "replacement input must be a regular file."
@@ -134,7 +138,11 @@ fn replacement(path: &Path, language: Language, syntax: &BodySyntax) -> Result<S
         !text.contains('\0'),
         "replacement input contains a NUL byte."
     );
-    let text = text.trim();
+    Ok(text.trim().to_owned())
+}
+
+fn replacement(path: &Path, language: Language, syntax: &BodySyntax) -> Result<String> {
+    let text = fragment(path)?;
     let prefix = syntax.prefix;
     let wrapped = format!("{prefix}{text}");
     let parsed = Parsers::new().parse(language, &wrapped)?;
@@ -154,10 +162,102 @@ fn replacement(path: &Path, language: Language, syntax: &BodySyntax) -> Result<S
             && span.end == wrapped.len(),
         "replacement must contain exactly one complete block in the selected language."
     );
-    Ok(text.to_owned())
+    Ok(text)
 }
 
 impl Project<'_> {
+    pub fn replace_declaration(&self, options: &ReplaceBodyOptions) -> Result<Plan> {
+        ensure!(
+            options.diff_bytes <= 65536,
+            "diff bytes must be between 0 and 65536."
+        );
+        let handle = self.explicit_handle(&options.handle, options.revision.as_deref())?;
+        let id = self.resolve_handle(&handle)?;
+        let symbol = self.nodes[id]
+            .symbol
+            .and_then(|id| self.index.symbol(id))
+            .context("declaration replacement requires a Rust function handle.")?;
+        ensure!(
+            symbol.language == Language::Rust,
+            "declaration replacement supports Rust functions only."
+        );
+        let source = &self.sources[&symbol.file];
+        let parsed = Parsers::new().parse(Language::Rust, source)?;
+        ensure!(
+            !parsed.has_errors(),
+            "declaration replacement requires a file without parser errors."
+        );
+        let mut selected = parsed
+            .root()
+            .descendant_for_byte_range(symbol.name_span.start, symbol.name_span.end);
+        let function = loop {
+            let node = selected.context("select a Rust function declaration with a body.")?;
+            if node.kind() == "function_item" {
+                ensure!(
+                    node.child_by_field_name("name")
+                        .is_some_and(|name| Span::from(name) == symbol.name_span),
+                    "selected handle does not name this function."
+                );
+                break node;
+            }
+            selected = node.parent();
+        };
+        let span = Span::from(function);
+        let before = &source[span.start..span.end];
+        let after = fragment(&self.root.join(&options.from))?;
+        ensure!(
+            super::body_replacement_budget(before.len(), after.len()),
+            "old and new declarations must each fit 2 through 65536 bytes."
+        );
+        let replacement = Parsers::new().parse(Language::Rust, &after)?;
+        let item = replacement
+            .root()
+            .named_child(0)
+            .context("replacement needs one Rust function declaration.")?;
+        ensure!(
+            !replacement.has_errors() && replacement.root().named_child_count() == 1
+                && item.kind() == "function_item" && Span::from(item) == Span::new(0, after.len()),
+            "replacement must contain exactly one Rust function; outer attributes and comments stay in the destination."
+        );
+        let name = item
+            .child_by_field_name("name")
+            .context("replacement function needs a name.")?;
+        ensure!(
+            Span::from(name).text(&after) == symbol.name_span.text(source),
+            "replacement must retain the function name; use rename to update callers."
+        );
+        let body = item
+            .child_by_field_name("body")
+            .context("replacement function needs a body.")?;
+        let mut edits = EditSet::new();
+        if before != after {
+            edits.add(
+                &symbol.file,
+                Edit::new(span, &after, "Replace the selected function declaration."),
+            );
+        }
+        let updated =
+            crate::edit::apply_to_string(source, edits.edits_for(&symbol.file).unwrap_or(&[]))?;
+        ensure!(
+            !Parsers::new().parse(Language::Rust, &updated)?.has_errors(),
+            "replacement introduces parser errors in its destination context."
+        );
+        let mut report = self.envelope("replace-declaration");
+        report["schema"] = json!("fr-author-1");
+        report["handle"] = json!(self.handle(id));
+        report["path"] = bounded_text(&self.nodes[id].path.to_string_lossy(), 512);
+        report["signature"] = self.signature(id)?;
+        report["replacement_signature"] = json!({"basis": "syntax-header", "text": bounded_text(after[..body.start_byte()].trim_end(), 512)});
+        report["declaration"] = json!({"before_span":span,"after_span":Span::new(span.start,span.start+after.len()),
+            "before_bytes":before.len(),"after_bytes":after.len(),"before_sha256":digest(before),"after_sha256":digest(&after)});
+        report["changed"] = json!(before != after);
+        report["validation"] = json!("reparse-strict");
+        report["preservation"] = json!("function name and bytes outside the selected declaration");
+        report["behavior_checked"] = json!(false);
+        report["atomic_snapshot"] = json!(false);
+        Ok(Plan { edits, report })
+    }
+
     pub fn replace_body(&self, options: &ReplaceBodyOptions) -> Result<Plan> {
         ensure!(
             options.diff_bytes <= 65536,

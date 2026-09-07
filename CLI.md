@@ -484,6 +484,11 @@ Both output modes return bounded JSON. The diff defaults to 4096 bytes and repor
 History provides undo/redo, recovery and patch export. A no-op produces no record.
 See [body authoring](docs/body-authoring.md) for supported targets, input rules and review limits.
 
+`fr author replace-declaration HANDLE --from FILE` replaces a complete Rust function with the same name.
+It can change the signature and body, retaining outer attributes and surrounding source.
+Supply exactly one function without outer attributes or trailing comments; both complete declarations must fit 64 KiB.
+Callers and imports need separate changes and checks. The same preview, saved-plan and history flags apply.
+
 ## Crossing languages
 
 ### `fr translate`

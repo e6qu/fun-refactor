@@ -677,3 +677,230 @@ fn expression_body_changes_keep_lexical_receivers_recursion_and_jsx_through_hist
         assert_eq!(fs::read_to_string(root.join(file)).unwrap(), source.replace(old, new));
     }
 }
+
+fn declaration(root: &Path, handle: &str, input: &Path, flags: &[&str]) -> (bool, Value) {
+    let mut args = vec![
+        "author",
+        "replace-declaration",
+        handle,
+        "--from",
+        input.to_str().unwrap(),
+    ];
+    args.extend(flags);
+    run(root, &args)
+}
+
+#[test]
+fn declaration_changes_signature_and_behavior_through_saved_history() {
+    let old = "fn calc(n: i32) -> i32 { n + 1 }";
+    let new = "pub fn calc(n: i64) -> i64 { n * 2 }";
+    let source = format!("// π\r\n/// Keep this documentation.\r\n#[inline]\r\n{old}\r\nfn main() {{ println!(\"{{}}\", calc(3)); }}\r\n");
+    let (_temp, root, input) = fixture(&source, new.as_bytes());
+    assert_eq!(compiled_result(&root), b"4\n");
+    let (handle, _) = selection(&root, "calc");
+    let (success, preview) = declaration(&root, &handle, &input, &["--diff-bytes", "0"]);
+    assert!(success, "{preview}");
+    assert_eq!(preview["query"], "replace-declaration");
+    assert_eq!(preview["schema"], "fr-author-1");
+    assert_eq!(preview["behavior_checked"], false);
+    assert_eq!(preview["declaration"]["before_bytes"], old.len());
+    assert_eq!(
+        preview["replacement_signature"]["text"],
+        "pub fn calc(n: i64) -> i64"
+    );
+    assert_eq!(preview["diff"]["text"], "");
+    assert!(!root.join(".fr-history").exists());
+    let (success, saved) = declaration(&root, &handle, &input, &["--save-plan"]);
+    assert!(success, "{saved}");
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+    let id = saved["transaction"].as_u64().unwrap().to_string();
+    fs::write(&input, b"fn calc() {}").unwrap();
+    ok(&root, &["history", "apply", &id, "--write"]);
+    assert_eq!(
+        fs::read_to_string(root.join("app.rs")).unwrap(),
+        source.replace(old, new)
+    );
+    assert_eq!(compiled_result(&root), b"6\n");
+    assert!(!declaration(&root, &handle, &input, &["--write"]).0);
+    fs::write(root.join("other.rs"), "fn untouched() {}\n").unwrap();
+    ok(&root, &["history", "undo", &id, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+    ok(&root, &["history", "patch", &id, "--check"]);
+    assert!(ok(&root, &["history", "patch", &id])["patch"]
+        .as_str()
+        .unwrap()
+        .contains(new));
+    ok(&root, &["history", "redo", &id, "--write"]);
+    assert_eq!(
+        fs::read_to_string(root.join("app.rs")).unwrap(),
+        source.replace(old, new)
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("other.rs")).unwrap(),
+        "fn untouched() {}\n"
+    );
+    fs::write(
+        root.join("app.rs"),
+        source.replace(old, new) + "// Later change.\n",
+    )
+    .unwrap();
+    assert!(!run(&root, &["history", "undo", &id, "--write"]).0);
+}
+
+#[test]
+fn declaration_replacements_refuse_renames_attributes_escaped_items_and_invalid_fragments() {
+    for fragment in [
+        "",
+        "fn other() {}",
+        "fn calc();",
+        "fn calc() { let x = ; }",
+        "struct calc;",
+        "fn calc() {} fn escaped() {}",
+        "fn calc() {} // Trailing.",
+        "// Leading.\nfn calc() {}",
+        "#[inline]\nfn calc() {}",
+        "#![allow(dead_code)]\nfn calc() {}",
+        "fn calc() {\0}",
+    ] {
+        let source = "#[inline]\nfn calc() {}\n";
+        let (_temp, root, input) = fixture(source, fragment.as_bytes());
+        let (handle, _) = selection(&root, "calc");
+        let (success, report) = declaration(&root, &handle, &input, &["--save-plan"]);
+        assert!(!success, "{fragment}: {report}");
+        assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+        assert!(!root.join(".fr-history").exists());
+    }
+}
+
+#[test]
+fn declaration_selection_refuses_nonfunctions_bodyless_items_and_broken_sources() {
+    for (file, source) in [
+        ("app.rs", "const calc: i32 = 1;\n"),
+        ("app.rs", "fn outer() { let calc = 1; }\n"),
+        ("app.rs", "trait T { fn calc(&self); }\n"),
+        ("app.rs", "fn calc() { let x = ; }\n"),
+        ("app.ts", "function calc() {}\n"),
+    ] {
+        let (_temp, root, input) = fixture_file(file, source, b"fn calc() {}");
+        let (handle, _) = selection(&root, "calc");
+        assert!(!declaration(&root, &handle, &input, &["--write"]).0);
+        assert_eq!(fs::read_to_string(root.join(file)).unwrap(), source);
+        assert!(!root.join(".fr-history").exists());
+    }
+    let (_temp, root, input) = fixture("fn calc() {}\n", b"fn calc() {}");
+    let (handle, _) = selection(&root, "app.rs");
+    assert!(!declaration(&root, &handle, &input, &["--write"]).0);
+}
+
+#[test]
+fn declaration_replacement_keeps_attributes_and_container_boundaries() {
+    for (source, old, new) in [
+        (
+            "#[inline]\npub async unsafe fn calc<T: Copy>(n: T) -> i32 where T: Send { 1 }\n",
+            "pub async unsafe fn calc<T: Copy>(n: T) -> i32 where T: Send { 1 }",
+            "pub async unsafe fn calc<T: Clone>(n: T) -> i64 where T: Sync { 2 }",
+        ),
+        (
+            "struct S; impl S { #[inline] pub fn calc(&self) -> i32 { 1 } }\n",
+            "pub fn calc(&self) -> i32 { 1 }",
+            "pub fn calc(&self) -> i64 { 2 }",
+        ),
+        (
+            "trait T { #[inline] fn calc(&self) -> i32 { 1 } }\n",
+            "fn calc(&self) -> i32 { 1 }",
+            "fn calc(&self) -> i64 { 2 }",
+        ),
+        (
+            "fn outer() { fn calc() -> i32 { 1 } }\n",
+            "fn calc() -> i32 { 1 }",
+            "fn calc() -> i64 { 2 }",
+        ),
+        (
+            "fn r#calc() -> i32 { 1 }\n",
+            "fn r#calc() -> i32 { 1 }",
+            "fn r#calc() -> i64 { 2 }",
+        ),
+    ] {
+        let (_temp, root, input) = fixture(source, new.as_bytes());
+        let name = if source.contains("r#calc") {
+            "r#calc"
+        } else {
+            "calc"
+        };
+        let (handle, _) = selection(&root, name);
+        let (success, report) = declaration(&root, &handle, &input, &["--write"]);
+        assert!(success, "{source}: {report}");
+        assert_eq!(
+            fs::read_to_string(root.join("app.rs")).unwrap(),
+            source.replace(old, new)
+        );
+    }
+}
+
+#[test]
+fn declaration_plans_enforce_revisions_flags_and_noop_writes() {
+    let source = "fn calc() {}\n";
+    let (_temp, root, input) = fixture(source, b" \nfn calc() {}\n ");
+    let (handle, revision) = selection(&root, "calc");
+    let short = handle.rsplit(':').next().unwrap();
+    assert!(!declaration(&root, short, &input, &["--write"]).0);
+    let (success, noop) = declaration(&root, short, &input, &["--revision", &revision, "--write"]);
+    assert!(success, "{noop}");
+    assert_eq!(noop["changed"], false);
+    assert_eq!(noop["applied"], false);
+    assert!(noop["transaction"].is_null());
+    assert!(!root.join(".fr-history").exists());
+    assert!(!declaration(&root, &handle, &input, &["--diff-bytes", "65537"]).0);
+    assert!(!declaration(&root, &handle, &input, &["--write", "--save-plan"]).0);
+    fs::write(
+        root.join("Cargo.toml"),
+        "[package]\nname=\"changed\"\nversion=\"0.1.0\"\n",
+    )
+    .unwrap();
+    assert!(!declaration(&root, &handle, &input, &["--write"]).0);
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+}
+
+#[test]
+fn declaration_size_limits_cover_the_complete_function() {
+    let header = "fn calc() ";
+    let exact = format!("{header}{{{}}}", " ".repeat(65536 - header.len() - 2));
+    let (_temp, root, input) = fixture("fn calc() {}\n", exact.as_bytes());
+    let (handle, _) = selection(&root, "calc");
+    let (success, report) = declaration(&root, &handle, &input, &["--diff-bytes", "0", "--write"]);
+    assert!(success, "{report}");
+    assert_eq!(report["declaration"]["after_bytes"], 65536);
+    let oversized = exact.replacen('{', "{ ", 1);
+    fs::write(root.join("app.rs"), &oversized).unwrap();
+    fs::write(&input, "fn calc() {}").unwrap();
+    let (handle, _) = selection(&root, "calc");
+    assert!(!declaration(&root, &handle, &input, &["--write"]).0);
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), oversized);
+    fs::write(root.join("app.rs"), "fn calc() {}\n").unwrap();
+    fs::write(&input, &oversized).unwrap();
+    let (handle, _) = selection(&root, "calc");
+    assert!(!declaration(&root, &handle, &input, &["--save-plan"]).0);
+}
+
+#[test]
+fn declaration_syntax_acceptance_does_not_claim_callers_still_typecheck() {
+    let source = "fn calc(n: i32) -> i32 { n + 1 }\nfn main() { let value: i32 = calc(3); println!(\"{}\", value); }\n";
+    let (_temp, root, input) = fixture(source, b"fn calc(n: i32) -> bool { n > 0 }");
+    assert_eq!(compiled_result(&root), b"4\n");
+    let (handle, _) = selection(&root, "calc");
+    let (success, report) = declaration(&root, &handle, &input, &["--write"]);
+    assert!(success, "{report}");
+    assert_eq!(report["validation"], "reparse-strict");
+    assert_eq!(report["behavior_checked"], false);
+    let checked = Command::new("rustc")
+        .args(["--edition=2021", "--emit=metadata", "-o"])
+        .arg(root.parent().unwrap().join("checked.rmeta"))
+        .arg(root.join("app.rs"))
+        .output()
+        .unwrap();
+    assert!(!checked.status.success());
+    assert!(String::from_utf8_lossy(&checked.stderr).contains("E0308"));
+    let id = report["transaction"].as_u64().unwrap().to_string();
+    ok(&root, &["history", "undo", &id, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+}

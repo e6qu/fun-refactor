@@ -1,4 +1,4 @@
-# Bounded function-body authoring
+# Bounded function authoring
 
 `fr author replace-body HANDLE --from FILE` replaces one function block through a current project handle.
 It supports Rust, TypeScript and TSX.
@@ -60,7 +60,8 @@ The command does not update callers, signatures or imports and does not check ty
 Macros and language context rules retain the parser's syntax coverage limits.
 Choose project compiler and test commands that establish the intended behavior after applying.
 An implementation change may deliberately change behavior; syntax acceptance does not validate that intention.
-Further languages, wrapped initializers, declaration insertion and whole-declaration replacement remain roadmap work.
+Further languages, wrapped initializers and declaration insertion remain roadmap work.
+For complete Rust function changes, see [declaration replacement](#declaration-replacement).
 
 For a TSX component, the fragment may contain JSX:
 
@@ -71,6 +72,25 @@ For a TSX component, the fragment may contain JSX:
 ```
 
 Use a handle from a `.tsx` or `.jsx` file for JSX bodies; a `.ts` target retains its TypeScript grammar.
+
+## Declaration replacement
+
+`fr author replace-declaration HANDLE --from FILE` replaces a complete Rust function, including its signature and body.
+It retains the exact function-name spelling and every byte outside the function item, including outer attributes and documentation.
+Use an ordinary function, method, default trait method or nested function handle.
+Other declarations, bodyless signatures and non-Rust targets refuse.
+
+The fragment must contain exactly one function with the same name and a body.
+For example, `pub fn calc(n: i64) -> i64 { n * 2 }` can replace an existing `calc` function.
+Exclude outer attributes, leading or trailing comments and other declarations from the fragment.
+Both complete declarations and the raw input file must fit 64 KiB; whitespace outside the fragment is trimmed.
+Generics, visibility, qualifiers, parameter types and return types may change.
+Callers and imports stay as they were. Choose existing refactorings when a change should update callers automatically.
+Changing the signature may break compilation even though both parses are clean.
+
+The report uses query `replace-declaration`, with `declaration` spans, byte counts and fingerprints.
+It includes the old `signature` and bounded `replacement_signature`.
+The saved-plan, diff-budget and history rules below apply to both authoring operations.
 
 ## Review and transactions
 
@@ -102,7 +122,7 @@ Source verification and recording are separate observations; this command does n
 
 ## Evidence
 
-Seventeen CLI scenarios cover saved replacement identity, compiled behavior, undo/redo, patch export, stale handles and revisions, unsupported targets and malformed input.
+Twenty-four CLI scenarios cover saved replacement identity, compiled behavior, undo/redo, patch export, stale handles and revisions, unsupported targets and malformed input.
 They also check exact size limits, diff omission, method and nested-function contexts, Unicode and CRLF preservation, no-op writes, symlink inputs and Unix permissions.
 TypeScript and TSX fixtures compile with `tsc --strict` and run in Node before and after saved replacements.
 The tests cover JSX, supported declaration forms, extension aliases and unsupported selections without editing an enclosing function.
@@ -112,4 +132,8 @@ The size predicate has a source anchor and signature map into Lean, with 64 shar
 Lean proves its lower and upper bounds and symmetry between old and new body sizes.
 The existing edit model describes a splice as an unchanged prefix, replacement and unchanged suffix.
 The same size guard and edit model apply to all three languages.
+Declaration cases cover compiled signature changes, preserved outer attributes, exact name spelling and complete-item size limits.
+Lean proves both prefix and suffix preservation for valid splice boundaries, including replacements that change length.
+An edit reported by the declaration CLI also passes through Rust and Lean with matching results.
+An incompatible signature fixture confirms that syntax acceptance can still leave a compiler error in a caller.
 These proofs do not establish general correspondence for AST selection, parsing, type correctness, filesystem operations or the full authoring command.

@@ -62,6 +62,9 @@ Both blocks and the input file must fit 64 KiB. Keep the fragment outside the pr
 The command preserves all bytes outside the body and rejects parser errors; it does not check types or behavior.
 Its JSON diff defaults to 4096 bytes; a clipped diff has `text` and `omitted_bytes`.
 Inspect the fragment and selected body as needed, then use `--save-plan` and source history to apply the exact replacement.
-This command accepts project handles directly. Further languages, wrapped initializers, whole declarations and insertion remain pending.
+For a combined Rust signature and implementation change, use `fr author replace-declaration HANDLE --from FILE`.
+Supply one complete function with the same name, excluding outer attributes and surrounding comments.
+Both declarations and the input must fit 64 KiB. Outer attributes stay in place; callers and imports need separate edits and checks.
+Use the same diff budget, saved-plan and history workflow. Other declarations, wrapped initializers and insertion remain pending.
 If no operation expresses the requested change, use the normal editor on the needed source and run appropriate checks.
 Those editor writes do not automatically join an `fr` transaction. Translation produces a draft for supported constructs; inspect unsupported cases and validate the target project.
