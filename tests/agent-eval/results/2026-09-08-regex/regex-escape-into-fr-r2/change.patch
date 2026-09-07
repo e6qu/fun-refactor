@@ -1,0 +1,16 @@
+diff --git "a/src/lib.rs" "b/src/lib.rs"
+--- "a/src/lib.rs"
++++ "b/src/lib.rs"
+@@ -1384,3 +1384,12 @@
+ pub mod __private {
+     pub use regex_automata::util::lazy::Lazy;
+ }
++/// Appends the regex-escaped form of `pattern` to `buf`, preserving its existing
++/// contents.
++///
++/// This escapes all regular expression metacharacters in `pattern`, just like
++/// [`escape`], without allocating an intermediate string. The buffer may grow
++/// if its capacity is insufficient.
++pub fn escape_into(pattern: &str, buf: &mut alloc::string::String) {
++    regex_syntax::escape_into(pattern, buf);
++}

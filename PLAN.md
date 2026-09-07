@@ -34,7 +34,7 @@ Implemented foundations:
 - Local recipes, expectations, workspace previews and canonical formatting.
 - Native releases, a WASM API, a browser playground and patch downloads.
 - Declared project checks with reviewed configuration digests, command outcomes and bounded output.
-- Four passing agent trials on a pinned Rust release, paired context measurements and replayable patches with independent behavioral oracles.
+- Twelve passing agent trials across pinned strsim and regex snapshots, paired context measurements and replayable patches with independent behavioral oracles.
 - Lean edit, position, history, patch, pagination, confidence and workspace membership models, source anchors, signature maps and `spec check`, `sync` and `verify`.
 
 Important gaps:
@@ -925,21 +925,30 @@ Thirty-one authoring scenarios pass, including compiler lint enforcement, exact 
 The full native/WASM gate passes, with 311/311 capability coverage and 29 Lean build jobs.
 Strict verification retains twenty-two fresh source anchors and signature maps with zero `sorry` obligations.
 
-M4l: repeated workspace evaluation (prepared; autonomous trials pending).
+M4l: repeated workspace evaluation (complete).
 
 The pinned regex workspace has 227 Rust source files and 5,553,380 Rust source bytes across its real package structure.
 The new task exposes an append-to-buffer API through the public facade using workspace functionality.
 The harness adds project selection, repeated paired trials, locked library and minimal-feature checks, and an independent append/allocation oracle.
 A controlled rehearsal passes all validation stages, exact undo/redo and patch delivery, with 3,174 oracle cases in each final project and receiver.
 Three compiled negative controls fail for clearing prefixes, missing escapes and intermediate allocation. Sixteen harness regressions pass.
-Four independent trial directories are ready, with a frozen binary and two repetitions per arm.
+Four fresh agents completed two repetitions per arm with the same frozen binary, skills and evaluator.
+All four pass, without tool failures or human corrections; exact token auditing and four-patch behavioral replay pass.
+The fr trials use 11,967 and 11,603 retrieved-context tokens; ordinary files use 6,113 and 12,660.
+Across both repetitions fr uses 25.6% more context. The second file trial keeps verbose check output, so choices materially affect the comparison.
+Both fr agents use exact-name lookup, quiet-success checks and smaller history completion reports without retries.
+Skills and transaction reports remain fixed costs; repeated uncached indexing dominates fr tool time.
 See [workspace evaluation](docs/agent-workspace-evaluation.md) for source provenance, normalized file modes, dependency setup and reproduction.
-No new autonomous results or context-efficiency claims exist yet. Running the four prepared agents remains the next step.
+The complete cohort is retained in `tests/agent-eval/results/2026-09-08-regex`; earlier evidence stays immutable.
+Workspace replay is an explicit integration test after dependency bootstrap, preserving default CI's dependency requirements.
+This localized facade change does not establish general context savings or coordinated editing across packages.
 
 Next M4 work:
 
-Extend paired real-agent evaluation to larger projects and tasks spanning package boundaries.
-Repeat trials with the current lookup, skill and output options before choosing further inspection or transaction-report changes.
+Use the retained workspace traces to reduce repeated report metadata and skill-loading costs, preserving coverage, source bases, guards and reviewable changes.
+Measure each proposed reduction on fixed transcripts or controlled workflows before another autonomous comparison.
+Investigate repeated project indexing separately from returned-context size; the current evaluation disables the cache.
+Then evaluate a task requiring coordinated changes across several files, with repeated paired trials and independent behavioral checks.
 Keep examples compatible with the distributed binary and load specialized references only when needed.
 
 Extend body authoring to selected wrapped initializers or additional languages, and support nested insertion or further declaration kinds.

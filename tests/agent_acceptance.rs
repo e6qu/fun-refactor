@@ -25,6 +25,16 @@ fn recorded_agent_patches_pass_upstream_tests_and_independent_oracles() {
 }
 
 #[test]
+#[ignore = "requires the pinned regex workspace dependencies; see docs/agent-workspace-evaluation.md"]
+fn recorded_workspace_patches_pass_checks_oracles_and_exact_reversal() {
+    python(&[
+        "tools/agent-eval.py",
+        "replay",
+        "tests/agent-eval/results/2026-09-08-regex",
+    ]);
+}
+
+#[test]
 fn smaller_history_reports_preserve_both_recorded_agent_edits() {
     python(&["tools/history-context.py", "--fr", env!("CARGO_BIN_EXE_fr")]);
 }

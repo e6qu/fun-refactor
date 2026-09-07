@@ -29,7 +29,7 @@ For an agent handoff, use the portable [fr skill](skills/fr/SKILL.md).
 The [context-reduction follow-up](docs/agent-context-followup.md) measures targeted lookup, quiet successful checks and selective skill loading against fresh file-tool trials.
 Use `fr project find NAME --signature` to locate a known declaration without requesting a broad map.
 After reviewing a source transaction, `history apply`, `undo`, `redo` and `recover` accept `--write --no-diff` for smaller completion reports.
-The [workspace evaluation](docs/agent-workspace-evaluation.md) prepares repeated trials on the larger regex repository and records its controlled rehearsal.
+The [workspace evaluation](docs/agent-workspace-evaluation.md) records four passing trials on the larger regex repository, with context comparisons and replayable patches.
 Rust function declaration replacement also supports combined signature and implementation changes.
 Declaration insertion appends a Rust function through a file handle while retaining existing code.
 
@@ -308,7 +308,7 @@ FastAPI contract rows include explicit parameter markers and decorator response 
 `fr project contracts --types` adds optional declaration links from supported signature types, preserving ambiguity and unresolved names.
 `fr project configuration` pages environment declarations and candidate code consumers, with captured-source checks and explicit analysis gaps.
 `fr project tests` adds catalog candidates and bounded call-path witnesses, preserving the weakest edge confidence without claiming runtime coverage.
-Complete dependency graphs, framework semantics, Git staging and broader task evaluations remain roadmap work.
+Complete dependency graphs, framework semantics and broader task evaluations remain roadmap work.
 
 [TUTORIAL.md](TUTORIAL.md) walks through helm/helm.
 [EXAMPLES.md](EXAMPLES.md) shows capabilities on pinned public repositories.

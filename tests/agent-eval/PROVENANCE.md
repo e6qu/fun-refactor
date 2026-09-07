@@ -26,5 +26,6 @@ Git attributes preserve evidence bytes and allow the context-only space lines th
 Raw transcripts include excerpts of the MIT source and agent-authored changes.
 Behavioral replay needs the archive and standard local tools. Token auditing separately needs the pinned tokenizer and vocabulary.
 
-The separate [regex workspace evaluation](../../docs/agent-workspace-evaluation.md) pins a complete upstream workspace, a dependency lock and controlled rehearsal evidence.
+The separate [regex workspace evaluation](../../docs/agent-workspace-evaluation.md) pins a complete upstream workspace and dependency lock.
+It retains four passing autonomous trials and a separate controlled rehearsal.
 Its source archive, licenses and lock live under `regex/`; it does not replace the strsim fixture or earlier transcripts.

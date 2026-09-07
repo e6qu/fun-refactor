@@ -1,0 +1,29 @@
+diff --git a/src/lib.rs b/src/lib.rs
+index 3c5acc3..ebea878 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -1379,6 +1379,24 @@ pub fn escape(pattern: &str) -> alloc::string::String {
+     regex_syntax::escape(pattern)
+ }
+ 
++/// Escapes all regular expression meta characters in `pattern` and appends
++/// the result to `buf`, preserving its existing contents.
++///
++/// The appended string is identical to the string returned by [`escape`] and
++/// may be safely used as a literal in a regular expression. No intermediate
++/// escaped string is allocated, but `buf` may grow to hold the result.
++///
++/// # Example
++///
++/// ```
++/// let mut buf = String::from("prefix:");
++/// regex::escape_into("a+b", &mut buf);
++/// assert_eq!(buf, r"prefix:a\+b");
++/// ```
++pub fn escape_into(pattern: &str, buf: &mut alloc::string::String) {
++    regex_syntax::escape_into(pattern, buf);
++}
++
+ /// Public-but-unstable API for macro support.
+ #[doc(hidden)]
+ pub mod __private {

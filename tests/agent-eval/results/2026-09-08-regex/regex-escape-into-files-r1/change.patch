@@ -1,0 +1,21 @@
+diff --git a/src/lib.rs b/src/lib.rs
+index 3c5acc3..b932c44 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -1379,6 +1379,16 @@ pub fn escape(pattern: &str) -> alloc::string::String {
+     regex_syntax::escape(pattern)
+ }
+ 
++/// Escapes all regular expression meta characters in `pattern` and appends the
++/// result to `buf`, preserving its existing contents.
++///
++/// The appended text is identical to [`escape(pattern)`](escape) and may be
++/// safely used as a literal in a regular expression. This writes directly into
++/// `buf` without allocating an intermediate escaped string.
++pub fn escape_into(pattern: &str, buf: &mut alloc::string::String) {
++    regex_syntax::escape_into(pattern, buf);
++}
++
+ /// Public-but-unstable API for macro support.
+ #[doc(hidden)]
+ pub mod __private {
