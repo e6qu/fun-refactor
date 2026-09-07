@@ -546,24 +546,48 @@ enum HistoryCommand {
         id: u64,
         #[arg(long)]
         write: bool,
+        #[arg(
+            long,
+            requires = "write",
+            help = "Omit repeated diffs from the completed transition report."
+        )]
+        no_diff: bool,
     },
     /// Reverse the latest applied transaction.
     Undo {
         id: u64,
         #[arg(long)]
         write: bool,
+        #[arg(
+            long,
+            requires = "write",
+            help = "Omit repeated diffs from the completed transition report."
+        )]
+        no_diff: bool,
     },
     /// Reapply the next transaction on the redo stack.
     Redo {
         id: u64,
         #[arg(long)]
         write: bool,
+        #[arg(
+            long,
+            requires = "write",
+            help = "Omit repeated diffs from the completed transition report."
+        )]
+        no_diff: bool,
     },
     /// Restore an interrupted operation to its starting state.
     Recover {
         id: u64,
         #[arg(long)]
         write: bool,
+        #[arg(
+            long,
+            requires = "write",
+            help = "Omit repeated diffs from the completed transition report."
+        )]
+        no_diff: bool,
     },
 }
 
@@ -1714,17 +1738,17 @@ fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
         return Ok(());
     }
     let report = match command {
-        Some(HistoryCommand::Apply { id, write }) => {
-            crate::history::act(&cli.root, Action::Apply, *id, *write)?
+        Some(HistoryCommand::Apply { id, write, no_diff }) => {
+            crate::history::act_with_diff(&cli.root, Action::Apply, *id, *write, !no_diff)?
         }
-        Some(HistoryCommand::Undo { id, write }) => {
-            crate::history::act(&cli.root, Action::Undo, *id, *write)?
+        Some(HistoryCommand::Undo { id, write, no_diff }) => {
+            crate::history::act_with_diff(&cli.root, Action::Undo, *id, *write, !no_diff)?
         }
-        Some(HistoryCommand::Redo { id, write }) => {
-            crate::history::act(&cli.root, Action::Redo, *id, *write)?
+        Some(HistoryCommand::Redo { id, write, no_diff }) => {
+            crate::history::act_with_diff(&cli.root, Action::Redo, *id, *write, !no_diff)?
         }
-        Some(HistoryCommand::Recover { id, write }) => {
-            crate::history::act(&cli.root, Action::Recover, *id, *write)?
+        Some(HistoryCommand::Recover { id, write, no_diff }) => {
+            crate::history::act_with_diff(&cli.root, Action::Recover, *id, *write, !no_diff)?
         }
         other => {
             let history = crate::history::History::read(&cli.root)?;

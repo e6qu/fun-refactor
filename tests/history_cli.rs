@@ -157,3 +157,154 @@ fn openapi_output_uses_the_same_history() {
     ok(dir.path(), &["history", "redo", &id, "--write"]);
     assert_eq!(fs::read_to_string(output).unwrap(), document);
 }
+
+#[test]
+fn no_diff_writes_keep_transition_metadata_and_exact_source_history() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("app.rs");
+    let original = "fn helper() {}\nfn main() { helper(); }\n";
+    fs::write(&path, original).unwrap();
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o751)).unwrap();
+    ok(dir.path(), &["rename", "helper", "renamed", "--save-plan"]);
+    let mut changed = String::new();
+    for action in ["apply", "undo", "redo"] {
+        let mut expected = ok(dir.path(), &["history", action, "1"]);
+        assert_eq!(expected["applied"], false);
+        for change in expected["changes"].as_array_mut().unwrap() {
+            assert!(!change
+                .as_object_mut()
+                .unwrap()
+                .remove("diff")
+                .unwrap()
+                .as_str()
+                .unwrap()
+                .is_empty());
+        }
+        expected["applied"] = true.into();
+        expected["diffs_omitted"] = true.into();
+        let written = ok(
+            dir.path(),
+            &["history", action, "1", "--write", "--no-diff"],
+        );
+        assert_eq!(written, expected);
+        let current = fs::read_to_string(&path).unwrap();
+        if action == "apply" {
+            assert!(current.contains("renamed"));
+            changed = current;
+            fs::write(dir.path().join("unrelated.rs"), "fn later() {}\n").unwrap();
+        } else {
+            assert_eq!(current, if action == "undo" { original } else { &changed });
+        }
+        assert_eq!(
+            fs::metadata(&path).unwrap().permissions().mode() & 0o7777,
+            0o751
+        );
+    }
+    let shown = ok(dir.path(), &["history", "show", "1"]);
+    assert!(shown["records"][0]["changes"][0]["diff"]
+        .as_str()
+        .unwrap()
+        .contains("renamed"));
+    let patch = ok(dir.path(), &["history", "patch", "1"]);
+    assert!(patch["patch"].as_str().unwrap().contains("renamed"));
+    assert_eq!(
+        fs::read_to_string(dir.path().join("unrelated.rs")).unwrap(),
+        "fn later() {}\n"
+    );
+}
+
+#[test]
+fn no_diff_writes_preserve_creation_deletion_and_mode_changes() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("data.txt");
+    fs::write(&path, "preserve these bytes\n").unwrap();
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o640)).unwrap();
+    ok(
+        dir.path(),
+        &[
+            "file",
+            "executable",
+            "data.txt",
+            "--set",
+            "on",
+            "--save-plan",
+        ],
+    );
+    let mode = ok(
+        dir.path(),
+        &["history", "apply", "1", "--write", "--no-diff"],
+    );
+    assert_eq!(mode["changes"][0]["before_mode"], 0o640);
+    assert_eq!(mode["changes"][0]["after_mode"], 0o740);
+    assert_eq!(
+        fs::metadata(&path).unwrap().permissions().mode() & 0o7777,
+        0o740
+    );
+    ok(dir.path(), &["file", "delete", "data.txt", "--save-plan"]);
+    let deleted = ok(
+        dir.path(),
+        &["history", "apply", "2", "--write", "--no-diff"],
+    );
+    assert_eq!(deleted["changes"][0]["before_exists"], true);
+    assert_eq!(deleted["changes"][0]["after_exists"], false);
+    assert!(deleted["changes"][0]["after_mode"].is_null());
+    assert!(!path.exists());
+    let restored = ok(
+        dir.path(),
+        &["history", "undo", "2", "--write", "--no-diff"],
+    );
+    assert_eq!(restored["changes"][0]["before_exists"], false);
+    assert_eq!(restored["changes"][0]["after_exists"], true);
+    assert_eq!(fs::read_to_string(&path).unwrap(), "preserve these bytes\n");
+    assert_eq!(
+        fs::metadata(&path).unwrap().permissions().mode() & 0o7777,
+        0o740
+    );
+}
+
+#[test]
+fn no_diff_refuses_previews_stale_plans_and_conflicting_undo_without_writes() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("app.rs");
+    fs::write(&path, "fn helper() {}\n").unwrap();
+    ok(dir.path(), &["rename", "helper", "renamed", "--save-plan"]);
+    let journal = dir.path().join(".fr-history/state.json");
+    let planned = fs::read(&journal).unwrap();
+    for action in ["apply", "undo", "redo", "recover"] {
+        let output = Command::new(env!("CARGO_BIN_EXE_fr"))
+            .arg("-C")
+            .arg(dir.path())
+            .args(["history", action, "1", "--no-diff"])
+            .output()
+            .unwrap();
+        assert!(!output.status.success());
+        assert!(String::from_utf8_lossy(&output.stderr).contains("--write"));
+        assert_eq!(fs::read(&journal).unwrap(), planned);
+    }
+    let other = dir.path().join("later.rs");
+    fs::write(&other, "fn later() {}\n").unwrap();
+    let default = run(dir.path(), &["history", "apply", "1", "--write"]);
+    let smaller = run(
+        dir.path(),
+        &["history", "apply", "1", "--write", "--no-diff"],
+    );
+    assert!(!smaller.0);
+    assert_eq!(smaller, default);
+    assert_eq!(fs::read(&journal).unwrap(), planned);
+    fs::remove_file(other).unwrap();
+    ok(
+        dir.path(),
+        &["history", "apply", "1", "--write", "--no-diff"],
+    );
+    fs::write(&path, "fn user_edit() {}\n").unwrap();
+    let applied = fs::read(&journal).unwrap();
+    let default = run(dir.path(), &["history", "undo", "1", "--write"]);
+    let smaller = run(
+        dir.path(),
+        &["history", "undo", "1", "--write", "--no-diff"],
+    );
+    assert!(!smaller.0);
+    assert_eq!(smaller, default);
+    assert_eq!(fs::read(&journal).unwrap(), applied);
+    assert_eq!(fs::read_to_string(path).unwrap(), "fn user_edit() {}\n");
+}

@@ -1,6 +1,6 @@
 # Development continuity
 
-M4i, the measured context-reduction follow-up, is complete. Broader agent efficiency remains open.
+M4j is complete: history writes can omit repeated diff text after preview. Broader agent efficiency remains open.
 The user authorized local commits. Publishing and pushing remain outside this request.
 
 ## Current state
@@ -55,10 +55,24 @@ Prose budgets remain 272 long sentences and 9,335 Rust comment lines, with other
 Scoring uses `target/agent-eval-venv/bin/python`, tiktoken 0.12.0 and a checksum-pinned o200k_base vocabulary.
 Reference tokens measure instrumented text, excluding system context, hidden reasoning and billed usage.
 
+## Latest completed increment
+
+M4j adds opt-in `--no-diff` for history apply, undo, redo and recover with `--write`.
+Completion reports retain transaction, action, applied status, paths, existence and modes, with an explicit omission flag.
+Preview diffs, snapshots and guards remain intact. The skill also distinguishes full names from fragments before lookup.
+Eight history CLI scenarios, eighteen history unit scenarios and all 33 skill examples pass.
+Controlled replay matches both recorded edits and patches, with 69.8% and 59.1% less completion-report context.
+Including undo/redo previews, the reductions are 41.9% and 35.5%; this does not measure fresh agents or total task context.
+The retained report is `tests/agent-eval/history-context.json`; `tools/history-context.py` reproduces it with optional pinned token counts.
+Strict verification passes in `/tmp/fr-m4j-spec-verify.json`, with twenty-two fresh anchors and signature maps and zero obligations.
+The full native/WASM gate passes in `/tmp/fr-m4j-full-check.log`, retaining 311/311 capability coverage and 29 Lean build jobs.
+The acceptance regression also replays all eight earlier patches and runs ten harness regressions.
+The M4j commit includes implementation, skill examples, controlled measurements, regression coverage and refreshed local docs.
+
 ## Next steps
 
-Use retained traces to reduce remaining inspection and transaction-report overhead while keeping outcomes and reviewable edits.
-Both fr agents first searched partial names in exact mode; clearer query selection may avoid those empty-result round trips.
-Test larger projects and repeated paired trials before claiming general context savings or timing improvements.
+Evaluate larger projects and tasks spanning package boundaries with repeated paired trials using the current options.
+The skill now distinguishes full names from fragments; fresh agents must establish whether that guidance avoids empty-result round trips.
+Use those traces to select further inspection and report changes before claiming general context savings or timing improvements.
 Keep skills selective and executable against the distributed binary.
 Further authoring operations, M5 automated Lean adoption and M6 framework migrations remain open in PLAN.md.

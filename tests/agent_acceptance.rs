@@ -23,3 +23,8 @@ fn recorded_agent_patches_pass_upstream_tests_and_independent_oracles() {
         python(&["tools/agent-eval.py", "replay", directory]);
     }
 }
+
+#[test]
+fn smaller_history_reports_preserve_both_recorded_agent_edits() {
+    python(&["tools/history-context.py", "--fr", env!("CARGO_BIN_EXE_fr")]);
+}

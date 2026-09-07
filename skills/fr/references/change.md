@@ -11,7 +11,7 @@ fr --json rename '<TARGET>' welcome --save-plan
 fr history show '<TX>'
 fr history patch '<TX>' --check
 fr history apply '<TX>'
-fr history apply '<TX>' --write
+fr history apply '<TX>' --write --no-diff
 ```
 
 Inspect the diff and warnings before saving or applying. `<TX>` is the returned `transaction`, scoped to this workspace.

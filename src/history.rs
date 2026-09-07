@@ -461,6 +461,19 @@ fn store_record(
 }
 
 pub fn act(root: &Path, action: Action, id: u64, write: bool) -> Result<serde_json::Value> {
+    act_with_diff(root, action, id, write, true)
+}
+
+pub fn act_with_diff(
+    root: &Path,
+    action: Action,
+    id: u64,
+    write: bool,
+    include_diff: bool,
+) -> Result<serde_json::Value> {
+    if !include_diff && !write {
+        bail!("preview reports require diffs; omission requires a write");
+    }
     let root = workspace(root)?;
     let _lock = if write { Some(lock(&root)?) } else { None };
     let mut history = History::read(&root)?;
@@ -514,13 +527,19 @@ pub fn act(root: &Path, action: Action, id: u64, write: bool) -> Result<serde_js
     } else {
         changes
     };
-    let report = serde_json::json!({ "transaction": id, "action": action, "applied": write,
+    let mut report = serde_json::json!({ "transaction": id, "action": action, "applied": write,
         "changes": changes.iter().map(|c| {
             let (before, after) = (&c.before, &c.after);
-            serde_json::json!({"path": c.path, "before_exists": before.is_some(), "after_exists": after.is_some(),
-                "before_mode": before.as_ref().map(|s| s.mode), "after_mode": after.as_ref().map(|s| s.mode),
-                "diff": crate::edit::unified_diff(before.as_ref().map_or("", |s| &s.content), after.as_ref().map_or("", |s| &s.content), &c.path.to_string_lossy())})
+            let mut entry = serde_json::json!({"path": c.path, "before_exists": before.is_some(), "after_exists": after.is_some(),
+                "before_mode": before.as_ref().map(|s| s.mode), "after_mode": after.as_ref().map(|s| s.mode)});
+            if include_diff {
+                entry["diff"] = serde_json::json!(crate::edit::unified_diff(before.as_ref().map_or("", |s| &s.content), after.as_ref().map_or("", |s| &s.content), &c.path.to_string_lossy()));
+            }
+            entry
         }).collect::<Vec<_>>() });
+    if !include_diff {
+        report["diffs_omitted"] = serde_json::json!(true);
+    }
     if write {
         if action == Action::Recover {
             recover(&mut history)?;
@@ -835,7 +854,16 @@ mod tests {
                 assert!(History::read(dir.path()).unwrap().pending.is_some());
                 assert!(act(dir.path(), Action::Apply, id, true).is_err());
                 act(dir.path(), Action::Recover, id, false).unwrap();
-                act(dir.path(), Action::Recover, id, true).unwrap();
+                let report =
+                    act_with_diff(dir.path(), Action::Recover, id, true, index != 1).unwrap();
+                if index == 1 {
+                    assert_eq!(report["diffs_omitted"], true);
+                    assert!(report["changes"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .all(|c| c.get("diff").is_none()));
+                }
                 assert!(History::read(dir.path()).unwrap().pending.is_none());
                 for ((path, _, _), expected) in files.iter().zip(before) {
                     assert_eq!(snapshot(path).unwrap(), expected);

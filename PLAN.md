@@ -903,10 +903,23 @@ Fresh ordinary-file trials use 6,087 and 8,397 tokens; fr still costs more conte
 Both evidence bundles are retained, with eight patches covered by behavioral replay and exact follow-up token auditing.
 See the [context-reduction follow-up](docs/agent-context-followup.md) for comparisons, protocol changes and measurement limits.
 
+M4j: smaller history completion reports (complete).
+
+Retained trials repeat diff text in apply, undo and redo completion reports after agents already reviewed the changes.
+Opt-in `--no-diff` on history write transitions retains outcomes, file existence and modes while omitting repeated diff text.
+Previews, stored snapshots, patch exports and all transition checks retain their existing behavior.
+The portable skill uses this option after review and clarifies exact-name versus partial-name lookup.
+Focused history and skill tests pass, including 33 executable examples and interrupted recovery.
+Controlled replay of the two retained edits reduces completion-output tokens by 69.8% and 59.1% with identical source and patch results.
+Including undo/redo previews, history-output reductions are 41.9% and 35.5%. These measurements do not include total task context or fresh agents.
+The full native/WASM gate passes, including eight history CLI scenarios, eighteen history unit scenarios and all 33 skill examples.
+Validation retains 311/311 capability coverage, 29 Lean build jobs and twenty-two fresh anchors and signature maps with zero `sorry` obligations.
+The [follow-up report](docs/agent-context-followup.md#subsequent-history-completion-reports) retains measurements and distinguishes them from paired-agent results.
+
 Next M4 work:
 
-Extend paired real-agent evaluation beyond the first Rust project and reduce the remaining context overhead.
-Prioritize inspection and transaction reports using retained traces, then repeat paired measurements.
+Extend paired real-agent evaluation to larger projects and tasks spanning package boundaries.
+Repeat trials with the current lookup, skill and output options before choosing further inspection or transaction-report changes.
 Keep examples compatible with the distributed binary and load specialized references only when needed.
 
 Extend body authoring to selected wrapped initializers or additional languages, and support nested insertion or further declaration kinds.

@@ -25,6 +25,8 @@ It uses saved transaction IDs for exact plan application, and keeps source histo
 History and check commands do not require refreshing project handles after every write.
 The authoring reference avoids loading recipe vocabulary for a body edit; patch guidance loads Git administration only when needed.
 The check example uses `--quiet-success` and retains diagnostics for failed commands.
+History writes use `--no-diff` after reviewing the saved plan or transition preview, retaining completion metadata without repeated diff text.
+The introductory lookup guidance distinguishes a full name from a fragment, which needs `--contains`.
 
 ## Executable evidence
 
@@ -73,6 +75,7 @@ The [first real-agent evaluation](agent-acceptance.md) now records two fr tasks 
 Both fr tasks pass independent behavioral oracles, declared checks and reversible patch workflows without human corrections.
 The [follow-up evaluation](agent-context-followup.md) reduces fr context by 34.0% and 24.5% against its first trials.
 The fresh file trials also improve and still use less context. The evidence supports these workflows while leaving broader efficiency open.
+The same report includes a subsequent controlled comparison of smaller history completion reports; this adds no new autonomous-agent result.
 
 ## Remaining roadmap
 

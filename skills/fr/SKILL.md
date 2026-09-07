@@ -7,7 +7,8 @@ description: Use the fr CLI to inspect project hierarchy with bounded output, pl
 
 Use `fr` from the target project root, or select that root with `-C`. Check `fr --version` and command help when the installed build differs.
 
-For a known declaration, start with `fr project find NAME --signature`; use `--in PATH` to narrow it.
+For a known full declaration name, use `fr project find NAME --signature`; use `--in PATH` to narrow it.
+Add `--contains` when the name is only a fragment.
 Otherwise start with a small structural view:
 
 ```sh

@@ -11,7 +11,7 @@ Choose an operation:
 - `fr author insert-declaration FILE_HANDLE --from FILE`: append one Rust function without outer attributes or surrounding comments. Duplicate direct names and pending outer metadata refuse.
 
 Keep the UTF-8 fragment outside the project; the input and affected declarations/blocks must fit 64 KiB.
-Use `--save-plan` to preview and freeze the edit. Inspect the bounded diff and omissions, then `fr history apply TX --write` applies that exact transaction.
+Use `--save-plan` to preview and freeze the edit. Inspect the bounded diff and omissions, then `fr history apply TX --write --no-diff` applies that exact transaction.
 A saved plan leaves source unchanged. Parsing checks syntax; run [project checks](checks.md) for compilation and behavior.
 
 Keep TX for [undo/redo](history.md) and [patch export](git.md). These commands do not need refreshed project handles.

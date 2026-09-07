@@ -1038,6 +1038,10 @@ History uses schema 1 and numeric identities local to the workspace.
 `patch --git-check` reports Git application checks; `--index` also checks the affected index entries.
 Git checks require a working tree and refuse affected content filters. They use repository configuration.
 Other history commands print JSON in both output modes. `show` and transition previews include diffs and existence/mode changes.
+After reviewing a plan or transition preview, add `--no-diff` to `apply`, `undo`, `redo` or `recover` with `--write`.
+The completion report omits each change's `diff` and sets `diffs_omitted: true`, retaining transaction, action, applied status, paths, existence and modes.
+This option requires `--write`; previews keep their diffs. Default reports and stored snapshots remain unchanged.
+Omission does not bypass source, ordering, conflict or recovery checks, and does not reduce journal storage.
 Patch export reads recorded snapshots and leaves history, working files and the Git index unchanged.
 Use `git apply --check /tmp/change.patch` to check application in the receiving workspace.
 See [recorded transaction patches](docs/git-patches.md) for reverse export, permissions and text scope.

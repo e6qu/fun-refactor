@@ -144,7 +144,10 @@ def source_workflow(exercise, root):
 
     path = reference / "history.md"
     for command in commands(path):
-        exercise.example(root, path, command)
+        value = exercise.example(root, path, command)
+        if "--no-diff" in command:
+            assert value["applied"] is True and value["diffs_omitted"] is True
+            assert all("diff" not in change for change in value["changes"])
         if "--write" in command:
             expected = original if "undo" in command else changed
             for name in changed:

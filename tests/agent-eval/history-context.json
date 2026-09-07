@@ -1,0 +1,162 @@
+{
+  "schema": "fr-history-context-1",
+  "binary_sha256": "a9944ddceb069b341a984293e7c18271548ee0cc38b41d5db411cfe40dfe11af",
+  "evidence_manifest_sha256": "9c9f8c9f41bc15d43d2a130348d0bbd23b001a2b34c44d20a955ae58342f2482",
+  "tokenizer": {
+    "package": "tiktoken",
+    "version": "0.12.0",
+    "encoding": "o200k_base",
+    "vocabulary_sha256": "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d"
+  },
+  "scope": "Three completion reports and two undo/redo previews per task; direct CLI stdout only. Identical retained edits, no agents or total-task context measurement.",
+  "results": [
+    {
+      "task": "unicode-dice",
+      "passed": true,
+      "measures": {
+        "default": {
+          "completion_bytes": 2161,
+          "with_previews_bytes": 3603,
+          "completion_tokens": 825,
+          "with_previews_tokens": 1375
+        },
+        "no_diff": {
+          "completion_bytes": 763,
+          "with_previews_bytes": 2205,
+          "completion_tokens": 249,
+          "with_previews_tokens": 799
+        }
+      },
+      "reports": {
+        "default": [
+          {
+            "action": "apply",
+            "write": true,
+            "stdout": "{\n  \"action\": \"apply\",\n  \"applied\": true,\n  \"changes\": [\n    {\n      \"after_exists\": true,\n      \"after_mode\": 420,\n      \"before_exists\": true,\n      \"before_mode\": 420,\n      \"diff\": \"--- a/src/lib.rs\\n+++ b/src/lib.rs\\n@@ -729,7 +729,9 @@\\n         return 1.0;\\n     }\\n \\n-    if a.len() < 2 || b.len() < 2 {\\n+    let a_len = a.chars().count();\\n+    let b_len = b.chars().count();\\n+    if a_len < 2 || b_len < 2 {\\n         return 0.0;\\n     }\\n \\n@@ -750,7 +752,7 @@\\n         });\\n     }\\n \\n-    (2 * intersection_size) as f64 / (a.len() + b.len() - 2) as f64\\n+    (2 * intersection_size) as f64 / (a_len + b_len - 2) as f64\\n }\\n \\n #[cfg(test)]\\n\",\n      \"path\": \"src/lib.rs\"\n    }\n  ],\n  \"transaction\": 1\n}\n"
+          },
+          {
+            "action": "undo",
+            "write": false,
+            "stdout": "{\n  \"action\": \"undo\",\n  \"applied\": false,\n  \"changes\": [\n    {\n      \"after_exists\": true,\n      \"after_mode\": 420,\n      \"before_exists\": true,\n      \"before_mode\": 420,\n      \"diff\": \"--- a/src/lib.rs\\n+++ b/src/lib.rs\\n@@ -729,9 +729,7 @@\\n         return 1.0;\\n     }\\n \\n-    let a_len = a.chars().count();\\n-    let b_len = b.chars().count();\\n-    if a_len < 2 || b_len < 2 {\\n+    if a.len() < 2 || b.len() < 2 {\\n         return 0.0;\\n     }\\n \\n@@ -752,7 +750,7 @@\\n         });\\n     }\\n \\n-    (2 * intersection_size) as f64 / (a_len + b_len - 2) as f64\\n+    (2 * intersection_size) as f64 / (a.len() + b.len() - 2) as f64\\n }\\n \\n #[cfg(test)]\\n\",\n      \"path\": \"src/lib.rs\"\n    }\n  ],\n  \"transaction\": 1\n}\n"
+          },
+          {
+            "action": "undo",
+            "write": true,
+            "stdout": "{\n  \"action\": \"undo\",\n  \"applied\": true,\n  \"changes\": [\n    {\n      \"after_exists\": true,\n      \"after_mode\": 420,\n      \"before_exists\": true,\n      \"before_mode\": 420,\n      \"diff\": \"--- a/src/lib.rs\\n+++ b/src/lib.rs\\n@@ -729,9 +729,7 @@\\n         return 1.0;\\n     }\\n \\n-    let a_len = a.chars().count();\\n-    let b_len = b.chars().count();\\n-    if a_len < 2 || b_len < 2 {\\n+    if a.len() < 2 || b.len() < 2 {\\n         return 0.0;\\n     }\\n \\n@@ -752,7 +750,7 @@\\n         });\\n     }\\n \\n-    (2 * intersection_size) as f64 / (a_len + b_len - 2) as f64\\n+    (2 * intersection_size) as f64 / (a.len() + b.len() - 2) as f64\\n }\\n \\n #[cfg(test)]\\n\",\n      \"path\": \"src/lib.rs\"\n    }\n  ],\n  \"transaction\": 1\n}\n"
+          },
+          {
+            "action": "redo",
+            "write": false,
+            "stdout": "{\n  \"action\": \"redo\",\n  \"applied\": false,\n  \"changes\": [\n    {\n      \"after_exists\": true,\n      \"after_mode\": 420,\n      \"before_exists\": true,\n      \"before_mode\": 420,\n      \"diff\": \"--- a/src/lib.rs\\n+++ b/src/lib.rs\\n@@ -729,7 +729,9 @@\\n         return 1.0;\\n     }\\n \\n-    if a.len() < 2 || b.len() < 2 {\\n+    let a_len = a.chars().count();\\n+    let b_len = b.chars().count();\\n+    if a_len < 2 || b_len < 2 {\\n         return 0.0;\\n     }\\n \\n@@ -750,7 +752,7 @@\\n         });\\n     }\\n \\n-    (2 * intersection_size) as f64 / (a.len() + b.len() - 2) as f64\\n+    (2 * intersection_size) as f64 / (a_len + b_len - 2) as f64\\n }\\n \\n #[cfg(test)]\\n\",\n      \"path\": \"src/lib.rs\"\n    }\n  ],\n  \"transaction\": 1\n}\n"
+          },
+          {
+            "action": "redo",
+            "write": true,
+            "stdout": "{\n  \"action\": \"redo\",\n  \"applied\": true,\n  \"changes\": [\n    {\n      \"after_exists\": true,\n      \"after_mode\": 420,\n      \"before_exists\": true,\n      \"before_mode\": 420,\n      \"diff\": \"--- a/src/lib.rs\\n+++ b/src/lib.rs\\n@@ -729,7 +729,9 @@\\n         return 1.0;\\n     }\\n \\n-    if a.len() < 2 || b.len() < 2 {\\n+    let a_len = a.chars().count();\\n+    let b_len = b.chars().count();\\n+    if a_len < 2 || b_len < 2 {\\n         return 0.0;\\n     }\\n \\n@@ -750,7 +752,7 @@\\n         });\\n     }\\n \\n-    (2 * intersection_size) as f64 / (a.len() + b.len() - 2) as f64\\n+    (2 * intersection_size) as f64 / (a_len + b_len - 2) as f64\\n }\\n \\n #[cfg(test)]\\n\",\n      \"path\": \"src/lib.rs\"\n    }\n  ],\n  \"transaction\": 1\n}\n"
+          }
+        ],
+        "no_diff": [
+          {
+            "action": "apply",
+            "write": true,
+            "stdout": "{\n  \"action\": \"apply\",\n  \"applied\": true,\n  \"changes\": [\n    {\n      \"after_exists\": true,\n      \"after_mode\": 420,\n      \"before_exists\": true,\n      \"before_mode\": 420,\n      \"path\": \"src/lib.rs\"\n    }\n  ],\n  \"diffs_omitted\": true,\n  \"transaction\": 1\n}\n"
+          },
+          {
+            "action": "undo",
+            "write": false,
+            "stdout": "{\n  \"action\": \"undo\",\n  \"applied\": false,\n  \"changes\": [\n    {\n      \"after_exists\": true,\n      \"after_mode\": 420,\n      \"before_exists\": true,\n      \"before_mode\": 420,\n      \"diff\": \"--- a/src/lib.rs\\n+++ b/src/lib.rs\\n@@ -729,9 +729,7 @@\\n         return 1.0;\\n     }\\n \\n-    let a_len = a.chars().count();\\n-    let b_len = b.chars().count();\\n-    if a_len < 2 || b_len < 2 {\\n+    if a.len() < 2 || b.len() < 2 {\\n         return 0.0;\\n     }\\n \\n@@ -752,7 +750,7 @@\\n         });\\n     }\\n \\n-    (2 * intersection_size) as f64 / (a_len + b_len - 2) as f64\\n+    (2 * intersection_size) as f64 / (a.len() + b.len() - 2) as f64\\n }\\n \\n #[cfg(test)]\\n\",\n      \"path\": \"src/lib.rs\"\n    }\n  ],\n  \"transaction\": 1\n}\n"
+          },
+          {
+            "action": "undo",
+            "write": true,
+            "stdout": "{\n  \"action\": \"undo\",\n  \"applied\": true,\n  \"changes\": [\n    {\n      \"after_exists\": true,\n      \"after_mode\": 420,\n      \"before_exists\": true,\n      \"before_mode\": 420,\n      \"path\": \"src/lib.rs\"\n    }\n  ],\n  \"diffs_omitted\": true,\n  \"transaction\": 1\n}\n"
+          },
+          {
+            "action": "redo",
+            "write": false,
+            "stdout": "{\n  \"action\": \"redo\",\n  \"applied\": false,\n  \"changes\": [\n    {\n      \"after_exists\": true,\n      \"after_mode\": 420,\n      \"before_exists\": true,\n      \"before_mode\": 420,\n      \"diff\": \"--- a/src/lib.rs\\n+++ b/src/lib.rs\\n@@ -729,7 +729,9 @@\\n         return 1.0;\\n     }\\n \\n-    if a.len() < 2 || b.len() < 2 {\\n+    let a_len = a.chars().count();\\n+    let b_len = b.chars().count();\\n+    if a_len < 2 || b_len < 2 {\\n         return 0.0;\\n     }\\n \\n@@ -750,7 +752,7 @@\\n         });\\n     }\\n \\n-    (2 * intersection_size) as f64 / (a.len() + b.len() - 2) as f64\\n+    (2 * intersection_size) as f64 / (a_len + b_len - 2) as f64\\n }\\n \\n #[cfg(test)]\\n\",\n      \"path\": \"src/lib.rs\"\n    }\n  ],\n  \"transaction\": 1\n}\n"
+          },
+          {
+            "action": "redo",
+            "write": true,
+            "stdout": "{\n  \"action\": \"redo\",\n  \"applied\": true,\n  \"changes\": [\n    {\n      \"after_exists\": true,\n      \"after_mode\": 420,\n      \"before_exists\": true,\n      \"before_mode\": 420,\n      \"path\": \"src/lib.rs\"\n    }\n  ],\n  \"diffs_omitted\": true,\n  \"transaction\": 1\n}\n"
+          }
+        ]
+      }
+    },
+    {
+      "task": "normalized-osa",
+      "passed": true,
+      "measures": {
+        "default": {
+          "completion_bytes": 1672,
+          "with_previews_bytes": 2788,
+          "completion_tokens": 609,
+          "with_previews_tokens": 1015
+        },
+        "no_diff": {
+          "completion_bytes": 763,
+          "with_previews_bytes": 1879,
+          "completion_tokens": 249,
+          "with_previews_tokens": 655
+        }
+      },
+      "reports": {
+        "default": [
+          {
+            "action": "apply",
+            "write": true,
+            "stdout": "{\n  \"action\": \"apply\",\n  \"applied\": true,\n  \"changes\": [\n    {\n      \"after_exists\": true,\n      \"after_mode\": 420,\n      \"before_exists\": true,\n      \"before_mode\": 420,\n      \"diff\": \"--- a/src/lib.rs\\n+++ b/src/lib.rs\\n@@ -1305,3 +1305,9 @@\\n         );\\n     }\\n }\\n+pub fn normalized_osa_distance(a: &str, b: &str) -> f64 {\\n+    if a.is_empty() && b.is_empty() {\\n+        return 1.0;\\n+    }\\n+    1.0 - (osa_distance(a, b) as f64) / (a.chars().count().max(b.chars().count()) as f64)\\n+}\\n\",\n      \"path\": \"src/lib.rs\"\n    }\n  ],\n  \"transaction\": 1\n}\n"
+          },
+          {
+            "action": "undo",
+            "write": false,
+            "stdout": "{\n  \"action\": \"undo\",\n  \"applied\": false,\n  \"changes\": [\n    {\n      \"after_exists\": true,\n      \"after_mode\": 420,\n      \"before_exists\": true,\n      \"before_mode\": 420,\n      \"diff\": \"--- a/src/lib.rs\\n+++ b/src/lib.rs\\n@@ -1305,9 +1305,3 @@\\n         );\\n     }\\n }\\n-pub fn normalized_osa_distance(a: &str, b: &str) -> f64 {\\n-    if a.is_empty() && b.is_empty() {\\n-        return 1.0;\\n-    }\\n-    1.0 - (osa_distance(a, b) as f64) / (a.chars().count().max(b.chars().count()) as f64)\\n-}\\n\",\n      \"path\": \"src/lib.rs\"\n    }\n  ],\n  \"transaction\": 1\n}\n"
+          },
+          {
+            "action": "undo",
+            "write": true,
+            "stdout": "{\n  \"action\": \"undo\",\n  \"applied\": true,\n  \"changes\": [\n    {\n      \"after_exists\": true,\n      \"after_mode\": 420,\n      \"before_exists\": true,\n      \"before_mode\": 420,\n      \"diff\": \"--- a/src/lib.rs\\n+++ b/src/lib.rs\\n@@ -1305,9 +1305,3 @@\\n         );\\n     }\\n }\\n-pub fn normalized_osa_distance(a: &str, b: &str) -> f64 {\\n-    if a.is_empty() && b.is_empty() {\\n-        return 1.0;\\n-    }\\n-    1.0 - (osa_distance(a, b) as f64) / (a.chars().count().max(b.chars().count()) as f64)\\n-}\\n\",\n      \"path\": \"src/lib.rs\"\n    }\n  ],\n  \"transaction\": 1\n}\n"
+          },
+          {
+            "action": "redo",
+            "write": false,
+            "stdout": "{\n  \"action\": \"redo\",\n  \"applied\": false,\n  \"changes\": [\n    {\n      \"after_exists\": true,\n      \"after_mode\": 420,\n      \"before_exists\": true,\n      \"before_mode\": 420,\n      \"diff\": \"--- a/src/lib.rs\\n+++ b/src/lib.rs\\n@@ -1305,3 +1305,9 @@\\n         );\\n     }\\n }\\n+pub fn normalized_osa_distance(a: &str, b: &str) -> f64 {\\n+    if a.is_empty() && b.is_empty() {\\n+        return 1.0;\\n+    }\\n+    1.0 - (osa_distance(a, b) as f64) / (a.chars().count().max(b.chars().count()) as f64)\\n+}\\n\",\n      \"path\": \"src/lib.rs\"\n    }\n  ],\n  \"transaction\": 1\n}\n"
+          },
+          {
+            "action": "redo",
+            "write": true,
+            "stdout": "{\n  \"action\": \"redo\",\n  \"applied\": true,\n  \"changes\": [\n    {\n      \"after_exists\": true,\n      \"after_mode\": 420,\n      \"before_exists\": true,\n      \"before_mode\": 420,\n      \"diff\": \"--- a/src/lib.rs\\n+++ b/src/lib.rs\\n@@ -1305,3 +1305,9 @@\\n         );\\n     }\\n }\\n+pub fn normalized_osa_distance(a: &str, b: &str) -> f64 {\\n+    if a.is_empty() && b.is_empty() {\\n+        return 1.0;\\n+    }\\n+    1.0 - (osa_distance(a, b) as f64) / (a.chars().count().max(b.chars().count()) as f64)\\n+}\\n\",\n      \"path\": \"src/lib.rs\"\n    }\n  ],\n  \"transaction\": 1\n}\n"
+          }
+        ],
+        "no_diff": [
+          {
+            "action": "apply",
+            "write": true,
+            "stdout": "{\n  \"action\": \"apply\",\n  \"applied\": true,\n  \"changes\": [\n    {\n      \"after_exists\": true,\n      \"after_mode\": 420,\n      \"before_exists\": true,\n      \"before_mode\": 420,\n      \"path\": \"src/lib.rs\"\n    }\n  ],\n  \"diffs_omitted\": true,\n  \"transaction\": 1\n}\n"
+          },
+          {
+            "action": "undo",
+            "write": false,
+            "stdout": "{\n  \"action\": \"undo\",\n  \"applied\": false,\n  \"changes\": [\n    {\n      \"after_exists\": true,\n      \"after_mode\": 420,\n      \"before_exists\": true,\n      \"before_mode\": 420,\n      \"diff\": \"--- a/src/lib.rs\\n+++ b/src/lib.rs\\n@@ -1305,9 +1305,3 @@\\n         );\\n     }\\n }\\n-pub fn normalized_osa_distance(a: &str, b: &str) -> f64 {\\n-    if a.is_empty() && b.is_empty() {\\n-        return 1.0;\\n-    }\\n-    1.0 - (osa_distance(a, b) as f64) / (a.chars().count().max(b.chars().count()) as f64)\\n-}\\n\",\n      \"path\": \"src/lib.rs\"\n    }\n  ],\n  \"transaction\": 1\n}\n"
+          },
+          {
+            "action": "undo",
+            "write": true,
+            "stdout": "{\n  \"action\": \"undo\",\n  \"applied\": true,\n  \"changes\": [\n    {\n      \"after_exists\": true,\n      \"after_mode\": 420,\n      \"before_exists\": true,\n      \"before_mode\": 420,\n      \"path\": \"src/lib.rs\"\n    }\n  ],\n  \"diffs_omitted\": true,\n  \"transaction\": 1\n}\n"
+          },
+          {
+            "action": "redo",
+            "write": false,
+            "stdout": "{\n  \"action\": \"redo\",\n  \"applied\": false,\n  \"changes\": [\n    {\n      \"after_exists\": true,\n      \"after_mode\": 420,\n      \"before_exists\": true,\n      \"before_mode\": 420,\n      \"diff\": \"--- a/src/lib.rs\\n+++ b/src/lib.rs\\n@@ -1305,3 +1305,9 @@\\n         );\\n     }\\n }\\n+pub fn normalized_osa_distance(a: &str, b: &str) -> f64 {\\n+    if a.is_empty() && b.is_empty() {\\n+        return 1.0;\\n+    }\\n+    1.0 - (osa_distance(a, b) as f64) / (a.chars().count().max(b.chars().count()) as f64)\\n+}\\n\",\n      \"path\": \"src/lib.rs\"\n    }\n  ],\n  \"transaction\": 1\n}\n"
+          },
+          {
+            "action": "redo",
+            "write": true,
+            "stdout": "{\n  \"action\": \"redo\",\n  \"applied\": true,\n  \"changes\": [\n    {\n      \"after_exists\": true,\n      \"after_mode\": 420,\n      \"before_exists\": true,\n      \"before_mode\": 420,\n      \"path\": \"src/lib.rs\"\n    }\n  ],\n  \"diffs_omitted\": true,\n  \"transaction\": 1\n}\n"
+          }
+        ]
+      }
+    }
+  ]
+}

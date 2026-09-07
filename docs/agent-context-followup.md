@@ -97,3 +97,40 @@ See the [initial reproduction instructions](agent-acceptance.md#reproduction) fo
 Both bundles retain their original prompts, transcripts, scores, patches and skill snapshots.
 The follow-up manifest records implementation commit `0498c6b`, the frozen binary digest and evaluator hashes.
 Future experiments should include larger projects and repeated trials before extending claims beyond these two tasks.
+
+## Subsequent history completion reports
+
+M4j adds opt-in `--no-diff` for history writes after the agent reviews a plan or transition preview.
+It retains transaction identity, action, applied status, paths, existence and modes, with `diffs_omitted: true`.
+The option requires `--write`. Previews and patch export keep their diffs; source snapshots and transition checks remain intact.
+
+A controlled replay uses both retained fr edits, applying each with default reports and with `--no-diff` in fresh repositories.
+It verifies identical report metadata, exact source bytes and modes, unrelated-edit preservation, unchanged indexes and identical exported patches.
+The script measures three completion reports and the undo/redo previews, keeping both previews in both modes.
+It uses direct CLI stdout, including its formatting, with the same pinned reference tokenizer as the earlier experiment.
+
+| Task | Default completion tokens | With `--no-diff` | Default including previews | With `--no-diff`, including previews |
+|---|---:|---:|---:|---:|
+| Unicode Dice | 825 | 249 | 1,375 | 799 |
+| Normalized OSA | 609 | 249 | 1,015 | 655 |
+
+Completion output falls by 69.8% and 59.1% in these two fixed edits.
+Including both previews, history transition output falls by 41.9% and 35.5%.
+These counts exclude task prompts, skills, inspection, authoring plans, checks, patch export and generated requests.
+This controlled measurement isolates output selection; it does not run fresh agents or measure total task context.
+The earlier paired-agent scores remain unchanged. A future paired evaluation must test whether agents choose this option effectively.
+
+The [retained report](../tests/agent-eval/history-context.json) includes the actual stdout strings, measurements and binary and input-manifest digests.
+Run the comparison without the optional tokenizer, or include reference tokens:
+
+```sh
+python3 tools/history-context.py --fr target/debug/fr
+target/agent-eval-venv/bin/python tools/history-context.py --fr target/debug/fr --tokens
+```
+
+The native acceptance regression runs the byte comparison without requiring tiktoken.
+Dedicated history CLI tests cover omitted diffs, metadata, exact undo/redo, deletion/restoration, modes and unchanged conflict refusals.
+Interrupted-write tests exercise smaller recovery reports alongside exact snapshot restoration.
+
+The M4j full native/WASM gate passes, with 311/311 capability coverage and all 33 executable skill examples.
+Strict verification retains twenty-two fresh anchors and signature maps, zero obligations and 29 Lean build jobs.
