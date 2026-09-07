@@ -40,7 +40,7 @@ Important gaps:
 - `fr project` adds bounded maps, revision-bound details, call relationships and Cargo/npm manifest views. Complete dependency resolution and framework semantics remain pending.
 - Native changes now have persistent history and checked undo/redo. History retention and large-journal scaling need further work.
 - Browser undo restores the loaded workspace; it does not reverse individual transactions.
-- Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist. Raw staging and journaled index undo/redo are available on Unix. Reviewed commits are available with explicit index and HEAD bases. Worktree inspection reports registered workspaces with revision-bound pages. Reviewed creation adds new branches and raw checkouts on Unix. Ownership receipts support checked completion of incomplete worktrees and reviewed removal of clean worktrees. Removal archives support inspection and checked resumption. Shared browser patch semantics remain pending.
+- Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist. Raw staging and journaled index undo/redo are available on Unix. Reviewed commits are available with explicit index and HEAD bases. Worktree inspection reports registered workspaces with revision-bound pages. Reviewed creation adds raw checkouts on new or unused existing branches on Unix. Ownership receipts support checked completion of incomplete worktrees and reviewed removal of clean worktrees. Removal archives support inspection and checked resumption. Shared browser patch semantics remain pending.
 - Strict spec signature maps currently accept Rust source declarations only.
 - Framework readers cover selected patterns. Whole applications still need dependency and runtime work.
 - Model proofs and shared executable cases do not establish general correspondence with the Rust implementation.
@@ -732,9 +732,25 @@ Shared Rust/Lean cases cover all sixteen resume-guard inputs.
 Validation passes the full native/WASM gate, 311/311 capability coverage and all 29 Lean build jobs.
 Strict verification passes with nineteen fresh source anchors and signature maps and zero `sorry` obligations.
 
+M3v: reviewed checkout of existing local branches (complete).
+
+- Add `create --existing-branch NAME` beside new-branch creation, with explicit branch actions in previews.
+- Bind the selected mode, existing tip and worktree registrations into the creation basis.
+- Hold a prepared branch verification lease through registration, raw checkout and receipt completion.
+- Preserve refs, branch reflogs, upstream configuration and the invoking worktree's dirty state.
+- Refuse missing, symbolic, ambiguous and occupied branches; never guess a remote branch or force checkout.
+- Record the branch mode in receipts while accepting older receipts and removal archives.
+- Anchor branch selection in Lean and prove abstract preservation of refs during attachment.
+
+See [existing-branch checkout](docs/git-worktree-existing-branches.md) for scope, reference preservation and failure limits.
+Eight CLI scenarios cover retained refs and configuration, dirty sources, stale bases, registration races, locks, recovery, packed SHA-256 refs and older records.
+Shared Rust/Lean cases cover all eight branch-selection inputs.
+Validation passes the full native/WASM gate, 311/311 capability coverage and all 29 Lean build jobs.
+Strict verification passes with twenty fresh source anchors and signature maps and zero `sorry` obligations.
+
 Next M3 work:
 
-Extend supported checkout modes and configuration, and add archive retention and compaction.
+Extend raw file modes and per-worktree configuration support, and add archive retention and compaction.
 Extend recovery across failures before receipt publication and improve stale-lock and crash-state inspection.
 Extend selected flag replay and add staging journal retention and compaction.
 Keep Git optional for ordinary analysis and transaction history.

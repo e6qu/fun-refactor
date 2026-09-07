@@ -8,7 +8,8 @@ fr git worktree create ../task --branch agent/task
 fr git worktree create ../task --branch agent/task --basis TOKEN --write
 ```
 
-Choose an explicit start revision with `--from REVISION`; the default is `HEAD`.
+For a new branch, choose an explicit start revision with `--from REVISION`; the default is `HEAD`.
+Use `--existing-branch NAME` instead of `--branch` to attach an unused local branch at its own tip.
 The preview resolves it to a full commit ID and reports the tree, destination, branch and checkout size.
 File rows contain paths, modes, blob IDs and sizes. They omit bodies.
 `--limit` controls these rows, from 1 through 500, with a default of 20.
@@ -25,7 +26,8 @@ Destinations overlapping registered worktrees or the shared metadata directory r
 This includes missing registrations that Git considers prunable.
 
 `--branch` names a new local branch. Existing branches, symbolic references and occupied unborn branch names refuse.
-The command never resets or reuses a branch and disables automatic upstream tracking.
+New-branch mode never resets or reuses a branch and disables automatic upstream tracking.
+[Existing-branch mode](git-worktree-existing-branches.md) preserves the selected branch and its configuration.
 Git performs its own branch and worktree checks during registration.
 Successful creation retains a Git worktree lock with the reason `fr: reviewed raw worktree`.
 The lock protects registration from ordinary pruning, removal and movement; it does not prevent edits or commits.
@@ -33,18 +35,19 @@ The lock protects registration from ordinary pruning, removal and movement; it d
 ## Review basis
 
 The creation basis covers the invoking root, shared metadata location and identity, destination and parent identity.
-It also covers the new branch, start revision, resolved commit, tree and complete file inventory.
+It also covers the branch mode, branch name, start revision, resolved commit, tree and complete file inventory.
 All worktree registration bytes participate, including registrations outside any displayed page.
 Changing the row limit preserves the basis. Changes to working files and staged content also preserve it.
 Creation always copies the selected committed tree.
 
 `--write` requires the preview token. The writer captures the selected blobs and repeats the proposal checks before creating a directory.
-It then passes the pinned commit to Git, avoiding later resolution of the user's revision expression.
+New-branch mode passes the pinned commit to Git. Existing-branch mode holds a verification lease on the reviewed branch tip.
+Both modes install the raw index and files from the pinned commit.
 No preview reserves the destination or branch. Concurrent Git or filesystem changes can still cause refusal or partial creation.
 
 ## Raw checkout
 
-The writer registers the new branch and worktree with Git's `--no-checkout` mode and builds a separate index.
+The writer registers the worktree with Git's `--no-checkout` mode and builds a separate index.
 It records ownership after registration checks, prepares the index privately and installs it without replacing an existing index.
 It holds Git's index lock through checkout verification and ownership receipt completion.
 It creates each file exclusively, copies committed bytes and preserves Git executable modes.
@@ -57,7 +60,7 @@ This raw checkout bypasses line-ending conversion, encodings, ident expansion an
 Attribute-dependent Git commands may later report differences or refuse under their own filter policy.
 An LFS pointer remains a pointer. The command does not fetch remote content or initialize submodules.
 
-The first implementation accepts UTF-8 paths and regular blobs only.
+The raw checkout accepts UTF-8 paths and regular blobs only.
 Symlinks, submodules, unsafe `.git` path components and paths that collide under case folding refuse.
 Repositories with `extensions.worktreeConfig` enabled also refuse.
 The committed tree must fit 20,000 files, 256 MiB total and 32 MiB per blob.

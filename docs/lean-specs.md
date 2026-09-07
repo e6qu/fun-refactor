@@ -243,3 +243,8 @@ The host filesystem, Git branch leases and removal archive durability remain out
 Removal resumption adds an anchored predicate for absent paths and matching survivors, with all sixteen boolean cases checked against Lean.
 Lean proves absent-path acceptance, required matches for present paths and idempotence of abstract selected removal.
 See [removal resumption assurance](git-worktree-removal-resumption.md#formal-coverage) for the host workflow boundaries.
+
+Existing-branch checkout adds an anchored branch-selection guard, checked against every boolean input.
+Lean proves that accepted branches are unused and have the presence required by the selected mode.
+An abstract attachment law preserves all refs; host tests check the Git lease and lifecycle behavior.
+See [existing-branch assurance](git-worktree-existing-branches.md#formal-coverage) for the remaining correspondence boundaries.

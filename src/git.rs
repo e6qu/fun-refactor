@@ -235,3 +235,7 @@ pub fn worktree_removal_resume_allowed(
 ) -> bool {
     !present || worktree_removal_file_allowed(identity_matches, bytes_match, mode_matches)
 }
+
+pub fn worktree_branch_selection_allowed(existing: bool, present: bool, occupied: bool) -> bool {
+    !occupied && existing == present
+}

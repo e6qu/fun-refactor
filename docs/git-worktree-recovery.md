@@ -17,6 +17,7 @@ The command returns JSON in both output modes.
 New creation operations record `fr-creation.json` in the linked worktree's private Git metadata directory.
 The receipt binds the canonical destination, its parent, shared Git directory and linked metadata directory to their filesystem identities.
 It also binds the `.git` link file's identity and bytes, branch, commit and tree.
+The receipt records whether creation used an existing branch; older receipts default to new-branch mode.
 The file starts with `complete: false`. Creation or recovery changes it to `complete: true` after checkout verification and synchronization.
 Successful creation reports its `ownership_record` path.
 

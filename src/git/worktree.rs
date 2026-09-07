@@ -13,7 +13,7 @@ mod records;
 pub enum Command {
     #[command(about = "Page through registered worktree paths, HEADs and lock metadata.")]
     List(ListOptions),
-    #[command(about = "Preview or create a new branch and raw worktree from a reviewed commit.")]
+    #[command(about = "Preview or create a raw worktree on a new or unused existing branch.")]
     Create(CreateOptions),
     #[command(about = "Preview or finish a recorded incomplete raw checkout.")]
     Recover(RecoverOptions),
@@ -89,14 +89,21 @@ pub struct RecoverOptions {
 pub struct CreateOptions {
     #[arg(help = "Fresh destination, relative to the repository root or absolute.")]
     path: std::path::PathBuf,
-    #[arg(long, help = "New local branch name.")]
-    branch: String,
     #[arg(
         long,
-        default_value = "HEAD",
-        help = "Commit to copy into the new worktree."
+        required_unless_present = "existing_branch",
+        conflicts_with = "existing_branch",
+        help = "New local branch name."
     )]
-    from: String,
+    branch: Option<String>,
+    #[arg(
+        long,
+        conflicts_with = "from",
+        help = "Unused existing local branch to attach without changing its tip."
+    )]
+    existing_branch: Option<String>,
+    #[arg(long, help = "Start commit for a new branch; defaults to HEAD.")]
+    from: Option<String>,
     #[arg(
         long,
         help = "Require the reviewed destination, branch, commit and registrations."

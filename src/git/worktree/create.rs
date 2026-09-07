@@ -9,6 +9,7 @@ use std::fs;
 use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 
+mod branch;
 mod checkout;
 mod ownership;
 pub(super) mod recovery;
@@ -85,7 +86,7 @@ fn commit(root: &Path, revision: &str) -> Result<String> {
     Ok(oid.to_owned())
 }
 
-fn branch_available(root: &Path, branch: &str) -> Result<()> {
+fn branch_present(root: &Path, branch: &str) -> Result<bool> {
     ensure!(
         !branch.is_empty() && !branch.starts_with('-') && branch.len() <= 1024,
         "invalid new worktree branch name."
@@ -111,10 +112,10 @@ fn branch_available(root: &Path, branch: &str) -> Result<()> {
         None,
     )?;
     ensure!(
-        output.status.code() == Some(1),
-        "new worktree branch already exists or is unreadable."
+        matches!(output.status.code(), Some(0 | 1)),
+        "worktree branch is unreadable."
     );
-    Ok(())
+    Ok(output.status.success())
 }
 
 #[derive(Deserialize, Serialize)]
@@ -127,6 +128,8 @@ struct Proposal {
     destination: PathBuf,
     parent_identity: (u64, u64),
     branch: String,
+    #[serde(default)]
+    existing_branch: bool,
     from: String,
     commit: String,
     tree: String,
@@ -187,7 +190,21 @@ fn proposal(requested: &Path, options: &CreateOptions) -> Result<Proposal> {
                 .starts_with(b"fatal: not a git repository"),
         "cannot establish whether the destination parent is outside Git repositories."
     );
-    branch_available(&root, &options.branch)?;
+    let existing_branch = options.existing_branch.is_some();
+    let selected_branch = options
+        .existing_branch
+        .as_ref()
+        .or(options.branch.as_ref())
+        .context("a new or existing branch is required.")?;
+    let present = branch_present(&root, selected_branch)?;
+    ensure!(
+        crate::git::worktree_branch_selection_allowed(existing_branch, present, false),
+        if existing_branch {
+            "existing worktree branch does not exist."
+        } else {
+            "new worktree branch already exists."
+        }
+    );
     let config = process::run(
         &root,
         &args(&["config", "--bool", "--get", "extensions.worktreeConfig"]),
@@ -201,18 +218,42 @@ fn proposal(requested: &Path, options: &CreateOptions) -> Result<Proposal> {
         &root,
         &["worktree", "list", "--porcelain", "-z", "--expire=now"],
     )?;
+    let mut occupied = false;
     for entry in records::parse(&registrations, &root)? {
         let path = Path::new(&entry.path);
         ensure!(
             !destination.starts_with(path) && !path.starts_with(&destination),
             "worktree destination overlaps a registered worktree."
         );
+        occupied |= entry.branch.as_deref() == Some(&format!("refs/heads/{selected_branch}"));
+    }
+    ensure!(
+        crate::git::worktree_branch_selection_allowed(existing_branch, present, occupied),
+        "branch belongs to a registered worktree."
+    );
+    let from = if existing_branch {
+        format!("refs/heads/{selected_branch}")
+    } else {
+        options.from.clone().unwrap_or_else(|| "HEAD".to_owned())
+    };
+    let commit = commit(&root, &from)?;
+    if existing_branch {
+        branch::check(&root, selected_branch, &commit)?;
+        let resolved = checked(
+            &root,
+            &[
+                "rev-parse",
+                "--symbolic-full-name",
+                "--verify",
+                "--end-of-options",
+                selected_branch,
+            ],
+        )?;
         ensure!(
-            entry.branch.as_deref() != Some(&format!("refs/heads/{}", options.branch)),
-            "new branch belongs to a registered worktree."
+            line(&resolved)? == from,
+            "existing worktree branch name is ambiguous."
         );
     }
-    let commit = commit(&root, &options.from)?;
     let output = checked(
         &root,
         &["rev-parse", "--verify", &format!("{commit}^{{tree}}")],
@@ -227,8 +268,9 @@ fn proposal(requested: &Path, options: &CreateOptions) -> Result<Proposal> {
         root,
         common,
         destination,
-        branch: options.branch.clone(),
-        from: options.from.clone(),
+        branch: selected_branch.clone(),
+        existing_branch,
+        from,
         commit,
         tree,
         registrations: format!("{:x}", Sha256::digest(&registrations)),
@@ -259,7 +301,7 @@ pub(super) fn report(root: &Path, options: &CreateOptions) -> Result<Value> {
     let mut result = json!({"schema":1, "operation":if options.write {"worktree-create"} else {"worktree-create-preview"},
         "applied":false, "basis":basis, "basis_verified":options.basis.is_some(),
         "repository_root":plan.root, "common_directory":plan.common, "destination":plan.destination,
-        "branch":format!("refs/heads/{}", plan.branch), "from":plan.from, "commit":plan.commit, "tree":plan.tree,
+        "branch":format!("refs/heads/{}", plan.branch), "branch_action":if plan.existing_branch {"retain"}else{"create"}, "from":plan.from, "commit":plan.commit, "tree":plan.tree,
         "checkout":"raw-blobs", "hooks":"disabled", "content_filters":"bypassed", "lock_policy":"retain",
         "bytes":plan.files.iter().map(|entry| entry.size).sum::<usize>(),
         "files":plan.files.iter().take(options.limit).collect::<Vec<_>>(),
@@ -267,6 +309,10 @@ pub(super) fn report(root: &Path, options: &CreateOptions) -> Result<Value> {
             "omitted":plan.files.len().saturating_sub(options.limit)}});
     if options.write {
         let blobs = checkout::blobs(&plan)?;
+        let _branch_lease = plan
+            .existing_branch
+            .then(|| branch::Lease::acquire(&plan.root, &plan.branch, &plan.commit))
+            .transpose()?;
         ensure!(
             self::basis(&proposal(root, options)?)? == basis,
             "worktree creation basis changed before writing."

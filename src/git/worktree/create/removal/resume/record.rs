@@ -83,7 +83,8 @@ impl Loaded {
                 && directory(&shared)? == plan.common_identity
                 && plan.destination == receipt.destination
                 && plan.parent_identity == receipt.parent_identity
-                && plan.branch == receipt.branch,
+                && plan.branch == receipt.branch
+                && plan.existing_branch == receipt.existing_branch,
             "removal archive ownership does not match its repository."
         );
         ensure!(

@@ -1168,6 +1168,12 @@ Writes copy raw committed blobs and preserve the source index and working files.
 Only `applied: true` confirms completion; partial or uncertain creation reports `applied: null` with inspection guidance.
 See [reviewed worktree creation](docs/git-worktree-creation.md) for destination checks, raw checkout semantics and recovery limits.
 
+`fr git worktree create PATH --existing-branch NAME` previews a raw checkout of an unused existing local branch.
+Use `--basis TOKEN --write` to create it while retaining its tip, reflog and upstream configuration.
+The option is mutually exclusive with `--branch` and `--from`. Missing, symbolic, ambiguous and occupied branches refuse.
+Previews report `branch_action: retain` for existing branches and `create` for new ones.
+See [existing-branch checkout](docs/git-worktree-existing-branches.md) for branch leases and lifecycle guarantees.
+
 ```sh
 fr git worktree recover ../task
 fr git worktree recover ../task --basis TOKEN --write

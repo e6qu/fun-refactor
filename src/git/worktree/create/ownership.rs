@@ -85,6 +85,8 @@ pub(super) struct Receipt {
     pub(super) gitfile_identity: (u64, u64),
     pub(super) gitfile_digest: String,
     pub(super) branch: String,
+    #[serde(default)]
+    pub(super) existing_branch: bool,
     pub(super) commit: String,
     pub(super) tree: String,
 }
@@ -113,6 +115,7 @@ impl Receipt {
             gitfile_identity: (stat.dev(), stat.ino()),
             gitfile_digest: digest(&gitfile_bytes),
             branch: plan.branch.clone(),
+            existing_branch: plan.existing_branch,
             commit: plan.commit.clone(),
             tree: plan.tree.clone(),
         };

@@ -161,12 +161,26 @@ pub(super) fn check_registration(plan: &Proposal) -> Result<()> {
         &plan.root,
         &["worktree", "list", "--porcelain", "-z", "--expire=now"],
     )?;
+    let entries = super::records::parse(&registrations, &plan.root)?;
     ensure!(
-        super::records::parse(&registrations, &plan.root)?
+        entries
             .iter()
             .any(|entry| Path::new(&entry.path) == plan.destination && entry.locked),
         "new worktree registration is missing or unlocked."
     );
+    if plan.existing_branch {
+        super::branch::check(&plan.root, &plan.branch, &plan.commit)?;
+        ensure!(
+            entries
+                .iter()
+                .filter(
+                    |entry| entry.branch.as_deref() == Some(&format!("refs/heads/{}", plan.branch))
+                )
+                .count()
+                == 1,
+            "existing branch acquired another registered worktree."
+        );
+    }
     Ok(())
 }
 
@@ -269,24 +283,33 @@ pub(super) fn apply(plan: &Proposal, blobs: &[Vec<u8>]) -> Result<PathBuf> {
     DirBuilder::new().mode(0o700).create(&plan.destination)?;
     let identity = directory(&plan.destination)?;
     check_directory(plan, identity)?;
-    let registration = checked(
-        &plan.root,
-        &[
-            "worktree",
-            "add",
-            "--no-checkout",
+    let mut registration_args = vec![
+        "worktree",
+        "add",
+        "--no-checkout",
+        "--lock",
+        "--reason",
+        "fr: reviewed raw worktree",
+    ];
+    if plan.existing_branch {
+        registration_args.extend([
+            "--no-guess-remote",
+            "--",
+            plan.destination.to_str().unwrap(),
+            &plan.branch,
+        ]);
+    } else {
+        registration_args.extend([
             "--no-track",
-            "--lock",
-            "--reason",
-            "fr: reviewed raw worktree",
             "-b",
             &plan.branch,
             "--",
             plan.destination.to_str().unwrap(),
             &plan.commit,
-        ],
-    )
-    .context("registering reviewed worktree");
+        ]);
+    }
+    let registration =
+        checked(&plan.root, &registration_args).context("registering reviewed worktree");
     check_directory(plan, identity)?;
     check_registration(plan)?;
     let (receipt, lease) = super::ownership::Receipt::record(plan, identity)?;

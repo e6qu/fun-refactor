@@ -267,6 +267,7 @@ See [reviewed commits](docs/git-commit.md) for identity configuration, disabled 
 See [worktree inspection](docs/git-worktrees.md) for observation limits and cursor identity.
 `fr git worktree create PATH --branch NAME` previews a fresh raw checkout; `--basis TOKEN --write` creates it on Unix.
 See [reviewed worktree creation](docs/git-worktree-creation.md) for branch checks and partial-failure outcomes.
+Use `--existing-branch NAME` for an unused local branch; [existing-branch checkout](docs/git-worktree-existing-branches.md) preserves its tip and configuration.
 `fr git worktree recover PATH` previews completion of a recorded incomplete checkout, with checked application through `--basis TOKEN --write`.
 See [recorded recovery](docs/git-worktree-recovery.md) for ownership receipts and preservation rules.
 `fr git worktree remove PATH` previews removal of a clean owned worktree; `--basis TOKEN --write` archives metadata and removes reviewed files.

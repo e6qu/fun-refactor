@@ -103,6 +103,7 @@ pub(super) fn capture(root: &Path, path: &Path, removal: bool) -> Result<Capture
         destination,
         parent_identity: receipt.parent_identity,
         branch: receipt.branch.clone(),
+        existing_branch: receipt.existing_branch,
         from: receipt.commit.clone(),
         commit: selected,
         tree: line(&tree)?.to_owned(),

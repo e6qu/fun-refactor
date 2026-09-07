@@ -268,4 +268,28 @@ theorem selected_removal_is_idempotent (before : String → Option String) (sele
   funext path
   by_cases chosen : path ∈ selected <;> simp [removeSelected, chosen]
 
+-- fr:spec src/git.rs::worktree_branch_selection_allowed @ a9856aa6dde12b7063b31ee2c2603935a5f50e3ceec13a26c27cbb5712cf8995
+-- fr:signature existing: bool => existing: Bool; present: bool => present: Bool; occupied: bool => occupied: Bool; return: bool => return: Bool
+def worktreeBranchSelectionAllowed (existing : Bool) (present : Bool) (occupied : Bool) : Bool :=
+  !occupied && (existing == present)
+
+theorem worktree_branch_selection_requires_unused (existing present occupied : Bool)
+    (allowed : worktreeBranchSelectionAllowed existing present occupied = true) : occupied = false := by
+  cases existing <;> cases present <;> cases occupied <;> simp_all [worktreeBranchSelectionAllowed]
+
+theorem worktree_branch_selection_matches_presence (existing present occupied : Bool)
+    (allowed : worktreeBranchSelectionAllowed existing present occupied = true) : existing = present := by
+  cases existing <;> cases present <;> cases occupied <;> simp_all [worktreeBranchSelectionAllowed]
+
+def attachExisting (refs : String → Option String) (branch commit : String) : Option (String → Option String) :=
+  if refs branch = some commit then some refs else none
+
+theorem attachment_preserves_refs (refs after : String → Option String) (branch commit : String)
+    (attached : attachExisting refs branch commit = some after) : after = refs := by
+  unfold attachExisting at attached
+  split at attached
+  · cases attached
+    rfl
+  · contradiction
+
 end FrKernels.Git

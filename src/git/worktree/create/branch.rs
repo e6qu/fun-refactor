@@ -1,4 +1,4 @@
-use super::super::{args, checked, line};
+use super::{args, checked, line};
 use crate::git::process;
 use anyhow::{ensure, Context, Result};
 use std::io::{BufRead, BufReader, Read, Write};
@@ -19,14 +19,14 @@ pub(super) fn check(root: &Path, branch: &str, commit: &str) -> Result<()> {
     )?;
     ensure!(
         symbolic.status.code() == Some(1),
-        "removal requires a direct local branch."
+        "worktree operation requires a direct local branch."
     );
     ensure!(
         line(&checked(
             root,
             &["show-ref", "--verify", "--hash", &reference]
         )?)? == commit,
-        "worktree branch changed during removal."
+        "worktree branch changed during the operation."
     );
     Ok(())
 }

@@ -9,7 +9,7 @@ use std::io::Write;
 use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 
-mod branch;
+use super::branch;
 pub(in crate::git::worktree) mod resume;
 
 #[derive(Deserialize, Serialize, PartialEq)]
