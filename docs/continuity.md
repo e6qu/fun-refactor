@@ -1,6 +1,6 @@
 # Development continuity
 
-M4x is complete: inline module insertion placement now has an anchored Lean model and shared executable comparisons.
+M4y is complete: authoring batches coordinate disjoint edits across files in one transaction.
 The user authorized local commits. Publishing and pushing remain outside this request.
 M4l's four passing workspace trials are retained in `3c8231c`; preparation is `811591e` and documented insertion is `6d0928b`.
 M4m's smaller check reports are committed in `58b53bd`; M4n's targeted skill guidance is `1c44863`.
@@ -13,6 +13,29 @@ M4t's buffer proofs and shared state comparisons are committed in `c9f50f0`.
 M4u's wrapped function authoring is committed in `e2933bc`.
 M4v's inline module insertion is committed in `2cdbd1b`.
 M4w's Go body authoring is committed in `3597115`.
+M4x's insertion placement proofs are committed in `3fd1323`.
+
+## Coordinated authoring batches
+
+`src/project/author.rs::author_batch` reads a bounded JSON manifest and plans each existing operation against the same captured project.
+The manifest accepts 1 through 32 entries with `op`, `handle` and `from`; optional `revision` supports short IDs and validates full-handle batches too.
+Unknown fields and operations refuse. All input paths resolve from the workspace root; input files retain the regular-file and 64 KiB guards.
+Selected original regions must be disjoint even for no-ops; insertion points cannot share or touch another region's boundary.
+Every step must succeed, and combined file results must reparse before the CLI records one source-history transaction.
+
+`src/cli.rs::cmd_author` routes batches through the existing diff, persistence and source-verification path.
+Schema `fr-author-batch-1` reports coverage once, ordered step signatures and original spans, sizes and hashes.
+It omits after-spans because earlier edits can shift later positions. Insertion hashes include separator bytes.
+Saved plans freeze all changes; unrelated source changes retain the existing history rules, and affected-file conflicts refuse the entire application.
+This does not strengthen filesystem atomicity or prove typing and behavior.
+
+Seven new CLI scenarios include a compiled two-file caller/signature/helper change through save, apply, undo, patch checking and redo.
+Mixed Rust/Go/TSX operations, shared revisions, no-op batches, size/count limits, overlap refusal and malformed inputs have regression coverage.
+A two-edit batch also matches the Rust and Lean splice implementations, with Unicode, CRLF and different replacement lengths.
+This is tested edit correspondence, with no new proof of the batch planner, manifest parser or filesystem transaction implementation.
+The agent reference teaches combined review and one transaction ID; its existing shell examples remain unchanged.
+Next, compare the same coordinated change through batch and individual commands with source, behavior and reversal checks.
+Measure report bytes and repeated scans without treating a prescribed workflow as autonomous agent evidence.
 
 ## Formal module insertion placement
 
@@ -297,6 +320,12 @@ It, the skills, prompts, evaluator and oracle stayed unchanged throughout both p
 Temporary projects are disposable after retention; use repository evidence for replay and audits.
 
 ## Validation and commands
+
+M4y's full native/WASM gate passes in `/tmp/fr-m4y-full-check.log`, including all fifty-one authoring scenarios and 311/311 capability coverage.
+The seven new batch scenarios and reported batch splice comparison also pass in `/tmp/fr-m4y-batch-final.log`.
+Six reported authoring edit comparisons now pass against the existing Lean splice kernel.
+Strict verification passes in `/tmp/fr-m4y-spec-verify.json`: twenty-four fresh anchors and signature maps, zero obligations and 38 Lean build jobs.
+Prose budgets remain unchanged; the skill validator passes. Final documentation checks are recorded in `/tmp/fr-m4y-docs-final.log`.
 
 M4x's fifteen theorems build with warnings as errors in `/tmp/fr-m4x-lean-build.log` (38 jobs).
 The axiom audit is `/tmp/fr-m4x-axioms.log`, generated from `/tmp/fr-m4x-axioms.lean`.

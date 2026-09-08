@@ -40,6 +40,7 @@ After reviewing a source transaction, `history apply`, `undo`, `redo` and `recov
 The [workspace evaluation](docs/agent-workspace-evaluation.md) records four passing trials on the larger regex repository, with context comparisons and replayable patches.
 Rust function declaration replacement also supports combined signature and implementation changes.
 Declaration insertion adds a Rust function through a file or inline module handle while retaining existing code.
+Authoring batches coordinate disjoint edits across files through one reviewed source-history transaction.
 
 ## Why
 

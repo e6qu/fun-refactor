@@ -512,6 +512,14 @@ The report accounts separately for LF or CRLF separators; module reports also id
 Direct duplicate item names and pending outer documentation or attributes in the selected container refuse.
 Imports, macro expansion and full name resolution remain unchecked. Saved plans, undo/redo and patches use source history.
 
+`fr author batch --from MANIFEST` combines 1 through 32 disjoint authoring operations into one preview and source-history transaction.
+The JSON manifest contains `operations` entries with `op`, `handle` and `from`; an optional shared `revision` permits short IDs.
+Operations use the original revision and existing language restrictions. Relative fragment paths resolve from the workspace root.
+The manifest and each fragment must fit 64 KiB. Unknown fields, overlapping selections and shared insertion boundaries refuse.
+Use `--save-plan` or `--write`; the combined diff shares one `--diff-bytes` budget.
+The `fr-author-batch-1` report shares coverage once and gives original spans, sizes, hashes and signatures per step.
+Apply, undo/redo and patch export use one transaction ID. See [coordinated batches](docs/body-authoring.md#coordinated-authoring-batches) for the manifest and limits.
+
 ## Crossing languages
 
 ### `fr translate`

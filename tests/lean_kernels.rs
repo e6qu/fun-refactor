@@ -1744,3 +1744,76 @@ fn module_insertion_reports_match_lean_placement() {
         assert!(!workspace.join(".fr-history").exists());
     }
 }
+
+#[test]
+fn the_edit_kernel_accepts_a_reported_author_batch() {
+    let temp = tempfile::tempdir().unwrap();
+    let workspace = temp.path().join("workspace");
+    std::fs::create_dir(&workspace).unwrap();
+    let source = "// π\r\nfn first() -> i32 { 1 }\r\nfn second() -> i32 { 2 }\r\n";
+    std::fs::write(workspace.join("app.rs"), source).unwrap();
+    let run = |args: &[&str]| {
+        let output = Command::new(env!("CARGO_BIN_EXE_fr"))
+            .args(["--json", "--no-cache", "-C"])
+            .arg(&workspace)
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stdout)
+        );
+        serde_json::from_slice::<serde_json::Value>(&output.stdout).unwrap()
+    };
+    let map = run(&["project", "map", "--fields", "handle,name"]);
+    let mut operations = Vec::new();
+    let fragments = ["{ 200 }", "{ let value = 100; value }"];
+    for (name, fragment) in ["second", "first"].into_iter().zip(fragments) {
+        let handle = map["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row[1] == name)
+            .unwrap()[0]
+            .as_str()
+            .unwrap();
+        let input = temp.path().join(format!("{name}.txt"));
+        std::fs::write(&input, fragment).unwrap();
+        operations.push(serde_json::json!({"op":"replace-body","handle":handle,"from":input}));
+    }
+    let input = temp.path().join("batch.json");
+    std::fs::write(
+        &input,
+        serde_json::json!({"operations":operations}).to_string(),
+    )
+    .unwrap();
+    let report = run(&["author", "batch", "--from", input.to_str().unwrap()]);
+    assert_eq!(report["span_basis"], "original-source");
+    let edits: Vec<_> = report["steps"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .zip(fragments)
+        .map(|(step, fragment)| {
+            let span = &step["before_span"];
+            Edit::new(
+                Span::new(
+                    span["start"].as_u64().unwrap() as usize,
+                    span["end"].as_u64().unwrap() as usize,
+                ),
+                fragment,
+                "batch",
+            )
+        })
+        .collect();
+    let expected = source
+        .replace("{ 1 }", fragments[1])
+        .replace("{ 2 }", fragments[0]);
+    assert_eq!(apply_to_string(source, &edits).unwrap(), expected);
+    kernel_accepts(source, &edits, &expected);
+    assert_eq!(
+        std::fs::read_to_string(workspace.join("app.rs")).unwrap(),
+        source
+    );
+}

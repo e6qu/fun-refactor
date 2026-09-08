@@ -9,6 +9,12 @@ Choose an operation:
 - `fr author replace-declaration HANDLE --from FILE`: one complete Rust function with the same name; outer attributes remain. Callers need separate edits if the signature changes.
 - `fr author insert-declaration HANDLE --from FILE`: add one Rust function to a file or inline module, optionally preceded by `///` or `/** ... */` documentation. Other outer attributes and surrounding comments refuse. Duplicate direct names and pending outer metadata in the selected container refuse.
 
+For coordinated edits, use `fr author batch --from MANIFEST --save-plan` to save one transaction for up to 32 disjoint operations.
+The JSON manifest has `operations` entries with `op`, `handle` and `from`, using the operations above. Short IDs need a top-level `revision`.
+Relative fragment paths resolve from the workspace root. Keep the manifest and fragments outside the project; each file must fit 64 KiB.
+All handles refer to the original source. Overlapping selections and shared insertion boundaries refuse; later steps cannot target newly inserted code.
+Review the combined diff. Step spans describe original source; coverage appears once. Apply, undo/redo and export the single returned transaction.
+
 For module insertion, use the module row's handle from `project find NAME --in FILE --source`, rather than its file-scoped `root`.
 Insertion goes before the module's closing brace and preserves existing bytes.
 Fragment boundary whitespace is trimmed; remaining bytes stay verbatim, with no automatic indentation.

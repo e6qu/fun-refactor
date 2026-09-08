@@ -1802,3 +1802,473 @@ fn go_body_replacement_keeps_revision_noop_and_size_guards() {
     let (fresh, _) = selection(&root, "calc");
     assert!(!replace(&root, &fresh, &input, &["--write"]).0);
 }
+
+fn batch_step(root: &Path, op: &str, handle: &str, label: &str, text: &str) -> Value {
+    let input = root.parent().unwrap().join(label);
+    fs::write(&input, text).unwrap();
+    serde_json::json!({"op":op,"handle":handle,"from":input})
+}
+
+fn batch_manifest(root: &Path, operations: Vec<Value>, revision: Option<&str>) -> PathBuf {
+    let input = root.parent().unwrap().join("batch.json");
+    let mut manifest = serde_json::json!({"operations":operations});
+    if let Some(revision) = revision {
+        manifest["revision"] = revision.into();
+    }
+    fs::write(&input, serde_json::to_vec(&manifest).unwrap()).unwrap();
+    input
+}
+
+fn batch(root: &Path, input: &Path, flags: &[&str]) -> (bool, Value) {
+    let mut args = vec!["author", "batch", "--from", input.to_str().unwrap()];
+    args.extend(flags);
+    run(root, &args)
+}
+
+#[test]
+fn batch_coordinates_caller_signature_and_helper_through_one_saved_transaction() {
+    let app = "mod calc;\nfn main() { println!(\"{}\", calc::evaluate(3)); }\n";
+    let calc = "// π\r\npub fn evaluate(n: i32) -> i32 { n + 1 }\r\n";
+    let (_temp, root, _) = fixture(app, b"{}");
+    fs::write(root.join("calc.rs"), calc).unwrap();
+    assert_eq!(compiled_result(&root), b"4\n");
+    let (main, _) = selection(&root, "main");
+    let (evaluate, _) = selection(&root, "evaluate");
+    let (file, _) = selection(&root, "calc.rs");
+    let declaration = "pub fn evaluate(n: i64, extra: i64) -> i64 { twice(n) + extra }";
+    let body = "{ println!(\"{}\", calc::evaluate(3, 1)); }";
+    let helper = "fn twice(n: i64) -> i64 { n * 2 }";
+    let input = batch_manifest(
+        &root,
+        vec![
+            batch_step(
+                &root,
+                "replace-declaration",
+                &evaluate,
+                "declaration.txt",
+                declaration,
+            ),
+            batch_step(&root, "replace-body", &main, "caller.txt", body),
+            batch_step(&root, "insert-declaration", &file, "helper.txt", helper),
+        ],
+        None,
+    );
+    let (success, preview) = batch(&root, &input, &["--diff-bytes", "0"]);
+    assert!(success, "{preview}");
+    assert_eq!(preview["schema"], "fr-author-batch-1");
+    assert_eq!(preview["span_basis"], "original-source");
+    assert_eq!(preview["files_changed"], 2);
+    assert_eq!(preview["diff"]["text"], "");
+    assert!(preview.get("coverage").is_some());
+    assert_eq!(preview["steps"].as_array().unwrap().len(), 3);
+    assert!(preview["steps"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|step| step.get("coverage").is_none() && step.get("after_span").is_none()));
+    assert!(!root.join(".fr-history").exists());
+    let (success, saved) = batch(&root, &input, &["--save-plan"]);
+    assert!(success, "{saved}");
+    let id = saved["transaction"].as_u64().unwrap().to_string();
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), app);
+    assert_eq!(fs::read_to_string(root.join("calc.rs")).unwrap(), calc);
+    fs::write(
+        root.parent().unwrap().join("declaration.txt"),
+        "fn changed() {}",
+    )
+    .unwrap();
+    fs::write(&input, "{}").unwrap();
+    ok(&root, &["history", "apply", &id, "--write"]);
+    let changed_app = app.replace("{ println!(\"{}\", calc::evaluate(3)); }", body);
+    let changed_calc = format!("// π\r\n{declaration}\r\n{helper}\r\n");
+    assert_eq!(
+        fs::read_to_string(root.join("app.rs")).unwrap(),
+        changed_app
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("calc.rs")).unwrap(),
+        changed_calc
+    );
+    assert_eq!(compiled_result(&root), b"7\n");
+    fs::write(root.join("unrelated.txt"), "retained\n").unwrap();
+    ok(&root, &["history", "undo", &id, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), app);
+    assert_eq!(fs::read_to_string(root.join("calc.rs")).unwrap(), calc);
+    assert_eq!(compiled_result(&root), b"4\n");
+    ok(&root, &["history", "patch", &id, "--check"]);
+    let patch = ok(&root, &["history", "patch", &id]);
+    assert!(patch["patch"].as_str().unwrap().contains("a/app.rs"));
+    assert!(patch["patch"].as_str().unwrap().contains("a/calc.rs"));
+    ok(&root, &["history", "redo", &id, "--write"]);
+    assert_eq!(compiled_result(&root), b"7\n");
+    assert_eq!(
+        fs::read_to_string(root.join("unrelated.txt")).unwrap(),
+        "retained\n"
+    );
+    fs::write(root.join("calc.rs"), changed_calc + "// Later edit.\n").unwrap();
+    assert!(!run(&root, &["history", "undo", &id, "--write"]).0);
+    assert_eq!(
+        fs::read_to_string(root.join("app.rs")).unwrap(),
+        changed_app
+    );
+}
+
+#[test]
+fn batch_keeps_original_spans_when_same_file_edits_change_lengths() {
+    use sha2::{Digest, Sha256};
+    let source = "fn first() -> i32 { 1 }\nfn second() -> i32 { 2 }\n";
+    let (_temp, root, _) = fixture(source, b"{}");
+    let (first, _) = selection(&root, "first");
+    let (second, _) = selection(&root, "second");
+    let before = "{ 2 }";
+    let after = "{ 200 }";
+    let input = batch_manifest(
+        &root,
+        vec![
+            batch_step(&root, "replace-body", &second, "second.txt", after),
+            batch_step(
+                &root,
+                "replace-body",
+                &first,
+                "first.txt",
+                "{ let value = 100; value }",
+            ),
+        ],
+        None,
+    );
+    let (success, report) = batch(&root, &input, &["--write"]);
+    assert!(success, "{report}");
+    assert_eq!(report["files_changed"], 1);
+    assert_eq!(
+        report["steps"][0]["before_span"]["start"],
+        source.find(before).unwrap()
+    );
+    assert_eq!(
+        report["steps"][0]["after_sha256"],
+        format!("{:x}", Sha256::digest(after.as_bytes()))
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("app.rs")).unwrap(),
+        source
+            .replace("{ 1 }", "{ let value = 100; value }")
+            .replace(before, after)
+    );
+}
+
+#[test]
+fn batch_refuses_overlaps_duplicate_selections_and_insertion_boundaries() {
+    for case in [
+        "same-body",
+        "same-noop",
+        "body-declaration",
+        "nested",
+        "same-insertion",
+        "touching-insertion",
+    ] {
+        let source = if case == "touching-insertion" {
+            "fn outer() {}"
+        } else {
+            "fn outer() { fn inner() {} }\n"
+        };
+        let (_temp, root, _) = fixture(source, b"{}");
+        let (outer, _) = selection(&root, "outer");
+        let (file, _) = selection(&root, "app.rs");
+        let original_body = if case == "touching-insertion" {
+            "{}"
+        } else {
+            "{ fn inner() {} }"
+        };
+        let first = batch_step(&root, "replace-body", &outer, "first.txt", original_body);
+        let operations = match case {
+            "same-body" | "same-noop" => vec![
+                first,
+                batch_step(
+                    &root,
+                    "replace-body",
+                    &outer,
+                    "second.txt",
+                    if case == "same-noop" {
+                        original_body
+                    } else {
+                        "{}"
+                    },
+                ),
+            ],
+            "body-declaration" => vec![
+                first,
+                batch_step(
+                    &root,
+                    "replace-declaration",
+                    &outer,
+                    "second.txt",
+                    "fn outer() {}",
+                ),
+            ],
+            "nested" => {
+                let (inner, _) = selection(&root, "inner");
+                vec![
+                    first,
+                    batch_step(
+                        &root,
+                        "replace-body",
+                        &inner,
+                        "second.txt",
+                        "{ let x = 1; }",
+                    ),
+                ]
+            }
+            "same-insertion" => vec![
+                batch_step(
+                    &root,
+                    "insert-declaration",
+                    &file,
+                    "first.txt",
+                    "fn added() {}",
+                ),
+                batch_step(
+                    &root,
+                    "insert-declaration",
+                    &file,
+                    "second.txt",
+                    "fn extra() {}",
+                ),
+            ],
+            _ => vec![
+                first,
+                batch_step(
+                    &root,
+                    "insert-declaration",
+                    &file,
+                    "second.txt",
+                    "fn added() {}",
+                ),
+            ],
+        };
+        let input = batch_manifest(&root, operations, None);
+        let (success, report) = batch(&root, &input, &["--save-plan"]);
+        assert!(!success, "{case}: {report}");
+        assert!(
+            report["error"]["message"]
+                .as_str()
+                .unwrap()
+                .contains("overlap"),
+            "{report}"
+        );
+        assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+        assert!(!root.join(".fr-history").exists());
+    }
+}
+
+#[test]
+fn batch_refuses_a_late_bad_step_without_recording_earlier_changes() {
+    for fault in [
+        "syntax",
+        "stale",
+        "unsupported",
+        "missing",
+        "manifest-revision",
+    ] {
+        let source = "fn first() {}\nfn second() {}\n";
+        let (_temp, root, _) = fixture(source, b"{}");
+        let (first, revision) = selection(&root, "first");
+        let (second, _) = selection(&root, "second");
+        let mut bad = batch_step(&root, "replace-body", &second, "bad.txt", "{}");
+        match fault {
+            "syntax" => fs::write(root.parent().unwrap().join("bad.txt"), "{ let x = ; }").unwrap(),
+            "stale" => bad["handle"] = second.replacen(&revision[..32], &"0".repeat(32), 1).into(),
+            "unsupported" => bad["handle"] = selection(&root, "app.rs").0.into(),
+            "missing" => fs::remove_file(root.parent().unwrap().join("bad.txt")).unwrap(),
+            _ => {}
+        }
+        let input = batch_manifest(
+            &root,
+            vec![
+                batch_step(&root, "replace-body", &first, "first.txt", "{ let x = 1; }"),
+                bad,
+            ],
+            if fault == "manifest-revision" {
+                Some("stale")
+            } else {
+                None
+            },
+        );
+        let (success, report) = batch(&root, &input, &["--write"]);
+        assert!(!success, "{fault}: {report}");
+        assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+        assert!(!root.join(".fr-history").exists());
+    }
+}
+
+#[test]
+fn batch_bounds_manifest_steps_and_reports_noops_without_history() {
+    let source: String = (0..32).map(|n| format!("fn item{n}() {{}}\n")).collect();
+    let (_temp, root, _) = fixture(&source, b"{}");
+    let mut steps = Vec::new();
+    let (_, revision) = selection(&root, "item0");
+    for n in 0..32 {
+        let (handle, _) = selection(&root, &format!("item{n}"));
+        steps.push(batch_step(
+            &root,
+            "replace-body",
+            if n % 2 == 0 {
+                &handle
+            } else {
+                handle.rsplit(':').next().unwrap()
+            },
+            &format!("step{n}.txt"),
+            "{}",
+        ));
+    }
+    let input = batch_manifest(&root, steps.clone(), Some(&revision));
+    let (success, report) = batch(&root, &input, &["--write"]);
+    assert!(success, "{report}");
+    assert_eq!(report["changed"], false);
+    assert_eq!(report["files_changed"], 0);
+    assert!(report["transaction"].is_null());
+    assert_eq!(report["steps"].as_array().unwrap().len(), 32);
+    assert!(!root.join(".fr-history").exists());
+    let input = batch_manifest(&root, steps.clone(), None);
+    assert!(!batch(&root, &input, &["--write"]).0);
+    steps.push(steps[0].clone());
+    let input = batch_manifest(&root, steps, Some(&revision));
+    assert!(!batch(&root, &input, &["--write"]).0);
+    for content in [
+        "{}".to_owned(),
+        "{\"operations\":[]}".to_owned(),
+        " ".repeat(65537),
+        "{\"operations\":[],\"unknown\":true}".to_owned(),
+    ] {
+        fs::write(&input, content).unwrap();
+        assert!(!batch(&root, &input, &["--save-plan"]).0);
+    }
+    assert!(!root.join(".fr-history").exists());
+}
+
+#[test]
+fn batch_combines_languages_and_resolves_fragments_from_workspace_root() {
+    let rust = "mod target {\n}\n";
+    let go = "package main\nfunc GoCalc() int { return 1 }\n";
+    let tsx = "export const View = () => { return <span>old</span>; };\n";
+    let (_temp, root, _) = fixture(rust, b"{}");
+    fs::write(root.join("app.go"), go).unwrap();
+    fs::write(root.join("app.tsx"), tsx).unwrap();
+    let (target, _) = selection(&root, "target");
+    let (go_handle, _) = selection(&root, "GoCalc");
+    let (view, _) = selection(&root, "View");
+    let mut go_step = batch_step(
+        &root,
+        "replace-body",
+        &go_handle,
+        "go-body.txt",
+        "{ return 2 }",
+    );
+    go_step["from"] = "../go-body.txt".into();
+    let input = batch_manifest(
+        &root,
+        vec![
+            batch_step(
+                &root,
+                "insert-declaration",
+                &target,
+                "rust-function.txt",
+                "fn added() {}",
+            ),
+            go_step,
+            batch_step(
+                &root,
+                "replace-body",
+                &view,
+                "tsx-body.txt",
+                "{ return <span>new</span>; }",
+            ),
+        ],
+        None,
+    );
+    let nested = root.parent().unwrap().join("inputs");
+    fs::create_dir(&nested).unwrap();
+    let manifest = nested.join("batch.json");
+    fs::rename(&input, &manifest).unwrap();
+    let (success, report) = batch(&root, &manifest, &["--write"]);
+    assert!(success, "{report}");
+    assert_eq!(report["files_changed"], 3);
+    assert_eq!(
+        fs::read_to_string(root.join("app.rs")).unwrap(),
+        "mod target {\nfn added() {}\n}\n"
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("app.go")).unwrap(),
+        go.replace("return 1", "return 2")
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("app.tsx")).unwrap(),
+        tsx.replace("old", "new")
+    );
+    ok(&root, &["history", "undo", "1", "--write"]);
+    for (file, source) in [("app.rs", rust), ("app.go", go), ("app.tsx", tsx)] {
+        assert_eq!(fs::read_to_string(root.join(file)).unwrap(), source);
+    }
+}
+
+#[test]
+fn batch_rejects_unknown_fields_inputs_flags_and_stale_saved_files() {
+    let source = "fn first() {}\nfn second() {}\n";
+    let (_temp, root, _) = fixture(source, b"{}");
+    let (first, _) = selection(&root, "first");
+    let (second, _) = selection(&root, "second");
+    let step = batch_step(&root, "replace-body", &first, "first.txt", "{ let x = 1; }");
+    for fault in [
+        "unknown-field",
+        "unknown-op",
+        "top-field",
+        "duplicate-field",
+    ] {
+        let mut bad = step.clone();
+        match fault {
+            "unknown-field" => bad["write"] = true.into(),
+            "unknown-op" => bad["op"] = "delete".into(),
+            _ => {}
+        }
+        let input = batch_manifest(&root, vec![bad], None);
+        if fault == "top-field" {
+            let mut value: Value = serde_json::from_slice(&fs::read(&input).unwrap()).unwrap();
+            value["write"] = true.into();
+            fs::write(&input, value.to_string()).unwrap();
+        } else if fault == "duplicate-field" {
+            let value = fs::read_to_string(&input)
+                .unwrap()
+                .replacen("{", "{\"operations\":[],", 1);
+            fs::write(&input, value).unwrap();
+        }
+        assert!(!batch(&root, &input, &["--write"]).0, "{fault}");
+    }
+    let input = batch_manifest(
+        &root,
+        vec![
+            step,
+            batch_step(
+                &root,
+                "replace-body",
+                &second,
+                "second.txt",
+                "{ let x = 2; }",
+            ),
+        ],
+        None,
+    );
+    assert!(!batch(&root, &input, &["--save-plan", "--write"]).0);
+    assert!(!batch(&root, &input, &["--diff-bytes", "65537"]).0);
+    #[cfg(unix)]
+    {
+        let linked = root.parent().unwrap().join("linked-batch.json");
+        std::os::unix::fs::symlink(&input, &linked).unwrap();
+        assert!(!batch(&root, &linked, &["--write"]).0);
+    }
+    assert!(!root.join(".fr-history").exists());
+    let (success, saved) = batch(&root, &input, &["--save-plan"]);
+    assert!(success, "{saved}");
+    let changed = source.replace("second", "renamed");
+    fs::write(root.join("app.rs"), &changed).unwrap();
+    assert!(!run(&root, &["history", "apply", "1", "--write"]).0);
+    assert!(!batch(&root, &input, &["--write"]).0);
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), changed);
+}

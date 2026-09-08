@@ -134,10 +134,55 @@ Module reports also include `container` with kind `inline-module`, its name and 
 `name_resolution_checked: false` makes the name-check boundary explicit.
 Use the returned source-history transaction for exact application, undo/redo and patches.
 
+## Coordinated authoring batches
+
+`fr author batch --from MANIFEST` plans 1 through 32 existing authoring operations against one captured project revision.
+It accepts `replace-body`, `replace-declaration` and `insert-declaration`, with their existing language and fragment restrictions.
+Use this to update a caller and callee together, or change several implementations across files in one source-history transaction.
+
+The manifest is a regular UTF-8 JSON file of at most 64 KiB:
+
+```json
+{
+  "operations": [
+    {"op": "replace-declaration", "handle": "<CALLEE_HANDLE>", "from": "/tmp/callee.txt"},
+    {"op": "replace-body", "handle": "<CALLER_HANDLE>", "from": "/tmp/caller.txt"}
+  ]
+}
+```
+
+Full handles carry their revisions. Short IDs require an optional top-level `revision`, which must match the captured project revision.
+A supplied revision also applies when entries use full handles. Unknown fields, duplicate JSON fields and unknown operations refuse.
+Manifest and fragment paths resolve from the workspace root, including when the manifest lives elsewhere.
+Keep these input files outside the scanned project to avoid invalidating selections while preparing the batch.
+Each fragment retains the existing 64 KiB limit; the manifest does not embed fragments or run commands.
+
+All selections refer to the original source. A later step cannot select a declaration created by an earlier step.
+Selections must be disjoint, including unchanged selections. Nested and duplicate selections refuse.
+Insertions cannot share an offset or touch either boundary of another selected region.
+Adjacent nonempty selections remain allowed. Two insertions through the same file or module handle therefore need separate transactions.
+
+Every step must pass its ordinary authoring checks; the combined file results must also reparse without errors.
+A planning refusal leaves all source files and history untouched.
+Use `--save-plan` to freeze the complete edit set, then apply its single transaction ID.
+Later changes to the manifest or fragments do not alter that transaction.
+`--write` records and applies the complete set immediately; it conflicts with `--save-plan`.
+Undo/redo and patch export use that same transaction. Existing affected-file conflict and recovery rules apply.
+This retains the source-history filesystem guarantees; it does not make filesystem writes globally atomic.
+
+The report has schema `fr-author-batch-1`, query `batch`, one shared revision and coverage object, and ordered `steps`.
+Each step contains its operation, handle, path, original `before_span`, byte counts, SHA-256 fingerprints, signature and preservation scope.
+Insertion byte counts and fingerprints cover its complete added payload, including separators.
+Replacement signatures and insertion name-check limits remain visible where applicable.
+`span_basis: original-source` makes the coordinates explicit. After-spans are omitted because other edits can shift their positions.
+`files_changed` counts files with actual edits; an entirely unchanged batch produces no transaction.
+The combined diff shares one `--diff-bytes` budget, with the same omission reporting as individual authoring commands.
+Typing, name resolution and behavior still need project checks after application.
+
 ## Review and transactions
 
-Both output modes return JSON with schema `fr-author-1`.
-The report includes the reviewed revision and handle, bounded path and signature, coverage and absolute body byte spans.
+Both output modes return JSON. Individual operations use schema `fr-author-1`; batches use `fr-author-batch-1`.
+Reports include the reviewed revision and coverage, with handles, bounded paths, signatures and original byte spans for selected operations.
 For function bindings, the signature starts at the selected declarator or field and excludes neighboring bindings and their bodies.
 It stops before the body; postfix wrappers and type assertions remain visible in the selected source, rather than in this header excerpt.
 Fingerprints use SHA-256 over the exact bytes of the reported fragment or insertion.
@@ -166,7 +211,7 @@ Source verification and recording are separate observations; this command does n
 
 ## Evidence
 
-Forty-four CLI scenarios cover saved edit identity, compiled behavior, undo/redo, patch export, stale handles and revisions, unsupported targets and malformed input.
+Fifty-one CLI scenarios cover saved edit identity, compiled behavior, undo/redo, patch export, stale handles and revisions, unsupported targets and malformed input.
 They also check exact size limits, diff omission, method and nested-function contexts, Unicode and CRLF preservation, no-op writes, symlink inputs and Unix permissions.
 TypeScript and TSX fixtures compile with `tsc --strict` and run in Node before and after saved replacements.
 The tests cover JSX, supported declaration forms, extension aliases and unsupported selections without editing an enclosing function.
@@ -176,6 +221,9 @@ Brace-token spans preserve external comments and semicolons; duplicate names ret
 Go fixtures cover generic functions, pointer and value receivers, same-named methods, Unicode identifiers, `init`, size limits and refusals.
 Five Go history workflows compile and run before edits, after application, after undo and after redo.
 They exercise receiver state, named results with `defer` and multiline raw strings, while checking saved fragments and patch applicability.
+Batch cases cover coordinated caller/signature/helper changes, mixed languages, shared revisions, conflicts, malformed manifests and saved transactions.
+A two-file Rust batch compiles and runs before changes, after application, after undo and after redo.
+A reported batch containing two length-changing edits also produces matching Rust and Lean splice results.
 The size predicate has a source anchor and signature map into Lean, with 64 shared boundary cases including machine limits.
 Lean proves its lower and upper bounds and symmetry between old and new body sizes.
 The existing edit model describes a splice as an unchanged prefix, replacement and unchanged suffix.

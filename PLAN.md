@@ -45,7 +45,7 @@ Important gaps:
 - Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist. Raw staging and journaled index undo/redo are available on Unix. Reviewed commits are available with explicit index and HEAD bases. Worktree inspection reports registered workspaces with revision-bound pages. Reviewed creation adds raw checkouts on new or unused existing branches on Unix. Ownership receipts support checked completion of incomplete worktrees and reviewed removal of clean worktrees. Removal archives support inspection, checked resumption and reviewed compaction to audit summaries. Shared browser patch semantics remain pending.
 - Strict spec signature maps currently accept Rust source declarations only.
 - Framework readers cover selected patterns. Whole applications still need dependency and runtime work.
-- The portable agent skill covers exploration, changes, declared checks, history, Git and Lean. Rust, Go, TypeScript and TSX body replacement uses project handles and source history. TypeScript/TSX function bindings support block bodies inside parentheses and type-only assertions. Rust function declaration replacement can change signatures and implementations together. Rust function insertion accepts file and inline module handles. Broader agent evaluation, context reduction, additional initializer forms and insertion into other scopes remain pending.
+- The portable agent skill covers exploration, changes, declared checks, history, Git and Lean. Rust, Go, TypeScript and TSX body replacement uses project handles and source history. TypeScript/TSX function bindings support block bodies inside parentheses and type-only assertions. Rust function declaration replacement can change signatures and implementations together. Rust function insertion accepts file and inline module handles. Authoring batches combine disjoint operations across files in one transaction. Broader agent evaluation, context reduction, additional initializer forms and insertion into other scopes remain pending.
 - Model proofs and shared executable cases do not establish general correspondence with the Rust implementation.
 
 ## Product contract
@@ -1101,8 +1101,24 @@ All forty-four authoring scenarios pass, along with the full native/WASM gate an
 Strict verification retains twenty-four fresh source anchors and signature maps, zero obligations and 38 Lean build jobs.
 See [module insertion placement kernels](docs/lean-specs.md#module-insertion-placement-kernels) for domains and reproduction.
 
+M4y: coordinated authoring batches (complete).
+
+`fr author batch --from MANIFEST` combines 1 through 32 existing authoring operations against one project revision.
+It validates each fragment and the combined file results, refusing overlapping selections and shared insertion boundaries before recording history.
+One preview, saved transaction, undo/redo operation and patch cover the coordinated change.
+Reports share coverage once and preserve original selection spans, signatures, sizes and fingerprints per step.
+Seven new CLI scenarios cover caller/signature/helper changes, mixed languages, revisions, no-ops, malformed inputs and conflict refusal.
+A two-file Rust workflow compiles and runs before changes, after application, after undo and after redo.
+A reported batch with two length-changing edits matches Rust and Lean splice results, without proving the full batch planner.
+The portable authoring reference explains shared revisions, disjoint selections and combined review.
+All fifty-one authoring scenarios and the full native/WASM gate pass, with 311/311 capability coverage.
+Strict verification retains twenty-four fresh anchors and signature maps, zero obligations and 38 Lean build jobs.
+See [coordinated authoring batches](docs/body-authoring.md#coordinated-authoring-batches) for the manifest and transaction rules.
+
 Next M4 work:
 
+Compare a fixed coordinated change through batch and individual authoring commands, measuring report bytes and repeated project scans.
+Require matching final source, successful project checks and exact reversal; keep this controlled comparison separate from agent context claims.
 Use the retained workspace traces to reduce repeated report metadata and skill-loading costs, preserving coverage, source bases, guards and reviewable changes.
 Measure each proposed reduction on fixed transcripts or controlled workflows before another autonomous comparison.
 Use the construction profile to evaluate any further reduction in reference serialization and hashing cost.

@@ -135,6 +135,7 @@ Declaration insertion adds a Rust function through a file or inline module handl
 Module insertion uses the module row's handle, checks its direct names and inserts before its closing brace.
 The fragment stays verbatim; impl, trait, function and external module declarations remain unsupported targets.
 It accepts leading outer documentation comments, so agents can satisfy a project's missing-docs lint without changing crate policy.
+Authoring batches combine up to 32 disjoint operations from one revision, with shared coverage and one history transaction.
 Declared project-check selection now has a configuration digest and bounded execution reports.
 Broader real-agent evaluation, context optimization and further authoring operations remain open.
 M5 still owns automated Lean package initialization and model scaffolding.

@@ -1655,11 +1655,14 @@ fn cmd_project(cli: &Cli, command: &crate::project::Command) -> Result<()> {
 
 fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()> {
     use crate::project::author::Command;
-    let (Command::ReplaceBody(options)
-    | Command::ReplaceDeclaration(options)
-    | Command::InsertDeclaration(options)) = command;
+    let (write, diff_bytes) = match command {
+        Command::ReplaceBody(options)
+        | Command::ReplaceDeclaration(options)
+        | Command::InsertDeclaration(options) => (options.write, options.diff_bytes),
+        Command::Batch(options) => (options.write, options.diff_bytes),
+    };
     anyhow::ensure!(
-        !(options.write && cli.save_plan),
+        !(write && cli.save_plan),
         "choose --save-plan or --write, not both."
     );
     with_project(cli, |project, root| {
@@ -1667,6 +1670,7 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
             Command::ReplaceBody(options) => project.replace_body(options)?,
             Command::ReplaceDeclaration(options) => project.replace_declaration(options)?,
             Command::InsertDeclaration(options) => project.insert_declaration(options)?,
+            Command::Batch(options) => project.author_batch(options)?,
         };
         let outcomes = crate::edit::plan(&plan.edits, crate::edit::Validation::ReparseStrict)?;
         project.verify(root)?;
@@ -1674,18 +1678,18 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
             .iter()
             .map(|outcome| workspace_diff(cli, outcome))
             .collect::<String>();
-        plan.set_diff(&diff, options.diff_bytes);
+        plan.set_diff(&diff, diff_bytes);
         let transaction = persist_changes(
             cli,
             &outcomes
                 .iter()
                 .map(crate::edit::FileChange::from)
                 .collect::<Vec<_>>(),
-            options.write,
+            write,
             "reparse-strict",
         )?;
         plan.report["transaction"] = serde_json::json!(transaction);
-        plan.report["applied"] = serde_json::json!(options.write && transaction.is_some());
+        plan.report["applied"] = serde_json::json!(write && transaction.is_some());
         plan.report["saved"] = serde_json::json!(cli.save_plan && transaction.is_some());
         println!("{}", serde_json::to_string(&plan.report)?);
         Ok(())

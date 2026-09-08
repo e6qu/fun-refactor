@@ -5,6 +5,7 @@ use crate::parse::{Parsed, Parsers};
 use crate::span::Span;
 use anyhow::{ensure, Context, Result};
 use clap::{Args, Subcommand};
+use serde::Deserialize;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::fs;
@@ -25,6 +26,51 @@ pub enum Command {
         about = "Insert one Rust function into a file or inline module, retaining existing source bytes."
     )]
     InsertDeclaration(ReplaceBodyOptions),
+    #[command(about = "Plan disjoint authoring edits from one revision as one transaction.")]
+    Batch(BatchOptions),
+}
+
+#[derive(Args)]
+pub struct BatchOptions {
+    #[arg(
+        long,
+        help = "JSON manifest of 1 through 32 authoring operations, at most 64 KiB."
+    )]
+    pub from: PathBuf,
+    #[arg(
+        long,
+        default_value_t = 4096,
+        help = "Maximum UTF-8 diff bytes, from 0 through 65536."
+    )]
+    pub diff_bytes: usize,
+    #[arg(
+        long,
+        help = "Record and apply all edits after checking the source revision."
+    )]
+    pub write: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct BatchManifest {
+    revision: Option<String>,
+    operations: Vec<BatchStep>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct BatchStep {
+    op: BatchOperation,
+    handle: String,
+    from: PathBuf,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
+enum BatchOperation {
+    ReplaceBody,
+    ReplaceDeclaration,
+    InsertDeclaration,
 }
 
 #[derive(Args)]
@@ -229,6 +275,109 @@ fn function_fragment<'tree>(
 }
 
 impl Project<'_> {
+    pub fn author_batch(&self, options: &BatchOptions) -> Result<Plan> {
+        ensure!(
+            options.diff_bytes <= 65536,
+            "diff bytes must be between 0 and 65536."
+        );
+        let manifest: BatchManifest =
+            serde_json::from_str(&fragment(&self.root.join(&options.from))?)
+                .context("batch input must be an authoring manifest.")?;
+        ensure!(
+            (1..=32).contains(&manifest.operations.len()),
+            "batch needs 1 through 32 operations."
+        );
+        if let Some(revision) = &manifest.revision {
+            ensure!(
+                revision == &self.revision || revision == &self.revision[..32],
+                "stale revision; obtain a fresh project map."
+            );
+        }
+        let mut edits = EditSet::new();
+        let mut regions: Vec<(PathBuf, Span)> = Vec::new();
+        let mut steps = Vec::new();
+        for (index, step) in manifest.operations.into_iter().enumerate() {
+            let operation = ReplaceBodyOptions {
+                revision: if step.handle.starts_with("frp1:") {
+                    None
+                } else {
+                    manifest.revision.clone()
+                },
+                handle: step.handle,
+                from: step.from,
+                diff_bytes: options.diff_bytes,
+                write: false,
+            };
+            let plan = match step.op {
+                BatchOperation::ReplaceBody => self.replace_body(&operation),
+                BatchOperation::ReplaceDeclaration => self.replace_declaration(&operation),
+                BatchOperation::InsertDeclaration => self.insert_declaration(&operation),
+            }
+            .with_context(|| format!("batch operation {} failed", index + 1))?;
+            let handle = self.explicit_handle(&operation.handle, operation.revision.as_deref())?;
+            let id = self.resolve_handle(&handle)?;
+            let path = self.root.join(&self.nodes[id].path);
+            let key = match step.op {
+                BatchOperation::ReplaceBody => "body",
+                BatchOperation::ReplaceDeclaration => "declaration",
+                BatchOperation::InsertDeclaration => "insertion",
+            };
+            let span: Span = serde_json::from_value(plan.report[key]["before_span"].clone())?;
+            for (previous, selected) in &regions {
+                let conflict = selected.overlaps(span)
+                    || (selected.is_empty() && span.contains(*selected))
+                    || (span.is_empty() && selected.contains(span));
+                ensure!(previous != &path || !conflict,
+                    "batch selections overlap or share an insertion boundary; use disjoint selections.");
+            }
+            let before = span.text(&self.sources[&path]);
+            let after = plan
+                .edits
+                .edits_for(&path)
+                .and_then(|items| items.first())
+                .map_or(before, |edit| edit.replacement.as_str());
+            let mut summary = json!({"operation": plan.report["query"], "handle": plan.report["handle"],
+                "path": plan.report["path"], "before_span": span, "before_bytes": before.len(),
+                "after_bytes": after.len(), "before_sha256": digest(before), "after_sha256": digest(after),
+                "signature": plan.report["signature"], "changed": plan.report["changed"],
+                "preservation": plan.report["preservation"]});
+            for key in [
+                "replacement_signature",
+                "name_check",
+                "name_resolution_checked",
+            ] {
+                if let Some(value) = plan.report.get(key) {
+                    summary[key] = value.clone();
+                }
+            }
+            steps.push(summary);
+            regions.push((path, span));
+            edits.extend(plan.edits);
+        }
+        for (path, replacements) in edits.iter() {
+            let language = self
+                .index
+                .file(path)
+                .context("batch file is not indexed.")?
+                .language;
+            let updated = crate::edit::apply_to_string(&self.sources[path], replacements)?;
+            ensure!(
+                !Parsers::new().parse(language, &updated)?.has_errors(),
+                "combined batch introduces parser errors in its destination context."
+            );
+        }
+        let mut report = self.envelope("batch");
+        report["schema"] = json!("fr-author-batch-1");
+        report["span_basis"] = json!("original-source");
+        report["files_changed"] = json!(edits.file_count());
+        report["changed"] = json!(!edits.is_empty());
+        report["steps"] = json!(steps);
+        report["validation"] = json!("reparse-strict");
+        report["behavior_checked"] = json!(false);
+        report["atomic_snapshot"] = json!(false);
+        Ok(Plan { edits, report })
+    }
+
     pub fn insert_declaration(&self, options: &ReplaceBodyOptions) -> Result<Plan> {
         ensure!(
             options.diff_bytes <= 65536,
