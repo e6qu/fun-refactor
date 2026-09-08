@@ -130,9 +130,10 @@ The [controlled source-lookup comparison](project-context-evaluation.md#bounded-
 ## Remaining roadmap
 
 M4a provides the introductory handoff and executable command examples.
-Body replacement supports Rust, Go, TypeScript and TSX declarations and methods, plus TypeScript/TSX function bindings with block bodies.
+Body replacement supports Rust, Go, TypeScript and TSX declarations and methods, plus TypeScript/TSX function bindings.
 Go supports named functions and receiver methods, including generic headers; interface specifications and variables containing function literals refuse.
-Supported TypeScript/TSX bindings can wrap the function in parentheses and type-only assertions; calls, conditionals and expression bodies still refuse.
+Supported TypeScript/TSX bindings can wrap the function in parentheses and type-only assertions. Arrows accept expression or block bodies and can move between them.
+Calls and conditionals around the initializer still refuse.
 Rust function declaration replacement can change signatures and implementations together, preserving the name and outer attributes.
 Declaration insertion adds a Rust function through a file, inline module, exact impl method or trait handle, retaining all existing source bytes.
 Module and trait insertion use the container row's handle. An existing direct method handle selects its exact enclosing impl or trait body.

@@ -141,30 +141,35 @@ fn kernel_accepts(source: &str, edits: &[Edit], expected: &str) {
 
 #[test]
 fn the_edit_kernel_accepts_a_reported_declaration_replacement() {
-    reported_declaration_plan("replace-declaration", "calc");
+    reported_declaration_plan("replace-declaration", "calc", false);
 }
 
 #[test]
 fn the_edit_kernel_accepts_a_reported_declaration_insertion() {
-    reported_declaration_plan("insert-declaration", "app.rs");
+    reported_declaration_plan("insert-declaration", "app.rs", false);
 }
 
 #[test]
 fn the_edit_kernel_accepts_a_reported_module_insertion() {
-    reported_declaration_plan("insert-declaration", "target");
+    reported_declaration_plan("insert-declaration", "target", false);
 }
 
 #[test]
 fn the_edit_kernel_accepts_a_reported_wrapped_body_replacement() {
-    reported_declaration_plan("replace-body", "calc");
+    reported_declaration_plan("replace-body", "calc", false);
+}
+
+#[test]
+fn the_edit_kernel_accepts_a_reported_expression_body_replacement() {
+    reported_declaration_plan("replace-body", "calc", true);
 }
 
 #[test]
 fn the_edit_kernel_accepts_a_reported_go_method_replacement() {
-    reported_declaration_plan("replace-body", "Calc");
+    reported_declaration_plan("replace-body", "Calc", false);
 }
 
-fn reported_declaration_plan(operation: &str, selected: &str) {
+fn reported_declaration_plan(operation: &str, selected: &str, expression_body: bool) {
     let temp = tempfile::tempdir().unwrap();
     let workspace = temp.path().join("workspace");
     std::fs::create_dir(&workspace).unwrap();
@@ -172,6 +177,8 @@ fn reported_declaration_plan(operation: &str, selected: &str) {
     let go = body && selected == "Calc";
     let (file, old, new) = if go {
         ("app.go", "{ return value + 1 }", "{ return value * 2 }")
+    } else if expression_body {
+        ("app.tsx", "value + 1", "value * 2")
     } else if body {
         (
             "app.tsx",
@@ -194,6 +201,8 @@ fn reported_declaration_plan(operation: &str, selected: &str) {
         "// π\r\nfn other() {}\r\n// Final comment.".to_owned()
     } else if go {
         format!("// π\r\npackage main\r\ntype Counter int\r\nfunc (c *Counter) Calc(value int) int /* keep */ {old}\r\nfunc other() {{}}\r\n")
+    } else if expression_body {
+        format!("// π\r\nconst calc = (((value: number) => /* keep */ {old}) satisfies (value: number) => number)!;\r\nconst other = () => {{ return 0; }};\r\n")
     } else if body {
         format!("// π\r\nconst calc = (((value: number) => /* keep */ {old}) satisfies (value: number) => JSX.Element)!;\r\nconst other = () => {{ return 0; }};\r\n")
     } else {

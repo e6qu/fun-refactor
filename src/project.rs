@@ -269,7 +269,7 @@ fn check_limit(limit: usize) -> Result<()> {
 }
 
 pub fn body_replacement_budget(before: usize, after: usize) -> bool {
-    (2..=65536).contains(&before) && (2..=65536).contains(&after)
+    (1..=65536).contains(&before) && (1..=65536).contains(&after)
 }
 
 pub fn declaration_insertion_offset(prefix: &str, body_start: usize) -> usize {

@@ -14,7 +14,7 @@ Fragments are UTF-8 files outside the project and at most 64 KiB. A batch manife
 Review the combined diff, then save and apply the checked transaction. A complete saved diff includes `transaction_context_basis` for compact forward apply/redo reports.
 Repeating an identical saved plan reuses its transaction and reports `reused_transaction: true` with `saved: false`.
 
-Go accepts named functions and receiver methods. TypeScript/TSX accepts supported block-bodied function bindings. Rust insertion accepts `///` or `/** */` docs, rejects other outer attributes or pending metadata, trims boundary whitespace, and preserves the remaining fragment bytes. A trait accepts a bodyless function declaration; files, modules and impls require a body. Unsupported declaration kinds refuse.
+Go accepts named functions and receiver methods. TypeScript/TSX accepts supported function bindings; arrows accept an expression or block and can move between forms. Rust insertion accepts `///` or `/** */` docs, rejects other outer attributes or pending metadata, trims boundary whitespace, and preserves the remaining fragment bytes. A trait accepts a bodyless function declaration; files, modules and impls require a body. Unsupported declaration kinds refuse.
 
 Example: save this outside the project as `<FRAGMENT>`:
 

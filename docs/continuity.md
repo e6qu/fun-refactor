@@ -3,6 +3,7 @@
 PR 0, the agent-ready verified refactoring foundation, merged as GitHub PR 259.
 PR 1, Agent Context Protocol v2, merged as GitHub PR 261.
 The current `generalized_structural_authoring` branch is roadmap PR 2. Its first checkpoint extends exact-byte Rust insertion to impl and trait bodies and generalizes the insertion placement model.
+The second checkpoint authors TypeScript/TSX expression-bodied arrows and permits checked transitions between expression and block bodies.
 Project and author reports now emit a revision-bound `frcb1:` basis. Supplying it omits only `coverage`, `handle_prefix` and `revision`; stale bases refuse before author plans can be saved or written.
 Complete saved author diffs and detailed history records now emit a separate `frtb1:` transaction basis. Forward apply and redo reports can omit their repeated diffs while retaining change metadata; reverse use and mismatches refuse before writes.
 Unit and CLI regressions reconstruct full reports exactly and cover missing, truncated, stale and conflicting bases.
@@ -183,10 +184,11 @@ A reported module, impl and trait edit is compared with the Rust and Lean placem
 This is tested splice correspondence, with no new proof of AST selection, parsing or complete authoring behavior.
 The portable authoring reference explains module-row handles, preserved fragment contents and unsupported scopes.
 
-## Wrapped function authoring
+## Wrapped function and expression-body authoring
 
 `src/project/author.rs::function_initializer` follows the expression operand through parentheses, `as`, `satisfies`, postfix `!` and TypeScript angle-bracket assertions.
-It accepts only arrow, ordinary function-expression and generator-expression terminals; replacement still requires a block body.
+It accepts arrow, ordinary function-expression and generator-expression terminals. Arrows accept expression or block bodies and can transition between the forms.
+Other function terminals continue to require blocks.
 Comments do not count as operands. The angle-bracket form skips its type-argument child and follows the value expression.
 Calls, conditionals, comma expressions and other initializer forms refuse, even inside an otherwise supported wrapper.
 The existing handle/name check prevents selecting an enclosing or neighboring function.
@@ -197,10 +199,11 @@ Its signature stays a header excerpt ending before the body; inspect selected so
 The portable authoring reference names the accepted wrappers and uses `--locals` lookup for variable handles.
 Its executable command examples stay unchanged; current skill text is separate from historical context measurements.
 
-All thirty-four authoring scenarios pass, including shadowed wrapped bindings and stale handles/plans after a wrapper changes.
+The authoring suite includes shadowed wrapped bindings and stale handles or plans after a wrapper changes.
 Four compiled history fixtures check lexical `this`, named recursion, generators and JSX before/after application, undo and redo.
 They also freeze the saved fragment and check patch applicability after undo.
-The Rust/Lean edit comparison now includes a reported wrapped TSX replacement with Unicode, CRLF, external comments and neighboring source.
+An additional expression-arrow history fixture compiles before application, after application and redo, and after exact undo.
+The Rust/Lean edit comparisons include reported wrapped block and expression TSX replacements with Unicode, CRLF, external comments and neighboring source.
 This extends tested splice correspondence; it adds no proof of AST traversal, parsing, typing or complete authoring behavior.
 See [body authoring](body-authoring.md) for supported targets and review limits.
 

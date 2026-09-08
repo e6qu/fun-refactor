@@ -382,10 +382,6 @@ fn typescript_and_tsx_declarations_and_methods_preserve_their_headers() {
 fn typescript_refuses_unsupported_handles_and_never_edits_the_enclosing_function() {
     for extension in ["ts", "tsx"] {
         for source in [
-            "const calc = () => 1;\n",
-            "const calc = () => ({ value: 1 });\n",
-            "const calc = ((() => 1) as () => number);\n",
-            "const calc = ((() => ({ value: 1 })) satisfies () => object);\n",
             "const calc = ((wrap(() => { return 1; })) as () => number);\n",
             "const calc = (condition ? () => { return 1; } : () => { return 2; })!;\n",
             "const calc = (sideEffect(), () => { return 1; });\n",
@@ -394,7 +390,6 @@ fn typescript_refuses_unsupported_handles_and_never_edits_the_enclosing_function
             "const calc = wrap(() => { return 1; });\n",
             "const calc = condition ? () => { return 1; } : () => { return 2; };\n",
             "const { calc } = { calc: () => { return 1; } };\n",
-            "class C { calc = () => 1; }\n",
             "class C { calc = (wrap(() => { return 1; }))!; }\n",
             "function outer() { const calc = wrap(() => { return 1; }); return calc(); }\n",
             "const outer = () => { let calc = 1; return calc; };\n",
@@ -417,6 +412,117 @@ fn typescript_refuses_unsupported_handles_and_never_edits_the_enclosing_function
             assert!(!root.join(".fr-history").exists());
         }
     }
+}
+
+#[test]
+fn expression_arrow_bodies_support_expression_and_block_transitions() {
+    for (file, source, old, new, before_kind, after_kind) in [
+        (
+            "app.ts",
+            "const calc = ((n: number) => n + 1) satisfies (n: number) => number;\n",
+            "n + 1",
+            "n * 2",
+            "expression",
+            "expression",
+        ),
+        (
+            "app.ts",
+            "const calc = (n: number) => n + 1;\n",
+            "n + 1",
+            "{ return n * 2; }",
+            "expression",
+            "block",
+        ),
+        (
+            "app.ts",
+            "class C { calc = (n: number) => { return n + 1; }; }\n",
+            "{ return n + 1; }",
+            "n * 2",
+            "block",
+            "expression",
+        ),
+        (
+            "app.tsx",
+            "const calc = (value: number) => <span>{value + 1}</span>;\n",
+            "<span>{value + 1}</span>",
+            "<span>{value * 2}</span>",
+            "expression",
+            "expression",
+        ),
+    ] {
+        let (_temp, root, input) = fixture_file(file, source, new.as_bytes());
+        let (handle, _) = selection(&root, "calc");
+        let (success, report) = replace(&root, &handle, &input, &["--write"]);
+        assert!(success, "{file}: {source}: {report}");
+        assert_eq!(report["body"]["before_kind"], before_kind);
+        assert_eq!(report["body"]["after_kind"], after_kind);
+        assert_eq!(
+            fs::read_to_string(root.join(file)).unwrap(),
+            source.replace(old, new)
+        );
+    }
+
+    let source = "const calc = () => 0;\n";
+    let (_temp, root, input) = fixture_file("app.ts", source, b"1");
+    let (handle, _) = selection(&root, "calc");
+    let (success, report) = replace(&root, &handle, &input, &["--write"]);
+    assert!(success, "{report}");
+    assert_eq!(report["body"]["before_bytes"], 1);
+    assert_eq!(report["body"]["after_bytes"], 1);
+
+    for fragment in [
+        "",
+        "n + 1;",
+        "n + 1\nconst escaped = 2",
+        "/* leading */ n + 1",
+    ] {
+        let source = "const calc = (n: number) => n;\n";
+        let (_temp, root, input) = fixture_file("app.ts", source, fragment.as_bytes());
+        let (handle, _) = selection(&root, "calc");
+        assert!(!replace(&root, &handle, &input, &["--save-plan"]).0);
+        assert_eq!(fs::read_to_string(root.join("app.ts")).unwrap(), source);
+        assert!(!root.join(".fr-history").exists());
+    }
+
+    let source = "const calc = function () { return 1; };\n";
+    let (_temp, root, input) = fixture_file("app.ts", source, b"2");
+    let (handle, _) = selection(&root, "calc");
+    assert!(!replace(&root, &handle, &input, &["--write"]).0);
+    assert_eq!(fs::read_to_string(root.join("app.ts")).unwrap(), source);
+}
+
+#[test]
+fn expression_arrow_history_compiles_and_preserves_wrappers_and_patch() {
+    let source = concat!(
+        "const calc = (((n: number): number => n + 1) satisfies ",
+        "(n: number) => number)!;\n",
+        "console.log(calc(3));\n",
+    );
+    let (_temp, root, input) = fixture_file("app.ts", source, b"n * 2");
+    assert_eq!(typescript_result(&root, "app.ts"), b"4\n");
+    let (handle, _) = selection(&root, "calc");
+    let (success, saved) = replace(&root, &handle, &input, &["--save-plan"]);
+    assert!(success, "{saved}");
+    assert_eq!(saved["body"]["before_kind"], "expression");
+    assert_eq!(saved["body"]["after_kind"], "expression");
+    assert_eq!(fs::read_to_string(root.join("app.ts")).unwrap(), source);
+
+    let id = saved["transaction"].as_u64().unwrap().to_string();
+    fs::write(&input, "999").unwrap();
+    ok(&root, &["history", "apply", &id, "--write"]);
+    let expected = source.replace("n + 1", "n * 2");
+    assert_eq!(fs::read_to_string(root.join("app.ts")).unwrap(), expected);
+    assert_eq!(typescript_result(&root, "app.ts"), b"6\n");
+    ok(&root, &["history", "undo", &id, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("app.ts")).unwrap(), source);
+    ok(&root, &["history", "patch", &id, "--check"]);
+    assert!(ok(&root, &["history", "patch", &id])["patch"]
+        .as_str()
+        .unwrap()
+        .contains("n * 2"));
+    ok(&root, &["history", "redo", &id, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("app.ts")).unwrap(), expected);
+    assert_eq!(typescript_result(&root, "app.ts"), b"6\n");
 }
 
 #[test]

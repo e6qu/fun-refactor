@@ -22,6 +22,8 @@ Source, manifest and inventory changes invalidate handles; obtain a new map afte
 ## Input and supported scope
 
 The input file contains exactly one complete block in the target language, including braces.
+For a TypeScript or TSX arrow target, it can instead contain one complete expression.
+An arrow can move between expression and block bodies. Declarations, methods and function expressions continue to require blocks.
 For Rust:
 
 ```rust
@@ -31,7 +33,7 @@ For Rust:
 }
 ```
 
-Both the old and new blocks must fit 2 through 65,536 UTF-8 bytes.
+Both the old and new bodies must fit 1 through 65,536 UTF-8 bytes. A brace-delimited block is naturally at least two bytes.
 The input file itself must fit 65,536 bytes, including whitespace outside the block.
 The reader trims surrounding whitespace and preserves all bytes inside the block.
 It refuses non-UTF-8 input, NUL bytes, symlink inputs and nonregular files.
@@ -45,7 +47,7 @@ Go interface method specifications, bodyless declarations and variables containi
 Receiver declarations, type parameters, named results, documentation and directives outside the body remain unchanged.
 The Go fragment must contain one brace-delimited block; imports, type correctness and package rules require separate compiler checks.
 TypeScript and TSX targets include named function declarations, generators, class and object methods, accessors and constructors.
-They also include variable or class-field initializers containing block-bodied arrows, ordinary function expressions or generator expressions.
+They also include variable or class-field initializers containing arrows, ordinary function expressions or generator expressions.
 The function can sit inside nested parentheses, `as`, `satisfies`, postfix non-null `!` assertions and TypeScript angle-bracket assertions.
 Angle-bracket assertions belong to the TypeScript grammar; TSX retains its JSX grammar and does not support that assertion syntax.
 Use the variable or field's handle, including when a function expression has a separate inner name.
@@ -53,7 +55,7 @@ Variable lookups need `--locals`; `project find NAME --in FILE --locals --source
 The operation retains the binding, wrappers, function expression, parameters and arrow token; it replaces only the braces and their contents.
 Nested declarations, exports, generics, modifiers, signatures and surrounding attributes stay in place.
 Select the specific implementation handle when multiple declarations share a name, such as overloads or getter/setter pairs.
-Expression-bodied arrows, destructured bindings, bodyless declarations, nonfunction variables and file handles refuse.
+Destructured bindings, bodyless declarations, nonfunction variables and file handles refuse.
 Calls such as `memo(...)`, conditionals, comma expressions and other initializer forms refuse, including inside otherwise supported wrappers.
 Selection follows only the expression operand of each supported wrapper; it does not search callbacks, type operands or alternatives for a function.
 Object properties containing function expressions and anonymous callbacks remain outside this selection path.
@@ -61,7 +63,7 @@ Computed and quoted method names are outside the indexed method subset.
 JavaScript extensions use the existing TypeScript grammar; JSX extensions use TSX.
 This does not impose JavaScript-only syntax rules on `.js` files.
 The target file must have no parser errors before the edit.
-The replacement must parse as exactly one block in a temporary function, and the resulting destination file must also parse without errors.
+The replacement must parse as one body in a temporary function or arrow, and the resulting destination file must also parse without errors.
 Additional declarations outside the replacement block, trailing comments and unmatched braces refuse.
 Nested declarations inside the new block are allowed.
 
@@ -185,6 +187,7 @@ Typing, name resolution and behavior still need project checks after application
 
 Both output modes return JSON. Individual operations use schema `fr-author-1`; batches use `fr-author-batch-1`.
 Reports include the reviewed revision and coverage, with handles, bounded paths, signatures and original byte spans for selected operations.
+Body reports identify the original and replacement syntax as `block` or `expression`.
 For function bindings, the signature starts at the selected declarator or field and excludes neighboring bindings and their bodies.
 It stops before the body; postfix wrappers and type assertions remain visible in the selected source, rather than in this header excerpt.
 Fingerprints use SHA-256 over the exact bytes of the reported fragment or insertion.
@@ -213,7 +216,7 @@ Source verification and recording are separate observations; this command does n
 
 ## Evidence
 
-Fifty-one CLI scenarios cover saved edit identity, compiled behavior, undo/redo, patch export, stale handles and revisions, unsupported targets and malformed input.
+Fifty-six CLI scenarios cover saved edit identity, compiled behavior, undo/redo, patch export, stale handles and revisions, unsupported targets and malformed input.
 They also check exact size limits, diff omission, method and nested-function contexts, Unicode and CRLF preservation, no-op writes, symlink inputs and Unix permissions.
 TypeScript and TSX fixtures compile with `tsc --strict` and run in Node before and after saved replacements.
 The tests cover JSX, supported declaration forms, extension aliases and unsupported selections without editing an enclosing function.
@@ -228,13 +231,13 @@ A two-file Rust batch compiles and runs before changes, after application, after
 A reported batch containing two length-changing edits also produces matching Rust and Lean splice results.
 A [controlled batch comparison](project-context-evaluation.md#coordinated-authoring-measurement) measures repeated calls and payloads with compiled behavior, exact reversal and receiver patch checks.
 The size predicate has a source anchor and signature map into Lean, with 64 shared boundary cases including machine limits.
-Lean proves its lower and upper bounds and symmetry between old and new body sizes.
+Lean proves the one-byte lower bound, the upper bound and symmetry between old and new body sizes.
 The existing edit model describes a splice as an unchanged prefix, replacement and unchanged suffix.
 The same size guard and edit model apply to all four languages.
 Declaration cases cover compiled signature changes, preserved outer attributes, exact name spelling and complete-item size limits.
 Lean proves both prefix and suffix preservation for valid splice boundaries, including replacements that change length.
 An edit reported by the declaration CLI also passes through Rust and Lean with matching results.
-The same splice comparison now checks a reported TSX body replacement inside nested wrappers, retaining Unicode, CRLF and a neighboring declaration.
+The splice comparisons check reported block and expression TSX body replacements inside nested wrappers, retaining Unicode, CRLF and a neighboring declaration.
 A reported Go receiver-method replacement also produces matching Rust and Lean splice results with Unicode, CRLF and surrounding comments.
 An incompatible signature fixture confirms that syntax acceptance can still leave a compiler error in a caller.
 Insertion cases cover EOF and braced-container placement, empty files, separators, duplicate names and unattached outer metadata.

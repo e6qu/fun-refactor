@@ -199,28 +199,61 @@ fn fragment(path: &Path) -> Result<String> {
     Ok(text.trim().to_owned())
 }
 
-fn replacement(path: &Path, language: Language, syntax: &BodySyntax) -> Result<String> {
+fn replacement(
+    path: &Path,
+    language: Language,
+    syntax: &BodySyntax,
+    allow_expression: bool,
+) -> Result<(String, &'static str)> {
     let text = fragment(path)?;
     let prefix = syntax.prefix;
     let wrapped = format!("{prefix}{text}");
     let parsed = Parsers::new().parse(language, &wrapped)?;
-    let item = parsed
-        .root()
-        .named_child(0)
-        .context("replacement needs a block in the selected language.")?;
-    let body = item
-        .child_by_field_name("body")
-        .context("replacement needs a block in the selected language.")?;
-    let span = syntax.block_span(body)?;
-    ensure!(
-        !parsed.has_errors()
+    if let Some(item) = parsed.root().named_child(0) {
+        if let Some(body) = item.child_by_field_name("body") {
+            if let Ok(span) = syntax.block_span(body) {
+                if !parsed.has_errors()
+                    && parsed.root().named_child_count() == 1
+                    && item.kind() == syntax.item
+                    && span.start == prefix.len()
+                    && span.end == wrapped.len()
+                {
+                    return Ok((text, "block"));
+                }
+            }
+        }
+    }
+    if allow_expression && matches!(language, Language::TypeScript | Language::Tsx) {
+        let prefix = "const __fr_body__ = () => ";
+        let wrapped = format!("{prefix}{text}");
+        let parsed = Parsers::new().parse(language, &wrapped)?;
+        let declaration = parsed.root().named_child(0);
+        let declarator = declaration.and_then(|node| {
+            let mut cursor = node.walk();
+            let found = node
+                .named_children(&mut cursor)
+                .find(|child| child.kind() == "variable_declarator");
+            found
+        });
+        let arrow = declarator.and_then(|node| node.child_by_field_name("value"));
+        let body = arrow.and_then(|node| node.child_by_field_name("body"));
+        if !parsed.has_errors()
             && parsed.root().named_child_count() == 1
-            && item.kind() == syntax.item
-            && span.start == prefix.len()
-            && span.end == wrapped.len(),
+            && arrow.is_some_and(|node| node.kind() == "arrow_function")
+            && body.is_some_and(|node| {
+                node.kind() != syntax.block
+                    && node.start_byte() == prefix.len()
+                    && node.end_byte() == wrapped.len()
+            })
+        {
+            return Ok((text, "expression"));
+        }
+    }
+    anyhow::bail!(if allow_expression {
+        "replacement must contain one complete block or arrow expression in the selected language."
+    } else {
         "replacement must contain exactly one complete block in the selected language."
-    );
-    Ok(text)
+    })
 }
 
 fn function_initializer(mut value: tree_sitter::Node<'_>) -> Result<tree_sitter::Node<'_>> {
@@ -692,9 +725,8 @@ impl Project<'_> {
             .descendant_for_byte_range(symbol.name_span.start, symbol.name_span.end);
         let mut binding_start = None;
         let function = loop {
-            let node = selected.context(
-                "select a function declaration, method or function binding with a block body.",
-            )?;
+            let node = selected
+                .context("select a function declaration, method or supported function binding.")?;
             let binding = syntax.bindings.contains(&node.kind());
             if binding || syntax.targets.contains(&node.kind()) {
                 ensure!(
@@ -716,12 +748,26 @@ impl Project<'_> {
         let body = function
             .child_by_field_name("body")
             .context("selected function has no body.")?;
-        let span = syntax.block_span(body)?;
+        let expression_arrow = matches!(language, Language::TypeScript | Language::Tsx)
+            && function.kind() == "arrow_function"
+            && body.kind() != syntax.block;
+        let (span, before_kind) = if body.kind() == syntax.block {
+            (syntax.block_span(body)?, "block")
+        } else if expression_arrow {
+            (Span::from(body), "expression")
+        } else {
+            anyhow::bail!("selected function needs a block body or an expression-bodied arrow.");
+        };
         let before = &source[span.start..span.end];
-        let after = replacement(&self.root.join(&options.from), language, &syntax)?;
+        let (after, after_kind) = replacement(
+            &self.root.join(&options.from),
+            language,
+            &syntax,
+            function.kind() == "arrow_function",
+        )?;
         ensure!(
             super::body_replacement_budget(before.len(), after.len()),
-            "old and new bodies must each fit 2 through 65536 bytes."
+            "old and new bodies must each fit 1 through 65536 bytes."
         );
         let mut edits = EditSet::new();
         if before != after {
@@ -747,6 +793,8 @@ impl Project<'_> {
         };
         report["body"] = json!({"before_span":span,"after_span":Span::new(span.start,span.start+after.len()),
             "before_bytes":before.len(),"after_bytes":after.len(),"before_sha256":digest(before),"after_sha256":digest(&after)});
+        report["body"]["before_kind"] = json!(before_kind);
+        report["body"]["after_kind"] = json!(after_kind);
         report["changed"] = json!(before != after);
         report["validation"] = json!("reparse-strict");
         report["preservation"] = json!("bytes outside the selected body");
