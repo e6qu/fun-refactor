@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 #[derive(Subcommand)]
 pub enum Command {
     #[command(
-        about = "Replace one Rust, Go, TypeScript or TSX function body, retaining surrounding source."
+        about = "Replace one Rust, Go, Java, TypeScript or TSX function body, retaining surrounding source."
     )]
     ReplaceBody(ReplaceBodyOptions),
     #[command(
@@ -115,8 +115,10 @@ fn digest(source: &str) -> String {
 
 struct BodySyntax {
     prefix: &'static str,
+    suffix: &'static str,
     item: &'static str,
-    block: &'static str,
+    blocks: &'static [&'static str],
+    nested_item: bool,
     targets: &'static [&'static str],
     bindings: &'static [&'static str],
 }
@@ -126,22 +128,28 @@ impl BodySyntax {
         match language {
             Language::Rust => Ok(Self {
                 prefix: "fn __fr_body__() ",
+                suffix: "",
                 item: "function_item",
-                block: "block",
+                blocks: &["block"],
+                nested_item: false,
                 targets: &["function_item"],
                 bindings: &[],
             }),
             Language::Go => Ok(Self {
                 prefix: "func __fr_body__() ",
+                suffix: "",
                 item: "function_declaration",
-                block: "block",
+                blocks: &["block"],
+                nested_item: false,
                 targets: &["function_declaration", "method_declaration"],
                 bindings: &[],
             }),
             Language::TypeScript | Language::Tsx => Ok(Self {
                 prefix: "function __fr_body__() ",
+                suffix: "",
                 item: "function_declaration",
-                block: "statement_block",
+                blocks: &["statement_block"],
+                nested_item: false,
                 targets: &[
                     "function_declaration",
                     "generator_function_declaration",
@@ -149,17 +157,40 @@ impl BodySyntax {
                 ],
                 bindings: &["variable_declarator", "public_field_definition"],
             }),
+            Language::Java => Ok(Self {
+                prefix: "class __FrBody__ { void __fr_body__() ",
+                suffix: "}",
+                item: "method_declaration",
+                blocks: &["block", "constructor_body"],
+                nested_item: true,
+                targets: &["method_declaration", "constructor_declaration"],
+                bindings: &[],
+            }),
             _ => anyhow::bail!(
-                "body replacement supports Rust, Go, TypeScript and TSX; select a supported function."
+                "body replacement supports Rust, Go, Java, TypeScript and TSX; select a supported function."
             ),
         }
     }
 
+    fn is_block(&self, node: tree_sitter::Node<'_>) -> bool {
+        self.blocks.contains(&node.kind())
+    }
+
+    fn wrapped_item<'tree>(&self, parsed: &'tree Parsed) -> Option<tree_sitter::Node<'tree>> {
+        let outer = parsed.root().named_child(0)?;
+        if !self.nested_item {
+            return Some(outer);
+        }
+        let body = outer.child_by_field_name("body")?;
+        let mut cursor = body.walk();
+        let item = body
+            .named_children(&mut cursor)
+            .find(|node| node.kind() == self.item);
+        item
+    }
+
     fn block_span(&self, body: tree_sitter::Node<'_>) -> Result<Span> {
-        ensure!(
-            body.kind() == self.block,
-            "selected function needs a block body."
-        );
+        ensure!(self.is_block(body), "selected function needs a block body.");
         let mut cursor = body.walk();
         let mut braces = body
             .children(&mut cursor)
@@ -207,16 +238,16 @@ fn replacement(
 ) -> Result<(String, &'static str)> {
     let text = fragment(path)?;
     let prefix = syntax.prefix;
-    let wrapped = format!("{prefix}{text}");
+    let wrapped = format!("{prefix}{text}{}", syntax.suffix);
     let parsed = Parsers::new().parse(language, &wrapped)?;
-    if let Some(item) = parsed.root().named_child(0) {
+    if let Some(item) = syntax.wrapped_item(&parsed) {
         if let Some(body) = item.child_by_field_name("body") {
             if let Ok(span) = syntax.block_span(body) {
                 if !parsed.has_errors()
                     && parsed.root().named_child_count() == 1
                     && item.kind() == syntax.item
                     && span.start == prefix.len()
-                    && span.end == wrapped.len()
+                    && span.end == prefix.len() + text.len()
                 {
                     return Ok((text, "block"));
                 }
@@ -241,7 +272,7 @@ fn replacement(
             && parsed.root().named_child_count() == 1
             && arrow.is_some_and(|node| node.kind() == "arrow_function")
             && body.is_some_and(|node| {
-                node.kind() != syntax.block
+                !syntax.is_block(node)
                     && node.start_byte() == prefix.len()
                     && node.end_byte() == wrapped.len()
             })
@@ -750,8 +781,8 @@ impl Project<'_> {
             .context("selected function has no body.")?;
         let expression_arrow = matches!(language, Language::TypeScript | Language::Tsx)
             && function.kind() == "arrow_function"
-            && body.kind() != syntax.block;
-        let (span, before_kind) = if body.kind() == syntax.block {
+            && !syntax.is_block(body);
+        let (span, before_kind) = if syntax.is_block(body) {
             (syntax.block_span(body)?, "block")
         } else if expression_arrow {
             (Span::from(body), "expression")

@@ -1,7 +1,7 @@
 # Bounded function authoring
 
 `fr author replace-body HANDLE --from FILE` replaces one function block through a current project handle.
-It supports Rust, Go, TypeScript and TSX.
+It supports Rust, Go, Java, TypeScript and TSX.
 It retains the signature, outer attributes, documentation and every byte outside that block.
 This native command complements the existing refactorings when an agent needs to write a new implementation.
 
@@ -46,6 +46,11 @@ Select the specific method handle when different receiver types share a method n
 Go interface method specifications, bodyless declarations and variables containing function literals refuse.
 Receiver declarations, type parameters, named results, documentation and directives outside the body remain unchanged.
 The Go fragment must contain one brace-delimited block; imports, type correctness and package rules require separate compiler checks.
+Java targets include methods, constructors and default interface methods with bodies.
+The fragment contains one brace-delimited block, validated as a method body inside a temporary class.
+The operation retains annotations, modifiers, type parameters, parameters, throws clauses, constructor headers and every byte outside the braces.
+Abstract methods and bodyless interface declarations refuse. Initializer blocks and lambda expressions remain outside the indexed target set.
+Imports, overload selection, checked exceptions, type correctness and behavior require separate compiler checks.
 TypeScript and TSX targets include named function declarations, generators, class and object methods, accessors and constructors.
 They also include variable or class-field initializers containing arrows, ordinary function expressions or generator expressions.
 The function can sit inside nested parentheses, `as`, `satisfies`, postfix non-null `!` assertions and TypeScript angle-bracket assertions.
@@ -216,7 +221,7 @@ Source verification and recording are separate observations; this command does n
 
 ## Evidence
 
-Fifty-six CLI scenarios cover saved edit identity, compiled behavior, undo/redo, patch export, stale handles and revisions, unsupported targets and malformed input.
+Fifty-eight CLI scenarios cover saved edit identity, compiled behavior, undo/redo, patch export, stale handles and revisions, unsupported targets and malformed input.
 They also check exact size limits, diff omission, method and nested-function contexts, Unicode and CRLF preservation, no-op writes, symlink inputs and Unix permissions.
 TypeScript and TSX fixtures compile with `tsc --strict` and run in Node before and after saved replacements.
 The tests cover JSX, supported declaration forms, extension aliases and unsupported selections without editing an enclosing function.
@@ -233,12 +238,13 @@ A [controlled batch comparison](project-context-evaluation.md#coordinated-author
 The size predicate has a source anchor and signature map into Lean, with 64 shared boundary cases including machine limits.
 Lean proves the one-byte lower bound, the upper bound and symmetry between old and new body sizes.
 The existing edit model describes a splice as an unchanged prefix, replacement and unchanged suffix.
-The same size guard and edit model apply to all four languages.
+The same size guard and edit model apply to all five languages.
 Declaration cases cover compiled signature changes, preserved outer attributes, exact name spelling and complete-item size limits.
 Lean proves both prefix and suffix preservation for valid splice boundaries, including replacements that change length.
 An edit reported by the declaration CLI also passes through Rust and Lean with matching results.
 The splice comparisons check reported block and expression TSX body replacements inside nested wrappers, retaining Unicode, CRLF and a neighboring declaration.
 A reported Go receiver-method replacement also produces matching Rust and Lean splice results with Unicode, CRLF and surrounding comments.
+A reported Java method replacement produces the same Rust and Lean splice result with Unicode, CRLF and a neighboring method.
 An incompatible signature fixture confirms that syntax acceptance can still leave a compiler error in a caller.
 Insertion cases cover EOF and braced-container placement, empty files, separators, duplicate names and unattached outer metadata.
 Container fixtures check same-named selections, raw identifiers, nested scopes, closing-brace indentation and verbatim multiline strings.

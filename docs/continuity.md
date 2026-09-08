@@ -4,6 +4,7 @@ PR 0, the agent-ready verified refactoring foundation, merged as GitHub PR 259.
 PR 1, Agent Context Protocol v2, merged as GitHub PR 261.
 The current `generalized_structural_authoring` branch is roadmap PR 2. Its first checkpoint extends exact-byte Rust insertion to impl and trait bodies and generalizes the insertion placement model.
 The second checkpoint authors TypeScript/TSX expression-bodied arrows and permits checked transitions between expression and block bodies.
+The third checkpoint adds Java method, constructor and default-interface body authoring through the same checked splice and history path.
 Project and author reports now emit a revision-bound `frcb1:` basis. Supplying it omits only `coverage`, `handle_prefix` and `revision`; stale bases refuse before author plans can be saved or written.
 Complete saved author diffs and detailed history records now emit a separate `frtb1:` transaction basis. Forward apply and redo reports can omit their repeated diffs while retaining change metadata; reverse use and mismatches refuse before writes.
 Unit and CLI regressions reconstruct full reports exactly and cover missing, truncated, stale and conflicting bases.
@@ -164,6 +165,19 @@ A reported Go method edit is compared with Rust and Lean splice implementations,
 This extends tested splice correspondence; it adds no new theorem or general proof of AST selection, typing or authoring behavior.
 The agent reference states which Go handles to select and which forms refuse.
 
+## Java body authoring
+
+`src/project/author.rs::BodySyntax` validates a replacement block as a method inside a temporary Java class.
+It accepts indexed method and constructor declarations with bodies, including default interface methods.
+Abstract methods, bodyless interface declarations, initializer blocks and lambdas remain outside this target path.
+Annotations, modifiers, generic headers, parameters, throws clauses and all source outside the braces remain byte-identical.
+
+A saved method transaction compiles and runs with `javac -Xlint:all -Werror` before application, after application, after undo and after redo.
+Constructor and default-interface fixtures also compile with warnings denied after replacement.
+The method workflow checks its patch after undo and freezes the saved block against later fragment changes.
+A reported Java method edit matches the Rust and Lean splice implementations with Unicode, CRLF and a neighboring method.
+These checks establish parser acceptance, compiled examples and edit correspondence. They do not prove Java typing, behavior or parser correctness in general.
+
 ## Rust declaration insertion containers
 
 `src/project/author.rs::insert_declaration` accepts a file, exact Rust inline module or trait handle, or an existing direct method handle that identifies its exact enclosing impl or trait.
@@ -171,7 +185,7 @@ It locates the selected declaration list and inserts at its closing brace.
 A closing brace on a whitespace-only line keeps that indentation; inline braces receive a leading separator.
 Fragments remain verbatim, preserving multiline strings. Existing source bytes stay unchanged.
 Duplicate-name and dangling-outer-metadata checks apply to the selected body's direct items.
-External modules, free and nested functions and empty impls refuse. Bodyless functions are accepted only in traits.
+External modules, free and nested functions and empty impls refuse. Traits alone accept bodyless functions.
 Container reports identify an inline module, impl or trait and include the original body span and scoped name-check description.
 
 The original module scenarios cover exact placement, raw identifiers, same-named modules, size/hash boundaries and stale selections.

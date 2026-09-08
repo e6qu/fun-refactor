@@ -2,7 +2,7 @@
 
 `fr author` accepts revision-bound handles:
 
-- `replace-body`: one Rust, Go, TypeScript, or TSX block.
+- `replace-body`: one Rust, Go, Java, TypeScript, or TSX body.
 - `replace-declaration`: one same-named Rust function; callers need separate edits after signature changes.
 - `insert-declaration`: one Rust function in a file, inline module, impl, or trait; bodyless functions are trait-only.
 - `batch`: up to 32 disjoint operations saved as one transaction.
@@ -14,7 +14,7 @@ Fragments are UTF-8 files outside the project and at most 64 KiB. A batch manife
 Review the combined diff, then save and apply the checked transaction. A complete saved diff includes `transaction_context_basis` for compact forward apply/redo reports.
 Repeating an identical saved plan reuses its transaction and reports `reused_transaction: true` with `saved: false`.
 
-Go accepts named functions and receiver methods. TypeScript/TSX accepts supported function bindings; arrows accept an expression or block and can move between forms. Rust insertion accepts `///` or `/** */` docs, rejects other outer attributes or pending metadata, trims boundary whitespace, and preserves the remaining fragment bytes. A trait accepts a bodyless function declaration; files, modules and impls require a body. Unsupported declaration kinds refuse.
+Go accepts named functions and receiver methods. Java accepts methods, constructors and default interface methods with bodies. TypeScript/TSX accepts supported function bindings; arrows accept an expression or block and can move between forms. Rust insertion accepts `///` or `/** */` docs, rejects other outer attributes or pending metadata, trims boundary whitespace, and preserves the remaining fragment bytes. A trait accepts a bodyless function declaration; files, modules and impls require a body. Unsupported declaration kinds refuse.
 
 Example: save this outside the project as `<FRAGMENT>`:
 

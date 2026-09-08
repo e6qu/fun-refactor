@@ -65,6 +65,31 @@ fn selection(root: &Path, name: &str) -> (String, String) {
     )
 }
 
+fn selection_kind(root: &Path, name: &str, kind: &str) -> (String, String) {
+    let map = ok(
+        root,
+        &[
+            "project",
+            "map",
+            "--locals",
+            "--depth",
+            "64",
+            "--fields",
+            "handle,kind,name",
+        ],
+    );
+    let row = map["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row[1] == kind && row[2] == name)
+        .unwrap_or_else(|| panic!("missing {kind} {name}: {map}"));
+    (
+        row[0].as_str().unwrap().to_owned(),
+        map["revision"].as_str().unwrap().to_owned(),
+    )
+}
+
 fn replace(root: &Path, handle: &str, input: &Path, flags: &[&str]) -> (bool, Value) {
     let mut args = vec![
         "author",
@@ -113,6 +138,30 @@ fn compiled_result(root: &Path) -> Vec<u8> {
         String::from_utf8_lossy(&output.stderr)
     );
     let output = Command::new(output_path).output().unwrap();
+    assert!(output.status.success());
+    output.stdout
+}
+
+fn java_result(root: &Path) -> Vec<u8> {
+    let output_path = root.parent().unwrap().join("java-classes");
+    fs::create_dir_all(&output_path).unwrap();
+    let output = Command::new("javac")
+        .args(["-Xlint:all", "-Werror", "-d"])
+        .arg(&output_path)
+        .arg(root.join("App.java"))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let output = Command::new("java")
+        .arg("-cp")
+        .arg(output_path)
+        .arg("App")
+        .output()
+        .unwrap();
     assert!(output.status.success());
     output.stdout
 }
@@ -283,6 +332,121 @@ fn methods_default_trait_bodies_nested_functions_and_generic_headers_keep_surrou
             source.replace("{ 1 }", "{ 2 }")
         );
     }
+}
+
+#[test]
+fn java_method_body_compiles_through_saved_history_and_patch() {
+    let source = concat!(
+        "public final class App {\n",
+        "    static int calc(int value) /* keep */ { return value + 1; }\n",
+        "    public static void main(String[] args) { System.out.println(calc(3)); }\n",
+        "}\n",
+    );
+    let old = "{ return value + 1; }";
+    let new = "{ return value * 2; }";
+    let (_temp, root, input) = fixture_file("App.java", source, new.as_bytes());
+    assert_eq!(java_result(&root), b"4\n");
+    let (handle, _) = selection(&root, "calc");
+    let (success, saved) = replace(&root, &handle, &input, &["--save-plan"]);
+    assert!(success, "{saved}");
+    assert_eq!(saved["body"]["before_kind"], "block");
+    assert_eq!(fs::read_to_string(root.join("App.java")).unwrap(), source);
+
+    let id = saved["transaction"].as_u64().unwrap().to_string();
+    fs::write(&input, "{ return 999; }").unwrap();
+    ok(&root, &["history", "apply", &id, "--write"]);
+    let expected = source.replace(old, new);
+    assert_eq!(fs::read_to_string(root.join("App.java")).unwrap(), expected);
+    assert_eq!(java_result(&root), b"6\n");
+    ok(&root, &["history", "undo", &id, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("App.java")).unwrap(), source);
+    ok(&root, &["history", "patch", &id, "--check"]);
+    assert!(ok(&root, &["history", "patch", &id])["patch"]
+        .as_str()
+        .unwrap()
+        .contains(new));
+    ok(&root, &["history", "redo", &id, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("App.java")).unwrap(), expected);
+    assert_eq!(java_result(&root), b"6\n");
+}
+
+#[test]
+fn java_constructors_and_default_methods_retain_headers() {
+    for (source, selected, old, new, output) in [
+        (
+            concat!(
+                "public final class App {\n",
+                "    private final int value;\n",
+                "    App(int value) /* keep */ { this.value = value + 1; }\n",
+                "    public static void main(String[] args) { System.out.println(new App(3).value); }\n",
+                "}\n",
+            ),
+            "App",
+            "{ this.value = value + 1; }",
+            "{ this.value = value * 2; }",
+            b"6\n".as_slice(),
+        ),
+        (
+            concat!(
+                "interface Value { default int calc(int value) { return value + 1; } }\n",
+                "public final class App implements Value {\n",
+                "    public static void main(String[] args) { System.out.println(new App().calc(3)); }\n",
+                "}\n",
+            ),
+            "calc",
+            "{ return value + 1; }",
+            "{ return value * 2; }",
+            b"6\n".as_slice(),
+        ),
+    ] {
+        let (_temp, root, input) = fixture_file("App.java", source, new.as_bytes());
+        let (handle, _) = selection_kind(&root, selected, "method");
+        let (success, report) = replace(&root, &handle, &input, &["--write"]);
+        assert!(success, "{source}: {report}");
+        assert_eq!(report["body"]["before_kind"], "block");
+        assert_eq!(
+            fs::read_to_string(root.join("App.java")).unwrap(),
+            source.replace(old, new)
+        );
+        assert_eq!(java_result(&root), output);
+    }
+
+    let source = "interface Value { int calc(int value); }\n";
+    let (_temp, root, input) = fixture_file("App.java", source, b"{ return value; }");
+    let (handle, _) = selection(&root, "calc");
+    assert!(!replace(&root, &handle, &input, &["--write"]).0);
+    assert_eq!(fs::read_to_string(root.join("App.java")).unwrap(), source);
+
+    let source = concat!(
+        "final class App {\n",
+        "    int calc(int value) { return value + 1; }\n",
+        "    String calc(String value) { return value.trim(); }\n",
+        "}\n",
+    );
+    let (_temp, root, input) = fixture_file("App.java", source, b"{}");
+    let map = ok(
+        &root,
+        &["project", "map", "--depth", "64", "--fields", "handle,name"],
+    );
+    let mut bodies = Vec::new();
+    for row in map["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|row| row[1] == "calc")
+    {
+        let (success, report) = replace(&root, row[0].as_str().unwrap(), &input, &[]);
+        assert!(success, "{report}");
+        let start = report["body"]["before_span"]["start"].as_u64().unwrap() as usize;
+        let end = report["body"]["before_span"]["end"].as_u64().unwrap() as usize;
+        bodies.push(&source[start..end]);
+    }
+    bodies.sort_unstable();
+    assert_eq!(
+        bodies,
+        vec!["{ return value + 1; }", "{ return value.trim(); }"]
+    );
+    assert_eq!(fs::read_to_string(root.join("App.java")).unwrap(), source);
 }
 
 #[test]

@@ -169,14 +169,22 @@ fn the_edit_kernel_accepts_a_reported_go_method_replacement() {
     reported_declaration_plan("replace-body", "Calc", false);
 }
 
+#[test]
+fn the_edit_kernel_accepts_a_reported_java_method_replacement() {
+    reported_declaration_plan("replace-body", "CalcJava", false);
+}
+
 fn reported_declaration_plan(operation: &str, selected: &str, expression_body: bool) {
     let temp = tempfile::tempdir().unwrap();
     let workspace = temp.path().join("workspace");
     std::fs::create_dir(&workspace).unwrap();
     let body = operation == "replace-body";
     let go = body && selected == "Calc";
+    let java = body && selected == "CalcJava";
     let (file, old, new) = if go {
         ("app.go", "{ return value + 1 }", "{ return value * 2 }")
+    } else if java {
+        ("App.java", "{ return value + 1; }", "{ return value * 2; }")
     } else if expression_body {
         ("app.tsx", "value + 1", "value * 2")
     } else if body {
@@ -201,6 +209,8 @@ fn reported_declaration_plan(operation: &str, selected: &str, expression_body: b
         "// π\r\nfn other() {}\r\n// Final comment.".to_owned()
     } else if go {
         format!("// π\r\npackage main\r\ntype Counter int\r\nfunc (c *Counter) Calc(value int) int /* keep */ {old}\r\nfunc other() {{}}\r\n")
+    } else if java {
+        format!("// π\r\nfinal class App {{\r\n    static int CalcJava(int value) /* keep */ {old}\r\n    static int other() {{ return 0; }}\r\n}}\r\n")
     } else if expression_body {
         format!("// π\r\nconst calc = (((value: number) => /* keep */ {old}) satisfies (value: number) => number)!;\r\nconst other = () => {{ return 0; }};\r\n")
     } else if body {
