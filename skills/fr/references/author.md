@@ -13,8 +13,19 @@ Fragments are UTF-8 files outside the project and at most 64 KiB. A batch manife
 
 Add `postconditions` when the intended transaction shape is known. It accepts exact `files-changed`, `edits`, `changed-operations`, and `paths-changed` values. A mismatch refuses before saving or writing.
 
-Review the combined diff, then save and apply the checked transaction. A complete saved diff includes `transaction_context_basis` for compact forward apply/redo reports.
-Repeating an identical saved plan reuses its transaction and reports `reused_transaction: true` with `saved: false`.
+For example, a two-operation manifest has this shape:
+
+```json
+{
+  "operations": [
+    {"op": "replace-body", "handle": "<DECL_HANDLE>", "from": "<BODY_FRAGMENT>"},
+    {"op": "insert-declaration", "handle": "<FILE_HANDLE>", "from": "<DECL_FRAGMENT>"}
+  ],
+  "postconditions": {"files-changed": 2, "edits": 2, "changed-operations": 2}
+}
+```
+
+Review the combined diff, save the same manifest, then apply its transaction. Do not pass `--write` to `author batch` in a saved-plan workflow. A complete saved diff includes `transaction_context_basis` for compact forward apply/redo reports. Repeating an identical saved plan reuses its transaction and reports `reused_transaction: true` with `saved: false`.
 
 Go accepts named functions and receiver methods. Java accepts methods, constructors and default interface methods with bodies. TypeScript/TSX accepts supported function bindings; arrows accept an expression or block and can move between forms. Rust insertion accepts `///` or `/** */` docs, rejects other outer attributes or pending metadata, trims boundary whitespace, and preserves the remaining fragment bytes. A trait accepts a bodyless function declaration; files, modules and impls require a body. Unsupported declaration kinds refuse.
 
@@ -31,8 +42,9 @@ Use the lookup's file-scoped `root` as `<FILE_HANDLE>`:
 
 ```sh
 fr project find increment --in src/lib.rs --source --bytes 512
-fr author insert-declaration '<FILE_HANDLE>' --from '<FRAGMENT>' --save-plan
-fr history apply '<AUTHOR_TX>' --write --no-diff
+fr author batch --from '<MANIFEST>'
+fr author batch --from '<MANIFEST>' --save-plan
+fr history apply '<AUTHOR_TX>' --write --context-basis '<TRANSACTION_CONTEXT_BASIS>'
 ```
 
 The source byte budget is shared across rows. Continue a non-null `source.next_offset` with `project show HANDLE --source --offset NEXT --bytes N`. Run [checks](checks.md) after applying. Keep the transaction for [history](history.md) and [patch export](git.md).

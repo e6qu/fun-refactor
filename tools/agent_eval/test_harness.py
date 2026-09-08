@@ -233,6 +233,9 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
         prompt = harness.prompt(Path("session"), task, "fr")
         self.assertIn("regex-syntax/src/lib.rs, src/lib.rs", prompt)
         self.assertIn("one author batch saved transaction", prompt)
+        self.assertIn('{"tool":"read","path":"skill/SKILL.md","start":1,"lines":80}', prompt)
+        self.assertIn('{"tool":"read","path":"skill/references/author.md","start":1,"lines":160}', prompt)
+        self.assertIn("do not pass --write to author batch", prompt)
 
     def test_baseline_diagnostics_must_only_report_missing_requested_apis(self):
         valid = {"level": "error", "code": {"code": "E0425"}, "message": "cannot find function `escape_len` in crate `regex`"}

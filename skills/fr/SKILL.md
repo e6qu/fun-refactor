@@ -24,6 +24,8 @@ Load only the relevant reference:
 - [Git](references/git.md): patches, indexes, commits, and worktrees.
 - [Lean](references/lean.md): source drift, signature maps, and proof evidence.
 
+Before any `fr author batch`, read [Author](references/author.md). Read [History](references/history.md) before applying or reversing its transaction.
+
 Handles expire after source changes. Built-in refactorings use names or positions; `fr author` uses handles. Mutations preview by default. `--save-plan` records a checked plan for later history application. Inspect omissions and refusals as evidence limits.
 
 Keep full basis reports. Report parser, project-check, and Lean results separately because they prove different properties.

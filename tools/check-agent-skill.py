@@ -215,6 +215,8 @@ def author_workflow(exercise, root):
     fragment = root.parent / "fragment.rs"
     fragment.write_text(blocks(path, "rust")[0])
     exercise.values["<FRAGMENT>"] = str(fragment)
+    body = root.parent / "body.rs"
+    body.write_text("{\n    value + 1\n}\n")
     git(root, "init", "-q", "-b", "main")
     git(root, "add", ".")
     git(root, "commit", "-qm", "author fixture")
@@ -236,16 +238,36 @@ def author_workflow(exercise, root):
             assert value["page"]["total"] == 1
             row = dict(zip(value["columns"], value["rows"][0]))
             exercise.values["<FILE_HANDLE>"] = value["root"]
+            manifest = root.parent / "author-batch.json"
+            manifest.write_text(json.dumps({
+                "operations": [
+                    {"op": "replace-body", "handle": row["handle"], "from": str(body)},
+                    {"op": "insert-declaration", "handle": value["root"], "from": str(fragment)},
+                ],
+                "postconditions": {
+                    "files-changed": 1,
+                    "edits": 2,
+                    "changed-operations": 2,
+                    "paths-changed": ["src/lib.rs"],
+                },
+            }))
+            exercise.values["<MANIFEST>"] = str(manifest)
             assert "value + 1" in row["source"]["text"]
             assert row["source"]["next_offset"] is None
             assert value["source_budget"]["returned_bytes"] <= 512
         if "--save-plan" in command:
             assert value["saved"] and not value["applied"] and source.read_text() == original
             exercise.values["<AUTHOR_TX>"] = str(value["transaction"])
+            exercise.values["<TRANSACTION_CONTEXT_BASIS>"] = value["transaction_context_basis"]
         if "--write" in command:
-            assert value["applied"] and value["diffs_omitted"]
+            assert value["applied"]
+            if "--no-diff" in command:
+                assert value["diffs_omitted"]
+            if "--context-basis" in command:
+                assert all("diff" not in change for change in value["changes"])
     changed = source.read_text()
-    assert changed.startswith(original) and fragment.read_text().strip() in changed
+    assert changed.startswith("//! Skill fixture.") and changed != original
+    assert fragment.read_text().strip() in changed
     compile_library()
     caller = root.parent / "caller.rs"
     caller.write_text('fn main() { assert_eq!(skill_fixture::increment_twice(40), 42); }\n')

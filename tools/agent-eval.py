@@ -130,12 +130,15 @@ def initialize(root):
 
 def prompt(session, task, arm):
     surface = (
-        "Use fr for source exploration and edits. Start by reading skill/SKILL.md through the read tool; load its references only as needed. Source read/search/replace tools are unavailable in this arm. Use fr project handles and saved authoring plans. Write fragments under artifacts/ outside the project."
+        "Use fr for source exploration and edits. Start with the instrumented call "
+        "{\"tool\":\"read\",\"path\":\"skill/SKILL.md\",\"start\":1,\"lines\":80}. "
+        "Load only needed references. Source read/search/replace tools are unavailable in this arm. "
+        "Use fr project handles and saved authoring plans. Write fragments under artifacts/ outside the project."
         if arm == "fr" else
         "Use ordinary files, read, search and replace tools for source exploration and edits. Do not use fr project/author/history commands. The shared fr checks command is available for identical project validation. Export and reverse/reapply your patch through the ordinary Git tools."
     )
     if task == regex_escape_len.TASK and arm == "fr":
-        surface += " Coordinate the edits in one author batch saved transaction, and export, undo and redo that transaction. Retain the first full project context_basis and use it on related project and author calls. Retain the complete author diff and its transaction_context_basis; use that basis to compact forward apply and redo reports. Preview reverse transitions in full."
+        surface += " Before constructing the batch manifest, use the instrumented call {\"tool\":\"read\",\"path\":\"skill/references/author.md\",\"start\":1,\"lines\":160}. Coordinate the edits in one author batch saved transaction, and export, undo and redo that transaction. Preview the batch once without a mutation flag, call it once with --save-plan, then apply the saved transaction with history apply --write; do not pass --write to author batch. Retain the first full project context_basis and use it on related project and author calls. Retain the complete author diff and its transaction_context_basis; use that basis to compact forward apply and redo reports. Preview reverse transitions in full."
     return f"""You are an independent acceptance-test agent. Complete this code task in the supplied unfamiliar pinned public project: {TASKS[task]}
 
 {surface}
