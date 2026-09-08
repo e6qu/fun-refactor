@@ -150,7 +150,9 @@ pub(crate) fn require_no_filters(root: &Path, paths: &[u8]) -> Result<()> {
     {
         bail!("Git returned an incomplete attribute report.");
     }
-    for (path, row) in paths.split(|byte| *byte == 0).zip(fields.chunks_exact(3)) {
+    let (rows, remainder) = fields[..fields.len() - 1].as_chunks::<3>();
+    debug_assert!(remainder.is_empty());
+    for (path, row) in paths.split(|byte| *byte == 0).zip(rows) {
         if row[0] != path || row[1] != b"filter" {
             bail!("Git returned an unexpected attribute path.");
         }
