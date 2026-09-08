@@ -5,21 +5,15 @@ description: Use the fr CLI to inspect project hierarchy with bounded output, pl
 
 # Work with fr
 
-Use `fr` from the target project root, or select that root with `-C`. Check `fr --version` and command help when the installed build differs.
-
-For a known full declaration name, use `fr project find NAME --signature`; use `--in PATH` to narrow it.
-Add `--contains` when the name is only a fragment.
-When the implementation is needed, add `--source --bytes N` to the lookup; source text shares that budget across the returned page.
-Otherwise start with a small structural view:
+Run `fr` at the project root or pass `-C`. For a known declaration, use `fr project find NAME --signature`; add `--in PATH`, `--contains`, or `--source --bytes N` only as needed. For broader discovery start with:
 
 ```sh
 fr project map --depth 2 --limit 12
 ```
 
-Maps already return compact JSON. Read `columns` with `rows`, plus `coverage`, `omitted` and `page`; an omitted or unresolved result is not evidence of absence.
-Narrow to the relevant subtree before requesting more rows. Output limits do not limit indexing cost.
+Read `columns` with `rows`, plus `coverage`, `omitted` and `page`. Gaps and unresolved or omitted results are not evidence of absence. Retain a full report's `context_basis`; pass it as `--context-basis` on related project and author calls to omit unchanged project context. A stale basis refuses.
 
-For a targeted code edit, start with Author. Load Explore when pagination, relationships or broader discovery are needed.
+Load only the reference needed for the task:
 
 - [Author](references/author.md): targeted body edits, Rust declaration replacement and insertion.
 - [Explore](references/explore.md): pagination, relationships and broader discovery.
@@ -29,12 +23,6 @@ For a targeted code edit, start with Author. Load Explore when pagination, relat
 - [Git](references/git.md): patches, indexes and the separate worktree lifecycle.
 - [Lean](references/lean.md): source drift, signature maps and proof evidence.
 
-Keep the workspace root and review identity attached to each result.
-Project handles expire after source changes. Refresh only when another source query or edit needs a handle; history and checks do not. Built-in refactorings take names or positions; `fr author` takes project handles.
-Read only the necessary body slices when a header and relationships cannot answer the task.
+Project handles expire after source changes. Built-in refactorings take names or positions; `fr author` takes handles. Mutations preview by default; `--save-plan` records an unchanged-source plan for later history application. Inspect results and omissions before applying. Treat refusals as missing evidence or unsupported scope.
 
-Mutations preview by default. Within the user's authorized scope, inspect the result before applying the same saved transaction or Git basis.
-`--save-plan` writes history but leaves source unchanged. Check reported outcomes as well as process status; some Git failures return `applied: null`.
-A refusal calls for the named missing information or a different supported operation, not a forced retry.
-
-Report syntax checks, project tests and Lean evidence separately. Parser acceptance does not establish behavioral equivalence; model proofs do not prove the entire implementation.
+Keep full basis reports in the audit trail. Report parser checks, project tests and Lean evidence separately; each proves a different property.

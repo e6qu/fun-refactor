@@ -125,7 +125,7 @@ def prompt(session, task, arm):
         "Use ordinary files, read, search and replace tools for source exploration and edits. Do not use fr project/author/history commands. The shared fr checks command is available for identical project validation. Export and reverse/reapply your patch through the ordinary Git tools."
     )
     if task == regex_escape_len.TASK and arm == "fr":
-        surface += " Coordinate the edits in one author batch saved transaction, and export, undo and redo that transaction."
+        surface += " Coordinate the edits in one author batch saved transaction, and export, undo and redo that transaction. Retain the first full project context_basis and use it on related project and author calls. Retain each full history transition preview and use its context_basis on the matching write."
     return f"""You are an independent acceptance-test agent. Complete this code task in the supplied unfamiliar pinned public project: {TASKS[task]}
 
 {surface}
@@ -151,6 +151,8 @@ Tool objects:
 {{"tool":"finish","summary":"..."}} records your final conclusion; independent oracles run later.
 
 Workflow: inspect; list and run declared checks on the original; implement the task; run checks on the change; export the patch; add the sentinel; undo and check; redo and check; verify the receiver; finish. fr arm: preview/save/apply an authoring transaction and use history undo/redo. Run all declared checks together at each validation stage using --run with comma-separated names; every run needs the configuration basis from its listing. Keep project handles revision-bound when using them. Keep tool output bounded and request only relevant context. Leave the requested change applied. Report uncertainty and tool refusals honestly.
+
+For every successful check run, pass --quiet-success --no-declarations --output-bytes 2048 after reviewing the listing. Failure diagnostics stay bounded and visible. The instrumented fr tool disables its fact cache for every arm and stage; do not add a separate cache warm-up or change that policy.
 
 The harness records visible tool payload tokens, calls, latency and final correctness. It does not measure your hidden reasoning, system context or billed tokens. The task directory is {session / 'project'}.
 """

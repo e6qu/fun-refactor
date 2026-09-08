@@ -14,6 +14,7 @@ use std::path::{Path, PathBuf};
 
 pub mod author;
 mod configuration;
+mod context;
 mod contracts;
 mod digest;
 #[cfg(test)]
@@ -351,6 +352,13 @@ fn page(
 }
 
 impl<'a> Project<'a> {
+    pub(crate) fn response_context(
+        &self,
+        supplied: Option<&str>,
+    ) -> Result<context::ResponseContext> {
+        context::ResponseContext::new(&self.revision, self.coverage(), supplied)
+    }
+
     pub fn new(
         root: &Path,
         index: &'a Index,

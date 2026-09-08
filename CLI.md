@@ -66,12 +66,15 @@ ambiguous, and the tool tells you which case you are in.
 | Option | What it does |
 |---|---|
 | `--save-plan` | Store a change plan and return its transaction ID. Conflicts with `--write`. |
+| `--context-basis <BASIS>` | Omit context retained from a matching full project, author or history-transition report. Stale or conflicting bases refuse before writes. |
 | `--json` | Machine-readable output instead of text |
 | `-C`, `--root <ROOT>` | The workspace to act on. Naming a single file scans that file alone. Default `.` |
 | `--max-file-size <BYTES>` | Skip files larger than this. Default 4 MiB. Every command warns when a scan skipped one |
 | `--no-ignore` | Read files `.gitignore` excludes, and hidden files. Generated and vendored trees are refactoring targets like any other |
 | `--no-cache` | Parse and extract every file instead of reusing cached facts |
 | `-V`, `--version` | Print the version |
+
+See the [agent context protocol](docs/agent-context-protocol.md) for exact reconstruction rules and the separate project and history basis namespaces.
 
 `--max-file-size` matters more than it looks. A skipped file is invisible to
 every analysis, so a rename can miss uses inside it. The warning is there so a

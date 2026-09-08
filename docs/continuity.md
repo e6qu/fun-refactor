@@ -1,10 +1,13 @@
 # Development continuity
 
-The current `spec_extract` branch is roadmap PR 0, the agent-ready verified refactoring foundation.
-It packages the completed source-history, project-inspection, Git, authoring, agent-skill, evaluation and Lean-model work that PRs 1 through 6 build on.
-PR 1 is the next delivery unit after PR 0 lands.
+PR 0, the agent-ready verified refactoring foundation, merged as GitHub PR 259.
+The current `agent_context_v2` branch is roadmap PR 1. It targets repeated response and skill context, a controlled projection, and an opt-in Codex CLI evaluation runner before a fresh paired cohort.
+Project and author reports now emit a revision-bound `frcb1:` basis. Supplying it omits only `coverage`, `handle_prefix` and `revision`; stale bases refuse before author plans can be saved or written.
+History transition previews now emit a separate `frhb1:` basis. A matching completion can omit the reviewed action, transaction and changes; mismatches refuse before transition writes.
+Unit and CLI regressions reconstruct full reports exactly and cover missing, truncated, stale and conflicting bases.
+The fixed M4ab projection preserves every recorded outcome and lowers mean fr context from 13,278.5 to 12,709.5 tokens. The normalized file mean is 6,810, so PR 1 still has a 5,899.5-token gap to address.
+`tools/agent-eval-codex.py` now supplies the opt-in real-agent runner. It requires a complete prepared pair and explicit spend acknowledgement, then records ephemeral Codex JSONL under pinned model, effort and service-tier settings.
 M4ac is complete: the matched check-output projection shows that verbose successful logs masked substantial fr workflow context in M4ab.
-The user authorized publishing PR 0 from this branch.
 M4l's four passing workspace trials are retained in `3c8231c`; preparation is `811591e` and documented insertion is `6d0928b`.
 M4m's smaller check reports are committed in `58b53bd`; M4n's targeted skill guidance is `1c44863`.
 M4o's bounded source lookup is committed in `5214404`.
@@ -54,7 +57,7 @@ The live fixture checks both successful and failing commands, output limits and 
 Its transformed reports equal actual CLI policy reports apart from elapsed time; failed diagnostics and raw byte totals remain intact.
 Projection refuses changed evidence, missing or stale listings, declaration mismatches, contradictory success reports and truncated payloads.
 `tests/agent-eval/checks-policy-context.json` retains transformed executions and checksums for the cohort, binary, tokenizer and measurement sources.
-Next, project reductions for repeated project inspection and authoring/history metadata before changing production output.
+PR 1 now implements the first project and history reductions and retains their fixed projection separately from autonomous outcomes.
 
 ## Coordinated workspace task preparation
 

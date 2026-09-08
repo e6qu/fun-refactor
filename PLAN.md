@@ -107,12 +107,12 @@ The identifiers remain stable for references in defect records.
 
 ## Delivery plan
 
-The current foundation is packaged as PR 0. The remaining roadmap is packaged as six reviewable product PRs.
+The foundation landed as PR 0. The remaining roadmap is packaged as six reviewable product PRs.
 Each PR can contain internal checkpoint commits, but its description and acceptance evidence must describe one final outcome.
 
 ### PR 0. Agent-ready verified refactoring foundation
 
-Status: this pull request.
+Status: merged as [PR 259](https://github.com/e6qu/fun-refactor/pull/259).
 
 Goal: establish the shared product and evidence base required by the remaining roadmap.
 
@@ -138,6 +138,8 @@ Acceptance evidence:
 PR 0 supplies the baseline that every later PR must preserve or improve.
 
 ### PR 1. Agent Context Protocol v2
+
+Status: in progress on `agent_context_v2`. The branch implements revision-bound project/author bases, reviewed history-transition bases, fixed projection and the opt-in Codex runner. The first projection saves 569 mean fr tokens and leaves a 5,899.5-token normalized gap.
 
 Goal: make the structured `fr` workflow competitive on retrieved context while retaining its stronger evidence and reversal guarantees.
 

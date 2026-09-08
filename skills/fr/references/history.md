@@ -11,6 +11,7 @@ fr history redo '<TX>' --write --no-diff
 ```
 
 Preview the transition, then use `--no-diff` with `--write` to omit repeated diff text from the completion report.
+The preview also returns `context_basis`. Pass it as `--context-basis` on that exact write to omit the reviewed transaction, action and change rows as well. Keep the full preview so the compact completion can be reconstructed; another action or transaction refuses the basis before writing.
 The report retains paths, existence, modes and the operation outcome; `history show TX` and patch export keep the full diff.
 Undo requires the latest applied transaction; redo requires the next ID on the redo stack.
 Both check affected contents, existence and modes. They preserve unrelated edits and refuse conflicts in affected files.

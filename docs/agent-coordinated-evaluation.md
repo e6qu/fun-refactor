@@ -83,6 +83,20 @@ It rejects contradictory success states and preserves failed output, exit status
 A live fixture with successful and failing checks matches actual CLI reports under both policies, apart from elapsed time, including invalid UTF-8 replacement and bounded failure diagnostics.
 The retained [projection report](../tests/agent-eval/checks-policy-context.json) includes each transformed execution and source checksum.
 
+## Context Protocol v2 projection
+
+The follow-up [protocol projection](../tests/agent-eval/context-protocol.json) starts from the same immutable four trials. It first applies the compact shared check policy above. It then substitutes the current requested skill files and adds only the production context-basis fields and matching request flags.
+
+The projected fr mean falls from 13,278.5 to 12,709.5 tokens. The normalized file mean remains 6,810 tokens, leaving a 5,899.5-token gap. The current protocol therefore saves 569 mean fr tokens, or 4.3%, on this fixed action sequence. It does not yet make the workflows context-competitive.
+
+The report separates prompt, skill, inspection, checks, authoring, delivery, requests and recorded tool time. Prompts, tool-call counts, outcomes, source states and timings stay unchanged. This remains a fixed projection; fresh agents may select a different action sequence.
+
+Reproduce it with the pinned tokenizer:
+
+```sh
+target/agent-eval-venv/bin/python tools/agent-context-protocol.py --tokens
+```
+
 Measured fr tool time is 73.0 and 82.8 seconds, versus 8.7 and 10.9 seconds for files.
 Project and author commands account for 62.9 and 70.4 seconds of the fr totals under the disabled-cache policy.
 The shared-host trial times above include agent work between calls and are not production latency guarantees.

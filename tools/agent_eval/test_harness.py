@@ -35,6 +35,68 @@ checks_policy_spec = importlib.util.spec_from_file_location("checks_policy_measu
 checks_policy = importlib.util.module_from_spec(checks_policy_spec)
 checks_policy_spec.loader.exec_module(checks_policy)
 
+context_spec = importlib.util.spec_from_file_location("agent_context_protocol", TOOLS / "agent-context-protocol.py")
+context_protocol = importlib.util.module_from_spec(context_spec)
+context_spec.loader.exec_module(context_protocol)
+
+
+class ContextProtocolEvidence(unittest.TestCase):
+    def payload(self, result):
+        return json.dumps({"exit_code": 0, "result": result, "stdout_omitted_bytes": 0,
+                           "stderr": "", "stderr_omitted_bytes": 0})
+
+    def event(self, args, result):
+        return {"request": {"tool": "fr", "args": args}, "visible": self.payload(result),
+                "elapsed_seconds": 0.1}
+
+    def test_related_project_response_reconstructs_exactly(self):
+        common = {"revision": "0" * 64, "handle_prefix": "frp1:" + "0" * 32 + ":",
+                  "coverage": {"indexed_files": 2}}
+        first = {**common, "schema": "fr-project-1", "query": "map", "rows": []}
+        second = {**common, "schema": "fr-project-1", "query": "find", "rows": [["x"]]}
+        events = [self.event(["project", "map"], first), self.event(["project", "find", "x"], second)]
+        outputs, requests, _ = context_protocol.project_events(events, [event["visible"] for event in events])
+        reviewed = json.loads(outputs[0])["result"]
+        compact = json.loads(outputs[1])["result"]
+        self.assertEqual(compact["context_basis"], reviewed["context_basis"])
+        self.assertEqual(compact.pop("context_omitted"), list(context_protocol.PROJECT_FIELDS))
+        for field in context_protocol.PROJECT_FIELDS:
+            self.assertNotIn(field, compact)
+            compact[field] = reviewed[field]
+        expected = copy.deepcopy(second)
+        expected["context_basis"] = reviewed["context_basis"]
+        self.assertEqual(compact, expected)
+        self.assertEqual(requests[1]["args"][-2:], ["--context-basis", reviewed["context_basis"]])
+
+    def test_reviewed_history_completion_changes_only_applied(self):
+        changes = [{"path": "app.rs", "before_exists": True, "after_exists": True,
+                    "before_mode": 420, "after_mode": 420, "diff": "patch"}]
+        preview = {"transaction": 1, "action": "undo", "applied": False, "changes": changes}
+        smaller = copy.deepcopy(changes)
+        smaller[0].pop("diff")
+        completion = {"transaction": 1, "action": "undo", "applied": True,
+                      "changes": smaller, "diffs_omitted": True}
+        events = [self.event(["history", "undo", "1"], preview),
+                  self.event(["history", "undo", "1", "--write", "--no-diff"], completion)]
+        outputs, requests, _ = context_protocol.project_events(events, [event["visible"] for event in events])
+        reviewed = json.loads(outputs[0])["result"]
+        compact = json.loads(outputs[1])["result"]
+        self.assertEqual(compact["context_omitted"], list(context_protocol.HISTORY_FIELDS))
+        reconstructed = copy.deepcopy(compact)
+        reconstructed.pop("context_omitted")
+        for field in context_protocol.HISTORY_FIELDS:
+            reconstructed[field] = reviewed[field]
+        expected = copy.deepcopy(reviewed)
+        expected["applied"] = True
+        self.assertEqual(reconstructed, expected)
+        self.assertEqual(requests[1]["args"][-2:], ["--context-basis", reviewed["context_basis"]])
+
+    def test_complete_frozen_projection_preserves_all_passing_trials(self):
+        report = context_protocol.measure(None)
+        self.assertTrue(report["passed"])
+        self.assertEqual(len(report["trials"]), 4)
+        self.assertTrue(all(trial["recorded_passed"] for trial in report["trials"]))
+
 
 class CheckPolicyEvidence(unittest.TestCase):
     def setUp(self):

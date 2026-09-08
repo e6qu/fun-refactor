@@ -214,6 +214,67 @@ fn no_diff_writes_keep_transition_metadata_and_exact_source_history() {
 }
 
 #[test]
+fn reviewed_transition_basis_compacts_completion_and_refuses_conflicting_writes() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("app.rs");
+    let original = "fn helper() {}\nfn main() { helper(); }\n";
+    fs::write(&path, original).unwrap();
+    ok(dir.path(), &["rename", "helper", "renamed", "--save-plan"]);
+
+    let preview = ok(dir.path(), &["history", "apply", "1"]);
+    let basis = preview["context_basis"].as_str().unwrap().to_owned();
+    assert!(basis.starts_with("frhb1:"));
+    let compact = ok(
+        dir.path(),
+        &[
+            "history",
+            "apply",
+            "1",
+            "--write",
+            "--no-diff",
+            "--context-basis",
+            &basis,
+        ],
+    );
+    assert_eq!(
+        compact["context_omitted"],
+        serde_json::json!(["action", "changes", "transaction"])
+    );
+    assert_eq!(compact["applied"], true);
+    for field in ["action", "changes", "transaction"] {
+        assert!(compact.get(field).is_none());
+    }
+    let mut reconstructed = compact;
+    reconstructed
+        .as_object_mut()
+        .unwrap()
+        .remove("context_omitted");
+    for field in ["action", "changes", "transaction"] {
+        reconstructed[field] = preview[field].clone();
+    }
+    let mut expected = preview;
+    expected["applied"] = true.into();
+    assert_eq!(reconstructed, expected);
+
+    let before = fs::read_to_string(&path).unwrap();
+    let journal = fs::read(dir.path().join(".fr-history/state.json")).unwrap();
+    let (success, error) = run(
+        dir.path(),
+        &["history", "undo", "1", "--write", "--context-basis", &basis],
+    );
+    assert!(!success, "{error}");
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("stale or conflicting history context basis"));
+    assert_eq!(fs::read_to_string(&path).unwrap(), before);
+    assert_eq!(
+        fs::read(dir.path().join(".fr-history/state.json")).unwrap(),
+        journal
+    );
+}
+
+#[test]
 fn no_diff_writes_preserve_creation_deletion_and_mode_changes() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("data.txt");

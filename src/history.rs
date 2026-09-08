@@ -1,7 +1,7 @@
 //! Durable, checked workspace transactions for the native CLI.
 
 use crate::edit::{CommitLocks, FileChange};
-use anyhow::{bail, Context, Result};
+use anyhow::{bail, ensure, Context, Result};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs::{self, File};
@@ -471,6 +471,17 @@ pub fn act_with_diff(
     write: bool,
     include_diff: bool,
 ) -> Result<serde_json::Value> {
+    act_with_context(root, action, id, write, include_diff, None)
+}
+
+pub fn act_with_context(
+    root: &Path,
+    action: Action,
+    id: u64,
+    write: bool,
+    include_diff: bool,
+    supplied_context: Option<&str>,
+) -> Result<serde_json::Value> {
     if !include_diff && !write {
         bail!("preview reports require diffs; omission requires a write");
     }
@@ -530,14 +541,35 @@ pub fn act_with_diff(
     let mut report = serde_json::json!({ "transaction": id, "action": action, "applied": write,
         "changes": changes.iter().map(|c| {
             let (before, after) = (&c.before, &c.after);
-            let mut entry = serde_json::json!({"path": c.path, "before_exists": before.is_some(), "after_exists": after.is_some(),
-                "before_mode": before.as_ref().map(|s| s.mode), "after_mode": after.as_ref().map(|s| s.mode)});
-            if include_diff {
-                entry["diff"] = serde_json::json!(crate::edit::unified_diff(before.as_ref().map_or("", |s| &s.content), after.as_ref().map_or("", |s| &s.content), &c.path.to_string_lossy()));
-            }
-            entry
+            serde_json::json!({"path": c.path, "before_exists": before.is_some(), "after_exists": after.is_some(),
+                "before_mode": before.as_ref().map(|s| s.mode), "after_mode": after.as_ref().map(|s| s.mode),
+                "diff": crate::edit::unified_diff(before.as_ref().map_or("", |s| &s.content), after.as_ref().map_or("", |s| &s.content), &c.path.to_string_lossy())})
         }).collect::<Vec<_>>() });
-    if !include_diff {
+    let context_basis = format!(
+        "frhb1:{:x}",
+        Sha256::digest(serde_json::to_vec(&(
+            "fr-history-context-1",
+            &report["transaction"],
+            &report["action"],
+            &report["changes"],
+        ))?)
+    );
+    if let Some(supplied) = supplied_context {
+        ensure!(
+            supplied == context_basis,
+            "stale or conflicting history context basis; request a full transition preview."
+        );
+    }
+    report["context_basis"] = serde_json::json!(context_basis);
+    if supplied_context.is_some() {
+        for field in ["transaction", "action", "changes"] {
+            report.as_object_mut().unwrap().remove(field);
+        }
+        report["context_omitted"] = serde_json::json!(["action", "changes", "transaction"]);
+    } else if !include_diff {
+        for change in report["changes"].as_array_mut().unwrap() {
+            change.as_object_mut().unwrap().remove("diff");
+        }
         report["diffs_omitted"] = serde_json::json!(true);
     }
     if write {

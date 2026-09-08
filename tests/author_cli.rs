@@ -77,6 +77,28 @@ fn replace(root: &Path, handle: &str, input: &Path, flags: &[&str]) -> (bool, Va
     run(root, &args)
 }
 
+#[test]
+fn stale_context_basis_refuses_author_writes_and_saved_plans_before_persistence() {
+    for intent in ["--write", "--save-plan"] {
+        let original = "fn calc(n: i32) -> i32 { n + 1 }\n";
+        let (_temp, root, input) = fixture(original, b"{ n * 2 }");
+        let map = ok(&root, &["project", "map"]);
+        let basis = map["context_basis"].as_str().unwrap();
+        let (handle, _) = selection(&root, "calc");
+        let changed = "fn calc(n: i32) -> i32 { n + 2 }\n";
+        fs::write(root.join("app.rs"), changed).unwrap();
+
+        let (success, error) = replace(&root, &handle, &input, &[intent, "--context-basis", basis]);
+        assert!(!success, "{intent}: {error}");
+        assert!(error["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("stale or conflicting context basis"));
+        assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), changed);
+        assert!(!root.join(".fr-history").exists());
+    }
+}
+
 fn compiled_result(root: &Path) -> Vec<u8> {
     let output_path = root.parent().unwrap().join("compiled");
     let output = Command::new("rustc")

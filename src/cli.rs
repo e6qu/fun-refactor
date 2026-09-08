@@ -89,6 +89,14 @@ struct Cli {
     #[arg(long, global = true)]
     save_plan: bool,
 
+    #[arg(
+        long,
+        global = true,
+        value_name = "BASIS",
+        help = "Omit unchanged project context previously reviewed under this basis."
+    )]
+    context_basis: Option<String>,
+
     #[command(subcommand)]
     command: Command,
 }
@@ -813,6 +821,14 @@ fn exit_code(error: &anyhow::Error) -> i32 {
 }
 
 fn dispatch(cli: &Cli) -> Result<()> {
+    if cli.context_basis.is_some()
+        && !matches!(
+            cli.command,
+            Command::Project { .. } | Command::Author { .. } | Command::History { .. }
+        )
+    {
+        anyhow::bail!("--context-basis requires a project, author or history transition command.");
+    }
     if cli.save_plan
         && !matches!(
             &cli.command,
@@ -1646,8 +1662,10 @@ fn with_project(
 
 fn cmd_project(cli: &Cli, command: &crate::project::Command) -> Result<()> {
     with_project(cli, |project, root| {
-        let report = project.report(command)?;
+        let context = project.response_context(cli.context_basis.as_deref())?;
+        let mut report = project.report(command)?;
         project.verify(root)?;
+        context.apply(&mut report)?;
         println!("{}", serde_json::to_string(&report)?);
         Ok(())
     })
@@ -1666,6 +1684,7 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
         "choose --save-plan or --write, not both."
     );
     with_project(cli, |project, root| {
+        let context = project.response_context(cli.context_basis.as_deref())?;
         let mut plan = match command {
             Command::ReplaceBody(options) => project.replace_body(options)?,
             Command::ReplaceDeclaration(options) => project.replace_declaration(options)?,
@@ -1691,6 +1710,7 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
         plan.report["transaction"] = serde_json::json!(transaction);
         plan.report["applied"] = serde_json::json!(write && transaction.is_some());
         plan.report["saved"] = serde_json::json!(cli.save_plan && transaction.is_some());
+        context.apply(&mut plan.report)?;
         println!("{}", serde_json::to_string(&plan.report)?);
         Ok(())
     })
@@ -1698,6 +1718,19 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
 
 fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
     use crate::history::Action;
+    if cli.context_basis.is_some()
+        && !matches!(
+            command,
+            Some(
+                HistoryCommand::Apply { .. }
+                    | HistoryCommand::Undo { .. }
+                    | HistoryCommand::Redo { .. }
+                    | HistoryCommand::Recover { .. }
+            )
+        )
+    {
+        anyhow::bail!("--context-basis requires an apply, undo, redo or recover history command.");
+    }
     if let Some(HistoryCommand::Patch {
         id,
         reverse,
@@ -1742,18 +1775,38 @@ fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
         return Ok(());
     }
     let report = match command {
-        Some(HistoryCommand::Apply { id, write, no_diff }) => {
-            crate::history::act_with_diff(&cli.root, Action::Apply, *id, *write, !no_diff)?
-        }
-        Some(HistoryCommand::Undo { id, write, no_diff }) => {
-            crate::history::act_with_diff(&cli.root, Action::Undo, *id, *write, !no_diff)?
-        }
-        Some(HistoryCommand::Redo { id, write, no_diff }) => {
-            crate::history::act_with_diff(&cli.root, Action::Redo, *id, *write, !no_diff)?
-        }
-        Some(HistoryCommand::Recover { id, write, no_diff }) => {
-            crate::history::act_with_diff(&cli.root, Action::Recover, *id, *write, !no_diff)?
-        }
+        Some(HistoryCommand::Apply { id, write, no_diff }) => crate::history::act_with_context(
+            &cli.root,
+            Action::Apply,
+            *id,
+            *write,
+            !no_diff,
+            cli.context_basis.as_deref(),
+        )?,
+        Some(HistoryCommand::Undo { id, write, no_diff }) => crate::history::act_with_context(
+            &cli.root,
+            Action::Undo,
+            *id,
+            *write,
+            !no_diff,
+            cli.context_basis.as_deref(),
+        )?,
+        Some(HistoryCommand::Redo { id, write, no_diff }) => crate::history::act_with_context(
+            &cli.root,
+            Action::Redo,
+            *id,
+            *write,
+            !no_diff,
+            cli.context_basis.as_deref(),
+        )?,
+        Some(HistoryCommand::Recover { id, write, no_diff }) => crate::history::act_with_context(
+            &cli.root,
+            Action::Recover,
+            *id,
+            *write,
+            !no_diff,
+            cli.context_basis.as_deref(),
+        )?,
         other => {
             let history = crate::history::History::read(&cli.root)?;
             let records = if let Some(HistoryCommand::Show { id }) = other {
