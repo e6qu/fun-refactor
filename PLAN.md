@@ -1006,11 +1006,23 @@ Nineteen evaluator regressions pass, including three new measurement failure con
 The CLI and portable skill retain their current behavior. Existing autonomous records remain immutable.
 See [cache measurements](docs/project-context-evaluation.md#query-time-and-the-fact-cache) for the method and its boundaries.
 
+M4r: release query profiling (complete).
+
+An optimized CLI repeats eighteen cache samples and both source-invalidation probes, preserving complete reports.
+Populated-cache medians are about 180 ms on the two prescribed regex lookups; disabled-cache medians are about 1.4 seconds.
+A separate Cargo example profiles public library stages without changing ordinary CLI output or production library code.
+All eighteen stage samples match the CLI byte for byte; populated samples record 249 fact-cache hits for 249 indexed files.
+Project construction takes about 146 ms, compared with about 11 ms for cached indexing and 9 ms for final verification.
+The report retains per-sample timing, counter and provenance evidence. It makes no agent-context or general production-latency claim.
+Twenty evaluator regressions pass, including refusal of invalid phase timings.
+See [release profiling](docs/project-context-evaluation.md#release-stage-profiling) for the separate executable's scope and reproduction.
+
 Next M4 work:
 
 Use the retained workspace traces to reduce repeated report metadata and skill-loading costs, preserving coverage, source bases, guards and reviewable changes.
 Measure each proposed reduction on fixed transcripts or controlled workflows before another autonomous comparison.
-Profile the remaining cached project work on a release build separately from returned-context size.
+Separate manifest capture, source/line processing, hierarchy construction and revision hashing inside the measured project-construction cost.
+Preserve revision inputs, coverage, source verification and byte-identical reports when optimizing that path.
 State the cache policy for the next autonomous cohort; the retained trials disable it.
 Then evaluate a task requiring coordinated changes across several files, with repeated paired trials and independent behavioral checks.
 Keep examples compatible with the distributed binary and load specialized references only when needed.

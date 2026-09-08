@@ -1,11 +1,33 @@
 # Development continuity
 
-M4q is complete: controlled cache measurements preserve query reports and verify source invalidation.
+M4r is complete: release measurements identify project construction as the main remaining cached-query cost on the pinned fixture.
 The user authorized local commits. Publishing and pushing remain outside this request.
 M4l's four passing workspace trials are retained in `3c8231c`; preparation is `811591e` and documented insertion is `6d0928b`.
 M4m's smaller check reports are committed in `58b53bd`; M4n's targeted skill guidance is `1c44863`.
 M4o's bounded source lookup is committed in `5214404`.
 M4p's source and budget proofs are committed in `aa16584`.
+M4q's cache measurement and failure controls are committed in `9b0c84e`.
+
+## Release profiling
+
+`tools/project-profile.rs` is the `project-profile` Cargo example, gated on the CLI feature.
+It times the public library pipeline with default scan options and a project directory, then emits a separate profiling envelope.
+The normal CLI output and production library code remain unchanged.
+Stages cover root resolution, scanning, cache opening, indexing, project construction, querying, final verification, serialization and cleanup.
+The internal interval excludes process startup, argument parsing and envelope output; Python also records complete subprocess time.
+
+`tools/project-profile.py` checks every report against the release CLI on the same pinned regex fixture.
+Eighteen samples pass across disabled, empty and populated caches; all populated samples report 249 fact hits for 249 indexed files.
+The profile is `tests/agent-eval/project-profile.json`, copied from `/tmp/fr-m4r-project-profile.json`.
+Populated subprocess medians are 179.2 and 178.9 ms. Project construction takes about 146 ms, indexing about 11 ms and verification about 9 ms.
+Separate phase medians need not sum to the median whole-command time.
+
+`tests/agent-eval/project-cache-release.json` repeats the original cache procedure with the same optimized CLI.
+All eighteen ordinary CLI samples and both source-invalidation probes pass; populated medians are about 180 ms and disabled medians about 1.4 seconds.
+It comes from `/tmp/fr-m4r-project-cache-release.json`; earlier debug and autonomous evidence remains immutable.
+Both artifacts retain binary and input digests, runtime details and raw samples; their statistics and payload checks pass an independent audit.
+Twenty evaluator regressions now include missing/negative phases and invalid interval totals.
+See [release profiling](project-context-evaluation.md#release-stage-profiling) for reproduction and measurement limits.
 
 ## Cache measurement
 
@@ -23,7 +45,7 @@ Two temporary comment probes compare cached and uncached changed reports, reject
 Tracked source bytes and modes and the Git index must finish unchanged; all cache paths belong to the disposable fixture.
 Existing agent evidence and the harness's `--no-cache` policy remain unchanged.
 Three new evaluator regressions reject report changes and incomplete source, and require source restoration after an injected query failure.
-The default acceptance harness now runs nineteen regressions; the recorded M4l count remains historical evidence.
+M4q's default acceptance harness ran nineteen regressions; M4r adds the phase-timing control above.
 See [cache measurements](project-context-evaluation.md#query-time-and-the-fact-cache) for the retained report and reproduction.
 
 ## Source verification
@@ -132,6 +154,7 @@ All twelve autonomous trials pass. Recording also supports scored failures; beha
 Replay checks recorded patches and transition evidence without rerunning agents. Token auditing recounts retained payloads.
 The initial and follow-up strsim findings remain in the [context report](agent-context-followup.md).
 Controlled reports are separate under `tests/agent-eval/`: `history-context.json`, `regex/rehearsal.json`, `checks-context.json`, `skill-context.json`, `find-source-context.json` and `project-cache.json`.
+Release reports add `project-cache-release.json` and `project-profile.json` without rewriting those earlier artifacts.
 The regex rehearsal uses a prescribed solution and rejects three compiled negative controls; it is not autonomous evidence.
 
 Temporary regex sessions remain under `/private/tmp/fr-regex-agent-eval-2026-09-08`, one directory per retained trial name.
@@ -141,6 +164,12 @@ It, the skills, prompts, evaluator and oracle stayed unchanged throughout both p
 Temporary projects are disposable after retention; use repository evidence for replay and audits.
 
 ## Validation and commands
+
+M4r's optimized CLI and profiling example build with locked offline dependencies in `/tmp/fr-m4r-build.log`.
+Example clippy passes in `/tmp/fr-m4r-clippy.log`; all twenty evaluator regressions pass in `/tmp/fr-m4r-harness.log`.
+Rust formatting and Python compilation pass. The two retained measurement reports pass complete payload, input-digest and statistics audits.
+The default acceptance entry point passes in `/tmp/fr-m4r-acceptance.log`; all six documentation checks pass in `/tmp/fr-m4r-docs.log`.
+This milestone adds a profiling example and evaluator tooling; production library code and Lean definitions retain M4p's validated behavior.
 
 M4q's eighteen measured queries and both invalidation probes pass in `/tmp/fr-m4q-project-cache-final.json`.
 The retained artifact audit checks every payload digest and byte count, recomputes summaries and verifies the binary and measurement-source hashes.
@@ -200,7 +229,8 @@ Check execution metadata is now optional; use retained traces to reduce remainin
 Preserve coverage, source bases, guards and reviewable edits.
 Validate whether fresh agents adopt the targeted route before claiming autonomous context savings; include a task that actually requires broader exploration.
 Measure proposed reductions on fixed transcripts or controlled workflows before requesting another autonomous cohort.
-Profile the remaining cached project work on a release build before choosing a daemon or persistent project index.
+Separate manifest capture, source/line processing, hierarchy construction and revision hashing inside the measured project-construction cost.
+Keep revision inputs, coverage and final source verification intact; require byte-identical reports for optimizations.
 State the cache policy for the next autonomous cohort; existing trials explicitly disable it and their records remain immutable.
 A later paired task should require coordinated changes across files; the current larger repository task is still a localized facade addition.
 Keep portable skill references selective and executable against the distributed binary.

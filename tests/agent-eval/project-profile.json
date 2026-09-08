@@ -1,0 +1,799 @@
+{
+  "schema": "fr-project-phase-comparison-1",
+  "passed": true,
+  "binaries_sha256": {
+    "/Users/zardoz/projects/fun-refactor/target/release/fr": "5d85a47f57a78445bf58ac19cc9b6b19454bc39e9f6027eda4ebcb0fe44c4adf",
+    "/Users/zardoz/projects/fun-refactor/target/release/examples/project-profile": "bbfd3f9f5050acc4be13c49fcc80cdf8e436dadd9f60f64470010c0d1e41b67e"
+  },
+  "started_at": "2026-09-08T08:54:02.427909+00:00",
+  "finished_at": "2026-09-08T08:54:33.696864+00:00",
+  "runtime": {
+    "platform": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "python": "3.14.6",
+    "logical_cpus": 12,
+    "rayon_num_threads": null
+  },
+  "measurement_files": {
+    "tools/project-profile.py": "2e4f8d052d89ae319017d4cd38a0b33aff93d3892dca05dbdae42540c6203e40",
+    "tools/project-profile.rs": "6d70ddc6006a0c7aabe08ecb3552310a87ebfc97cbde9f16394ebe18bbf34c89",
+    "tools/project-cache.py": "8101ee95ccbd0a1d7676e035fffc106d247eb45b0a1bd2bc2ad3f23ddfcadd61",
+    "tools/agent-eval.py": "1136ec0ea7644ee4011785576a280483b41e37e17ea54f0d5d9f5071c578b07f",
+    "tools/agent_eval/regex_workspace.py": "d7003500c07c3c5b1b12916ffdcd094b3dddf2e59f6d8aa8510246d42b9fb08c",
+    "Cargo.toml": "7783321e8fc0e55709b0cff96668f108fac68f71df9ea3be475f7ab61261ec1a",
+    "Cargo.lock": "63732368baf6730600dd5d0eea04c58cc9c610b3c58ab580b2f9db427b43f79f",
+    "src/cli.rs": "cf3c6dd80fcae8214d868503570b94b7fcf9910d7a75abf80c51fbe04bf23ec9",
+    "src/index.rs": "0b71bc90527bc26d1d053b54a4089bb2786c9ac50984e11da337d1c1b3e7430c",
+    "src/project.rs": "b847a88d5980366534bd22397df32dae5baea4539669f1192092e43e4e1f9416",
+    "src/cache.rs": "4ccd33e914eac3908b69cdff172bf450fef3cd389abcda4131ce5024167a930b"
+  },
+  "archive_sha256": "7f8beace6ed6c94b2eec3c5aa92219e10e73bd8ad696035877bed01d3ee47255",
+  "dependency_lock_sha256": "7ae225f5fbac82509d5c259dd3613a809c75a8bd4e2124b9cb69ed29d98de3a0",
+  "repetitions": 3,
+  "examples": [
+    {
+      "name": "escape",
+      "path": "src/lib.rs",
+      "args": [
+        "project",
+        "find",
+        "escape",
+        "--in",
+        "src/lib.rs",
+        "--signature",
+        "--source",
+        "--bytes",
+        "2048"
+      ],
+      "baseline": {
+        "args": [
+          "project",
+          "find",
+          "escape",
+          "--in",
+          "src/lib.rs",
+          "--signature",
+          "--source",
+          "--bytes",
+          "2048"
+        ],
+        "cache_disabled": true,
+        "seconds": 1.69933925,
+        "exit_code": 0,
+        "stdout_bytes": 1328,
+        "stdout_sha256": "24b6c99c80a2c3f439a842e503a9bd6c6d5d614e330ae25ef6ceff8fbca4ebd0",
+        "stdout": "{\"columns\":[\"handle\",\"parent\",\"kind\",\"name\",\"path\",\"line\",\"signature\",\"source\"],\"coverage\":{\"architecture\":\"not inferred\",\"files_by_gap\":{},\"hierarchy\":\"directories and lexical spans\",\"indexed_files\":249,\"manifests\":{\"discovered\":8,\"ecosystems\":[\"cargo\",\"npm\"],\"gaps\":0,\"parsed\":8,\"resolution\":\"not-attempted\",\"scope\":\"selected scan root\"},\"max_file_bytes\":4194304,\"respect_ignore\":true,\"skipped_files\":0,\"skipped_symlinks\":0,\"unresolved_references\":48602,\"unsupported_files\":195},\"handle_prefix\":\"frp1:1dce0a5384196ec8e50947acd5307965:\",\"match\":{\"mode\":\"exact\",\"name\":\"escape\"},\"omitted\":{\"matching_locals\":0},\"page\":{\"before\":0,\"next\":null,\"remaining\":0,\"returned\":1,\"total\":1},\"query\":\"find\",\"revision\":\"1dce0a5384196ec8e50947acd530796510c01078b506d14c50dc985f71ade7b7\",\"root\":\"frp1:1dce0a5384196ec8e50947acd5307965:3b3b\",\"rows\":[[\"frp1:1dce0a5384196ec8e50947acd5307965:3b43\",\"3b3b\",\"function\",\"escape\",\"src/lib.rs\",1378,{\"basis\":\"syntax-header\",\"text\":\"pub fn escape(pattern: &str) -> alloc::string::String\"},{\"next_offset\":null,\"offset\":0,\"returned_bytes\":91,\"span\":{\"end\":59759,\"start\":59668},\"text\":\"pub fn escape(pattern: &str) -> alloc::string::String {\\n    regex_syntax::escape(pattern)\\n}\",\"total_bytes\":91}]],\"schema\":\"fr-project-1\",\"source_budget\":{\"limit_bytes\":2048,\"returned_bytes\":91,\"scope\":\"returned page\"}}\n",
+        "stderr": ""
+      },
+      "runs": [
+        {
+          "mode": "disabled",
+          "repetition": 1,
+          "before_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "after_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "warmup_subprocess_seconds": null,
+          "report_sha256": "24b6c99c80a2c3f439a842e503a9bd6c6d5d614e330ae25ef6ceff8fbca4ebd0",
+          "fact_cache_hits": null,
+          "indexed_files": 249,
+          "measured_seconds": 1.409258458,
+          "phases_seconds": {
+            "cache_open": 0.0,
+            "drop": 0.005161584,
+            "index": 1.243384166,
+            "project": 0.147146,
+            "query": 0.000708166,
+            "root": 3.5333e-05,
+            "scan": 0.0038655,
+            "serialize": 5.042e-06,
+            "verify": 0.008948875
+          },
+          "schema": "fr-project-profile-1",
+          "subprocess_seconds": 1.674786708,
+          "stderr": ""
+        },
+        {
+          "mode": "empty",
+          "repetition": 1,
+          "before_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "after_cache": {
+            "files": 244,
+            "bytes": 3983193,
+            "contents_sha256": "af3e441a6c98640683b73bf86450f2f7f3481c01e146cc463678e1dabd123d63"
+          },
+          "warmup_subprocess_seconds": null,
+          "report_sha256": "24b6c99c80a2c3f439a842e503a9bd6c6d5d614e330ae25ef6ceff8fbca4ebd0",
+          "fact_cache_hits": 6,
+          "indexed_files": 249,
+          "measured_seconds": 1.460293459,
+          "phases_seconds": {
+            "cache_open": 0.000546792,
+            "drop": 0.005537833,
+            "index": 1.29359275,
+            "project": 0.147613916,
+            "query": 0.000732167,
+            "root": 3.4458e-05,
+            "scan": 0.003252667,
+            "serialize": 5.041e-06,
+            "verify": 0.00897325
+          },
+          "schema": "fr-project-profile-1",
+          "subprocess_seconds": 1.474566292,
+          "stderr": ""
+        },
+        {
+          "mode": "populated",
+          "repetition": 1,
+          "before_cache": {
+            "files": 244,
+            "bytes": 3983190,
+            "contents_sha256": "2515a92b66008afe624ba4f352c4e2668bfde5626a053023dbb481d50501c49c"
+          },
+          "after_cache": {
+            "files": 244,
+            "bytes": 3983190,
+            "contents_sha256": "2515a92b66008afe624ba4f352c4e2668bfde5626a053023dbb481d50501c49c"
+          },
+          "warmup_subprocess_seconds": 1.43435525,
+          "report_sha256": "24b6c99c80a2c3f439a842e503a9bd6c6d5d614e330ae25ef6ceff8fbca4ebd0",
+          "fact_cache_hits": 249,
+          "indexed_files": 249,
+          "measured_seconds": 0.174030083,
+          "phases_seconds": {
+            "cache_open": 0.000279958,
+            "drop": 0.004636834,
+            "index": 0.010341083,
+            "project": 0.145716459,
+            "query": 0.000886208,
+            "root": 4.0834e-05,
+            "scan": 0.003214083,
+            "serialize": 4.625e-06,
+            "verify": 0.0089055
+          },
+          "schema": "fr-project-profile-1",
+          "subprocess_seconds": 0.179172625,
+          "stderr": ""
+        },
+        {
+          "mode": "empty",
+          "repetition": 2,
+          "before_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "after_cache": {
+            "files": 244,
+            "bytes": 3983174,
+            "contents_sha256": "b457805320e7d1fefb0a188c9f1353aee6af018e88c4cb3d6a4f24c49ff31714"
+          },
+          "warmup_subprocess_seconds": null,
+          "report_sha256": "24b6c99c80a2c3f439a842e503a9bd6c6d5d614e330ae25ef6ceff8fbca4ebd0",
+          "fact_cache_hits": 6,
+          "indexed_files": 249,
+          "measured_seconds": 1.412550875,
+          "phases_seconds": {
+            "cache_open": 0.000427583,
+            "drop": 0.005296042,
+            "index": 1.247406334,
+            "project": 0.147217417,
+            "query": 0.000749,
+            "root": 3.6334e-05,
+            "scan": 0.003098625,
+            "serialize": 4.625e-06,
+            "verify": 0.008310833
+          },
+          "schema": "fr-project-profile-1",
+          "subprocess_seconds": 1.426789333,
+          "stderr": ""
+        },
+        {
+          "mode": "populated",
+          "repetition": 2,
+          "before_cache": {
+            "files": 244,
+            "bytes": 3983193,
+            "contents_sha256": "af3e441a6c98640683b73bf86450f2f7f3481c01e146cc463678e1dabd123d63"
+          },
+          "after_cache": {
+            "files": 244,
+            "bytes": 3983193,
+            "contents_sha256": "af3e441a6c98640683b73bf86450f2f7f3481c01e146cc463678e1dabd123d63"
+          },
+          "warmup_subprocess_seconds": 1.444353375,
+          "report_sha256": "24b6c99c80a2c3f439a842e503a9bd6c6d5d614e330ae25ef6ceff8fbca4ebd0",
+          "fact_cache_hits": 249,
+          "indexed_files": 249,
+          "measured_seconds": 0.174217166,
+          "phases_seconds": {
+            "cache_open": 0.000275458,
+            "drop": 0.004605958,
+            "index": 0.010964208,
+            "project": 0.14577975,
+            "query": 0.000877583,
+            "root": 4.7542e-05,
+            "scan": 0.003047334,
+            "serialize": 4.167e-06,
+            "verify": 0.008607375
+          },
+          "schema": "fr-project-profile-1",
+          "subprocess_seconds": 0.179193833,
+          "stderr": ""
+        },
+        {
+          "mode": "disabled",
+          "repetition": 2,
+          "before_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "after_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "warmup_subprocess_seconds": null,
+          "report_sha256": "24b6c99c80a2c3f439a842e503a9bd6c6d5d614e330ae25ef6ceff8fbca4ebd0",
+          "fact_cache_hits": null,
+          "indexed_files": 249,
+          "measured_seconds": 1.38337575,
+          "phases_seconds": {
+            "cache_open": 0.0,
+            "drop": 0.005000083,
+            "index": 1.2189989159999999,
+            "project": 0.147106959,
+            "query": 0.000737,
+            "root": 3.6125e-05,
+            "scan": 0.003064791,
+            "serialize": 4.375e-06,
+            "verify": 0.008423625
+          },
+          "schema": "fr-project-profile-1",
+          "subprocess_seconds": 1.39775175,
+          "stderr": ""
+        },
+        {
+          "mode": "populated",
+          "repetition": 3,
+          "before_cache": {
+            "files": 244,
+            "bytes": 3983182,
+            "contents_sha256": "7053341c14ee46cf2fbfcadfde4e0efb27e7cfe90e57be3161f32c2294356ecb"
+          },
+          "after_cache": {
+            "files": 244,
+            "bytes": 3983182,
+            "contents_sha256": "7053341c14ee46cf2fbfcadfde4e0efb27e7cfe90e57be3161f32c2294356ecb"
+          },
+          "warmup_subprocess_seconds": 1.449398958,
+          "report_sha256": "24b6c99c80a2c3f439a842e503a9bd6c6d5d614e330ae25ef6ceff8fbca4ebd0",
+          "fact_cache_hits": 249,
+          "indexed_files": 249,
+          "measured_seconds": 0.17325275,
+          "phases_seconds": {
+            "cache_open": 0.000282917,
+            "drop": 0.004407833,
+            "index": 0.010623041,
+            "project": 0.144690209,
+            "query": 0.000855375,
+            "root": 3.4459e-05,
+            "scan": 0.003109208,
+            "serialize": 5.75e-06,
+            "verify": 0.009236583
+          },
+          "schema": "fr-project-profile-1",
+          "subprocess_seconds": 0.1781605,
+          "stderr": ""
+        },
+        {
+          "mode": "disabled",
+          "repetition": 3,
+          "before_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "after_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "warmup_subprocess_seconds": null,
+          "report_sha256": "24b6c99c80a2c3f439a842e503a9bd6c6d5d614e330ae25ef6ceff8fbca4ebd0",
+          "fact_cache_hits": null,
+          "indexed_files": 249,
+          "measured_seconds": 1.366992,
+          "phases_seconds": {
+            "cache_open": 0.0,
+            "drop": 0.005325792,
+            "index": 1.202679584,
+            "project": 0.146256583,
+            "query": 0.000729167,
+            "root": 3.0542e-05,
+            "scan": 0.003057875,
+            "serialize": 4.458e-06,
+            "verify": 0.008904084
+          },
+          "schema": "fr-project-profile-1",
+          "subprocess_seconds": 1.381537708,
+          "stderr": ""
+        },
+        {
+          "mode": "empty",
+          "repetition": 3,
+          "before_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "after_cache": {
+            "files": 244,
+            "bytes": 3983177,
+            "contents_sha256": "dead9cb94c10ac5c368dc60b04ca83255843c4dc3ecf77ef5f0ac158dc4fdecf"
+          },
+          "warmup_subprocess_seconds": null,
+          "report_sha256": "24b6c99c80a2c3f439a842e503a9bd6c6d5d614e330ae25ef6ceff8fbca4ebd0",
+          "fact_cache_hits": 6,
+          "indexed_files": 249,
+          "measured_seconds": 1.434872292,
+          "phases_seconds": {
+            "cache_open": 0.000408792,
+            "drop": 0.005208875,
+            "index": 1.268275959,
+            "project": 0.147786417,
+            "query": 0.000691416,
+            "root": 3.525e-05,
+            "scan": 0.003167584,
+            "serialize": 5.375e-06,
+            "verify": 0.009287708
+          },
+          "schema": "fr-project-profile-1",
+          "subprocess_seconds": 1.449257,
+          "stderr": ""
+        }
+      ],
+      "summary": {
+        "disabled": {
+          "samples": 3,
+          "median_subprocess_seconds": 1.39775175,
+          "median_phases_seconds": {
+            "cache_open": 0.0,
+            "drop": 0.005161584,
+            "index": 1.2189989159999999,
+            "project": 0.147106959,
+            "query": 0.000729167,
+            "root": 3.5333e-05,
+            "scan": 0.003064791,
+            "serialize": 4.458e-06,
+            "verify": 0.008904084
+          }
+        },
+        "empty": {
+          "samples": 3,
+          "median_subprocess_seconds": 1.449257,
+          "median_phases_seconds": {
+            "cache_open": 0.000427583,
+            "drop": 0.005296042,
+            "index": 1.268275959,
+            "project": 0.147613916,
+            "query": 0.000732167,
+            "root": 3.525e-05,
+            "scan": 0.003167584,
+            "serialize": 5.041e-06,
+            "verify": 0.00897325
+          }
+        },
+        "populated": {
+          "samples": 3,
+          "median_subprocess_seconds": 0.179172625,
+          "median_phases_seconds": {
+            "cache_open": 0.000279958,
+            "drop": 0.004605958,
+            "index": 0.010623041,
+            "project": 0.145716459,
+            "query": 0.000877583,
+            "root": 4.0834e-05,
+            "scan": 0.003109208,
+            "serialize": 4.625e-06,
+            "verify": 0.0089055
+          }
+        }
+      }
+    },
+    {
+      "name": "escape_into",
+      "path": "regex-syntax/src/lib.rs",
+      "args": [
+        "project",
+        "find",
+        "escape_into",
+        "--in",
+        "regex-syntax/src/lib.rs",
+        "--signature",
+        "--source",
+        "--bytes",
+        "2048"
+      ],
+      "baseline": {
+        "args": [
+          "project",
+          "find",
+          "escape_into",
+          "--in",
+          "regex-syntax/src/lib.rs",
+          "--signature",
+          "--source",
+          "--bytes",
+          "2048"
+        ],
+        "cache_disabled": true,
+        "seconds": 1.411959333,
+        "exit_code": 0,
+        "stdout_bytes": 1471,
+        "stdout_sha256": "0ec4a78487663bb031a7b7be9369529a288bdccbfaeb93cefd5bd6881e88f7e6",
+        "stdout": "{\"columns\":[\"handle\",\"parent\",\"kind\",\"name\",\"path\",\"line\",\"signature\",\"source\"],\"coverage\":{\"architecture\":\"not inferred\",\"files_by_gap\":{},\"hierarchy\":\"directories and lexical spans\",\"indexed_files\":249,\"manifests\":{\"discovered\":8,\"ecosystems\":[\"cargo\",\"npm\"],\"gaps\":0,\"parsed\":8,\"resolution\":\"not-attempted\",\"scope\":\"selected scan root\"},\"max_file_bytes\":4194304,\"respect_ignore\":true,\"skipped_files\":0,\"skipped_symlinks\":0,\"unresolved_references\":48602,\"unsupported_files\":195},\"handle_prefix\":\"frp1:1dce0a5384196ec8e50947acd5307965:\",\"match\":{\"mode\":\"exact\",\"name\":\"escape_into\"},\"omitted\":{\"matching_locals\":0},\"page\":{\"before\":0,\"next\":null,\"remaining\":0,\"returned\":1,\"total\":1},\"query\":\"find\",\"revision\":\"1dce0a5384196ec8e50947acd530796510c01078b506d14c50dc985f71ade7b7\",\"root\":\"frp1:1dce0a5384196ec8e50947acd5307965:35d5\",\"rows\":[[\"frp1:1dce0a5384196ec8e50947acd5307965:35e3\",\"35d5\",\"function\",\"escape_into\",\"regex-syntax/src/lib.rs\",213,{\"basis\":\"syntax-header\",\"text\":\"pub fn escape_into(text: &str, buf: &mut String)\"},{\"next_offset\":null,\"offset\":0,\"returned_bytes\":208,\"span\":{\"end\":8916,\"start\":8708},\"text\":\"pub fn escape_into(text: &str, buf: &mut String) {\\n    buf.reserve(text.len());\\n    for c in text.chars() {\\n        if is_meta_character(c) {\\n            buf.push('\\\\\\\\');\\n        }\\n        buf.push(c);\\n    }\\n}\",\"total_bytes\":208}]],\"schema\":\"fr-project-1\",\"source_budget\":{\"limit_bytes\":2048,\"returned_bytes\":208,\"scope\":\"returned page\"}}\n",
+        "stderr": ""
+      },
+      "runs": [
+        {
+          "mode": "disabled",
+          "repetition": 1,
+          "before_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "after_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "warmup_subprocess_seconds": null,
+          "report_sha256": "0ec4a78487663bb031a7b7be9369529a288bdccbfaeb93cefd5bd6881e88f7e6",
+          "fact_cache_hits": null,
+          "indexed_files": 249,
+          "measured_seconds": 1.45274775,
+          "phases_seconds": {
+            "cache_open": 4.2e-08,
+            "drop": 0.005171459,
+            "index": 1.2873124169999999,
+            "project": 0.147042209,
+            "query": 0.000687916,
+            "root": 3.6459e-05,
+            "scan": 0.00341875,
+            "serialize": 4.542e-06,
+            "verify": 0.009069458
+          },
+          "schema": "fr-project-profile-1",
+          "subprocess_seconds": 1.467138541,
+          "stderr": ""
+        },
+        {
+          "mode": "empty",
+          "repetition": 1,
+          "before_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "after_cache": {
+            "files": 244,
+            "bytes": 3983190,
+            "contents_sha256": "a4317de75a7af91eaab6f1aa226a34747e06635f165d5398861928c11df8168a"
+          },
+          "warmup_subprocess_seconds": null,
+          "report_sha256": "0ec4a78487663bb031a7b7be9369529a288bdccbfaeb93cefd5bd6881e88f7e6",
+          "fact_cache_hits": 6,
+          "indexed_files": 249,
+          "measured_seconds": 1.405650709,
+          "phases_seconds": {
+            "cache_open": 0.000501041,
+            "drop": 0.005333083,
+            "index": 1.238655417,
+            "project": 0.148150833,
+            "query": 0.0006795,
+            "root": 3.0292e-05,
+            "scan": 0.003274208,
+            "serialize": 4.708e-06,
+            "verify": 0.009016625
+          },
+          "schema": "fr-project-profile-1",
+          "subprocess_seconds": 1.419624708,
+          "stderr": ""
+        },
+        {
+          "mode": "populated",
+          "repetition": 1,
+          "before_cache": {
+            "files": 244,
+            "bytes": 3983179,
+            "contents_sha256": "54340818265a62916b026d1a0361de99ec172e06f5a51ba5b93f4d050ff5f035"
+          },
+          "after_cache": {
+            "files": 244,
+            "bytes": 3983179,
+            "contents_sha256": "54340818265a62916b026d1a0361de99ec172e06f5a51ba5b93f4d050ff5f035"
+          },
+          "warmup_subprocess_seconds": 1.418557041,
+          "report_sha256": "0ec4a78487663bb031a7b7be9369529a288bdccbfaeb93cefd5bd6881e88f7e6",
+          "fact_cache_hits": 249,
+          "indexed_files": 249,
+          "measured_seconds": 0.173836208,
+          "phases_seconds": {
+            "cache_open": 0.000314916,
+            "drop": 0.004725125,
+            "index": 0.010459333,
+            "project": 0.145725,
+            "query": 0.000953209,
+            "root": 3.2667e-05,
+            "scan": 0.003285791,
+            "serialize": 5.625e-06,
+            "verify": 0.008327625
+          },
+          "schema": "fr-project-profile-1",
+          "subprocess_seconds": 0.17891425,
+          "stderr": ""
+        },
+        {
+          "mode": "empty",
+          "repetition": 2,
+          "before_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "after_cache": {
+            "files": 244,
+            "bytes": 3983182,
+            "contents_sha256": "7053341c14ee46cf2fbfcadfde4e0efb27e7cfe90e57be3161f32c2294356ecb"
+          },
+          "warmup_subprocess_seconds": null,
+          "report_sha256": "0ec4a78487663bb031a7b7be9369529a288bdccbfaeb93cefd5bd6881e88f7e6",
+          "fact_cache_hits": 6,
+          "indexed_files": 249,
+          "measured_seconds": 1.411580375,
+          "phases_seconds": {
+            "cache_open": 0.000485417,
+            "drop": 0.005276042,
+            "index": 1.245509583,
+            "project": 0.147505666,
+            "query": 0.000676583,
+            "root": 3.9583e-05,
+            "scan": 0.003197292,
+            "serialize": 4.125e-06,
+            "verify": 0.008881375
+          },
+          "schema": "fr-project-profile-1",
+          "subprocess_seconds": 1.425763459,
+          "stderr": ""
+        },
+        {
+          "mode": "populated",
+          "repetition": 2,
+          "before_cache": {
+            "files": 244,
+            "bytes": 3983179,
+            "contents_sha256": "54340818265a62916b026d1a0361de99ec172e06f5a51ba5b93f4d050ff5f035"
+          },
+          "after_cache": {
+            "files": 244,
+            "bytes": 3983179,
+            "contents_sha256": "54340818265a62916b026d1a0361de99ec172e06f5a51ba5b93f4d050ff5f035"
+          },
+          "warmup_subprocess_seconds": 1.426561125,
+          "report_sha256": "0ec4a78487663bb031a7b7be9369529a288bdccbfaeb93cefd5bd6881e88f7e6",
+          "fact_cache_hits": 249,
+          "indexed_files": 249,
+          "measured_seconds": 0.175416834,
+          "phases_seconds": {
+            "cache_open": 0.000293542,
+            "drop": 0.00456875,
+            "index": 0.010495333,
+            "project": 0.147117667,
+            "query": 0.000851417,
+            "root": 3.6667e-05,
+            "scan": 0.003228541,
+            "serialize": 4.791e-06,
+            "verify": 0.008816375
+          },
+          "schema": "fr-project-profile-1",
+          "subprocess_seconds": 0.180517541,
+          "stderr": ""
+        },
+        {
+          "mode": "disabled",
+          "repetition": 2,
+          "before_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "after_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "warmup_subprocess_seconds": null,
+          "report_sha256": "0ec4a78487663bb031a7b7be9369529a288bdccbfaeb93cefd5bd6881e88f7e6",
+          "fact_cache_hits": null,
+          "indexed_files": 249,
+          "measured_seconds": 1.4043012080000001,
+          "phases_seconds": {
+            "cache_open": 0.0,
+            "drop": 0.005321875,
+            "index": 1.238730292,
+            "project": 0.147463458,
+            "query": 0.000725125,
+            "root": 3.8625e-05,
+            "scan": 0.003040083,
+            "serialize": 5.625e-06,
+            "verify": 0.008971875
+          },
+          "schema": "fr-project-profile-1",
+          "subprocess_seconds": 1.419011833,
+          "stderr": ""
+        },
+        {
+          "mode": "populated",
+          "repetition": 3,
+          "before_cache": {
+            "files": 244,
+            "bytes": 3983182,
+            "contents_sha256": "e6b392b3da97ede88db0b4efcd0635e5f10b13a4bf0f6f79fb5d9ba297888871"
+          },
+          "after_cache": {
+            "files": 244,
+            "bytes": 3983182,
+            "contents_sha256": "e6b392b3da97ede88db0b4efcd0635e5f10b13a4bf0f6f79fb5d9ba297888871"
+          },
+          "warmup_subprocess_seconds": 1.432382417,
+          "report_sha256": "0ec4a78487663bb031a7b7be9369529a288bdccbfaeb93cefd5bd6881e88f7e6",
+          "fact_cache_hits": 249,
+          "indexed_files": 249,
+          "measured_seconds": 0.172263875,
+          "phases_seconds": {
+            "cache_open": 0.000285792,
+            "drop": 0.004390542,
+            "index": 0.00968325,
+            "project": 0.145010667,
+            "query": 0.000858208,
+            "root": 3.6709e-05,
+            "scan": 0.003231958,
+            "serialize": 3.875e-06,
+            "verify": 0.008758667
+          },
+          "schema": "fr-project-profile-1",
+          "subprocess_seconds": 0.177085,
+          "stderr": ""
+        },
+        {
+          "mode": "disabled",
+          "repetition": 3,
+          "before_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "after_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "warmup_subprocess_seconds": null,
+          "report_sha256": "0ec4a78487663bb031a7b7be9369529a288bdccbfaeb93cefd5bd6881e88f7e6",
+          "fact_cache_hits": null,
+          "indexed_files": 249,
+          "measured_seconds": 1.403637709,
+          "phases_seconds": {
+            "cache_open": 0.0,
+            "drop": 0.00503775,
+            "index": 1.238988292,
+            "project": 0.146827792,
+            "query": 0.000691292,
+            "root": 3.1458e-05,
+            "scan": 0.003237792,
+            "serialize": 6.458e-06,
+            "verify": 0.008809458
+          },
+          "schema": "fr-project-profile-1",
+          "subprocess_seconds": 1.418152792,
+          "stderr": ""
+        },
+        {
+          "mode": "empty",
+          "repetition": 3,
+          "before_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "after_cache": {
+            "files": 244,
+            "bytes": 3983182,
+            "contents_sha256": "7053341c14ee46cf2fbfcadfde4e0efb27e7cfe90e57be3161f32c2294356ecb"
+          },
+          "warmup_subprocess_seconds": null,
+          "report_sha256": "0ec4a78487663bb031a7b7be9369529a288bdccbfaeb93cefd5bd6881e88f7e6",
+          "fact_cache_hits": 6,
+          "indexed_files": 249,
+          "measured_seconds": 1.4057495,
+          "phases_seconds": {
+            "cache_open": 0.0004035,
+            "drop": 0.0052,
+            "index": 1.240674333,
+            "project": 0.146909917,
+            "query": 0.000637167,
+            "root": 3.4166e-05,
+            "scan": 0.003047542,
+            "serialize": 4.625e-06,
+            "verify": 0.00883025
+          },
+          "schema": "fr-project-profile-1",
+          "subprocess_seconds": 1.420409,
+          "stderr": ""
+        }
+      ],
+      "summary": {
+        "disabled": {
+          "samples": 3,
+          "median_subprocess_seconds": 1.419011833,
+          "median_phases_seconds": {
+            "cache_open": 0.0,
+            "drop": 0.005171459,
+            "index": 1.238988292,
+            "project": 0.147042209,
+            "query": 0.000691292,
+            "root": 3.6459e-05,
+            "scan": 0.003237792,
+            "serialize": 5.625e-06,
+            "verify": 0.008971875
+          }
+        },
+        "empty": {
+          "samples": 3,
+          "median_subprocess_seconds": 1.420409,
+          "median_phases_seconds": {
+            "cache_open": 0.000485417,
+            "drop": 0.005276042,
+            "index": 1.240674333,
+            "project": 0.147505666,
+            "query": 0.000676583,
+            "root": 3.4166e-05,
+            "scan": 0.003197292,
+            "serialize": 4.625e-06,
+            "verify": 0.008881375
+          }
+        },
+        "populated": {
+          "samples": 3,
+          "median_subprocess_seconds": 0.17891425,
+          "median_phases_seconds": {
+            "cache_open": 0.000293542,
+            "drop": 0.00456875,
+            "index": 0.010459333,
+            "project": 0.145725,
+            "query": 0.000858208,
+            "root": 3.6667e-05,
+            "scan": 0.003231958,
+            "serialize": 4.791e-06,
+            "verify": 0.008758667
+          }
+        }
+      }
+    }
+  ],
+  "source_and_index_unchanged": true,
+  "scope": "A separate executable times the public library pipeline with default scan options. Every report matches the ordinary CLI byte for byte. Stage times exclude argument parsing, startup and profiling-report output; subprocess time includes them. Index time includes fact loading/extraction, merging and workspace resolution. Populated runs require a fact-cache hit for every indexed file; resolution-cache hits are not counted. Priming and cache-inventory hashing occur outside the measured sample. Single host, rotating modes, no cold OS cache, agent, context-saving or general production-latency claim."
+}

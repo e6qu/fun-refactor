@@ -23,6 +23,11 @@ name = "fr"
 path = "src/main.rs"
 required-features = ["cli"]
 
+[[example]]
+name = "project-profile"
+path = "tools/project-profile.rs"
+required-features = ["cli"]
+
 [features]
 default = ["cli", "lang-all"]
 # Everything a terminal needs: argument parsing, walking a directory, a fact cache

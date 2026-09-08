@@ -30,6 +30,7 @@ The portable skill starts targeted edits with authoring guidance and loads explo
 `project find --source --bytes N` combines name lookup with source slices under one shared page budget.
 [Source kernel proofs](docs/lean-specs.md#bounded-source-kernels) cover modeled UTF-8 slicing and shared budgets, with Rust and CLI comparisons.
 [Cache measurements](docs/project-context-evaluation.md#query-time-and-the-fact-cache) compare query time while checking identical reports and source invalidation.
+[Release profiling](docs/project-context-evaluation.md#release-stage-profiling) identifies project construction as the largest remaining stage in the measured cached lookups.
 [Real-agent acceptance](docs/agent-acceptance.md) records the first paired trials and reversible patches.
 The [context-reduction follow-up](docs/agent-context-followup.md) measures targeted lookup, quiet successful checks and selective skill loading against fresh file-tool trials.
 Use `fr project find NAME --signature` to locate a known declaration without requesting a broad map.

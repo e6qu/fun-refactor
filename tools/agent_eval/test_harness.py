@@ -19,6 +19,37 @@ cache_spec = importlib.util.spec_from_file_location("project_cache_measurement",
 cache_measurement = importlib.util.module_from_spec(cache_spec)
 cache_spec.loader.exec_module(cache_measurement)
 
+profile_spec = importlib.util.spec_from_file_location("project_phase_measurement", TOOLS / "project-profile.py")
+phase_measurement = importlib.util.module_from_spec(profile_spec)
+profile_spec.loader.exec_module(phase_measurement)
+
+
+class ProjectPhaseEvidence(unittest.TestCase):
+    def test_profile_rejects_missing_negative_or_overlapping_phase_times(self):
+        valid = {"schema": "fr-project-profile-1", "phases_seconds": {name: 0.01 for name in phase_measurement.PHASES},
+                 "measured_seconds": 0.5, "report_stdout": "{}\n"}
+        for mutation in ("none", "missing", "negative", "overlap", "outer"):
+            with self.subTest(mutation=mutation):
+                report = copy.deepcopy(valid)
+                if mutation == "missing":
+                    report["phases_seconds"].pop("verify")
+                elif mutation == "negative":
+                    report["phases_seconds"]["scan"] = -0.1
+                elif mutation == "overlap":
+                    report["phases_seconds"]["index"] = 0.49
+                elif mutation == "outer":
+                    report["measured_seconds"] = 2
+                result = mock.Mock(returncode=0, stdout=json.dumps(report).encode(), stderr=b"")
+                with mock.patch.object(phase_measurement.subprocess, "run", return_value=result), \
+                     mock.patch.object(phase_measurement.time, "perf_counter_ns", side_effect=[0, 1_000_000_000]):
+                    if mutation == "none":
+                        self.assertEqual(phase_measurement.profile(Path("profile"), Path("."), Path("cache"),
+                                                                  ["project", "find", "f"], True)["subprocess_seconds"], 1)
+                    else:
+                        with self.assertRaises(AssertionError):
+                            phase_measurement.profile(Path("profile"), Path("."), Path("cache"),
+                                                      ["project", "find", "f"], True)
+
 
 class CacheMeasurementEvidence(unittest.TestCase):
     def test_timing_comparison_rejects_changed_source_coverage_or_revision(self):

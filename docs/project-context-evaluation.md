@@ -140,4 +140,52 @@ The script needs the retained regex source archive, Python and Git. It uses no e
 Cache failures and invalidation assertions fail the measurement; elapsed time has no pass/fail threshold.
 Three evaluator regressions reject changed report fields and incomplete source, and check restoration after an injected query failure.
 Before another autonomous comparison, state the cache policy and distinguish task context from query latency.
-Profile a release build and the remaining project work before choosing a daemon or persistent project index.
+The release profile below narrows the remaining work before any daemon or persistent project-index decision.
+
+## Release stage profiling
+
+M4r repeats the cache comparison with an optimized CLI and adds a separate library-stage profiler.
+Build both executables from the same checkout and locked dependency set:
+
+```sh
+CARGO_HOME="$PWD/target/cargo-home" CARGO_NET_OFFLINE=true cargo build --release --locked --bin fr --example project-profile
+python3 tools/project-cache.py --fr target/release/fr
+python3 tools/project-profile.py --fr target/release/fr --profiler target/release/examples/project-profile
+```
+
+The [ordinary release CLI report](../tests/agent-eval/project-cache-release.json) retains all eighteen samples and both passing source-invalidation probes.
+
+| Lookup | Cache disabled, median seconds | Empty cache, median seconds | Populated cache, median seconds |
+|---|---:|---:|---:|
+| `regex::escape` | 1.438 | 1.431 | 0.180 |
+| `regex_syntax::escape_into` | 1.419 | 1.420 | 0.180 |
+
+The [stage report](../tests/agent-eval/project-profile.json) records eighteen separate samples from `tools/project-profile.rs`.
+This Cargo example calls the public library pipeline with default scan options and an explicit project directory.
+Every result must match the ordinary CLI's complete JSON bytes on the same fixture.
+All populated samples record 249 fact-cache hits for 249 indexed files. These counters exclude resolution-cache hits.
+Each sample starts a new process; cache directories, rotating order and inventory checks follow the M4q method.
+
+| Populated-cache stage | `escape`, median ms | `escape_into`, median ms |
+|---|---:|---:|
+| Initial scan | 3.109 | 3.232 |
+| Index construction | 10.623 | 10.459 |
+| Project construction | 145.716 | 145.725 |
+| Selected query | 0.878 | 0.858 |
+| Final source/inventory verification | 8.905 | 8.759 |
+| Cleanup | 4.606 | 4.569 |
+
+Root resolution, cache opening and JSON serialization each take under one millisecond in these medians.
+The full profiled subprocess medians are 179.2 and 178.9 ms; medians of individual phases need not sum to a median total.
+Stage timers exclude argument parsing, process startup and the profiling envelope's output. The subprocess timer includes them.
+All phases must be nonnegative and fit within the internal measured interval, which must fit within subprocess time.
+The evaluator regression rejects absent phases, negative intervals and overlapping or oversized totals.
+
+Project construction accounts for roughly four-fifths of the populated-cache subprocess time in these samples.
+That phase captures manifests and source, builds line indexes and hierarchy, and constructs the revision digest.
+The next investigation should separate those costs while retaining the same revision inputs and final verification.
+Index time includes fact loading or extraction, merging and workspace resolution; this profiler does not separate those operations.
+
+The release measurements concern this binary, two prescribed queries and one host.
+They do not change the earlier debug measurements or autonomous results, establish general production latency, or demonstrate context savings.
+No optimization or daemon accompanies this measurement. Ordinary CLI reports and production library code remain unchanged.
