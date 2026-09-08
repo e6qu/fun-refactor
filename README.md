@@ -22,7 +22,7 @@ uses. [TUTORIAL.md](TUTORIAL.md) walks through a real repository.
 
 For an agent handoff, use the portable [fr skill](skills/fr/SKILL.md).
 [Agent skill validation](docs/agent-skill.md) describes its task-specific references, executable examples and measured limits.
-[Function authoring](docs/body-authoring.md) adds bounded Rust, TypeScript and TSX implementation changes through project handles and source-history transactions.
+[Function authoring](docs/body-authoring.md) adds bounded Rust, Go, TypeScript and TSX implementation changes through project handles and source-history transactions.
 [Project checks](docs/project-checks.md) selects declared validation commands and reports bounded results and coverage claims.
 After reviewing the listing, add `--no-declarations` to `checks --run` to omit repeated command metadata while retaining execution outcomes and diagnostics.
 [Development continuity](docs/continuity.md) records the active milestone, evidence and remaining work for the next session.

@@ -1,6 +1,6 @@
 # Development continuity
 
-M4v is complete: Rust function insertion now accepts inline module handles.
+M4w is complete: body replacement now supports Go functions and receiver methods.
 The user authorized local commits. Publishing and pushing remain outside this request.
 M4l's four passing workspace trials are retained in `3c8231c`; preparation is `811591e` and documented insertion is `6d0928b`.
 M4m's smaller check reports are committed in `58b53bd`; M4n's targeted skill guidance is `1c44863`.
@@ -11,6 +11,23 @@ M4r's release profiling is committed in `9a253e9`.
 M4s's batched revision hashing and retained measurements are committed in `fb2e252`.
 M4t's buffer proofs and shared state comparisons are committed in `c9f50f0`.
 M4u's wrapped function authoring is committed in `e2933bc`.
+M4v's inline module insertion is committed in `2cdbd1b`.
+
+## Go body authoring
+
+`src/project/author.rs::BodySyntax` includes Go function and method declarations with brace-delimited blocks.
+The existing exact-name-span selector distinguishes same-named methods on different receivers.
+Function literals in variables, interface specifications and bodyless declarations refuse.
+The fragment parser accepts exactly one block in a temporary function, then reparses the destination file.
+Receiver headers, generic parameters, named results and directives outside the block remain unchanged.
+Compilation, imports, package rules and behavior require separate project checks.
+
+Five new authoring scenarios cover declaration forms, source preservation, size boundaries, revision guards and unsupported selections.
+Five compiled history fixtures cover generic functions, pointer receivers, named results with deferred updates, `init` and multiline raw strings.
+They check behavior before edits, after application, after undo and after redo, with frozen fragments and applicable patches.
+A reported Go method edit is compared with Rust and Lean splice implementations, preserving Unicode, CRLF and surrounding comments.
+This extends tested splice correspondence; it adds no new theorem or general proof of AST selection, typing or authoring behavior.
+The agent reference states which Go handles to select and which forms refuse.
 
 ## Inline module insertion
 
@@ -260,6 +277,15 @@ It, the skills, prompts, evaluator and oracle stayed unchanged throughout both p
 Temporary projects are disposable after retention; use repository evidence for replay and audits.
 
 ## Validation and commands
+
+M4w's forty-four authoring scenarios and 35 enabled Lean integration scenarios pass in `/tmp/fr-m4w-focused.log`.
+Two existing deep self-audits remain outside the default gate.
+All five reported-edit Rust/Lean comparisons pass, including the new Go receiver-method case.
+Strict verification passes in `/tmp/fr-m4w-spec-verify.json`: twenty-three fresh anchors and signature maps, zero obligations and 36 Lean build jobs.
+The direct Go lookup-to-saved-plan smoke check passes in `/tmp/fr-m4w-agent-smoke.log`.
+The skill frontmatter validator passes; prose budgets remain unchanged.
+The full native/WASM gate passes in `/tmp/fr-m4w-full-check.log`, including 131 project CLI scenarios, the packaged skill workflow and 311/311 capability coverage.
+All six final documentation suites pass in `/tmp/fr-m4w-docs-final.log`; formatting and diff checks pass.
 
 M4v's thirty-nine authoring scenarios pass in `/tmp/fr-m4v-author-final.log`.
 All four reported-edit Rust/Lean comparisons pass in `/tmp/fr-m4v-reported.log`, including nested module insertion.

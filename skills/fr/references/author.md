@@ -5,7 +5,7 @@ An unscoped or directory-scoped lookup has a different root. Use `project map FI
 
 Choose an operation:
 
-- `fr author replace-body HANDLE --from FILE`: one Rust, TypeScript or TSX block, including supported wrapped function bindings.
+- `fr author replace-body HANDLE --from FILE`: one Rust, Go, TypeScript or TSX block, including supported wrapped function bindings.
 - `fr author replace-declaration HANDLE --from FILE`: one complete Rust function with the same name; outer attributes remain. Callers need separate edits if the signature changes.
 - `fr author insert-declaration HANDLE --from FILE`: add one Rust function to a file or inline module, optionally preceded by `///` or `/** ... */` documentation. Other outer attributes and surrounding comments refuse. Duplicate direct names and pending outer metadata in the selected container refuse.
 
@@ -13,7 +13,10 @@ For module insertion, use the module row's handle from `project find NAME --in F
 Insertion goes before the module's closing brace and preserves existing bytes.
 Fragment boundary whitespace is trimmed; remaining bytes stay verbatim, with no automatic indentation.
 
-Function bindings accept parentheses, `as`, `satisfies`, postfix `!` and TypeScript angle-bracket assertions; the body must be a block.
+For Go, select a named function or receiver method handle. Interface specifications and variables containing function literals refuse.
+Receiver headers, type parameters and directives outside the body stay unchanged; imports and type correctness need compiler checks.
+
+TypeScript/TSX function bindings accept parentheses, `as`, `satisfies`, postfix `!` and TypeScript angle-bracket assertions; the body must be a block.
 Use the variable or field handle, with `project find NAME --in FILE --locals` for variable bindings.
 Calls such as `memo(...)`, conditionals, comma expressions and expression-bodied arrows refuse.
 

@@ -485,10 +485,11 @@ fr author replace-body '<HANDLE>' --from /tmp/body.txt --save-plan
 fr history apply '<TX>' --write
 ```
 
-Replace a Rust, TypeScript or TSX function block while preserving surrounding bytes, including its signature and attributes.
+Replace a Rust, Go, TypeScript or TSX function block while preserving surrounding bytes, including its signature and attributes.
 Named declarations and methods are supported, alongside TypeScript/TSX variable or class-field function initializers.
 Initializers can contain parentheses, `as`, `satisfies`, postfix `!` and TypeScript angle-bracket assertions around the function.
 Arrows need block bodies. Calls, conditionals, comma expressions and expression bodies remain unsupported.
+Go supports named functions, `init` declarations and receiver methods; interface specifications and variables containing function literals refuse.
 Use a current project handle; this command accepts structural identities directly.
 The input is a regular UTF-8 file containing one complete block, at most 64 KiB. The old block must also fit 64 KiB.
 Both original and resulting files must parse without errors. Types, imports, callers and behavior require separate checks.

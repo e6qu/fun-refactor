@@ -45,7 +45,7 @@ Important gaps:
 - Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist. Raw staging and journaled index undo/redo are available on Unix. Reviewed commits are available with explicit index and HEAD bases. Worktree inspection reports registered workspaces with revision-bound pages. Reviewed creation adds raw checkouts on new or unused existing branches on Unix. Ownership receipts support checked completion of incomplete worktrees and reviewed removal of clean worktrees. Removal archives support inspection, checked resumption and reviewed compaction to audit summaries. Shared browser patch semantics remain pending.
 - Strict spec signature maps currently accept Rust source declarations only.
 - Framework readers cover selected patterns. Whole applications still need dependency and runtime work.
-- The portable agent skill covers exploration, changes, declared checks, history, Git and Lean. Rust, TypeScript and TSX body replacement uses project handles and source history. TypeScript/TSX function bindings support block bodies inside parentheses and type-only assertions. Rust function declaration replacement can change signatures and implementations together. Rust function insertion accepts file and inline module handles. Broader agent evaluation, context reduction, additional initializer forms and insertion into other scopes remain pending.
+- The portable agent skill covers exploration, changes, declared checks, history, Git and Lean. Rust, Go, TypeScript and TSX body replacement uses project handles and source history. TypeScript/TSX function bindings support block bodies inside parentheses and type-only assertions. Rust function declaration replacement can change signatures and implementations together. Rust function insertion accepts file and inline module handles. Broader agent evaluation, context reduction, additional initializer forms and insertion into other scopes remain pending.
 - Model proofs and shared executable cases do not establish general correspondence with the Rust implementation.
 
 ## Product contract
@@ -1073,6 +1073,20 @@ All thirty-nine authoring scenarios and four reported-edit Rust/Lean comparisons
 The full native/WASM gate passes, including 131 project CLI scenarios, the packaged skill workflow and 311/311 capability coverage.
 Strict verification retains twenty-three fresh source anchors and signature maps, zero obligations and 36 Lean build jobs.
 See [body authoring](docs/body-authoring.md) for placement and report fields.
+
+M4w: Go function and method body authoring (complete).
+
+Body replacement accepts named Go functions, `init` declarations and receiver methods through current project handles.
+It preserves headers, type parameters, named results and all source outside the selected block.
+Interface specifications, bodyless declarations and variables containing function literals refuse.
+Five new authoring scenarios cover exact selection, same-named receivers, size and revision guards, syntax refusal and saved transactions.
+Five compiled history workflows exercise generic functions, receiver state, named results with `defer`, initialization and multiline raw strings.
+A reported Go method replacement matches the existing Rust and Lean splice results; AST selection and compiler correctness remain outside that proof.
+The CLI, agent reference and continuity documentation describe the new language scope.
+All forty-four authoring scenarios and five reported-edit Rust/Lean comparisons pass.
+The full native/WASM gate passes, including 131 project CLI scenarios, the packaged skill workflow and 311/311 capability coverage.
+Strict verification retains twenty-three fresh source anchors and signature maps, zero obligations and 36 Lean build jobs.
+See [body authoring](docs/body-authoring.md) for selection, validation and transaction limits.
 
 Next M4 work:
 

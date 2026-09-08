@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 #[derive(Subcommand)]
 pub enum Command {
     #[command(
-        about = "Replace one Rust, TypeScript or TSX function body, retaining surrounding source."
+        about = "Replace one Rust, Go, TypeScript or TSX function body, retaining surrounding source."
     )]
     ReplaceBody(ReplaceBodyOptions),
     #[command(
@@ -84,6 +84,13 @@ impl BodySyntax {
                 targets: &["function_item"],
                 bindings: &[],
             }),
+            Language::Go => Ok(Self {
+                prefix: "func __fr_body__() ",
+                item: "function_declaration",
+                block: "block",
+                targets: &["function_declaration", "method_declaration"],
+                bindings: &[],
+            }),
             Language::TypeScript | Language::Tsx => Ok(Self {
                 prefix: "function __fr_body__() ",
                 item: "function_declaration",
@@ -96,7 +103,7 @@ impl BodySyntax {
                 bindings: &["variable_declarator", "public_field_definition"],
             }),
             _ => anyhow::bail!(
-                "body replacement supports Rust, TypeScript and TSX; select a supported function."
+                "body replacement supports Rust, Go, TypeScript and TSX; select a supported function."
             ),
         }
     }

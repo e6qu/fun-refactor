@@ -159,12 +159,20 @@ fn the_edit_kernel_accepts_a_reported_wrapped_body_replacement() {
     reported_declaration_plan("replace-body", "calc");
 }
 
+#[test]
+fn the_edit_kernel_accepts_a_reported_go_method_replacement() {
+    reported_declaration_plan("replace-body", "Calc");
+}
+
 fn reported_declaration_plan(operation: &str, selected: &str) {
     let temp = tempfile::tempdir().unwrap();
     let workspace = temp.path().join("workspace");
     std::fs::create_dir(&workspace).unwrap();
     let body = operation == "replace-body";
-    let (file, old, new) = if body {
+    let go = body && selected == "Calc";
+    let (file, old, new) = if go {
+        ("app.go", "{ return value + 1 }", "{ return value * 2 }")
+    } else if body {
         (
             "app.tsx",
             "{ return <span>{value + 1}</span>; }",
@@ -184,6 +192,8 @@ fn reported_declaration_plan(operation: &str, selected: &str) {
             .to_owned()
     } else if inserting {
         "// π\r\nfn other() {}\r\n// Final comment.".to_owned()
+    } else if go {
+        format!("// π\r\npackage main\r\ntype Counter int\r\nfunc (c *Counter) Calc(value int) int /* keep */ {old}\r\nfunc other() {{}}\r\n")
     } else if body {
         format!("// π\r\nconst calc = (((value: number) => /* keep */ {old}) satisfies (value: number) => JSX.Element)!;\r\nconst other = () => {{ return 0; }};\r\n")
     } else {

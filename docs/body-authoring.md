@@ -1,7 +1,7 @@
 # Bounded function authoring
 
 `fr author replace-body HANDLE --from FILE` replaces one function block through a current project handle.
-It supports Rust, TypeScript and TSX.
+It supports Rust, Go, TypeScript and TSX.
 It retains the signature, outer attributes, documentation and every byte outside that block.
 This native command complements the existing refactorings when an agent needs to write a new implementation.
 
@@ -39,6 +39,11 @@ Relative input paths resolve from the workspace root. Input files can reside out
 Writing the fragment outside the project avoids invalidating a previously obtained map through inventory changes.
 
 Rust targets include ordinary functions, methods, default trait method bodies and nested function items.
+Go targets include named functions, `init` declarations and receiver methods, including generic function and receiver headers.
+Select the specific method handle when different receiver types share a method name.
+Go interface method specifications, bodyless declarations and variables containing function literals refuse.
+Receiver declarations, type parameters, named results, documentation and directives outside the body remain unchanged.
+The Go fragment must contain one brace-delimited block; imports, type correctness and package rules require separate compiler checks.
 TypeScript and TSX targets include named function declarations, generators, class and object methods, accessors and constructors.
 They also include variable or class-field initializers containing block-bodied arrows, ordinary function expressions or generator expressions.
 The function can sit inside nested parentheses, `as`, `satisfies`, postfix non-null `!` assertions and TypeScript angle-bracket assertions.
@@ -161,21 +166,25 @@ Source verification and recording are separate observations; this command does n
 
 ## Evidence
 
-Thirty-nine CLI scenarios cover saved edit identity, compiled behavior, undo/redo, patch export, stale handles and revisions, unsupported targets and malformed input.
+Forty-four CLI scenarios cover saved edit identity, compiled behavior, undo/redo, patch export, stale handles and revisions, unsupported targets and malformed input.
 They also check exact size limits, diff omission, method and nested-function contexts, Unicode and CRLF preservation, no-op writes, symlink inputs and Unix permissions.
 TypeScript and TSX fixtures compile with `tsc --strict` and run in Node before and after saved replacements.
 The tests cover JSX, supported declaration forms, extension aliases and unsupported selections without editing an enclosing function.
 Function-binding cases preserve neighboring declarations, shadowed bindings, lexical receivers, named recursion and generator behavior through saved transactions.
 Wrapped cases add nested assertions, comments between operands, TSX rendering and wrapper changes that invalidate handles and saved plans.
 Brace-token spans preserve external comments and semicolons; duplicate names retain separate implementation selections.
+Go fixtures cover generic functions, pointer and value receivers, same-named methods, Unicode identifiers, `init`, size limits and refusals.
+Five Go history workflows compile and run before edits, after application, after undo and after redo.
+They exercise receiver state, named results with `defer` and multiline raw strings, while checking saved fragments and patch applicability.
 The size predicate has a source anchor and signature map into Lean, with 64 shared boundary cases including machine limits.
 Lean proves its lower and upper bounds and symmetry between old and new body sizes.
 The existing edit model describes a splice as an unchanged prefix, replacement and unchanged suffix.
-The same size guard and edit model apply to all three languages.
+The same size guard and edit model apply to all four languages.
 Declaration cases cover compiled signature changes, preserved outer attributes, exact name spelling and complete-item size limits.
 Lean proves both prefix and suffix preservation for valid splice boundaries, including replacements that change length.
 An edit reported by the declaration CLI also passes through Rust and Lean with matching results.
 The same splice comparison now checks a reported TSX body replacement inside nested wrappers, retaining Unicode, CRLF and a neighboring declaration.
+A reported Go receiver-method replacement also produces matching Rust and Lean splice results with Unicode, CRLF and surrounding comments.
 An incompatible signature fixture confirms that syntax acceptance can still leave a compiler error in a caller.
 Insertion cases cover EOF and module placement, empty files, separators, duplicate names and unattached outer metadata.
 Module fixtures check same-named selections, raw identifiers, nested scopes, closing-brace indentation and verbatim multiline strings.

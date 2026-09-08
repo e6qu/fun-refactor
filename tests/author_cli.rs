@@ -1543,3 +1543,262 @@ fn module_insertion_bounds_fragment_bytes_and_hashes_the_actual_splice() {
     assert!(!insert_declaration(&root, &handle, &input, &["--save-plan"]).0);
     assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
 }
+
+fn compiled_go_result(root: &Path) -> Vec<u8> {
+    let binary = root.parent().unwrap().join("compiled-go");
+    let output = Command::new("go")
+        .args(["build", "-o"])
+        .arg(&binary)
+        .arg("app.go")
+        .current_dir(root)
+        .env(
+            "GOCACHE",
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("target/go-cache"),
+        )
+        .env("GOTOOLCHAIN", "local")
+        .env("GOWORK", "off")
+        .env("GO111MODULE", "off")
+        .env("GOPROXY", "off")
+        .env("CGO_ENABLED", "0")
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let output = Command::new(binary).output().unwrap();
+    assert!(output.status.success());
+    output.stdout
+}
+
+#[test]
+fn go_body_replacement_preserves_function_and_receiver_headers() {
+    for (name, source) in [
+        ("calc", concat!("// π\r\npackage main\r\n", "//go:noinline\r\nfunc calc() int { return 1 }\r\n")),
+        ("calc", "package main\nfunc calc[T ~int](n T) int { return 1 }\n"),
+        ("calc", "package main\ntype Counter int\nfunc (c Counter) calc() int { return 1 }\n"),
+        ("calc", "package main\ntype Counter int\nfunc (c *Counter) calc() int { return 1 }\n"),
+        ("calc", "package main\ntype Box[T any] struct { value T }\nfunc (b *Box[T]) calc() (result int) { return 1 }\n"),
+        ("calc", "package main\nfunc calc() int /* before */ { return 1 }; /* after */\n"),
+        ("計算", "package main\nfunc 計算() int { return 1 }\n"),
+    ] {
+        let body = "{ return 2 }";
+        let (_temp, root, input) = fixture_file("app.go", source, body.as_bytes());
+        let (handle, _) = selection(&root, name);
+        let (success, report) = replace(&root, &handle, &input, &["--write"]);
+        assert!(success, "{source}: {report}");
+        let changed = fs::read_to_string(root.join("app.go")).unwrap();
+        assert_eq!(changed, source.replace("{ return 1 }", body));
+        let span = &report["body"]["after_span"];
+        assert_eq!(&changed[span["start"].as_u64().unwrap() as usize..span["end"].as_u64().unwrap() as usize], body);
+        assert_eq!(report["validation"], "reparse-strict");
+        assert_eq!(report["behavior_checked"], false);
+    }
+}
+
+#[test]
+fn go_saved_bodies_compile_through_apply_undo_patch_and_redo() {
+    for (declarations, name, call, old, new, before, after) in [
+        (
+            "func calc[T ~int](n T) T OLD",
+            "calc",
+            "calc(3)",
+            "{ return n + 1 }",
+            "{ return n * 2 }",
+            "4\n",
+            "6\n",
+        ),
+        (
+            concat!(
+                "type Counter struct { base int }; ",
+                "func (c *Counter) calc(n int) int OLD"
+            ),
+            "calc",
+            "(&Counter{base: 4}).calc(3)",
+            "{ return c.base + n + 1 }",
+            "{ return c.base + n * 2 }",
+            "8\n",
+            "10\n",
+        ),
+        (
+            "func calc(n int) (result int) OLD",
+            "calc",
+            "calc(3)",
+            "{ result = n + 1; return }",
+            "{ defer func() { result++ }(); result = n * 2; return }",
+            "4\n",
+            "7\n",
+        ),
+        (
+            "var result int; func init() OLD",
+            "init",
+            "result",
+            "{ result = 4 }",
+            "{ result = 6 }",
+            "4\n",
+            "6\n",
+        ),
+        (
+            "func calc() string OLD",
+            "calc",
+            "calc()",
+            "{ return \"old\" }",
+            "{ return `first\n  π` }",
+            "old\n",
+            "first\n  π\n",
+        ),
+    ] {
+        let source = format!("// π\r\npackage main\r\nimport \"fmt\"\r\n{}\r\nfunc main() {{ fmt.Println({call}) }}\r\n", declarations.replace("OLD", old));
+        let (_temp, root, input) = fixture_file("app.go", &source, new.as_bytes());
+        assert_eq!(compiled_go_result(&root), before.as_bytes());
+        let (handle, _) = selection(&root, name);
+        let (success, preview) = replace(&root, &handle, &input, &["--diff-bytes", "0"]);
+        assert!(success, "{preview}");
+        assert_eq!(preview["diff"]["text"], "");
+        assert!(!root.join(".fr-history").exists());
+        let (success, saved) = replace(&root, &handle, &input, &["--save-plan"]);
+        assert!(success, "{saved}");
+        let id = saved["transaction"].as_u64().unwrap().to_string();
+        fs::write(&input, "{}").unwrap();
+        ok(&root, &["history", "apply", &id, "--write"]);
+        let expected = source.replace(old, new);
+        assert_eq!(fs::read_to_string(root.join("app.go")).unwrap(), expected);
+        assert_eq!(compiled_go_result(&root), after.as_bytes());
+        assert!(!replace(&root, &handle, &input, &["--write"]).0);
+        fs::write(root.join("unrelated.txt"), "retained\n").unwrap();
+        ok(&root, &["history", "undo", &id, "--write"]);
+        assert_eq!(fs::read_to_string(root.join("app.go")).unwrap(), source);
+        assert_eq!(compiled_go_result(&root), before.as_bytes());
+        ok(&root, &["history", "patch", &id, "--check"]);
+        let patch = ok(&root, &["history", "patch", &id]);
+        for line in new.lines() {
+            assert!(patch["patch"].as_str().unwrap().contains(line));
+        }
+        ok(&root, &["history", "redo", &id, "--write"]);
+        assert_eq!(compiled_go_result(&root), after.as_bytes());
+        assert_eq!(
+            fs::read_to_string(root.join("unrelated.txt")).unwrap(),
+            "retained\n"
+        );
+        fs::write(root.join("app.go"), expected + "// Later edit.\n").unwrap();
+        assert!(!run(&root, &["history", "undo", &id, "--write"]).0);
+    }
+}
+
+#[test]
+fn go_body_replacement_distinguishes_same_named_receivers() {
+    let source = "package main\ntype Left int\ntype Right int\nfunc (Left) calc() int { return 1 }\nfunc (Right) calc() int { return 1 }\n";
+    for selected in 0..2 {
+        let (_temp, root, input) = fixture_file("app.go", source, b"{ return 2 }");
+        let map = ok(
+            &root,
+            &["project", "map", "--depth", "64", "--fields", "handle,name"],
+        );
+        let rows: Vec<_> = map["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|row| row[1] == "calc")
+            .collect();
+        assert_eq!(rows.len(), 2);
+        let handle = rows[selected][0].as_str().unwrap();
+        let (success, report) = replace(&root, handle, &input, &["--write"]);
+        assert!(success, "{report}");
+        let offset = source
+            .match_indices("{ return 1 }")
+            .nth(selected)
+            .unwrap()
+            .0;
+        assert_eq!(report["body"]["before_span"]["start"], offset);
+        let mut expected = source.to_owned();
+        expected.replace_range(offset..offset + 12, "{ return 2 }");
+        assert_eq!(fs::read_to_string(root.join("app.go")).unwrap(), expected);
+    }
+}
+
+#[test]
+fn go_body_replacement_refuses_nonfunctions_and_escaped_fragments() {
+    for (source, name) in [
+        ("package main\nvar calc = func() int { return 1 }\n", "calc"),
+        (
+            "package main\ntype Reader interface { calc() int }\n",
+            "calc",
+        ),
+        ("package main\nfunc calc()\n", "calc"),
+        ("package main\ntype calc struct {}\n", "calc"),
+        (
+            "package main\nfunc outer() { calc := func() {}; calc() }\n",
+            "calc",
+        ),
+        (
+            "package main\nfunc outer() { var calc int; _ = calc }\n",
+            "calc",
+        ),
+        ("package main\nfunc calc() { x := }\n", "calc"),
+        ("package main\nfunc calc() {}\n", "app.go"),
+    ] {
+        let (_temp, root, input) = fixture_file("app.go", source, b"{}");
+        let (handle, _) = selection(&root, name);
+        let (success, report) = replace(&root, &handle, &input, &["--save-plan"]);
+        assert!(!success, "{source}: {report}");
+        assert_eq!(fs::read_to_string(root.join("app.go")).unwrap(), source);
+        assert!(!root.join(".fr-history").exists());
+    }
+    for body in [
+        "",
+        "{",
+        "{ x := }",
+        "{}\nfunc escape() {}",
+        "{} // trailing",
+        "{};",
+        "func() {}",
+        "{\0}",
+    ] {
+        let source = "package main\nfunc calc() {}\n";
+        let (_temp, root, input) = fixture_file("app.go", source, body.as_bytes());
+        let (handle, _) = selection(&root, "calc");
+        assert!(!replace(&root, &handle, &input, &["--write"]).0, "{body:?}");
+        assert_eq!(fs::read_to_string(root.join("app.go")).unwrap(), source);
+        assert!(!root.join(".fr-history").exists());
+    }
+}
+
+#[test]
+fn go_body_replacement_keeps_revision_noop_and_size_guards() {
+    let source = "package main\nfunc calc() {}\n";
+    let (_temp, root, input) = fixture_file("app.go", source, b" \n{}\n");
+    let (handle, revision) = selection(&root, "calc");
+    let short = handle.rsplit(':').next().unwrap();
+    assert!(!replace(&root, short, &input, &["--write"]).0);
+    let (success, report) = replace(&root, short, &input, &["--revision", &revision, "--write"]);
+    assert!(success, "{report}");
+    assert_eq!(report["changed"], false);
+    assert!(report["transaction"].is_null());
+    assert!(!root.join(".fr-history").exists());
+    let body = format!("{{{}}}", " ".repeat(65534));
+    fs::write(&input, &body).unwrap();
+    assert!(replace(&root, &handle, &input, &["--save-plan"]).0);
+    fs::write(root.join("app.go"), source.replace("calc", "renamed")).unwrap();
+    assert!(!run(&root, &["history", "apply", "1", "--write"]).0);
+    assert!(!replace(&root, &handle, &input, &["--write"]).0);
+    fs::write(root.join("app.go"), source).unwrap();
+    ok(&root, &["history", "apply", "1", "--write"]);
+    assert_eq!(
+        fs::read_to_string(root.join("app.go")).unwrap(),
+        source.replace("{}", &body)
+    );
+    let (fresh, _) = selection(&root, "calc");
+    fs::write(&input, &body[1..]).unwrap();
+    assert!(!replace(&root, &fresh, &input, &["--write"]).0);
+    fs::write(&input, format!(" {body}")).unwrap();
+    assert!(!replace(&root, &fresh, &input, &["--write"]).0);
+    fs::write(
+        root.join("app.go"),
+        source.replace("{}", &format!("{{{}}}", " ".repeat(65535))),
+    )
+    .unwrap();
+    fs::write(&input, "{}").unwrap();
+    let (fresh, _) = selection(&root, "calc");
+    assert!(!replace(&root, &fresh, &input, &["--write"]).0);
+}
