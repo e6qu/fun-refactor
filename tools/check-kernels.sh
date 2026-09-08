@@ -14,6 +14,8 @@ cd "$(dirname "$0")/.."
     lake exe fr-history-kernel patch-basis >/dev/null
     lake exe fr-history-kernel owner-executable >/dev/null
     lake exe fr-project-kernel >/dev/null
+    lake exe fr-project-kernel source-slices >/dev/null
+    lake exe fr-project-kernel source-pages >/dev/null
     lake exe fr-project-kernel body-replacement-budget >/dev/null
     lake exe fr-project-kernel line-ranges >/dev/null
     lake exe fr-project-kernel call-selection >/dev/null

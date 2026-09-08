@@ -93,4 +93,5 @@ target/agent-eval-venv/bin/python tools/find-source-context.py --fr target/debug
 This read-only comparison needs the retained source archive, Python and Git, but does not build the regex workspace or require its extra dependencies.
 CLI regressions cover shared budgets, empty slices, UTF-8 continuation, empty matches, large bodies and cursor/handle refusal.
 The executable authoring example compiles and tests a wrapper after reading its helper directly from the lookup.
-Source slicing reuses the modeled page-length helper; these additions make no new proof claim about parsing or aggregate query behavior.
+M4p adds [source-slice and shared-budget model proofs](lean-specs.md#bounded-source-kernels), with shared Rust cases and actual CLI comparisons.
+Parser behavior and general implementation correspondence remain unproved. The retained M4o measurements describe their original binary and inputs.

@@ -981,6 +981,19 @@ Controlled prescribed queries on regex return the same lookup metadata and compl
 This does not measure fresh agents, discovery, total task context or latency; broader node details still require `show` when needed.
 See [source lookup measurements](docs/project-context-evaluation.md#bounded-source-during-name-lookup) for the retained comparison and reproduction.
 
+M4p: source-slice and shared-budget model proofs (complete).
+
+The shared Rust source-slice helper now carries an explicit Lean anchor and signature map.
+Nineteen model theorems cover boundary acceptance, maximal slices, source and byte bounds, progress and remaining-byte partitioning.
+The page model preserves rows, shares one budget and handles exhaustion without dropping results.
+Shared execution compares 19,220 slice cases and 5,180 page allocations on 64-bit hosts, including Unicode and machine limits.
+An independent scalar oracle checks Rust results; eleven CLI comparisons connect actual lookup pages with the executable model.
+Strict verification passes with twenty-three fresh source anchors and signature maps, zero obligations and 31 Lean build jobs.
+The full native/WASM gate passes, including 131 project CLI scenarios and 311/311 capability coverage.
+The CLI surface and retained context measurements stay unchanged.
+General implementation correspondence, parser spans and report assembly remain unproved.
+See [bounded source kernels](docs/lean-specs.md#bounded-source-kernels) for assumptions, axiom dependencies and validation scope.
+
 Next M4 work:
 
 Use the retained workspace traces to reduce repeated report metadata and skill-loading costs, preserving coverage, source bases, guards and reviewable changes.

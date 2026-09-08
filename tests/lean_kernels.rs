@@ -786,6 +786,217 @@ fn project_page_lengths_match_lean_including_integer_limits() {
     }
 }
 
+fn source_samples() -> Vec<String> {
+    let mut sources = vec![String::new()];
+    let mut words = sources.clone();
+    for _ in 0..3 {
+        words = words
+            .iter()
+            .flat_map(|stem| ["a", "é", "名", "🙂"].map(|suffix| format!("{stem}{suffix}")))
+            .collect();
+        sources.extend(words.clone());
+    }
+    sources.extend(
+        [
+            "\0\r\n",
+            "\u{7f}\u{80}\u{7ff}\u{800}\u{ffff}\u{10000}\u{10ffff}",
+            "é",
+            "\u{feff}",
+            "\t\\\"",
+        ]
+        .map(str::to_owned),
+    );
+    sources
+}
+
+fn source_budgets() -> Vec<u64> {
+    (0..17).chain([65536, u32::MAX.into(), u64::MAX]).collect()
+}
+
+fn scalar_slice_length(text: &str, offset: usize, budget: usize) -> Option<usize> {
+    let tail = text.get(offset..)?;
+    let mut length = 0;
+    for character in tail.chars() {
+        let width = character.len_utf8();
+        if width > budget - length {
+            break;
+        }
+        length += width;
+    }
+    Some(length)
+}
+
+#[test]
+fn source_slice_lengths_match_lean_and_scalar_oracle() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("source-slices")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let mut actual = stdout.lines();
+    let mut count = 0;
+    for text in source_samples() {
+        for offset in (0..text.len() as u64 + 2).chain([u32::MAX.into(), u64::MAX]) {
+            for budget in source_budgets() {
+                let line = actual.next().expect("one Lean result per case");
+                if let (Ok(offset), Ok(budget)) = (usize::try_from(offset), usize::try_from(budget))
+                {
+                    let expected =
+                        fun_refactor::project::source_slice_length(&text, offset, budget);
+                    let lean = (line != "none").then(|| line.parse::<usize>().unwrap());
+                    assert_eq!(lean, expected, "{text:?}, offset {offset}, budget {budget}");
+                    assert_eq!(expected, scalar_slice_length(&text, offset, budget));
+                    if let Some(length) = expected {
+                        let end = offset.checked_add(length).unwrap();
+                        assert!(length <= budget && text.is_char_boundary(end));
+                        assert_eq!(
+                            format!("{}{}{}", &text[..offset], &text[offset..end], &text[end..]),
+                            text
+                        );
+                    }
+                    count += 1;
+                }
+            }
+        }
+    }
+    assert!(actual.next().is_none());
+    assert_eq!(count, if usize::BITS == 64 { 19_220 } else { 16_549 });
+}
+
+#[test]
+fn source_page_allocations_match_lean_and_share_one_budget() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("source-pages")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let mut actual = stdout.lines();
+    let mut pages = vec![Vec::new()];
+    let mut words = pages.clone();
+    for _ in 0..3 {
+        words = words
+            .iter()
+            .flat_map(|stem| {
+                ["", "a", "é", "名", "🙂", "a🙂é"].map(|text| {
+                    let mut page = stem.clone();
+                    page.push(text);
+                    page
+                })
+            })
+            .collect();
+        pages.extend(words.clone());
+    }
+    assert_eq!(pages.len(), 259);
+    for texts in pages {
+        for budget in source_budgets() {
+            let line = actual.next().expect("one Lean result per page");
+            let Ok(budget) = usize::try_from(budget) else {
+                continue;
+            };
+            let mut remaining = budget;
+            let expected: Vec<_> = texts
+                .iter()
+                .map(|text| {
+                    let length =
+                        fun_refactor::project::source_slice_length(text, 0, remaining).unwrap();
+                    assert_eq!(Some(length), scalar_slice_length(text, 0, remaining));
+                    remaining = remaining.checked_sub(length).unwrap();
+                    length
+                })
+                .collect();
+            let lean: Vec<usize> = serde_json::from_str(line).unwrap();
+            assert_eq!(lean, expected, "{texts:?}, budget {budget}");
+            assert_eq!(lean.len(), texts.len());
+            assert_eq!(
+                lean.iter().sum::<usize>().checked_add(remaining),
+                Some(budget)
+            );
+        }
+    }
+    assert!(actual.next().is_none());
+}
+
+#[test]
+fn find_source_pages_agree_with_lean_on_selected_source() {
+    build_kernel();
+    let dir = tempfile::tempdir().unwrap();
+    let original = "def café():\n    return 'λ🙂'\n\nclass Other:\n    def café(self):\n        return '世界'\n\nclass Third:\n    def café(self):\n        return 'é'\n";
+    std::fs::write(dir.path().join("app.py"), original).unwrap();
+    let query = |budget: usize| -> serde_json::Value {
+        let output = Command::new(env!("CARGO_BIN_EXE_fr"))
+            .args(["--json", "--no-cache", "-C"])
+            .arg(dir.path())
+            .args([
+                "project",
+                "find",
+                "café",
+                "--source",
+                "--bytes",
+                &budget.to_string(),
+            ])
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{output:?}");
+        serde_json::from_slice(&output.stdout).unwrap()
+    };
+    let full = query(65536);
+    let source_column = full["columns"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .position(|field| field == "source")
+        .unwrap();
+    let texts: Vec<_> = full["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| {
+            let source = &row[source_column];
+            let start = source["span"]["start"].as_u64().unwrap() as usize;
+            let end = source["span"]["end"].as_u64().unwrap() as usize;
+            let text = &original[start..end];
+            assert_eq!(source["text"], text);
+            assert_eq!(source["next_offset"], serde_json::Value::Null);
+            text
+        })
+        .collect();
+    assert_eq!(texts.len(), 3);
+    for budget in [4, 5, 6, 7, 8, 9, 12, 16, 32, 64, 65536] {
+        let report = query(budget);
+        let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+            .args(["source-page", &budget.to_string()])
+            .args(&texts)
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{output:?}");
+        let lean: Vec<usize> = serde_json::from_slice(&output.stdout).unwrap();
+        let rows = report["rows"].as_array().unwrap();
+        assert_eq!(rows.len(), texts.len());
+        assert_eq!(lean.len(), texts.len());
+        for ((row, text), length) in rows.iter().zip(&texts).zip(&lean) {
+            let source = &row[source_column];
+            assert_eq!(source["text"], text[..*length]);
+            assert_eq!(source["returned_bytes"], *length);
+            assert_eq!(
+                source["next_offset"],
+                serde_json::json!((*length < text.len()).then_some(length))
+            );
+        }
+        assert_eq!(
+            report["source_budget"]["returned_bytes"],
+            lean.iter().sum::<usize>()
+        );
+    }
+    assert_eq!(
+        std::fs::read_to_string(dir.path().join("app.py")).unwrap(),
+        original
+    );
+}
+
 #[test]
 fn workspace_pattern_matcher_agrees_with_lean_on_component_sequences() {
     build_kernel();

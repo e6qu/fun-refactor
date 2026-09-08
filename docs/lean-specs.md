@@ -13,7 +13,7 @@ The [roadmap](../PLAN.md) extends this foundation into an adoption workflow for 
 | `fr spec check --strict` | Require an explicit signature map beside every source anchor |
 | `fr spec sync` | Preview renewal of stale source hashes; `--write` applies reviewed renewals |
 | `fr spec verify` | Strict correspondence checks, then `lake build --wfail` in each owning package |
-| `kernels/` | Executable edit, position, history, pagination, confidence and workspace membership models with shared Rust/Lean cases |
+| `kernels/` | Executable edit, position, history, pagination, source-budget, confidence and workspace membership models with shared Rust/Lean cases |
 
 Strict signature maps currently require Rust source declarations.
 The checker compares both signatures with the explicit map. It does not infer semantic equivalence between mapped types.
@@ -169,6 +169,44 @@ Declared literal paths retain parent components for exclusion precedence; normal
 Snapshot escapes, parent components after a literal or wildcard, parent-relative exclusions and npm parent patterns remain unsupported.
 Cargo metadata fixtures check sibling membership, inheritance and the alias/exclusion interaction. Path interpretation and ownership still remain outside the Lean proofs.
 
+## Bounded source kernels
+
+`FrKernels.Source` models the UTF-8 slicing helper that serves `project find --source` and `project show --source`.
+Its source anchor and explicit signature map identify `src/project.rs::source_slice_length`.
+The model defines byte boundaries as sums of Unicode scalar widths and searches backward for the greatest boundary within the budget.
+Offsets and budgets use natural numbers. Shared tests compare cases that the host's `usize` can represent.
+
+Nineteen theorems establish:
+
+- Zero and the source end are boundaries; every boundary lies within the source.
+- Slicing accepts exactly valid starting boundaries and refuses other offsets.
+- An accepted slice ends at a boundary, respects the byte limit and stays within the source.
+- Each slice takes the longest prefix that fits and partitions the remaining byte count.
+- A zero budget returns zero bytes. A sufficient budget finishes the source.
+- A slice advances when a later boundary fits; a budget smaller than the next scalar can leave an empty slice.
+- Page allocation preserves every row, shares one budget, partitions used and remaining bytes, and returns zero lengths after exhaustion.
+
+The shared corpus compares 19,220 slice cases over 90 strings on 64-bit hosts.
+It includes every byte offset, split-scalar offsets, source ends, out-of-range offsets, zero budgets and machine limits.
+Strings cover one-through-four-byte scalars, Unicode width boundaries, combining marks, NUL, CRLF and escape characters.
+An independent Rust oracle accumulates scalar widths forward; the production helper searches backward from the byte cap.
+The test also reconstructs the original text around each accepted slice.
+
+Another 5,180 cases compare page allocations over all zero-through-three-row sequences drawn from six strings.
+These exercise empty rows, exhausted budgets, partial scalars and unused bytes that a later row can consume.
+Eleven CLI comparisons pass actual `find` reports and their selected source through the executable Lean model.
+Existing project regressions retain continuation, stale-handle refusal, row pagination and large-body checks.
+
+The axiom audit reports `propext`, `Quot.sound` and, for some proofs, `Classical.choice`.
+These proofs add no custom or compiler-trust axioms and contain no `sorry` obligations.
+Inspect individual dependencies with `#print axioms FrKernels.Source.page_respects_shared_budget` in a file importing `FrKernels.Source`.
+`tools/check-kernels.sh` builds the module and runs both corpora through the existing project executable.
+
+These are model proofs with tested implementation correspondence.
+The page model represents the caller's allocation loop; it has no separate source anchor.
+General Rust correspondence, UTF-8 library internals, parser spans and JSON report assembly remain unproved.
+JSON escaping and metadata lie outside the raw source-text budget.
+
 ## Adopting Lean in another project today
 
 Create a Lake package and write a small executable model with a useful property.
@@ -215,7 +253,7 @@ An agent chooses useful claims, writes models and searches for proofs.
 It must report a false claim rather than weaken that claim to obtain a successful build.
 
 The local [Lean skill](../.claude/skills/lean-spec/SKILL.md) describes the implemented workflow.
-The broader agent skill package remains part of [PLAN.md](../PLAN.md).
+The portable agent skill includes a [Lean reference](../skills/fr/references/lean.md) with an executable anchor-review workflow.
 
 Staging proposals reuse the same anchored Git mode projection and shared snapshot readers as explicit call context.
 Staging history adds an anchored transition predicate, checked against all boolean inputs, and abstract index replacement laws.

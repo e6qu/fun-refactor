@@ -1,9 +1,30 @@
 # Development continuity
 
-M4o is complete: bounded source in `project find` combines lookup and needed implementation detail.
+M4p is complete: source-slice and shared-budget model proofs now complement bounded source lookup.
 The user authorized local commits. Publishing and pushing remain outside this request.
 M4l's four passing workspace trials are retained in `3c8231c`; preparation is `811591e` and documented insertion is `6d0928b`.
 M4m's smaller check reports are committed in `58b53bd`; M4n's targeted skill guidance is `1c44863`.
+M4o's bounded source lookup is committed in `5214404`.
+
+## Source verification
+
+`src/project.rs::source_slice_length` serves both find and show through their existing source renderer.
+The extraction preserves the CLI's slicing behavior and invalid-offset diagnostic.
+`kernels/FrKernels/Source.lean` anchors that helper with an explicit signature map.
+Nineteen theorems cover valid boundaries, bounds, maximality, continuation conditions, byte partitioning and page allocation.
+The page model preserves empty rows and shares one raw source-text budget, including unused bytes from UTF-8 clipping.
+It models the caller's allocation loop without a separate source anchor.
+
+Three new Lean integration scenarios pass: 19,220 slice cases, 5,180 page allocations and actual lookup pages across eleven budgets.
+The slice corpus includes machine limits, invalid offsets and Unicode width boundaries; an independent forward scalar oracle checks Rust.
+The page corpus covers all sequences through three rows from six strings, including empty and multi-byte-leading rows.
+The project executable accepts `source-slices` and `source-pages` for these corpora and `source-page BUDGET TEXT...` for CLI comparisons.
+The gate builds the Source module and runs both corpora. CLI flags and portable skill examples remain unchanged.
+
+These are model proofs with tested Rust and CLI correspondence; no proof covers the entire implementation.
+The axiom audit lists only `propext`, `Quot.sound` and `Classical.choice`; no new custom or compiler-trust axiom appears.
+Parser spans, UTF-8 library internals and report assembly remain outside the proofs.
+See [bounded source kernels](lean-specs.md#bounded-source-kernels) for the precise domain and evidence.
 
 ## Current implementation
 
@@ -101,11 +122,17 @@ Temporary projects are disposable after retention; use repository evidence for r
 
 ## Validation and commands
 
+M4p's focused source tests pass in `/tmp/fr-m4p-focused.log`.
+The full native/WASM gate passes in `/tmp/fr-m4p-full-check.log`, including all 131 project CLI scenarios and 311/311 capability coverage.
+Strict verification passes in `/tmp/fr-m4p-spec-verify.json`: twenty-three fresh anchors and signature maps, zero obligations and 31 Lean build jobs.
+The axiom audit uses `/tmp/fr-m4p-axioms.lean` and writes `/tmp/fr-m4p-axioms.log`.
+Final documentation checks pass in `/tmp/fr-m4p-docs-final.log`; formatting, prose budgets and diff checks also pass.
+
 M4o's focused project and skill tests pass in `/tmp/fr-m4o-focused.log`, covering 131 project scenarios and 36 executable examples.
 The full native/WASM gate passes in `/tmp/fr-m4o-full-check.log`, retaining 311/311 capability coverage and 29 Lean build jobs.
 Strict verification passes in `/tmp/fr-m4o-spec-verify.json`: twenty-two fresh anchors and signature maps, zero obligations and a successful Lean build.
 The final-binary controlled lookup comparison is `/tmp/fr-m4o-find-context-final.json`; documentation checks pass in `/tmp/fr-m4o-docs-final.log`.
-No new formal proof covers the shared page source budget or aggregate query behavior.
+M4o added no new source-budget proof; M4p extends that historical boundary with the model and comparisons above.
 
 M4n's skill workflow and documentation tests pass in `/tmp/fr-m4n-validation.log`, including 37 executed examples and both root-refusal checks.
 Final documentation checks pass in `/tmp/fr-m4n-docs-final.log`.

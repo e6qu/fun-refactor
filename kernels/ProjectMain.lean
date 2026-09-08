@@ -1,12 +1,44 @@
 import FrKernels.Workspace
 import FrKernels.Git
+import FrKernels.Source
 
 open FrKernels.Project
 
 def samples : List Nat := [0, 1, 2, 3, 4, 79, 80, 499, 500, 65536, 4294967295, 18446744073709551615]
 
+def sourceSamples : List String := Id.run do
+  let mut sources := [""]
+  let mut words := sources
+  for _ in [0:3] do
+    words := words.flatMap (fun stem => ["a", "é", "名", "🙂"].map (stem ++ ·))
+    sources := sources ++ words
+  return sources ++ [String.ofList [Char.ofNat 0, '\r', '\n'],
+    String.ofList ([0x7f, 0x80, 0x7ff, 0x800, 0xffff, 0x10000, 0x10ffff].map Char.ofNat),
+    "é", String.ofList [Char.ofNat 0xfeff], "\t\\\""]
+
+def sourceBudgets : List Nat := List.range 17 ++ [65536, 4294967295, 18446744073709551615]
+
 def main (args : List String) : IO Unit := do
-  if args == ["body-replacement-budget"] then
+  if args == ["source-slices"] then
+    for text in sourceSamples do
+      let offsets := List.range (FrKernels.Source.byteLength text.toList + 2) ++ [4294967295, 18446744073709551615]
+      for offset in offsets do
+        for budget in sourceBudgets do
+          match FrKernels.Source.sourceSliceLength text offset budget with
+          | none => IO.println "none"
+          | some length => IO.println length
+  else if args == ["source-pages"] then
+    let mut pages : List (List String) := [[]]
+    let mut words := pages
+    for _ in [0:3] do
+      words := words.flatMap (fun stem => ["", "a", "é", "名", "🙂", "a🙂é"].map (stem ++ [·]))
+      pages := pages ++ words
+    for page in pages do
+      for budget in sourceBudgets do
+        IO.println (FrKernels.Source.sourcePageLengths page budget)
+  else if let "source-page" :: budget :: texts := args then
+    IO.println (FrKernels.Source.sourcePageLengths texts budget.toNat!)
+  else if args == ["body-replacement-budget"] then
     for before in [0, 1, 2, 3, 65535, 65536, 65537, 18446744073709551615] do
       for after in [0, 1, 2, 3, 65535, 65536, 65537, 18446744073709551615] do
         IO.println (bodyReplacementBudget before after)

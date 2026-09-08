@@ -248,6 +248,17 @@ pub fn page_length(total: usize, start: usize, limit: usize) -> usize {
     total.saturating_sub(start).min(limit)
 }
 
+pub fn source_slice_length(text: &str, offset: usize, bytes: usize) -> Option<usize> {
+    if offset > text.len() || !text.is_char_boundary(offset) {
+        return None;
+    }
+    let mut end = offset + page_length(text.len(), offset, bytes);
+    while !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    Some(end - offset)
+}
+
 pub fn path_confidence(edges: &[Confidence]) -> Confidence {
     edges.iter().copied().max().unwrap_or(Confidence::Exact)
 }
@@ -673,13 +684,10 @@ impl<'a> Project<'a> {
     fn source_slice(&self, id: usize, offset: usize, bytes: usize) -> Result<Value> {
         let (source, span) = self.source(id)?;
         let text = &source[span.start..span.end];
-        if offset > text.len() || !text.is_char_boundary(offset) {
-            bail!("source offset must be a UTF-8 boundary within the selected node.");
-        }
-        let mut end = offset + page_length(text.len(), offset, bytes);
-        while !text.is_char_boundary(end) {
-            end -= 1;
-        }
+        let length = source_slice_length(text, offset, bytes).ok_or_else(|| {
+            anyhow::anyhow!("source offset must be a UTF-8 boundary within the selected node.")
+        })?;
+        let end = offset + length;
         Ok(
             json!({"text": &text[offset..end], "span": {"start": span.start + offset, "end": span.start + end},
             "offset": offset, "total_bytes": text.len(), "returned_bytes": end - offset, "next_offset": (end < text.len()).then_some(end)}),
