@@ -87,7 +87,7 @@ The retained [projection report](../tests/agent-eval/checks-policy-context.json)
 
 The follow-up [protocol projection](../tests/agent-eval/context-protocol.json) starts from the same immutable four trials. It first applies the compact shared check policy above. It then substitutes the current requested skill files and adds only the production context-basis fields and matching request flags.
 
-The projected fr mean falls from 13,278.5 to 11,184 tokens. The normalized file mean remains 6,810 tokens, leaving a 4,374-token gap. The current protocol therefore saves 2,094.5 mean fr tokens, or 15.8%, on this fixed action sequence. It does not yet make the workflows context-competitive.
+The projected fr mean falls from 13,278.5 to 11,213 tokens. The normalized file mean remains 6,810 tokens, leaving a 4,403-token gap. The current protocol therefore saves 2,065.5 mean fr tokens, or 15.6%, on this fixed action sequence. It does not yet make the workflows context-competitive.
 
 The projection changes patch export to `--output ../artifacts/change.patch`. The artifact retains the exact patch while the visible report carries its identity and byte count. The retained transcripts still contain the original patch text and supply the projection's hash and size.
 

@@ -148,7 +148,13 @@ fn saves_reviewed_body_and_preserves_context_through_apply_undo_redo_and_patch()
         .unwrap()
         .starts_with("frtb1:"));
     let id = saved["transaction"].as_u64().unwrap().to_string();
+    let (success, reused) = replace(&root, &handle, &input, &["--save-plan"]);
+    assert!(success, "{reused}");
+    assert_eq!(reused["transaction"], saved["transaction"]);
+    assert_eq!(reused["saved"], false);
+    assert_eq!(reused["reused_transaction"], true);
     let shown = ok(&root, &["history", "show", &id]);
+    assert_eq!(shown["records"].as_array().unwrap().len(), 1);
     assert_eq!(
         saved["transaction_context_basis"],
         shown["records"][0]["context_basis"]

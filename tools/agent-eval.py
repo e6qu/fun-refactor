@@ -152,6 +152,8 @@ Tool objects:
 
 Workflow: inspect; list and run declared checks on the original; implement the task; run checks on the change; export the patch; add the sentinel; undo and check; redo and check; verify the receiver; finish. fr arm: preview/save/apply an authoring transaction and use history undo/redo. Run all declared checks together at each validation stage using --run with comma-separated names; every run needs the configuration basis from its listing. Keep project handles revision-bound when using them. Keep tool output bounded and request only relevant context. Leave the requested change applied. Report uncertainty and tool refusals honestly.
 
+Execute each successful workflow step once. Do not repeat a successful skill read, listing, saved plan, mutation, patch export, check, or receiver call. Preserve the order above, including the original-state check before any edit and the final-state check before receiver verification.
+
 For every successful check run, pass --quiet-success --no-declarations --output-bytes 2048 after reviewing the listing. Failure diagnostics stay bounded and visible. The instrumented fr tool disables its fact cache for every arm and stage; do not add a separate cache warm-up or change that policy.
 
 The harness records visible tool payload tokens, calls, latency and final correctness. It does not measure your hidden reasoning, system context or billed tokens. The task directory is {session / 'project'}.

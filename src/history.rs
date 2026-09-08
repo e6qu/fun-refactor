@@ -37,7 +37,7 @@ pub struct Snapshot {
     pub mode: u32,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Change {
     pub path: PathBuf,
@@ -364,12 +364,27 @@ fn sync_ancestors(root: &Path, directory: &Path) -> Result<()> {
     Ok(())
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct RecordResult {
+    pub id: u64,
+    pub created: bool,
+}
+
 pub fn record(
     root: &Path,
     changes: &[FileChange<'_>],
     apply: bool,
     validation: &str,
 ) -> Result<Option<u64>> {
+    Ok(record_with_status(root, changes, apply, validation)?.map(|result| result.id))
+}
+
+pub fn record_with_status(
+    root: &Path,
+    changes: &[FileChange<'_>],
+    apply: bool,
+    validation: &str,
+) -> Result<Option<RecordResult>> {
     if !changes.iter().any(|c| c.original != c.updated) {
         return Ok(None);
     }
@@ -436,7 +451,23 @@ fn store_record(
     changes: Vec<Change>,
     apply: bool,
     validation: &str,
-) -> Result<u64> {
+) -> Result<RecordResult> {
+    let record_basis = basis(&changes)?;
+    let revision = source_revision(&history.root)?;
+    if !apply {
+        if let Some(record) = history.records.iter().find(|record| {
+            record.status == Status::Planned
+                && record.basis == record_basis
+                && record.source_revision == revision
+                && record.validation == validation
+                && record.changes == changes
+        }) {
+            return Ok(RecordResult {
+                id: record.id,
+                created: false,
+            });
+        }
+    }
     let id = history
         .records
         .iter()
@@ -448,8 +479,8 @@ fn store_record(
     history.records.push(Record {
         id,
         status: Status::Planned,
-        basis: basis(&changes)?,
-        source_revision: source_revision(&history.root)?,
+        basis: record_basis,
+        source_revision: revision,
         validation: validation.to_owned(),
         changes,
     });
@@ -457,7 +488,7 @@ fn store_record(
     if apply {
         transition(history, Action::Apply, id)?;
     }
-    Ok(id)
+    Ok(RecordResult { id, created: true })
 }
 
 pub fn act(root: &Path, action: Action, id: u64, write: bool) -> Result<serde_json::Value> {

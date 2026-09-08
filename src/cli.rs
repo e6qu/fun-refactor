@@ -1660,22 +1660,38 @@ fn persist_changes(
     write: bool,
     validation: &str,
 ) -> Result<Option<u64>> {
+    Ok(persist_changes_with_status(cli, changes, write, validation)?.map(|result| result.id))
+}
+
+fn persist_changes_with_status(
+    cli: &Cli,
+    changes: &[crate::edit::FileChange<'_>],
+    write: bool,
+    validation: &str,
+) -> Result<Option<crate::history::RecordResult>> {
     if write && cli.save_plan {
         anyhow::bail!("choose --save-plan or --write, not both");
     }
     if !write && !cli.save_plan {
         return Ok(None);
     }
-    let id = crate::history::record(&cli.root, changes, write, validation)?;
-    if let Some(id) = id {
+    let result = crate::history::record_with_status(&cli.root, changes, write, validation)?;
+    if let Some(result) = result {
         if !cli.json {
             eprintln!(
-                "Transaction {id}: {}",
-                if write { "applied" } else { "saved plan" }
+                "Transaction {}: {}",
+                result.id,
+                if write {
+                    "applied"
+                } else if result.created {
+                    "saved plan"
+                } else {
+                    "reused identical plan"
+                }
             );
         }
     }
-    Ok(id)
+    Ok(result)
 }
 
 fn with_project(
@@ -1733,7 +1749,7 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
             .map(|outcome| workspace_diff(cli, outcome))
             .collect::<String>();
         plan.set_diff(&diff, diff_bytes);
-        let transaction = persist_changes(
+        let recorded = persist_changes_with_status(
             cli,
             &outcomes
                 .iter()
@@ -1742,9 +1758,14 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
             write,
             "reparse-strict",
         )?;
+        let transaction = recorded.map(|result| result.id);
         plan.report["transaction"] = serde_json::json!(transaction);
         plan.report["applied"] = serde_json::json!(write && transaction.is_some());
-        plan.report["saved"] = serde_json::json!(cli.save_plan && transaction.is_some());
+        plan.report["saved"] =
+            serde_json::json!(cli.save_plan && recorded.is_some_and(|result| result.created));
+        if recorded.is_some_and(|result| !result.created) {
+            plan.report["reused_transaction"] = serde_json::json!(true);
+        }
         if let Some(id) = transaction.filter(|_| plan.report["diff"].is_string()) {
             plan.report["transaction_context_basis"] =
                 serde_json::json!(crate::history::record_context_basis(root, id)?);

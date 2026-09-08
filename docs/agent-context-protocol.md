@@ -40,6 +40,8 @@ The compact report keeps the transaction, action, outcome, paths, existence and 
 
 Transaction bases cannot compact undo or recovery because those reverse diffs were not reviewed in the forward author report. Preview reverse transitions normally. A stale or different transaction basis refuses before writing. Truncated author diffs do not receive a transaction basis. Without `--context-basis`, `--no-diff` keeps the same metadata and uses `diffs_omitted: true` for compatibility.
 
+Saving an identical plan again against the same revision reuses the existing planned transaction. The repeated report has `saved: false` and `reused_transaction: true`, so a retried agent call cannot create duplicate journal entries.
+
 Project bases and transaction bases are separate namespaces. Check configuration bases, Git status revisions, raw patch record bases and worktree proposal bases keep their existing meanings and cannot substitute for either context basis.
 
 ## Patch artifacts

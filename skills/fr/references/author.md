@@ -12,6 +12,7 @@ Find a declaration with `project find NAME --in FILE --source`. That report's `r
 Fragments are UTF-8 files outside the project and at most 64 KiB. A batch manifest contains `operations` with `op`, `handle`, and `from`; short IDs also require top-level `revision`. All handles select the original source. Overlaps and shared insertion boundaries refuse.
 
 Review the combined diff, then save and apply the checked transaction. A complete saved diff includes `transaction_context_basis` for compact forward apply/redo reports.
+Repeating an identical saved plan reuses its transaction and reports `reused_transaction: true` with `saved: false`.
 
 Go accepts named functions and receiver methods. TypeScript/TSX accepts supported block-bodied function bindings. Rust insertion accepts `///` or `/** */` docs, rejects other outer attributes or pending metadata, trims boundary whitespace, and preserves the remaining fragment bytes. Unsupported declaration kinds refuse.
 
