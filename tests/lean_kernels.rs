@@ -1578,3 +1578,169 @@ fn body_replacement_budgets_match_lean_at_size_and_machine_boundaries() {
     }
     assert_eq!(actual, expected);
 }
+
+fn module_offset_samples() -> Vec<String> {
+    let alphabet = ["a", " ", "\t", "\r", "\n", "é", "🙂"];
+    let mut sources = vec![String::new()];
+    let mut words = sources.clone();
+    for _ in 0..4 {
+        words = words
+            .iter()
+            .flat_map(|stem| alphabet.iter().map(move |c| format!("{stem}{c}")))
+            .collect();
+        sources.extend(words.clone());
+    }
+    sources.extend(
+        [
+            "\n\u{a0}",
+            "\n\u{2003}",
+            "\n\u{2028}",
+            "\n\u{b}",
+            "\n\u{c}",
+            "mod target {\r\n  ",
+            "/* } */ ",
+            "\n// }",
+            "\r\n\t\r ",
+            "\0\n ",
+        ]
+        .map(str::to_owned),
+    );
+    sources
+}
+
+fn reverse_module_offset(text: &str, body_start: usize) -> usize {
+    for (offset, c) in text.char_indices().rev() {
+        if matches!(c, ' ' | '\t' | '\r') {
+            continue;
+        }
+        return if c == '\n' && offset + 1 > body_start {
+            offset + 1
+        } else {
+            text.len()
+        };
+    }
+    text.len()
+}
+
+#[test]
+fn module_insertion_offsets_match_lean_and_reverse_oracle() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("module-offsets")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let mut actual = stdout.lines();
+    let mut count = 0;
+    let mut compare = |text: &str, body_start: u64| {
+        let line = actual.next().expect("one Lean result per placement case");
+        if let Ok(body_start) = usize::try_from(body_start) {
+            let rust = fun_refactor::project::module_insertion_offset(text, body_start);
+            let lean = line.parse::<usize>().unwrap();
+            assert_eq!(rust, lean, "{text:?}, {body_start}");
+            assert_eq!(rust, reverse_module_offset(text, body_start));
+            assert!(rust <= text.len() && text.is_char_boundary(rust));
+            assert!(text[rust..]
+                .bytes()
+                .all(|b| matches!(b, b' ' | b'\t' | b'\r')));
+            if body_start < text.len() {
+                assert!(body_start < rust);
+            }
+            let inserted = apply_to_string(
+                text,
+                &[Edit::new(
+                    Span::new(rust, rust),
+                    "fn calc() {}\n",
+                    "placement",
+                )],
+            )
+            .unwrap();
+            assert_eq!(&inserted[..rust], &text[..rust]);
+            assert_eq!(&inserted[rust + 13..], &text[rust..]);
+            count += 1;
+        }
+    };
+    for text in module_offset_samples() {
+        for body_start in (0..text.len() as u64 + 2).chain([u32::MAX.into(), u64::MAX]) {
+            compare(&text, body_start);
+        }
+    }
+    for text in [
+        format!("{}{{\n\t  ", "🙂".repeat(4096)),
+        format!("{{\r\n{}", " ".repeat(65536)),
+        format!("{{{}x", " ".repeat(4096)),
+    ] {
+        for body_start in [0, 1, text.len() as u64 - 1, text.len() as u64, u64::MAX] {
+            compare(&text, body_start);
+        }
+    }
+    assert!(actual.next().is_none());
+    assert_eq!(count, if usize::BITS == 64 { 28_185 } else { 25_371 });
+}
+
+#[test]
+fn module_insertion_reports_match_lean_placement() {
+    build_kernel();
+    for source in [
+        "mod target {}",
+        "mod target {\n    }\n",
+        "mod outer {\r\n\tmod target {\r\n\t}\r\n}\r\n",
+        "// π\nmod target { /* } */ }",
+        "mod target {\n// }\n}\n",
+        "mod target {\r\n\t\r }\r\n",
+        "mod target { const X: &str = r#\"}\"#; }",
+        "mod target {\n//! Inner docs.\n}\n",
+    ] {
+        let temp = tempfile::tempdir().unwrap();
+        let workspace = temp.path().join("workspace");
+        std::fs::create_dir(&workspace).unwrap();
+        std::fs::write(workspace.join("app.rs"), source).unwrap();
+        let fragment = temp.path().join("function.txt");
+        std::fs::write(&fragment, "fn calc() {}").unwrap();
+        let run = |args: &[&str]| {
+            let output = Command::new(env!("CARGO_BIN_EXE_fr"))
+                .args(["--json", "--no-cache", "-C"])
+                .arg(&workspace)
+                .args(args)
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stdout)
+            );
+            serde_json::from_slice::<serde_json::Value>(&output.stdout).unwrap()
+        };
+        let found = run(&["project", "find", "target", "--in", "app.rs"]);
+        let handle = found["rows"][0][0].as_str().unwrap();
+        let report = run(&[
+            "author",
+            "insert-declaration",
+            handle,
+            "--from",
+            fragment.to_str().unwrap(),
+        ]);
+        let body = &report["container"]["before_span"];
+        let start = body["start"].as_u64().unwrap() as usize;
+        let close = body["end"].as_u64().unwrap() as usize - 1;
+        assert_eq!(&source[close..close + 1], "}");
+        let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+            .args(["module-offset", &start.to_string(), &source[..close]])
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{output:?}");
+        let lean = String::from_utf8(output.stdout)
+            .unwrap()
+            .trim()
+            .parse::<usize>()
+            .unwrap();
+        assert_eq!(report["insertion"]["before_span"]["start"], lean);
+        assert_eq!(report["insertion"]["before_span"]["end"], lean);
+        assert_eq!(
+            std::fs::read_to_string(workspace.join("app.rs")).unwrap(),
+            source
+        );
+        assert!(!workspace.join(".fr-history").exists());
+    }
+}

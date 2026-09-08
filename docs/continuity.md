@@ -1,6 +1,6 @@
 # Development continuity
 
-M4w is complete: body replacement now supports Go functions and receiver methods.
+M4x is complete: inline module insertion placement now has an anchored Lean model and shared executable comparisons.
 The user authorized local commits. Publishing and pushing remain outside this request.
 M4l's four passing workspace trials are retained in `3c8231c`; preparation is `811591e` and documented insertion is `6d0928b`.
 M4m's smaller check reports are committed in `58b53bd`; M4n's targeted skill guidance is `1c44863`.
@@ -12,6 +12,26 @@ M4s's batched revision hashing and retained measurements are committed in `fb2e2
 M4t's buffer proofs and shared state comparisons are committed in `c9f50f0`.
 M4u's wrapped function authoring is committed in `e2933bc`.
 M4v's inline module insertion is committed in `2cdbd1b`.
+M4w's Go body authoring is committed in `3597115`.
+
+## Formal module insertion placement
+
+`src/project.rs::module_insertion_offset` extracts the existing placement calculation from `insert_declaration` without changing its behavior.
+The caller still selects the exact inline module and passes the prefix before its closing brace plus the opening-brace offset.
+`kernels/FrKernels/Author.lean` models the result through character lists and UTF-8 byte widths.
+Its fifteen theorems cover bounds, boundary validity, placement after an opening brace within the input, and an indentation-only suffix.
+They characterize a trailing indented line, inline content, out-of-body line candidates and empty input.
+A source anchor and explicit signature map identify the helper. Theorems use only `propext`, `Classical.choice` and `Quot.sound`.
+
+`ProjectMain.lean` adds `module-offsets` for the generated corpus and `module-offset BODY_START TEXT` for a selected case.
+The default kernel gate runs the corpus through the existing project executable.
+Two new integration scenarios compare 28,185 cases on 64-bit hosts with both Rust and a reverse-scan oracle, and check eight CLI previews.
+The corpus includes Unicode, CRLF, rejected indentation lookalikes, NUL in the pure helper, machine limits and large prefixes.
+A 32-bit host compares 25,371 representable cases.
+Each generated placement also passes through the Rust edit engine, with unchanged prefix and suffix checks.
+Existing authoring cases retain their behavior and transaction evidence.
+This proves model properties and tests correspondence; AST selection, parsing, name checks and full authoring refinement remain unproved.
+See [placement kernels](lean-specs.md#module-insertion-placement-kernels) for assumptions and reproduction.
 
 ## Go body authoring
 
@@ -277,6 +297,16 @@ It, the skills, prompts, evaluator and oracle stayed unchanged throughout both p
 Temporary projects are disposable after retention; use repository evidence for replay and audits.
 
 ## Validation and commands
+
+M4x's fifteen theorems build with warnings as errors in `/tmp/fr-m4x-lean-build.log` (38 jobs).
+The axiom audit is `/tmp/fr-m4x-axioms.log`, generated from `/tmp/fr-m4x-axioms.lean`.
+Both placement scenarios pass in `/tmp/fr-m4x-placement-tests.log`: 28,185 shared cases and eight actual CLI previews on this 64-bit host.
+All forty-four authoring scenarios pass in `/tmp/fr-m4x-author-final.log`.
+Strict verification passes in `/tmp/fr-m4x-spec-verify.json`: twenty-four fresh anchors and signature maps, zero obligations and 38 Lean build jobs.
+The initial strict check, anchor preview and reviewed synchronization are in `/tmp/fr-m4x-spec-before.json`, `/tmp/fr-m4x-anchor-preview.json` and `/tmp/fr-m4x-anchor-sync.json`.
+Prose budgets remain unchanged. The full native/WASM gate passes in `/tmp/fr-m4x-full-check.log`, including 311/311 capability coverage.
+Final test-target linting passes in `/tmp/fr-m4x-final-clippy.log`; all six documentation suites pass in `/tmp/fr-m4x-docs-final.log`.
+Formatting and diff checks pass.
 
 M4w's forty-four authoring scenarios and 35 enabled Lean integration scenarios pass in `/tmp/fr-m4w-focused.log`.
 Two existing deep self-audits remain outside the default gate.

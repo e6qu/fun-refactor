@@ -1088,6 +1088,19 @@ The full native/WASM gate passes, including 131 project CLI scenarios, the packa
 Strict verification retains twenty-three fresh source anchors and signature maps, zero obligations and 36 Lean build jobs.
 See [body authoring](docs/body-authoring.md) for selection, validation and transaction limits.
 
+M4x: formal module insertion placement (complete).
+
+The inline-module placement calculation now has a source-anchored Rust helper and a Lean model using character lists and UTF-8 byte widths.
+Fifteen theorems prove bounds, valid byte boundaries, insertion after the opening brace and an indentation-only suffix.
+They also characterize newline placement, inline closing braces and fallback when the candidate line lies outside the body.
+Rust, Lean and a reverse-scan oracle agree on 28,185 cases on 64-bit hosts, including Unicode, machine limits and large prefixes.
+Eight CLI previews match the model's placement; existing insertion tests retain syntax, exact bytes, saved plans, undo/redo and patches.
+The theorem audit uses only `propext`, `Classical.choice` and `Quot.sound`; there are no custom axioms or new obligations.
+This adds model proofs and tested correspondence, without proving AST selection, parser correctness or general Rust refinement.
+All forty-four authoring scenarios pass, along with the full native/WASM gate and 311/311 capability coverage.
+Strict verification retains twenty-four fresh source anchors and signature maps, zero obligations and 38 Lean build jobs.
+See [module insertion placement kernels](docs/lean-specs.md#module-insertion-placement-kernels) for domains and reproduction.
+
 Next M4 work:
 
 Use the retained workspace traces to reduce repeated report metadata and skill-loading costs, preserving coverage, source bases, guards and reviewable changes.

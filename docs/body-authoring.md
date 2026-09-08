@@ -191,4 +191,6 @@ Module fixtures check same-named selections, raw identifiers, nested scopes, clo
 A documented nested function compiles and calls its private sibling after saved application and redo; undo restores the original bytes.
 Lean proves that removing inserted characters at a valid boundary recovers the original source.
 Reported file and nested-module insertions, including their separators, also produce matching Rust and Lean results.
+The [placement model](lean-specs.md#module-insertion-placement-kernels) proves bounds, UTF-8 boundaries and preservation of closing-line indentation.
+Its source-anchored helper matches Lean and a reverse-scan oracle on 28,185 cases on 64-bit hosts; eight CLI previews match too.
 These proofs do not establish general correspondence for AST selection, parsing, type correctness, filesystem operations or the full authoring command.

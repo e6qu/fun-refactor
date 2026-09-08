@@ -286,16 +286,7 @@ impl Project<'_> {
                 .find(|child| child.kind() == "}" && !child.is_missing())
                 .context("inline module needs a closing brace.")?;
             let before = &source[..close.start_byte()];
-            let line_start = before.rfind('\n').map_or(0, |at| at + 1);
-            let offset = if line_start > body.start_byte()
-                && before[line_start..]
-                    .bytes()
-                    .all(|byte| matches!(byte, b' ' | b'\t' | b'\r'))
-            {
-                line_start
-            } else {
-                close.start_byte()
-            };
+            let offset = super::module_insertion_offset(before, body.start_byte());
             (body, offset)
         };
         let text = fragment(&self.root.join(&options.from))?;

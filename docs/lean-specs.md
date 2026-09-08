@@ -13,7 +13,7 @@ The [roadmap](../PLAN.md) extends this foundation into an adoption workflow for 
 | `fr spec check --strict` | Require an explicit signature map beside every source anchor |
 | `fr spec sync` | Preview renewal of stale source hashes; `--write` applies reviewed renewals |
 | `fr spec verify` | Strict correspondence checks, then `lake build --wfail` in each owning package |
-| `kernels/` | Executable edit, position, history, pagination, source-budget, confidence and workspace membership models with shared Rust/Lean cases |
+| `kernels/` | Executable edit, position, history, pagination, source-budget, insertion-placement, confidence and workspace membership models with shared Rust/Lean cases |
 
 Strict signature maps currently require Rust source declarations.
 The checker compares both signatures with the explicit map. It does not infer semantic equivalence between mapped types.
@@ -206,6 +206,45 @@ These are model proofs with tested implementation correspondence.
 The page model represents the caller's allocation loop; it has no separate source anchor.
 General Rust correspondence, UTF-8 library internals, parser spans and JSON report assembly remain unproved.
 JSON escaping and metadata lie outside the raw source-text budget.
+
+## Module insertion placement kernels
+
+`FrKernels.Author` models the byte offset used to insert a Rust function before an inline module's closing brace.
+The input string contains the source before that brace; `bodyStart` is the byte offset of the selected body's opening brace.
+A line ending with only spaces, tabs or carriage returns keeps its indentation after the inserted fragment.
+Otherwise, insertion uses the closing-brace offset. A candidate line must start strictly after `bodyStart`.
+
+The model uses character lists and UTF-8 byte widths. Rust uses a last-newline search and an ASCII byte predicate.
+Fifteen theorems establish:
+
+- The result is within the input and on a UTF-8 boundary.
+- If the opening brace lies within the input, insertion stays strictly after it.
+- The suffix after the insertion point contains only the accepted indentation characters.
+- A newline followed by indentation selects that line when it lies inside the body.
+- Content at the end retains the closing-brace position; lines outside the body also fall back to that position.
+- Empty input yields offset zero.
+
+`src/project.rs::module_insertion_offset` holds the calculation extracted from module authoring without changing its behavior.
+It has a source anchor and explicit signature map. The model accepts arbitrary natural opening offsets; Rust accepts `usize` offsets.
+The positive opening-bound theorem assumes the opening offset is less than the input's byte length.
+The other offset bounds and boundary guarantees hold even for an opening offset beyond the input.
+
+`tests/lean_kernels.rs` compares 28,185 cases on 64-bit hosts against Rust, Lean and an independent reverse-character scan.
+The corpus contains all zero-through-four-character words over seven symbols, plus ten special prefixes and three large cases.
+It covers CRLF, Unicode, indentation lookalikes, NUL in the pure helper, offsets inside multibyte characters, and machine limits.
+Large cases include 65,536 spaces and a prefix containing 4,096 four-byte characters.
+A 32-bit host compares 25,371 cases, consuming but skipping opening offsets that its `usize` cannot represent.
+The same corpus applies each offset through the Rust edit engine and checks unchanged source prefixes and suffixes.
+Eight actual CLI previews also match the Lean placement result, alongside the existing insertion splice and history tests.
+
+All fifteen theorem dependencies use only `propext`, `Classical.choice` and `Quot.sound`, with smaller subsets for some properties.
+There are no custom axioms or new obligations. Inspect each dependency with `#print axioms FrKernels.Author.offset_is_boundary`, for example.
+Run `cargo test --test lean_kernels module_insertion_` for the comparisons.
+The default kernel gate includes `lake exe fr-project-kernel module-offsets`; the package still uses five executables.
+
+These are model proofs and tested implementation correspondence.
+They do not prove AST selection, parser correctness, fragment validity, name checks, filesystem behavior or general Rust/model refinement.
+The existing edit model supplies separate splice-preservation laws; byte-offset placement alone does not prove complete authoring correctness.
 
 ## Revision buffer kernels
 

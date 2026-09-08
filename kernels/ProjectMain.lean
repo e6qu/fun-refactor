@@ -1,6 +1,7 @@
 import FrKernels.Workspace
 import FrKernels.Git
 import FrKernels.Source
+import FrKernels.Author
 
 open FrKernels.Project
 
@@ -18,8 +19,35 @@ def sourceSamples : List String := Id.run do
 
 def sourceBudgets : List Nat := List.range 17 ++ [65536, 4294967295, 18446744073709551615]
 
+def moduleOffsetSamples : List String := Id.run do
+  let mut sources := [""]
+  let mut words := sources
+  for _ in [0:4] do
+    words := words.flatMap (fun stem => ["a", " ", "\t", "\r", "\n", "é", "🙂"].map (stem ++ ·))
+    sources := sources ++ words
+  return sources ++ [String.ofList ['\n', Char.ofNat 0xa0], String.ofList ['\n', Char.ofNat 0x2003],
+    String.ofList ['\n', Char.ofNat 0x2028], String.ofList ['\n', Char.ofNat 11],
+    String.ofList ['\n', Char.ofNat 12], "mod target {\r\n  ", "/* } */ ", "\n// }", "\r\n\t\r ",
+    String.ofList [Char.ofNat 0, '\n', ' ']]
+
+def moduleOffsetLargeSamples : List String :=
+  [String.ofList (List.replicate 4096 '🙂') ++ "{\n\t  ",
+   "{\r\n" ++ String.ofList (List.replicate 65536 ' '),
+   "{" ++ String.ofList (List.replicate 4096 ' ') ++ "x"]
+
 def main (args : List String) : IO Unit := do
-  if args == ["source-slices"] then
+  if args == ["module-offsets"] then
+    for text in moduleOffsetSamples do
+      let starts := List.range (FrKernels.Source.byteLength text.toList + 2) ++ [4294967295, 18446744073709551615]
+      for bodyStart in starts do
+        IO.println (FrKernels.Author.moduleInsertionOffset text bodyStart)
+    for text in moduleOffsetLargeSamples do
+      for bodyStart in [0, 1, FrKernels.Source.byteLength text.toList - 1,
+          FrKernels.Source.byteLength text.toList, 18446744073709551615] do
+        IO.println (FrKernels.Author.moduleInsertionOffset text bodyStart)
+  else if let ["module-offset", bodyStart, text] := args then
+    IO.println (FrKernels.Author.moduleInsertionOffset text bodyStart.toNat!)
+  else if args == ["source-slices"] then
     for text in sourceSamples do
       let offsets := List.range (FrKernels.Source.byteLength text.toList + 2) ++ [4294967295, 18446744073709551615]
       for offset in offsets do
