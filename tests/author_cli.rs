@@ -1467,11 +1467,6 @@ fn module_insertion_refuses_duplicates_dangling_metadata_and_unsupported_targets
     for (source, selected) in [
         ("mod target;", "target"),
         ("mod outer { fn target() {} }", "target"),
-        ("mod outer { trait target {} }", "target"),
-        (
-            "mod outer { struct Target; impl Target { fn target() {} } }",
-            "target",
-        ),
     ] {
         let (_temp, root, input) = fixture(source, b"fn calc() {}");
         let (handle, _) = selection(&root, selected);
@@ -1479,6 +1474,95 @@ fn module_insertion_refuses_duplicates_dangling_metadata_and_unsupported_targets
         assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
         assert!(!root.join(".fr-history").exists());
     }
+}
+
+#[test]
+fn impl_insertion_compiles_and_preserves_saved_history_and_patch() {
+    let source = concat!(
+        "#![deny(warnings)]\n",
+        "struct Counter(i32);\n",
+        "impl Counter {\n",
+        "    fn seed(&self) -> i32 { self.0 }\n",
+        "}\n",
+        "fn main() { println!(\"{}\", Counter(3).added()); }\n",
+    );
+    let added = "fn added(&self) -> i32 { self.seed() + 2 }";
+    let (_temp, root, input) = fixture(source, added.as_bytes());
+    let (handle, _) = selection(&root, "seed");
+
+    let (success, saved) = insert_declaration(&root, &handle, &input, &["--save-plan"]);
+    assert!(success, "{saved}");
+    assert_eq!(saved["container"]["kind"], "impl");
+    assert_eq!(saved["container"]["name"], "Counter");
+    assert_eq!(
+        saved["name_check"],
+        concat!(
+            "direct items in the selected impl; ",
+            "Rust namespaces are not distinguished."
+        )
+    );
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+
+    let id = saved["transaction"].as_u64().unwrap().to_string();
+    fs::write(&input, "fn changed() {}\n").unwrap();
+    ok(&root, &["history", "apply", &id, "--write"]);
+    let expected = source.replace("}\nfn main", &format!("{added}\n}}\nfn main"));
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), expected);
+    assert_eq!(compiled_result(&root), b"5\n");
+    ok(&root, &["history", "undo", &id, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+    ok(&root, &["history", "patch", &id, "--check"]);
+    assert!(ok(&root, &["history", "patch", &id])["patch"]
+        .as_str()
+        .unwrap()
+        .contains(added));
+    ok(&root, &["history", "redo", &id, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), expected);
+}
+
+#[test]
+fn trait_insertion_accepts_default_methods_and_bodyless_requirements() {
+    let source = concat!(
+        "#![deny(warnings)]\n",
+        "trait Value { fn seed(&self) -> i32; }\n",
+        "struct Number(i32);\n",
+        "impl Value for Number { fn seed(&self) -> i32 { self.0 } }\n",
+        "fn main() { println!(\"{}\", Number(4).added()); }\n",
+    );
+    let added = "fn added(&self) -> i32 { self.seed() + 3 }";
+    let (_temp, root, input) = fixture(source, added.as_bytes());
+    let (handle, _) = selection(&root, "Value");
+    let (success, report) = insert_declaration(&root, &handle, &input, &["--write"]);
+    assert!(success, "{report}");
+    assert_eq!(report["container"]["kind"], "trait");
+    assert_eq!(report["container"]["name"], "Value");
+    assert_eq!(report["declaration"]["kind"], "function");
+    assert_eq!(compiled_result(&root), b"7\n");
+    let (fresh, _) = selection(&root, "Value");
+    assert!(!insert_declaration(&root, &fresh, &input, &["--save-plan"]).0);
+
+    let bodyless_source = "trait Value { fn seed(&self) -> i32; }\n";
+    let (_temp, root, input) = fixture(bodyless_source, b"fn required(&self) -> bool;");
+    let (method, _) = selection(&root, "seed");
+    let (success, preview) = insert_declaration(&root, &method, &input, &[]);
+    assert!(success, "{preview}");
+    assert_eq!(preview["container"]["kind"], "trait");
+    assert_eq!(preview["declaration"]["kind"], "function-signature");
+    assert_eq!(preview["signature"]["text"], "fn required(&self) -> bool;");
+    assert_eq!(
+        fs::read_to_string(root.join("app.rs")).unwrap(),
+        bodyless_source
+    );
+
+    let impl_source = "struct Value; impl Value { fn anchor(&self) {} }\n";
+    let (_temp, root, input) = fixture(impl_source, b"fn required(&self);");
+    let (method, _) = selection(&root, "anchor");
+    assert!(!insert_declaration(&root, &method, &input, &["--write"]).0);
+    assert_eq!(
+        fs::read_to_string(root.join("app.rs")).unwrap(),
+        impl_source
+    );
+    assert!(!root.join(".fr-history").exists());
 }
 
 #[test]

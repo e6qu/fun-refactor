@@ -1,7 +1,8 @@
 # Development continuity
 
 PR 0, the agent-ready verified refactoring foundation, merged as GitHub PR 259.
-The current `agent_context_v2` branch is roadmap PR 1 and is ready for review. It reduces repeated response and skill context, retains a controlled projection, and provides an opt-in Codex CLI evaluation runner.
+PR 1, Agent Context Protocol v2, merged as GitHub PR 261.
+The current `generalized_structural_authoring` branch is roadmap PR 2. Its first checkpoint extends exact-byte Rust insertion to impl and trait bodies and generalizes the insertion placement model.
 Project and author reports now emit a revision-bound `frcb1:` basis. Supplying it omits only `coverage`, `handle_prefix` and `revision`; stale bases refuse before author plans can be saved or written.
 Complete saved author diffs and detailed history records now emit a separate `frtb1:` transaction basis. Forward apply and redo reports can omit their repeated diffs while retaining change metadata; reverse use and mismatches refuse before writes.
 Unit and CLI regressions reconstruct full reports exactly and cover missing, truncated, stale and conflicting bases.
@@ -127,24 +128,24 @@ This is tested edit correspondence, with no new proof of the batch planner, mani
 The agent reference teaches combined review and one transaction ID; its existing shell examples remain unchanged.
 The controlled comparison above measures report bytes and repeated calls without treating a prescribed workflow as autonomous agent evidence.
 
-## Formal module insertion placement
+## Formal declaration insertion placement
 
-`src/project.rs::module_insertion_offset` extracts the existing placement calculation from `insert_declaration` without changing its behavior.
-The caller still selects the exact inline module and passes the prefix before its closing brace plus the opening-brace offset.
+`src/project.rs::declaration_insertion_offset` supplies the placement calculation for inline module, impl and trait insertion.
+The caller passes the prefix before the selected container's closing brace plus the opening-brace offset.
 `kernels/FrKernels/Author.lean` models the result through character lists and UTF-8 byte widths.
 Its fifteen theorems cover bounds, boundary validity, placement after an opening brace within the input, and an indentation-only suffix.
 They characterize a trailing indented line, inline content, out-of-body line candidates and empty input.
 A source anchor and explicit signature map identify the helper. Theorems use only `propext`, `Classical.choice` and `Quot.sound`.
 
-`ProjectMain.lean` adds `module-offsets` for the generated corpus and `module-offset BODY_START TEXT` for a selected case.
+`ProjectMain.lean` exposes `declaration-offsets` for the generated corpus and `declaration-offset BODY_START TEXT` for a selected case.
 The default kernel gate runs the corpus through the existing project executable.
-Two new integration scenarios compare 28,185 cases on 64-bit hosts with both Rust and a reverse-scan oracle, and check eight CLI previews.
+Integration scenarios compare 28,185 cases on 64-bit hosts with both Rust and a reverse-scan oracle, and check ten CLI previews across modules, impls and traits.
 The corpus includes Unicode, CRLF, rejected indentation lookalikes, NUL in the pure helper, machine limits and large prefixes.
 A 32-bit host compares 25,371 representable cases.
 Each generated placement also passes through the Rust edit engine, with unchanged prefix and suffix checks.
 Existing authoring cases retain their behavior and transaction evidence.
 This proves model properties and tests correspondence; AST selection, parsing, name checks and full authoring refinement remain unproved.
-See [placement kernels](lean-specs.md#module-insertion-placement-kernels) for assumptions and reproduction.
+See [placement kernels](lean-specs.md#declaration-insertion-placement-kernels) for assumptions and reproduction.
 
 ## Go body authoring
 
@@ -162,21 +163,23 @@ A reported Go method edit is compared with Rust and Lean splice implementations,
 This extends tested splice correspondence; it adds no new theorem or general proof of AST selection, typing or authoring behavior.
 The agent reference states which Go handles to select and which forms refuse.
 
-## Inline module insertion
+## Rust declaration insertion containers
 
-`src/project/author.rs::insert_declaration` accepts a file or exact Rust inline module handle.
-It locates the module by its name span and inserts at the selected declaration list's closing brace.
+`src/project/author.rs::insert_declaration` accepts a file, exact Rust inline module or trait handle, or an existing direct method handle that identifies its exact enclosing impl or trait.
+It locates the selected declaration list and inserts at its closing brace.
 A closing brace on a whitespace-only line keeps that indentation; inline braces receive a leading separator.
 Fragments remain verbatim, preserving multiline strings. Existing source bytes stay unchanged.
 Duplicate-name and dangling-outer-metadata checks apply to the selected body's direct items.
-External modules, impls, traits and functions refuse; file insertion retains its existing behavior and report fields.
-Module reports add `container` with the original body span including braces and a module-scoped name-check description.
+External modules, free and nested functions and empty impls refuse. Bodyless functions are accepted only in traits.
+Container reports identify an inline module, impl or trait and include the original body span and scoped name-check description.
 
-Five new CLI scenarios cover exact placement, raw identifiers, same-named modules, size/hash boundaries and stale selections.
+The original module scenarios cover exact placement, raw identifiers, same-named modules, size/hash boundaries and stale selections.
+A saved impl insertion compiles with warnings denied after application and redo, restores exact source on undo and exports a checked patch.
+Trait scenarios compile a default method and cover bodyless requirements through both trait and member handles.
 A nested function calls a private sibling after saved application and redo; undo restores exact original bytes and the patch applies after undo.
 The saved transaction retains its fragment despite later changes to the input file.
 Handle validation covers the project revision; later history application checks affected files and permits unrelated manifest changes.
-A reported nested-module edit is compared with the existing Rust and Lean splice implementations.
+A reported module, impl and trait edit is compared with the Rust and Lean placement implementations.
 This is tested splice correspondence, with no new proof of AST selection, parsing or complete authoring behavior.
 The portable authoring reference explains module-row handles, preserved fragment contents and unsupported scopes.
 

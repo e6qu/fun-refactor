@@ -134,9 +134,9 @@ Body replacement supports Rust, Go, TypeScript and TSX declarations and methods,
 Go supports named functions and receiver methods, including generic headers; interface specifications and variables containing function literals refuse.
 Supported TypeScript/TSX bindings can wrap the function in parentheses and type-only assertions; calls, conditionals and expression bodies still refuse.
 Rust function declaration replacement can change signatures and implementations together, preserving the name and outer attributes.
-Declaration insertion adds a Rust function through a file or inline module handle, retaining all existing source bytes.
-Module insertion uses the module row's handle, checks its direct names and inserts before its closing brace.
-The fragment stays verbatim; impl, trait, function and external module declarations remain unsupported targets.
+Declaration insertion adds a Rust function through a file, inline module, exact impl method or trait handle, retaining all existing source bytes.
+Module and trait insertion use the container row's handle. An existing direct method handle selects its exact enclosing impl or trait body.
+The fragment stays verbatim; bodyless functions are trait-only, while free functions, nested functions, external modules and empty impls remain unsupported targets.
 It accepts leading outer documentation comments, so agents can satisfy a project's missing-docs lint without changing crate policy.
 Authoring batches combine up to 32 disjoint operations from one revision, with shared coverage and one history transaction.
 Declared project-check selection now has a configuration digest and bounded execution reports.

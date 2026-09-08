@@ -507,11 +507,12 @@ Supply exactly one function without outer attributes or trailing comments; both 
 Callers and imports need separate changes and checks. The same preview, saved-plan and history flags apply.
 
 `fr author insert-declaration HANDLE --from FILE` adds one Rust function, preserving every existing file byte.
-Use a Rust file or inline module handle and a function fragment, optionally preceded by `///` or `/** ... */` documentation, at most 64 KiB total.
-Files append at EOF; inline modules insert before the closing brace, retaining its existing indentation when it occupies a separate line.
-The trimmed fragment stays verbatim without automatic indentation. External `mod name;`, impl, trait and function handles refuse.
+Use a Rust file, inline module or trait handle. To select an exact `impl` or a trait through one of its members, use a direct method handle from that body.
+The fragment is a function, optionally preceded by `///` or `/** ... */` documentation, at most 64 KiB total. Trait insertion also accepts one bodyless function signature.
+Files append at EOF; braced containers insert before the closing brace, retaining its existing indentation when it occupies a separate line.
+The trimmed fragment stays verbatim without automatic indentation. External `mod name;`, free-function, nested-function and empty-impl targets refuse.
 Other outer attributes and surrounding comments refuse. The signature excludes leading documentation; a separate field reports its span, size and fingerprint.
-The report accounts separately for LF or CRLF separators; module reports also identify the original body span in `container`.
+The report accounts separately for LF or CRLF separators; container reports identify the original body span and whether it is a module, impl or trait.
 Direct duplicate item names and pending outer documentation or attributes in the selected container refuse.
 Imports, macro expansion and full name resolution remain unchecked. Saved plans, undo/redo and patches use source history.
 

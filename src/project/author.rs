@@ -1,6 +1,7 @@
 use super::{bounded_text, Project};
 use crate::edit::{Edit, EditSet};
 use crate::lang::Language;
+use crate::model::SymbolKind;
 use crate::parse::{Parsed, Parsers};
 use crate::span::Span;
 use anyhow::{ensure, Context, Result};
@@ -23,7 +24,7 @@ pub enum Command {
     )]
     ReplaceDeclaration(ReplaceBodyOptions),
     #[command(
-        about = "Insert one Rust function into a file or inline module, retaining existing source bytes."
+        about = "Insert one Rust function into a file, module, impl or trait, retaining existing source bytes."
     )]
     InsertDeclaration(ReplaceBodyOptions),
     #[command(about = "Plan disjoint authoring edits from one revision as one transaction.")]
@@ -250,6 +251,7 @@ fn function_fragment<'tree>(
     parsed: &'tree Parsed,
     text: &str,
     allow_documentation: bool,
+    allow_bodyless: bool,
 ) -> Result<tree_sitter::Node<'tree>> {
     let mut cursor = parsed.root().walk();
     let mut items = parsed.root().named_children(&mut cursor);
@@ -265,11 +267,19 @@ fn function_fragment<'tree>(
             .next()
             .context("documentation needs a following Rust function.")?;
     }
+    let supported = item.kind() == "function_item" && item.child_by_field_name("body").is_some()
+        || allow_bodyless && item.kind() == "function_signature_item";
     ensure!(
-        !parsed.has_errors() && items.next().is_none() && start == 0
-            && item.kind() == "function_item" && item.end_byte() == text.len()
-            && item.child_by_field_name("body").is_some(),
-        "fragment requires one Rust function with a body; only insertion accepts leading outer documentation comments."
+        !parsed.has_errors()
+            && items.next().is_none()
+            && start == 0
+            && supported
+            && item.end_byte() == text.len(),
+        if allow_bodyless {
+            "fragment requires one Rust function or bodyless trait function; only insertion accepts leading outer documentation comments."
+        } else {
+            "fragment requires one Rust function with a body; only insertion accepts leading outer documentation comments."
+        }
     );
     Ok(item)
 }
@@ -401,46 +411,88 @@ impl Project<'_> {
             !parsed.has_errors(),
             "declaration insertion requires a file without parser errors."
         );
-        let (container, offset) = if is_file {
-            (parsed.root(), source.len())
+        let (container, offset, container_kind, container_name) = if is_file {
+            (parsed.root(), source.len(), "file", None)
         } else {
             let symbol = self.nodes[id]
                 .symbol
                 .and_then(|id| self.index.symbol(id))
-                .context("declaration insertion requires a Rust file or inline module handle.")?;
+                .context(
+                    "declaration insertion requires a Rust file, module, trait or method handle.",
+                )?;
             let mut selected = parsed
                 .root()
                 .descendant_for_byte_range(symbol.name_span.start, symbol.name_span.end);
-            let module = loop {
-                let node = selected.context("select a Rust file or inline module handle.")?;
-                if node.kind() == "mod_item" {
-                    ensure!(
-                        node.child_by_field_name("name")
-                            .is_some_and(|name| Span::from(name) == symbol.name_span),
-                        "selected handle does not name this module."
-                    );
+            let declaration = loop {
+                let node = selected.context(
+                    "select a Rust file, inline module, trait, or a direct impl or trait method.",
+                )?;
+                let names_symbol = node
+                    .child_by_field_name("name")
+                    .is_some_and(|name| Span::from(name) == symbol.name_span);
+                if symbol.kind == SymbolKind::Module && node.kind() == "mod_item" && names_symbol {
                     break node;
+                }
+                if symbol.kind == SymbolKind::Trait && node.kind() == "trait_item" && names_symbol {
+                    break node;
+                }
+                if symbol.kind == SymbolKind::Method
+                    && matches!(node.kind(), "function_item" | "function_signature_item")
+                    && names_symbol
+                {
+                    let list = node
+                        .parent()
+                        .context("selected method has no declaration list.")?;
+                    ensure!(
+                        list.kind() == "declaration_list",
+                        "select a direct impl or trait method, not a nested function."
+                    );
+                    let owner = list
+                        .parent()
+                        .context("selected method has no enclosing declaration.")?;
+                    ensure!(
+                        matches!(owner.kind(), "impl_item" | "trait_item"),
+                        "select a direct impl or trait method."
+                    );
+                    break owner;
                 }
                 selected = node.parent();
             };
-            let body = module.child_by_field_name("body")
-                .context("external module declarations have no inline body; select their source file instead.")?;
+            let body = declaration.child_by_field_name("body").with_context(|| {
+                if declaration.kind() == "mod_item" {
+                    "external module declarations have no inline body; select their source file instead."
+                } else {
+                    "selected declaration has no insertable body."
+                }
+            })?;
             ensure!(
                 body.kind() == "declaration_list",
-                "module requires an inline declaration list."
+                "selected declaration requires a braced declaration list."
             );
             let mut cursor = body.walk();
             let close = body
                 .children(&mut cursor)
                 .find(|child| child.kind() == "}" && !child.is_missing())
-                .context("inline module needs a closing brace.")?;
+                .context("declaration body needs a closing brace.")?;
             let before = &source[..close.start_byte()];
-            let offset = super::module_insertion_offset(before, body.start_byte());
-            (body, offset)
+            let offset = super::declaration_insertion_offset(before, body.start_byte());
+            let kind = match declaration.kind() {
+                "mod_item" => "inline-module",
+                "impl_item" => "impl",
+                "trait_item" => "trait",
+                _ => unreachable!(),
+            };
+            let name = if declaration.kind() == "impl_item" {
+                declaration.child_by_field_name("type")
+            } else {
+                declaration.child_by_field_name("name")
+            }
+            .map(|name| Span::from(name).text(source).to_owned());
+            (body, offset, kind, name)
         };
         let text = fragment(&self.root.join(&options.from))?;
         let fragment_tree = Parsers::new().parse(Language::Rust, &text)?;
-        let function = function_fragment(&fragment_tree, &text, true)?;
+        let function = function_fragment(&fragment_tree, &text, true, container_kind == "trait")?;
         let name = Span::from(
             function
                 .child_by_field_name("name")
@@ -493,28 +545,34 @@ impl Project<'_> {
             !Parsers::new().parse(Language::Rust, &updated)?.has_errors(),
             "insertion introduces parser errors in its destination context."
         );
-        let body = function
-            .child_by_field_name("body")
-            .context("function needs a body.")?;
+        let body = function.child_by_field_name("body");
+        ensure!(
+            body.is_some() || container_kind == "trait",
+            "only trait containers accept bodyless functions."
+        );
+        let signature_end = body.map_or(function.end_byte(), |body| body.start_byte());
         let mut report = self.envelope("insert-declaration");
         report["schema"] = json!("fr-author-1");
         report["handle"] = json!(self.handle(id));
         report["path"] = bounded_text(&self.nodes[id].path.to_string_lossy(), 512);
-        report["signature"] = json!({"basis": "syntax-header", "text": bounded_text(text[function.start_byte()..body.start_byte()].trim_end(), 512)});
-        report["declaration"] = json!({"name": bounded_text(name, 512), "kind": "function", "span": Span::new(offset+leading.len(), offset+leading.len()+text.len()), "bytes": text.len(), "sha256": digest(&text)});
+        report["signature"] = json!({"basis": "syntax-header", "text": bounded_text(text[function.start_byte()..signature_end].trim_end(), 512)});
+        report["declaration"] = json!({"name": bounded_text(name, 512), "kind": if body.is_some() { "function" } else { "function-signature" }, "span": Span::new(offset+leading.len(), offset+leading.len()+text.len()), "bytes": text.len(), "sha256": digest(&text)});
         if function.start_byte() > 0 {
             let documentation = &text[..function.start_byte()];
             let start = offset + leading.len();
             report["documentation"] = json!({"kind": "outer-doc-comments", "span": Span::new(start, start + documentation.len()), "bytes": documentation.len(), "sha256": digest(documentation)});
         }
         report["insertion"] = json!({"before_span": span, "after_span": Span::new(span.start, span.start+inserted.len()), "added_bytes": inserted.len(), "leading_separator": leading, "trailing_separator": newline, "sha256": digest(&inserted)});
-        report["name_check"] = json!(if is_file {
-            "direct top-level item names; Rust namespaces are not distinguished"
-        } else {
-            "direct items in the selected module. Rust namespaces are not distinguished."
+        report["name_check"] = json!(match container_kind {
+            "file" => "direct top-level item names; Rust namespaces are not distinguished.",
+            "inline-module" =>
+                "direct items in the selected module; Rust namespaces are not distinguished.",
+            "impl" => "direct items in the selected impl; Rust namespaces are not distinguished.",
+            "trait" => "direct items in the selected trait; Rust namespaces are not distinguished.",
+            _ => unreachable!(),
         });
         if !is_file {
-            report["container"] = json!({"kind": "inline-module", "name": bounded_text(&self.nodes[id].name, 512),
+            report["container"] = json!({"kind": container_kind, "name": bounded_text(container_name.as_deref().unwrap_or(&self.nodes[id].name), 512),
                 "before_span": Span::from(container)});
         }
         report["name_resolution_checked"] = json!(false);
@@ -570,7 +628,7 @@ impl Project<'_> {
             "old and new declarations must each fit 2 through 65536 bytes."
         );
         let replacement = Parsers::new().parse(Language::Rust, &after)?;
-        let item = function_fragment(&replacement, &after, false)?;
+        let item = function_fragment(&replacement, &after, false, false)?;
         let name = item
             .child_by_field_name("name")
             .context("replacement function needs a name.")?;

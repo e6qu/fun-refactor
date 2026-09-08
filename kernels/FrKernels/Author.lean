@@ -56,65 +56,65 @@ theorem line_after_content (before : List Char) (c : Char)
   | nil => simp [insertionLine, notNewline, byteLength]
   | cons head rest ih => simp [insertionLine, List.all_append, notIndent, ih, byteLength, Nat.add_assoc]
 
--- fr:spec src/project.rs::module_insertion_offset @ e95b546f177b74e37626f5ad7cf247fb92327573d6d5c2d7857118235923416d
+-- fr:spec src/project.rs::declaration_insertion_offset @ 97b9aa9b57f5165a89d93c9fa994670d801b77a7ae49c0bbc3acb9b92caa1e92
 -- fr:signature prefix: &str => text: String; body_start: usize => bodyStart: Nat; return: usize => return: Nat
-def moduleInsertionOffset (text : String) (bodyStart : Nat) : Nat :=
+def declarationInsertionOffset (text : String) (bodyStart : Nat) : Nat :=
   let line := insertionLine text.toList
   if bodyStart < line then line else byteLength text.toList
 
 theorem offset_in_bounds (text : String) (bodyStart : Nat) :
-    moduleInsertionOffset text bodyStart ≤ byteLength text.toList := by
-  dsimp only [moduleInsertionOffset]
+    declarationInsertionOffset text bodyStart ≤ byteLength text.toList := by
+  dsimp only [declarationInsertionOffset]
   split
   · exact line_in_bounds _
   · exact Nat.le_refl _
 
 theorem offset_is_boundary (text : String) (bodyStart : Nat) :
-    moduleInsertionOffset text bodyStart ∈ boundaries text.toList := by
-  dsimp only [moduleInsertionOffset]
+    declarationInsertionOffset text bodyStart ∈ boundaries text.toList := by
+  dsimp only [declarationInsertionOffset]
   split
   · exact line_is_boundary _
   · exact end_is_boundary _
 
 theorem offset_after_opening (text : String) (bodyStart : Nat)
-    (inside : bodyStart < byteLength text.toList) : bodyStart < moduleInsertionOffset text bodyStart := by
-  dsimp only [moduleInsertionOffset]
+    (inside : bodyStart < byteLength text.toList) : bodyStart < declarationInsertionOffset text bodyStart := by
+  dsimp only [declarationInsertionOffset]
   split <;> assumption
 
 theorem offset_uses_inner_line (text : String) (bodyStart : Nat)
     (inside : bodyStart < insertionLine text.toList) :
-    moduleInsertionOffset text bodyStart = insertionLine text.toList := by
-  simp [moduleInsertionOffset, inside]
+    declarationInsertionOffset text bodyStart = insertionLine text.toList := by
+  simp [declarationInsertionOffset, inside]
 
 theorem offset_at_close_when_line_outside (text : String) (bodyStart : Nat)
     (outside : insertionLine text.toList ≤ bodyStart) :
-    moduleInsertionOffset text bodyStart = byteLength text.toList := by
-  simp [moduleInsertionOffset, Nat.not_lt.mpr outside]
+    declarationInsertionOffset text bodyStart = byteLength text.toList := by
+  simp [declarationInsertionOffset, Nat.not_lt.mpr outside]
 
 theorem offset_keeps_inline_close (text : String) (bodyStart : Nat)
     (inline : insertionLine text.toList = byteLength text.toList) :
-    moduleInsertionOffset text bodyStart = byteLength text.toList := by
-  simp [moduleInsertionOffset, inline]
+    declarationInsertionOffset text bodyStart = byteLength text.toList := by
+  simp [declarationInsertionOffset, inline]
 
 theorem offset_has_indent_suffix (text : String) (bodyStart : Nat) :
     ∃ before after, text.toList = before ++ after ∧
-      moduleInsertionOffset text bodyStart = byteLength before ∧ after.all isIndent = true := by
-  dsimp only [moduleInsertionOffset]
+      declarationInsertionOffset text bodyStart = byteLength before ∧ after.all isIndent = true := by
+  dsimp only [declarationInsertionOffset]
   split
   · exact line_has_indent_suffix _
   · exact ⟨text.toList, [], by simp, rfl, rfl⟩
 
-theorem offset_empty (bodyStart : Nat) : moduleInsertionOffset "" bodyStart = 0 := by
-  simp [moduleInsertionOffset, insertionLine, byteLength]
+theorem offset_empty (bodyStart : Nat) : declarationInsertionOffset "" bodyStart = 0 := by
+  simp [declarationInsertionOffset, insertionLine, byteLength]
 
 theorem offset_preserves_indent (before indent : List Char) (bodyStart : Nat)
     (clean : indent.all isIndent = true) (inside : bodyStart < byteLength before + 1) :
-    moduleInsertionOffset (String.ofList (before ++ '\n' :: indent)) bodyStart = byteLength before + 1 := by
-  simp [moduleInsertionOffset, line_after_newline before indent clean, inside]
+    declarationInsertionOffset (String.ofList (before ++ '\n' :: indent)) bodyStart = byteLength before + 1 := by
+  simp [declarationInsertionOffset, line_after_newline before indent clean, inside]
 
 theorem offset_at_close_after_content (before : List Char) (c : Char) (bodyStart : Nat)
     (notNewline : (c == '\n') = false) (notIndent : isIndent c = false) :
-    moduleInsertionOffset (String.ofList (before ++ [c])) bodyStart = byteLength (before ++ [c]) := by
-  simp [moduleInsertionOffset, line_after_content before c notNewline notIndent, byteLength]
+    declarationInsertionOffset (String.ofList (before ++ [c])) bodyStart = byteLength (before ++ [c]) := by
+  simp [declarationInsertionOffset, line_after_content before c notNewline notIndent, byteLength]
 
 end FrKernels.Author

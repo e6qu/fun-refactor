@@ -69,7 +69,7 @@ The command does not update callers, signatures or imports and does not check ty
 Macros and language context rules retain the parser's syntax coverage limits.
 Choose project compiler and test commands that establish the intended behavior after applying.
 An implementation change may deliberately change behavior; syntax acceptance does not validate that intention.
-Further languages, additional initializer forms and insertion into impl, trait or function bodies remain roadmap work.
+Further languages, additional initializer forms and insertion into empty impls or function bodies remain roadmap work.
 For complete Rust function changes, see [declaration replacement](#declaration-replacement).
 
 For a TSX component, the fragment may contain JSX:
@@ -103,26 +103,28 @@ The saved-plan, diff-budget and history rules below apply to all authoring opera
 
 ## Declaration insertion
 
-`fr author insert-declaration HANDLE --from FILE` adds one Rust function to an indexed Rust file or selected inline module.
-Select a file or module handle from the project map or lookup. Function, impl, trait, directory and non-Rust handles refuse.
+`fr author insert-declaration HANDLE --from FILE` adds one Rust function to an indexed Rust file or selected braced declaration container.
+Select a file, inline-module or trait handle from the project map or lookup. A handle for an existing direct method selects that method's exact enclosing impl or trait.
+Free and nested function handles, directories and non-Rust handles refuse. Empty impls currently have no indexed structural handle, so they cannot be selected.
 An external `mod name;` declaration has no inline body; select its source file instead.
-Empty files are supported. The fragment must contain one function with a body, optionally preceded by outer Rust documentation comments.
+Empty files are supported. The fragment must contain one function, optionally preceded by outer Rust documentation comments.
+Files, modules and impls require a function body. Traits also accept a bodyless function declaration ending in a semicolon.
 Leading `///` and `/** ... */` comments attach to the inserted function, including under a crate-level `deny(missing_docs)` lint.
 Inner documentation, ordinary surrounding comments and explicit outer attributes, including `#[doc]`, refuse. Replacement declarations still preserve existing documentation and reject new leading comments.
 The raw input and trimmed fragment, including documentation, must fit 64 KiB.
 
-Every existing source byte is preserved. File insertion appends at EOF; module insertion goes before the selected body's closing brace.
+Every existing source byte is preserved. File insertion appends at EOF; module, impl and trait insertion goes before the selected body's closing brace.
 When that brace is on a whitespace-only line, insertion goes before the line's indentation. Otherwise, it goes immediately before the brace token.
 The operation chooses LF or CRLF from the file's first newline, defaulting to LF when there is none.
 It adds a leading newline when the preserved prefix is nonempty and does not end in LF, and always adds a trailing newline.
 The trimmed fragment remains verbatim, including line endings and multiline string contents; insertion does not indent or format it.
 The added separators can total four bytes beyond the fragment limit.
 Trailing ordinary comments remain intact. Pending outer documentation or attributes refuse because they could attach to the new function.
-Existing inner attributes and documentation continue to apply to their file or module.
+Existing inner attributes and documentation continue to apply to their file or container.
 
-The name check refuses matching direct item names in the selected file or module, treating `calc` and `r#calc` as the same spelling.
+The name check refuses matching direct item names in the selected file or container, treating `calc` and `r#calc` as the same spelling.
 It checks direct syntax and does not distinguish Rust namespaces or evaluate conditional compilation.
-Names in parents, siblings or nested modules do not block insertion. Imports, macro expansion and full name resolution remain unchecked; run the compiler after applying.
+Names in parents, sibling containers or nested scopes do not block insertion. Imports, macro expansion and full name resolution remain unchecked; run the compiler after applying.
 An identical existing function also refuses; insertion has no no-op case.
 
 The report uses query `insert-declaration` and provides the new declaration's name, span, byte count and fingerprint.
@@ -130,7 +132,7 @@ The report uses query `insert-declaration` and provides the new declaration's na
 Its `signature` describes the new function, excluding leading documentation even when that documentation exceeds the header output budget.
 For documented insertions, `documentation` identifies the leading comment region and intervening whitespace by span, byte count and fingerprint.
 The declaration span and fingerprint cover the complete fragment, including that documentation region.
-Module reports also include `container` with kind `inline-module`, its name and `before_span` for the original body including both braces.
+Container reports include `container` with kind `inline-module`, `impl` or `trait`, its name and `before_span` for the original body including both braces.
 `name_resolution_checked: false` makes the name-check boundary explicit.
 Use the returned source-history transaction for exact application, undo/redo and patches.
 
@@ -235,11 +237,13 @@ An edit reported by the declaration CLI also passes through Rust and Lean with m
 The same splice comparison now checks a reported TSX body replacement inside nested wrappers, retaining Unicode, CRLF and a neighboring declaration.
 A reported Go receiver-method replacement also produces matching Rust and Lean splice results with Unicode, CRLF and surrounding comments.
 An incompatible signature fixture confirms that syntax acceptance can still leave a compiler error in a caller.
-Insertion cases cover EOF and module placement, empty files, separators, duplicate names and unattached outer metadata.
-Module fixtures check same-named selections, raw identifiers, nested scopes, closing-brace indentation and verbatim multiline strings.
+Insertion cases cover EOF and braced-container placement, empty files, separators, duplicate names and unattached outer metadata.
+Container fixtures check same-named selections, raw identifiers, nested scopes, closing-brace indentation and verbatim multiline strings.
 A documented nested function compiles and calls its private sibling after saved application and redo; undo restores the original bytes.
+Impl and trait fixtures cover exact member selection, default methods, bodyless trait requirements and impl rejection of bodyless functions.
+An impl insertion compiles with warnings denied through saved application and redo; undo restores the original bytes and its patch checks after reversal.
 Lean proves that removing inserted characters at a valid boundary recovers the original source.
-Reported file and nested-module insertions, including their separators, also produce matching Rust and Lean results.
-The [placement model](lean-specs.md#module-insertion-placement-kernels) proves bounds, UTF-8 boundaries and preservation of closing-line indentation.
-Its source-anchored helper matches Lean and a reverse-scan oracle on 28,185 cases on 64-bit hosts; eight CLI previews match too.
+Reported file and module, impl and trait insertions, including their separators, also produce matching Rust and Lean results.
+The [placement model](lean-specs.md#declaration-insertion-placement-kernels) proves bounds, UTF-8 boundaries and preservation of closing-line indentation.
+Its source-anchored helper matches Lean and a reverse-scan oracle on 28,185 cases on 64-bit hosts; ten CLI previews match too.
 These proofs do not establish general correspondence for AST selection, parsing, type correctness, filesystem operations or the full authoring command.

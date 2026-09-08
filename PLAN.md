@@ -44,14 +44,14 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Bounded project views for Cargo/npm packages, local dependencies, Cargo ownership, calls, tests, routes, request/response contracts and selected schemas.
 - Next.js/FastAPI route conversion and OpenAPI service scaffolds within documented subsets.
 - Local recipes, expectations, workspace previews and canonical formatting.
-- Rust, Go, TypeScript and TSX body authoring, Rust declaration replacement and Rust function insertion into files and inline modules.
+- Rust, Go, TypeScript and TSX body authoring, Rust declaration replacement and Rust function insertion into files, inline modules, impls and traits.
 - Multi-file authoring batches using one reviewed source-history transaction.
 - Declared checks with reviewed configuration digests, bounded output and compact successful reports.
 - Persistent native source history with checked apply, undo, redo, recovery and Git patch export.
 - Bounded Git status, diff, changed-declaration and call-context views.
 - Unix staging previews and writes, durable staging undo/redo, reviewed commits and owned worktree creation, recovery, removal, resumption and archive compaction.
 - Native releases, a WASM API, a browser playground and patch downloads.
-- Lean models for edits, positions, history, patch properties, pagination, confidence, workspace membership, revision buffers and module insertion placement.
+- Lean models for edits, positions, history, patch properties, pagination, confidence, workspace membership, revision buffers and declaration insertion placement.
 - Source anchors, signature maps and shared Rust/Lean executable cases.
 - Sixteen passing autonomous trials across pinned strsim and regex snapshots, with replayable patches and independent behavioral oracles.
 
@@ -139,7 +139,7 @@ PR 0 supplies the baseline that every later PR must preserve or improve.
 
 ### PR 1. Agent Context Protocol v2
 
-Status: ready for review on `agent_context_v2`. The protocol implementation, deterministic projection, Codex runner and retained diagnostic cohort are complete.
+Status: merged as [PR 261](https://github.com/e6qu/fun-refactor/pull/261).
 The projection saves 2,049.5 mean fr tokens and leaves a 4,419-token normalized gap. Fresh low-effort attempts did not produce a complete passing post-fix pair, so this PR makes no context-parity claim.
 
 Goal: make the structured `fr` workflow competitive on retrieved context while retaining its stronger evidence and reversal guarantees.
@@ -179,6 +179,8 @@ Measured outcome:
 This PR closes the scoped v2 implementation and measurement work. Context parity remains open: a future claim requires a fresh passing pair after a material reduction in skill and authoring/delivery context. See the [v2 evaluation](docs/agent-context-v2-evaluation.md).
 
 ### PR 2. Generalized Structural Authoring
+
+Status: in progress on `generalized_structural_authoring`. The first checkpoint extends Rust insertion to exact impl and trait bodies and generalizes the placement kernel and correspondence cases.
 
 Goal: let an agent perform broader high-level changes without replacing entire files.
 

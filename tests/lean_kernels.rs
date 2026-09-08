@@ -1579,7 +1579,7 @@ fn body_replacement_budgets_match_lean_at_size_and_machine_boundaries() {
     assert_eq!(actual, expected);
 }
 
-fn module_offset_samples() -> Vec<String> {
+fn declaration_offset_samples() -> Vec<String> {
     let alphabet = ["a", " ", "\t", "\r", "\n", "é", "🙂"];
     let mut sources = vec![String::new()];
     let mut words = sources.clone();
@@ -1608,7 +1608,7 @@ fn module_offset_samples() -> Vec<String> {
     sources
 }
 
-fn reverse_module_offset(text: &str, body_start: usize) -> usize {
+fn reverse_declaration_offset(text: &str, body_start: usize) -> usize {
     for (offset, c) in text.char_indices().rev() {
         if matches!(c, ' ' | '\t' | '\r') {
             continue;
@@ -1623,10 +1623,10 @@ fn reverse_module_offset(text: &str, body_start: usize) -> usize {
 }
 
 #[test]
-fn module_insertion_offsets_match_lean_and_reverse_oracle() {
+fn declaration_insertion_offsets_match_lean_and_reverse_oracle() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
-        .arg("module-offsets")
+        .arg("declaration-offsets")
         .output()
         .unwrap();
     assert!(output.status.success(), "{output:?}");
@@ -1636,10 +1636,10 @@ fn module_insertion_offsets_match_lean_and_reverse_oracle() {
     let mut compare = |text: &str, body_start: u64| {
         let line = actual.next().expect("one Lean result per placement case");
         if let Ok(body_start) = usize::try_from(body_start) {
-            let rust = fun_refactor::project::module_insertion_offset(text, body_start);
+            let rust = fun_refactor::project::declaration_insertion_offset(text, body_start);
             let lean = line.parse::<usize>().unwrap();
             assert_eq!(rust, lean, "{text:?}, {body_start}");
-            assert_eq!(rust, reverse_module_offset(text, body_start));
+            assert_eq!(rust, reverse_declaration_offset(text, body_start));
             assert!(rust <= text.len() && text.is_char_boundary(rust));
             assert!(text[rust..]
                 .bytes()
@@ -1661,7 +1661,7 @@ fn module_insertion_offsets_match_lean_and_reverse_oracle() {
             count += 1;
         }
     };
-    for text in module_offset_samples() {
+    for text in declaration_offset_samples() {
         for body_start in (0..text.len() as u64 + 2).chain([u32::MAX.into(), u64::MAX]) {
             compare(&text, body_start);
         }
@@ -1680,24 +1680,71 @@ fn module_insertion_offsets_match_lean_and_reverse_oracle() {
 }
 
 #[test]
-fn module_insertion_reports_match_lean_placement() {
+fn declaration_insertion_reports_match_lean_placement() {
     build_kernel();
-    for source in [
-        "mod target {}",
-        "mod target {\n    }\n",
-        "mod outer {\r\n\tmod target {\r\n\t}\r\n}\r\n",
-        "// π\nmod target { /* } */ }",
-        "mod target {\n// }\n}\n",
-        "mod target {\r\n\t\r }\r\n",
-        "mod target { const X: &str = r#\"}\"#; }",
-        "mod target {\n//! Inner docs.\n}\n",
+    for (source, selected, fragment_text, kind) in [
+        ("mod target {}", "target", "fn calc() {}", "inline-module"),
+        (
+            "mod target {\n    }\n",
+            "target",
+            "fn calc() {}",
+            "inline-module",
+        ),
+        (
+            "mod outer {\r\n\tmod target {\r\n\t}\r\n}\r\n",
+            "target",
+            "fn calc() {}",
+            "inline-module",
+        ),
+        (
+            "// π\nmod target { /* } */ }",
+            "target",
+            "fn calc() {}",
+            "inline-module",
+        ),
+        (
+            "mod target {\n// }\n}\n",
+            "target",
+            "fn calc() {}",
+            "inline-module",
+        ),
+        (
+            "mod target {\r\n\t\r }\r\n",
+            "target",
+            "fn calc() {}",
+            "inline-module",
+        ),
+        (
+            "mod target { const X: &str = r#\"}\"#; }",
+            "target",
+            "fn calc() {}",
+            "inline-module",
+        ),
+        (
+            "mod target {\n//! Inner docs.\n}\n",
+            "target",
+            "fn calc() {}",
+            "inline-module",
+        ),
+        (
+            "struct Target; impl Target {\n    fn anchor(&self) {}\n}\n",
+            "anchor",
+            "fn calc(&self) {}",
+            "impl",
+        ),
+        (
+            "trait Contract {\r\n\tfn anchor(&self);\r\n}\r\n",
+            "Contract",
+            "fn calc(&self);",
+            "trait",
+        ),
     ] {
         let temp = tempfile::tempdir().unwrap();
         let workspace = temp.path().join("workspace");
         std::fs::create_dir(&workspace).unwrap();
         std::fs::write(workspace.join("app.rs"), source).unwrap();
         let fragment = temp.path().join("function.txt");
-        std::fs::write(&fragment, "fn calc() {}").unwrap();
+        std::fs::write(&fragment, fragment_text).unwrap();
         let run = |args: &[&str]| {
             let output = Command::new(env!("CARGO_BIN_EXE_fr"))
                 .args(["--json", "--no-cache", "-C"])
@@ -1712,7 +1759,7 @@ fn module_insertion_reports_match_lean_placement() {
             );
             serde_json::from_slice::<serde_json::Value>(&output.stdout).unwrap()
         };
-        let found = run(&["project", "find", "target", "--in", "app.rs"]);
+        let found = run(&["project", "find", selected, "--in", "app.rs"]);
         let handle = found["rows"][0][0].as_str().unwrap();
         let report = run(&[
             "author",
@@ -1721,12 +1768,13 @@ fn module_insertion_reports_match_lean_placement() {
             "--from",
             fragment.to_str().unwrap(),
         ]);
+        assert_eq!(report["container"]["kind"], kind);
         let body = &report["container"]["before_span"];
         let start = body["start"].as_u64().unwrap() as usize;
         let close = body["end"].as_u64().unwrap() as usize - 1;
         assert_eq!(&source[close..close + 1], "}");
         let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
-            .args(["module-offset", &start.to_string(), &source[..close]])
+            .args(["declaration-offset", &start.to_string(), &source[..close]])
             .output()
             .unwrap();
         assert!(output.status.success(), "{output:?}");
