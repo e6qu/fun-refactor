@@ -15,6 +15,57 @@ spec = importlib.util.spec_from_file_location("agent_eval_harness", TOOLS / "age
 harness = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(harness)
 
+cache_spec = importlib.util.spec_from_file_location("project_cache_measurement", TOOLS / "project-cache.py")
+cache_measurement = importlib.util.module_from_spec(cache_spec)
+cache_spec.loader.exec_module(cache_measurement)
+
+
+class CacheMeasurementEvidence(unittest.TestCase):
+    def test_timing_comparison_rejects_changed_source_coverage_or_revision(self):
+        report = {"revision": "basis", "coverage": {"files": 2}, "source": "λ🙂", "omitted": 0}
+        baseline = {"stdout": json.dumps(report)}
+        cache_measurement.same_report(baseline, baseline)
+        for key, replacement in (("revision", "stale"), ("coverage", {}), ("source", "λ"), ("omitted", 1)):
+            with self.subTest(key=key):
+                changed = {**report, key: replacement}
+                with self.assertRaisesRegex(AssertionError, "complete query report"):
+                    cache_measurement.same_report(baseline, {"stdout": json.dumps(changed)})
+
+    def test_failed_invalidation_probe_restores_source_and_mode(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / "lib.rs"
+            original = "pub fn probe() { let _ = 'λ'; }".encode()
+            path.write_bytes(original)
+            path.chmod(0o640)
+            original_mode = path.stat().st_mode
+            baseline = {"columns": ["path", "handle", "source"], "rows": [["lib.rs", "old", {
+                "span": {"start": 0, "end": len(original)}, "text": original.decode(), "next_offset": None}]]}
+
+            def failed_query(*args, **kwargs):
+                self.assertIn(b"fr cache invalidation probe", path.read_bytes())
+                raise RuntimeError("injected query failure")
+
+            with mock.patch.object(cache_measurement, "query", side_effect=failed_query):
+                with self.assertRaisesRegex(RuntimeError, "injected query failure"):
+                    cache_measurement.invalidation(Path("fr"), root, root / "cache", [], baseline)
+            self.assertEqual(path.read_bytes(), original)
+            self.assertEqual(path.stat().st_mode, original_mode)
+
+    def test_incomplete_source_cannot_start_an_invalidation_probe(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / "lib.rs"
+            original = b"pub fn probe() {}"
+            path.write_bytes(original)
+            baseline = {"columns": ["path", "handle", "source"], "rows": [["lib.rs", "old", {
+                "span": {"start": 0, "end": 4}, "text": "pub ", "next_offset": 4}]]}
+            with mock.patch.object(cache_measurement, "query") as query:
+                with self.assertRaises(AssertionError):
+                    cache_measurement.invalidation(Path("fr"), root, root / "cache", [], baseline)
+                query.assert_not_called()
+            self.assertEqual(path.read_bytes(), original)
+
 
 class WorkflowEvidence(unittest.TestCase):
     def setUp(self):

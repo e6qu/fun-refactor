@@ -95,3 +95,49 @@ CLI regressions cover shared budgets, empty slices, UTF-8 continuation, empty ma
 The executable authoring example compiles and tests a wrapper after reading its helper directly from the lookup.
 M4p adds [source-slice and shared-budget model proofs](lean-specs.md#bounded-source-kernels), with shared Rust cases and actual CLI comparisons.
 Parser behavior and general implementation correspondence remain unproved. The retained M4o measurements describe their original binary and inputs.
+
+## Query time and the fact cache
+
+M4q measures the existing cache separately from returned context.
+`tools/project-cache.py` runs the same bounded source lookups for `regex::escape` and `regex_syntax::escape_into` on the pinned workspace.
+It compares three modes: `--no-cache`, an empty fact cache, and a cache that a preceding identical query populated.
+Each mode gets its own temporary `FUN_REFACTOR_CACHE` directory outside the project.
+The script rotates mode order across three repetitions and retains every elapsed time, request, output digest and cache inventory summary.
+
+Every measured query must return byte-identical JSON, including source, revisions, handles, coverage and omissions.
+Disabled-cache runs must leave their cache directories absent; empty-cache runs must create entries.
+Populated runs must preserve their existing cache files and contents. The CLI does not expose per-query hit counters for project commands.
+Two additional probes insert a temporary comment inside the selected function.
+Cached and uncached queries must return identical changed reports, reject the old handle and restore the original report after source restoration.
+The probes must create new content-keyed cache entries. Tracked source bytes, modes and Git index bytes must finish unchanged.
+
+The [retained comparison](../tests/agent-eval/project-cache.json) records the validated debug binary's SHA-256, fixture hashes, runtime and measurement sources.
+All eighteen timed queries and both invalidation probes pass.
+
+| Lookup | Cache disabled, median seconds | Empty cache, median seconds | Populated cache, median seconds |
+|---|---:|---:|---:|
+| `regex::escape` | 10.088 | 10.233 | 3.280 |
+| `regex_syntax::escape_into` | 10.203 | 10.219 | 3.282 |
+
+Populated-cache medians are 67.5% and 67.8% below the disabled-cache medians on this host and binary.
+Empty-cache medians remain near disabled-cache medians; populating the cache adds no demonstrated first-query benefit here.
+Each populated inventory starts with 244 files and roughly four megabytes of cached data.
+The source probes create additional entries and restore the original query results without clearing old entries.
+An initial local run showed the same direction; the retained report contains the separate confirmation run and all of its samples.
+
+Its summaries exclude priming queries, while retaining their elapsed times separately.
+Inventory hashing runs outside each timed query and reads the populated cache entries.
+The script creates empty fr caches; it does not flush operating-system caches or establish cold-disk behavior.
+Subprocess wall times include startup, scanning, indexing, project construction, source verification and JSON output.
+These measurements do not profile individual phases, run agents, build regex or establish production latency.
+Identical responses mean this cache comparison changes no returned-context size. Existing autonomous trial results remain historical evidence.
+
+```sh
+python3 tools/project-cache.py --fr target/debug/fr --repetitions 3
+```
+
+The script needs the retained regex source archive, Python and Git. It uses no extra Cargo dependencies or tokenizer.
+Cache failures and invalidation assertions fail the measurement; elapsed time has no pass/fail threshold.
+Three evaluator regressions reject changed report fields and incomplete source, and check restoration after an injected query failure.
+Before another autonomous comparison, state the cache policy and distinguish task context from query latency.
+Profile a release build and the remaining project work before choosing a daemon or persistent project index.

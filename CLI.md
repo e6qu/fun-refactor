@@ -70,7 +70,7 @@ ambiguous, and the tool tells you which case you are in.
 | `-C`, `--root <ROOT>` | The workspace to act on. Naming a single file scans that file alone. Default `.` |
 | `--max-file-size <BYTES>` | Skip files larger than this. Default 4 MiB. Every command warns when a scan skipped one |
 | `--no-ignore` | Read files `.gitignore` excludes, and hidden files. Generated and vendored trees are refactoring targets like any other |
-| `--no-cache` | Re-read every file instead of reusing cached facts |
+| `--no-cache` | Parse and extract every file instead of reusing cached facts |
 | `-V`, `--version` | Print the version |
 
 `--max-file-size` matters more than it looks. A skipped file is invisible to
@@ -1280,9 +1280,10 @@ See [archive compaction](docs/git-worktree-archive-compaction.md) for retained d
 fr cache [--clear]
 ```
 
-Inspect or clear the fact cache. The cache keys an entry by content and by
-the version of everything that could change a fact, so a stale answer is not
-findable. `--clear` is for when you want to prove that.
+Inspect or clear the fact cache. Entries depend on source content, query definitions and the extractor version.
+Queries read current source before looking up cached facts. A hit skips parsing and fact extraction; the index and project view still rebuild.
+`--no-cache` bypasses this cache. Set `FUN_REFACTOR_CACHE` to select a separate cache directory.
+The [controlled cache comparison](docs/project-context-evaluation.md#query-time-and-the-fact-cache) checks complete reports and source invalidation alongside query time.
 
 ### `fr completions`
 

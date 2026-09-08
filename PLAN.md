@@ -994,11 +994,24 @@ The CLI surface and retained context measurements stay unchanged.
 General implementation correspondence, parser spans and report assembly remain unproved.
 See [bounded source kernels](docs/lean-specs.md#bounded-source-kernels) for assumptions, axiom dependencies and validation scope.
 
+M4q: controlled fact-cache timing and invalidation (complete).
+
+The prescribed regex source lookups compare disabled, empty and populated caches in rotating order across three repetitions.
+Every measured query must retain byte-identical JSON, including source, revisions, coverage and omissions.
+Separate source probes compare cached and uncached changes, reject stale handles and restore exact tracked source and index bytes.
+All eighteen timed queries and both probes pass; populated-cache medians fall from about 10.1–10.2 seconds to 3.28 seconds on the validated debug binary.
+These are single-host whole-query results, with no production-latency or returned-context reduction claim.
+The report retains whole-query timings, cache inventories, payloads and input provenance; it does not measure indexing phases or agent behavior.
+Nineteen evaluator regressions pass, including three new measurement failure controls.
+The CLI and portable skill retain their current behavior. Existing autonomous records remain immutable.
+See [cache measurements](docs/project-context-evaluation.md#query-time-and-the-fact-cache) for the method and its boundaries.
+
 Next M4 work:
 
 Use the retained workspace traces to reduce repeated report metadata and skill-loading costs, preserving coverage, source bases, guards and reviewable changes.
 Measure each proposed reduction on fixed transcripts or controlled workflows before another autonomous comparison.
-Investigate repeated project indexing separately from returned-context size; the current evaluation disables the cache.
+Profile the remaining cached project work on a release build separately from returned-context size.
+State the cache policy for the next autonomous cohort; the retained trials disable it.
 Then evaluate a task requiring coordinated changes across several files, with repeated paired trials and independent behavioral checks.
 Keep examples compatible with the distributed binary and load specialized references only when needed.
 

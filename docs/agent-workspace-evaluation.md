@@ -50,6 +50,8 @@ Skill loading and transaction reports remain substantial fixed costs for this lo
 Project inspection is bounded, but it is not consistently smaller than targeted ordinary source inspection in these trials.
 The two fr trials spend 73.6 and 81.8 seconds inside instrumented tools, versus 4.9 and 2.7 seconds for files.
 Repeated uncached project analysis dominates the fr tool time; bounded output does not imply inexpensive indexing.
+The later [controlled cache comparison](project-context-evaluation.md#query-time-and-the-fact-cache) isolates the existing fact cache on prescribed lookups.
+It does not rerun these agents or revise their timing and context records.
 
 The next optimization should examine repeated report metadata and skill-loading costs while preserving source bases, coverage, guards and reviewable edits.
 A later task should require coordinated changes across files, since a larger repository alone does not test that workflow.
@@ -176,7 +178,7 @@ An opt-in integration regression runs the same workspace replay after the depend
 CARGO_HOME="$PWD/target/cargo-home" CARGO_NET_OFFLINE=true cargo test --test agent_acceptance recorded_workspace_patches_pass_checks_oracles_and_exact_reversal -- --ignored
 ```
 
-Default acceptance tests retain the sixteen harness regressions and eight earlier patch replays without requiring the additional workspace dependencies.
+The M4l default acceptance gate retained sixteen harness regressions and eight earlier patch replays without requiring the additional workspace dependencies.
 The M4k full native/WASM gate and strict kernel verification passed before these trials.
 This milestone adds evidence, replay coverage and documentation; production code and formal claims are unchanged.
 

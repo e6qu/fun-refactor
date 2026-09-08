@@ -1,10 +1,30 @@
 # Development continuity
 
-M4p is complete: source-slice and shared-budget model proofs now complement bounded source lookup.
+M4q is complete: controlled cache measurements preserve query reports and verify source invalidation.
 The user authorized local commits. Publishing and pushing remain outside this request.
 M4l's four passing workspace trials are retained in `3c8231c`; preparation is `811591e` and documented insertion is `6d0928b`.
 M4m's smaller check reports are committed in `58b53bd`; M4n's targeted skill guidance is `1c44863`.
 M4o's bounded source lookup is committed in `5214404`.
+M4p's source and budget proofs are committed in `aa16584`.
+
+## Cache measurement
+
+`tools/project-cache.py` compares identical bounded source lookups with disabled, empty and populated fact caches.
+Each sample owns a temporary cache outside the pinned regex workspace; mode order rotates across three repetitions.
+Complete JSON must match across modes, including revisions, handles, coverage, source and omissions.
+The report records whole-subprocess times and cache inventory digests, without phase profiling or per-query cache-hit counters.
+Priming queries and cache inventory reads stay outside the timing summaries; priming times remain separately visible.
+This uses the validated debug binary and makes no production-latency or agent-context claim.
+The retained report is `tests/agent-eval/project-cache.json`, from the confirmation run in `/tmp/fr-m4q-project-cache-final.json`.
+All eighteen timed queries pass: disabled medians are 10.088 and 10.203 seconds; populated medians are 3.280 and 3.282 seconds.
+The respective reductions are 67.5% and 67.8%. Empty-cache medians remain near the disabled values.
+
+Two temporary comment probes compare cached and uncached changed reports, reject stale handles and restore the original reports.
+Tracked source bytes and modes and the Git index must finish unchanged; all cache paths belong to the disposable fixture.
+Existing agent evidence and the harness's `--no-cache` policy remain unchanged.
+Three new evaluator regressions reject report changes and incomplete source, and require source restoration after an injected query failure.
+The default acceptance harness now runs nineteen regressions; the recorded M4l count remains historical evidence.
+See [cache measurements](project-context-evaluation.md#query-time-and-the-fact-cache) for the retained report and reproduction.
 
 ## Source verification
 
@@ -111,7 +131,7 @@ Each cohort retains prompts, transcripts, scores, patches and its original skill
 All twelve autonomous trials pass. Recording also supports scored failures; behavioral replay refuses failed trials.
 Replay checks recorded patches and transition evidence without rerunning agents. Token auditing recounts retained payloads.
 The initial and follow-up strsim findings remain in the [context report](agent-context-followup.md).
-Controlled reports are separate under `tests/agent-eval/`: `history-context.json`, `regex/rehearsal.json`, `checks-context.json`, `skill-context.json` and `find-source-context.json`.
+Controlled reports are separate under `tests/agent-eval/`: `history-context.json`, `regex/rehearsal.json`, `checks-context.json`, `skill-context.json`, `find-source-context.json` and `project-cache.json`.
 The regex rehearsal uses a prescribed solution and rejects three compiled negative controls; it is not autonomous evidence.
 
 Temporary regex sessions remain under `/private/tmp/fr-regex-agent-eval-2026-09-08`, one directory per retained trial name.
@@ -121,6 +141,13 @@ It, the skills, prompts, evaluator and oracle stayed unchanged throughout both p
 Temporary projects are disposable after retention; use repository evidence for replay and audits.
 
 ## Validation and commands
+
+M4q's eighteen measured queries and both invalidation probes pass in `/tmp/fr-m4q-project-cache-final.json`.
+The retained artifact audit checks every payload digest and byte count, recomputes summaries and verifies the binary and measurement-source hashes.
+All nineteen evaluator regressions pass in `/tmp/fr-m4q-harness-tests.log`; Python compilation also passes.
+Twelve cache regressions and six documentation checks pass in `/tmp/fr-m4q-validation.log`.
+The default acceptance entry point passes in `/tmp/fr-m4q-final-check.log`; final documentation checks pass in `/tmp/fr-m4q-docs-final.log`.
+Production Rust code and Lean definitions remain unchanged from M4p; that milestone retains the full native/WASM gate and strict Lean verification.
 
 M4p's focused source tests pass in `/tmp/fr-m4p-focused.log`.
 The full native/WASM gate passes in `/tmp/fr-m4p-full-check.log`, including all 131 project CLI scenarios and 311/311 capability coverage.
@@ -173,7 +200,8 @@ Check execution metadata is now optional; use retained traces to reduce remainin
 Preserve coverage, source bases, guards and reviewable edits.
 Validate whether fresh agents adopt the targeted route before claiming autonomous context savings; include a task that actually requires broader exploration.
 Measure proposed reductions on fixed transcripts or controlled workflows before requesting another autonomous cohort.
-Treat repeated indexing cost separately from returned-context size; these trials explicitly disable the cache.
+Profile the remaining cached project work on a release build before choosing a daemon or persistent project index.
+State the cache policy for the next autonomous cohort; existing trials explicitly disable it and their records remain immutable.
 A later paired task should require coordinated changes across files; the current larger repository task is still a localized facade addition.
 Keep portable skill references selective and executable against the distributed binary.
 Further authoring operations, M5 automated Lean adoption and M6 framework migrations remain open in [PLAN.md](../PLAN.md).

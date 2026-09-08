@@ -29,6 +29,7 @@ After reviewing the listing, add `--no-declarations` to `checks --run` to omit r
 The portable skill starts targeted edits with authoring guidance and loads exploration or interrupted-write recovery when needed.
 `project find --source --bytes N` combines name lookup with source slices under one shared page budget.
 [Source kernel proofs](docs/lean-specs.md#bounded-source-kernels) cover modeled UTF-8 slicing and shared budgets, with Rust and CLI comparisons.
+[Cache measurements](docs/project-context-evaluation.md#query-time-and-the-fact-cache) compare query time while checking identical reports and source invalidation.
 [Real-agent acceptance](docs/agent-acceptance.md) records the first paired trials and reversible patches.
 The [context-reduction follow-up](docs/agent-context-followup.md) measures targeted lookup, quiet successful checks and selective skill loading against fresh file-tool trials.
 Use `fr project find NAME --signature` to locate a known declaration without requesting a broad map.
