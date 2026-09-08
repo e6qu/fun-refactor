@@ -107,8 +107,35 @@ The identifiers remain stable for references in defect records.
 
 ## Delivery plan
 
-The remaining roadmap is packaged as six reviewable product PRs.
+The current foundation is packaged as PR 0. The remaining roadmap is packaged as six reviewable product PRs.
 Each PR can contain internal checkpoint commits, but its description and acceptance evidence must describe one final outcome.
+
+### PR 0. Agent-ready verified refactoring foundation
+
+Status: this pull request.
+
+Goal: establish the shared product and evidence base required by the remaining roadmap.
+
+Delivered:
+
+- Recoverable source transactions with checked apply, undo, redo, recovery and Git patch export.
+- Bounded project maps and targeted evidence for packages, dependencies, symbols, calls, routes, contracts, schemas and tests.
+- Bounded Git status, diff, changed-declaration, staging, commit and owned-worktree workflows.
+- Structural authoring for selected Rust, Go, TypeScript and TSX declarations, including reviewed multi-file batches.
+- A portable `fr` agent skill with executable workflows for exploration, authoring, checks, history, Git and Lean specifications.
+- Lean models for source positions, edits, history, patches, pagination, project membership, revision buffers and insertion placement.
+- Source anchors, signature maps, strict specification checks and shared executable Rust/Lean cases.
+- Sixteen retained autonomous trials, independent behavioral oracles, exact patch replay and token audits.
+- Native and WASM validation with measured capability coverage for every supported language-operation pair.
+
+Acceptance evidence:
+
+- The complete native/WASM gate passes with 311 supported capability-language pairs exercised.
+- Strict Lean verification rejects stale anchors, signature drift, unbuilt targets and unresolved proof obligations.
+- Agent evaluation records preserve prompts, events, patches, source states, checks, independent oracles and exact reversal evidence.
+- Documentation states the supported subsets, refusal boundaries, proof limits and current context-cost findings.
+
+PR 0 supplies the baseline that every later PR must preserve or improve.
 
 ### PR 1. Agent Context Protocol v2
 
@@ -253,6 +280,7 @@ Verification and acceptance:
 
 ## Delivery order
 
+PR 0 supplies the verified refactoring, repository and evaluation foundation.
 PR 1 establishes the response and evaluation protocol used by every later agent workflow.
 PR 2 and PR 3 can then proceed independently.
 PR 4 depends on the stable authoring workflow but does not require the framework model.
@@ -260,7 +288,8 @@ PR 5 depends on compact project evidence and supplies the semantic input for PR 
 PR 6 depends on PR 2, PR 3 and PR 5.
 
 ```text
-PR 1  Agent Context Protocol v2
+PR 0  Agent-ready verified refactoring foundation
+  └── PR 1  Agent Context Protocol v2
   ├── PR 2  Generalized Structural Authoring ──┬── PR 4  Lean Adoption Kit
   │                                            └──┐
   ├── PR 3  Durable Git Workspace Lifecycle ─────┼── PR 6  Verified Feature Migration

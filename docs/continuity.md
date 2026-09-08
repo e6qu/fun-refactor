@@ -1,7 +1,10 @@
 # Development continuity
 
+The current `spec_extract` branch is roadmap PR 0, the agent-ready verified refactoring foundation.
+It packages the completed source-history, project-inspection, Git, authoring, agent-skill, evaluation and Lean-model work that PRs 1 through 6 build on.
+PR 1 is the next delivery unit after PR 0 lands.
 M4ac is complete: the matched check-output projection shows that verbose successful logs masked substantial fr workflow context in M4ab.
-The user authorized local commits. Publishing and pushing remain outside this request.
+The user authorized publishing PR 0 from this branch.
 M4l's four passing workspace trials are retained in `3c8231c`; preparation is `811591e` and documented insertion is `6d0928b`.
 M4m's smaller check reports are committed in `58b53bd`; M4n's targeted skill guidance is `1c44863`.
 M4o's bounded source lookup is committed in `5214404`.
