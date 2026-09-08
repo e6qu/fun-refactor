@@ -523,6 +523,8 @@ The JSON manifest contains `operations` entries with `op` and `handle`; fragment
 An optional shared `revision` permits short IDs.
 An `organize-imports` entry uses a file handle and omits `from`. It removes and sorts imports through the existing conservative import planner.
 Operations use the original revision and existing language restrictions. Relative fragment paths resolve from the workspace root.
+Optional `postconditions` can require exact `files-changed`, `edits`, `changed-operations` and normalized `paths-changed` outcomes.
+Every declared postcondition appears with expected, actual and held values. A mismatch refuses before history or source changes.
 The manifest and each fragment must fit 64 KiB. Unknown fields, overlapping selections and shared insertion boundaries refuse.
 Use `--save-plan` or `--write`; the combined diff shares one `--diff-bytes` budget.
 The `fr-author-batch-1` report shares coverage once and gives original spans, sizes, hashes and signatures per step.

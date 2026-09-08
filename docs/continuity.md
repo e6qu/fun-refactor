@@ -6,6 +6,7 @@ The current `generalized_structural_authoring` branch is roadmap PR 2. Its first
 The second checkpoint authors TypeScript/TSX expression-bodied arrows and permits checked transitions between expression and block bodies.
 The third checkpoint adds Java method, constructor and default-interface body authoring through the same checked splice and history path.
 The fourth checkpoint lets one authoring batch combine declaration, caller and conservative import-organization changes.
+The fifth checkpoint adds exact batch postconditions for changed files, edits, operations and paths.
 Project and author reports now emit a revision-bound `frcb1:` basis. Supplying it omits only `coverage`, `handle_prefix` and `revision`; stale bases refuse before author plans can be saved or written.
 Complete saved author diffs and detailed history records now emit a separate `frtb1:` transaction basis. Forward apply and redo reports can omit their repeated diffs while retaining change metadata; reverse use and mismatches refuse before writes.
 Unit and CLI regressions reconstruct full reports exactly and cover missing, truncated, stale and conflicting bases.
@@ -122,6 +123,7 @@ Every step must succeed, and combined file results must reparse before the CLI r
 
 `src/cli.rs::cmd_author` routes batches through the existing diff, persistence and source-verification path.
 Schema `fr-author-batch-1` reports coverage once, ordered step signatures and original spans, sizes and hashes.
+Optional postconditions report expected, actual and held values. Any mismatch refuses before persistence.
 It omits after-spans because earlier edits can shift later positions. Insertion hashes include separator bytes.
 Saved plans freeze all changes; unrelated source changes retain the existing history rules, and affected-file conflicts refuse the entire application.
 This does not strengthen filesystem atomicity or prove typing and behavior.

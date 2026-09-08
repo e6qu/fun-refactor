@@ -56,6 +56,16 @@ pub struct BatchOptions {
 struct BatchManifest {
     revision: Option<String>,
     operations: Vec<BatchStep>,
+    postconditions: Option<BatchPostconditions>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+struct BatchPostconditions {
+    files_changed: Option<usize>,
+    edits: Option<usize>,
+    changed_operations: Option<usize>,
+    paths_changed: Option<Vec<PathBuf>>,
 }
 
 #[derive(Deserialize)]
@@ -371,6 +381,7 @@ impl Project<'_> {
         let mut edits = EditSet::new();
         let mut regions: Vec<(PathBuf, Span)> = Vec::new();
         let mut steps = Vec::new();
+        let mut changed_operations = 0usize;
         for (index, step) in manifest.operations.into_iter().enumerate() {
             let revision = (!step.handle.starts_with("frp1:"))
                 .then(|| manifest.revision.clone())
@@ -412,6 +423,7 @@ impl Project<'_> {
                     "organize-imports produced no change; omit this batch step."
                 );
             }
+            changed_operations += usize::from(plan.report["changed"] == true);
             let handle = self.explicit_handle(&step.handle, revision.as_deref())?;
             let id = self.resolve_handle(&handle)?;
             let path = self.root.join(&self.nodes[id].path);
@@ -478,6 +490,62 @@ impl Project<'_> {
         report["files_changed"] = json!(edits.file_count());
         report["changed"] = json!(!edits.is_empty());
         report["steps"] = json!(steps);
+        let mut postconditions = Vec::new();
+        if let Some(expected) = manifest.postconditions {
+            ensure!(
+                expected.files_changed.is_some()
+                    || expected.edits.is_some()
+                    || expected.changed_operations.is_some()
+                    || expected.paths_changed.is_some(),
+                "postconditions must declare at least one expected outcome."
+            );
+            let mut check = |name: &str, expected: Value, actual: Value| -> Result<()> {
+                let held = expected == actual;
+                postconditions.push(json!({"postcondition": name, "expected": expected,
+                    "actual": actual, "held": held}));
+                ensure!(
+                    held,
+                    "postcondition {name} failed: expected {}, actual {}.",
+                    expected,
+                    actual
+                );
+                Ok(())
+            };
+            if let Some(expected) = expected.files_changed {
+                check("files-changed", json!(expected), json!(edits.file_count()))?;
+            }
+            if let Some(expected) = expected.edits {
+                check("edits", json!(expected), json!(edits.edit_count()))?;
+            }
+            if let Some(expected) = expected.changed_operations {
+                check(
+                    "changed-operations",
+                    json!(expected),
+                    json!(changed_operations),
+                )?;
+            }
+            if let Some(mut expected) = expected.paths_changed {
+                ensure!(
+                    expected.iter().all(|path| {
+                        path.is_relative()
+                            && path
+                                .components()
+                                .all(|part| matches!(part, std::path::Component::Normal(_)))
+                    }),
+                    "paths-changed entries must be normalized relative paths."
+                );
+                expected.sort();
+                expected.dedup();
+                let actual = edits
+                    .paths()
+                    .filter(|path| edits.edits_for(path).is_some_and(|items| !items.is_empty()))
+                    .map(|path| path.strip_prefix(&self.root).unwrap_or(path).to_path_buf())
+                    .collect::<Vec<_>>();
+                check("paths-changed", json!(expected), json!(actual))?;
+            }
+        }
+        report["postconditions"] = json!(postconditions);
+        report["postconditions_held"] = json!(true);
         report["validation"] = json!("reparse-strict");
         report["behavior_checked"] = json!(false);
         report["atomic_snapshot"] = json!(false);

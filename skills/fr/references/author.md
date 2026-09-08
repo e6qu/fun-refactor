@@ -11,6 +11,8 @@ Find a declaration with `project find NAME --in FILE --source`. That report's `r
 
 Fragments are UTF-8 files outside the project and at most 64 KiB. A batch manifest contains `operations` with `op` and `handle`; fragment operations also require `from`. Short IDs require top-level `revision`. An `organize-imports` operation uses a file handle and removes or sorts imports through the conservative `fr imports` planner. All handles and import liveness decisions use the original source. Overlaps and shared insertion boundaries refuse.
 
+Add `postconditions` when the intended transaction shape is known. It accepts exact `files-changed`, `edits`, `changed-operations`, and `paths-changed` values. A mismatch refuses before saving or writing.
+
 Review the combined diff, then save and apply the checked transaction. A complete saved diff includes `transaction_context_basis` for compact forward apply/redo reports.
 Repeating an identical saved plan reuses its transaction and reports `reused_transaction: true` with `saved: false`.
 

@@ -2342,6 +2342,14 @@ fn batch_coordinates_declaration_caller_and_import_changes() {
         ],
         None,
     );
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&input).unwrap()).unwrap();
+    manifest["postconditions"] = serde_json::json!({
+        "files-changed": 2,
+        "edits": 3,
+        "changed-operations": 3,
+        "paths-changed": ["app.rs", "calc.rs"]
+    });
+    fs::write(&input, serde_json::to_vec(&manifest).unwrap()).unwrap();
     let (success, saved) = batch(&root, &input, &["--save-plan"]);
     assert!(success, "{saved}");
     assert_eq!(saved["files_changed"], 2);
@@ -2357,6 +2365,13 @@ fn batch_coordinates_declaration_caller_and_import_changes() {
             .len(),
         1
     );
+    assert_eq!(saved["postconditions_held"], true);
+    assert_eq!(saved["postconditions"].as_array().unwrap().len(), 4);
+    assert!(saved["postconditions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|item| item["held"] == true));
 
     let id = saved["transaction"].as_u64().unwrap().to_string();
     ok(&root, &["history", "apply", &id, "--write"]);
@@ -2439,6 +2454,39 @@ fn batch_import_steps_require_one_changed_file_handle_without_a_fragment() {
     assert!(!batch(&root, &input, &["--write"]).0);
     assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), clean);
     assert!(!root.join(".fr-history").exists());
+}
+
+#[test]
+fn batch_postconditions_refuse_mismatches_before_history_or_source_changes() {
+    for postconditions in [
+        serde_json::json!({"files-changed": 2}),
+        serde_json::json!({"edits": 2}),
+        serde_json::json!({"changed-operations": 0}),
+        serde_json::json!({"paths-changed": ["other.rs"]}),
+        serde_json::json!({}),
+        serde_json::json!({"paths-changed": ["../app.rs"]}),
+    ] {
+        let source = "fn calc() { let value = 1; println!(\"{}\", value); }\n";
+        let (_temp, root, _) = fixture(source, b"{}");
+        let (handle, _) = selection(&root, "calc");
+        let input = batch_manifest(
+            &root,
+            vec![batch_step(
+                &root,
+                "replace-body",
+                &handle,
+                "body.txt",
+                "{ let value = 2; println!(\"{}\", value); }",
+            )],
+            None,
+        );
+        let mut manifest: Value = serde_json::from_slice(&fs::read(&input).unwrap()).unwrap();
+        manifest["postconditions"] = postconditions;
+        fs::write(&input, serde_json::to_vec(&manifest).unwrap()).unwrap();
+        assert!(!batch(&root, &input, &["--write"]).0);
+        assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+        assert!(!root.join(".fr-history").exists());
+    }
 }
 
 #[test]

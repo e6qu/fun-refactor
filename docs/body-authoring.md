@@ -166,6 +166,10 @@ The step must produce a change. It refuses a non-file handle, an unnecessary fra
 Its report lists removed and retained imports, sorted blocks and every import edit's span, byte counts, fingerprints and reason.
 Another operation in the batch cannot change this liveness decision because every step uses the original revision.
 
+The manifest can declare exact `postconditions` for `files-changed`, `edits`, `changed-operations` and `paths-changed`.
+Paths must be normalized workspace-relative paths. The report gives expected, actual and held values for every declared outcome.
+A mismatch, an empty postcondition object or an invalid path refuses before source or history changes.
+
 Full handles carry their revisions. Short IDs require an optional top-level `revision`, which must match the captured project revision.
 A supplied revision also applies when entries use full handles. Unknown fields, duplicate JSON fields and unknown operations refuse.
 Manifest and fragment paths resolve from the workspace root, including when the manifest lives elsewhere.
@@ -227,7 +231,7 @@ Source verification and recording are separate observations; this command does n
 
 ## Evidence
 
-Sixty CLI scenarios cover saved edit identity, compiled behavior, undo/redo, patch export, stale handles and revisions, unsupported targets and malformed input.
+Sixty-one CLI scenarios cover saved edit identity, compiled behavior, undo/redo, patch export, stale handles and revisions, unsupported targets and malformed input.
 They also check exact size limits, diff omission, method and nested-function contexts, Unicode and CRLF preservation, no-op writes, symlink inputs and Unix permissions.
 TypeScript and TSX fixtures compile with `tsc --strict` and run in Node before and after saved replacements.
 The tests cover JSX, supported declaration forms, extension aliases and unsupported selections without editing an enclosing function.
@@ -239,6 +243,7 @@ Five Go history workflows compile and run before edits, after application, after
 They exercise receiver state, named results with `defer` and multiline raw strings, while checking saved fragments and patch applicability.
 Batch cases cover coordinated caller/signature/helper changes, mixed languages, shared revisions, conflicts, malformed manifests and saved transactions.
 A declaration, caller and import-organization batch compiles with warnings denied after application and redo, restores both files on undo and retains unrelated source.
+That workflow checks four explicit postconditions. Six negative forms refuse without creating history or changing source.
 A two-file Rust batch compiles and runs before changes, after application, after undo and after redo.
 A reported batch containing two length-changing edits also produces matching Rust and Lean splice results.
 A reported body-and-import batch also produces matching Rust and Lean splice results over Unicode source.
