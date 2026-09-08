@@ -34,7 +34,7 @@ Implemented foundations:
 - Local recipes, expectations, workspace previews and canonical formatting.
 - Native releases, a WASM API, a browser playground and patch downloads.
 - Declared project checks with reviewed configuration digests, command outcomes and bounded output.
-- Twelve passing agent trials across pinned strsim and regex snapshots, paired context measurements and replayable patches with independent behavioral oracles.
+- Sixteen passing agent trials across pinned strsim and regex snapshots, including coordinated two-crate changes, paired context measurements and replayable patches with independent behavioral oracles.
 - Lean edit, position, history, patch, pagination, confidence and workspace membership models, source anchors, signature maps and `spec check`, `sync` and `verify`.
 
 Important gaps:
@@ -1144,16 +1144,29 @@ All 31 evaluator regressions and the full native/WASM gate pass, with 311/311 ca
 The four historical regex trials replay successfully; strict Lean verification retains 24 fresh anchors, zero obligations and 38 build jobs.
 See [coordinated task preparation](docs/agent-workspace-evaluation.md#coordinated-task-preparation) for protocol and reproduction.
 
+M4ab: coordinated autonomous evaluation (complete).
+
+All four fresh agents pass the two-crate task in two paired repetitions, with no refusals, tool failures, restarts or human task corrections.
+Both fr agents use one three-step batch and its history transaction; each changed project and receiver passes 1,060 independent inputs.
+Checks pass in original, changed, undone and redone states; exact bytes, modes, indexes and unrelated edits satisfy the recorded workflow.
+Mean retrieved context is 13,278.5 tokens for fr and 13,652.5 for files, a 2.7% reduction with near parity in the first pair.
+Both file agents retain verbose check output while the fr agents use compact checks, accounting for much of the aggregate comparison.
+Inspection, skill and transaction costs remain substantial. This does not isolate batching or establish general context efficiency or latency.
+The complete cohort retains every prompt, transcript, score and patch with frozen source, binary, skill and evaluator provenance.
+Behavioral replay and exact token auditing pass for all four trials; the full native/WASM gate passes with 311/311 capability coverage.
+Strict Lean verification retains 24 fresh anchors and signature maps, zero obligations and 38 build jobs.
+See [coordinated agent evaluation](docs/agent-coordinated-evaluation.md) for the cohort and measurement boundaries.
+
 Next M4 work:
 
-Run repeated paired trials of the prepared coordinated task with fresh agents, independent behavior checks and receiver validation.
-Keep the prescribed rehearsal separate from autonomous context measurements, and retain every trial outcome and intervention.
+Control check-output policy across both arms before another autonomous comparison; first quantify its effect on the retained coordinated transcripts.
+Keep prescribed projections separate from measured agent outcomes, and preserve every original trial score.
 Use the retained workspace traces to reduce repeated report metadata and skill-loading costs, preserving coverage, source bases, guards and reviewable changes.
 Measure each proposed reduction on fixed transcripts or controlled workflows before another autonomous comparison.
 Use the construction profile to evaluate any further reduction in reference serialization and hashing cost.
 Preserve revision inputs, coverage, source verification and byte-identical reports; distinguish buffer-model proofs from implementation correspondence.
 State the cache policy for the next autonomous cohort; the retained trials disable it.
-Then evaluate a task requiring coordinated changes across several files, with repeated paired trials and independent behavioral checks.
+Extend evaluation beyond the existing Rust tasks with repeated paired trials and independent behavioral checks.
 Keep examples compatible with the distributed binary and load specialized references only when needed.
 
 Extend body authoring to additional languages or initializer forms, and support insertion into impl, trait or function bodies or further declaration kinds.

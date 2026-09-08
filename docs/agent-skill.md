@@ -103,7 +103,9 @@ All required targeted-edit references are counted: the entrypoint, authoring, ch
 
 The targeted route is 450 tokens, or 15.9%, below recorded skill reads and 19.8% below M4n's six-file route.
 The comparison includes M4m's check guidance and the new authoring example, so it does not isolate a single wording change.
-Unselective loading would increase context by 4.8%. No fresh agent has demonstrated adoption of the new routing.
+Unselective loading would increase context by 4.8% in this controlled comparison.
+Both fr agents in the later [coordinated cohort](agent-coordinated-evaluation.md) follow the five-file route, reading 2,851 tokens of the newer skill.
+Those trials do not isolate the routing change or reproduce the earlier skill revision's reading cost.
 An interrupted write requires the separate recovery reference, adding 203 tokens under this counting method.
 Pagination, relationship queries and broader discovery still require the relevant exploration guidance.
 These are conditional reading costs, not autonomous task results or total-context savings.

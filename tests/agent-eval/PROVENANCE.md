@@ -33,3 +33,7 @@ Its source archive, licenses and lock live under `regex/`; it does not replace t
 The [coordinated rehearsal](regex/coordinated-rehearsal.json) reuses this pinned workspace for the two-crate `regex-escape-len` task.
 It retains a prescribed three-step authoring batch, exact snapshots, a receiver patch, independent oracles and five rejected implementations.
 This supplies task-preparation evidence; it contains no autonomous trials or context comparison.
+
+The [coordinated cohort](results/2026-09-08-coordinated/manifest.json) retains four fresh-agent trials of this two-crate task.
+All four pass independent project/receiver oracles and exact reversal checks; the [report](../../docs/agent-coordinated-evaluation.md) explains context counts and their limits.
+Its prompts, transcripts, scores, patches, frozen skills and evaluator fingerprints remain separate from the earlier cohorts and prescribed rehearsals.

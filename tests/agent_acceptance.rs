@@ -27,11 +27,12 @@ fn recorded_agent_patches_pass_upstream_tests_and_independent_oracles() {
 #[test]
 #[ignore = "requires the pinned regex workspace dependencies; see docs/agent-workspace-evaluation.md"]
 fn recorded_workspace_patches_pass_checks_oracles_and_exact_reversal() {
-    python(&[
-        "tools/agent-eval.py",
-        "replay",
+    for directory in [
         "tests/agent-eval/results/2026-09-08-regex",
-    ]);
+        "tests/agent-eval/results/2026-09-08-coordinated",
+    ] {
+        python(&["tools/agent-eval.py", "replay", directory]);
+    }
 }
 
 #[test]

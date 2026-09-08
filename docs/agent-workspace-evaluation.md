@@ -1,9 +1,10 @@
 # Repeated agent trials on the regex workspace
 
-Four fresh agents completed two paired trials on the complete regex workspace at commit `2b527599eb9eea0dcc288c704584f242f26a5c61`.
+M4l's four fresh agents completed two paired trials of the single-file `regex-escape-into` task at commit `2b527599eb9eea0dcc288c704584f242f26a5c61`.
 It contains seven workspace packages, 227 Rust files and 5,553,380 Rust source bytes, without artificial background source.
 All four pass independent acceptance. Across both repetitions, fr uses 25.6% more measured context than ordinary files.
 The per-pair comparison varies with inspection and check-output choices; this evaluation does not establish a general context advantage.
+The later [coordinated evaluation](agent-coordinated-evaluation.md) records four further passing trials that change both crates, with near-parity aggregate context.
 
 ## Paired results
 
@@ -53,12 +54,12 @@ Repeated uncached project analysis dominates the fr tool time; bounded output do
 The later [controlled cache comparison](project-context-evaluation.md#query-time-and-the-fact-cache) isolates the existing fact cache on prescribed lookups.
 It does not rerun these agents or revise their timing and context records.
 
-The next optimization should examine repeated report metadata and skill-loading costs while preserving source bases, coverage, guards and reviewable edits.
-A later task should require coordinated changes across files, since a larger repository alone does not test that workflow.
+Later milestones examine repeated report metadata and skill-loading costs while preserving source bases, coverage, guards and reviewable edits.
+The coordinated follow-up tests changes across files; the larger repository alone did not test that workflow here.
 
 ## Coordinated task preparation
 
-M4aa adds a second task on the same pinned workspace, `regex-escape-len`, for future paired agents.
+M4aa prepared a second task on the same pinned workspace, `regex-escape-len`, for paired agents.
 It requires changes to both `src/lib.rs` and `regex-syntax/src/lib.rs`.
 Each crate must expose a documented `escape_len(pattern: &str) -> usize` API that returns the escaped UTF-8 byte length without allocation.
 The lower crate's existing `escape` must preallocate enough space before appending, allowing at most one allocation for nonempty input and none for empty input.
@@ -103,7 +104,7 @@ Both arms receive the same task, permitted source files, declared checks and pin
 The harness disables the fr fact cache. Preparation warms project builds; subsequent trials must report host contention and execution order.
 Fresh agents must not see the rehearsal solution or another trial's results.
 Score, record, token-audit and replay use the existing commands with these session names.
-No autonomous trial has run for this new task, so the earlier four-trial results above remain unchanged.
+M4ab's [four passing coordinated trials](agent-coordinated-evaluation.md) use this protocol; the earlier four-trial results above remain unchanged.
 
 ## Task and source
 

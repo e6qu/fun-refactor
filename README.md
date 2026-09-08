@@ -43,6 +43,7 @@ Declaration insertion adds a Rust function through a file or inline module handl
 Authoring batches coordinate disjoint edits across files through one reviewed source-history transaction.
 The [controlled batch comparison](docs/project-context-evaluation.md#coordinated-authoring-measurement) measures command and payload costs while checking behavior and exact reversal.
 The [coordinated workspace task](docs/agent-workspace-evaluation.md#coordinated-task-preparation) prepares evaluation of a change spanning regex and regex-syntax.
+The [coordinated agent evaluation](docs/agent-coordinated-evaluation.md) records the paired trials of that task.
 
 ## Why
 

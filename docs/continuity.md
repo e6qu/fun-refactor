@@ -1,6 +1,6 @@
 # Development continuity
 
-M4aa is complete: a real-workspace task prepares coordinated authoring evaluation across two crates.
+M4ab is complete: all four fresh agents passed the coordinated two-crate task, with near-parity aggregate context.
 The user authorized local commits. Publishing and pushing remain outside this request.
 M4l's four passing workspace trials are retained in `3c8231c`; preparation is `811591e` and documented insertion is `6d0928b`.
 M4m's smaller check reports are committed in `58b53bd`; M4n's targeted skill guidance is `1c44863`.
@@ -16,6 +16,25 @@ M4w's Go body authoring is committed in `3597115`.
 M4x's insertion placement proofs are committed in `3fd1323`.
 M4y's coordinated authoring batches are committed in `f0ba5a5`.
 M4z's controlled batch comparison is committed in `5591c17`.
+M4aa's coordinated task preparation is committed in `1c96eb1`.
+
+## Coordinated cohort results
+
+The user approved four fresh evaluation agents after an explicit request to launch them.
+Sessions live at `/tmp/fr-coordinated-eval-uihsblci/sessions`; preparation passed for all four.
+The frozen binary is `target/agent-eval-bin/fr-m4ab`, matching the validated M4aa binary fingerprint.
+`/tmp/fr-m4ab-frozen-inputs.json` records evaluator, skill, prompt and session fingerprints before agent work.
+One fr agent and one ordinary-file agent ran per pair, with fresh context and inherited model settings.
+The first pair, `coordinated_fr_r1` and `coordinated_files_r1`, finished before `coordinated_fr_r2` and `coordinated_files_r2` started.
+No solutions or first-pair results reached later agents; frozen input fingerprints stayed unchanged throughout.
+Scoring and repository checks began only after all four finished. No trials failed, restarted or were excluded; no human task corrections occurred.
+`tests/agent-eval/results/2026-09-08-coordinated` retains all four passing scores, prompts, transcripts, patches and frozen skill files.
+Both projects and receivers pass 1,060 independent inputs for each trial; exact reversal and unchanged-index checks pass.
+The fr trials use 13,539 and 13,018 context tokens; file trials use 13,487 and 13,818, yielding a 2.7% mean reduction for fr.
+Both file agents kept verbose check output while both fr agents used compact checks; this accounts for much of the aggregate result.
+The fr trials still spend more context on inspection and changes/delivery, plus 2,851 skill tokens each, and more time in uncached project analysis.
+Next, control check-output policy across both arms, starting with a fixed-transcript projection that preserves the original scores.
+See [coordinated agent evaluation](agent-coordinated-evaluation.md) for the full protocol, categories and limitations.
 
 ## Coordinated workspace task preparation
 
@@ -35,8 +54,7 @@ It checks the project at four stages, a separate patch receiver, unchanged index
 Negative controls target Unicode counting, missing escaping, allocation during length calculation, omitted preallocation and a disagreeing facade.
 The retained `tests/agent-eval/regex/coordinated-rehearsal.json` passes all stages and 1,060 independent inputs in both project and receiver.
 All five incorrect implementations compile but fail the oracle. The report retains commands, reports, snapshots, the patch and source/binary hashes.
-This is prescribed infrastructure evidence; no new autonomous agent or context measurement has run.
-The next step is repeated fresh-agent trials under the documented protocol, preserving the existing historical evidence bundles.
+The rehearsal remains prescribed infrastructure evidence; the coordinated cohort above supplies the later autonomous measurements.
 
 ## Controlled coordinated authoring comparison
 
@@ -291,7 +309,7 @@ The example uses the lookup's source and root directly, without separate source 
 
 `tests/agent-eval/skill-context.json` retains controlled reading costs and the handle-reuse trace audit.
 M4n's targeted route costs 2,375 tokens, versus 2,825 recorded skill tokens; this is a conditional 15.9% reduction.
-M4n's six-reference route cost 2,960 tokens. Routing adoption has not been tested with fresh agents.
+M4n's six-reference route cost 2,960 tokens. Both M4ab fr agents later followed the targeted five-file route on the newer skill.
 The first regex fr trial has one redundant 387-token map; the second lacks the prerequisite scoped lookup and still needs its map.
 `tools/skill-context.py --tokens` reproduces the report using the pinned tokenizer; omit the flag for byte counts without tiktoken.
 See [targeted reading measurements](agent-skill.md#targeted-reading-measurement) for scope and the extra cost when recovery is needed.
@@ -311,7 +329,7 @@ The live comparison preserves tracked source and index bytes; successful output 
 No new agents ran. These measurements exclude the listing and other task context and do not replace autonomous trial scores.
 See [check report measurements](project-checks.md#controlled-report-measurement) for reproduction and boundaries.
 
-## Latest autonomous result
+## Earlier single-file workspace result
 
 The regex task adds a documented public buffer-writing API by discovering and using an existing workspace helper.
 It exercises a real seven-package repository with 227 Rust files and 5,553,380 Rust source bytes.
@@ -344,13 +362,15 @@ Each cohort retains prompts, transcripts, scores, patches and its original skill
 - `tests/agent-eval/results/2026-09-07`: four initial strsim trials; interrupted infrastructure pilots are retained separately.
 - `tests/agent-eval/results/2026-09-07-context`: four follow-up strsim trials after M4i; no pilots.
 - `tests/agent-eval/results/2026-09-08-regex`: four repeated regex workspace trials; no pilots.
+- `tests/agent-eval/results/2026-09-08-coordinated`: four two-crate regex trials using the M4aa protocol; no pilots.
 
-All twelve autonomous trials pass. Recording also supports scored failures; behavioral replay refuses failed trials.
+All sixteen autonomous trials pass. Recording also supports scored failures; behavioral replay refuses failed trials.
 Replay checks recorded patches and transition evidence without rerunning agents. Token auditing recounts retained payloads.
 The initial and follow-up strsim findings remain in the [context report](agent-context-followup.md).
 Controlled reports are separate under `tests/agent-eval/`: `history-context.json`, `regex/rehearsal.json`, `checks-context.json`, `skill-context.json`, `find-source-context.json` and `project-cache.json`.
 Release reports add `project-cache-release.json` and `project-profile.json` without rewriting those earlier artifacts.
 M4s adds `project-construction.json` and its baseline instrumentation patch while preserving those reports.
+M4z adds `author-batch-context.json`; M4aa adds `regex/coordinated-rehearsal.json`. Both remain prescribed comparisons rather than autonomous trials.
 The regex rehearsal uses a prescribed solution and rejects three compiled negative controls; it is not autonomous evidence.
 
 Temporary regex sessions remain under `/private/tmp/fr-regex-agent-eval-2026-09-08`, one directory per retained trial name.
@@ -360,6 +380,13 @@ It, the skills, prompts, evaluator and oracle stayed unchanged throughout both p
 Temporary projects are disposable after retention; use repository evidence for replay and audits.
 
 ## Validation and commands
+
+M4ab's full native/WASM gate passes in `/tmp/fr-m4ab-full-check.log`, including 311/311 capability coverage and the existing acceptance regressions.
+All four retained coordinated trials replay successfully in `/tmp/fr-m4ab-replay.json`; exact token auditing passes in `/tmp/fr-m4ab-token-audit.json`.
+Preparation and recording logs are `/tmp/fr-m4ab-prepare.json` and `/tmp/fr-m4ab-record.json`; individual scoring outputs use `/tmp/fr-m4ab-score-*.json`.
+The evidence manifest verifies all 32 retained files. Frozen input fingerprints match before pair two and after all trials.
+Strict verification passes in `/tmp/fr-m4ab-spec-verify.json`: 24 fresh anchors and signature maps, zero obligations and 38 Lean build jobs.
+Prose budgets remain unchanged. Final documentation checks are in `/tmp/fr-m4ab-docs-final.log`.
 
 M4aa's full native/WASM gate passes in `/tmp/fr-m4aa-full-check.log`, including 311/311 capability coverage and the existing authoring/Lean comparisons.
 All 31 evaluator regressions pass in `/tmp/fr-m4aa-harness-tests.log`.
