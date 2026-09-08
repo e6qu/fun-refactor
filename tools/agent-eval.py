@@ -557,7 +557,7 @@ def audit_tokens(directory):
     return {"passed": True, "trials": audited}
 
 
-def record(sessions, directory, pilots=None, execution_note=None):
+def record(sessions, directory, pilots=None, execution_note=None, implementation_commit=None):
     experiment = sessions / "experiment.json"
     design = json.loads(experiment.read_text()) if experiment.is_file() else {
         "project": "strsim", "repetitions": 1, "trials": [name for name, _, _, _ in trial_names("strsim", 1)]}
@@ -605,11 +605,17 @@ def record(sessions, directory, pilots=None, execution_note=None):
                 if path.is_file():
                     shutil.copyfile(path, destination / filename)
             pilot_names.append(source.name)
+    implementation = git(
+        ROOT,
+        "rev-parse",
+        "--verify",
+        f"{implementation_commit or 'HEAD'}^{{commit}}",
+    ).stdout.decode().strip()
     save(directory / "manifest.json", {
         "schema": "fr-agent-eval-evidence-1", "trials": trials,
         "project": selected["project"], "upstream_commit": selected["upstream_commit"], "archive_sha256": selected["archive_sha256"],
         "dependency_lock_sha256": selected.get("dependency_lock_sha256"),
-        "implementation_commit": git(ROOT, "rev-parse", "HEAD").stdout.decode().strip(),
+        "implementation_commit": implementation,
         "agent_execution": execution_note or "Runtime provenance not supplied; consult individual trial transcripts.",
         "pilots": {"interrupted": pilot_names, "reason": "Cargo inherited the containing fr workspace; no valid baseline build. Restarted outside Cargo projects after preflight." if pilot_names else None, "included_in_scored_trials": False},
         "versions": {tool: subprocess.check_output([tool, "--version"], text=True).strip() for tool in ("rustc", "cargo", "git", "python3")},
@@ -642,6 +648,10 @@ def main():
     record_parser.add_argument("directory", type=Path)
     record_parser.add_argument("--pilots", type=Path)
     record_parser.add_argument("--execution-note", help="Actual agent runtime, isolation and intervention details.")
+    record_parser.add_argument(
+        "--implementation-commit",
+        help="Commit used to build the evaluated fr binary; defaults to HEAD.",
+    )
     args = parser.parse_args()
     if args.command == "prepare":
         prepare(args.out.resolve(), args.fr.resolve(), args.project, args.repetitions)
@@ -654,7 +664,13 @@ def main():
     elif args.command == "audit-tokens":
         print(json.dumps(audit_tokens(args.directory.resolve()), indent=2))
     else:
-        record(args.sessions.resolve(), args.directory.resolve(), args.pilots.resolve() if args.pilots else None, args.execution_note)
+        record(
+            args.sessions.resolve(),
+            args.directory.resolve(),
+            args.pilots.resolve() if args.pilots else None,
+            args.execution_note,
+            args.implementation_commit,
+        )
 
 
 if __name__ == "__main__":

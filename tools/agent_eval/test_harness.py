@@ -635,10 +635,17 @@ class Boundaries(unittest.TestCase):
                 for filename in harness.CODEX_PROVENANCE_FILES:
                     (trial / filename).write_text(f"retained {filename}\n")
             output = root / "evidence"
-            harness.record(root, output, execution_note="Synthetic regression; no agents")
+            implementation = harness.git(harness.ROOT, "rev-parse", "HEAD").stdout.decode().strip()
+            harness.record(
+                root,
+                output,
+                execution_note="Synthetic regression; no agents",
+                implementation_commit=implementation,
+            )
             self.assertFalse((output / names[0] / "change.patch").exists())
             self.assertFalse(json.loads((output / names[0] / "result.json").read_text())["passed"])
             manifest = json.loads((output / "manifest.json").read_text())
+            self.assertEqual(manifest["implementation_commit"], implementation)
             for filename in harness.CODEX_PROVENANCE_FILES:
                 copied = output / names[0] / filename
                 self.assertEqual(copied.read_text(), f"retained {filename}\n")
