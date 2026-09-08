@@ -45,7 +45,7 @@ Important gaps:
 - Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist. Raw staging and journaled index undo/redo are available on Unix. Reviewed commits are available with explicit index and HEAD bases. Worktree inspection reports registered workspaces with revision-bound pages. Reviewed creation adds raw checkouts on new or unused existing branches on Unix. Ownership receipts support checked completion of incomplete worktrees and reviewed removal of clean worktrees. Removal archives support inspection, checked resumption and reviewed compaction to audit summaries. Shared browser patch semantics remain pending.
 - Strict spec signature maps currently accept Rust source declarations only.
 - Framework readers cover selected patterns. Whole applications still need dependency and runtime work.
-- The portable agent skill covers exploration, changes, declared checks, history, Git and Lean. Rust, TypeScript and TSX body replacement uses project handles and source history. TypeScript/TSX function bindings support block bodies inside parentheses and type-only assertions. Rust function declaration replacement can change signatures and implementations together. Rust function insertion appends through file handles. Broader agent evaluation, context reduction, additional initializer forms and nested declaration insertion remain pending.
+- The portable agent skill covers exploration, changes, declared checks, history, Git and Lean. Rust, TypeScript and TSX body replacement uses project handles and source history. TypeScript/TSX function bindings support block bodies inside parentheses and type-only assertions. Rust function declaration replacement can change signatures and implementations together. Rust function insertion accepts file and inline module handles. Broader agent evaluation, context reduction, additional initializer forms and insertion into other scopes remain pending.
 - Model proofs and shared executable cases do not establish general correspondence with the Rust implementation.
 
 ## Product contract
@@ -1059,6 +1059,21 @@ The full native/WASM gate passes, including 131 project CLI scenarios, the packa
 Strict verification retains twenty-three fresh source anchors and signature maps, zero obligations and 36 Lean build jobs.
 See [body authoring](docs/body-authoring.md) for selection, transaction and evidence boundaries.
 
+M4v: Rust function insertion into inline modules (complete).
+
+Insertion accepts an exact inline module handle, including nested and same-named modules.
+It checks direct names and pending outer metadata in that body and preserves every existing source byte.
+Placement precedes the closing brace, retaining its original indentation when the brace occupies a separate line.
+Fragments remain verbatim, preserving multiline string contents; external modules and impl, trait or function handles refuse.
+Five new authoring scenarios cover placement, scope, refusal, size boundaries, stale selections and saved transactions.
+A documented function compiles against its private sibling after application and redo; undo and patch checks retain the original source.
+The reported nested insertion also passes the existing Rust/Lean splice comparison, without claiming a proof of module selection or parsing.
+CLI, agent reference and continuity documentation describe the new scope and remaining limits.
+All thirty-nine authoring scenarios and four reported-edit Rust/Lean comparisons pass.
+The full native/WASM gate passes, including 131 project CLI scenarios, the packaged skill workflow and 311/311 capability coverage.
+Strict verification retains twenty-three fresh source anchors and signature maps, zero obligations and 36 Lean build jobs.
+See [body authoring](docs/body-authoring.md) for placement and report fields.
+
 Next M4 work:
 
 Use the retained workspace traces to reduce repeated report metadata and skill-loading costs, preserving coverage, source bases, guards and reviewable changes.
@@ -1069,7 +1084,7 @@ State the cache policy for the next autonomous cohort; the retained trials disab
 Then evaluate a task requiring coordinated changes across several files, with repeated paired trials and independent behavioral checks.
 Keep examples compatible with the distributed binary and load specialized references only when needed.
 
-Extend body authoring to additional languages or initializer forms, and support nested insertion or further declaration kinds.
+Extend body authoring to additional languages or initializer forms, and support insertion into impl, trait or function bodies or further declaration kinds.
 Reuse revision checks, edit planning, syntax validation and history.
 Compose high-level intentions as inspectable recipe steps with explicit postconditions.
 Extend declared checks only where real task evidence requires additional selection or execution support.

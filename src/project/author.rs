@@ -22,7 +22,7 @@ pub enum Command {
     )]
     ReplaceDeclaration(ReplaceBodyOptions),
     #[command(
-        about = "Append one Rust function through a file handle, retaining existing source bytes."
+        about = "Insert one Rust function into a file or inline module, retaining existing source bytes."
     )]
     InsertDeclaration(ReplaceBodyOptions),
 }
@@ -229,10 +229,7 @@ impl Project<'_> {
         );
         let handle = self.explicit_handle(&options.handle, options.revision.as_deref())?;
         let id = self.resolve_handle(&handle)?;
-        ensure!(
-            self.nodes[id].kind == "file",
-            "declaration insertion requires a Rust file handle."
-        );
+        let is_file = self.nodes[id].kind == "file";
         let path = self.root.join(&self.nodes[id].path);
         let info = self
             .index
@@ -248,6 +245,52 @@ impl Project<'_> {
             !parsed.has_errors(),
             "declaration insertion requires a file without parser errors."
         );
+        let (container, offset) = if is_file {
+            (parsed.root(), source.len())
+        } else {
+            let symbol = self.nodes[id]
+                .symbol
+                .and_then(|id| self.index.symbol(id))
+                .context("declaration insertion requires a Rust file or inline module handle.")?;
+            let mut selected = parsed
+                .root()
+                .descendant_for_byte_range(symbol.name_span.start, symbol.name_span.end);
+            let module = loop {
+                let node = selected.context("select a Rust file or inline module handle.")?;
+                if node.kind() == "mod_item" {
+                    ensure!(
+                        node.child_by_field_name("name")
+                            .is_some_and(|name| Span::from(name) == symbol.name_span),
+                        "selected handle does not name this module."
+                    );
+                    break node;
+                }
+                selected = node.parent();
+            };
+            let body = module.child_by_field_name("body")
+                .context("external module declarations have no inline body; select their source file instead.")?;
+            ensure!(
+                body.kind() == "declaration_list",
+                "module requires an inline declaration list."
+            );
+            let mut cursor = body.walk();
+            let close = body
+                .children(&mut cursor)
+                .find(|child| child.kind() == "}" && !child.is_missing())
+                .context("inline module needs a closing brace.")?;
+            let before = &source[..close.start_byte()];
+            let line_start = before.rfind('\n').map_or(0, |at| at + 1);
+            let offset = if line_start > body.start_byte()
+                && before[line_start..]
+                    .bytes()
+                    .all(|byte| matches!(byte, b' ' | b'\t' | b'\r'))
+            {
+                line_start
+            } else {
+                close.start_byte()
+            };
+            (body, offset)
+        };
         let text = fragment(&self.root.join(&options.from))?;
         let fragment_tree = Parsers::new().parse(Language::Rust, &text)?;
         let function = function_fragment(&fragment_tree, &text, true)?;
@@ -259,8 +302,8 @@ impl Project<'_> {
         .text(&text);
         let normalized = name.strip_prefix("r#").unwrap_or(name);
         let mut pending_outer = false;
-        let mut cursor = parsed.root().walk();
-        for item in parsed.root().named_children(&mut cursor) {
+        let mut cursor = container.walk();
+        for item in container.named_children(&mut cursor) {
             if let Some(existing) = item.child_by_field_name("name") {
                 let existing = Span::from(existing).text(source);
                 ensure!(
@@ -286,13 +329,13 @@ impl Project<'_> {
         } else {
             "\n"
         };
-        let leading = if source.is_empty() || source.ends_with('\n') {
+        let leading = if offset == 0 || source[..offset].ends_with('\n') {
             ""
         } else {
             newline
         };
         let inserted = format!("{leading}{text}{newline}");
-        let span = Span::new(source.len(), source.len());
+        let span = Span::new(offset, offset);
         let mut edits = EditSet::new();
         edits.add(
             &path,
@@ -311,15 +354,22 @@ impl Project<'_> {
         report["handle"] = json!(self.handle(id));
         report["path"] = bounded_text(&self.nodes[id].path.to_string_lossy(), 512);
         report["signature"] = json!({"basis": "syntax-header", "text": bounded_text(text[function.start_byte()..body.start_byte()].trim_end(), 512)});
-        report["declaration"] = json!({"name": bounded_text(name, 512), "kind": "function", "span": Span::new(source.len()+leading.len(), source.len()+leading.len()+text.len()), "bytes": text.len(), "sha256": digest(&text)});
+        report["declaration"] = json!({"name": bounded_text(name, 512), "kind": "function", "span": Span::new(offset+leading.len(), offset+leading.len()+text.len()), "bytes": text.len(), "sha256": digest(&text)});
         if function.start_byte() > 0 {
             let documentation = &text[..function.start_byte()];
-            let start = source.len() + leading.len();
+            let start = offset + leading.len();
             report["documentation"] = json!({"kind": "outer-doc-comments", "span": Span::new(start, start + documentation.len()), "bytes": documentation.len(), "sha256": digest(documentation)});
         }
         report["insertion"] = json!({"before_span": span, "after_span": Span::new(span.start, span.start+inserted.len()), "added_bytes": inserted.len(), "leading_separator": leading, "trailing_separator": newline, "sha256": digest(&inserted)});
-        report["name_check"] =
-            json!("direct top-level item names; Rust namespaces are not distinguished");
+        report["name_check"] = json!(if is_file {
+            "direct top-level item names; Rust namespaces are not distinguished"
+        } else {
+            "direct items in the selected module. Rust namespaces are not distinguished."
+        });
+        if !is_file {
+            report["container"] = json!({"kind": "inline-module", "name": bounded_text(&self.nodes[id].name, 512),
+                "before_span": Span::from(container)});
+        }
         report["name_resolution_checked"] = json!(false);
         report["changed"] = json!(true);
         report["validation"] = json!("reparse-strict");

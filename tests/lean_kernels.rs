@@ -150,6 +150,11 @@ fn the_edit_kernel_accepts_a_reported_declaration_insertion() {
 }
 
 #[test]
+fn the_edit_kernel_accepts_a_reported_module_insertion() {
+    reported_declaration_plan("insert-declaration", "target");
+}
+
+#[test]
 fn the_edit_kernel_accepts_a_reported_wrapped_body_replacement() {
     reported_declaration_plan("replace-body", "calc");
 }
@@ -173,7 +178,11 @@ fn reported_declaration_plan(operation: &str, selected: &str) {
         )
     };
     let inserting = operation == "insert-declaration";
-    let source = if inserting {
+    let module = inserting && selected == "target";
+    let source = if module {
+        "// π\r\nmod outer {\r\n    mod target {\r\n        // } stays.\r\n    }\r\n}\r\n"
+            .to_owned()
+    } else if inserting {
         "// π\r\nfn other() {}\r\n// Final comment.".to_owned()
     } else if body {
         format!("// π\r\nconst calc = (((value: number) => /* keep */ {old}) satisfies (value: number) => JSX.Element)!;\r\nconst other = () => {{ return 0; }};\r\n")
@@ -237,7 +246,9 @@ fn reported_declaration_plan(operation: &str, selected: &str) {
         &replacement,
         "kernel",
     )];
-    let expected = if inserting {
+    let expected = if module {
+        format!("// π\r\nmod outer {{\r\n    mod target {{\r\n        // }} stays.\r\n{new}\r\n    }}\r\n}}\r\n")
+    } else if inserting {
         format!("{source}\r\n{new}\r\n")
     } else {
         source.replace(old, new)

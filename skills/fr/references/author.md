@@ -1,13 +1,17 @@
 # Edit a selected implementation
 
-For insertion, a lookup explicitly scoped with `--in FILE_PATH` already returns that file's handle in `root`; retain it.
+For file insertion, a lookup explicitly scoped with `--in FILE_PATH` already returns that file's handle in `root`; retain it.
 An unscoped or directory-scoped lookup has a different root. Use `project map FILE_PATH --depth 0 --fields handle,kind,name --limit 1` when the file handle is missing.
 
 Choose an operation:
 
 - `fr author replace-body HANDLE --from FILE`: one Rust, TypeScript or TSX block, including supported wrapped function bindings.
 - `fr author replace-declaration HANDLE --from FILE`: one complete Rust function with the same name; outer attributes remain. Callers need separate edits if the signature changes.
-- `fr author insert-declaration FILE_HANDLE --from FILE`: append one Rust function, optionally preceded by `///` or `/** ... */` documentation. Other outer attributes and surrounding comments refuse. Duplicate direct names and pending outer metadata refuse.
+- `fr author insert-declaration HANDLE --from FILE`: add one Rust function to a file or inline module, optionally preceded by `///` or `/** ... */` documentation. Other outer attributes and surrounding comments refuse. Duplicate direct names and pending outer metadata in the selected container refuse.
+
+For module insertion, use the module row's handle from `project find NAME --in FILE --source`, rather than its file-scoped `root`.
+Insertion goes before the module's closing brace and preserves existing bytes.
+Fragment boundary whitespace is trimmed; remaining bytes stay verbatim, with no automatic indentation.
 
 Function bindings accept parentheses, `as`, `satisfies`, postfix `!` and TypeScript angle-bracket assertions; the body must be a block.
 Use the variable or field handle, with `project find NAME --in FILE --locals` for variable bindings.
@@ -18,7 +22,7 @@ Use `--save-plan` to preview and freeze the edit. Inspect the bounded diff and o
 Run [project checks](checks.md) for compilation and behavior after applying the plan.
 
 Keep TX for [undo/redo](history.md) and [patch export](git.md).
-Nested insertion and other declaration kinds remain unsupported. A normal editor fallback does not automatically enter fr history.
+Insertion into impl, trait or function bodies and other declaration kinds remain unsupported. External `mod name;` declarations require selecting their source file. A normal editor fallback does not automatically enter fr history.
 
 For example, add a wrapper around an existing Rust `increment` function.
 Save this fragment outside the project as `<FRAGMENT>`:

@@ -1,6 +1,6 @@
 # Development continuity
 
-M4u is complete: body authoring now supports TypeScript and TSX function bindings inside parentheses and type-only assertions.
+M4v is complete: Rust function insertion now accepts inline module handles.
 The user authorized local commits. Publishing and pushing remain outside this request.
 M4l's four passing workspace trials are retained in `3c8231c`; preparation is `811591e` and documented insertion is `6d0928b`.
 M4m's smaller check reports are committed in `58b53bd`; M4n's targeted skill guidance is `1c44863`.
@@ -10,6 +10,25 @@ M4q's cache measurement and failure controls are committed in `9b0c84e`.
 M4r's release profiling is committed in `9a253e9`.
 M4s's batched revision hashing and retained measurements are committed in `fb2e252`.
 M4t's buffer proofs and shared state comparisons are committed in `c9f50f0`.
+M4u's wrapped function authoring is committed in `e2933bc`.
+
+## Inline module insertion
+
+`src/project/author.rs::insert_declaration` accepts a file or exact Rust inline module handle.
+It locates the module by its name span and inserts at the selected declaration list's closing brace.
+A closing brace on a whitespace-only line keeps that indentation; inline braces receive a leading separator.
+Fragments remain verbatim, preserving multiline strings. Existing source bytes stay unchanged.
+Duplicate-name and dangling-outer-metadata checks apply to the selected body's direct items.
+External modules, impls, traits and functions refuse; file insertion retains its existing behavior and report fields.
+Module reports add `container` with the original body span including braces and a module-scoped name-check description.
+
+Five new CLI scenarios cover exact placement, raw identifiers, same-named modules, size/hash boundaries and stale selections.
+A nested function calls a private sibling after saved application and redo; undo restores exact original bytes and the patch applies after undo.
+The saved transaction retains its fragment despite later changes to the input file.
+Handle validation covers the project revision; later history application checks affected files and permits unrelated manifest changes.
+A reported nested-module edit is compared with the existing Rust and Lean splice implementations.
+This is tested splice correspondence, with no new proof of AST selection, parsing or complete authoring behavior.
+The portable authoring reference explains module-row handles, preserved fragment contents and unsupported scopes.
 
 ## Wrapped function authoring
 
@@ -241,6 +260,14 @@ It, the skills, prompts, evaluator and oracle stayed unchanged throughout both p
 Temporary projects are disposable after retention; use repository evidence for replay and audits.
 
 ## Validation and commands
+
+M4v's thirty-nine authoring scenarios pass in `/tmp/fr-m4v-author-final.log`.
+All four reported-edit Rust/Lean comparisons pass in `/tmp/fr-m4v-reported.log`, including nested module insertion.
+Strict verification passes in `/tmp/fr-m4v-spec-verify.json`: twenty-three fresh anchors and signature maps, zero obligations and 36 Lean build jobs.
+The skill frontmatter validator passes; prose budgets remain unchanged.
+The full native/WASM gate passes in `/tmp/fr-m4v-full-check.log`, including 131 project CLI scenarios, the packaged skill workflow and 311/311 capability coverage.
+A direct file-scoped lookup-to-saved-module-plan smoke check passes.
+All six final documentation suites pass in `/tmp/fr-m4v-docs-final.log`; formatting and diff checks pass.
 
 M4u's thirty-four authoring scenarios pass in `/tmp/fr-m4u-author-final.log`.
 All three reported-edit Rust/Lean comparisons pass in `/tmp/fr-m4u-reported.log`, including the new wrapped-body case.

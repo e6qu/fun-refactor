@@ -1276,3 +1276,270 @@ fn a_changed_initializer_wrapper_invalidates_handles_and_saved_plans() {
     assert!(!run(&root, &["history", "apply", &id, "--write"]).0);
     assert_eq!(fs::read_to_string(root.join("app.ts")).unwrap(), changed);
 }
+
+#[test]
+fn module_insertion_preserves_bytes_and_limits_name_checks_to_selected_scope() {
+    for (source, prefix, suffix) in [
+        ("mod target {}", "mod target {", "}"),
+        ("mod target {\n    }\n", "mod target {\n", "    }\n"),
+        (
+            "mod outer {\r\n\tmod target {\r\n\t\t}\r\n}\r\n",
+            "mod outer {\r\n\tmod target {\r\n",
+            "\t\t}\r\n}\r\n",
+        ),
+        ("mod target { /* } */ }", "mod target { /* } */ ", "}"),
+        (
+            "mod target {\n// } final comment\n}\n",
+            "mod target {\n// } final comment\n",
+            "}\n",
+        ),
+        (
+            "mod target {\n//! Inner docs.\n#![allow(dead_code)]\n}\n",
+            "mod target {\n//! Inner docs.\n#![allow(dead_code)]\n",
+            "}\n",
+        ),
+        (
+            "fn calc() {} mod sibling { fn calc() {} } mod target { mod nested { fn calc() {} } }",
+            "fn calc() {} mod sibling { fn calc() {} } mod target { mod nested { fn calc() {} } ",
+            "}",
+        ),
+        (
+            "mod r#target { const TEXT: &str = r#\"}\"#; }",
+            "mod r#target { const TEXT: &str = r#\"}\"#; ",
+            "}",
+        ),
+    ] {
+        let added = "/// Keeps π and literal indentation.\npub fn calc() -> &'static str { r#\"first\n    second\"# }";
+        let (_temp, root, input) = fixture(source, added.as_bytes());
+        let name = if source.starts_with("mod r#") {
+            "r#target"
+        } else {
+            "target"
+        };
+        let (handle, _) = selection(&root, name);
+        let (success, report) = insert_declaration(&root, &handle, &input, &["--write"]);
+        assert!(success, "{source:?}: {report}");
+        let newline = if source.contains("\r\n") {
+            "\r\n"
+        } else {
+            "\n"
+        };
+        let leading = if prefix.ends_with('\n') { "" } else { newline };
+        let expected = format!("{prefix}{leading}{added}{newline}{suffix}");
+        let changed = fs::read_to_string(root.join("app.rs")).unwrap();
+        assert_eq!(changed, expected);
+        assert_eq!(report["container"]["kind"], "inline-module");
+        let container = &report["container"]["before_span"];
+        let body = &source[container["start"].as_u64().unwrap() as usize
+            ..container["end"].as_u64().unwrap() as usize];
+        assert!(body.starts_with('{') && body.ends_with('}'));
+        assert_eq!(report["insertion"]["before_span"]["start"], prefix.len());
+        assert_eq!(report["insertion"]["before_span"]["end"], prefix.len());
+        let span = &report["declaration"]["span"];
+        assert_eq!(
+            &changed
+                [span["start"].as_u64().unwrap() as usize..span["end"].as_u64().unwrap() as usize],
+            added
+        );
+        let doc = &report["documentation"]["span"];
+        assert_eq!(
+            &changed
+                [doc["start"].as_u64().unwrap() as usize..doc["end"].as_u64().unwrap() as usize],
+            "/// Keeps π and literal indentation.\n"
+        );
+        let end = report["insertion"]["after_span"]["end"].as_u64().unwrap() as usize;
+        assert_eq!(
+            format!("{}{}", &changed[..prefix.len()], &changed[end..]),
+            source
+        );
+        assert_eq!(report["name_resolution_checked"], false);
+        assert!(report["name_check"]
+            .as_str()
+            .unwrap()
+            .contains("selected module"));
+    }
+}
+
+#[test]
+fn module_insertion_compiles_private_scope_and_preserves_saved_history() {
+    let source = "//! Fixture.\r\n#![deny(missing_docs)]\r\nmod api {\r\n    pub mod target {\r\n        fn seed(n: i32) -> i32 { n + 1 }\r\n    }\r\n}\r\nfn main() { println!(\"{}\", api::target::calc(3)); }\r\n";
+    let added = "/// Returns the next seed.\npub fn calc(n: i32) -> i32 { seed(n) + 1 }";
+    let (_temp, root, input) = fixture(source, added.as_bytes());
+    let (handle, _) = selection(&root, "target");
+    let (success, preview) = insert_declaration(&root, &handle, &input, &[]);
+    assert!(success, "{preview}");
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+    assert!(!root.join(".fr-history").exists());
+    let (success, saved) = insert_declaration(&root, &handle, &input, &["--save-plan"]);
+    assert!(success, "{saved}");
+    let id = saved["transaction"].as_u64().unwrap().to_string();
+    fs::write(&input, "fn changed() {}\n").unwrap();
+    ok(&root, &["history", "apply", &id, "--write"]);
+    let expected = source.replace("    }\r\n}", &format!("{added}\r\n    }}\r\n}}"));
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), expected);
+    assert_eq!(compiled_result(&root), b"5\n");
+    assert!(!insert_declaration(&root, &handle, &input, &["--write"]).0);
+    fs::write(root.join("other.rs"), "fn other() {}\n").unwrap();
+    ok(&root, &["history", "undo", &id, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+    ok(&root, &["history", "patch", &id, "--check"]);
+    let patch = ok(&root, &["history", "patch", &id]);
+    for line in added.lines() {
+        assert!(patch["patch"]
+            .as_str()
+            .unwrap()
+            .contains(&format!("+{line}")));
+    }
+    ok(&root, &["history", "redo", &id, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), expected);
+    assert_eq!(compiled_result(&root), b"5\n");
+    assert_eq!(
+        fs::read_to_string(root.join("other.rs")).unwrap(),
+        "fn other() {}\n"
+    );
+    fs::write(root.join("app.rs"), expected + "// Later change.\n").unwrap();
+    assert!(!run(&root, &["history", "undo", &id, "--write"]).0);
+}
+
+#[test]
+fn module_insertion_refuses_duplicates_dangling_metadata_and_unsupported_targets() {
+    for content in [
+        "fn calc() {}",
+        "fn r#calc() {}",
+        "struct calc;",
+        "type calc = i32;",
+        "const calc: i32 = 1;",
+        "mod calc {}",
+        "trait calc {}",
+        "#[cfg(any())] fn calc() {}",
+        "macro_rules! calc { () => {} }",
+        "fn other() {}\n/// Waiting docs.\n",
+        "fn other() {}\n/** Waiting docs. */",
+        "#[inline]\n",
+        "fn other() {}\n#[inline]\n// Ordinary comment.\n",
+    ] {
+        let source = format!("mod target {{ {content} }}\n");
+        let (_temp, root, input) = fixture(&source, b"fn calc() {}");
+        let (handle, _) = selection(&root, "target");
+        let (success, report) = insert_declaration(&root, &handle, &input, &["--save-plan"]);
+        assert!(!success, "{source}: {report}");
+        assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+        assert!(!root.join(".fr-history").exists());
+    }
+    for (source, selected) in [
+        ("mod target;", "target"),
+        ("mod outer { fn target() {} }", "target"),
+        ("mod outer { trait target {} }", "target"),
+        (
+            "mod outer { struct Target; impl Target { fn target() {} } }",
+            "target",
+        ),
+    ] {
+        let (_temp, root, input) = fixture(source, b"fn calc() {}");
+        let (handle, _) = selection(&root, selected);
+        assert!(!insert_declaration(&root, &handle, &input, &["--write"]).0);
+        assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+        assert!(!root.join(".fr-history").exists());
+    }
+}
+
+#[test]
+fn module_insertion_distinguishes_same_named_modules_and_requires_current_revision() {
+    let source = concat!(
+        "mod left { mod target {} }\n",
+        "mod right { mod target {} }\n"
+    );
+    for selected in 0..2 {
+        let (_temp, root, input) = fixture(source, b"fn calc() {}");
+        let map = ok(
+            &root,
+            &["project", "map", "--depth", "64", "--fields", "handle,name"],
+        );
+        let rows: Vec<_> = map["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|row| row[1] == "target")
+            .collect();
+        assert_eq!(rows.len(), 2);
+        let handle = rows[selected][0].as_str().unwrap();
+        let short = handle.rsplit(':').next().unwrap();
+        assert!(!insert_declaration(&root, short, &input, &["--write"]).0);
+        let (success, report) = insert_declaration(
+            &root,
+            short,
+            &input,
+            &[
+                "--revision",
+                map["revision"].as_str().unwrap(),
+                "--save-plan",
+            ],
+        );
+        assert!(success, "{report}");
+        let offset = source.match_indices("{}").nth(selected).unwrap().0 + 1;
+        assert_eq!(report["insertion"]["before_span"]["start"], offset);
+        ok(&root, &["history", "apply", "1", "--write"]);
+        assert_eq!(
+            fs::read_to_string(root.join("app.rs")).unwrap(),
+            format!(
+                "{}\nfn calc() {{}}\n{}",
+                &source[..offset],
+                &source[offset..]
+            )
+        );
+    }
+    for fault in ["source", "manifest"] {
+        let (_temp, root, input) = fixture(source, b"fn calc() {}");
+        fs::write(
+            root.join("Cargo.toml"),
+            "[package]\nname=\"fixture\"\nversion=\"0.1.0\"\n",
+        )
+        .unwrap();
+        let (handle, _) = selection(&root, "target");
+        assert!(insert_declaration(&root, &handle, &input, &["--save-plan"]).0);
+        if fault == "source" {
+            fs::write(root.join("app.rs"), source.replace("left", "renamed")).unwrap();
+        } else {
+            fs::write(
+                root.join("Cargo.toml"),
+                "[package]\nname=\"changed\"\nversion=\"0.1.0\"\n",
+            )
+            .unwrap();
+        }
+        assert!(!insert_declaration(&root, &handle, &input, &["--write"]).0);
+        let (applied, report) = run(&root, &["history", "apply", "1", "--write"]);
+        assert_eq!(applied, fault == "manifest", "{fault}: {report}");
+        if fault == "manifest" {
+            assert!(fs::read_to_string(root.join("Cargo.toml"))
+                .unwrap()
+                .contains("changed"));
+        }
+    }
+}
+
+#[test]
+fn module_insertion_bounds_fragment_bytes_and_hashes_the_actual_splice() {
+    use sha2::{Digest, Sha256};
+    let text = format!("fn calc() {{{}}}", " ".repeat(65536 - 12));
+    assert_eq!(text.len(), 65536);
+    let source = "// π\r\nmod target {}\r\n";
+    let (_temp, root, input) = fixture(source, text.as_bytes());
+    let (handle, _) = selection(&root, "target");
+    let (success, report) =
+        insert_declaration(&root, &handle, &input, &["--write", "--diff-bytes", "0"]);
+    assert!(success, "{report}");
+    assert_eq!(report["insertion"]["added_bytes"], 65540);
+    let changed = fs::read_to_string(root.join("app.rs")).unwrap();
+    let span = &report["insertion"]["after_span"];
+    let splice =
+        &changed[span["start"].as_u64().unwrap() as usize..span["end"].as_u64().unwrap() as usize];
+    assert_eq!(splice, format!("\r\n{text}\r\n"));
+    assert_eq!(
+        report["insertion"]["sha256"],
+        format!("{:x}", Sha256::digest(splice.as_bytes()))
+    );
+    ok(&root, &["history", "undo", "1", "--write"]);
+    fs::write(&input, text + " ").unwrap();
+    assert!(!insert_declaration(&root, &handle, &input, &["--save-plan"]).0);
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+}
