@@ -1,8 +1,7 @@
 # Edit a selected implementation
 
-Find a known name with `fr project find NAME --signature`. Add `--in PATH` to disambiguate.
-Use `--contains` for a literal partial name; read only the relevant body with `project show HANDLE --source --bytes N`.
-To insert into an existing file, `project map PATH --depth 0 --fields handle,kind,name --limit 1` returns its file handle.
+For insertion, a lookup explicitly scoped with `--in FILE_PATH` already returns that file's handle in `root`; retain it.
+An unscoped or directory-scoped lookup has a different root. Use `project map FILE_PATH --depth 0 --fields handle,kind,name --limit 1` when the file handle is missing.
 
 Choose an operation:
 
@@ -12,8 +11,27 @@ Choose an operation:
 
 Keep the UTF-8 fragment outside the project; the input and affected declarations/blocks must fit 64 KiB.
 Use `--save-plan` to preview and freeze the edit. Inspect the bounded diff and omissions, then `fr history apply TX --write --no-diff` applies that exact transaction.
-A saved plan leaves source unchanged. Parsing checks syntax; run [project checks](checks.md) for compilation and behavior.
+Run [project checks](checks.md) for compilation and behavior after applying the plan.
 
-Keep TX for [undo/redo](history.md) and [patch export](git.md). These commands do not need refreshed project handles.
-Obtain a fresh handle only before another source query or authoring operation needs one.
+Keep TX for [undo/redo](history.md) and [patch export](git.md).
 Nested insertion and other declaration kinds remain unsupported. A normal editor fallback does not automatically enter fr history.
+
+For example, add a wrapper around an existing Rust `increment` function.
+Save this fragment outside the project as `<FRAGMENT>`:
+
+```rust
+/// Increments a value twice.
+pub fn increment_twice(value: u32) -> u32 {
+    increment(increment(value))
+}
+```
+
+Use the lookup's declaration handle as `<AUTHOR_HANDLE>` and its file-scoped `root` as `<FILE_HANDLE>`.
+Inspect the implementation and saved diff before applying the returned `<AUTHOR_TX>`:
+
+```sh
+fr project find increment --in src/lib.rs --signature
+fr project show '<AUTHOR_HANDLE>' --source --bytes 512
+fr author insert-declaration '<FILE_HANDLE>' --from '<FRAGMENT>' --save-plan
+fr history apply '<AUTHOR_TX>' --write --no-diff
+```

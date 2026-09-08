@@ -956,6 +956,17 @@ The full native/WASM gate passes with 311/311 capability coverage and 29 Lean bu
 Strict verification retains twenty-two fresh source anchors and signature maps and zero obligations; process execution remains outside the proofs.
 See [check report measurements](docs/project-checks.md#controlled-report-measurement) for the retained evidence and reproduction.
 
+M4n: targeted skill routing and file-handle reuse (complete).
+
+Targeted edits start with Author; broader exploration and interrupted-write recovery load their own references when needed.
+A lookup explicitly scoped to an existing file supplies its insertion handle in `root`, avoiding a redundant map while the revision remains current.
+The executable skill checker now covers 37 examples, including documented Rust insertion, a compiled caller, wrong/stale-root refusals and exact history.
+Controlled reading counts fall from 2,825 recorded skill tokens to 2,375 for the targeted route, a conditional 15.9% reduction.
+Loading the same six references would instead cost 2,960 tokens, so the result depends on routing adoption and task needs.
+One retained regex trial has a redundant 387-token file map; the other still needs its map under this reuse rule.
+No fresh agents ran, and production code and formal claims are unchanged.
+See [targeted skill measurements](docs/agent-skill.md#targeted-reading-measurement) for the retained payloads, assumptions and reproduction.
+
 Next M4 work:
 
 Use the retained workspace traces to reduce repeated report metadata and skill-loading costs, preserving coverage, source bases, guards and reviewable changes.

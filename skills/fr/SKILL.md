@@ -18,13 +18,13 @@ fr project map --depth 2 --limit 12
 Maps already return compact JSON. Read `columns` with `rows`, plus `coverage`, `omitted` and `page`; an omitted or unresolved result is not evidence of absence.
 Narrow to the relevant subtree before requesting more rows. Output limits do not limit indexing cost.
 
-Load only the reference needed for the task:
+For a targeted code edit, start with Author. Load Explore when pagination, relationships or broader discovery are needed.
 
-- [Explore](references/explore.md): handles, signatures, relationships and bounded source.
 - [Author](references/author.md): targeted body edits, Rust declaration replacement and insertion.
+- [Explore](references/explore.md): pagination, relationships and broader discovery.
 - [Change](references/change.md): built-in refactorings and recipes.
 - [Checks](references/checks.md): declared project validation and bounded execution reports.
-- [History](references/history.md): apply, undo/redo, conflicts and interrupted source writes.
+- [History](references/history.md): undo/redo and conflicts; links to recovery for interrupted writes.
 - [Git](references/git.md): patches, indexes and the separate worktree lifecycle.
 - [Lean](references/lean.md): source drift, signature maps and proof evidence.
 

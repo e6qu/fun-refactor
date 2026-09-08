@@ -204,6 +204,64 @@ def checks_workflow(exercise, root):
             assert value["passed"] is True and value["not_run"] == []
 
 
+def author_workflow(exercise, root):
+    path = SKILL / "references/author.md"
+    source = root / "src/lib.rs"
+    source.parent.mkdir()
+    original = ('//! Skill fixture.\n#![deny(missing_docs)]\n'
+                '/// Increments a value.\npub fn increment(value: u32) -> u32 { value + 1 }\n')
+    source.write_text(original)
+    fragment = root.parent / "fragment.rs"
+    fragment.write_text(blocks(path, "rust")[0])
+    exercise.values["<FRAGMENT>"] = str(fragment)
+    git(root, "init", "-q", "-b", "main")
+    git(root, "add", ".")
+    git(root, "commit", "-qm", "author fixture")
+    initial_index = (root / ".git/index").read_bytes()
+    library = root.parent / "libskill_fixture.rlib"
+
+    def compile_library():
+        result = subprocess.run(["rustc", "--edition=2021", "--crate-type=lib", "--crate-name=skill_fixture",
+                                 str(source), "-o", str(library)], capture_output=True, timeout=60)
+        assert result.returncode == 0, result.stderr.decode(errors="replace")
+
+    compile_library()
+    unscoped, _ = exercise.run(root, ["project", "find", "increment", "--signature"])
+    exercise.run(root, ["author", "insert-declaration", unscoped["root"], "--from", str(fragment)], success=False)
+    assert source.read_text() == original and not (root / ".fr-history").exists()
+    for command in commands(path):
+        value = exercise.example(root, path, command)
+        if command[1:3] == ["project", "find"]:
+            assert value["page"]["total"] == 1
+            row = dict(zip(value["columns"], value["rows"][0]))
+            exercise.values["<AUTHOR_HANDLE>"] = row["handle"]
+            exercise.values["<FILE_HANDLE>"] = value["root"]
+        if command[1:3] == ["project", "show"]:
+            assert "value + 1" in value["source"]["text"]
+        if "--save-plan" in command:
+            assert value["saved"] and not value["applied"] and source.read_text() == original
+            exercise.values["<AUTHOR_TX>"] = str(value["transaction"])
+        if "--write" in command:
+            assert value["applied"] and value["diffs_omitted"]
+    changed = source.read_text()
+    assert changed.startswith(original) and fragment.read_text().strip() in changed
+    compile_library()
+    caller = root.parent / "caller.rs"
+    caller.write_text('fn main() { assert_eq!(skill_fixture::increment_twice(40), 42); }\n')
+    binary = root.parent / "caller"
+    compiled = subprocess.run(["rustc", "--edition=2021", str(caller), "--extern", f"skill_fixture={library}",
+                               "-o", str(binary)], capture_output=True, timeout=60)
+    assert compiled.returncode == 0, compiled.stderr.decode(errors="replace")
+    assert subprocess.run([str(binary)], capture_output=True, timeout=30).returncode == 0
+    exercise.run(root, ["project", "show", exercise.values["<FILE_HANDLE>"]], success=False)
+    (root / "unrelated.txt").write_text("Preserve this later edit.\n")
+    for action in ("undo", "redo"):
+        exercise.run(root, ["history", action, exercise.values["<AUTHOR_TX>"], "--write", "--no-diff"])
+        assert source.read_text() == (original if action == "undo" else changed)
+        assert (root / "unrelated.txt").read_text() == "Preserve this later edit.\n"
+    assert (root / ".git/index").read_bytes() == initial_index
+
+
 def lean_workflow(exercise, root):
     path = SKILL / "references/lean.md"
     (root / "src").mkdir()
@@ -238,8 +296,10 @@ def main():
         root = Path(directory)
         (root / "source").mkdir()
         (root / "proof").mkdir()
+        (root / "author").mkdir()
         source_bytes = source_workflow(exercise, root / "source")
         checks_workflow(exercise, root / "source")
+        author_workflow(exercise, root / "author")
         lean_workflow(exercise, root / "proof")
     expected = [(path, tuple(command)) for path in files for command in commands(path)]
     assert sorted(exercise.executed) == sorted(expected), "Every fenced shell example must execute."

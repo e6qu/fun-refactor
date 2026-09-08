@@ -17,11 +17,7 @@ Both check affected contents, existence and modes. They preserve unrelated edits
 Do not overwrite a conflicting user's edit to make undo succeed; inspect the conflict and select a repair within the task's scope.
 Applying a new transaction abandons the previous redo branch. Saving a plan alone preserves it.
 
-For interrupted writes, use `fr history` to inspect the pending operation and `fr history show ID` for its recorded state.
-Only a pending operation calls for `fr history recover ID --write`.
-Recovery restores that operation's starting snapshots; recovering an interrupted undo can therefore restore the applied result.
-If recovery refuses a conflicting state, preserve the journal and report the affected paths for repair. Retry only after the blocker changes.
-A crash may leave a lock; inspect ownership instead of automatically deleting it.
+For a pending operation or a lock left after interruption, load [Recovery](recovery.md) before another write.
 
 The `.fr-history` journal retains source snapshots and recovery data. Deleting it loses those records.
 History does not restore timestamps, ownership, extended attributes or empty directory topology.

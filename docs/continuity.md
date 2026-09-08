@@ -1,10 +1,29 @@
 # Development continuity
 
-M4m is complete: opt-in `checks --no-declarations` reduces repeated execution-report metadata.
+M4n is complete: the skill routes targeted edits through Author and reuses file-scoped lookup roots for insertion.
 The user authorized local commits. Publishing and pushing remain outside this request.
 M4l's four passing workspace trials are retained in `3c8231c`; preparation is `811591e` and documented insertion is `6d0928b`.
+M4m's smaller check reports are committed in `58b53bd`. M4n changes skills, executable examples, measurements and docs; production code is unchanged.
 
-## Current implementation
+## Current handoff
+
+Targeted edits start with Author. Pagination, relationship queries and broader discovery load Explore when needed.
+History links to `references/recovery.md` only for a pending operation or interrupted lock; existing recovery constraints are preserved there.
+Only a lookup explicitly scoped to an existing file supplies that file's insertion handle in `root`.
+Unscoped/directory roots cannot substitute, and source changes invalidate the handle. A file map remains the fallback.
+
+The skill checker executes 37 examples. The new Rust wrapper example compiles under `deny(missing_docs)` and passes a compiled caller assertion.
+It also checks wrong/stale-root refusals, exact undo/redo, unrelated-edit preservation and unchanged index bytes.
+The example uses the lookup root directly, without a separate file map.
+
+`tests/agent-eval/skill-context.json` retains controlled reading costs and the handle-reuse trace audit.
+The current targeted route costs 2,375 tokens, versus 2,825 recorded skill tokens; this is a conditional 15.9% reduction.
+Reading all six references would now cost 2,960 tokens. Routing adoption has not been tested with fresh agents.
+The first regex fr trial has one redundant 387-token map; the second lacks the prerequisite scoped lookup and still needs its map.
+`tools/skill-context.py --tokens` reproduces the report using the pinned tokenizer; omit the flag for byte counts without tiktoken.
+See [targeted reading measurements](agent-skill.md#targeted-reading-measurement) for scope and the extra cost when recovery is needed.
+
+## Latest CLI change
 
 After reviewing `fr checks`, execution can omit repeated declarations while retaining names, basis, outcomes, diagnostics and unselected names.
 The report marks `declarations_omitted: true`; join results to the reviewed listing with the same basis for command metadata.
@@ -56,7 +75,7 @@ Each cohort retains prompts, transcripts, scores, patches and its original skill
 All twelve autonomous trials pass. Recording also supports scored failures; behavioral replay refuses failed trials.
 Replay checks recorded patches and transition evidence without rerunning agents. Token auditing recounts retained payloads.
 The initial and follow-up strsim findings remain in the [context report](agent-context-followup.md).
-Controlled reports are separate: `tests/agent-eval/history-context.json`, `tests/agent-eval/regex/rehearsal.json` and `tests/agent-eval/checks-context.json`.
+Controlled reports are separate: `tests/agent-eval/history-context.json`, `tests/agent-eval/regex/rehearsal.json`, `tests/agent-eval/checks-context.json` and `tests/agent-eval/skill-context.json`.
 The regex rehearsal uses a prescribed solution and rejects three compiled negative controls; it is not autonomous evidence.
 
 Temporary regex sessions remain under `/private/tmp/fr-regex-agent-eval-2026-09-08`, one directory per retained trial name.
@@ -67,18 +86,17 @@ Temporary projects are disposable after retention; use repository evidence for r
 
 ## Validation and commands
 
+M4n's skill workflow and documentation tests pass in `/tmp/fr-m4n-validation.log`, including 37 executed examples and both root-refusal checks.
+Final documentation checks pass in `/tmp/fr-m4n-docs-final.log`.
+The reading measurement passes in `/tmp/fr-m4n-skill-context.json`; the skill validator, Python compilation and prose checks also pass.
+No production code changed, so the existing M4m full gate and strict verification remain the latest implementation checks.
+
 M4m passes the full native/WASM gate in `/tmp/fr-m4m-full-check.log`, including all twelve check CLI scenarios and 33 skill examples.
 Capability coverage remains 311/311. Strict verification passes in `/tmp/fr-m4m-spec-verify.json`.
 It retains twenty-two fresh source anchors and signature maps, zero obligations and 29 Lean build jobs.
 The controlled report passes in `/tmp/fr-m4m-checks-context-final.json`, with the final binary digest checked before and after execution.
 Documentation checks pass in `/tmp/fr-m4m-docs-check.log`; formatting, prose budgets and the skill validator also pass.
 These are presentation and execution regressions, not a new formal proof of process behavior.
-
-M4k passed 31 authoring CLI scenarios and the full native/WASM gate in `/tmp/fr-m4k-full-check.log`.
-Capability coverage remains 311/311. Strict verification passed in `/tmp/fr-m4k-spec-verify.json`.
-It reports twenty-two fresh source anchors and signature maps, zero obligations and 29 Lean build jobs.
-These model and source-correspondence checks do not prove parser correctness or agent-authored behavior.
-No production changes followed that gate during M4l.
 
 M4l exact token auditing passes in `/tmp/fr-m4l-token-audit.json`.
 The opt-in four-patch workspace replay passes in `/tmp/fr-m4l-workspace-replay.log`.
@@ -105,6 +123,7 @@ The integration regression is opt-in so default CI does not acquire this additio
 
 Check execution metadata is now optional; use retained traces to reduce remaining project/transaction metadata and skill-loading costs.
 Preserve coverage, source bases, guards and reviewable edits.
+Validate whether fresh agents adopt the targeted route before claiming autonomous context savings; include a task that actually requires broader exploration.
 Measure proposed reductions on fixed transcripts or controlled workflows before requesting another autonomous cohort.
 Treat repeated indexing cost separately from returned-context size; these trials explicitly disable the cache.
 A later paired task should require coordinated changes across files; the current larger repository task is still a localized facade addition.

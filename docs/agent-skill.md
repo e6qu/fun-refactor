@@ -1,7 +1,7 @@
 # Handing fr to an agent
 
 The portable [fr skill](../skills/fr/SKILL.md) teaches bounded project exploration and reviewed code changes.
-Its references separate exploration, authoring, built-in changes, recipes, checks, history, patches, Git administration and Lean.
+Its references separate exploration, authoring, built-in changes, recipes, checks, history, recovery, patches, Git administration and Lean.
 The entrypoint routes to those references only when the task needs them.
 
 ## Distribution and use
@@ -23,7 +23,11 @@ Subsequent queries select a declaration, read its signature and relationships, a
 Body authoring accepts project handles; built-in refactorings use names or source positions.
 It uses saved transaction IDs for exact plan application, and keeps source history separate from Git bases and journals.
 History and check commands do not require refreshing project handles after every write.
+For a targeted edit, the entrypoint starts with Author; Explore covers pagination, relationships and broader discovery when needed.
 The authoring reference avoids loading recipe vocabulary for a body edit; patch guidance loads Git administration only when needed.
+History links to a separate recovery reference when a pending operation or interrupted lock needs inspection.
+An explicitly file-scoped lookup already returns its file handle in `root`; insertion can reuse it while the source revision remains current.
+Unscoped and directory-scoped roots cannot substitute for file handles. A file map remains available when the needed handle is missing.
 The check example uses `--quiet-success` and retains diagnostics for failed commands.
 History writes use `--no-diff` after reviewing the saved plan or transition preview, retaining completion metadata without repeated diff text.
 The introductory lookup guidance distinguishes a full name from a fragment, which needs `--contains`.
@@ -46,6 +50,10 @@ The source fixture checks:
 - Applied behavior, undo/redo and preservation of an unrelated later edit.
 - Exported patch application in a separate Git receiver, with both indexes unchanged.
 
+A Rust fixture executes the authoring example using the root from a file-scoped lookup, without a separate file map.
+It rejects an unscoped root, inserts a documented wrapper and compiles it with `deny(missing_docs)`.
+A compiled caller checks the wrapper's result; stale-handle refusal, exact undo/redo and unrelated-edit/index preservation also pass.
+
 The Lean fixture checks a stale source anchor, reviewed hash synchronization and a real Lake build.
 It then changes the theorem to a false proposition and requires verification to fail with one JSON report.
 Separate JSON regressions cover missing declarations and invalid signature maps.
@@ -56,7 +64,7 @@ The skill validator also checks its frontmatter and unfinished placeholders duri
 The checker enforces a 3 KiB entrypoint budget, a 6 KiB budget per reference and valid links inside the portable folder.
 
 The initial macOS run against the development binary executed 31 fenced command examples.
-Declared project-check listing and execution now bring the checker to 33 examples.
+Declared project-check listing and execution brought the checker to 33 examples; the targeted authoring workflow adds four, for 37 today.
 The execution example combines quiet-success output with declaration omission after reviewing the configuration basis.
 The initial measurements were:
 
@@ -77,6 +85,37 @@ Both fr tasks pass independent behavioral oracles, declared checks and reversibl
 The [follow-up evaluation](agent-context-followup.md) reduces fr context by 34.0% and 24.5% against its first trials.
 The fresh file trials also improve and still use less context. The evidence supports these workflows while leaving broader efficiency open.
 The same report includes a subsequent controlled comparison of smaller history completion reports; this adds no new autonomous-agent result.
+
+## Targeted reading measurement
+
+The [retained comparison](../tests/agent-eval/skill-context.json) measures the revised skill against both frozen regex fr trials.
+It uses the same numbered-line read payloads and pinned tiktoken 0.12.0/o200k_base tokenizer as the agent harness.
+All required targeted-edit references are counted: the entrypoint, authoring, checks, history and patch guidance.
+
+| Reading path | References including entrypoint | Tokens per trial |
+|---|---:|---:|
+| Recorded regex skill reads | 6 | 2,825 |
+| Current skill, loading those same six files | 6 | 2,960 |
+| Current targeted-edit route | 5 | 2,375 |
+
+The targeted route is 450 tokens, or 15.9%, below recorded skill reads and 19.8% below the current six-file route.
+The comparison includes M4m's check guidance and the new authoring example, so it does not isolate a single wording change.
+Unselective loading would increase context by 4.8%. No fresh agent has demonstrated adoption of the new routing.
+An interrupted write requires the separate recovery reference, adding 203 tokens under this counting method.
+Pagination, relationship queries and broader discovery still require the relevant exploration guidance.
+These are conditional reading costs, not autonomous task results or total-context savings.
+
+The first regex fr trial also queried a file map solely for a handle already returned by its file-scoped lookup.
+The audit confirms an identical root/revision and no intervening source edits; that map payload accounts for 387 tokens.
+The second trial lacked an earlier lookup scoped to the same file, so its map remains necessary under this rule.
+The executable Rust example validates reuse and stale-root refusal; the trace audit does not estimate a general latency improvement.
+
+```sh
+python3 tools/skill-context.py
+target/agent-eval-venv/bin/python tools/skill-context.py --tokens
+```
+
+The report retains current read payloads, skill digests and the frozen input-manifest digest. Original transcripts and scores remain unchanged.
 
 ## Remaining roadmap
 
