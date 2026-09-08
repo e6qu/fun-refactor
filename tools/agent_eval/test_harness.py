@@ -32,6 +32,117 @@ batch_measurement = importlib.util.module_from_spec(batch_spec)
 batch_spec.loader.exec_module(batch_measurement)
 
 
+class CoordinatedWorkspaceEvidence(unittest.TestCase):
+    def test_new_task_preserves_old_scopes_and_has_complete_pairs(self):
+        task = harness.regex_escape_len.TASK
+        self.assertEqual(harness.edit_paths(task), ("regex-syntax/src/lib.rs", "src/lib.rs"))
+        for old in (*harness.STRSIM_TASKS, harness.regex_workspace.TASK):
+            self.assertEqual(harness.edit_paths(old), ("src/lib.rs",))
+        names = harness.trial_names("regex-coordinated", 2)
+        self.assertEqual(len(names), 4)
+        self.assertEqual({name for name, _, _, _ in names}, {
+            "regex-escape-len-fr-r1", "regex-escape-len-files-r1", "regex-escape-len-fr-r2", "regex-escape-len-files-r2"})
+        self.assertEqual(harness.required_checks(task), ["upstream", "minimal"])
+        prompt = harness.prompt(Path("session"), task, "fr")
+        self.assertIn("regex-syntax/src/lib.rs, src/lib.rs", prompt)
+        self.assertIn("one author batch saved transaction", prompt)
+
+    def test_baseline_diagnostics_must_only_report_missing_requested_apis(self):
+        valid = {"level": "error", "code": {"code": "E0425"}, "message": "cannot find function `escape_len` in crate `regex`"}
+        encode = lambda value: json.dumps(value).encode() + b"\n"
+        self.assertTrue(harness.regex_escape_len.missing_api_only(encode(valid)))
+        self.assertTrue(harness.regex_escape_len.missing_api_only(encode({**valid, "message": "cannot find value `escape_len` in crate `regex_syntax`"})))
+        for error in ({**valid, "message": "cannot find function `other` in crate `regex`"},
+                      {**valid, "code": {"code": "E0308"}}, {**valid, "code": None}):
+            self.assertFalse(harness.regex_escape_len.missing_api_only(encode(valid) + encode(error)))
+        for diagnostic in (b"compiler crashed", b"", b"null\n"):
+            self.assertFalse(harness.regex_escape_len.missing_api_only(diagnostic))
+
+    def test_file_arm_edits_and_exports_only_the_task_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            session = Path(tmp)
+            project = session / "project"
+            (project / "src").mkdir(parents=True)
+            (project / "regex-syntax/src").mkdir(parents=True)
+            (session / "artifacts").mkdir()
+            for path in harness.edit_paths(harness.regex_escape_len.TASK):
+                (project / path).write_text("original\n")
+            harness.initialize(project)
+            config = {"arm": "files", "task": harness.regex_escape_len.TASK}
+            for path in harness.edit_paths(config["task"]):
+                result = harness.action(session, config, {"tool": "replace", "path": path, "old": "original", "new": "changed"})
+                self.assertTrue(result["changed"])
+            exported = harness.action(session, config, {"tool": "export"})["patch"]
+            self.assertIn("a/src/lib.rs", exported)
+            self.assertIn("a/regex-syntax/src/lib.rs", exported)
+            for path in ("Cargo.toml", "../outside", "regex-syntax/src/../src/lib.rs"):
+                with self.assertRaisesRegex(ValueError, "limited"):
+                    harness.action(session, config, {"tool": "append", "path": path, "text": "bad"})
+            with self.assertRaisesRegex(ValueError, "limited"):
+                harness.action(session, {**config, "task": "regex-escape-into"},
+                               {"tool": "append", "path": "regex-syntax/src/lib.rs", "text": "bad"})
+
+    def test_coordinated_delivery_requires_one_saved_batch_and_its_history(self):
+        def event(args, report):
+            return {"request": {"tool": "fr", "args": args}, "visible": json.dumps({"exit_code": 0, "result": report})}
+        saved = event(["author", "batch"], {"schema": "fr-author-batch-1", "saved": True, "applied": False,
+                                             "files_changed": 2, "transaction": 1})
+        events = [saved, *[event(["history", action, "1", "--write"], {}) for action in ("apply", "undo", "redo", "patch")]]
+        self.assertTrue(harness.coordinated_batch(events))
+        for index in range(len(events)):
+            self.assertFalse(harness.coordinated_batch(events[:index] + events[index + 1:]))
+        self.assertFalse(harness.coordinated_batch([*events, saved]))
+        broken = copy.deepcopy(events)
+        broken[-1]["request"]["args"][2] = "2"
+        self.assertFalse(harness.coordinated_batch(broken))
+        for key, value in (("schema", "fr-author-1"), ("files_changed", 1), ("applied", True), ("transaction", True)):
+            broken = copy.deepcopy(events)
+            payload = json.loads(broken[0]["visible"])
+            payload["result"][key] = value
+            broken[0]["visible"] = json.dumps(payload)
+            self.assertFalse(harness.coordinated_batch(broken))
+
+    def test_replay_checks_the_second_file_and_reverses_complete_snapshots(self):
+        task = harness.regex_escape_len.TASK
+        observed = {"checks": [], "undo_exact": True, "redo_exact": True, "workflow_ordered": True}
+
+        def unpack(root, task):
+            for name in harness.edit_paths(task):
+                (root / name).parent.mkdir(parents=True, exist_ok=True)
+                (root / name).write_text("original\n")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fixture = root / "fixture"
+            unpack(fixture, task)
+            harness.initialize(fixture)
+            original = harness.snapshot(fixture)
+            for name in harness.edit_paths(task):
+                (fixture / name).write_text("changed\n")
+            final = harness.snapshot(fixture)
+            trial = root / "evidence/trial"
+            trial.mkdir(parents=True)
+            harness.save(trial / "session.json", {"task": task, "arm": "files", "original": original})
+            harness.save(trial / "result.json", {"passed": True, **observed})
+            (trial / "change.patch").write_bytes(harness.git(fixture, "diff", "--binary").stdout)
+            for wrong_second_file in (False, True):
+                after = copy.deepcopy(final)
+                if wrong_second_file:
+                    after["regex-syntax/src/lib.rs"]["sha256"] = "wrong"
+                (trial / "events.jsonl").write_text(json.dumps({"after": after}) + "\n")
+                harness.save(trial.parent / "manifest.json", {"trials": ["trial"], "files": {
+                    str(p.relative_to(trial.parent)): harness.digest(p.read_bytes()) for p in trial.iterdir()}})
+                with mock.patch.object(harness, "unpack", side_effect=unpack), \
+                     mock.patch.object(harness, "verify", side_effect=[{"passed": False}, {"passed": True}]), \
+                     mock.patch.object(harness, "upstream", return_value={"exit_code": 0}), \
+                     mock.patch.object(harness, "workflow", return_value=observed):
+                    if wrong_second_file:
+                        with self.assertRaisesRegex(ValueError, "recorded agent result"):
+                            harness.replay(trial.parent)
+                    else:
+                        self.assertTrue(harness.replay(trial.parent)["passed"])
+
+
 class BatchMeasurementEvidence(unittest.TestCase):
     def test_failed_or_clipped_commands_cannot_count_as_successful_evidence(self):
         valid = mock.Mock(returncode=0, stdout=b'{"passed": true}\n', stderr=b"")

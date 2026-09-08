@@ -1129,9 +1129,25 @@ All 26 evaluator regressions, the live workflow comparison and the full native/W
 Strict Lean verification retains twenty-four fresh anchors and signature maps, zero obligations and 38 build jobs.
 See [coordinated authoring measurement](docs/project-context-evaluation.md#coordinated-authoring-measurement) for reproduction and limits.
 
+M4aa: coordinated workspace task preparation (complete).
+
+The new `regex-escape-len` task spans the regex facade and regex-syntax implementation in the existing pinned workspace.
+It requests allocation-free escaped byte lengths and preallocation in the existing escaping function, preserving behavior and minimal-feature builds.
+The harness supports task-specific edit/export paths, requires both source files to change and checks both during replay and exact reversal.
+The fr arm must save one two-file authoring batch and use its transaction for application, undo/redo and patch delivery.
+An independent oracle checks UTF-8 lengths, escaping, append preservation and allocation counts in both crates.
+Missing requested APIs establish the original baseline; unrelated compiler failures refuse preparation.
+A prescribed batch rehearsal exercises the real workspace and deliberately incorrect implementations, without running autonomous agents.
+Both project and receiver pass 1,060 independent input cases; five compiled incorrect implementations fail the oracle.
+The retained rehearsal includes actual commands, reports, source snapshots, its patch and provenance.
+All 31 evaluator regressions and the full native/WASM gate pass, with 311/311 capability coverage.
+The four historical regex trials replay successfully; strict Lean verification retains 24 fresh anchors, zero obligations and 38 build jobs.
+See [coordinated task preparation](docs/agent-workspace-evaluation.md#coordinated-task-preparation) for protocol and reproduction.
+
 Next M4 work:
 
-Use the batch comparison to design a coordinated task on an unfamiliar multi-file repository, with independent behavior and receiver checks.
+Run repeated paired trials of the prepared coordinated task with fresh agents, independent behavior checks and receiver validation.
+Keep the prescribed rehearsal separate from autonomous context measurements, and retain every trial outcome and intervention.
 Use the retained workspace traces to reduce repeated report metadata and skill-loading costs, preserving coverage, source bases, guards and reviewable changes.
 Measure each proposed reduction on fixed transcripts or controlled workflows before another autonomous comparison.
 Use the construction profile to evaluate any further reduction in reference serialization and hashing cost.

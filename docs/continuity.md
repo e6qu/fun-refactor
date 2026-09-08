@@ -1,6 +1,6 @@
 # Development continuity
 
-M4z is complete: a controlled comparison measures batch authoring costs with source, behavior and reversal checks.
+M4aa is complete: a real-workspace task prepares coordinated authoring evaluation across two crates.
 The user authorized local commits. Publishing and pushing remain outside this request.
 M4l's four passing workspace trials are retained in `3c8231c`; preparation is `811591e` and documented insertion is `6d0928b`.
 M4m's smaller check reports are committed in `58b53bd`; M4n's targeted skill guidance is `1c44863`.
@@ -15,6 +15,28 @@ M4v's inline module insertion is committed in `2cdbd1b`.
 M4w's Go body authoring is committed in `3597115`.
 M4x's insertion placement proofs are committed in `3fd1323`.
 M4y's coordinated authoring batches are committed in `f0ba5a5`.
+M4z's controlled batch comparison is committed in `5591c17`.
+
+## Coordinated workspace task preparation
+
+`tools/agent_eval/regex_escape_len.py` adds `regex-escape-len` on the existing pinned regex archive and dependency lock.
+The task adds allocation-free escaped byte-length APIs in both crates and preallocation in the lower crate's existing `escape` function.
+The independent oracle checks both public APIs, an explicit escaping reference, UTF-8 lengths, allocation counts and preserved append behavior.
+Preparation recognizes only missing requested APIs as the original baseline; unrelated compiler diagnostics fail preparation.
+
+`tools/agent-eval.py` adds `--project regex-coordinated`, generating paired `regex-escape-len` sessions.
+Task-specific edit/export paths allow exactly the two crate roots; older tasks retain their single-file allowance.
+Scoring requires both files to change. Replay checks both recorded results and whole tracked snapshots through undo and reapplication.
+The fr arm must use one saved two-file batch and its matching history commands, alongside the existing ordered checks and receiver evidence.
+Five new harness scenarios cover paired names, path allowances, diagnostics, coordinated delivery and second-file replay refusal.
+
+`tools/regex-coordinated-check.py` rehearses two documented insertions and one body replacement through actual instrumented fr commands.
+It checks the project at four stages, a separate patch receiver, unchanged indexes and preservation of an unrelated edit.
+Negative controls target Unicode counting, missing escaping, allocation during length calculation, omitted preallocation and a disagreeing facade.
+The retained `tests/agent-eval/regex/coordinated-rehearsal.json` passes all stages and 1,060 independent inputs in both project and receiver.
+All five incorrect implementations compile but fail the oracle. The report retains commands, reports, snapshots, the patch and source/binary hashes.
+This is prescribed infrastructure evidence; no new autonomous agent or context measurement has run.
+The next step is repeated fresh-agent trials under the documented protocol, preserving the existing historical evidence bundles.
 
 ## Controlled coordinated authoring comparison
 
@@ -32,7 +54,7 @@ Request and artifact sizes remain separate from returned output. This is a synth
 Project/author calls fall from six to three; inspected routing implies twelve versus six scan passes, without runtime instrumentation.
 Five evaluator regressions reject failed or clipped evidence, incomplete review and selection, and unexpected source bytes; they also check metric accounting.
 The native acceptance suite now executes one complete pair. No production command or Lean model changes in this milestone.
-Next, design a coordinated task on an unfamiliar repository while preserving behavioral, source and receiver evidence.
+The coordinated workspace preparation above follows this controlled comparison; autonomous evaluation remains open.
 
 ## Coordinated authoring batches
 
@@ -338,6 +360,15 @@ It, the skills, prompts, evaluator and oracle stayed unchanged throughout both p
 Temporary projects are disposable after retention; use repository evidence for replay and audits.
 
 ## Validation and commands
+
+M4aa's full native/WASM gate passes in `/tmp/fr-m4aa-full-check.log`, including 311/311 capability coverage and the existing authoring/Lean comparisons.
+All 31 evaluator regressions pass in `/tmp/fr-m4aa-harness-tests.log`.
+The successful real-workspace rehearsal is `/tmp/fr-m4aa-rehearsal.json`, retained as `tests/agent-eval/regex/coordinated-rehearsal.json`.
+It uses frozen CLI `target/agent-eval-bin/fr-m4aa`, with matching binary and evaluator-source fingerprints.
+The initial rehearsal refused a function-pointer missing-value diagnostic; the final classifier accepts that exact missing API and still rejects unrelated errors.
+All four historical regex trials replay successfully in `/tmp/fr-m4aa-regex-replay.json`.
+Strict verification passes in `/tmp/fr-m4aa-spec-verify.json`: 24 fresh anchors and signature maps, zero obligations and 38 Lean build jobs.
+Prose budgets remain unchanged. Final documentation checks are in `/tmp/fr-m4aa-docs-final.log`.
 
 M4z's full native/WASM gate passes in `/tmp/fr-m4z-full-check.log`, including 311/311 capability coverage and the new live workflow pair.
 All 26 evaluator regressions pass in `/tmp/fr-m4z-harness-tests.log`, including the final added-source refusal guard.

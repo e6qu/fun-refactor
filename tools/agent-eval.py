@@ -14,7 +14,7 @@ import tarfile
 import time
 
 from agent_eval.oracle import verify as verify_strsim
-from agent_eval import regex_workspace
+from agent_eval import regex_workspace, regex_escape_len
 
 ROOT = Path(__file__).resolve().parent.parent
 ARCHIVE = ROOT / "tests/agent-eval/strsim-0.11.1.crate"
@@ -26,10 +26,20 @@ TASKS = {
 
 STRSIM_TASKS = tuple(TASKS)
 TASKS[regex_workspace.TASK] = regex_workspace.DESCRIPTION
+TASKS[regex_escape_len.TASK] = regex_escape_len.DESCRIPTION
+REGEX_TASKS = (regex_workspace.TASK, regex_escape_len.TASK)
+
+
+def edit_paths(task):
+    return regex_escape_len.PATHS if task == regex_escape_len.TASK else ("src/lib.rs",)
+
+
+def required_checks(task):
+    return [check["name"] for check in regex_workspace.CHECKS] if task in REGEX_TASKS else ()
 
 
 def profile(task):
-    if task == regex_workspace.TASK:
+    if task in REGEX_TASKS:
         return {"project": "rust-lang/regex complete workspace snapshot, without Git history",
                 "archive_sha256": regex_workspace.ARCHIVE_SHA, "upstream_commit": regex_workspace.COMMIT,
                 "checks": regex_workspace.CHECKS, "dependency_lock_sha256": regex_workspace.LOCK_SHA}
@@ -42,6 +52,8 @@ def profile(task):
 
 
 def verify(root, task):
+    if task == regex_escape_len.TASK:
+        return regex_escape_len.verify(root)
     return regex_workspace.verify(root) if task == regex_workspace.TASK else verify_strsim(root, task)
 
 
@@ -70,7 +82,7 @@ def git(root, *args, data=None, check=True):
 
 
 def unpack(destination, task="unicode-dice"):
-    if task == regex_workspace.TASK:
+    if task in REGEX_TASKS:
         return regex_workspace.unpack(destination)
     data = ARCHIVE.read_bytes()
     if digest(data) != ARCHIVE_SHA:
@@ -112,11 +124,13 @@ def prompt(session, task, arm):
         if arm == "fr" else
         "Use ordinary files, read, search and replace tools for source exploration and edits. Do not use fr project/author/history commands. The shared fr checks command is available for identical project validation. Export and reverse/reapply your patch through the ordinary Git tools."
     )
+    if task == regex_escape_len.TASK and arm == "fr":
+        surface += " Coordinate the edits in one author batch saved transaction, and export, undo and redo that transaction."
     return f"""You are an independent acceptance-test agent. Complete this code task in the supplied unfamiliar pinned public project: {TASKS[task]}
 
 {surface}
 
-Only change src/lib.rs. The evaluator owns regression oracles; do not read or modify the harness, oracle, other sessions, or hidden tests. You may add a focused function-level implementation but need not alter project documentation for this trial. Do not browse, delegate, commit or push. No human correction is available.
+Only change {', '.join(edit_paths(task))}. The evaluator owns regression oracles; do not read or modify the harness, oracle, other sessions, or hidden tests. You may add a focused function-level implementation but need not alter project documentation for this trial. Do not browse, delegate, commit or push. No human correction is available.
 
 Use only the instrumented tool for all task inspection and work. Invoke it using functions.exec / tools.exec_command:
 python3 {ROOT / 'tools/agent-eval.py'} step {session} '<JSON object>'
@@ -143,9 +157,9 @@ The harness records visible tool payload tokens, calls, latency and final correc
 
 
 def trial_names(project, repetitions):
-    if project not in ("strsim", "regex") or not 1 <= repetitions <= 8:
-        raise ValueError("Choose strsim or regex and 1..8 repetitions")
-    tasks = STRSIM_TASKS if project == "strsim" else (regex_workspace.TASK,)
+    if project not in ("strsim", "regex", "regex-coordinated") or not 1 <= repetitions <= 8:
+        raise ValueError("Choose strsim, regex or regex-coordinated and 1..8 repetitions")
+    tasks = STRSIM_TASKS if project == "strsim" else ((regex_workspace.TASK,) if project == "regex" else (regex_escape_len.TASK,))
     return [(f"{task}-{arm}" + (f"-r{repeat}" if repetitions > 1 else ""), task, arm, repeat)
             for repeat in range(1, repetitions + 1) for task in tasks for arm in ("fr", "files")]
 
@@ -178,7 +192,7 @@ def prepare_trial(session, binary, task, arm, repetition):
     if original_oracle["passed"] or original_oracle.get("stage") != expected_stage:
         raise RuntimeError(f"Original oracle failed to establish the expected task baseline: {original_oracle}")
     receiver = session / "receiver"
-    ignored = (".git", "target") if task == regex_workspace.TASK else (".git", "target", "Cargo.lock")
+    ignored = (".git", "target") if task in REGEX_TASKS else (".git", "target", "Cargo.lock")
     shutil.copytree(project, receiver, ignore=shutil.ignore_patterns(*ignored))
     initialize(receiver)
     (session / "artifacts").mkdir()
@@ -263,9 +277,9 @@ def action(session, config, request):
     if kind == "search":
         return process(["rg", "-n", "-F", "--", request["pattern"], str(within(project, request.get("path", ".")))], project)
     if kind in ("replace", "append"):
-        if request["path"] != "src/lib.rs":
-            raise ValueError("Trial edits are limited to src/lib.rs")
-        path = project / request["path"]
+        if request["path"] not in edit_paths(config["task"]):
+            raise ValueError("Trial edits are limited to " + ", ".join(edit_paths(config["task"])))
+        path = within(project, request["path"])
         text = path.read_text()
         if kind == "replace":
             old = request["old"]
@@ -295,7 +309,7 @@ def action(session, config, request):
             result["patch_artifact"] = "artifacts/change.patch"
         return result
     if kind == "export":
-        result = git(project, "diff", "--binary", "--", "src/lib.rs")
+        result = git(project, "diff", "--binary", "--", *edit_paths(config["task"]))
         (session / "artifacts/change.patch").write_bytes(result.stdout)
         return {"patch": result.stdout.decode(), "patch_artifact": "artifacts/change.patch"}
     if kind in ("reverse", "apply"):
@@ -379,6 +393,30 @@ def workflow(events, original, final, required_checks=()):
     return {"checks": checks, "undo_exact": bool(undo), "redo_exact": bool(redo), "workflow_ordered": ordered}
 
 
+def coordinated_batch(events):
+    saved = []
+    for event in events:
+        payload = json.loads(event["visible"])
+        report = payload.get("result")
+        if payload.get("exit_code") == 0 and isinstance(report, dict) and report.get("saved") is True:
+            saved.append((event, report))
+    if len(saved) != 1:
+        return False
+    event, report = saved[0]
+    if (event["request"].get("args", [])[:2] != ["author", "batch"]
+            or report.get("schema") != "fr-author-batch-1" or report.get("files_changed") != 2
+            or report.get("applied") is not False
+            or type(report.get("transaction")) is not int or report["transaction"] <= 0):
+        return False
+    transaction = str(report["transaction"])
+    for action in ("apply", "undo", "redo", "patch"):
+        matching = [entry for entry in events if entry["request"].get("args", [])[:3] == ["history", action, transaction]]
+        if not any((action == "patch" or "--write" in entry["request"]["args"])
+                   and json.loads(entry["visible"]).get("exit_code") == 0 for entry in matching):
+            return False
+    return True
+
+
 def score(session):
     config = json.loads((session / "session.json").read_text())
     events = [json.loads(line) for line in (session / "events.jsonl").read_text().splitlines()]
@@ -405,7 +443,7 @@ def score(session):
         "refusals_or_failures": sum(bool(json.loads(e["visible"]).get("error")) or json.loads(e["visible"]).get("exit_code", 0) != 0 for e in events),
         "source_edit_steps": sum(e["before"] != e["after"] for e in events),
         "manual_corrections": config.get("manual_corrections", 0), "changed_paths": changed,
-        **workflow(events, original, final, [c["name"] for c in regex_workspace.CHECKS] if config["task"] == regex_workspace.TASK else ()),
+        **workflow(events, original, final, required_checks(config["task"])),
         "index_unchanged": all(e["index_sha256"] == config["index_sha256"] for e in events),
         "receiver_index_unchanged": digest((session / "receiver/.git/index").read_bytes()) == config["receiver_index_sha256"],
         "receiver_matches": snapshot(session / "receiver") == final,
@@ -417,11 +455,14 @@ def score(session):
         "repetition": config.get("repetition", 1),
     }
     result["context_tokens"] = result["prompt_tokens"] + result["visible_output_tokens"]
+    if config["task"] == regex_escape_len.TASK and config["arm"] == "fr":
+        result["coordinated_batch"] = coordinated_batch(events)
     result["passed"] = (
         all(result[key] for key in ("workflow_ordered", "undo_exact", "redo_exact", "index_unchanged", "receiver_index_unchanged", "receiver_matches", "finished"))
-        and changed == ["src/lib.rs"] and not result["original_oracle"]["passed"]
+        and changed == sorted(edit_paths(config["task"])) and not result["original_oracle"]["passed"]
         and result["original_oracle"].get("stage") == (2 if config["task"] == "unicode-dice" else 1)
         and result["oracle"]["passed"] and result["receiver_oracle"]["passed"]
+        and result.get("coordinated_batch", True)
     )
     save(session / "result.json", result)
     print(json.dumps(result, indent=2, ensure_ascii=False))
@@ -444,29 +485,34 @@ def replay(directory):
             events = [json.loads(line) for line in (path / "events.jsonl").read_text().splitlines()]
             root = Path(tmp) / trial
             unpack(root, config["task"])
-            original = (root / "src/lib.rs").read_bytes()
             if verify(root, config["task"])["passed"]:
                 raise ValueError("The unmodified project unexpectedly satisfies the task oracle")
             initialize(root)
+            original = snapshot(root)
             original_index = (root / ".git/index").read_bytes()
             patch = (path / "change.patch").read_bytes()
             git(root, "apply", "--check", "--index", data=patch)
             git(root, "apply", data=patch)
-            actual = (root / "src/lib.rs").read_bytes()
-            if digest(actual) != events[-1]["after"]["src/lib.rs"]["sha256"]:
+            actual = snapshot(root)
+            changed = sorted(name for name in original if original[name] != actual.get(name))
+            if changed != sorted(edit_paths(config["task"])) or any(actual[name] != events[-1]["after"].get(name) for name in changed):
                 raise ValueError("Patch does not reproduce the recorded agent result")
             upstream_result = upstream(root, config["task"])
             oracle = verify(root, config["task"])
             (root / "unrelated.txt").write_text("Preserve this independent later edit.\n")
             git(root, "apply", "--reverse", data=patch)
-            if (root / "src/lib.rs").read_bytes() != original:
+            if snapshot(root) != original:
                 raise ValueError("Reverse patch did not restore original bytes")
             git(root, "apply", data=patch)
-            if (root / "src/lib.rs").read_bytes() != actual or (root / "unrelated.txt").read_text() != "Preserve this independent later edit.\n":
+            if snapshot(root) != actual or (root / "unrelated.txt").read_text() != "Preserve this independent later edit.\n":
                 raise ValueError("Patch reapplication lost source or the unrelated edit")
             if (root / ".git/index").read_bytes() != original_index:
                 raise ValueError("Patch workflow changed the index")
-            observed = workflow(events, config["original"], events[-1]["after"], [c["name"] for c in regex_workspace.CHECKS] if config["task"] == regex_workspace.TASK else ())
+            observed = workflow(events, config["original"], events[-1]["after"], required_checks(config["task"]))
+            if config["task"] == regex_escape_len.TASK and config["arm"] == "fr":
+                observed["coordinated_batch"] = coordinated_batch(events)
+                if not observed["coordinated_batch"]:
+                    raise ValueError("Coordinated task requires one reviewed batch transaction")
             if any(observed[key] != recorded[key] for key in observed):
                 raise ValueError("Recorded workflow score disagrees with its transcript")
             if not recorded["passed"] or not observed["workflow_ordered"] or upstream_result["exit_code"] or not oracle["passed"]:
@@ -544,7 +590,7 @@ def record(sessions, directory, pilots=None, execution_note=None):
         "pilots": {"interrupted": pilot_names, "reason": "Cargo inherited the containing fr workspace; no valid baseline build. Restarted outside Cargo projects after preflight." if pilot_names else None, "included_in_scored_trials": False},
         "versions": {tool: subprocess.check_output([tool, "--version"], text=True).strip() for tool in ("rustc", "cargo", "git", "python3")},
         "evaluator_files": {str(path.relative_to(ROOT)): digest(path.read_bytes()) for path in
-                            [Path(__file__), ROOT / "tools/agent_eval/oracle.py", ROOT / "tools/agent_eval/regex_workspace.py"]},
+                            [Path(__file__), ROOT / "tools/agent_eval/oracle.py", ROOT / "tools/agent_eval/regex_workspace.py", ROOT / "tools/agent_eval/regex_escape_len.py"]},
         "files": {str(path.relative_to(directory)): digest(path.read_bytes()) for path in sorted(directory.rglob("*")) if path.is_file()},
     })
     print(json.dumps({"recorded": str(directory), "trials": trials, "interrupted_pilots": pilot_names}))
@@ -556,7 +602,7 @@ def main():
     prepare_parser = commands.add_parser("prepare")
     prepare_parser.add_argument("--out", type=Path, required=True)
     prepare_parser.add_argument("--fr", type=Path, default=ROOT / "target/debug/fr")
-    prepare_parser.add_argument("--project", choices=("strsim", "regex"), default="strsim")
+    prepare_parser.add_argument("--project", choices=("strsim", "regex", "regex-coordinated"), default="strsim")
     prepare_parser.add_argument("--repetitions", type=int, default=1)
     step_parser = commands.add_parser("step")
     step_parser.add_argument("session", type=Path)

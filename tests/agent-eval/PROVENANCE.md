@@ -29,3 +29,7 @@ Behavioral replay needs the archive and standard local tools. Token auditing sep
 The separate [regex workspace evaluation](../../docs/agent-workspace-evaluation.md) pins a complete upstream workspace and dependency lock.
 It retains four passing autonomous trials and a separate controlled rehearsal.
 Its source archive, licenses and lock live under `regex/`; it does not replace the strsim fixture or earlier transcripts.
+
+The [coordinated rehearsal](regex/coordinated-rehearsal.json) reuses this pinned workspace for the two-crate `regex-escape-len` task.
+It retains a prescribed three-step authoring batch, exact snapshots, a receiver patch, independent oracles and five rejected implementations.
+This supplies task-preparation evidence; it contains no autonomous trials or context comparison.

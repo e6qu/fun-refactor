@@ -56,6 +56,55 @@ It does not rerun these agents or revise their timing and context records.
 The next optimization should examine repeated report metadata and skill-loading costs while preserving source bases, coverage, guards and reviewable edits.
 A later task should require coordinated changes across files, since a larger repository alone does not test that workflow.
 
+## Coordinated task preparation
+
+M4aa adds a second task on the same pinned workspace, `regex-escape-len`, for future paired agents.
+It requires changes to both `src/lib.rs` and `regex-syntax/src/lib.rs`.
+Each crate must expose a documented `escape_len(pattern: &str) -> usize` API that returns the escaped UTF-8 byte length without allocation.
+The lower crate's existing `escape` must preallocate enough space before appending, allowing at most one allocation for nonempty input and none for empty input.
+Existing escaping results, append behavior and builds without default features must remain valid.
+
+The task-specific edit allowance covers exactly those two files; older tasks retain their single-file allowance.
+Ordinary-file edits and patch export use the selected task's paths.
+Scoring requires both files to change and all declared checks at each workflow stage.
+Replay compares both files' bytes and modes with the transcript, then checks complete tracked snapshots through reversal and reapplication.
+The fr prompt requires one saved `author batch` transaction; grading checks its two-file report and matching apply, undo, redo and patch commands.
+The existing ordered workflow checks still require original, changed, undone and redone validation, sentinel preservation and a matching receiver.
+
+The independent oracle in `tools/agent_eval/regex_escape_len.py` checks an explicit metacharacter reference and UTF-8 output lengths.
+It checks 1,060 inputs against both crates in the changed project and again in the separate patch receiver.
+Its inputs cover empty strings, all metacharacters, ordinary punctuation, whitespace, NUL, Unicode and long repeated text.
+It calls both crates' length and escaping APIs, counts allocations and checks repeated appends through the existing lower-level API.
+Preparation accepts missing requested APIs as the expected original failure; unrelated compiler errors cannot establish that baseline.
+Both existing declared checks remain required: upstream library tests and compilation without default features.
+These finite checks establish behavioral evidence, without proving every possible input or allocation behavior.
+
+Rehearse the task with a frozen binary after preparing the existing locked dependency cache:
+
+```sh
+python3 tools/regex-coordinated-check.py --fr /path/to/frozen/fr
+```
+
+The rehearsal supplies a prescribed implementation through a three-step batch: two documented insertions and one body replacement.
+It checks original/changed/undone/redone states, the independent receiver and incorrect implementations that should fail the oracle.
+It does not run agents or measure context efficiency.
+The [retained rehearsal](../tests/agent-eval/regex/coordinated-rehearsal.json) passes every stage and retains actual requests, reports, source snapshots, the patch and provenance.
+Five incorrect implementations compile but fail the oracle: scalar counts instead of byte counts, missing escapes, allocating length calculation, omitted preallocation and a disagreeing facade.
+The native harness tests also check task paths, baseline diagnostics, one-batch delivery and refusal when the second replayed file disagrees with its transcript.
+
+Prepare a future four-agent cohort with:
+
+```sh
+python3 tools/agent-eval.py prepare --project regex-coordinated --repetitions 2 --out /tmp/fr-regex-coordinated-agents --fr /path/to/frozen/fr
+```
+
+The sessions use names `regex-escape-len-fr-r1`, `regex-escape-len-files-r1`, `regex-escape-len-fr-r2` and `regex-escape-len-files-r2`.
+Both arms receive the same task, permitted source files, declared checks and pinned workspace.
+The harness disables the fr fact cache. Preparation warms project builds; subsequent trials must report host contention and execution order.
+Fresh agents must not see the rehearsal solution or another trial's results.
+Score, record, token-audit and replay use the existing commands with these session names.
+No autonomous trial has run for this new task, so the earlier four-trial results above remain unchanged.
+
 ## Task and source
 
 Add a documented public `regex::escape_into(pattern: &str, buf: &mut alloc::string::String)` function.
