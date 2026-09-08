@@ -307,6 +307,26 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
             broken[0]["visible"] = json.dumps(payload)
             self.assertFalse(harness.coordinated_batch(broken))
 
+    def test_receiver_requires_checks_after_the_latest_state_change(self):
+        original = {"src/lib.rs": {"sha256": "old"}}
+        changed = {"src/lib.rs": {"sha256": "new"}}
+
+        def event(before, after, report=None):
+            return {"before": before, "after": after, "visible": json.dumps({
+                "exit_code": 0,
+                "result": report or {},
+            })}
+
+        check = {"schema": "fr-checks-1", "executed": True, "passed": True,
+                 "results": [{"name": "unit", "passed": True}]}
+        events = [event(original, changed), event(changed, changed, check)]
+        self.assertTrue(harness.current_state_checked(events, changed, ["unit"]))
+        events.extend([event(changed, original), event(original, original, check), event(original, changed)])
+        self.assertFalse(harness.current_state_checked(events, changed, ["unit"]))
+        events.append(event(changed, changed, check))
+        self.assertTrue(harness.current_state_checked(events, changed, ["unit"]))
+        self.assertFalse(harness.current_state_checked(events, changed, ["unit", "missing"]))
+
     def test_replay_checks_the_second_file_and_reverses_complete_snapshots(self):
         task = harness.regex_escape_len.TASK
         observed = {"checks": [], "undo_exact": True, "redo_exact": True, "workflow_ordered": True}

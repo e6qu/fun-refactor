@@ -165,7 +165,7 @@ Tool objects:
 {{"tool":"export"}} saves and shows a Git diff as artifacts/change.patch (baseline only). In the fr arm, use history patch TX --output ../artifacts/change.patch to retain the patch while returning only its identity and size.
 {{"tool":"reverse"}} / {{"tool":"apply"}} reverses/reapplies that saved Git patch (baseline only).
 {{"tool":"sentinel"}} adds an unrelated edit after the requested change; it must survive reversal and reapplication.
-{{"tool":"receiver"}} checks and applies the saved patch in a clean separate receiver and compares tracked content with your project.
+{{"tool":"receiver"}} checks and applies the saved patch in a clean separate receiver and compares tracked content with your project. It refuses until all declared checks pass after the final redo/apply.
 {{"tool":"finish","summary":"..."}} records your final conclusion; independent oracles run later.
 
 Workflow: inspect; list and run declared checks on the original; implement the task; run checks on the change; export the patch; add the sentinel; undo and check; redo and check; verify the receiver; finish. fr arm: preview/save/apply an authoring transaction and use history undo/redo. Run all declared checks together at each validation stage using --run with comma-separated names; every run needs the configuration basis from its listing. Keep project handles revision-bound when using them. Keep tool output bounded and request only relevant context. Leave the requested change applied. Report uncertainty and tool refusals honestly.
@@ -342,6 +342,9 @@ def action(session, config, request):
         (project / "unrelated.txt").write_text("Preserve this independent later edit.\n")
         return {"created": "unrelated.txt"}
     if kind == "receiver":
+        events = [json.loads(line) for line in (session / "events.jsonl").read_text().splitlines()]
+        if not current_state_checked(events, snapshot(project), required_checks(config["task"])):
+            raise ValueError("Run all declared checks on the final reapplied state before receiver verification")
         receiver = session / "receiver"
         patch = (session / "artifacts/change.patch").read_bytes()
         git(receiver, "apply", "--check", "--index", data=patch)
@@ -422,6 +425,21 @@ def workflow(events, original, final, required_checks=()):
         for received in receivers if forward < received
     )
     return {"checks": checks, "undo_exact": bool(undo), "redo_exact": bool(redo), "workflow_ordered": ordered}
+
+
+def current_state_checked(events, state, required):
+    mutations = [index for index, event in enumerate(events) if event["before"] != event["after"]]
+    if not mutations:
+        return False
+    for event in events[mutations[-1] + 1:]:
+        payload = json.loads(event["visible"])
+        report = payload.get("result")
+        if (payload.get("exit_code") == 0 and isinstance(report, dict)
+                and report.get("schema") == "fr-checks-1" and report.get("executed")
+                and report.get("passed") and event["before"] == event["after"] == state
+                and set(required).issubset({check["name"] for check in report.get("results", []) if check.get("passed")})):
+            return True
+    return False
 
 
 def coordinated_batch(events):
