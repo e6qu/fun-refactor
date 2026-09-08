@@ -1012,6 +1012,15 @@ Use `--revision` when selecting a short scope ID. Source changes invalidate hand
 Empty results only describe indexed source; inspect coverage before claiming absence.
 Lookup still indexes the selected project. Existing Lean page-length proofs apply; name matching and traversal have test evidence.
 
+When implementations are needed, add `--source --bytes N` to include a `source` column without a separate `show` call.
+The budget defaults to 2,048 and accepts 4 through 65,536 raw UTF-8 bytes shared across the returned page, in row order.
+Every row keeps its handle and slice metadata even when its remaining budget is zero.
+`source_budget` reports the page's limit and returned bytes. JSON escaping and other metadata are outside this source-text budget.
+Each slice uses the same offsets, spans and `next_offset` as `project show --source`.
+Continue an incomplete slice with `project show HANDLE --source --offset NEXT --bytes N`; zero is a valid continuation for an empty slice.
+Row pagination requires the same source mode and byte budget. Without `--source`, default lookup reports and cursors keep their existing shape.
+Use `show` when node positions, child counts or relationships are also needed.
+
 
 ### `fr history`
 

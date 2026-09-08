@@ -1,0 +1,134 @@
+{
+  "schema": "fr-find-source-context-1",
+  "passed": true,
+  "binary_sha256": "6ed51c52d197a98eedcf178f8c5273524c071eee130652594faafe28eac746f3",
+  "archive_sha256": "7f8beace6ed6c94b2eec3c5aa92219e10e73bd8ad696035877bed01d3ee47255",
+  "dependency_lock_sha256": "7ae225f5fbac82509d5c259dd3613a809c75a8bd4e2124b9cb69ed29d98de3a0",
+  "measurement_files": {
+    "tools/find-source-context.py": "177a2fe9ea6627988b7633397c99627484082fd348260c9997b40fdfa556c562",
+    "tools/agent-eval.py": "1136ec0ea7644ee4011785576a280483b41e37e17ea54f0d5d9f5071c578b07f",
+    "tools/agent_eval/regex_workspace.py": "d7003500c07c3c5b1b12916ffdcd094b3dddf2e59f6d8aa8510246d42b9fb08c"
+  },
+  "tokenizer": {
+    "package": "tiktoken",
+    "version": "0.12.0",
+    "encoding": "o200k_base",
+    "vocabulary_sha256": "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d"
+  },
+  "examples": [
+    {
+      "name": "escape",
+      "path": "src/lib.rs",
+      "passed": true,
+      "separate": {
+        "bytes": 2554,
+        "tokens": 948
+      },
+      "combined": {
+        "bytes": 1528,
+        "tokens": 556
+      },
+      "requests": {
+        "separate": [
+          [
+            "project",
+            "find",
+            "escape",
+            "--in",
+            "src/lib.rs",
+            "--signature"
+          ],
+          [
+            "project",
+            "show",
+            "frp1:689fefacd759fb684a45e0f7ad8eb2b2:3b43",
+            "--source",
+            "--bytes",
+            "2048"
+          ]
+        ],
+        "combined": [
+          [
+            "project",
+            "find",
+            "escape",
+            "--in",
+            "src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ]
+        ]
+      },
+      "payloads": {
+        "separate": [
+          "{\"exit_code\": 0, \"result\": {\"columns\": [\"handle\", \"parent\", \"kind\", \"name\", \"path\", \"line\", \"signature\"], \"coverage\": {\"architecture\": \"not inferred\", \"files_by_gap\": {}, \"hierarchy\": \"directories and lexical spans\", \"indexed_files\": 249, \"manifests\": {\"discovered\": 8, \"ecosystems\": [\"cargo\", \"npm\"], \"gaps\": 0, \"parsed\": 8, \"resolution\": \"not-attempted\", \"scope\": \"selected scan root\"}, \"max_file_bytes\": 4194304, \"respect_ignore\": true, \"skipped_files\": 0, \"skipped_symlinks\": 0, \"unresolved_references\": 48602, \"unsupported_files\": 195}, \"handle_prefix\": \"frp1:689fefacd759fb684a45e0f7ad8eb2b2:\", \"match\": {\"mode\": \"exact\", \"name\": \"escape\"}, \"omitted\": {\"matching_locals\": 0}, \"page\": {\"before\": 0, \"next\": null, \"remaining\": 0, \"returned\": 1, \"total\": 1}, \"query\": \"find\", \"revision\": \"689fefacd759fb684a45e0f7ad8eb2b2591def6640bb2ee8d321e5e7093a7ab7\", \"root\": \"frp1:689fefacd759fb684a45e0f7ad8eb2b2:3b3b\", \"rows\": [[\"frp1:689fefacd759fb684a45e0f7ad8eb2b2:3b43\", \"3b3b\", \"function\", \"escape\", \"src/lib.rs\", 1378, {\"basis\": \"syntax-header\", \"text\": \"pub fn escape(pattern: &str) -> alloc::string::String\"}]], \"schema\": \"fr-project-1\"}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}",
+          "{\"exit_code\": 0, \"result\": {\"coverage\": {\"architecture\": \"not inferred\", \"files_by_gap\": {}, \"hierarchy\": \"directories and lexical spans\", \"indexed_files\": 249, \"manifests\": {\"discovered\": 8, \"ecosystems\": [\"cargo\", \"npm\"], \"gaps\": 0, \"parsed\": 8, \"resolution\": \"not-attempted\", \"scope\": \"selected scan root\"}, \"max_file_bytes\": 4194304, \"respect_ignore\": true, \"skipped_files\": 0, \"skipped_symlinks\": 0, \"unresolved_references\": 48602, \"unsupported_files\": 195}, \"handle_prefix\": \"frp1:689fefacd759fb684a45e0f7ad8eb2b2:\", \"node\": {\"children\": 1, \"handle\": \"frp1:689fefacd759fb684a45e0f7ad8eb2b2:3b43\", \"kind\": \"function\", \"name\": \"escape\", \"parent\": \"frp1:689fefacd759fb684a45e0f7ad8eb2b2:3b3b\", \"path\": \"src/lib.rs\", \"position\": {\"col\": 8, \"line\": 1378}, \"qualifier\": null, \"signature\": {\"basis\": \"syntax-header\", \"text\": \"pub fn escape(pattern: &str) -> alloc::string::String\"}, \"span\": {\"end\": 59759, \"start\": 59668}}, \"query\": \"show\", \"revision\": \"689fefacd759fb684a45e0f7ad8eb2b2591def6640bb2ee8d321e5e7093a7ab7\", \"schema\": \"fr-project-1\", \"source\": {\"next_offset\": null, \"offset\": 0, \"returned_bytes\": 91, \"span\": {\"end\": 59759, \"start\": 59668}, \"text\": \"pub fn escape(pattern: &str) -> alloc::string::String {\\n    regex_syntax::escape(pattern)\\n}\", \"total_bytes\": 91}}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+        ],
+        "combined": [
+          "{\"exit_code\": 0, \"result\": {\"columns\": [\"handle\", \"parent\", \"kind\", \"name\", \"path\", \"line\", \"signature\", \"source\"], \"coverage\": {\"architecture\": \"not inferred\", \"files_by_gap\": {}, \"hierarchy\": \"directories and lexical spans\", \"indexed_files\": 249, \"manifests\": {\"discovered\": 8, \"ecosystems\": [\"cargo\", \"npm\"], \"gaps\": 0, \"parsed\": 8, \"resolution\": \"not-attempted\", \"scope\": \"selected scan root\"}, \"max_file_bytes\": 4194304, \"respect_ignore\": true, \"skipped_files\": 0, \"skipped_symlinks\": 0, \"unresolved_references\": 48602, \"unsupported_files\": 195}, \"handle_prefix\": \"frp1:689fefacd759fb684a45e0f7ad8eb2b2:\", \"match\": {\"mode\": \"exact\", \"name\": \"escape\"}, \"omitted\": {\"matching_locals\": 0}, \"page\": {\"before\": 0, \"next\": null, \"remaining\": 0, \"returned\": 1, \"total\": 1}, \"query\": \"find\", \"revision\": \"689fefacd759fb684a45e0f7ad8eb2b2591def6640bb2ee8d321e5e7093a7ab7\", \"root\": \"frp1:689fefacd759fb684a45e0f7ad8eb2b2:3b3b\", \"rows\": [[\"frp1:689fefacd759fb684a45e0f7ad8eb2b2:3b43\", \"3b3b\", \"function\", \"escape\", \"src/lib.rs\", 1378, {\"basis\": \"syntax-header\", \"text\": \"pub fn escape(pattern: &str) -> alloc::string::String\"}, {\"next_offset\": null, \"offset\": 0, \"returned_bytes\": 91, \"span\": {\"end\": 59759, \"start\": 59668}, \"text\": \"pub fn escape(pattern: &str) -> alloc::string::String {\\n    regex_syntax::escape(pattern)\\n}\", \"total_bytes\": 91}]], \"schema\": \"fr-project-1\", \"source_budget\": {\"limit_bytes\": 2048, \"returned_bytes\": 91, \"scope\": \"returned page\"}}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+        ]
+      },
+      "preserved": "Lookup rows, coverage, scope, revision and complete selected source slice match."
+    },
+    {
+      "name": "escape_into",
+      "path": "regex-syntax/src/lib.rs",
+      "passed": true,
+      "separate": {
+        "bytes": 2706,
+        "tokens": 993
+      },
+      "combined": {
+        "bytes": 1671,
+        "tokens": 598
+      },
+      "requests": {
+        "separate": [
+          [
+            "project",
+            "find",
+            "escape_into",
+            "--in",
+            "regex-syntax/src/lib.rs",
+            "--signature"
+          ],
+          [
+            "project",
+            "show",
+            "frp1:689fefacd759fb684a45e0f7ad8eb2b2:35e3",
+            "--source",
+            "--bytes",
+            "2048"
+          ]
+        ],
+        "combined": [
+          [
+            "project",
+            "find",
+            "escape_into",
+            "--in",
+            "regex-syntax/src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ]
+        ]
+      },
+      "payloads": {
+        "separate": [
+          "{\"exit_code\": 0, \"result\": {\"columns\": [\"handle\", \"parent\", \"kind\", \"name\", \"path\", \"line\", \"signature\"], \"coverage\": {\"architecture\": \"not inferred\", \"files_by_gap\": {}, \"hierarchy\": \"directories and lexical spans\", \"indexed_files\": 249, \"manifests\": {\"discovered\": 8, \"ecosystems\": [\"cargo\", \"npm\"], \"gaps\": 0, \"parsed\": 8, \"resolution\": \"not-attempted\", \"scope\": \"selected scan root\"}, \"max_file_bytes\": 4194304, \"respect_ignore\": true, \"skipped_files\": 0, \"skipped_symlinks\": 0, \"unresolved_references\": 48602, \"unsupported_files\": 195}, \"handle_prefix\": \"frp1:689fefacd759fb684a45e0f7ad8eb2b2:\", \"match\": {\"mode\": \"exact\", \"name\": \"escape_into\"}, \"omitted\": {\"matching_locals\": 0}, \"page\": {\"before\": 0, \"next\": null, \"remaining\": 0, \"returned\": 1, \"total\": 1}, \"query\": \"find\", \"revision\": \"689fefacd759fb684a45e0f7ad8eb2b2591def6640bb2ee8d321e5e7093a7ab7\", \"root\": \"frp1:689fefacd759fb684a45e0f7ad8eb2b2:35d5\", \"rows\": [[\"frp1:689fefacd759fb684a45e0f7ad8eb2b2:35e3\", \"35d5\", \"function\", \"escape_into\", \"regex-syntax/src/lib.rs\", 213, {\"basis\": \"syntax-header\", \"text\": \"pub fn escape_into(text: &str, buf: &mut String)\"}]], \"schema\": \"fr-project-1\"}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}",
+          "{\"exit_code\": 0, \"result\": {\"coverage\": {\"architecture\": \"not inferred\", \"files_by_gap\": {}, \"hierarchy\": \"directories and lexical spans\", \"indexed_files\": 249, \"manifests\": {\"discovered\": 8, \"ecosystems\": [\"cargo\", \"npm\"], \"gaps\": 0, \"parsed\": 8, \"resolution\": \"not-attempted\", \"scope\": \"selected scan root\"}, \"max_file_bytes\": 4194304, \"respect_ignore\": true, \"skipped_files\": 0, \"skipped_symlinks\": 0, \"unresolved_references\": 48602, \"unsupported_files\": 195}, \"handle_prefix\": \"frp1:689fefacd759fb684a45e0f7ad8eb2b2:\", \"node\": {\"children\": 2, \"handle\": \"frp1:689fefacd759fb684a45e0f7ad8eb2b2:35e3\", \"kind\": \"function\", \"name\": \"escape_into\", \"parent\": \"frp1:689fefacd759fb684a45e0f7ad8eb2b2:35d5\", \"path\": \"regex-syntax/src/lib.rs\", \"position\": {\"col\": 8, \"line\": 213}, \"qualifier\": null, \"signature\": {\"basis\": \"syntax-header\", \"text\": \"pub fn escape_into(text: &str, buf: &mut String)\"}, \"span\": {\"end\": 8916, \"start\": 8708}}, \"query\": \"show\", \"revision\": \"689fefacd759fb684a45e0f7ad8eb2b2591def6640bb2ee8d321e5e7093a7ab7\", \"schema\": \"fr-project-1\", \"source\": {\"next_offset\": null, \"offset\": 0, \"returned_bytes\": 208, \"span\": {\"end\": 8916, \"start\": 8708}, \"text\": \"pub fn escape_into(text: &str, buf: &mut String) {\\n    buf.reserve(text.len());\\n    for c in text.chars() {\\n        if is_meta_character(c) {\\n            buf.push('\\\\\\\\');\\n        }\\n        buf.push(c);\\n    }\\n}\", \"total_bytes\": 208}}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+        ],
+        "combined": [
+          "{\"exit_code\": 0, \"result\": {\"columns\": [\"handle\", \"parent\", \"kind\", \"name\", \"path\", \"line\", \"signature\", \"source\"], \"coverage\": {\"architecture\": \"not inferred\", \"files_by_gap\": {}, \"hierarchy\": \"directories and lexical spans\", \"indexed_files\": 249, \"manifests\": {\"discovered\": 8, \"ecosystems\": [\"cargo\", \"npm\"], \"gaps\": 0, \"parsed\": 8, \"resolution\": \"not-attempted\", \"scope\": \"selected scan root\"}, \"max_file_bytes\": 4194304, \"respect_ignore\": true, \"skipped_files\": 0, \"skipped_symlinks\": 0, \"unresolved_references\": 48602, \"unsupported_files\": 195}, \"handle_prefix\": \"frp1:689fefacd759fb684a45e0f7ad8eb2b2:\", \"match\": {\"mode\": \"exact\", \"name\": \"escape_into\"}, \"omitted\": {\"matching_locals\": 0}, \"page\": {\"before\": 0, \"next\": null, \"remaining\": 0, \"returned\": 1, \"total\": 1}, \"query\": \"find\", \"revision\": \"689fefacd759fb684a45e0f7ad8eb2b2591def6640bb2ee8d321e5e7093a7ab7\", \"root\": \"frp1:689fefacd759fb684a45e0f7ad8eb2b2:35d5\", \"rows\": [[\"frp1:689fefacd759fb684a45e0f7ad8eb2b2:35e3\", \"35d5\", \"function\", \"escape_into\", \"regex-syntax/src/lib.rs\", 213, {\"basis\": \"syntax-header\", \"text\": \"pub fn escape_into(text: &str, buf: &mut String)\"}, {\"next_offset\": null, \"offset\": 0, \"returned_bytes\": 208, \"span\": {\"end\": 8916, \"start\": 8708}, \"text\": \"pub fn escape_into(text: &str, buf: &mut String) {\\n    buf.reserve(text.len());\\n    for c in text.chars() {\\n        if is_meta_character(c) {\\n            buf.push('\\\\\\\\');\\n        }\\n        buf.push(c);\\n    }\\n}\", \"total_bytes\": 208}]], \"schema\": \"fr-project-1\", \"source_budget\": {\"limit_bytes\": 2048, \"returned_bytes\": 208, \"scope\": \"returned page\"}}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+        ]
+      },
+      "preserved": "Lookup rows, coverage, scope, revision and complete selected source slice match."
+    }
+  ],
+  "source_and_index_unchanged": true,
+  "scope": "Controlled prescribed queries on a pinned workspace, using the agent harness JSON wrapper. No agents, discovery, total-task context or latency measurement. Separate show also includes node metadata not requested by the combined lookup; use show when those extra facts are needed."
+}

@@ -52,3 +52,45 @@ Its fr trials retrieve less context than before, while still exceeding the fresh
 Those task measurements do not replace this script's structural identity checks.
 `tools/project-context.py` still reports `model_tokens: null` rather than estimating tokens from byte counts.
 Broader evaluation must cover package boundaries, implementation relationships, framework facts and relevant tests on additional projects.
+
+## Bounded source during name lookup
+
+M4o adds `project find NAME --source --bytes N` when a task already needs the selected implementation.
+The lookup retains its rows, scope, coverage and revision, and appends a source slice to each returned row.
+One raw UTF-8 byte budget is shared across the page in row order, rather than multiplied by the number of matches.
+The default budget is 2,048 bytes; the accepted range is 4 through 65,536.
+JSON escaping and metadata are outside this source-text budget.
+
+Slices use the same spans, byte offsets and continuation fields as `project show --source`.
+A depleted budget leaves later rows visible with empty source text and `next_offset: 0`.
+Resume any incomplete slice with `project show HANDLE --source --offset NEXT --bytes N`.
+Continue row pages with the same source mode and byte budget; changed options or source revisions refuse stale cursors.
+The source option is opt-in. Default lookup reports and cursors keep their existing shape.
+Use `show` when node positions, child counts or relationships are also needed.
+
+A [controlled comparison](../tests/agent-eval/find-source-context.json) uses the two functions inspected by the regex workspace trials.
+For each prescribed name and file scope, it compares a signature lookup plus a source read against one lookup containing both.
+The combined report preserves the complete lookup result and the exact selected source slice.
+Tracked source and Git index bytes remain unchanged.
+
+| Selected function | Separate lookup/read tokens | Combined lookup tokens |
+|---|---:|---:|
+| `regex::escape` | 948 | 556 |
+| `regex_syntax::escape_into` | 993 | 598 |
+
+The measured payload reductions are about 40%, with one command instead of two for each selection.
+Counts use the agent harness's visible JSON wrapper and pinned tiktoken 0.12.0/o200k_base tokenizer.
+Fresh temporary roots change revision and handle strings, so reruns can vary slightly in token counts.
+These prescribed queries do not measure discovery, autonomous behavior, total task context or latency.
+The separate `show` report includes extra node metadata; callers needing those facts should still request them.
+The report retains actual payloads, arguments, binary and fixture digests, and measurement-script hashes.
+
+```sh
+python3 tools/find-source-context.py --fr target/debug/fr
+target/agent-eval-venv/bin/python tools/find-source-context.py --fr target/debug/fr --tokens
+```
+
+This read-only comparison needs the retained source archive, Python and Git, but does not build the regex workspace or require its extra dependencies.
+CLI regressions cover shared budgets, empty slices, UTF-8 continuation, empty matches, large bodies and cursor/handle refusal.
+The executable authoring example compiles and tests a wrapper after reading its helper directly from the lookup.
+Source slicing reuses the modeled page-length helper; these additions make no new proof claim about parsing or aggregate query behavior.

@@ -20,6 +20,7 @@ A request to inspect or export does not grant permission to commit or publish.
 Known names can go directly to `project find`; the initial map remains available when the hierarchy needs inspection.
 The default lookup and introductory map each request at most twelve rows.
 Subsequent queries select a declaration, read its signature and relationships, and request source slices only as needed.
+`project find --source --bytes N` can return needed implementations during lookup, sharing its source-text budget across the page.
 Body authoring accepts project handles; built-in refactorings use names or source positions.
 It uses saved transaction IDs for exact plan application, and keeps source history separate from Git bases and journals.
 History and check commands do not require refreshing project handles after every write.
@@ -50,7 +51,7 @@ The source fixture checks:
 - Applied behavior, undo/redo and preservation of an unrelated later edit.
 - Exported patch application in a separate Git receiver, with both indexes unchanged.
 
-A Rust fixture executes the authoring example using the root from a file-scoped lookup, without a separate file map.
+A Rust fixture executes the authoring example using source and the root from one file-scoped lookup, without separate source or file-map queries.
 It rejects an unscoped root, inserts a documented wrapper and compiles it with `deny(missing_docs)`.
 A compiled caller checks the wrapper's result; stale-handle refusal, exact undo/redo and unrelated-edit/index preservation also pass.
 
@@ -64,7 +65,8 @@ The skill validator also checks its frontmatter and unfinished placeholders duri
 The checker enforces a 3 KiB entrypoint budget, a 6 KiB budget per reference and valid links inside the portable folder.
 
 The initial macOS run against the development binary executed 31 fenced command examples.
-Declared project-check listing and execution brought the checker to 33 examples; the targeted authoring workflow adds four, for 37 today.
+Declared project-check listing and execution brought the checker to 33 examples; M4n's targeted authoring workflow raised that to 37.
+M4o combines its lookup and source read, leaving 36 executable examples today.
 The execution example combines quiet-success output with declaration omission after reviewing the configuration basis.
 The initial measurements were:
 
@@ -88,17 +90,17 @@ The same report includes a subsequent controlled comparison of smaller history c
 
 ## Targeted reading measurement
 
-The [retained comparison](../tests/agent-eval/skill-context.json) measures the revised skill against both frozen regex fr trials.
+The [retained M4n comparison](../tests/agent-eval/skill-context.json) measures that skill revision against both frozen regex fr trials.
 It uses the same numbered-line read payloads and pinned tiktoken 0.12.0/o200k_base tokenizer as the agent harness.
 All required targeted-edit references are counted: the entrypoint, authoring, checks, history and patch guidance.
 
 | Reading path | References including entrypoint | Tokens per trial |
 |---|---:|---:|
 | Recorded regex skill reads | 6 | 2,825 |
-| Current skill, loading those same six files | 6 | 2,960 |
-| Current targeted-edit route | 5 | 2,375 |
+| M4n skill, loading those same six files | 6 | 2,960 |
+| M4n targeted-edit route | 5 | 2,375 |
 
-The targeted route is 450 tokens, or 15.9%, below recorded skill reads and 19.8% below the current six-file route.
+The targeted route is 450 tokens, or 15.9%, below recorded skill reads and 19.8% below M4n's six-file route.
 The comparison includes M4m's check guidance and the new authoring example, so it does not isolate a single wording change.
 Unselective loading would increase context by 4.8%. No fresh agent has demonstrated adoption of the new routing.
 An interrupted write requires the separate recovery reference, adding 203 tokens under this counting method.
@@ -115,7 +117,11 @@ python3 tools/skill-context.py
 target/agent-eval-venv/bin/python tools/skill-context.py --tokens
 ```
 
-The report retains current read payloads, skill digests and the frozen input-manifest digest. Original transcripts and scores remain unchanged.
+The report retains M4n's read payloads, skill digests and the frozen input-manifest digest. Original transcripts and scores remain unchanged.
+Rerunning the script after skill updates prints new counts; the retained report identifies its measured revision's files.
+
+M4o subsequently combines lookup and source inspection under one page budget.
+The [controlled source-lookup comparison](project-context-evaluation.md#bounded-source-during-name-lookup) measures that command composition separately from these skill-reading costs.
 
 ## Remaining roadmap
 

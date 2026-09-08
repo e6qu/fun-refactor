@@ -26,12 +26,14 @@ pub fn increment_twice(value: u32) -> u32 {
 }
 ```
 
-Use the lookup's declaration handle as `<AUTHOR_HANDLE>` and its file-scoped `root` as `<FILE_HANDLE>`.
-Inspect the implementation and saved diff before applying the returned `<AUTHOR_TX>`:
+Use the lookup's file-scoped `root` as `<FILE_HANDLE>`.
+Inspect the `source` column and saved diff before applying the returned `<AUTHOR_TX>`:
 
 ```sh
-fr project find increment --in src/lib.rs --signature
-fr project show '<AUTHOR_HANDLE>' --source --bytes 512
+fr project find increment --in src/lib.rs --source --bytes 512
 fr author insert-declaration '<FILE_HANDLE>' --from '<FRAGMENT>' --save-plan
 fr history apply '<AUTHOR_TX>' --write --no-diff
 ```
+
+The source budget is shared across page rows; an empty slice can mean the budget ran out.
+For a non-null `source.next_offset`, continue with `project show HANDLE --source --offset NEXT --bytes N` using that row's handle.

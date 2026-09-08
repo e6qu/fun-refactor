@@ -1,9 +1,24 @@
 # Development continuity
 
-M4n is complete: the skill routes targeted edits through Author and reuses file-scoped lookup roots for insertion.
+M4o is complete: bounded source in `project find` combines lookup and needed implementation detail.
 The user authorized local commits. Publishing and pushing remain outside this request.
 M4l's four passing workspace trials are retained in `3c8231c`; preparation is `811591e` and documented insertion is `6d0928b`.
-M4m's smaller check reports are committed in `58b53bd`. M4n changes skills, executable examples, measurements and docs; production code is unchanged.
+M4m's smaller check reports are committed in `58b53bd`; M4n's targeted skill guidance is `1c44863`.
+
+## Current implementation
+
+`project find NAME --source --bytes N` appends source slices under one raw UTF-8 byte budget shared across the returned page.
+The range is 4 through 65,536 bytes, defaulting to 2,048. Slice metadata and handles remain when later rows receive no source bytes.
+Resume a non-null `source.next_offset` with `project show HANDLE --source --offset NEXT --bytes N`.
+Row cursors bind source mode and budget; ordinary lookups retain their previous reports and cursor identities.
+Both find and show call the same source-slice helper, which reuses the existing modeled page-length arithmetic.
+Use show separately when positions, child counts or relationships are needed.
+
+The controlled report is `tests/agent-eval/find-source-context.json`; reproduce it with `tools/find-source-context.py --fr PATH --tokens`.
+Two prescribed regex queries preserve lookup metadata and complete selected source while using about 40% fewer visible payload tokens.
+The comparison checks unchanged tracked source and index bytes and records actual arguments, payloads and binary/source digests.
+It does not run agents, discover the targets, build the workspace or measure total-task context or latency.
+See [source lookup measurements](project-context-evaluation.md#bounded-source-during-name-lookup) for the exact counts and reproduction.
 
 ## Current handoff
 
@@ -12,18 +27,18 @@ History links to `references/recovery.md` only for a pending operation or interr
 Only a lookup explicitly scoped to an existing file supplies that file's insertion handle in `root`.
 Unscoped/directory roots cannot substitute, and source changes invalidate the handle. A file map remains the fallback.
 
-The skill checker executes 37 examples. The new Rust wrapper example compiles under `deny(missing_docs)` and passes a compiled caller assertion.
+The skill checker executes 36 examples. The Rust wrapper example compiles under `deny(missing_docs)` and passes a compiled caller assertion.
 It also checks wrong/stale-root refusals, exact undo/redo, unrelated-edit preservation and unchanged index bytes.
-The example uses the lookup root directly, without a separate file map.
+The example uses the lookup's source and root directly, without separate source or file-map queries.
 
 `tests/agent-eval/skill-context.json` retains controlled reading costs and the handle-reuse trace audit.
-The current targeted route costs 2,375 tokens, versus 2,825 recorded skill tokens; this is a conditional 15.9% reduction.
-Reading all six references would now cost 2,960 tokens. Routing adoption has not been tested with fresh agents.
+M4n's targeted route costs 2,375 tokens, versus 2,825 recorded skill tokens; this is a conditional 15.9% reduction.
+M4n's six-reference route cost 2,960 tokens. Routing adoption has not been tested with fresh agents.
 The first regex fr trial has one redundant 387-token map; the second lacks the prerequisite scoped lookup and still needs its map.
 `tools/skill-context.py --tokens` reproduces the report using the pinned tokenizer; omit the flag for byte counts without tiktoken.
 See [targeted reading measurements](agent-skill.md#targeted-reading-measurement) for scope and the extra cost when recovery is needed.
 
-## Latest CLI change
+## Check-report reduction
 
 After reviewing `fr checks`, execution can omit repeated declarations while retaining names, basis, outcomes, diagnostics and unselected names.
 The report marks `declarations_omitted: true`; join results to the reviewed listing with the same basis for command metadata.
@@ -75,7 +90,7 @@ Each cohort retains prompts, transcripts, scores, patches and its original skill
 All twelve autonomous trials pass. Recording also supports scored failures; behavioral replay refuses failed trials.
 Replay checks recorded patches and transition evidence without rerunning agents. Token auditing recounts retained payloads.
 The initial and follow-up strsim findings remain in the [context report](agent-context-followup.md).
-Controlled reports are separate: `tests/agent-eval/history-context.json`, `tests/agent-eval/regex/rehearsal.json`, `tests/agent-eval/checks-context.json` and `tests/agent-eval/skill-context.json`.
+Controlled reports are separate under `tests/agent-eval/`: `history-context.json`, `regex/rehearsal.json`, `checks-context.json`, `skill-context.json` and `find-source-context.json`.
 The regex rehearsal uses a prescribed solution and rejects three compiled negative controls; it is not autonomous evidence.
 
 Temporary regex sessions remain under `/private/tmp/fr-regex-agent-eval-2026-09-08`, one directory per retained trial name.
@@ -86,10 +101,16 @@ Temporary projects are disposable after retention; use repository evidence for r
 
 ## Validation and commands
 
+M4o's focused project and skill tests pass in `/tmp/fr-m4o-focused.log`, covering 131 project scenarios and 36 executable examples.
+The full native/WASM gate passes in `/tmp/fr-m4o-full-check.log`, retaining 311/311 capability coverage and 29 Lean build jobs.
+Strict verification passes in `/tmp/fr-m4o-spec-verify.json`: twenty-two fresh anchors and signature maps, zero obligations and a successful Lean build.
+The final-binary controlled lookup comparison is `/tmp/fr-m4o-find-context-final.json`; documentation checks pass in `/tmp/fr-m4o-docs-final.log`.
+No new formal proof covers the shared page source budget or aggregate query behavior.
+
 M4n's skill workflow and documentation tests pass in `/tmp/fr-m4n-validation.log`, including 37 executed examples and both root-refusal checks.
 Final documentation checks pass in `/tmp/fr-m4n-docs-final.log`.
 The reading measurement passes in `/tmp/fr-m4n-skill-context.json`; the skill validator, Python compilation and prose checks also pass.
-No production code changed, so the existing M4m full gate and strict verification remain the latest implementation checks.
+M4n changed no production code; its recorded validation remains historical evidence.
 
 M4m passes the full native/WASM gate in `/tmp/fr-m4m-full-check.log`, including all twelve check CLI scenarios and 33 skill examples.
 Capability coverage remains 311/311. Strict verification passes in `/tmp/fr-m4m-spec-verify.json`.

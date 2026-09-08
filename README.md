@@ -27,6 +27,7 @@ For an agent handoff, use the portable [fr skill](skills/fr/SKILL.md).
 After reviewing the listing, add `--no-declarations` to `checks --run` to omit repeated command metadata while retaining execution outcomes and diagnostics.
 [Development continuity](docs/continuity.md) records the active milestone, evidence and remaining work for the next session.
 The portable skill starts targeted edits with authoring guidance and loads exploration or interrupted-write recovery when needed.
+`project find --source --bytes N` combines name lookup with source slices under one shared page budget.
 [Real-agent acceptance](docs/agent-acceptance.md) records the first paired trials and reversible patches.
 The [context-reduction follow-up](docs/agent-context-followup.md) measures targeted lookup, quiet successful checks and selective skill loading against fresh file-tool trials.
 Use `fr project find NAME --signature` to locate a known declaration without requesting a broad map.

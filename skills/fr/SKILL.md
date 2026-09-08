@@ -9,6 +9,7 @@ Use `fr` from the target project root, or select that root with `-C`. Check `fr 
 
 For a known full declaration name, use `fr project find NAME --signature`; use `--in PATH` to narrow it.
 Add `--contains` when the name is only a fragment.
+When the implementation is needed, add `--source --bytes N` to the lookup; source text shares that budget across the returned page.
 Otherwise start with a small structural view:
 
 ```sh

@@ -234,10 +234,10 @@ def author_workflow(exercise, root):
         if command[1:3] == ["project", "find"]:
             assert value["page"]["total"] == 1
             row = dict(zip(value["columns"], value["rows"][0]))
-            exercise.values["<AUTHOR_HANDLE>"] = row["handle"]
             exercise.values["<FILE_HANDLE>"] = value["root"]
-        if command[1:3] == ["project", "show"]:
-            assert "value + 1" in value["source"]["text"]
+            assert "value + 1" in row["source"]["text"]
+            assert row["source"]["next_offset"] is None
+            assert value["source_budget"]["returned_bytes"] <= 512
         if "--save-plan" in command:
             assert value["saved"] and not value["applied"] and source.read_text() == original
             exercise.values["<AUTHOR_TX>"] = str(value["transaction"])

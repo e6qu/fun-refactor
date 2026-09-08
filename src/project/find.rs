@@ -16,6 +16,10 @@ pub struct Options {
     locals: bool,
     #[arg(long)]
     signature: bool,
+    #[arg(long, help = "Include source slices within a shared page byte budget.")]
+    source: bool,
+    #[arg(long, default_value_t = 2048, requires = "source")]
+    bytes: usize,
     #[arg(long, default_value_t = 12)]
     limit: usize,
     #[arg(long)]
@@ -28,6 +32,9 @@ impl Project<'_> {
             bail!("Choose a nonempty literal name of at most 512 UTF-8 bytes.");
         }
         check_limit(options.limit)?;
+        if options.source && !(4..=65536).contains(&options.bytes) {
+            bail!("source bytes must be between 4 and 65536.");
+        }
         let selected =
             self.target(&self.explicit_handle(&options.scope, options.revision.as_deref())?)?;
         let mut stack = vec![selected];
@@ -63,6 +70,11 @@ impl Project<'_> {
                 options.signature
             ))?[..32]
         );
+        let key = if options.source {
+            format!("frpc1:{}", &hash((&key, "source", options.bytes))?[..32])
+        } else {
+            key
+        };
         let (start, end, page) = page(
             matches.len(),
             options.limit,
@@ -84,7 +96,22 @@ impl Project<'_> {
         report["root"] = json!(self.handle(selected));
         report["match"] = json!({"name": options.name, "mode": if options.contains { "literal-substring" } else { "exact" }});
         report["columns"] = json!(fields);
-        report["rows"] = json!(self.rows(&matches[start..end], &fields)?);
+        let mut rows = self.rows(&matches[start..end], &fields)?;
+        if options.source {
+            report["columns"]
+                .as_array_mut()
+                .unwrap()
+                .push(json!("source"));
+            let mut remaining = options.bytes;
+            for (row, (id, _, _)) in rows.iter_mut().zip(&matches[start..end]) {
+                let source = self.source_slice(*id, 0, remaining)?;
+                remaining -= source["returned_bytes"].as_u64().unwrap() as usize;
+                row.push(source);
+            }
+            report["source_budget"] = json!({"limit_bytes": options.bytes,
+                "returned_bytes": options.bytes - remaining, "scope": "returned page"});
+        }
+        report["rows"] = json!(rows);
         report["page"] = page;
         report["omitted"] = json!({"matching_locals": hidden_locals});
         Ok(report)

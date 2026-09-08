@@ -44,6 +44,220 @@ fn fixture() -> tempfile::TempDir {
 }
 
 #[test]
+fn find_source_matches_show_and_keeps_default_lookup_metadata() {
+    let dir = fixture();
+    let args = [
+        "project",
+        "find",
+        "run",
+        "--in",
+        "src/app.py",
+        "--signature",
+    ];
+    let plain = ok(dir.path(), &args);
+    let mut selected = args.to_vec();
+    selected.extend(["--source", "--bytes", "65536"]);
+    let mut found = ok(dir.path(), &selected);
+    let row = rows(&found).remove(0);
+    let shown = ok(
+        dir.path(),
+        &[
+            "project",
+            "show",
+            row["handle"].as_str().unwrap(),
+            "--source",
+            "--bytes",
+            "65536",
+        ],
+    );
+    assert_eq!(row["source"], shown["source"]);
+    assert!(!row["source"]["text"]
+        .as_str()
+        .unwrap()
+        .contains("def check"));
+    assert_eq!(
+        found["source_budget"]["returned_bytes"],
+        row["source"]["returned_bytes"]
+    );
+    found.as_object_mut().unwrap().remove("source_budget");
+    assert_eq!(
+        found["columns"].as_array_mut().unwrap().pop().unwrap(),
+        "source"
+    );
+    found["rows"][0].as_array_mut().unwrap().pop();
+    assert_eq!(found, plain);
+}
+
+#[test]
+fn find_source_shares_one_budget_and_resumes_utf8_slices_in_show() {
+    let dir = fixture();
+    let file = dir.path().join("src/more.py");
+    let original = "def café():\n    return 'λ🙂'\n\nclass Other:\n    def café(self):\n        return '世界'\n";
+    fs::write(&file, original).unwrap();
+    for budget in [4, 8, 32, 65536] {
+        let found = ok(
+            dir.path(),
+            &[
+                "project",
+                "find",
+                "café",
+                "--source",
+                "--bytes",
+                &budget.to_string(),
+            ],
+        );
+        let selected = rows(&found);
+        assert_eq!(selected.len(), 2);
+        let total: usize = selected
+            .iter()
+            .map(|row| row["source"]["text"].as_str().unwrap().len())
+            .sum();
+        assert!(total <= budget);
+        assert_eq!(found["source_budget"]["returned_bytes"], total);
+        if budget == 4 {
+            assert_eq!(selected[0]["source"]["text"], "def ");
+            assert_eq!(selected[1]["source"]["text"], "");
+            assert_eq!(selected[1]["source"]["next_offset"], 0);
+        }
+        if budget == 8 {
+            assert_eq!(selected[0]["source"]["text"], "def caf");
+            assert_eq!(selected[1]["source"]["text"], "d");
+        }
+        for row in selected {
+            let handle = row["handle"].as_str().unwrap();
+            let full = ok(
+                dir.path(),
+                &["project", "show", handle, "--source", "--bytes", "65536"],
+            );
+            let slice = &row["source"];
+            let mut text = slice["text"].as_str().unwrap().to_string();
+            assert_eq!(slice["span"]["start"], full["source"]["span"]["start"]);
+            assert_eq!(slice["total_bytes"], full["source"]["total_bytes"]);
+            if let Some(offset) = slice["next_offset"].as_u64() {
+                let tail = ok(
+                    dir.path(),
+                    &[
+                        "project",
+                        "show",
+                        handle,
+                        "--source",
+                        "--bytes",
+                        "65536",
+                        "--offset",
+                        &offset.to_string(),
+                    ],
+                );
+                text.push_str(tail["source"]["text"].as_str().unwrap());
+            }
+            assert_eq!(text, full["source"]["text"]);
+        }
+    }
+    assert_eq!(fs::read_to_string(file).unwrap(), original);
+}
+
+#[test]
+fn find_source_pages_bind_mode_budget_and_revision() {
+    let dir = fixture();
+    fs::write(
+        dir.path().join("src/other.py"),
+        "def run():\n    return 2\n",
+    )
+    .unwrap();
+    let first = ok(
+        dir.path(),
+        &[
+            "project", "find", "run", "--source", "--bytes", "4", "--limit", "1",
+        ],
+    );
+    let cursor = first["page"]["next"].as_str().unwrap();
+    let next = ok(
+        dir.path(),
+        &[
+            "project", "find", "run", "--source", "--bytes", "4", "--limit", "1", "--cursor",
+            cursor,
+        ],
+    );
+    assert_ne!(handle(&first, "run"), handle(&next, "run"));
+    assert_eq!(next["source_budget"]["returned_bytes"], 4);
+    for extra in [
+        vec![],
+        vec!["--source", "--bytes", "8"],
+        vec!["--source", "--bytes", "4", "--signature"],
+    ] {
+        let mut args = vec!["project", "find", "run", "--cursor", cursor];
+        args.extend(extra);
+        assert!(!run(dir.path(), &args).0);
+    }
+    let plain = ok(dir.path(), &["project", "find", "run", "--limit", "1"]);
+    assert!(
+        !run(
+            dir.path(),
+            &[
+                "project",
+                "find",
+                "run",
+                "--source",
+                "--cursor",
+                plain["page"]["next"].as_str().unwrap()
+            ]
+        )
+        .0
+    );
+    fs::write(
+        dir.path().join("src/other.py"),
+        "def run():\n    return 3\n",
+    )
+    .unwrap();
+    assert!(
+        !run(
+            dir.path(),
+            &["project", "find", "run", "--source", "--bytes", "4", "--cursor", cursor]
+        )
+        .0
+    );
+    assert!(
+        !run(
+            dir.path(),
+            &["project", "show", &handle(&first, "run"), "--source"]
+        )
+        .0
+    );
+}
+
+#[test]
+fn find_source_bounds_large_bodies_and_reports_empty_results() {
+    let dir = fixture();
+    fs::write(
+        dir.path().join("src/huge.py"),
+        format!("def huge():\n    return '{}'\n", "x".repeat(70000)),
+    )
+    .unwrap();
+    let found = ok(
+        dir.path(),
+        &["project", "find", "huge", "--source", "--bytes", "65536"],
+    );
+    assert_eq!(found["source_budget"]["returned_bytes"], 65536);
+    assert_eq!(rows(&found)[0]["source"]["next_offset"], 65536);
+    let absent = ok(dir.path(), &["project", "find", "absent", "--source"]);
+    assert_eq!(absent["source_budget"]["returned_bytes"], 0);
+    assert_eq!(absent["page"]["total"], 0);
+    for budget in ["0", "3", "65537"] {
+        assert!(
+            !run(
+                dir.path(),
+                &["project", "find", "run", "--source", "--bytes", budget]
+            )
+            .0
+        );
+    }
+    let output = Command::new(env!("CARGO_BIN_EXE_fr"))
+        .args(["project", "find", "run", "--bytes", "4"])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+}
+
+#[test]
 fn find_returns_followable_scoped_declarations_without_unrelated_bodies() {
     let dir = fixture();
     let found = ok(dir.path(), &["project", "find", "run", "--signature"]);

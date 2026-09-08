@@ -670,6 +670,22 @@ impl<'a> Project<'a> {
         Ok(rows)
     }
 
+    fn source_slice(&self, id: usize, offset: usize, bytes: usize) -> Result<Value> {
+        let (source, span) = self.source(id)?;
+        let text = &source[span.start..span.end];
+        if offset > text.len() || !text.is_char_boundary(offset) {
+            bail!("source offset must be a UTF-8 boundary within the selected node.");
+        }
+        let mut end = offset + page_length(text.len(), offset, bytes);
+        while !text.is_char_boundary(end) {
+            end -= 1;
+        }
+        Ok(
+            json!({"text": &text[offset..end], "span": {"start": span.start + offset, "end": span.start + end},
+            "offset": offset, "total_bytes": text.len(), "returned_bytes": end - offset, "next_offset": (end < text.len()).then_some(end)}),
+        )
+    }
+
     fn show(&self, options: &ShowOptions) -> Result<Value> {
         let ShowOptions {
             handle,
@@ -710,17 +726,7 @@ impl<'a> Project<'a> {
                 json!(self.lines[&self.root.join(&node.path)].line_col(name.start, source));
         }
         if source_requested {
-            let (source, span) = self.source(id)?;
-            let text = &source[span.start..span.end];
-            if offset > text.len() || !text.is_char_boundary(offset) {
-                bail!("source offset must be a UTF-8 boundary within the selected node.");
-            }
-            let mut end = offset + page_length(text.len(), offset, bytes);
-            while !text.is_char_boundary(end) {
-                end -= 1;
-            }
-            result["source"] = json!({"text": &text[offset..end], "span": {"start": span.start + offset, "end": span.start + end},
-                "offset": offset, "total_bytes": text.len(), "returned_bytes": end - offset, "next_offset": (end < text.len()).then_some(end)});
+            result["source"] = self.source_slice(id, offset, bytes)?;
         }
         if relations {
             result["relations"] = self.relations(id, limit, cursor)?;
