@@ -544,6 +544,10 @@ The integration regression is opt-in so default CI does not acquire this additio
 
 ## Next steps
 
+The agreed real-agent baseline is local `codex exec` with `gpt-5.6-luna`, `low` reasoning and the default service tier.
+Routine CI keeps deterministic replay and does not consume agent quota; real-agent smoke pairs and cohorts are explicit authenticated runs.
+Each fresh trial must ignore user configuration, retain Codex JSONL events and record the CLI catalog entry and complete model settings.
+A small Terra or Sol calibration is reserved for milestones where Luna failures could otherwise conflate model capability with workflow usability.
 Check execution metadata is now optional; use retained traces to reduce remaining project/transaction metadata and skill-loading costs.
 Preserve coverage, source bases, guards and reviewable edits.
 Validate whether fresh agents adopt the targeted route before claiming autonomous context savings; include a task that actually requires broader exploration.

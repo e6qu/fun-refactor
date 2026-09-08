@@ -103,6 +103,7 @@ The identifiers remain stable for references in defect records.
 | D9 | Offer JSON and dry-run previews. Report completed commits and recovery limits as documented in CLI.md. |
 | D10 | Maintain scope resolution in the project's query and index layers. |
 | D11 | Declare supported toolchain versions and run validation with those versions. |
+| D12 | Use the cheapest supported Codex CLI model at its lowest effort for routine real-agent evaluations. Record the exact configuration. |
 
 ## Delivery plan
 
@@ -122,6 +123,8 @@ Deliverables:
 - Preserve bounded results, uncertainty, source verification, check declarations and reviewable diffs.
 - Keep fixed projections separate from autonomous outcomes and preserve all existing scores.
 - Freeze one shared check-output policy and an explicit cache policy before the next paired cohort.
+- Add an opt-in local `codex exec` runner with fresh ephemeral sessions, ignored user configuration and retained JSONL events.
+- Use `gpt-5.6-luna` at `low` effort and the default service tier for the initial local baseline.
 - Evaluate a larger task that requires coordinated changes and broader exploration.
 
 Verification and acceptance:
@@ -131,6 +134,8 @@ Verification and acceptance:
 - Fixed-transcript tests prove that projections change only declared payload fields.
 - The existing sixteen trials retain exact token audits and behavioral replay.
 - Fresh paired agents receive identical check-output rules, inherited model settings and independent correctness oracles.
+- Normal CI replays retained evidence without spending agent quota; authenticated real-agent runs remain explicit local or scheduled jobs.
+- A milestone cohort includes a small Terra or Sol calibration only when Luna failures could hide whether the workflow itself works.
 - The report separates skill, inspection, checks, authoring, delivery, request and latency costs.
 - Context improvement counts only when task success and evidence coverage remain intact.
 
@@ -304,6 +309,12 @@ The end-to-end product scenario uses an unfamiliar project:
 Evaluations record context, success, refusals, manual corrections, latency and verification coverage.
 They use pinned real repositories alongside adversarial fixtures.
 A capability predicate or clean syntax tree cannot complete a milestone without behavioral evidence.
+
+Routine autonomous trials use the weakest economical model exposed by the installed Codex CLI at its lowest supported reasoning effort.
+The current baseline is `gpt-5.6-luna` at `low`, with the default service tier.
+Each cohort records the CLI version, visible model catalog entry, model, effort, service tier and authentication mode.
+Availability and quota policy can change.
+The harness retains every attempted trial and keeps infrastructure failures separate from agent failures.
 
 ## Known limits and deferred choices
 
