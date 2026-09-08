@@ -1884,3 +1884,73 @@ fn the_edit_kernel_accepts_a_reported_author_batch() {
         source
     );
 }
+
+#[test]
+fn the_edit_kernel_accepts_a_reported_author_batch_with_imports() {
+    let temp = tempfile::tempdir().unwrap();
+    let workspace = temp.path().join("workspace");
+    std::fs::create_dir(&workspace).unwrap();
+    let source = "use std::cmp::max;\n// π\nfn calc() -> i32 { 1 }\n";
+    std::fs::write(workspace.join("app.rs"), source).unwrap();
+    let run = |args: &[&str]| {
+        let output = Command::new(env!("CARGO_BIN_EXE_fr"))
+            .args(["--json", "--no-cache", "-C"])
+            .arg(&workspace)
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stdout)
+        );
+        serde_json::from_slice::<serde_json::Value>(&output.stdout).unwrap()
+    };
+    let map = run(&["project", "map", "--fields", "handle,name"]);
+    let handle = |name: &str| {
+        map["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row[1] == name)
+            .unwrap()[0]
+            .as_str()
+            .unwrap()
+    };
+    let fragment = temp.path().join("body.txt");
+    std::fs::write(&fragment, "{ 2 }").unwrap();
+    let manifest = temp.path().join("batch.json");
+    std::fs::write(
+        &manifest,
+        serde_json::json!({"operations":[
+            {"op":"replace-body","handle":handle("calc"),"from":fragment},
+            {"op":"organize-imports","handle":handle("app.rs")}
+        ]})
+        .to_string(),
+    )
+    .unwrap();
+    let report = run(&["author", "batch", "--from", manifest.to_str().unwrap()]);
+    let body = &report["steps"][0]["before_span"];
+    let imports = &report["steps"][1]["imports"]["edits"][0]["before_span"];
+    let edits = [
+        Edit::new(
+            Span::new(
+                body["start"].as_u64().unwrap() as usize,
+                body["end"].as_u64().unwrap() as usize,
+            ),
+            "{ 2 }",
+            "body",
+        ),
+        Edit::new(
+            Span::new(
+                imports["start"].as_u64().unwrap() as usize,
+                imports["end"].as_u64().unwrap() as usize,
+            ),
+            "",
+            "imports",
+        ),
+    ];
+    let expected = "// π\nfn calc() -> i32 { 2 }\n";
+    assert_eq!(apply_to_string(source, &edits).unwrap(), expected);
+    kernel_accepts(source, &edits, expected);
+}

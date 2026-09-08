@@ -2201,6 +2201,10 @@ fn batch_step(root: &Path, op: &str, handle: &str, label: &str, text: &str) -> V
     serde_json::json!({"op":op,"handle":handle,"from":input})
 }
 
+fn organize_imports_step(handle: &str) -> Value {
+    serde_json::json!({"op":"organize-imports","handle":handle})
+}
+
 fn batch_manifest(root: &Path, operations: Vec<Value>, revision: Option<&str>) -> PathBuf {
     let input = root.parent().unwrap().join("batch.json");
     let mut manifest = serde_json::json!({"operations":operations});
@@ -2303,6 +2307,138 @@ fn batch_coordinates_caller_signature_and_helper_through_one_saved_transaction()
         fs::read_to_string(root.join("app.rs")).unwrap(),
         changed_app
     );
+}
+
+#[test]
+fn batch_coordinates_declaration_caller_and_import_changes() {
+    let app = concat!(
+        "mod calc;\n",
+        "use std::cmp::max;\n",
+        "use calc::evaluate;\n",
+        "\n",
+        "fn main() { println!(\"{}\", evaluate(3)); }\n",
+    );
+    let calc = "pub fn evaluate(value: i32) -> i32 { value + 1 }\n";
+    let (_temp, root, _) = fixture(app, b"{}");
+    fs::write(root.join("calc.rs"), calc).unwrap();
+    assert_eq!(compiled_result(&root), b"4\n");
+    let (main, _) = selection(&root, "main");
+    let (evaluate, _) = selection(&root, "evaluate");
+    let (file, _) = selection(&root, "app.rs");
+    let declaration = "pub fn evaluate(value: i32, factor: i32) -> i32 { value * factor }";
+    let caller = "{ println!(\"{}\", evaluate(3, 2)); }";
+    let input = batch_manifest(
+        &root,
+        vec![
+            batch_step(
+                &root,
+                "replace-declaration",
+                &evaluate,
+                "declaration.txt",
+                declaration,
+            ),
+            batch_step(&root, "replace-body", &main, "caller.txt", caller),
+            organize_imports_step(&file),
+        ],
+        None,
+    );
+    let (success, saved) = batch(&root, &input, &["--save-plan"]);
+    assert!(success, "{saved}");
+    assert_eq!(saved["files_changed"], 2);
+    assert_eq!(saved["steps"][2]["operation"], "organize-imports");
+    assert_eq!(
+        saved["steps"][2]["imports"]["removed"][0]["path"],
+        "std::cmp::max"
+    );
+    assert_eq!(
+        saved["steps"][2]["imports"]["edits"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+
+    let id = saved["transaction"].as_u64().unwrap().to_string();
+    ok(&root, &["history", "apply", &id, "--write"]);
+    let changed_app = concat!(
+        "mod calc;\n",
+        "use calc::evaluate;\n",
+        "\n",
+        "fn main() { println!(\"{}\", evaluate(3, 2)); }\n",
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("app.rs")).unwrap(),
+        changed_app
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("calc.rs")).unwrap(),
+        format!("{declaration}\n")
+    );
+    assert_eq!(compiled_result(&root), b"6\n");
+    let warning_check = Command::new("rustc")
+        .args(["--edition=2021", "-D", "warnings", "--emit=metadata", "-o"])
+        .arg(root.parent().unwrap().join("batch-checked.rmeta"))
+        .arg(root.join("app.rs"))
+        .output()
+        .unwrap();
+    assert!(
+        warning_check.status.success(),
+        "{}",
+        String::from_utf8_lossy(&warning_check.stderr)
+    );
+    fs::write(root.join("unrelated.txt"), "retained\n").unwrap();
+    ok(&root, &["history", "undo", &id, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), app);
+    assert_eq!(fs::read_to_string(root.join("calc.rs")).unwrap(), calc);
+    ok(&root, &["history", "patch", &id, "--check"]);
+    ok(&root, &["history", "redo", &id, "--write"]);
+    assert_eq!(
+        fs::read_to_string(root.join("app.rs")).unwrap(),
+        changed_app
+    );
+    assert_eq!(compiled_result(&root), b"6\n");
+    assert_eq!(
+        fs::read_to_string(root.join("unrelated.txt")).unwrap(),
+        "retained\n"
+    );
+}
+
+#[test]
+fn batch_import_steps_require_one_changed_file_handle_without_a_fragment() {
+    let source = "use std::cmp::max;\nfn main() {}\n";
+    let (_temp, root, _) = fixture(source, b"{}");
+    let (file, _) = selection(&root, "app.rs");
+    let (main, _) = selection(&root, "main");
+
+    let mut with_fragment = organize_imports_step(&file);
+    with_fragment["from"] = serde_json::json!(root.parent().unwrap().join("unused.txt"));
+    let input = batch_manifest(&root, vec![with_fragment], None);
+    assert!(!batch(&root, &input, &["--write"]).0);
+
+    let input = batch_manifest(&root, vec![organize_imports_step(&main)], None);
+    assert!(!batch(&root, &input, &["--write"]).0);
+
+    let input = batch_manifest(
+        &root,
+        vec![organize_imports_step(&file), organize_imports_step(&file)],
+        None,
+    );
+    let (success, report) = batch(&root, &input, &["--save-plan"]);
+    assert!(!success, "{report}");
+    assert!(report["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("overlap"));
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+    assert!(!root.join(".fr-history").exists());
+
+    let clean = "fn main() {}\n";
+    fs::write(root.join("app.rs"), clean).unwrap();
+    let (file, _) = selection(&root, "app.rs");
+    let input = batch_manifest(&root, vec![organize_imports_step(&file)], None);
+    assert!(!batch(&root, &input, &["--write"]).0);
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), clean);
+    assert!(!root.join(".fr-history").exists());
 }
 
 #[test]

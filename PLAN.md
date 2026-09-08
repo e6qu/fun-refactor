@@ -180,7 +180,7 @@ This PR closes the scoped v2 implementation and measurement work. Context parity
 
 ### PR 2. Generalized Structural Authoring
 
-Status: in progress on `generalized_structural_authoring`. The first checkpoint extends Rust insertion to exact impl and trait bodies and generalizes the placement kernel. The second adds TypeScript/TSX expression-bodied arrow authoring and block/expression transitions under the existing size and splice models. The third adds Java method, constructor and default-interface body authoring with warning-denied compilation.
+Status: in progress on `generalized_structural_authoring`. The first checkpoint extends Rust insertion to exact impl and trait bodies and generalizes the placement kernel. The second adds TypeScript/TSX expression-bodied arrow authoring and block/expression transitions under the existing size and splice models. The third adds Java method, constructor and default-interface body authoring with warning-denied compilation. The fourth composes declaration, caller and conservative import organization in one transaction.
 
 Goal: let an agent perform broader high-level changes without replacing entire files.
 

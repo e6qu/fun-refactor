@@ -63,15 +63,16 @@ struct BatchManifest {
 struct BatchStep {
     op: BatchOperation,
     handle: String,
-    from: PathBuf,
+    from: Option<PathBuf>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Copy, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 enum BatchOperation {
     ReplaceBody,
     ReplaceDeclaration,
     InsertDeclaration,
+    OrganizeImports,
 }
 
 #[derive(Args)]
@@ -371,30 +372,54 @@ impl Project<'_> {
         let mut regions: Vec<(PathBuf, Span)> = Vec::new();
         let mut steps = Vec::new();
         for (index, step) in manifest.operations.into_iter().enumerate() {
-            let operation = ReplaceBodyOptions {
-                revision: if step.handle.starts_with("frp1:") {
-                    None
-                } else {
-                    manifest.revision.clone()
-                },
-                handle: step.handle,
-                from: step.from,
-                diff_bytes: options.diff_bytes,
-                write: false,
-            };
+            let revision = (!step.handle.starts_with("frp1:"))
+                .then(|| manifest.revision.clone())
+                .flatten();
             let plan = match step.op {
-                BatchOperation::ReplaceBody => self.replace_body(&operation),
-                BatchOperation::ReplaceDeclaration => self.replace_declaration(&operation),
-                BatchOperation::InsertDeclaration => self.insert_declaration(&operation),
+                BatchOperation::OrganizeImports => {
+                    ensure!(
+                        step.from.is_none(),
+                        "organize-imports does not accept a fragment path."
+                    );
+                    self.organize_imports(&step.handle, revision.as_deref())
+                }
+                operation => {
+                    let operation_options = ReplaceBodyOptions {
+                        revision: revision.clone(),
+                        handle: step.handle.clone(),
+                        from: step
+                            .from
+                            .context("authoring operation requires a fragment path.")?,
+                        diff_bytes: options.diff_bytes,
+                        write: false,
+                    };
+                    match operation {
+                        BatchOperation::ReplaceBody => self.replace_body(&operation_options),
+                        BatchOperation::ReplaceDeclaration => {
+                            self.replace_declaration(&operation_options)
+                        }
+                        BatchOperation::InsertDeclaration => {
+                            self.insert_declaration(&operation_options)
+                        }
+                        BatchOperation::OrganizeImports => unreachable!(),
+                    }
+                }
             }
             .with_context(|| format!("batch operation {} failed", index + 1))?;
-            let handle = self.explicit_handle(&operation.handle, operation.revision.as_deref())?;
+            if matches!(step.op, BatchOperation::OrganizeImports) {
+                ensure!(
+                    !plan.edits.is_empty(),
+                    "organize-imports produced no change; omit this batch step."
+                );
+            }
+            let handle = self.explicit_handle(&step.handle, revision.as_deref())?;
             let id = self.resolve_handle(&handle)?;
             let path = self.root.join(&self.nodes[id].path);
             let key = match step.op {
                 BatchOperation::ReplaceBody => "body",
                 BatchOperation::ReplaceDeclaration => "declaration",
                 BatchOperation::InsertDeclaration => "insertion",
+                BatchOperation::OrganizeImports => "imports",
             };
             let span: Span = serde_json::from_value(plan.report[key]["before_span"].clone())?;
             for (previous, selected) in &regions {
@@ -404,17 +429,24 @@ impl Project<'_> {
                 ensure!(previous != &path || !conflict,
                     "batch selections overlap or share an insertion boundary; use disjoint selections.");
             }
-            let before = span.text(&self.sources[&path]);
-            let after = plan
-                .edits
-                .edits_for(&path)
-                .and_then(|items| items.first())
-                .map_or(before, |edit| edit.replacement.as_str());
-            let mut summary = json!({"operation": plan.report["query"], "handle": plan.report["handle"],
-                "path": plan.report["path"], "before_span": span, "before_bytes": before.len(),
-                "after_bytes": after.len(), "before_sha256": digest(before), "after_sha256": digest(after),
-                "signature": plan.report["signature"], "changed": plan.report["changed"],
-                "preservation": plan.report["preservation"]});
+            let mut summary = if matches!(step.op, BatchOperation::OrganizeImports) {
+                json!({"operation": plan.report["query"], "handle": plan.report["handle"],
+                    "path": plan.report["path"], "before_span": span,
+                    "imports": plan.report["imports"], "changed": plan.report["changed"],
+                    "preservation": plan.report["preservation"]})
+            } else {
+                let before = span.text(&self.sources[&path]);
+                let after = plan
+                    .edits
+                    .edits_for(&path)
+                    .and_then(|items| items.first())
+                    .map_or(before, |edit| edit.replacement.as_str());
+                json!({"operation": plan.report["query"], "handle": plan.report["handle"],
+                    "path": plan.report["path"], "before_span": span, "before_bytes": before.len(),
+                    "after_bytes": after.len(), "before_sha256": digest(before), "after_sha256": digest(after),
+                    "signature": plan.report["signature"], "changed": plan.report["changed"],
+                    "preservation": plan.report["preservation"]})
+            };
             for key in [
                 "replacement_signature",
                 "name_check",
@@ -450,6 +482,70 @@ impl Project<'_> {
         report["behavior_checked"] = json!(false);
         report["atomic_snapshot"] = json!(false);
         Ok(Plan { edits, report })
+    }
+
+    fn organize_imports(&self, selected: &str, revision: Option<&str>) -> Result<Plan> {
+        let handle = self.explicit_handle(selected, revision)?;
+        let id = self.resolve_handle(&handle)?;
+        ensure!(
+            self.nodes[id].kind == "file",
+            "organize-imports requires a file handle."
+        );
+        let path = self.root.join(&self.nodes[id].path);
+        let source = &self.sources[&path];
+        let plan = crate::refactor::imports::plan_in(self.index, &path, source)?;
+        let import_edits = plan.edits.edits_for(&path).unwrap_or(&[]);
+        let before_span = import_edits
+            .iter()
+            .fold(None, |region: Option<Span>, edit| {
+                Some(region.map_or(edit.span, |region| {
+                    Span::new(
+                        region.start.min(edit.span.start),
+                        region.end.max(edit.span.end),
+                    )
+                }))
+            });
+        let edit_reports = import_edits
+            .iter()
+            .map(|edit| {
+                let before = edit.span.text(source);
+                json!({"before_span": edit.span, "before_bytes": before.len(),
+                    "after_bytes": edit.replacement.len(), "before_sha256": digest(before),
+                    "after_sha256": digest(&edit.replacement), "reason": edit.reason})
+            })
+            .collect::<Vec<_>>();
+        let removed = plan
+            .removed
+            .iter()
+            .map(|item| {
+                json!({"path": item.path, "bindings": item.bindings,
+                "span": item.span, "line": item.line})
+            })
+            .collect::<Vec<_>>();
+        let kept = plan
+            .warnings
+            .iter()
+            .map(|warning| {
+                json!({"line": warning.line, "col": warning.col,
+                "reason": warning.detail})
+            })
+            .collect::<Vec<_>>();
+        let mut report = self.envelope("organize-imports");
+        report["schema"] = json!("fr-author-1");
+        report["handle"] = json!(self.handle(id));
+        report["path"] = bounded_text(&self.nodes[id].path.to_string_lossy(), 512);
+        report["imports"] = json!({"before_span": before_span.unwrap_or(Span::new(0, source.len())),
+            "edits": edit_reports, "removed": removed, "kept": kept,
+            "sorted_blocks": plan.sorted_blocks});
+        report["changed"] = json!(!plan.edits.is_empty());
+        report["validation"] = json!("reparse-strict");
+        report["preservation"] = json!("bytes outside the reported import edit spans");
+        report["behavior_checked"] = json!(false);
+        report["atomic_snapshot"] = json!(false);
+        Ok(Plan {
+            edits: plan.edits,
+            report,
+        })
     }
 
     pub fn insert_declaration(&self, options: &ReplaceBodyOptions) -> Result<Plan> {

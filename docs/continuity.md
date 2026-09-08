@@ -5,6 +5,7 @@ PR 1, Agent Context Protocol v2, merged as GitHub PR 261.
 The current `generalized_structural_authoring` branch is roadmap PR 2. Its first checkpoint extends exact-byte Rust insertion to impl and trait bodies and generalizes the insertion placement model.
 The second checkpoint authors TypeScript/TSX expression-bodied arrows and permits checked transitions between expression and block bodies.
 The third checkpoint adds Java method, constructor and default-interface body authoring through the same checked splice and history path.
+The fourth checkpoint lets one authoring batch combine declaration, caller and conservative import-organization changes.
 Project and author reports now emit a revision-bound `frcb1:` basis. Supplying it omits only `coverage`, `handle_prefix` and `revision`; stale bases refuse before author plans can be saved or written.
 Complete saved author diffs and detailed history records now emit a separate `frtb1:` transaction basis. Forward apply and redo reports can omit their repeated diffs while retaining change metadata; reverse use and mismatches refuse before writes.
 Unit and CLI regressions reconstruct full reports exactly and cover missing, truncated, stale and conflicting bases.
@@ -112,7 +113,9 @@ The coordinated workspace preparation above follows this controlled comparison; 
 ## Coordinated authoring batches
 
 `src/project/author.rs::author_batch` reads a bounded JSON manifest and plans each existing operation against the same captured project.
-The manifest accepts 1 through 32 entries with `op`, `handle` and `from`; optional `revision` supports short IDs and validates full-handle batches too.
+The manifest accepts 1 through 32 entries with `op` and `handle`; fragment operations also require `from`.
+An optional `revision` supports short IDs and validates full-handle batches too.
+An `organize-imports` entry uses a file handle without `from` and reuses the existing conservative import planner.
 Unknown fields and operations refuse. All input paths resolve from the workspace root; input files retain the regular-file and 64 KiB guards.
 Selected original regions must be disjoint even for no-ops; insertion points cannot share or touch another region's boundary.
 Every step must succeed, and combined file results must reparse before the CLI records one source-history transaction.
@@ -124,8 +127,10 @@ Saved plans freeze all changes; unrelated source changes retain the existing his
 This does not strengthen filesystem atomicity or prove typing and behavior.
 
 Seven new CLI scenarios include a compiled two-file caller/signature/helper change through save, apply, undo, patch checking and redo.
+The PR 2 import case combines a declaration, caller and import cleanup in one transaction and compiles with warnings denied.
 Mixed Rust/Go/TSX operations, shared revisions, no-op batches, size/count limits, overlap refusal and malformed inputs have regression coverage.
 A two-edit batch also matches the Rust and Lean splice implementations, with Unicode, CRLF and different replacement lengths.
+A body-and-import batch supplies another Rust/Lean splice comparison over Unicode source.
 This is tested edit correspondence, with no new proof of the batch planner, manifest parser or filesystem transaction implementation.
 The agent reference teaches combined review and one transaction ID; its existing shell examples remain unchanged.
 The controlled comparison above measures report bytes and repeated calls without treating a prescribed workflow as autonomous agent evidence.
