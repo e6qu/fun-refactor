@@ -14,6 +14,8 @@ use std::path::{Path, PathBuf};
 pub mod author;
 mod configuration;
 mod contracts;
+#[cfg(test)]
+mod digest_tests;
 mod fast_routes;
 mod find;
 mod links;
@@ -217,8 +219,61 @@ pub struct Project<'a> {
     manifests: manifests::Manifests,
 }
 
+struct ConstructionTimer<const ENABLED: bool> {
+    last: Option<std::time::Instant>,
+    phases: BTreeMap<&'static str, f64>,
+}
+
+impl<const ENABLED: bool> ConstructionTimer<ENABLED> {
+    fn new() -> Self {
+        Self {
+            last: ENABLED.then(std::time::Instant::now),
+            phases: BTreeMap::new(),
+        }
+    }
+
+    fn checkpoint(&mut self, name: &'static str) {
+        if ENABLED {
+            let now = std::time::Instant::now();
+            *self.phases.entry(name).or_default() +=
+                now.duration_since(self.last.unwrap()).as_secs_f64();
+            self.last = Some(now);
+        }
+    }
+}
+
 fn hash(value: impl serde::Serialize) -> Result<String> {
     Ok(format!("{:x}", Sha256::digest(serde_json::to_vec(&value)?)))
+}
+
+#[derive(Clone, Default)]
+struct RevisionDigest {
+    digest: Sha256,
+    buffer: Vec<u8>,
+}
+
+impl RevisionDigest {
+    fn update(&mut self, value: impl serde::Serialize) -> Result<()> {
+        let start = self.buffer.len();
+        if let Err(error) = serde_json::to_writer(&mut self.buffer, &value) {
+            self.buffer.truncate(start);
+            return Err(error.into());
+        }
+        if self.buffer.len() >= 65536 {
+            self.flush();
+        }
+        Ok(())
+    }
+
+    fn flush(&mut self) {
+        self.digest.update(&self.buffer);
+        self.buffer.clear();
+    }
+
+    fn finish(mut self) -> String {
+        self.flush();
+        format!("{:x}", self.digest.finalize())
+    }
 }
 
 fn bounded_text(text: &str, max: usize) -> Value {
@@ -317,6 +372,25 @@ impl<'a> Project<'a> {
         scanned: &'a ScanResult,
         options: &'a ScanOptions,
     ) -> Result<Self> {
+        Self::construct::<false>(root, index, scanned, options).map(|(project, _)| project)
+    }
+
+    pub fn new_profiled(
+        root: &Path,
+        index: &'a Index,
+        scanned: &'a ScanResult,
+        options: &'a ScanOptions,
+    ) -> Result<(Self, BTreeMap<&'static str, f64>)> {
+        Self::construct::<true>(root, index, scanned, options)
+    }
+
+    fn construct<const PROFILE: bool>(
+        root: &Path,
+        index: &'a Index,
+        scanned: &'a ScanResult,
+        options: &'a ScanOptions,
+    ) -> Result<(Self, BTreeMap<&'static str, f64>)> {
+        let mut timing = ConstructionTimer::<PROFILE>::new();
         let selected = root.canonicalize()?;
         let root = if selected.is_file() {
             selected
@@ -327,6 +401,7 @@ impl<'a> Project<'a> {
             selected.clone()
         };
         let manifests = manifests::Manifests::new(&selected, &root, options)?;
+        timing.checkpoint("manifests");
         let mut project = Self {
             root,
             index,
@@ -349,13 +424,14 @@ impl<'a> Project<'a> {
             symbol: None,
         });
         let mut directories = BTreeMap::from([(PathBuf::new(), 0)]);
-        let mut digest = Sha256::new();
-        digest.update(serde_json::to_vec(&(
+        let mut digest = RevisionDigest::default();
+        digest.update((
             &selected,
             env!("CARGO_PKG_VERSION"),
             options.respect_ignore,
             options.max_file_bytes,
-        ))?);
+        ))?;
+        timing.checkpoint("setup");
         for (path, info) in index.files() {
             let source = crate::vfs::read_to_string(path)
                 .with_context(|| format!("reading {} for project view", path.display()))?;
@@ -365,9 +441,12 @@ impl<'a> Project<'a> {
                     path.display()
                 );
             }
-            digest.update(serde_json::to_vec(&(path, hash(&source)?, &info.gaps))?);
+            timing.checkpoint("source_read");
+            digest.update((path, hash(&source)?, &info.gaps))?;
+            timing.checkpoint("source_digest");
             project.lines.insert(path.clone(), LineIndex::new(&source));
             project.sources.insert(path.clone(), source);
+            timing.checkpoint("source_lines");
             let relative = path.strip_prefix(&project.root)?.to_path_buf();
             let mut directory = PathBuf::new();
             let mut parent = 0;
@@ -407,8 +486,10 @@ impl<'a> Project<'a> {
                 .collect::<Vec<_>>();
             symbols.sort_by_key(|s| (s.full_span.start, std::cmp::Reverse(s.full_span.end), s.id));
             let mut stack: Vec<(Span, usize)> = Vec::new();
+            timing.checkpoint("hierarchy");
             for symbol in symbols {
-                digest.update(serde_json::to_vec(symbol)?);
+                digest.update(symbol)?;
+                timing.checkpoint("symbol_digest");
                 while stack.last().is_some_and(|(span, _)| {
                     *span == symbol.full_span || !span.contains(symbol.full_span)
                 }) {
@@ -425,19 +506,22 @@ impl<'a> Project<'a> {
                 });
                 project.symbol_nodes.insert(symbol.id, id);
                 stack.push((symbol.full_span, id));
+                timing.checkpoint("hierarchy");
             }
         }
         for reference in &index.references {
-            digest.update(serde_json::to_vec(&(&reference.file, reference))?);
+            digest.update((&reference.file, reference))?;
         }
-        digest.update(serde_json::to_vec(&(
+        timing.checkpoint("reference_digest");
+        digest.update((
             &index.skipped,
             &scanned.skipped_symlinks,
             &scanned.unsupported,
             &project.manifests.snapshots,
-        ))?);
-        project.revision = format!("{:x}", digest.finalize());
-        Ok(project)
+        ))?;
+        project.revision = digest.finish();
+        timing.checkpoint("finish");
+        Ok((project, timing.phases))
     }
 
     fn add(&mut self, node: Node) -> usize {

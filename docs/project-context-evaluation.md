@@ -183,9 +183,65 @@ The evaluator regression rejects absent phases, negative intervals and overlappi
 
 Project construction accounts for roughly four-fifths of the populated-cache subprocess time in these samples.
 That phase captures manifests and source, builds line indexes and hierarchy, and constructs the revision digest.
-The next investigation should separate those costs while retaining the same revision inputs and final verification.
+M4s separates those costs and optimizes revision hashing, as described below.
 Index time includes fact loading or extraction, merging and workspace resolution; this profiler does not separate those operations.
 
 The release measurements concern this binary, two prescribed queries and one host.
 They do not change the earlier debug measurements or autonomous results, establish general production latency, or demonstrate context savings.
-No optimization or daemon accompanies this measurement. Ordinary CLI reports and production library code remain unchanged.
+M4r introduced no optimization or daemon and left ordinary CLI reports and production library code unchanged.
+
+## Batched revision hashing
+
+M4s adds optional construction checkpoints to the development profiler and batches the revision digest's serialized inputs.
+`Project::new_profiled` records manifest capture, setup, source reads, source hashing, line indexes, hierarchy, symbol hashing, reference hashing and finalization.
+The ordinary constructor disables these checkpoints at compile time. Ordinary CLI reports contain no timing fields.
+Source rereads, content checks and final source/inventory verification remain in place.
+
+Revision construction serializes the same values in the same order and hashes the same concatenated JSON bytes with SHA-256.
+A reusable buffer flushes after a complete item brings it to at least 65,536 bytes, and again at finalization.
+This is a flush threshold, not a capacity limit: one item can exceed it, and the buffer retains its largest allocation until construction ends.
+Failed serialization discards only the partially appended item before returning its error.
+Tests cover explicit JSON byte sequences, Unicode and escapes, large items, threshold boundaries and partial-write failures.
+These tests establish correspondence on their cases; they do not formally prove the serializer, SHA-256 implementation or complete revision construction.
+
+The controlled comparison alternates old and new release executables across four repetitions of each prescribed lookup.
+Each side has a separate populated cache; all profiled samples require 249 fact-cache hits for 249 indexed files.
+Every CLI and profiler result must match the baseline's complete JSON, including source, revisions and cursors.
+Additional comparisons traverse every package, dependency, workspace, gap and default nonlocal map page: 22 pages on this fixture.
+Two source-invalidation probes require cached/uncached agreement, stale-handle refusal and exact restoration.
+Tracked source bytes, file modes and Git index bytes finish unchanged.
+
+The [retained comparison](../tests/agent-eval/project-construction.json) contains sixteen ordinary CLI samples and sixteen separate development profiles.
+All samples and both invalidation probes pass.
+
+| Lookup | Baseline CLI, median ms | Batched CLI, median ms | Baseline construction, median ms | Batched construction, median ms |
+|---|---:|---:|---:|---:|
+| `regex::escape` | 179.481 | 168.476 | 147.640 | 134.827 |
+| `regex_syntax::escape_into` | 182.837 | 172.008 | 148.068 | 135.166 |
+
+Ordinary CLI medians improve by 6.1% and 5.9% in this run.
+Reference serialization and hashing remain the largest construction stage, falling from about 110 ms to 98 ms.
+The other stages together account for roughly 37 ms after batching.
+
+Construction checkpoints include timing overhead. Batching can charge earlier items' hash work to the stage that flushes their bytes.
+Use ordinary CLI samples for end-to-end comparison and nested phases to locate costs, rather than treating each stage as isolated work.
+Independent phase medians need not sum to median construction time.
+This measures two known lookups on one host, with no cold-start, autonomous context-saving or general production-latency claim.
+Earlier measurement artifacts remain historical and unchanged.
+
+To reproduce, first build the baseline CLI at commit `9a253e9` in a disposable checkout and save the executable outside its target directory.
+Apply the retained [instrumentation-only patch](../tests/agent-eval/project-construction-before.patch) there and build the baseline profiling example.
+The patch preserves the baseline's five per-item revision digest updates; only timing and the example's envelope change.
+Save that profiler separately, then build both candidate executables from the current checkout:
+
+```sh
+CARGO_HOME="$PWD/target/cargo-home" CARGO_NET_OFFLINE=true cargo build --release --locked --bin fr --example project-profile
+python3 tools/project-construction.py --before /path/to/baseline-fr --before-profiler /path/to/baseline-project-profile
+```
+
+Both baseline builds use the same locked dependencies. The comparison needs Python, Git and the pinned archive, without building regex or loading a tokenizer.
+The report records all samples, executable digests, measurement-source hashes and the instrumentation patch hash.
+Timing has no pass/fail threshold; report differences, invalid phase intervals, cache misses and failed restoration reject the measurement.
+The full native/WASM gate passes, including all 131 project CLI scenarios and 311/311 capability coverage.
+Strict verification retains twenty-three fresh source anchors and signature maps, zero obligations and 31 Lean build jobs.
+M4s adds no new Lean proof; its digest correspondence rests on the explicit byte tests and controlled report comparisons above.

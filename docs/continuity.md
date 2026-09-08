@@ -1,18 +1,50 @@
 # Development continuity
 
-M4r is complete: release measurements identify project construction as the main remaining cached-query cost on the pinned fixture.
+M4s is complete: batched revision hashing reduces cached CLI medians by about 6% on the pinned fixture.
 The user authorized local commits. Publishing and pushing remain outside this request.
 M4l's four passing workspace trials are retained in `3c8231c`; preparation is `811591e` and documented insertion is `6d0928b`.
 M4m's smaller check reports are committed in `58b53bd`; M4n's targeted skill guidance is `1c44863`.
 M4o's bounded source lookup is committed in `5214404`.
 M4p's source and budget proofs are committed in `aa16584`.
 M4q's cache measurement and failure controls are committed in `9b0c84e`.
+M4r's release profiling is committed in `9a253e9`.
+
+## Batched revision hashing
+
+`src/project.rs` now uses a reusable `RevisionDigest` buffer while preserving every serialized input, its ordering and SHA-256.
+It flushes after complete items reach 65,536 bytes and at finalization; an individual item can exceed this threshold.
+Capacity is retained until construction ends. A serialization error truncates its partial item while preserving previously buffered bytes.
+Three unit regressions cover explicit JSON encodings, large-to-small reuse, flush boundaries and recovery from partial serialization failure.
+No new formal proof covers revision hashing; the existing source anchors and Lean models retain their separate scope.
+
+`Project::new_profiled` adds nine construction stages to the development example when invoked with `--construction`.
+The ordinary constructor disables checkpoints at compile time, and normal CLI reports keep their existing fields.
+Nested timings include checkpoint overhead; buffered hash work can be charged to a later stage that triggers its flush.
+The normal CLI measurements therefore provide the end-to-end comparison.
+
+`tools/project-construction.py` alternates separate baseline/candidate CLI and profiler executables on populated caches.
+Four repetitions per lookup require complete report equality and all 249 fact-cache hits in each profiler sample.
+Full package, dependency, workspace, gap and default nonlocal map pagination adds 22 matching pages.
+Both source-invalidation probes require stale-handle refusal, cached/uncached agreement and restoration of source and index bytes.
+Twenty-one evaluator regressions now include missing, negative and excessive construction-stage intervals.
+
+`tests/agent-eval/project-construction.json` retains sixteen ordinary CLI samples and sixteen separate profiles from `/tmp/fr-m4s-comparison-final.json`.
+Cached CLI medians fall from 179.481 to 168.476 ms for `escape`, and from 182.837 to 172.008 ms for `escape_into`.
+Profiled construction falls by about 13 ms; reference serialization and hashing remain the largest stage at about 98 ms.
+All samples, 22 additional pages and both probes pass. The independent audit verifies digests, medians, cache inventories and retained payloads.
+These are single-host query measurements, with no autonomous context-saving or general production-latency claim.
+
+The baseline CLI is `target/agent-eval-bin/fr-m4s-before`, matching M4r's retained release digest.
+The baseline profiler is `target/agent-eval-bin/project-profile-m4s-before`; it adds checkpoints before the digest optimization.
+`tests/agent-eval/project-construction-before.patch` reproduces this instrumentation against `9a253e9` in a disposable checkout.
+The patch applies cleanly to both original files and preserves all five original per-item digest updates.
+See [batched revision hashing](project-context-evaluation.md#batched-revision-hashing) for reproduction, allocation behavior and evidence limits.
 
 ## Release profiling
 
 `tools/project-profile.rs` is the `project-profile` Cargo example, gated on the CLI feature.
 It times the public library pipeline with default scan options and a project directory, then emits a separate profiling envelope.
-The normal CLI output and production library code remain unchanged.
+M4r left normal CLI output and production library code unchanged; M4s adds the optional constructor profiling above.
 Stages cover root resolution, scanning, cache opening, indexing, project construction, querying, final verification, serialization and cleanup.
 The internal interval excludes process startup, argument parsing and envelope output; Python also records complete subprocess time.
 
@@ -26,7 +58,7 @@ Separate phase medians need not sum to the median whole-command time.
 All eighteen ordinary CLI samples and both source-invalidation probes pass; populated medians are about 180 ms and disabled medians about 1.4 seconds.
 It comes from `/tmp/fr-m4r-project-cache-release.json`; earlier debug and autonomous evidence remains immutable.
 Both artifacts retain binary and input digests, runtime details and raw samples; their statistics and payload checks pass an independent audit.
-Twenty evaluator regressions now include missing/negative phases and invalid interval totals.
+M4r's twenty evaluator regressions include missing/negative phases and invalid interval totals.
 See [release profiling](project-context-evaluation.md#release-stage-profiling) for reproduction and measurement limits.
 
 ## Cache measurement
@@ -155,6 +187,7 @@ Replay checks recorded patches and transition evidence without rerunning agents.
 The initial and follow-up strsim findings remain in the [context report](agent-context-followup.md).
 Controlled reports are separate under `tests/agent-eval/`: `history-context.json`, `regex/rehearsal.json`, `checks-context.json`, `skill-context.json`, `find-source-context.json` and `project-cache.json`.
 Release reports add `project-cache-release.json` and `project-profile.json` without rewriting those earlier artifacts.
+M4s adds `project-construction.json` and its baseline instrumentation patch while preserving those reports.
 The regex rehearsal uses a prescribed solution and rejects three compiled negative controls; it is not autonomous evidence.
 
 Temporary regex sessions remain under `/private/tmp/fr-regex-agent-eval-2026-09-08`, one directory per retained trial name.
@@ -165,18 +198,25 @@ Temporary projects are disposable after retention; use repository evidence for r
 
 ## Validation and commands
 
+M4s passes the full native/WASM gate in `/tmp/fr-m4s-full-check.log`, including 131 project CLI scenarios and 311/311 capability coverage.
+Strict verification passes in `/tmp/fr-m4s-spec-verify.json`: twenty-three fresh source anchors and signature maps, zero obligations and 31 Lean build jobs.
+The three new digest regressions pass in `/tmp/fr-m4s-focused.log`; all twenty-one evaluator regressions pass in `/tmp/fr-m4s-harness.log`.
+The final optimized CLI and development profiler build with locked offline dependencies in `/tmp/fr-m4s-build-final.log`.
+The retained measurement passes the independent artifact audit in `/tmp/fr-m4s-audit.log`.
+All six documentation suites pass in `/tmp/fr-m4s-docs-final.log`; formatting, Python compilation, prose budgets and diff checks also pass.
+
 M4r's optimized CLI and profiling example build with locked offline dependencies in `/tmp/fr-m4r-build.log`.
 Example clippy passes in `/tmp/fr-m4r-clippy.log`; all twenty evaluator regressions pass in `/tmp/fr-m4r-harness.log`.
 Rust formatting and Python compilation pass. The two retained measurement reports pass complete payload, input-digest and statistics audits.
 The default acceptance entry point passes in `/tmp/fr-m4r-acceptance.log`; all six documentation checks pass in `/tmp/fr-m4r-docs.log`.
-This milestone adds a profiling example and evaluator tooling; production library code and Lean definitions retain M4p's validated behavior.
+M4r added a profiling example and evaluator tooling; production library code and Lean definitions retained M4p's validated behavior at that point.
 
 M4q's eighteen measured queries and both invalidation probes pass in `/tmp/fr-m4q-project-cache-final.json`.
 The retained artifact audit checks every payload digest and byte count, recomputes summaries and verifies the binary and measurement-source hashes.
 All nineteen evaluator regressions pass in `/tmp/fr-m4q-harness-tests.log`; Python compilation also passes.
 Twelve cache regressions and six documentation checks pass in `/tmp/fr-m4q-validation.log`.
 The default acceptance entry point passes in `/tmp/fr-m4q-final-check.log`; final documentation checks pass in `/tmp/fr-m4q-docs-final.log`.
-Production Rust code and Lean definitions remain unchanged from M4p; that milestone retains the full native/WASM gate and strict Lean verification.
+M4q left production Rust code and Lean definitions unchanged from M4p, which retained the full native/WASM gate and strict Lean verification.
 
 M4p's focused source tests pass in `/tmp/fr-m4p-focused.log`.
 The full native/WASM gate passes in `/tmp/fr-m4p-full-check.log`, including all 131 project CLI scenarios and 311/311 capability coverage.
@@ -229,8 +269,8 @@ Check execution metadata is now optional; use retained traces to reduce remainin
 Preserve coverage, source bases, guards and reviewable edits.
 Validate whether fresh agents adopt the targeted route before claiming autonomous context savings; include a task that actually requires broader exploration.
 Measure proposed reductions on fixed transcripts or controlled workflows before requesting another autonomous cohort.
-Separate manifest capture, source/line processing, hierarchy construction and revision hashing inside the measured project-construction cost.
-Keep revision inputs, coverage and final source verification intact; require byte-identical reports for optimizations.
+Reference serialization and hashing remain the largest measured construction cost after batching; evaluate further changes against this profile.
+Keep revision inputs, coverage and final source verification intact; require byte-identical reports and distinguish model proofs from implementation correspondence.
 State the cache policy for the next autonomous cohort; existing trials explicitly disable it and their records remain immutable.
 A later paired task should require coordinated changes across files; the current larger repository task is still a localized facade addition.
 Keep portable skill references selective and executable against the distributed binary.

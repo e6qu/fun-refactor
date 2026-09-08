@@ -23,8 +23,27 @@ profile_spec = importlib.util.spec_from_file_location("project_phase_measurement
 phase_measurement = importlib.util.module_from_spec(profile_spec)
 profile_spec.loader.exec_module(phase_measurement)
 
+construction_spec = importlib.util.spec_from_file_location("construction_measurement", TOOLS / "project-construction.py")
+construction_measurement = importlib.util.module_from_spec(construction_spec)
+construction_spec.loader.exec_module(construction_measurement)
+
 
 class ProjectPhaseEvidence(unittest.TestCase):
+    def test_construction_times_must_partition_the_outer_project_phase(self):
+        valid = {"construction_seconds": {name: 0.01 for name in construction_measurement.CONSTRUCTION},
+                 "phases_seconds": {"project": 0.1}}
+        construction_measurement.check_construction(valid)
+        for mutation in ("missing", "negative", "overflow"):
+            report = copy.deepcopy(valid)
+            if mutation == "missing":
+                report["construction_seconds"].pop("reference_digest")
+            elif mutation == "negative":
+                report["construction_seconds"]["reference_digest"] = -0.1
+            else:
+                report["construction_seconds"]["reference_digest"] = 0.1
+            with self.subTest(mutation=mutation), self.assertRaises(AssertionError):
+                construction_measurement.check_construction(report)
+
     def test_profile_rejects_missing_negative_or_overlapping_phase_times(self):
         valid = {"schema": "fr-project-profile-1", "phases_seconds": {name: 0.01 for name in phase_measurement.PHASES},
                  "measured_seconds": 0.5, "report_stdout": "{}\n"}

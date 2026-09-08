@@ -1017,12 +1017,27 @@ The report retains per-sample timing, counter and provenance evidence. It makes 
 Twenty evaluator regressions pass, including refusal of invalid phase timings.
 See [release profiling](docs/project-context-evaluation.md#release-stage-profiling) for the separate executable's scope and reproduction.
 
+M4s: batched revision hashing and construction profiling (complete).
+
+Optional development checkpoints separate manifest capture, source processing, hierarchy and revision hashing.
+Reference serialization and hashing dominate the measured project-construction cost on the pinned regex workspace.
+A reusable buffer batches identical JSON bytes into SHA-256 updates, retaining revision inputs, ordering and final source verification.
+Focused regressions cover exact serialization, large items, flush boundaries and rollback after partial serialization failures.
+The controlled comparison requires identical before/after lookup reports and complete map, manifest and diagnostic pages.
+Source-invalidation probes retain cached/uncached agreement, stale-handle refusal and exact source/index restoration.
+Sixteen ordinary CLI samples and sixteen separate development profiles pass, along with all 22 additional report pages and both invalidation probes.
+Cached CLI medians improve by about 6% on this host, from 179–183 ms to 168–172 ms; construction falls by about 13 ms.
+The full native/WASM gate passes, including 131 project CLI scenarios and 311/311 capability coverage; all twenty-one evaluator regressions pass.
+Strict verification retains twenty-three fresh source anchors and signature maps, zero obligations and 31 Lean build jobs.
+These checks test correspondence, without a new formal proof of revision construction or a returned-context reduction claim.
+See [batched revision hashing](docs/project-context-evaluation.md#batched-revision-hashing) for measurement scope and baseline reproduction.
+
 Next M4 work:
 
 Use the retained workspace traces to reduce repeated report metadata and skill-loading costs, preserving coverage, source bases, guards and reviewable changes.
 Measure each proposed reduction on fixed transcripts or controlled workflows before another autonomous comparison.
-Separate manifest capture, source/line processing, hierarchy construction and revision hashing inside the measured project-construction cost.
-Preserve revision inputs, coverage, source verification and byte-identical reports when optimizing that path.
+Use the construction profile to evaluate any further reduction in reference serialization and hashing cost.
+Preserve revision inputs, coverage, source verification and byte-identical reports; distinguish buffer-model proofs from implementation correspondence.
 State the cache policy for the next autonomous cohort; the retained trials disable it.
 Then evaluate a task requiring coordinated changes across several files, with repeated paired trials and independent behavioral checks.
 Keep examples compatible with the distributed binary and load specialized references only when needed.
