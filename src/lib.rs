@@ -5,6 +5,8 @@ pub mod analysis;
 pub mod cache;
 pub mod capabilities;
 #[cfg(feature = "cli")]
+pub mod checks;
+#[cfg(feature = "cli")]
 pub mod cli;
 pub mod vfs;
 // The C the grammars call, which `wasm32-unknown-unknown` does not supply.
@@ -13,7 +15,11 @@ extern crate fun_refactor_wasm_libc;
 
 pub mod edit;
 pub mod extract;
+#[cfg(feature = "cli")]
+pub mod git;
 pub mod helm;
+#[cfg(feature = "cli")]
+pub mod history;
 pub mod index;
 pub mod lang;
 pub mod mentions;
@@ -21,6 +27,8 @@ pub mod model;
 pub mod navigate;
 pub mod openapi;
 pub mod parse;
+#[cfg(feature = "cli")]
+pub mod project;
 pub mod recipe;
 pub mod refactor;
 #[cfg(feature = "cli")]

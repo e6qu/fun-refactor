@@ -1,69 +1,37 @@
 ---
 name: lean-spec
-description: Write, repair or extend a Lean spec for code in this repository. Use when adding a spec, when `fr spec check` reports drift, or when a change to the code has broken the claims about it. Covers what to state and what to leave alone; the lean-prover agent does the proving.
+description: Write or repair an anchored Lean model for this repository and check source drift with fr. Use for model properties, signature maps or failed Lean checks; not for ordinary code changes.
 ---
 
-# Writing a spec in Lean
+# Lean models with fr
 
-`fr spec extract` derives the shape: the types, the signature, the anchor. That part is
-decidable and the tool does it. What is left is the judgement, which is deciding what is
-worth claiming. That is this skill.
+Read `docs/lean-specs.md` for the implemented commands and evidence boundaries.
+Inspect the source declaration and `fr spec check --strict` before changing its model.
 
-## Read first
+## State a useful property
 
-- `docs/lean-specs.md` for what the feature promises, and the three things it does not.
-- The drift report: `fr spec check`.
-- The code the spec is about. A property written without reading the implementation is a
-  property about an imagined implementation.
+Choose a property whose failure would silently change an answer: an inverse, preserved bytes,
+operator precedence, a scope invariant or agreement between two implementations.
+State its domain and assumptions. Report a false claim rather than weakening it to obtain a proof.
 
-## What to state
+Use `kernels/FrKernels/Edit.lean` and `Position.lean` as working anchor examples.
+Strict signature maps currently require Rust source declarations.
+`spec extract`, automatic package setup and `SPEC-DEBT` are pending roadmap work.
+Author models and initial anchors manually until those features exist.
 
-State the thing that would be silently wrong. `fr`'s defects have a shape: the answer
-looked right and was not. A lowering that drops a bracket, a division that rounds the
-other way, a group that leaves out its own symbol. Those are what a spec is for.
+## Repair drift
 
-Good claims are about a round trip, an invariant, or a disagreement between two paths
-that should agree:
+Run `fr spec check --strict` and inspect each changed source declaration.
+Repair the model or signature map when the source contract changes.
+Use `fr spec sync` to preview source-hash renewal and `--write` to apply a reviewed renewal.
+Sync updates hashes; it does not synchronize signatures or prove correspondence.
 
-```lean
-theorem read_write_round_trips (e : Expr) :
-    read (write e) = some e
-```
+## Check the result
 
-Do not state what the type already says. `def f : Nat → Nat` needs no theorem that `f`
-returns a `Nat`, and writing one is noise a reader has to get past.
+Run `fr spec verify` for strict correspondence and each owning package's `lake build --wfail`.
+For these kernels, run `cargo test --test lean_kernels` to compare the shared executable cases.
+A finished proof must contain no new `sorry` or unapproved axiom.
+If an obligation remains, report it and the failed check explicitly.
 
-## Anchors
-
-Every spec carries the anchor `fr spec extract` wrote:
-
-```lean
--- fr:spec src/transpile/write.rs::rust_expr @ 8f2c1a9e
-```
-
-Do not edit the hash by hand. `fr spec sync` moves it when the signature moves. Editing it
-yourself turns drift detection off for that spec, quietly, which is the failure this whole
-feature exists to prevent.
-
-## `sorry`
-
-A `sorry` is an obligation with a name, and that is fine. `SPEC-DEBT` counts them and the
-count only falls. Leave one where you have stated something true and not yet proved it;
-never leave one under a statement you are unsure of. An unproved claim is debt, and a
-wrong claim is a trap.
-
-## Proving
-
-Hand each `sorry` to the `lean-prover` agent, one at a time. They are independent, so
-they go in parallel. Take no proof that `lake` has not accepted.
-
-If the prover reports that a statement cannot hold, that is a result: either the code is
-wrong, or the claim was. Say which, with the evidence. Do not weaken the statement to
-close the loop.
-
-## Before finishing
-
-- `fr spec check` reports no drift.
-- `lake build` passes.
-- Every new `sorry` is accounted for in `SPEC-DEBT`, and the number went down or stayed.
-- The record says what the spec claims and what it does not.
+Describe whether the result proves a model property, tests implementation correspondence,
+or proves implementation correspondence. A source anchor or translation alone proves neither correspondence claim.

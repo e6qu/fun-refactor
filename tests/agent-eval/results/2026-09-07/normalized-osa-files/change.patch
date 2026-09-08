@@ -1,0 +1,33 @@
+diff --git a/src/lib.rs b/src/lib.rs
+index 6a3b098..9b253fc 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -336,6 +336,28 @@ pub fn osa_distance(a: &str, b: &str) -> usize {
+     prev_distances[b_len]
+ }
+ 
++/// Calculates a normalized score of the optimal string alignment algorithm
++/// between 0.0 and 1.0 (inclusive), where 1.0 means the strings are the same.
++/// Each substring can only be edited once.
++///
++/// ```
++/// use strsim::normalized_osa_distance;
++///
++/// assert!((normalized_osa_distance("ab", "ba") - 0.5).abs() < 0.00001);
++/// assert!(normalized_osa_distance("ab", "bca").abs() < 0.00001);
++/// assert!((normalized_osa_distance("é猫", "猫é") - 0.5).abs() < 0.00001);
++/// assert!((normalized_osa_distance("", "") - 1.0).abs() < 0.00001);
++/// assert!(normalized_osa_distance("", "second").abs() < 0.00001);
++/// assert!(normalized_osa_distance("first", "").abs() < 0.00001);
++/// assert!((normalized_osa_distance("string", "string") - 1.0).abs() < 0.00001);
++/// ```
++pub fn normalized_osa_distance(a: &str, b: &str) -> f64 {
++    if a.is_empty() && b.is_empty() {
++        return 1.0;
++    }
++    1.0 - (osa_distance(a, b) as f64) / (a.chars().count().max(b.chars().count()) as f64)
++}
++
+ /* Returns the final index for a value in a single vector that represents a fixed
+ 2d grid */
+ fn flat_index(i: usize, j: usize, width: usize) -> usize {

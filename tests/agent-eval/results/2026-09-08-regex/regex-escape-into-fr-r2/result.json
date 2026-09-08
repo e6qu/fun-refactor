@@ -1,0 +1,85 @@
+{
+  "schema": "fr-agent-eval-result-1",
+  "task": "regex-escape-into",
+  "arm": "fr",
+  "archive_sha256": "7f8beace6ed6c94b2eec3c5aa92219e10e73bd8ad696035877bed01d3ee47255",
+  "binary_sha256": "6eccc6da5db83d295fa447089f6a0337e69a3adf5633df59c4fb60193026e856",
+  "tokenizer": {
+    "package": "tiktoken",
+    "version": "0.12.0",
+    "encoding": "o200k_base",
+    "vocabulary_sha256": "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d"
+  },
+  "tool_calls": 27,
+  "visible_output_tokens": 10719,
+  "output_tokens_by_category": {
+    "skill": 2825,
+    "inspection": 2603,
+    "checks": 3051,
+    "change_and_delivery": 2240
+  },
+  "prompt_tokens": 884,
+  "tool_request_tokens": 1214,
+  "visible_output_bytes": 36902,
+  "source_bytes": 5553380,
+  "tool_seconds": 81.847,
+  "elapsed_seconds": 162.051,
+  "refusals_or_failures": 0,
+  "source_edit_steps": 3,
+  "manual_corrections": 0,
+  "changed_paths": [
+    "src/lib.rs"
+  ],
+  "checks": [
+    {
+      "event": 6,
+      "passed": true,
+      "original": true,
+      "final": false
+    },
+    {
+      "event": 16,
+      "passed": true,
+      "original": false,
+      "final": true
+    },
+    {
+      "event": 21,
+      "passed": true,
+      "original": true,
+      "final": false
+    },
+    {
+      "event": 24,
+      "passed": true,
+      "original": false,
+      "final": true
+    }
+  ],
+  "undo_exact": true,
+  "redo_exact": true,
+  "workflow_ordered": true,
+  "index_unchanged": true,
+  "receiver_index_unchanged": true,
+  "receiver_matches": true,
+  "oracle": {
+    "passed": true,
+    "stage": 2,
+    "detail": "3174 independent append cases passed\n"
+  },
+  "original_oracle": {
+    "passed": false,
+    "stage": 1,
+    "detail": "error[E0425]: cannot find function `escape_into` in crate `regex`\n  --> /var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-regex-oracle-ddk6fxvv/oracle.rs:45:20\n   |\n45 |             regex::escape_into(input, &mut buf);\n   |                    ^^^^^^^^^^^ not found in `regex`\n\nerror[E0425]: cannot find function `escape_into` in crate `regex`\n  --> /var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-regex-oracle-ddk6fxvv/oracle.rs:49:20\n   |\n49 |             regex::escape_into(input, &mut buf);\n   |                    ^^^^^^^^^^^ not found in `regex`\n\nerror: aborting due to 2 previous errors\n\nFor more information about this error, try `rustc --explain E0425`.\n"
+  },
+  "receiver_oracle": {
+    "passed": true,
+    "stage": 2,
+    "detail": "3174 independent append cases passed\n"
+  },
+  "finished": true,
+  "measurement_scope": "Prompt and instrumented tool payloads; excludes system context, hidden reasoning, framing, caching and billed token usage. Cooperative isolation. One scored session.",
+  "repetition": 2,
+  "context_tokens": 11603,
+  "passed": true
+}

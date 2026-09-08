@@ -355,9 +355,9 @@ these refusals are acceptable, which leaves the permission visible and attributa
 
 ## Transactions
 
-A recipe is **one transaction**. The runner writes every step's edits or none of them.
-A half-applied recipe leaves a repository in a state nobody designed: the flag removed,
-its dead branches still there.
+A recipe plans every step in one virtual workspace. A refusal or failed expectation prevents the write.
+Accepted plans use the shared commit and recovery path.
+[CLI.md](CLI.md#write-guarantees) states the filesystem guarantees and their limits.
 
 Each step sees the workspace **as the previous step left it**, so the runner re-indexes
 between steps. `Index::build_from_sources` already does this for the cascade
@@ -494,21 +494,11 @@ What sharing would require, written down rather than answered badly:
 
 None of these are answered here. They are the reason v1 does not fetch.
 
-## What I am least sure about
+## Remaining design work
 
-1. **`rewrite` at scale.** Selecting files and applying at every applicable position
-   is the most useful and most dangerous step. `limit N` is a partial answer. A
-   `sample N` that applies to ten sites, so a person can *read* them, may be better.
-   I cannot tell without watching someone use it.
-
-2. **Statement termination by reserved word.** It gives the clean multi-line `where`
-   with no punctuation. It survived the adversarial inputs above, and the parser
-   catches a mistyped *predicate* precisely. A mistyped *step name* is the remaining
-   ambiguity. The parser can only answer `delte where unused` with "not a step or
-   directive". At that point it cannot tell a bad step from a bad predicate. A
-   closed vocabulary makes "did you mean `delete`?" easy, which is probably enough.
-
-3. **Whether `expect` belongs in the language at all.** It could be a CI concern:
-   run the recipe, then run `fr unused` and compare. Keeping it in the file makes the
-   recipe self-describing; keeping it out makes the language smaller. I lean towards
-   in, because the recipe is meant to be the artifact a reviewer reads.
+Recipes already include expectations, named steps, refusal policies and formatting.
+Recipe writes and formatting now share persistent transaction identities with other CLI changes.
+`fr history` provides checked apply, undo, redo and recovery.
+`fr history patch ID` exports recorded text changes; see [patch usage and limits](docs/git-patches.md).
+The agent workflow also needs bounded previews for large selections.
+These changes belong to the [active roadmap](PLAN.md).

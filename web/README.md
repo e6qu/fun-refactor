@@ -22,14 +22,18 @@ The wasm-bindgen CLI must match the `wasm-bindgen` version in `Cargo.lock` exact
 the two share an unstable ABI, and a mismatch fails with a schema-version error that
 says so. CI reads the version out of the lockfile for this reason.
 
-## What a first visit costs
+## Build size and language selection
 
-Roughly 1.7 MB of WebAssembly and 1.0 MB of Monaco, gzipped. The analysis is the
-larger half because it carries fifteen tree-sitter grammars, each a parse table of
-about a megabyte before compression. A build with fewer is one flag away —
-`FEATURES=wasm,lang-go,lang-typescript,lang-python ../tools/build-wasm.sh` comes to
-1.16 MB — but the saving did not seem worth asking a visitor which languages they
-were about to need.
+The bundle contains Monaco and the WASM analysis module with its selected grammars.
+Measure the current release artifacts when budgeting download size; the language set changes between releases.
+A smaller grammar selection is available through build features:
+
+```
+FEATURES=wasm,lang-go,lang-typescript,lang-python ../tools/build-wasm.sh
+```
+
+The playground exports session patches and can restore the initially loaded workspace.
+Persistent transaction undo/redo and Git integration remain on the [roadmap](../PLAN.md).
 
 ## What it does not do
 

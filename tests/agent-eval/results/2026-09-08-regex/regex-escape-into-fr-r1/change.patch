@@ -1,0 +1,23 @@
+diff --git "a/src/lib.rs" "b/src/lib.rs"
+--- "a/src/lib.rs"
++++ "b/src/lib.rs"
+@@ -1384,3 +1384,19 @@
+ pub mod __private {
+     pub use regex_automata::util::lazy::Lazy;
+ }
++/// Appends the regex-escaped form of `pattern` to `buf`.
++///
++/// This escapes every regex metacharacter in `pattern`, just like [`escape`],
++/// while preserving the existing contents of `buf`. No intermediate escaped
++/// string is allocated, although `buf` may grow to hold the result.
++///
++/// # Example
++///
++/// ```
++/// let mut buf = String::from("prefix:");
++/// regex::escape_into("a+b", &mut buf);
++/// assert_eq!(buf, r"prefix:a\+b");
++/// ```
++pub fn escape_into(pattern: &str, buf: &mut alloc::string::String) {
++    regex_syntax::escape_into(pattern, buf)
++}

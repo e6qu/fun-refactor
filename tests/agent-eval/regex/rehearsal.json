@@ -1,0 +1,51 @@
+{
+  "passed": true,
+  "run_kind": "controlled-rehearsal",
+  "task": "regex-escape-into",
+  "source_bytes": 5553380,
+  "binary_sha256": "6eccc6da5db83d295fa447089f6a0337e69a3adf5633df59c4fb60193026e856",
+  "archive_sha256": "7f8beace6ed6c94b2eec3c5aa92219e10e73bd8ad696035877bed01d3ee47255",
+  "dependency_lock_sha256": "7ae225f5fbac82509d5c259dd3613a809c75a8bd4e2124b9cb69ed29d98de3a0",
+  "original_oracle": {
+    "passed": false,
+    "stage": 1,
+    "detail": "error[E0425]: cannot find function `escape_into` in crate `regex`\n  --> /var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-regex-oracle-_22bzesc/oracle.rs:45:20\n   |\n45 |             regex::escape_into(input, &mut buf);\n   |                    ^^^^^^^^^^^ not found in `regex`\n\nerror[E0425]: cannot find function `escape_into` in crate `regex`\n  --> /var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-regex-oracle-_22bzesc/oracle.rs:49:20\n   |\n49 |             regex::escape_into(input, &mut buf);\n   |                    ^^^^^^^^^^^ not found in `regex`\n\nerror: aborting due to 2 previous errors\n\nFor more information about this error, try `rustc --explain E0425`.\n"
+  },
+  "oracle": {
+    "passed": true,
+    "stage": 2,
+    "detail": "3174 independent append cases passed\n"
+  },
+  "receiver_oracle": {
+    "passed": true,
+    "stage": 2,
+    "detail": "3174 independent append cases passed\n"
+  },
+  "negative_controls": {
+    "clears_prefix": {
+      "passed": false,
+      "stage": 2,
+      "detail": "\nthread 'main' (13129077) panicked at /var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-regex-oracle-biciyk_0/oracle.rs:47:13:\nassertion `left == right` failed\n  left: \"\"\n right: \"prefix[already\\\\escaped]\"\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"
+    },
+    "omits_escaping": {
+      "passed": false,
+      "stage": 2,
+      "detail": "\nthread 'main' (13129920) panicked at /var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-regex-oracle-33tfnour/oracle.rs:47:13:\nassertion `left == right` failed\n  left: \"a\\\\\"\n right: \"a\\\\\\\\\"\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"
+    },
+    "allocates_intermediate": {
+      "passed": false,
+      "stage": 2,
+      "detail": "\nthread 'main' (13130227) panicked at /var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-regex-oracle-fu_ycvs2/oracle.rs:46:13:\nassertion `left == right` failed: unexpected allocation\n  left: 1081\n right: 1080\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"
+    }
+  },
+  "checked_states": [
+    "original",
+    "changed",
+    "undone",
+    "redone"
+  ],
+  "undo_redo_exact": true,
+  "patch_receiver_matches": true,
+  "indexes_unchanged": true,
+  "scope": "Prescribed implementation and workflow, no autonomous agents or context-efficiency measurement."
+}

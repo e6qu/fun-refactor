@@ -1,0 +1,64 @@
+{
+  "schema": "fr-agent-eval-evidence-1",
+  "trials": [
+    "regex-escape-into-fr-r1",
+    "regex-escape-into-files-r1",
+    "regex-escape-into-fr-r2",
+    "regex-escape-into-files-r2"
+  ],
+  "project": "rust-lang/regex complete workspace snapshot, without Git history",
+  "upstream_commit": "2b527599eb9eea0dcc288c704584f242f26a5c61",
+  "archive_sha256": "7f8beace6ed6c94b2eec3c5aa92219e10e73bd8ad696035877bed01d3ee47255",
+  "dependency_lock_sha256": "7ae225f5fbac82509d5c259dd3613a809c75a8bd4e2124b9cb69ed29d98de3a0",
+  "implementation_commit": "811591ed3a73956de47a13624857ba3378ff3425",
+  "agent_execution": "Four fresh collaboration agents, fork_turns=none, inherited parent model and effort, no overrides or pinned serving-model build available. Each read its assigned generated prompt before using the cooperative instrumented tool boundary. Started fr-r1 then files-r1 concurrently; both finished and were scored before starting fr-r2 then files-r2 concurrently. No solution or prior-pair results were shared. No human task corrections, interventions, pilots or restarts. One host with preflight-warmed project builds and shared dependency cache; parent inspection, documentation, light checks and scoring of completed trials overlapped active agents. No full repository gate ran during trials. Frozen binary, skill snapshots, prompts, evaluator and oracle stayed unchanged. Harness invokes fr with --no-cache. Parent inspected completed traces and performed independent scoring afterward; agents did not run or read hidden oracles.",
+  "pilots": {
+    "interrupted": [],
+    "reason": null,
+    "included_in_scored_trials": false
+  },
+  "versions": {
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "git": "git version 2.55.0",
+    "python3": "Python 3.14.6"
+  },
+  "evaluator_files": {
+    "tools/agent-eval.py": "1136ec0ea7644ee4011785576a280483b41e37e17ea54f0d5d9f5071c578b07f",
+    "tools/agent_eval/oracle.py": "cf938812a50d1a7ce41d2c3e9b6ba9dc1abff2fa0f6fec84ff33bd2b28e7bf09",
+    "tools/agent_eval/regex_workspace.py": "d7003500c07c3c5b1b12916ffdcd094b3dddf2e59f6d8aa8510246d42b9fb08c"
+  },
+  "files": {
+    "experiment.json": "9504c386e48764412f17a36097602f77362f21c243d1454bf15f38647225e746",
+    "regex-escape-into-files-r1/change.patch": "ff87b5a343548f10614575729492c2e4a2eb18ab716b8587d38aef14cbe0be45",
+    "regex-escape-into-files-r1/events.jsonl": "120f6a90b1384d5efc4090c9af471eeb97a250b7ac7fff42245c7e8f3900847f",
+    "regex-escape-into-files-r1/prompt.txt": "9f28d74e8a4a1d264fbd01a8080b1a885094f339db4a0b8316965cb179bc69e4",
+    "regex-escape-into-files-r1/result.json": "c20a405badba21bb4668b6315dd1f942f2f8c49b238c875f197b6dc16eb3007c",
+    "regex-escape-into-files-r1/session.json": "e8f96a9dc0b189835d39f0f795011181d5bde17961e7778ba09f94f4e65c5483",
+    "regex-escape-into-files-r2/change.patch": "7f0e73c0493ab85e86e84622ca626427977a9e237b0ad11a38739df22ab92827",
+    "regex-escape-into-files-r2/events.jsonl": "4031a36241ecee3a61a745fbc39d49f298c6e27d07727a13881e69cedb8d22a5",
+    "regex-escape-into-files-r2/prompt.txt": "cc143fef2cd0bb99438d49f3a40ccf091f453cb2fb8b5ae177f8fc9f823953bb",
+    "regex-escape-into-files-r2/result.json": "f0ca033c68eed721cff55c6eccbf610cad3886545f8c6fb3e763fca9efca39a1",
+    "regex-escape-into-files-r2/session.json": "a9b944ca3ac6b82fb0a045b30db0a41f208fb7d92b101c1d35c52510ff4aaf72",
+    "regex-escape-into-fr-r1/change.patch": "39bdc9cbbd7bf44f9eddd2d20bb8a300d3d3efce551a530af0101e8b24b3c371",
+    "regex-escape-into-fr-r1/events.jsonl": "c749ea3a4a32952ec4564478a9b22c120f1039e2734d385b4b0c56076191592f",
+    "regex-escape-into-fr-r1/prompt.txt": "90dc2cff4adc997c74794af1efa37634df9b4cc5233a9d540e5b4d49be1e9172",
+    "regex-escape-into-fr-r1/result.json": "d2c878c51e916abfc3cd8f05a11e881a98a4bcc6faba48a5d3de78484ba63c2a",
+    "regex-escape-into-fr-r1/session.json": "49598d6264379ef882c0f596625c2f7fd634ff882a1950464b4353e660acb083",
+    "regex-escape-into-fr-r2/change.patch": "c3dfe748e18694829602aee00b145f6db3b9256ab3e3fe34d56bab813df6567d",
+    "regex-escape-into-fr-r2/events.jsonl": "6c580348c3c4fdca53065b54d6ac349d831ee80207e4be14fbc652ccca3a6622",
+    "regex-escape-into-fr-r2/prompt.txt": "63cad04d4b112c398e50c7b9687d424dc402503e00a574cd7302b4b8e9a5522b",
+    "regex-escape-into-fr-r2/result.json": "b7ff44ec24914223fb52b1b3869ffb693a3997c17c91731bebfd3da9ae1b7b11",
+    "regex-escape-into-fr-r2/session.json": "37269e9277b2c79017dc37459a9a8f753156fa52f7ebed1d81836938bd91e7e5",
+    "skill/SKILL.md": "39c905af0c76adcdf5284d74fcb74d9d0a5ca9aafa0297d05ef6b8011d447ba2",
+    "skill/references/author.md": "391721a9cf0982438c68ea1eadf5907f6095ff47e42017c8069fab994a2d8b0d",
+    "skill/references/change.md": "9b2ede37e019fc62bedd4f72b103667ac2880fa394253a714cb992270f7b6ef0",
+    "skill/references/checks.md": "b55516b944cecd9ae643d0ce6e40aa315a8741b7897a76232a8be826e1b272b8",
+    "skill/references/explore.md": "ef2970bf481e729442bf5346603a457837871cf70d7a4f0405bb8591c1c0049e",
+    "skill/references/git-admin.md": "006e92b39ec734cd81436e7545029da4469e2e35d5cc94f8daef99629facbb47",
+    "skill/references/git.md": "e808545a818cb58bc5a47b5230a27f705e5ffee8c9ee3f874efb7ccc176e1abc",
+    "skill/references/history.md": "4ba8b9f8d24a8623691b049325659d4cc2f42515c35924e210d3f5db4eb3a6b9",
+    "skill/references/lean.md": "f423b374cbe8328a23d9123f8a01f810a7f03048a22c7e71e84d78b565fc2998",
+    "skill/references/recipes.md": "1a9da93e0ad4e22591ba80368383958cdd951d1eda0c1d978f1608d7cee01f68"
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "schema": "fr-agent-eval-session-1",
+  "task": "unicode-dice",
+  "arm": "files",
+  "archive_sha256": "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f",
+  "upstream_commit": "76c5a900e6e12cfc605eee5ab6e36300384c8682",
+  "fr": "/Users/zardoz/projects/fun-refactor/target/agent-eval-bin/fr-m4i",
+  "binary_sha256": "b018b9776d7e452edb677b6ccb518691efc82c48325becb952ebf98901970792",
+  "original": {
+    ".cargo_vcs_info.json": {
+      "sha256": "f1b4d455ec43c8d4dd906a420bc9d9337c85ab879116266517cb95b2a5255bbc",
+      "mode": 420
+    },
+    ".editorconfig": {
+      "sha256": "d87dec5ba57378b3c32bbf67526e434f7ac4f44d8b1acc7f44b6d8e7ee6919ad",
+      "mode": 420
+    },
+    ".fr/checks.json": {
+      "sha256": "ee00137942b97b40048a35056017ff985f1bd5ea6104e7d7022e5f024aa9eb36",
+      "mode": 420
+    },
+    ".gitattributes": {
+      "sha256": "419ab766cbe7ae8669f841017daa5cff052f6c0f888390675a2a0087290ff60f",
+      "mode": 420
+    },
+    ".gitignore": {
+      "sha256": "a42ad2be8e0020f12ecf0c26e2879c28061b30b53181341f342e35164f93d342",
+      "mode": 420
+    },
+    "CHANGELOG.md": {
+      "sha256": "fa5e48fab6b5642005fb5fa9f113b116d9da561a829cd773739350042e87e225",
+      "mode": 420
+    },
+    "Cargo.toml": {
+      "sha256": "e74cc8f9ab1f8680c26aebab519e3fbda7521eebd1e8fdcebdfc2e1bf138a875",
+      "mode": 420
+    },
+    "Cargo.toml.orig": {
+      "sha256": "164788a125f395001110409f08b2357370acb9bb766b88365a3e38f885559244",
+      "mode": 420
+    },
+    "LICENSE": {
+      "sha256": "1e697ce8d21401fbf1bddd9b5c3fd4c4c79ae1e3bdf51f81761c85e11d5a89cd",
+      "mode": 420
+    },
+    "README.md": {
+      "sha256": "599d424147dfbf88943bb6d78cebca346488fd246611917b586d73502a684c3a",
+      "mode": 420
+    },
+    "SECURITY.md": {
+      "sha256": "db1925a1d93a212ff6b55e9fbbceebb7a8f3a64688d76598475a54f1f242f0bf",
+      "mode": 420
+    },
+    "benches/benches.rs": {
+      "sha256": "2f7fae162a517378b42af04b4b077ffd563171f7341cba55b4efca3b4c30426a",
+      "mode": 420
+    },
+    "src/lib.rs": {
+      "sha256": "6f0b31f95526ccc0a88ed788b6be9b929bd8ee32fd0c3f38b0399cb7e63954e3",
+      "mode": 420
+    },
+    "tests/lib.rs": {
+      "sha256": "4c8207a5728b82836795e2f87d7d7834db7276082f5ded640f34822feb750cb4",
+      "mode": 420
+    }
+  },
+  "index_sha256": "a2ffa8d1bd6675770e183d489a291480cdfa346541a410c44d25570d77b71b97",
+  "receiver_index_sha256": "a3f24a1f03d61a6420c01b17c31400be82d4040ccb9b2d4feb08a3bf64257ee6",
+  "source_bytes": 41054,
+  "created_at": 1788809878.298503,
+  "original_oracle": {
+    "passed": false,
+    "stage": 2,
+    "detail": "\nthread 'main' (11560028) panicked at /var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-agent-oracle-14unkno1/oracle.rs:36:9:\na=\"aa\" b=\"aaé\": 0.5 != 0.6666666666666666\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"
+  },
+  "preflight_passed": true
+}

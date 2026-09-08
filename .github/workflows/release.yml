@@ -123,6 +123,7 @@ jobs:
           mkdir -p "dist/$name"
           cp "target/${{ matrix.target }}/release/fr" "dist/$name/"
           cp LICENSE README.md CLI.md "dist/$name/"
+          cp -R skills "dist/$name/skills"
           tar -C dist -czf "dist/$name.tar.gz" "$name"
           # The checksum travels with the file it describes. A download nobody
           # can verify is a download nobody should run.

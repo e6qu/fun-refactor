@@ -1407,9 +1407,9 @@ impl Hierarchy {
         imports: &[crate::model::Import],
     ) -> Self {
         let mut hierarchy = Hierarchy::default();
-        let Some(family) = Family::of(language) else {
+        if Family::of(language).is_none() {
             return hierarchy;
-        };
+        }
         let source = match crate::vfs::read_to_string(path) {
             Ok(source) => source,
             Err(error) => {
@@ -1417,7 +1417,21 @@ impl Hierarchy {
                 return hierarchy;
             }
         };
-        let parsed = match parsers.parse(language, &source) {
+        Self::from_source(parsers, path, language, imports, &source)
+    }
+
+    pub fn from_source(
+        parsers: &Parsers,
+        path: &Path,
+        language: Language,
+        imports: &[crate::model::Import],
+        source: &str,
+    ) -> Self {
+        let mut hierarchy = Hierarchy::default();
+        let Some(family) = Family::of(language) else {
+            return hierarchy;
+        };
+        let parsed = match parsers.parse(language, source) {
             Ok(parsed) => parsed,
             Err(error) => {
                 hierarchy.gaps.push((path.to_path_buf(), error.to_string()));
@@ -1437,16 +1451,16 @@ impl Hierarchy {
         let mut calls: Vec<FunctionValueCall> = Vec::new();
         let mut visit = |node: Node| {
             if node.child_count() > 1 {
-                collect_function_value(node, family, &source, &mut bindings);
-                collect_called_name(node, &source, &mut calls);
-                collect_function_value_return(node, &source, &mut returns);
+                collect_function_value(node, family, source, &mut bindings);
+                collect_called_name(node, source, &mut calls);
+                collect_function_value_return(node, source, &mut returns);
             }
             match family {
-                Family::Rust => hierarchy.visit_rust(node, &source, &mut sites),
-                Family::Go => hierarchy.visit_go(node, &source, &mut sites),
-                Family::Ts => hierarchy.visit_ts(node, &source, &mut sites),
-                Family::Java => hierarchy.visit_java(node, &source, &mut sites),
-                Family::Python => hierarchy.visit_python(node, &source, &mut sites),
+                Family::Rust => hierarchy.visit_rust(node, source, &mut sites),
+                Family::Go => hierarchy.visit_go(node, source, &mut sites),
+                Family::Ts => hierarchy.visit_ts(node, source, &mut sites),
+                Family::Java => hierarchy.visit_java(node, source, &mut sites),
+                Family::Python => hierarchy.visit_python(node, source, &mut sites),
             }
         };
         walk(parsed.root(), &mut visit);
@@ -1475,7 +1489,7 @@ impl Hierarchy {
         hierarchy
     }
 
-    fn merge(&mut self, other: Self) {
+    pub(crate) fn merge(&mut self, other: Self) {
         for (key, methods) in other.declares {
             self.declares.entry(key).or_default().extend(methods);
         }

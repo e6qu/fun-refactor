@@ -1,0 +1,901 @@
+{
+  "schema": "fr-project-cache-1",
+  "passed": true,
+  "binary_sha256": "d807feacfaf7be1b057ca6eea8534ca34a15c5c7d40ddbcece8e8199b1af558f",
+  "binary_path": "/Users/zardoz/projects/fun-refactor/target/debug/fr",
+  "repetitions": 3,
+  "started_at": "2026-09-08T08:21:16.873496+00:00",
+  "finished_at": "2026-09-08T08:25:32.116189+00:00",
+  "runtime": {
+    "platform": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "python": "3.14.6",
+    "logical_cpus": 12,
+    "rayon_num_threads": null
+  },
+  "archive_sha256": "7f8beace6ed6c94b2eec3c5aa92219e10e73bd8ad696035877bed01d3ee47255",
+  "dependency_lock_sha256": "7ae225f5fbac82509d5c259dd3613a809c75a8bd4e2124b9cb69ed29d98de3a0",
+  "measurement_files": {
+    "tools/project-cache.py": "8101ee95ccbd0a1d7676e035fffc106d247eb45b0a1bd2bc2ad3f23ddfcadd61",
+    "tools/agent-eval.py": "1136ec0ea7644ee4011785576a280483b41e37e17ea54f0d5d9f5071c578b07f",
+    "tools/agent_eval/regex_workspace.py": "d7003500c07c3c5b1b12916ffdcd094b3dddf2e59f6d8aa8510246d42b9fb08c"
+  },
+  "examples": [
+    {
+      "name": "escape",
+      "path": "src/lib.rs",
+      "args": [
+        "project",
+        "find",
+        "escape",
+        "--in",
+        "src/lib.rs",
+        "--signature",
+        "--source",
+        "--bytes",
+        "2048"
+      ],
+      "baseline": {
+        "args": [
+          "project",
+          "find",
+          "escape",
+          "--in",
+          "src/lib.rs",
+          "--signature",
+          "--source",
+          "--bytes",
+          "2048"
+        ],
+        "cache_disabled": true,
+        "seconds": 10.338056375,
+        "exit_code": 0,
+        "stdout_bytes": 1328,
+        "stdout_sha256": "8390485cd44137c45acef7cb506845cbe1c5e5534f5478e1992014a901f94ddd",
+        "stdout": "{\"columns\":[\"handle\",\"parent\",\"kind\",\"name\",\"path\",\"line\",\"signature\",\"source\"],\"coverage\":{\"architecture\":\"not inferred\",\"files_by_gap\":{},\"hierarchy\":\"directories and lexical spans\",\"indexed_files\":249,\"manifests\":{\"discovered\":8,\"ecosystems\":[\"cargo\",\"npm\"],\"gaps\":0,\"parsed\":8,\"resolution\":\"not-attempted\",\"scope\":\"selected scan root\"},\"max_file_bytes\":4194304,\"respect_ignore\":true,\"skipped_files\":0,\"skipped_symlinks\":0,\"unresolved_references\":48602,\"unsupported_files\":195},\"handle_prefix\":\"frp1:70e5daa47ea8431e8767fa416a98b3ff:\",\"match\":{\"mode\":\"exact\",\"name\":\"escape\"},\"omitted\":{\"matching_locals\":0},\"page\":{\"before\":0,\"next\":null,\"remaining\":0,\"returned\":1,\"total\":1},\"query\":\"find\",\"revision\":\"70e5daa47ea8431e8767fa416a98b3ffc2fcd222cbed4645374bca1ac77d9584\",\"root\":\"frp1:70e5daa47ea8431e8767fa416a98b3ff:3b3b\",\"rows\":[[\"frp1:70e5daa47ea8431e8767fa416a98b3ff:3b43\",\"3b3b\",\"function\",\"escape\",\"src/lib.rs\",1378,{\"basis\":\"syntax-header\",\"text\":\"pub fn escape(pattern: &str) -> alloc::string::String\"},{\"next_offset\":null,\"offset\":0,\"returned_bytes\":91,\"span\":{\"end\":59759,\"start\":59668},\"text\":\"pub fn escape(pattern: &str) -> alloc::string::String {\\n    regex_syntax::escape(pattern)\\n}\",\"total_bytes\":91}]],\"schema\":\"fr-project-1\",\"source_budget\":{\"limit_bytes\":2048,\"returned_bytes\":91,\"scope\":\"returned page\"}}\n",
+        "stderr": ""
+      },
+      "runs": [
+        {
+          "repetition": 1,
+          "mode": "disabled",
+          "before_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "after_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "warmup_seconds": null,
+          "args": [
+            "project",
+            "find",
+            "escape",
+            "--in",
+            "src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": true,
+          "seconds": 10.338056375,
+          "exit_code": 0,
+          "stdout_bytes": 1328,
+          "stdout_sha256": "8390485cd44137c45acef7cb506845cbe1c5e5534f5478e1992014a901f94ddd",
+          "stderr": ""
+        },
+        {
+          "repetition": 1,
+          "mode": "empty",
+          "before_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "after_cache": {
+            "files": 244,
+            "bytes": 3982680,
+            "contents_sha256": "a96759ead1b26e39cddfb715e756db4430e6de2e0eec0e2c4ec374fd73a94105"
+          },
+          "warmup_seconds": null,
+          "args": [
+            "project",
+            "find",
+            "escape",
+            "--in",
+            "src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": false,
+          "seconds": 10.230053417,
+          "exit_code": 0,
+          "stdout_bytes": 1328,
+          "stdout_sha256": "8390485cd44137c45acef7cb506845cbe1c5e5534f5478e1992014a901f94ddd",
+          "stderr": ""
+        },
+        {
+          "repetition": 1,
+          "mode": "populated",
+          "before_cache": {
+            "files": 244,
+            "bytes": 3982696,
+            "contents_sha256": "77422acd30916c99754de00fcdfee60430d3c4e4a2cb1c6b3d546f9632bc1ac1"
+          },
+          "after_cache": {
+            "files": 244,
+            "bytes": 3982696,
+            "contents_sha256": "77422acd30916c99754de00fcdfee60430d3c4e4a2cb1c6b3d546f9632bc1ac1"
+          },
+          "warmup_seconds": 10.182664958,
+          "args": [
+            "project",
+            "find",
+            "escape",
+            "--in",
+            "src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": false,
+          "seconds": 3.279551166,
+          "exit_code": 0,
+          "stdout_bytes": 1328,
+          "stdout_sha256": "8390485cd44137c45acef7cb506845cbe1c5e5534f5478e1992014a901f94ddd",
+          "stderr": ""
+        },
+        {
+          "repetition": 2,
+          "mode": "empty",
+          "before_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "after_cache": {
+            "files": 244,
+            "bytes": 3982685,
+            "contents_sha256": "97ecda57a20654847d0d2b7dbc6e4d83b5a36b6e3b8a0bf3ae827ce219a9e852"
+          },
+          "warmup_seconds": null,
+          "args": [
+            "project",
+            "find",
+            "escape",
+            "--in",
+            "src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": false,
+          "seconds": 10.297768125,
+          "exit_code": 0,
+          "stdout_bytes": 1328,
+          "stdout_sha256": "8390485cd44137c45acef7cb506845cbe1c5e5534f5478e1992014a901f94ddd",
+          "stderr": ""
+        },
+        {
+          "repetition": 2,
+          "mode": "populated",
+          "before_cache": {
+            "files": 244,
+            "bytes": 3982696,
+            "contents_sha256": "77422acd30916c99754de00fcdfee60430d3c4e4a2cb1c6b3d546f9632bc1ac1"
+          },
+          "after_cache": {
+            "files": 244,
+            "bytes": 3982696,
+            "contents_sha256": "77422acd30916c99754de00fcdfee60430d3c4e4a2cb1c6b3d546f9632bc1ac1"
+          },
+          "warmup_seconds": 10.221267334,
+          "args": [
+            "project",
+            "find",
+            "escape",
+            "--in",
+            "src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": false,
+          "seconds": 3.274614083,
+          "exit_code": 0,
+          "stdout_bytes": 1328,
+          "stdout_sha256": "8390485cd44137c45acef7cb506845cbe1c5e5534f5478e1992014a901f94ddd",
+          "stderr": ""
+        },
+        {
+          "repetition": 2,
+          "mode": "disabled",
+          "before_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "after_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "warmup_seconds": null,
+          "args": [
+            "project",
+            "find",
+            "escape",
+            "--in",
+            "src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": true,
+          "seconds": 10.086567542,
+          "exit_code": 0,
+          "stdout_bytes": 1328,
+          "stdout_sha256": "8390485cd44137c45acef7cb506845cbe1c5e5534f5478e1992014a901f94ddd",
+          "stderr": ""
+        },
+        {
+          "repetition": 3,
+          "mode": "populated",
+          "before_cache": {
+            "files": 244,
+            "bytes": 3982682,
+            "contents_sha256": "646d470007789115b0ddf8e154aea8bb97ae8df8ba0035fc832dadd165fd02ab"
+          },
+          "after_cache": {
+            "files": 244,
+            "bytes": 3982682,
+            "contents_sha256": "646d470007789115b0ddf8e154aea8bb97ae8df8ba0035fc832dadd165fd02ab"
+          },
+          "warmup_seconds": 10.298084166,
+          "args": [
+            "project",
+            "find",
+            "escape",
+            "--in",
+            "src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": false,
+          "seconds": 3.282931166,
+          "exit_code": 0,
+          "stdout_bytes": 1328,
+          "stdout_sha256": "8390485cd44137c45acef7cb506845cbe1c5e5534f5478e1992014a901f94ddd",
+          "stderr": ""
+        },
+        {
+          "repetition": 3,
+          "mode": "disabled",
+          "before_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "after_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "warmup_seconds": null,
+          "args": [
+            "project",
+            "find",
+            "escape",
+            "--in",
+            "src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": true,
+          "seconds": 10.087551209,
+          "exit_code": 0,
+          "stdout_bytes": 1328,
+          "stdout_sha256": "8390485cd44137c45acef7cb506845cbe1c5e5534f5478e1992014a901f94ddd",
+          "stderr": ""
+        },
+        {
+          "repetition": 3,
+          "mode": "empty",
+          "before_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "after_cache": {
+            "files": 244,
+            "bytes": 3982696,
+            "contents_sha256": "77422acd30916c99754de00fcdfee60430d3c4e4a2cb1c6b3d546f9632bc1ac1"
+          },
+          "warmup_seconds": null,
+          "args": [
+            "project",
+            "find",
+            "escape",
+            "--in",
+            "src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": false,
+          "seconds": 10.232929708,
+          "exit_code": 0,
+          "stdout_bytes": 1328,
+          "stdout_sha256": "8390485cd44137c45acef7cb506845cbe1c5e5534f5478e1992014a901f94ddd",
+          "stderr": ""
+        }
+      ],
+      "summary": {
+        "disabled": {
+          "min_seconds": 10.086567542,
+          "median_seconds": 10.087551209,
+          "max_seconds": 10.338056375,
+          "samples": 3
+        },
+        "empty": {
+          "min_seconds": 10.230053417,
+          "median_seconds": 10.232929708,
+          "max_seconds": 10.297768125,
+          "samples": 3
+        },
+        "populated": {
+          "min_seconds": 3.274614083,
+          "median_seconds": 3.279551166,
+          "max_seconds": 3.282931166,
+          "samples": 3
+        }
+      },
+      "invalidation": {
+        "passed": true,
+        "path": "src/lib.rs",
+        "original_sha256": "e87192b2e862d3a01777307584c7c898b189c4d78e6f7a800f52d7e84c3aab1c",
+        "probe": "\n    // fr cache invalidation probe\n",
+        "before_cache": {
+          "files": 244,
+          "bytes": 3982682,
+          "contents_sha256": "646d470007789115b0ddf8e154aea8bb97ae8df8ba0035fc832dadd165fd02ab"
+        },
+        "changed_cache": {
+          "files": 246,
+          "bytes": 4336053,
+          "contents_sha256": "dce08263eecfaeba7bd7a26e5d054ed3b9af016209ebc3c258b94e0817a2d123"
+        },
+        "changed": {
+          "args": [
+            "project",
+            "find",
+            "escape",
+            "--in",
+            "src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": false,
+          "seconds": 7.916739,
+          "exit_code": 0,
+          "stdout_bytes": 1369,
+          "stdout_sha256": "ed0067612ba537cc3cc01d38ffeb8905c82e113708890319feadde33e56cf631",
+          "stdout": "{\"columns\":[\"handle\",\"parent\",\"kind\",\"name\",\"path\",\"line\",\"signature\",\"source\"],\"coverage\":{\"architecture\":\"not inferred\",\"files_by_gap\":{},\"hierarchy\":\"directories and lexical spans\",\"indexed_files\":249,\"manifests\":{\"discovered\":8,\"ecosystems\":[\"cargo\",\"npm\"],\"gaps\":0,\"parsed\":8,\"resolution\":\"not-attempted\",\"scope\":\"selected scan root\"},\"max_file_bytes\":4194304,\"respect_ignore\":true,\"skipped_files\":0,\"skipped_symlinks\":0,\"unresolved_references\":48602,\"unsupported_files\":195},\"handle_prefix\":\"frp1:4fdca4afbe427ccc4b0cf32f8afdafb3:\",\"match\":{\"mode\":\"exact\",\"name\":\"escape\"},\"omitted\":{\"matching_locals\":0},\"page\":{\"before\":0,\"next\":null,\"remaining\":0,\"returned\":1,\"total\":1},\"query\":\"find\",\"revision\":\"4fdca4afbe427ccc4b0cf32f8afdafb3071fb7df1e764bfba013147239a6f035\",\"root\":\"frp1:4fdca4afbe427ccc4b0cf32f8afdafb3:3b3b\",\"rows\":[[\"frp1:4fdca4afbe427ccc4b0cf32f8afdafb3:3b43\",\"3b3b\",\"function\",\"escape\",\"src/lib.rs\",1378,{\"basis\":\"syntax-header\",\"text\":\"pub fn escape(pattern: &str) -> alloc::string::String\"},{\"next_offset\":null,\"offset\":0,\"returned_bytes\":127,\"span\":{\"end\":59795,\"start\":59668},\"text\":\"pub fn escape(pattern: &str) -> alloc::string::String {\\n    // fr cache invalidation probe\\n\\n    regex_syntax::escape(pattern)\\n}\",\"total_bytes\":127}]],\"schema\":\"fr-project-1\",\"source_budget\":{\"limit_bytes\":2048,\"returned_bytes\":127,\"scope\":\"returned page\"}}\n",
+          "stderr": ""
+        },
+        "uncached": {
+          "args": [
+            "project",
+            "find",
+            "escape",
+            "--in",
+            "src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": true,
+          "seconds": 10.45145025,
+          "exit_code": 0,
+          "stdout_bytes": 1369,
+          "stdout_sha256": "ed0067612ba537cc3cc01d38ffeb8905c82e113708890319feadde33e56cf631",
+          "stdout": "{\"columns\":[\"handle\",\"parent\",\"kind\",\"name\",\"path\",\"line\",\"signature\",\"source\"],\"coverage\":{\"architecture\":\"not inferred\",\"files_by_gap\":{},\"hierarchy\":\"directories and lexical spans\",\"indexed_files\":249,\"manifests\":{\"discovered\":8,\"ecosystems\":[\"cargo\",\"npm\"],\"gaps\":0,\"parsed\":8,\"resolution\":\"not-attempted\",\"scope\":\"selected scan root\"},\"max_file_bytes\":4194304,\"respect_ignore\":true,\"skipped_files\":0,\"skipped_symlinks\":0,\"unresolved_references\":48602,\"unsupported_files\":195},\"handle_prefix\":\"frp1:4fdca4afbe427ccc4b0cf32f8afdafb3:\",\"match\":{\"mode\":\"exact\",\"name\":\"escape\"},\"omitted\":{\"matching_locals\":0},\"page\":{\"before\":0,\"next\":null,\"remaining\":0,\"returned\":1,\"total\":1},\"query\":\"find\",\"revision\":\"4fdca4afbe427ccc4b0cf32f8afdafb3071fb7df1e764bfba013147239a6f035\",\"root\":\"frp1:4fdca4afbe427ccc4b0cf32f8afdafb3:3b3b\",\"rows\":[[\"frp1:4fdca4afbe427ccc4b0cf32f8afdafb3:3b43\",\"3b3b\",\"function\",\"escape\",\"src/lib.rs\",1378,{\"basis\":\"syntax-header\",\"text\":\"pub fn escape(pattern: &str) -> alloc::string::String\"},{\"next_offset\":null,\"offset\":0,\"returned_bytes\":127,\"span\":{\"end\":59795,\"start\":59668},\"text\":\"pub fn escape(pattern: &str) -> alloc::string::String {\\n    // fr cache invalidation probe\\n\\n    regex_syntax::escape(pattern)\\n}\",\"total_bytes\":127}]],\"schema\":\"fr-project-1\",\"source_budget\":{\"limit_bytes\":2048,\"returned_bytes\":127,\"scope\":\"returned page\"}}\n",
+          "stderr": ""
+        },
+        "stale_handle": {
+          "args": [
+            "project",
+            "show",
+            "frp1:70e5daa47ea8431e8767fa416a98b3ff:3b43",
+            "--source"
+          ],
+          "cache_disabled": false,
+          "seconds": 3.321509417,
+          "exit_code": 1,
+          "stdout_bytes": 120,
+          "stdout_sha256": "57a2b77abf17df8897afad7ce81232f410cb7689f24bf8a5007daeee37a1a875",
+          "stdout": "{\n  \"error\": {\n    \"kind\": \"error\",\n    \"message\": \"stale or invalid project handle; obtain a fresh project map.\"\n  }\n}\n",
+          "stderr": "Error: stale or invalid project handle; obtain a fresh project map.\n"
+        },
+        "restored": {
+          "args": [
+            "project",
+            "find",
+            "escape",
+            "--in",
+            "src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": false,
+          "seconds": 3.276617708,
+          "exit_code": 0,
+          "stdout_bytes": 1328,
+          "stdout_sha256": "8390485cd44137c45acef7cb506845cbe1c5e5534f5478e1992014a901f94ddd",
+          "stdout": "{\"columns\":[\"handle\",\"parent\",\"kind\",\"name\",\"path\",\"line\",\"signature\",\"source\"],\"coverage\":{\"architecture\":\"not inferred\",\"files_by_gap\":{},\"hierarchy\":\"directories and lexical spans\",\"indexed_files\":249,\"manifests\":{\"discovered\":8,\"ecosystems\":[\"cargo\",\"npm\"],\"gaps\":0,\"parsed\":8,\"resolution\":\"not-attempted\",\"scope\":\"selected scan root\"},\"max_file_bytes\":4194304,\"respect_ignore\":true,\"skipped_files\":0,\"skipped_symlinks\":0,\"unresolved_references\":48602,\"unsupported_files\":195},\"handle_prefix\":\"frp1:70e5daa47ea8431e8767fa416a98b3ff:\",\"match\":{\"mode\":\"exact\",\"name\":\"escape\"},\"omitted\":{\"matching_locals\":0},\"page\":{\"before\":0,\"next\":null,\"remaining\":0,\"returned\":1,\"total\":1},\"query\":\"find\",\"revision\":\"70e5daa47ea8431e8767fa416a98b3ffc2fcd222cbed4645374bca1ac77d9584\",\"root\":\"frp1:70e5daa47ea8431e8767fa416a98b3ff:3b3b\",\"rows\":[[\"frp1:70e5daa47ea8431e8767fa416a98b3ff:3b43\",\"3b3b\",\"function\",\"escape\",\"src/lib.rs\",1378,{\"basis\":\"syntax-header\",\"text\":\"pub fn escape(pattern: &str) -> alloc::string::String\"},{\"next_offset\":null,\"offset\":0,\"returned_bytes\":91,\"span\":{\"end\":59759,\"start\":59668},\"text\":\"pub fn escape(pattern: &str) -> alloc::string::String {\\n    regex_syntax::escape(pattern)\\n}\",\"total_bytes\":91}]],\"schema\":\"fr-project-1\",\"source_budget\":{\"limit_bytes\":2048,\"returned_bytes\":91,\"scope\":\"returned page\"}}\n",
+          "stderr": ""
+        },
+        "scope": "A temporary comment inside the selected function; this checks source invalidation, not build behavior."
+      }
+    },
+    {
+      "name": "escape_into",
+      "path": "regex-syntax/src/lib.rs",
+      "args": [
+        "project",
+        "find",
+        "escape_into",
+        "--in",
+        "regex-syntax/src/lib.rs",
+        "--signature",
+        "--source",
+        "--bytes",
+        "2048"
+      ],
+      "baseline": {
+        "args": [
+          "project",
+          "find",
+          "escape_into",
+          "--in",
+          "regex-syntax/src/lib.rs",
+          "--signature",
+          "--source",
+          "--bytes",
+          "2048"
+        ],
+        "cache_disabled": true,
+        "seconds": 10.203398625,
+        "exit_code": 0,
+        "stdout_bytes": 1471,
+        "stdout_sha256": "8a292559f2bddde8f6513e9edf436d699d8115e6d3575e9e44e76abf917da356",
+        "stdout": "{\"columns\":[\"handle\",\"parent\",\"kind\",\"name\",\"path\",\"line\",\"signature\",\"source\"],\"coverage\":{\"architecture\":\"not inferred\",\"files_by_gap\":{},\"hierarchy\":\"directories and lexical spans\",\"indexed_files\":249,\"manifests\":{\"discovered\":8,\"ecosystems\":[\"cargo\",\"npm\"],\"gaps\":0,\"parsed\":8,\"resolution\":\"not-attempted\",\"scope\":\"selected scan root\"},\"max_file_bytes\":4194304,\"respect_ignore\":true,\"skipped_files\":0,\"skipped_symlinks\":0,\"unresolved_references\":48602,\"unsupported_files\":195},\"handle_prefix\":\"frp1:70e5daa47ea8431e8767fa416a98b3ff:\",\"match\":{\"mode\":\"exact\",\"name\":\"escape_into\"},\"omitted\":{\"matching_locals\":0},\"page\":{\"before\":0,\"next\":null,\"remaining\":0,\"returned\":1,\"total\":1},\"query\":\"find\",\"revision\":\"70e5daa47ea8431e8767fa416a98b3ffc2fcd222cbed4645374bca1ac77d9584\",\"root\":\"frp1:70e5daa47ea8431e8767fa416a98b3ff:35d5\",\"rows\":[[\"frp1:70e5daa47ea8431e8767fa416a98b3ff:35e3\",\"35d5\",\"function\",\"escape_into\",\"regex-syntax/src/lib.rs\",213,{\"basis\":\"syntax-header\",\"text\":\"pub fn escape_into(text: &str, buf: &mut String)\"},{\"next_offset\":null,\"offset\":0,\"returned_bytes\":208,\"span\":{\"end\":8916,\"start\":8708},\"text\":\"pub fn escape_into(text: &str, buf: &mut String) {\\n    buf.reserve(text.len());\\n    for c in text.chars() {\\n        if is_meta_character(c) {\\n            buf.push('\\\\\\\\');\\n        }\\n        buf.push(c);\\n    }\\n}\",\"total_bytes\":208}]],\"schema\":\"fr-project-1\",\"source_budget\":{\"limit_bytes\":2048,\"returned_bytes\":208,\"scope\":\"returned page\"}}\n",
+        "stderr": ""
+      },
+      "runs": [
+        {
+          "repetition": 1,
+          "mode": "disabled",
+          "before_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "after_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "warmup_seconds": null,
+          "args": [
+            "project",
+            "find",
+            "escape_into",
+            "--in",
+            "regex-syntax/src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": true,
+          "seconds": 10.203398625,
+          "exit_code": 0,
+          "stdout_bytes": 1471,
+          "stdout_sha256": "8a292559f2bddde8f6513e9edf436d699d8115e6d3575e9e44e76abf917da356",
+          "stderr": ""
+        },
+        {
+          "repetition": 1,
+          "mode": "empty",
+          "before_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "after_cache": {
+            "files": 244,
+            "bytes": 3982696,
+            "contents_sha256": "77422acd30916c99754de00fcdfee60430d3c4e4a2cb1c6b3d546f9632bc1ac1"
+          },
+          "warmup_seconds": null,
+          "args": [
+            "project",
+            "find",
+            "escape_into",
+            "--in",
+            "regex-syntax/src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": false,
+          "seconds": 10.553082333,
+          "exit_code": 0,
+          "stdout_bytes": 1471,
+          "stdout_sha256": "8a292559f2bddde8f6513e9edf436d699d8115e6d3575e9e44e76abf917da356",
+          "stderr": ""
+        },
+        {
+          "repetition": 1,
+          "mode": "populated",
+          "before_cache": {
+            "files": 244,
+            "bytes": 3982685,
+            "contents_sha256": "97ecda57a20654847d0d2b7dbc6e4d83b5a36b6e3b8a0bf3ae827ce219a9e852"
+          },
+          "after_cache": {
+            "files": 244,
+            "bytes": 3982685,
+            "contents_sha256": "97ecda57a20654847d0d2b7dbc6e4d83b5a36b6e3b8a0bf3ae827ce219a9e852"
+          },
+          "warmup_seconds": 10.315194625,
+          "args": [
+            "project",
+            "find",
+            "escape_into",
+            "--in",
+            "regex-syntax/src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": false,
+          "seconds": 3.278632167,
+          "exit_code": 0,
+          "stdout_bytes": 1471,
+          "stdout_sha256": "8a292559f2bddde8f6513e9edf436d699d8115e6d3575e9e44e76abf917da356",
+          "stderr": ""
+        },
+        {
+          "repetition": 2,
+          "mode": "empty",
+          "before_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "after_cache": {
+            "files": 244,
+            "bytes": 3982682,
+            "contents_sha256": "6fd299e84749e51490dbac41c431fc523bbe0c5f979a8c5f8752130e81f9842d"
+          },
+          "warmup_seconds": null,
+          "args": [
+            "project",
+            "find",
+            "escape_into",
+            "--in",
+            "regex-syntax/src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": false,
+          "seconds": 10.149125125,
+          "exit_code": 0,
+          "stdout_bytes": 1471,
+          "stdout_sha256": "8a292559f2bddde8f6513e9edf436d699d8115e6d3575e9e44e76abf917da356",
+          "stderr": ""
+        },
+        {
+          "repetition": 2,
+          "mode": "populated",
+          "before_cache": {
+            "files": 244,
+            "bytes": 3982680,
+            "contents_sha256": "a96759ead1b26e39cddfb715e756db4430e6de2e0eec0e2c4ec374fd73a94105"
+          },
+          "after_cache": {
+            "files": 244,
+            "bytes": 3982680,
+            "contents_sha256": "a96759ead1b26e39cddfb715e756db4430e6de2e0eec0e2c4ec374fd73a94105"
+          },
+          "warmup_seconds": 10.128142959,
+          "args": [
+            "project",
+            "find",
+            "escape_into",
+            "--in",
+            "regex-syntax/src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": false,
+          "seconds": 3.281941083,
+          "exit_code": 0,
+          "stdout_bytes": 1471,
+          "stdout_sha256": "8a292559f2bddde8f6513e9edf436d699d8115e6d3575e9e44e76abf917da356",
+          "stderr": ""
+        },
+        {
+          "repetition": 2,
+          "mode": "disabled",
+          "before_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "after_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "warmup_seconds": null,
+          "args": [
+            "project",
+            "find",
+            "escape_into",
+            "--in",
+            "regex-syntax/src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": true,
+          "seconds": 10.202147708,
+          "exit_code": 0,
+          "stdout_bytes": 1471,
+          "stdout_sha256": "8a292559f2bddde8f6513e9edf436d699d8115e6d3575e9e44e76abf917da356",
+          "stderr": ""
+        },
+        {
+          "repetition": 3,
+          "mode": "populated",
+          "before_cache": {
+            "files": 244,
+            "bytes": 3982680,
+            "contents_sha256": "0c83e675aecb3bc89d53cdeb2dc1ebca97093a722739afe97a6b3c2ee5c1bce1"
+          },
+          "after_cache": {
+            "files": 244,
+            "bytes": 3982680,
+            "contents_sha256": "0c83e675aecb3bc89d53cdeb2dc1ebca97093a722739afe97a6b3c2ee5c1bce1"
+          },
+          "warmup_seconds": 10.167088583,
+          "args": [
+            "project",
+            "find",
+            "escape_into",
+            "--in",
+            "regex-syntax/src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": false,
+          "seconds": 3.284405583,
+          "exit_code": 0,
+          "stdout_bytes": 1471,
+          "stdout_sha256": "8a292559f2bddde8f6513e9edf436d699d8115e6d3575e9e44e76abf917da356",
+          "stderr": ""
+        },
+        {
+          "repetition": 3,
+          "mode": "disabled",
+          "before_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "after_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "warmup_seconds": null,
+          "args": [
+            "project",
+            "find",
+            "escape_into",
+            "--in",
+            "regex-syntax/src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": true,
+          "seconds": 10.313114458,
+          "exit_code": 0,
+          "stdout_bytes": 1471,
+          "stdout_sha256": "8a292559f2bddde8f6513e9edf436d699d8115e6d3575e9e44e76abf917da356",
+          "stderr": ""
+        },
+        {
+          "repetition": 3,
+          "mode": "empty",
+          "before_cache": {
+            "files": 0,
+            "bytes": 0,
+            "contents_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+          },
+          "after_cache": {
+            "files": 244,
+            "bytes": 3982685,
+            "contents_sha256": "16a94b901f22e24f6c3266611c59a28119aaadb4d060ef41a0c6f2f40d640ebd"
+          },
+          "warmup_seconds": null,
+          "args": [
+            "project",
+            "find",
+            "escape_into",
+            "--in",
+            "regex-syntax/src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": false,
+          "seconds": 10.218806084,
+          "exit_code": 0,
+          "stdout_bytes": 1471,
+          "stdout_sha256": "8a292559f2bddde8f6513e9edf436d699d8115e6d3575e9e44e76abf917da356",
+          "stderr": ""
+        }
+      ],
+      "summary": {
+        "disabled": {
+          "min_seconds": 10.202147708,
+          "median_seconds": 10.203398625,
+          "max_seconds": 10.313114458,
+          "samples": 3
+        },
+        "empty": {
+          "min_seconds": 10.149125125,
+          "median_seconds": 10.218806084,
+          "max_seconds": 10.553082333,
+          "samples": 3
+        },
+        "populated": {
+          "min_seconds": 3.278632167,
+          "median_seconds": 3.281941083,
+          "max_seconds": 3.284405583,
+          "samples": 3
+        }
+      },
+      "invalidation": {
+        "passed": true,
+        "path": "regex-syntax/src/lib.rs",
+        "original_sha256": "c51d1e55a8b6c4608e21a278ed0ef9480f73ab5b814b6ca6127f4a049c4d5007",
+        "probe": "\n    // fr cache invalidation probe\n",
+        "before_cache": {
+          "files": 244,
+          "bytes": 3982680,
+          "contents_sha256": "0c83e675aecb3bc89d53cdeb2dc1ebca97093a722739afe97a6b3c2ee5c1bce1"
+        },
+        "changed_cache": {
+          "files": 246,
+          "bytes": 4338631,
+          "contents_sha256": "bbc2aa959c14e8203d3a349d6662f718091373c96ebbe7d74dcfdf590b7b421b"
+        },
+        "changed": {
+          "args": [
+            "project",
+            "find",
+            "escape_into",
+            "--in",
+            "regex-syntax/src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": false,
+          "seconds": 7.916339208,
+          "exit_code": 0,
+          "stdout_bytes": 1509,
+          "stdout_sha256": "338946dd62b474412fda1a72267b26d2d7a3fc36504d515753e49e812c9243d2",
+          "stdout": "{\"columns\":[\"handle\",\"parent\",\"kind\",\"name\",\"path\",\"line\",\"signature\",\"source\"],\"coverage\":{\"architecture\":\"not inferred\",\"files_by_gap\":{},\"hierarchy\":\"directories and lexical spans\",\"indexed_files\":249,\"manifests\":{\"discovered\":8,\"ecosystems\":[\"cargo\",\"npm\"],\"gaps\":0,\"parsed\":8,\"resolution\":\"not-attempted\",\"scope\":\"selected scan root\"},\"max_file_bytes\":4194304,\"respect_ignore\":true,\"skipped_files\":0,\"skipped_symlinks\":0,\"unresolved_references\":48602,\"unsupported_files\":195},\"handle_prefix\":\"frp1:3fd24cc6cda75d85d440a37431c3a251:\",\"match\":{\"mode\":\"exact\",\"name\":\"escape_into\"},\"omitted\":{\"matching_locals\":0},\"page\":{\"before\":0,\"next\":null,\"remaining\":0,\"returned\":1,\"total\":1},\"query\":\"find\",\"revision\":\"3fd24cc6cda75d85d440a37431c3a2512cdf6fc537d3356cf419e3f0481aa62f\",\"root\":\"frp1:3fd24cc6cda75d85d440a37431c3a251:35d5\",\"rows\":[[\"frp1:3fd24cc6cda75d85d440a37431c3a251:35e3\",\"35d5\",\"function\",\"escape_into\",\"regex-syntax/src/lib.rs\",213,{\"basis\":\"syntax-header\",\"text\":\"pub fn escape_into(text: &str, buf: &mut String)\"},{\"next_offset\":null,\"offset\":0,\"returned_bytes\":244,\"span\":{\"end\":8952,\"start\":8708},\"text\":\"pub fn escape_into(text: &str, buf: &mut String) {\\n    // fr cache invalidation probe\\n\\n    buf.reserve(text.len());\\n    for c in text.chars() {\\n        if is_meta_character(c) {\\n            buf.push('\\\\\\\\');\\n        }\\n        buf.push(c);\\n    }\\n}\",\"total_bytes\":244}]],\"schema\":\"fr-project-1\",\"source_budget\":{\"limit_bytes\":2048,\"returned_bytes\":244,\"scope\":\"returned page\"}}\n",
+          "stderr": ""
+        },
+        "uncached": {
+          "args": [
+            "project",
+            "find",
+            "escape_into",
+            "--in",
+            "regex-syntax/src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": true,
+          "seconds": 10.151362959,
+          "exit_code": 0,
+          "stdout_bytes": 1509,
+          "stdout_sha256": "338946dd62b474412fda1a72267b26d2d7a3fc36504d515753e49e812c9243d2",
+          "stdout": "{\"columns\":[\"handle\",\"parent\",\"kind\",\"name\",\"path\",\"line\",\"signature\",\"source\"],\"coverage\":{\"architecture\":\"not inferred\",\"files_by_gap\":{},\"hierarchy\":\"directories and lexical spans\",\"indexed_files\":249,\"manifests\":{\"discovered\":8,\"ecosystems\":[\"cargo\",\"npm\"],\"gaps\":0,\"parsed\":8,\"resolution\":\"not-attempted\",\"scope\":\"selected scan root\"},\"max_file_bytes\":4194304,\"respect_ignore\":true,\"skipped_files\":0,\"skipped_symlinks\":0,\"unresolved_references\":48602,\"unsupported_files\":195},\"handle_prefix\":\"frp1:3fd24cc6cda75d85d440a37431c3a251:\",\"match\":{\"mode\":\"exact\",\"name\":\"escape_into\"},\"omitted\":{\"matching_locals\":0},\"page\":{\"before\":0,\"next\":null,\"remaining\":0,\"returned\":1,\"total\":1},\"query\":\"find\",\"revision\":\"3fd24cc6cda75d85d440a37431c3a2512cdf6fc537d3356cf419e3f0481aa62f\",\"root\":\"frp1:3fd24cc6cda75d85d440a37431c3a251:35d5\",\"rows\":[[\"frp1:3fd24cc6cda75d85d440a37431c3a251:35e3\",\"35d5\",\"function\",\"escape_into\",\"regex-syntax/src/lib.rs\",213,{\"basis\":\"syntax-header\",\"text\":\"pub fn escape_into(text: &str, buf: &mut String)\"},{\"next_offset\":null,\"offset\":0,\"returned_bytes\":244,\"span\":{\"end\":8952,\"start\":8708},\"text\":\"pub fn escape_into(text: &str, buf: &mut String) {\\n    // fr cache invalidation probe\\n\\n    buf.reserve(text.len());\\n    for c in text.chars() {\\n        if is_meta_character(c) {\\n            buf.push('\\\\\\\\');\\n        }\\n        buf.push(c);\\n    }\\n}\",\"total_bytes\":244}]],\"schema\":\"fr-project-1\",\"source_budget\":{\"limit_bytes\":2048,\"returned_bytes\":244,\"scope\":\"returned page\"}}\n",
+          "stderr": ""
+        },
+        "stale_handle": {
+          "args": [
+            "project",
+            "show",
+            "frp1:70e5daa47ea8431e8767fa416a98b3ff:35e3",
+            "--source"
+          ],
+          "cache_disabled": false,
+          "seconds": 3.321893708,
+          "exit_code": 1,
+          "stdout_bytes": 120,
+          "stdout_sha256": "57a2b77abf17df8897afad7ce81232f410cb7689f24bf8a5007daeee37a1a875",
+          "stdout": "{\n  \"error\": {\n    \"kind\": \"error\",\n    \"message\": \"stale or invalid project handle; obtain a fresh project map.\"\n  }\n}\n",
+          "stderr": "Error: stale or invalid project handle; obtain a fresh project map.\n"
+        },
+        "restored": {
+          "args": [
+            "project",
+            "find",
+            "escape_into",
+            "--in",
+            "regex-syntax/src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": false,
+          "seconds": 3.284508834,
+          "exit_code": 0,
+          "stdout_bytes": 1471,
+          "stdout_sha256": "8a292559f2bddde8f6513e9edf436d699d8115e6d3575e9e44e76abf917da356",
+          "stdout": "{\"columns\":[\"handle\",\"parent\",\"kind\",\"name\",\"path\",\"line\",\"signature\",\"source\"],\"coverage\":{\"architecture\":\"not inferred\",\"files_by_gap\":{},\"hierarchy\":\"directories and lexical spans\",\"indexed_files\":249,\"manifests\":{\"discovered\":8,\"ecosystems\":[\"cargo\",\"npm\"],\"gaps\":0,\"parsed\":8,\"resolution\":\"not-attempted\",\"scope\":\"selected scan root\"},\"max_file_bytes\":4194304,\"respect_ignore\":true,\"skipped_files\":0,\"skipped_symlinks\":0,\"unresolved_references\":48602,\"unsupported_files\":195},\"handle_prefix\":\"frp1:70e5daa47ea8431e8767fa416a98b3ff:\",\"match\":{\"mode\":\"exact\",\"name\":\"escape_into\"},\"omitted\":{\"matching_locals\":0},\"page\":{\"before\":0,\"next\":null,\"remaining\":0,\"returned\":1,\"total\":1},\"query\":\"find\",\"revision\":\"70e5daa47ea8431e8767fa416a98b3ffc2fcd222cbed4645374bca1ac77d9584\",\"root\":\"frp1:70e5daa47ea8431e8767fa416a98b3ff:35d5\",\"rows\":[[\"frp1:70e5daa47ea8431e8767fa416a98b3ff:35e3\",\"35d5\",\"function\",\"escape_into\",\"regex-syntax/src/lib.rs\",213,{\"basis\":\"syntax-header\",\"text\":\"pub fn escape_into(text: &str, buf: &mut String)\"},{\"next_offset\":null,\"offset\":0,\"returned_bytes\":208,\"span\":{\"end\":8916,\"start\":8708},\"text\":\"pub fn escape_into(text: &str, buf: &mut String) {\\n    buf.reserve(text.len());\\n    for c in text.chars() {\\n        if is_meta_character(c) {\\n            buf.push('\\\\\\\\');\\n        }\\n        buf.push(c);\\n    }\\n}\",\"total_bytes\":208}]],\"schema\":\"fr-project-1\",\"source_budget\":{\"limit_bytes\":2048,\"returned_bytes\":208,\"scope\":\"returned page\"}}\n",
+          "stderr": ""
+        },
+        "scope": "A temporary comment inside the selected function; this checks source invalidation, not build behavior."
+      }
+    }
+  ],
+  "source_and_index_restored": true,
+  "scope": "Single-host prescribed queries; rotating cache-mode order; each populated run has a separately timed priming query excluded from the summaries. Cache inventory hashing also runs outside the timed query and reads populated entries. Empty means an empty fr fact cache, not a cold OS cache. Timings cover whole subprocess calls, including scanning, indexing, source verification and output; no phase profiling or cache-hit counters. No agents, task builds, context savings or production latency claim."
+}

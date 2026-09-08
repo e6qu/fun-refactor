@@ -20,6 +20,31 @@ reads one language at a time, so it cannot follow a name across that boundary.
 New here? Read [docs/terminology.md](docs/terminology.md) for the words this project
 uses. [TUTORIAL.md](TUTORIAL.md) walks through a real repository.
 
+For an agent handoff, use the portable [fr skill](skills/fr/SKILL.md).
+[Agent skill validation](docs/agent-skill.md) describes its task-specific references, executable examples and measured limits.
+[Function authoring](docs/body-authoring.md) adds bounded Rust, Go, TypeScript and TSX implementation changes through project handles and source-history transactions.
+[Project checks](docs/project-checks.md) selects declared validation commands and reports bounded results and coverage claims.
+After reviewing the listing, add `--no-declarations` to `checks --run` to omit repeated command metadata while retaining execution outcomes and diagnostics.
+[Development continuity](docs/continuity.md) records the active milestone, evidence and remaining work for the next session.
+The portable skill starts targeted edits with authoring guidance and loads exploration or interrupted-write recovery when needed.
+`project find --source --bytes N` combines name lookup with source slices under one shared page budget.
+[Source kernel proofs](docs/lean-specs.md#bounded-source-kernels) cover modeled UTF-8 slicing and shared budgets, with Rust and CLI comparisons.
+[Cache measurements](docs/project-context-evaluation.md#query-time-and-the-fact-cache) compare query time while checking identical reports and source invalidation.
+[Release profiling](docs/project-context-evaluation.md#release-stage-profiling) identifies project construction as the largest remaining stage in the measured cached lookups.
+[Batched revision hashing](docs/project-context-evaluation.md#batched-revision-hashing) reduces allocation and hash-update overhead while checking identical reports and stale-source refusals.
+[Revision buffer proofs](docs/lean-specs.md#revision-buffer-kernels) cover ordered bytes, failed writes and flush schedules, with shared Rust/Lean execution checks.
+[Real-agent acceptance](docs/agent-acceptance.md) records the first paired trials and reversible patches.
+The [context-reduction follow-up](docs/agent-context-followup.md) measures targeted lookup, quiet successful checks and selective skill loading against fresh file-tool trials.
+Use `fr project find NAME --signature` to locate a known declaration without requesting a broad map.
+After reviewing a source transaction, `history apply`, `undo`, `redo` and `recover` accept `--write --no-diff` for smaller completion reports.
+The [workspace evaluation](docs/agent-workspace-evaluation.md) records four passing trials on the larger regex repository, with context comparisons and replayable patches.
+Rust function declaration replacement also supports combined signature and implementation changes.
+Declaration insertion adds a Rust function through a file or inline module handle while retaining existing code.
+Authoring batches coordinate disjoint edits across files through one reviewed source-history transaction.
+The [controlled batch comparison](docs/project-context-evaluation.md#coordinated-authoring-measurement) measures command and payload costs while checking behavior and exact reversal.
+The [coordinated workspace task](docs/agent-workspace-evaluation.md#coordinated-task-preparation) prepares evaluation of a change spanning regex and regex-syntax.
+The [coordinated agent evaluation](docs/agent-coordinated-evaluation.md) records the paired trials of that task.
+
 ## Why
 
 Language servers work well for the four largest ecosystems. Elsewhere you find a thin
@@ -115,7 +140,7 @@ fr translate openapi.yaml fastapi  # a service skeleton from a contract
 fr recipe <file.recipe>       # a workspace transaction: recipes find, do, expect together
 fr recipe fmt recipes --check # format every recipe in a directory, or reject drift
 fr spec check                 # Lean models whose source anchors still match
-fr spec sync --write          # renew reviewed stale source hashes atomically
+fr spec sync --write          # renew reviewed stale source hashes
 fr spec verify                # strict correspondence plus Lake builds
 fr openapi [--yaml]           # the contract a Next.js route tree declares
 fr callers <fn> --depth 3     # who calls this
@@ -131,8 +156,9 @@ fr stitch                     # config values traced into the code reading them
 fr entrypoints --kind http-route
 ```
 
-Every command takes `--json`. Every mutation prints a diff and changes nothing until
-you add `--write`, and it then applies a multi-file change atomically.
+Every command takes `--json`. Source refactorings preview their diff; `--write` applies it and `--save-plan` records a plan.
+`checks --run` executes declared project commands outside source history.
+[CLI.md](CLI.md#write-guarantees) states the commit and recovery guarantees and command-specific exceptions.
 
 `fr` indexes files in parallel and caches the facts it extracts by file content and
 query set. A repeated command therefore re-reads only what changed, roughly 1.7×
@@ -199,10 +225,9 @@ To build it yourself instead:
 cargo install --path .
 ```
 
-`./tools/check.sh` runs everything CI runs: formatting, clippy, the tests, the
-capability report and the prose check. It runs them twice, once for the default build
-and once with the browser API compiled in. CI calls the same script, so a pass here
-and a pass there mean the same thing.
+`./tools/check.sh` runs the native and WASM API PR checks, capability coverage, prose checks and Lean kernels.
+A separate CI job builds and exercises the browser playground.
+`./tools/check.sh deep` runs the repository-scale audits.
 
 ## Third-party material
 
@@ -222,58 +247,102 @@ and nothing reports that.
 
 ## Adding a language
 
-Query files hold what `fr` knows about a language, and Rust holds none of it.
-`queries/<lang>/facts.scm` declares the definitions, references, scopes and imports
-of one language. `src/extract.rs` documents the names a query may attach to a node.
-YAML files in `catalogs/` carry the rules for entry points. To add a language or a
-framework, add data. A language whose published grammar cannot read it needs one thing
-more: a patched copy under `grammars/`, which that directory's README explains.
+`queries/<lang>/facts.scm` declares definitions, references, scopes and imports.
+`src/extract.rs` documents the captures each query can produce.
+YAML catalogs describe recognized entry points.
+
+A new language also needs grammar integration and capability decisions.
+Refactoring and translation rules may require Rust changes and language-specific validation.
+Framework migration needs adapters for its runtime and project conventions.
+See `grammars/README.md` for grammar provenance and local patches.
 
 ## Status
 
-Every stage of [PLAN.md](PLAN.md) is complete. This project has ruled the LSP delegation backend out and deferred the daemon, each with the measurement behind the
-decision. The tool builds every capability a language can meaningfully support:
-**311 of 456 capability × language pairs supported, 145 not applicable, none refused.**
-The code generates the matrix above, and `fr capabilities` prints the reason behind
-every cell that is not a ✓.
+The generated matrix records **311 of 456 capability × language pairs supported, 145 not applicable**.
+Supported operations still report input-specific limitations and confidence.
 
-[TUTORIAL.md](TUTORIAL.md) walks through one real repository, helm/helm, and shows
-the output each command produced. The [project
-site](https://e6qu.github.io/fun-refactor/demo.html) steps through the same session.
+[PLAN.md](PLAN.md) is the active roadmap for agents: compact project understanding,
+reversible changes, Git patches, reusable Lean verification and hierarchical framework migration.
+The original implementation stages are complete. The new milestones remain active.
+LSP delegation stays outside the default engine; daemon/watch mode awaits a measured need.
 
-[EXAMPLES.md](EXAMPLES.md) holds one example for each capability. Each one ran
-against a public repository at a fixed commit: ripgrep, requests, helm,
-terraform-aws-vpc, zls and grafana. It also lists what the tool does not do, and what
-each of those would take.
+The shared commit path recovers earlier writes after a handled failure and reports recovery problems.
+The native CLI now saves plans and supports checked apply, undo, redo and interrupted-write recovery through `fr history`.
+`fr history patch ID` exports stored text changes for Git, with reverse export and optional JSON metadata.
+Add `--check` to compare the receiving files with the recorded starting state; `--against DIR` selects another workspace.
+Use `--git-check` for Git's application verdict, with `--index` to include the index.
+Patch-basis and executable-mode helpers have anchored Lean models with 55,358 shared execution comparisons.
+See [recorded transaction patches](docs/git-patches.md) for application checks, mode scope and limitations.
+`fr file delete` and `fr file executable --set on|off` add explicit file operations with saved plans, undo/redo and patch export.
+See [file transactions](docs/file-transactions.md) for owner-execute semantics and validation scope.
+`fr git status` pages through repository changes with filters, rename sources and continuation cursors.
+See [Git status](docs/git-status.md) for observation limits, omitted submodules and configuration scope.
+`fr git changes` discovers changed paths and line counts across the repository, including comparisons since a commit.
+See [repository change pages](docs/git-changes.md) for scope and metadata identity.
+`fr git diff PATH` pages through hunks and capped source excerpts, with staged and commit-based comparisons.
+Add `--symbols` for changed declarations and their containing hierarchy, with snapshot checks and no source bodies.
+Add `--calls` for incoming and outgoing candidates within each file snapshot, retaining confidence and unresolved targets.
+Repeat `--include FILE` to add explicit caller and target context, with selected blob bases and checked raw working snapshots.
+See [Git diff details](docs/git-diff.md) for cursor identity and supported paths.
+`fr git stage PATH...` previews raw staging entries; `--basis TOKEN --write` applies them through a prepared index on Unix.
+See [staging semantics and limits](docs/git-staging.md) for raw byte and mode semantics.
+`fr git stage-history` inspects staging records and previews checked undo, redo and recovery; see [staging history](docs/git-stage-history.md).
+`fr git commit -m MESSAGE` previews the entire index; `--basis TOKEN --write` publishes it after index and HEAD checks.
+See [reviewed commits](docs/git-commit.md) for identity configuration, disabled hooks/signing and publication limits.
+`fr git worktree list` pages through registered workspaces, branches, HEADs and lock metadata.
+See [worktree inspection](docs/git-worktrees.md) for observation limits and cursor identity.
+`fr git worktree create PATH --branch NAME` previews a fresh raw checkout; `--basis TOKEN --write` creates it on Unix.
+See [reviewed worktree creation](docs/git-worktree-creation.md) for branch checks and partial-failure outcomes.
+Use `--existing-branch NAME` for an unused local branch; [existing-branch checkout](docs/git-worktree-existing-branches.md) preserves its tip and configuration.
+`fr git worktree recover PATH` previews completion of a recorded incomplete checkout, with checked application through `--basis TOKEN --write`.
+See [recorded recovery](docs/git-worktree-recovery.md) for ownership receipts and preservation rules.
+`fr git worktree remove PATH` previews removal of a clean owned worktree; `--basis TOKEN --write` archives metadata and removes reviewed files.
+[Reviewed removal](docs/git-worktree-removal.md) retains the branch and refuses extra content.
+[Removal resumption](docs/git-worktree-removal-resumption.md) uses `fr git worktree resume-removal RECORD` to inspect partial removals and `--basis TOKEN --write` to finish them.
+[Archive compaction](docs/git-worktree-archive-compaction.md) uses `fr git worktree compact-removal RECORD` to review discarding completed recovery records while retaining audit summaries.
+The browser already exports patches and can restore its initial workspace.
+`fr project` now provides compact hierarchy maps and bounded source inspection.
+Its package and dependency pages report Cargo/npm manifest declarations with shared revision checks.
+`fr project links` adds local manifest links and workspace pattern candidates with explicit unresolved cases.
+`fr project workspaces` adds observed Cargo membership and supports inherited local dependency links.
+Cargo exclusions use literal path prefixes, with matching literal member prefixes taking precedence.
+Glob-shaped exclusions produce unresolved rows.
+Cargo member patterns can start with `../` within the selected snapshot; observed sibling packages still need ownership evidence.
+Its expansion helper has an anchored Lean model with finite convergence and exact closure laws.
+Shared graph cases test Rust correspondence; Cargo interpretation remains outside the proofs.
+`fr project calls` and `implementations` page through call sites and hierarchy candidates, retaining uncertainty and coverage gaps.
+`fr project routes` adds bounded declarations and handler candidates for five pattern readers, Next.js App Router exports and direct FastAPI decorators.
+Next.js candidates include local function export aliases and terminal catch-all paths; contract rows retain catch-all cardinality.
+Direct variable handlers expose initializer annotations. Nested app candidates retain captured npm dependency and package-boundary evidence.
+`fr project contracts` adds paged path parameters, Axum/Spring request type candidates and declared handler return types, with explicit gaps.
+FastAPI contract rows include explicit parameter markers and decorator response models, with separate return annotations and no inferred wire schemas.
+`fr project schemas` pages Python class, TypeScript interface/object-alias and Rust struct fields, with followable candidates and explicit validation gaps.
+`fr project contracts --types` adds optional declaration links from supported signature types, preserving ambiguity and unresolved names.
+`fr project configuration` pages environment declarations and candidate code consumers, with captured-source checks and explicit analysis gaps.
+`fr project tests` adds catalog candidates and bounded call-path witnesses, preserving the weakest edge confidence without claiming runtime coverage.
+Complete dependency graphs, framework semantics and broader task evaluations remain roadmap work.
 
-[CLI.md](CLI.md) is the command reference: every command, what it answers, and what
-it refuses.
+[TUTORIAL.md](TUTORIAL.md) walks through helm/helm.
+[EXAMPLES.md](EXAMPLES.md) shows capabilities on pinned public repositories.
+[CLI.md](CLI.md) documents the implemented commands.
+[Project view evaluation](docs/project-context-evaluation.md) measures compact output and records the remaining task-level checks.
 
-Four documents cover the work that spans more than one language at a time:
+- [CROSS_LANGUAGE.md](CROSS_LANGUAGE.md) explains reference and translation boundaries.
+- [API_CONTRACTS.md](API_CONTRACTS.md) describes HTTP contract extraction and route conversion.
+- [RECIPES.md](RECIPES.md) defines the local recipe language.
+- [IR.md](IR.md) describes the intermediary language and translation evidence.
+- [docs/lean-specs.md](docs/lean-specs.md) separates implemented Lean checks from the adoption roadmap.
 
-- [CROSS_LANGUAGE.md](CROSS_LANGUAGE.md) for what a name crossing a language
-  boundary can and cannot prove.
-- [API_CONTRACTS.md](API_CONTRACTS.md) for rewriting a service while preserving the
-  contract its callers see.
-- [RECIPES.md](RECIPES.md) for the recipe language `fr recipe` runs.
-- [IR.md](IR.md) for the intermediary language every translation crosses, and what
-  a writer does when it cannot spell a construct.
-- [docs/lean-specs.md](docs/lean-specs.md) for a plan nobody has built: writing this
-  project's specifications in Lean, and the three things that idea promises which nobody
-  can deliver.
+Lean readers, writers, edit and position models, and `spec check`, `sync` and `verify` exist.
+Strict signature correspondence currently accepts Rust source declarations.
+Model proofs and shared execution cases establish different kinds of evidence; neither alone proves every Rust behavior.
 
-[BUGS.md](BUGS.md) tracks the open limitations, and the tool reports each one to you
-instead of answering it wrongly in silence. One stands open: reachability through a
-function value nothing in the workspace names.
+[BUGS.md](BUGS.md) records known limitations and fixed defects.
+B5 tracks reachability that available source evidence cannot settle.
+The list records known findings; it does not establish the absence of other defects.
 
-Where a published grammar could not read source the language accepts, this build
-compiles a patched copy instead: `grammars/` holds one for Go, Python, Sass, SCSS,
-TypeScript and Zig, each with its upstream pin, licence, patch and the corpus measurement
-showing the patch changes no tree the published parser already read.
-
-One piece remains unbuilt: the optional LSP delegation backend. (The plan also lists
-a watch-mode daemon, though the fact cache already recovers most of what it would
-have saved.)
+`grammars/` holds grammar sources and provenance, including the Lean grammar and patched upstream grammars.
+The build uses these where the published grammar cannot read supported source forms.
 
 ## Licence
 

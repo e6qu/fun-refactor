@@ -96,20 +96,15 @@ Key facts:
   per-language project-config discovery, applying `WorkspaceEdit` yourself, and capability
   checks before offering an op.
 
-## 4. Recommended hybrid
+## 4. Current architecture decision
 
-1. **Substrate (all 12)**: Rust CLI, funveil's grammar set, byte-splice edit engine with
-   descending-offset application, post-edit reparse validation, dry-run diff output.
-2. **Own resolution where LSPs are weak** (the eight): `locals.scm` scope trees for
-   shadowing-safe renames. Weekend-sized string-keyed binders per config/markup language
-   (Terraform address graph, Helm values paths, CSS↔HTML selectors, XML id/idref, Markdown
-   anchors/links). A cross-language reference index on top.
-3. **Optional LSP delegation for the big 4**: `prepareRename` → `rename` → apply WorkspaceEdit,
-   with capability checks and LSP diagnostics as post-edit verification. Without it, the tool
-   offers big-4 renames in "syntactic + scope-checked" mode with explicit safety caveats.
-4. **Safety net for what nothing catches**: after any rename, sweep the text for the old name
-   in strings/comments/templates across *all* languages. Surface the hits for review, because
-   string refs defeat both syntax and LSP.
+The core uses tree-sitter, its own scope and reference index, byte edits and post-edit parsing.
+It reports textual occurrences and confidence limits alongside structural changes.
+
+The original survey proposed optional LSP delegation. The active design excludes that backend from the default engine.
+Server lifecycle and project setup conflict with the standalone workflow, while the measured rename benefit was limited.
+[PLAN.md](PLAN.md) records the current agent, recovery and verification milestones.
+The comparisons above remain research background rather than pending implementation instructions.
 
 ## 5. Refactor × language-class matrix (what "all the standard refactors" concretely means)
 

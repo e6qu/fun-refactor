@@ -264,34 +264,6 @@ fn a_parse_failure_says_where_it_is() {
 }
 
 #[test]
-fn the_plan_s_closing_list_names_every_command() {
-    // The other direction from the test above, asking "is any command missing from the list
-    // that claims to enumerate them".
-    let plan =
-        std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("PLAN.md"))
-            .expect("PLAN.md");
-    let listed: BTreeSet<String> = plan
-        .rsplit_once("\nCommands:")
-        .expect("PLAN.md ends with the list of commands")
-        .1
-        .split('`')
-        .skip(1)
-        .step_by(2)
-        .map(str::to_string)
-        .collect();
-
-    let missing: Vec<String> = fun_refactor::cli::command_names()
-        .into_iter()
-        .filter(|name| !listed.contains(name))
-        .collect();
-    assert!(
-        missing.is_empty(),
-        "PLAN.md's closing list does not name: {}",
-        missing.join(", ")
-    );
-}
-
-#[test]
 fn every_published_page_parses() {
     // The site is HTML this tool claims to read, and it shipped two raw `&&` in text, an
     // unterminated entity reference, which browsers recover from and the tool's own parser

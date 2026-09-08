@@ -10,3 +10,7 @@
 grammars/*/src/parser.c linguist-generated=true -diff
 grammars/*/src/grammar.json linguist-generated=true -diff
 grammars/*/src/node-types.json linguist-generated=true -diff
+tests/agent-eval/results/** -text
+tests/agent-eval/results/**/change.patch whitespace=-blank-at-eol
+# Preserve the measured skill snapshot, including its original final blank line.
+tests/agent-eval/results/2026-09-07-context/skill/references/recipes.md whitespace=-blank-at-eof

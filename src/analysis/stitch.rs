@@ -7,6 +7,7 @@ use crate::model::{Confidence, Symbol, SymbolKind};
 use crate::parse::Parsers;
 use crate::span::{LineIndex, Span};
 use anyhow::Result;
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 /// One end-to-end route from configuration into code.
@@ -58,9 +59,73 @@ pub struct EnvRead {
 /// Find every configuration-to-code chain in the workspace.
 pub fn chains(index: &Index) -> Result<Vec<Chain>> {
     crate::capabilities::record_workspace(crate::capabilities::Capability::Stitch, index);
-    let mut declarations = env_declarations(index)?;
-    declarations.extend(compose_declarations(index)?);
-    let reads = env_reads(index)?;
+    Ok(analyze_with(
+        index,
+        &|path| crate::vfs::read_to_string(path).ok(),
+        &|_| true,
+    )?
+    .chains)
+}
+
+pub struct Analysis {
+    pub chains: Vec<Chain>,
+    pub reads: Vec<NamedRead>,
+    pub gaps: Vec<(PathBuf, String)>,
+}
+
+pub fn analyze_snapshot(index: &Index, sources: &BTreeMap<PathBuf, String>) -> Result<Analysis> {
+    let mut accepted = BTreeMap::new();
+    let mut gaps = Vec::new();
+    let parsers = Parsers::new();
+    for (path, info) in index.files() {
+        if !matches!(info.language, Language::Helm | Language::Yaml)
+            && !reads_environment(info.language)
+        {
+            continue;
+        }
+        let Some(source) = sources.get(path) else {
+            gaps.push((
+                path.clone(),
+                "source is absent from the captured inputs.".into(),
+            ));
+            continue;
+        };
+        if index.content_hash(path) != Some(crate::index::content_hash_of(source)) {
+            gaps.push((
+                path.clone(),
+                "captured source does not match the indexed content hash.".into(),
+            ));
+            continue;
+        }
+        match parsers.parse(info.language, source) {
+            Ok(parsed) if !parsed.has_errors() => {
+                accepted.insert(path.clone(), source);
+            }
+            _ => {
+                gaps.push((
+                    path.clone(),
+                    "the parser could not read this file cleanly.".into(),
+                ));
+            }
+        }
+    }
+    let mut analysis = analyze_with(
+        index,
+        &|path| accepted.get(path).map(|s| (*s).clone()),
+        &|path| accepted.contains_key(path),
+    )?;
+    analysis.gaps = gaps;
+    Ok(analysis)
+}
+
+fn analyze_with(
+    index: &Index,
+    read: &impl Fn(&Path) -> Option<String>,
+    available: &impl Fn(&Path) -> bool,
+) -> Result<Analysis> {
+    let mut declarations = env_declarations(index, read)?;
+    declarations.extend(compose_declarations(index, read)?);
+    let reads = env_reads(index, read)?;
 
     let mut chains: Vec<Chain> = Vec::new();
     for declaration in declarations {
@@ -73,7 +138,7 @@ pub fn chains(index: &Index) -> Result<Vec<Chain>> {
         let values_file = declaration
             .values_path
             .as_ref()
-            .and_then(|path| values_file_defining(index, &declaration.file, path));
+            .and_then(|path| values_file_defining(index, &declaration.file, path, available));
 
         chains.push(Chain {
             env_var: declaration.name,
@@ -88,7 +153,11 @@ pub fn chains(index: &Index) -> Result<Vec<Chain>> {
 
     chains.sort_by(|a, b| a.env_var.cmp(&b.env_var));
     chains.dedup();
-    Ok(chains)
+    Ok(Analysis {
+        chains,
+        reads,
+        gaps: Vec::new(),
+    })
 }
 
 /// The chains touching one environment variable.
@@ -109,7 +178,10 @@ struct Declaration {
 }
 
 /// Environment variables declared in Helm templates and plain manifests.
-fn env_declarations(index: &Index) -> Result<Vec<Declaration>> {
+fn env_declarations(
+    index: &Index,
+    read: &impl Fn(&Path) -> Option<String>,
+) -> Result<Vec<Declaration>> {
     let parsers = Parsers::new();
     let mut found = Vec::new();
 
@@ -117,7 +189,7 @@ fn env_declarations(index: &Index) -> Result<Vec<Declaration>> {
         if !matches!(info.language, Language::Helm | Language::Yaml) {
             continue;
         }
-        let Ok(source) = crate::vfs::read_to_string(path) else {
+        let Some(source) = read(path) else {
             continue;
         };
         let parsed = parsers.parse(info.language, &source)?;
@@ -173,7 +245,10 @@ fn env_declarations(index: &Index) -> Result<Vec<Declaration>> {
 }
 
 /// Environment variables set by a docker-compose file.
-fn compose_declarations(index: &Index) -> Result<Vec<Declaration>> {
+fn compose_declarations(
+    index: &Index,
+    read: &impl Fn(&Path) -> Option<String>,
+) -> Result<Vec<Declaration>> {
     let mut found = Vec::new();
 
     for (path, info) in index.files() {
@@ -196,7 +271,7 @@ fn compose_declarations(index: &Index) -> Result<Vec<Declaration>> {
         if environments.is_empty() {
             continue;
         }
-        let Ok(source) = crate::vfs::read_to_string(path) else {
+        let Some(source) = read(path) else {
             continue;
         };
         let line_index = LineIndex::new(&source);
@@ -341,12 +416,17 @@ fn value_of(key: &Symbol, source: &str) -> Option<String> {
 }
 
 /// The values file defining a `.Values` path, searched from the template outwards.
-fn values_file_defining(index: &Index, template: &Path, path: &[String]) -> Option<PathBuf> {
+fn values_file_defining(
+    index: &Index,
+    template: &Path,
+    path: &[String],
+    available: &impl Fn(&Path) -> bool,
+) -> Option<PathBuf> {
     let leaf = path.last()?;
     let mut dir = template.parent();
     while let Some(current) = dir {
         for (file, info) in index.files() {
-            if file.parent() != Some(current) {
+            if file.parent() != Some(current) || !available(file) {
                 continue;
             }
             let is_values = file
@@ -371,13 +451,13 @@ fn values_file_defining(index: &Index, template: &Path, path: &[String]) -> Opti
 }
 
 /// A read of an environment variable found in program source.
-struct NamedRead {
-    name: String,
-    read: EnvRead,
+pub struct NamedRead {
+    pub name: String,
+    pub read: EnvRead,
 }
 
 /// Every environment-variable read in the workspace's code.
-fn env_reads(index: &Index) -> Result<Vec<NamedRead>> {
+fn env_reads(index: &Index, read: &impl Fn(&Path) -> Option<String>) -> Result<Vec<NamedRead>> {
     let mut reads = Vec::new();
 
     for (path, info) in index.files() {
@@ -385,7 +465,7 @@ fn env_reads(index: &Index) -> Result<Vec<NamedRead>> {
         if accessors.is_empty() {
             continue;
         }
-        let Ok(source) = crate::vfs::read_to_string(path) else {
+        let Some(source) = read(path) else {
             continue;
         };
         let line_index = LineIndex::new(&source);

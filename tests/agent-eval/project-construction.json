@@ -1,0 +1,1404 @@
+{
+  "schema": "fr-project-construction-comparison-1",
+  "passed": true,
+  "started_at": "2026-09-08T09:42:57.938404+00:00",
+  "finished_at": "2026-09-08T09:43:22.600411+00:00",
+  "binaries_sha256": {
+    "/Users/zardoz/projects/fun-refactor/target/agent-eval-bin/fr-m4s-before": "5d85a47f57a78445bf58ac19cc9b6b19454bc39e9f6027eda4ebcb0fe44c4adf",
+    "/Users/zardoz/projects/fun-refactor/target/release/fr": "5c781522a087edda3a1bfe5989392ab6469e7b615a1cbc1ecec8cab19bc41a2f",
+    "/Users/zardoz/projects/fun-refactor/target/agent-eval-bin/project-profile-m4s-before": "9ca12b9a9bad7ec43061eea90f971da3169a578a945aedc1efd5554e8a8dbb73",
+    "/Users/zardoz/projects/fun-refactor/target/release/examples/project-profile": "8bf9f5c0f13431b27a67eb4df209877b5923feeae6b5fdea774250ca87236ea2"
+  },
+  "runtime": {
+    "platform": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "python": "3.14.6",
+    "logical_cpus": 12,
+    "rayon_num_threads": null
+  },
+  "measurement_files": {
+    "tools/project-construction.py": "20a4511a1ea4c5983aa3e965ca6a01afa054e5d09c6c4e7ea9cafe89ddfa2948",
+    "tools/project-profile.py": "2e4f8d052d89ae319017d4cd38a0b33aff93d3892dca05dbdae42540c6203e40",
+    "tools/project-profile.rs": "9808ae5b1f00dea9843102e5dfc7807798b60931ed68019cc2022282c01d91bd",
+    "tools/project-cache.py": "8101ee95ccbd0a1d7676e035fffc106d247eb45b0a1bd2bc2ad3f23ddfcadd61",
+    "tools/agent-eval.py": "1136ec0ea7644ee4011785576a280483b41e37e17ea54f0d5d9f5071c578b07f",
+    "tools/agent_eval/regex_workspace.py": "d7003500c07c3c5b1b12916ffdcd094b3dddf2e59f6d8aa8510246d42b9fb08c",
+    "src/project.rs": "28b35ee628240f407d4e978bc8427ac67c4c492616c01a4b5e2943051b3033d1",
+    "Cargo.toml": "7783321e8fc0e55709b0cff96668f108fac68f71df9ea3be475f7ab61261ec1a",
+    "Cargo.lock": "63732368baf6730600dd5d0eea04c58cc9c610b3c58ab580b2f9db427b43f79f",
+    "tests/agent-eval/project-construction-before.patch": "cfaa03f7adce9daa253abceff08f7eb7b00c42475fddf12c31d3791053491288"
+  },
+  "archive_sha256": "7f8beace6ed6c94b2eec3c5aa92219e10e73bd8ad696035877bed01d3ee47255",
+  "dependency_lock_sha256": "7ae225f5fbac82509d5c259dd3613a809c75a8bd4e2124b9cb69ed29d98de3a0",
+  "repetitions": 4,
+  "examples": [
+    {
+      "name": "escape",
+      "args": [
+        "project",
+        "find",
+        "escape",
+        "--in",
+        "src/lib.rs",
+        "--signature",
+        "--source",
+        "--bytes",
+        "2048"
+      ],
+      "baseline": {
+        "args": [
+          "project",
+          "find",
+          "escape",
+          "--in",
+          "src/lib.rs",
+          "--signature",
+          "--source",
+          "--bytes",
+          "2048"
+        ],
+        "cache_disabled": false,
+        "seconds": 1.4756155,
+        "exit_code": 0,
+        "stdout_bytes": 1328,
+        "stdout_sha256": "c5942efac4372082e3ccec44edcc134cdb5bd3fc4d4aba9de07d87301a77a7d8",
+        "stdout": "{\"columns\":[\"handle\",\"parent\",\"kind\",\"name\",\"path\",\"line\",\"signature\",\"source\"],\"coverage\":{\"architecture\":\"not inferred\",\"files_by_gap\":{},\"hierarchy\":\"directories and lexical spans\",\"indexed_files\":249,\"manifests\":{\"discovered\":8,\"ecosystems\":[\"cargo\",\"npm\"],\"gaps\":0,\"parsed\":8,\"resolution\":\"not-attempted\",\"scope\":\"selected scan root\"},\"max_file_bytes\":4194304,\"respect_ignore\":true,\"skipped_files\":0,\"skipped_symlinks\":0,\"unresolved_references\":48602,\"unsupported_files\":195},\"handle_prefix\":\"frp1:8316067d5113408f71f41c8a8a19fa5b:\",\"match\":{\"mode\":\"exact\",\"name\":\"escape\"},\"omitted\":{\"matching_locals\":0},\"page\":{\"before\":0,\"next\":null,\"remaining\":0,\"returned\":1,\"total\":1},\"query\":\"find\",\"revision\":\"8316067d5113408f71f41c8a8a19fa5b7a429e3d5db62933718e17081e693330\",\"root\":\"frp1:8316067d5113408f71f41c8a8a19fa5b:3b3b\",\"rows\":[[\"frp1:8316067d5113408f71f41c8a8a19fa5b:3b43\",\"3b3b\",\"function\",\"escape\",\"src/lib.rs\",1378,{\"basis\":\"syntax-header\",\"text\":\"pub fn escape(pattern: &str) -> alloc::string::String\"},{\"next_offset\":null,\"offset\":0,\"returned_bytes\":91,\"span\":{\"end\":59759,\"start\":59668},\"text\":\"pub fn escape(pattern: &str) -> alloc::string::String {\\n    regex_syntax::escape(pattern)\\n}\",\"total_bytes\":91}]],\"schema\":\"fr-project-1\",\"source_budget\":{\"limit_bytes\":2048,\"returned_bytes\":91,\"scope\":\"returned page\"}}\n",
+        "stderr": ""
+      },
+      "cache_before": {
+        "before": {
+          "files": 244,
+          "bytes": 3984466,
+          "contents_sha256": "e20064ee6540d489ddd7e197b1eda751c5d22d2e81ee351073c1cdde8f4f07ad"
+        },
+        "after": {
+          "files": 244,
+          "bytes": 3984477,
+          "contents_sha256": "10bf649cc52dd0c83fbfd4c5cf6c7d8a27804174f4198071b3909b3d73c428fc"
+        }
+      },
+      "samples": [
+        {
+          "side": "before",
+          "repetition": 1,
+          "cache_after": {
+            "files": 244,
+            "bytes": 3984466,
+            "contents_sha256": "e20064ee6540d489ddd7e197b1eda751c5d22d2e81ee351073c1cdde8f4f07ad"
+          },
+          "cli": {
+            "args": [
+              "project",
+              "find",
+              "escape",
+              "--in",
+              "src/lib.rs",
+              "--signature",
+              "--source",
+              "--bytes",
+              "2048"
+            ],
+            "cache_disabled": false,
+            "seconds": 0.179593916,
+            "exit_code": 0,
+            "stdout_bytes": 1328,
+            "stdout_sha256": "c5942efac4372082e3ccec44edcc134cdb5bd3fc4d4aba9de07d87301a77a7d8",
+            "stderr": ""
+          },
+          "profile": {
+            "report_sha256": "c5942efac4372082e3ccec44edcc134cdb5bd3fc4d4aba9de07d87301a77a7d8",
+            "construction_seconds": {
+              "finish": 6.8792e-05,
+              "hierarchy": 0.002572336000000034,
+              "manifests": 0.002782709,
+              "reference_digest": 0.109268833,
+              "setup": 7.291e-06,
+              "source_digest": 0.014582817000000007,
+              "source_lines": 0.0029952129999999987,
+              "source_read": 0.005240512000000002,
+              "symbol_digest": 0.009579164000000145
+            },
+            "fact_cache_hits": 249,
+            "indexed_files": 249,
+            "measured_seconds": 0.17489625,
+            "phases_seconds": {
+              "cache_open": 0.000274833,
+              "drop": 0.004615958,
+              "index": 0.009892667,
+              "project": 0.147117958,
+              "query": 0.000833416,
+              "root": 3.5959e-05,
+              "scan": 0.002978958,
+              "serialize": 4.625e-06,
+              "verify": 0.009137542
+            },
+            "schema": "fr-project-profile-1",
+            "subprocess_seconds": 0.179771042,
+            "stderr": ""
+          }
+        },
+        {
+          "side": "after",
+          "repetition": 1,
+          "cache_after": {
+            "files": 244,
+            "bytes": 3984477,
+            "contents_sha256": "10bf649cc52dd0c83fbfd4c5cf6c7d8a27804174f4198071b3909b3d73c428fc"
+          },
+          "cli": {
+            "args": [
+              "project",
+              "find",
+              "escape",
+              "--in",
+              "src/lib.rs",
+              "--signature",
+              "--source",
+              "--bytes",
+              "2048"
+            ],
+            "cache_disabled": false,
+            "seconds": 0.168443209,
+            "exit_code": 0,
+            "stdout_bytes": 1328,
+            "stdout_sha256": "c5942efac4372082e3ccec44edcc134cdb5bd3fc4d4aba9de07d87301a77a7d8",
+            "stderr": ""
+          },
+          "profile": {
+            "report_sha256": "c5942efac4372082e3ccec44edcc134cdb5bd3fc4d4aba9de07d87301a77a7d8",
+            "construction_seconds": {
+              "finish": 0.000183833,
+              "hierarchy": 0.0025260729999999976,
+              "manifests": 0.002829333,
+              "reference_digest": 0.097119959,
+              "setup": 4.459e-06,
+              "source_digest": 0.014710748,
+              "source_lines": 0.0030605830000000013,
+              "source_read": 0.005579999999999997,
+              "symbol_digest": 0.008609511999999278
+            },
+            "fact_cache_hits": 249,
+            "indexed_files": 249,
+            "measured_seconds": 0.163361542,
+            "phases_seconds": {
+              "cache_open": 0.000286625,
+              "drop": 0.004660166,
+              "index": 0.01103125,
+              "project": 0.134632958,
+              "query": 0.000801292,
+              "root": 3.2917e-05,
+              "scan": 0.003114083,
+              "serialize": 4e-06,
+              "verify": 0.008793958
+            },
+            "schema": "fr-project-profile-1",
+            "subprocess_seconds": 0.168145333,
+            "stderr": ""
+          }
+        },
+        {
+          "side": "after",
+          "repetition": 2,
+          "cache_after": {
+            "files": 244,
+            "bytes": 3984477,
+            "contents_sha256": "10bf649cc52dd0c83fbfd4c5cf6c7d8a27804174f4198071b3909b3d73c428fc"
+          },
+          "cli": {
+            "args": [
+              "project",
+              "find",
+              "escape",
+              "--in",
+              "src/lib.rs",
+              "--signature",
+              "--source",
+              "--bytes",
+              "2048"
+            ],
+            "cache_disabled": false,
+            "seconds": 0.168508,
+            "exit_code": 0,
+            "stdout_bytes": 1328,
+            "stdout_sha256": "c5942efac4372082e3ccec44edcc134cdb5bd3fc4d4aba9de07d87301a77a7d8",
+            "stderr": ""
+          },
+          "profile": {
+            "report_sha256": "c5942efac4372082e3ccec44edcc134cdb5bd3fc4d4aba9de07d87301a77a7d8",
+            "construction_seconds": {
+              "finish": 0.0001855,
+              "hierarchy": 0.002462830000000023,
+              "manifests": 0.002901167,
+              "reference_digest": 0.098085917,
+              "setup": 1e-05,
+              "source_digest": 0.014553511000000003,
+              "source_lines": 0.0030094469999999993,
+              "source_read": 0.005335917999999997,
+              "symbol_digest": 0.0085344189999992
+            },
+            "fact_cache_hits": 249,
+            "indexed_files": 249,
+            "measured_seconds": 0.163495292,
+            "phases_seconds": {
+              "cache_open": 0.000287167,
+              "drop": 0.004538166,
+              "index": 0.010234375,
+              "project": 0.135097,
+              "query": 0.000916875,
+              "root": 3.5125e-05,
+              "scan": 0.003000542,
+              "serialize": 4.583e-06,
+              "verify": 0.009377292
+            },
+            "schema": "fr-project-profile-1",
+            "subprocess_seconds": 0.168422959,
+            "stderr": ""
+          }
+        },
+        {
+          "side": "before",
+          "repetition": 2,
+          "cache_after": {
+            "files": 244,
+            "bytes": 3984466,
+            "contents_sha256": "e20064ee6540d489ddd7e197b1eda751c5d22d2e81ee351073c1cdde8f4f07ad"
+          },
+          "cli": {
+            "args": [
+              "project",
+              "find",
+              "escape",
+              "--in",
+              "src/lib.rs",
+              "--signature",
+              "--source",
+              "--bytes",
+              "2048"
+            ],
+            "cache_disabled": false,
+            "seconds": 0.179368625,
+            "exit_code": 0,
+            "stdout_bytes": 1328,
+            "stdout_sha256": "c5942efac4372082e3ccec44edcc134cdb5bd3fc4d4aba9de07d87301a77a7d8",
+            "stderr": ""
+          },
+          "profile": {
+            "report_sha256": "c5942efac4372082e3ccec44edcc134cdb5bd3fc4d4aba9de07d87301a77a7d8",
+            "construction_seconds": {
+              "finish": 7.2792e-05,
+              "hierarchy": 0.0025630060000000785,
+              "manifests": 0.0028265,
+              "reference_digest": 0.10957525,
+              "setup": 4.792e-06,
+              "source_digest": 0.014653886999999996,
+              "source_lines": 0.0030119160000000025,
+              "source_read": 0.005586951000000002,
+              "symbol_digest": 0.009568530999999691
+            },
+            "fact_cache_hits": 249,
+            "indexed_files": 249,
+            "measured_seconds": 0.1752625,
+            "phases_seconds": {
+              "cache_open": 0.000298084,
+              "drop": 0.004493292,
+              "index": 0.010109041,
+              "project": 0.147872042,
+              "query": 0.000970458,
+              "root": 3.5083e-05,
+              "scan": 0.002970292,
+              "serialize": 4.125e-06,
+              "verify": 0.008505917
+            },
+            "schema": "fr-project-profile-1",
+            "subprocess_seconds": 0.180027417,
+            "stderr": ""
+          }
+        },
+        {
+          "side": "before",
+          "repetition": 3,
+          "cache_after": {
+            "files": 244,
+            "bytes": 3984466,
+            "contents_sha256": "e20064ee6540d489ddd7e197b1eda751c5d22d2e81ee351073c1cdde8f4f07ad"
+          },
+          "cli": {
+            "args": [
+              "project",
+              "find",
+              "escape",
+              "--in",
+              "src/lib.rs",
+              "--signature",
+              "--source",
+              "--bytes",
+              "2048"
+            ],
+            "cache_disabled": false,
+            "seconds": 0.179891542,
+            "exit_code": 0,
+            "stdout_bytes": 1328,
+            "stdout_sha256": "c5942efac4372082e3ccec44edcc134cdb5bd3fc4d4aba9de07d87301a77a7d8",
+            "stderr": ""
+          },
+          "profile": {
+            "report_sha256": "c5942efac4372082e3ccec44edcc134cdb5bd3fc4d4aba9de07d87301a77a7d8",
+            "construction_seconds": {
+              "finish": 7.9375e-05,
+              "hierarchy": 0.0025757090000000267,
+              "manifests": 0.002985125,
+              "reference_digest": 0.109462083,
+              "setup": 5.834e-06,
+              "source_digest": 0.014760874999999998,
+              "source_lines": 0.0030665899999999992,
+              "source_read": 0.005556713,
+              "symbol_digest": 0.00963969600000011
+            },
+            "fact_cache_hits": 249,
+            "indexed_files": 249,
+            "measured_seconds": 0.175548583,
+            "phases_seconds": {
+              "cache_open": 0.000287042,
+              "drop": 0.004320291,
+              "index": 0.01010425,
+              "project": 0.148140583,
+              "query": 0.000992459,
+              "root": 3.5833e-05,
+              "scan": 0.003086833,
+              "serialize": 6.959e-06,
+              "verify": 0.008569584
+            },
+            "schema": "fr-project-profile-1",
+            "subprocess_seconds": 0.180320375,
+            "stderr": ""
+          }
+        },
+        {
+          "side": "after",
+          "repetition": 3,
+          "cache_after": {
+            "files": 244,
+            "bytes": 3984477,
+            "contents_sha256": "10bf649cc52dd0c83fbfd4c5cf6c7d8a27804174f4198071b3909b3d73c428fc"
+          },
+          "cli": {
+            "args": [
+              "project",
+              "find",
+              "escape",
+              "--in",
+              "src/lib.rs",
+              "--signature",
+              "--source",
+              "--bytes",
+              "2048"
+            ],
+            "cache_disabled": false,
+            "seconds": 0.17063875,
+            "exit_code": 0,
+            "stdout_bytes": 1328,
+            "stdout_sha256": "c5942efac4372082e3ccec44edcc134cdb5bd3fc4d4aba9de07d87301a77a7d8",
+            "stderr": ""
+          },
+          "profile": {
+            "report_sha256": "c5942efac4372082e3ccec44edcc134cdb5bd3fc4d4aba9de07d87301a77a7d8",
+            "construction_seconds": {
+              "finish": 0.000197625,
+              "hierarchy": 0.0023772489999998926,
+              "manifests": 0.002907458,
+              "reference_digest": 0.097774625,
+              "setup": 6.958e-06,
+              "source_digest": 0.014544088000000002,
+              "source_lines": 0.0030181679999999995,
+              "source_read": 0.00529487,
+              "symbol_digest": 0.008513541999999227
+            },
+            "fact_cache_hits": 249,
+            "indexed_files": 249,
+            "measured_seconds": 0.162940209,
+            "phases_seconds": {
+              "cache_open": 0.000305959,
+              "drop": 0.004671291,
+              "index": 0.010608167,
+              "project": 0.134644334,
+              "query": 0.000900333,
+              "root": 3.7792e-05,
+              "scan": 0.003000625,
+              "serialize": 4.167e-06,
+              "verify": 0.008760958
+            },
+            "schema": "fr-project-profile-1",
+            "subprocess_seconds": 0.168031791,
+            "stderr": ""
+          }
+        },
+        {
+          "side": "after",
+          "repetition": 4,
+          "cache_after": {
+            "files": 244,
+            "bytes": 3984477,
+            "contents_sha256": "10bf649cc52dd0c83fbfd4c5cf6c7d8a27804174f4198071b3909b3d73c428fc"
+          },
+          "cli": {
+            "args": [
+              "project",
+              "find",
+              "escape",
+              "--in",
+              "src/lib.rs",
+              "--signature",
+              "--source",
+              "--bytes",
+              "2048"
+            ],
+            "cache_disabled": false,
+            "seconds": 0.168363875,
+            "exit_code": 0,
+            "stdout_bytes": 1328,
+            "stdout_sha256": "c5942efac4372082e3ccec44edcc134cdb5bd3fc4d4aba9de07d87301a77a7d8",
+            "stderr": ""
+          },
+          "profile": {
+            "report_sha256": "c5942efac4372082e3ccec44edcc134cdb5bd3fc4d4aba9de07d87301a77a7d8",
+            "construction_seconds": {
+              "finish": 0.000198375,
+              "hierarchy": 0.002414870999999918,
+              "manifests": 0.002912834,
+              "reference_digest": 0.09789675,
+              "setup": 7.541e-06,
+              "source_digest": 0.014577533999999996,
+              "source_lines": 0.0030503859999999995,
+              "source_read": 0.005412999000000001,
+              "symbol_digest": 0.008529251999999174
+            },
+            "fact_cache_hits": 249,
+            "indexed_files": 249,
+            "measured_seconds": 0.16287975,
+            "phases_seconds": {
+              "cache_open": 0.000294375,
+              "drop": 0.00459425,
+              "index": 0.010196708,
+              "project": 0.13501025,
+              "query": 0.000872959,
+              "root": 3.6292e-05,
+              "scan": 0.00307475,
+              "serialize": 7e-06,
+              "verify": 0.008788667
+            },
+            "schema": "fr-project-profile-1",
+            "subprocess_seconds": 0.167725541,
+            "stderr": ""
+          }
+        },
+        {
+          "side": "before",
+          "repetition": 4,
+          "cache_after": {
+            "files": 244,
+            "bytes": 3984466,
+            "contents_sha256": "e20064ee6540d489ddd7e197b1eda751c5d22d2e81ee351073c1cdde8f4f07ad"
+          },
+          "cli": {
+            "args": [
+              "project",
+              "find",
+              "escape",
+              "--in",
+              "src/lib.rs",
+              "--signature",
+              "--source",
+              "--bytes",
+              "2048"
+            ],
+            "cache_disabled": false,
+            "seconds": 0.179246042,
+            "exit_code": 0,
+            "stdout_bytes": 1328,
+            "stdout_sha256": "c5942efac4372082e3ccec44edcc134cdb5bd3fc4d4aba9de07d87301a77a7d8",
+            "stderr": ""
+          },
+          "profile": {
+            "report_sha256": "c5942efac4372082e3ccec44edcc134cdb5bd3fc4d4aba9de07d87301a77a7d8",
+            "construction_seconds": {
+              "finish": 7.3291e-05,
+              "hierarchy": 0.002548981000000021,
+              "manifests": 0.002851625,
+              "reference_digest": 0.10959075,
+              "setup": 5.125e-06,
+              "source_digest": 0.014483371999999994,
+              "source_lines": 0.0029499170000000016,
+              "source_read": 0.005362202000000002,
+              "symbol_digest": 0.009534069999999766
+            },
+            "fact_cache_hits": 249,
+            "indexed_files": 249,
+            "measured_seconds": 0.175834,
+            "phases_seconds": {
+              "cache_open": 0.000292833,
+              "drop": 0.004667666,
+              "index": 0.010625583,
+              "project": 0.14740775,
+              "query": 0.000854834,
+              "root": 4.4125e-05,
+              "scan": 0.002984667,
+              "serialize": 4.833e-06,
+              "verify": 0.008947667
+            },
+            "schema": "fr-project-profile-1",
+            "subprocess_seconds": 0.180640459,
+            "stderr": ""
+          }
+        }
+      ],
+      "summary": {
+        "before": {
+          "cli_median_seconds": 0.1794812705,
+          "construction_median_seconds": 0.147639896,
+          "construction_stages_median_seconds": {
+            "finish": 7.30415e-05,
+            "hierarchy": 0.002567671000000056,
+            "manifests": 0.0028390625,
+            "reference_digest": 0.1095186665,
+            "setup": 5.479500000000001e-06,
+            "source_digest": 0.014618352000000001,
+            "source_lines": 0.003003564500000001,
+            "source_read": 0.005459457500000001,
+            "symbol_digest": 0.009573847499999918
+          }
+        },
+        "after": {
+          "cli_median_seconds": 0.1684756045,
+          "construction_median_seconds": 0.134827292,
+          "construction_stages_median_seconds": {
+            "finish": 0.0001915625,
+            "hierarchy": 0.0024388504999999705,
+            "manifests": 0.0029043124999999998,
+            "reference_digest": 0.0978356875,
+            "setup": 7.249500000000001e-06,
+            "source_digest": 0.0145655225,
+            "source_lines": 0.0030342769999999993,
+            "source_read": 0.005374458499999998,
+            "symbol_digest": 0.008531835499999186
+          }
+        }
+      },
+      "invalidation": {
+        "passed": true,
+        "path": "src/lib.rs",
+        "original_sha256": "e87192b2e862d3a01777307584c7c898b189c4d78e6f7a800f52d7e84c3aab1c",
+        "probe": "\n    // fr cache invalidation probe\n",
+        "before_cache": {
+          "files": 244,
+          "bytes": 3984477,
+          "contents_sha256": "10bf649cc52dd0c83fbfd4c5cf6c7d8a27804174f4198071b3909b3d73c428fc"
+        },
+        "changed_cache": {
+          "files": 246,
+          "bytes": 4337855,
+          "contents_sha256": "f7fe255d81a448ea9663afb1ff9123f48237864d8a49d2ac1569154544e2df71"
+        },
+        "changed": {
+          "args": [
+            "project",
+            "find",
+            "escape",
+            "--in",
+            "src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": false,
+          "seconds": 1.067673833,
+          "exit_code": 0,
+          "stdout_bytes": 1369,
+          "stdout_sha256": "2674956cd6ee936820847de49c007b188e9a9a19ec73607ecaccf5b1289f94bb",
+          "stdout": "{\"columns\":[\"handle\",\"parent\",\"kind\",\"name\",\"path\",\"line\",\"signature\",\"source\"],\"coverage\":{\"architecture\":\"not inferred\",\"files_by_gap\":{},\"hierarchy\":\"directories and lexical spans\",\"indexed_files\":249,\"manifests\":{\"discovered\":8,\"ecosystems\":[\"cargo\",\"npm\"],\"gaps\":0,\"parsed\":8,\"resolution\":\"not-attempted\",\"scope\":\"selected scan root\"},\"max_file_bytes\":4194304,\"respect_ignore\":true,\"skipped_files\":0,\"skipped_symlinks\":0,\"unresolved_references\":48602,\"unsupported_files\":195},\"handle_prefix\":\"frp1:0f19a5bf021f317684614bb946189499:\",\"match\":{\"mode\":\"exact\",\"name\":\"escape\"},\"omitted\":{\"matching_locals\":0},\"page\":{\"before\":0,\"next\":null,\"remaining\":0,\"returned\":1,\"total\":1},\"query\":\"find\",\"revision\":\"0f19a5bf021f317684614bb94618949914187febc2085c17eb9b40e6588d0ab5\",\"root\":\"frp1:0f19a5bf021f317684614bb946189499:3b3b\",\"rows\":[[\"frp1:0f19a5bf021f317684614bb946189499:3b43\",\"3b3b\",\"function\",\"escape\",\"src/lib.rs\",1378,{\"basis\":\"syntax-header\",\"text\":\"pub fn escape(pattern: &str) -> alloc::string::String\"},{\"next_offset\":null,\"offset\":0,\"returned_bytes\":127,\"span\":{\"end\":59795,\"start\":59668},\"text\":\"pub fn escape(pattern: &str) -> alloc::string::String {\\n    // fr cache invalidation probe\\n\\n    regex_syntax::escape(pattern)\\n}\",\"total_bytes\":127}]],\"schema\":\"fr-project-1\",\"source_budget\":{\"limit_bytes\":2048,\"returned_bytes\":127,\"scope\":\"returned page\"}}\n",
+          "stderr": ""
+        },
+        "uncached": {
+          "args": [
+            "project",
+            "find",
+            "escape",
+            "--in",
+            "src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": true,
+          "seconds": 1.40492275,
+          "exit_code": 0,
+          "stdout_bytes": 1369,
+          "stdout_sha256": "2674956cd6ee936820847de49c007b188e9a9a19ec73607ecaccf5b1289f94bb",
+          "stdout": "{\"columns\":[\"handle\",\"parent\",\"kind\",\"name\",\"path\",\"line\",\"signature\",\"source\"],\"coverage\":{\"architecture\":\"not inferred\",\"files_by_gap\":{},\"hierarchy\":\"directories and lexical spans\",\"indexed_files\":249,\"manifests\":{\"discovered\":8,\"ecosystems\":[\"cargo\",\"npm\"],\"gaps\":0,\"parsed\":8,\"resolution\":\"not-attempted\",\"scope\":\"selected scan root\"},\"max_file_bytes\":4194304,\"respect_ignore\":true,\"skipped_files\":0,\"skipped_symlinks\":0,\"unresolved_references\":48602,\"unsupported_files\":195},\"handle_prefix\":\"frp1:0f19a5bf021f317684614bb946189499:\",\"match\":{\"mode\":\"exact\",\"name\":\"escape\"},\"omitted\":{\"matching_locals\":0},\"page\":{\"before\":0,\"next\":null,\"remaining\":0,\"returned\":1,\"total\":1},\"query\":\"find\",\"revision\":\"0f19a5bf021f317684614bb94618949914187febc2085c17eb9b40e6588d0ab5\",\"root\":\"frp1:0f19a5bf021f317684614bb946189499:3b3b\",\"rows\":[[\"frp1:0f19a5bf021f317684614bb946189499:3b43\",\"3b3b\",\"function\",\"escape\",\"src/lib.rs\",1378,{\"basis\":\"syntax-header\",\"text\":\"pub fn escape(pattern: &str) -> alloc::string::String\"},{\"next_offset\":null,\"offset\":0,\"returned_bytes\":127,\"span\":{\"end\":59795,\"start\":59668},\"text\":\"pub fn escape(pattern: &str) -> alloc::string::String {\\n    // fr cache invalidation probe\\n\\n    regex_syntax::escape(pattern)\\n}\",\"total_bytes\":127}]],\"schema\":\"fr-project-1\",\"source_budget\":{\"limit_bytes\":2048,\"returned_bytes\":127,\"scope\":\"returned page\"}}\n",
+          "stderr": ""
+        },
+        "stale_handle": {
+          "args": [
+            "project",
+            "show",
+            "frp1:8316067d5113408f71f41c8a8a19fa5b:3b43",
+            "--source"
+          ],
+          "cache_disabled": false,
+          "seconds": 0.158244,
+          "exit_code": 1,
+          "stdout_bytes": 120,
+          "stdout_sha256": "57a2b77abf17df8897afad7ce81232f410cb7689f24bf8a5007daeee37a1a875",
+          "stdout": "{\n  \"error\": {\n    \"kind\": \"error\",\n    \"message\": \"stale or invalid project handle; obtain a fresh project map.\"\n  }\n}\n",
+          "stderr": "Error: stale or invalid project handle; obtain a fresh project map.\n"
+        },
+        "restored": {
+          "args": [
+            "project",
+            "find",
+            "escape",
+            "--in",
+            "src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": false,
+          "seconds": 0.168863791,
+          "exit_code": 0,
+          "stdout_bytes": 1328,
+          "stdout_sha256": "c5942efac4372082e3ccec44edcc134cdb5bd3fc4d4aba9de07d87301a77a7d8",
+          "stdout": "{\"columns\":[\"handle\",\"parent\",\"kind\",\"name\",\"path\",\"line\",\"signature\",\"source\"],\"coverage\":{\"architecture\":\"not inferred\",\"files_by_gap\":{},\"hierarchy\":\"directories and lexical spans\",\"indexed_files\":249,\"manifests\":{\"discovered\":8,\"ecosystems\":[\"cargo\",\"npm\"],\"gaps\":0,\"parsed\":8,\"resolution\":\"not-attempted\",\"scope\":\"selected scan root\"},\"max_file_bytes\":4194304,\"respect_ignore\":true,\"skipped_files\":0,\"skipped_symlinks\":0,\"unresolved_references\":48602,\"unsupported_files\":195},\"handle_prefix\":\"frp1:8316067d5113408f71f41c8a8a19fa5b:\",\"match\":{\"mode\":\"exact\",\"name\":\"escape\"},\"omitted\":{\"matching_locals\":0},\"page\":{\"before\":0,\"next\":null,\"remaining\":0,\"returned\":1,\"total\":1},\"query\":\"find\",\"revision\":\"8316067d5113408f71f41c8a8a19fa5b7a429e3d5db62933718e17081e693330\",\"root\":\"frp1:8316067d5113408f71f41c8a8a19fa5b:3b3b\",\"rows\":[[\"frp1:8316067d5113408f71f41c8a8a19fa5b:3b43\",\"3b3b\",\"function\",\"escape\",\"src/lib.rs\",1378,{\"basis\":\"syntax-header\",\"text\":\"pub fn escape(pattern: &str) -> alloc::string::String\"},{\"next_offset\":null,\"offset\":0,\"returned_bytes\":91,\"span\":{\"end\":59759,\"start\":59668},\"text\":\"pub fn escape(pattern: &str) -> alloc::string::String {\\n    regex_syntax::escape(pattern)\\n}\",\"total_bytes\":91}]],\"schema\":\"fr-project-1\",\"source_budget\":{\"limit_bytes\":2048,\"returned_bytes\":91,\"scope\":\"returned page\"}}\n",
+          "stderr": ""
+        },
+        "scope": "A temporary comment inside the selected function; this checks source invalidation, not build behavior."
+      }
+    },
+    {
+      "name": "escape_into",
+      "args": [
+        "project",
+        "find",
+        "escape_into",
+        "--in",
+        "regex-syntax/src/lib.rs",
+        "--signature",
+        "--source",
+        "--bytes",
+        "2048"
+      ],
+      "baseline": {
+        "args": [
+          "project",
+          "find",
+          "escape_into",
+          "--in",
+          "regex-syntax/src/lib.rs",
+          "--signature",
+          "--source",
+          "--bytes",
+          "2048"
+        ],
+        "cache_disabled": false,
+        "seconds": 0.18156175,
+        "exit_code": 0,
+        "stdout_bytes": 1471,
+        "stdout_sha256": "63911ef6be74a2c9d3a79e7bb904c08a716424b31a2d1b64a0f4914b988f2be2",
+        "stdout": "{\"columns\":[\"handle\",\"parent\",\"kind\",\"name\",\"path\",\"line\",\"signature\",\"source\"],\"coverage\":{\"architecture\":\"not inferred\",\"files_by_gap\":{},\"hierarchy\":\"directories and lexical spans\",\"indexed_files\":249,\"manifests\":{\"discovered\":8,\"ecosystems\":[\"cargo\",\"npm\"],\"gaps\":0,\"parsed\":8,\"resolution\":\"not-attempted\",\"scope\":\"selected scan root\"},\"max_file_bytes\":4194304,\"respect_ignore\":true,\"skipped_files\":0,\"skipped_symlinks\":0,\"unresolved_references\":48602,\"unsupported_files\":195},\"handle_prefix\":\"frp1:8316067d5113408f71f41c8a8a19fa5b:\",\"match\":{\"mode\":\"exact\",\"name\":\"escape_into\"},\"omitted\":{\"matching_locals\":0},\"page\":{\"before\":0,\"next\":null,\"remaining\":0,\"returned\":1,\"total\":1},\"query\":\"find\",\"revision\":\"8316067d5113408f71f41c8a8a19fa5b7a429e3d5db62933718e17081e693330\",\"root\":\"frp1:8316067d5113408f71f41c8a8a19fa5b:35d5\",\"rows\":[[\"frp1:8316067d5113408f71f41c8a8a19fa5b:35e3\",\"35d5\",\"function\",\"escape_into\",\"regex-syntax/src/lib.rs\",213,{\"basis\":\"syntax-header\",\"text\":\"pub fn escape_into(text: &str, buf: &mut String)\"},{\"next_offset\":null,\"offset\":0,\"returned_bytes\":208,\"span\":{\"end\":8916,\"start\":8708},\"text\":\"pub fn escape_into(text: &str, buf: &mut String) {\\n    buf.reserve(text.len());\\n    for c in text.chars() {\\n        if is_meta_character(c) {\\n            buf.push('\\\\\\\\');\\n        }\\n        buf.push(c);\\n    }\\n}\",\"total_bytes\":208}]],\"schema\":\"fr-project-1\",\"source_budget\":{\"limit_bytes\":2048,\"returned_bytes\":208,\"scope\":\"returned page\"}}\n",
+        "stderr": ""
+      },
+      "cache_before": {
+        "before": {
+          "files": 244,
+          "bytes": 3984466,
+          "contents_sha256": "e20064ee6540d489ddd7e197b1eda751c5d22d2e81ee351073c1cdde8f4f07ad"
+        },
+        "after": {
+          "files": 246,
+          "bytes": 4337855,
+          "contents_sha256": "f7fe255d81a448ea9663afb1ff9123f48237864d8a49d2ac1569154544e2df71"
+        }
+      },
+      "samples": [
+        {
+          "side": "before",
+          "repetition": 1,
+          "cache_after": {
+            "files": 244,
+            "bytes": 3984466,
+            "contents_sha256": "e20064ee6540d489ddd7e197b1eda751c5d22d2e81ee351073c1cdde8f4f07ad"
+          },
+          "cli": {
+            "args": [
+              "project",
+              "find",
+              "escape_into",
+              "--in",
+              "regex-syntax/src/lib.rs",
+              "--signature",
+              "--source",
+              "--bytes",
+              "2048"
+            ],
+            "cache_disabled": false,
+            "seconds": 0.181149417,
+            "exit_code": 0,
+            "stdout_bytes": 1471,
+            "stdout_sha256": "63911ef6be74a2c9d3a79e7bb904c08a716424b31a2d1b64a0f4914b988f2be2",
+            "stderr": ""
+          },
+          "profile": {
+            "report_sha256": "63911ef6be74a2c9d3a79e7bb904c08a716424b31a2d1b64a0f4914b988f2be2",
+            "construction_seconds": {
+              "finish": 7.6917e-05,
+              "hierarchy": 0.0024931459999999466,
+              "manifests": 0.002870916,
+              "reference_digest": 0.11032525,
+              "setup": 7.375e-06,
+              "source_digest": 0.01464112300000001,
+              "source_lines": 0.002989790000000002,
+              "source_read": 0.005431461000000001,
+              "symbol_digest": 0.009612897000000224
+            },
+            "fact_cache_hits": 249,
+            "indexed_files": 249,
+            "measured_seconds": 0.178134208,
+            "phases_seconds": {
+              "cache_open": 0.0003,
+              "drop": 0.004735208,
+              "index": 0.011158667,
+              "project": 0.148466958,
+              "query": 0.000887458,
+              "root": 4.7167e-05,
+              "scan": 0.0031555,
+              "serialize": 4.916e-06,
+              "verify": 0.00937325
+            },
+            "schema": "fr-project-profile-1",
+            "subprocess_seconds": 0.183120583,
+            "stderr": ""
+          }
+        },
+        {
+          "side": "after",
+          "repetition": 1,
+          "cache_after": {
+            "files": 246,
+            "bytes": 4337855,
+            "contents_sha256": "f7fe255d81a448ea9663afb1ff9123f48237864d8a49d2ac1569154544e2df71"
+          },
+          "cli": {
+            "args": [
+              "project",
+              "find",
+              "escape_into",
+              "--in",
+              "regex-syntax/src/lib.rs",
+              "--signature",
+              "--source",
+              "--bytes",
+              "2048"
+            ],
+            "cache_disabled": false,
+            "seconds": 0.168737208,
+            "exit_code": 0,
+            "stdout_bytes": 1471,
+            "stdout_sha256": "63911ef6be74a2c9d3a79e7bb904c08a716424b31a2d1b64a0f4914b988f2be2",
+            "stderr": ""
+          },
+          "profile": {
+            "report_sha256": "63911ef6be74a2c9d3a79e7bb904c08a716424b31a2d1b64a0f4914b988f2be2",
+            "construction_seconds": {
+              "finish": 0.00020075,
+              "hierarchy": 0.0024775909999999934,
+              "manifests": 0.002872708,
+              "reference_digest": 0.09817175,
+              "setup": 4.417e-06,
+              "source_digest": 0.014588917000000002,
+              "source_lines": 0.0030533729999999994,
+              "source_read": 0.005416914999999998,
+              "symbol_digest": 0.008548411999999079
+            },
+            "fact_cache_hits": 249,
+            "indexed_files": 249,
+            "measured_seconds": 0.165524292,
+            "phases_seconds": {
+              "cache_open": 0.000284666,
+              "drop": 0.004670042,
+              "index": 0.011105458,
+              "project": 0.135356084,
+              "query": 0.000954,
+              "root": 4.1542e-05,
+              "scan": 0.003153291,
+              "serialize": 4.875e-06,
+              "verify": 0.009949833
+            },
+            "schema": "fr-project-profile-1",
+            "subprocess_seconds": 0.170679625,
+            "stderr": ""
+          }
+        },
+        {
+          "side": "after",
+          "repetition": 2,
+          "cache_after": {
+            "files": 246,
+            "bytes": 4337855,
+            "contents_sha256": "f7fe255d81a448ea9663afb1ff9123f48237864d8a49d2ac1569154544e2df71"
+          },
+          "cli": {
+            "args": [
+              "project",
+              "find",
+              "escape_into",
+              "--in",
+              "regex-syntax/src/lib.rs",
+              "--signature",
+              "--source",
+              "--bytes",
+              "2048"
+            ],
+            "cache_disabled": false,
+            "seconds": 0.172599667,
+            "exit_code": 0,
+            "stdout_bytes": 1471,
+            "stdout_sha256": "63911ef6be74a2c9d3a79e7bb904c08a716424b31a2d1b64a0f4914b988f2be2",
+            "stderr": ""
+          },
+          "profile": {
+            "report_sha256": "63911ef6be74a2c9d3a79e7bb904c08a716424b31a2d1b64a0f4914b988f2be2",
+            "construction_seconds": {
+              "finish": 0.00022425,
+              "hierarchy": 0.002382270999999897,
+              "manifests": 0.003149708,
+              "reference_digest": 0.098412041,
+              "setup": 4.083e-06,
+              "source_digest": 0.014760750999999994,
+              "source_lines": 0.0030902040000000013,
+              "source_read": 0.005410750999999998,
+              "symbol_digest": 0.008572856999999297
+            },
+            "fact_cache_hits": 249,
+            "indexed_files": 249,
+            "measured_seconds": 0.166194167,
+            "phases_seconds": {
+              "cache_open": 0.000284667,
+              "drop": 0.004968958,
+              "index": 0.011350416,
+              "project": 0.136022125,
+              "query": 0.000908667,
+              "root": 3.6333e-05,
+              "scan": 0.003004666,
+              "serialize": 6e-06,
+              "verify": 0.009607834
+            },
+            "schema": "fr-project-profile-1",
+            "subprocess_seconds": 0.171429959,
+            "stderr": ""
+          }
+        },
+        {
+          "side": "before",
+          "repetition": 2,
+          "cache_after": {
+            "files": 244,
+            "bytes": 3984466,
+            "contents_sha256": "e20064ee6540d489ddd7e197b1eda751c5d22d2e81ee351073c1cdde8f4f07ad"
+          },
+          "cli": {
+            "args": [
+              "project",
+              "find",
+              "escape_into",
+              "--in",
+              "regex-syntax/src/lib.rs",
+              "--signature",
+              "--source",
+              "--bytes",
+              "2048"
+            ],
+            "cache_disabled": false,
+            "seconds": 0.188690083,
+            "exit_code": 0,
+            "stdout_bytes": 1471,
+            "stdout_sha256": "63911ef6be74a2c9d3a79e7bb904c08a716424b31a2d1b64a0f4914b988f2be2",
+            "stderr": ""
+          },
+          "profile": {
+            "report_sha256": "63911ef6be74a2c9d3a79e7bb904c08a716424b31a2d1b64a0f4914b988f2be2",
+            "construction_seconds": {
+              "finish": 7.7333e-05,
+              "hierarchy": 0.002414982999999942,
+              "manifests": 0.002947042,
+              "reference_digest": 0.109465042,
+              "setup": 6.625e-06,
+              "source_digest": 0.014813746000000003,
+              "source_lines": 0.0029728820000000013,
+              "source_read": 0.005674953999999997,
+              "symbol_digest": 0.009589517999999837
+            },
+            "fact_cache_hits": 249,
+            "indexed_files": 249,
+            "measured_seconds": 0.181089625,
+            "phases_seconds": {
+              "cache_open": 0.000283625,
+              "drop": 0.005162875,
+              "index": 0.014081916,
+              "project": 0.147987584,
+              "query": 0.00095625,
+              "root": 3.8542e-05,
+              "scan": 0.003372708,
+              "serialize": 4.875e-06,
+              "verify": 0.009196375
+            },
+            "schema": "fr-project-profile-1",
+            "subprocess_seconds": 0.186508833,
+            "stderr": ""
+          }
+        },
+        {
+          "side": "before",
+          "repetition": 3,
+          "cache_after": {
+            "files": 244,
+            "bytes": 3984466,
+            "contents_sha256": "e20064ee6540d489ddd7e197b1eda751c5d22d2e81ee351073c1cdde8f4f07ad"
+          },
+          "cli": {
+            "args": [
+              "project",
+              "find",
+              "escape_into",
+              "--in",
+              "regex-syntax/src/lib.rs",
+              "--signature",
+              "--source",
+              "--bytes",
+              "2048"
+            ],
+            "cache_disabled": false,
+            "seconds": 0.182503458,
+            "exit_code": 0,
+            "stdout_bytes": 1471,
+            "stdout_sha256": "63911ef6be74a2c9d3a79e7bb904c08a716424b31a2d1b64a0f4914b988f2be2",
+            "stderr": ""
+          },
+          "profile": {
+            "report_sha256": "63911ef6be74a2c9d3a79e7bb904c08a716424b31a2d1b64a0f4914b988f2be2",
+            "construction_seconds": {
+              "finish": 8.0208e-05,
+              "hierarchy": 0.0023791049999998632,
+              "manifests": 0.002881292,
+              "reference_digest": 0.109868167,
+              "setup": 5.666e-06,
+              "source_digest": 0.014641039000000007,
+              "source_lines": 0.003010418000000001,
+              "source_read": 0.005639082000000004,
+              "symbol_digest": 0.009573147999999929
+            },
+            "fact_cache_hits": 249,
+            "indexed_files": 249,
+            "measured_seconds": 0.178725,
+            "phases_seconds": {
+              "cache_open": 0.000285,
+              "drop": 0.004561,
+              "index": 0.01222275,
+              "project": 0.148097292,
+              "query": 0.000857292,
+              "root": 3.3792e-05,
+              "scan": 0.003146542,
+              "serialize": 4.709e-06,
+              "verify": 0.009512375
+            },
+            "schema": "fr-project-profile-1",
+            "subprocess_seconds": 0.183972708,
+            "stderr": ""
+          }
+        },
+        {
+          "side": "after",
+          "repetition": 3,
+          "cache_after": {
+            "files": 246,
+            "bytes": 4337855,
+            "contents_sha256": "f7fe255d81a448ea9663afb1ff9123f48237864d8a49d2ac1569154544e2df71"
+          },
+          "cli": {
+            "args": [
+              "project",
+              "find",
+              "escape_into",
+              "--in",
+              "regex-syntax/src/lib.rs",
+              "--signature",
+              "--source",
+              "--bytes",
+              "2048"
+            ],
+            "cache_disabled": false,
+            "seconds": 0.17485675,
+            "exit_code": 0,
+            "stdout_bytes": 1471,
+            "stdout_sha256": "63911ef6be74a2c9d3a79e7bb904c08a716424b31a2d1b64a0f4914b988f2be2",
+            "stderr": ""
+          },
+          "profile": {
+            "report_sha256": "63911ef6be74a2c9d3a79e7bb904c08a716424b31a2d1b64a0f4914b988f2be2",
+            "construction_seconds": {
+              "finish": 0.000201709,
+              "hierarchy": 0.0024592059999999556,
+              "manifests": 0.002863625,
+              "reference_digest": 0.097584958,
+              "setup": 4.167e-06,
+              "source_digest": 0.014716076,
+              "source_lines": 0.0031075409999999997,
+              "source_read": 0.005468464999999999,
+              "symbol_digest": 0.00855454499999917
+            },
+            "fact_cache_hits": 249,
+            "indexed_files": 249,
+            "measured_seconds": 0.16460575,
+            "phases_seconds": {
+              "cache_open": 0.000312959,
+              "drop": 0.004990292,
+              "index": 0.011233541,
+              "project": 0.134975875,
+              "query": 0.000876292,
+              "root": 3.425e-05,
+              "scan": 0.003111667,
+              "serialize": 5.542e-06,
+              "verify": 0.009060458
+            },
+            "schema": "fr-project-profile-1",
+            "subprocess_seconds": 0.169620042,
+            "stderr": ""
+          }
+        },
+        {
+          "side": "after",
+          "repetition": 4,
+          "cache_after": {
+            "files": 246,
+            "bytes": 4337855,
+            "contents_sha256": "f7fe255d81a448ea9663afb1ff9123f48237864d8a49d2ac1569154544e2df71"
+          },
+          "cli": {
+            "args": [
+              "project",
+              "find",
+              "escape_into",
+              "--in",
+              "regex-syntax/src/lib.rs",
+              "--signature",
+              "--source",
+              "--bytes",
+              "2048"
+            ],
+            "cache_disabled": false,
+            "seconds": 0.171415708,
+            "exit_code": 0,
+            "stdout_bytes": 1471,
+            "stdout_sha256": "63911ef6be74a2c9d3a79e7bb904c08a716424b31a2d1b64a0f4914b988f2be2",
+            "stderr": ""
+          },
+          "profile": {
+            "report_sha256": "63911ef6be74a2c9d3a79e7bb904c08a716424b31a2d1b64a0f4914b988f2be2",
+            "construction_seconds": {
+              "finish": 0.000199584,
+              "hierarchy": 0.0024521639999999477,
+              "manifests": 0.002992,
+              "reference_digest": 0.097612875,
+              "setup": 5.625e-06,
+              "source_digest": 0.014616246000000012,
+              "source_lines": 0.003052454,
+              "source_read": 0.005432792,
+              "symbol_digest": 0.008496009999999199
+            },
+            "fact_cache_hits": 249,
+            "indexed_files": 249,
+            "measured_seconds": 0.164174417,
+            "phases_seconds": {
+              "cache_open": 0.000275,
+              "drop": 0.004853166,
+              "index": 0.010897542,
+              "project": 0.134883375,
+              "query": 0.000899958,
+              "root": 3.4792e-05,
+              "scan": 0.002971583,
+              "serialize": 5.458e-06,
+              "verify": 0.009349167
+            },
+            "schema": "fr-project-profile-1",
+            "subprocess_seconds": 0.169638416,
+            "stderr": ""
+          }
+        },
+        {
+          "side": "before",
+          "repetition": 4,
+          "cache_after": {
+            "files": 244,
+            "bytes": 3984466,
+            "contents_sha256": "e20064ee6540d489ddd7e197b1eda751c5d22d2e81ee351073c1cdde8f4f07ad"
+          },
+          "cli": {
+            "args": [
+              "project",
+              "find",
+              "escape_into",
+              "--in",
+              "regex-syntax/src/lib.rs",
+              "--signature",
+              "--source",
+              "--bytes",
+              "2048"
+            ],
+            "cache_disabled": false,
+            "seconds": 0.183169583,
+            "exit_code": 0,
+            "stdout_bytes": 1471,
+            "stdout_sha256": "63911ef6be74a2c9d3a79e7bb904c08a716424b31a2d1b64a0f4914b988f2be2",
+            "stderr": ""
+          },
+          "profile": {
+            "report_sha256": "63911ef6be74a2c9d3a79e7bb904c08a716424b31a2d1b64a0f4914b988f2be2",
+            "construction_seconds": {
+              "finish": 7.3958e-05,
+              "hierarchy": 0.0023710439999998895,
+              "manifests": 0.002867458,
+              "reference_digest": 0.109787792,
+              "setup": 5.625e-06,
+              "source_digest": 0.01482854600000001,
+              "source_lines": 0.002979833999999998,
+              "source_read": 0.005547912000000004,
+              "symbol_digest": 0.009565163999999866
+            },
+            "fact_cache_hits": 249,
+            "indexed_files": 249,
+            "measured_seconds": 0.177938542,
+            "phases_seconds": {
+              "cache_open": 0.0002955,
+              "drop": 0.004808584,
+              "index": 0.011287834,
+              "project": 0.1480395,
+              "query": 0.00094325,
+              "root": 4.0083e-05,
+              "scan": 0.003301042,
+              "serialize": 4.5e-06,
+              "verify": 0.009213709
+            },
+            "schema": "fr-project-profile-1",
+            "subprocess_seconds": 0.183150667,
+            "stderr": ""
+          }
+        }
+      ],
+      "summary": {
+        "before": {
+          "cli_median_seconds": 0.1828365205,
+          "construction_median_seconds": 0.148068396,
+          "construction_stages_median_seconds": {
+            "finish": 7.712499999999999e-05,
+            "hierarchy": 0.002397043999999903,
+            "manifests": 0.002876104,
+            "reference_digest": 0.1098279795,
+            "setup": 6.1455e-06,
+            "source_digest": 0.014727434500000006,
+            "source_lines": 0.002984812,
+            "source_read": 0.005593497000000004,
+            "symbol_digest": 0.009581332999999883
+          }
+        },
+        "after": {
+          "cli_median_seconds": 0.1720076875,
+          "construction_median_seconds": 0.13516597949999998,
+          "construction_stages_median_seconds": {
+            "finish": 0.0002012295,
+            "hierarchy": 0.0024556849999999514,
+            "manifests": 0.002932354,
+            "reference_digest": 0.0978923125,
+            "setup": 4.292000000000001e-06,
+            "source_digest": 0.014666161000000006,
+            "source_lines": 0.0030717885000000004,
+            "source_read": 0.005424853499999998,
+            "symbol_digest": 0.008551478499999123
+          }
+        }
+      },
+      "invalidation": {
+        "passed": true,
+        "path": "regex-syntax/src/lib.rs",
+        "original_sha256": "c51d1e55a8b6c4608e21a278ed0ef9480f73ab5b814b6ca6127f4a049c4d5007",
+        "probe": "\n    // fr cache invalidation probe\n",
+        "before_cache": {
+          "files": 246,
+          "bytes": 4337855,
+          "contents_sha256": "f7fe255d81a448ea9663afb1ff9123f48237864d8a49d2ac1569154544e2df71"
+        },
+        "changed_cache": {
+          "files": 248,
+          "bytes": 4693813,
+          "contents_sha256": "1073979d0eeafa1d641a16e049cc133a5351fbd90950f539197f7c2b7d7bc97e"
+        },
+        "changed": {
+          "args": [
+            "project",
+            "find",
+            "escape_into",
+            "--in",
+            "regex-syntax/src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": false,
+          "seconds": 1.064850666,
+          "exit_code": 0,
+          "stdout_bytes": 1509,
+          "stdout_sha256": "7e1d01fd55f009c999cbebf092a2476347b27062e959ae3925ffca09a95fec16",
+          "stdout": "{\"columns\":[\"handle\",\"parent\",\"kind\",\"name\",\"path\",\"line\",\"signature\",\"source\"],\"coverage\":{\"architecture\":\"not inferred\",\"files_by_gap\":{},\"hierarchy\":\"directories and lexical spans\",\"indexed_files\":249,\"manifests\":{\"discovered\":8,\"ecosystems\":[\"cargo\",\"npm\"],\"gaps\":0,\"parsed\":8,\"resolution\":\"not-attempted\",\"scope\":\"selected scan root\"},\"max_file_bytes\":4194304,\"respect_ignore\":true,\"skipped_files\":0,\"skipped_symlinks\":0,\"unresolved_references\":48602,\"unsupported_files\":195},\"handle_prefix\":\"frp1:9898c89c38b2fe1146515af5118c091b:\",\"match\":{\"mode\":\"exact\",\"name\":\"escape_into\"},\"omitted\":{\"matching_locals\":0},\"page\":{\"before\":0,\"next\":null,\"remaining\":0,\"returned\":1,\"total\":1},\"query\":\"find\",\"revision\":\"9898c89c38b2fe1146515af5118c091b4e88188ad94acabf2d04ac796686664b\",\"root\":\"frp1:9898c89c38b2fe1146515af5118c091b:35d5\",\"rows\":[[\"frp1:9898c89c38b2fe1146515af5118c091b:35e3\",\"35d5\",\"function\",\"escape_into\",\"regex-syntax/src/lib.rs\",213,{\"basis\":\"syntax-header\",\"text\":\"pub fn escape_into(text: &str, buf: &mut String)\"},{\"next_offset\":null,\"offset\":0,\"returned_bytes\":244,\"span\":{\"end\":8952,\"start\":8708},\"text\":\"pub fn escape_into(text: &str, buf: &mut String) {\\n    // fr cache invalidation probe\\n\\n    buf.reserve(text.len());\\n    for c in text.chars() {\\n        if is_meta_character(c) {\\n            buf.push('\\\\\\\\');\\n        }\\n        buf.push(c);\\n    }\\n}\",\"total_bytes\":244}]],\"schema\":\"fr-project-1\",\"source_budget\":{\"limit_bytes\":2048,\"returned_bytes\":244,\"scope\":\"returned page\"}}\n",
+          "stderr": ""
+        },
+        "uncached": {
+          "args": [
+            "project",
+            "find",
+            "escape_into",
+            "--in",
+            "regex-syntax/src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": true,
+          "seconds": 1.456713459,
+          "exit_code": 0,
+          "stdout_bytes": 1509,
+          "stdout_sha256": "7e1d01fd55f009c999cbebf092a2476347b27062e959ae3925ffca09a95fec16",
+          "stdout": "{\"columns\":[\"handle\",\"parent\",\"kind\",\"name\",\"path\",\"line\",\"signature\",\"source\"],\"coverage\":{\"architecture\":\"not inferred\",\"files_by_gap\":{},\"hierarchy\":\"directories and lexical spans\",\"indexed_files\":249,\"manifests\":{\"discovered\":8,\"ecosystems\":[\"cargo\",\"npm\"],\"gaps\":0,\"parsed\":8,\"resolution\":\"not-attempted\",\"scope\":\"selected scan root\"},\"max_file_bytes\":4194304,\"respect_ignore\":true,\"skipped_files\":0,\"skipped_symlinks\":0,\"unresolved_references\":48602,\"unsupported_files\":195},\"handle_prefix\":\"frp1:9898c89c38b2fe1146515af5118c091b:\",\"match\":{\"mode\":\"exact\",\"name\":\"escape_into\"},\"omitted\":{\"matching_locals\":0},\"page\":{\"before\":0,\"next\":null,\"remaining\":0,\"returned\":1,\"total\":1},\"query\":\"find\",\"revision\":\"9898c89c38b2fe1146515af5118c091b4e88188ad94acabf2d04ac796686664b\",\"root\":\"frp1:9898c89c38b2fe1146515af5118c091b:35d5\",\"rows\":[[\"frp1:9898c89c38b2fe1146515af5118c091b:35e3\",\"35d5\",\"function\",\"escape_into\",\"regex-syntax/src/lib.rs\",213,{\"basis\":\"syntax-header\",\"text\":\"pub fn escape_into(text: &str, buf: &mut String)\"},{\"next_offset\":null,\"offset\":0,\"returned_bytes\":244,\"span\":{\"end\":8952,\"start\":8708},\"text\":\"pub fn escape_into(text: &str, buf: &mut String) {\\n    // fr cache invalidation probe\\n\\n    buf.reserve(text.len());\\n    for c in text.chars() {\\n        if is_meta_character(c) {\\n            buf.push('\\\\\\\\');\\n        }\\n        buf.push(c);\\n    }\\n}\",\"total_bytes\":244}]],\"schema\":\"fr-project-1\",\"source_budget\":{\"limit_bytes\":2048,\"returned_bytes\":244,\"scope\":\"returned page\"}}\n",
+          "stderr": ""
+        },
+        "stale_handle": {
+          "args": [
+            "project",
+            "show",
+            "frp1:8316067d5113408f71f41c8a8a19fa5b:35e3",
+            "--source"
+          ],
+          "cache_disabled": false,
+          "seconds": 0.166516125,
+          "exit_code": 1,
+          "stdout_bytes": 120,
+          "stdout_sha256": "57a2b77abf17df8897afad7ce81232f410cb7689f24bf8a5007daeee37a1a875",
+          "stdout": "{\n  \"error\": {\n    \"kind\": \"error\",\n    \"message\": \"stale or invalid project handle; obtain a fresh project map.\"\n  }\n}\n",
+          "stderr": "Error: stale or invalid project handle; obtain a fresh project map.\n"
+        },
+        "restored": {
+          "args": [
+            "project",
+            "find",
+            "escape_into",
+            "--in",
+            "regex-syntax/src/lib.rs",
+            "--signature",
+            "--source",
+            "--bytes",
+            "2048"
+          ],
+          "cache_disabled": false,
+          "seconds": 0.17437075,
+          "exit_code": 0,
+          "stdout_bytes": 1471,
+          "stdout_sha256": "63911ef6be74a2c9d3a79e7bb904c08a716424b31a2d1b64a0f4914b988f2be2",
+          "stdout": "{\"columns\":[\"handle\",\"parent\",\"kind\",\"name\",\"path\",\"line\",\"signature\",\"source\"],\"coverage\":{\"architecture\":\"not inferred\",\"files_by_gap\":{},\"hierarchy\":\"directories and lexical spans\",\"indexed_files\":249,\"manifests\":{\"discovered\":8,\"ecosystems\":[\"cargo\",\"npm\"],\"gaps\":0,\"parsed\":8,\"resolution\":\"not-attempted\",\"scope\":\"selected scan root\"},\"max_file_bytes\":4194304,\"respect_ignore\":true,\"skipped_files\":0,\"skipped_symlinks\":0,\"unresolved_references\":48602,\"unsupported_files\":195},\"handle_prefix\":\"frp1:8316067d5113408f71f41c8a8a19fa5b:\",\"match\":{\"mode\":\"exact\",\"name\":\"escape_into\"},\"omitted\":{\"matching_locals\":0},\"page\":{\"before\":0,\"next\":null,\"remaining\":0,\"returned\":1,\"total\":1},\"query\":\"find\",\"revision\":\"8316067d5113408f71f41c8a8a19fa5b7a429e3d5db62933718e17081e693330\",\"root\":\"frp1:8316067d5113408f71f41c8a8a19fa5b:35d5\",\"rows\":[[\"frp1:8316067d5113408f71f41c8a8a19fa5b:35e3\",\"35d5\",\"function\",\"escape_into\",\"regex-syntax/src/lib.rs\",213,{\"basis\":\"syntax-header\",\"text\":\"pub fn escape_into(text: &str, buf: &mut String)\"},{\"next_offset\":null,\"offset\":0,\"returned_bytes\":208,\"span\":{\"end\":8916,\"start\":8708},\"text\":\"pub fn escape_into(text: &str, buf: &mut String) {\\n    buf.reserve(text.len());\\n    for c in text.chars() {\\n        if is_meta_character(c) {\\n            buf.push('\\\\\\\\');\\n        }\\n        buf.push(c);\\n    }\\n}\",\"total_bytes\":208}]],\"schema\":\"fr-project-1\",\"source_budget\":{\"limit_bytes\":2048,\"returned_bytes\":208,\"scope\":\"returned page\"}}\n",
+          "stderr": ""
+        },
+        "scope": "A temporary comment inside the selected function; this checks source invalidation, not build behavior."
+      }
+    }
+  ],
+  "inspections": [
+    {
+      "args": [
+        "project",
+        "packages"
+      ],
+      "pages": 1,
+      "stdout_bytes": 2433,
+      "page_sha256": [
+        "02775b0c5f0d9e6ec15d58c2cac2293b08a44bc435827ace1be44d6b80ba40fc"
+      ]
+    },
+    {
+      "args": [
+        "project",
+        "dependencies"
+      ],
+      "pages": 2,
+      "stdout_bytes": 14653,
+      "page_sha256": [
+        "0cca412769da4dd11fe8d1558fef6c8a8f64b64af92caec807eb26604046bd60",
+        "4ee2770e9efc2651e593a7b5dc303dedbafac5313b5139842d1cf6c9114b028e"
+      ]
+    },
+    {
+      "args": [
+        "project",
+        "workspaces"
+      ],
+      "pages": 1,
+      "stdout_bytes": 3028,
+      "page_sha256": [
+        "6fc7ee6a93049fa08d475df4815f70118ed88dcac414634119363d56f5504213"
+      ]
+    },
+    {
+      "args": [
+        "project",
+        "gaps"
+      ],
+      "pages": 1,
+      "stdout_bytes": 1310,
+      "page_sha256": [
+        "d9c0c3e528bae2571f291398da6344ad00c808f5587b6f60a38c009a7133cfe6"
+      ]
+    },
+    {
+      "args": [
+        "project",
+        "map",
+        "--depth",
+        "64",
+        "--limit",
+        "500"
+      ],
+      "pages": 17,
+      "stdout_bytes": 384267,
+      "page_sha256": [
+        "976c45dece2a578afb4f22dbdc97a0eabbebf310224cbd6ada64a645f42219c7",
+        "b3767b4c12bd1209b58a1ef5bcea7ffdb528d6fa07faed399e16394ced579027",
+        "585c7842cc6d595bb73d0bb7c7e21f4e3bbb00d463fd80cc3edf3eba875939e7",
+        "aee241252775cfcfa51b3bd21fc10b4cb71d188c5446516d8626f3fd69b56240",
+        "0460981ca022be1f79bf9c3f886ab63a480e206aa98988e4a788718fcd6664c2",
+        "645d10f4baba4d06d398ff99c3825614b4dc4149c38dbd961a3ffc37913356cd",
+        "766d3020942815d659f4b88093a27b293576a45de0b1d6d7c7719e53e99e25b7",
+        "b07a215a04d46217e896e615c9821ab4d5e56ecdbc691619876efe4297243159",
+        "bf40c26974cebb96c3c5d27af12f310253fdcc4bb367812b503e1a4a3d86d4a5",
+        "6ae76871000dc4a447b135d64495e3a8c5a13526731ae316e87b69ebde9124c1",
+        "af82a86447f2d4dcff1a841d9933f795e06961d1e059c5cfae3ca53ec1185c99",
+        "7cd535e3cf82adcb8db551f91bf7c6392fdf483f2b514637f6e0c492effecaf6",
+        "aed225247677996544a8ef61c2f72d13a394ef2339545d70aba10c15d8f2f0db",
+        "25ac939197a04334abe5910b84dbef56d8a3ad85e9d3e490ba5cdf740efcba4f",
+        "e3ca109e2e4bf4934b14e8df652b8fd37d0aa9af763fa492f78ebe7aa1be18f0",
+        "444ef628e658b23e3cc600a5d473fb9974ad751efe46e197995e29c0ffd2fe15",
+        "cf2b38a69121ce7cedd048b202594ff485e13a38b5f425f664f82cd339ae3c6c"
+      ]
+    }
+  ],
+  "source_and_index_restored": true,
+  "scope": "Alternating before/after release CLI and development-profiler samples on one host with populated caches. Construction checkpoints include their own overhead; ordinary CLI calls have no construction timing. Every query and complete map/manifest/diagnostic page matches the baseline bytes, including revisions and continuation cursors. Cached source-invalidation probes target the candidate CLI. No agent, context-saving, cold-start or general production-latency claim."
+}

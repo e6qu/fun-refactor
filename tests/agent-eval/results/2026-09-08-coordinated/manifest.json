@@ -1,0 +1,66 @@
+{
+  "schema": "fr-agent-eval-evidence-1",
+  "trials": [
+    "regex-escape-len-fr-r1",
+    "regex-escape-len-files-r1",
+    "regex-escape-len-fr-r2",
+    "regex-escape-len-files-r2"
+  ],
+  "project": "rust-lang/regex complete workspace snapshot, without Git history",
+  "upstream_commit": "2b527599eb9eea0dcc288c704584f242f26a5c61",
+  "archive_sha256": "7f8beace6ed6c94b2eec3c5aa92219e10e73bd8ad696035877bed01d3ee47255",
+  "dependency_lock_sha256": "7ae225f5fbac82509d5c259dd3613a809c75a8bd4e2124b9cb69ed29d98de3a0",
+  "implementation_commit": "1c96eb12f970cb4ed76966adddb43e909a1911ba",
+  "agent_execution": "Four fresh collaboration agents ran in two pairs: coordinated_fr_r1 with coordinated_files_r1, then coordinated_fr_r2 with coordinated_files_r2 after both first-pair agents completed. Each started with no conversation history, the same inherited parent model and effort, no overrides, and only its assigned prompt; a pinned serving-model build was unavailable. All task actions followed the instrumented cooperative protocol. No rehearsal solutions, other trial results, implementation guidance, restarts, excluded trials or human corrections were supplied. Both agents in a pair shared the host and preflight-warmed dependency cache; fr fact caching stayed disabled. The parent only reviewed protocol metadata and edited documentation while agents ran. Scoring and the full repository gate began after all four finished. Frozen evaluator, prompt, skill and session fingerprints matched before pair two and after all trials.",
+  "pilots": {
+    "interrupted": [],
+    "reason": null,
+    "included_in_scored_trials": false
+  },
+  "versions": {
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "git": "git version 2.55.0",
+    "python3": "Python 3.14.6"
+  },
+  "evaluator_files": {
+    "tools/agent-eval.py": "9bb820c643ec5c6e234bee81661cecb4973bbb3d5efe406f5eddb5519a9ab180",
+    "tools/agent_eval/oracle.py": "cf938812a50d1a7ce41d2c3e9b6ba9dc1abff2fa0f6fec84ff33bd2b28e7bf09",
+    "tools/agent_eval/regex_workspace.py": "d7003500c07c3c5b1b12916ffdcd094b3dddf2e59f6d8aa8510246d42b9fb08c",
+    "tools/agent_eval/regex_escape_len.py": "331700680ae35f2f41e94c93873011f417e82e6c71af3651895158a197d39a16"
+  },
+  "files": {
+    "experiment.json": "036f1bc495f9f632e51a8fe517107a545fd4570e0aea797be88807b4b798e465",
+    "regex-escape-len-files-r1/change.patch": "25e0e0d465b651a3a1538136c9574093808e59fb5001a6fb3f8c30dd1a28024e",
+    "regex-escape-len-files-r1/events.jsonl": "db71991ee2db36fcb8bdb8d7506b4bf336ed6b5bd524919a0e6f23036174079d",
+    "regex-escape-len-files-r1/prompt.txt": "e8b1c59c5155f66348828aaf6a82712dd22f54646382bd2143286203889acc27",
+    "regex-escape-len-files-r1/result.json": "b14cdde9ce39ee079869291fa2389a8821b232645d9a43121413bcd3c3a8f4d1",
+    "regex-escape-len-files-r1/session.json": "1991c547d0c0416a463f306dfc37da131aceeb6076d5cac5e0fc96457e2b93e8",
+    "regex-escape-len-files-r2/change.patch": "716d8ebc9fed8f19025577d64efcad757c69134531e9a03cd03d32c1ec7b4fe8",
+    "regex-escape-len-files-r2/events.jsonl": "dd60b41c87565212b9f29408b854a0e02fcc8616d48b5b39f5e870e900071790",
+    "regex-escape-len-files-r2/prompt.txt": "ddd4abda0c415b5faee9710a0317f4cf4a6dc6d2c1621e19abd3cb758dc9e881",
+    "regex-escape-len-files-r2/result.json": "bc1f4f2d59ef4e2bf913953f2f599da30bf16110665149073da49c6a0e4755d7",
+    "regex-escape-len-files-r2/session.json": "3a705e85495b3c9c891053f64ea24c410cc0ad45e60450a27b38086ea0761893",
+    "regex-escape-len-fr-r1/change.patch": "bea27306ba57e2691190e2c333377c52ae304174d3d5750f744183883c877b43",
+    "regex-escape-len-fr-r1/events.jsonl": "e01b6a70f89f4127e41004299037a3b541b16928aac5f518b034a267297afd3e",
+    "regex-escape-len-fr-r1/prompt.txt": "c8c85caa712795e2df0f926504d6a7b0499e310bc241215f0adad581fd36b4ff",
+    "regex-escape-len-fr-r1/result.json": "3677f5fd218352294169d56373cbb5a3cecf6326f14912c88860ec537324a178",
+    "regex-escape-len-fr-r1/session.json": "1b0e2f3616cf7d1e70d06137df284602ac7ff7a87599858f2f41ef5bc82b70a3",
+    "regex-escape-len-fr-r2/change.patch": "4938d209d71c10bf43fe6833f6236cac8015ecba573bcb06ae2f94d2d26591a5",
+    "regex-escape-len-fr-r2/events.jsonl": "20fdc0433f1b439844481979883b81724399476d7eb524cba101c5de8787a212",
+    "regex-escape-len-fr-r2/prompt.txt": "8192f6ed899503065986a84110fe921de3409c6afeca558a28810c704b00b6ee",
+    "regex-escape-len-fr-r2/result.json": "d4f3e3e1759511bffc8aa2e47a36be63ddfc6db7a71f2981f6315ae4c2e46814",
+    "regex-escape-len-fr-r2/session.json": "35c7a59953c24a91ec0002ad4887a86d9dbab6edcb6bd272cfc962631365fbc0",
+    "skill/SKILL.md": "e5c85ac1fa83541a929fc1b97b848b38de509a88603aad30a5ea9482d6cc8354",
+    "skill/references/author.md": "aa4c956f251a84ace78cff5370dfc6d7e44d1ce60bfef915bf54210ec6be8cd3",
+    "skill/references/change.md": "9b2ede37e019fc62bedd4f72b103667ac2880fa394253a714cb992270f7b6ef0",
+    "skill/references/checks.md": "1b38774f2f198185dcd71eb86674f0b5806bd7c004933a25bdbd7a00ce9d43a8",
+    "skill/references/explore.md": "ef2970bf481e729442bf5346603a457837871cf70d7a4f0405bb8591c1c0049e",
+    "skill/references/git-admin.md": "006e92b39ec734cd81436e7545029da4469e2e35d5cc94f8daef99629facbb47",
+    "skill/references/git.md": "e808545a818cb58bc5a47b5230a27f705e5ffee8c9ee3f874efb7ccc176e1abc",
+    "skill/references/history.md": "ae491881b0f94da7e66337a761304dc1081eb2992f35268072cb7f604f1e9a78",
+    "skill/references/lean.md": "f423b374cbe8328a23d9123f8a01f810a7f03048a22c7e71e84d78b565fc2998",
+    "skill/references/recipes.md": "1a9da93e0ad4e22591ba80368383958cdd951d1eda0c1d978f1608d7cee01f68",
+    "skill/references/recovery.md": "a59b24bc256411f737b77e0532d25b308a34f614fa42a89f4c82ee539e576a4d"
+  }
+}

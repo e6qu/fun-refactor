@@ -406,8 +406,8 @@ async def delete(post_id: str, req: Request):
       The tool preserves what it can see and reports the rest. It does <strong>not</strong>
       verify the contract, and no amount of reading one side can. Export the contract
       first, rewrite, export <code>/openapi.json</code> afterwards, and diff the two,
-      treating every difference as a defect until argued otherwise. Emitting that
-      baseline from the route tree is a real gap, and the project writes it down as one.
+      treating every difference as a change to review. <code>fr openapi</code> extracts
+      a declared baseline from supported route patterns. Runtime behavior needs its own checks.
     </p>
     <div class="btn-row">
       <a class="btn" href="translate.html#nextjs-to-fastapi">A route, translated</a>
@@ -579,7 +579,7 @@ size      3791 KiB
       <li><strong>Rejects overlaps.</strong> Two edits to the same bytes are a bug in the caller, not something to resolve by picking one.</li>
       <li><strong>Applies in descending offset order</strong>, so earlier offsets stay valid as it goes.</li>
       <li><strong>Reparses every changed file</strong> and refuses the whole edit if the file parses cleanly now and would not afterwards.</li>
-      <li><strong>Commits atomically.</strong> Either every file lands or none does.</li>
+      <li><strong>Commits with recovery.</strong> Native CLI writes keep persistent before/after snapshots. Checked undo, redo and interrupted-write recovery use transaction IDs through <code>fr history</code>.</li>
     </ol>
     <p>
       That reparse check is the net beneath the work rather than the work. It cannot

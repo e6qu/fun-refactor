@@ -1,0 +1,13 @@
+diff --git "a/src/lib.rs" "b/src/lib.rs"
+--- "a/src/lib.rs"
++++ "b/src/lib.rs"
+@@ -1305,3 +1305,9 @@
+         );
+     }
+ }
++pub fn normalized_osa_distance(a: &str, b: &str) -> f64 {
++    if a.is_empty() && b.is_empty() {
++        return 1.0;
++    }
++    1.0 - (osa_distance(a, b) as f64) / (a.chars().count().max(b.chars().count()) as f64)
++}

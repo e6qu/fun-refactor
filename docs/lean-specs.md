@@ -1,236 +1,371 @@
-# Specs in Lean
+# Lean specifications with fr
 
-A plan with one kernel. The writer under "Tier 2", the checked kernel project, and
-the anchor checker exist. The remaining tiers do not.
+`fr` reads and writes Lean. It checks source anchors and explicit signature maps,
+renews reviewed source hashes, and builds the Lean packages that own selected specs.
+The [roadmap](../PLAN.md) extends this foundation into an adoption workflow for other projects.
 
-`fr` reads Lean and writes it, and the conformance suite runs both. This says what it would take to make Lean the place this
-project writes down what its code should do. It also says which parts of that idea are
-worth doing and which are not.
+## What exists
 
-## The one idea the design rests on
+| Surface | Current scope |
+|---|---|
+| Lean translation | Eight programming-language readers and writers, including Lean, over supported constructs |
+| `fr spec check` | Source identity, missing declarations, signature maps and live `sorry` counts |
+| `fr spec check --strict` | Require an explicit signature map beside every source anchor |
+| `fr spec sync` | Preview renewal of stale source hashes; `--write` applies reviewed renewals |
+| `fr spec verify` | Strict correspondence checks, then `lake build --wfail` in each owning package |
+| `kernels/` | Executable edit, position, history, pagination, source-budget, insertion-placement, confidence and workspace membership models with shared Rust/Lean cases |
 
-Writing a proof is a search. Checking one is a decision. Lean draws that line for us, and
-it is the same line that separates a tool from an agent.
+Strict signature maps currently require Rust source declarations.
+The checker compares both signatures with the explicit map. It does not infer semantic equivalence between mapped types.
+A changed source signature remains visible after hash synchronization.
 
-So: **`fr` owns everything decidable and the agent owns the search.** `fr` extracts a
-spec's shape from the code, tells you where a spec and its code have drifted, counts what
-is unproved, generates code from a spec, and runs `lake` to accept or reject an answer. It
-never decides that a proof is good. An agent writes the proof and hands it back, and
-`lake` is the only thing that says yes.
+## Source anchors
 
-That gives a work list a tool can compute and an answer a tool can check. The judgement
-in between belongs to whoever is better at judgement.
-
-## Four things worth arguing about first
-
-### "Keep Lean specs in sync with the code" claims more than anyone can deliver
-
-Sync means three different things and only one of them is decidable.
-
-1. **The shapes agree.** The Lean spec's signature still matches the function's. `fr` can
-   decide this, cheaply, forever. This is what `tests/docs_cli.rs` already does for
-   prose, and it is the whole of what a tool can promise.
-2. **The behaviours agree on the cases we ran.** Generate the target-language code from
-   the Lean, run both, diff. `fr` already does this for every cell of the
-   conformance suite, Lean included. Real, checkable, and not a proof.
-3. **The implementation refines the spec.** A theorem, and nothing generates it. Proving
-   a hand-written Rust function meets a Lean spec needs a formal semantics of Rust, which
-   nobody has. This one is unavailable at any price and the plan should not imply it.
-
-Everything below promises (1) and (2). Anywhere the word "verified" would suggest (3),
-the word is wrong.
-
-### A `theorem` generates nothing
-
-A Lean `def` has computational content and can become Rust. A `theorem` is a proof that a
-proposition holds, and its content is erased. So "generate the implementation from the
-spec" only works where the spec *is* the implementation, written in Lean.
-
-That is the shape of the feature and not a limitation to work around: **a spec written
-as a `def` is executable and generates code; a spec written as a `theorem` is a claim
-about that code and generates a test obligation.** Both are useful. Conflating them
-produces a feature that appears to work and quietly emits stubs.
-
-### There is no Lean-to-Rust extraction, and this project does not need one
-
-Lean 4 compiles to C. Nothing extracts it to Rust. Three ways out:
-
-- **Link the C.** Real Lean semantics, and a Lean toolchain becomes a build dependency of
-  everything. Against the grain of a tool whose build needs a C compiler and nothing else.
-- **Hand-write the Rust and prove correspondence.** See (3) above.
-- **Generate the Rust from a restricted Lean, with `fr`.** `fr` is already a transpiler
-  with a canonical IR. Its harness proves seven languages print the same transcript,
-  Lean among them. Lean as a source is one more reader.
-
-The third is the only one that fits, and it costs a Lean reader rather than a research
-programme.
-
-### Proving the refactorings correct is not the place to start
-
-The tempting target is "prove `fr rename` preserves meaning". It needs a formal semantics
-for nineteen tree-sitter grammars. It will not happen.
-
-The IR is the opposite: 9 items, 26 statements, 34 expressions, self-contained, and the
-place the real risk lives. A wrong lowering is silent. The ledger that went from 1,756
-carried constructs to zero counts shapes that cross, and claims nothing about how they
-cross. **Specify the IR, prove things about the writers, and leave the grammars
-alone.**
-
-## What Lean is worth here, in order
-
-### Tier 1: the IR has a semantics
-
-Write `Ir.lean`: the item, statement and expression types, and an evaluator for the subset
-that has one. Then the properties worth having:
-
-- Reading a writer's output returns the term you started with, for every construct the
-  round-trip suite covers.
-- Bracketing preserves meaning: the operator-precedence rule that four separate defects
-  came from.
-- Division and remainder agree with each target's own rounding, which is B633 and the
-  `Math.trunc` family written down instead of remembered.
-
-This is the highest-value tier because it is where `fr` is most likely to be wrong, and
-it needs no code generation at all.
-
-### Tier 2: Lean is a translate target and a source
-
-**The writer exists.** `Record` became a `structure`, `Sum` an `inductive`, `Function` a
-`def`, `Newtype` an `abbrev`. Every one of the seven languages with a reader translates
-into Lean. The conformance suite runs the result: 87 cells, and Lean prints the
-transcript the other six print. `PLAN.md` has what it cost and where Lean disagreed with
-every other target.
-
-It refuses what it should. Recursion it cannot show terminates becomes `partial def` and
-says so. A deferred block in a scope something leaves early carries, because Lean has no
-hook that runs on the way out. A runtime type test carries, because a Lean value has one
-type and the elaborator already knows it.
-
-**The reader exists too.** It goes over the subset the writer produces, and over Lean a
-person wrote. Fourteen native programs sit in the conformance suite, each translating
-into the other seven languages and printing the same transcript.
-
-That was the last machinery the rest of this plan needed. `fr translate Foo.lean rust`
-works now, which is what "generate from a spec that is a `def`" asks for.
-
-### Tier 3: the kernel pattern
-
-Mark a module `@[fr.kernel]`. `fr` generates the target-language implementation from it
-and adds a conformance cell that runs both and diffs the transcript. Not a proof of
-correspondence, and a much stronger claim than a comment saying the two agree.
-
-This is where "write the kernel in Lean" becomes a thing a person can do, and it reuses
-a harness that already exists.
-
-`kernels/` holds the lossless edit engine and byte-native source positions. The edit model orders edits and rejects invalid
-plans. It applies accepted edits from high offsets to low offsets. It states one splice as prefix,
-replacement, and suffix. The Rust test runs Lean's cases
-and compares every result with `apply_to_string`.
-
-The shared corpus has 11,992 one- and two-edit plans over five ASCII and three UTF-8 sources.
-It also has an out-of-bounds plan for each source. The kernel models Rust's byte offsets.
-It converts them to character positions only at UTF-8 boundaries. It refuses offsets inside a
-multibyte character. Replacements include ASCII and UTF-8 text. A second check creates a Unicode
-Rust rename plan through `fr`'s scanner and resolver. Lean checks its emitted spans and output.
-
-The position kernel mirrors `LineIndex` and `full_line_span`. It turns byte offsets into one-based
-line and character columns, maps positions back to byte boundaries, and finds whole source lines. Its
-corpus has every string up to four symbols from ASCII, UTF-8 and newline text.
-
-`lake build --wfail` checks the model and rejects warnings, including `sorry`. The shared
-cases check the Rust implementation against the executable Lean model. They do not prove
-the implementation refines the model for every possible string and edit list.
-
-## The commands
-
-```
-fr spec check [path...]           the drift report: stale anchors, missing symbols,
-                                  and the count of unproved obligations.
-fr spec sync [path...] [--write]  renew stale source hashes
-fr spec verify [path...]          check strict correspondence and build Lean packages
-```
-
-`fr` implements `check`, `sync`, and `verify`. The other moves remain design work:
-`spec extract` and `fr translate Foo.lean rust`.
-
-`fr spec extract` writes an anchor the rest depends on:
-
-```lean
--- fr:spec src/refactor/rename.rs::plan @ 8f2c1a9e
-def plan (index : Index) (symbol : SymbolId) (newName : String) :
-    Except Refusal Plan := sorry
-```
-
-The hash is the function's own bytes. When it changes, `fr spec check` says which spec
-went stale and why. `fr spec sync` makes a reparse-checked edit that renews the hash.
-It shows the diff first and needs `--write` to commit. It refuses the whole transaction
-if any target disappeared. Before commit, it rechecks every source declaration it planned.
-This is the `docs_cli.rs` trick pointed at code instead of prose.
-
-## The lifecycle, which is the part that usually goes wrong
-
-Generation that only writes stubs is a demo. The three later moves are the feature.
-
-- **Generate.** The output carries `fr:from-spec` anchors around each generated region.
-- **Regenerate.** This replaces a region nobody touched. A region a person edited stops
-  the run and names the file and line. `fr` already refuses rather than overwrite, and
-  this is that discipline applied to a second author.
-- **Reverse.** A signature changed in the code. A future signature synchronizer carries
-  it back to Lean and leaves the proofs standing, so the next `lake` run says which ones
-  broke. Today's `spec sync` renews the source identity and never guesses that mapping.
-
-The proofs breaking is the point. A spec that survives a change to the thing it specifies
-was not specifying much.
-
-## Where the agent goes
-
-`fr` computes the work list and owns the oracle. The agent does the search.
-
-- **`lean-prover`**: takes one `sorry` and its context, tries to discharge it, and
-  offers a patch. The loop ends when `lake build` accepts, and `fr` runs `lake`, not the
-  agent. Parallel over independent obligations, since each is its own question.
-- **`spec-author`**: takes a drift report and writes or repairs the claims. This is the
-  judgement-heavy end: which properties are worth stating at all.
-
-Both are advisory. Nothing reaches a file without `lake` having accepted it, which is why
-the non-determinism upstream is safe.
-
-## The ratchet
-
-`SPEC-DEBT`, next to `PROSE-DEBT`, holding `sorry` at a number that only falls. An
-unproved obligation is debt with a name, which is better than an intention.
-
-## Order, and the one to build next
-
-Tier 2's writer was the first, because everything else waited on it and it extended
-machinery that already worked. It exists now.
-
-Anchors, `fr spec check`, and transactional `fr spec sync` make models name Rust
-declarations. They report drift and renew reviewed source identities. Explicit mappings
-make signature correspondence visible without a guessed rewrite.
-
-That mapping now sits immediately below an anchor:
+A spec names the declaration it models and a prefix of its SHA-256 hash:
 
 ```lean
 -- fr:spec src/edit.rs::apply_to_string @ 3e192284
--- fr:signature source: &str => source: String
+-- fr:signature source: &str => source: String; edits: &[Edit] => edits: List Edit; return: Result<String> => return: Option String
+def applyChecked (source : String) (edits : List Edit) : Option String :=
+  if valid source edits then some (apply source edits) else none
 ```
 
-Each side names a parameter or `return` and its type. `fr spec check` reads the Rust
-function and following Lean definition, then compares both lists to the map. A source
-signature change therefore remains visible after `spec sync` renews its body hash.
-`fr spec check --strict` requires this map beside every anchor, which makes complete
-signature correspondence a gate rather than an aspiration.
+The hash covers the source declaration's bytes.
+The mapping lists source and Lean parameters and return types in order.
+Inspect a stale source change before renewing its hash.
+`spec sync` changes source identity markers; it does not rewrite signatures or repair proofs.
 
-`fr spec verify` runs that strict gate and then builds each owning Lake package with
-`lake build --wfail`. It gives a kernel author one command for correspondence and Lean
-acceptance, while the existing shared corpora continue to test model behavior against Rust.
+```sh
+fr spec check --strict
+fr spec sync
+fr spec sync --write
+fr spec verify
+```
 
-Tier 1 can start any time and is the most valuable thing here. It is also the easiest to
-put off, being the only part with no visible output.
+Without paths, these commands inspect existing `kernels/` and `specs/` roots.
+Pass a Lean file or directory to select another location.
+`verify` requires each selected file to belong to a Lake package.
+Lean is an explicit dependency for verification, not for ordinary refactoring.
 
-## What to leave alone
+## What each check establishes
 
-Proving the refactorings. Proving a hand-written implementation refines its spec. Any use
-of the word "verified" for a correspondence that a conformance run established rather than
-a proof.
+A fresh anchor establishes that the named source bytes match the recorded identity.
+An accepted signature map establishes correspondence with the two declared signatures.
+A Lean theorem establishes its proposition under its definitions and assumptions.
+A shared execution test compares the implementation and model on the selected cases.
+
+A theorem about a Lean model alone does not prove the Rust implementation refines that model.
+Translation into Lean does not supply that proof either.
+Implementation correspondence needs its own argument or a justified verified generation path.
+Keep assumptions, accepted axioms and trusted components visible in any verification report.
+
+## Existing kernels
+
+`FrKernels.Edit` models byte-based edits, UTF-8 boundaries, ordering, overlap checks and splice application.
+It states properties of accepted and rejected plans and unchanged source prefixes.
+`FrKernels.Position` models line and column conversion and full-line spans.
+
+`tests/lean_kernels.rs` compares the executable models with Rust over ASCII and Unicode corpora.
+It also checks plans from real refactoring commands.
+`tools/check-kernels.sh` builds the package with warnings as errors and runs all five executables.
+The full self-audits run in `tools/check.sh deep`.
+
+`FrKernels.History` adds snapshot acceptance, inverse laws, mixed-state recovery and undo/redo stack laws.
+Its anchored snapshot predicate has 250 shared Rust/Lean executable cases.
+The inverse and mixed-recovery proofs use Lean’s propositional extensionality axiom. The two stack inverse proofs use no axioms.
+The model assumes durable journal checkpoints and atomic rename. Filesystem and full transaction implementation correspondence remain unproved.
+
+`FrKernels.Patch` models Git executable-mode projection, supported permission changes and receiving patch-basis equality.
+Four Rust helpers used by file authoring, patch export and receiving checks carry explicit anchors and signature maps.
+Mode fields use `UInt32`, matching Rust's `u32` domain, including complement and XOR operations.
+The model's 20 theorems establish:
+
+- Projection produces only regular or executable Git modes, depends exactly on the owner-execute bit and is idempotent.
+- Supported mode changes preserve all non-execute bits and either change nothing or toggle owner execute. Reversing a change preserves support.
+- Basis matching is reflexive, symmetric and transitive, preserves existence, and requires identical content and owner-execute bits for present files.
+- Full snapshot equality implies patch-basis acceptance. Other permission differences can pass the patch check while failing full snapshot equality.
+- The owner-execute setter changes the requested bit, preserves other bits, is idempotent and always produces a supported mode change.
+- The setter produces the requested Git mode and preserves the journal's maximum recorded permission value.
+
+Shared execution compares 45,419 mode results across all 4,096 permission patterns, individual high bits, `u32::MAX` and ten change masks.
+It also compares 1,681 pairs of absent/present snapshots with empty, Unicode and NUL-containing contents across ten modes.
+NUL cases exercise the pure comparison only; patch export still refuses binary snapshots before receiving checks.
+Another 8,258 comparisons cover both owner-execute settings across the same mode corpus.
+
+An axiom audit of all 20 theorems reports `propext` and `Quot.sound`.
+Proofs using `bv_decide`, and theorems depending on them, also use `Classical.choice`, `Lean.ofReduceBool` and `Lean.trustCompiler`.
+Lean 4.28's [bitvector proof checker](https://github.com/leanprover/lean4/blob/v4.28.0/src/Lean/Elab/Tactic/BVDecide/Frontend/BVDecide.lean) performs compiled certificate validation.
+That adds compiler trust to those proofs. Zero `sorry` obligations does not remove these assumptions.
+Inspect individual dependencies with `#print axioms FrKernels.Patch.mode_change_supported_iff` in a Lean file importing `FrKernels.Patch`.
+Source anchors and shared cases do not prove general Rust/model correspondence.
+Filesystem observation, path validation, patch rendering, report aggregation and Git execution remain outside this model.
+
+`FrKernels.Project` models the shared page-length calculation and workspace component matcher.
+Its theorems bound each page by the requested limit and remaining items.
+They also prove forward progress and partition the remaining result set.
+The executable corpus includes 1,728 combinations, with 32-bit and 64-bit integer limits.
+Rust compares all cases its `usize` can represent.
+The matcher proves equal directory depth, refusal at different depths, self-matching and literal-or-star head matching.
+Its shared corpus compares 67,081 pairs of component sequences, including Unicode, empty strings and embedded slash characters.
+The caller splits paths into components and restricts pattern syntax before matching; those parsing steps remain outside the proof.
+The model does not establish filesystem containment or package-manager workspace membership.
+Matcher proofs use propositional extensionality; the self-match proof also uses Lean's standard classical-choice and quotient-soundness axioms.
+The model does not prove parser correctness, snapshot-hash collision resistance or agent task success.
+
+`FrKernels.Git` models the inclusive line-range predicate used by changed-declaration views.
+Six theorems characterize membership, reject lines before/after or within reversed bounds, characterize singletons, and preserve matches when bounds widen.
+Shared execution compares 1,728 cases, including zero, reversed ranges and 32-bit/64-bit maximum values.
+The axiom audit reports `propext`, with `Quot.sound` and `Classical.choice` used by some proofs.
+These proofs do not add compiler-trust axioms.
+The source anchor and signature map identify the Rust predicate; general Rust/model correspondence remains unproved.
+Git capture, hashing, syntax extraction, byte-to-line conversion, hierarchy and report aggregation remain outside these laws.
+
+The Git model also anchors the boolean direction predicate used by snapshot call pages.
+Six laws characterize empty selections, disabled directions, incoming-only, outgoing-only, both-direction and symmetric selection.
+All six proofs use no axioms. Shared execution compares all 16 boolean inputs with Rust.
+The predicate receives endpoint membership and direction flags; their derivation, enum mapping, call graph construction and complete Rust correspondence remain unproved.
+Explicit call context reuses this predicate and the anchored Git mode projection for working files.
+Its selected-file inventory, file-aware containment and snapshot consistency checks have regression evidence, without additional model proofs.
+
+The project kernel also models path confidence as the maximum of edge ranks, with zero as the empty-path identity.
+Ranks map `exact`, `import-qualified`, `field-based` and `name-only` to 0 through 3, in that order.
+Theorems show that aggregation cannot strengthen any input edge and stays within the supplied tier bound.
+The compact test view leaves path confidence null for in-scope candidates, which have no witness edges.
+All 5,461 rank sequences through six edges agree with the Rust helper, including the empty sequence.
+The non-strengthening and tier-bound proofs use propositional extensionality; the empty-path proof uses no axioms.
+These laws concern aggregation of supplied edges. Catalog accuracy, graph construction and shortest-path correspondence remain outside these proofs.
+
+The workspace membership kernel models one synchronous expansion over supplied package IDs and eligible dependency edges.
+The Rust workspace reader uses this anchored helper after capturing ownership, exclusions and local dependency evidence.
+The model proves that a step preserves existing members, adds exactly targets of edges from existing members, and is monotone.
+Repeated expansion preserves seeds and adds only reachable nodes. Every round stays within any closed superset of the seeds.
+`FrKernels.Workspace` proves general convergence: expansion stabilizes within the number of supplied dependency edges.
+The argument covers arbitrary finite lists of IDs, seeds and edges, including duplicates, cycles and disconnected components.
+Each changing round removes at least one entry from the finite list of missing candidates.
+Sorted, duplicate-free representation makes equal membership imply the list equality used by the stopping condition.
+The executable closure model runs to the proved bound and returns exactly the reachable nodes, hence the least closed superset of the seeds.
+Every later round returns the same list. These conclusions require no separate stabilization hypothesis.
+
+Shared execution compares 20,750 rounds across every directed graph and seed set on zero through three nodes.
+An independent Rust queue traversal checks final reachability and stabilization within the node count for those cases.
+Four further shared rounds cover duplicate seeds/edges, unsorted IDs and 64-bit limits on hosts that can represent them.
+CLI regressions retain exclusions, distinct owners, cycles, inherited paths and deterministic first-round witnesses.
+Closure comparisons cover all 4,165 small graph/seed configurations, a 64-bit duplicate/limit case and chains of 4, 16 and 64 edges.
+The chains require exactly their edge count in changing Rust rounds, exercising the bound without an early-stop assumption.
+The reachability induction uses no axioms; the expansion proofs use propositional extensionality and quotient soundness from Lean's standard library.
+The convergence and unconditional closure proofs also use Lean's standard classical-choice axiom. These proofs introduce no custom axioms.
+These are model proofs with tested Rust correspondence. Cargo semantics, eligible-edge construction, witness selection and the complete Rust loop remain outside the proofs.
+
+The Cargo reader checks literal exclusion prefixes and explicit-member overrides with `cargo metadata` fixtures.
+These cover nested roots, descendant dependencies, Unicode paths and neighboring directory names.
+The [Cargo implementation](https://doc.rust-lang.org/stable/nightly-rustc/src/cargo/core/workspace.rs.html) uses directory prefixes for exclusions and lets explicit member paths override them.
+Glob-shaped exclusions remain outside the reader's supported subset and produce unresolved rows.
+These fixtures test rule interpretation; they do not extend the Lean proof boundary.
+
+Cargo member patterns also support leading parent components within the selected project root, followed by the existing fixed-depth pattern subset.
+Matching reads captured manifests only. Explicit workspace pointers can establish ownership for sibling packages and their transitive inherited path dependencies.
+Pattern-candidate pages retain their separate ownership gaps, even when membership pages have enough evidence.
+Declared literal paths retain parent components for exclusion precedence; normalizing such aliases would incorrectly override some Cargo exclusions.
+Snapshot escapes, parent components after a literal or wildcard, parent-relative exclusions and npm parent patterns remain unsupported.
+Cargo metadata fixtures check sibling membership, inheritance and the alias/exclusion interaction. Path interpretation and ownership still remain outside the Lean proofs.
+
+## Bounded source kernels
+
+`FrKernels.Source` models the UTF-8 slicing helper that serves `project find --source` and `project show --source`.
+Its source anchor and explicit signature map identify `src/project.rs::source_slice_length`.
+The model defines byte boundaries as sums of Unicode scalar widths and searches backward for the greatest boundary within the budget.
+Offsets and budgets use natural numbers. Shared tests compare cases that the host's `usize` can represent.
+
+Nineteen theorems establish:
+
+- Zero and the source end are boundaries; every boundary lies within the source.
+- Slicing accepts exactly valid starting boundaries and refuses other offsets.
+- An accepted slice ends at a boundary, respects the byte limit and stays within the source.
+- Each slice takes the longest prefix that fits and partitions the remaining byte count.
+- A zero budget returns zero bytes. A sufficient budget finishes the source.
+- A slice advances when a later boundary fits; a budget smaller than the next scalar can leave an empty slice.
+- Page allocation preserves every row, shares one budget, partitions used and remaining bytes, and returns zero lengths after exhaustion.
+
+The shared corpus compares 19,220 slice cases over 90 strings on 64-bit hosts.
+It includes every byte offset, split-scalar offsets, source ends, out-of-range offsets, zero budgets and machine limits.
+Strings cover one-through-four-byte scalars, Unicode width boundaries, combining marks, NUL, CRLF and escape characters.
+An independent Rust oracle accumulates scalar widths forward; the production helper searches backward from the byte cap.
+The test also reconstructs the original text around each accepted slice.
+
+Another 5,180 cases compare page allocations over all zero-through-three-row sequences drawn from six strings.
+These exercise empty rows, exhausted budgets, partial scalars and unused bytes that a later row can consume.
+Eleven CLI comparisons pass actual `find` reports and their selected source through the executable Lean model.
+Existing project regressions retain continuation, stale-handle refusal, row pagination and large-body checks.
+
+The axiom audit reports `propext`, `Quot.sound` and, for some proofs, `Classical.choice`.
+These proofs add no custom or compiler-trust axioms and contain no `sorry` obligations.
+Inspect individual dependencies with `#print axioms FrKernels.Source.page_respects_shared_budget` in a file importing `FrKernels.Source`.
+`tools/check-kernels.sh` builds the module and runs both corpora through the existing project executable.
+
+These are model proofs with tested implementation correspondence.
+The page model represents the caller's allocation loop; it has no separate source anchor.
+General Rust correspondence, UTF-8 library internals, parser spans and JSON report assembly remain unproved.
+JSON escaping and metadata lie outside the raw source-text budget.
+
+## Module insertion placement kernels
+
+`FrKernels.Author` models the byte offset used to insert a Rust function before an inline module's closing brace.
+The input string contains the source before that brace; `bodyStart` is the byte offset of the selected body's opening brace.
+A line ending with only spaces, tabs or carriage returns keeps its indentation after the inserted fragment.
+Otherwise, insertion uses the closing-brace offset. A candidate line must start strictly after `bodyStart`.
+
+The model uses character lists and UTF-8 byte widths. Rust uses a last-newline search and an ASCII byte predicate.
+Fifteen theorems establish:
+
+- The result is within the input and on a UTF-8 boundary.
+- If the opening brace lies within the input, insertion stays strictly after it.
+- The suffix after the insertion point contains only the accepted indentation characters.
+- A newline followed by indentation selects that line when it lies inside the body.
+- Content at the end retains the closing-brace position; lines outside the body also fall back to that position.
+- Empty input yields offset zero.
+
+`src/project.rs::module_insertion_offset` holds the calculation extracted from module authoring without changing its behavior.
+It has a source anchor and explicit signature map. The model accepts arbitrary natural opening offsets; Rust accepts `usize` offsets.
+The positive opening-bound theorem assumes the opening offset is less than the input's byte length.
+The other offset bounds and boundary guarantees hold even for an opening offset beyond the input.
+
+`tests/lean_kernels.rs` compares 28,185 cases on 64-bit hosts against Rust, Lean and an independent reverse-character scan.
+The corpus contains all zero-through-four-character words over seven symbols, plus ten special prefixes and three large cases.
+It covers CRLF, Unicode, indentation lookalikes, NUL in the pure helper, offsets inside multibyte characters, and machine limits.
+Large cases include 65,536 spaces and a prefix containing 4,096 four-byte characters.
+A 32-bit host compares 25,371 cases, consuming but skipping opening offsets that its `usize` cannot represent.
+The same corpus applies each offset through the Rust edit engine and checks unchanged source prefixes and suffixes.
+Eight actual CLI previews also match the Lean placement result, alongside the existing insertion splice and history tests.
+
+All fifteen theorem dependencies use only `propext`, `Classical.choice` and `Quot.sound`, with smaller subsets for some properties.
+There are no custom axioms or new obligations. Inspect each dependency with `#print axioms FrKernels.Author.offset_is_boundary`, for example.
+Run `cargo test --test lean_kernels module_insertion_` for the comparisons.
+The default kernel gate includes `lake exe fr-project-kernel module-offsets`; the package still uses five executables.
+
+These are model proofs and tested implementation correspondence.
+They do not prove AST selection, parser correctness, fragment validity, name checks, filesystem behavior or general Rust/model refinement.
+The existing edit model supplies separate splice-preservation laws; byte-offset placement alone does not prove complete authoring correctness.
+
+## Revision buffer kernels
+
+`FrKernels.Digest` models the revision buffer as emitted and pending byte lists.
+Successful writes append complete serialized fragments; failed writes append a partial fragment and truncate it back to the prior length.
+A successful write flushes when pending length reaches the threshold. Explicit flushes move pending bytes to the emitted stream.
+Finalization flushes the remainder. These definitions model buffering after serialization supplies bytes, without modeling the serializer itself.
+
+Twenty-one theorems establish:
+
+- Flushing preserves ordered bytes, empties the pending buffer and is idempotent.
+- Threshold checks preserve bytes and leave pending length below every positive threshold after a successful write.
+- Failed writes restore the prior state and preserve subsequent processing, regardless of partial output size.
+- Successful writes append bytes in order; arbitrary operation sequences retain exactly their successful fragments.
+- Sequences compose, preserve the pending-length bound and finalize to the initial bytes followed by all successful bytes.
+- Changing thresholds or inserting explicit flushes preserves final bytes.
+- An abstract incremental digest has the same result across thresholds when its update function obeys the stated chunk-composition law.
+
+The byte laws hold for lists over any element type and thresholds over natural numbers, including zero where no positive bound is claimed.
+The digest law assumes `update seed (left ++ right) = update (update seed left) right`.
+This is an explicit theorem premise, not a new axiom or a proof about SHA-256 internals.
+The axiom audit for all twenty-one theorems reports only `propext` and `Quot.sound`; several need no axioms.
+
+`tests/lean_digest.rs` compiles the same private Rust source module that project construction uses.
+It compares 1,570 states across 404 sequences with `fr-digest-kernel` and an independent oracle of explicit JSON bytes.
+Four hundred sequences enumerate all zero-through-three-operation combinations from seven operations.
+They cover null, booleans, empty strings, Unicode and escaped newlines, the largest unsigned 64-bit integer, partial failures and explicit flushes.
+Four longer sequences exercise pending lengths just below, at and above 65,536 bytes, plus a 100,000-character record.
+Each includes a failure after writing a 100,000-character partial string, subsequent writes and repeated flushes.
+Every state checks exact pending bytes, the digest of emitted bytes, the final digest and the successful-byte oracle.
+
+The Rust comparison uses the production threshold of 65,536 bytes. General threshold laws belong to the Lean model.
+Post-operation pending length differs from allocation capacity: a serialized item can exceed the threshold, and Rust retains the largest buffer allocation.
+The model does not cover allocation failures, panics, serializer correctness, SHA-256 internals or project revision-input selection.
+It has no separate source anchor or proof that Rust refines every model operation; the shared executions establish correspondence on their cases.
+The existing twenty-three source anchors retain their separate scope.
+
+```sh
+CARGO_HOME="$PWD/target/cargo-home" CARGO_NET_OFFLINE=true cargo test --test lean_digest
+```
+
+`tools/check-kernels.sh` builds the model and runs its corpus; the default native gate runs the Rust comparison.
+Inspect a theorem's dependencies with `#print axioms FrKernels.Digest.digest_view_preserves_thresholds` in a file importing `FrKernels.Digest`.
+The [M4s timing report](project-context-evaluation.md#batched-revision-hashing) remains historical evidence; M4t introduces no timing or context-saving claim.
+
+## Adopting Lean in another project today
+
+Create a Lake package and write a small executable model with a useful property.
+Choose a pure function whose domain and assumptions can be stated clearly.
+Add its source anchor and explicit signature map, then run `fr spec check --strict`.
+Run `fr spec verify` to check correspondence and build the owning package.
+Add shared input/output cases when the model mirrors an implementation.
+
+This workflow still requires manual model and anchor authoring.
+Package initialization and `spec extract` are planned commands; they do not exist today.
+Use the existing examples under `kernels/` as working references.
+
+## Adoption milestones
+
+The next adoption work should provide:
+
+- Package initialization with a pinned Lean toolchain and CI instructions.
+- Declaration selection and anchored model scaffolds with explicit unsupported types.
+- Named proof obligations and a proof-debt ratchet.
+- Generated-region ownership and regeneration that preserves handwritten work.
+- Explicit signature synchronization that exposes affected proofs.
+- Reports separating proved models, tested correspondence and proved implementation correspondence.
+
+`SPEC-DEBT`, generated-region markers and the kernel-generation annotation remain proposals.
+A zero `sorry` count describes the selected files, not the completeness of their specifications.
+Reject unapproved axioms and expose assumptions before claiming stronger coverage.
+
+## Formalization order
+
+Extend the edit and position models with general laws that their callers need.
+Extend transaction correspondence beyond the snapshot predicate and test storage failure boundaries.
+Define an executable IR semantics for a small subset, then prove selected lowerings against it.
+Arithmetic, precedence, capture avoidance and scope lookup are useful initial targets.
+Expand the subset only with explicit semantics and regression evidence.
+
+A `def` contains executable content. A `theorem` states a proposition and provides no application implementation.
+The existing Lean reader translates supported executable constructs into the code IR.
+Future generation must retain this distinction and report unsupported definitions.
+
+## Agent responsibilities
+
+The tool identifies drift, enumerates obligations and runs the checker.
+An agent chooses useful claims, writes models and searches for proofs.
+It must report a false claim rather than weaken that claim to obtain a successful build.
+
+The local [Lean skill](../.claude/skills/lean-spec/SKILL.md) describes the implemented workflow.
+The portable agent skill includes a [Lean reference](../skills/fr/references/lean.md) with an executable anchor-review workflow.
+
+Staging proposals reuse the same anchored Git mode projection and shared snapshot readers as explicit call context.
+Staging history adds an anchored transition predicate, checked against all boolean inputs, and abstract index replacement laws.
+Those laws establish undo/redo round trips and preservation of unselected entries.
+Index locking, journal durability, basis hashing and prepared installation remain outside complete correspondence proofs.
+See [staging history assurance](git-stage-history.md#formal-coverage) for assumptions and tested behavior.
+
+Reviewed commits add an anchored branch/parent predicate and abstract publication laws that preserve the index and unrelated refs.
+Shared Rust/Lean cases cover branch switches with identical parents, changed parents and unborn states.
+See [commit assurance](git-commit.md#formal-coverage) for the Git-locking assumptions and remaining implementation boundaries.
+
+Reviewed worktree creation adds an anchored payload budget predicate and abstract fresh-destination preservation laws.
+Shared cases check file, total-byte and per-blob limits at their boundaries.
+See [worktree creation assurance](git-worktree-creation.md#formal-coverage) for namespace assumptions and host workflow limits.
+
+Recorded worktree recovery adds an anchored file-acceptance predicate and abstract existing-file preservation laws.
+Shared Rust/Lean cases cover every boolean input. Ownership receipts and filesystem durability still require host-level evidence.
+See [worktree recovery](git-worktree-recovery.md) for the tested protocol and proof boundaries.
+
+The Git removal kernel anchors the identity, bytes and mode guard used before deleting reviewed worktree files.
+Lean proves that acceptance requires all three matches. Shared executable tests cover all eight input combinations.
+An abstract namespace model proves that selected removal preserves other paths.
+The host filesystem, Git branch leases and removal archive durability remain outside full correspondence proofs.
+
+Removal resumption adds an anchored predicate for absent paths and matching survivors, with all sixteen boolean cases checked against Lean.
+Lean proves absent-path acceptance, required matches for present paths and idempotence of abstract selected removal.
+See [removal resumption assurance](git-worktree-removal-resumption.md#formal-coverage) for the host workflow boundaries.
+
+Existing-branch checkout adds an anchored branch-selection guard, checked against every boolean input.
+Lean proves that accepted branches are unused and have the presence required by the selected mode.
+An abstract attachment law preserves all refs; host tests check the Git lease and lifecycle behavior.
+See [existing-branch assurance](git-worktree-existing-branches.md#formal-coverage) for the remaining correspondence boundaries.

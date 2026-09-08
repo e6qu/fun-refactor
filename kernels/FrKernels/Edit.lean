@@ -80,9 +80,35 @@ theorem splice_keeps_the_prefix (source : String) (edit : Edit) (start stop : Na
 theorem no_edits_leave_the_source_alone (source : String) : apply source [] = source := by
   simp [apply, order]
 
+theorem splice_keeps_the_suffix (source : String) (edit : Edit) (start stop : Nat)
+    (startAt : byteToCharIndex source.toList edit.start = some start)
+    (stopAt : byteToCharIndex source.toList edit.stop = some stop)
+    (startIn : start ≤ source.toList.length) :
+    (splice source edit).toList.drop (start + edit.replacement.toList.length) =
+      source.toList.drop stop := by
+  rw [splice_is_one_prefix_replacement_suffix source edit start stop startAt stopAt]
+  simp only [String.toList_ofList]
+  have takeLength : (source.toList.take start).length = start := by
+    rw [List.length_take, Nat.min_eq_left startIn]
+  have prefixLength : (source.toList.take start ++ edit.replacement.toList).length =
+      start + edit.replacement.toList.length := by
+    simp only [List.length_append, takeLength]
+  rw [← prefixLength, List.drop_left]
+
 theorem rejected_plan_has_no_result (source : String) (edits : List Edit)
     (invalid : valid source edits = false) : applyChecked source edits = none := by
   simp [applyChecked, invalid]
+
+theorem removing_inserted_characters_recovers_source (source : String) (edit : Edit) (position : Nat)
+    (emptyRange : edit.stop = edit.start)
+    (startAt : byteToCharIndex source.toList edit.start = some position)
+    (startIn : position ≤ source.toList.length) :
+    (splice source edit).toList.take position ++
+      (splice source edit).toList.drop (position + edit.replacement.toList.length) = source.toList := by
+  have stopAt : byteToCharIndex source.toList edit.stop = some position := by rw [emptyRange, startAt]
+  rw [splice_keeps_the_prefix source edit position position startAt stopAt startIn,
+      splice_keeps_the_suffix source edit position position startAt stopAt startIn,
+      List.take_append_drop]
 
 theorem accepted_plan_has_one_result (source : String) (edits : List Edit)
     (accepted : valid source edits = true) : applyChecked source edits = some (apply source edits) := by

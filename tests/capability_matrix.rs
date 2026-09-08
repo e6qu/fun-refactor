@@ -255,13 +255,7 @@ fn the_published_language_count_matches_the_list() {
             &["what each of the N languages supports"][..],
         ),
         ("EXAMPLES.md", &["across all WORD languages at once"][..]),
-        (
-            "PLAN.md",
-            &[
-                "The compile gate drives six of the WORD languages",
-                "Build-out, in order: WORD languages",
-            ][..],
-        ),
+        ("PLAN.md", &["The core reads N languages."][..]),
         (
             "docs/index.html",
             &[

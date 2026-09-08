@@ -1,0 +1,160 @@
+--- a/src/project.rs
++++ b/src/project.rs
+@@ -217,6 +217,29 @@
+     manifests: manifests::Manifests,
+ }
+
++struct ConstructionTimer<const ENABLED: bool> {
++    last: Option<std::time::Instant>,
++    phases: BTreeMap<&'static str, f64>,
++}
++
++impl<const ENABLED: bool> ConstructionTimer<ENABLED> {
++    fn new() -> Self {
++        Self {
++            last: ENABLED.then(std::time::Instant::now),
++            phases: BTreeMap::new(),
++        }
++    }
++
++    fn checkpoint(&mut self, name: &'static str) {
++        if ENABLED {
++            let now = std::time::Instant::now();
++            *self.phases.entry(name).or_default() +=
++                now.duration_since(self.last.unwrap()).as_secs_f64();
++            self.last = Some(now);
++        }
++    }
++}
++
+ fn hash(value: impl serde::Serialize) -> Result<String> {
+     Ok(format!("{:x}", Sha256::digest(serde_json::to_vec(&value)?)))
+ }
+@@ -317,6 +340,25 @@
+         scanned: &'a ScanResult,
+         options: &'a ScanOptions,
+     ) -> Result<Self> {
++        Self::construct::<false>(root, index, scanned, options).map(|(project, _)| project)
++    }
++
++    pub fn new_profiled(
++        root: &Path,
++        index: &'a Index,
++        scanned: &'a ScanResult,
++        options: &'a ScanOptions,
++    ) -> Result<(Self, BTreeMap<&'static str, f64>)> {
++        Self::construct::<true>(root, index, scanned, options)
++    }
++
++    fn construct<const PROFILE: bool>(
++        root: &Path,
++        index: &'a Index,
++        scanned: &'a ScanResult,
++        options: &'a ScanOptions,
++    ) -> Result<(Self, BTreeMap<&'static str, f64>)> {
++        let mut timing = ConstructionTimer::<PROFILE>::new();
+         let selected = root.canonicalize()?;
+         let root = if selected.is_file() {
+             selected
+@@ -327,6 +369,7 @@
+             selected.clone()
+         };
+         let manifests = manifests::Manifests::new(&selected, &root, options)?;
++        timing.checkpoint("manifests");
+         let mut project = Self {
+             root,
+             index,
+@@ -356,6 +399,7 @@
+             options.respect_ignore,
+             options.max_file_bytes,
+         ))?);
++        timing.checkpoint("setup");
+         for (path, info) in index.files() {
+             let source = crate::vfs::read_to_string(path)
+                 .with_context(|| format!("reading {} for project view", path.display()))?;
+@@ -365,9 +409,12 @@
+                     path.display()
+                 );
+             }
++            timing.checkpoint("source_read");
+             digest.update(serde_json::to_vec(&(path, hash(&source)?, &info.gaps))?);
++            timing.checkpoint("source_digest");
+             project.lines.insert(path.clone(), LineIndex::new(&source));
+             project.sources.insert(path.clone(), source);
++            timing.checkpoint("source_lines");
+             let relative = path.strip_prefix(&project.root)?.to_path_buf();
+             let mut directory = PathBuf::new();
+             let mut parent = 0;
+@@ -407,8 +454,10 @@
+                 .collect::<Vec<_>>();
+             symbols.sort_by_key(|s| (s.full_span.start, std::cmp::Reverse(s.full_span.end), s.id));
+             let mut stack: Vec<(Span, usize)> = Vec::new();
++            timing.checkpoint("hierarchy");
+             for symbol in symbols {
+                 digest.update(serde_json::to_vec(symbol)?);
++                timing.checkpoint("symbol_digest");
+                 while stack.last().is_some_and(|(span, _)| {
+                     *span == symbol.full_span || !span.contains(symbol.full_span)
+                 }) {
+@@ -425,11 +474,13 @@
+                 });
+                 project.symbol_nodes.insert(symbol.id, id);
+                 stack.push((symbol.full_span, id));
++                timing.checkpoint("hierarchy");
+             }
+         }
+         for reference in &index.references {
+             digest.update(serde_json::to_vec(&(&reference.file, reference))?);
+         }
++        timing.checkpoint("reference_digest");
+         digest.update(serde_json::to_vec(&(
+             &index.skipped,
+             &scanned.skipped_symlinks,
+@@ -437,7 +488,8 @@
+             &project.manifests.snapshots,
+         ))?);
+         project.revision = format!("{:x}", digest.finalize());
+-        Ok(project)
++        timing.checkpoint("finish");
++        Ok((project, timing.phases))
+     }
+
+     fn add(&mut self, node: Node) -> usize {
+--- a/tools/project-profile.rs
++++ b/tools/project-profile.rs
+@@ -15,6 +15,8 @@
+     root: PathBuf,
+     #[arg(long)]
+     no_cache: bool,
++    #[arg(long)]
++    construction: bool,
+     #[command(subcommand)]
+     command: Command,
+ }
+@@ -50,8 +52,15 @@
+     let index = timed(&mut phases, "index", || {
+         Index::build_with_cache(&scanned, cache.as_ref())
+     })?;
+-    let project = timed(&mut phases, "project", || {
+-        Project::new(&root, &index, &scanned, &scan_options)
++    let (project, construction_seconds) = timed(&mut phases, "project", || {
++        if options.construction {
++            Project::new_profiled(&root, &index, &scanned, &scan_options)
++        } else {
++            Ok((
++                Project::new(&root, &index, &scanned, &scan_options)?,
++                BTreeMap::new(),
++            ))
++        }
+     })?;
+     let report = timed(&mut phases, "query", || project.report(&options.command))?;
+     timed(&mut phases, "verify", || project.verify(&root))?;
+@@ -72,7 +81,7 @@
+         "{}",
+         json!({"schema": "fr-project-profile-1", "report_stdout": report_stdout,
+         "phases_seconds": phases, "measured_seconds": measured_seconds,
+-        "fact_cache_hits": fact_cache_hits, "indexed_files": indexed_files})
++        "fact_cache_hits": fact_cache_hits, "indexed_files": indexed_files, "construction_seconds": construction_seconds})
+     );
+     Ok(())
+ }

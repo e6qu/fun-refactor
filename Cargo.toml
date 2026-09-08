@@ -23,6 +23,11 @@ name = "fr"
 path = "src/main.rs"
 required-features = ["cli"]
 
+[[example]]
+name = "project-profile"
+path = "tools/project-profile.rs"
+required-features = ["cli"]
+
 [features]
 default = ["cli", "lang-all"]
 # Everything a terminal needs: argument parsing, walking a directory, a fact cache
@@ -36,6 +41,7 @@ cli = [
     "dep:sha2",
     "dep:tempfile",
     "dep:tracing-subscriber",
+    "dep:toml_edit",
 ]
 # One feature per grammar. Each is a C parse table of roughly a megabyte, which is
 # most of a WebAssembly build's weight and none of a native build's concern — the
@@ -101,6 +107,7 @@ streaming-iterator = "0.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
+toml_edit = { version = "0.25", default-features = false, features = ["parse"], optional = true }
 clap = { version = "4.6", features = ["derive"], optional = true }
 thiserror = "2.0"
 anyhow = "1.0"

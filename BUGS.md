@@ -5,8 +5,8 @@ stage.
 
 Format: `- [ ] B<N>: <symptom>`, then where it happens, then status and notes.
 
-Open entries are characterised limitations: the tool reports the behaviour and no
-operation silently does the wrong thing.
+Open entries describe known limitations and the reports that expose them.
+The list does not establish the absence of other defects.
 
 A test pins every open entry, so a claim that stops being true fails a build instead of
 sitting here. B11 said `@content` was a gap after it had stopped being one, and
@@ -23,8 +23,7 @@ Re-triaged against this branch. The entries below still reproduce. Where a publi
 grammar could not read source the language accepts, this build compiles a patched copy
 instead of recording the gap: `grammars/` holds one for Go, Python, Sass, SCSS,
 TypeScript and Zig, each with its upstream pin, licence, patch and the measurement that
-shows the patch additive. What remains below is a limit of this tool's own analysis and
-a translation surface it does not yet write.
+shows the patch additive. What remains below is a limit of the available source evidence.
 
 - [ ] B5: `find_unused` and the call graph follow what the source shows, and no further.
   A call whose receiver nothing types is fanned out to the definitions the workspace
@@ -67,6 +66,30 @@ a translation surface it does not yet write.
   neither has a hierarchy to read.
 
 ## Fixed
+
+- [x] B840: **failed spec checks emitted two JSON objects.**
+  Failures printed a report followed by a second JSON error object.
+  JSON check and verify now emit one structured report and retain their unsuccessful exit status.
+  Agent skill examples and JSON regressions cover these failures.
+
+- [x] B837: **a failed multi-file commit left earlier replacements in place.**
+  The commit loop renamed staged files one at a time and had no recovery path.
+  It now stages recovery copies, restores earlier targets in reverse order and removes new files on failure.
+  Failed recovery retains original copies and reports their paths.
+  Identity, mode and content checks detect concurrent edits before restoration.
+  The guarantee covers handled errors; persistent crash recovery remains roadmap work.
+
+- [x] B838: **JSON reported successful writes before the commit ran.**
+  A filesystem failure produced a success object followed by an error object.
+  Every JSON mutation now commits before emitting success.
+  Commit failures carry structured restoration and recovery details.
+  CLI regressions exercise refactoring, translation, scaffolding, recipe and formatter failures.
+
+- [x] B839: **recipe formatting bypassed the shared commit engine.**
+  The formatter validated all inputs but wrote each result directly.
+  It now submits validated text changes to the shared commit and recovery path.
+  Text changes need no invented source-language label.
+
 
 - [x] B824: **the Lean grammar could not read two chained `let`s inside a branch**.
   An `if` branch can indent a `let` body beyond the declaration around it. No layout frame

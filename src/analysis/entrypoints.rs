@@ -252,13 +252,13 @@ fn check_rules(rules: &[Rule]) -> Result<()> {
             && rule.matches.annotated_with.is_none()
         {
             anyhow::bail!(
-                "rule '{}' asks for an annotation argument without naming the annotation",
+                "rule '{}' asks for an annotation argument without naming the annotation.",
                 rule.id
             );
         }
         if !rule.matches.names_a_condition() {
             anyhow::bail!(
-                "rule '{}' names no condition, so it would match nothing at all",
+                "rule '{}' names no condition, so it would match nothing at all.",
                 rule.id
             );
         }
@@ -267,6 +267,65 @@ fn check_rules(rules: &[Rule]) -> Result<()> {
 }
 
 impl Catalog {
+    pub fn tests_in_snapshot(
+        &self,
+        index: &Index,
+        sources: &BTreeMap<std::path::PathBuf, String>,
+    ) -> TestCandidates {
+        let parsers = crate::parse::Parsers::new();
+        let mut result = TestCandidates {
+            entries: Vec::new(),
+            gaps: Vec::new(),
+        };
+        for (path, info) in index.files() {
+            if !self.rules.iter().any(|r| {
+                r.kind == EntryKind::Test && r.languages.iter().any(|l| l.covers(info.language))
+            }) {
+                continue;
+            }
+            let Some(source) = sources.get(path) else {
+                result.gaps.push((
+                    path.clone(),
+                    "source is absent from the captured inputs.".into(),
+                ));
+                continue;
+            };
+            if index.content_hash(path) != Some(crate::index::content_hash_of(source)) {
+                result.gaps.push((
+                    path.clone(),
+                    "captured source does not match the indexed content hash.".into(),
+                ));
+                continue;
+            }
+            if !parsers
+                .parse(info.language, source)
+                .is_ok_and(|p| !p.has_errors())
+            {
+                result.gaps.push((
+                    path.clone(),
+                    "the parser could not read this file cleanly.".into(),
+                ));
+                continue;
+            }
+            for symbol in info.symbols.iter().filter_map(|id| index.symbol(*id)) {
+                if let Some(rule) = self
+                    .rules
+                    .iter()
+                    .find(|r| r.kind == EntryKind::Test && rule_applies(r, symbol, Some(source)))
+                {
+                    result.entries.push(Entrypoint {
+                        symbol: symbol.id,
+                        kind: EntryKind::Test,
+                        threat_model: rule.threat_model,
+                        rule: rule.id.clone(),
+                    });
+                }
+            }
+        }
+        result.entries.sort_by_key(|entry| entry.symbol);
+        result
+    }
+
     /// Load the built-in catalogs.
     pub fn builtin() -> Result<Self> {
         let mut rules = Vec::new();
@@ -326,6 +385,11 @@ impl Catalog {
         found.dedup_by_key(|e| (e.symbol, e.kind));
         found
     }
+}
+
+pub struct TestCandidates {
+    pub entries: Vec<Entrypoint>,
+    pub gaps: Vec<(std::path::PathBuf, String)>,
 }
 
 /// Entry points Python packaging declares, which no catalog rule can express.

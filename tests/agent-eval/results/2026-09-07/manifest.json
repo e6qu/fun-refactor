@@ -1,0 +1,71 @@
+{
+  "schema": "fr-agent-eval-evidence-1",
+  "trials": [
+    "unicode-dice-fr",
+    "unicode-dice-files",
+    "normalized-osa-fr",
+    "normalized-osa-files"
+  ],
+  "project": "rapidfuzz/strsim-rs published crate 0.11.1; complete release snapshot, without Git history",
+  "upstream_commit": "76c5a900e6e12cfc605eee5ab6e36300384c8682",
+  "archive_sha256": "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f",
+  "implementation_commit": "893b9dbf821b6ac8168c118534d30d59afd125f5",
+  "agent_execution": "Four fresh collaboration agents, fork_turns=none, inherited parent model and effort, no overrides or task corrections. Cooperative tool boundary.",
+  "pilots": {
+    "interrupted": [
+      "normalized-osa-fr",
+      "unicode-dice-files",
+      "unicode-dice-fr"
+    ],
+    "reason": "Cargo inherited the containing fr workspace; no valid baseline build. Restarted all trials with fresh agents outside Cargo projects after adding preflight.",
+    "included_in_scored_trials": false
+  },
+  "versions": {
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "git": "git version 2.55.0",
+    "python3": "Python 3.14.6"
+  },
+  "evaluator_files": {
+    "tools/agent-eval.py": "fd594bcb3caaee425cb984d73f79e2543602d94eaa2a3df4bdd170a927f121ee",
+    "tools/agent_eval/oracle.py": "cf938812a50d1a7ce41d2c3e9b6ba9dc1abff2fa0f6fec84ff33bd2b28e7bf09"
+  },
+  "files": {
+    "normalized-osa-files/change.patch": "ab3750395d8926e0d770e82751bc5bb591f381cc74d17f67d46763a106f65b5a",
+    "normalized-osa-files/events.jsonl": "4209cc8f24621dceac47ccf478ba34d6487b53895598e096941deb0f5121f0dd",
+    "normalized-osa-files/prompt.txt": "151421b3fc576bdc51777757a0350de19cbf3a656b129ba30bc75212a09f7f75",
+    "normalized-osa-files/result.json": "f50daa9693b4cbd807b1757c3e24c816e811461a54243eb70f8184ab3835b27b",
+    "normalized-osa-files/session.json": "61c1191fd86af092f46e9b650b1622796c456246a44ddb3b56333f580d224f43",
+    "normalized-osa-fr/change.patch": "ab6c9737815dfa11c8ce35fef40547fc15286588412832e6f024cd215cac7e13",
+    "normalized-osa-fr/events.jsonl": "aafebe7b5bb2293d0b2306a05015e10230f0d9fc19616e99414ac3ce3fff9c40",
+    "normalized-osa-fr/prompt.txt": "275f1a55001ffbd7f8b2e912b9f0f2347e02f67354df29f1fe408196b4a8cb9a",
+    "normalized-osa-fr/result.json": "0218de8557b3eab3bacfd084eb22c06624b1ac0709ac4ac6396d3560881ce4e1",
+    "normalized-osa-fr/session.json": "a9a014405e9c4d8da8f6d85d7589663e4fb1d675527ab16bc149544c3eeac430",
+    "pilots/normalized-osa-fr/events.jsonl": "c21e0a725426cea91bec2842e86483579c481142b638d27a099ff213172f9725",
+    "pilots/normalized-osa-fr/prompt.txt": "19b51d0847c5196d9eeb952473da2e1ecb52deb0f415f01fe96917969bb06bd7",
+    "pilots/normalized-osa-fr/session.json": "cfaf9b18496faeed4ad52cae758b8fb6ded7944e695133891bf8689e6a8c3a9f",
+    "pilots/unicode-dice-files/events.jsonl": "0ff86a73535cd7ab7df75e768e11866792a2d983dabed5c3447ff540b8ce0196",
+    "pilots/unicode-dice-files/prompt.txt": "2715fedc42160652f510f799407b95680d73e1868fe50d8a8e6d419966dd1177",
+    "pilots/unicode-dice-files/session.json": "ee6bfc6c5f1f5745bb03102d923e7550d71cd23aff89880f23a44e355be7803b",
+    "pilots/unicode-dice-fr/events.jsonl": "28a6a62475aa9cb7f64631465262b740a229087fd7f9eefe296dd3f80fe1445f",
+    "pilots/unicode-dice-fr/prompt.txt": "53cddec1435022ffb026c24bf6591e985f8f930eef84abb0c6e6501e00a6bf47",
+    "pilots/unicode-dice-fr/session.json": "74dc3b69c8a239799ea162ae0b14d7d63e3375f90a60b85f0ae6bf7af5706887",
+    "skill/SKILL.md": "a8f6fd87b0c43bbbc536c38bcc9b40894d890877e6a93283931e08d96eac3992",
+    "skill/references/change.md": "61bbb5b8bf5b09f4b767e9042faa977c5fe843da47861371fcebd46e285fe3ea",
+    "skill/references/checks.md": "e83d29b3217108a3b18902fcd388ce3af538298ca746406a943ae5e797a4869e",
+    "skill/references/explore.md": "f1dd597d0d23d1def1130f1921bf1a2beeb086d15bc7a73d45c4c12369279b9b",
+    "skill/references/git.md": "4c815dd9e26d94230984361e8aa7a6fefd9c7a342210b9831848b0b240450788",
+    "skill/references/history.md": "509e19dfee4c78ac906b4ae23b54d742d062bcdae461aae453f8225f28528988",
+    "skill/references/lean.md": "f423b374cbe8328a23d9123f8a01f810a7f03048a22c7e71e84d78b565fc2998",
+    "unicode-dice-files/change.patch": "28099a756c100db6a3abecd92126fc1528f7432449207120248e9e71c9bb71c5",
+    "unicode-dice-files/events.jsonl": "0fe924e1bb3eb14d2f87b1f65505a86f2dc0b2f4f52ed0df5433816b4a9aeb4f",
+    "unicode-dice-files/prompt.txt": "622a4831f0beb20c554fe60a1354dcee5ccb0e8adaa7e3e56fe49f9e3d60a212",
+    "unicode-dice-files/result.json": "521f69af02322b3397d3a5a606dc76f67bfdb11e2b53d0954bd26ecbc89998c2",
+    "unicode-dice-files/session.json": "8abd63173fb34ebf58770285057a288f049f360d91e9bf87b79bd751eead12a0",
+    "unicode-dice-fr/change.patch": "4f66d0d5f380c28b3ab344fc8d36250b1334e65e89e50674dd54f9a7b762a2ce",
+    "unicode-dice-fr/events.jsonl": "177bc60383893cc78e486cf5b90901b694fa8829de155bfa3f2c0b83002a3941",
+    "unicode-dice-fr/prompt.txt": "8e7c818d3e39ab7b79a25072549aa8006778b7b07fb353085c996f6e1029421e",
+    "unicode-dice-fr/result.json": "5bd6523009f87310e75d21fe09fbc9a1ba93c2db86c4e6d2593686d550ac3005",
+    "unicode-dice-fr/session.json": "c2bab58398a83223f9932e2731316bb129cbd3f0e3484aa7f967f57c05f5101f"
+  }
+}
