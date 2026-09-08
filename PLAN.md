@@ -1115,10 +1115,23 @@ All fifty-one authoring scenarios and the full native/WASM gate pass, with 311/3
 Strict verification retains twenty-four fresh anchors and signature maps, zero obligations and 38 Lean build jobs.
 See [coordinated authoring batches](docs/body-authoring.md#coordinated-authoring-batches) for the manifest and transaction rules.
 
+M4z: controlled coordinated authoring comparison (complete).
+
+Three prescribed pairs compare batch and individual commands on the same two-file Rust change, with alternating route order and disabled caches.
+Both routes preserve exact final source, compile and run at four stages, restore original bytes and modes, and deliver applicable patches to a separate receiver.
+Git index bytes and an unrelated later file remain unchanged. Failed or clipped evidence refuses validation.
+Batch uses 12 `fr` calls instead of 23, with one transaction instead of three.
+Median visible payload tokens fall from 7,408 to 5,102, about 31%; the batch manifest adds 458 prepared input bytes.
+Project/author calls fall from six to three. The script derives corresponding scan counts from command routing, without instrumented counters.
+Actual requests, outputs, artifacts, patches, snapshots and provenance remain in the retained report.
+This is a controlled synthetic workflow comparison, without new autonomous agent trials, total-context or latency claims.
+All 26 evaluator regressions, the live workflow comparison and the full native/WASM gate pass, with 311/311 capability coverage.
+Strict Lean verification retains twenty-four fresh anchors and signature maps, zero obligations and 38 build jobs.
+See [coordinated authoring measurement](docs/project-context-evaluation.md#coordinated-authoring-measurement) for reproduction and limits.
+
 Next M4 work:
 
-Compare a fixed coordinated change through batch and individual authoring commands, measuring report bytes and repeated project scans.
-Require matching final source, successful project checks and exact reversal; keep this controlled comparison separate from agent context claims.
+Use the batch comparison to design a coordinated task on an unfamiliar multi-file repository, with independent behavior and receiver checks.
 Use the retained workspace traces to reduce repeated report metadata and skill-loading costs, preserving coverage, source bases, guards and reviewable changes.
 Measure each proposed reduction on fixed transcripts or controlled workflows before another autonomous comparison.
 Use the construction profile to evaluate any further reduction in reference serialization and hashing cost.

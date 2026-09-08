@@ -38,3 +38,14 @@ fn recorded_workspace_patches_pass_checks_oracles_and_exact_reversal() {
 fn smaller_history_reports_preserve_both_recorded_agent_edits() {
     python(&["tools/history-context.py", "--fr", env!("CARGO_BIN_EXE_fr")]);
 }
+
+#[test]
+fn batch_and_individual_workflows_match_source_behavior_and_reversal() {
+    python(&[
+        "tools/author-batch-context.py",
+        "--fr",
+        env!("CARGO_BIN_EXE_fr"),
+        "--repetitions",
+        "1",
+    ]);
+}

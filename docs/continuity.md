@@ -1,6 +1,6 @@
 # Development continuity
 
-M4y is complete: authoring batches coordinate disjoint edits across files in one transaction.
+M4z is complete: a controlled comparison measures batch authoring costs with source, behavior and reversal checks.
 The user authorized local commits. Publishing and pushing remain outside this request.
 M4l's four passing workspace trials are retained in `3c8231c`; preparation is `811591e` and documented insertion is `6d0928b`.
 M4m's smaller check reports are committed in `58b53bd`; M4n's targeted skill guidance is `1c44863`.
@@ -14,6 +14,25 @@ M4u's wrapped function authoring is committed in `e2933bc`.
 M4v's inline module insertion is committed in `2cdbd1b`.
 M4w's Go body authoring is committed in `3597115`.
 M4x's insertion placement proofs are committed in `3fd1323`.
+M4y's coordinated authoring batches are committed in `f0ba5a5`.
+
+## Controlled coordinated authoring comparison
+
+`tools/author-batch-context.py` compares individual authoring commands and a batch on a prescribed two-file Rust fixture.
+Three retained pairs alternate route order, using equal-length temporary roots, disabled caches and complete source selections and review diffs.
+Both routes add a helper, change a callee signature and implementation, then update its caller.
+They compile with warnings denied and check runtime output at original, applied, undone and redone stages.
+Exact snapshots and modes match across routes; index bytes stay unchanged and unrelated source survives reversal.
+Exported patches apply to a separate receiver that matches the expected source and compiled output.
+
+`tests/agent-eval/author-batch-context.json` retains every command output, artifact, patch, source snapshot and measurement/binary provenance.
+Batch uses 12 calls and one transaction, versus 23 calls and three transactions.
+Median visible payload tokens are 5,102 versus 7,408, about 31% lower; the manifest adds 458 prepared input bytes.
+Request and artifact sizes remain separate from returned output. This is a synthetic prescribed workflow, without autonomous agent or latency claims.
+Project/author calls fall from six to three; inspected routing implies twelve versus six scan passes, without runtime instrumentation.
+Five evaluator regressions reject failed or clipped evidence, incomplete review and selection, and unexpected source bytes; they also check metric accounting.
+The native acceptance suite now executes one complete pair. No production command or Lean model changes in this milestone.
+Next, design a coordinated task on an unfamiliar repository while preserving behavioral, source and receiver evidence.
 
 ## Coordinated authoring batches
 
@@ -34,8 +53,7 @@ Mixed Rust/Go/TSX operations, shared revisions, no-op batches, size/count limits
 A two-edit batch also matches the Rust and Lean splice implementations, with Unicode, CRLF and different replacement lengths.
 This is tested edit correspondence, with no new proof of the batch planner, manifest parser or filesystem transaction implementation.
 The agent reference teaches combined review and one transaction ID; its existing shell examples remain unchanged.
-Next, compare the same coordinated change through batch and individual commands with source, behavior and reversal checks.
-Measure report bytes and repeated scans without treating a prescribed workflow as autonomous agent evidence.
+The controlled comparison above measures report bytes and repeated calls without treating a prescribed workflow as autonomous agent evidence.
 
 ## Formal module insertion placement
 
@@ -320,6 +338,14 @@ It, the skills, prompts, evaluator and oracle stayed unchanged throughout both p
 Temporary projects are disposable after retention; use repository evidence for replay and audits.
 
 ## Validation and commands
+
+M4z's full native/WASM gate passes in `/tmp/fr-m4z-full-check.log`, including 311/311 capability coverage and the new live workflow pair.
+All 26 evaluator regressions pass in `/tmp/fr-m4z-harness-tests.log`, including the final added-source refusal guard.
+The focused native workflow test passes in `/tmp/fr-m4z-workflow-test.log`.
+The final three-pair token measurement is `/tmp/fr-m4z-batch-final.json`, retained as `tests/agent-eval/author-batch-context.json`.
+It uses the frozen validated CLI copy `target/agent-eval-bin/fr-m4z`; later feature builds can replace `target/debug/fr`.
+Strict verification passes in `/tmp/fr-m4z-spec-verify.json`: twenty-four fresh anchors and signature maps, zero obligations and 38 Lean build jobs.
+Prose budgets remain unchanged. Final documentation checks are in `/tmp/fr-m4z-docs-final.log`.
 
 M4y's full native/WASM gate passes in `/tmp/fr-m4y-full-check.log`, including all fifty-one authoring scenarios and 311/311 capability coverage.
 The seven new batch scenarios and reported batch splice comparison also pass in `/tmp/fr-m4y-batch-final.log`.

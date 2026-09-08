@@ -41,6 +41,7 @@ The [workspace evaluation](docs/agent-workspace-evaluation.md) records four pass
 Rust function declaration replacement also supports combined signature and implementation changes.
 Declaration insertion adds a Rust function through a file or inline module handle while retaining existing code.
 Authoring batches coordinate disjoint edits across files through one reviewed source-history transaction.
+The [controlled batch comparison](docs/project-context-evaluation.md#coordinated-authoring-measurement) measures command and payload costs while checking behavior and exact reversal.
 
 ## Why
 

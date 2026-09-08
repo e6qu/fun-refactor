@@ -224,6 +224,7 @@ They exercise receiver state, named results with `defer` and multiline raw strin
 Batch cases cover coordinated caller/signature/helper changes, mixed languages, shared revisions, conflicts, malformed manifests and saved transactions.
 A two-file Rust batch compiles and runs before changes, after application, after undo and after redo.
 A reported batch containing two length-changing edits also produces matching Rust and Lean splice results.
+A [controlled batch comparison](project-context-evaluation.md#coordinated-authoring-measurement) measures repeated calls and payloads with compiled behavior, exact reversal and receiver patch checks.
 The size predicate has a source anchor and signature map into Lean, with 64 shared boundary cases including machine limits.
 Lean proves its lower and upper bounds and symmetry between old and new body sizes.
 The existing edit model describes a splice as an unchanged prefix, replacement and unchanged suffix.

@@ -96,6 +96,55 @@ The executable authoring example compiles and tests a wrapper after reading its 
 M4p adds [source-slice and shared-budget model proofs](lean-specs.md#bounded-source-kernels), with shared Rust cases and actual CLI comparisons.
 Parser behavior and general implementation correspondence remain unproved. The retained M4o measurements describe their original binary and inputs.
 
+## Coordinated authoring measurement
+
+M4z compares `author batch` with individual authoring commands on a prescribed two-file Rust fixture.
+Both routes add a private helper, replace its caller's signature and implementation, and update the application call site.
+The fixture includes Unicode and CRLF source. It has no external dependencies.
+The [retained report](../tests/agent-eval/author-batch-context.json) contains three pairs, alternating which route runs first.
+Each route starts from identical source in a fresh Git repository, with an equal-length temporary root path and the fact cache disabled.
+
+Each route reads complete selected source, saves complete diffs and applies the resulting transactions.
+Individual operations obtain fresh handles after earlier edits; batch handles share one original revision.
+Both routes compile with warnings denied and check runtime output before edits, after application, after undo and after redo.
+The expected output changes from `4` to `7`. Undo restores exact original bytes and modes, including line endings.
+Redo restores the exact changed snapshot, and an unrelated later file survives both operations.
+Every command preserves Git index bytes. Exported patches apply in order to a separate receiver, which also compiles and returns `7`.
+Individual intermediate states only pass syntax validation; they need not compile before the route finishes applying all changes.
+
+| Measure per workflow | Individual commands | Batch |
+|---|---:|---:|
+| `fr` calls | 23 | 12 |
+| Project/author commands | 6 | 3 |
+| Derived scan passes | 12 | 6 |
+| Source-history transactions | 3 | 1 |
+| Median visible payload bytes | 20,614 | 14,405 |
+| Median visible payload tokens | 7,408 | 5,102 |
+| Prepared artifact bytes | 137 | 595 |
+
+Visible payloads use the acceptance harness's JSON wrapper, with tiktoken 0.12.0 and its pinned `o200k_base` vocabulary.
+The median token reduction is about 31%. The report also retains raw stdout sizes and separates selection, authoring, history and check output.
+The batch manifest adds 458 prepared input bytes; the report records request arguments and artifact sizes separately from returned payloads.
+The workflow runs five check commands in each route: one listing and four executions.
+Temporary-root revisions and handles, plus check execution times, can change exact byte and token counts on reruns.
+
+The script derives scan counts from successful command calls and the inspected implementation, without instrumented counters.
+Each project/author command calls `with_project` once to scan, index and construct the project, then `Project::verify` scans the inventory again.
+This accounts for repeated top-level scans; it does not count every source read, manifest traversal or parser invocation.
+Batch still validates each fragment and the combined destinations. The measurement makes no timing or cold-disk claim.
+
+```sh
+python3 tools/author-batch-context.py --fr target/debug/fr --repetitions 3
+target/agent-eval-venv/bin/python tools/author-batch-context.py --fr target/debug/fr --repetitions 3 --tokens
+```
+
+Reproduction needs Python, Git, Rust and a built `fr`; token counts additionally need the retained tokenizer environment.
+The report retains actual arguments and outputs, prepared artifacts, patches, source snapshots, tool versions and binary/measurement source hashes.
+The native test gate executes one pair and checks the evaluator's refusal of failed commands, clipped output, incomplete selection and altered source bytes.
+Three repeated prescribed pairs are not autonomous agent trials or a representative project sample.
+The measurement excludes skill reading, discovery, artifact-write responses, reasoning and other task context.
+The existing autonomous evaluation results remain unchanged; coordinated work on an unfamiliar repository still needs evaluation.
+
 ## Query time and the fact cache
 
 M4q measures the existing cache separately from returned context.

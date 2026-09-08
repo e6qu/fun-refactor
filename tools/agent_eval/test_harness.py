@@ -27,6 +27,75 @@ construction_spec = importlib.util.spec_from_file_location("construction_measure
 construction_measurement = importlib.util.module_from_spec(construction_spec)
 construction_spec.loader.exec_module(construction_measurement)
 
+batch_spec = importlib.util.spec_from_file_location("batch_measurement", TOOLS / "author-batch-context.py")
+batch_measurement = importlib.util.module_from_spec(batch_spec)
+batch_spec.loader.exec_module(batch_measurement)
+
+
+class BatchMeasurementEvidence(unittest.TestCase):
+    def test_failed_or_clipped_commands_cannot_count_as_successful_evidence(self):
+        valid = mock.Mock(returncode=0, stdout=b'{"passed": true}\n', stderr=b"")
+        report, visible = batch_measurement.checked_payload(valid)
+        self.assertEqual(report, {"passed": True})
+        self.assertEqual(json.loads(visible)["stdout_omitted_bytes"], 0)
+        for field, value in (("returncode", 1), ("stdout", b" " * 20001), ("stderr", b"x" * 4097)):
+            broken = copy.copy(valid)
+            setattr(broken, field, value)
+            with self.subTest(field=field), self.assertRaises(AssertionError):
+                batch_measurement.checked_payload(broken)
+
+    def test_review_requires_complete_diff_and_a_saved_unapplied_transaction(self):
+        valid = {"diff": "complete patch", "changed": True, "saved": True, "applied": False, "transaction": 1}
+        batch_measurement.complete_diff(valid)
+        for key, value in (("diff", {"text": "partial", "omitted_bytes": 10}), ("diff", ""), ("changed", False),
+                           ("saved", False), ("applied", True), ("transaction", None), ("transaction", 0)):
+            with self.subTest(key=key, value=value), self.assertRaises(AssertionError):
+                batch_measurement.complete_diff({**valid, key: value})
+
+    def test_source_comparison_rejects_line_ending_and_semantic_changes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            original = "// π\r\nfn value() -> i32 { 4 }\r\n"
+            (root / "main.rs").write_bytes(original.encode())
+            batch_measurement.require_sources(root, {"main.rs": original})
+            for changed in (original.replace("\r\n", "\n"), original.replace("4", "7")):
+                (root / "main.rs").write_bytes(changed.encode())
+                with self.assertRaisesRegex(AssertionError, "source bytes"):
+                    batch_measurement.require_sources(root, {"main.rs": original})
+            (root / "main.rs").write_bytes(original.encode())
+            (root / "extra.rs").write_bytes(b"fn unexpected() {}")
+            with self.assertRaisesRegex(AssertionError, "source inventory"):
+                batch_measurement.require_sources(root, {"main.rs": original})
+
+    def test_selection_refuses_truncated_or_ambiguous_source(self):
+        valid = {"page": {"total": 1, "next": None}, "columns": ["path", "name", "handle", "source"],
+                 "rows": [["main.rs", "main", "function", {"next_offset": None}]], "root": "file"}
+        self.assertEqual(batch_measurement.selection(valid, "main.rs", "main"), ("function", "file"))
+        for mutation in ("more", "ambiguous", "truncated", "wrong-path", "wrong-name"):
+            broken = copy.deepcopy(valid)
+            if mutation == "more":
+                broken["page"]["next"] = "cursor"
+            elif mutation == "ambiguous":
+                broken["page"]["total"] = 2
+            elif mutation == "truncated":
+                broken["rows"][0][3]["next_offset"] = 10
+            elif mutation == "wrong-path":
+                broken["rows"][0][0] = "calc.rs"
+            else:
+                broken["rows"][0][1] = "other"
+            with self.subTest(mutation=mutation), self.assertRaises(AssertionError):
+                batch_measurement.selection(broken, "main.rs", "main")
+
+    def test_metrics_count_utf8_bytes_and_only_project_commands_as_scans(self):
+        events = [{"phase": phase, "args": [command], "stdout": "π\n", "visible": "🙂"} for phase, command in
+                  (("selection", "project"), ("authoring", "author"), ("history", "history"), ("checks", "checks"))]
+        result = batch_measurement.metrics(events, None)
+        self.assertEqual(result["project_commands"], 2)
+        self.assertEqual(result["derived_scan_passes"], 4)
+        self.assertEqual(result["groups"]["all"]["calls"], 4)
+        self.assertEqual(result["groups"]["all"]["stdout"], {"bytes": 12, "tokens": None})
+        self.assertEqual(result["groups"]["all"]["visible"], {"bytes": 16, "tokens": None})
+
 
 class ProjectPhaseEvidence(unittest.TestCase):
     def test_construction_times_must_partition_the_outer_project_phase(self):
