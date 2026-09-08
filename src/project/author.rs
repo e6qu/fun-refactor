@@ -435,9 +435,12 @@ impl Project<'_> {
             };
             let span: Span = serde_json::from_value(plan.report[key]["before_span"].clone())?;
             for (previous, selected) in &regions {
-                let conflict = selected.overlaps(span)
-                    || (selected.is_empty() && span.contains(*selected))
-                    || (span.is_empty() && selected.contains(span));
+                let conflict = super::author_selection_conflict(
+                    selected.start,
+                    selected.end,
+                    span.start,
+                    span.end,
+                );
                 ensure!(previous != &path || !conflict,
                     "batch selections overlap or share an insertion boundary; use disjoint selections.");
             }

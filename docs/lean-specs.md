@@ -246,6 +246,25 @@ These are model proofs and tested implementation correspondence.
 They do not prove AST selection, parser correctness, fragment validity, name checks, filesystem behavior or general Rust/model refinement.
 The existing edit model supplies separate splice-preservation laws; byte-offset placement alone does not prove complete authoring correctness.
 
+## Batch selection conflict kernel
+
+`FrKernels.Author.selectionConflict` models the extra selection rule applied before a batch becomes an edit set.
+Nonempty half-open regions may be adjacent, but overlapping regions refuse.
+An insertion conflicts at either boundary or anywhere inside another selected region, and two insertions conflict at the same offset.
+This stricter rule prevents an operation from depending on ordering at a shared original-source boundary.
+
+Six theorems establish symmetry, permit adjacent nonempty regions and distinct separated insertion points, and reject nonempty overlap plus insertion at either boundary.
+`src/project.rs::author_selection_conflict` is the shared Rust predicate used by the batch planner and carries a source anchor and explicit signature map.
+The generated comparison checks all 6,084 pairs of valid ranges over twelve 64-bit boundary values against Lean and a separate interval oracle.
+A 32-bit host compares the 4,356 representable pairs while consuming all Lean output.
+Dedicated cases treat the byte boundaries around `é` and `🙂` as insertion, adjacency and overlap positions.
+
+These proofs characterize the numeric selection predicate for valid ranges.
+The parser supplies valid byte spans, and separate tests cover malformed manifests, actual duplicate and nested selections, Unicode splicing and refusal before history writes.
+They do not prove that parser spans identify the intended declarations or that every batch operation is semantically independent.
+The edit kernel separately validates UTF-8 splice boundaries and applies the accepted, disjoint edit set.
+Run `cargo test --test lean_kernels author_selection_conflicts_` for the model comparison.
+
 ## Revision buffer kernels
 
 `FrKernels.Digest` models the revision buffer as emitted and pending byte lists.

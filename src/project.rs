@@ -285,6 +285,17 @@ pub fn declaration_insertion_offset(prefix: &str, body_start: usize) -> usize {
     }
 }
 
+pub fn author_selection_conflict(
+    left_start: usize,
+    left_end: usize,
+    right_start: usize,
+    right_end: usize,
+) -> bool {
+    (left_start < right_end && right_start < left_end)
+        || (left_start == left_end && right_start <= left_start && left_start <= right_end)
+        || (right_start == right_end && left_start <= right_start && right_start <= left_end)
+}
+
 pub fn page_length(total: usize, start: usize, limit: usize) -> usize {
     total.saturating_sub(start).min(limit)
 }

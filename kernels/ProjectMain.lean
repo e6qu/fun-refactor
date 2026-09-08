@@ -36,7 +36,15 @@ def declarationOffsetLargeSamples : List String :=
    "{" ++ String.ofList (List.replicate 4096 ' ') ++ "x"]
 
 def main (args : List String) : IO Unit := do
-  if args == ["declaration-offsets"] then
+  if args == ["selection-conflicts"] then
+    for leftStart in samples do
+      for leftEnd in samples do
+        if leftStart ≤ leftEnd then
+          for rightStart in samples do
+            for rightEnd in samples do
+              if rightStart ≤ rightEnd then
+                IO.println (FrKernels.Author.selectionConflict leftStart leftEnd rightStart rightEnd)
+  else if args == ["declaration-offsets"] then
     for text in declarationOffsetSamples do
       let starts := List.range (FrKernels.Source.byteLength text.toList + 2) ++ [4294967295, 18446744073709551615]
       for bodyStart in starts do

@@ -1642,6 +1642,92 @@ fn reverse_declaration_offset(text: &str, body_start: usize) -> usize {
 }
 
 #[test]
+fn author_selection_conflicts_match_lean_and_interval_oracle() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("selection-conflicts")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let mut actual = stdout.lines();
+    let samples = [
+        0_u64,
+        1,
+        2,
+        3,
+        4,
+        79,
+        80,
+        499,
+        500,
+        65536,
+        u32::MAX.into(),
+        u64::MAX,
+    ];
+    let mut count = 0;
+    for left_start in samples {
+        for left_end in samples {
+            if left_start > left_end {
+                continue;
+            }
+            for right_start in samples {
+                for right_end in samples {
+                    if right_start > right_end {
+                        continue;
+                    }
+                    let line = actual.next().expect("one Lean result per valid span pair");
+                    let (Ok(left_start), Ok(left_end), Ok(right_start), Ok(right_end)) = (
+                        usize::try_from(left_start),
+                        usize::try_from(left_end),
+                        usize::try_from(right_start),
+                        usize::try_from(right_end),
+                    ) else {
+                        continue;
+                    };
+                    let rust = fun_refactor::project::author_selection_conflict(
+                        left_start,
+                        left_end,
+                        right_start,
+                        right_end,
+                    );
+                    let lean = line.parse::<bool>().unwrap();
+                    let oracle = if left_start == left_end {
+                        right_start <= left_start && left_start <= right_end
+                    } else if right_start == right_end {
+                        left_start <= right_start && right_start <= left_end
+                    } else {
+                        left_start.max(right_start) < left_end.min(right_end)
+                    };
+                    assert_eq!(
+                        rust, lean,
+                        "{left_start}..{left_end}, {right_start}..{right_end}"
+                    );
+                    assert_eq!(
+                        rust, oracle,
+                        "{left_start}..{left_end}, {right_start}..{right_end}"
+                    );
+                    count += 1;
+                }
+            }
+        }
+    }
+    assert!(actual.next().is_none());
+    assert_eq!(count, if usize::BITS == 64 { 6_084 } else { 4_356 });
+
+    let unicode = "aé🙂z";
+    assert!(unicode.is_char_boundary(1));
+    assert!(unicode.is_char_boundary(3));
+    assert!(unicode.is_char_boundary(7));
+    assert!(fun_refactor::project::author_selection_conflict(1, 1, 1, 3));
+    assert!(fun_refactor::project::author_selection_conflict(3, 3, 1, 3));
+    assert!(!fun_refactor::project::author_selection_conflict(
+        1, 3, 3, 7
+    ));
+    assert!(fun_refactor::project::author_selection_conflict(1, 7, 3, 7));
+}
+
+#[test]
 fn declaration_insertion_offsets_match_lean_and_reverse_oracle() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))

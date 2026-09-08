@@ -117,4 +117,45 @@ theorem offset_at_close_after_content (before : List Char) (c : Char) (bodyStart
     declarationInsertionOffset (String.ofList (before ++ [c])) bodyStart = byteLength (before ++ [c]) := by
   simp [declarationInsertionOffset, line_after_content before c notNewline notIndent, byteLength]
 
+-- fr:spec src/project.rs::author_selection_conflict @ 4edcb6cfdd7e1ae607a8188fc61eced535d0180442d1c012634e3e5e6561e2a4
+-- fr:signature left_start: usize => leftStart: Nat; left_end: usize => leftEnd: Nat; right_start: usize => rightStart: Nat; right_end: usize => rightEnd: Nat; return: bool => return: Bool
+def selectionConflict (leftStart : Nat) (leftEnd : Nat) (rightStart : Nat) (rightEnd : Nat) : Bool :=
+  decide ((leftStart < rightEnd ∧ rightStart < leftEnd) ∨
+    (leftStart = leftEnd ∧ rightStart ≤ leftStart ∧ leftStart ≤ rightEnd) ∨
+    (rightStart = rightEnd ∧ leftStart ≤ rightStart ∧ rightStart ≤ leftEnd))
+
+theorem selection_conflict_is_symmetric (leftStart leftEnd rightStart rightEnd : Nat) :
+    selectionConflict leftStart leftEnd rightStart rightEnd =
+      selectionConflict rightStart rightEnd leftStart leftEnd := by
+  simp only [selectionConflict, decide_eq_decide]
+  omega
+
+theorem adjacent_nonempty_selections_do_not_conflict (start boundary stop : Nat)
+    (leftNonempty : start < boundary) (rightNonempty : boundary < stop) :
+    selectionConflict start boundary boundary stop = false := by
+  simp [selectionConflict]
+  omega
+
+theorem overlapping_nonempty_selections_conflict (leftStart rightStart leftEnd rightEnd : Nat)
+    (leftFirst : leftStart ≤ rightStart) (overlap : rightStart < leftEnd)
+    (rightValid : leftEnd ≤ rightEnd) :
+    selectionConflict leftStart leftEnd rightStart rightEnd = true := by
+  simp [selectionConflict]
+  omega
+
+theorem insertion_at_left_boundary_conflicts (start stop : Nat) (valid : start ≤ stop) :
+    selectionConflict start start start stop = true := by
+  simp [selectionConflict]
+  omega
+
+theorem insertion_at_right_boundary_conflicts (start stop : Nat) (valid : start ≤ stop) :
+    selectionConflict stop stop start stop = true := by
+  simp [selectionConflict]
+  omega
+
+theorem distinct_separated_insertions_do_not_conflict (left right : Nat) (apart : left < right) :
+    selectionConflict left left right right = false := by
+  simp [selectionConflict]
+  omega
+
 end FrKernels.Author

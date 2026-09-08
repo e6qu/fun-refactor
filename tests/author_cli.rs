@@ -40,6 +40,21 @@ fn fixture_file(name: &str, source: &str, body: &[u8]) -> (tempfile::TempDir, Pa
     (temp, root, input)
 }
 
+#[cfg(unix)]
+fn set_mode(path: &Path, mode: u32) {
+    use std::os::unix::fs::PermissionsExt;
+    fs::set_permissions(path, fs::Permissions::from_mode(mode)).unwrap();
+}
+
+#[cfg(unix)]
+fn assert_mode(path: &Path, mode: u32) {
+    use std::os::unix::fs::PermissionsExt;
+    assert_eq!(
+        fs::metadata(path).unwrap().permissions().mode() & 0o777,
+        mode
+    );
+}
+
 fn selection(root: &Path, name: &str) -> (String, String) {
     let map = ok(
         root,
@@ -345,6 +360,8 @@ fn java_method_body_compiles_through_saved_history_and_patch() {
     let old = "{ return value + 1; }";
     let new = "{ return value * 2; }";
     let (_temp, root, input) = fixture_file("App.java", source, new.as_bytes());
+    #[cfg(unix)]
+    set_mode(&root.join("App.java"), 0o640);
     assert_eq!(java_result(&root), b"4\n");
     let (handle, _) = selection(&root, "calc");
     let (success, saved) = replace(&root, &handle, &input, &["--save-plan"]);
@@ -357,9 +374,13 @@ fn java_method_body_compiles_through_saved_history_and_patch() {
     ok(&root, &["history", "apply", &id, "--write"]);
     let expected = source.replace(old, new);
     assert_eq!(fs::read_to_string(root.join("App.java")).unwrap(), expected);
+    #[cfg(unix)]
+    assert_mode(&root.join("App.java"), 0o640);
     assert_eq!(java_result(&root), b"6\n");
     ok(&root, &["history", "undo", &id, "--write"]);
     assert_eq!(fs::read_to_string(root.join("App.java")).unwrap(), source);
+    #[cfg(unix)]
+    assert_mode(&root.join("App.java"), 0o640);
     ok(&root, &["history", "patch", &id, "--check"]);
     assert!(ok(&root, &["history", "patch", &id])["patch"]
         .as_str()
@@ -367,6 +388,8 @@ fn java_method_body_compiles_through_saved_history_and_patch() {
         .contains(new));
     ok(&root, &["history", "redo", &id, "--write"]);
     assert_eq!(fs::read_to_string(root.join("App.java")).unwrap(), expected);
+    #[cfg(unix)]
+    assert_mode(&root.join("App.java"), 0o640);
     assert_eq!(java_result(&root), b"6\n");
 }
 
@@ -1758,6 +1781,8 @@ fn impl_insertion_compiles_and_preserves_saved_history_and_patch() {
     );
     let added = "fn added(&self) -> i32 { self.seed() + 2 }";
     let (_temp, root, input) = fixture(source, added.as_bytes());
+    #[cfg(unix)]
+    set_mode(&root.join("app.rs"), 0o640);
     let (handle, _) = selection(&root, "seed");
 
     let (success, saved) = insert_declaration(&root, &handle, &input, &["--save-plan"]);
@@ -1778,9 +1803,13 @@ fn impl_insertion_compiles_and_preserves_saved_history_and_patch() {
     ok(&root, &["history", "apply", &id, "--write"]);
     let expected = source.replace("}\nfn main", &format!("{added}\n}}\nfn main"));
     assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), expected);
+    #[cfg(unix)]
+    assert_mode(&root.join("app.rs"), 0o640);
     assert_eq!(compiled_result(&root), b"5\n");
     ok(&root, &["history", "undo", &id, "--write"]);
     assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+    #[cfg(unix)]
+    assert_mode(&root.join("app.rs"), 0o640);
     ok(&root, &["history", "patch", &id, "--check"]);
     assert!(ok(&root, &["history", "patch", &id])["patch"]
         .as_str()
@@ -1788,6 +1817,8 @@ fn impl_insertion_compiles_and_preserves_saved_history_and_patch() {
         .contains(added));
     ok(&root, &["history", "redo", &id, "--write"]);
     assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), expected);
+    #[cfg(unix)]
+    assert_mode(&root.join("app.rs"), 0o640);
 }
 
 #[test]

@@ -180,6 +180,8 @@ All selections refer to the original source. A later step cannot select a declar
 Selections must be disjoint, including unchanged selections. Nested and duplicate selections refuse.
 Insertions cannot share an offset or touch either boundary of another selected region.
 Adjacent nonempty selections remain allowed. Two insertions through the same file or module handle therefore need separate transactions.
+The batch planner calls the anchored `src/project.rs::author_selection_conflict` predicate for this rule.
+Its Lean model proves symmetry, adjacency and boundary behavior, while 6,084 generated 64-bit cases compare Lean, Rust and an interval oracle.
 
 Every step must pass its ordinary authoring checks; the combined file results must also reparse without errors.
 A planning refusal leaves all source files and history untouched.

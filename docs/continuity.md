@@ -133,7 +133,10 @@ The PR 2 import case combines a declaration, caller and import cleanup in one tr
 Mixed Rust/Go/TSX operations, shared revisions, no-op batches, size/count limits, overlap refusal and malformed inputs have regression coverage.
 A two-edit batch also matches the Rust and Lean splice implementations, with Unicode, CRLF and different replacement lengths.
 A body-and-import batch supplies another Rust/Lean splice comparison over Unicode source.
-This is tested edit correspondence, with no new proof of the batch planner, manifest parser or filesystem transaction implementation.
+The shared `author_selection_conflict` helper now gives the batch planner an anchored Rust boundary for duplicate, nested and insertion-boundary rejection.
+Six Lean theorems cover symmetry, adjacent nonempty ranges, overlap, distinct insertion points and insertion at either boundary.
+The executable comparison checks 6,084 valid 64-bit range pairs against Lean, Rust and an independent interval oracle, with explicit multibyte UTF-8 boundary cases.
+This is tested edit and selection-predicate correspondence, with no proof of the manifest parser or filesystem transaction implementation.
 The agent reference teaches combined review and one transaction ID; its existing shell examples remain unchanged.
 The controlled comparison above measures report bytes and repeated calls without treating a prescribed workflow as autonomous agent evidence.
 
@@ -153,6 +156,7 @@ The corpus includes Unicode, CRLF, rejected indentation lookalikes, NUL in the p
 A 32-bit host compares 25,371 representable cases.
 Each generated placement also passes through the Rust edit engine, with unchanged prefix and suffix checks.
 Existing authoring cases retain their behavior and transaction evidence.
+The Java method and Rust impl history cases now also assert that mode `0640` survives apply, undo and redo on Unix.
 This proves model properties and tests correspondence; AST selection, parsing, name checks and full authoring refinement remain unproved.
 See [placement kernels](lean-specs.md#declaration-insertion-placement-kernels) for assumptions and reproduction.
 
