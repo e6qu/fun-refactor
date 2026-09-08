@@ -93,6 +93,8 @@ The projection changes patch export to `--output ../artifacts/change.patch`. The
 
 The report separates prompt, skill, inspection, checks, authoring, delivery, requests and recorded tool time. Prompts, tool-call counts, outcomes, source states and timings stay unchanged. This remains a fixed projection; fresh agents may select a different action sequence.
 
+The later [Context Protocol v2 evaluation](agent-context-v2-evaluation.md) records the implementation outcome and a fresh diagnostic pair. That pair did not pass acceptance, so its observed token totals are not added to this passing comparison.
+
 Reproduce it with the pinned tokenizer:
 
 ```sh

@@ -1,0 +1,9 @@
+Implemented `escape_len` in both crates and updated allocation sizing for escaping.
+
+Validation passed:
+- Upstream library tests
+- `regex` without default features
+- Undo/redo transaction checks
+- Clean receiver patch verification
+
+Patch exported to `artifacts/change.patch`.

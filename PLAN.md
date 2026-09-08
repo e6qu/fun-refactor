@@ -139,8 +139,8 @@ PR 0 supplies the baseline that every later PR must preserve or improve.
 
 ### PR 1. Agent Context Protocol v2
 
-Status: in progress on `agent_context_v2`. The branch implements compact project and transaction bases, direct patch artifacts, fixed projection and the Codex runner.
-The current projection saves 2,049.5 mean fr tokens and leaves a 4,419-token normalized gap.
+Status: ready for review on `agent_context_v2`. The protocol implementation, deterministic projection, Codex runner and retained diagnostic cohort are complete.
+The projection saves 2,049.5 mean fr tokens and leaves a 4,419-token normalized gap. Fresh low-effort attempts did not produce a complete passing post-fix pair, so this PR makes no context-parity claim.
 
 Goal: make the structured `fr` workflow competitive on retrieved context while retaining its stronger evidence and reversal guarantees.
 
@@ -169,7 +169,14 @@ Verification and acceptance:
 - The report separates skill, inspection, checks, authoring, delivery, request and latency costs.
 - Context improvement counts only when task success and evidence coverage remain intact.
 
-This PR closes the current M4 efficiency investigation and the matching M2 inspection-overhead work.
+Measured outcome:
+
+- Revision-bound project and transaction reports reconstruct exactly, and malformed or stale bases refuse before writes.
+- The fixed passing-cohort projection reduces mean fr context from 13,278.5 to 11,229 tokens, a 15.4% saving, while ordinary files remain at 6,810.
+- The retained Terra-low diagnostic pair records 15,979 fr tokens and 11,025 file tokens. The fr change passes both independent oracles but fails delivery sequencing; the file change passes its workflow but fails both behavioral oracles.
+- Codex launch metadata and raw JSONL are checksum-bound in recorded evidence, and the manifest states cohort acceptance directly.
+
+This PR closes the scoped v2 implementation and measurement work. Context parity remains open: a future claim requires a fresh passing pair after a material reduction in skill and authoring/delivery context. See the [v2 evaluation](docs/agent-context-v2-evaluation.md).
 
 ### PR 2. Generalized Structural Authoring
 

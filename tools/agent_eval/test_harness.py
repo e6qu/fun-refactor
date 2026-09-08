@@ -646,6 +646,10 @@ class Boundaries(unittest.TestCase):
             self.assertFalse(json.loads((output / names[0] / "result.json").read_text())["passed"])
             manifest = json.loads((output / "manifest.json").read_text())
             self.assertEqual(manifest["implementation_commit"], implementation)
+            self.assertEqual(
+                manifest["acceptance"],
+                {"passed": False, "failed_trials": names},
+            )
             for filename in harness.CODEX_PROVENANCE_FILES:
                 copied = output / names[0] / filename
                 self.assertEqual(copied.read_text(), f"retained {filename}\n")

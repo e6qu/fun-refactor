@@ -1,0 +1,53 @@
+diff --git a/regex-syntax/src/lib.rs b/regex-syntax/src/lib.rs
+index a4512e2..017e380 100644
+--- a/regex-syntax/src/lib.rs
++++ b/regex-syntax/src/lib.rs
+@@ -200,8 +200,28 @@ pub mod utf8;
+ ///
+ /// The string returned may be safely used as a literal in a regular
+ /// expression.
++/// Returns the length, in bytes, of the escaped form of the given text.
++///
++/// This is useful for reserving capacity before escaping text with
++/// [`escape_into`].
++#[inline]
++pub fn escape_len(text: &str) -> usize {
++    text.len()
++        + text
++            .bytes()
++            .filter(|&byte| {
++                matches!(
++                    byte,
++                    b'\\' | b'|' | b'(' | b')' | b'[' | b']' | b'{' | b'}'
++                        | b'^' | b'$' | b'*' | b'+' | b'?' | b'.'
++                )
++            })
++            .count()
++}
++
++/// Escapes all regular expression meta characters in `text`.
+ pub fn escape(text: &str) -> String {
+-    let mut quoted = String::new();
++    let mut quoted = String::with_capacity(escape_len(text));
+     escape_into(text, &mut quoted);
+     quoted
+ }
+diff --git a/src/lib.rs b/src/lib.rs
+index 3c5acc3..dd0b1aa 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -1375,6 +1375,14 @@ mod regexset;
+ ///
+ /// The string returned may be safely used as a literal in a regular
+ /// expression.
++/// Returns the UTF-8 byte length of `pattern` after escaping it for use as a
++/// regular expression.
++#[inline]
++pub fn escape_len(pattern: &str) -> usize {
++    regex_syntax::escape_len(pattern)
++}
++
++/// Escapes all regular expression meta characters in `pattern`.
+ pub fn escape(pattern: &str) -> alloc::string::String {
+     regex_syntax::escape(pattern)
+ }

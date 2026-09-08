@@ -564,12 +564,14 @@ def record(sessions, directory, pilots=None, execution_note=None, implementation
     expected = [name for name, _, _, _ in trial_names(design["project"], design["repetitions"])]
     if design["trials"] != expected:
         raise ValueError("Experiment does not contain every planned paired repetition")
+    scores = {}
     for name in expected:
         result = json.loads((sessions / name / "result.json").read_text())
         if not isinstance(result.get("passed"), bool):
             raise ValueError(f"Score every completed trial before recording evidence: {name}")
         if result["passed"] and not (sessions / name / "artifacts/change.patch").is_file():
             raise ValueError(f"Passing trial lacks its exported patch: {name}")
+        scores[name] = result["passed"]
     directory.mkdir(parents=True, exist_ok=False)
     trials = []
     for name in expected:
@@ -617,6 +619,10 @@ def record(sessions, directory, pilots=None, execution_note=None, implementation
         "dependency_lock_sha256": selected.get("dependency_lock_sha256"),
         "implementation_commit": implementation,
         "agent_execution": execution_note or "Runtime provenance not supplied; consult individual trial transcripts.",
+        "acceptance": {
+            "passed": all(scores.values()),
+            "failed_trials": [name for name, passed in scores.items() if not passed],
+        },
         "pilots": {"interrupted": pilot_names, "reason": "Cargo inherited the containing fr workspace; no valid baseline build. Restarted outside Cargo projects after preflight." if pilot_names else None, "included_in_scored_trials": False},
         "versions": {tool: subprocess.check_output([tool, "--version"], text=True).strip() for tool in ("rustc", "cargo", "git", "python3")},
         "evaluator_files": {str(path.relative_to(ROOT)): digest(path.read_bytes()) for path in
