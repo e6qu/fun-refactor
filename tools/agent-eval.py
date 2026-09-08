@@ -13,8 +13,18 @@ import subprocess
 import tarfile
 import time
 
+
 from agent_eval.oracle import verify as verify_strsim
 from agent_eval import regex_workspace, regex_escape_len
+
+
+TRIAL_FILES = ("session.json", "prompt.txt", "events.jsonl", "result.json")
+CODEX_PROVENANCE_FILES = (
+    "codex-events.jsonl",
+    "codex-stderr.txt",
+    "codex-final.txt",
+    "codex-run.json",
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 ARCHIVE = ROOT / "tests/agent-eval/strsim-0.11.1.crate"
@@ -565,8 +575,12 @@ def record(sessions, directory, pilots=None, execution_note=None):
     for name in expected:
         source, destination = sessions / name, directory / name
         destination.mkdir()
-        for filename in ("session.json", "prompt.txt", "events.jsonl", "result.json"):
+        for filename in TRIAL_FILES:
             shutil.copyfile(source / filename, destination / filename)
+        for filename in CODEX_PROVENANCE_FILES:
+            path = source / filename
+            if path.is_file():
+                shutil.copyfile(path, destination / filename)
         patch = source / "artifacts/change.patch"
         if patch.is_file():
             shutil.copyfile(patch, destination / "change.patch")
@@ -582,8 +596,14 @@ def record(sessions, directory, pilots=None, execution_note=None):
                 continue
             destination = directory / "pilots" / source.name
             destination.mkdir(parents=True)
-            for filename in ("session.json", "prompt.txt", "events.jsonl"):
+            for filename in TRIAL_FILES:
+                if not (source / filename).is_file():
+                    continue
                 shutil.copyfile(source / filename, destination / filename)
+            for filename in CODEX_PROVENANCE_FILES:
+                path = source / filename
+                if path.is_file():
+                    shutil.copyfile(path, destination / filename)
             pilot_names.append(source.name)
     save(directory / "manifest.json", {
         "schema": "fr-agent-eval-evidence-1", "trials": trials,
