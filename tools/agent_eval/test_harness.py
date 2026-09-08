@@ -3,6 +3,7 @@
 import copy
 import hashlib
 import importlib.util
+import io
 import json
 from pathlib import Path
 import sys
@@ -236,6 +237,20 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
         self.assertIn('{"tool":"read","path":"skill/SKILL.md","start":1,"lines":80}', prompt)
         self.assertIn('{"tool":"read","path":"skill/references/author.md","start":1,"lines":160}', prompt)
         self.assertIn("do not pass --write to author batch", prompt)
+        self.assertIn("--request-stdin <<'FRJSON'", prompt)
+        example = prompt.split("--request-stdin <<'FRJSON'\n", 1)[1].split("\nFRJSON", 1)[0]
+        self.assertEqual(json.loads(example)["text"], "{\n    buf.push('\\\\');\n}")
+
+    def test_stdin_request_preserves_source_apostrophes_and_backslashes(self):
+        source = "{\n    buf.push('\\\\');\n}"
+        request = harness.request_input(None, True, io.StringIO(json.dumps({
+            "tool": "write", "path": "fragment.rs", "text": source,
+        })))
+        self.assertEqual(request["text"], source)
+        with self.assertRaisesRegex(ValueError, "exactly one request source"):
+            harness.request_input("{}", True, io.StringIO("{}"))
+        with self.assertRaisesRegex(ValueError, "JSON object"):
+            harness.request_input("[]", False, io.StringIO())
 
     def test_baseline_diagnostics_must_only_report_missing_requested_apis(self):
         valid = {"level": "error", "code": {"code": "E0425"}, "message": "cannot find function `escape_len` in crate `regex`"}

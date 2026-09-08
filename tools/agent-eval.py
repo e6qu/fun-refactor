@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tarfile
 import time
 
@@ -147,7 +148,11 @@ Only change {', '.join(edit_paths(task))}. The evaluator owns regression oracles
 
 Use only the instrumented tool for all task inspection and work. Invoke it using functions.exec / tools.exec_command:
 python3 {ROOT / 'tools/agent-eval.py'} step {session} '<JSON object>'
-Use proper shell quoting for JSON (a single quote inside JSON needs shell escaping). You may batch independent instrumented calls. Do not directly read or write the project or artifacts through other tools. This is a cooperative measurement boundary, not an OS sandbox.
+Use the positional JSON form for simple requests. Use this stdin form for every write request so source apostrophes and shell metacharacters survive unchanged:
+python3 {ROOT / 'tools/agent-eval.py'} step {session} --request-stdin <<'FRJSON'
+{{"tool":"write","path":"fragment.rs","text":"{{\\n    buf.push('\\\\\\\\');\\n}}"}}
+FRJSON
+You may batch independent instrumented calls. Do not directly read or write the project or artifacts through other tools. This is a cooperative measurement boundary, not an OS sandbox.
 
 Tool objects:
 {{"tool":"files","path":"."}} lists up to 200 paths (baseline only).
@@ -363,6 +368,15 @@ def step(session, request):
     with (session / "events.jsonl").open("a") as log:
         log.write(json.dumps(event, ensure_ascii=False) + "\n")
     print(rendered)
+
+
+def request_input(argument, use_stdin, stream):
+    if use_stdin == (argument is not None):
+        raise ValueError("provide exactly one request source: positional JSON or --request-stdin")
+    value = json.loads(stream.read() if use_stdin else argument)
+    if not isinstance(value, dict):
+        raise ValueError("request must be a JSON object")
+    return value
 
 
 def tokenizer():
@@ -645,7 +659,8 @@ def main():
     prepare_parser.add_argument("--repetitions", type=int, default=1)
     step_parser = commands.add_parser("step")
     step_parser.add_argument("session", type=Path)
-    step_parser.add_argument("request", type=json.loads)
+    step_parser.add_argument("request", nargs="?")
+    step_parser.add_argument("--request-stdin", action="store_true")
     score_parser = commands.add_parser("score")
     score_parser.add_argument("session", type=Path)
     replay_parser = commands.add_parser("replay")
@@ -665,7 +680,7 @@ def main():
     if args.command == "prepare":
         prepare(args.out.resolve(), args.fr.resolve(), args.project, args.repetitions)
     elif args.command == "step":
-        step(args.session.resolve(), args.request)
+        step(args.session.resolve(), request_input(args.request, args.request_stdin, sys.stdin))
     elif args.command == "score":
         score(args.session.resolve())
     elif args.command == "replay":
