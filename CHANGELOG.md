@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.15.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.14.0...fun-refactor-v0.15.0) (2026-09-05)
+
+
+### Features
+
+* **recipe:** format recipe trees atomically ([#252](https://github.com/e6qu/fun-refactor/issues/252)) ([e17a594](https://github.com/e6qu/fun-refactor/commit/e17a594ab6b1454c563667d4e18956da4e1ea6d8))
+* **recipe:** preserve formatter comment context ([#250](https://github.com/e6qu/fun-refactor/issues/250)) ([f52ee8b](https://github.com/e6qu/fun-refactor/commit/f52ee8bcbbbd0c66091401f7fe4b0686a8134451))
+* **spec:** check explicit signature maps ([#255](https://github.com/e6qu/fun-refactor/issues/255)) ([1e724d0](https://github.com/e6qu/fun-refactor/commit/1e724d00f28e369ca8e7af229944072b03f16939))
+* **spec:** check Lean source anchors ([#253](https://github.com/e6qu/fun-refactor/issues/253)) ([93d34f7](https://github.com/e6qu/fun-refactor/commit/93d34f73fff028eba4cf79d794954dc3cb23e210))
+* **spec:** require robust signature maps ([#256](https://github.com/e6qu/fun-refactor/issues/256)) ([24f3c20](https://github.com/e6qu/fun-refactor/commit/24f3c20a2edeec8ae7ab2fb8cdea936ab47643b2))
+* **spec:** sync stale Lean anchors ([#254](https://github.com/e6qu/fun-refactor/issues/254)) ([794f308](https://github.com/e6qu/fun-refactor/commit/794f3081ec0ac7d0fc705bbca97e8bbd611345fd))
+* **spec:** verify strict Lean packages ([#257](https://github.com/e6qu/fun-refactor/issues/257)) ([894fc28](https://github.com/e6qu/fun-refactor/commit/894fc28a9ddfb8d0f3912c0c99b53b1996a006ac))
+
+
+### Fixes
+
+* **lean:** carry temporary collection updates ([#258](https://github.com/e6qu/fun-refactor/issues/258)) ([02b37bf](https://github.com/e6qu/fun-refactor/commit/02b37bf408e2debf74507606f6986e8f07c61962))
+
 ## [0.14.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.13.0...fun-refactor-v0.14.0) (2026-09-04)
 
 
