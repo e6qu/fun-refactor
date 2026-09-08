@@ -27,7 +27,7 @@ fr checks --run unit --basis <BASIS> --output-bytes 4096
 ```
 
 `--run unit,integration` selects several names. Execution follows declaration order and continues after a failed check.
-Missing or stale configuration digests, unknown names and duplicate selections refuse before execution.
+Supply the full configuration digest or at least 32 leading hex characters. Missing, short or stale digests, unknown names and duplicate selections refuse before execution.
 The digest identifies configuration bytes, including whitespace. It does not identify the source tree or executable contents.
 Run the selected checks after applying the reviewed change. Rerun them after any subsequent relevant source change.
 

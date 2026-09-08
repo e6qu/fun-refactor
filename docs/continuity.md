@@ -6,7 +6,7 @@ Project and author reports now emit a revision-bound `frcb1:` basis. Supplying i
 Complete saved author diffs and detailed history records now emit a separate `frtb1:` transaction basis. Forward apply and redo reports can omit their repeated diffs while retaining change metadata; reverse use and mismatches refuse before writes.
 Unit and CLI regressions reconstruct full reports exactly and cover missing, truncated, stale and conflicting bases.
 Direct patch output writes a new artifact atomically and returns only identity, size and transaction metadata, avoiding another full patch in agent context.
-The fixed M4ab projection preserves every recorded outcome and lowers mean fr context from 13,278.5 to 11,213 tokens. The normalized file mean is 6,810, so PR 1 still has a 4,403-token gap to address.
+The fixed M4ab projection preserves every recorded outcome and lowers mean fr context from 13,278.5 to 11,229 tokens. The normalized file mean is 6,810, so PR 1 still has a 4,419-token gap to address.
 `tools/agent-eval-codex.py` now supplies the opt-in real-agent runner. It requires a complete prepared pair and explicit spend acknowledgement, then records ephemeral Codex JSONL under pinned model, effort and service-tier settings.
 M4ac is complete: the matched check-output projection shows that verbose successful logs masked substantial fr workflow context in M4ab.
 M4l's four passing workspace trials are retained in `3c8231c`; preparation is `811591e` and documented insertion is `6d0928b`.
@@ -62,6 +62,7 @@ PR 1 now implements the first project and history reductions and retains their f
 The obsolete Lean scanner helper that produced a native-build warning was removed while touching the transaction path.
 The first Luna-low pair passed every behavioral oracle but failed strict workflow ordering. A Terra-low calibration restored ordering but repeated a successful saved plan, exposing a retry-idempotency gap in source history.
 Identical pending plans now reuse one transaction, and the cohort prompt forbids replaying successful reads, checks, mutations and delivery steps.
+The next Luna-low `fr` run preserved one transaction and the workflow shape, but twice lost the final hex digit of a reviewed check basis. Check execution now accepts a matching prefix of at least 128 bits while retaining the full digest in reports.
 
 ## Coordinated workspace task preparation
 

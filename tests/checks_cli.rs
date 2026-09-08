@@ -192,6 +192,22 @@ fn listing_never_executes_and_selection_reports_declared_coverage() {
 }
 
 #[test]
+fn reviewed_basis_accepts_only_cryptographically_strong_prefixes() {
+    let root = fixture(vec![check("unit", "print('passed')")]);
+    let full = basis(&root);
+    assert_eq!(full.len(), 64);
+    let prefix = &full[..32];
+    assert_eq!(
+        run(&root, &["--run", "unit", "--basis", prefix], 0)["passed"],
+        true
+    );
+    run(&root, &["--run", "unit", "--basis", &full[..31]], 1);
+    let mut wrong = prefix.to_owned();
+    wrong.replace_range(..1, if &prefix[..1] == "0" { "1" } else { "0" });
+    run(&root, &["--run", "unit", "--basis", &wrong], 1);
+}
+
+#[test]
 fn stale_missing_unknown_and_duplicate_selection_refuse_before_any_execution() {
     let command = check("unit", "open('marker', 'w').write('ran')");
     let root = fixture(vec![command.clone()]);
