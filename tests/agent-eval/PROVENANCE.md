@@ -37,3 +37,7 @@ This supplies task-preparation evidence; it contains no autonomous trials or con
 The [coordinated cohort](results/2026-09-08-coordinated/manifest.json) retains four fresh-agent trials of this two-crate task.
 All four pass independent project/receiver oracles and exact reversal checks; the [report](../../docs/agent-coordinated-evaluation.md) explains context counts and their limits.
 Its prompts, transcripts, scores, patches, frozen skills and evaluator fingerprints remain separate from the earlier cohorts and prescribed rehearsals.
+
+The [matched check-output projection](checks-policy-context.json) applies quiet-success policies to each retained coordinated check execution.
+It preserves original scores and all other payloads while binding every transformed execution to its recorded payload hash.
+The executable measurement rejects stale or inconsistent evidence and checks its transformation against live successful and failing reports.

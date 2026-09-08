@@ -1157,15 +1157,27 @@ Behavioral replay and exact token auditing pass for all four trials; the full na
 Strict Lean verification retains 24 fresh anchors and signature maps, zero obligations and 38 build jobs.
 See [coordinated agent evaluation](docs/agent-coordinated-evaluation.md) for the cohort and measurement boundaries.
 
+M4ac: matched check-output projection (complete).
+
+A checksum-bound projection applies two shared check-output policies to every retained coordinated transcript without changing prompts, requests, listings, calls or non-check payloads.
+With quiet successful streams and declarations retained, mean context is 14,194.5 tokens for fr and 7,726 for files, an 83.7% fr premium.
+With quiet successful streams and declarations omitted after review, the means are 13,278.5 and 6,810, a 95.0% fr premium.
+The file trials lose about 5,927 successful-output tokens and another 916 declaration tokens each; the fr trials already used the compact policy.
+The projection preserves the original scores and is not a new agent outcome or a prediction of how agents would adapt to shared guidance.
+A live mixed-outcome fixture confirms that successful streams compact exactly while failed diagnostics, outcomes and raw byte counts remain available.
+Guards reject changed evidence, stale listings, declaration disagreements, contradictory success states and truncated check payloads.
+The retained report binds the original evidence manifest, frozen binary, tokenizer and measurement sources by checksum.
+See [the matched-policy analysis](docs/agent-coordinated-evaluation.md#matched-check-output-projection) for per-trial results and limits.
+
 Next M4 work:
 
-Control check-output policy across both arms before another autonomous comparison; first quantify its effect on the retained coordinated transcripts.
-Keep prescribed projections separate from measured agent outcomes, and preserve every original trial score.
 Use the retained workspace traces to reduce repeated report metadata and skill-loading costs, preserving coverage, source bases, guards and reviewable changes.
+Start with fixed projections for the repeated project inspection, authoring transaction and history payloads; compare each against its reviewed source basis.
 Measure each proposed reduction on fixed transcripts or controlled workflows before another autonomous comparison.
 Use the construction profile to evaluate any further reduction in reference serialization and hashing cost.
 Preserve revision inputs, coverage, source verification and byte-identical reports; distinguish buffer-model proofs from implementation correspondence.
 State the cache policy for the next autonomous cohort; the retained trials disable it.
+Require the next paired prompt to prescribe one shared check-output policy while leaving implementation strategy open.
 Extend evaluation beyond the existing Rust tasks with repeated paired trials and independent behavioral checks.
 Keep examples compatible with the distributed binary and load specialized references only when needed.
 

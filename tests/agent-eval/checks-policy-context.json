@@ -1,0 +1,921 @@
+{
+  "schema": "fr-checks-policy-context-1",
+  "passed": true,
+  "evidence_manifest_sha256": "8966a31b2e449516ee2738916d5f91140a11a29052f3a731648b26cf55838f61",
+  "binary_sha256": "ad3cf2a6e3fc31b33079f289eab9630131f0a8f5cb37b847b41ca99d16b40375",
+  "measurement_files": {
+    "tools/checks-policy-context.py": "b37ef3e212ee76c90cbfaf608a79e536ab8c6941f6fa0ca350c56b35170129d7",
+    "tools/agent-eval.py": "9bb820c643ec5c6e234bee81661cecb4973bbb3d5efe406f5eddb5519a9ab180",
+    "src/checks.rs": "0fe2b0f3a40a36ab4ab81084c9154dae715634125ef5af37807fa25dc8fdcc52"
+  },
+  "tokenizer": {
+    "package": "tiktoken",
+    "version": "0.12.0",
+    "encoding": "o200k_base",
+    "vocabulary_sha256": "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d"
+  },
+  "trials": [
+    {
+      "trial": "regex-escape-len-fr-r1",
+      "arm": "fr",
+      "repetition": 1,
+      "recorded": {
+        "context": {
+          "bytes": 46747,
+          "tokens": 13539
+        },
+        "visible_output": {
+          "bytes": 42345,
+          "tokens": 12614
+        },
+        "checks": {
+          "bytes": 7143,
+          "tokens": 2133
+        },
+        "check_listings": {
+          "bytes": 1185,
+          "tokens": 330
+        },
+        "check_executions": {
+          "bytes": 5958,
+          "tokens": 1803
+        },
+        "tool_calls": 29,
+        "requests": {
+          "bytes": 4830,
+          "tokens": 1503
+        }
+      },
+      "policies": {
+        "quiet_success": {
+          "context": {
+            "bytes": 50375,
+            "tokens": 14455
+          },
+          "visible_output": {
+            "bytes": 45973,
+            "tokens": 13530
+          },
+          "checks": {
+            "bytes": 10771,
+            "tokens": 3049
+          },
+          "check_listings": {
+            "bytes": 1185,
+            "tokens": 330
+          },
+          "check_executions": {
+            "bytes": 9586,
+            "tokens": 2719
+          },
+          "tool_calls": 29,
+          "requests": {
+            "bytes": 4830,
+            "tokens": 1503
+          },
+          "executions": [
+            {
+              "event_index": 6,
+              "recorded_visible_sha256": "99df634e7a54b651fb9f0be7a957e7e0e1ce9c77bf0ba64d93a2feb469fc9bd3",
+              "projected_visible_sha256": "b2e012d6cd81a981deb9ecbf9dc351d3395f7010fc2eb6aaa5d9bdc1a3549f31",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"checks\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"name\": \"upstream\", \"timeout_seconds\": 120}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"name\": \"minimal\", \"timeout_seconds\": 120}], \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"elapsed_ms\": 230, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 232, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"elapsed_ms\": 101, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 70, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-fr-r1/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            },
+            {
+              "event_index": 17,
+              "recorded_visible_sha256": "eb2ba071d251fdbd4d65bc3c0bed609cc9a57de5b4b790cc8b0fcecf45b1c34e",
+              "projected_visible_sha256": "d2ca6b772104f4272d2f501425e3f3fcd97ff136b4df0c0e67b139ffa9ab4e08",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"checks\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"name\": \"upstream\", \"timeout_seconds\": 120}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"name\": \"minimal\", \"timeout_seconds\": 120}], \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"elapsed_ms\": 2188, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 609, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"elapsed_ms\": 425, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 447, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-fr-r1/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            },
+            {
+              "event_index": 22,
+              "recorded_visible_sha256": "33764d1204887064e5c66533d88dec60598124f3d35fb2e42a0a745a79502e49",
+              "projected_visible_sha256": "3633571e2b2b189820a52023cb30815ba788f319366bac036a57623da620acca",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"checks\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"name\": \"upstream\", \"timeout_seconds\": 120}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"name\": \"minimal\", \"timeout_seconds\": 120}], \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"elapsed_ms\": 2466, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 609, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"elapsed_ms\": 465, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 447, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-fr-r1/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            },
+            {
+              "event_index": 25,
+              "recorded_visible_sha256": "d394383e71d7a42f75ca9c3912458bed2c22919ae1b3e6c2ffcba39290ce4d4d",
+              "projected_visible_sha256": "6a6710396c171bd8363dc5252a6d705d0d49c5ee78b6212df49fa19585b12a1c",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"checks\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"name\": \"upstream\", \"timeout_seconds\": 120}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"name\": \"minimal\", \"timeout_seconds\": 120}], \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"elapsed_ms\": 2087, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 609, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"elapsed_ms\": 491, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 447, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-fr-r1/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            }
+          ]
+        },
+        "quiet_success_no_declarations": {
+          "context": {
+            "bytes": 46747,
+            "tokens": 13539
+          },
+          "visible_output": {
+            "bytes": 42345,
+            "tokens": 12614
+          },
+          "checks": {
+            "bytes": 7143,
+            "tokens": 2133
+          },
+          "check_listings": {
+            "bytes": 1185,
+            "tokens": 330
+          },
+          "check_executions": {
+            "bytes": 5958,
+            "tokens": 1803
+          },
+          "tool_calls": 29,
+          "requests": {
+            "bytes": 4830,
+            "tokens": 1503
+          },
+          "executions": [
+            {
+              "event_index": 6,
+              "recorded_visible_sha256": "99df634e7a54b651fb9f0be7a957e7e0e1ce9c77bf0ba64d93a2feb469fc9bd3",
+              "projected_visible_sha256": "99df634e7a54b651fb9f0be7a957e7e0e1ce9c77bf0ba64d93a2feb469fc9bd3",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"declarations_omitted\": true, \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"elapsed_ms\": 230, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 232, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"elapsed_ms\": 101, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 70, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-fr-r1/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            },
+            {
+              "event_index": 17,
+              "recorded_visible_sha256": "eb2ba071d251fdbd4d65bc3c0bed609cc9a57de5b4b790cc8b0fcecf45b1c34e",
+              "projected_visible_sha256": "eb2ba071d251fdbd4d65bc3c0bed609cc9a57de5b4b790cc8b0fcecf45b1c34e",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"declarations_omitted\": true, \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"elapsed_ms\": 2188, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 609, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"elapsed_ms\": 425, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 447, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-fr-r1/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            },
+            {
+              "event_index": 22,
+              "recorded_visible_sha256": "33764d1204887064e5c66533d88dec60598124f3d35fb2e42a0a745a79502e49",
+              "projected_visible_sha256": "33764d1204887064e5c66533d88dec60598124f3d35fb2e42a0a745a79502e49",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"declarations_omitted\": true, \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"elapsed_ms\": 2466, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 609, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"elapsed_ms\": 465, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 447, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-fr-r1/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            },
+            {
+              "event_index": 25,
+              "recorded_visible_sha256": "d394383e71d7a42f75ca9c3912458bed2c22919ae1b3e6c2ffcba39290ce4d4d",
+              "projected_visible_sha256": "d394383e71d7a42f75ca9c3912458bed2c22919ae1b3e6c2ffcba39290ce4d4d",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"declarations_omitted\": true, \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"elapsed_ms\": 2087, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 609, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"elapsed_ms\": 491, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 447, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-fr-r1/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "trial": "regex-escape-len-files-r1",
+      "arm": "files",
+      "repetition": 1,
+      "recorded": {
+        "context": {
+          "bytes": 47947,
+          "tokens": 13487
+        },
+        "visible_output": {
+          "bytes": 43663,
+          "tokens": 12589
+        },
+        "checks": {
+          "bytes": 31087,
+          "tokens": 8974
+        },
+        "check_listings": {
+          "bytes": 1188,
+          "tokens": 330
+        },
+        "check_executions": {
+          "bytes": 29899,
+          "tokens": 8644
+        },
+        "tool_calls": 19,
+        "requests": {
+          "bytes": 2916,
+          "tokens": 859
+        }
+      },
+      "policies": {
+        "quiet_success": {
+          "context": {
+            "bytes": 27645,
+            "tokens": 7562
+          },
+          "visible_output": {
+            "bytes": 23361,
+            "tokens": 6664
+          },
+          "checks": {
+            "bytes": 10785,
+            "tokens": 3049
+          },
+          "check_listings": {
+            "bytes": 1188,
+            "tokens": 330
+          },
+          "check_executions": {
+            "bytes": 9597,
+            "tokens": 2719
+          },
+          "tool_calls": 19,
+          "requests": {
+            "bytes": 2916,
+            "tokens": 859
+          },
+          "executions": [
+            {
+              "event_index": 4,
+              "recorded_visible_sha256": "a9627cca4e2aba23e204d6a60c3e6335cc52f498f55455d28e624fc5befbf0e3",
+              "projected_visible_sha256": "99158ff70915498bebf5f0804ea1aa4b8390d1d6e14eeb8eb4f4ff96e653a2ef",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"checks\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"name\": \"upstream\", \"timeout_seconds\": 120}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"name\": \"minimal\", \"timeout_seconds\": 120}], \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"elapsed_ms\": 123, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 232, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"elapsed_ms\": 48, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 70, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-files-r1/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            },
+            {
+              "event_index": 8,
+              "recorded_visible_sha256": "7eb212790c0b14a55dc941ea94b96ef552a0305c708748bd267f9a54addd8969",
+              "projected_visible_sha256": "e9e36d24ecc5c77074de9d3c24b0a2080b24837b5c9445f5198f685a3dd9f7c5",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"checks\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"name\": \"upstream\", \"timeout_seconds\": 120}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"name\": \"minimal\", \"timeout_seconds\": 120}], \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"elapsed_ms\": 2275, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 618, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"elapsed_ms\": 442, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 456, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-files-r1/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            },
+            {
+              "event_index": 12,
+              "recorded_visible_sha256": "01ad8a474efefd585b4bfdf6239ac94da7472b7553579ad9ba3a978fcf119a15",
+              "projected_visible_sha256": "387dc59986c4cbca42bbc5df851ec4abe9ed8cd8cda289a76db5d983d661fdf4",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"checks\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"name\": \"upstream\", \"timeout_seconds\": 120}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"name\": \"minimal\", \"timeout_seconds\": 120}], \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"elapsed_ms\": 2092, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 618, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"elapsed_ms\": 555, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 456, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-files-r1/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            },
+            {
+              "event_index": 15,
+              "recorded_visible_sha256": "6b56602982b0e5e2f9aeefe398ab318e4d734ad6bba9add5be4b7fda87470c09",
+              "projected_visible_sha256": "247bd6adffff4f0313f5d03594b005d8388ce7040faa990c23e3a30d568f58ca",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"checks\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"name\": \"upstream\", \"timeout_seconds\": 120}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"name\": \"minimal\", \"timeout_seconds\": 120}], \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"elapsed_ms\": 1780, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 618, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"elapsed_ms\": 390, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 456, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-files-r1/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            }
+          ]
+        },
+        "quiet_success_no_declarations": {
+          "context": {
+            "bytes": 24017,
+            "tokens": 6646
+          },
+          "visible_output": {
+            "bytes": 19733,
+            "tokens": 5748
+          },
+          "checks": {
+            "bytes": 7157,
+            "tokens": 2133
+          },
+          "check_listings": {
+            "bytes": 1188,
+            "tokens": 330
+          },
+          "check_executions": {
+            "bytes": 5969,
+            "tokens": 1803
+          },
+          "tool_calls": 19,
+          "requests": {
+            "bytes": 2916,
+            "tokens": 859
+          },
+          "executions": [
+            {
+              "event_index": 4,
+              "recorded_visible_sha256": "a9627cca4e2aba23e204d6a60c3e6335cc52f498f55455d28e624fc5befbf0e3",
+              "projected_visible_sha256": "b1b6d8931e17a4a7c3e0214dd3627bc3a308fa97e2287f6d86992ed31c7619ac",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"declarations_omitted\": true, \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"elapsed_ms\": 123, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 232, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"elapsed_ms\": 48, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 70, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-files-r1/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            },
+            {
+              "event_index": 8,
+              "recorded_visible_sha256": "7eb212790c0b14a55dc941ea94b96ef552a0305c708748bd267f9a54addd8969",
+              "projected_visible_sha256": "350dffcffd443655e460769e6ba29467813d2e6b3901e1b4da94a960adc06e58",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"declarations_omitted\": true, \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"elapsed_ms\": 2275, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 618, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"elapsed_ms\": 442, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 456, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-files-r1/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            },
+            {
+              "event_index": 12,
+              "recorded_visible_sha256": "01ad8a474efefd585b4bfdf6239ac94da7472b7553579ad9ba3a978fcf119a15",
+              "projected_visible_sha256": "be2c17bceda7af818d6bd6e96114f50bffa004ffaec2a6a381dc06aea8263b44",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"declarations_omitted\": true, \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"elapsed_ms\": 2092, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 618, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"elapsed_ms\": 555, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 456, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-files-r1/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            },
+            {
+              "event_index": 15,
+              "recorded_visible_sha256": "6b56602982b0e5e2f9aeefe398ab318e4d734ad6bba9add5be4b7fda87470c09",
+              "projected_visible_sha256": "8d95ba473c1bc10edb11f8f5ea120aed5abc5ff41bf18710e73218879292a264",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"declarations_omitted\": true, \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"elapsed_ms\": 1780, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 618, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"elapsed_ms\": 390, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 456, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-files-r1/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "trial": "regex-escape-len-fr-r2",
+      "arm": "fr",
+      "repetition": 2,
+      "recorded": {
+        "context": {
+          "bytes": 45022,
+          "tokens": 13018
+        },
+        "visible_output": {
+          "bytes": 40620,
+          "tokens": 12093
+        },
+        "checks": {
+          "bytes": 7142,
+          "tokens": 2133
+        },
+        "check_listings": {
+          "bytes": 1185,
+          "tokens": 330
+        },
+        "check_executions": {
+          "bytes": 5957,
+          "tokens": 1803
+        },
+        "tool_calls": 28,
+        "requests": {
+          "bytes": 4714,
+          "tokens": 1491
+        }
+      },
+      "policies": {
+        "quiet_success": {
+          "context": {
+            "bytes": 48650,
+            "tokens": 13934
+          },
+          "visible_output": {
+            "bytes": 44248,
+            "tokens": 13009
+          },
+          "checks": {
+            "bytes": 10770,
+            "tokens": 3049
+          },
+          "check_listings": {
+            "bytes": 1185,
+            "tokens": 330
+          },
+          "check_executions": {
+            "bytes": 9585,
+            "tokens": 2719
+          },
+          "tool_calls": 28,
+          "requests": {
+            "bytes": 4714,
+            "tokens": 1491
+          },
+          "executions": [
+            {
+              "event_index": 6,
+              "recorded_visible_sha256": "723084e7c1b1be9fb5e43c9d9a8fce3c1fd9058c40fef93c7bc05494c58e6c86",
+              "projected_visible_sha256": "b97c82b6c216767244d0a7d9959b50bda0fb3fd2d64a1cb405e8c8b53c9b79c8",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"checks\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"name\": \"upstream\", \"timeout_seconds\": 120}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"name\": \"minimal\", \"timeout_seconds\": 120}], \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"elapsed_ms\": 121, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 232, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"elapsed_ms\": 48, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 70, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-fr-r2/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            },
+            {
+              "event_index": 17,
+              "recorded_visible_sha256": "5011b7834c442d69582c7447512e190213a286c02fa3c210219a22c59522f3b5",
+              "projected_visible_sha256": "1c7b727acf43bb145d02d093dbb031dc1c96af254a75c9fa5fc96d2101f16710",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"checks\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"name\": \"upstream\", \"timeout_seconds\": 120}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"name\": \"minimal\", \"timeout_seconds\": 120}], \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"elapsed_ms\": 4118, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 609, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"elapsed_ms\": 656, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 447, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-fr-r2/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            },
+            {
+              "event_index": 22,
+              "recorded_visible_sha256": "4b874aab05ea31cd61233d4d6b9afef2c52d6f9cb7d6cc9a9c2aeeead15435e3",
+              "projected_visible_sha256": "9312e38a7dea57e5c0292c1efc6a075a42e44ca317c55f26695a49c86597bd29",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"checks\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"name\": \"upstream\", \"timeout_seconds\": 120}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"name\": \"minimal\", \"timeout_seconds\": 120}], \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"elapsed_ms\": 2713, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 609, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"elapsed_ms\": 451, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 447, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-fr-r2/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            },
+            {
+              "event_index": 25,
+              "recorded_visible_sha256": "da698fd4a5f5e9edf294585b4931c1d74482b64ec46924775903ae6f6d835797",
+              "projected_visible_sha256": "0d5b997e3469194db3d9a35841af8d7072e8b605ddbfaa05f515cf36b24dd2e7",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"checks\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"name\": \"upstream\", \"timeout_seconds\": 120}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"name\": \"minimal\", \"timeout_seconds\": 120}], \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"elapsed_ms\": 2000, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 609, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"elapsed_ms\": 439, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 447, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-fr-r2/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            }
+          ]
+        },
+        "quiet_success_no_declarations": {
+          "context": {
+            "bytes": 45022,
+            "tokens": 13018
+          },
+          "visible_output": {
+            "bytes": 40620,
+            "tokens": 12093
+          },
+          "checks": {
+            "bytes": 7142,
+            "tokens": 2133
+          },
+          "check_listings": {
+            "bytes": 1185,
+            "tokens": 330
+          },
+          "check_executions": {
+            "bytes": 5957,
+            "tokens": 1803
+          },
+          "tool_calls": 28,
+          "requests": {
+            "bytes": 4714,
+            "tokens": 1491
+          },
+          "executions": [
+            {
+              "event_index": 6,
+              "recorded_visible_sha256": "723084e7c1b1be9fb5e43c9d9a8fce3c1fd9058c40fef93c7bc05494c58e6c86",
+              "projected_visible_sha256": "723084e7c1b1be9fb5e43c9d9a8fce3c1fd9058c40fef93c7bc05494c58e6c86",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"declarations_omitted\": true, \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"elapsed_ms\": 121, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 232, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"elapsed_ms\": 48, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 70, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-fr-r2/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            },
+            {
+              "event_index": 17,
+              "recorded_visible_sha256": "5011b7834c442d69582c7447512e190213a286c02fa3c210219a22c59522f3b5",
+              "projected_visible_sha256": "5011b7834c442d69582c7447512e190213a286c02fa3c210219a22c59522f3b5",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"declarations_omitted\": true, \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"elapsed_ms\": 4118, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 609, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"elapsed_ms\": 656, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 447, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-fr-r2/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            },
+            {
+              "event_index": 22,
+              "recorded_visible_sha256": "4b874aab05ea31cd61233d4d6b9afef2c52d6f9cb7d6cc9a9c2aeeead15435e3",
+              "projected_visible_sha256": "4b874aab05ea31cd61233d4d6b9afef2c52d6f9cb7d6cc9a9c2aeeead15435e3",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"declarations_omitted\": true, \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"elapsed_ms\": 2713, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 609, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"elapsed_ms\": 451, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 447, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-fr-r2/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            },
+            {
+              "event_index": 25,
+              "recorded_visible_sha256": "da698fd4a5f5e9edf294585b4931c1d74482b64ec46924775903ae6f6d835797",
+              "projected_visible_sha256": "da698fd4a5f5e9edf294585b4931c1d74482b64ec46924775903ae6f6d835797",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"declarations_omitted\": true, \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"elapsed_ms\": 2000, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 609, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"elapsed_ms\": 439, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 447, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-fr-r2/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "trial": "regex-escape-len-files-r2",
+      "arm": "files",
+      "repetition": 2,
+      "recorded": {
+        "context": {
+          "bytes": 49076,
+          "tokens": 13818
+        },
+        "visible_output": {
+          "bytes": 44792,
+          "tokens": 12920
+        },
+        "checks": {
+          "bytes": 34651,
+          "tokens": 9967
+        },
+        "check_listings": {
+          "bytes": 4752,
+          "tokens": 1320
+        },
+        "check_executions": {
+          "bytes": 29899,
+          "tokens": 8647
+        },
+        "tool_calls": 22,
+        "requests": {
+          "bytes": 2966,
+          "tokens": 890
+        }
+      },
+      "policies": {
+        "quiet_success": {
+          "context": {
+            "bytes": 28774,
+            "tokens": 7890
+          },
+          "visible_output": {
+            "bytes": 24490,
+            "tokens": 6992
+          },
+          "checks": {
+            "bytes": 14349,
+            "tokens": 4039
+          },
+          "check_listings": {
+            "bytes": 4752,
+            "tokens": 1320
+          },
+          "check_executions": {
+            "bytes": 9597,
+            "tokens": 2719
+          },
+          "tool_calls": 22,
+          "requests": {
+            "bytes": 2966,
+            "tokens": 890
+          },
+          "executions": [
+            {
+              "event_index": 4,
+              "recorded_visible_sha256": "8438f39969f7ac729faa2c966b44e1ec2aa120bded133dd842c70fd50db7ea97",
+              "projected_visible_sha256": "8e7430b1a58b145d76562d0470bfc27b1d9eb74e356e5c795cc81c45d174bf0e",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"checks\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"name\": \"upstream\", \"timeout_seconds\": 120}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"name\": \"minimal\", \"timeout_seconds\": 120}], \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"elapsed_ms\": 124, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 232, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"elapsed_ms\": 49, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 70, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-files-r2/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            },
+            {
+              "event_index": 9,
+              "recorded_visible_sha256": "ee7efe5739c78457564841db4509c58aa00366a3f0c5437c1177852c9ced0e0a",
+              "projected_visible_sha256": "245c72d0a66a522f33fb4b48d1ef7fdb06f1b00081cdef578d36faa5d5dd8112",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"checks\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"name\": \"upstream\", \"timeout_seconds\": 120}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"name\": \"minimal\", \"timeout_seconds\": 120}], \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"elapsed_ms\": 2371, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 618, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"elapsed_ms\": 644, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 456, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-files-r2/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            },
+            {
+              "event_index": 14,
+              "recorded_visible_sha256": "8e8902217fe224c4704ba369f2ab16893212567e7fe4dcc86b332fad9ef79bd9",
+              "projected_visible_sha256": "22e90f7362efbc5520405ed792a140d32278d25987651ac2c323e5b03077e9ae",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"checks\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"name\": \"upstream\", \"timeout_seconds\": 120}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"name\": \"minimal\", \"timeout_seconds\": 120}], \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"elapsed_ms\": 1951, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 618, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"elapsed_ms\": 453, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 456, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-files-r2/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            },
+            {
+              "event_index": 18,
+              "recorded_visible_sha256": "3a93f77413fa298c07a05c84d1e5cea4e7b89728179c5b0545b12f3a2050498d",
+              "projected_visible_sha256": "e9e387c9bfdaaed2c13960c8b2f5d3f957dcf8d0d62da4bd24438d7cb4f555cd",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"checks\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"name\": \"upstream\", \"timeout_seconds\": 120}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"name\": \"minimal\", \"timeout_seconds\": 120}], \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"argv\": [\"cargo\", \"test\", \"-p\", \"regex\", \"-p\", \"regex-syntax\", \"--lib\", \"--locked\", \"--offline\"], \"covers\": [\"Upstream regex and regex-syntax library tests, including missing-docs lint; excludes integration and documentation tests\"], \"cwd\": \".\", \"elapsed_ms\": 3739, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 618, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"argv\": [\"cargo\", \"check\", \"-p\", \"regex\", \"--no-default-features\", \"--locked\", \"--offline\"], \"covers\": [\"regex library compilation without default features\"], \"cwd\": \".\", \"elapsed_ms\": 739, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 456, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-files-r2/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            }
+          ]
+        },
+        "quiet_success_no_declarations": {
+          "context": {
+            "bytes": 25146,
+            "tokens": 6974
+          },
+          "visible_output": {
+            "bytes": 20862,
+            "tokens": 6076
+          },
+          "checks": {
+            "bytes": 10721,
+            "tokens": 3123
+          },
+          "check_listings": {
+            "bytes": 4752,
+            "tokens": 1320
+          },
+          "check_executions": {
+            "bytes": 5969,
+            "tokens": 1803
+          },
+          "tool_calls": 22,
+          "requests": {
+            "bytes": 2966,
+            "tokens": 890
+          },
+          "executions": [
+            {
+              "event_index": 4,
+              "recorded_visible_sha256": "8438f39969f7ac729faa2c966b44e1ec2aa120bded133dd842c70fd50db7ea97",
+              "projected_visible_sha256": "3f4010514472998ea5f65e291113c3c9421d5e932278833c4c464148bfddf080",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"declarations_omitted\": true, \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"elapsed_ms\": 124, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 232, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"elapsed_ms\": 49, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 70, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-files-r2/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            },
+            {
+              "event_index": 9,
+              "recorded_visible_sha256": "ee7efe5739c78457564841db4509c58aa00366a3f0c5437c1177852c9ced0e0a",
+              "projected_visible_sha256": "9dfc25923cdbe4f4f00197d3c2153c423da56ed3709fcd416c1cbc821686901d",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"declarations_omitted\": true, \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"elapsed_ms\": 2371, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 618, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"elapsed_ms\": 644, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 456, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-files-r2/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            },
+            {
+              "event_index": 14,
+              "recorded_visible_sha256": "8e8902217fe224c4704ba369f2ab16893212567e7fe4dcc86b332fad9ef79bd9",
+              "projected_visible_sha256": "495e2cb58fdfd480e2b7f254322b64d100f2339688c359c57778d3fd9a33ca8d",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"declarations_omitted\": true, \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"elapsed_ms\": 1951, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 618, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"elapsed_ms\": 453, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 456, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-files-r2/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            },
+            {
+              "event_index": 18,
+              "recorded_visible_sha256": "3a93f77413fa298c07a05c84d1e5cea4e7b89728179c5b0545b12f3a2050498d",
+              "projected_visible_sha256": "427e0cc87eed9b87a35a797b80c37c9924ee687a7f457a4eb843e5d3fc2264a2",
+              "projected_visible": "{\"exit_code\": 0, \"result\": {\"basis\": \"a67504bff9474869fc9ece9ec1451f8c504733a61f578732aa01ad84e759bfc3\", \"configuration\": \".fr/checks.json\", \"coverage_authority\": \"project declarations; passing commands do not prove coverage or equivalence\", \"declarations_omitted\": true, \"executed\": true, \"execution\": \"inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture\", \"not_run\": [], \"passed\": true, \"results\": [{\"elapsed_ms\": 3739, \"error\": null, \"exit_code\": 0, \"name\": \"upstream\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 618, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 7913, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}, {\"elapsed_ms\": 739, \"error\": null, \"exit_code\": 0, \"name\": \"minimal\", \"output_limit_exceeded\": false, \"passed\": true, \"stderr\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 456, \"retained_bytes\": 0, \"text\": \"\"}, \"stdout\": {\"encoding\": \"UTF-8 with replacement; byte counts precede decoding\", \"omitted_bytes\": 0, \"retained_bytes\": 0, \"text\": \"\"}, \"timed_out\": false}], \"root\": \"/private/tmp/fr-coordinated-eval-uihsblci/sessions/regex-escape-len-files-r2/project\", \"schema\": \"fr-checks-1\", \"source_snapshot_checked\": false}, \"stdout_omitted_bytes\": 0, \"stderr\": \"\", \"stderr_omitted_bytes\": 0}"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "summary": {
+    "bytes": {
+      "quiet_success": {
+        "fr_mean": 49512.5,
+        "files_mean": 28209.5,
+        "fr_minus_files": 21303.0,
+        "fr_percent_difference": 75.51711302929864
+      },
+      "quiet_success_no_declarations": {
+        "fr_mean": 45884.5,
+        "files_mean": 24581.5,
+        "fr_minus_files": 21303.0,
+        "fr_percent_difference": 86.6627341700059
+      }
+    },
+    "tokens": {
+      "quiet_success": {
+        "fr_mean": 14194.5,
+        "files_mean": 7726.0,
+        "fr_minus_files": 6468.5,
+        "fr_percent_difference": 83.72378980067305
+      },
+      "quiet_success_no_declarations": {
+        "fr_mean": 13278.5,
+        "files_mean": 6810.0,
+        "fr_minus_files": 6468.5,
+        "fr_percent_difference": 94.98531571218795
+      }
+    }
+  },
+  "live": {
+    "passed": true,
+    "listing": {
+      "basis": "20d866ca86153a085f4141c0d68c9eed2c292188e4c64de2e42bca12f72d100b",
+      "checks": [
+        {
+          "argv": [
+            "python3",
+            "-c",
+            "import os; os.write(1, b'\\xffok'); os.write(2, b'ok')"
+          ],
+          "covers": [
+            "fixture stream and exit behavior"
+          ],
+          "cwd": ".",
+          "name": "pass",
+          "timeout_seconds": 5
+        },
+        {
+          "argv": [
+            "python3",
+            "-c",
+            "import os; os.write(1, b'diagnostic'); os.write(2, b'\\xffbad'); raise SystemExit(7)"
+          ],
+          "covers": [
+            "fixture stream and exit behavior"
+          ],
+          "cwd": ".",
+          "name": "fail",
+          "timeout_seconds": 5
+        }
+      ],
+      "configuration": ".fr/checks.json",
+      "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
+      "executed": false,
+      "execution": "inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture",
+      "not_run": [
+        "pass",
+        "fail"
+      ],
+      "passed": null,
+      "results": [],
+      "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-checks-policy-v55mte2f",
+      "schema": "fr-checks-1",
+      "source_snapshot_checked": false
+    },
+    "recorded_full": {
+      "basis": "20d866ca86153a085f4141c0d68c9eed2c292188e4c64de2e42bca12f72d100b",
+      "checks": [
+        {
+          "argv": [
+            "python3",
+            "-c",
+            "import os; os.write(1, b'\\xffok'); os.write(2, b'ok')"
+          ],
+          "covers": [
+            "fixture stream and exit behavior"
+          ],
+          "cwd": ".",
+          "name": "pass",
+          "timeout_seconds": 5
+        },
+        {
+          "argv": [
+            "python3",
+            "-c",
+            "import os; os.write(1, b'diagnostic'); os.write(2, b'\\xffbad'); raise SystemExit(7)"
+          ],
+          "covers": [
+            "fixture stream and exit behavior"
+          ],
+          "cwd": ".",
+          "name": "fail",
+          "timeout_seconds": 5
+        }
+      ],
+      "configuration": ".fr/checks.json",
+      "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
+      "executed": true,
+      "execution": "inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture",
+      "not_run": [],
+      "passed": false,
+      "results": [
+        {
+          "argv": [
+            "python3",
+            "-c",
+            "import os; os.write(1, b'\\xffok'); os.write(2, b'ok')"
+          ],
+          "covers": [
+            "fixture stream and exit behavior"
+          ],
+          "cwd": ".",
+          "elapsed_ms": 26,
+          "error": null,
+          "exit_code": 0,
+          "name": "pass",
+          "output_limit_exceeded": false,
+          "passed": true,
+          "stderr": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 0,
+            "retained_bytes": 2,
+            "text": "ok"
+          },
+          "stdout": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 0,
+            "retained_bytes": 3,
+            "text": "�ok"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "python3",
+            "-c",
+            "import os; os.write(1, b'diagnostic'); os.write(2, b'\\xffbad'); raise SystemExit(7)"
+          ],
+          "covers": [
+            "fixture stream and exit behavior"
+          ],
+          "cwd": ".",
+          "elapsed_ms": 24,
+          "error": null,
+          "exit_code": 7,
+          "name": "fail",
+          "output_limit_exceeded": false,
+          "passed": false,
+          "stderr": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 1,
+            "retained_bytes": 3,
+            "text": "�ba"
+          },
+          "stdout": {
+            "encoding": "UTF-8 with replacement; byte counts precede decoding",
+            "omitted_bytes": 7,
+            "retained_bytes": 3,
+            "text": "dia"
+          },
+          "timed_out": false
+        }
+      ],
+      "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-checks-policy-v55mte2f",
+      "schema": "fr-checks-1",
+      "source_snapshot_checked": false
+    },
+    "actual_policies": {
+      "quiet_success": {
+        "basis": "20d866ca86153a085f4141c0d68c9eed2c292188e4c64de2e42bca12f72d100b",
+        "checks": [
+          {
+            "argv": [
+              "python3",
+              "-c",
+              "import os; os.write(1, b'\\xffok'); os.write(2, b'ok')"
+            ],
+            "covers": [
+              "fixture stream and exit behavior"
+            ],
+            "cwd": ".",
+            "name": "pass",
+            "timeout_seconds": 5
+          },
+          {
+            "argv": [
+              "python3",
+              "-c",
+              "import os; os.write(1, b'diagnostic'); os.write(2, b'\\xffbad'); raise SystemExit(7)"
+            ],
+            "covers": [
+              "fixture stream and exit behavior"
+            ],
+            "cwd": ".",
+            "name": "fail",
+            "timeout_seconds": 5
+          }
+        ],
+        "configuration": ".fr/checks.json",
+        "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
+        "executed": true,
+        "execution": "inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture",
+        "not_run": [],
+        "passed": false,
+        "results": [
+          {
+            "argv": [
+              "python3",
+              "-c",
+              "import os; os.write(1, b'\\xffok'); os.write(2, b'ok')"
+            ],
+            "covers": [
+              "fixture stream and exit behavior"
+            ],
+            "cwd": ".",
+            "elapsed_ms": 25,
+            "error": null,
+            "exit_code": 0,
+            "name": "pass",
+            "output_limit_exceeded": false,
+            "passed": true,
+            "stderr": {
+              "encoding": "UTF-8 with replacement; byte counts precede decoding",
+              "omitted_bytes": 2,
+              "retained_bytes": 0,
+              "text": ""
+            },
+            "stdout": {
+              "encoding": "UTF-8 with replacement; byte counts precede decoding",
+              "omitted_bytes": 3,
+              "retained_bytes": 0,
+              "text": ""
+            },
+            "timed_out": false
+          },
+          {
+            "argv": [
+              "python3",
+              "-c",
+              "import os; os.write(1, b'diagnostic'); os.write(2, b'\\xffbad'); raise SystemExit(7)"
+            ],
+            "covers": [
+              "fixture stream and exit behavior"
+            ],
+            "cwd": ".",
+            "elapsed_ms": 25,
+            "error": null,
+            "exit_code": 7,
+            "name": "fail",
+            "output_limit_exceeded": false,
+            "passed": false,
+            "stderr": {
+              "encoding": "UTF-8 with replacement; byte counts precede decoding",
+              "omitted_bytes": 1,
+              "retained_bytes": 3,
+              "text": "�ba"
+            },
+            "stdout": {
+              "encoding": "UTF-8 with replacement; byte counts precede decoding",
+              "omitted_bytes": 7,
+              "retained_bytes": 3,
+              "text": "dia"
+            },
+            "timed_out": false
+          }
+        ],
+        "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-checks-policy-v55mte2f",
+        "schema": "fr-checks-1",
+        "source_snapshot_checked": false
+      },
+      "quiet_success_no_declarations": {
+        "basis": "20d866ca86153a085f4141c0d68c9eed2c292188e4c64de2e42bca12f72d100b",
+        "configuration": ".fr/checks.json",
+        "coverage_authority": "project declarations; passing commands do not prove coverage or equivalence",
+        "declarations_omitted": true,
+        "executed": true,
+        "execution": "inherited environment; direct argv; no command sandbox; direct-child timeout; temporary file capture",
+        "not_run": [],
+        "passed": false,
+        "results": [
+          {
+            "elapsed_ms": 25,
+            "error": null,
+            "exit_code": 0,
+            "name": "pass",
+            "output_limit_exceeded": false,
+            "passed": true,
+            "stderr": {
+              "encoding": "UTF-8 with replacement; byte counts precede decoding",
+              "omitted_bytes": 2,
+              "retained_bytes": 0,
+              "text": ""
+            },
+            "stdout": {
+              "encoding": "UTF-8 with replacement; byte counts precede decoding",
+              "omitted_bytes": 3,
+              "retained_bytes": 0,
+              "text": ""
+            },
+            "timed_out": false
+          },
+          {
+            "elapsed_ms": 25,
+            "error": null,
+            "exit_code": 7,
+            "name": "fail",
+            "output_limit_exceeded": false,
+            "passed": false,
+            "stderr": {
+              "encoding": "UTF-8 with replacement; byte counts precede decoding",
+              "omitted_bytes": 1,
+              "retained_bytes": 3,
+              "text": "�ba"
+            },
+            "stdout": {
+              "encoding": "UTF-8 with replacement; byte counts precede decoding",
+              "omitted_bytes": 7,
+              "retained_bytes": 3,
+              "text": "dia"
+            },
+            "timed_out": false
+          }
+        ],
+        "root": "/private/var/folders/93/f1fz6s6969gbkd8m9tph1rfw0000gn/T/fr-checks-policy-v55mte2f",
+        "schema": "fr-checks-1",
+        "source_snapshot_checked": false
+      }
+    },
+    "comparison": "Exact report equality except elapsed_ms; failed streams retain their byte budgets and replacement decoding."
+  },
+  "scope": "Fixed-transcript projection, not new agent outcomes. Prompts, requests, listings, non-check payloads and call counts stay unchanged. Only executed check payloads change. Both policies suppress successful streams; one also omits declarations after a matching prior listing. Existing failure output budgets, outcomes, timings and stream totals stay intact. The cohort has no failed checks. No output can be reconstructed after harness truncation. Original evidence and scores remain immutable. No latency or billed-token claim."
+}

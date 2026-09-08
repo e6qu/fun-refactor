@@ -1,6 +1,6 @@
 # Development continuity
 
-M4ab is complete: all four fresh agents passed the coordinated two-crate task, with near-parity aggregate context.
+M4ac is complete: the matched check-output projection shows that verbose successful logs masked substantial fr workflow context in M4ab.
 The user authorized local commits. Publishing and pushing remain outside this request.
 M4l's four passing workspace trials are retained in `3c8231c`; preparation is `811591e` and documented insertion is `6d0928b`.
 M4m's smaller check reports are committed in `58b53bd`; M4n's targeted skill guidance is `1c44863`.
@@ -17,6 +17,7 @@ M4x's insertion placement proofs are committed in `3fd1323`.
 M4y's coordinated authoring batches are committed in `f0ba5a5`.
 M4z's controlled batch comparison is committed in `5591c17`.
 M4aa's coordinated task preparation is committed in `1c96eb1`.
+M4ab's four coordinated agent trials are committed in `56995e3`.
 
 ## Coordinated cohort results
 
@@ -33,8 +34,24 @@ Both projects and receivers pass 1,060 independent inputs for each trial; exact 
 The fr trials use 13,539 and 13,018 context tokens; file trials use 13,487 and 13,818, yielding a 2.7% mean reduction for fr.
 Both file agents kept verbose check output while both fr agents used compact checks; this accounts for much of the aggregate result.
 The fr trials still spend more context on inspection and changes/delivery, plus 2,851 skill tokens each, and more time in uncached project analysis.
-Next, control check-output policy across both arms, starting with a fixed-transcript projection that preserves the original scores.
+M4ac now controls check-output policy with a fixed-transcript projection that preserves the original scores.
 See [coordinated agent evaluation](agent-coordinated-evaluation.md) for the full protocol, categories and limitations.
+
+## Matched check-output projection
+
+`tools/checks-policy-context.py` validates the complete retained M4ab manifest before projecting either shared policy.
+Prompts, requests, check listings, non-check payloads and call counts stay byte-identical; only executed structured check reports change.
+The quiet-success projection retains declarations and yields means of 14,194.5 fr tokens and 7,726 file tokens, an 83.7% fr premium.
+The compact projection also omits reviewed declarations and yields 13,278.5 and 6,810 tokens, a 95.0% fr premium.
+File repetitions lose 5,925 and 5,928 successful-output tokens, then 916 declaration tokens each; fr already used the compact policy.
+The projected mean gap is 6,468.5 tokens. This explains M4ab's apparent 2.7% advantage but does not alter its measured outcomes.
+The result does not predict agent adaptation under a prescribed policy and does not isolate individual fr commands.
+
+The live fixture checks both successful and failing commands, output limits and invalid UTF-8.
+Its transformed reports equal actual CLI policy reports apart from elapsed time; failed diagnostics and raw byte totals remain intact.
+Projection refuses changed evidence, missing or stale listings, declaration mismatches, contradictory success reports and truncated payloads.
+`tests/agent-eval/checks-policy-context.json` retains transformed executions and checksums for the cohort, binary, tokenizer and measurement sources.
+Next, project reductions for repeated project inspection and authoring/history metadata before changing production output.
 
 ## Coordinated workspace task preparation
 
@@ -371,6 +388,7 @@ Controlled reports are separate under `tests/agent-eval/`: `history-context.json
 Release reports add `project-cache-release.json` and `project-profile.json` without rewriting those earlier artifacts.
 M4s adds `project-construction.json` and its baseline instrumentation patch while preserving those reports.
 M4z adds `author-batch-context.json`; M4aa adds `regex/coordinated-rehearsal.json`. Both remain prescribed comparisons rather than autonomous trials.
+M4ac adds `checks-policy-context.json`, a fixed projection rather than a new agent trial.
 The regex rehearsal uses a prescribed solution and rejects three compiled negative controls; it is not autonomous evidence.
 
 Temporary regex sessions remain under `/private/tmp/fr-regex-agent-eval-2026-09-08`, one directory per retained trial name.
@@ -380,6 +398,12 @@ It, the skills, prompts, evaluator and oracle stayed unchanged throughout both p
 Temporary projects are disposable after retention; use repository evidence for replay and audits.
 
 ## Validation and commands
+
+M4ac's full native/WASM gate passes in `/tmp/fr-m4ac-full-check.log`, including 311/311 capability coverage and the live projection acceptance test.
+All 38 evaluator regressions pass, including evidence-tampering, stale-basis, truncated-payload and failed-diagnostic controls.
+The tokenized report is `/tmp/fr-m4ac-checks-policy-final.json`, retained as `tests/agent-eval/checks-policy-context.json`.
+It uses frozen binary `target/agent-eval-bin/fr-m4ab`; the report binds that binary, the M4ab manifest, tokenizer and measurement sources by checksum.
+Prose budgets remain unchanged, and `git diff --check` passes.
 
 M4ab's full native/WASM gate passes in `/tmp/fr-m4ab-full-check.log`, including 311/311 capability coverage and the existing acceptance regressions.
 All four retained coordinated trials replay successfully in `/tmp/fr-m4ab-replay.json`; exact token auditing passes in `/tmp/fr-m4ab-token-audit.json`.

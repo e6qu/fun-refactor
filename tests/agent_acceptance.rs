@@ -41,6 +41,15 @@ fn smaller_history_reports_preserve_both_recorded_agent_edits() {
 }
 
 #[test]
+fn matched_check_policies_preserve_recorded_outcomes_and_live_diagnostics() {
+    python(&[
+        "tools/checks-policy-context.py",
+        "--fr",
+        env!("CARGO_BIN_EXE_fr"),
+    ]);
+}
+
+#[test]
 fn batch_and_individual_workflows_match_source_behavior_and_reversal() {
     python(&[
         "tools/author-batch-context.py",

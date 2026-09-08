@@ -31,6 +31,104 @@ batch_spec = importlib.util.spec_from_file_location("batch_measurement", TOOLS /
 batch_measurement = importlib.util.module_from_spec(batch_spec)
 batch_spec.loader.exec_module(batch_measurement)
 
+checks_policy_spec = importlib.util.spec_from_file_location("checks_policy_measurement", TOOLS / "checks-policy-context.py")
+checks_policy = importlib.util.module_from_spec(checks_policy_spec)
+checks_policy_spec.loader.exec_module(checks_policy)
+
+
+class CheckPolicyEvidence(unittest.TestCase):
+    def setUp(self):
+        root = checks_policy.EVIDENCE / "regex-escape-len-files-r1"
+        self.events = [json.loads(line) for line in (root / "events.jsonl").read_text().splitlines()]
+        reports = [json.loads(event["visible"])["result"] for event in self.events
+                   if event["request"].get("args", [])[:1] == ["checks"]]
+        self.listing, self.report = reports[:2]
+
+    def test_projection_preserves_transcript_and_all_non_execution_payloads(self):
+        original = copy.deepcopy(self.events)
+        for policy in checks_policy.POLICIES:
+            outputs, changes = checks_policy.project_events(self.events, policy)
+            self.assertEqual(len(outputs), len(self.events))
+            indices = {change["event_index"] for change in changes}
+            self.assertEqual(len(indices), 4)
+            for index, (event, output) in enumerate(zip(self.events, outputs)):
+                if index not in indices:
+                    self.assertEqual(output, event["visible"])
+                else:
+                    before, after = json.loads(event["visible"]), json.loads(output)
+                    before.pop("result")
+                    after.pop("result")
+                    self.assertEqual(before, after)
+            self.assertEqual(self.events, original)
+
+    def test_retained_cohort_summarizes_two_complete_pairs(self):
+        manifest = checks_policy.verify_evidence(checks_policy.EVIDENCE)
+        trials = []
+        for name in manifest["trials"]:
+            root = checks_policy.EVIDENCE / name
+            config = json.loads((root / "session.json").read_text())
+            events = [json.loads(line) for line in (root / "events.jsonl").read_text().splitlines()]
+            outputs, _ = checks_policy.project_events(events, "quiet_success_no_declarations")
+            trials.append({"arm": config["arm"],
+                           "policies": {"quiet_success_no_declarations":
+                                        checks_policy.totals((root / "prompt.txt").read_text(), events, outputs, None)}})
+        result = checks_policy.comparison(trials, "quiet_success_no_declarations", "bytes")
+        self.assertEqual(result["fr_minus_files"], result["fr_mean"] - result["files_mean"])
+        self.assertGreater(result["fr_percent_difference"], 0)
+
+    def test_failed_diagnostics_and_raw_byte_totals_survive_both_policies(self):
+        report = copy.deepcopy(self.report)
+        report["passed"] = False
+        success, failure = report["results"]
+        success["stdout"].update(text="\ufffd", retained_bytes=1, omitted_bytes=7)
+        failure.update(passed=False, exit_code=7, timed_out=True, output_limit_exceeded=True,
+                       error="retained diagnostic")
+        failure["stderr"].update(text="\ufffd", retained_bytes=1, omitted_bytes=13)
+        for policy in checks_policy.POLICIES:
+            result = checks_policy.project(report, self.listing, policy)
+            self.assertFalse(result["passed"])
+            self.assertEqual(result["results"][0]["stdout"]["omitted_bytes"], 8)
+            self.assertEqual(result["results"][0]["stdout"]["retained_bytes"], 0)
+            for key in failure.keys() - set(checks_policy.DECLARATION_FIELDS):
+                self.assertEqual(result["results"][1][key], failure[key])
+            self.assertEqual(checks_policy.project(result, self.listing, policy), result)
+
+    def test_declaration_omission_is_reversible_with_the_reviewed_listing(self):
+        compact = checks_policy.project(self.report, self.listing, "quiet_success_no_declarations")
+        restored = checks_policy.project(compact, self.listing, "quiet_success")
+        self.assertEqual(restored, checks_policy.project(self.report, self.listing, "quiet_success"))
+        for key in ("basis", "root", "configuration", "not_run", "execution", "coverage_authority",
+                    "source_snapshot_checked", "passed"):
+            self.assertEqual(compact[key], self.report[key])
+
+    def test_missing_or_stale_listing_and_conflicting_declarations_are_rejected(self):
+        for listing in (None, {**self.listing, "basis": "stale"}, {**self.listing, "root": "/elsewhere"}):
+            with self.assertRaises(ValueError):
+                checks_policy.project(self.report, listing, "quiet_success_no_declarations")
+        for field in checks_policy.DECLARATION_FIELDS:
+            report = copy.deepcopy(self.report)
+            report["results"][0][field] = "changed"
+            with self.assertRaisesRegex(ValueError, "declaration differs"):
+                checks_policy.project(report, self.listing, "quiet_success")
+
+    def test_truncated_or_unstructured_check_payloads_are_rejected(self):
+        for patch in ({"stdout_omitted_bytes": 1}, {"result": "truncated JSON"}):
+            events = copy.deepcopy(self.events)
+            event = next(event for event in events if event["request"].get("args", [])[:1] == ["checks"])
+            event["visible"] = json.dumps({**json.loads(event["visible"]), **patch})
+            with self.assertRaisesRegex(ValueError, "truncated or unstructured"):
+                checks_policy.project_events(events, "quiet_success")
+
+    def test_tampered_evidence_is_rejected_before_measurement(self):
+        manifest = json.loads((checks_policy.EVIDENCE / "manifest.json").read_text())
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            manifest["files"] = {"payload": harness.digest(b"original")}
+            harness.save(root / "manifest.json", manifest)
+            (root / "payload").write_bytes(b"tampered")
+            with self.assertRaisesRegex(ValueError, "checksum mismatch"):
+                checks_policy.verify_evidence(root)
+
 
 class CoordinatedWorkspaceEvidence(unittest.TestCase):
     def test_new_task_preserves_old_scopes_and_has_complete_pairs(self):

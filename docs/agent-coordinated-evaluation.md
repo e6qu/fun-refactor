@@ -53,6 +53,36 @@ Because the task changed, comparing these totals with earlier cohorts does not i
 The [prescribed batch comparison](project-context-evaluation.md#coordinated-authoring-measurement) remains a separate experiment with a fixed command sequence.
 The next comparison should control check-output policy across both arms and examine repeated inspection and transaction metadata.
 
+## Matched check-output projection
+
+The retained transcripts permit a controlled projection because both arms use the same structured checks command.
+The projection leaves every prompt, request, check listing, call and non-check payload unchanged.
+It changes only the four executed check reports in each trial and retains the original scores alongside the projected totals.
+
+| Policy | fr r1 | Files r1 | fr r2 | Files r2 | fr mean | Files mean | fr difference |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Quiet success | 14,455 | 7,562 | 13,934 | 7,890 | 14,194.5 | 7,726 | 83.7% more |
+| Quiet success, declarations omitted | 13,539 | 6,646 | 13,018 | 6,974 | 13,278.5 | 6,810 | 95.0% more |
+
+The first policy suppresses stdout and stderr from successful checks but retains declarations in every execution report.
+The second also removes the check list and each result's `argv`, `cwd` and `covers` fields after a matching listing has established the same basis.
+The extra listing requested by the second file agent remains in both projections.
+Under the compact policy, execution and listing output is 2,133 tokens in the first three trials and 3,123 in file repetition two because of those extra listings.
+
+Compared with their recorded totals, the file trials lose 5,925 and 5,928 tokens when successful streams are suppressed.
+Omitting already reviewed declarations saves another 916 tokens in every trial.
+The fr trials already used the second policy, so their compact totals are unchanged.
+The resulting mean gap is 6,468.5 tokens in favor of the ordinary-file workflow on this fixed action sequence.
+
+This result explains the apparent aggregate advantage in the original scores: retained successful check logs were large enough to mask the skill, inspection and transaction payloads in the fr arm.
+It does not replace the measured outcomes or show how an agent would behave if both prompts prescribed the same policy.
+It also does not isolate individual fr commands; the next controlled work should target repeated project and authoring metadata while retaining their reviewed source bases and guards.
+
+The projection requires the complete checksum-valid cohort, an untruncated structured check payload and a prior listing with matching basis, root, configuration and declarations.
+It rejects contradictory success states and preserves failed output, exit status, timeouts, capture limits, errors and raw stream byte totals.
+A live fixture with successful and failing checks matches actual CLI reports under both policies, apart from elapsed time, including invalid UTF-8 replacement and bounded failure diagnostics.
+The retained [projection report](../tests/agent-eval/checks-policy-context.json) includes each transformed execution and source checksum.
+
 Measured fr tool time is 73.0 and 82.8 seconds, versus 8.7 and 10.9 seconds for files.
 Project and author commands account for 62.9 and 70.4 seconds of the fr totals under the disabled-cache policy.
 The shared-host trial times above include agent work between calls and are not production latency guarantees.
@@ -112,3 +142,9 @@ The explicit workspace replay test covers this cohort and the earlier regex coho
 Behavioral replay and exact token auditing pass for all four retained trials.
 The full native/WASM repository gate passes, including 311/311 capability coverage and documentation checks.
 Historical evidence bundles remain unchanged.
+
+Reproduce the fixed projection with the frozen binary and pinned tokenizer:
+
+```sh
+target/agent-eval-venv/bin/python tools/checks-policy-context.py --tokens --fr target/agent-eval-bin/fr-m4ab
+```
