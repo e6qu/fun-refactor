@@ -1,6 +1,6 @@
 # Development continuity
 
-M4t is complete: revision buffer model proofs and shared Rust/Lean state comparisons now cover M4s's buffering rules.
+M4u is complete: body authoring now supports TypeScript and TSX function bindings inside parentheses and type-only assertions.
 The user authorized local commits. Publishing and pushing remain outside this request.
 M4l's four passing workspace trials are retained in `3c8231c`; preparation is `811591e` and documented insertion is `6d0928b`.
 M4m's smaller check reports are committed in `58b53bd`; M4n's targeted skill guidance is `1c44863`.
@@ -9,6 +9,28 @@ M4p's source and budget proofs are committed in `aa16584`.
 M4q's cache measurement and failure controls are committed in `9b0c84e`.
 M4r's release profiling is committed in `9a253e9`.
 M4s's batched revision hashing and retained measurements are committed in `fb2e252`.
+M4t's buffer proofs and shared state comparisons are committed in `c9f50f0`.
+
+## Wrapped function authoring
+
+`src/project/author.rs::function_initializer` follows the expression operand through parentheses, `as`, `satisfies`, postfix `!` and TypeScript angle-bracket assertions.
+It accepts only arrow, ordinary function-expression and generator-expression terminals; replacement still requires a block body.
+Comments do not count as operands. The angle-bracket form skips its type-argument child and follows the value expression.
+Calls, conditionals, comma expressions and other initializer forms refuse, even inside an otherwise supported wrapper.
+The existing handle/name check prevents selecting an enclosing or neighboring function.
+
+The resulting edit preserves wrappers, types, comments and every byte outside the selected braces.
+The existing report schema, source-basis guards, bounded diffs, save/apply path, undo/redo and patch handling remain in use.
+Its signature stays a header excerpt ending before the body; inspect selected source for postfix assertion types.
+The portable authoring reference names the accepted wrappers and uses `--locals` lookup for variable handles.
+Its executable command examples stay unchanged; current skill text is separate from historical context measurements.
+
+All thirty-four authoring scenarios pass, including shadowed wrapped bindings and stale handles/plans after a wrapper changes.
+Four compiled history fixtures check lexical `this`, named recursion, generators and JSX before/after application, undo and redo.
+They also freeze the saved fragment and check patch applicability after undo.
+The Rust/Lean edit comparison now includes a reported wrapped TSX replacement with Unicode, CRLF, external comments and neighboring source.
+This extends tested splice correspondence; it adds no proof of AST traversal, parsing, typing or complete authoring behavior.
+See [body authoring](body-authoring.md) for supported targets and review limits.
 
 ## Revision buffer verification
 
@@ -219,6 +241,13 @@ It, the skills, prompts, evaluator and oracle stayed unchanged throughout both p
 Temporary projects are disposable after retention; use repository evidence for replay and audits.
 
 ## Validation and commands
+
+M4u's thirty-four authoring scenarios pass in `/tmp/fr-m4u-author-final.log`.
+All three reported-edit Rust/Lean comparisons pass in `/tmp/fr-m4u-reported.log`, including the new wrapped-body case.
+The skill frontmatter validator passes; prose budgets remain unchanged.
+The full native/WASM gate passes in `/tmp/fr-m4u-full-check.log`, including 131 project CLI scenarios, the packaged skill workflow and 311/311 capability coverage.
+Strict verification passes in `/tmp/fr-m4u-spec-verify.json`: twenty-three fresh anchors and signature maps, zero obligations and 36 Lean build jobs.
+All six final documentation suites pass in `/tmp/fr-m4u-docs-final.log`; formatting and diff checks pass.
 
 M4t's model and executable build with warnings treated as errors in `/tmp/fr-m4t-lean-build.log` (36 jobs).
 All 1,570 correspondence states pass in `/tmp/fr-m4t-correspondence.log`; the three existing digest regressions pass in `/tmp/fr-m4t-focused.log`.

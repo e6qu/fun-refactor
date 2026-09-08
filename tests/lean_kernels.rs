@@ -149,19 +149,38 @@ fn the_edit_kernel_accepts_a_reported_declaration_insertion() {
     reported_declaration_plan("insert-declaration", "app.rs");
 }
 
+#[test]
+fn the_edit_kernel_accepts_a_reported_wrapped_body_replacement() {
+    reported_declaration_plan("replace-body", "calc");
+}
+
 fn reported_declaration_plan(operation: &str, selected: &str) {
     let temp = tempfile::tempdir().unwrap();
     let workspace = temp.path().join("workspace");
     std::fs::create_dir(&workspace).unwrap();
-    let old = "fn calc(n: i32) -> i32 { n + 1 }";
-    let new = "pub fn calc(n: i64) -> i64 { n * 2 }";
+    let body = operation == "replace-body";
+    let (file, old, new) = if body {
+        (
+            "app.tsx",
+            "{ return <span>{value + 1}</span>; }",
+            "{ return <span>{value * 2}</span>; }",
+        )
+    } else {
+        (
+            "app.rs",
+            "fn calc(n: i32) -> i32 { n + 1 }",
+            "pub fn calc(n: i64) -> i64 { n * 2 }",
+        )
+    };
     let inserting = operation == "insert-declaration";
     let source = if inserting {
         "// π\r\nfn other() {}\r\n// Final comment.".to_owned()
+    } else if body {
+        format!("// π\r\nconst calc = (((value: number) => /* keep */ {old}) satisfies (value: number) => JSX.Element)!;\r\nconst other = () => {{ return 0; }};\r\n")
     } else {
         format!("// π\r\n#[inline]\r\n{old}\r\nfn other() {{}}\r\n")
     };
-    std::fs::write(workspace.join("app.rs"), &source).unwrap();
+    std::fs::write(workspace.join(file), &source).unwrap();
     let fragment = temp.path().join("function.txt");
     std::fs::write(&fragment, new).unwrap();
     let run = |args: &[&str]| {
@@ -178,7 +197,7 @@ fn reported_declaration_plan(operation: &str, selected: &str) {
         );
         serde_json::from_slice::<serde_json::Value>(&output.stdout).unwrap()
     };
-    let map = run(&["project", "map", "--fields", "handle,name"]);
+    let map = run(&["project", "map", "--locals", "--fields", "handle,name"]);
     let row = map["rows"]
         .as_array()
         .unwrap()
@@ -194,6 +213,8 @@ fn reported_declaration_plan(operation: &str, selected: &str) {
     ]);
     let key = if inserting {
         "insertion"
+    } else if body {
+        "body"
     } else {
         "declaration"
     };

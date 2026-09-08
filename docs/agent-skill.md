@@ -22,6 +22,7 @@ The default lookup and introductory map each request at most twelve rows.
 Subsequent queries select a declaration, read its signature and relationships, and request source slices only as needed.
 `project find --source --bytes N` can return needed implementations during lookup, sharing its source-text budget across the page.
 Body authoring accepts project handles; built-in refactorings use names or source positions.
+The authoring reference covers TypeScript function bindings inside parentheses and type-only assertions, with local lookup and explicit refusal boundaries.
 It uses saved transaction IDs for exact plan application, and keeps source history separate from Git bases and journals.
 History and check commands do not require refreshing project handles after every write.
 For a targeted edit, the entrypoint starts with Author; Explore covers pagination, relationships and broader discovery when needed.
@@ -126,7 +127,8 @@ The [controlled source-lookup comparison](project-context-evaluation.md#bounded-
 ## Remaining roadmap
 
 M4a provides the introductory handoff and executable command examples.
-Body replacement supports Rust, TypeScript and TSX declarations and methods, plus direct TypeScript/TSX function bindings with block bodies.
+Body replacement supports Rust, TypeScript and TSX declarations and methods, plus TypeScript/TSX function bindings with block bodies.
+Supported bindings can wrap the function in parentheses and type-only assertions; calls, conditionals and expression bodies still refuse.
 Rust function declaration replacement can change signatures and implementations together, preserving the name and outer attributes.
 Declaration insertion appends a Rust function through a file handle, retaining all existing source bytes.
 It accepts leading outer documentation comments, so agents can satisfy a project's missing-docs lint without changing crate policy.

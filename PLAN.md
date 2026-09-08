@@ -45,7 +45,7 @@ Important gaps:
 - Native history exports Git text patches and checks receiving files and indexes. Git status, repository change, diff, declaration and snapshot-local call pages exist. Raw staging and journaled index undo/redo are available on Unix. Reviewed commits are available with explicit index and HEAD bases. Worktree inspection reports registered workspaces with revision-bound pages. Reviewed creation adds raw checkouts on new or unused existing branches on Unix. Ownership receipts support checked completion of incomplete worktrees and reviewed removal of clean worktrees. Removal archives support inspection, checked resumption and reviewed compaction to audit summaries. Shared browser patch semantics remain pending.
 - Strict spec signature maps currently accept Rust source declarations only.
 - Framework readers cover selected patterns. Whole applications still need dependency and runtime work.
-- The portable agent skill covers exploration, changes, declared checks, history, Git and Lean. Rust, TypeScript and TSX body replacement uses project handles and source history. Direct TypeScript/TSX function bindings support block bodies. Rust function declaration replacement can change signatures and implementations together. Rust function insertion appends through file handles. Broader agent evaluation, context reduction, wrapped initializers and nested declaration insertion remain pending.
+- The portable agent skill covers exploration, changes, declared checks, history, Git and Lean. Rust, TypeScript and TSX body replacement uses project handles and source history. TypeScript/TSX function bindings support block bodies inside parentheses and type-only assertions. Rust function declaration replacement can change signatures and implementations together. Rust function insertion appends through file handles. Broader agent evaluation, context reduction, additional initializer forms and nested declaration insertion remain pending.
 - Model proofs and shared executable cases do not establish general correspondence with the Rust implementation.
 
 ## Product contract
@@ -826,7 +826,7 @@ M4d: direct TypeScript and TSX function-binding bodies (complete).
 
 - Select direct arrow, function-expression and generator initializers through variable or class-field handles.
 - Require block bodies and preserve bindings, lexical receivers, signatures and neighboring source.
-- Refuse wrapped initializers, expression bodies and unrelated local selections.
+- Refuse expression bodies and unrelated local selections. M4u later extends this stage's direct-initializer restriction to selected wrappers.
 - Bound signature output to the selected binding, including declarations sharing one statement.
 - Check shadowed selections, typed behavior, JSX, saved plans, undo/redo and patch export.
 - Refresh agent instructions while retaining the existing Lean size and edit models.
@@ -1046,6 +1046,19 @@ Strict verification retains twenty-three fresh source anchors and signature maps
 The retained M4s measurements remain historical evidence; this work adds no timing or context-saving claim.
 See [revision buffer kernels](docs/lean-specs.md#revision-buffer-kernels) for properties, assumptions and reproduction.
 
+M4u: wrapped TypeScript and TSX function-binding bodies (complete).
+
+Body replacement follows parentheses, `as`, `satisfies`, postfix `!` and TypeScript angle-bracket assertions to an existing function block.
+It preserves every byte outside that block, including assertion types, comments, neighboring bindings and wrapper punctuation.
+Calls, conditionals, comma expressions and expression bodies still refuse, including inside supported wrappers.
+Thirty-four authoring scenarios pass, covering shadowed handles, exact source preservation and wrapper changes that invalidate handles and saved plans.
+Compiled TypeScript and TSX workflows exercise lexical receivers, named recursion, generators and JSX through application, undo, patch checking and redo.
+A reported wrapped TSX body edit also produces matching Rust and Lean splice results; general AST-selection correspondence remains unproved.
+The portable authoring reference includes supported wrappers and local lookup guidance; its existing command examples remain unchanged.
+The full native/WASM gate passes, including 131 project CLI scenarios, the packaged skill workflow and 311/311 capability coverage.
+Strict verification retains twenty-three fresh source anchors and signature maps, zero obligations and 36 Lean build jobs.
+See [body authoring](docs/body-authoring.md) for selection, transaction and evidence boundaries.
+
 Next M4 work:
 
 Use the retained workspace traces to reduce repeated report metadata and skill-loading costs, preserving coverage, source bases, guards and reviewable changes.
@@ -1056,7 +1069,7 @@ State the cache policy for the next autonomous cohort; the retained trials disab
 Then evaluate a task requiring coordinated changes across several files, with repeated paired trials and independent behavioral checks.
 Keep examples compatible with the distributed binary and load specialized references only when needed.
 
-Extend body authoring to selected wrapped initializers or additional languages, and support nested insertion or further declaration kinds.
+Extend body authoring to additional languages or initializer forms, and support nested insertion or further declaration kinds.
 Reuse revision checks, edit planning, syntax validation and history.
 Compose high-level intentions as inspectable recipe steps with explicit postconditions.
 Extend declared checks only where real task evidence requires additional selection or execution support.

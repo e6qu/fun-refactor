@@ -346,14 +346,18 @@ fn typescript_refuses_unsupported_handles_and_never_edits_the_enclosing_function
         for source in [
             "const calc = () => 1;\n",
             "const calc = () => ({ value: 1 });\n",
-            "const calc = (() => { return 1; });\n",
-            "const calc = (() => { return 1; }) as () => number;\n",
-            "const calc = (() => { return 1; }) satisfies () => number;\n",
+            "const calc = ((() => 1) as () => number);\n",
+            "const calc = ((() => ({ value: 1 })) satisfies () => object);\n",
+            "const calc = ((wrap(() => { return 1; })) as () => number);\n",
+            "const calc = (condition ? () => { return 1; } : () => { return 2; })!;\n",
+            "const calc = (sideEffect(), () => { return 1; });\n",
+            "const calc = (() => { return () => { return 1; }; })();\n",
+            "const calc = ((candidate) satisfies { helper: () => number });\n",
             "const calc = wrap(() => { return 1; });\n",
             "const calc = condition ? () => { return 1; } : () => { return 2; };\n",
             "const { calc } = { calc: () => { return 1; } };\n",
             "class C { calc = () => 1; }\n",
-            "class C { calc = (() => { return 1; }); }\n",
+            "class C { calc = (wrap(() => { return 1; }))!; }\n",
             "function outer() { const calc = wrap(() => { return 1; }); return calc(); }\n",
             "const outer = () => { let calc = 1; return calc; };\n",
             "const outer = function () { let calc = 1; return calc; };\n",
@@ -605,43 +609,47 @@ fn direct_function_bindings_preserve_initializers_and_neighboring_declarations()
 
 #[test]
 fn shadowed_function_bindings_select_one_body_by_handle() {
-    let source = "const calc = () => { return 1; };\nfunction outer() { const calc = function () { return 1; }; return calc(); }\n";
-    for selected in 0..2 {
-        let (_temp, root, input) = fixture_file("app.ts", source, b"{ return 2; }");
-        let map = ok(
-            &root,
-            &[
-                "project",
-                "map",
-                "--locals",
-                "--depth",
-                "64",
-                "--fields",
-                "handle,name",
-            ],
-        );
-        let rows: Vec<_> = map["rows"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .filter(|row| row[1] == "calc")
-            .collect();
-        assert_eq!(rows.len(), 2);
-        let (success, report) = replace(
-            &root,
-            rows[selected][0].as_str().unwrap(),
-            &input,
-            &["--write"],
-        );
-        assert!(success, "{report}");
-        let start = source
-            .match_indices("{ return 1; }")
-            .nth(selected)
-            .unwrap()
-            .0;
-        let mut expected = source.to_owned();
-        expected.replace_range(start..start + "{ return 1; }".len(), "{ return 2; }");
-        assert_eq!(fs::read_to_string(root.join("app.ts")).unwrap(), expected);
+    for source in [
+        "const calc = () => { return 1; };\nfunction outer() { const calc = function () { return 1; }; return calc(); }\n",
+        "const calc = (() => { return 1; }) satisfies () => number;\nfunction outer() { const calc = ((function () { return 1; }) as () => number)!; return calc(); }\n",
+    ] {
+        for selected in 0..2 {
+            let (_temp, root, input) = fixture_file("app.ts", source, b"{ return 2; }");
+            let map = ok(
+                &root,
+                &[
+                    "project",
+                    "map",
+                    "--locals",
+                    "--depth",
+                    "64",
+                    "--fields",
+                    "handle,name",
+                ],
+            );
+            let rows: Vec<_> = map["rows"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|row| row[1] == "calc")
+                .collect();
+            assert_eq!(rows.len(), 2);
+            let (success, report) = replace(
+                &root,
+                rows[selected][0].as_str().unwrap(),
+                &input,
+                &["--write"],
+            );
+            assert!(success, "{report}");
+            let start = source
+                .match_indices("{ return 1; }")
+                .nth(selected)
+                .unwrap()
+                .0;
+            let mut expected = source.to_owned();
+            expected.replace_range(start..start + "{ return 1; }".len(), "{ return 2; }");
+            assert_eq!(fs::read_to_string(root.join("app.ts")).unwrap(), expected);
+        }
     }
 }
 
@@ -1168,4 +1176,103 @@ fn insertion_counts_documentation_in_the_fragment_budget_without_hiding_the_sign
     fs::write(&input, format!(" {added}")).unwrap();
     assert!(!insert_declaration(&root, &handle, &input, &["--save-plan"]).0);
     assert!(!root.join(".fr-history").exists());
+}
+
+#[test]
+fn wrapped_function_bindings_preserve_assertions_comments_and_neighboring_bodies() {
+    for extension in ["ts", "tsx"] {
+        for source in [
+            "export const calc = (() => { return 1; });\n",
+            "const calc = ((/* before */ (() => { return 1; }) /* after */));\n",
+            "const calc = (() => { return 1; }) as () => number;\n",
+            "const calc = (() => { return 1; }) satisfies () => number;\n",
+            "const calc = (/* before */ function named() { return 1; } /* after */)!;\n",
+            "const calc = (((() => { return 1; }) as /* type */ (() => number)) satisfies (() => number))!;\n",
+            "const before = () => { return 0; }, calc = ((function () { return 1; }) as () => number), after = () => { return 3; };\n",
+            "class C { readonly calc = ((() => { return 1; }) satisfies () => number); }\n",
+            "class C { static calc = (function named() { return 1; })!; }\n",
+            "function outer() { const calc = ((() => { return 1; }) as () => number); return calc(); }\n",
+            "const calc = (async <T,>(n: T): Promise<number> => { return 1; }) satisfies <T>(n: T) => Promise<number>;\n",
+        ] {
+            let file = format!("app.{extension}");
+            let old = "{ return 1; }";
+            let new = "{ /* π */ return 2; }";
+            let (_temp, root, input) = fixture_file(&file, source, new.as_bytes());
+            let found = ok(&root, &["project", "find", "calc", "--in", &file, "--locals", "--source"]);
+            assert_eq!(found["page"]["total"], 1);
+            let columns = found["columns"].as_array().unwrap();
+            let handle_column = columns.iter().position(|c| c == "handle").unwrap();
+            let handle = found["rows"][0][handle_column].as_str().unwrap();
+            let (success, report) = replace(&root, handle, &input, &["--write"]);
+            assert!(success, "{file}: {source}: {report}");
+            let start = report["body"]["before_span"]["start"].as_u64().unwrap() as usize;
+            let end = report["body"]["before_span"]["end"].as_u64().unwrap() as usize;
+            assert_eq!(&source[start..end], old);
+            assert!(!report["signature"]["text"].as_str().unwrap().contains("return 1"));
+            assert!(!report["signature"]["text"].as_str().unwrap().contains("return 0"));
+            assert_eq!(fs::read_to_string(root.join(file)).unwrap(), source.replace(old, new));
+        }
+    }
+    for source in [
+        "const calc = <() => number>(() => { return 1; });\n",
+        "const calc = < /* type */ () => number > /* value */ (function named() { return 1; });\n",
+        "const calc = ((<() => number>(() => { return 1; })) satisfies () => number)!;\n",
+    ] {
+        let (_temp, root, input) = fixture_file("app.ts", source, b"{ return 2; }");
+        let (handle, _) = selection(&root, "calc");
+        let (success, report) = replace(&root, &handle, &input, &["--write"]);
+        assert!(success, "{source}: {report}");
+        assert_eq!(
+            fs::read_to_string(root.join("app.ts")).unwrap(),
+            source.replace("{ return 1; }", "{ return 2; }")
+        );
+    }
+}
+
+#[test]
+fn wrapped_bodies_compile_and_run_through_saved_history() {
+    for (file, source, old, new) in [
+        ("app.ts", "class C { base = 3; calc = ((((): number => { return this.base + 1; }) satisfies () => number) as () => number)!; }\nconst detached = new C().calc; console.log(detached());\n", "{ return this.base + 1; }", "{ return this.base * 2; }"),
+        ("app.ts", "const calc = (<(n: number) => number>(function self(n: number): number { return n === 0 ? 1 : self(n - 1) + 1; }));\nconsole.log(calc(3));\n", "{ return n === 0 ? 1 : self(n - 1) + 1; }", "{ return n === 0 ? 0 : self(n - 1) + 2; }"),
+        ("app.ts", "const calc = ((function* (n: number): Generator<number> { yield n + 1; }) satisfies (n: number) => Generator<number>);\nconsole.log(calc(3).next().value);\n", "{ yield n + 1; }", "{ yield n * 2; }"),
+        ("app.tsx", concat!("declare namespace JSX { type Element = string; interface IntrinsicElements { span: {}; } }\n", "function h(tag: string, props: unknown, child: unknown): string { return String(child); }\n", "const calc = (((value: number): JSX.Element => { return <span>{value + 1}</span>; }) satisfies (value: number) => JSX.Element);\nconsole.log(calc(3));\n"), "{ return <span>{value + 1}</span>; }", "{ return <span>{value * 2}</span>; }"),
+    ] {
+        let (_temp, root, input) = fixture_file(file, source, new.as_bytes());
+        assert_eq!(typescript_result(&root, file), b"4\n");
+        let (handle, _) = selection(&root, "calc");
+        let (success, saved) = replace(&root, &handle, &input, &["--save-plan"]);
+        assert!(success, "{saved}");
+        assert_eq!(saved["behavior_checked"], false);
+        assert_eq!(fs::read_to_string(root.join(file)).unwrap(), source);
+        let id = saved["transaction"].as_u64().unwrap().to_string();
+        fs::write(&input, b"{}").unwrap();
+        ok(&root, &["history", "apply", &id, "--write"]);
+        assert_eq!(fs::read_to_string(root.join(file)).unwrap(), source.replace(old, new));
+        assert_eq!(typescript_result(&root, file), b"6\n");
+        assert!(!replace(&root, &handle, &input, &["--save-plan"]).0);
+        ok(&root, &["history", "undo", &id, "--write"]);
+        assert_eq!(fs::read_to_string(root.join(file)).unwrap(), source);
+        assert_eq!(typescript_result(&root, file), b"4\n");
+        ok(&root, &["history", "patch", &id, "--check"]);
+        let patch = ok(&root, &["history", "patch", &id]);
+        assert!(patch["patch"].as_str().unwrap().contains(new));
+        ok(&root, &["history", "redo", &id, "--write"]);
+        assert_eq!(fs::read_to_string(root.join(file)).unwrap(), source.replace(old, new));
+        assert_eq!(typescript_result(&root, file), b"6\n");
+    }
+}
+
+#[test]
+fn a_changed_initializer_wrapper_invalidates_handles_and_saved_plans() {
+    let source = "const calc = (() => { return 1; }) as () => number;\n";
+    let (_temp, root, input) = fixture_file("app.ts", source, b"{ return 2; }");
+    let (handle, _) = selection(&root, "calc");
+    let (success, saved) = replace(&root, &handle, &input, &["--save-plan"]);
+    assert!(success, "{saved}");
+    let changed = source.replace(" as ", " satisfies ");
+    fs::write(root.join("app.ts"), &changed).unwrap();
+    assert!(!replace(&root, &handle, &input, &["--write"]).0);
+    let id = saved["transaction"].as_u64().unwrap().to_string();
+    assert!(!run(&root, &["history", "apply", &id, "--write"]).0);
+    assert_eq!(fs::read_to_string(root.join("app.ts")).unwrap(), changed);
 }

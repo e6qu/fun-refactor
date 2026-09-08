@@ -40,13 +40,17 @@ Writing the fragment outside the project avoids invalidating a previously obtain
 
 Rust targets include ordinary functions, methods, default trait method bodies and nested function items.
 TypeScript and TSX targets include named function declarations, generators, class and object methods, accessors and constructors.
-They also include direct variable or class-field initializers containing block-bodied arrows, ordinary function expressions or generator expressions.
+They also include variable or class-field initializers containing block-bodied arrows, ordinary function expressions or generator expressions.
+The function can sit inside nested parentheses, `as`, `satisfies`, postfix non-null `!` assertions and TypeScript angle-bracket assertions.
+Angle-bracket assertions belong to the TypeScript grammar; TSX retains its JSX grammar and does not support that assertion syntax.
 Use the variable or field's handle, including when a function expression has a separate inner name.
-The operation retains the binding, function expression, parameters and arrow token; it replaces only the braces and their contents.
+Variable lookups need `--locals`; `project find NAME --in FILE --locals --source` supplies the handle and selected declaration.
+The operation retains the binding, wrappers, function expression, parameters and arrow token; it replaces only the braces and their contents.
 Nested declarations, exports, generics, modifiers, signatures and surrounding attributes stay in place.
 Select the specific implementation handle when multiple declarations share a name, such as overloads or getter/setter pairs.
-Expression-bodied arrows, wrapped initializers, destructured bindings, bodyless declarations, nonfunction variables and file handles refuse.
-Wrappers include parentheses, casts, `satisfies`, conditionals and calls such as `memo(...)`.
+Expression-bodied arrows, destructured bindings, bodyless declarations, nonfunction variables and file handles refuse.
+Calls such as `memo(...)`, conditionals, comma expressions and other initializer forms refuse, including inside otherwise supported wrappers.
+Selection follows only the expression operand of each supported wrapper; it does not search callbacks, type operands or alternatives for a function.
 Object properties containing function expressions and anonymous callbacks remain outside this selection path.
 Computed and quoted method names are outside the indexed method subset.
 JavaScript extensions use the existing TypeScript grammar; JSX extensions use TSX.
@@ -60,7 +64,7 @@ The command does not update callers, signatures or imports and does not check ty
 Macros and language context rules retain the parser's syntax coverage limits.
 Choose project compiler and test commands that establish the intended behavior after applying.
 An implementation change may deliberately change behavior; syntax acceptance does not validate that intention.
-Further languages, wrapped initializers and insertion into nested scopes remain roadmap work.
+Further languages, additional initializer forms and insertion into nested scopes remain roadmap work.
 For complete Rust function changes, see [declaration replacement](#declaration-replacement).
 
 For a TSX component, the fragment may contain JSX:
@@ -126,6 +130,7 @@ Use the returned source-history transaction for exact application, undo/redo and
 Both output modes return JSON with schema `fr-author-1`.
 The report includes the reviewed revision and handle, bounded path and signature, coverage and absolute body byte spans.
 For function bindings, the signature starts at the selected declarator or field and excludes neighboring bindings and their bodies.
+It stops before the body; postfix wrappers and type assertions remain visible in the selected source, rather than in this header excerpt.
 Fingerprints use SHA-256 over the exact bytes of the reported fragment or insertion.
 `validation: reparse-strict` and `behavior_checked: false` separate syntax evidence from behavioral checks.
 
@@ -151,11 +156,12 @@ Source verification and recording are separate observations; this command does n
 
 ## Evidence
 
-Thirty-one CLI scenarios cover saved edit identity, compiled behavior, undo/redo, patch export, stale handles and revisions, unsupported targets and malformed input.
+Thirty-four CLI scenarios cover saved edit identity, compiled behavior, undo/redo, patch export, stale handles and revisions, unsupported targets and malformed input.
 They also check exact size limits, diff omission, method and nested-function contexts, Unicode and CRLF preservation, no-op writes, symlink inputs and Unix permissions.
 TypeScript and TSX fixtures compile with `tsc --strict` and run in Node before and after saved replacements.
 The tests cover JSX, supported declaration forms, extension aliases and unsupported selections without editing an enclosing function.
 Function-binding cases preserve neighboring declarations, shadowed bindings, lexical receivers, named recursion and generator behavior through saved transactions.
+Wrapped cases add nested assertions, comments between operands, TSX rendering and wrapper changes that invalidate handles and saved plans.
 Brace-token spans preserve external comments and semicolons; duplicate names retain separate implementation selections.
 The size predicate has a source anchor and signature map into Lean, with 64 shared boundary cases including machine limits.
 Lean proves its lower and upper bounds and symmetry between old and new body sizes.
@@ -164,6 +170,7 @@ The same size guard and edit model apply to all three languages.
 Declaration cases cover compiled signature changes, preserved outer attributes, exact name spelling and complete-item size limits.
 Lean proves both prefix and suffix preservation for valid splice boundaries, including replacements that change length.
 An edit reported by the declaration CLI also passes through Rust and Lean with matching results.
+The same splice comparison now checks a reported TSX body replacement inside nested wrappers, retaining Unicode, CRLF and a neighboring declaration.
 An incompatible signature fixture confirms that syntax acceptance can still leave a compiler error in a caller.
 Insertion cases cover EOF placement, empty files, separators, duplicate names and unattached outer metadata.
 Lean proves that removing inserted characters at a valid boundary recovers the original source.

@@ -169,6 +169,30 @@ fn replacement(path: &Path, language: Language, syntax: &BodySyntax) -> Result<S
     Ok(text)
 }
 
+fn function_initializer(mut value: tree_sitter::Node<'_>) -> Result<tree_sitter::Node<'_>> {
+    loop {
+        match value.kind() {
+            "arrow_function" | "function_expression" | "generator_function" => return Ok(value),
+            "parenthesized_expression" | "as_expression" | "satisfies_expression"
+            | "non_null_expression" | "type_assertion" => {
+                let mut cursor = value.walk();
+                let mut children = value
+                    .named_children(&mut cursor)
+                    .filter(|child| !child.is_extra());
+                let operand = if value.kind() == "type_assertion" {
+                    children.nth(1)
+                } else {
+                    children.next()
+                };
+                value = operand.context("initializer wrapper has no expression operand.")?;
+            }
+            _ => anyhow::bail!(
+                "select an arrow or function initializer, optionally inside parentheses or type-only assertions."
+            ),
+        }
+    }
+}
+
 fn function_fragment<'tree>(
     parsed: &'tree Parsed,
     text: &str,
@@ -414,7 +438,7 @@ impl Project<'_> {
         let mut binding_start = None;
         let function = loop {
             let node = selected.context(
-                "select a function declaration, method or direct function binding with a block body.",
+                "select a function declaration, method or function binding with a block body.",
             )?;
             let binding = syntax.bindings.contains(&node.kind());
             if binding || syntax.targets.contains(&node.kind()) {
@@ -427,15 +451,8 @@ impl Project<'_> {
                     let value = node
                         .child_by_field_name("value")
                         .context("selected binding has no initializer.")?;
-                    ensure!(
-                        matches!(
-                            value.kind(),
-                            "arrow_function" | "function_expression" | "generator_function"
-                        ),
-                        "select a direct arrow or function initializer; wrapped expressions are unsupported."
-                    );
                     binding_start = Some(node.start_byte());
-                    break value;
+                    break function_initializer(value)?;
                 }
                 break node;
             }
