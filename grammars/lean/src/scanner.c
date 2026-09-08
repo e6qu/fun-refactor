@@ -91,11 +91,6 @@ static inline uint32_t top_indent(Scanner *s) {
   return s->depth > 0 ? s->indents[s->depth - 1] : 0;
 }
 
-/* The layout column just below the top — what we'd see after one pop. */
-static inline uint32_t penultimate_indent(Scanner *s) {
-  return s->depth > 1 ? s->indents[s->depth - 2] : 0;
-}
-
 static inline void push(Scanner *s, uint32_t indent) {
   if (s->depth < MAX_DEPTH) {
     s->indents[s->depth++] = indent;

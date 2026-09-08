@@ -125,7 +125,7 @@ def prompt(session, task, arm):
         "Use ordinary files, read, search and replace tools for source exploration and edits. Do not use fr project/author/history commands. The shared fr checks command is available for identical project validation. Export and reverse/reapply your patch through the ordinary Git tools."
     )
     if task == regex_escape_len.TASK and arm == "fr":
-        surface += " Coordinate the edits in one author batch saved transaction, and export, undo and redo that transaction. Retain the first full project context_basis and use it on related project and author calls. Retain each full history transition preview and use its context_basis on the matching write."
+        surface += " Coordinate the edits in one author batch saved transaction, and export, undo and redo that transaction. Retain the first full project context_basis and use it on related project and author calls. Retain the complete author diff and its transaction_context_basis; use that basis to compact forward apply and redo reports. Preview reverse transitions in full."
     return f"""You are an independent acceptance-test agent. Complete this code task in the supplied unfamiliar pinned public project: {TASKS[task]}
 
 {surface}
@@ -144,7 +144,7 @@ Tool objects:
 {{"tool":"append","path":"src/lib.rs","text":"new function text"}} appends source (baseline only).
 {{"tool":"write","path":"fragment.rs","text":"{{ replacement block }}"}} writes artifacts/fragment.rs and returns its absolute path (both arms).
 {{"tool":"fr","args":["checks"]}} invokes fr with the project root, JSON and no cache. Use this for checks in both arms and project/author/history/git in the fr arm. --help is available.
-{{"tool":"export"}} saves and shows a Git diff as artifacts/change.patch (baseline only). In the fr arm, fr history patch TX automatically saves its returned patch there.
+{{"tool":"export"}} saves and shows a Git diff as artifacts/change.patch (baseline only). In the fr arm, use history patch TX --output ../artifacts/change.patch to retain the patch while returning only its identity and size.
 {{"tool":"reverse"}} / {{"tool":"apply"}} reverses/reapplies that saved Git patch (baseline only).
 {{"tool":"sentinel"}} adds an unrelated edit after the requested change; it must survive reversal and reapplication.
 {{"tool":"receiver"}} checks and applies the saved patch in a clean separate receiver and compares tracked content with your project.

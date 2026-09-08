@@ -3,9 +3,10 @@
 PR 0, the agent-ready verified refactoring foundation, merged as GitHub PR 259.
 The current `agent_context_v2` branch is roadmap PR 1. It targets repeated response and skill context, a controlled projection, and an opt-in Codex CLI evaluation runner before a fresh paired cohort.
 Project and author reports now emit a revision-bound `frcb1:` basis. Supplying it omits only `coverage`, `handle_prefix` and `revision`; stale bases refuse before author plans can be saved or written.
-History transition previews now emit a separate `frhb1:` basis. A matching completion can omit the reviewed action, transaction and changes; mismatches refuse before transition writes.
+Complete saved author diffs and detailed history records now emit a separate `frtb1:` transaction basis. Forward apply and redo reports can omit their repeated diffs while retaining change metadata; reverse use and mismatches refuse before writes.
 Unit and CLI regressions reconstruct full reports exactly and cover missing, truncated, stale and conflicting bases.
-The fixed M4ab projection preserves every recorded outcome and lowers mean fr context from 13,278.5 to 12,709.5 tokens. The normalized file mean is 6,810, so PR 1 still has a 5,899.5-token gap to address.
+Direct patch output writes a new artifact atomically and returns only identity, size and transaction metadata, avoiding another full patch in agent context.
+The fixed M4ab projection preserves every recorded outcome and lowers mean fr context from 13,278.5 to 11,184 tokens. The normalized file mean is 6,810, so PR 1 still has a 4,374-token gap to address.
 `tools/agent-eval-codex.py` now supplies the opt-in real-agent runner. It requires a complete prepared pair and explicit spend acknowledgement, then records ephemeral Codex JSONL under pinned model, effort and service-tier settings.
 M4ac is complete: the matched check-output projection shows that verbose successful logs masked substantial fr workflow context in M4ab.
 M4l's four passing workspace trials are retained in `3c8231c`; preparation is `811591e` and documented insertion is `6d0928b`.
@@ -58,6 +59,7 @@ Its transformed reports equal actual CLI policy reports apart from elapsed time;
 Projection refuses changed evidence, missing or stale listings, declaration mismatches, contradictory success reports and truncated payloads.
 `tests/agent-eval/checks-policy-context.json` retains transformed executions and checksums for the cohort, binary, tokenizer and measurement sources.
 PR 1 now implements the first project and history reductions and retains their fixed projection separately from autonomous outcomes.
+The obsolete Lean scanner helper that produced a native-build warning was removed while touching the transaction path.
 
 ## Coordinated workspace task preparation
 

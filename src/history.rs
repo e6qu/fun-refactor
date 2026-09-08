@@ -502,6 +502,16 @@ pub fn act_with_context(
         history.check_action(action, id)?;
         action
     };
+    if let Some(supplied) = supplied_context {
+        ensure!(
+            matches!(action, Action::Apply | Action::Redo),
+            "a transaction context basis can compact only a forward apply or redo; preview this reverse transition."
+        );
+        ensure!(
+            supplied == transaction_context_basis(history.record(id)?),
+            "stale or conflicting transaction context basis; review the current transaction."
+        );
+    }
     let changes = oriented(&history, effective, id)?;
     if action == Action::Apply && source_revision(&root)? != history.record(id)?.source_revision {
         bail!("project source changed after planning; create a fresh plan");
@@ -545,27 +555,15 @@ pub fn act_with_context(
                 "before_mode": before.as_ref().map(|s| s.mode), "after_mode": after.as_ref().map(|s| s.mode),
                 "diff": crate::edit::unified_diff(before.as_ref().map_or("", |s| &s.content), after.as_ref().map_or("", |s| &s.content), &c.path.to_string_lossy())})
         }).collect::<Vec<_>>() });
-    let context_basis = format!(
-        "frhb1:{:x}",
-        Sha256::digest(serde_json::to_vec(&(
-            "fr-history-context-1",
-            &report["transaction"],
-            &report["action"],
-            &report["changes"],
-        ))?)
-    );
     if let Some(supplied) = supplied_context {
-        ensure!(
-            supplied == context_basis,
-            "stale or conflicting history context basis; request a full transition preview."
-        );
-    }
-    report["context_basis"] = serde_json::json!(context_basis);
-    if supplied_context.is_some() {
-        for field in ["transaction", "action", "changes"] {
-            report.as_object_mut().unwrap().remove(field);
+        for change in report["changes"].as_array_mut().unwrap() {
+            let object = change.as_object_mut().unwrap();
+            let bytes = object["diff"].as_str().unwrap().len();
+            object.remove("diff");
+            object.insert("diff_bytes".into(), serde_json::json!(bytes));
         }
-        report["context_omitted"] = serde_json::json!(["action", "changes", "transaction"]);
+        report["context_basis"] = serde_json::json!(supplied);
+        report["context_omitted"] = serde_json::json!(["changes[].diff"]);
     } else if !include_diff {
         for change in report["changes"].as_array_mut().unwrap() {
             change.as_object_mut().unwrap().remove("diff");
@@ -580,6 +578,15 @@ pub fn act_with_context(
         }
     }
     Ok(report)
+}
+
+fn transaction_context_basis(record: &Record) -> String {
+    format!("frtb1:{}", record.basis)
+}
+
+pub fn record_context_basis(root: &Path, id: u64) -> Result<String> {
+    let history = History::read(root)?;
+    Ok(transaction_context_basis(history.record(id)?))
 }
 
 fn oriented(history: &History, action: Action, id: u64) -> Result<Vec<Change>> {

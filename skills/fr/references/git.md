@@ -1,19 +1,14 @@
-# Git patches and separate Git operations
+# Export a patch or inspect Git
 
-Git is optional for ordinary exploration and source history.
-Inspect repository state before an operation whose behavior depends on the index or HEAD:
+Git is optional for source history. Inspect state before actions that depend on the index or HEAD:
 
 ```sh
 fr git status --limit 8
 fr git diff app.py --limit 8
-fr history patch '<TX>' --json
+fr history patch '<TX>' --output '<PATCH>'
 fr history patch '<TX>' --git-check --index --against '<RECEIVER>'
 ```
 
-`<TX>` is a source-history transaction. Set `<RECEIVER>` to a separate Git worktree whose working files and index match the recorded starting state.
-Use `--reverse` to check the reverse patch against the recorded result.
-The JSON export carries the patch string; write that string to the chosen artifact file when a patch is requested.
-Exporting or checking a patch does not stage or commit it.
-Git text patches preserve their documented executable-mode projection, not every Unix permission bit or arbitrary binary content.
+`<TX>` is a source transaction. Write `<PATCH>` outside the project; output mode refuses an existing file and returns its SHA-256 and byte count without repeating its contents. `<RECEIVER>` is a separate worktree matching the transaction's recorded start, including the index. `--reverse` selects the opposite patch. Export and checks do not stage or commit.
 
-For staging, commits or worktree lifecycle operations, load [Git administration](git-admin.md).
+Text patches preserve documented executable-mode projection, not arbitrary binary content or every permission bit. For staging, commits, or worktrees load [Git administration](git-admin.md).

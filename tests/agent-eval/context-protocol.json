@@ -63,25 +63,25 @@
       },
       "projected": {
         "context": {
-          "bytes": 44564,
-          "tokens": 12980
+          "bytes": 38411,
+          "tokens": 11486
         },
         "prompt": {
           "bytes": 4402,
           "tokens": 925
         },
         "visible_output": {
-          "bytes": 40162,
-          "tokens": 12055
+          "bytes": 34009,
+          "tokens": 10561
         },
         "requests": {
-          "bytes": 5388,
-          "tokens": 1794
+          "bytes": 5429,
+          "tokens": 1798
         },
         "categories": {
           "skill": {
-            "bytes": 11394,
-            "tokens": 2732,
+            "bytes": 7521,
+            "tokens": 1917,
             "seconds": 0.001
           },
           "inspection": {
@@ -95,13 +95,13 @@
             "seconds": 8.752
           },
           "authoring": {
-            "bytes": 4215,
-            "tokens": 1396,
+            "bytes": 4318,
+            "tokens": 1440,
             "seconds": 11.151
           },
           "delivery": {
-            "bytes": 8829,
-            "tokens": 2738,
+            "bytes": 6446,
+            "tokens": 2015,
             "seconds": 1.362
           }
         },
@@ -176,13 +176,8 @@
             "result.coverage",
             "result.handle_prefix",
             "result.revision",
-            "result.context_omitted"
-          ]
-        },
-        {
-          "event_index": 15,
-          "fields": [
-            "result.context_basis"
+            "result.context_omitted",
+            "result.transaction_context_basis"
           ]
         },
         {
@@ -192,35 +187,30 @@
           ]
         },
         {
-          "event_index": 20,
+          "event_index": 18,
           "fields": [
-            "result.context_basis"
-          ]
-        },
-        {
-          "event_index": 21,
-          "fields": [
-            "result.context_basis",
-            "result.action",
-            "result.changes",
-            "result.transaction",
-            "result.context_omitted",
-            "result.diffs_omitted"
+            "result.patch",
+            "result.patch_bytes",
+            "result.patch_sha256",
+            "result.output"
           ]
         },
         {
           "event_index": 23,
           "fields": [
-            "result.context_basis"
+            "result.changes[].diff",
+            "result.changes[].diff_bytes",
+            "result.context_basis",
+            "result.context_omitted",
+            "result.diffs_omitted"
           ]
         },
         {
           "event_index": 24,
           "fields": [
+            "result.changes[].diff",
+            "result.changes[].diff_bytes",
             "result.context_basis",
-            "result.action",
-            "result.changes",
-            "result.transaction",
             "result.context_omitted",
             "result.diffs_omitted"
           ]
@@ -382,25 +372,25 @@
       },
       "projected": {
         "context": {
-          "bytes": 42839,
-          "tokens": 12439
+          "bytes": 36430,
+          "tokens": 10882
         },
         "prompt": {
           "bytes": 4402,
           "tokens": 925
         },
         "visible_output": {
-          "bytes": 38437,
-          "tokens": 11514
+          "bytes": 32028,
+          "tokens": 9957
         },
         "requests": {
-          "bytes": 5272,
-          "tokens": 1786
+          "bytes": 5313,
+          "tokens": 1790
         },
         "categories": {
           "skill": {
-            "bytes": 11394,
-            "tokens": 2732,
+            "bytes": 7521,
+            "tokens": 1917,
             "seconds": 0.003
           },
           "inspection": {
@@ -414,13 +404,13 @@
             "seconds": 10.882
           },
           "authoring": {
-            "bytes": 4350,
-            "tokens": 1448,
+            "bytes": 4453,
+            "tokens": 1492,
             "seconds": 14.372
           },
           "delivery": {
-            "bytes": 7806,
-            "tokens": 2387,
+            "bytes": 5167,
+            "tokens": 1601,
             "seconds": 1.526
           }
         },
@@ -501,45 +491,35 @@
             "result.coverage",
             "result.handle_prefix",
             "result.revision",
-            "result.context_omitted"
-          ]
-        },
-        {
-          "event_index": 16,
-          "fields": [
-            "result.context_basis"
-          ]
-        },
-        {
-          "event_index": 20,
-          "fields": [
-            "result.context_basis"
-          ]
-        },
-        {
-          "event_index": 21,
-          "fields": [
-            "result.context_basis",
-            "result.action",
-            "result.changes",
-            "result.transaction",
             "result.context_omitted",
-            "result.diffs_omitted"
+            "result.transaction_context_basis"
+          ]
+        },
+        {
+          "event_index": 18,
+          "fields": [
+            "result.patch",
+            "result.patch_bytes",
+            "result.patch_sha256",
+            "result.output"
           ]
         },
         {
           "event_index": 23,
           "fields": [
-            "result.context_basis"
+            "result.changes[].diff",
+            "result.changes[].diff_bytes",
+            "result.context_basis",
+            "result.context_omitted",
+            "result.diffs_omitted"
           ]
         },
         {
           "event_index": 24,
           "fields": [
+            "result.changes[].diff",
+            "result.changes[].diff_bytes",
             "result.context_basis",
-            "result.action",
-            "result.changes",
-            "result.transaction",
             "result.context_omitted",
             "result.diffs_omitted"
           ]
@@ -650,27 +630,27 @@
   ],
   "summary": {
     "bytes": {
-      "fr_mean": 43701.5,
+      "fr_mean": 37420.5,
       "files_mean": 24581.5,
-      "fr_minus_files": 19120.0,
-      "fr_percent_difference": 77.78207188332689
+      "fr_minus_files": 12839.0,
+      "fr_percent_difference": 52.2303358216545
     },
     "tokens": {
-      "fr_mean": 12709.5,
+      "fr_mean": 11184.0,
       "files_mean": 6810.0,
-      "fr_minus_files": 5899.5,
-      "fr_percent_difference": 86.62995594713657
+      "fr_minus_files": 4374.0,
+      "fr_percent_difference": 64.22907488986785
     }
   },
   "measurement_files": {
-    "tools/agent-context-protocol.py": "41188a4a9ac3e33b324638b89c3f2b718eccc1dcaeb55969fe8ab9f17727a313",
+    "tools/agent-context-protocol.py": "8da3c8b00853825acf5c6a4c57aeeb95d0824b92f0652eb4f61a8a20bc9701be",
     "tools/checks-policy-context.py": "b37ef3e212ee76c90cbfaf608a79e536ab8c6941f6fa0ca350c56b35170129d7",
-    "tools/agent-eval.py": "0359fc537b31f06e2966ac299a12a10f3d66597ad4f48223a12d51ed3ccb73b3",
-    "skills/fr/SKILL.md": "0e7e6af51359e2c51ec987ce0afa9fd3d45ac238d0eb4b903330f2a102773355",
-    "skills/fr/references/author.md": "aa4c956f251a84ace78cff5370dfc6d7e44d1ce60bfef915bf54210ec6be8cd3",
-    "skills/fr/references/checks.md": "1b38774f2f198185dcd71eb86674f0b5806bd7c004933a25bdbd7a00ce9d43a8",
-    "skills/fr/references/git.md": "e808545a818cb58bc5a47b5230a27f705e5ffee8c9ee3f874efb7ccc176e1abc",
-    "skills/fr/references/history.md": "e8c4f7d78b8580c7c77e5f476ef07288c5acc59e46832e10ec088ac8a1dc2cbb"
+    "tools/agent-eval.py": "160445ab33ff7c334bfa6b01f56f1fb669f8c38f489e60b97ec698156a34f2f2",
+    "skills/fr/SKILL.md": "5d3c092809da03fcab559f01e76fa8136f18b4e41b2e7a9f501e207e5f3d4188",
+    "skills/fr/references/author.md": "4e809b62182cf328a924ae8f5b309c520216e1b18d3b1aa3334ec6e2d4ef8a9f",
+    "skills/fr/references/checks.md": "4fcbd350cb9bac485bc92eb109f45d8f9dae560437ea617c13ebe804bc012e60",
+    "skills/fr/references/git.md": "f3cfdc618fca5c73c1fc93fca92353913f3ab821ceeb5ea3a114388b74d1941f",
+    "skills/fr/references/history.md": "590a56a0b3ace0eb73b7b69a26560235074b03b44824e149e9341fa11f204931"
   },
   "scope": "Fixed-transcript projection with unchanged prompts, call count, outcomes, source states and timings. It applies the retained shared check policy, current requested skill files, and declared context-basis response and request fields. It does not predict autonomous adaptation, billed usage or latency changes. Original evidence and scores remain immutable."
 }

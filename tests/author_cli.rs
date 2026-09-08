@@ -140,9 +140,19 @@ fn saves_reviewed_body_and_preserves_context_through_apply_undo_redo_and_patch()
     let (success, clipped) = replace(&root, &handle, &input, &["--diff-bytes", &budget]);
     assert!(success, "{clipped}");
     assert_eq!(clipped["diff"]["text"].as_str().unwrap().len(), unicode);
+    assert!(clipped.get("transaction_context_basis").is_none());
     let (success, saved) = replace(&root, &handle, &input, &["--save-plan"]);
     assert!(success, "{saved}");
+    assert!(saved["transaction_context_basis"]
+        .as_str()
+        .unwrap()
+        .starts_with("frtb1:"));
     let id = saved["transaction"].as_u64().unwrap().to_string();
+    let shown = ok(&root, &["history", "show", &id]);
+    assert_eq!(
+        saved["transaction_context_basis"],
+        shown["records"][0]["context_basis"]
+    );
     fs::write(&input, b"{ 999 }").unwrap();
     ok(&root, &["history", "apply", &id, "--write"]);
     let changed = source.replace("{ n + 1 }", "{ n * 2 }");

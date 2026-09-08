@@ -10,8 +10,9 @@ use crate::scan::{scan, ScanOptions};
 use crate::span::{LineCol, LineIndex};
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Whether [`emit`] ends the write with a newline.
 enum Newline {
@@ -93,7 +94,7 @@ struct Cli {
         long,
         global = true,
         value_name = "BASIS",
-        help = "Omit unchanged project context previously reviewed under this basis."
+        help = "Omit project or forward-transaction context previously reviewed under this basis."
     )]
     context_basis: Option<String>,
 
@@ -546,6 +547,13 @@ enum HistoryCommand {
             help = "Receiving directory; defaults to the history workspace."
         )]
         against: Option<PathBuf>,
+        #[arg(
+            long,
+            value_name = "FILE",
+            conflicts_with_all = ["check", "git_check"],
+            help = "Write a new patch artifact and return bounded JSON metadata."
+        )]
+        output: Option<PathBuf>,
     },
     /// Inspect one transaction without printing stored source snapshots.
     Show { id: u64 },
@@ -1338,6 +1346,33 @@ fn workspace_diff(cli: &Cli, outcome: &crate::edit::FileOutcome) -> String {
     )
 }
 
+fn write_patch_artifact(root: &Path, requested: &Path, patch: &str) -> Result<()> {
+    let root = root.canonicalize()?;
+    let workspace = if root.is_file() {
+        root.parent().context("file root has no parent")?
+    } else {
+        &root
+    };
+    let path = if requested.is_absolute() {
+        requested.to_path_buf()
+    } else {
+        workspace.join(requested)
+    };
+    let parent = path.parent().context("patch output has no parent")?;
+    anyhow::ensure!(parent.is_dir(), "patch output parent does not exist");
+    match std::fs::symlink_metadata(&path) {
+        Ok(_) => anyhow::bail!("patch output already exists: {}", path.display()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => return Err(error.into()),
+    }
+    let mut temporary = tempfile::NamedTempFile::new_in(parent)?;
+    use std::io::Write;
+    temporary.write_all(patch.as_bytes())?;
+    temporary.flush()?;
+    temporary.persist_noclobber(&path)?;
+    Ok(())
+}
+
 /// The project `start` sits inside, when that is somewhere above `start`.
 fn enclosing_project(start: &std::path::Path) -> Option<PathBuf> {
     const MARKERS: &[&str] = &[
@@ -1710,6 +1745,10 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
         plan.report["transaction"] = serde_json::json!(transaction);
         plan.report["applied"] = serde_json::json!(write && transaction.is_some());
         plan.report["saved"] = serde_json::json!(cli.save_plan && transaction.is_some());
+        if let Some(id) = transaction.filter(|_| plan.report["diff"].is_string()) {
+            plan.report["transaction_context_basis"] =
+                serde_json::json!(crate::history::record_context_basis(root, id)?);
+        }
         context.apply(&mut plan.report)?;
         println!("{}", serde_json::to_string(&plan.report)?);
         Ok(())
@@ -1738,6 +1777,7 @@ fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
         git_check,
         index,
         against,
+        output,
     }) = command
     {
         if *git_check {
@@ -1764,6 +1804,17 @@ fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
             return Ok(());
         }
         let report = crate::history::export_patch(&cli.root, *id, *reverse)?;
+        if let Some(requested) = output {
+            write_patch_artifact(&cli.root, requested, &report.patch)?;
+            let mut value = serde_json::to_value(&report)?;
+            value.as_object_mut().unwrap().remove("patch");
+            value["patch_bytes"] = serde_json::json!(report.patch.len());
+            value["patch_sha256"] =
+                serde_json::json!(format!("{:x}", Sha256::digest(report.patch.as_bytes())));
+            value["output"] = serde_json::json!(requested);
+            println!("{}", serde_json::to_string_pretty(&value)?);
+            return Ok(());
+        }
         if cli.json {
             println!("{}", serde_json::to_string_pretty(&report)?);
         } else {
@@ -1821,6 +1872,7 @@ fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
                         "paths": r.changes.iter().map(|c| &c.path).collect::<Vec<_>>()
                     });
                     if other.is_some() {
+                        record["context_basis"] = serde_json::json!(format!("frtb1:{}", r.basis));
                         record["changes"] = serde_json::json!(r.changes.iter().map(|c| serde_json::json!({
                             "path": c.path, "before_exists": c.before.is_some(), "after_exists": c.after.is_some(),
                             "before_mode": c.before.as_ref().map(|s| s.mode), "after_mode": c.after.as_ref().map(|s| s.mode),

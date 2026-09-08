@@ -1,6 +1,6 @@
-# Reverse or recover a source transaction
+# Apply or reverse a source transaction
 
-Use the transaction ID from the change report. The examples assume it has just been applied.
+The examples assume `<TX>` is applied:
 
 ```sh
 fr history show '<TX>'
@@ -10,17 +10,8 @@ fr history redo '<TX>'
 fr history redo '<TX>' --write --no-diff
 ```
 
-Preview the transition, then use `--no-diff` with `--write` to omit repeated diff text from the completion report.
-The preview also returns `context_basis`. Pass it as `--context-basis` on that exact write to omit the reviewed transaction, action and change rows as well. Keep the full preview so the compact completion can be reconstructed; another action or transaction refuses the basis before writing.
-The report retains paths, existence, modes and the operation outcome; `history show TX` and patch export keep the full diff.
-Undo requires the latest applied transaction; redo requires the next ID on the redo stack.
-Both check affected contents, existence and modes. They preserve unrelated edits and refuse conflicts in affected files.
-Do not overwrite a conflicting user's edit to make undo succeed; inspect the conflict and select a repair within the task's scope.
-Applying a new transaction abandons the previous redo branch. Saving a plan alone preserves it.
+Preview first. `--no-diff` keeps outcome and change metadata. A complete saved author diff supplies `transaction_context_basis`; detailed `history show` calls it `context_basis`. On forward apply/redo, pass that value to `--context-basis` to replace reviewed diffs with `diff_bytes`. Keep the full basis report. Reverse transitions require full review; stale or different bases refuse before writing.
 
-For a pending operation or a lock left after interruption, load [Recovery](recovery.md) before another write.
+Undo/redo verify affected contents, existence, and modes while preserving unrelated edits. Undo must be the latest applied transaction; redo must be next on its stack. A new applied transaction abandons the redo branch. Never erase a conflicting user edit to force a transition.
 
-The `.fr-history` journal retains source snapshots and recovery data. Deleting it loses those records.
-History does not restore timestamps, ownership, extended attributes or empty directory topology.
-Multiple file replacements are not one atomic filesystem transaction.
-Git staging journals and worktree recovery use different commands and identifiers; see [Git](git.md).
+For an interrupted write or lock, load [Recovery](recovery.md). The journal retains source snapshots but not timestamps, ownership, extended attributes, empty directories, or multi-file filesystem atomicity. Git has separate journals; see [Git](git.md).

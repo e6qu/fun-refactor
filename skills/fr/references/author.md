@@ -1,40 +1,21 @@
-# Edit a selected implementation
+# Edit selected code
 
-For file insertion, a lookup explicitly scoped with `--in FILE_PATH` already returns that file's handle in `root`; retain it.
-An unscoped or directory-scoped lookup has a different root. Use `project map FILE_PATH --depth 0 --fields handle,kind,name --limit 1` when the file handle is missing.
+`fr author` accepts revision-bound handles:
 
-Choose an operation:
+- `replace-body`: one Rust, Go, TypeScript, or TSX block.
+- `replace-declaration`: one same-named Rust function; callers need separate edits after signature changes.
+- `insert-declaration`: one Rust function in a file or inline module.
+- `batch`: up to 32 disjoint operations saved as one transaction.
 
-- `fr author replace-body HANDLE --from FILE`: one Rust, Go, TypeScript or TSX block, including supported wrapped function bindings.
-- `fr author replace-declaration HANDLE --from FILE`: one complete Rust function with the same name; outer attributes remain. Callers need separate edits if the signature changes.
-- `fr author insert-declaration HANDLE --from FILE`: add one Rust function to a file or inline module, optionally preceded by `///` or `/** ... */` documentation. Other outer attributes and surrounding comments refuse. Duplicate direct names and pending outer metadata in the selected container refuse.
+Find a declaration with `project find NAME --in FILE --source`. That report's `root` is the file handle; for inline-module insertion use the module row's handle. Use `project map FILE --depth 0 --fields handle,kind,name --limit 1` if no file handle is available.
 
-For coordinated edits, use `fr author batch --from MANIFEST --save-plan` to save one transaction for up to 32 disjoint operations.
-The JSON manifest has `operations` entries with `op`, `handle` and `from`, using the operations above. Short IDs need a top-level `revision`.
-Relative fragment paths resolve from the workspace root. Keep the manifest and fragments outside the project; each file must fit 64 KiB.
-All handles refer to the original source. Overlapping selections and shared insertion boundaries refuse; later steps cannot target newly inserted code.
-Review the combined diff. Step spans describe original source; coverage appears once. Apply, undo/redo and export the single returned transaction.
+Fragments are UTF-8 files outside the project and at most 64 KiB. A batch manifest contains `operations` with `op`, `handle`, and `from`; short IDs also require top-level `revision`. All handles select the original source. Overlaps and shared insertion boundaries refuse.
 
-For module insertion, use the module row's handle from `project find NAME --in FILE --source`, rather than its file-scoped `root`.
-Insertion goes before the module's closing brace and preserves existing bytes.
-Fragment boundary whitespace is trimmed; remaining bytes stay verbatim, with no automatic indentation.
+Review the combined diff, then save and apply the checked transaction. A complete saved diff includes `transaction_context_basis` for compact forward apply/redo reports.
 
-For Go, select a named function or receiver method handle. Interface specifications and variables containing function literals refuse.
-Receiver headers, type parameters and directives outside the body stay unchanged; imports and type correctness need compiler checks.
+Go accepts named functions and receiver methods. TypeScript/TSX accepts supported block-bodied function bindings. Rust insertion accepts `///` or `/** */` docs, rejects other outer attributes or pending metadata, trims boundary whitespace, and preserves the remaining fragment bytes. Unsupported declaration kinds refuse.
 
-TypeScript/TSX function bindings accept parentheses, `as`, `satisfies`, postfix `!` and TypeScript angle-bracket assertions; the body must be a block.
-Use the variable or field handle, with `project find NAME --in FILE --locals` for variable bindings.
-Calls such as `memo(...)`, conditionals, comma expressions and expression-bodied arrows refuse.
-
-Keep the UTF-8 fragment outside the project; the input and affected declarations/blocks must fit 64 KiB.
-Use `--save-plan` to preview and freeze the edit. Inspect the bounded diff and omissions, then `fr history apply TX --write --no-diff` applies that exact transaction.
-Run [project checks](checks.md) for compilation and behavior after applying the plan.
-
-Keep TX for [undo/redo](history.md) and [patch export](git.md).
-Insertion into impl, trait or function bodies and other declaration kinds remain unsupported. External `mod name;` declarations require selecting their source file. A normal editor fallback does not automatically enter fr history.
-
-For example, add a wrapper around an existing Rust `increment` function.
-Save this fragment outside the project as `<FRAGMENT>`:
+Example: save this outside the project as `<FRAGMENT>`:
 
 ```rust
 /// Increments a value twice.
@@ -43,8 +24,7 @@ pub fn increment_twice(value: u32) -> u32 {
 }
 ```
 
-Use the lookup's file-scoped `root` as `<FILE_HANDLE>`.
-Inspect the `source` column and saved diff before applying the returned `<AUTHOR_TX>`:
+Use the lookup's file-scoped `root` as `<FILE_HANDLE>`:
 
 ```sh
 fr project find increment --in src/lib.rs --source --bytes 512
@@ -52,5 +32,4 @@ fr author insert-declaration '<FILE_HANDLE>' --from '<FRAGMENT>' --save-plan
 fr history apply '<AUTHOR_TX>' --write --no-diff
 ```
 
-The source budget is shared across page rows; an empty slice can mean the budget ran out.
-For a non-null `source.next_offset`, continue with `project show HANDLE --source --offset NEXT --bytes N` using that row's handle.
+The source byte budget is shared across rows. Continue a non-null `source.next_offset` with `project show HANDLE --source --offset NEXT --bytes N`. Run [checks](checks.md) after applying. Keep the transaction for [history](history.md) and [patch export](git.md).

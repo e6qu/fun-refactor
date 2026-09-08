@@ -23,7 +23,7 @@ harness = imported("agent_eval_harness_context", ROOT / "tools/agent-eval.py")
 checks_policy = imported("checks_policy_context", ROOT / "tools/checks-policy-context.py")
 EVIDENCE = ROOT / "tests/agent-eval/results/2026-09-08-coordinated"
 PROJECT_FIELDS = ("coverage", "handle_prefix", "revision")
-HISTORY_FIELDS = ("action", "changes", "transaction")
+HISTORY_FIELDS = ("changes[].diff",)
 
 
 def require(condition, message):
@@ -46,8 +46,16 @@ def project_basis(report):
     ])
 
 
-def history_basis(transaction, action, changes):
-    return "frhb1:" + sha(["fr-history-context-1", transaction, action, changes])
+def transaction_bases(events):
+    bases = {}
+    for event in events:
+        args = event["request"].get("args", [])
+        if event["request"].get("tool") != "fr" or args[:2] != ["history", "patch"]:
+            continue
+        report = json.loads(event["visible"]).get("result")
+        if isinstance(report, dict) and isinstance(report.get("record_basis"), str):
+            bases[report["id"]] = "frtb1:" + report["record_basis"]
+    return bases
 
 
 def render_skill_read(request):
@@ -105,8 +113,8 @@ def project_events(events, check_outputs):
     requests = []
     changes = []
     reviewed_projects = set()
-    reviewed_history = set()
     history_changes = full_history_changes(events)
+    transaction_contexts = transaction_bases(events)
     for index, (event, check_visible) in enumerate(zip(events, check_outputs)):
         request = copy.deepcopy(event["request"])
         visible = check_visible
@@ -131,32 +139,49 @@ def project_events(events, check_outputs):
                     fields.extend([f"result.{field}" for field in (*PROJECT_FIELDS, "context_omitted")])
                 else:
                     reviewed_projects.add(basis)
+                if args[:1] == ["author"] and isinstance(report.get("transaction"), int):
+                    transaction = report["transaction"]
+                    require(transaction in transaction_contexts, "Author transaction has no retained record basis")
+                    require(isinstance(report.get("diff"), str), "Author diff is truncated")
+                    report["transaction_context_basis"] = transaction_contexts[transaction]
+                    fields.append("result.transaction_context_basis")
                 visible = json.dumps(payload, ensure_ascii=False)
                 changes.append({"event_index": index, "fields": fields})
+            elif args[:2] == ["history", "patch"] and isinstance(report, dict) and isinstance(report.get("patch"), str):
+                patch = report.pop("patch")
+                report["patch_bytes"] = len(patch.encode())
+                report["patch_sha256"] = hashlib.sha256(patch.encode()).hexdigest()
+                report["output"] = "../artifacts/change.patch"
+                request["args"] = [*args, "--output", "../artifacts/change.patch"]
+                visible = json.dumps(payload, ensure_ascii=False)
+                changes.append({
+                    "event_index": index,
+                    "fields": ["result.patch", "result.patch_bytes", "result.patch_sha256", "result.output"],
+                })
             elif len(args) >= 3 and args[0] == "history" and args[1] in ("apply", "undo", "redo", "recover"):
                 require(isinstance(report, dict), "History transition report is unstructured")
                 transaction, action = report["transaction"], report["action"]
-                complete = forward_changes(history_changes, transaction, action)
-                require(complete is not None, "No full transition basis exists in the transcript")
-                basis = history_basis(transaction, action, complete)
-                fields = ["result.context_basis"]
-                if basis in reviewed_history:
+                fields = []
+                if action == "redo":
+                    complete = forward_changes(history_changes, transaction, action)
+                    require(complete is not None, "No full redo exists in the transcript")
+                    basis = transaction_contexts.get(transaction)
+                    require(basis is not None, "Redo transaction has no retained record basis")
                     stripped = copy.deepcopy(complete)
                     for change in stripped:
                         change.pop("diff")
                     require(report["changes"] in (complete, stripped), "History completion differs from preview")
-                    for field in HISTORY_FIELDS:
-                        del report[field]
+                    for change, full in zip(report["changes"], complete):
+                        change.pop("diff", None)
+                        change["diff_bytes"] = len(full["diff"].encode())
                     report.pop("diffs_omitted", None)
+                    report["context_basis"] = basis
                     report["context_omitted"] = list(HISTORY_FIELDS)
                     request["args"] = [*args, "--context-basis", basis]
-                    fields.extend([f"result.{field}" for field in (*HISTORY_FIELDS, "context_omitted", "diffs_omitted")])
-                else:
-                    if report["changes"] == complete:
-                        reviewed_history.add(basis)
-                report["context_basis"] = basis
-                visible = json.dumps(payload, ensure_ascii=False)
-                changes.append({"event_index": index, "fields": fields})
+                    fields.extend(["result.changes[].diff", "result.changes[].diff_bytes",
+                                   "result.context_basis", "result.context_omitted", "result.diffs_omitted"])
+                    visible = json.dumps(payload, ensure_ascii=False)
+                    changes.append({"event_index": index, "fields": fields})
         outputs.append(visible)
         requests.append(request)
     return outputs, requests, changes

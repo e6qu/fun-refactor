@@ -1,6 +1,7 @@
 """Regressions for acceptance grading and evidence boundaries, without an agent service."""
 
 import copy
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -68,28 +69,54 @@ class ContextProtocolEvidence(unittest.TestCase):
         self.assertEqual(compact, expected)
         self.assertEqual(requests[1]["args"][-2:], ["--context-basis", reviewed["context_basis"]])
 
-    def test_reviewed_history_completion_changes_only_applied(self):
+    def test_author_transaction_basis_reconstructs_forward_history_diff(self):
+        common = {"revision": "0" * 64, "handle_prefix": "frp1:" + "0" * 32 + ":",
+                  "coverage": {"indexed_files": 1}}
         changes = [{"path": "app.rs", "before_exists": True, "after_exists": True,
-                    "before_mode": 420, "after_mode": 420, "diff": "patch"}]
-        preview = {"transaction": 1, "action": "undo", "applied": False, "changes": changes}
+                    "before_mode": 420, "after_mode": 420, "diff": "pπtch"}]
+        author = {**common, "schema": "fr-author-1", "query": "replace-body",
+                  "transaction": 1, "diff": "pπtch"}
+        patch = {"id": 1, "record_basis": "a" * 64}
+        preview = {"transaction": 1, "action": "redo", "applied": False, "changes": changes}
         smaller = copy.deepcopy(changes)
         smaller[0].pop("diff")
-        completion = {"transaction": 1, "action": "undo", "applied": True,
+        completion = {"transaction": 1, "action": "redo", "applied": True,
                       "changes": smaller, "diffs_omitted": True}
-        events = [self.event(["history", "undo", "1"], preview),
-                  self.event(["history", "undo", "1", "--write", "--no-diff"], completion)]
+        events = [self.event(["author", "replace-body"], author),
+                  self.event(["history", "patch", "1"], patch),
+                  self.event(["history", "redo", "1"], preview),
+                  self.event(["history", "redo", "1", "--write", "--no-diff"], completion)]
         outputs, requests, _ = context_protocol.project_events(events, [event["visible"] for event in events])
         reviewed = json.loads(outputs[0])["result"]
-        compact = json.loads(outputs[1])["result"]
+        compact = json.loads(outputs[3])["result"]
         self.assertEqual(compact["context_omitted"], list(context_protocol.HISTORY_FIELDS))
         reconstructed = copy.deepcopy(compact)
         reconstructed.pop("context_omitted")
-        for field in context_protocol.HISTORY_FIELDS:
-            reconstructed[field] = reviewed[field]
-        expected = copy.deepcopy(reviewed)
+        reconstructed.pop("context_basis")
+        reviewed_diff = reviewed["diff"].encode()
+        offset = 0
+        for change in reconstructed["changes"]:
+            size = change.pop("diff_bytes")
+            change["diff"] = reviewed_diff[offset:offset + size].decode()
+            offset += size
+        self.assertEqual(offset, len(reviewed_diff))
+        expected = copy.deepcopy(preview)
         expected["applied"] = True
         self.assertEqual(reconstructed, expected)
-        self.assertEqual(requests[1]["args"][-2:], ["--context-basis", reviewed["context_basis"]])
+        self.assertEqual(requests[3]["args"][-2:],
+                         ["--context-basis", reviewed["transaction_context_basis"]])
+
+    def test_patch_projection_preserves_exact_artifact_identity(self):
+        patch = "diff --git a/app.rs b/app.rs\n+π\n"
+        report = {"id": 1, "record_basis": "a" * 64, "patch": patch}
+        event = self.event(["history", "patch", "1"], report)
+        outputs, requests, _ = context_protocol.project_events([event], [event["visible"]])
+        compact = json.loads(outputs[0])["result"]
+        self.assertNotIn("patch", compact)
+        self.assertEqual(compact["patch_bytes"], len(patch.encode()))
+        self.assertEqual(compact["patch_sha256"], hashlib.sha256(patch.encode()).hexdigest())
+        self.assertEqual(requests[0]["args"][-2:],
+                         ["--output", "../artifacts/change.patch"])
 
     def test_complete_frozen_projection_preserves_all_passing_trials(self):
         report = context_protocol.measure(None)

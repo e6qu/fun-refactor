@@ -1,24 +1,14 @@
-# Select and execute project checks
+# Run project checks
 
-When `.fr/checks.json` exists, inspect its declared commands and coverage before running them:
+Inspect `.fr/checks.json` declarations before execution:
 
 ```sh
 fr checks
 fr checks --run unit --basis '<CHECK_BASIS>' --quiet-success --no-declarations --output-bytes 2048
 ```
 
-Choose names from the listing for the task. `unit` is the example's name; projects can declare different names.
-Use the returned configuration `basis`, not a project revision or Git basis.
-A changed configuration requires another inspection. Listing does not execute project code.
-Execution runs the declared argv in its project-relative directory with the inherited environment and a direct-child timeout.
-It has no command sandbox; commands can write files outside source history. Use the existing task authorization.
+Choose task-relevant names from the listing; `unit` is only the example. Use its configuration `basis`. Listing runs no project code. Execution runs declared argv in its project-relative directory, with inherited environment, no command sandbox, and a direct-child timeout.
 
-Read `passed`, every selected result and `not_run`. Coverage labels are project claims.
-`passed: null` means no command ran. A nonzero exit or failed result means validation failed, even if parsing succeeded.
-Quiet success omits stream text with byte counts; failures retain diagnostics.
-`--no-declarations` omits reviewed command metadata, marked by `declarations_omitted: true`; match result names to the listing with the same basis.
-Output includes omitted-byte counts. Increase `--output-bytes` up to 65536 when the reported failure needs more detail.
-Source snapshots are not locked or verified by this command. Relevant later edits require another check run.
+Read `passed`, each selected result, and `not_run`. Coverage labels are project claims. `passed: null` means nothing ran. Quiet success omits stream text but keeps byte counts; failures retain bounded diagnostics. `--no-declarations` relies on the matching reviewed listing. Raise `--output-bytes` up to 65536 only for needed failure detail.
 
-If declarations are absent, use the project's documented compiler/test commands and report their scope.
-Do not treat absent checks, syntax acceptance or a successful unrelated check as behavioral verification.
+Checks do not lock or verify source snapshots; rerun them after relevant edits. If declarations are absent, use documented project commands. Syntax acceptance or an unrelated check does not prove behavior.

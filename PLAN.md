@@ -139,7 +139,8 @@ PR 0 supplies the baseline that every later PR must preserve or improve.
 
 ### PR 1. Agent Context Protocol v2
 
-Status: in progress on `agent_context_v2`. The branch implements revision-bound project/author bases, reviewed history-transition bases, fixed projection and the opt-in Codex runner. The first projection saves 569 mean fr tokens and leaves a 5,899.5-token normalized gap.
+Status: in progress on `agent_context_v2`. The branch implements compact project and transaction bases, direct patch artifacts, fixed projection and the Codex runner.
+The current projection saves 2,094.5 mean fr tokens and leaves a 4,374-token normalized gap.
 
 Goal: make the structured `fr` workflow competitive on retrieved context while retaining its stronger evidence and reversal guarantees.
 

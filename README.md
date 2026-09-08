@@ -22,7 +22,7 @@ uses. [TUTORIAL.md](TUTORIAL.md) walks through a real repository.
 
 For an agent handoff, use the portable [fr skill](skills/fr/SKILL.md).
 [Agent skill validation](docs/agent-skill.md) describes its task-specific references, executable examples and measured limits.
-The [agent context protocol](docs/agent-context-protocol.md) lets later project, author and history calls omit facts retained from a matching full response.
+The [agent context protocol](docs/agent-context-protocol.md) lets later project, author and history calls omit retained facts and writes patch artifacts without echoing their contents through agent context.
 The [local Codex runner](docs/agent-codex-runner.md) executes explicitly selected paired evaluations without spending quota in normal CI.
 [Function authoring](docs/body-authoring.md) adds bounded Rust, Go, TypeScript and TSX implementation changes through project handles and source-history transactions.
 [Project checks](docs/project-checks.md) selects declared validation commands and reports bounded results and coverage claims.

@@ -66,7 +66,7 @@ ambiguous, and the tool tells you which case you are in.
 | Option | What it does |
 |---|---|
 | `--save-plan` | Store a change plan and return its transaction ID. Conflicts with `--write`. |
-| `--context-basis <BASIS>` | Omit context retained from a matching full project, author or history-transition report. Stale or conflicting bases refuse before writes. |
+| `--context-basis <BASIS>` | Omit context retained from a matching full project report or saved source transaction. Stale or conflicting bases refuse before writes. |
 | `--json` | Machine-readable output instead of text |
 | `-C`, `--root <ROOT>` | The workspace to act on. Naming a single file scans that file alone. Default `.` |
 | `--max-file-size <BYTES>` | Skip files larger than this. Default 4 MiB. Every command warns when a scan skipped one |
@@ -74,7 +74,7 @@ ambiguous, and the tool tells you which case you are in.
 | `--no-cache` | Parse and extract every file instead of reusing cached facts |
 | `-V`, `--version` | Print the version |
 
-See the [agent context protocol](docs/agent-context-protocol.md) for exact reconstruction rules and the separate project and history basis namespaces.
+See the [agent context protocol](docs/agent-context-protocol.md) for exact reconstruction rules and the separate project and transaction basis namespaces.
 
 `--max-file-size` matters more than it looks. A skipped file is invisible to
 every analysis, so a rename can miss uses inside it. The warning is there so a
@@ -1045,6 +1045,7 @@ fr rename OldName NewName --save-plan --json
 fr history
 fr history show 1
 fr history patch 1 > /tmp/change.patch
+fr history patch 1 --output ../artifacts/change.patch
 fr history patch 1 --reverse > /tmp/reverse.patch
 fr history patch 1 --check
 fr history patch 1 --check --against /path/to/receiving/workspace
@@ -1060,6 +1061,8 @@ fr history recover 1 --write        # only when an operation remains pending
 History uses schema 1 and numeric identities local to the workspace.
 `history` lists status, validation labels, paths, applied IDs and the redo stack.
 `patch` prints a Git text patch, or metadata with a `patch` string under `--json`.
+`patch --output FILE` creates a new artifact and returns JSON with its SHA-256 and byte count, without patch text.
+Relative paths start at the workspace root. Existing paths refuse.
 `patch --check` prints a JSON basis report and exits unsuccessfully when affected contents, existence or executable modes differ.
 `--against` selects a receiving directory; `--reverse` checks the recorded result as the starting state.
 `patch --git-check` reports Git application checks; `--index` also checks the affected index entries.

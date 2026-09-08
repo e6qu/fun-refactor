@@ -1,28 +1,29 @@
 ---
 name: fr
-description: Use the fr CLI to inspect project hierarchy with bounded output, plan structural code changes, and work with its transaction history, Git patches, and Lean source checks. Use when fr is available or the user requests it.
+description: Use the fr CLI for bounded project structure, structural code changes, source history, Git patches, checks, and Lean evidence. Use when fr is available or requested.
 ---
 
 # Work with fr
 
-Run `fr` at the project root or pass `-C`. For a known declaration, use `fr project find NAME --signature`; add `--in PATH`, `--contains`, or `--source --bytes N` only as needed. For broader discovery start with:
+Run at the project root or pass `-C`. Find a known declaration directly; request source only when needed:
 
 ```sh
+fr project find greet --signature
 fr project map --depth 2 --limit 12
 ```
 
-Read `columns` with `rows`, plus `coverage`, `omitted` and `page`. Gaps and unresolved or omitted results are not evidence of absence. Retain a full report's `context_basis`; pass it as `--context-basis` on related project and author calls to omit unchanged project context. A stale basis refuses.
+Read `columns` with `rows`, `coverage`, `omitted`, and `page`. Gaps or omitted/unresolved rows are not evidence of absence. Retain a full report's `context_basis` and pass it to related project/author calls; a stale basis refuses.
 
-Load only the reference needed for the task:
+Load only the relevant reference:
 
-- [Author](references/author.md): targeted body edits, Rust declaration replacement and insertion.
-- [Explore](references/explore.md): pagination, relationships and broader discovery.
+- [Author](references/author.md): structural body edits and Rust declaration insertion/replacement.
+- [Explore](references/explore.md): pagination, relationships, and broader discovery.
 - [Change](references/change.md): built-in refactorings and recipes.
-- [Checks](references/checks.md): declared project validation and bounded execution reports.
-- [History](references/history.md): undo/redo and conflicts; links to recovery for interrupted writes.
-- [Git](references/git.md): patches, indexes and the separate worktree lifecycle.
-- [Lean](references/lean.md): source drift, signature maps and proof evidence.
+- [Checks](references/checks.md): declared validation and bounded output.
+- [History](references/history.md): apply, undo, redo, conflicts, and recovery.
+- [Git](references/git.md): patches, indexes, commits, and worktrees.
+- [Lean](references/lean.md): source drift, signature maps, and proof evidence.
 
-Project handles expire after source changes. Built-in refactorings take names or positions; `fr author` takes handles. Mutations preview by default; `--save-plan` records an unchanged-source plan for later history application. Inspect results and omissions before applying. Treat refusals as missing evidence or unsupported scope.
+Handles expire after source changes. Built-in refactorings use names or positions; `fr author` uses handles. Mutations preview by default. `--save-plan` records a checked plan for later history application. Inspect omissions and refusals as evidence limits.
 
-Keep full basis reports in the audit trail. Report parser checks, project tests and Lean evidence separately; each proves a different property.
+Keep full basis reports. Report parser, project-check, and Lean results separately because they prove different properties.

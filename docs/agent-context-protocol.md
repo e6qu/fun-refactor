@@ -1,6 +1,6 @@
 # Agent context protocol
 
-Project, author and source-history transition reports can omit facts that the caller has already reviewed. The omission is opt-in and bound to the exact retained facts; a normal call always remains self-contained.
+Project, author and forward source-history reports can omit facts that the caller has already reviewed. The omission is opt-in and bound to the exact retained facts; a normal call always remains self-contained.
 
 ## Project and author reports
 
@@ -25,18 +25,26 @@ Copy the three declared fields from the reviewed full report and remove `context
 
 Do not use an omitted response without its complete reviewed basis. A compact response is evidence only when its basis matches that retained report and none of the omitted fields is already present with a competing value.
 
-## History transitions
+## Saved transaction context
 
-A full `history apply`, `undo`, `redo` or `recover` preview includes a `frhb1:` context basis bound to the transaction, action and complete change rows. Supply it when performing the reviewed transition:
+A saved `fr author` report with a complete diff includes `transaction_context_basis`. A detailed `fr history show TX` report exposes the same `frtb1:` basis. It is bound to every before/after snapshot in that transaction. Retain the complete author diff or detailed record, then use the basis to omit repeated diff strings from a forward apply or redo:
 
 ```sh
-fr history undo '<TX>'
-fr history undo '<TX>' --write --no-diff --context-basis '<HISTORY_CONTEXT_BASIS>'
+fr author batch --from '<MANIFEST>' --save-plan
+fr history apply '<TX>' --write --no-diff --context-basis '<TRANSACTION_CONTEXT_BASIS>'
+# The same retained basis can compact a later redo.
+fr history redo '<TX>' --write --no-diff --context-basis '<TRANSACTION_CONTEXT_BASIS>'
 ```
 
-The completion then keeps `applied` and omits `action`, `changes` and `transaction`. Copy those fields from the matching preview and change only `applied` to reconstruct the ordinary full write report. A basis from another action, transaction or change set refuses before writing. Without `--context-basis`, `--no-diff` keeps paths, existence and modes while omitting only diff strings for compatibility.
+The compact report keeps the transaction, action, outcome, paths, existence and modes. Each change replaces `diff` with its UTF-8 `diff_bytes`; the report adds `context_basis` and `context_omitted: ["changes[].diff"]`. Reconstruct the full report from the detailed history record, or split the retained combined author diff at those byte boundaries. Each slice is one valid UTF-8 diff in change order.
 
-Project bases and history bases are separate namespaces. Check configuration bases, Git status revisions, patch record bases and worktree proposal bases keep their existing meanings and cannot substitute for either context basis.
+Transaction bases cannot compact undo or recovery because those reverse diffs were not reviewed in the forward author report. Preview reverse transitions normally. A stale or different transaction basis refuses before writing. Truncated author diffs do not receive a transaction basis. Without `--context-basis`, `--no-diff` keeps the same metadata and uses `diffs_omitted: true` for compatibility.
+
+Project bases and transaction bases are separate namespaces. Check configuration bases, Git status revisions, raw patch record bases and worktree proposal bases keep their existing meanings and cannot substitute for either context basis.
+
+## Patch artifacts
+
+`fr history patch TX --output FILE` writes a new patch atomically and returns its SHA-256, byte count and transaction metadata without serializing the patch into agent context. The command refuses an existing output path. Keep the artifact alongside the compact report; ordinary stdout and JSON exports remain available when patch text is needed inline.
 
 ## Evidence boundary
 
