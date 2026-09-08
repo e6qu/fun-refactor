@@ -94,7 +94,7 @@ def measure(before, after, before_profiler, after_profiler, repetitions):
         assert harness.snapshot(root) == original and (root / ".git/index").read_bytes() == original_index
     assert all(harness.digest(Path(path).read_bytes()) == digest for path, digest in binaries.items())
     files = ["tools/project-construction.py", "tools/project-profile.py", "tools/project-profile.rs", "tools/project-cache.py",
-             "tools/agent-eval.py", "tools/agent_eval/regex_workspace.py", "src/project.rs", "Cargo.toml", "Cargo.lock",
+             "tools/agent-eval.py", "tools/agent_eval/regex_workspace.py", "src/project.rs", "src/project/digest.rs", "Cargo.toml", "Cargo.lock",
              "tests/agent-eval/project-construction-before.patch"]
     return {"schema": "fr-project-construction-comparison-1", "passed": True, "started_at": started,
             "finished_at": datetime.now(timezone.utc).isoformat(), "binaries_sha256": binaries,

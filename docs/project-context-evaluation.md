@@ -244,4 +244,5 @@ The report records all samples, executable digests, measurement-source hashes an
 Timing has no pass/fail threshold; report differences, invalid phase intervals, cache misses and failed restoration reject the measurement.
 The full native/WASM gate passes, including all 131 project CLI scenarios and 311/311 capability coverage.
 Strict verification retains twenty-three fresh source anchors and signature maps, zero obligations and 31 Lean build jobs.
-M4s adds no new Lean proof; its digest correspondence rests on the explicit byte tests and controlled report comparisons above.
+M4s added no new Lean proof; its digest correspondence rested on the explicit byte tests and controlled report comparisons above.
+M4t adds [revision buffer model proofs](lean-specs.md#revision-buffer-kernels) and shared state comparisons without replacing this timing evidence.

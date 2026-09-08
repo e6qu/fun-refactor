@@ -1032,6 +1032,20 @@ Strict verification retains twenty-three fresh source anchors and signature maps
 These checks test correspondence, without a new formal proof of revision construction or a returned-context reduction claim.
 See [batched revision hashing](docs/project-context-evaluation.md#batched-revision-hashing) for measurement scope and baseline reproduction.
 
+M4t: revision buffer model proofs (complete).
+
+Twenty-one Lean theorems cover ordered successful bytes, failed-write rollback, buffer bounds, sequence composition, threshold independence and inserted flushes.
+The abstract digest theorem requires an explicit chunk-composition law; it does not prove SHA-256 internals.
+The shared Rust/Lean corpus compares 1,570 states across 404 operation sequences, with explicit JSON bytes as a second oracle.
+Cases include Unicode, repeated flushes, exact threshold boundaries, large records and failures after substantial partial output.
+The test compiles the same private digest module that production uses; extraction preserves M4s's implementation apart from module visibility.
+The model has no separate source anchor. General Rust correspondence, serialization, allocation and revision-input selection remain outside its proofs.
+The axiom audit reports only `propext` and `Quot.sound`, with no new custom axiom or proof obligation.
+The full native/WASM gate passes, including 131 project CLI scenarios and 311/311 capability coverage.
+Strict verification retains twenty-three fresh source anchors and signature maps, zero obligations and 36 Lean build jobs.
+The retained M4s measurements remain historical evidence; this work adds no timing or context-saving claim.
+See [revision buffer kernels](docs/lean-specs.md#revision-buffer-kernels) for properties, assumptions and reproduction.
+
 Next M4 work:
 
 Use the retained workspace traces to reduce repeated report metadata and skill-loading costs, preserving coverage, source bases, guards and reviewable changes.

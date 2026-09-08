@@ -32,6 +32,7 @@ The portable skill starts targeted edits with authoring guidance and loads explo
 [Cache measurements](docs/project-context-evaluation.md#query-time-and-the-fact-cache) compare query time while checking identical reports and source invalidation.
 [Release profiling](docs/project-context-evaluation.md#release-stage-profiling) identifies project construction as the largest remaining stage in the measured cached lookups.
 [Batched revision hashing](docs/project-context-evaluation.md#batched-revision-hashing) reduces allocation and hash-update overhead while checking identical reports and stale-source refusals.
+[Revision buffer proofs](docs/lean-specs.md#revision-buffer-kernels) cover ordered bytes, failed writes and flush schedules, with shared Rust/Lean execution checks.
 [Real-agent acceptance](docs/agent-acceptance.md) records the first paired trials and reversible patches.
 The [context-reduction follow-up](docs/agent-context-followup.md) measures targeted lookup, quiet successful checks and selective skill loading against fresh file-tool trials.
 Use `fr project find NAME --signature` to locate a known declaration without requesting a broad map.

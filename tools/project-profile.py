@@ -87,7 +87,7 @@ def measure(binary, profiler, repetitions):
         assert harness.snapshot(root) == original and (root / ".git/index").read_bytes() == original_index
     assert all(harness.digest(Path(path).read_bytes()) == digest for path, digest in binaries.items())
     files = ["tools/project-profile.py", "tools/project-profile.rs", "tools/project-cache.py", "tools/agent-eval.py",
-             "tools/agent_eval/regex_workspace.py", "Cargo.toml", "Cargo.lock", "src/cli.rs", "src/index.rs", "src/project.rs", "src/cache.rs"]
+             "tools/agent_eval/regex_workspace.py", "Cargo.toml", "Cargo.lock", "src/cli.rs", "src/index.rs", "src/project.rs", "src/project/digest.rs", "src/cache.rs"]
     return {"schema": "fr-project-phase-comparison-1", "passed": True, "binaries_sha256": binaries,
             "started_at": started_at, "finished_at": datetime.now(timezone.utc).isoformat(),
             "runtime": {"platform": platform.platform(), "machine": platform.machine(), "python": platform.python_version(),

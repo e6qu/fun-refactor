@@ -4,5 +4,6 @@ import FrKernels.History
 import FrKernels.Patch
 import FrKernels.Project
 import FrKernels.Source
+import FrKernels.Digest
 import FrKernels.Workspace
 import FrKernels.Git

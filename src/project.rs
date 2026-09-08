@@ -5,6 +5,7 @@ use crate::scan::{scan, ScanOptions, ScanResult};
 use crate::span::{LineIndex, Span};
 use anyhow::{bail, Context, Result};
 use clap::{Subcommand, ValueEnum};
+use digest::RevisionDigest;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::cell::RefCell;
@@ -14,6 +15,7 @@ use std::path::{Path, PathBuf};
 pub mod author;
 mod configuration;
 mod contracts;
+mod digest;
 #[cfg(test)]
 mod digest_tests;
 mod fast_routes;
@@ -244,36 +246,6 @@ impl<const ENABLED: bool> ConstructionTimer<ENABLED> {
 
 fn hash(value: impl serde::Serialize) -> Result<String> {
     Ok(format!("{:x}", Sha256::digest(serde_json::to_vec(&value)?)))
-}
-
-#[derive(Clone, Default)]
-struct RevisionDigest {
-    digest: Sha256,
-    buffer: Vec<u8>,
-}
-
-impl RevisionDigest {
-    fn update(&mut self, value: impl serde::Serialize) -> Result<()> {
-        let start = self.buffer.len();
-        if let Err(error) = serde_json::to_writer(&mut self.buffer, &value) {
-            self.buffer.truncate(start);
-            return Err(error.into());
-        }
-        if self.buffer.len() >= 65536 {
-            self.flush();
-        }
-        Ok(())
-    }
-
-    fn flush(&mut self) {
-        self.digest.update(&self.buffer);
-        self.buffer.clear();
-    }
-
-    fn finish(mut self) -> String {
-        self.flush();
-        format!("{:x}", self.digest.finalize())
-    }
 }
 
 fn bounded_text(text: &str, max: usize) -> Value {

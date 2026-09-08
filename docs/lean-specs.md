@@ -67,7 +67,7 @@ It states properties of accepted and rejected plans and unchanged source prefixe
 
 `tests/lean_kernels.rs` compares the executable models with Rust over ASCII and Unicode corpora.
 It also checks plans from real refactoring commands.
-`tools/check-kernels.sh` builds the package with warnings as errors and runs all four executables.
+`tools/check-kernels.sh` builds the package with warnings as errors and runs all five executables.
 The full self-audits run in `tools/check.sh deep`.
 
 `FrKernels.History` adds snapshot acceptance, inverse laws, mixed-state recovery and undo/redo stack laws.
@@ -206,6 +206,50 @@ These are model proofs with tested implementation correspondence.
 The page model represents the caller's allocation loop; it has no separate source anchor.
 General Rust correspondence, UTF-8 library internals, parser spans and JSON report assembly remain unproved.
 JSON escaping and metadata lie outside the raw source-text budget.
+
+## Revision buffer kernels
+
+`FrKernels.Digest` models the revision buffer as emitted and pending byte lists.
+Successful writes append complete serialized fragments; failed writes append a partial fragment and truncate it back to the prior length.
+A successful write flushes when pending length reaches the threshold. Explicit flushes move pending bytes to the emitted stream.
+Finalization flushes the remainder. These definitions model buffering after serialization supplies bytes, without modeling the serializer itself.
+
+Twenty-one theorems establish:
+
+- Flushing preserves ordered bytes, empties the pending buffer and is idempotent.
+- Threshold checks preserve bytes and leave pending length below every positive threshold after a successful write.
+- Failed writes restore the prior state and preserve subsequent processing, regardless of partial output size.
+- Successful writes append bytes in order; arbitrary operation sequences retain exactly their successful fragments.
+- Sequences compose, preserve the pending-length bound and finalize to the initial bytes followed by all successful bytes.
+- Changing thresholds or inserting explicit flushes preserves final bytes.
+- An abstract incremental digest has the same result across thresholds when its update function obeys the stated chunk-composition law.
+
+The byte laws hold for lists over any element type and thresholds over natural numbers, including zero where no positive bound is claimed.
+The digest law assumes `update seed (left ++ right) = update (update seed left) right`.
+This is an explicit theorem premise, not a new axiom or a proof about SHA-256 internals.
+The axiom audit for all twenty-one theorems reports only `propext` and `Quot.sound`; several need no axioms.
+
+`tests/lean_digest.rs` compiles the same private Rust source module that project construction uses.
+It compares 1,570 states across 404 sequences with `fr-digest-kernel` and an independent oracle of explicit JSON bytes.
+Four hundred sequences enumerate all zero-through-three-operation combinations from seven operations.
+They cover null, booleans, empty strings, Unicode and escaped newlines, the largest unsigned 64-bit integer, partial failures and explicit flushes.
+Four longer sequences exercise pending lengths just below, at and above 65,536 bytes, plus a 100,000-character record.
+Each includes a failure after writing a 100,000-character partial string, subsequent writes and repeated flushes.
+Every state checks exact pending bytes, the digest of emitted bytes, the final digest and the successful-byte oracle.
+
+The Rust comparison uses the production threshold of 65,536 bytes. General threshold laws belong to the Lean model.
+Post-operation pending length differs from allocation capacity: a serialized item can exceed the threshold, and Rust retains the largest buffer allocation.
+The model does not cover allocation failures, panics, serializer correctness, SHA-256 internals or project revision-input selection.
+It has no separate source anchor or proof that Rust refines every model operation; the shared executions establish correspondence on their cases.
+The existing twenty-three source anchors retain their separate scope.
+
+```sh
+CARGO_HOME="$PWD/target/cargo-home" CARGO_NET_OFFLINE=true cargo test --test lean_digest
+```
+
+`tools/check-kernels.sh` builds the model and runs its corpus; the default native gate runs the Rust comparison.
+Inspect a theorem's dependencies with `#print axioms FrKernels.Digest.digest_view_preserves_thresholds` in a file importing `FrKernels.Digest`.
+The [M4s timing report](project-context-evaluation.md#batched-revision-hashing) remains historical evidence; M4t introduces no timing or context-saving claim.
 
 ## Adopting Lean in another project today
 
