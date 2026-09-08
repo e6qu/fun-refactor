@@ -1,6 +1,7 @@
 """Regressions for acceptance grading and evidence boundaries, without an agent service."""
 
 import copy
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -34,6 +35,94 @@ batch_spec.loader.exec_module(batch_measurement)
 checks_policy_spec = importlib.util.spec_from_file_location("checks_policy_measurement", TOOLS / "checks-policy-context.py")
 checks_policy = importlib.util.module_from_spec(checks_policy_spec)
 checks_policy_spec.loader.exec_module(checks_policy)
+
+context_spec = importlib.util.spec_from_file_location("agent_context_protocol", TOOLS / "agent-context-protocol.py")
+context_protocol = importlib.util.module_from_spec(context_spec)
+context_spec.loader.exec_module(context_protocol)
+
+
+class ContextProtocolEvidence(unittest.TestCase):
+    def payload(self, result):
+        return json.dumps({"exit_code": 0, "result": result, "stdout_omitted_bytes": 0,
+                           "stderr": "", "stderr_omitted_bytes": 0})
+
+    def event(self, args, result):
+        return {"request": {"tool": "fr", "args": args}, "visible": self.payload(result),
+                "elapsed_seconds": 0.1}
+
+    def test_related_project_response_reconstructs_exactly(self):
+        common = {"revision": "0" * 64, "handle_prefix": "frp1:" + "0" * 32 + ":",
+                  "coverage": {"indexed_files": 2}}
+        first = {**common, "schema": "fr-project-1", "query": "map", "rows": []}
+        second = {**common, "schema": "fr-project-1", "query": "find", "rows": [["x"]]}
+        events = [self.event(["project", "map"], first), self.event(["project", "find", "x"], second)]
+        outputs, requests, _ = context_protocol.project_events(events, [event["visible"] for event in events])
+        reviewed = json.loads(outputs[0])["result"]
+        compact = json.loads(outputs[1])["result"]
+        self.assertEqual(compact["context_basis"], reviewed["context_basis"])
+        self.assertEqual(compact.pop("context_omitted"), list(context_protocol.PROJECT_FIELDS))
+        for field in context_protocol.PROJECT_FIELDS:
+            self.assertNotIn(field, compact)
+            compact[field] = reviewed[field]
+        expected = copy.deepcopy(second)
+        expected["context_basis"] = reviewed["context_basis"]
+        self.assertEqual(compact, expected)
+        self.assertEqual(requests[1]["args"][-2:], ["--context-basis", reviewed["context_basis"]])
+
+    def test_author_transaction_basis_reconstructs_forward_history_diff(self):
+        common = {"revision": "0" * 64, "handle_prefix": "frp1:" + "0" * 32 + ":",
+                  "coverage": {"indexed_files": 1}}
+        changes = [{"path": "app.rs", "before_exists": True, "after_exists": True,
+                    "before_mode": 420, "after_mode": 420, "diff": "pπtch"}]
+        author = {**common, "schema": "fr-author-1", "query": "replace-body",
+                  "transaction": 1, "diff": "pπtch"}
+        patch = {"id": 1, "record_basis": "a" * 64}
+        preview = {"transaction": 1, "action": "redo", "applied": False, "changes": changes}
+        smaller = copy.deepcopy(changes)
+        smaller[0].pop("diff")
+        completion = {"transaction": 1, "action": "redo", "applied": True,
+                      "changes": smaller, "diffs_omitted": True}
+        events = [self.event(["author", "replace-body"], author),
+                  self.event(["history", "patch", "1"], patch),
+                  self.event(["history", "redo", "1"], preview),
+                  self.event(["history", "redo", "1", "--write", "--no-diff"], completion)]
+        outputs, requests, _ = context_protocol.project_events(events, [event["visible"] for event in events])
+        reviewed = json.loads(outputs[0])["result"]
+        compact = json.loads(outputs[3])["result"]
+        self.assertEqual(compact["context_omitted"], list(context_protocol.HISTORY_FIELDS))
+        reconstructed = copy.deepcopy(compact)
+        reconstructed.pop("context_omitted")
+        reconstructed.pop("context_basis")
+        reviewed_diff = reviewed["diff"].encode()
+        offset = 0
+        for change in reconstructed["changes"]:
+            size = change.pop("diff_bytes")
+            change["diff"] = reviewed_diff[offset:offset + size].decode()
+            offset += size
+        self.assertEqual(offset, len(reviewed_diff))
+        expected = copy.deepcopy(preview)
+        expected["applied"] = True
+        self.assertEqual(reconstructed, expected)
+        self.assertEqual(requests[3]["args"][-2:],
+                         ["--context-basis", reviewed["transaction_context_basis"]])
+
+    def test_patch_projection_preserves_exact_artifact_identity(self):
+        patch = "diff --git a/app.rs b/app.rs\n+π\n"
+        report = {"id": 1, "record_basis": "a" * 64, "patch": patch}
+        event = self.event(["history", "patch", "1"], report)
+        outputs, requests, _ = context_protocol.project_events([event], [event["visible"]])
+        compact = json.loads(outputs[0])["result"]
+        self.assertNotIn("patch", compact)
+        self.assertEqual(compact["patch_bytes"], len(patch.encode()))
+        self.assertEqual(compact["patch_sha256"], hashlib.sha256(patch.encode()).hexdigest())
+        self.assertEqual(requests[0]["args"][-2:],
+                         ["--output", "../artifacts/change.patch"])
+
+    def test_complete_frozen_projection_preserves_all_passing_trials(self):
+        report = context_protocol.measure(None)
+        self.assertTrue(report["passed"])
+        self.assertEqual(len(report["trials"]), 4)
+        self.assertTrue(all(trial["recorded_passed"] for trial in report["trials"]))
 
 
 class CheckPolicyEvidence(unittest.TestCase):
@@ -543,10 +632,28 @@ class Boundaries(unittest.TestCase):
                 harness.save(trial / "result.json", {"passed": False})
                 (trial / "prompt.txt").write_text("Synthetic task")
                 (trial / "events.jsonl").write_text("")
+                for filename in harness.CODEX_PROVENANCE_FILES:
+                    (trial / filename).write_text(f"retained {filename}\n")
             output = root / "evidence"
-            harness.record(root, output, execution_note="Synthetic regression; no agents")
+            implementation = harness.git(harness.ROOT, "rev-parse", "HEAD").stdout.decode().strip()
+            harness.record(
+                root,
+                output,
+                execution_note="Synthetic regression; no agents",
+                implementation_commit=implementation,
+            )
             self.assertFalse((output / names[0] / "change.patch").exists())
             self.assertFalse(json.loads((output / names[0] / "result.json").read_text())["passed"])
+            manifest = json.loads((output / "manifest.json").read_text())
+            self.assertEqual(manifest["implementation_commit"], implementation)
+            self.assertEqual(
+                manifest["acceptance"],
+                {"passed": False, "failed_trials": names},
+            )
+            for filename in harness.CODEX_PROVENANCE_FILES:
+                copied = output / names[0] / filename
+                self.assertEqual(copied.read_text(), f"retained {filename}\n")
+                self.assertEqual(manifest["files"][f"{names[0]}/{filename}"], harness.digest(copied.read_bytes()))
             with self.assertRaisesRegex(ValueError, "Recorded trial failed"):
                 harness.replay(output)
 

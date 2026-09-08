@@ -163,13 +163,14 @@ def source_workflow(exercise, root):
     git(receiver, "commit", "-qm", "receiver")
     receiving_index = (receiver / ".git/index").read_bytes()
     exercise.values["<RECEIVER>"] = str(receiver)
+    exercise.values["<PATCH>"] = str(root.parent / "change.patch")
 
     path = reference / "git.md"
     patch = None
     for command in commands(path):
         value = exercise.example(root, path, command)
         if "patch" in command and "--git-check" not in command:
-            patch = value["patch"].encode()
+            patch = (value.get("patch") or Path(value["output"]).read_text()).encode()
     assert patch and b"welcome" in patch
     git(receiver, "apply", "--check", "-", input_bytes=patch)
     git(receiver, "apply", "-", input_bytes=patch)

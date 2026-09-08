@@ -10,8 +10,9 @@ use crate::scan::{scan, ScanOptions};
 use crate::span::{LineCol, LineIndex};
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Whether [`emit`] ends the write with a newline.
 enum Newline {
@@ -88,6 +89,14 @@ struct Cli {
     /// Store a checked change plan for later application through `fr history`.
     #[arg(long, global = true)]
     save_plan: bool,
+
+    #[arg(
+        long,
+        global = true,
+        value_name = "BASIS",
+        help = "Omit project or forward-transaction context previously reviewed under this basis."
+    )]
+    context_basis: Option<String>,
 
     #[command(subcommand)]
     command: Command,
@@ -538,6 +547,13 @@ enum HistoryCommand {
             help = "Receiving directory; defaults to the history workspace."
         )]
         against: Option<PathBuf>,
+        #[arg(
+            long,
+            value_name = "FILE",
+            conflicts_with_all = ["check", "git_check"],
+            help = "Write a new patch artifact and return bounded JSON metadata."
+        )]
+        output: Option<PathBuf>,
     },
     /// Inspect one transaction without printing stored source snapshots.
     Show { id: u64 },
@@ -813,6 +829,14 @@ fn exit_code(error: &anyhow::Error) -> i32 {
 }
 
 fn dispatch(cli: &Cli) -> Result<()> {
+    if cli.context_basis.is_some()
+        && !matches!(
+            cli.command,
+            Command::Project { .. } | Command::Author { .. } | Command::History { .. }
+        )
+    {
+        anyhow::bail!("--context-basis requires a project, author or history transition command.");
+    }
     if cli.save_plan
         && !matches!(
             &cli.command,
@@ -1322,6 +1346,33 @@ fn workspace_diff(cli: &Cli, outcome: &crate::edit::FileOutcome) -> String {
     )
 }
 
+fn write_patch_artifact(root: &Path, requested: &Path, patch: &str) -> Result<()> {
+    let root = root.canonicalize()?;
+    let workspace = if root.is_file() {
+        root.parent().context("file root has no parent")?
+    } else {
+        &root
+    };
+    let path = if requested.is_absolute() {
+        requested.to_path_buf()
+    } else {
+        workspace.join(requested)
+    };
+    let parent = path.parent().context("patch output has no parent")?;
+    anyhow::ensure!(parent.is_dir(), "patch output parent does not exist");
+    match std::fs::symlink_metadata(&path) {
+        Ok(_) => anyhow::bail!("patch output already exists: {}", path.display()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => return Err(error.into()),
+    }
+    let mut temporary = tempfile::NamedTempFile::new_in(parent)?;
+    use std::io::Write;
+    temporary.write_all(patch.as_bytes())?;
+    temporary.flush()?;
+    temporary.persist_noclobber(&path)?;
+    Ok(())
+}
+
 /// The project `start` sits inside, when that is somewhere above `start`.
 fn enclosing_project(start: &std::path::Path) -> Option<PathBuf> {
     const MARKERS: &[&str] = &[
@@ -1609,22 +1660,38 @@ fn persist_changes(
     write: bool,
     validation: &str,
 ) -> Result<Option<u64>> {
+    Ok(persist_changes_with_status(cli, changes, write, validation)?.map(|result| result.id))
+}
+
+fn persist_changes_with_status(
+    cli: &Cli,
+    changes: &[crate::edit::FileChange<'_>],
+    write: bool,
+    validation: &str,
+) -> Result<Option<crate::history::RecordResult>> {
     if write && cli.save_plan {
         anyhow::bail!("choose --save-plan or --write, not both");
     }
     if !write && !cli.save_plan {
         return Ok(None);
     }
-    let id = crate::history::record(&cli.root, changes, write, validation)?;
-    if let Some(id) = id {
+    let result = crate::history::record_with_status(&cli.root, changes, write, validation)?;
+    if let Some(result) = result {
         if !cli.json {
             eprintln!(
-                "Transaction {id}: {}",
-                if write { "applied" } else { "saved plan" }
+                "Transaction {}: {}",
+                result.id,
+                if write {
+                    "applied"
+                } else if result.created {
+                    "saved plan"
+                } else {
+                    "reused identical plan"
+                }
             );
         }
     }
-    Ok(id)
+    Ok(result)
 }
 
 fn with_project(
@@ -1646,8 +1713,10 @@ fn with_project(
 
 fn cmd_project(cli: &Cli, command: &crate::project::Command) -> Result<()> {
     with_project(cli, |project, root| {
-        let report = project.report(command)?;
+        let context = project.response_context(cli.context_basis.as_deref())?;
+        let mut report = project.report(command)?;
         project.verify(root)?;
+        context.apply(&mut report)?;
         println!("{}", serde_json::to_string(&report)?);
         Ok(())
     })
@@ -1666,6 +1735,7 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
         "choose --save-plan or --write, not both."
     );
     with_project(cli, |project, root| {
+        let context = project.response_context(cli.context_basis.as_deref())?;
         let mut plan = match command {
             Command::ReplaceBody(options) => project.replace_body(options)?,
             Command::ReplaceDeclaration(options) => project.replace_declaration(options)?,
@@ -1679,7 +1749,7 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
             .map(|outcome| workspace_diff(cli, outcome))
             .collect::<String>();
         plan.set_diff(&diff, diff_bytes);
-        let transaction = persist_changes(
+        let recorded = persist_changes_with_status(
             cli,
             &outcomes
                 .iter()
@@ -1688,9 +1758,19 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
             write,
             "reparse-strict",
         )?;
+        let transaction = recorded.map(|result| result.id);
         plan.report["transaction"] = serde_json::json!(transaction);
         plan.report["applied"] = serde_json::json!(write && transaction.is_some());
-        plan.report["saved"] = serde_json::json!(cli.save_plan && transaction.is_some());
+        plan.report["saved"] =
+            serde_json::json!(cli.save_plan && recorded.is_some_and(|result| result.created));
+        if recorded.is_some_and(|result| !result.created) {
+            plan.report["reused_transaction"] = serde_json::json!(true);
+        }
+        if let Some(id) = transaction.filter(|_| plan.report["diff"].is_string()) {
+            plan.report["transaction_context_basis"] =
+                serde_json::json!(crate::history::record_context_basis(root, id)?);
+        }
+        context.apply(&mut plan.report)?;
         println!("{}", serde_json::to_string(&plan.report)?);
         Ok(())
     })
@@ -1698,6 +1778,19 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
 
 fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
     use crate::history::Action;
+    if cli.context_basis.is_some()
+        && !matches!(
+            command,
+            Some(
+                HistoryCommand::Apply { .. }
+                    | HistoryCommand::Undo { .. }
+                    | HistoryCommand::Redo { .. }
+                    | HistoryCommand::Recover { .. }
+            )
+        )
+    {
+        anyhow::bail!("--context-basis requires an apply, undo, redo or recover history command.");
+    }
     if let Some(HistoryCommand::Patch {
         id,
         reverse,
@@ -1705,6 +1798,7 @@ fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
         git_check,
         index,
         against,
+        output,
     }) = command
     {
         if *git_check {
@@ -1731,6 +1825,17 @@ fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
             return Ok(());
         }
         let report = crate::history::export_patch(&cli.root, *id, *reverse)?;
+        if let Some(requested) = output {
+            write_patch_artifact(&cli.root, requested, &report.patch)?;
+            let mut value = serde_json::to_value(&report)?;
+            value.as_object_mut().unwrap().remove("patch");
+            value["patch_bytes"] = serde_json::json!(report.patch.len());
+            value["patch_sha256"] =
+                serde_json::json!(format!("{:x}", Sha256::digest(report.patch.as_bytes())));
+            value["output"] = serde_json::json!(requested);
+            println!("{}", serde_json::to_string_pretty(&value)?);
+            return Ok(());
+        }
         if cli.json {
             println!("{}", serde_json::to_string_pretty(&report)?);
         } else {
@@ -1742,18 +1847,38 @@ fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
         return Ok(());
     }
     let report = match command {
-        Some(HistoryCommand::Apply { id, write, no_diff }) => {
-            crate::history::act_with_diff(&cli.root, Action::Apply, *id, *write, !no_diff)?
-        }
-        Some(HistoryCommand::Undo { id, write, no_diff }) => {
-            crate::history::act_with_diff(&cli.root, Action::Undo, *id, *write, !no_diff)?
-        }
-        Some(HistoryCommand::Redo { id, write, no_diff }) => {
-            crate::history::act_with_diff(&cli.root, Action::Redo, *id, *write, !no_diff)?
-        }
-        Some(HistoryCommand::Recover { id, write, no_diff }) => {
-            crate::history::act_with_diff(&cli.root, Action::Recover, *id, *write, !no_diff)?
-        }
+        Some(HistoryCommand::Apply { id, write, no_diff }) => crate::history::act_with_context(
+            &cli.root,
+            Action::Apply,
+            *id,
+            *write,
+            !no_diff,
+            cli.context_basis.as_deref(),
+        )?,
+        Some(HistoryCommand::Undo { id, write, no_diff }) => crate::history::act_with_context(
+            &cli.root,
+            Action::Undo,
+            *id,
+            *write,
+            !no_diff,
+            cli.context_basis.as_deref(),
+        )?,
+        Some(HistoryCommand::Redo { id, write, no_diff }) => crate::history::act_with_context(
+            &cli.root,
+            Action::Redo,
+            *id,
+            *write,
+            !no_diff,
+            cli.context_basis.as_deref(),
+        )?,
+        Some(HistoryCommand::Recover { id, write, no_diff }) => crate::history::act_with_context(
+            &cli.root,
+            Action::Recover,
+            *id,
+            *write,
+            !no_diff,
+            cli.context_basis.as_deref(),
+        )?,
         other => {
             let history = crate::history::History::read(&cli.root)?;
             let records = if let Some(HistoryCommand::Show { id }) = other {
@@ -1768,6 +1893,7 @@ fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
                         "paths": r.changes.iter().map(|c| &c.path).collect::<Vec<_>>()
                     });
                     if other.is_some() {
+                        record["context_basis"] = serde_json::json!(format!("frtb1:{}", r.basis));
                         record["changes"] = serde_json::json!(r.changes.iter().map(|c| serde_json::json!({
                             "path": c.path, "before_exists": c.before.is_some(), "after_exists": c.after.is_some(),
                             "before_mode": c.before.as_ref().map(|s| s.mode), "after_mode": c.after.as_ref().map(|s| s.mode),

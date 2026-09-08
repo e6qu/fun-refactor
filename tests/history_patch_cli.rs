@@ -138,6 +138,35 @@ fn saved_plan_exports_without_git_and_applies_without_disturbing_unrelated_chang
 }
 
 #[test]
+fn writes_a_new_patch_artifact_with_bounded_identity_metadata() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    fs::write(root.join("app.rs"), "fn helper() {}\n").unwrap();
+    success(fr(root, &["rename", "helper", "renamed", "--save-plan"]));
+    let expected = success(fr(root, &["history", "patch", "1"]));
+    let report: Value = serde_json::from_slice(&success(fr(
+        root,
+        &["history", "patch", "1", "--output", "change.patch"],
+    )))
+    .unwrap();
+    assert!(report.get("patch").is_none());
+    assert_eq!(report["patch_bytes"], expected.len());
+    assert_eq!(report["output"], "change.patch");
+    assert_eq!(fs::read(root.join("change.patch")).unwrap(), expected);
+    assert_eq!(report["patch_sha256"].as_str().unwrap().len(), 64);
+
+    let journal = fs::read(root.join(".fr-history/state.json")).unwrap();
+    let refused = fr(root, &["history", "patch", "1", "--output", "change.patch"]);
+    assert!(!refused.status.success());
+    assert!(String::from_utf8_lossy(&refused.stderr).contains("already exists"));
+    assert_eq!(fs::read(root.join("change.patch")).unwrap(), expected);
+    assert_eq!(
+        fs::read(root.join(".fr-history/state.json")).unwrap(),
+        journal
+    );
+}
+
+#[test]
 fn basis_check_reports_receiving_content_existence_and_permission_differences() {
     let source = tempfile::tempdir().unwrap();
     let receiving = tempfile::tempdir().unwrap();

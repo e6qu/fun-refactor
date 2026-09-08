@@ -43,6 +43,56 @@ fn fixture() -> tempfile::TempDir {
     dir
 }
 
+fn reconstruct_context(mut compact: Value, reviewed: &Value) -> Value {
+    assert_eq!(compact["context_basis"], reviewed["context_basis"]);
+    assert_eq!(
+        compact["context_omitted"],
+        serde_json::json!(["coverage", "handle_prefix", "revision"])
+    );
+    compact.as_object_mut().unwrap().remove("context_omitted");
+    for field in ["coverage", "handle_prefix", "revision"] {
+        assert!(compact
+            .as_object_mut()
+            .unwrap()
+            .insert(field.into(), reviewed[field].clone())
+            .is_none());
+    }
+    compact
+}
+
+#[test]
+fn context_basis_compacts_related_queries_and_rejects_stale_projects() {
+    let dir = fixture();
+    let reviewed = ok(dir.path(), &["project", "map"]);
+    let basis = reviewed["context_basis"].as_str().unwrap();
+    assert!(basis.starts_with("frcb1:"));
+
+    let full = ok(dir.path(), &["project", "find", "run"]);
+    let compact = ok(
+        dir.path(),
+        &["project", "find", "run", "--context-basis", basis],
+    );
+    assert!(compact.get("coverage").is_none());
+    assert!(compact.get("handle_prefix").is_none());
+    assert!(compact.get("revision").is_none());
+    assert_eq!(reconstruct_context(compact, &reviewed), full);
+
+    fs::write(
+        dir.path().join("src/lib.py"),
+        "def helper(name: str) -> str:\n    return name.upper()\n",
+    )
+    .unwrap();
+    let (success, error) = run(
+        dir.path(),
+        &["project", "find", "run", "--context-basis", basis],
+    );
+    assert!(!success, "{error}");
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("stale or conflicting context basis"));
+}
+
 #[test]
 fn find_source_matches_show_and_keeps_default_lookup_metadata() {
     let dir = fixture();

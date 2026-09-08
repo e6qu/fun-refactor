@@ -1,0 +1,3 @@
+Implemented `escape_len` in both crates and preallocated exact escape capacity.
+
+Validation passed for upstream and no-default-feature builds across baseline, changed, reversed, and reapplied states. Patch export/reapply and clean receiver verification succeeded.

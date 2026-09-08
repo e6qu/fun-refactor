@@ -27,6 +27,13 @@ It starts from the recorded result, regardless of the current history status.
 Alternatively, Git can reverse the forward patch with `git apply --reverse`.
 
 For agent consumption, `fr --json history patch 1` returns metadata and a `patch` string.
+To keep a large patch out of agent context, write a new artifact directly:
+
+```sh
+fr history patch 1 --output ../artifacts/change.patch
+```
+
+This mode returns JSON metadata with `patch_bytes`, `patch_sha256` and the requested `output` path, omits the patch string, and refuses to replace an existing path.
 Fields include transaction identity, status, validation label, direction, file count and format.
 `record_basis` always identifies the original transaction's before snapshots, even in a reverse export.
 It is a history digest, not a Git object ID or a claim about the receiving files.

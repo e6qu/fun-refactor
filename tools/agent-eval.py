@@ -13,8 +13,18 @@ import subprocess
 import tarfile
 import time
 
+
 from agent_eval.oracle import verify as verify_strsim
 from agent_eval import regex_workspace, regex_escape_len
+
+
+TRIAL_FILES = ("session.json", "prompt.txt", "events.jsonl", "result.json")
+CODEX_PROVENANCE_FILES = (
+    "codex-events.jsonl",
+    "codex-stderr.txt",
+    "codex-final.txt",
+    "codex-run.json",
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 ARCHIVE = ROOT / "tests/agent-eval/strsim-0.11.1.crate"
@@ -125,7 +135,7 @@ def prompt(session, task, arm):
         "Use ordinary files, read, search and replace tools for source exploration and edits. Do not use fr project/author/history commands. The shared fr checks command is available for identical project validation. Export and reverse/reapply your patch through the ordinary Git tools."
     )
     if task == regex_escape_len.TASK and arm == "fr":
-        surface += " Coordinate the edits in one author batch saved transaction, and export, undo and redo that transaction."
+        surface += " Coordinate the edits in one author batch saved transaction, and export, undo and redo that transaction. Retain the first full project context_basis and use it on related project and author calls. Retain the complete author diff and its transaction_context_basis; use that basis to compact forward apply and redo reports. Preview reverse transitions in full."
     return f"""You are an independent acceptance-test agent. Complete this code task in the supplied unfamiliar pinned public project: {TASKS[task]}
 
 {surface}
@@ -144,13 +154,17 @@ Tool objects:
 {{"tool":"append","path":"src/lib.rs","text":"new function text"}} appends source (baseline only).
 {{"tool":"write","path":"fragment.rs","text":"{{ replacement block }}"}} writes artifacts/fragment.rs and returns its absolute path (both arms).
 {{"tool":"fr","args":["checks"]}} invokes fr with the project root, JSON and no cache. Use this for checks in both arms and project/author/history/git in the fr arm. --help is available.
-{{"tool":"export"}} saves and shows a Git diff as artifacts/change.patch (baseline only). In the fr arm, fr history patch TX automatically saves its returned patch there.
+{{"tool":"export"}} saves and shows a Git diff as artifacts/change.patch (baseline only). In the fr arm, use history patch TX --output ../artifacts/change.patch to retain the patch while returning only its identity and size.
 {{"tool":"reverse"}} / {{"tool":"apply"}} reverses/reapplies that saved Git patch (baseline only).
 {{"tool":"sentinel"}} adds an unrelated edit after the requested change; it must survive reversal and reapplication.
 {{"tool":"receiver"}} checks and applies the saved patch in a clean separate receiver and compares tracked content with your project.
 {{"tool":"finish","summary":"..."}} records your final conclusion; independent oracles run later.
 
 Workflow: inspect; list and run declared checks on the original; implement the task; run checks on the change; export the patch; add the sentinel; undo and check; redo and check; verify the receiver; finish. fr arm: preview/save/apply an authoring transaction and use history undo/redo. Run all declared checks together at each validation stage using --run with comma-separated names; every run needs the configuration basis from its listing. Keep project handles revision-bound when using them. Keep tool output bounded and request only relevant context. Leave the requested change applied. Report uncertainty and tool refusals honestly.
+
+Execute each successful workflow step once. Do not repeat a successful skill read, listing, saved plan, mutation, patch export, check, or receiver call. Preserve the order above, including the original-state check before any edit and the final-state check before receiver verification.
+
+For every successful check run, pass --quiet-success --no-declarations --output-bytes 2048 after reviewing the listing. Failure diagnostics stay bounded and visible. The instrumented fr tool disables its fact cache for every arm and stage; do not add a separate cache warm-up or change that policy.
 
 The harness records visible tool payload tokens, calls, latency and final correctness. It does not measure your hidden reasoning, system context or billed tokens. The task directory is {session / 'project'}.
 """
@@ -543,26 +557,32 @@ def audit_tokens(directory):
     return {"passed": True, "trials": audited}
 
 
-def record(sessions, directory, pilots=None, execution_note=None):
+def record(sessions, directory, pilots=None, execution_note=None, implementation_commit=None):
     experiment = sessions / "experiment.json"
     design = json.loads(experiment.read_text()) if experiment.is_file() else {
         "project": "strsim", "repetitions": 1, "trials": [name for name, _, _, _ in trial_names("strsim", 1)]}
     expected = [name for name, _, _, _ in trial_names(design["project"], design["repetitions"])]
     if design["trials"] != expected:
         raise ValueError("Experiment does not contain every planned paired repetition")
+    scores = {}
     for name in expected:
         result = json.loads((sessions / name / "result.json").read_text())
         if not isinstance(result.get("passed"), bool):
             raise ValueError(f"Score every completed trial before recording evidence: {name}")
         if result["passed"] and not (sessions / name / "artifacts/change.patch").is_file():
             raise ValueError(f"Passing trial lacks its exported patch: {name}")
+        scores[name] = result["passed"]
     directory.mkdir(parents=True, exist_ok=False)
     trials = []
     for name in expected:
         source, destination = sessions / name, directory / name
         destination.mkdir()
-        for filename in ("session.json", "prompt.txt", "events.jsonl", "result.json"):
+        for filename in TRIAL_FILES:
             shutil.copyfile(source / filename, destination / filename)
+        for filename in CODEX_PROVENANCE_FILES:
+            path = source / filename
+            if path.is_file():
+                shutil.copyfile(path, destination / filename)
         patch = source / "artifacts/change.patch"
         if patch.is_file():
             shutil.copyfile(patch, destination / "change.patch")
@@ -578,15 +598,31 @@ def record(sessions, directory, pilots=None, execution_note=None):
                 continue
             destination = directory / "pilots" / source.name
             destination.mkdir(parents=True)
-            for filename in ("session.json", "prompt.txt", "events.jsonl"):
+            for filename in TRIAL_FILES:
+                if not (source / filename).is_file():
+                    continue
                 shutil.copyfile(source / filename, destination / filename)
+            for filename in CODEX_PROVENANCE_FILES:
+                path = source / filename
+                if path.is_file():
+                    shutil.copyfile(path, destination / filename)
             pilot_names.append(source.name)
+    implementation = git(
+        ROOT,
+        "rev-parse",
+        "--verify",
+        f"{implementation_commit or 'HEAD'}^{{commit}}",
+    ).stdout.decode().strip()
     save(directory / "manifest.json", {
         "schema": "fr-agent-eval-evidence-1", "trials": trials,
         "project": selected["project"], "upstream_commit": selected["upstream_commit"], "archive_sha256": selected["archive_sha256"],
         "dependency_lock_sha256": selected.get("dependency_lock_sha256"),
-        "implementation_commit": git(ROOT, "rev-parse", "HEAD").stdout.decode().strip(),
+        "implementation_commit": implementation,
         "agent_execution": execution_note or "Runtime provenance not supplied; consult individual trial transcripts.",
+        "acceptance": {
+            "passed": all(scores.values()),
+            "failed_trials": [name for name, passed in scores.items() if not passed],
+        },
         "pilots": {"interrupted": pilot_names, "reason": "Cargo inherited the containing fr workspace; no valid baseline build. Restarted outside Cargo projects after preflight." if pilot_names else None, "included_in_scored_trials": False},
         "versions": {tool: subprocess.check_output([tool, "--version"], text=True).strip() for tool in ("rustc", "cargo", "git", "python3")},
         "evaluator_files": {str(path.relative_to(ROOT)): digest(path.read_bytes()) for path in
@@ -618,6 +654,10 @@ def main():
     record_parser.add_argument("directory", type=Path)
     record_parser.add_argument("--pilots", type=Path)
     record_parser.add_argument("--execution-note", help="Actual agent runtime, isolation and intervention details.")
+    record_parser.add_argument(
+        "--implementation-commit",
+        help="Commit used to build the evaluated fr binary; defaults to HEAD.",
+    )
     args = parser.parse_args()
     if args.command == "prepare":
         prepare(args.out.resolve(), args.fr.resolve(), args.project, args.repetitions)
@@ -630,7 +670,13 @@ def main():
     elif args.command == "audit-tokens":
         print(json.dumps(audit_tokens(args.directory.resolve()), indent=2))
     else:
-        record(args.sessions.resolve(), args.directory.resolve(), args.pilots.resolve() if args.pilots else None, args.execution_note)
+        record(
+            args.sessions.resolve(),
+            args.directory.resolve(),
+            args.pilots.resolve() if args.pilots else None,
+            args.execution_note,
+            args.implementation_commit,
+        )
 
 
 if __name__ == "__main__":

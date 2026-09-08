@@ -32,6 +32,7 @@ An explicitly file-scoped lookup already returns its file handle in `root`; inse
 Unscoped and directory-scoped roots cannot substitute for file handles. A file map remains available when the needed handle is missing.
 The check example uses `--quiet-success` and retains diagnostics for failed commands.
 History writes use `--no-diff` after reviewing the saved plan or transition preview, retaining completion metadata without repeated diff text.
+Project and author calls can reuse a reviewed `context_basis`. A complete saved author diff provides a separate transaction basis for compact forward apply and redo reports.
 The introductory lookup guidance distinguishes a full name from a fragment, which needs `--contains`.
 
 ## Executable evidence
@@ -74,13 +75,13 @@ The initial measurements were:
 | Measure | UTF-8 bytes |
 |---|---:|
 | Skill entrypoint | 2,120 |
-| All five optional references | 11,680 |
+| References exercised by the initial fixture | 11,680 |
 | Exploration command output | 11,223 |
 | Fixture Python source | 66,735 |
 
 These initial figures describe a synthetic project with deliberately unrelated background source.
 They are not model token counts or evidence of autonomous agent success.
-Path lengths and later documentation changes can change the byte counts; the checker prints fresh measurements.
+Path lengths and later documentation changes can change the byte counts; the checker prints fresh measurements. The PR 1 entrypoint is currently 1,611 bytes.
 The native packaging change has a local archive check; release uploads and other platform builds require their normal release jobs.
 
 The [first real-agent evaluation](agent-acceptance.md) now records two fr tasks and their ordinary-file comparisons on a pinned public Rust release.

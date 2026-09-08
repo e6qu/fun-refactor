@@ -24,7 +24,7 @@ pub struct Options {
     #[arg(
         long,
         requires = "run",
-        help = "Configuration digest from the reviewed check listing."
+        help = "Configuration digest, or at least 32 leading hex characters, from the reviewed listing."
     )]
     pub basis: Option<String>,
     #[arg(
@@ -222,7 +222,11 @@ pub fn report(root: &Path, options: &Options) -> Result<Value> {
     {
         bail!("Select existing check names once each; inspect fr checks first.");
     }
-    if !selected.is_empty() && options.basis.as_deref() != Some(&basis) {
+    let reviewed = options.basis.as_deref().is_some_and(|supplied| {
+        supplied == basis
+            || (supplied.len() >= 32 && supplied.len() < basis.len() && basis.starts_with(supplied))
+    });
+    if !selected.is_empty() && !reviewed {
         bail!("Check configuration basis is missing or stale; inspect fr checks before execution.");
     }
     let mut results = Vec::new();

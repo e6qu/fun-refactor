@@ -77,6 +77,28 @@ fn replace(root: &Path, handle: &str, input: &Path, flags: &[&str]) -> (bool, Va
     run(root, &args)
 }
 
+#[test]
+fn stale_context_basis_refuses_author_writes_and_saved_plans_before_persistence() {
+    for intent in ["--write", "--save-plan"] {
+        let original = "fn calc(n: i32) -> i32 { n + 1 }\n";
+        let (_temp, root, input) = fixture(original, b"{ n * 2 }");
+        let map = ok(&root, &["project", "map"]);
+        let basis = map["context_basis"].as_str().unwrap();
+        let (handle, _) = selection(&root, "calc");
+        let changed = "fn calc(n: i32) -> i32 { n + 2 }\n";
+        fs::write(root.join("app.rs"), changed).unwrap();
+
+        let (success, error) = replace(&root, &handle, &input, &[intent, "--context-basis", basis]);
+        assert!(!success, "{intent}: {error}");
+        assert!(error["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("stale or conflicting context basis"));
+        assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), changed);
+        assert!(!root.join(".fr-history").exists());
+    }
+}
+
 fn compiled_result(root: &Path) -> Vec<u8> {
     let output_path = root.parent().unwrap().join("compiled");
     let output = Command::new("rustc")
@@ -118,9 +140,25 @@ fn saves_reviewed_body_and_preserves_context_through_apply_undo_redo_and_patch()
     let (success, clipped) = replace(&root, &handle, &input, &["--diff-bytes", &budget]);
     assert!(success, "{clipped}");
     assert_eq!(clipped["diff"]["text"].as_str().unwrap().len(), unicode);
+    assert!(clipped.get("transaction_context_basis").is_none());
     let (success, saved) = replace(&root, &handle, &input, &["--save-plan"]);
     assert!(success, "{saved}");
+    assert!(saved["transaction_context_basis"]
+        .as_str()
+        .unwrap()
+        .starts_with("frtb1:"));
     let id = saved["transaction"].as_u64().unwrap().to_string();
+    let (success, reused) = replace(&root, &handle, &input, &["--save-plan"]);
+    assert!(success, "{reused}");
+    assert_eq!(reused["transaction"], saved["transaction"]);
+    assert_eq!(reused["saved"], false);
+    assert_eq!(reused["reused_transaction"], true);
+    let shown = ok(&root, &["history", "show", &id]);
+    assert_eq!(shown["records"].as_array().unwrap().len(), 1);
+    assert_eq!(
+        saved["transaction_context_basis"],
+        shown["records"][0]["context_basis"]
+    );
     fs::write(&input, b"{ 999 }").unwrap();
     ok(&root, &["history", "apply", &id, "--write"]);
     let changed = source.replace("{ n + 1 }", "{ n * 2 }");

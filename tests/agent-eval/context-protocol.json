@@ -1,0 +1,656 @@
+{
+  "schema": "fr-agent-context-protocol-projection-1",
+  "passed": true,
+  "evidence_manifest_sha256": "8966a31b2e449516ee2738916d5f91140a11a29052f3a731648b26cf55838f61",
+  "tokenizer": {
+    "package": "tiktoken",
+    "version": "0.12.0",
+    "encoding": "o200k_base",
+    "vocabulary_sha256": "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d"
+  },
+  "trials": [
+    {
+      "trial": "regex-escape-len-fr-r1",
+      "arm": "fr",
+      "repetition": 1,
+      "recorded_passed": true,
+      "recorded": {
+        "context": {
+          "bytes": 46747,
+          "tokens": 13539
+        },
+        "prompt": {
+          "bytes": 4402,
+          "tokens": 925
+        },
+        "visible_output": {
+          "bytes": 42345,
+          "tokens": 12614
+        },
+        "requests": {
+          "bytes": 4830,
+          "tokens": 1503
+        },
+        "categories": {
+          "skill": {
+            "bytes": 11947,
+            "tokens": 2851,
+            "seconds": 0.001
+          },
+          "inspection": {
+            "bytes": 9756,
+            "tokens": 3428,
+            "seconds": 51.757
+          },
+          "checks": {
+            "bytes": 7143,
+            "tokens": 2133,
+            "seconds": 8.752
+          },
+          "authoring": {
+            "bytes": 4637,
+            "tokens": 1535,
+            "seconds": 11.151
+          },
+          "delivery": {
+            "bytes": 8862,
+            "tokens": 2667,
+            "seconds": 1.362
+          }
+        },
+        "tool_calls": 29,
+        "tool_seconds": 73.023
+      },
+      "projected": {
+        "context": {
+          "bytes": 38601,
+          "tokens": 11531
+        },
+        "prompt": {
+          "bytes": 4402,
+          "tokens": 925
+        },
+        "visible_output": {
+          "bytes": 34199,
+          "tokens": 10606
+        },
+        "requests": {
+          "bytes": 5429,
+          "tokens": 1798
+        },
+        "categories": {
+          "skill": {
+            "bytes": 7711,
+            "tokens": 1962,
+            "seconds": 0.001
+          },
+          "inspection": {
+            "bytes": 8581,
+            "tokens": 3056,
+            "seconds": 51.757
+          },
+          "checks": {
+            "bytes": 7143,
+            "tokens": 2133,
+            "seconds": 8.752
+          },
+          "authoring": {
+            "bytes": 4318,
+            "tokens": 1440,
+            "seconds": 11.151
+          },
+          "delivery": {
+            "bytes": 6446,
+            "tokens": 2015,
+            "seconds": 1.362
+          }
+        },
+        "tool_calls": 29,
+        "tool_seconds": 73.023
+      },
+      "changed_events": [
+        {
+          "event_index": 0,
+          "fields": [
+            "visible.skill"
+          ]
+        },
+        {
+          "event_index": 1,
+          "fields": [
+            "visible.skill"
+          ]
+        },
+        {
+          "event_index": 2,
+          "fields": [
+            "visible.skill"
+          ]
+        },
+        {
+          "event_index": 4,
+          "fields": [
+            "result.context_basis"
+          ]
+        },
+        {
+          "event_index": 5,
+          "fields": [
+            "visible.skill"
+          ]
+        },
+        {
+          "event_index": 7,
+          "fields": [
+            "result.context_basis",
+            "result.coverage",
+            "result.handle_prefix",
+            "result.revision",
+            "result.context_omitted"
+          ]
+        },
+        {
+          "event_index": 8,
+          "fields": [
+            "result.context_basis",
+            "result.coverage",
+            "result.handle_prefix",
+            "result.revision",
+            "result.context_omitted"
+          ]
+        },
+        {
+          "event_index": 9,
+          "fields": [
+            "result.context_basis",
+            "result.coverage",
+            "result.handle_prefix",
+            "result.revision",
+            "result.context_omitted"
+          ]
+        },
+        {
+          "event_index": 14,
+          "fields": [
+            "result.context_basis",
+            "result.coverage",
+            "result.handle_prefix",
+            "result.revision",
+            "result.context_omitted",
+            "result.transaction_context_basis"
+          ]
+        },
+        {
+          "event_index": 16,
+          "fields": [
+            "visible.skill"
+          ]
+        },
+        {
+          "event_index": 18,
+          "fields": [
+            "result.patch",
+            "result.patch_bytes",
+            "result.patch_sha256",
+            "result.output"
+          ]
+        },
+        {
+          "event_index": 23,
+          "fields": [
+            "result.changes[].diff",
+            "result.changes[].diff_bytes",
+            "result.context_basis",
+            "result.context_omitted",
+            "result.diffs_omitted"
+          ]
+        },
+        {
+          "event_index": 24,
+          "fields": [
+            "result.changes[].diff",
+            "result.changes[].diff_bytes",
+            "result.context_basis",
+            "result.context_omitted",
+            "result.diffs_omitted"
+          ]
+        }
+      ]
+    },
+    {
+      "trial": "regex-escape-len-files-r1",
+      "arm": "files",
+      "repetition": 1,
+      "recorded_passed": true,
+      "recorded": {
+        "context": {
+          "bytes": 47947,
+          "tokens": 13487
+        },
+        "prompt": {
+          "bytes": 4284,
+          "tokens": 898
+        },
+        "visible_output": {
+          "bytes": 43663,
+          "tokens": 12589
+        },
+        "requests": {
+          "bytes": 2916,
+          "tokens": 859
+        },
+        "categories": {
+          "skill": {
+            "bytes": 0,
+            "tokens": 0,
+            "seconds": 0
+          },
+          "inspection": {
+            "bytes": 9585,
+            "tokens": 2768,
+            "seconds": 0.017
+          },
+          "checks": {
+            "bytes": 31087,
+            "tokens": 8974,
+            "seconds": 8.552
+          },
+          "authoring": {
+            "bytes": 0,
+            "tokens": 0,
+            "seconds": 0
+          },
+          "delivery": {
+            "bytes": 2991,
+            "tokens": 847,
+            "seconds": 0.105
+          }
+        },
+        "tool_calls": 19,
+        "tool_seconds": 8.674
+      },
+      "projected": {
+        "context": {
+          "bytes": 24017,
+          "tokens": 6646
+        },
+        "prompt": {
+          "bytes": 4284,
+          "tokens": 898
+        },
+        "visible_output": {
+          "bytes": 19733,
+          "tokens": 5748
+        },
+        "requests": {
+          "bytes": 2916,
+          "tokens": 859
+        },
+        "categories": {
+          "skill": {
+            "bytes": 0,
+            "tokens": 0,
+            "seconds": 0
+          },
+          "inspection": {
+            "bytes": 9585,
+            "tokens": 2768,
+            "seconds": 0.017
+          },
+          "checks": {
+            "bytes": 7157,
+            "tokens": 2133,
+            "seconds": 8.552
+          },
+          "authoring": {
+            "bytes": 0,
+            "tokens": 0,
+            "seconds": 0
+          },
+          "delivery": {
+            "bytes": 2991,
+            "tokens": 847,
+            "seconds": 0.105
+          }
+        },
+        "tool_calls": 19,
+        "tool_seconds": 8.674
+      },
+      "changed_events": []
+    },
+    {
+      "trial": "regex-escape-len-fr-r2",
+      "arm": "fr",
+      "repetition": 2,
+      "recorded_passed": true,
+      "recorded": {
+        "context": {
+          "bytes": 45022,
+          "tokens": 13018
+        },
+        "prompt": {
+          "bytes": 4402,
+          "tokens": 925
+        },
+        "visible_output": {
+          "bytes": 40620,
+          "tokens": 12093
+        },
+        "requests": {
+          "bytes": 4714,
+          "tokens": 1491
+        },
+        "categories": {
+          "skill": {
+            "bytes": 11947,
+            "tokens": 2851,
+            "seconds": 0.003
+          },
+          "inspection": {
+            "bytes": 8920,
+            "tokens": 3200,
+            "seconds": 56.054
+          },
+          "checks": {
+            "bytes": 7142,
+            "tokens": 2133,
+            "seconds": 10.882
+          },
+          "authoring": {
+            "bytes": 4772,
+            "tokens": 1592,
+            "seconds": 14.372
+          },
+          "delivery": {
+            "bytes": 7839,
+            "tokens": 2317,
+            "seconds": 1.526
+          }
+        },
+        "tool_calls": 28,
+        "tool_seconds": 82.836
+      },
+      "projected": {
+        "context": {
+          "bytes": 36620,
+          "tokens": 10927
+        },
+        "prompt": {
+          "bytes": 4402,
+          "tokens": 925
+        },
+        "visible_output": {
+          "bytes": 32218,
+          "tokens": 10002
+        },
+        "requests": {
+          "bytes": 5313,
+          "tokens": 1790
+        },
+        "categories": {
+          "skill": {
+            "bytes": 7711,
+            "tokens": 1962,
+            "seconds": 0.003
+          },
+          "inspection": {
+            "bytes": 7745,
+            "tokens": 2814,
+            "seconds": 56.054
+          },
+          "checks": {
+            "bytes": 7142,
+            "tokens": 2133,
+            "seconds": 10.882
+          },
+          "authoring": {
+            "bytes": 4453,
+            "tokens": 1492,
+            "seconds": 14.372
+          },
+          "delivery": {
+            "bytes": 5167,
+            "tokens": 1601,
+            "seconds": 1.526
+          }
+        },
+        "tool_calls": 28,
+        "tool_seconds": 82.836
+      },
+      "changed_events": [
+        {
+          "event_index": 0,
+          "fields": [
+            "visible.skill"
+          ]
+        },
+        {
+          "event_index": 1,
+          "fields": [
+            "visible.skill"
+          ]
+        },
+        {
+          "event_index": 2,
+          "fields": [
+            "visible.skill"
+          ]
+        },
+        {
+          "event_index": 3,
+          "fields": [
+            "visible.skill"
+          ]
+        },
+        {
+          "event_index": 5,
+          "fields": [
+            "result.context_basis"
+          ]
+        },
+        {
+          "event_index": 7,
+          "fields": [
+            "visible.skill"
+          ]
+        },
+        {
+          "event_index": 8,
+          "fields": [
+            "result.context_basis",
+            "result.coverage",
+            "result.handle_prefix",
+            "result.revision",
+            "result.context_omitted"
+          ]
+        },
+        {
+          "event_index": 9,
+          "fields": [
+            "result.context_basis",
+            "result.coverage",
+            "result.handle_prefix",
+            "result.revision",
+            "result.context_omitted"
+          ]
+        },
+        {
+          "event_index": 10,
+          "fields": [
+            "result.context_basis",
+            "result.coverage",
+            "result.handle_prefix",
+            "result.revision",
+            "result.context_omitted"
+          ]
+        },
+        {
+          "event_index": 15,
+          "fields": [
+            "result.context_basis",
+            "result.coverage",
+            "result.handle_prefix",
+            "result.revision",
+            "result.context_omitted",
+            "result.transaction_context_basis"
+          ]
+        },
+        {
+          "event_index": 18,
+          "fields": [
+            "result.patch",
+            "result.patch_bytes",
+            "result.patch_sha256",
+            "result.output"
+          ]
+        },
+        {
+          "event_index": 23,
+          "fields": [
+            "result.changes[].diff",
+            "result.changes[].diff_bytes",
+            "result.context_basis",
+            "result.context_omitted",
+            "result.diffs_omitted"
+          ]
+        },
+        {
+          "event_index": 24,
+          "fields": [
+            "result.changes[].diff",
+            "result.changes[].diff_bytes",
+            "result.context_basis",
+            "result.context_omitted",
+            "result.diffs_omitted"
+          ]
+        }
+      ]
+    },
+    {
+      "trial": "regex-escape-len-files-r2",
+      "arm": "files",
+      "repetition": 2,
+      "recorded_passed": true,
+      "recorded": {
+        "context": {
+          "bytes": 49076,
+          "tokens": 13818
+        },
+        "prompt": {
+          "bytes": 4284,
+          "tokens": 898
+        },
+        "visible_output": {
+          "bytes": 44792,
+          "tokens": 12920
+        },
+        "requests": {
+          "bytes": 2966,
+          "tokens": 890
+        },
+        "categories": {
+          "skill": {
+            "bytes": 0,
+            "tokens": 0,
+            "seconds": 0
+          },
+          "inspection": {
+            "bytes": 7307,
+            "tokens": 2135,
+            "seconds": 0.025
+          },
+          "checks": {
+            "bytes": 34651,
+            "tokens": 9967,
+            "seconds": 10.657
+          },
+          "authoring": {
+            "bytes": 0,
+            "tokens": 0,
+            "seconds": 0
+          },
+          "delivery": {
+            "bytes": 2834,
+            "tokens": 818,
+            "seconds": 0.177
+          }
+        },
+        "tool_calls": 22,
+        "tool_seconds": 10.859
+      },
+      "projected": {
+        "context": {
+          "bytes": 25146,
+          "tokens": 6974
+        },
+        "prompt": {
+          "bytes": 4284,
+          "tokens": 898
+        },
+        "visible_output": {
+          "bytes": 20862,
+          "tokens": 6076
+        },
+        "requests": {
+          "bytes": 2966,
+          "tokens": 890
+        },
+        "categories": {
+          "skill": {
+            "bytes": 0,
+            "tokens": 0,
+            "seconds": 0
+          },
+          "inspection": {
+            "bytes": 7307,
+            "tokens": 2135,
+            "seconds": 0.025
+          },
+          "checks": {
+            "bytes": 10721,
+            "tokens": 3123,
+            "seconds": 10.657
+          },
+          "authoring": {
+            "bytes": 0,
+            "tokens": 0,
+            "seconds": 0
+          },
+          "delivery": {
+            "bytes": 2834,
+            "tokens": 818,
+            "seconds": 0.177
+          }
+        },
+        "tool_calls": 22,
+        "tool_seconds": 10.859
+      },
+      "changed_events": []
+    }
+  ],
+  "summary": {
+    "bytes": {
+      "fr_mean": 37610.5,
+      "files_mean": 24581.5,
+      "fr_minus_files": 13029.0,
+      "fr_percent_difference": 53.003274820495086
+    },
+    "tokens": {
+      "fr_mean": 11229.0,
+      "files_mean": 6810.0,
+      "fr_minus_files": 4419.0,
+      "fr_percent_difference": 64.8898678414097
+    }
+  },
+  "measurement_files": {
+    "tools/agent-context-protocol.py": "8da3c8b00853825acf5c6a4c57aeeb95d0824b92f0652eb4f61a8a20bc9701be",
+    "tools/checks-policy-context.py": "b37ef3e212ee76c90cbfaf608a79e536ab8c6941f6fa0ca350c56b35170129d7",
+    "tools/agent-eval.py": "9c27c249191bfaa1f57f819fa539fa5349ebe68ef97e7973017938f3180083b0",
+    "skills/fr/SKILL.md": "5d3c092809da03fcab559f01e76fa8136f18b4e41b2e7a9f501e207e5f3d4188",
+    "skills/fr/references/author.md": "60256b255bebb5ee7c073e8f981872a501552181afedd3c3e1b0c04d29139fa3",
+    "skills/fr/references/checks.md": "102a7f6f46e927086c1c1221e5f2c80b1a0ffddaa2e88cf6c71ce723f6f4c9f1",
+    "skills/fr/references/git.md": "f3cfdc618fca5c73c1fc93fca92353913f3ab821ceeb5ea3a114388b74d1941f",
+    "skills/fr/references/history.md": "590a56a0b3ace0eb73b7b69a26560235074b03b44824e149e9341fa11f204931"
+  },
+  "scope": "Fixed-transcript projection with unchanged prompts, call count, outcomes, source states and timings. It applies the retained shared check policy, current requested skill files, and declared context-basis response and request fields. It does not predict autonomous adaptation, billed usage or latency changes. Original evidence and scores remain immutable."
+}

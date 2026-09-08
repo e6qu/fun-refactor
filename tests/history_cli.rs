@@ -214,6 +214,105 @@ fn no_diff_writes_keep_transition_metadata_and_exact_source_history() {
 }
 
 #[test]
+fn reviewed_transition_basis_compacts_completion_and_refuses_conflicting_writes() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("app.rs");
+    let original = "fn helper() {}\nfn main() { helper(); }\n";
+    fs::write(&path, original).unwrap();
+    ok(dir.path(), &["rename", "helper", "renamed", "--save-plan"]);
+
+    let shown = ok(dir.path(), &["history", "show", "1"]);
+    let record = &shown["records"][0];
+    let basis = record["context_basis"].as_str().unwrap().to_owned();
+    assert!(basis.starts_with("frtb1:"));
+    let source_before = fs::read_to_string(&path).unwrap();
+    let journal_before = fs::read(dir.path().join(".fr-history/state.json")).unwrap();
+    let (success, error) = run(
+        dir.path(),
+        &[
+            "history",
+            "apply",
+            "1",
+            "--write",
+            "--context-basis",
+            "frtb1:wrong",
+        ],
+    );
+    assert!(!success, "{error}");
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("stale or conflicting transaction context basis"));
+    assert_eq!(fs::read_to_string(&path).unwrap(), source_before);
+    assert_eq!(
+        fs::read(dir.path().join(".fr-history/state.json")).unwrap(),
+        journal_before
+    );
+    let compact = ok(
+        dir.path(),
+        &[
+            "history",
+            "apply",
+            "1",
+            "--write",
+            "--no-diff",
+            "--context-basis",
+            &basis,
+        ],
+    );
+    assert_eq!(
+        compact["context_omitted"],
+        serde_json::json!(["changes[].diff"])
+    );
+    assert_eq!(compact["applied"], true);
+    let mut reconstructed = compact;
+    reconstructed
+        .as_object_mut()
+        .unwrap()
+        .remove("context_omitted");
+    reconstructed
+        .as_object_mut()
+        .unwrap()
+        .remove("context_basis");
+    for (change, reviewed) in reconstructed["changes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .zip(record["changes"].as_array().unwrap())
+    {
+        assert_eq!(
+            change.as_object_mut().unwrap().remove("diff_bytes"),
+            Some(serde_json::json!(reviewed["diff"].as_str().unwrap().len()))
+        );
+        change["diff"] = reviewed["diff"].clone();
+    }
+    let expected = serde_json::json!({
+        "transaction": 1,
+        "action": "apply",
+        "applied": true,
+        "changes": record["changes"],
+    });
+    assert_eq!(reconstructed, expected);
+
+    let before = fs::read_to_string(&path).unwrap();
+    let journal = fs::read(dir.path().join(".fr-history/state.json")).unwrap();
+    let (success, error) = run(
+        dir.path(),
+        &["history", "undo", "1", "--write", "--context-basis", &basis],
+    );
+    assert!(!success, "{error}");
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("can compact only a forward apply or redo"));
+    assert_eq!(fs::read_to_string(&path).unwrap(), before);
+    assert_eq!(
+        fs::read(dir.path().join(".fr-history/state.json")).unwrap(),
+        journal
+    );
+}
+
+#[test]
 fn no_diff_writes_preserve_creation_deletion_and_mode_changes() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("data.txt");

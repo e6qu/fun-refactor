@@ -1,7 +1,7 @@
 //! Durable, checked workspace transactions for the native CLI.
 
 use crate::edit::{CommitLocks, FileChange};
-use anyhow::{bail, Context, Result};
+use anyhow::{bail, ensure, Context, Result};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs::{self, File};
@@ -37,7 +37,7 @@ pub struct Snapshot {
     pub mode: u32,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Change {
     pub path: PathBuf,
@@ -364,12 +364,27 @@ fn sync_ancestors(root: &Path, directory: &Path) -> Result<()> {
     Ok(())
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct RecordResult {
+    pub id: u64,
+    pub created: bool,
+}
+
 pub fn record(
     root: &Path,
     changes: &[FileChange<'_>],
     apply: bool,
     validation: &str,
 ) -> Result<Option<u64>> {
+    Ok(record_with_status(root, changes, apply, validation)?.map(|result| result.id))
+}
+
+pub fn record_with_status(
+    root: &Path,
+    changes: &[FileChange<'_>],
+    apply: bool,
+    validation: &str,
+) -> Result<Option<RecordResult>> {
     if !changes.iter().any(|c| c.original != c.updated) {
         return Ok(None);
     }
@@ -436,7 +451,23 @@ fn store_record(
     changes: Vec<Change>,
     apply: bool,
     validation: &str,
-) -> Result<u64> {
+) -> Result<RecordResult> {
+    let record_basis = basis(&changes)?;
+    let revision = source_revision(&history.root)?;
+    if !apply {
+        if let Some(record) = history.records.iter().find(|record| {
+            record.status == Status::Planned
+                && record.basis == record_basis
+                && record.source_revision == revision
+                && record.validation == validation
+                && record.changes == changes
+        }) {
+            return Ok(RecordResult {
+                id: record.id,
+                created: false,
+            });
+        }
+    }
     let id = history
         .records
         .iter()
@@ -448,8 +479,8 @@ fn store_record(
     history.records.push(Record {
         id,
         status: Status::Planned,
-        basis: basis(&changes)?,
-        source_revision: source_revision(&history.root)?,
+        basis: record_basis,
+        source_revision: revision,
         validation: validation.to_owned(),
         changes,
     });
@@ -457,7 +488,7 @@ fn store_record(
     if apply {
         transition(history, Action::Apply, id)?;
     }
-    Ok(id)
+    Ok(RecordResult { id, created: true })
 }
 
 pub fn act(root: &Path, action: Action, id: u64, write: bool) -> Result<serde_json::Value> {
@@ -470,6 +501,17 @@ pub fn act_with_diff(
     id: u64,
     write: bool,
     include_diff: bool,
+) -> Result<serde_json::Value> {
+    act_with_context(root, action, id, write, include_diff, None)
+}
+
+pub fn act_with_context(
+    root: &Path,
+    action: Action,
+    id: u64,
+    write: bool,
+    include_diff: bool,
+    supplied_context: Option<&str>,
 ) -> Result<serde_json::Value> {
     if !include_diff && !write {
         bail!("preview reports require diffs; omission requires a write");
@@ -491,6 +533,16 @@ pub fn act_with_diff(
         history.check_action(action, id)?;
         action
     };
+    if let Some(supplied) = supplied_context {
+        ensure!(
+            matches!(action, Action::Apply | Action::Redo),
+            "a transaction context basis can compact only a forward apply or redo; preview this reverse transition."
+        );
+        ensure!(
+            supplied == transaction_context_basis(history.record(id)?),
+            "stale or conflicting transaction context basis; review the current transaction."
+        );
+    }
     let changes = oriented(&history, effective, id)?;
     if action == Action::Apply && source_revision(&root)? != history.record(id)?.source_revision {
         bail!("project source changed after planning; create a fresh plan");
@@ -530,14 +582,23 @@ pub fn act_with_diff(
     let mut report = serde_json::json!({ "transaction": id, "action": action, "applied": write,
         "changes": changes.iter().map(|c| {
             let (before, after) = (&c.before, &c.after);
-            let mut entry = serde_json::json!({"path": c.path, "before_exists": before.is_some(), "after_exists": after.is_some(),
-                "before_mode": before.as_ref().map(|s| s.mode), "after_mode": after.as_ref().map(|s| s.mode)});
-            if include_diff {
-                entry["diff"] = serde_json::json!(crate::edit::unified_diff(before.as_ref().map_or("", |s| &s.content), after.as_ref().map_or("", |s| &s.content), &c.path.to_string_lossy()));
-            }
-            entry
+            serde_json::json!({"path": c.path, "before_exists": before.is_some(), "after_exists": after.is_some(),
+                "before_mode": before.as_ref().map(|s| s.mode), "after_mode": after.as_ref().map(|s| s.mode),
+                "diff": crate::edit::unified_diff(before.as_ref().map_or("", |s| &s.content), after.as_ref().map_or("", |s| &s.content), &c.path.to_string_lossy())})
         }).collect::<Vec<_>>() });
-    if !include_diff {
+    if let Some(supplied) = supplied_context {
+        for change in report["changes"].as_array_mut().unwrap() {
+            let object = change.as_object_mut().unwrap();
+            let bytes = object["diff"].as_str().unwrap().len();
+            object.remove("diff");
+            object.insert("diff_bytes".into(), serde_json::json!(bytes));
+        }
+        report["context_basis"] = serde_json::json!(supplied);
+        report["context_omitted"] = serde_json::json!(["changes[].diff"]);
+    } else if !include_diff {
+        for change in report["changes"].as_array_mut().unwrap() {
+            change.as_object_mut().unwrap().remove("diff");
+        }
         report["diffs_omitted"] = serde_json::json!(true);
     }
     if write {
@@ -548,6 +609,15 @@ pub fn act_with_diff(
         }
     }
     Ok(report)
+}
+
+fn transaction_context_basis(record: &Record) -> String {
+    format!("frtb1:{}", record.basis)
+}
+
+pub fn record_context_basis(root: &Path, id: u64) -> Result<String> {
+    let history = History::read(root)?;
+    Ok(transaction_context_basis(history.record(id)?))
 }
 
 fn oriented(history: &History, action: Action, id: u64) -> Result<Vec<Change>> {
