@@ -335,12 +335,15 @@ Lifecycle children cover Next.js instrumentation exports and FastAPI lifespan or
 Runtime configuration links environment declarations to application consumers without exposing values.
 Handler children include sanitized `fetch`, axios, requests and HTTPX service candidates; dynamic targets become gaps.
 Next.js pages also form features without API routes.
-Their direct React function components expose server/client boundaries, props, state, effects, events, style shapes and render edges.
+Their React files include inherited layouts and bounded relative component imports.
+Direct function components expose server/client boundaries, props, state, effects, other hook names, events and style shapes.
+Render edges resolve unique same-file, default-import and named-import declarations to source anchors.
+Files below a captured `use client` import path retain a client-transitive candidate marker.
 Every fact retains a source anchor, evidence basis, status, confidence and explicit gaps.
 Use `--feature ID` to retrieve one revision-bound subtree.
 `fr project configuration` pages environment declarations and candidate code consumers, with captured-source checks and explicit analysis gaps.
 `fr project tests` adds catalog candidates and bounded call-path witnesses, preserving the weakest edge confidence without claiming runtime coverage.
-Complete dependency graphs, imported component trees and runtime framework behavior remain roadmap work.
+Package aliases, framework runtime behavior and complete dependency graphs remain roadmap work.
 
 [TUTORIAL.md](TUTORIAL.md) walks through helm/helm.
 [EXAMPLES.md](EXAMPLES.md) shows capabilities on pinned public repositories.

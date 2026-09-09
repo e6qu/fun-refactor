@@ -3784,6 +3784,316 @@ fn framework_feature_components_are_bounded_with_an_explicit_gap() {
 }
 
 #[test]
+fn framework_features_expand_layouts_relative_components_and_custom_hooks() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "package.json",
+        r#"{"dependencies":{"next":"16","react":"19"}}"#,
+    );
+    put(
+        root,
+        "app/layout.tsx",
+        concat!(
+            "import Shell from './ui/Shell';\n",
+            "export default function RootLayout({ children }: { children: React.ReactNode }) {\n",
+            "  return <Shell>{children}</Shell>;\n",
+            "}\n",
+        ),
+    );
+    put(
+        root,
+        "app/page.tsx",
+        concat!(
+            "import { Card as PetCard } from './ui/Card';\n",
+            "import Local from './Local';\n",
+            "import type TypeCard from './TypeCard';\n",
+            "function usePets() { return 1; }\n",
+            "function Badge() { return <span />; }\n",
+            "export default function Home() {\n",
+            "  usePets();\n",
+            "  return <main><Badge /><PetCard /><Local /><TypeCard /></main>;\n",
+            "}\n",
+        ),
+    );
+    put(
+        root,
+        "app/ui/Shell.tsx",
+        "export default function Shell() { return <section />; }\n",
+    );
+    put(
+        root,
+        "app/ui/Card.tsx",
+        concat!(
+            "import Leaf from './Leaf';\n",
+            "export function Card() { return <article><Leaf /></article>; }\n",
+        ),
+    );
+    put(
+        root,
+        "app/ui/Leaf.tsx",
+        concat!(
+            "import { Card } from './Card';\n",
+            "export default function Leaf() { return <small />; }\n",
+        ),
+    );
+    put(
+        root,
+        "app/Local.jsx",
+        concat!(
+            "'use client';\n",
+            "import Inner from './Inner';\n",
+            "export default function Local() { return <aside><Inner /></aside>; }\n",
+        ),
+    );
+    put(
+        root,
+        "app/Inner.tsx",
+        concat!(
+            "import { useState } from 'react';\n",
+            "export default function Inner() {\n",
+            "  const [value] = useState(0);\n",
+            "  return <strong>{value}</strong>;\n",
+            "}\n",
+        ),
+    );
+    put(
+        root,
+        "app/TypeCard.tsx",
+        "export default function TypeCard() { return <strong />; }\n",
+    );
+
+    let view = ok(root, &["project", "features", "--limit", "500"]);
+    assert_eq!(view["analysis"]["features"], 1, "{view}");
+    assert_eq!(view["analysis"]["components"], 8, "{view}");
+    assert_eq!(view["analysis"]["component_hooks"], 1, "{view}");
+    let items = view["items"].as_array().unwrap();
+    let feature = items.iter().find(|fact| fact["kind"] == "feature").unwrap();
+    assert_eq!(feature["feature"]["component_file_count"], 7, "{view}");
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "component"
+            && fact["component"]["name"] == "RootLayout"
+            && fact["component"]["file_role"] == "layout"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "component-hook"
+            && fact["hook"]["name"] == "usePets"
+            && fact["hook"]["kind"] == "custom-hook-candidate"
+            && fact["status"] == "unresolved"
+    }));
+    let inner = items
+        .iter()
+        .find(|fact| fact["kind"] == "component" && fact["component"]["name"] == "Inner")
+        .unwrap();
+    assert_eq!(
+        inner["component"]["rendering_boundary"],
+        "client-transitive-candidate"
+    );
+    assert_eq!(inner["component"]["declared_boundary"], "server-default");
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "component-state"
+            && fact["parent"] == inner["id"]
+            && fact["status"] == "candidate"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "component-render"
+            && fact["render"]["target"] == "Badge"
+            && fact["render"]["resolution"] == "same-file"
+            && fact["status"] == "resolved"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "component-render"
+            && fact["render"]["target"] == "TypeCard"
+            && fact["render"]["resolution"] == "unresolved-import"
+            && fact["status"] == "unresolved"
+    }));
+    for (target, imported_as, path) in [
+        ("Shell", "default", "app/ui/Shell.tsx"),
+        ("PetCard", "Card", "app/ui/Card.tsx"),
+        ("Local", "default", "app/Local.jsx"),
+        ("Leaf", "default", "app/ui/Leaf.tsx"),
+    ] {
+        assert!(
+            items.iter().any(|fact| {
+                fact["kind"] == "component-render"
+                    && fact["render"]["target"] == target
+                    && fact["render"]["imported_as"] == imported_as
+                    && fact["render"]["target_source"]["path"] == path
+                    && fact["status"] == "resolved"
+                    && fact["confidence"] == "import-qualified"
+            }),
+            "{target}: {view}"
+        );
+    }
+}
+
+#[test]
+fn framework_component_imports_preserve_missing_ambiguous_and_package_gaps() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "web/package.json",
+        r#"{"dependencies":{"next":"16"}}"#,
+    );
+    put(
+        root,
+        "web/app/page.tsx",
+        concat!(
+            "import Missing from './Missing';\n",
+            "import Ambiguous from './Ambiguous';\n",
+            "import Escaped from '../../outside/Escaped';\n",
+            "export default function Home() {\n",
+            "  return <main><Missing /><Ambiguous /><Escaped /></main>;\n",
+            "}\n",
+        ),
+    );
+    put(
+        root,
+        "web/app/Ambiguous.tsx",
+        "export default function Ambiguous() { return <div />; }\n",
+    );
+    put(
+        root,
+        "web/app/Ambiguous.jsx",
+        "export default function Ambiguous() { return <div />; }\n",
+    );
+    put(
+        root,
+        "outside/Escaped.tsx",
+        "export default function Escaped() { return <div />; }\n",
+    );
+
+    let view = ok(root, &["project", "features", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    for reason in [
+        "A relative component import has no captured TSX or JSX target.",
+        "A relative component import has multiple captured TSX or JSX targets.",
+        "A relative component import crosses the captured package boundary.",
+    ] {
+        assert!(
+            items
+                .iter()
+                .any(|fact| { fact["kind"] == "framework-gap" && fact["gap"]["reason"] == reason }),
+            "{reason}: {view}"
+        );
+    }
+    assert_eq!(view["analysis"]["components"], 1, "{view}");
+    assert_eq!(view["analysis"]["component_gaps"], 3, "{view}");
+    assert_eq!(
+        items
+            .iter()
+            .filter(|fact| fact["kind"] == "component-render" && fact["status"] == "unresolved")
+            .count(),
+        3,
+        "{view}"
+    );
+}
+
+#[test]
+fn framework_component_file_expansion_is_bounded_with_an_explicit_gap() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "package.json", r#"{"dependencies":{"next":"16"}}"#);
+    let imports: String = (0..65)
+        .map(|number| format!("import Component{number} from './Component{number}';\n"))
+        .collect();
+    let renders: String = (0..65)
+        .map(|number| format!("<Component{number} />"))
+        .collect();
+    put(
+        root,
+        "app/page.tsx",
+        &format!("{imports}export default function Home() {{ return <main>{renders}</main>; }}\n"),
+    );
+    for number in 0..65 {
+        put(
+            root,
+            &format!("app/Component{number}.tsx"),
+            &format!("export default function Component{number}() {{ return <div />; }}\n"),
+        );
+    }
+
+    let view = ok(root, &["project", "features", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    let feature = items.iter().find(|fact| fact["kind"] == "feature").unwrap();
+    assert_eq!(view["analysis"]["component_file_limit"], 64, "{view}");
+    assert_eq!(feature["feature"]["component_file_count"], 64, "{view}");
+    assert!(
+        items.iter().any(|fact| {
+            fact["kind"] == "framework-gap"
+                && fact["gap"]["reason"]
+                    == "The component file limit omitted a relative import target."
+        }),
+        "{view}"
+    );
+}
+
+#[test]
+fn framework_page_layout_and_import_diagnostics_are_bounded_and_explicit() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "package.json", r#"{"dependencies":{"next":"16"}}"#);
+    for path in ["app/page.tsx", "app/page.jsx"] {
+        put(
+            root,
+            path,
+            "export default function Home() { return <main />; }\n",
+        );
+    }
+    for path in ["app/layout.tsx", "app/layout.jsx"] {
+        put(
+            root,
+            path,
+            "export default function Layout() { return <section />; }\n",
+        );
+    }
+
+    let view = ok(root, &["project", "features", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    for reason in [
+        "Multiple page convention files map to the same feature path.",
+        "Multiple layout convention files apply at one route level.",
+    ] {
+        assert!(
+            items
+                .iter()
+                .any(|fact| { fact["kind"] == "framework-gap" && fact["gap"]["reason"] == reason }),
+            "{reason}: {view}"
+        );
+    }
+    assert_eq!(view["analysis"]["features"], 1, "{view}");
+    assert_eq!(view["analysis"]["components"], 4, "{view}");
+    assert_eq!(view["analysis"]["component_gaps"], 2, "{view}");
+
+    let imports: String = (0..129)
+        .map(|number| format!("import Missing{number} from './Missing{number}';\n"))
+        .collect();
+    let renders: String = (0..129)
+        .map(|number| format!("<Missing{number} />"))
+        .collect();
+    put(
+        root,
+        "app/page.jsx",
+        &format!("{imports}export default function Home() {{ return <main>{renders}</main>; }}\n"),
+    );
+    std::fs::remove_file(root.join("app/page.tsx")).unwrap();
+    std::fs::remove_file(root.join("app/layout.tsx")).unwrap();
+    std::fs::remove_file(root.join("app/layout.jsx")).unwrap();
+    let bounded = ok(root, &["project", "features", "--limit", "500"]);
+    assert_eq!(bounded["analysis"]["component_file_gap_limit"], 128);
+    assert!(
+        bounded["items"].as_array().unwrap().iter().any(|fact| {
+            fact["kind"] == "framework-gap"
+                && fact["evidence"]["basis"] == "component-file-gap-limit"
+                && fact["gap"]["omitted"] == 1
+        }),
+        "{bounded}"
+    );
+}
+
+#[test]
 fn framework_feature_package_facts_bound_build_settings_and_dependencies() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();

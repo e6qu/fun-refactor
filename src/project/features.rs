@@ -3,6 +3,9 @@ mod component_facts;
 
 use super::{bounded_text, hash, links, FeatureOptions, Project, RelationshipOptions};
 use crate::analysis::stitch;
+use crate::lang::Language;
+use crate::parse::Parsers;
+use crate::project::components;
 use anyhow::{bail, Result};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
@@ -19,6 +22,8 @@ const CONFIGURATION_CONSUMER_LIMIT: usize = 256;
 const EXECUTION_DEPENDENCY_FACT_LIMIT: usize = 256;
 const COMPONENT_FACT_LIMIT: usize = 128;
 const COMPONENT_DETAIL_FACT_LIMIT: usize = 512;
+const COMPONENT_FILE_LIMIT: usize = 64;
+const COMPONENT_FILE_GAP_LIMIT: usize = 128;
 
 #[derive(Clone)]
 struct Feature {
@@ -27,6 +32,32 @@ struct Feature {
     source: Value,
     routes: Vec<Value>,
     frontend_files: BTreeSet<PathBuf>,
+    frontend_gaps: Vec<FrontendGap>,
+    frontend_gaps_omitted: usize,
+}
+
+#[derive(Clone)]
+struct FrontendGap {
+    path: PathBuf,
+    line: usize,
+    reason: &'static str,
+}
+
+impl Feature {
+    fn add_frontend_gap(&mut self, path: PathBuf, line: usize, reason: &'static str) {
+        if self
+            .frontend_gaps
+            .iter()
+            .any(|gap| gap.path == path && gap.line == line && gap.reason == reason)
+        {
+            return;
+        }
+        if self.frontend_gaps.len() < COMPONENT_FILE_GAP_LIMIT {
+            self.frontend_gaps.push(FrontendGap { path, line, reason });
+        } else {
+            self.frontend_gaps_omitted += 1;
+        }
+    }
 }
 
 struct Application {
@@ -77,6 +108,7 @@ struct BoundaryCounts {
     component_properties: usize,
     component_states: usize,
     component_effects: usize,
+    component_hooks: usize,
     component_events: usize,
     component_styles: usize,
     render_edges: usize,
@@ -307,6 +339,117 @@ fn reference_candidates(items: &[Value]) -> BTreeMap<String, Vec<Value>> {
 }
 
 impl Project<'_> {
+    fn expand_frontend_files(&self, application_root: &Value, feature: &mut Feature) -> Result<()> {
+        let package_root = value_text(application_root)
+            .filter(|root| *root != ".")
+            .map(PathBuf::from)
+            .unwrap_or_default();
+        let pages = feature.frontend_files.iter().cloned().collect::<Vec<_>>();
+        let mut page_directories: BTreeMap<PathBuf, usize> = BTreeMap::new();
+        for page in &pages {
+            *page_directories
+                .entry(page.parent().unwrap_or(Path::new("")).to_path_buf())
+                .or_default() += 1;
+        }
+        for (directory, count) in page_directories {
+            if count > 1 {
+                feature.add_frontend_gap(
+                    directory,
+                    1,
+                    "Multiple page convention files map to the same feature path.",
+                );
+            }
+        }
+        for page in pages {
+            let mut directory = page.parent();
+            while let Some(current) = directory {
+                let layouts = ["layout.tsx", "layout.jsx"]
+                    .into_iter()
+                    .map(|name| current.join(name))
+                    .filter(|layout| self.sources.contains_key(&self.root.join(layout)))
+                    .collect::<Vec<_>>();
+                if layouts.len() > 1 {
+                    feature.add_frontend_gap(
+                        current.to_path_buf(),
+                        1,
+                        "Multiple layout convention files apply at one route level.",
+                    );
+                }
+                for layout in layouts {
+                    if feature.frontend_files.len() < COMPONENT_FILE_LIMIT {
+                        feature.frontend_files.insert(layout);
+                    } else if !feature.frontend_files.contains(&layout) {
+                        feature.add_frontend_gap(
+                            layout,
+                            1,
+                            "The component file limit omitted a layout file.",
+                        );
+                    }
+                }
+                if current.file_name().is_some_and(|name| name == "app") {
+                    break;
+                }
+                directory = current.parent();
+            }
+        }
+        let mut pending = feature.frontend_files.iter().cloned().collect::<Vec<_>>();
+        let mut inspected = BTreeSet::new();
+        while let Some(path) = pending.pop() {
+            if !inspected.insert(path.clone()) {
+                continue;
+            }
+            let source = &self.sources[&self.root.join(&path)];
+            let parsed = Parsers::new().parse(Language::Tsx, source)?;
+            if parsed.has_errors() {
+                continue;
+            }
+            for import in components::imports(&parsed, source) {
+                if !import.local.chars().next().is_some_and(char::is_uppercase)
+                    || !import.source.starts_with('.')
+                {
+                    continue;
+                }
+                let candidates =
+                    components::import_candidates(&path, &import.source, &self.sources, &self.root);
+                if candidates.len() != 1 {
+                    feature.add_frontend_gap(
+                        path.clone(),
+                        import.line,
+                        if candidates.is_empty() {
+                            "A relative component import has no captured TSX or JSX target."
+                        } else {
+                            "A relative component import has multiple captured TSX or JSX targets."
+                        },
+                    );
+                    continue;
+                }
+                let target = candidates.into_iter().next().unwrap();
+                if !package_root.as_os_str().is_empty() && !target.starts_with(&package_root) {
+                    feature.add_frontend_gap(
+                        path.clone(),
+                        import.line,
+                        "A relative component import crosses the captured package boundary.",
+                    );
+                    continue;
+                }
+                if feature.frontend_files.contains(&target) {
+                    continue;
+                }
+                if feature.frontend_files.len() >= COMPONENT_FILE_LIMIT {
+                    feature.add_frontend_gap(
+                        path.clone(),
+                        import.line,
+                        "The component file limit omitted a relative import target.",
+                    );
+                    continue;
+                }
+                feature.frontend_files.insert(target.clone());
+                pending.push(target);
+            }
+        }
+        Ok(())
+    }
+
     fn applications(&self, routes: &[Value], selected: usize) -> Result<ApplicationDiscovery> {
         let mut applications = BTreeMap::new();
         let mut frontend_gaps = Vec::new();
@@ -362,6 +505,8 @@ impl Project<'_> {
                     source: source(route),
                     routes: Vec::new(),
                     frontend_files: BTreeSet::new(),
+                    frontend_gaps: Vec::new(),
+                    frontend_gaps_omitted: 0,
                 })
                 .routes
                 .push(route.clone());
@@ -452,9 +597,20 @@ impl Project<'_> {
                     source: self.file_source(relative, 1),
                     routes: Vec::new(),
                     frontend_files: BTreeSet::new(),
+                    frontend_gaps: Vec::new(),
+                    frontend_gaps_omitted: 0,
                 })
                 .frontend_files
                 .insert(relative.to_path_buf());
+        }
+        for application in applications.values_mut() {
+            if application.framework != "nextjs-app" {
+                continue;
+            }
+            let application_root = application.root.clone();
+            for feature in application.features.values_mut() {
+                self.expand_frontend_files(&application_root, feature)?;
+            }
         }
         Ok(ApplicationDiscovery {
             applications,
@@ -1369,12 +1525,15 @@ impl Project<'_> {
         analysis["component_properties"] = json!(boundary_counts.component_properties);
         analysis["component_states"] = json!(boundary_counts.component_states);
         analysis["component_effects"] = json!(boundary_counts.component_effects);
+        analysis["component_hooks"] = json!(boundary_counts.component_hooks);
         analysis["component_events"] = json!(boundary_counts.component_events);
         analysis["component_styles"] = json!(boundary_counts.component_styles);
         analysis["render_edges"] = json!(boundary_counts.render_edges);
         analysis["component_gaps"] = json!(boundary_counts.component_gaps);
         analysis["component_fact_limit"] = json!(COMPONENT_FACT_LIMIT);
         analysis["component_detail_fact_limit"] = json!(COMPONENT_DETAIL_FACT_LIMIT);
+        analysis["component_file_limit"] = json!(COMPONENT_FILE_LIMIT);
+        analysis["component_file_gap_limit"] = json!(COMPONENT_FILE_GAP_LIMIT);
         analysis["components_omitted"] = json!(boundary_counts.components_omitted);
         analysis["component_details_omitted"] = json!(boundary_counts.component_details_omitted);
         let mut result = self.relationship_page(

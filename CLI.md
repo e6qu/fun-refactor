@@ -881,20 +881,30 @@ The nearest captured npm package must declare Next.js; a project-root page witho
 Direct named function declarations and function-valued variables with JSX become React `component` facts.
 A leading `use client` directive marks every component in the file as a client boundary.
 Without that directive, the reader records the Next.js server-default boundary.
+Files reached below a captured client entry carry a client-transitive candidate boundary.
 This follows the [Next.js Server and Client Component model](https://nextjs.org/learn/react-foundations/server-and-client-components).
+Each page feature also includes existing `layout.tsx` or `layout.jsx` files from its route ancestry.
+Competing page or layout convention files produce ambiguity gaps.
 
 Component children summarize destructured prop names and declared prop types without defaults or values.
 Direct `useState` and `useReducer` bindings expose state names and setters.
 Direct effect hooks retain their dependency-list shape and a cleanup candidate flag.
+Other direct `useX` calls become hook facts without expanding their implementations.
+Known React names and possible custom hooks retain separate candidate kinds.
 React documents state through [`useState`](https://react.dev/reference/react/useState) and external synchronization through [`useEffect`](https://react.dev/reference/react/useEffect).
 JSX event attributes retain the event name, element and handler shape without handler source.
 Class and style attributes expose only their attribute and value shape.
-Capitalized JSX elements become unresolved name-only render edges.
+Capitalized JSX elements become render edges.
+Unique same-file declarations resolve by name.
+Unique default and named relative imports resolve to the target file and declaration line.
 State and effect hooks in a server-default file carry conflict status.
+Hooks below a captured client import path retain candidate status.
 
-The reader inspects direct components in page files only.
-Imported declarations, layouts, context, reducers, custom hooks, CSS resolution, hydration and runtime rendering remain unchecked.
-The query emits at most 128 components and 512 component details, with explicit omission gaps.
+Relative imports expand through `.tsx`, `.jsx` and matching `index` files inside the captured package.
+The traversal terminates on cycles and retains missing, ambiguous and package-crossing targets as gaps.
+It includes at most 64 component files and 128 file diagnostics per feature.
+The query also emits at most 128 components and 512 component details, with explicit omission gaps.
+Package aliases, namespace imports, re-exports, dynamic imports, context, CSS resolution, hydration and runtime rendering remain unchecked.
 The model preserves ambiguous same-file schema candidates and expands each bounded candidate separately.
 Other route frameworks produce `framework-gap` facts rather than disappearing.
 Unsupported middleware and authentication forms, mounted routers, lifecycle, runtime configuration, service reachability and frontend components remain explicit analysis limitations.

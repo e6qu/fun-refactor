@@ -1,4 +1,6 @@
 use crate::parse::Parsed;
+use std::collections::BTreeMap;
+use std::path::{Component as PathComponent, Path, PathBuf};
 use tree_sitter::Node;
 
 pub(super) struct Component {
@@ -12,6 +14,22 @@ pub(super) struct Component {
     pub events: Vec<Event>,
     pub styles: Vec<Style>,
     pub renders: Vec<Render>,
+    pub hooks: Vec<Hook>,
+    pub default_export: bool,
+}
+
+pub(super) struct Hook {
+    pub name: String,
+    pub kind: &'static str,
+    pub line: usize,
+}
+
+#[derive(Clone)]
+pub(super) struct Import {
+    pub local: String,
+    pub imported: String,
+    pub source: String,
+    pub line: usize,
 }
 
 pub(super) struct State {
@@ -87,7 +105,7 @@ fn has_jsx(node: Node<'_>) -> bool {
     false
 }
 
-fn client_module(parsed: &Parsed, source: &str) -> bool {
+pub(super) fn client_module(parsed: &Parsed, source: &str) -> bool {
     children(parsed.root()).first().is_some_and(|node| {
         node.kind() == "expression_statement"
             && matches!(
@@ -97,7 +115,7 @@ fn client_module(parsed: &Parsed, source: &str) -> bool {
     })
 }
 
-fn component_nodes<'a>(parsed: &'a Parsed, source: &str) -> Vec<(Node<'a>, Option<String>)> {
+fn component_nodes<'a>(parsed: &'a Parsed, source: &str) -> Vec<(Node<'a>, Option<String>, bool)> {
     let mut result = Vec::new();
     for item in children(parsed.root()) {
         let node = if item.kind() == "export_statement" {
@@ -113,7 +131,14 @@ fn component_nodes<'a>(parsed: &'a Parsed, source: &str) -> Vec<(Node<'a>, Optio
                 .as_deref()
                 .is_none_or(|name| name.chars().next().is_some_and(char::is_uppercase))
             {
-                result.push((node, name));
+                result.push((
+                    node,
+                    name,
+                    item.kind() == "export_statement"
+                        && text(item, source)
+                            .trim_start()
+                            .starts_with("export default"),
+                ));
             }
         } else if matches!(node.kind(), "lexical_declaration" | "variable_declaration") {
             for binding in children(node)
@@ -131,7 +156,7 @@ fn component_nodes<'a>(parsed: &'a Parsed, source: &str) -> Vec<(Node<'a>, Optio
                     && matches!(value.kind(), "arrow_function" | "function_expression")
                     && has_jsx(value)
                 {
-                    result.push((value, Some(name.to_owned())));
+                    result.push((value, Some(name.to_owned()), false));
                 }
             }
         }
@@ -244,6 +269,34 @@ fn inspect(function: Node<'_>, source: &str, component: &mut Component) {
                         cleanup_candidate: effect_cleanup(&arguments),
                         line: node.start_position().row + 1,
                     });
+                } else if hook
+                    .strip_prefix("use")
+                    .and_then(|suffix| suffix.chars().next())
+                    .is_some_and(char::is_uppercase)
+                {
+                    component.hooks.push(Hook {
+                        name: hook.to_owned(),
+                        kind: if matches!(
+                            hook,
+                            "useActionState"
+                                | "useCallback"
+                                | "useContext"
+                                | "useDebugValue"
+                                | "useDeferredValue"
+                                | "useId"
+                                | "useImperativeHandle"
+                                | "useMemo"
+                                | "useOptimistic"
+                                | "useRef"
+                                | "useSyncExternalStore"
+                                | "useTransition"
+                        ) {
+                            "react-hook-candidate"
+                        } else {
+                            "custom-hook-candidate"
+                        },
+                        line: node.start_position().row + 1,
+                    });
                 }
             }
         } else if node.kind() == "jsx_attribute" {
@@ -317,7 +370,7 @@ pub(super) fn read(parsed: &Parsed, source: &str) -> Vec<Component> {
     let client = client_module(parsed, source);
     component_nodes(parsed, source)
         .into_iter()
-        .map(|(function, name)| {
+        .map(|(function, name, default_export)| {
             let (props, props_type) = props(function, source);
             let mut component = Component {
                 name,
@@ -330,9 +383,122 @@ pub(super) fn read(parsed: &Parsed, source: &str) -> Vec<Component> {
                 events: Vec::new(),
                 styles: Vec::new(),
                 renders: Vec::new(),
+                hooks: Vec::new(),
+                default_export,
             };
             inspect(function, source, &mut component);
             component
         })
+        .collect()
+}
+
+fn string_literal(node: Node<'_>, source: &str) -> Option<String> {
+    let raw = text(node, source);
+    let quote = raw.chars().next()?;
+    if !matches!(quote, '\'' | '"') || raw.contains(['\\', '\n', '\r']) {
+        return None;
+    }
+    raw.strip_prefix(quote)
+        .and_then(|value| value.strip_suffix(quote))
+        .map(str::to_owned)
+}
+
+pub(super) fn imports(parsed: &Parsed, source: &str) -> Vec<Import> {
+    let mut imports = Vec::new();
+    for statement in children(parsed.root())
+        .into_iter()
+        .filter(|node| node.kind() == "import_statement")
+    {
+        if text(statement, source)
+            .trim_start()
+            .starts_with("import type")
+        {
+            continue;
+        }
+        let Some(import_source) = statement
+            .child_by_field_name("source")
+            .and_then(|node| string_literal(node, source))
+        else {
+            continue;
+        };
+        let line = statement.start_position().row + 1;
+        let Some(clause) = children(statement)
+            .into_iter()
+            .find(|node| node.kind() == "import_clause")
+        else {
+            continue;
+        };
+        for node in children(clause) {
+            if node.kind() == "identifier" {
+                imports.push(Import {
+                    local: text(node, source).to_owned(),
+                    imported: "default".to_owned(),
+                    source: import_source.clone(),
+                    line,
+                });
+            } else if node.kind() == "named_imports" {
+                for specifier in children(node)
+                    .into_iter()
+                    .filter(|node| node.kind() == "import_specifier")
+                {
+                    let Some(name) = specifier.child_by_field_name("name") else {
+                        continue;
+                    };
+                    let alias = specifier.child_by_field_name("alias").unwrap_or(name);
+                    imports.push(Import {
+                        local: text(alias, source).to_owned(),
+                        imported: text(name, source).to_owned(),
+                        source: import_source.clone(),
+                        line,
+                    });
+                }
+            }
+        }
+    }
+    imports
+}
+
+fn normalized(base: &Path, source: &str) -> Option<PathBuf> {
+    let mut result = PathBuf::new();
+    for part in base.join(source).components() {
+        match part {
+            PathComponent::Normal(part) => result.push(part),
+            PathComponent::CurDir => {}
+            PathComponent::ParentDir => {
+                if !result.pop() {
+                    return None;
+                }
+            }
+            PathComponent::Prefix(_) | PathComponent::RootDir => return None,
+        }
+    }
+    Some(result)
+}
+
+pub(super) fn import_candidates(
+    importer: &Path,
+    source: &str,
+    sources: &BTreeMap<PathBuf, String>,
+    root: &Path,
+) -> Vec<PathBuf> {
+    if !source.starts_with('.') {
+        return Vec::new();
+    }
+    let Some(base) = normalized(importer.parent().unwrap_or(Path::new("")), source) else {
+        return Vec::new();
+    };
+    let candidates = if base.extension().is_some() {
+        vec![base]
+    } else {
+        vec![
+            base.with_extension("tsx"),
+            base.with_extension("jsx"),
+            base.join("index.tsx"),
+            base.join("index.jsx"),
+        ]
+    };
+    candidates
+        .into_iter()
+        .filter(|path| sources.contains_key(&root.join(path)))
         .collect()
 }

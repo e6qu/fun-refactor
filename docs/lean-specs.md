@@ -186,6 +186,8 @@ The chains require exactly their edge count in changing Rust rounds, exercising 
 The reachability induction uses no axioms; the expansion proofs use propositional extensionality and quotient soundness from Lean's standard library.
 The convergence and unconditional closure proofs also use Lean's standard classical-choice axiom. These proofs introduce no custom axioms.
 These are model proofs with tested Rust correspondence. Cargo semantics, eligible-edge construction, witness selection and the complete Rust loop remain outside the proofs.
+Frontend client-boundary propagation reuses the same Rust membership step over captured relative-import edges.
+The closure laws therefore cover supplied import graphs; import parsing and edge construction remain fixture-tested assumptions.
 
 The Cargo reader checks literal exclusion prefixes and explicit-member overrides with `cargo metadata` fixtures.
 These cover nested roots, descendant dependencies, Unicode paths and neighboring directory names.

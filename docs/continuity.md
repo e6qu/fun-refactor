@@ -39,7 +39,16 @@ The sixth checkpoint extracts seven framework policy helpers used by production 
 Thirteen theorems cover cap partitioning, reverse middleware order, component hook placement, configuration visibility, service target tiers and redaction flags.
 All 263 bounded Rust/Lean results agree, strict source and signature verification passes with zero obligations, and the axiom audit records only standard Lean axioms for the arithmetic and hook proofs; the finite classifiers use none.
 Syntax recognition, framework runtime meaning and report assembly remain fixture-tested boundaries.
-Imported component resolution, layouts, custom hooks and the pinned framework audit remain open.
+The seventh checkpoint attaches inherited Next.js layouts and recursively follows direct relative component imports within the captured package.
+Cycles terminate through a bounded file set; missing, ambiguous, package-crossing and overflow cases remain explicit gaps.
+Render edges resolve unique same-file, default-import and named-import declarations to source anchors.
+Static reachability below a `use client` entry marks imported files as client-transitive candidates.
+State and effect conflicts use that effective boundary.
+The traversal reuses the workspace membership step whose closure and convergence have Lean proofs and shared Rust/Lean cases.
+Import-edge construction remains covered by component fixtures.
+Direct custom-hook calls retain names while their implementations and runtime needs remain unchecked.
+Competing page and layout convention files produce ambiguity gaps.
+The pinned framework and real-project audit remains open.
 Roadmap PR 4's first checkpoint added `fr spec init [PATH]` with a pinned toolchain, a minimal checked Lake target and refusal to overwrite differing files or escape through paths and symlinks.
 Initialization previews by default, supports saved plans and writes through source history. Apply, undo and redo cover files created below a new directory, while plan recording no longer creates the target directory as a lock side effect.
 A real integration case initializes an external temporary workspace and passes `fr spec verify specs` against Lake.
