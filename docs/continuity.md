@@ -18,6 +18,7 @@ The sixth checkpoint adds `fr spec evidence`. The bounded result combines strict
 Its axiom analysis explicitly covers declared syntax rather than transitive theorem dependencies. The external fixture asserts these evidence boundaries after a passing regeneration and Lake build.
 The proof-debt predicate now has an anchored Lean model and four ratchet theorems. All 4,225 pairs from zero through 64 match Rust; the axiom audit reports only `propext`.
 This correspondence covers the ceiling predicate. Debt discovery, marker parsing, command enforcement and the full adoption workflow remain host-tested boundaries.
+Roadmap PR 4 is ready for review after the complete repository gate passed. Strict project verification reports 33 fresh anchors, no remaining proof debt and a successful 40-job Lake build; formatting, Clippy, prose budgets, 311/311 capability coverage and both WASM configurations also pass.
 PR 3's first checkpoint added checked staging-journal compaction with explicit per-stack retention.
 Compacted records retain stable IDs, statuses, path counts and digests while discarding bytes that can no longer be replayed.
 Preview/write bases, the index lock and full journal rechecks preserve the index, working files and concurrent staging state.
@@ -654,4 +655,4 @@ Keep revision inputs, coverage and final source verification intact; require byt
 State the cache policy for the next autonomous cohort; existing trials explicitly disable it and their records remain immutable.
 The latest paired task requires one coordinated three-operation change across two crate roots. It passes, while `fr` still uses 23.8% more measured context in this single pair.
 Keep portable skill references selective and executable against the distributed binary.
-PR 4 now has package initialization. Declaration selection, model scaffolding, handwritten-region regeneration, proof-debt ratchets, CI generation and bounded evidence reports remain open in [PLAN.md](../PLAN.md), together with M6 framework migrations.
+PR 4 is complete and ready for review. The next planned milestone is PR 5's hierarchical framework semantic model in [PLAN.md](../PLAN.md), followed by PR 6's verified feature migration.

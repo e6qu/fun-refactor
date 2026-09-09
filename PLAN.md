@@ -31,7 +31,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | M2 compact project understanding | In progress | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests and Cargo workspace evidence | Lower repeated-query/context cost and broaden dependency and contract evidence |
 | M3 Git integration | Complete | Patches, repository views, staging history, reviewed commits and durable owned-worktree lifecycle | Maintained as a shared repository invariant |
 | M4 agent workflow | In progress | Portable skill, bounded authoring, multi-file batches, checks and eighteen passing autonomous trials | Make context use competitive and extend authoring scope |
-| M5 Lean adoption | In progress | Pinned package initialization, source anchors, signature maps, kernels, `spec check`, `sync` and `verify` | Scaffolding, regeneration, proof debt, CI generation and evidence reports |
+| M5 Lean adoption | Complete | Pinned package initialization, anchored model scaffolds, regeneration, proof-debt ratchets, generated CI and bounded evidence reports | Maintain the trust boundary and extend the documented model subset as real projects require it |
 | M6 framework transformation | Pending | Shared code IR and bounded Next.js/FastAPI/OpenAPI support | Hierarchical feature models and verified migrations |
 
 ## What exists now
@@ -53,6 +53,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Native releases, a WASM API, a browser playground and patch downloads.
 - Lean models for edits, positions, history, patch properties, pagination, confidence, workspace membership, revision buffers and declaration insertion placement.
 - Source anchors, signature maps and shared Rust/Lean executable cases.
+- External-project Lean initialization, anchored Rust model scaffolds, proof-preserving regeneration, named debt ceilings, generated CI and bounded verification evidence.
 - Eighteen passing autonomous trials across pinned strsim and regex snapshots, with replayable patches and independent behavioral oracles.
 
 ## Evidence baseline
@@ -248,7 +249,7 @@ Measured outcome:
 
 ### PR 4. Lean Adoption Kit
 
-Status: implementation complete on `lean_adoption_kit`, pending the full repository gate. Six product checkpoints cover initialization, scaffolding, regeneration, debt, CI and evidence. The Lake integration proves a useful property, refreshes its changed source identity, observes a passing build, then breaks the theorem and observes failure. Four Lean theorems cover the proof-debt ceiling, with 4,225 shared Rust and Lean cases.
+Status: ready for review on `lean_adoption_kit`. Six product checkpoints cover initialization, scaffolding, regeneration, debt, CI and evidence. The Lake integration proves a useful property, refreshes its changed source identity, observes a passing build, then breaks the theorem and observes failure. Four Lean theorems cover the proof-debt ceiling, with 4,225 shared Rust and Lean cases. The complete native, Lean, prose, capability and WASM gate passes.
 
 Goal: let an external repository adopt and maintain one useful verified property through `fr`.
 
