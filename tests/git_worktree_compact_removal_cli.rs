@@ -103,6 +103,88 @@ fn fixture(sha256: bool) -> (tempfile::TempDir, PathBuf, PathBuf) {
     (temp, root, record)
 }
 
+fn removed(root: &Path, parent: &Path, name: &str) -> PathBuf {
+    let destination = parent.join(name);
+    reviewed(
+        root,
+        "create",
+        &[
+            destination.to_str().unwrap(),
+            "--branch",
+            &format!("archive-{name}"),
+        ],
+    );
+    let result = reviewed(root, "remove", &[destination.to_str().unwrap()]);
+    PathBuf::from(result["removal_record"].as_str().unwrap())
+}
+
+fn several(count: usize) -> (tempfile::TempDir, PathBuf, Vec<PathBuf>) {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join("main");
+    fs::create_dir(&root).unwrap();
+    git(&root, &["init", "-q", "-b", "main"]);
+    fs::write(root.join("file.txt"), b"base\n").unwrap();
+    git(&root, &["add", "."]);
+    git(&root, &["commit", "-qm", "fixture"]);
+    let records = (0..count)
+        .map(|index| removed(&root, temp.path(), &format!("owned-{index}")))
+        .collect();
+    (temp, root, records)
+}
+
+#[test]
+fn reviews_and_compacts_an_explicit_archive_set_without_touching_the_rest() {
+    let (_temp, root, records) = several(3);
+    let first = records[0].to_str().unwrap();
+    let second = records[1].to_str().unwrap();
+    let third = records[2].to_str().unwrap();
+    let refs = git(&root, &["show-ref"]);
+    let index = fs::read(root.join(".git/index")).unwrap();
+    let config = fs::read(root.join(".git/config")).unwrap();
+
+    let preview = report(&root, "compact-removals", &[first, second]);
+    assert_eq!(preview["operation"], "worktree-removals-compact-preview");
+    assert_eq!(preview["archives"], 2);
+    assert_eq!(preview["selected"].as_array().unwrap().len(), 2);
+    assert_eq!(preview["atomic"], false);
+    assert!(!records[0].with_file_name("summary.json").exists());
+    assert!(!records[1].with_file_name("summary.json").exists());
+    assert!(records[2].exists());
+
+    refused(
+        &root,
+        "compact-removals",
+        &[first, first],
+        "duplicate archive",
+    );
+    let result = reviewed(&root, "compact-removals", &[first, second]);
+    assert_eq!(result["archives"], 2);
+    assert_eq!(result["completed"].as_array().unwrap().len(), 2);
+    for record in &records[..2] {
+        assert!(!record.exists());
+        assert!(record.with_file_name("summary.json").exists());
+    }
+    assert!(records[2].exists());
+    assert!(!records[2].with_file_name("summary.json").exists());
+    assert_eq!(git(&root, &["show-ref"]), refs);
+    assert_eq!(fs::read(root.join(".git/index")).unwrap(), index);
+    assert_eq!(fs::read(root.join(".git/config")).unwrap(), config);
+
+    let stale = report(&root, "compact-removals", &[third]);
+    reviewed(&root, "compact-removal", &[third]);
+    refused(
+        &root,
+        "compact-removals",
+        &[
+            third,
+            "--basis",
+            stale["basis"].as_str().unwrap(),
+            "--write",
+        ],
+        "stale bulk removal compaction basis",
+    );
+}
+
 #[test]
 fn reviews_compacts_and_inspects_retained_audit_without_changing_git() {
     let (_temp, root, record) = fixture(false);

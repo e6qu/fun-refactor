@@ -302,6 +302,7 @@ See [recorded recovery](docs/git-worktree-recovery.md) for ownership receipts an
 [Reviewed removal](docs/git-worktree-removal.md) retains the branch and refuses extra content.
 [Removal resumption](docs/git-worktree-removal-resumption.md) uses `fr git worktree resume-removal RECORD` to inspect partial removals and `--basis TOKEN --write` to finish them.
 [Archive compaction](docs/git-worktree-archive-compaction.md) uses `fr git worktree compact-removal RECORD` to review discarding completed recovery records while retaining audit summaries.
+Its plural `compact-removals RECORD...` form applies the same checks to an explicit bulk-retention set.
 The browser already exports patches and can restore its initial workspace.
 `fr project` now provides compact hierarchy maps and bounded source inspection.
 Its package and dependency pages report Cargo/npm manifest declarations with shared revision checks.

@@ -1304,6 +1304,10 @@ Keep the original record path for inspection and retry, including after compacti
 `resume-removal` recognizes compaction summaries as audit reports with `can_resume: false`.
 See [archive compaction](docs/git-worktree-archive-compaction.md) for retained data, review fields and interrupted writes.
 
+`fr git worktree compact-removals RECORD...` previews bulk compaction for 1 through 32 explicit completed archives.
+Its checked write revalidates the complete selection and preserves unselected archives.
+The operation is sequential; an uncertain result names completed records and the record where it stopped.
+
 ### `fr cache`
 
 ```

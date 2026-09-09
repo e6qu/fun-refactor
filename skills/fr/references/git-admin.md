@@ -20,7 +20,8 @@ Use `recover PATH` only for an owned incomplete creation, and `remove PATH` for 
 Removal retains the branch and returns a `removal_record` archive path.
 Use `resume-removal RECORD` to inspect or finish incomplete removal with a fresh basis.
 Use `compact-removal RECORD` only to discard a completed recovery record after reviewing its basis; it retains an audit summary and cannot be undone through `fr`.
-Keep using the original record path after compaction. Worktree undo/redo and automatic archive retention remain unavailable.
+Use `compact-removals RECORD...` for a reviewed set of up to 32 completed archives. Treat `applied: null` as partial and inspect the returned completed and stopped paths.
+Keep using each original record path after compaction. Worktree undo/redo and automatic time-based retention remain unavailable.
 
 Each operation has its own basis. Do not substitute source revisions, transaction IDs or tokens from another command.
 Only `applied: true` confirms a Git mutation. Some partial or uncertain outcomes exit successfully with `applied: null` and a recovery path.

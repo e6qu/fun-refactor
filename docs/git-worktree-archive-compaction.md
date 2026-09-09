@@ -11,6 +11,18 @@ fr git worktree compact-removal /repo/.git/fr-worktree-removal-ABC123/record.jso
 Use the `removal_record` returned by [worktree removal](git-worktree-removal.md).
 Keep using that original path after compaction, even though `record.json` no longer exists.
 Relative paths resolve from the invoking repository root. Another linked worktree in the same repository may invoke the command.
+
+For explicit bulk retention, pass 1 through 32 record paths to the plural command:
+
+```sh
+fr git worktree compact-removals RECORD_A RECORD_B
+fr git worktree compact-removals RECORD_A RECORD_B --basis TOKEN --write
+```
+
+The preview validates every archive independently and binds their normalized paths, states and individual bases into one `frwtacs1:` basis.
+Duplicate, completed-summary, incomplete or otherwise ineligible archives refuse the whole preview.
+The write rechecks the entire selection, then invokes the same per-archive compactor in the reviewed order.
+Unselected archives and repository state remain unchanged.
 The command returns a compact JSON report in both output modes, without source bodies or private metadata contents.
 
 ## Eligibility and review
@@ -48,7 +60,9 @@ No checkout files, refs, shared objects, invoking index or repository configurat
 
 Compaction discards recovery data and cannot be undone through `fr`.
 The retained summary supports audit inspection, not reconstruction of the removed worktree's private metadata.
-There is no automatic retention period, bulk selection or archive-directory purge in this command.
+Bulk writes are sequential rather than filesystem-atomic.
+`applied: true` means every selected archive compacted; `applied: null` returns completed paths and the archive where processing stopped.
+There is no automatic retention period or archive-directory purge.
 
 ## Outcomes and interrupted writes
 

@@ -8,6 +8,7 @@ use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
+pub(in crate::git::worktree) mod bulk;
 mod summary;
 use summary::{Fingerprint, Summary};
 

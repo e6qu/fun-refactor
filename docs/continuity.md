@@ -7,6 +7,8 @@ The current `durable_git_workspace_lifecycle` branch is roadmap PR 3. Its first 
 Compacted records retain stable IDs, statuses, path counts and digests while discarding bytes that can no longer be replayed.
 Preview/write bases, the index lock and full journal rechecks preserve the index, working files and concurrent staging state.
 Lean proves compaction selection requirements, unselected-payload preservation and idempotence; all eight boolean selection states agree with Rust.
+The second PR 3 checkpoint adds `compact-removals` for 1 through 32 explicit completed removal archives.
+One aggregate basis binds every normalized archive and its individual review; sequential writes report completed and stopped paths if the set cannot finish.
 PR 2's first checkpoint extends exact-byte Rust insertion to impl and trait bodies and generalizes the insertion placement model.
 The second checkpoint authors TypeScript/TSX expression-bodied arrows and permits checked transitions between expression and block bodies.
 The third checkpoint adds Java method, constructor and default-interface body authoring through the same checked splice and history path.
