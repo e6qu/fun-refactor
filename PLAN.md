@@ -29,9 +29,9 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | M0 safe writes | Complete | Recoverable multi-file commits and structured failure evidence | Maintained as a shared write invariant |
 | M1 undo and redo | Complete | Persistent transactions, recovery, conflict checks, apply, undo and redo | Retention and large-journal work continues in Git lifecycle work |
 | M2 compact project understanding | In progress | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests and Cargo workspace evidence | Lower repeated-query/context cost and broaden dependency and contract evidence |
-| M3 Git integration | In progress | Patches, repository views, staging history, reviewed commits and owned worktree lifecycle | Broader modes/configuration, crash recovery and retention |
+| M3 Git integration | Complete | Patches, repository views, staging history, reviewed commits and durable owned-worktree lifecycle | Maintained as a shared repository invariant |
 | M4 agent workflow | In progress | Portable skill, bounded authoring, multi-file batches, checks and eighteen passing autonomous trials | Make context use competitive and extend authoring scope |
-| M5 Lean adoption | Pending | Manual source anchors, signature maps, kernels, `spec check`, `sync` and `verify` | An end-to-end adoption workflow for external projects |
+| M5 Lean adoption | Complete | Pinned package initialization, anchored model scaffolds, regeneration, proof-debt ratchets, generated CI and bounded evidence reports | Maintain the trust boundary and extend the documented model subset as real projects require it |
 | M6 framework transformation | Pending | Shared code IR and bounded Next.js/FastAPI/OpenAPI support | Hierarchical feature models and verified migrations |
 
 ## What exists now
@@ -53,6 +53,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Native releases, a WASM API, a browser playground and patch downloads.
 - Lean models for edits, positions, history, patch properties, pagination, confidence, workspace membership, revision buffers and declaration insertion placement.
 - Source anchors, signature maps and shared Rust/Lean executable cases.
+- External-project Lean initialization, anchored Rust model scaffolds, proof-preserving regeneration, named debt ceilings, generated CI and bounded verification evidence.
 - Eighteen passing autonomous trials across pinned strsim and regex snapshots, with replayable patches and independent behavioral oracles.
 
 ## Evidence baseline
@@ -214,7 +215,7 @@ Measured outcome:
 
 ### PR 3. Durable Git Workspace Lifecycle
 
-Status: ready for review on `durable_git_workspace_lifecycle`. Ten checkpoint commits complete the deliverables below; [continuity](docs/continuity.md) retains their detailed evidence.
+Status: merged as GitHub PR 263. Eleven checkpoint commits complete the deliverables below; [continuity](docs/continuity.md) retains their detailed evidence.
 
 Goal: finish the repository workflow needed for long-running agent changes and recovery.
 
@@ -248,17 +249,19 @@ Measured outcome:
 
 ### PR 4. Lean Adoption Kit
 
+Status: ready for review on `lean_adoption_kit`. Six product checkpoints cover initialization, scaffolding, regeneration, debt, CI and evidence. The Lake integration proves a useful property, refreshes its changed source identity, observes a passing build, then breaks the theorem and observes failure. Four Lean theorems cover the proof-debt ceiling, with 4,225 shared Rust and Lean cases. The complete native, Lean, prose, capability and WASM gate passes.
+
 Goal: let an external repository adopt and maintain one useful verified property through `fr`.
 
 Deliverables:
 
-- Initialize a bounded specification package and its checked build targets.
-- Select source declarations and generate anchored Lean model scaffolds and signature maps.
-- Mark generated and handwritten regions and preserve handwritten proofs during regeneration.
-- Detect source drift and guide synchronization or repair.
-- Introduce named proof-debt records and ratchets.
-- Generate CI configuration for the selected Lean checks.
-- Report assumptions, axioms, trusted components, covered properties and remaining obligations.
+- Initialize a bounded specification package and its checked build targets; complete.
+- Select Rust source declarations and generate anchored Lean model scaffolds and signature maps; complete for a documented type subset.
+- Mark generated and handwritten regions and preserve handwritten proofs during regeneration; complete for generated scaffolds.
+- Detect source drift and guide synchronization or repair; strict checks and scaffold refresh complete.
+- Introduce named proof-debt records and ratchets; complete with strict names and explicit debt ceilings.
+- Generate CI configuration for the selected Lean checks; complete for GitHub Actions.
+- Report assumptions, axioms, trusted components, covered properties and remaining obligations; complete with an explicit syntactic-axiom-analysis boundary.
 
 Verification and acceptance:
 

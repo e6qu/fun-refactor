@@ -625,12 +625,59 @@ enum RecipeCommand {
 
 #[derive(Subcommand)]
 enum SpecCommand {
+    #[command(about = "Initialize a checked Lean package.")]
+    Init {
+        #[arg(
+            default_value = "specs",
+            help = "Package directory inside the workspace."
+        )]
+        path: PathBuf,
+        #[arg(long, help = "Write through source history.")]
+        write: bool,
+    },
+    #[command(about = "Scaffold one Rust function in Lean.")]
+    Scaffold {
+        #[arg(help = "Target as path::symbol.")]
+        target: String,
+        #[arg(
+            long,
+            default_value = "specs",
+            help = "Initialized specification package."
+        )]
+        package: PathBuf,
+        #[arg(long, help = "Write through source history.")]
+        write: bool,
+    },
+    #[command(about = "Generate Lean CI.")]
+    Ci {
+        #[arg(
+            long,
+            default_value = "specs",
+            help = "Initialized specification package."
+        )]
+        package: PathBuf,
+        #[arg(long, default_value_t = 0, help = "Reviewed proof-debt ceiling.")]
+        max_debt: usize,
+        #[arg(long, help = "Write through source history.")]
+        write: bool,
+    },
+    #[command(about = "Report bounded Lean verification evidence.")]
+    Evidence {
+        #[arg(help = "Lean spec files or directories; defaults to kernels and specs")]
+        paths: Vec<PathBuf>,
+    },
     #[command(about = "Report stale Lean specification anchors and unproved obligations")]
     Check {
         #[arg(help = "Lean spec files or directories; defaults to kernels and specs")]
         paths: Vec<PathBuf>,
         #[arg(long, help = "Require every anchor to carry an explicit signature map")]
         strict: bool,
+        #[arg(
+            long,
+            value_name = "COUNT",
+            help = "Reject proof debt above this ceiling."
+        )]
+        max_debt: Option<usize>,
     },
     #[command(about = "Renew stale source hashes without changing Lean declarations")]
     Sync {
@@ -855,6 +902,15 @@ fn dispatch(cli: &Cli) -> Result<()> {
                 | Command::Rewrite { .. }
                 | Command::Restructure { .. }
                 | Command::Spec {
+                    command: SpecCommand::Init { .. }
+                }
+                | Command::Spec {
+                    command: SpecCommand::Scaffold { .. }
+                }
+                | Command::Spec {
+                    command: SpecCommand::Ci { .. }
+                }
+                | Command::Spec {
                     command: SpecCommand::Sync { .. }
                 }
                 | Command::Openapi { out: Some(_), .. }
@@ -1016,7 +1072,23 @@ fn dispatch(cli: &Cli) -> Result<()> {
             ),
         },
         Command::Spec { command } => match command {
-            SpecCommand::Check { paths, strict } => cmd_spec_check(cli, paths, *strict),
+            SpecCommand::Init { path, write } => cmd_spec_init(cli, path, *write),
+            SpecCommand::Scaffold {
+                target,
+                package,
+                write,
+            } => cmd_spec_scaffold(cli, target, package, *write),
+            SpecCommand::Ci {
+                package,
+                max_debt,
+                write,
+            } => cmd_spec_ci(cli, package, *max_debt, *write),
+            SpecCommand::Evidence { paths } => cmd_spec_evidence(cli, paths),
+            SpecCommand::Check {
+                paths,
+                strict,
+                max_debt,
+            } => cmd_spec_check(cli, paths, *strict, *max_debt),
             SpecCommand::Sync { paths, write } => cmd_spec_sync(cli, paths, *write),
             SpecCommand::Verify { paths } => cmd_spec_verify(cli, paths),
         },
@@ -1091,15 +1163,333 @@ fn dispatch(cli: &Cli) -> Result<()> {
     }
 }
 
-fn cmd_spec_check(cli: &Cli, paths: &[PathBuf], strict: bool) -> Result<()> {
+fn cmd_spec_init(cli: &Cli, path: &Path, write: bool) -> Result<()> {
+    let root = workspace_root(cli);
+    let plan = crate::spec::init(&root, path)?;
+    let changes = plan
+        .files
+        .iter()
+        .map(|file| crate::edit::FileChange {
+            path: &file.path,
+            original: if file.existing { file.content } else { "" },
+            updated: file.content,
+        })
+        .collect::<Vec<_>>();
+    let transaction = persist_changes(cli, &changes, write, "lean-package-layout-v1")?;
+    let created = plan.files.iter().filter(|file| !file.existing).count();
+
+    if cli.json {
+        let files = plan
+            .files
+            .iter()
+            .map(|file| {
+                serde_json::json!({
+                    "path": shown_path(&root, &file.path),
+                    "existing": file.existing,
+                })
+            })
+            .collect::<Vec<_>>();
+        let changes = plan
+            .files
+            .iter()
+            .filter(|file| !file.existing)
+            .map(|file| {
+                let shown = shown_path(&root, &file.path);
+                serde_json::json!({
+                    "path": shown,
+                    "diff": crate::edit::unified_diff("", file.content, &shown),
+                })
+            })
+            .collect::<Vec<_>>();
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "schema": 1,
+                "operation": "spec_init",
+                "package": shown_path(&root, &plan.package),
+                "toolchain": plan.toolchain,
+                "validation": "lean-package-layout-v1",
+                "files_changed": created,
+                "files": files,
+                "changes": changes,
+                "transaction": transaction,
+                "applied": write && transaction.is_some(),
+                "saved": cli.save_plan && transaction.is_some(),
+            }))?
+        );
+        return Ok(());
+    }
+
+    if !write {
+        for file in plan.files.iter().filter(|file| !file.existing) {
+            let shown = shown_path(&root, &file.path);
+            print!("{}", crate::edit::unified_diff("", file.content, &shown));
+        }
+    }
+    if created == 0 {
+        println!(
+            "Lean specification package {} is already initialized with {}.",
+            shown_path(&root, &plan.package),
+            plan.toolchain
+        );
+    } else if write {
+        println!(
+            "Initialized {} with {} checked file(s) using {}.",
+            shown_path(&root, &plan.package),
+            created,
+            plan.toolchain
+        );
+    } else if cli.save_plan {
+        println!(
+            "Saved initialization of {} with {} checked file(s) using {}.",
+            shown_path(&root, &plan.package),
+            created,
+            plan.toolchain
+        );
+    } else {
+        println!(
+            "Would initialize {} with {} checked file(s) using {}.",
+            shown_path(&root, &plan.package),
+            created,
+            plan.toolchain
+        );
+        println!("Nothing written. Re-run with --write to apply.");
+    }
+    Ok(())
+}
+
+fn cmd_spec_scaffold(cli: &Cli, target: &str, package: &Path, write: bool) -> Result<()> {
+    let root = workspace_root(cli);
+    let plan = crate::spec::scaffold(&root, target, package)?;
+    let changes = plan
+        .files
+        .iter()
+        .map(|file| crate::edit::FileChange {
+            path: &file.path,
+            original: &file.original,
+            updated: &file.updated,
+        })
+        .collect::<Vec<_>>();
+    let transaction = persist_changes(cli, &changes, write, "lean-scaffold-v1")?;
+    let changed = plan
+        .files
+        .iter()
+        .filter(|file| file.original != file.updated)
+        .count();
+    let rendered = plan
+        .files
+        .iter()
+        .filter(|file| file.original != file.updated)
+        .map(|file| {
+            let shown = shown_path(&root, &file.path);
+            (
+                shown.clone(),
+                crate::edit::unified_diff(&file.original, &file.updated, &shown),
+            )
+        })
+        .collect::<Vec<_>>();
+    if cli.json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "schema": 1,
+                "operation": "spec_scaffold",
+                "source": plan.source,
+                "symbol": plan.symbol,
+                "model": plan.model,
+                "module": format!("FrSpecs.{}", plan.module),
+                "source_hash": plan.hash,
+                "regenerated": plan.regenerated,
+                "handwritten_bytes_preserved": plan.handwritten_bytes,
+                "package": shown_path(&root, &root.join(package)),
+                "files_changed": changed,
+                "changes": rendered.iter().map(|(path, diff)| serde_json::json!({"path": path, "diff": diff})).collect::<Vec<_>>(),
+                "transaction": transaction,
+                "applied": write && transaction.is_some(),
+                "saved": cli.save_plan && transaction.is_some(),
+                "evidence": {
+                    "model_property": "unproved_obligation",
+                    "source_correspondence": "anchored_signature_map",
+                    "tested_correspondence": false,
+                    "proved_implementation_correspondence": false,
+                }
+            }))?
+        );
+        return Ok(());
+    }
+    if !write {
+        for (_, diff) in &rendered {
+            print!("{diff}");
+        }
+    }
+    println!(
+        "{} FrSpecs.{} for {}::{} with one explicit proof obligation.",
+        if write {
+            if plan.regenerated {
+                "Refreshed"
+            } else {
+                "Scaffolded"
+            }
+        } else if cli.save_plan {
+            if plan.regenerated {
+                "Saved refresh for"
+            } else {
+                "Saved scaffold for"
+            }
+        } else {
+            if plan.regenerated {
+                "Would refresh"
+            } else {
+                "Would scaffold"
+            }
+        },
+        plan.module,
+        plan.source.display(),
+        plan.symbol
+    );
+    if !write && !cli.save_plan {
+        println!("Nothing written. Re-run with --write to apply.");
+    }
+    Ok(())
+}
+
+fn cmd_spec_ci(cli: &Cli, package: &Path, max_debt: usize, write: bool) -> Result<()> {
+    let root = workspace_root(cli);
+    let plan = crate::spec::ci(&root, package, max_debt)?;
+    let change = crate::edit::FileChange {
+        path: &plan.path,
+        original: &plan.original,
+        updated: &plan.updated,
+    };
+    let transaction = persist_changes(cli, &[change], write, "lean-ci-v1")?;
+    let changed = plan.original != plan.updated;
+    let shown = shown_path(&root, &plan.path);
+    let diff = crate::edit::unified_diff(&plan.original, &plan.updated, &shown);
+    if cli.json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "schema": 1,
+                "operation": "spec_ci",
+                "path": &shown,
+                "package": plan.package,
+                "max_debt": plan.max_debt,
+                "fr_version": env!("CARGO_PKG_VERSION"),
+                "action": "leanprover/lean-action@v1",
+                "files_changed": usize::from(changed),
+                "changes": if changed { vec![serde_json::json!({"path": &shown, "diff": diff})] } else { Vec::new() },
+                "transaction": transaction,
+                "applied": write && transaction.is_some(),
+                "saved": cli.save_plan && transaction.is_some(),
+            }))?
+        );
+        return Ok(());
+    }
+    if !write && changed {
+        print!("{diff}");
+    }
+    if changed {
+        println!(
+            "{} {} for {} with proof-debt ceiling {}.",
+            if write {
+                "Generated"
+            } else if cli.save_plan {
+                "Saved"
+            } else {
+                "Would generate"
+            },
+            shown,
+            plan.package.display(),
+            plan.max_debt
+        );
+    } else {
+        println!("Lean CI workflow {shown} already matches the requested policy.");
+    }
+    if !write && !cli.save_plan && changed {
+        println!("Nothing written. Re-run with --write to apply.");
+    }
+    Ok(())
+}
+
+fn cmd_spec_evidence(cli: &Cli, paths: &[PathBuf]) -> Result<()> {
+    let root = workspace_root(cli);
+    let evidence = crate::spec::evidence(&root, paths, !cli.no_ignore)?;
+    let passed = evidence.verification.report.ok()
+        && evidence
+            .verification
+            .packages
+            .iter()
+            .all(|package| package.passed);
+    if cli.json {
+        println!("{}", serde_json::to_string_pretty(&evidence)?);
+        if !passed {
+            std::process::exit(1);
+        }
+        return Ok(());
+    }
+    println!(
+        "{} checked model propert{}; {} declared assumption(s); {} remaining obligation(s).",
+        evidence.properties.len(),
+        if evidence.properties.len() == 1 {
+            "y"
+        } else {
+            "ies"
+        },
+        evidence.declared_assumptions.len(),
+        evidence.remaining_obligations.len()
+    );
+    for property in &evidence.properties {
+        println!(
+            "property {}:{} {} {}",
+            property.spec.display(),
+            property.line,
+            property.status,
+            property.name
+        );
+    }
+    for assumption in &evidence.declared_assumptions {
+        println!(
+            "assumption {}:{} {} {}",
+            assumption.spec.display(),
+            assumption.line,
+            assumption.kind,
+            assumption.name
+        );
+    }
+    println!("axioms: {}", evidence.axiom_analysis);
+    println!(
+        "implementation/model correspondence: tested={}, proved={}",
+        evidence.correspondence.tested_implementation_model,
+        evidence.correspondence.proved_implementation_model
+    );
+    for obligation in &evidence.remaining_obligations {
+        println!("remaining: {obligation}");
+    }
+    if passed {
+        Ok(())
+    } else {
+        anyhow::bail!("Lean evidence includes failed correspondence or package checks.")
+    }
+}
+
+fn cmd_spec_check(
+    cli: &Cli,
+    paths: &[PathBuf],
+    strict: bool,
+    max_debt: Option<usize>,
+) -> Result<()> {
     let root = workspace_root(cli);
     let report = match strict {
         true => crate::spec::check_strict(&root, paths, !cli.no_ignore)?,
         false => crate::spec::check(&root, paths, !cli.no_ignore)?,
     };
+    let unnamed_debt = strict && report.unnamed_debts() > 0;
+    let exceeded_debt = max_debt
+        .is_some_and(|ceiling| !crate::spec::debt_within_ceiling(report.obligations, ceiling));
+    let passed = report.ok() && !unnamed_debt && !exceeded_debt;
     if cli.json {
         println!("{}", serde_json::to_string_pretty(&report)?);
-        if !report.ok() {
+        if !passed {
             std::process::exit(1);
         }
     } else {
@@ -1151,8 +1541,27 @@ fn cmd_spec_check(cli: &Cli, paths: &[PathBuf], strict: bool) -> Result<()> {
             report.missing(),
             report.obligations
         );
+        for debt in &report.debts {
+            println!(
+                "debt {}:{} {}",
+                debt.spec.display(),
+                debt.line,
+                debt.name.as_deref().unwrap_or("unnamed")
+            );
+        }
     }
-    if report.ok() {
+    if unnamed_debt {
+        anyhow::bail!(
+            "strict spec check found {} unnamed proof-debt record(s).",
+            report.unnamed_debts()
+        )
+    } else if exceeded_debt {
+        anyhow::bail!(
+            "spec check found {} proof-debt record(s), above the ceiling of {}.",
+            report.obligations,
+            max_debt.unwrap()
+        )
+    } else if report.ok() {
         Ok(())
     } else {
         anyhow::bail!(

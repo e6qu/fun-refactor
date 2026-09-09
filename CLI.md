@@ -448,10 +448,44 @@ may write.
 ### `fr spec`
 
 ```
+fr spec init [PATH] [--write]
+fr spec scaffold SOURCE::SYMBOL [--package PATH] [--write]
+fr spec ci [--package PATH] [--max-debt COUNT] [--write]
+
 fr spec check [PATH...]
+fr spec check [PATH...] --strict --max-debt COUNT
 fr spec sync [PATH...] [--write]
 fr spec verify [PATH...]
+fr spec evidence [PATH...]
 ```
+
+`init` plans a minimal Lake package at `specs/`, or at the selected workspace-relative
+path. It pins the supported Lean toolchain and creates `lakefile.toml` plus the
+`FrSpecs` library root. The library is a default checked target. The command refuses
+to leave the workspace, traverse a symlink or replace a differing file. It is a dry
+run until `--write`; `--save-plan` records the three absent-file snapshots for later
+`history apply`. Ordinary history undo and redo remove and restore them together.
+
+`scaffold` selects one qualified Rust function from a source file. It creates a model
+module, a full source anchor and an explicit signature map, then imports that module
+from `FrSpecs.lean`. Supported types are booleans, strings, integer families, unit,
+references, tuples, `Option`, `Result`, `Vec` and `Box` compositions. Other types and
+parameter patterns refuse before history records a change. The generated body contains
+one `sorry`, inside a handwritten region, so `spec verify` fails until the user defines
+the model and proves the selected property. JSON separates that model obligation from
+the anchored signature evidence and makes no implementation-correspondence claim.
+Run the same scaffold command after a source change to refresh its generated anchor,
+map and declaration signature. It replaces only the uniquely marked generated region
+and checks that the model still belongs to the selected source declaration. The marked
+handwritten region remains byte-identical. Missing or duplicate ownership markers
+refuse the full transaction.
+
+`ci` generates `.github/workflows/fr-lean.yml` for one initialized package. The
+workflow installs the current `fr` version and runs strict correspondence with the
+selected debt ceiling. It gives the package to `leanprover/lean-action@v1` with Lake
+warnings treated as errors. It grants read-only repository contents permission.
+Generation refuses a workflow-path symlink or a differing existing workflow. Preview,
+saved-plan, write, undo and redo use the same source-history contract as other files.
 
 Check that Lean models still point at the declarations they model. With no path,
 the command reads `kernels/` and `specs/`. A model names a declaration with an
@@ -475,11 +509,23 @@ mapping also blocks `sync`.
 
 Add `--strict` to require a mapping beside every anchor in the selected specs. This is
 the CI mode for a kernel tree that treats a source hash alone as incomplete evidence.
+Strict checks also require a `-- fr:debt NAME` marker immediately before each live
+`sorry`. Every obligation appears in the bounded `debts` report with its file, line,
+name or naming error. `--max-debt COUNT` fails when the current total exceeds its
+reviewed ceiling. Lower that ceiling as proofs discharge; a later increase then fails.
 
 `verify` always runs that strict correspondence check first. When it passes, the command
 finds the `lakefile.lean` or `lakefile.toml` owning each selected spec and runs
 `lake build --wfail` once per package. Lake can write build artifacts; `fr` does not edit source. JSON includes the strict report,
 each package, its result, and Lean's output.
+
+`evidence` runs the same strict correspondence and Lake checks, then reports theorem
+and lemma declarations as covered model properties. It lists declared `axiom`,
+`opaque` and `constant` assumptions, trusted components, named debt and the remaining
+implementation/model proof obligation. Its axiom analysis covers declared syntax; it
+does not compute each theorem's transitive axiom dependencies. The correspondence
+record distinguishes anchor identity, mapped signatures, executable comparisons and
+implementation proofs. The latter two stay false unless future evidence supplies them.
 
 ### `fr author`
 

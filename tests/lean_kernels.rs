@@ -2267,3 +2267,27 @@ fn the_edit_kernel_accepts_a_reported_author_batch_with_imports() {
     assert_eq!(apply_to_string(source, &edits).unwrap(), expected);
     kernel_accepts(source, &edits, expected);
 }
+
+#[test]
+fn proof_debt_ceiling_matches_lean_over_the_bounded_domain() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("adoption-debt")
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let observed = String::from_utf8(output.stdout).unwrap();
+    let observed = observed.lines().collect::<Vec<_>>();
+    let expected = (0..65)
+        .flat_map(|obligations| {
+            (0..65).map(move |ceiling| {
+                fun_refactor::spec::debt_within_ceiling(obligations, ceiling).to_string()
+            })
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(observed, expected);
+}

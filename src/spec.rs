@@ -8,13 +8,678 @@ use ignore::WalkBuilder;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::process::Command;
+
+pub const LEAN_TOOLCHAIN: &str = "leanprover/lean4:v4.28.0";
+
+const LAKEFILE: &str = r#"name = "fr-specs"
+version = "0.1.0"
+defaultTargets = ["FrSpecs"]
+
+[[lean_lib]]
+name = "FrSpecs"
+"#;
+
+const ROOT_MODULE: &str = r#"/-
+This is the checked root of the project's Lean specification package.
+Import each model here so `fr spec verify` builds it.
+-/
+
+namespace FrSpecs
+
+end FrSpecs
+"#;
+
+#[derive(Debug, Serialize)]
+pub struct InitPlan {
+    pub package: PathBuf,
+    pub toolchain: &'static str,
+    pub files: Vec<InitFile>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct InitFile {
+    pub path: PathBuf,
+    pub content: &'static str,
+    pub existing: bool,
+}
+
+#[derive(Debug)]
+pub struct ScaffoldPlan {
+    pub source: PathBuf,
+    pub symbol: String,
+    pub model: String,
+    pub module: String,
+    pub hash: String,
+    pub regenerated: bool,
+    pub handwritten_bytes: usize,
+    pub files: Vec<ScaffoldFile>,
+}
+
+#[derive(Debug)]
+pub struct ScaffoldFile {
+    pub path: PathBuf,
+    pub original: String,
+    pub updated: String,
+}
+
+#[derive(Debug)]
+pub struct CiPlan {
+    pub package: PathBuf,
+    pub path: PathBuf,
+    pub original: String,
+    pub updated: String,
+    pub max_debt: usize,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Evidence {
+    pub schema: u8,
+    pub verification: Verification,
+    pub properties: Vec<PropertyReport>,
+    pub declared_assumptions: Vec<DeclaredAssumption>,
+    pub axiom_analysis: &'static str,
+    pub trusted_components: Vec<&'static str>,
+    pub correspondence: CorrespondenceEvidence,
+    pub remaining_obligations: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PropertyReport {
+    pub spec: PathBuf,
+    pub line: usize,
+    pub name: String,
+    pub kind: String,
+    pub status: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+pub struct DeclaredAssumption {
+    pub spec: PathBuf,
+    pub line: usize,
+    pub name: String,
+    pub kind: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CorrespondenceEvidence {
+    pub source_identity: &'static str,
+    pub signature_surface: &'static str,
+    pub tested_implementation_model: bool,
+    pub proved_implementation_model: bool,
+}
+
+pub fn init(root: &Path, requested: &Path) -> Result<InitPlan> {
+    let root = root
+        .canonicalize()
+        .with_context(|| format!("reading workspace root {}", root.display()))?;
+    if !root.is_dir() {
+        bail!("spec initialization requires a workspace directory.");
+    }
+    let relative = if requested.is_absolute() {
+        requested.strip_prefix(&root).with_context(|| {
+            format!(
+                "spec package {} must stay inside {}.",
+                requested.display(),
+                root.display()
+            )
+        })?
+    } else {
+        requested
+    };
+    if relative.as_os_str().is_empty()
+        || relative.components().any(|part| {
+            !matches!(part, Component::Normal(_))
+                || matches!(part.as_os_str().to_str(), Some(".git" | ".fr-history"))
+        })
+    {
+        bail!("invalid spec package path {}.", requested.display());
+    }
+
+    let package = root.join(relative);
+    let mut current = root.clone();
+    for component in relative.components() {
+        current.push(component);
+        match std::fs::symlink_metadata(&current) {
+            Ok(metadata) if metadata.file_type().is_symlink() => {
+                bail!(
+                    "spec package path traverses a symlink: {}.",
+                    current.display()
+                )
+            }
+            Ok(metadata) if !metadata.is_dir() => {
+                bail!(
+                    "spec package path is not a directory: {}.",
+                    current.display()
+                )
+            }
+            Ok(_) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error.into()),
+        }
+    }
+
+    let definitions = [
+        ("lean-toolchain", concat!("leanprover/lean4:v4.28.0", "\n")),
+        ("lakefile.toml", LAKEFILE),
+        ("FrSpecs.lean", ROOT_MODULE),
+    ];
+    let mut files = Vec::with_capacity(definitions.len());
+    for (name, content) in definitions {
+        let path = package.join(name);
+        let existing = match std::fs::symlink_metadata(&path) {
+            Ok(metadata) if metadata.is_file() => {
+                let current = crate::vfs::read_to_string(&path)
+                    .with_context(|| format!("reading {}", path.display()))?;
+                if current != content && name != "FrSpecs.lean" {
+                    bail!(
+                        "refusing to replace existing spec package file {}.",
+                        path.display()
+                    );
+                }
+                true
+            }
+            Ok(_) => bail!(
+                "spec package target is not a regular file: {}.",
+                path.display()
+            ),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
+            Err(error) => return Err(error.into()),
+        };
+        files.push(InitFile {
+            path,
+            content,
+            existing,
+        });
+    }
+    Ok(InitPlan {
+        package,
+        toolchain: LEAN_TOOLCHAIN,
+        files,
+    })
+}
+
+pub fn scaffold(root: &Path, target: &str, requested_package: &Path) -> Result<ScaffoldPlan> {
+    let package_plan = init(root, requested_package)?;
+    if package_plan.files.iter().any(|file| !file.existing) {
+        bail!(
+            "{} is not initialized; run `fr spec init {} --write` first.",
+            package_plan.package.display(),
+            requested_package.display()
+        );
+    }
+    let (source, symbol) = target.split_once("::").ok_or_else(|| {
+        anyhow::anyhow!("a scaffold target needs `<source-path>::<qualified-symbol>`.")
+    })?;
+    if source.is_empty() || symbol.is_empty() {
+        bail!("a scaffold target needs `<source-path>::<qualified-symbol>`.");
+    }
+    let source = PathBuf::from(source);
+    if source.is_absolute()
+        || source
+            .components()
+            .any(|part| !matches!(part, Component::Normal(_)))
+    {
+        bail!("a scaffold source must be a workspace-relative path.");
+    }
+    let source_path = root.join(&source);
+    let signature = rust_signature(&source_path, symbol)?;
+    let hash = declaration_hash(
+        &mut Parsers::new(),
+        &mut Extractor::new(),
+        &source_path,
+        symbol,
+    )?;
+    let mapped = signature
+        .iter()
+        .map(|part| {
+            if !lean_identifier(&part.name) && part.name != "return" {
+                bail!(
+                    "Rust parameter `{}` needs a simple identifier for scaffolding.",
+                    part.name
+                );
+            }
+            Ok(SignaturePart {
+                name: part.name.clone(),
+                ty: rust_type_to_lean(&part.ty)?,
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let model = format!("{}Model", lower_identifier(symbol));
+    let module = scaffold_module(&source, symbol);
+    let mapping = signature
+        .iter()
+        .zip(&mapped)
+        .map(|(source, model)| {
+            format!(
+                "{}: {} => {}: {}",
+                source.name, source.ty, model.name, model.ty
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("; ");
+    let parameters = mapped[..mapped.len() - 1]
+        .iter()
+        .map(|part| format!(" ({} : {})", part.name, part.ty))
+        .collect::<String>();
+    let return_type = &mapped
+        .last()
+        .context("Rust signature has no return type")?
+        .ty;
+    let generated_region = format!(
+        "-- fr:generated-begin scaffold\n-- fr:spec {}::{} @ {}\n-- fr:signature {}\ndef {}{} : {} :=\n-- fr:generated-end scaffold\n",
+        source.display(),
+        symbol,
+        hash,
+        mapping,
+        model,
+        parameters,
+        return_type
+    );
+    let model_path = package_plan
+        .package
+        .join("FrSpecs")
+        .join(format!("{module}.lean"));
+    let (model_original, generated, regenerated, handwritten_bytes) =
+        match std::fs::symlink_metadata(&model_path) {
+            Ok(metadata) if metadata.is_file() => {
+                let original = crate::vfs::read_to_string(&model_path)?;
+                let anchors = anchors_in(&original)?;
+                if anchors.len() != 1 || anchors[0].1 != source || anchors[0].2 != symbol {
+                    bail!(
+                        "existing model {} does not belong to {}::{}.",
+                        model_path.display(),
+                        source.display(),
+                        symbol
+                    );
+                }
+                let (updated, preserved) = replace_generated_region(&original, &generated_region)?;
+                (original, updated, true, preserved)
+            }
+            Ok(_) => bail!(
+                "existing model is not a regular file: {}.",
+                model_path.display()
+            ),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                let handwritten = "-- fr:handwritten-begin model-and-proofs\n  by\n    -- fr:debt model-semantics\n    sorry\n-- fr:handwritten-end model-and-proofs\n";
+                (
+                    String::new(),
+                    format!(
+                        "namespace FrSpecs\n\n{generated_region}\n{handwritten}\nend FrSpecs\n"
+                    ),
+                    false,
+                    handwritten.len(),
+                )
+            }
+            Err(error) => return Err(error.into()),
+        };
+    let parsers = Parsers::new();
+    let parsed = parsers.parse(crate::lang::Language::Lean, &generated)?;
+    if parsed.has_errors() {
+        bail!("generated Lean scaffold did not parse; no files changed.");
+    }
+    let root_path = package_plan.package.join("FrSpecs.lean");
+    let root_original = crate::vfs::read_to_string(&root_path)?;
+    let import = format!("import FrSpecs.{module}");
+    let root_updated = if root_original.lines().any(|line| line.trim() == import) {
+        root_original.clone()
+    } else {
+        format!("{import}\n{root_original}")
+    };
+    Ok(ScaffoldPlan {
+        source,
+        symbol: symbol.to_string(),
+        model,
+        module,
+        hash,
+        regenerated,
+        handwritten_bytes,
+        files: vec![
+            ScaffoldFile {
+                path: model_path,
+                original: model_original,
+                updated: generated,
+            },
+            ScaffoldFile {
+                path: root_path,
+                original: root_original,
+                updated: root_updated,
+            },
+        ],
+    })
+}
+
+pub fn ci(root: &Path, requested_package: &Path, max_debt: usize) -> Result<CiPlan> {
+    let package_plan = init(root, requested_package)?;
+    if package_plan.files.iter().any(|file| !file.existing) {
+        bail!(
+            "{} is not initialized; run `fr spec init {} --write` first.",
+            package_plan.package.display(),
+            requested_package.display()
+        );
+    }
+    let root = root.canonicalize()?;
+    let package = package_plan.package.strip_prefix(&root)?.to_path_buf();
+    let shell_package = shell_quote(&package.display().to_string());
+    let yaml_package = serde_json::to_string(&package.display().to_string())?;
+    let updated = format!(
+        "name: fr Lean verification\n\non:\n  push:\n  pull_request:\n  workflow_dispatch:\n\npermissions:\n  contents: read\n\njobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n\n      - uses: actions/checkout@v4\n\n      - name: Install fr\n        run: cargo install fun-refactor --locked --version {}\n\n      - name: Check source correspondence and proof-debt ratchet\n        run: fr spec check {} --strict --max-debt {}\n\n      - uses: leanprover/lean-action@v1\n        with:\n          lake-package-directory: {}\n          build-args: --wfail\n",
+        env!("CARGO_PKG_VERSION"),
+        shell_package,
+        max_debt,
+        yaml_package
+    );
+    serde_yaml::from_str::<serde_yaml::Value>(&updated)
+        .context("generated Lean CI workflow is not valid YAML")?;
+    let path = root.join(".github/workflows/fr-lean.yml");
+    for directory in [root.join(".github"), root.join(".github/workflows")] {
+        match std::fs::symlink_metadata(&directory) {
+            Ok(metadata) if metadata.file_type().is_symlink() => {
+                bail!(
+                    "CI workflow path traverses a symlink: {}.",
+                    directory.display()
+                )
+            }
+            Ok(metadata) if !metadata.is_dir() => {
+                bail!(
+                    "CI workflow parent is not a directory: {}.",
+                    directory.display()
+                )
+            }
+            Ok(_) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error.into()),
+        }
+    }
+    let original = match std::fs::symlink_metadata(&path) {
+        Ok(metadata) if metadata.is_file() => {
+            let original = crate::vfs::read_to_string(&path)?;
+            if original != updated {
+                bail!(
+                    "refusing to replace existing CI workflow {}.",
+                    path.display()
+                );
+            }
+            original
+        }
+        Ok(_) => bail!(
+            "CI workflow target is not a regular file: {}.",
+            path.display()
+        ),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
+        Err(error) => return Err(error.into()),
+    };
+    Ok(CiPlan {
+        package,
+        path,
+        original,
+        updated,
+        max_debt,
+    })
+}
+
+pub fn evidence(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result<Evidence> {
+    let verification = verify(root, inputs, respect_ignore)?;
+    let files = spec_files(root, inputs, respect_ignore)?;
+    let mut properties = Vec::new();
+    let mut declared_assumptions = Vec::new();
+    let parsers = Parsers::new();
+    let mut extractor = Extractor::new();
+    for spec in files {
+        let source = crate::vfs::read_to_string(&spec)?;
+        let parsed = parsers.parse(crate::lang::Language::Lean, &source)?;
+        let facts = extractor.extract(&parsed, &spec, &source)?;
+        let package = lean_package(root, &spec)?;
+        let package_passed = verification
+            .packages
+            .iter()
+            .find(|report| report.package == package)
+            .is_some_and(|report| report.passed);
+        for symbol in facts.symbols {
+            let declaration = symbol.full_span.text(&source).trim_start();
+            let keyword = declaration.split_whitespace().next().unwrap_or("");
+            let line = crate::span::LineIndex::new(&source)
+                .line_col(symbol.name_span.start, &source)
+                .line;
+            if matches!(keyword, "theorem" | "lemma") {
+                properties.push(PropertyReport {
+                    spec: spec.clone(),
+                    line,
+                    name: symbol.qualified_name(),
+                    kind: keyword.to_string(),
+                    status: if package_passed {
+                        "checked_by_lean"
+                    } else {
+                        "unchecked"
+                    },
+                });
+            } else if matches!(keyword, "axiom" | "opaque" | "constant") {
+                declared_assumptions.push(DeclaredAssumption {
+                    spec: spec.clone(),
+                    line,
+                    name: symbol.qualified_name(),
+                    kind: keyword.to_string(),
+                });
+            }
+        }
+    }
+    properties.sort_by(|left, right| (&left.spec, left.line).cmp(&(&right.spec, right.line)));
+    declared_assumptions
+        .sort_by(|left, right| (&left.spec, left.line).cmp(&(&right.spec, right.line)));
+    let mut remaining_obligations = verification
+        .report
+        .debts
+        .iter()
+        .map(|debt| {
+            format!(
+                "{}:{} proof debt {}",
+                debt.spec.display(),
+                debt.line,
+                debt.name.as_deref().unwrap_or("unnamed")
+            )
+        })
+        .collect::<Vec<_>>();
+    remaining_obligations.push(
+        "No proof currently connects each Rust implementation to its Lean model.".to_string(),
+    );
+    Ok(Evidence {
+        schema: 1,
+        verification,
+        properties,
+        declared_assumptions,
+        axiom_analysis: "Declared Lean axiom, opaque and constant syntax only.",
+        trusted_components: vec![
+            "Lean kernel, elaborator and compiler.",
+            "Lake package and checked-target selection.",
+            "fr parsing, declaration spans, signature checks and SHA-256.",
+            "Host filesystem and process execution.",
+        ],
+        correspondence: CorrespondenceEvidence {
+            source_identity: "Declaration bytes match each recorded SHA-256 anchor.",
+            signature_surface: "Explicit maps match parsed Rust and Lean signatures.",
+            tested_implementation_model: false,
+            proved_implementation_model: false,
+        },
+        remaining_obligations,
+    })
+}
+
+fn shell_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "'\"'\"'"))
+}
+
+fn replace_generated_region(original: &str, replacement: &str) -> Result<(String, usize)> {
+    const BEGIN: &str = "-- fr:generated-begin scaffold";
+    const END: &str = "-- fr:generated-end scaffold";
+    let handwritten = handwritten_region(original)?.to_string();
+    let start = original
+        .find(BEGIN)
+        .context("existing model has no generated scaffold region")?;
+    if original[start + BEGIN.len()..].contains(BEGIN) {
+        bail!("existing model has more than one generated scaffold region.");
+    }
+    let end_start = original[start..]
+        .find(END)
+        .map(|offset| start + offset)
+        .context("existing model has no generated scaffold end marker")?;
+    if original[end_start + END.len()..].contains(END) {
+        bail!("existing model has more than one generated scaffold end marker.");
+    }
+    let end = original[end_start..]
+        .find('\n')
+        .map_or(original.len(), |offset| end_start + offset + 1);
+    let mut updated = String::with_capacity(original.len() + replacement.len());
+    updated.push_str(&original[..start]);
+    updated.push_str(replacement);
+    updated.push_str(&original[end..]);
+    if handwritten_region(&updated)? != handwritten {
+        bail!("scaffold regeneration did not preserve its handwritten region.");
+    }
+    Ok((updated, handwritten.len()))
+}
+
+fn handwritten_region(text: &str) -> Result<&str> {
+    const BEGIN: &str = "-- fr:handwritten-begin model-and-proofs";
+    const END: &str = "-- fr:handwritten-end model-and-proofs";
+    let start = text
+        .find(BEGIN)
+        .context("existing model has no handwritten region")?;
+    if text[start + BEGIN.len()..].contains(BEGIN) {
+        bail!("existing model has more than one handwritten region.");
+    }
+    let end_start = text[start..]
+        .find(END)
+        .map(|offset| start + offset)
+        .context("existing model has no handwritten end marker")?;
+    if text[end_start + END.len()..].contains(END) {
+        bail!("existing model has more than one handwritten end marker.");
+    }
+    let end = text[end_start..]
+        .find('\n')
+        .map_or(text.len(), |offset| end_start + offset + 1);
+    Ok(&text[start..end])
+}
+
+fn lean_identifier(name: &str) -> bool {
+    let mut characters = name.chars();
+    characters
+        .next()
+        .is_some_and(|character| character.is_ascii_alphabetic() || character == '_')
+        && characters.all(|character| character.is_ascii_alphanumeric() || character == '_')
+}
+
+fn lower_identifier(symbol: &str) -> String {
+    let name = symbol.rsplit("::").next().unwrap_or(symbol);
+    let mut output = name
+        .chars()
+        .map(|character| {
+            if character.is_ascii_alphanumeric() || character == '_' {
+                character
+            } else {
+                '_'
+            }
+        })
+        .collect::<String>();
+    if !lean_identifier(&output) {
+        output.insert(0, 'm');
+    }
+    output
+}
+
+fn scaffold_module(source: &Path, symbol: &str) -> String {
+    let raw = format!("{} {}", source.display(), symbol);
+    let mut output = String::new();
+    let mut capitalize = true;
+    for character in raw.chars() {
+        if character.is_ascii_alphanumeric() {
+            output.push(if capitalize {
+                character.to_ascii_uppercase()
+            } else {
+                character
+            });
+            capitalize = false;
+        } else {
+            capitalize = true;
+        }
+    }
+    if output
+        .chars()
+        .next()
+        .is_some_and(|first| first.is_ascii_digit())
+    {
+        output.insert_str(0, "Model");
+    }
+    output
+}
+
+fn rust_type_to_lean(ty: &str) -> Result<String> {
+    let ty = ty.trim();
+    let direct = match ty {
+        "bool" => Some("Bool"),
+        "String" | "str" | "&str" => Some("String"),
+        "usize" | "u8" | "u16" | "u32" | "u64" | "u128" => Some("Nat"),
+        "isize" | "i8" | "i16" | "i32" | "i64" | "i128" => Some("Int"),
+        "()" => Some("Unit"),
+        _ => None,
+    };
+    if let Some(mapped) = direct {
+        return Ok(mapped.to_string());
+    }
+    if let Some(inner) = ty.strip_prefix('&') {
+        return rust_type_to_lean(inner.trim_start_matches("mut"));
+    }
+    for (rust, lean) in [("Option", "Option"), ("Vec", "List"), ("Box", "")] {
+        if let Some(inner) = generic_arguments(ty, rust) {
+            let mapped = rust_type_to_lean(inner)?;
+            return Ok(match lean {
+                "" => mapped,
+                _ => format!("{lean} {mapped}"),
+            });
+        }
+    }
+    if let Some(inner) = generic_arguments(ty, "Result") {
+        let parts = inner.split_top_level(',');
+        if let [ok, error] = parts.as_slice() {
+            return Ok(format!(
+                "Except {} {}",
+                rust_type_to_lean(error)?,
+                rust_type_to_lean(ok)?
+            ));
+        }
+    }
+    if ty.starts_with('(') && ty.ends_with(')') {
+        let parts = ty[1..ty.len() - 1].split_top_level(',');
+        if parts.len() >= 2 {
+            return parts
+                .into_iter()
+                .map(rust_type_to_lean)
+                .collect::<Result<Vec<_>>>()
+                .map(|parts| format!("({})", parts.join(" × ")));
+        }
+    }
+    bail!("Rust type `{ty}` has no safe Lean scaffold mapping.")
+}
+
+fn generic_arguments<'a>(ty: &'a str, outer: &str) -> Option<&'a str> {
+    ty.strip_prefix(outer)?.strip_prefix('<')?.strip_suffix('>')
+}
 
 #[derive(Debug, Serialize)]
 pub struct Report {
     pub anchors: Vec<AnchorReport>,
     pub obligations: usize,
+    pub debts: Vec<DebtReport>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct DebtReport {
+    pub spec: PathBuf,
+    pub line: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub detail: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -76,6 +741,10 @@ pub enum Status {
 }
 
 impl Report {
+    pub fn unnamed_debts(&self) -> usize {
+        self.debts.iter().filter(|debt| debt.name.is_none()).count()
+    }
+
     pub fn fresh(&self) -> usize {
         self.anchors
             .iter()
@@ -131,6 +800,10 @@ impl Report {
                     .is_none_or(|signature| signature.status == Status::Fresh)
             })
     }
+}
+
+pub fn debt_within_ceiling(obligations: usize, ceiling: usize) -> bool {
+    obligations <= ceiling
 }
 
 pub fn check(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result<Report> {
@@ -201,14 +874,14 @@ fn check_with(
 ) -> Result<Report> {
     let files = spec_files(root, inputs, respect_ignore)?;
     let mut anchors = Vec::new();
-    let mut obligations = 0;
+    let mut debts = Vec::new();
     let mut parsers = Parsers::new();
     let mut extractor = Extractor::new();
 
     for spec in files {
         let text = crate::vfs::read_to_string(&spec)
             .with_context(|| format!("reading {}", spec.display()))?;
-        obligations += obligations_in(&text);
+        debts.extend(debts_in(&spec, &text));
         for (line, source, symbol, expected) in anchors_in(&text)? {
             let source = crate::vfs::normalise(root.join(source));
             let report = if !source.starts_with(root) {
@@ -298,7 +971,8 @@ fn check_with(
     anchors.sort_by(|left, right| (&left.spec, left.line).cmp(&(&right.spec, right.line)));
     Ok(Report {
         anchors,
-        obligations,
+        obligations: debts.len(),
+        debts,
     })
 }
 
@@ -470,7 +1144,7 @@ fn anchor_records(text: &str) -> Result<Vec<Anchor>> {
         let (target, expected) = body
             .split_once(SEPARATOR)
             .ok_or_else(|| anyhow::anyhow!("line {number}: a spec anchor needs ` @ <hash>`"))?;
-        let (source, symbol) = target.rsplit_once("::").ok_or_else(|| {
+        let (source, symbol) = target.split_once("::").ok_or_else(|| {
             anyhow::anyhow!("line {number}: a spec anchor needs `<path>::<symbol>`")
         })?;
         if source.is_empty()
@@ -728,6 +1402,7 @@ fn compact_type(text: &str) -> String {
     text.split_whitespace().collect()
 }
 
+#[cfg(test)]
 fn obligations_in(text: &str) -> usize {
     text.lines()
         .filter(|line| !line.trim_start().starts_with("--"))
@@ -736,16 +1411,61 @@ fn obligations_in(text: &str) -> usize {
         .count()
 }
 
+fn debts_in(spec: &Path, text: &str) -> Vec<DebtReport> {
+    let lines = text.lines().collect::<Vec<_>>();
+    let mut debts = Vec::new();
+    for (index, line) in lines.iter().enumerate() {
+        if line.trim_start().starts_with("--") {
+            continue;
+        }
+        let count = line
+            .split(|character: char| !character.is_ascii_alphanumeric() && character != '_')
+            .filter(|word| *word == "sorry")
+            .count();
+        for _ in 0..count {
+            let marker = index
+                .checked_sub(1)
+                .and_then(|previous| lines[previous].trim().strip_prefix("-- fr:debt "));
+            let (name, detail) = match marker {
+                Some(name)
+                    if !name.is_empty()
+                        && name.chars().all(|character| {
+                            character.is_ascii_alphanumeric()
+                                || matches!(character, '-' | '_' | '.')
+                        }) =>
+                {
+                    (Some(name.to_string()), None)
+                }
+                Some(_) => (
+                    None,
+                    Some("the preceding proof-debt name is malformed".to_string()),
+                ),
+                None => (
+                    None,
+                    Some("strict checks require `-- fr:debt <name>` before `sorry`".to_string()),
+                ),
+            };
+            debts.push(DebtReport {
+                spec: spec.to_path_buf(),
+                line: index + 1,
+                name,
+                detail,
+            });
+        }
+    }
+    debts
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        anchors_in, check, check_strict, declaration_hash, lean_package, obligations_in, sync,
-        Status,
+        anchors_in, check, check_strict, ci, debts_in, declaration_hash, init, lean_package,
+        obligations_in, scaffold, sync, Status,
     };
     use crate::extract::Extractor;
     use crate::parse::Parsers;
     use std::fs;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
 
     #[test]
     fn reads_anchors_and_counts_only_live_obligations() {
@@ -757,6 +1477,13 @@ mod tests {
         assert_eq!(anchors[0].1.to_string_lossy(), "src/edit.rs");
         assert_eq!(anchors[0].2, "apply_to_string");
         assert_eq!(obligations_in("def x := sorry\n-- sorry\n"), 1);
+        let debts = debts_in(
+            Path::new("Model.lean"),
+            "-- fr:debt model-semantics\ndef x := sorry\ndef y := sorry\n-- sorry\n",
+        );
+        assert_eq!(debts.len(), 2);
+        assert_eq!(debts[0].name.as_deref(), Some("model-semantics"));
+        assert!(debts[1].name.is_none());
     }
 
     #[test]
@@ -966,5 +1693,117 @@ mod tests {
         fs::write(&lean_spec, "def lean := 1\n").unwrap();
         assert_eq!(lean_package(root, &toml_spec).unwrap(), root.join("toml"));
         assert_eq!(lean_package(root, &lean_spec).unwrap(), root.join("lean"));
+    }
+
+    #[test]
+    fn init_is_bounded_and_idempotent_without_replacing_configuration() {
+        let workspace = tempfile::tempdir().unwrap();
+        let root = workspace.path();
+        let plan = init(root, Path::new("verification/lean")).unwrap();
+        assert_eq!(plan.files.len(), 3);
+        assert!(plan.files.iter().all(|file| !file.existing));
+        assert!(init(root, Path::new("../outside")).is_err());
+        assert!(init(root, &root.parent().unwrap().join("outside")).is_err());
+
+        fs::create_dir_all(root.join("verification/lean")).unwrap();
+        for file in &plan.files {
+            fs::write(&file.path, file.content).unwrap();
+        }
+        let repeated = init(root, Path::new("verification/lean")).unwrap();
+        assert!(repeated.files.iter().all(|file| file.existing));
+
+        fs::write(
+            root.join("verification/lean/lakefile.toml"),
+            "owned = true\n",
+        )
+        .unwrap();
+        let error = init(root, Path::new("verification/lean")).unwrap_err();
+        assert!(error.to_string().contains("refusing to replace"), "{error}");
+    }
+
+    #[test]
+    fn init_refuses_a_package_path_through_a_symlink() {
+        let workspace = tempfile::tempdir().unwrap();
+        let outside = tempfile::tempdir().unwrap();
+        std::os::unix::fs::symlink(outside.path(), workspace.path().join("specs")).unwrap();
+        let error = init(workspace.path(), Path::new("specs")).unwrap_err();
+        assert!(error.to_string().contains("traverses a symlink"), "{error}");
+    }
+
+    #[test]
+    fn scaffolds_a_strictly_mapped_rust_model_and_checked_import() {
+        let workspace = tempfile::tempdir().unwrap();
+        let root = workspace.path();
+        fs::create_dir_all(root.join("src")).unwrap();
+        fs::write(
+            root.join("src/lib.rs"),
+            "pub fn choose(ok: bool, values: Vec<usize>) -> Option<usize> { values.into_iter().next() }\n",
+        )
+        .unwrap();
+        let package = init(root, Path::new("specs")).unwrap();
+        for file in package.files {
+            fs::create_dir_all(file.path.parent().unwrap()).unwrap();
+            fs::write(file.path, file.content).unwrap();
+        }
+
+        let plan = scaffold(root, "src/lib.rs::choose", Path::new("specs")).unwrap();
+        assert_eq!(plan.module, "SrcLibRsChoose");
+        assert_eq!(plan.model, "chooseModel");
+        assert!(plan.files[0].updated.contains(
+            "ok: bool => ok: Bool; values: Vec<usize> => values: List Nat; return: Option<usize> => return: Option Nat"
+        ));
+        assert!(plan.files[0]
+            .updated
+            .contains("def chooseModel (ok : Bool) (values : List Nat) : Option Nat :="));
+        for file in plan.files {
+            fs::create_dir_all(file.path.parent().unwrap()).unwrap();
+            fs::write(file.path, file.updated).unwrap();
+        }
+        let checked = check_strict(root, &[PathBuf::from("specs")], true).unwrap();
+        assert!(checked.ok(), "{checked:#?}");
+        assert_eq!(checked.obligations, 1);
+    }
+
+    #[test]
+    fn source_anchors_allow_qualified_symbols_after_the_source_path() {
+        let anchors =
+            anchors_in("-- fr:spec src/lib.rs::module::Thing::method @ deadbeef\ndef x := 0\n")
+                .unwrap();
+        assert_eq!(anchors[0].1, PathBuf::from("src/lib.rs"));
+        assert_eq!(anchors[0].2, "module::Thing::method");
+    }
+
+    #[test]
+    fn generates_valid_ci_with_a_selected_debt_ceiling() {
+        let workspace = tempfile::tempdir().unwrap();
+        let root = workspace.path();
+        let package = init(root, Path::new("verification")).unwrap();
+        for file in package.files {
+            fs::create_dir_all(file.path.parent().unwrap()).unwrap();
+            fs::write(file.path, file.content).unwrap();
+        }
+        let plan = ci(root, Path::new("verification"), 2).unwrap();
+        let yaml: serde_yaml::Value = serde_yaml::from_str(&plan.updated).unwrap();
+        assert_eq!(yaml["jobs"]["verify"]["runs-on"], "ubuntu-latest");
+        assert!(plan.updated.contains("--strict --max-debt 2"));
+        assert!(plan
+            .updated
+            .contains("lake-package-directory: \"verification\""));
+        assert!(plan.updated.contains("build-args: --wfail"));
+    }
+
+    #[test]
+    fn ci_refuses_to_preview_through_a_workflow_symlink() {
+        let workspace = tempfile::tempdir().unwrap();
+        let outside = tempfile::tempdir().unwrap();
+        let root = workspace.path();
+        let package = init(root, Path::new("specs")).unwrap();
+        for file in package.files {
+            fs::create_dir_all(file.path.parent().unwrap()).unwrap();
+            fs::write(file.path, file.content).unwrap();
+        }
+        std::os::unix::fs::symlink(outside.path(), root.join(".github")).unwrap();
+        let error = ci(root, Path::new("specs"), 0).unwrap_err();
+        assert!(error.to_string().contains("traverses a symlink"), "{error}");
     }
 }

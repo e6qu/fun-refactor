@@ -412,7 +412,11 @@ fn lock(root: &Path) -> Result<File> {
 
 fn sync_ancestors(root: &Path, directory: &Path) -> Result<()> {
     for parent in directory.ancestors() {
-        File::open(parent)?.sync_all()?;
+        match File::open(parent) {
+            Ok(file) => file.sync_all()?,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error.into()),
+        }
         if parent == root {
             break;
         }
@@ -1119,6 +1123,30 @@ mod tests {
             "before λ\n"
         );
         assert_eq!(fs::read_to_string(dir.path().join("1.txt")).unwrap(), "");
+    }
+
+    #[test]
+    fn records_and_reverses_a_file_below_a_new_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("new/nested/file.txt");
+        let id = record(
+            dir.path(),
+            &[FileChange {
+                path: &path,
+                original: "",
+                updated: "created\n",
+            }],
+            true,
+            "fixture",
+        )
+        .unwrap()
+        .unwrap();
+
+        assert_eq!(fs::read_to_string(&path).unwrap(), "created\n");
+        act(dir.path(), Action::Undo, id, true).unwrap();
+        assert!(!path.exists());
+        act(dir.path(), Action::Redo, id, true).unwrap();
+        assert_eq!(fs::read_to_string(&path).unwrap(), "created\n");
     }
 
     #[test]

@@ -141,9 +141,13 @@ fr translate app.py nextjs    # a FastAPI application as a Next.js route tree
 fr translate openapi.yaml fastapi  # a service skeleton from a contract
 fr recipe <file.recipe>       # a workspace transaction: recipes find, do, expect together
 fr recipe fmt recipes --check # format every recipe in a directory, or reject drift
+fr spec init --write          # create a pinned, checked Lean package through history
+fr spec scaffold src/lib.rs::allowed --write # select one Rust model obligation
+fr spec ci --max-debt 0 --write # pin correspondence, debt and Lean checks in CI
 fr spec check                 # Lean models whose source anchors still match
 fr spec sync --write          # renew reviewed stale source hashes
 fr spec verify                # strict correspondence plus Lake builds
+fr spec evidence              # bounded claims, assumptions, trust and open obligations
 fr openapi [--yaml]           # the contract a Next.js route tree declares
 fr callers <fn> --depth 3     # who calls this
 fr callees <fn> --depth 3     # what does it call

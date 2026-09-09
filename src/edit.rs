@@ -370,11 +370,16 @@ impl CommitLocks {
             })
             .collect();
         for dir in &mut directories {
-            std::fs::create_dir_all(&*dir)
-                .with_context(|| format!("creating {}", dir.display()))?;
-            *dir = dir
-                .canonicalize()
-                .with_context(|| format!("resolving {}", dir.display()))?;
+            *dir = match dir.canonicalize() {
+                Ok(path) => path,
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                    std::path::absolute(&*dir)
+                        .with_context(|| format!("resolving {}", dir.display()))?
+                }
+                Err(error) => {
+                    return Err(error).with_context(|| format!("resolving {}", dir.display()))
+                }
+            };
         }
         directories.sort();
         directories.dedup();

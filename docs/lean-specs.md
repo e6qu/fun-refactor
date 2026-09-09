@@ -9,8 +9,13 @@ The [roadmap](../PLAN.md) extends this foundation into an adoption workflow for 
 | Surface | Current scope |
 |---|---|
 | Lean translation | Eight programming-language readers and writers, including Lean, over supported constructs |
+| `fr spec init` | Preview or create a pinned minimal Lake package and checked `FrSpecs` target through source history |
+| `fr spec scaffold` | Select a Rust function and create an anchored, strictly mapped model obligation in that target |
+| `fr spec ci` | Generate an undoable GitHub Actions workflow with strict checks, a debt ceiling and a Lake build |
+| `fr spec evidence` | Build and report model properties, declared assumptions, trust, correspondence and remaining obligations |
 | `fr spec check` | Source identity, missing declarations, signature maps and live `sorry` counts |
 | `fr spec check --strict` | Require an explicit signature map beside every source anchor |
+| `fr spec check --max-debt N` | Reject a proof-debt increase above a reviewed ceiling |
 | `fr spec sync` | Preview renewal of stale source hashes; `--write` applies reviewed renewals |
 | `fr spec verify` | Strict correspondence checks, then `lake build --wfail` in each owning package |
 | `kernels/` | Executable edit, position, history, pagination, source-budget, insertion-placement, confidence and workspace membership models with shared Rust/Lean cases |
@@ -36,10 +41,18 @@ Inspect a stale source change before renewing its hash.
 `spec sync` changes source identity markers; it does not rewrite signatures or repair proofs.
 
 ```sh
+fr spec init
+fr spec init --write
+fr spec scaffold src/lib.rs::allowed
+fr spec scaffold src/lib.rs::allowed --write
+fr spec ci --max-debt 0 --write
+
 fr spec check --strict
+fr spec check --strict --max-debt 0
 fr spec sync
 fr spec sync --write
 fr spec verify
+fr spec evidence
 ```
 
 Without paths, these commands inspect existing `kernels/` and `specs/` roots.
@@ -103,6 +116,13 @@ That adds compiler trust to those proofs. Zero `sorry` obligations does not remo
 Inspect individual dependencies with `#print axioms FrKernels.Patch.mode_change_supported_iff` in a Lean file importing `FrKernels.Patch`.
 Source anchors and shared cases do not prove general Rust/model correspondence.
 Filesystem observation, path validation, patch rendering, report aggregation and Git execution remain outside this model.
+
+`FrKernels.Adoption` models the proof-debt ceiling used by `spec check`. Four
+theorems characterize its Boolean result, accept an equal ceiling, preserve acceptance
+when debt falls, and reject debt above the ceiling. All 4,225 obligation/ceiling pairs
+from zero through 64 agree with Rust. The theorem axiom audit reports only `propext`.
+This proves the small ratchet predicate. It does not prove debt discovery, CLI
+enforcement, marker parsing or the broader adoption workflow.
 
 `FrKernels.Project` models the shared page-length calculation and workspace component matcher.
 Its theorems bound each page by the requested limit and remaining items.
@@ -315,28 +335,43 @@ The [M4s timing report](project-context-evaluation.md#batched-revision-hashing) 
 
 ## Adopting Lean in another project today
 
-Create a Lake package and write a small executable model with a useful property.
+Run `fr spec init` to preview a minimal package, then apply it with `--write`.
+The command defaults to `specs/`, pins the supported Lean toolchain, and records all
+created files in one undoable transaction. Import every selected model from
+`FrSpecs.lean` so the default target builds it. The command preserves every existing
+package file that differs from its template.
+
+Write a small executable model with a useful property.
 Choose a pure function whose domain and assumptions can be stated clearly.
-Add its source anchor and explicit signature map, then run `fr spec check --strict`.
+For a supported Rust signature, `fr spec scaffold src/lib.rs::allowed` creates its source
+anchor, explicit map, imported module and handwritten model region. Review and apply
+that two-file transaction, replace its visible `sorry`, and add the useful theorem.
+Other languages and Rust signatures outside the documented type subset still require
+manual model and anchor authoring. Then run `fr spec check --strict`.
 Run `fr spec verify` to check correspondence and build the owning package.
 Add shared input/output cases when the model mirrors an implementation.
+Generate CI after choosing the current debt ceiling. The workflow pins this `fr`
+release, runs strict correspondence and uses the official
+[`lean-action`](https://github.com/leanprover/lean-action) for the initialized package.
 
-This workflow still requires manual model and anchor authoring.
-Package initialization and `spec extract` are planned commands; they do not exist today.
+Model semantics and proofs remain handwritten work. After source drift, repeat the
+scaffold command to preview a new anchor and signature. Refresh changes only the marked
+generated region and preserves the complete handwritten region byte for byte. Review
+signature changes because preserved model text can still need a type repair.
 Use the existing examples under `kernels/` as working references.
 
 ## Adoption milestones
 
-The next adoption work should provide:
+`fr spec evidence` produces the bounded adoption report. It identifies checked theorem
+and lemma declarations, declared Lean assumptions, trusted tools and remaining proof
+debt. It reports syntactically declared axioms, opaque values and constants. It does
+not compute transitive theorem axiom dependencies. The correspondence fields keep
+tested implementation/model cases and an implementation proof false until supplied.
 
-- Package initialization with a pinned Lean toolchain and CI instructions.
-- Declaration selection and anchored model scaffolds with explicit unsupported types.
-- Named proof obligations and a proof-debt ratchet.
-- Generated-region ownership and regeneration that preserves handwritten work.
-- Explicit signature synchronization that exposes affected proofs.
-- Reports separating proved models, tested correspondence and proved implementation correspondence.
-
-`SPEC-DEBT`, generated-region markers and the kernel-generation annotation remain proposals.
+A `-- fr:debt NAME` line immediately before `sorry` names a live obligation. Strict
+checks reject unnamed obligations, and `--max-debt` supplies a CI ratchet. Generated
+and handwritten scaffold markers now define regeneration ownership. A separate
+kernel-generation annotation remains a proposal.
 A zero `sorry` count describes the selected files, not the completeness of their specifications.
 Reject unapproved axioms and expose assumptions before claiming stronger coverage.
 
