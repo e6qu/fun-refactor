@@ -139,7 +139,7 @@ def prompt(session, task, arm):
         "Use ordinary files, read, search and replace tools for source exploration and edits. Do not use fr project/author/history commands. The shared fr checks command is available for identical project validation. Export and reverse/reapply your patch through the ordinary Git tools."
     )
     if task == regex_escape_len.TASK and arm == "fr":
-        surface += " Before constructing the batch manifest, use the instrumented call {\"tool\":\"read\",\"path\":\"skill/references/author.md\",\"start\":1,\"lines\":160}. Coordinate the edits in one author batch saved transaction, and export, undo and redo that transaction. Preview the batch once without a mutation flag, call it once with --save-plan, then apply the saved transaction with history apply --write; do not pass --write to author batch. Retain the first full project context_basis and use it on related project and author calls. Retain the complete author diff and its transaction_context_basis; use that basis to compact forward apply and redo reports. Preview reverse transitions in full."
+        surface += " Before constructing the batch manifest, use the instrumented call {\"tool\":\"read\",\"path\":\"skill/references/author.md\",\"start\":1,\"lines\":160}. Coordinate the edits in one author batch saved transaction, and export, undo and redo that transaction. The manifest must contain both API insertion operations and the regex-syntax escape body replacement, with exact files-changed, edits, changed-operations and paths-changed postconditions. Preview the batch once without a mutation flag, call it once with --save-plan, then apply the saved transaction with history apply --write; do not pass --write to author batch. Retain the first full project context_basis and use it on related project and author calls. Retain the complete author diff and its transaction_context_basis; use that basis to compact forward apply and redo reports. Preview reverse transitions in full."
     return f"""You are an independent acceptance-test agent. Complete this code task in the supplied unfamiliar pinned public project: {TASKS[task]}
 
 {surface}
@@ -271,6 +271,33 @@ def category(request):
     return "change_and_delivery"
 
 
+def validate_coordinated_manifest(session, project, config, args):
+    if config["task"] != regex_escape_len.TASK or args[:2] != ["author", "batch"]:
+        return
+    try:
+        source = args[args.index("--from") + 1]
+    except (ValueError, IndexError):
+        raise ValueError("The coordinated author batch requires --from MANIFEST") from None
+    manifest = json.loads(within(session / "artifacts", (project / source).resolve()).read_text())
+    operations = manifest.get("operations")
+    if not isinstance(operations, list):
+        raise ValueError("The coordinated manifest requires an operations array")
+    kinds = [operation.get("op") for operation in operations if isinstance(operation, dict)]
+    postconditions = manifest.get("postconditions")
+    expected = {
+        "files-changed": 2,
+        "edits": len(operations),
+        "changed-operations": len(operations),
+        "paths-changed": list(edit_paths(config["task"])),
+    }
+    if (len(operations) < 3 or kinds.count("insert-declaration") < 2
+            or "replace-body" not in kinds or postconditions != expected):
+        raise ValueError(
+            "The one coordinated batch must include both API insertions and the escape body "
+            "replacement, with exact files-changed, edits, changed-operations and paths-changed postconditions"
+        )
+
+
 def action(session, config, request):
     project = session / "project"
     kind = request["tool"]
@@ -322,6 +349,7 @@ def action(session, config, request):
         args = request["args"]
         if not args or (baseline and args[0] != "checks"):
             raise ValueError("Only fr checks is shared with the ordinary-file arm")
+        validate_coordinated_manifest(session, project, config, args)
         if args[:2] == ["history", "redo"]:
             events = [json.loads(line) for line in (session / "events.jsonl").read_text().splitlines()]
             if not current_state_checked(events, snapshot(project), required_checks(config["task"])):
