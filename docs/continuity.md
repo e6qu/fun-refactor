@@ -11,6 +11,8 @@ The second PR 3 checkpoint adds `compact-removals` for 1 through 32 explicit com
 One aggregate basis binds every normalized archive and its individual review; sequential writes report completed and stopped paths if the set cannot finish.
 The third checkpoint adds `stage-history inspect`, which reports pending journal actions, index-lock metadata and bounded leftover preparation directories without reading or removing them.
 Only a state with no pending, lock or preparation evidence is clean in the Lean model and all eight Rust/Lean cases.
+The fourth checkpoint records selected assume-unchanged and skip-worktree values in preview bases and staging journals, then restores them in prepared indexes across apply, removal, undo, redo and recovery.
+Intent-to-add remains unsupported; flag drift refuses replay, plain schema-one records retain their prior serialized digest form, and all sixteen index-entry policy states agree between Rust and Lean.
 PR 2's first checkpoint extends exact-byte Rust insertion to impl and trait bodies and generalizes the insertion placement model.
 The second checkpoint authors TypeScript/TSX expression-bodied arrows and permits checked transitions between expression and block bodies.
 The third checkpoint adds Java method, constructor and default-interface body authoring through the same checked splice and history path.

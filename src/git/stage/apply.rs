@@ -1,7 +1,9 @@
 #[cfg(unix)]
 mod host {
-    use super::super::journal::{require_plain_entries, Journal};
-    use super::super::{process, require_not_ignored, status, working_file, Entry};
+    use super::super::journal::{require_no_intent_to_add, Journal};
+    use super::super::{
+        index_flags_with, process, require_not_ignored, status, working_file, Entry, IndexFlags,
+    };
     use crate::history::Action;
     use anyhow::{ensure, Context, Result};
     use serde_json::{json, Value};
@@ -126,6 +128,59 @@ mod host {
                 .then(|| Ok(row.to_vec()))
             })
             .collect()
+    }
+
+    fn update_flags(
+        root: &Path,
+        index: &Path,
+        entries: &[Entry],
+        option: &str,
+        selected: impl Fn(IndexFlags) -> bool,
+    ) -> Result<()> {
+        let mut args = vec!["--literal-pathspecs", "update-index", option, "--"];
+        args.extend(entries.iter().filter_map(|entry| {
+            (entry.action != "unchanged")
+                .then_some(entry.after_flags)
+                .flatten()
+                .filter(|flags| selected(*flags))
+                .map(|_| entry.path.as_str())
+        }));
+        if args.len() > 4 {
+            prepared(root, index, &args, None)?;
+        }
+        Ok(())
+    }
+
+    fn install_flags(root: &Path, index: &Path, entries: &[Entry]) -> Result<()> {
+        let present = entries
+            .iter()
+            .filter(|entry| entry.action != "unchanged" && entry.after.is_some())
+            .collect::<Vec<_>>();
+        if present.is_empty() {
+            return Ok(());
+        }
+        let mut clear_assume = vec![
+            "--literal-pathspecs",
+            "update-index",
+            "--no-assume-unchanged",
+            "--",
+        ];
+        clear_assume.extend(present.iter().map(|entry| entry.path.as_str()));
+        prepared(root, index, &clear_assume, None)?;
+        let mut clear_skip = vec![
+            "--literal-pathspecs",
+            "update-index",
+            "--no-skip-worktree",
+            "--",
+        ];
+        clear_skip.extend(present.iter().map(|entry| entry.path.as_str()));
+        prepared(root, index, &clear_skip, None)?;
+        update_flags(root, index, entries, "--assume-unchanged", |flags| {
+            flags.assume_unchanged
+        })?;
+        update_flags(root, index, entries, "--skip-worktree", |flags| {
+            flags.skip_worktree
+        })
     }
 
     impl IndexLock {
@@ -277,6 +332,7 @@ mod host {
                 &["update-index", "-z", "--index-info"],
                 Some(&input),
             )?;
+            install_flags(root, &alternate, entries)?;
             let after = prepared(root, &alternate, &["ls-files", "--stage", "-v", "-z"], None)?;
             ensure!(
                 unrelated(&original, entries)? == unrelated(&after, entries)?,
@@ -298,6 +354,19 @@ mod host {
                 observed == expected.as_bytes(),
                 "prepared index differs from reviewed entries."
             );
+            let selected_paths = entries
+                .iter()
+                .filter(|entry| entry.after.is_some())
+                .map(|entry| entry.path.clone())
+                .collect();
+            let expected_flags = entries
+                .iter()
+                .filter_map(|entry| entry.after_flags.map(|flags| (entry.path.clone(), flags)))
+                .collect();
+            ensure!(
+                index_flags_with(root, &selected_paths, Some(&alternate))? == expected_flags,
+                "prepared index flags differ from reviewed entries."
+            );
             let bytes = read_index(&alternate)?.context("missing prepared index")?;
             self.file.write_all(&bytes)?;
             if let Some(permissions) = &self.permissions {
@@ -312,7 +381,7 @@ mod host {
                 .filter(|entry| entry.action != "unchanged")
                 .map(|entry| entry.path.clone())
                 .collect();
-            require_plain_entries(root, &changed)?;
+            require_no_intent_to_add(root, &changed)?;
             self.check(root)?;
             ensure!(
                 fs::read(&self.path)? == bytes,

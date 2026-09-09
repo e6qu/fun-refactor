@@ -21,8 +21,9 @@ Directories, absolute paths, parent traversal, symlink traversal, selected index
 A selected unmerged index entry also causes refusal. Unrelated conflicts do not block preview or application.
 
 Actions compare stage-zero index entries with proposed working-file entries. HEAD does not participate, so unborn repositories work too.
-Each row contains `path`, `action`, `before`, `after` and nullable `working_bytes`.
+Each row contains `path`, `action`, `before`, `after`, `before_flags`, `after_flags` and nullable `working_bytes`.
 Present entries contain `oid` and `mode`; absent entries are null.
+Present flag objects report `assume_unchanged` and `skip_worktree`; additions default both to false and removals have a null target.
 
 | Action | Selected index entry | Working file |
 |---|---|---|
@@ -54,8 +55,8 @@ This proposal therefore describes the raw representation explicitly; it does not
 `basis` binds the canonical repository root, tool version, staging semantics and complete sorted entry result.
 Pass it back as `--basis TOKEN` with the same selected paths to require that observation again.
 Successful verification reports `basis_verified: true`; a query without a supplied token reports false.
-A changed selected index identity, raw working body, existence state or projected mode causes refusal.
-Unrelated staged and working changes do not invalidate this basis. Index flags outside the reported mode and object identity are not part of it.
+A changed selected index identity, index flags, raw working body, existence state or projected mode causes refusal.
+Unrelated staged and working changes do not invalidate this basis.
 
 Before emitting a result, the preview rechecks the selected index entries, rereads selected working files, and checks the index again.
 All validation completes before any result appears. A validation failure emits an error without partial entries.
@@ -73,7 +74,9 @@ The command copies the locked index into a private temporary directory beside it
 It writes captured raw blobs and feeds their exact modes and identities to Git's NUL-delimited `update-index --index-info` interface.
 It verifies selected entries and compares unrelated staged inventories, including conflict stages and assume-unchanged/skip-worktree flags.
 Tests also cover unrelated intent-to-add entries in a version-four index.
-Selected entries with `unchanged` actions bypass updates, retaining their flags. Changed selected entries with assume-unchanged, skip-worktree or intent-to-add flags cause refusal because replay cannot yet restore those flags.
+Selected entries with `unchanged` actions bypass updates, retaining their flags.
+Changed selected entries preserve assume-unchanged and skip-worktree independently or together; the prepared index normalizes and then restores the reviewed values before verification.
+Changed selected intent-to-add entries remain unsupported.
 The implementation uses Git's [alternate index](https://git-scm.com/docs/git#Documentation/git.txt-GITINDEXFILE) and [index-info plumbing](https://git-scm.com/docs/git-update-index#_using_index_info).
 
 Before installation, the command rechecks filters, ignores, supported index configuration, selected working identities, complete live index bytes and lock ownership.
@@ -114,6 +117,7 @@ Configuration and attributes must remain stable during inspection.
 The preview shares index inventory and working snapshot readers with explicit call context.
 Projected modes reuse the anchored Git mode model, with assumptions documented in [Lean specifications](lean-specs.md).
 Inventory interpretation, action classification, hash assumptions and snapshot consistency have regression evidence, without a general implementation proof.
-Staging history adds an anchored transition predicate and abstract preservation laws.
+Staging history adds anchored transition and index-entry policy predicates plus abstract preservation laws.
+The index-entry model proves that stage zero and absence of intent-to-add are required while the two supported ordinary flags do not affect eligibility; all sixteen boolean states are compared with Rust.
 Index locking, journal durability, preparation and installation remain regression-tested, without a complete Lean correspondence or crash-consistency proof.
 Tests cover no-write behavior, dirty repositories, basis drift, ignored files, conflicts, source/index races, linked worktrees and SHA-256 identities.

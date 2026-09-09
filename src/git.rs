@@ -210,6 +210,15 @@ pub fn staging_crash_state_requires_review(
     pending || index_lock || preparation
 }
 
+pub fn staging_index_entry_replayable(
+    stage_zero: bool,
+    intent_to_add: bool,
+    _assume_unchanged: bool,
+    _skip_worktree: bool,
+) -> bool {
+    stage_zero && !intent_to_add
+}
+
 pub fn commit_basis_matches(
     expected_branch: &str,
     observed_branch: &str,

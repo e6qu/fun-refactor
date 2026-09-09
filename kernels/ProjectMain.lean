@@ -131,6 +131,12 @@ def main (args : List String) : IO Unit := do
       for indexLock in [false, true] do
         for preparation in [false, true] do
           IO.println (FrKernels.Git.stagingCrashStateRequiresReview pending indexLock preparation)
+  else if args == ["staging-index-entry"] then
+    for stageZero in [false, true] do
+      for intentToAdd in [false, true] do
+        for assumeUnchanged in [false, true] do
+          for skipWorktree in [false, true] do
+            IO.println (FrKernels.Git.stagingIndexEntryReplayable stageZero intentToAdd assumeUnchanged skipWorktree)
   else if args == ["call-selection"] then
     for incoming in [false, true] do
       for outgoing in [false, true] do

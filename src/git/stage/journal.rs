@@ -1,4 +1,4 @@
-use super::{apply::IndexLock, inventory, process, status, Blob, Entry};
+use super::{apply::IndexLock, index_flags, inventory, process, Blob, Entry, IndexFlags};
 use crate::history::{Action, Status};
 use anyhow::{ensure, Context, Result};
 use clap::{Args, Subcommand};
@@ -75,6 +75,8 @@ pub struct Inspection {
 struct Stored {
     blob: Blob,
     content: Vec<u8>,
+    #[serde(default, skip_serializing_if = "IndexFlags::is_default")]
+    flags: IndexFlags,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -352,7 +354,7 @@ impl Journal {
             .filter(|entry| entry.action != "unchanged")
             .map(|entry| entry.path.clone())
             .collect();
-        require_plain_entries(root, &paths)?;
+        require_no_intent_to_add(root, &paths)?;
         let mut changes = Vec::new();
         for entry in entries.iter().filter(|entry| entry.action != "unchanged") {
             let before = entry
@@ -380,6 +382,7 @@ impl Journal {
                     Ok(Stored {
                         blob: blob.clone(),
                         content,
+                        flags: entry.before_flags.context("missing prior index flags")?,
                     })
                 })
                 .transpose()?;
@@ -390,6 +393,7 @@ impl Journal {
                     Ok(Stored {
                         blob: blob.clone(),
                         content: entry.source.clone().context("missing staging source")?,
+                        flags: entry.after_flags.context("missing target index flags")?,
                     })
                 })
                 .transpose()?;
@@ -507,7 +511,8 @@ impl Journal {
         let mut value = json!({"id":record.id,"status":record.status,"paths":paths,"digest":record.digest,"compacted":compacted});
         if detail && !compacted {
             value["entries"] = json!(record.changes.iter().map(|change| json!({"path":change.path,
-                "before":change.before.as_ref().map(|s| &s.blob),"after":change.after.as_ref().map(|s| &s.blob)})).collect::<Vec<_>>());
+                "before":change.before.as_ref().map(|s| &s.blob),"after":change.after.as_ref().map(|s| &s.blob),
+                "before_flags":change.before.as_ref().map(|s| s.flags),"after_flags":change.after.as_ref().map(|s| s.flags)})).collect::<Vec<_>>());
         }
         value
     }
@@ -729,25 +734,13 @@ fn inspect(root: &Path, options: &Inspection) -> Result<Value> {
     )
 }
 
-pub(in crate::git) fn require_plain_entries(root: &Path, paths: &BTreeSet<String>) -> Result<()> {
+pub(in crate::git) fn require_no_intent_to_add(
+    root: &Path,
+    paths: &BTreeSet<String>,
+) -> Result<()> {
     if paths.is_empty() {
         return Ok(());
     }
-    let mut args = vec![
-        "--literal-pathspecs".into(),
-        "ls-files".into(),
-        "-v".into(),
-        "-z".into(),
-        "--".into(),
-    ];
-    args.extend(paths.iter().map(Into::into));
-    let rows = process::checked(root, &args)?;
-    ensure!(
-        status::records(&rows)?
-            .iter()
-            .all(|row| row.starts_with(b"H ")),
-        "selected staging history entries must not use assume-unchanged or skip-worktree flags."
-    );
     let diff = |visibility: &str| -> Result<Vec<u8>> {
         let mut args = vec![
             "--literal-pathspecs".into(),
@@ -764,9 +757,22 @@ pub(in crate::git) fn require_plain_entries(root: &Path, paths: &BTreeSet<String
         args.extend(paths.iter().map(Into::into));
         process::checked(root, &args)
     };
+    let intent_to_add = diff("--ita-visible-in-index")? != diff("--ita-invisible-in-index")?;
     ensure!(
-        diff("--ita-visible-in-index")? == diff("--ita-invisible-in-index")?,
+        crate::git::staging_index_entry_replayable(true, intent_to_add, false, false),
         "selected intent-to-add entries are unsupported for staging history."
+    );
+    Ok(())
+}
+
+pub(in crate::git) fn require_plain_entries(root: &Path, paths: &BTreeSet<String>) -> Result<()> {
+    require_no_intent_to_add(root, paths)?;
+    let flags = index_flags(root, paths)?;
+    ensure!(
+        flags
+            .values()
+            .all(|flags| !flags.assume_unchanged && !flags.skip_worktree),
+        "selected entries must not use assume-unchanged or skip-worktree flags."
     );
     Ok(())
 }
@@ -836,8 +842,13 @@ pub(in crate::git) fn report(root: &Path, command: &Command) -> Result<Value> {
         || (action == Action::Recover && pending_action != Some(Action::Undo));
     let changes = &record.changes;
     let paths = changes.iter().map(|change| change.path.clone()).collect();
-    require_plain_entries(&root, &paths)?;
+    require_no_intent_to_add(&root, &paths)?;
     let current = inventory(&root, &paths, None)?;
+    let current_flags = index_flags(&root, &paths)?;
+    ensure!(
+        current.keys().eq(current_flags.keys()),
+        "selected staging entries and index flags disagree."
+    );
     let mut entries = Vec::new();
     let mut matches_before = true;
     let mut matches_after = true;
@@ -848,9 +859,13 @@ pub(in crate::git) fn report(root: &Path, command: &Command) -> Result<Value> {
             (&change.before, &change.after)
         };
         let observed = current.get(&change.path).cloned();
-        matches_before &= observed.as_ref() == before.as_ref().map(|stored| &stored.blob);
-        matches_after &= observed.as_ref() == after.as_ref().map(|stored| &stored.blob);
+        let observed_flags = observed.as_ref().map(|_| current_flags[&change.path]);
+        matches_before &= observed.as_ref() == before.as_ref().map(|stored| &stored.blob)
+            && observed_flags == before.as_ref().map(|stored| stored.flags);
+        matches_after &= observed.as_ref() == after.as_ref().map(|stored| &stored.blob)
+            && observed_flags == after.as_ref().map(|stored| stored.flags);
         let target = after.as_ref().map(|stored| stored.blob.clone());
+        let target_flags = after.as_ref().map(|stored| stored.flags);
         entries.push(Entry {
             path: change.path.clone(),
             action: match (&observed, &target) {
@@ -861,6 +876,8 @@ pub(in crate::git) fn report(root: &Path, command: &Command) -> Result<Value> {
             },
             before: observed,
             after: target,
+            before_flags: observed_flags,
+            after_flags: target_flags,
             working_bytes: None,
             source: after.as_ref().map(|stored| stored.content.clone()),
         });
@@ -875,7 +892,7 @@ pub(in crate::git) fn report(root: &Path, command: &Command) -> Result<Value> {
     );
     let basis = format!(
         "frstagehistory1:{}",
-        digest(&(&journal.state, action, id, &current))?
+        digest(&(&journal.state, action, id, &current, &current_flags))?
     );
     if let Some(expected) = &options.basis {
         ensure!(
@@ -887,7 +904,11 @@ pub(in crate::git) fn report(root: &Path, command: &Command) -> Result<Value> {
         inventory(&root, &paths, None)? == current,
         "selected index changed during staging history inspection."
     );
-    require_plain_entries(&root, &paths)?;
+    ensure!(
+        index_flags(&root, &paths)? == current_flags,
+        "selected index flags changed during staging history inspection."
+    );
+    require_no_intent_to_add(&root, &paths)?;
     journal.check()?;
     let outcome = if let Some(lock) = lock {
         Some(lock.replay(&root, &entries, &mut journal, action, id)?)

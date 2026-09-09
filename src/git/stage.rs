@@ -8,7 +8,7 @@ use clap::Args;
 use serde::Serialize;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Component, Path, PathBuf};
 
 pub(super) mod apply;
@@ -35,16 +35,85 @@ pub struct Options {
     write: bool,
 }
 
+#[derive(Clone, Copy, Default, PartialEq, Eq, Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct IndexFlags {
+    assume_unchanged: bool,
+    skip_worktree: bool,
+}
+
+impl IndexFlags {
+    fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
+}
+
 #[derive(Serialize)]
 struct Entry {
     path: String,
     action: &'static str,
     before: Option<Blob>,
     after: Option<Blob>,
+    before_flags: Option<IndexFlags>,
+    after_flags: Option<IndexFlags>,
     working_bytes: Option<usize>,
     #[serde(skip)]
     #[cfg_attr(not(unix), allow(dead_code))]
     source: Option<Vec<u8>>,
+}
+
+fn index_flags_with(
+    root: &Path,
+    paths: &BTreeSet<String>,
+    index: Option<&Path>,
+) -> Result<BTreeMap<String, IndexFlags>> {
+    if paths.is_empty() {
+        return Ok(BTreeMap::new());
+    }
+    let mut args = vec![
+        "--literal-pathspecs".into(),
+        "ls-files".into(),
+        "-v".into(),
+        "-z".into(),
+        "--".into(),
+    ];
+    args.extend(paths.iter().map(Into::into));
+    let output = process::run_with_index(root, &args, None, index)?;
+    ensure!(
+        output.status.success(),
+        "cannot inspect selected index flags: {}",
+        process::diagnostic(&output.stderr)
+    );
+    let mut result = BTreeMap::new();
+    for row in status::records(&output.stdout)? {
+        ensure!(
+            row.len() >= 3 && row[1] == b' ' && matches!(row[0].to_ascii_uppercase(), b'H' | b'S'),
+            "selected staging entries have unsupported index flags or stages."
+        );
+        let path = std::str::from_utf8(&row[2..])?.to_owned();
+        let flags = IndexFlags {
+            assume_unchanged: row[0].is_ascii_lowercase(),
+            skip_worktree: row[0].eq_ignore_ascii_case(&b'S'),
+        };
+        ensure!(
+            paths.contains(&path) && result.insert(path, flags).is_none(),
+            "selected staging entries have duplicate or unexpected index rows."
+        );
+        ensure!(
+            crate::git::staging_index_entry_replayable(
+                true,
+                false,
+                flags.assume_unchanged,
+                flags.skip_worktree,
+            ),
+            "selected staging entry flags are unsupported."
+        );
+    }
+    Ok(result)
+}
+
+fn index_flags(root: &Path, paths: &BTreeSet<String>) -> Result<BTreeMap<String, IndexFlags>> {
+    index_flags_with(root, paths, None)
 }
 
 fn require_not_ignored(root: &Path, paths: &BTreeSet<String>) -> Result<()> {
@@ -118,6 +187,11 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
         .collect::<Vec<_>>();
     process::require_no_filters(&root, &filter_paths)?;
     let index = inventory(&root, &paths, None)?;
+    let flags = index_flags(&root, &paths)?;
+    ensure!(
+        index.keys().eq(flags.keys()),
+        "selected staging entries and index flags disagree."
+    );
     let untracked = paths
         .iter()
         .filter(|path| !index.contains_key(*path))
@@ -127,6 +201,7 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
     let mut entries = Vec::new();
     for path in &paths {
         let before = index.get(path).cloned();
+        let before_flags = before.as_ref().map(|_| flags[path]);
         let working = working_file(&root, path)?;
         ensure!(
             working
@@ -139,6 +214,7 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
             Some((blob, text)) => (Some(blob), options.write.then(|| text.into_bytes())),
             None => (None, None),
         };
+        let after_flags = after.as_ref().map(|_| before_flags.unwrap_or_default());
         ensure!(
             before.is_some() || after.is_some(),
             "staging path is absent from the index and working tree: {path:?}."
@@ -154,6 +230,8 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
             action,
             before,
             after,
+            before_flags,
+            after_flags,
             working_bytes,
             source,
         });
@@ -176,6 +254,10 @@ pub(super) fn report(root: &Path, options: &Options) -> Result<Value> {
     ensure!(
         inventory(&root, &paths, None)? == index,
         "selected index entries changed during staging preview; retry the query."
+    );
+    ensure!(
+        index_flags(&root, &paths)? == flags,
+        "selected index flags changed during staging preview; retry the query."
     );
     for entry in &entries {
         let observed = working_file(&root, &entry.path)?.map(|(blob, _)| blob);

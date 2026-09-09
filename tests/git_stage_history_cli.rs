@@ -127,6 +127,12 @@ fn fixture(root: &Path) {
     fs::write(root.join("file.txt"), "reviewed\r\n").unwrap();
 }
 
+fn index_tag(root: &Path, path: &str) -> u8 {
+    *git(root, &["ls-files", "-v", "--", path])
+        .first()
+        .expect("tracked index entry")
+}
+
 #[test]
 fn journal_undo_redo_restore_index_without_touching_working_files_or_unrelated_staging() {
     let dir = tempfile::tempdir().unwrap();
@@ -534,7 +540,7 @@ fn inspection_reports_pending_locks_and_preparations_without_claiming_ownership(
 }
 
 #[test]
-fn journal_refuses_selected_external_edits_and_special_flags() {
+fn journal_refuses_selected_external_content_and_flag_drift() {
     for flag in ["--assume-unchanged", "--skip-worktree", "content"] {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
@@ -547,15 +553,7 @@ fn journal_refuses_selected_external_edits_and_special_flags() {
             git(root, &["update-index", flag, "file.txt"]);
         }
         let index = fs::read(root.join(".git/index")).unwrap();
-        history_error(
-            root,
-            &["undo", "1"],
-            if flag == "content" {
-                "recorded staging basis"
-            } else {
-                "flags"
-            },
-        );
+        history_error(root, &["undo", "1"], "recorded staging basis");
         assert_eq!(fs::read(root.join(".git/index")).unwrap(), index);
     }
     let dir = tempfile::tempdir().unwrap();
@@ -575,6 +573,93 @@ fn journal_refuses_selected_external_edits_and_special_flags() {
         "intent-to-add",
     );
     assert!(!root.join(".git/fr-stage").exists());
+}
+
+#[test]
+fn journal_preserves_selected_assume_unchanged_and_skip_worktree_flags() {
+    for (options, expected_tag, assume, skip) in [
+        (&["--assume-unchanged"][..], b'h', true, false),
+        (&["--skip-worktree"][..], b'S', false, true),
+        (
+            &["--assume-unchanged", "--skip-worktree"][..],
+            b's',
+            true,
+            true,
+        ),
+    ] {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fixture(root);
+        for option in options {
+            git(root, &["update-index", option, "file.txt"]);
+        }
+        assert_eq!(index_tag(root, "file.txt"), expected_tag);
+
+        let preview = report(root, &["file.txt"]);
+        assert_eq!(
+            preview["entries"][0]["before_flags"]["assume_unchanged"],
+            assume
+        );
+        assert_eq!(preview["entries"][0]["before_flags"]["skip_worktree"], skip);
+        assert_eq!(
+            preview["entries"][0]["after_flags"],
+            preview["entries"][0]["before_flags"]
+        );
+        let changed_option = if assume {
+            "--no-assume-unchanged"
+        } else {
+            "--no-skip-worktree"
+        };
+        git(root, &["update-index", changed_option, "file.txt"]);
+        error(
+            root,
+            &[
+                "file.txt",
+                "--basis",
+                preview["basis"].as_str().unwrap(),
+                "--write",
+            ],
+            "stale staging basis",
+        );
+        for option in options {
+            git(root, &["update-index", option, "file.txt"]);
+        }
+        assert_eq!(stage(root, &["file.txt"]), 1);
+        assert_eq!(index_tag(root, "file.txt"), expected_tag);
+        assert_eq!(git(root, &["show", ":file.txt"]), b"reviewed\r\n");
+        assert!(
+            String::from_utf8(fs::read(root.join(".git/fr-stage/state.json")).unwrap())
+                .unwrap()
+                .contains("\"flags\"")
+        );
+
+        let shown = read_history(root, &["show", "1"]);
+        assert_eq!(
+            shown["record"]["entries"][0]["before_flags"]["assume_unchanged"],
+            assume
+        );
+        assert_eq!(
+            shown["record"]["entries"][0]["after_flags"]["skip_worktree"],
+            skip
+        );
+        let working = fs::read(root.join("file.txt")).unwrap();
+        replay(root, &["undo", "1"]);
+        assert_eq!(index_tag(root, "file.txt"), expected_tag);
+        assert_eq!(git(root, &["show", ":file.txt"]), b"base\n");
+        assert_eq!(fs::read(root.join("file.txt")).unwrap(), working);
+        replay(root, &["redo", "1"]);
+        assert_eq!(index_tag(root, "file.txt"), expected_tag);
+
+        fs::remove_file(root.join("file.txt")).unwrap();
+        assert_eq!(stage(root, &["file.txt"]), 2);
+        assert!(git(root, &["ls-files", "--", "file.txt"]).is_empty());
+        replay(root, &["undo", "2"]);
+        assert_eq!(index_tag(root, "file.txt"), expected_tag);
+        assert_eq!(git(root, &["show", ":file.txt"]), b"reviewed\r\n");
+        assert!(!root.join("file.txt").exists());
+        replay(root, &["redo", "2"]);
+        assert!(git(root, &["ls-files", "--", "file.txt"]).is_empty());
+    }
 }
 
 fn set_pending(root: &Path, action: &str, installed: bool) {
@@ -607,6 +692,7 @@ fn set_pending(root: &Path, action: &str, installed: bool) {
     };
     for change in state["records"][0]["changes"].as_array().unwrap() {
         let blob = &change[target]["blob"];
+        let selected = change["path"].as_str().unwrap();
         git(
             root,
             &[
@@ -616,10 +702,19 @@ fn set_pending(root: &Path, action: &str, installed: bool) {
                     "{},{},{}",
                     blob["mode"].as_str().unwrap(),
                     blob["oid"].as_str().unwrap(),
-                    change["path"].as_str().unwrap()
+                    selected
                 ),
             ],
         );
+        git(root, &["update-index", "--no-assume-unchanged", selected]);
+        git(root, &["update-index", "--no-skip-worktree", selected]);
+        let flags = &change[target]["flags"];
+        if flags["assume_unchanged"] == true {
+            git(root, &["update-index", "--assume-unchanged", selected]);
+        }
+        if flags["skip_worktree"] == true {
+            git(root, &["update-index", "--skip-worktree", selected]);
+        }
     }
     fs::write(path, serde_json::to_vec(&state).unwrap()).unwrap();
 }
@@ -631,6 +726,8 @@ fn recovery_rolls_back_each_pending_transition_before_or_after_installation() {
             let dir = tempfile::tempdir().unwrap();
             let root = dir.path();
             fixture(root);
+            git(root, &["update-index", "--assume-unchanged", "file.txt"]);
+            git(root, &["update-index", "--skip-worktree", "file.txt"]);
             stage(root, &["file.txt"]);
             set_pending(root, action, installed);
             fs::write(root.join("other.txt"), "external staging\n").unwrap();
@@ -667,6 +764,7 @@ fn recovery_rolls_back_each_pending_transition_before_or_after_installation() {
                 }
             );
             assert_eq!(git(root, &["show", ":other.txt"]), b"external staging\n");
+            assert_eq!(index_tag(root, "file.txt"), b's');
             history_error(root, &["recover"], "no pending");
         }
     }

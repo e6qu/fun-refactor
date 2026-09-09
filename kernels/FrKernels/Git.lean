@@ -138,6 +138,31 @@ theorem staging_preparation_requires_review (pending indexLock : Bool) :
     stagingCrashStateRequiresReview pending indexLock true = true := by
   cases pending <;> cases indexLock <;> rfl
 
+-- fr:spec src/git.rs::staging_index_entry_replayable @ df092a5b08c85adcc69352a4bab8df5a80bd256925d5dfae78235d38e0e8abef
+-- fr:signature stage_zero: bool => stageZero: Bool; intent_to_add: bool => intentToAdd: Bool; _assume_unchanged: bool => assumeUnchanged: Bool; _skip_worktree: bool => skipWorktree: Bool; return: bool => return: Bool
+def stagingIndexEntryReplayable (stageZero : Bool) (intentToAdd : Bool)
+    (assumeUnchanged : Bool) (skipWorktree : Bool) : Bool :=
+  stageZero && !intentToAdd &&
+    (assumeUnchanged || !assumeUnchanged) && (skipWorktree || !skipWorktree)
+
+theorem staging_replay_requires_stage_zero (intent assume skip : Bool) :
+    stagingIndexEntryReplayable false intent assume skip = false := by rfl
+
+theorem staging_replay_refuses_intent_to_add (stageZero assume skip : Bool) :
+    stagingIndexEntryReplayable stageZero true assume skip = false := by
+  cases stageZero <;> rfl
+
+theorem staging_replay_accepts_ordinary_flags (assume skip : Bool) :
+    stagingIndexEntryReplayable true false assume skip = true := by
+  cases assume <;> cases skip <;> rfl
+
+theorem staging_replay_is_independent_of_ordinary_flags
+    (stageZero intent assumeLeft skipLeft assumeRight skipRight : Bool) :
+    stagingIndexEntryReplayable stageZero intent assumeLeft skipLeft =
+      stagingIndexEntryReplayable stageZero intent assumeRight skipRight := by
+  cases stageZero <;> cases intent <;> cases assumeLeft <;> cases skipLeft <;>
+    cases assumeRight <;> cases skipRight <;> rfl
+
 abbrev StagingIndex := String → Option (Nat × String)
 
 def replaceSelected (current target : StagingIndex) (selected : String → Bool) : StagingIndex :=
