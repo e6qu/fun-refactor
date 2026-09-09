@@ -83,6 +83,86 @@ theorem staging_recovery_accepts_either (before after : Bool) :
 theorem staging_recovery_refuses_other :
     stagingTransitionAllowed false false true = false := rfl
 
+-- fr:spec src/git.rs::staging_record_compactable @ b950d8b98a91ce3745e26cc2ec39494ed41f90379043541e41f344fe52dbbdda
+-- fr:signature detailed: bool => detailed: Bool; pending: bool => pending: Bool; retained: bool => retained: Bool; return: bool => return: Bool
+def stagingRecordCompactable (detailed : Bool) (pending : Bool) (retained : Bool) : Bool :=
+  detailed && !pending && !retained
+
+theorem staging_compaction_requires_detail (detailed pending retained : Bool)
+    (allowed : stagingRecordCompactable detailed pending retained = true) : detailed = true := by
+  cases detailed <;> cases pending <;> cases retained <;>
+    simp_all [stagingRecordCompactable]
+
+theorem staging_compaction_refuses_pending (detailed retained : Bool) :
+    stagingRecordCompactable detailed true retained = false := by
+  cases detailed <;> cases retained <;> rfl
+
+theorem staging_compaction_preserves_retained (detailed pending : Bool) :
+    stagingRecordCompactable detailed pending true = false := by
+  cases detailed <;> cases pending <;> rfl
+
+def compactStagingPayload (payload : Option String) (selected : Bool) : Option String :=
+  if selected then none else payload
+
+theorem staging_compaction_preserves_unselected (payload : Option String) :
+    compactStagingPayload payload false = payload := by rfl
+
+theorem staging_compaction_discards_selected (payload : Option String) :
+    compactStagingPayload payload true = none := by rfl
+
+theorem staging_compaction_is_idempotent (payload : Option String) (selected : Bool) :
+    compactStagingPayload (compactStagingPayload payload selected) selected =
+      compactStagingPayload payload selected := by
+  cases selected <;> rfl
+
+-- fr:spec src/git.rs::staging_crash_state_requires_review @ 9440dae3c9d4a485fc6d132214d00886e44bc6afc9aa10f2d25e14d83ef0c7a2
+-- fr:signature pending: bool => pending: Bool; index_lock: bool => indexLock: Bool; preparation: bool => preparation: Bool; return: bool => return: Bool
+def stagingCrashStateRequiresReview (pending : Bool) (indexLock : Bool)
+    (preparation : Bool) : Bool :=
+  pending || indexLock || preparation
+
+theorem staging_clean_requires_no_crash_evidence (pending indexLock preparation : Bool) :
+    stagingCrashStateRequiresReview pending indexLock preparation = false ↔
+      pending = false ∧ indexLock = false ∧ preparation = false := by
+  cases pending <;> cases indexLock <;> cases preparation <;>
+    simp [stagingCrashStateRequiresReview]
+
+theorem staging_pending_requires_review (indexLock preparation : Bool) :
+    stagingCrashStateRequiresReview true indexLock preparation = true := by rfl
+
+theorem staging_lock_requires_review (pending preparation : Bool) :
+    stagingCrashStateRequiresReview pending true preparation = true := by
+  cases pending <;> rfl
+
+theorem staging_preparation_requires_review (pending indexLock : Bool) :
+    stagingCrashStateRequiresReview pending indexLock true = true := by
+  cases pending <;> cases indexLock <;> rfl
+
+-- fr:spec src/git.rs::staging_index_entry_replayable @ df092a5b08c85adcc69352a4bab8df5a80bd256925d5dfae78235d38e0e8abef
+-- fr:signature stage_zero: bool => stageZero: Bool; intent_to_add: bool => intentToAdd: Bool; _assume_unchanged: bool => assumeUnchanged: Bool; _skip_worktree: bool => skipWorktree: Bool; return: bool => return: Bool
+def stagingIndexEntryReplayable (stageZero : Bool) (intentToAdd : Bool)
+    (assumeUnchanged : Bool) (skipWorktree : Bool) : Bool :=
+  stageZero && !intentToAdd &&
+    (assumeUnchanged || !assumeUnchanged) && (skipWorktree || !skipWorktree)
+
+theorem staging_replay_requires_stage_zero (intent assume skip : Bool) :
+    stagingIndexEntryReplayable false intent assume skip = false := by rfl
+
+theorem staging_replay_refuses_intent_to_add (stageZero assume skip : Bool) :
+    stagingIndexEntryReplayable stageZero true assume skip = false := by
+  cases stageZero <;> rfl
+
+theorem staging_replay_accepts_ordinary_flags (assume skip : Bool) :
+    stagingIndexEntryReplayable true false assume skip = true := by
+  cases assume <;> cases skip <;> rfl
+
+theorem staging_replay_is_independent_of_ordinary_flags
+    (stageZero intent assumeLeft skipLeft assumeRight skipRight : Bool) :
+    stagingIndexEntryReplayable stageZero intent assumeLeft skipLeft =
+      stagingIndexEntryReplayable stageZero intent assumeRight skipRight := by
+  cases stageZero <;> cases intent <;> cases assumeLeft <;> cases skipLeft <;>
+    cases assumeRight <;> cases skipRight <;> rfl
+
 abbrev StagingIndex := String → Option (Nat × String)
 
 def replaceSelected (current target : StagingIndex) (selected : String → Bool) : StagingIndex :=
@@ -209,6 +289,78 @@ theorem recovery_accepts_missing (bytesMatch modeMatches : Bool) :
 theorem recovery_requires_existing_match (bytesMatch modeMatches : Bool) :
     worktreeRecoveryFileAllowed true bytesMatch modeMatches = (bytesMatch && modeMatches) := by
   cases bytesMatch <;> cases modeMatches <;> rfl
+
+-- fr:spec src/git.rs::worktree_configuration_allowed @ 1bc754961f2104c4847a9da4d54ff0100ab8d7d33bce0e4760cb2be0d518b0bf
+-- fr:signature reviewed_mode: bool => reviewedMode: Bool; observed_mode: bool => observedMode: Bool; config_present: bool => configPresent: Bool; config_regular: bool => configRegular: Bool; return: bool => return: Bool
+def worktreeConfigurationAllowed (reviewedMode : Bool) (observedMode : Bool)
+    (configPresent : Bool) (configRegular : Bool) : Bool :=
+  decide (reviewedMode = observedMode) && (!configPresent || configRegular)
+
+theorem worktree_configuration_requires_reviewed_mode
+    (reviewed observed present regular : Bool)
+    (allowed : worktreeConfigurationAllowed reviewed observed present regular = true) :
+    reviewed = observed := by
+  cases reviewed <;> cases observed <;> cases present <;> cases regular <;>
+    simp_all [worktreeConfigurationAllowed]
+
+theorem worktree_configuration_requires_regular_file
+    (reviewed observed regular : Bool) :
+    worktreeConfigurationAllowed reviewed observed true regular =
+      (decide (reviewed = observed) && regular) := by
+  cases reviewed <;> cases observed <;> cases regular <;> rfl
+
+theorem worktree_configuration_accepts_absent_file (mode : Bool) :
+    worktreeConfigurationAllowed mode mode false false = true := by
+  cases mode <;> rfl
+
+-- fr:spec src/git.rs::worktree_prepared_recovery_allowed @ 2ec191ee1b6f1747fa4c2f30f188d3a82e052d55437c3b2da03efa6786344eb2
+-- fr:signature receipt_present: bool => receiptPresent: Bool; preparation_matches: bool => preparationMatches: Bool; registration_matches: bool => registrationMatches: Bool; return: bool => return: Bool
+def worktreePreparedRecoveryAllowed (receiptPresent : Bool) (preparationMatches : Bool)
+    (registrationMatches : Bool) : Bool :=
+  !receiptPresent && preparationMatches && registrationMatches
+
+theorem prepared_recovery_requires_no_receipt (preparation registration : Bool) :
+    worktreePreparedRecoveryAllowed true preparation registration = false := by rfl
+
+theorem prepared_recovery_requires_matching_preparation (receipt registration : Bool) :
+    worktreePreparedRecoveryAllowed receipt false registration = false := by
+  cases receipt <;> rfl
+
+theorem prepared_recovery_requires_matching_registration (receipt preparation : Bool) :
+    worktreePreparedRecoveryAllowed receipt preparation false = false := by
+  cases receipt <;> cases preparation <;> rfl
+
+theorem prepared_recovery_accepts_complete_evidence :
+    worktreePreparedRecoveryAllowed false true true = true := by rfl
+
+-- fr:spec src/git.rs::worktree_entry_mode_allowed @ cd1b8788a8a9828da7798c07cdd744cfd869bea89ed7ad73c1305ee7acbb093b
+-- fr:signature regular: bool => regular: Bool; executable: bool => executable: Bool; symlink: bool => symlink: Bool; object_is_blob: bool => objectIsBlob: Bool; return: bool => return: Bool
+def worktreeEntryModeAllowed (regular : Bool) (executable : Bool) (symlink : Bool)
+    (objectIsBlob : Bool) : Bool :=
+  objectIsBlob &&
+    ((regular && !executable && !symlink) ||
+      (!regular && executable && !symlink) ||
+      (!regular && !executable && symlink))
+
+theorem worktree_entry_mode_requires_blob (regular executable symlink : Bool) :
+    worktreeEntryModeAllowed regular executable symlink false = false := by
+  cases regular <;> cases executable <;> cases symlink <;> rfl
+
+theorem worktree_entry_mode_accepts_regular :
+    worktreeEntryModeAllowed true false false true = true := by rfl
+
+theorem worktree_entry_mode_accepts_executable :
+    worktreeEntryModeAllowed false true false true = true := by rfl
+
+theorem worktree_entry_mode_accepts_symlink :
+    worktreeEntryModeAllowed false false true true = true := by rfl
+
+theorem worktree_entry_mode_refuses_ambiguous_kinds
+    (regular executable symlink : Bool)
+    (ambiguous : (regular && executable) || (regular && symlink) || (executable && symlink) = true) :
+    worktreeEntryModeAllowed regular executable symlink true = false := by
+  cases regular <;> cases executable <;> cases symlink <;>
+    simp_all [worktreeEntryModeAllowed]
 
 def resumeFile (before : Option (String × Nat)) (target : String × Nat) : Option (String × Nat) :=
   if before = none ∨ before = some target then some target else none

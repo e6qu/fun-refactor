@@ -96,7 +96,8 @@ impl Loaded {
                 && plan.destination == receipt.destination
                 && plan.parent_identity == receipt.parent_identity
                 && plan.branch == receipt.branch
-                && plan.existing_branch == receipt.existing_branch,
+                && plan.existing_branch == receipt.existing_branch
+                && plan.worktree_config == receipt.worktree_config,
             "removal archive ownership does not match its repository."
         );
         ensure!(
@@ -157,8 +158,12 @@ impl Loaded {
                 .context("missing archived file identity.")?;
             ensure!(
                 *digest == ownership::digest(&bytes)
-                    && mode & 0o170000 == 0o100000
-                    && (*mode & 0o100 != 0) == (entry.mode == "100755"),
+                    && if entry.symlink() {
+                        mode & 0o170000 == 0o120000
+                    } else {
+                        mode & 0o170000 == 0o100000
+                            && (*mode & 0o100 != 0) == (entry.mode == "100755")
+                    },
                 "invalid archived file bytes or mode."
             );
             for parent in Path::new(&entry.path).ancestors().skip(1) {
@@ -207,6 +212,7 @@ impl Loaded {
                     "gitdir",
                     "locked",
                     "fr-creation.json",
+                    "config.worktree",
                     "logs/HEAD",
                     "COMMIT_EDITMSG",
                     "ORIG_HEAD"

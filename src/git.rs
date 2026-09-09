@@ -198,6 +198,27 @@ pub fn staging_transition_allowed(
     matches_before || (recovery && matches_after)
 }
 
+pub fn staging_record_compactable(detailed: bool, pending: bool, retained: bool) -> bool {
+    detailed && !pending && !retained
+}
+
+pub fn staging_crash_state_requires_review(
+    pending: bool,
+    index_lock: bool,
+    preparation: bool,
+) -> bool {
+    pending || index_lock || preparation
+}
+
+pub fn staging_index_entry_replayable(
+    stage_zero: bool,
+    intent_to_add: bool,
+    _assume_unchanged: bool,
+    _skip_worktree: bool,
+) -> bool {
+    stage_zero && !intent_to_add
+}
+
 pub fn commit_basis_matches(
     expected_branch: &str,
     observed_branch: &str,
@@ -217,6 +238,32 @@ pub fn worktree_recovery_file_allowed(
     mode_matches: bool,
 ) -> bool {
     !present || (bytes_match && mode_matches)
+}
+
+pub fn worktree_configuration_allowed(
+    reviewed_mode: bool,
+    observed_mode: bool,
+    config_present: bool,
+    config_regular: bool,
+) -> bool {
+    reviewed_mode == observed_mode && (!config_present || config_regular)
+}
+
+pub fn worktree_prepared_recovery_allowed(
+    receipt_present: bool,
+    preparation_matches: bool,
+    registration_matches: bool,
+) -> bool {
+    !receipt_present && preparation_matches && registration_matches
+}
+
+pub fn worktree_entry_mode_allowed(
+    regular: bool,
+    executable: bool,
+    symlink: bool,
+    object_is_blob: bool,
+) -> bool {
+    object_is_blob && (regular as u8 + executable as u8 + symlink as u8 == 1)
 }
 
 pub fn worktree_removal_file_allowed(

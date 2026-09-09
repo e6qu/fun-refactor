@@ -18,7 +18,7 @@ The command returns JSON in both output modes. File bodies and archived metadata
 The record must be a regular `record.json` file in a removal archive directly under the shared Git directory.
 The reader accepts the existing version-one removal format and limits the record to 128 MiB.
 It checks ownership fields, parent identities, allowed private metadata paths and the recorded Git links.
-Archived metadata contents retain the removal limit of 16 MiB in total.
+Archived metadata contents retain the removal limit of 16 MiB in total, including any preserved `config.worktree` bytes.
 The inventory and source hashes must agree with the retained commit; private metadata hashes must agree with the archived bytes.
 The original completed creation receipt must match its archived copy.
 Malformed, inconsistent, foreign and unsafe records refuse before deletion.
@@ -32,7 +32,7 @@ The invoking worktree and its ancestors cannot be removed.
 ## Inspection and review
 
 Rows identify their scope, path, kind and observed state.
-Surviving reviewed files must retain their identity, bytes and full Unix mode.
+Surviving reviewed regular files and symlinks must retain their identity, bytes and full Unix mode.
 Surviving directories must retain their identities. Missing files and directories count as finished work.
 A replaced directory is not traversed; its recorded descendants are reported as uninspected.
 Extra paths, changed files, unsupported entries and existing locks are blockers.
@@ -44,6 +44,7 @@ The basis binds the caller, archive bytes and identity, path states and current 
 Only an incomplete observation with no blockers reports `can_resume: true`.
 A completion marker prevents further writes, including when its contents are invalid or paths have reappeared.
 The owned branch must still be direct and point to the commit reviewed for removal.
+The repository-local `extensions.worktreeConfig` mode must still match the archived creation receipt.
 
 Resumption accepts partial checkout deletion, partial private metadata deletion and absent checkout or metadata roots.
 It can also confirm a removal whose directories disappeared before its completion marker was written.
@@ -59,6 +60,7 @@ Existing locks are not broken automatically. Cleanup preserves replacement lock 
 
 The writer repeats inspection after acquiring locks.
 It deletes only files observed as remaining, with fresh identity, bytes, mode and parent-directory checks before unlinking.
+Symlink observations and deletion checks never follow the target.
 Missing paths are skipped. Directories are removed only when empty.
 New content or changed bytes that arrive after review can stop deletion and remain for inspection.
 The private registration is removed after the checkout. Branches and the invoking worktree's index receive no writes.
@@ -73,7 +75,7 @@ Resumption does not recreate deleted paths or perform worktree undo/redo.
 Crashes can leave locks requiring manual ownership review.
 Observation and unlinking are separate filesystem operations; hostile concurrent path replacement remains outside complete race protection.
 Neither deletion nor completion is an atomic transaction across all involved paths.
-Completed records support [reviewed compaction](git-worktree-archive-compaction.md). Bulk archive retention remains pending.
+Completed records support [reviewed compaction](git-worktree-archive-compaction.md), including explicit bulk archive retention.
 When a compaction summary is present, this command returns a small audit report with `can_resume: false` and no per-file rows.
 Use the original record path with `compact-removal` to inspect or finish compaction.
 

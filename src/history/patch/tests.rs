@@ -1,14 +1,24 @@
 use super::*;
-use crate::history::{basis, Change};
+use crate::history::{basis, Change, SnapshotKind};
 use std::fs;
 use std::io::Write;
-use std::os::unix::fs::PermissionsExt;
+use std::os::unix::ffi::OsStrExt;
+use std::os::unix::fs::{symlink, PermissionsExt};
 use std::process::{Command, Output, Stdio};
 
 fn snapshot(content: &str, mode: u32) -> Option<Snapshot> {
     Some(Snapshot {
         content: content.to_owned(),
         mode,
+        kind: SnapshotKind::Regular,
+    })
+}
+
+fn link(target: &str) -> Option<Snapshot> {
+    Some(Snapshot {
+        content: target.to_owned(),
+        mode: 0,
+        kind: SnapshotKind::Symlink,
     })
 }
 
@@ -62,13 +72,23 @@ fn assert_snapshot(root: &Path, change: &Change, reverse: bool) {
         &change.after
     } {
         Some(expected) => {
-            assert_eq!(fs::read(&path).unwrap(), expected.content.as_bytes());
-            assert_eq!(
-                fs::metadata(&path).unwrap().permissions().mode() & 0o100,
-                expected.mode & 0o100,
-                "{}",
-                path.display()
-            );
+            let metadata = fs::symlink_metadata(&path).unwrap();
+            if expected.kind == SnapshotKind::Symlink {
+                assert!(metadata.file_type().is_symlink(), "{}", path.display());
+                assert_eq!(
+                    fs::read_link(&path).unwrap().as_os_str().as_bytes(),
+                    expected.content.as_bytes()
+                );
+            } else {
+                assert!(metadata.is_file(), "{}", path.display());
+                assert_eq!(fs::read(&path).unwrap(), expected.content.as_bytes());
+                assert_eq!(
+                    metadata.permissions().mode() & 0o100,
+                    expected.mode & 0o100,
+                    "{}",
+                    path.display()
+                );
+            }
         }
         None => assert_eq!(
             fs::symlink_metadata(&path).unwrap_err().kind(),
@@ -128,6 +148,19 @@ fn git_round_trips_text_paths_empty_files_modes_and_moves() {
         ("move-to", None, snapshot("moved\n", 0o755)),
         ("swap-a", snapshot("a\n", 0o644), snapshot("b\n", 0o644)),
         ("swap-b", snapshot("b\n", 0o644), snapshot("a\n", 0o644)),
+        ("link-add", None, link("missing-add")),
+        ("link-remove", link("missing-remove"), None),
+        ("link-change", link("old-target"), link("new-target")),
+        (
+            "file-to-link",
+            snapshot("old file\n", 0o644),
+            link("target"),
+        ),
+        (
+            "link-to-file",
+            link("old-target"),
+            snapshot("new file\n", 0o755),
+        ),
         (
             "syntax.txt",
             snapshot("--- before\n+++ after\n@@ hunk\n", 0o644),
@@ -163,22 +196,23 @@ fn git_round_trips_text_paths_empty_files_modes_and_moves() {
             if let Some(before) = &change.before {
                 let path = root.join(&change.path);
                 fs::create_dir_all(path.parent().unwrap()).unwrap();
-                fs::write(&path, &before.content).unwrap();
-                fs::set_permissions(
-                    &path,
-                    fs::Permissions::from_mode(git_mode(before.mode) & 0o777),
-                )
-                .unwrap();
+                if before.kind == SnapshotKind::Symlink {
+                    symlink(&before.content, &path).unwrap();
+                } else {
+                    fs::write(&path, &before.content).unwrap();
+                    fs::set_permissions(
+                        &path,
+                        fs::Permissions::from_mode(git_mode(before.mode) & 0o777),
+                    )
+                    .unwrap();
+                }
             }
         }
         git_ok(root, &["add", "."], "");
         let index = fs::read(root.join(".git/index")).unwrap();
         let before = check_patch_basis(stored.path(), 1, false, Some(root)).unwrap();
-        assert!(
-            check_git_patch(stored.path(), 1, false, Some(root), false)
-                .unwrap()
-                .applicable
-        );
+        let git_check = check_git_patch(stored.path(), 1, false, Some(root), false).unwrap();
+        assert!(git_check.applicable, "{}", git_check.stderr);
         assert!(
             check_git_patch(stored.path(), 1, false, Some(root), true)
                 .unwrap()
@@ -262,6 +296,10 @@ fn export_reads_only_journal_snapshots_and_retains_record_metadata() {
     history.records.push(record.clone());
     fs::create_dir(root.join(".fr-history")).unwrap();
     history.save().unwrap();
+    assert!(!fs::read_to_string(root.join(".fr-history/state.json"))
+        .unwrap()
+        .contains("\"kind\""));
+    History::read(root).unwrap();
     let forward = export_patch(root, 1, false).unwrap();
     let reverse = export_patch(root, 1, true).unwrap();
     assert_eq!(forward.record_basis, record.basis);

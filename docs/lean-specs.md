@@ -71,28 +71,32 @@ It also checks plans from real refactoring commands.
 The full self-audits run in `tools/check.sh deep`.
 
 `FrKernels.History` adds snapshot acceptance, inverse laws, mixed-state recovery and undo/redo stack laws.
-Its anchored snapshot predicate has 250 shared Rust/Lean executable cases.
+Its anchored snapshot predicate has 432 shared Rust/Lean executable cases, including a symlink snapshot.
+An abstract selected-namespace model proves that replay installs the requested selected snapshot.
+It preserves the current snapshot at every unselected path, including an unrelated edit made after application.
 The inverse and mixed-recovery proofs use Lean’s propositional extensionality axiom. The two stack inverse proofs use no axioms.
-The model assumes durable journal checkpoints and atomic rename. Filesystem and full transaction implementation correspondence remain unproved.
+The selected-namespace proofs use no axioms. The model assumes durable journal checkpoints and atomic rename.
+Filesystem, path selection and full transaction implementation correspondence remain unproved. A Git-backed CLI test supplies concrete preservation evidence.
 
-`FrKernels.Patch` models Git executable-mode projection, supported permission changes and receiving patch-basis equality.
-Four Rust helpers used by file authoring, patch export and receiving checks carry explicit anchors and signature maps.
+`FrKernels.Patch` models Git regular, executable and symlink mode projection, supported permission changes and receiving patch-basis equality.
+Five Rust helpers used by file authoring, patch export and receiving checks carry explicit anchors and signature maps.
 Mode fields use `UInt32`, matching Rust's `u32` domain, including complement and XOR operations.
-The model's 20 theorems establish:
+The model's 24 theorems establish:
 
 - Projection produces only regular or executable Git modes, depends exactly on the owner-execute bit and is idempotent.
+- Snapshot projection fixes symlinks at `120000`, delegates regular entries to the executable projection and distinguishes both kinds.
 - Supported mode changes preserve all non-execute bits and either change nothing or toggle owner execute. Reversing a change preserves support.
-- Basis matching is reflexive, symmetric and transitive, preserves existence, and requires identical content and owner-execute bits for present files.
+- Basis matching is reflexive, symmetric and transitive, preserves existence and entry kind, and requires identical content and owner-execute bits for present regular files.
 - Full snapshot equality implies patch-basis acceptance. Other permission differences can pass the patch check while failing full snapshot equality.
 - The owner-execute setter changes the requested bit, preserves other bits, is idempotent and always produces a supported mode change.
 - The setter produces the requested Git mode and preserves the journal's maximum recorded permission value.
 
 Shared execution compares 45,419 mode results across all 4,096 permission patterns, individual high bits, `u32::MAX` and ten change masks.
-It also compares 1,681 pairs of absent/present snapshots with empty, Unicode and NUL-containing contents across ten modes.
+It also compares 1,849 pairs of absent/present snapshots with empty, Unicode and NUL-containing contents across ten modes plus two link targets.
 NUL cases exercise the pure comparison only; patch export still refuses binary snapshots before receiving checks.
-Another 8,258 comparisons cover both owner-execute settings across the same mode corpus.
+Another 8,258 comparisons cover both owner-execute settings, and 8,258 cover both snapshot kinds across the same mode corpus.
 
-An axiom audit of all 20 theorems reports `propext` and `Quot.sound`.
+An axiom audit of all 24 theorems reports `propext` and `Quot.sound`.
 Proofs using `bv_decide`, and theorems depending on them, also use `Classical.choice`, `Lean.ofReduceBool` and `Lean.trustCompiler`.
 Lean 4.28's [bitvector proof checker](https://github.com/leanprover/lean4/blob/v4.28.0/src/Lean/Elab/Tactic/BVDecide/Frontend/BVDecide.lean) performs compiled certificate validation.
 That adds compiler trust to those proofs. Zero `sorry` obligations does not remove these assumptions.
@@ -358,8 +362,9 @@ The local [Lean skill](../.claude/skills/lean-spec/SKILL.md) describes the imple
 The portable agent skill includes a [Lean reference](../skills/fr/references/lean.md) with an executable anchor-review workflow.
 
 Staging proposals reuse the same anchored Git mode projection and shared snapshot readers as explicit call context.
-Staging history adds an anchored transition predicate, checked against all boolean inputs, and abstract index replacement laws.
-Those laws establish undo/redo round trips and preservation of unselected entries.
+Staging history adds anchored transition and compaction predicates, each checked against all boolean inputs, plus abstract index and payload laws.
+Those laws establish undo/redo round trips, preservation of unselected entries, compaction idempotence and selected-payload removal.
+The crash-state predicate classifies every combination of pending journal, index-lock and preparation evidence; Lean proves the clean-state equivalence.
 Index locking, journal durability, basis hashing and prepared installation remain outside complete correspondence proofs.
 See [staging history assurance](git-stage-history.md#formal-coverage) for assumptions and tested behavior.
 
@@ -374,6 +379,18 @@ See [worktree creation assurance](git-worktree-creation.md#formal-coverage) for 
 Recorded worktree recovery adds an anchored file-acceptance predicate and abstract existing-file preservation laws.
 Shared Rust/Lean cases cover every boolean input. Ownership receipts and filesystem durability still require host-level evidence.
 See [worktree recovery](git-worktree-recovery.md) for the tested protocol and proof boundaries.
+
+Worktree configuration adds an anchored mode-and-file predicate with proofs that acceptance requires the reviewed repository mode and a regular file whenever `config.worktree` is present.
+Rust and Lean agree on all sixteen boolean states. Git configuration parsing, file observation and lifecycle durability remain host-tested assumptions.
+
+Pre-receipt worktree recovery adds an anchored evidence predicate.
+Lean proves that recovery rejects an existing receipt, a mismatched preparation or a mismatched registration, and accepts the complete provisional evidence state.
+Rust and Lean agree on all eight boolean inputs. Host tests kill creation after Git registration and check receipt publication, preparation cleanup and checkout completion.
+They also check existing-branch preservation.
+
+Raw worktree entry support adds an anchored mode policy for regular, executable and symlink blobs.
+Lean proves that every accepted entry is a blob with one recognized kind and that ambiguous kinds refuse.
+Rust and Lean agree on all sixteen boolean states. Host tests cover symlink creation, interrupted recovery, removal and archive validation.
 
 The Git removal kernel anchors the identity, bytes and mode guard used before deleting reviewed worktree files.
 Lean proves that acceptance requires all three matches. Shared executable tests cover all eight input combinations.

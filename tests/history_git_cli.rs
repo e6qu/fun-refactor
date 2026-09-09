@@ -193,7 +193,8 @@ fn nested_receivers_use_their_paths_even_with_unusual_directory_names() {
     checked(fr(source.path(), &args).output().unwrap(), false);
     fs::remove_file(nested.join("app.rs")).unwrap();
     std::os::unix::fs::symlink(source.path().join("app.rs"), nested.join("app.rs")).unwrap();
-    error(fr(source.path(), &args).output().unwrap(), "symlink");
+    let mismatch = checked(fr(source.path(), &args).output().unwrap(), false);
+    assert!(!mismatch["stderr"].as_str().unwrap().is_empty());
 }
 
 #[test]

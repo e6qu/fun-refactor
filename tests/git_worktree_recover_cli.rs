@@ -106,6 +106,7 @@ case " $* " in
     fi
 
     "$FR_ACTUAL_GIT" "$@" || exit $?
+    [ "$FR_FAULT" != crash-before-receipt ] || kill -KILL "$PPID"
     if [ "$FR_FAULT" = after-add ]; then exit 42; fi
     if [ "$FR_FAULT" = file-collision ]; then printf foreign > "$FR_DEST/file.txt"; fi
     exit 0
@@ -151,8 +152,8 @@ fn create_report(root: &Path, args: &[&str]) -> Value {
     serde_json::from_slice(&out.stdout).unwrap()
 }
 
-fn pending(fault: &str) -> tempfile::TempDir {
-    use std::os::unix::fs::PermissionsExt;
+fn pending_with_worktree_config(fault: &str, worktree_config: bool) -> tempfile::TempDir {
+    use std::os::unix::fs::{symlink, PermissionsExt};
     let temp = fixture();
     let root = temp.path().join("main");
     fs::create_dir(root.join("nested")).unwrap();
@@ -160,7 +161,11 @@ fn pending(fault: &str) -> tempfile::TempDir {
     fs::set_permissions(root.join("nested/run"), fs::Permissions::from_mode(0o755)).unwrap();
     fs::write(root.join("empty"), b"").unwrap();
     fs::write(root.join("binary"), [0, 255, 0, 1]).unwrap();
+    symlink("file.txt", root.join("current")).unwrap();
     commit(&root);
+    if worktree_config {
+        git(&root, &["config", "extensions.worktreeConfig", "true"]);
+    }
     let preview = create_report(&root, &["../task", "--branch", "topic"]);
     let (bin, real) = shim(temp.path());
     let out = create(
@@ -191,6 +196,10 @@ fn pending(fault: &str) -> tempfile::TempDir {
     temp
 }
 
+fn pending(fault: &str) -> tempfile::TempDir {
+    pending_with_worktree_config(fault, false)
+}
+
 fn apply(root: &Path) -> Value {
     let preview = report(root, &["../task"]);
     let value = report(
@@ -207,7 +216,96 @@ fn apply(root: &Path) -> Value {
 }
 
 #[test]
-fn resumes_registered_failures_with_binary_modes_and_read_only_preview() {
+fn recovers_a_registered_creation_after_a_crash_before_receipt_publication() {
+    let temp = fixture();
+    let root = temp.path().join("main");
+    let task = temp.path().join("task");
+    git(&root, &["config", "extensions.worktreeConfig", "true"]);
+    let source_index = fs::read(root.join(".git/index")).unwrap();
+    let preview = create_report(&root, &["../task", "--branch", "topic"]);
+    let (bin, real) = shim(temp.path());
+    let out = create(
+        &root,
+        &[
+            "../task",
+            "--branch",
+            "topic",
+            "--basis",
+            preview["basis"].as_str().unwrap(),
+            "--write",
+        ],
+    )
+    .env(
+        "PATH",
+        format!("{}:{}", bin.display(), std::env::var("PATH").unwrap()),
+    )
+    .env("FR_ACTUAL_GIT", real)
+    .env("FR_FAULT", "crash-before-receipt")
+    .env("FR_DEST", &task)
+    .output()
+    .unwrap();
+    assert!(!out.status.success());
+    let metadata = root.join(".git/worktrees/task");
+    assert!(!metadata.join("fr-creation.json").exists());
+    let preparations = fs::read_dir(root.join(".git"))
+        .unwrap()
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .filter(|path| {
+            path.file_name()
+                .unwrap()
+                .to_string_lossy()
+                .starts_with("fr-worktree-creation-")
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(preparations.len(), 1, "{preparations:?}");
+    let recovery = report(&root, &["../task"]);
+    assert_eq!(recovery["ownership_state"], "prepared", "{recovery}");
+    assert_eq!(recovery["worktree_config"], true, "{recovery}");
+    assert_eq!(
+        Path::new(recovery["preparation_record"].as_str().unwrap())
+            .canonicalize()
+            .unwrap(),
+        preparations[0].canonicalize().unwrap()
+    );
+    assert!(!metadata.join("fr-creation.json").exists());
+    let preparation_bytes = fs::read(&preparations[0]).unwrap();
+    let replaced = preparations[0].with_extension("replaced");
+    fs::rename(&preparations[0], &replaced).unwrap();
+    fs::write(&preparations[0], &preparation_bytes).unwrap();
+    error(
+        &root,
+        &[
+            "../task",
+            "--basis",
+            recovery["basis"].as_str().unwrap(),
+            "--write",
+        ],
+        "stale worktree recovery basis",
+    );
+    fs::remove_file(&preparations[0]).unwrap();
+    fs::rename(&replaced, &preparations[0]).unwrap();
+    git(&root, &["gc", "--prune=now"]);
+    let recovery = report(&root, &["../task"]);
+    let recovered = report(
+        &root,
+        &[
+            "../task",
+            "--basis",
+            recovery["basis"].as_str().unwrap(),
+            "--write",
+        ],
+    );
+    assert_eq!(recovered["applied"], true, "{recovered}");
+    assert!(metadata.join("fr-creation.json").is_file());
+    assert!(!preparations[0].exists());
+    assert_eq!(fs::read(task.join("file.txt")).unwrap(), b"base\n");
+    assert_eq!(fs::read(root.join(".git/index")).unwrap(), source_index);
+    assert_eq!(git(&task, &["status", "--porcelain"]), b"");
+}
+
+#[test]
+fn resumes_registered_failures_with_binary_modes_symlinks_and_read_only_preview() {
     use std::os::unix::fs::PermissionsExt;
     for fault in ["after-add", "before-index", "after-index"] {
         let temp = pending(fault);
@@ -222,7 +320,7 @@ fn resumes_registered_failures_with_binary_modes_and_read_only_preview() {
         let index = fs::read(root.join(".git/index")).unwrap();
         let refs = git(&root, &["show-ref"]);
         let preview = report(&root, &["../task", "--limit", "1"]);
-        assert_eq!(preview["page"]["total"], 4);
+        assert_eq!(preview["page"]["total"], 5);
         assert_eq!(preview["missing"].as_array().unwrap().len(), 1);
         assert_eq!(preview["index_action"], "create");
         assert_eq!(fs::read(&receipt).unwrap(), raw);
@@ -241,6 +339,10 @@ fn resumes_registered_failures_with_binary_modes_and_read_only_preview() {
         assert_eq!(value["applied"], true, "{fault}: {value}");
         assert_eq!(fs::read(task.join("binary")).unwrap(), [0, 255, 0, 1]);
         assert_eq!(fs::read(task.join("file.txt")).unwrap(), b"base\n");
+        assert_eq!(
+            fs::read_link(task.join("current")).unwrap(),
+            Path::new("file.txt")
+        );
         assert_eq!(
             fs::read(task.join("nested/run")).unwrap(),
             b"#!/bin/sh\r\nexit 0\r\n"
@@ -264,6 +366,38 @@ fn resumes_registered_failures_with_binary_modes_and_read_only_preview() {
         error(&root, &["../task"], "already complete");
         assert!(!task.join("empty").exists());
     }
+}
+
+#[test]
+fn preserves_and_binds_per_worktree_configuration_during_recovery() {
+    let temp = pending_with_worktree_config("before-index", true);
+    let root = temp.path().join("main");
+    let task = temp.path().join("task");
+    let config = root.join(".git/worktrees/task/config.worktree");
+    git(&task, &["config", "--worktree", "fr.test", "preserve"]);
+    let original = fs::read(&config).unwrap();
+    let preview = report(&root, &["../task"]);
+    assert_eq!(preview["worktree_config"], true, "{preview}");
+    assert_eq!(preview["worktree_config_file"], true, "{preview}");
+    git(&task, &["config", "--worktree", "fr.test", "changed"]);
+    error(
+        &root,
+        &[
+            "../task",
+            "--basis",
+            preview["basis"].as_str().unwrap(),
+            "--write",
+        ],
+        "stale worktree recovery basis",
+    );
+    fs::write(&config, &original).unwrap();
+    let recovered = apply(&root);
+    assert_eq!(recovered["worktree_config"], true, "{recovered}");
+    assert_eq!(fs::read(&config).unwrap(), original);
+    assert_eq!(
+        git(&task, &["config", "--worktree", "fr.test"]),
+        b"preserve\n"
+    );
 }
 
 #[test]
@@ -295,6 +429,7 @@ fn refuses_foreign_files_directories_symlinks_and_wrong_modes() {
         "ignored",
         "directory",
         "symlink",
+        "config-symlink",
         "mode",
         "changed",
     ] {
@@ -309,6 +444,11 @@ fn refuses_foreign_files_directories_symlinks_and_wrong_modes() {
             }
             "directory" => fs::create_dir(task.join("extra")).unwrap(),
             "symlink" => symlink(root.join("file.txt"), task.join("file.txt")).unwrap(),
+            "config-symlink" => symlink(
+                root.join("file.txt"),
+                root.join(".git/worktrees/task/config.worktree"),
+            )
+            .unwrap(),
             "mode" => {
                 fs::write(task.join("file.txt"), "base\n").unwrap();
                 fs::set_permissions(task.join("file.txt"), fs::Permissions::from_mode(0o755))
@@ -321,6 +461,19 @@ fn refuses_foreign_files_directories_symlinks_and_wrong_modes() {
         assert!(!out.status.success(), "{variant}");
         assert!(!root.join(".git/worktrees/task/index").exists());
     }
+}
+
+#[test]
+fn refuses_repository_worktree_configuration_mode_drift() {
+    let temp = pending_with_worktree_config("before-index", true);
+    let root = temp.path().join("main");
+    git(&root, &["config", "extensions.worktreeConfig", "false"]);
+    error(
+        &root,
+        &["../task"],
+        "extensions.worktreeConfig changed after reviewed creation",
+    );
+    assert!(!root.join(".git/worktrees/task/index").exists());
 }
 
 #[test]

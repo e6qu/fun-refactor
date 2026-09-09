@@ -1,4 +1,4 @@
-use super::{absent, checked, checkout, common, directory, line, ownership, Proposal};
+use super::{absent, checked, checkout, common, directory, line, ownership, preparation, Proposal};
 use crate::git::worktree::RecoverOptions;
 use anyhow::{ensure, Context, Result};
 use serde::{Deserialize, Serialize};
@@ -13,6 +13,8 @@ pub(super) struct Capture {
     pub(super) receipt: ownership::Receipt,
     pub(super) receipt_bytes: Vec<u8>,
     pub(super) blobs: Vec<Vec<u8>>,
+    preparation: Option<preparation::Prepared>,
+    receipt_published: bool,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -22,6 +24,7 @@ pub(super) struct Observation {
     pub(super) files: BTreeMap<String, (u64, u64, u32, String)>,
     pub(super) directories: BTreeMap<String, (u64, u64)>,
     pub(super) index_digest: Option<String>,
+    pub(super) worktree_config: Option<(u64, u64, u32, String)>,
     #[serde(skip)]
     pub(super) index: Option<Vec<u8>>,
 }
@@ -57,7 +60,32 @@ pub(super) fn capture(root: &Path, path: &Path, removal: bool) -> Result<Capture
         metadata.parent() == Some(shared.join("worktrees").as_path()),
         "recovery requires a linked worktree."
     );
-    let (receipt, receipt_bytes) = ownership::Receipt::read(&metadata.join("fr-creation.json"))?;
+    let receipt_path = metadata.join("fr-creation.json");
+    let receipt_exists = !absent(&receipt_path)?;
+    if !receipt_exists && !removal {
+        let (prepared, plan) = preparation::Prepared::recover(&root, &destination)?;
+        ensure!(
+            crate::git::worktree_prepared_recovery_allowed(receipt_exists, true, true),
+            "prepared ownership evidence does not authorize recovery."
+        );
+        let receipt =
+            ownership::Receipt::inspect(&plan, directory(&destination)?, Some(prepared.id()))?;
+        ensure!(
+            receipt.path() == receipt_path,
+            "prepared creation metadata differs."
+        );
+        let receipt_bytes = serde_json::to_vec(&receipt)?;
+        let blobs = checkout::blobs(&plan)?;
+        return Ok(Capture {
+            plan,
+            receipt,
+            receipt_bytes,
+            blobs,
+            preparation: Some(prepared),
+            receipt_published: false,
+        });
+    }
+    let (receipt, receipt_bytes) = ownership::Receipt::read(&receipt_path)?;
     if removal {
         ensure!(
             receipt.complete,
@@ -72,6 +100,15 @@ pub(super) fn capture(root: &Path, path: &Path, removal: bool) -> Result<Capture
     ensure!(
         receipt.common == shared && receipt.destination == destination,
         "ownership receipt belongs to another worktree."
+    );
+    ensure!(
+        crate::git::worktree_configuration_allowed(
+            receipt.worktree_config,
+            super::worktree_config(&root)?,
+            false,
+            false
+        ),
+        "extensions.worktreeConfig changed after reviewed creation."
     );
     let selected = if removal {
         ensure!(
@@ -98,9 +135,10 @@ pub(super) fn capture(root: &Path, path: &Path, removal: bool) -> Result<Capture
     let plan = Proposal {
         version: env!("CARGO_PKG_VERSION").to_owned(),
         root,
-        common: shared,
+        common: shared.clone(),
         common_identity: receipt.common_identity,
-        destination,
+        worktree_config: receipt.worktree_config,
+        destination: destination.clone(),
         parent_identity: receipt.parent_identity,
         branch: receipt.branch.clone(),
         existing_branch: receipt.existing_branch,
@@ -112,11 +150,23 @@ pub(super) fn capture(root: &Path, path: &Path, removal: bool) -> Result<Capture
     };
     checkout::check_registration(&plan)?;
     let blobs = checkout::blobs(&plan)?;
+    let preparation = receipt
+        .preparation
+        .as_deref()
+        .map(|id| preparation::Prepared::load(&shared, &destination, id))
+        .transpose()?
+        .flatten();
+    ensure!(
+        !removal || preparation.is_none(),
+        "removal refuses leftover worktree creation preparation."
+    );
     Ok(Capture {
         plan,
         receipt,
         receipt_bytes,
         blobs,
+        preparation,
+        receipt_published: true,
     })
 }
 
@@ -132,10 +182,20 @@ pub(super) fn observe(capture: &Capture) -> Result<Observation> {
         ownership::digest(&registrations) == plan.registrations,
         "worktree registrations changed during recovery."
     );
-    ensure!(
-        ownership::bytes(&capture.receipt.path(), 64 * 1024)? == capture.receipt_bytes,
-        "ownership receipt changed."
-    );
+    if capture.receipt_published {
+        ensure!(
+            ownership::bytes(&capture.receipt.path(), 64 * 1024)? == capture.receipt_bytes,
+            "ownership receipt changed."
+        );
+    } else {
+        ensure!(
+            absent(&capture.receipt.path())?,
+            "ownership receipt appeared after prepared creation review."
+        );
+    }
+    if let Some(prepared) = &capture.preparation {
+        prepared.check()?;
+    }
     let expected = plan
         .files
         .iter()
@@ -153,6 +213,7 @@ pub(super) fn observe(capture: &Capture) -> Result<Observation> {
         files: BTreeMap::new(),
         directories: BTreeMap::new(),
         index_digest: None,
+        worktree_config: None,
         index: None,
     };
     let mut pending = vec![PathBuf::new()];
@@ -183,23 +244,28 @@ pub(super) fn observe(capture: &Capture) -> Result<Observation> {
                 let (entry, blob) = expected
                     .get(name)
                     .with_context(|| format!("unexpected recovery file: {name:?}."))?;
-                ensure!(
-                    stat.file_type().is_file(),
-                    "recovery refuses non-regular files: {name:?}."
-                );
-                let raw = ownership::bytes(&plan.destination.join(&path), entry.size as u64)
+                let entry_path = plan.destination.join(&path);
+                let raw = checkout::entry_bytes(&entry_path, entry)
                     .with_context(|| format!("reading recovery file {name:?}."))?;
+                let after = fs::symlink_metadata(&entry_path)?;
                 ensure!(
                     crate::git::worktree_recovery_file_allowed(
-                        true,
+                        stat.dev() == after.dev()
+                            && stat.ino() == after.ino()
+                            && stat.mode() == after.mode(),
                         raw == **blob,
-                        (stat.mode() & 0o100 != 0) == (entry.mode == "100755")
+                        entry.metadata_matches(&after)
                     ),
                     "recovery file differs from committed bytes or mode: {name:?}."
                 );
                 observed.files.insert(
                     name.to_owned(),
-                    (stat.dev(), stat.ino(), stat.mode(), ownership::digest(&raw)),
+                    (
+                        after.dev(),
+                        after.ino(),
+                        after.mode(),
+                        ownership::digest(&raw),
+                    ),
                 );
             }
         }
@@ -211,6 +277,44 @@ pub(super) fn observe(capture: &Capture) -> Result<Observation> {
         .map(|entry| entry.path.clone())
         .collect();
     let index = checkout::index_path(plan)?;
+    let config = index.parent().unwrap().join("config.worktree");
+    match fs::symlink_metadata(&config) {
+        Ok(before) => {
+            ensure!(
+                crate::git::worktree_configuration_allowed(
+                    plan.worktree_config,
+                    super::worktree_config(&plan.root)?,
+                    true,
+                    before.file_type().is_file()
+                ),
+                "per-worktree configuration must be a regular file."
+            );
+            let raw = ownership::bytes(&config, 1024 * 1024)?;
+            let after = fs::symlink_metadata(&config)?;
+            ensure!(
+                before.dev() == after.dev()
+                    && before.ino() == after.ino()
+                    && before.mode() == after.mode(),
+                "per-worktree configuration changed during inspection."
+            );
+            observed.worktree_config = Some((
+                after.dev(),
+                after.ino(),
+                after.mode(),
+                ownership::digest(&raw),
+            ));
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => ensure!(
+            crate::git::worktree_configuration_allowed(
+                plan.worktree_config,
+                super::worktree_config(&plan.root)?,
+                false,
+                false
+            ),
+            "extensions.worktreeConfig changed during inspection."
+        ),
+        Err(error) => return Err(error.into()),
+    }
     for marker in [
         "MERGE_HEAD",
         "CHERRY_PICK_HEAD",
@@ -244,6 +348,11 @@ fn basis(capture: &Capture, observation: &Observation) -> Result<String> {
         ownership::digest(&serde_json::to_vec(&(
             &capture.plan,
             ownership::digest(&capture.receipt_bytes),
+            capture.receipt_published,
+            capture
+                .preparation
+                .as_ref()
+                .map(|prepared| prepared.fingerprint()),
             observation
         ))?)
     ))
@@ -254,7 +363,7 @@ pub(in crate::git::worktree) fn report(root: &Path, options: &RecoverOptions) ->
         (1..=500).contains(&options.limit),
         "limit must be between 1 and 500."
     );
-    let capture = capture(root, &options.path, false)?;
+    let mut capture = capture(root, &options.path, false)?;
     let lease = options
         .write
         .then(|| ownership::Lease::acquire(capture.receipt.path().with_extension("lock")))
@@ -271,10 +380,15 @@ pub(in crate::git::worktree) fn report(root: &Path, options: &RecoverOptions) ->
         "applied":false,"basis":token,"basis_verified":options.basis.is_some(),"destination":capture.plan.destination,
         "repository_root":capture.plan.root,"ownership_record":capture.receipt.path(),"branch":format!("refs/heads/{}",capture.plan.branch),
         "commit":capture.plan.commit,"tree":capture.plan.tree,"checkout":"raw-blobs","existing_files":observed.files.len(),
+        "ownership_state":if capture.receipt_published{"receipt"}else{"prepared"},
+        "worktree_config":capture.plan.worktree_config,"worktree_config_file":observed.worktree_config.is_some(),
         "index_action":if observed.index.is_some(){"preserve"}else{"create"},
         "missing":observed.missing.iter().take(options.limit).collect::<Vec<_>>(),
         "page":{"total":observed.missing.len(),"returned":observed.missing.len().min(options.limit),
             "omitted":observed.missing.len().saturating_sub(options.limit)}});
+    if let Some(prepared) = &capture.preparation {
+        result["preparation_record"] = json!(prepared.path());
+    }
     if let Some(lease) = lease {
         let current = observe(&capture)?;
         ensure!(
@@ -283,6 +397,14 @@ pub(in crate::git::worktree) fn report(root: &Path, options: &RecoverOptions) ->
         );
         let outcome = (|| -> Result<()> {
             lease.check()?;
+            if !capture.receipt_published {
+                capture.receipt_bytes = capture.receipt.publish(&lease)?;
+                capture.receipt_published = true;
+            }
+            if let Some(prepared) = capture.preparation.take() {
+                let preparation_lease = ownership::Lease::acquire(prepared.lock_path())?;
+                prepared.remove(preparation_lease)?;
+            }
             let index_lease = checkout::prepare_index(&capture.plan, current.index.as_deref())?;
             checkout::populate(
                 &capture.plan,
@@ -301,6 +423,10 @@ pub(in crate::git::worktree) fn report(root: &Path, options: &RecoverOptions) ->
                     "recovery index changed before completion."
                 );
             }
+            ensure!(
+                finished.worktree_config == current.worktree_config,
+                "per-worktree configuration changed during recovery."
+            );
             checkout::sync(&capture.plan)?;
             index_lease.check()?;
             capture.receipt.finish(&lease, &capture.receipt_bytes)?;

@@ -270,12 +270,12 @@ LSP delegation stays outside the default engine; daemon/watch mode awaits a meas
 
 The shared commit path recovers earlier writes after a handled failure and reports recovery problems.
 The native CLI now saves plans and supports checked apply, undo, redo and interrupted-write recovery through `fr history`.
-`fr history patch ID` exports stored text changes for Git, with reverse export and optional JSON metadata.
+`fr history patch ID` exports stored text and UTF-8 symlink changes for Git, with reverse export and optional JSON metadata.
 Add `--check` to compare the receiving files with the recorded starting state; `--against DIR` selects another workspace.
 Use `--git-check` for Git's application verdict, with `--index` to include the index.
-Patch-basis and executable-mode helpers have anchored Lean models with 55,358 shared execution comparisons.
+Patch-basis, executable-mode and symlink-mode helpers have anchored Lean models with 63,784 shared execution comparisons.
 See [recorded transaction patches](docs/git-patches.md) for application checks, mode scope and limitations.
-`fr file delete` and `fr file executable --set on|off` add explicit file operations with saved plans, undo/redo and patch export.
+`fr file delete`, `fr file executable --set on|off` and `fr file symlink --target TARGET` add explicit entry operations with saved plans, undo/redo and patch export.
 See [file transactions](docs/file-transactions.md) for owner-execute semantics and validation scope.
 `fr git status` pages through repository changes with filters, rename sources and continuation cursors.
 See [Git status](docs/git-status.md) for observation limits, omitted submodules and configuration scope.
@@ -288,7 +288,7 @@ Repeat `--include FILE` to add explicit caller and target context, with selected
 See [Git diff details](docs/git-diff.md) for cursor identity and supported paths.
 `fr git stage PATH...` previews raw staging entries; `--basis TOKEN --write` applies them through a prepared index on Unix.
 See [staging semantics and limits](docs/git-staging.md) for raw byte and mode semantics.
-`fr git stage-history` inspects staging records and previews checked undo, redo and recovery; see [staging history](docs/git-stage-history.md).
+`fr git stage-history` inspects staging records and crash evidence, and previews checked undo, redo, recovery and payload compaction; see [staging history](docs/git-stage-history.md).
 `fr git commit -m MESSAGE` previews the entire index; `--basis TOKEN --write` publishes it after index and HEAD checks.
 See [reviewed commits](docs/git-commit.md) for identity configuration, disabled hooks/signing and publication limits.
 `fr git worktree list` pages through registered workspaces, branches, HEADs and lock metadata.
@@ -302,6 +302,7 @@ See [recorded recovery](docs/git-worktree-recovery.md) for ownership receipts an
 [Reviewed removal](docs/git-worktree-removal.md) retains the branch and refuses extra content.
 [Removal resumption](docs/git-worktree-removal-resumption.md) uses `fr git worktree resume-removal RECORD` to inspect partial removals and `--basis TOKEN --write` to finish them.
 [Archive compaction](docs/git-worktree-archive-compaction.md) uses `fr git worktree compact-removal RECORD` to review discarding completed recovery records while retaining audit summaries.
+Its plural `compact-removals RECORD...` form applies the same checks to an explicit bulk-retention set.
 The browser already exports patches and can restore its initial workspace.
 `fr project` now provides compact hierarchy maps and bounded source inspection.
 Its package and dependency pages report Cargo/npm manifest declarations with shared revision checks.

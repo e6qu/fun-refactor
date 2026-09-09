@@ -104,16 +104,18 @@ fn create(root: &Path) -> Value {
 
 #[test]
 fn removes_reviewed_worktree_archives_metadata_and_retains_branch() {
+    use std::os::unix::fs::symlink;
     let temp = fixture();
     let root = temp.path().join("main");
     fs::create_dir(root.join("nested")).unwrap();
     fs::write(root.join("nested/binary"), [0, 255, 13]).unwrap();
+    symlink("../file.txt", root.join("nested/current")).unwrap();
     commit(&root);
     let created = create(&root);
     let index = fs::read(root.join(".git/index")).unwrap();
     let preview = report(&root, &["../owned", "--limit", "1"]);
     assert_eq!(preview["applied"], false);
-    assert_eq!(preview["page"]["total"], 2);
+    assert_eq!(preview["page"]["total"], 3);
     let result = report(
         &root,
         &[
@@ -140,12 +142,72 @@ fn removes_reviewed_worktree_archives_metadata_and_retains_branch() {
     let archived: Value = serde_json::from_slice(&fs::read(record).unwrap()).unwrap();
     assert!(archived["metadata_bytes"]["index"].is_array());
     assert!(record.with_file_name("complete").is_file());
+    let inspected = Command::new(env!("CARGO_BIN_EXE_fr"))
+        .args(["--json", "--no-cache", "-C"])
+        .arg(&root)
+        .args(["git", "worktree", "resume-removal"])
+        .arg(record)
+        .output()
+        .unwrap();
+    assert!(
+        inspected.status.success(),
+        "{}",
+        String::from_utf8_lossy(&inspected.stdout)
+    );
     assert_eq!(
         String::from_utf8(git(&root, &["worktree", "list", "--porcelain"]))
             .unwrap()
             .matches("worktree ")
             .count(),
         1
+    );
+}
+
+#[test]
+fn archives_per_worktree_configuration_before_removal() {
+    let temp = fixture();
+    let root = temp.path().join("main");
+    git(&root, &["config", "extensions.worktreeConfig", "true"]);
+    let created = create(&root);
+    assert_eq!(created["worktree_config"], true, "{created}");
+    let target = temp.path().join("owned");
+    git(&target, &["config", "--worktree", "fr.test", "preserve"]);
+    let config = fs::read(root.join(".git/worktrees/owned/config.worktree")).unwrap();
+    let preview = report(&root, &["../owned"]);
+    assert_eq!(preview["worktree_config"], true, "{preview}");
+    assert_eq!(preview["worktree_config_file"], true, "{preview}");
+    let removed = report(
+        &root,
+        &[
+            "../owned",
+            "--basis",
+            preview["basis"].as_str().unwrap(),
+            "--write",
+        ],
+    );
+    assert_eq!(removed["applied"], true, "{removed}");
+    let archive: Value =
+        serde_json::from_slice(&fs::read(removed["removal_record"].as_str().unwrap()).unwrap())
+            .unwrap();
+    assert_eq!(
+        archive["metadata_bytes"]["config.worktree"],
+        serde_json::to_value(config).unwrap()
+    );
+    let inspected = Command::new(env!("CARGO_BIN_EXE_fr"))
+        .args(["--json", "--no-cache", "-C"])
+        .arg(&root)
+        .args(["git", "worktree", "resume-removal"])
+        .arg(removed["removal_record"].as_str().unwrap())
+        .output()
+        .unwrap();
+    assert!(
+        inspected.status.success(),
+        "{}",
+        String::from_utf8_lossy(&inspected.stdout)
+    );
+    assert_eq!(
+        serde_json::from_slice::<Value>(&inspected.stdout).unwrap()["state"],
+        "complete-marker-present"
     );
 }
 

@@ -1,5 +1,5 @@
 use super::super::super::{absent, checked, directory, ownership};
-use super::super::{branch, configuration, FileState};
+use super::super::{branch, configuration};
 use super::record::{Loaded, Tree};
 use anyhow::{ensure, Result};
 use serde::Serialize;
@@ -94,7 +94,7 @@ fn tree(tree: &Tree, scope: &'static str, owned: bool, rows: &mut Vec<Row>) -> R
             }
             seen.insert(name.to_owned());
             if let Some(expected) = tree.files.get(name) {
-                let current = FileState::read(&entry.path());
+                let current = expected.current(&entry.path());
                 let state = match current {
                     Ok(current)
                         if crate::git::worktree_removal_resume_allowed(
@@ -146,7 +146,7 @@ pub(super) fn observe(loaded: &Loaded, owned: bool) -> Result<Observation> {
     let mut rows = Vec::new();
     tree(&loaded.trees[0], "checkout", false, &mut rows)?;
     tree(&loaded.trees[1], "metadata", owned, &mut rows)?;
-    if configuration(&loaded.root).is_err() {
+    if configuration(&loaded.root, loaded.plan.worktree_config).is_err() {
         row(
             &mut rows,
             "repository",

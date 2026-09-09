@@ -3,6 +3,7 @@ namespace FrKernels.History
 structure FileSnapshot where
   content : String
   mode : Nat
+  symlink : Bool
   deriving DecidableEq, Repr
 
 abbrev Snapshot := Option FileSnapshot
@@ -59,6 +60,44 @@ theorem recovery_restores_mixed_snapshots (before after current : List Snapshot)
   induction compatible with
   | nil => rfl
   | cons accepted _ ih => simp [recoverChecked, accepted, ih]
+
+def replaySelected
+    (current target : String → Snapshot)
+    (selected : String → Bool)
+    (path : String) : Snapshot :=
+  match selected path with
+  | true => target path
+  | false => current path
+
+theorem replay_sets_selected
+    (current target : String → Snapshot)
+    (selected : String → Bool)
+    (path : String)
+    (inside : selected path = true) :
+    replaySelected current target selected path = target path := by
+  unfold replaySelected
+  rw [inside]
+
+theorem replay_preserves_unselected
+    (current target : String → Snapshot)
+    (selected : String → Bool)
+    (path : String)
+    (outside : selected path = false) :
+    replaySelected current target selected path = current path := by
+  unfold replaySelected
+  rw [outside]
+
+theorem undo_restores_selected_and_preserves_later_unselected
+    (before later : String → Snapshot)
+    (selected : String → Bool)
+    (selectedPath unrelatedPath : String)
+    (inside : selected selectedPath = true)
+    (outside : selected unrelatedPath = false) :
+    replaySelected later before selected selectedPath = before selectedPath ∧
+      replaySelected later before selected unrelatedPath = later unrelatedPath := by
+  constructor
+  · exact replay_sets_selected later before selected selectedPath inside
+  · exact replay_preserves_unselected later before selected unrelatedPath outside
 
 structure Stacks where
   applied : List Nat

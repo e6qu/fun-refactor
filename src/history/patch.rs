@@ -1,4 +1,4 @@
-use super::{History, Record, Snapshot, Status};
+use super::{History, Record, Snapshot, SnapshotKind, Status};
 use anyhow::{bail, Context, Result};
 use serde::Serialize;
 use std::fmt::Write;
@@ -37,7 +37,7 @@ pub fn export_patch(root: &Path, id: u64, reverse: bool) -> Result<PatchExport> 
         validation: record.validation.clone(),
         reverse,
         format: "git-text-diff",
-        mode_scope: "regular-or-executable",
+        mode_scope: "regular-executable-or-symlink",
         files: record.changes.len(),
         patch: render(record, reverse)?,
     })
@@ -49,6 +49,18 @@ pub fn git_mode(mode: u32) -> u32 {
     } else {
         0o100755
     }
+}
+
+pub fn git_snapshot_mode(symlink: bool, mode: u32) -> u32 {
+    if symlink {
+        0o120000
+    } else {
+        git_mode(mode)
+    }
+}
+
+fn snapshot_git_mode(snapshot: &Snapshot) -> u32 {
+    git_snapshot_mode(snapshot.kind == SnapshotKind::Symlink, snapshot.mode)
 }
 
 pub fn git_mode_change_supported(before: u32, after: u32) -> bool {
@@ -65,8 +77,10 @@ pub fn owner_executable_mode(mode: u32, executable: bool) -> u32 {
 }
 
 pub fn matches_patch_basis(actual: &Option<Snapshot>, expected: &Option<Snapshot>) -> bool {
-    actual.as_ref().map(|s| (&s.content, git_mode(s.mode)))
-        == expected.as_ref().map(|s| (&s.content, git_mode(s.mode)))
+    actual.as_ref().map(|s| (&s.content, snapshot_git_mode(s)))
+        == expected
+            .as_ref()
+            .map(|s| (&s.content, snapshot_git_mode(s)))
 }
 
 fn quote(path: &str) -> String {
@@ -107,21 +121,48 @@ fn render(record: &Record, reverse: bool) -> Result<String> {
             }
         }
         if let (Some(before), Some(after)) = (before, after) {
-            if !git_mode_change_supported(before.mode, after.mode) {
+            let both_regular =
+                before.kind == SnapshotKind::Regular && after.kind == SnapshotKind::Regular;
+            if both_regular && !git_mode_change_supported(before.mode, after.mode) {
                 bail!("cannot represent recorded permission change in a Git patch: {name:?}");
             }
         }
         let old = quote(&format!("a/{name}"));
         let new = quote(&format!("b/{name}"));
+        if let (Some(before), Some(after)) = (before, after) {
+            if before.kind != after.kind {
+                writeln!(patch, "diff --git {old} {new}")?;
+                writeln!(patch, "deleted file mode {:06o}", snapshot_git_mode(before))?;
+                patch.push_str(
+                    &similar::TextDiff::from_lines(before.content.as_str(), "")
+                        .unified_diff()
+                        .header(&old, "/dev/null")
+                        .to_string(),
+                );
+                writeln!(patch, "diff --git {old} {new}")?;
+                writeln!(patch, "new file mode {:06o}", snapshot_git_mode(after))?;
+                patch.push_str(
+                    &similar::TextDiff::from_lines("", after.content.as_str())
+                        .unified_diff()
+                        .header("/dev/null", &new)
+                        .to_string(),
+                );
+                continue;
+            }
+        }
         writeln!(patch, "diff --git {old} {new}")?;
         match (before, after) {
-            (None, Some(after)) => writeln!(patch, "new file mode {:06o}", git_mode(after.mode))?,
-            (Some(before), None) => {
-                writeln!(patch, "deleted file mode {:06o}", git_mode(before.mode))?
+            (None, Some(after)) => {
+                writeln!(patch, "new file mode {:06o}", snapshot_git_mode(after))?
             }
-            (Some(before), Some(after)) if git_mode(before.mode) != git_mode(after.mode) => {
-                writeln!(patch, "old mode {:06o}", git_mode(before.mode))?;
-                writeln!(patch, "new mode {:06o}", git_mode(after.mode))?;
+            (Some(before), None) => {
+                writeln!(patch, "deleted file mode {:06o}", snapshot_git_mode(before))?
+            }
+            (Some(before), Some(after))
+                if snapshot_git_mode(before) != snapshot_git_mode(after) =>
+            {
+                writeln!(patch, "old mode {:06o}", snapshot_git_mode(before))?;
+                writeln!(patch, "new mode {:06o}", snapshot_git_mode(after))?;
             }
             _ => (),
         }

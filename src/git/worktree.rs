@@ -23,6 +23,8 @@ pub enum Command {
     ResumeRemoval(ResumeRemovalOptions),
     #[command(about = "Preview or compact a completed worktree removal archive.")]
     CompactRemoval(CompactRemovalOptions),
+    #[command(about = "Preview or compact several selected worktree removal archives.")]
+    CompactRemovals(CompactRemovalsOptions),
 }
 
 #[derive(Args)]
@@ -38,6 +40,24 @@ pub struct CompactRemovalOptions {
         long,
         requires = "basis",
         help = "Retain an audit summary and discard the full recovery record."
+    )]
+    write: bool,
+}
+
+#[derive(Args)]
+pub struct CompactRemovalsOptions {
+    #[arg(
+        required = true,
+        num_args = 1..=32,
+        help = "Selected removal record.json paths, from 1 through 32."
+    )]
+    records: Vec<std::path::PathBuf>,
+    #[arg(long, help = "Require the reviewed set and every archive observation.")]
+    basis: Option<String>,
+    #[arg(
+        long,
+        requires = "basis",
+        help = "Retain audit summaries and discard the selected recovery records."
     )]
     write: bool,
 }
@@ -159,6 +179,12 @@ pub(super) fn report(root: &Path, command: &Command) -> Result<Value> {
         Command::ResumeRemoval(options) => create::removal::resume::report(root, options),
         #[cfg(unix)]
         Command::CompactRemoval(options) => create::removal::compact::report(root, options),
+        #[cfg(unix)]
+        Command::CompactRemovals(options) => create::removal::compact::bulk::report(root, options),
+        #[cfg(not(unix))]
+        Command::CompactRemovals(_) => {
+            bail!("bulk removal compaction requires Unix ownership checks.")
+        }
         #[cfg(not(unix))]
         Command::CompactRemoval(_) => bail!("removal compaction requires Unix ownership checks."),
         #[cfg(not(unix))]

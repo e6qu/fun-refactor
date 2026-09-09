@@ -21,10 +21,51 @@ fn run(root: &Path, args: &[&str]) -> (bool, Value) {
     (output.status.success(), report)
 }
 
+fn run_without_git(root: &Path, args: &[&str]) -> (bool, Value) {
+    let output = Command::new(env!("CARGO_BIN_EXE_fr"))
+        .env("PATH", "/nonexistent-fr-history-test")
+        .args(["--json", "--no-cache", "-C"])
+        .arg(root)
+        .args(args)
+        .output()
+        .unwrap();
+    let report = serde_json::from_slice(&output.stdout).unwrap_or_else(|error| {
+        panic!(
+            "{args:?}: {error}\n{}\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        )
+    });
+    (output.status.success(), report)
+}
+
 fn ok(root: &Path, args: &[&str]) -> Value {
     let (success, report) = run(root, args);
     assert!(success, "{args:?}: {report}");
     report
+}
+
+fn git(root: &Path, args: &[&str]) -> Vec<u8> {
+    let output = Command::new("git")
+        .current_dir(root)
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .env("GIT_OPTIONAL_LOCKS", "0")
+        .args([
+            "-c",
+            "user.name=fixture",
+            "-c",
+            "user.email=fixture@example.invalid",
+        ])
+        .args(args)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{args:?}: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    output.stdout
 }
 
 #[test]
@@ -66,6 +107,106 @@ fn agent_can_save_inspect_apply_undo_redo_across_cli_processes() {
     assert_eq!(
         fs::read_to_string(dir.path().join("unrelated.rs")).unwrap(),
         "fn dirty() {}\n"
+    );
+}
+
+#[test]
+fn source_undo_and_redo_preserve_affected_staging_and_unrelated_git_state() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let original = "fn helper() {}\nfn main() { helper(); }\n";
+    let staged_source = format!("// staged before fr\n{original}");
+    fs::write(root.join("app.rs"), original).unwrap();
+    fs::write(root.join("side.txt"), "base\n").unwrap();
+    fs::write(root.join("unrelated.rs"), "fn before() {}\n").unwrap();
+    git(root, &["init", "-q"]);
+    git(root, &["add", "."]);
+    git(root, &["commit", "-qm", "base"]);
+
+    fs::write(root.join("app.rs"), &staged_source).unwrap();
+    fs::set_permissions(root.join("app.rs"), fs::Permissions::from_mode(0o750)).unwrap();
+    fs::write(root.join("side.txt"), "staged side\n").unwrap();
+    git(root, &["add", "app.rs", "side.txt"]);
+    fs::write(root.join("side.txt"), "unstaged side\n").unwrap();
+    let index = fs::read(root.join(".git/index")).unwrap();
+    let staged_diff = git(root, &["diff", "--cached", "--binary"]);
+
+    let plan = ok(root, &["rename", "helper", "renamed", "--save-plan"]);
+    let id = plan["transaction"].as_u64().unwrap().to_string();
+    ok(root, &["history", "apply", &id, "--write"]);
+    let changed = fs::read_to_string(root.join("app.rs")).unwrap();
+    assert!(changed.contains("renamed"));
+    assert_eq!(fs::read(root.join(".git/index")).unwrap(), index);
+
+    fs::write(root.join("unrelated.rs"), "fn later_edit() {}\n").unwrap();
+    fs::write(root.join("untracked.txt"), "later untracked\n").unwrap();
+    ok(root, &["history", "undo", &id, "--write"]);
+    assert_eq!(
+        fs::read_to_string(root.join("app.rs")).unwrap(),
+        staged_source
+    );
+    assert_eq!(
+        fs::metadata(root.join("app.rs"))
+            .unwrap()
+            .permissions()
+            .mode()
+            & 0o7777,
+        0o750
+    );
+    assert_eq!(fs::read(root.join(".git/index")).unwrap(), index);
+    assert_eq!(git(root, &["diff", "--cached", "--binary"]), staged_diff);
+    assert_eq!(
+        fs::read_to_string(root.join("side.txt")).unwrap(),
+        "unstaged side\n"
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("unrelated.rs")).unwrap(),
+        "fn later_edit() {}\n"
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("untracked.txt")).unwrap(),
+        "later untracked\n"
+    );
+
+    ok(root, &["history", "redo", &id, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), changed);
+    assert_eq!(fs::read(root.join(".git/index")).unwrap(), index);
+    assert_eq!(git(root, &["diff", "--cached", "--binary"]), staged_diff);
+    assert_eq!(
+        fs::read_to_string(root.join("side.txt")).unwrap(),
+        "unstaged side\n"
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("unrelated.rs")).unwrap(),
+        "fn later_edit() {}\n"
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("untracked.txt")).unwrap(),
+        "later untracked\n"
+    );
+}
+
+#[test]
+fn analysis_and_source_history_work_without_git() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let original = "fn helper() {}\nfn main() { helper(); }\n";
+    fs::write(root.join("app.rs"), original).unwrap();
+
+    let (scanned, report) = run_without_git(root, &["scan"]);
+    assert!(scanned, "{report}");
+    assert_eq!(report["files"].as_array().unwrap().len(), 1);
+
+    let (saved, plan) = run_without_git(root, &["rename", "helper", "renamed", "--save-plan"]);
+    assert!(saved, "{plan}");
+    let id = plan["transaction"].as_u64().unwrap().to_string();
+    for action in ["apply", "undo", "redo"] {
+        let (accepted, transition) = run_without_git(root, &["history", action, &id, "--write"]);
+        assert!(accepted, "{action}: {transition}");
+    }
+    assert_eq!(
+        fs::read_to_string(root.join("app.rs")).unwrap(),
+        original.replace("helper", "renamed")
     );
 }
 

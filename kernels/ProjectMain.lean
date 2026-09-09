@@ -105,6 +105,23 @@ def main (args : List String) : IO Unit := do
       for bytesMatch in [false, true] do
         for modeMatches in [false, true] do
           IO.println (FrKernels.Git.worktreeRecoveryFileAllowed present bytesMatch modeMatches)
+  else if args == ["worktree-configuration"] then
+    for reviewedMode in [false, true] do
+      for observedMode in [false, true] do
+        for configPresent in [false, true] do
+          for configRegular in [false, true] do
+            IO.println (FrKernels.Git.worktreeConfigurationAllowed reviewedMode observedMode configPresent configRegular)
+  else if args == ["worktree-prepared-recovery"] then
+    for receiptPresent in [false, true] do
+      for preparationMatches in [false, true] do
+        for registrationMatches in [false, true] do
+          IO.println (FrKernels.Git.worktreePreparedRecoveryAllowed receiptPresent preparationMatches registrationMatches)
+  else if args == ["worktree-entry-mode"] then
+    for regular in [false, true] do
+      for executable in [false, true] do
+        for symlink in [false, true] do
+          for objectIsBlob in [false, true] do
+            IO.println (FrKernels.Git.worktreeEntryModeAllowed regular executable symlink objectIsBlob)
   else if args == ["worktree-budget"] then
     for files in [0, 1, 19999, 20000, 20001, 18446744073709551615] do
       for bytes in [0, 268435455, 268435456, 268435457, 18446744073709551615] do
@@ -121,6 +138,22 @@ def main (args : List String) : IO Unit := do
       for after in [false, true] do
         for recovery in [false, true] do
           IO.println (FrKernels.Git.stagingTransitionAllowed before after recovery)
+  else if args == ["staging-record-compaction"] then
+    for detailed in [false, true] do
+      for pending in [false, true] do
+        for retained in [false, true] do
+          IO.println (FrKernels.Git.stagingRecordCompactable detailed pending retained)
+  else if args == ["staging-crash-state"] then
+    for pending in [false, true] do
+      for indexLock in [false, true] do
+        for preparation in [false, true] do
+          IO.println (FrKernels.Git.stagingCrashStateRequiresReview pending indexLock preparation)
+  else if args == ["staging-index-entry"] then
+    for stageZero in [false, true] do
+      for intentToAdd in [false, true] do
+        for assumeUnchanged in [false, true] do
+          for skipWorktree in [false, true] do
+            IO.println (FrKernels.Git.stagingIndexEntryReplayable stageZero intentToAdd assumeUnchanged skipWorktree)
   else if args == ["call-selection"] then
     for incoming in [false, true] do
       for outgoing in [false, true] do

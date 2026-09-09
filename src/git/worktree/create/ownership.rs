@@ -77,6 +77,10 @@ pub(super) struct Receipt {
     pub(super) complete: bool,
     pub(super) common: PathBuf,
     pub(super) common_identity: (u64, u64),
+    #[serde(default)]
+    pub(super) preparation: Option<String>,
+    #[serde(default)]
+    pub(super) worktree_config: bool,
     pub(super) destination: PathBuf,
     pub(super) parent_identity: (u64, u64),
     pub(super) destination_identity: (u64, u64),
@@ -95,10 +99,25 @@ impl Receipt {
     pub(super) fn record(
         plan: &Proposal,
         destination_identity: (u64, u64),
+        preparation: Option<String>,
     ) -> Result<(Self, Lease)> {
         let index = checkout::index_path(plan)?;
         let metadata = index.parent().unwrap().to_owned();
         let lease = Lease::acquire(metadata.join("fr-creation.lock"))?;
+        let receipt = Self::inspect(plan, destination_identity, preparation)?;
+        lease.check()?;
+        receipt.check()?;
+        receipt.save(true)?;
+        Ok((receipt, lease))
+    }
+
+    pub(super) fn inspect(
+        plan: &Proposal,
+        destination_identity: (u64, u64),
+        preparation: Option<String>,
+    ) -> Result<Self> {
+        let index = checkout::index_path(plan)?;
+        let metadata = index.parent().unwrap().to_owned();
         let gitfile = plan.destination.join(".git");
         let gitfile_bytes = bytes(&gitfile, 64 * 1024)?;
         let stat = fs::symlink_metadata(&gitfile)?;
@@ -107,6 +126,8 @@ impl Receipt {
             complete: false,
             common: plan.common.clone(),
             common_identity: plan.common_identity,
+            preparation,
+            worktree_config: plan.worktree_config,
             destination: plan.destination.clone(),
             parent_identity: plan.parent_identity,
             destination_identity,
@@ -119,10 +140,8 @@ impl Receipt {
             commit: plan.commit.clone(),
             tree: plan.tree.clone(),
         };
-        lease.check()?;
         receipt.check()?;
-        receipt.save(true)?;
-        Ok((receipt, lease))
+        Ok(receipt)
     }
 
     pub(super) fn path(&self) -> PathBuf {
@@ -193,6 +212,13 @@ impl Receipt {
         }
         File::open(&self.metadata)?.sync_all()?;
         Ok(())
+    }
+
+    pub(super) fn publish(&self, lease: &Lease) -> Result<Vec<u8>> {
+        lease.check()?;
+        self.check()?;
+        self.save(true)?;
+        bytes(&self.path(), 64 * 1024)
     }
 
     pub(super) fn finish(mut self, lease: &Lease, expected: &[u8]) -> Result<PathBuf> {

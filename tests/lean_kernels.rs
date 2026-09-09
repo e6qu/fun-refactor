@@ -635,7 +635,7 @@ fn a_self_imports_plan_reparses() {
 
 #[test]
 fn history_snapshot_checks_match_lean_for_existence_content_and_modes() {
-    use fun_refactor::history::{matches_snapshot, Snapshot};
+    use fun_refactor::history::{matches_snapshot, Snapshot, SnapshotKind};
     build_kernel();
     let output = Command::new("lake")
         .args(["exe", "fr-history-kernel"])
@@ -652,18 +652,27 @@ fn history_snapshot_checks_match_lean_for_existence_content_and_modes() {
         Some(Snapshot {
             content: String::new(),
             mode: 0o600,
+            kind: fun_refactor::history::SnapshotKind::Regular,
         }),
         Some(Snapshot {
             content: "λ\n".to_string(),
             mode: 0o600,
+            kind: fun_refactor::history::SnapshotKind::Regular,
         }),
         Some(Snapshot {
             content: "λ\n".to_string(),
             mode: 0o751,
+            kind: fun_refactor::history::SnapshotKind::Regular,
         }),
         Some(Snapshot {
             content: "名".to_string(),
             mode: 0o644,
+            kind: fun_refactor::history::SnapshotKind::Regular,
+        }),
+        Some(Snapshot {
+            content: "target".to_string(),
+            mode: 0,
+            kind: SnapshotKind::Symlink,
         }),
     ];
     let mut expected = Vec::new();
@@ -719,6 +728,38 @@ fn patch_modes_match_lean_across_permission_bits_and_u32_boundaries() {
 }
 
 #[test]
+fn snapshot_git_modes_match_lean_for_regular_files_and_symlinks() {
+    use fun_refactor::history::git_snapshot_mode;
+    build_kernel();
+    let output = Command::new("lake")
+        .args(["exe", "fr-history-kernel", "snapshot-modes"])
+        .current_dir(root().join("kernels"))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let mut expected = Vec::new();
+    for mode in (0..4096u32)
+        .chain((0..32).map(|bit| 1u32 << bit))
+        .chain([u32::MAX])
+    {
+        for symlink in [false, true] {
+            expected.push(git_snapshot_mode(symlink, mode).to_string());
+        }
+    }
+    assert_eq!(expected.len(), 8_258);
+    let observed = String::from_utf8(output.stdout).unwrap();
+    let observed = observed.lines().collect::<Vec<_>>();
+    assert_eq!(observed.len(), expected.len());
+    for (case, (observed, expected)) in observed.iter().zip(&expected).enumerate() {
+        assert_eq!(observed, expected, "snapshot mode case {case}");
+    }
+}
+
+#[test]
 fn owner_executable_settings_match_lean_across_permission_bits_and_u32_boundaries() {
     use fun_refactor::history::owner_executable_mode;
     build_kernel();
@@ -752,7 +793,7 @@ fn owner_executable_settings_match_lean_across_permission_bits_and_u32_boundarie
 
 #[test]
 fn patch_basis_matches_lean_for_existence_contents_and_projected_permissions() {
-    use fun_refactor::history::{matches_patch_basis, matches_snapshot, Snapshot};
+    use fun_refactor::history::{matches_patch_basis, matches_snapshot, Snapshot, SnapshotKind};
     build_kernel();
     let output = Command::new("lake")
         .args(["exe", "fr-history-kernel", "patch-basis"])
@@ -770,9 +811,20 @@ fn patch_basis_matches_lean_for_existence_contents_and_projected_permissions() {
             samples.push(Some(Snapshot {
                 content: content.into(),
                 mode,
+                kind: fun_refactor::history::SnapshotKind::Regular,
             }));
         }
     }
+    samples.push(Some(Snapshot {
+        content: "target".into(),
+        mode: 0,
+        kind: SnapshotKind::Symlink,
+    }));
+    samples.push(Some(Snapshot {
+        content: "other".into(),
+        mode: 0,
+        kind: SnapshotKind::Symlink,
+    }));
     let mut expected = Vec::new();
     let mut permissions_only = 0;
     for actual in &samples {
@@ -785,7 +837,7 @@ fn patch_basis_matches_lean_for_existence_contents_and_projected_permissions() {
         }
     }
     assert!(permissions_only > 0);
-    assert_eq!(expected.len(), 1_681);
+    assert_eq!(expected.len(), 1_849);
     let observed = String::from_utf8(output.stdout).unwrap();
     let observed = observed.lines().collect::<Vec<_>>();
     assert_eq!(observed.len(), expected.len());
@@ -1374,6 +1426,91 @@ fn staging_transition_matches_lean_for_every_boolean_input() {
 }
 
 #[test]
+fn staging_record_compaction_matches_lean_for_every_boolean_input() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("staging-record-compaction")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for detailed in [false, true] {
+        for pending in [false, true] {
+            for retained in [false, true] {
+                expected.push(fun_refactor::git::staging_record_compactable(
+                    detailed, pending, retained,
+                ));
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn staging_crash_state_matches_lean_for_every_boolean_input() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("staging-crash-state")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for pending in [false, true] {
+        for index_lock in [false, true] {
+            for preparation in [false, true] {
+                expected.push(fun_refactor::git::staging_crash_state_requires_review(
+                    pending,
+                    index_lock,
+                    preparation,
+                ));
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn staging_index_entry_policy_matches_lean_for_every_boolean_input() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("staging-index-entry")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for stage_zero in [false, true] {
+        for intent_to_add in [false, true] {
+            for assume_unchanged in [false, true] {
+                for skip_worktree in [false, true] {
+                    expected.push(fun_refactor::git::staging_index_entry_replayable(
+                        stage_zero,
+                        intent_to_add,
+                        assume_unchanged,
+                        skip_worktree,
+                    ));
+                }
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}
+
+#[test]
 fn commit_basis_matches_lean_for_branch_and_parent_changes() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
@@ -1452,6 +1589,96 @@ fn worktree_recovery_matches_lean_for_all_file_states() {
                     bytes_match,
                     mode_matches,
                 ));
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn worktree_configuration_matches_lean_for_every_boolean_input() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("worktree-configuration")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for reviewed_mode in [false, true] {
+        for observed_mode in [false, true] {
+            for config_present in [false, true] {
+                for config_regular in [false, true] {
+                    expected.push(fun_refactor::git::worktree_configuration_allowed(
+                        reviewed_mode,
+                        observed_mode,
+                        config_present,
+                        config_regular,
+                    ));
+                }
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn worktree_prepared_recovery_policy_matches_lean_for_every_input() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("worktree-prepared-recovery")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for receipt_present in [false, true] {
+        for preparation_matches in [false, true] {
+            for registration_matches in [false, true] {
+                expected.push(fun_refactor::git::worktree_prepared_recovery_allowed(
+                    receipt_present,
+                    preparation_matches,
+                    registration_matches,
+                ));
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn worktree_entry_mode_policy_matches_lean_for_every_input() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("worktree-entry-mode")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for regular in [false, true] {
+        for executable in [false, true] {
+            for symlink in [false, true] {
+                for object_is_blob in [false, true] {
+                    expected.push(fun_refactor::git::worktree_entry_mode_allowed(
+                        regular,
+                        executable,
+                        symlink,
+                        object_is_blob,
+                    ));
+                }
             }
         }
     }

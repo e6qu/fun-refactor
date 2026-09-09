@@ -73,7 +73,7 @@ fn saved_plan_exports_without_git_and_applies_without_disturbing_unrelated_chang
         serde_json::from_slice(&success(fr(root, &["--json", "history", "patch", "1"]))).unwrap();
     assert_eq!(report["patch"].as_str().unwrap().as_bytes(), patch);
     assert_eq!(report["format"], "git-text-diff");
-    assert_eq!(report["mode_scope"], "regular-or-executable");
+    assert_eq!(report["mode_scope"], "regular-executable-or-symlink");
     assert_eq!(report["status"], "planned");
     assert_eq!(report["reverse"], false);
     assert_eq!(report["files"], 1);
@@ -235,7 +235,7 @@ fn basis_check_reports_receiving_content_existence_and_permission_differences() 
 }
 
 #[test]
-fn basis_check_refuses_unsafe_or_unreadable_receiving_targets_without_partial_reports() {
+fn basis_check_reports_symlink_kind_mismatches_and_refuses_unsupported_targets() {
     let source = tempfile::tempdir().unwrap();
     let receiving = tempfile::tempdir().unwrap();
     fs::write(source.path().join("app.rs"), "fn helper() {}\n").unwrap();
@@ -253,10 +253,10 @@ fn basis_check_refuses_unsafe_or_unreadable_receiving_targets_without_partial_re
     ];
     let path = receiving.path().join("app.rs");
     symlink(source.path().join("app.rs"), &path).unwrap();
-    let linked = fr(source.path(), &args);
-    assert!(!linked.status.success());
-    assert!(linked.stdout.is_empty());
-    assert!(String::from_utf8_lossy(&linked.stderr).contains("symlink"));
+    let linked = checked(source.path(), &args, false);
+    assert_eq!(linked["files"][0]["actual_kind"], "symlink");
+    assert_eq!(linked["files"][0]["expected_kind"], "regular");
+    assert_eq!(linked["files"][0]["git_mode_matches"], false);
     fs::remove_file(&path).unwrap();
     fs::create_dir(&path).unwrap();
     let directory = fr(source.path(), &args);

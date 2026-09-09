@@ -99,7 +99,8 @@ fn apply(root: &Path, path: &str, branch: &str) -> Value {
 
 #[test]
 fn previews_without_mutation_and_creates_raw_isolated_checkout() {
-    use std::os::unix::fs::PermissionsExt;
+    use std::os::unix::ffi::OsStrExt;
+    use std::os::unix::fs::{symlink, PermissionsExt};
     let temp = fixture();
     let root = temp.path().join("main");
     fs::create_dir(root.join("src")).unwrap();
@@ -110,6 +111,12 @@ fn previews_without_mutation_and_creates_raw_isolated_checkout() {
     )
     .unwrap();
     fs::write(root.join("binary"), [0, 255, 1, 0]).unwrap();
+    symlink("file.txt", root.join("current")).unwrap();
+    symlink(
+        std::ffi::OsStr::from_bytes(b"missing-\xff"),
+        root.join("raw-link"),
+    )
+    .unwrap();
     commit(&root);
     let committed_index = git(&root, &["ls-files", "--stage", "-z"]);
     fs::write(root.join("file.txt"), "staged\n").unwrap();
@@ -125,7 +132,7 @@ fn previews_without_mutation_and_creates_raw_isolated_checkout() {
         &["../task", "--branch", "agent/task", "--limit", "1"],
     );
     assert_eq!(preview["applied"], false);
-    assert_eq!(preview["page"]["total"], 3);
+    assert_eq!(preview["page"]["total"], 5);
     assert_eq!(preview["files"].as_array().unwrap().len(), 1);
     assert!(!temp.path().join("task").exists());
     assert_eq!(git(&root, &["show-ref"]), refs);
@@ -147,9 +154,27 @@ fn previews_without_mutation_and_creates_raw_isolated_checkout() {
         ],
     );
     assert_eq!(value["applied"], true, "{value}");
+    assert!(fs::read_dir(root.join(".git"))
+        .unwrap()
+        .filter_map(Result::ok)
+        .all(|entry| !entry
+            .file_name()
+            .to_string_lossy()
+            .starts_with("fr-worktree-creation-")));
     let task = temp.path().join("task");
     assert_eq!(fs::read(task.join("file.txt")).unwrap(), b"base\n");
     assert_eq!(fs::read(task.join("binary")).unwrap(), [0, 255, 1, 0]);
+    assert_eq!(
+        fs::read_link(task.join("current")).unwrap(),
+        Path::new("file.txt")
+    );
+    assert_eq!(
+        fs::read_link(task.join("raw-link"))
+            .unwrap()
+            .as_os_str()
+            .as_bytes(),
+        b"missing-\xff"
+    );
     assert_eq!(
         fs::read(task.join("src/run\nscript")).unwrap(),
         b"#!/bin/sh\r\nexit 0\r\n"
@@ -305,13 +330,36 @@ fn refuses_occupied_paths_branches_nested_destinations_and_unsupported_states() 
         &["symbolic-ref", "refs/heads/alias", "refs/heads/main"],
     );
     error(&root, &["../task", "--branch", "alias"], "already symbolic");
-    git(&root, &["config", "extensions.worktreeConfig", "true"]);
-    error(
-        &root,
-        &["../task", "--branch", "topic"],
-        "worktree-specific configuration",
-    );
     assert_eq!(fs::read(temp.path().join("file")).unwrap(), b"keep");
+}
+
+#[test]
+fn supports_repository_worktree_configuration() {
+    let temp = fixture();
+    let root = temp.path().join("main");
+    git(&root, &["config", "extensions.worktreeConfig", "true"]);
+    let preview = report(&root, &["../task", "--branch", "topic"]);
+    assert_eq!(preview["worktree_config"], true, "{preview}");
+    let created = report(
+        &root,
+        &[
+            "../task",
+            "--branch",
+            "topic",
+            "--basis",
+            preview["basis"].as_str().unwrap(),
+            "--write",
+        ],
+    );
+    assert_eq!(created["applied"], true, "{created}");
+    assert_eq!(created["worktree_config"], true, "{created}");
+    assert_eq!(
+        serde_json::from_slice::<Value>(
+            &fs::read(created["ownership_record"].as_str().unwrap()).unwrap()
+        )
+        .unwrap()["worktree_config"],
+        true
+    );
 }
 
 #[test]
@@ -401,18 +449,9 @@ fn supports_linked_invocation_sha256_and_empty_committed_tree() {
 }
 
 #[test]
-fn refuses_symlink_submodule_missing_blob_and_registered_destination() {
-    use std::os::unix::fs::symlink;
+fn refuses_submodule_invalid_symlink_missing_blob_and_registered_destination() {
     let temp = fixture();
     let root = temp.path().join("main");
-    symlink("file.txt", root.join("link")).unwrap();
-    commit(&root);
-    error(
-        &root,
-        &["../task", "--branch", "topic"],
-        "regular blobs only",
-    );
-    git(&root, &["rm", "-q", "link"]);
     let head = String::from_utf8(git(&root, &["rev-parse", "HEAD"])).unwrap();
     git(
         &root,
@@ -427,10 +466,62 @@ fn refuses_symlink_submodule_missing_blob_and_registered_destination() {
     error(
         &root,
         &["../task", "--branch", "topic"],
-        "regular blobs only",
+        "regular and symlink blobs only",
     );
     git(&root, &["update-index", "--force-remove", "module"]);
     git(&root, &["commit", "-qm", "remove module"]);
+
+    fs::write(root.join("target-bytes"), vec![b'x'; 1024]).unwrap();
+    let long = String::from_utf8(git(&root, &["hash-object", "-w", "target-bytes"])).unwrap();
+    fs::remove_file(root.join("target-bytes")).unwrap();
+    git(
+        &root,
+        &[
+            "update-index",
+            "--add",
+            "--cacheinfo",
+            &format!("120000,{},long-link", long.trim()),
+        ],
+    );
+    git(&root, &["commit", "-qm", "long symlink"]);
+    error(
+        &root,
+        &["../task", "--branch", "topic"],
+        "1 through 1023 bytes",
+    );
+    git(&root, &["update-index", "--force-remove", "long-link"]);
+    git(&root, &["commit", "-qm", "remove long symlink"]);
+
+    fs::write(root.join("target-bytes"), [b'a', 0, b'b']).unwrap();
+    let nul = String::from_utf8(git(&root, &["hash-object", "-w", "target-bytes"])).unwrap();
+    fs::remove_file(root.join("target-bytes")).unwrap();
+    git(
+        &root,
+        &[
+            "update-index",
+            "--add",
+            "--cacheinfo",
+            &format!("120000,{},nul-link", nul.trim()),
+        ],
+    );
+    git(&root, &["commit", "-qm", "nul symlink"]);
+    let preview = report(&root, &["../task", "--branch", "topic"]);
+    error(
+        &root,
+        &[
+            "../task",
+            "--branch",
+            "topic",
+            "--basis",
+            preview["basis"].as_str().unwrap(),
+            "--write",
+        ],
+        "cannot contain NUL",
+    );
+    assert!(!temp.path().join("task").exists());
+    git(&root, &["update-index", "--force-remove", "nul-link"]);
+    git(&root, &["commit", "-qm", "remove nul symlink"]);
+
     git(&root, &["worktree", "add", "--detach", "-q", "../missing"]);
     fs::remove_dir_all(temp.path().join("missing")).unwrap();
     error(

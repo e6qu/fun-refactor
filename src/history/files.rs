@@ -1,5 +1,6 @@
 use super::{
     check, lock, snapshot, store_record, sync_ancestors, target, workspace, Change, History,
+    Snapshot, SnapshotKind,
 };
 use crate::edit::{CommitLocks, FileChange};
 use anyhow::{bail, Context, Result};
@@ -27,6 +28,19 @@ pub enum Command {
         #[arg(long, help = "Apply the transaction after checking its snapshots.")]
         write: bool,
     },
+    #[command(about = "Record creation or replacement of one UTF-8 symlink.")]
+    Symlink {
+        #[arg(help = "Workspace-relative path to create or replace.")]
+        path: PathBuf,
+        #[arg(
+            long,
+            allow_hyphen_values = true,
+            help = "Literal symlink target, which may be dangling or absolute."
+        )]
+        target: String,
+        #[arg(long, help = "Apply the transaction after checking its snapshot.")]
+        write: bool,
+    },
 }
 
 #[derive(Clone, Copy, Debug, Serialize, ValueEnum)]
@@ -36,7 +50,14 @@ pub enum Executable {
     Off,
 }
 
-fn plan(root: &Path, paths: &[PathBuf], executable: Option<Executable>) -> Result<Vec<Change>> {
+#[derive(Clone, Copy)]
+enum Operation<'a> {
+    Delete,
+    Executable(Executable),
+    Symlink(&'a str),
+}
+
+fn plan(root: &Path, paths: &[PathBuf], operation: Operation<'_>) -> Result<Vec<Change>> {
     if paths.is_empty() || paths.len() > 500 {
         bail!("file operations require between 1 and 500 explicit paths");
     }
@@ -48,23 +69,49 @@ fn plan(root: &Path, paths: &[PathBuf], executable: Option<Executable>) -> Resul
         if !seen.insert(absolute.clone()) {
             bail!("duplicate file target {}", path.display());
         }
-        let before = snapshot(&absolute)?
-            .with_context(|| format!("file does not exist: {}", path.display()))?;
-        if before.content.contains('\0') {
+        let before = snapshot(&absolute)?;
+        if before
+            .as_ref()
+            .is_some_and(|snapshot| snapshot.content.contains('\0'))
+        {
             bail!(
                 "file operations require text without NUL bytes: {}",
                 path.display()
             );
         }
-        let after = executable.map(|executable| {
-            let mut after = before.clone();
-            after.mode =
-                super::owner_executable_mode(after.mode, matches!(executable, Executable::On));
-            after
-        });
+        let after = match operation {
+            Operation::Delete => {
+                before
+                    .as_ref()
+                    .with_context(|| format!("file does not exist: {}", path.display()))?;
+                None
+            }
+            Operation::Executable(executable) => {
+                let mut after = before
+                    .clone()
+                    .with_context(|| format!("file does not exist: {}", path.display()))?;
+                if after.kind != SnapshotKind::Regular {
+                    bail!(
+                        "executable mode requires a regular file: {}",
+                        path.display()
+                    );
+                }
+                after.mode =
+                    super::owner_executable_mode(after.mode, matches!(executable, Executable::On));
+                Some(after)
+            }
+            Operation::Symlink(link_target) => {
+                super::validate_symlink_target(link_target)?;
+                Some(Snapshot {
+                    content: link_target.to_owned(),
+                    mode: 0,
+                    kind: SnapshotKind::Symlink,
+                })
+            }
+        };
         changes.push(Change {
             path: absolute.strip_prefix(root)?.to_path_buf(),
-            before: Some(before),
+            before,
             after,
         });
     }
@@ -97,9 +144,34 @@ fn persist(root: &Path, changes: Vec<Change>, apply: bool) -> Result<u64> {
 }
 
 pub fn execute(root: &Path, command: &Command, save_plan: bool) -> Result<Value> {
-    let (paths, executable, write) = match command {
-        Command::Delete { paths, write } => (paths, None, *write),
-        Command::Executable { paths, set, write } => (paths, Some(*set), *write),
+    let one_path;
+    let (paths, operation, write, name, set, link_target) = match command {
+        Command::Delete { paths, write } => {
+            (paths, Operation::Delete, *write, "delete", None, None)
+        }
+        Command::Executable { paths, set, write } => (
+            paths,
+            Operation::Executable(*set),
+            *write,
+            "executable",
+            Some(*set),
+            None,
+        ),
+        Command::Symlink {
+            path,
+            target,
+            write,
+        } => {
+            one_path = vec![path.clone()];
+            (
+                &one_path,
+                Operation::Symlink(target),
+                *write,
+                "symlink",
+                None,
+                Some(target),
+            )
+        }
     };
     if write && save_plan {
         bail!("choose --save-plan or --write, not both");
@@ -107,11 +179,12 @@ pub fn execute(root: &Path, command: &Command, save_plan: bool) -> Result<Value>
     let root = workspace(root)?;
     root.to_str().context("workspace root must use UTF-8")?;
     History::read(&root)?.ensure_ready()?;
-    let planned = plan(&root, paths, executable)?;
+    let planned = plan(&root, paths, operation)?;
     let entries = planned.iter().map(|change| json!({
         "path": change.path, "changed": change.before != change.after,
         "before_exists": change.before.is_some(), "after_exists": change.after.is_some(),
-        "before_mode": change.before.as_ref().map(|s| s.mode), "after_mode": change.after.as_ref().map(|s| s.mode),
+        "before_mode": change.before.as_ref().and_then(Snapshot::reported_mode), "after_mode": change.after.as_ref().and_then(Snapshot::reported_mode),
+        "before_kind": change.before.as_ref().map(|s| s.kind), "after_kind": change.after.as_ref().map(|s| s.kind),
         "bytes": change.before.as_ref().map_or(0, |s| s.content.len())
     })).collect::<Vec<_>>();
     let changes = planned
@@ -126,8 +199,8 @@ pub fn execute(root: &Path, command: &Command, save_plan: bool) -> Result<Value>
         None
     };
     Ok(json!({
-        "schema": 1, "workspace_root": root, "operation": if executable.is_some() {"executable"} else {"delete"},
-        "set": executable, "mode_scope": executable.map(|_| "owner-execute"), "validation": "file-snapshots",
+        "schema": 1, "workspace_root": root, "operation": name,
+        "set": set, "target": link_target, "mode_scope": set.map(|_| "owner-execute"), "validation": "file-snapshots",
         "basis": basis, "transaction": transaction, "applied": write && transaction.is_some(),
         "saved": save_plan && transaction.is_some(), "requested": paths.len(), "changed": changed, "entries": entries
     }))
@@ -241,7 +314,7 @@ mod tests {
             let root = dir.path().canonicalize().unwrap();
             fs::write(root.join("file.txt"), "before\n").unwrap();
             fs::set_permissions(root.join("file.txt"), fs::Permissions::from_mode(0o640)).unwrap();
-            let changes = plan(&root, &["file.txt".into()], None).unwrap();
+            let changes = plan(&root, &["file.txt".into()], Operation::Delete).unwrap();
             match drift {
                 0 => fs::write(root.join("file.txt"), "after\n").unwrap(),
                 1 => fs::set_permissions(root.join("file.txt"), fs::Permissions::from_mode(0o600))
@@ -252,6 +325,79 @@ mod tests {
             assert!(persist(&root, changes, true).is_err());
             assert_eq!(snapshot(&root.join("file.txt")).unwrap(), before);
             assert!(History::read(&root).unwrap().records.is_empty());
+        }
+    }
+
+    fn setup_symlink(root: &Path, action: Action) {
+        fs::write(root.join("entry"), "regular\n").unwrap();
+        fs::set_permissions(root.join("entry"), fs::Permissions::from_mode(0o640)).unwrap();
+        let command = Command::Symlink {
+            path: "entry".into(),
+            target: "missing-target".into(),
+            write: false,
+        };
+        assert_eq!(execute(root, &command, true).unwrap()["transaction"], 1);
+        if action != Action::Apply {
+            act(root, Action::Apply, 1, true).unwrap();
+        }
+        if action == Action::Redo {
+            act(root, Action::Undo, 1, true).unwrap();
+        }
+    }
+
+    #[test]
+    fn handled_symlink_failures_restore_each_transition() {
+        for action in [Action::Apply, Action::Undo, Action::Redo] {
+            let dir = tempfile::tempdir().unwrap();
+            setup_symlink(dir.path(), action);
+            let before = snapshot(&dir.path().join("entry")).unwrap();
+            FAULT.with(|fault| fault.set(Some((0, false))));
+            assert!(act(dir.path(), action, 1, true).is_err());
+            assert_eq!(snapshot(&dir.path().join("entry")).unwrap(), before);
+            assert!(History::read(dir.path()).unwrap().pending.is_none());
+        }
+    }
+
+    #[test]
+    fn interrupted_symlink_transitions_recover() {
+        if let Ok(root) = std::env::var("FR_SYMLINK_CRASH_ROOT") {
+            let action = match std::env::var("FR_SYMLINK_CRASH_ACTION").unwrap().as_str() {
+                "undo" => Action::Undo,
+                "redo" => Action::Redo,
+                _ => Action::Apply,
+            };
+            FAULT.with(|fault| fault.set(Some((0, true))));
+            act(Path::new(&root), action, 1, true).unwrap();
+            panic!("crash point did not run");
+        }
+        for action in [Action::Apply, Action::Undo, Action::Redo] {
+            let dir = tempfile::tempdir().unwrap();
+            setup_symlink(dir.path(), action);
+            let before = snapshot(&dir.path().join("entry")).unwrap();
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "history::files::tests::interrupted_symlink_transitions_recover",
+                    "--nocapture",
+                ])
+                .env("FR_SYMLINK_CRASH_ROOT", dir.path())
+                .env(
+                    "FR_SYMLINK_CRASH_ACTION",
+                    format!("{action:?}").to_lowercase(),
+                )
+                .output()
+                .unwrap();
+            assert_eq!(
+                output.status.code(),
+                Some(77),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            assert!(History::read(dir.path()).unwrap().pending.is_some());
+            act(dir.path(), Action::Recover, 1, false).unwrap();
+            act(dir.path(), Action::Recover, 1, true).unwrap();
+            assert_eq!(snapshot(&dir.path().join("entry")).unwrap(), before);
+            assert!(History::read(dir.path()).unwrap().pending.is_none());
         }
     }
 }

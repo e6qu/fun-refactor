@@ -214,18 +214,20 @@ Measured outcome:
 
 ### PR 3. Durable Git Workspace Lifecycle
 
+Status: ready for review on `durable_git_workspace_lifecycle`. Ten checkpoint commits complete the deliverables below; [continuity](docs/continuity.md) retains their detailed evidence.
+
 Goal: finish the repository workflow needed for long-running agent changes and recovery.
 
 Deliverables:
 
-- Extend raw checkout and patch behavior to the required file modes and per-worktree configuration.
-- Improve recovery for failures before ownership-receipt publication.
-- Expose stale-lock and uncertain crash states with actionable inspection evidence.
-- Add staging-journal retention and checked compaction.
-- Add bulk retention for completed worktree-removal archives.
-- Extend selected index-flag replay where Git can preserve it safely.
-- Undo an `fr` source transaction without disturbing unrelated working-tree or index changes.
-- Keep Git optional for ordinary analysis and source history.
+- Extend transaction patches to the required regular, executable and symlink modes; complete.
+- Improve recovery for registration failures that Git does not retain; exact registered pre-receipt recovery is complete.
+- Expose stale-lock and uncertain crash states with actionable inspection evidence; complete.
+- Add staging-journal retention and checked compaction; complete.
+- Add bulk retention for completed worktree-removal archives; complete.
+- Extend selected index-flag replay where Git can preserve it safely; complete.
+- Undo an `fr` source transaction without disturbing unrelated working-tree or index changes; complete.
+- Keep Git optional for ordinary analysis and source history; complete.
 
 Verification and acceptance:
 
@@ -233,6 +235,16 @@ Verification and acceptance:
 - Prove abstract retention, compaction, transition and unselected-state preservation laws.
 - Compare the guarded Rust predicates with Lean across complete bounded state domains.
 - Keep filesystem durability, Git locking and implementation correspondence explicit where proofs do not cover them.
+
+Measured outcome:
+
+- Staging history has explicit retention, checked compaction, crash inspection and replay of supported index flags.
+- Owned worktrees preserve repository-local configuration and raw symlink entries through creation, recovery, removal and archive resumption.
+- A durable preparation recovers exact post-registration crashes before ownership-receipt publication, including after object pruning.
+- Source transactions and Git patches preserve regular, executable and symlink kinds across apply, undo, redo and recovery.
+- Source-history reversal leaves affected staging and unrelated Git state intact, while ordinary source workflows remain usable without Git.
+- Thirty-five new Lean theorems cover selection, compaction, crash classification, entry policies, recovery evidence, snapshot modes and namespace preservation.
+- Host tests cover linked and SHA-256 repositories, dirty and untracked files, staged entries, injected failures and byte-identical index preservation.
 
 ### PR 4. Lean Adoption Kit
 

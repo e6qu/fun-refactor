@@ -1,4 +1,4 @@
-use super::{apply::IndexLock, inventory, process, status, Blob, Entry};
+use super::{apply::IndexLock, index_flags, inventory, process, Blob, Entry, IndexFlags};
 use crate::history::{Action, Status};
 use anyhow::{ensure, Context, Result};
 use clap::{Args, Subcommand};
@@ -21,6 +21,8 @@ pub enum Command {
     Undo(Replay),
     Redo(Replay),
     Recover(Recovery),
+    Compact(Compaction),
+    Inspect(Inspection),
 }
 
 #[derive(Args)]
@@ -38,11 +40,43 @@ pub struct Recovery {
     write: bool,
 }
 
+#[derive(Args)]
+pub struct Compaction {
+    #[arg(
+        long,
+        default_value_t = 100,
+        help = "Replayable records retained on each stack."
+    )]
+    keep: usize,
+    #[arg(long)]
+    basis: Option<String>,
+    #[arg(long, requires = "basis")]
+    write: bool,
+}
+
+#[derive(Args)]
+pub struct Inspection {
+    #[arg(
+        long,
+        default_value_t = 3600,
+        help = "Age in seconds used only to label stale candidates."
+    )]
+    stale_after: u64,
+    #[arg(
+        long,
+        default_value_t = 20,
+        help = "Maximum preparation rows, from 1 to 100."
+    )]
+    limit: usize,
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Stored {
     blob: Blob,
     content: Vec<u8>,
+    #[serde(default, skip_serializing_if = "IndexFlags::is_default")]
+    flags: IndexFlags,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -53,23 +87,27 @@ struct Change {
     after: Option<Stored>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Record {
     id: u64,
     status: Status,
     digest: String,
     changes: Vec<Change>,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    compacted_paths: usize,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    compaction_digest: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Pending {
     id: u64,
     action: Action,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct State {
     schema: u32,
@@ -79,6 +117,10 @@ struct State {
     applied: Vec<u64>,
     redo: Vec<u64>,
     pending: Option<Pending>,
+}
+
+fn is_zero(value: &usize) -> bool {
+    *value == 0
 }
 
 pub(in crate::git) struct Journal {
@@ -157,14 +199,33 @@ impl Journal {
     fn validate(&self) -> Result<()> {
         let state = &self.state;
         for (offset, record) in state.records.iter().enumerate() {
+            let detailed = !record.changes.is_empty();
             ensure!(
                 record.id == offset as u64 + 1
-                    && record.digest == digest(&(record.id, &record.changes))?,
+                    && record.digest.len() == 64
+                    && record.digest.bytes().all(|byte| byte.is_ascii_hexdigit())
+                    && (!detailed || record.digest == digest(&(record.id, &record.changes))?),
                 "invalid staging record identity or digest."
             );
             ensure!(
-                !record.changes.is_empty() && record.changes.len() <= 32,
-                "invalid staging record size."
+                (detailed
+                    && record.compacted_paths == 0
+                    && record.compaction_digest.is_none()
+                    && record.changes.len() <= 32)
+                    || (!detailed
+                        && (1..=32).contains(&record.compacted_paths)
+                        && record.compaction_digest.as_deref()
+                            == Some(
+                                digest(&(
+                                    record.id,
+                                    record.status,
+                                    &record.digest,
+                                    record.compacted_paths,
+                                ))?
+                                .as_str(),
+                            )
+                        && record.status != Status::Planned),
+                "invalid staging record payload or compaction summary."
             );
             let mut previous: Option<&str> = None;
             for change in &record.changes {
@@ -201,14 +262,17 @@ impl Journal {
         ] {
             for id in stack {
                 ensure!(
-                    active.insert(*id) && self.record(*id)?.status == status,
+                    active.insert(*id)
+                        && self.record(*id)?.status == status
+                        && !self.record(*id)?.changes.is_empty(),
                     "invalid staging history stacks."
                 );
             }
         }
         for record in &state.records {
             ensure!(
-                !matches!(record.status, Status::Applied | Status::Undone)
+                record.changes.is_empty()
+                    || !matches!(record.status, Status::Applied | Status::Undone)
                     || active.contains(&record.id),
                 "staging record missing from stack."
             );
@@ -290,7 +354,7 @@ impl Journal {
             .filter(|entry| entry.action != "unchanged")
             .map(|entry| entry.path.clone())
             .collect();
-        require_plain_entries(root, &paths)?;
+        require_no_intent_to_add(root, &paths)?;
         let mut changes = Vec::new();
         for entry in entries.iter().filter(|entry| entry.action != "unchanged") {
             let before = entry
@@ -318,6 +382,7 @@ impl Journal {
                     Ok(Stored {
                         blob: blob.clone(),
                         content,
+                        flags: entry.before_flags.context("missing prior index flags")?,
                     })
                 })
                 .transpose()?;
@@ -328,6 +393,7 @@ impl Journal {
                     Ok(Stored {
                         blob: blob.clone(),
                         content: entry.source.clone().context("missing staging source")?,
+                        flags: entry.after_flags.context("missing target index flags")?,
                     })
                 })
                 .transpose()?;
@@ -345,6 +411,8 @@ impl Journal {
             status: Status::Planned,
             digest: digest(&(id, &changes))?,
             changes,
+            compacted_paths: 0,
+            compaction_digest: None,
         });
         Ok(id)
     }
@@ -434,34 +502,245 @@ impl Journal {
     }
 
     fn summary(&self, record: &Record, detail: bool) -> Value {
-        let mut value = json!({"id":record.id,"status":record.status,"paths":record.changes.len(),"digest":record.digest});
-        if detail {
+        let compacted = record.changes.is_empty();
+        let paths = if compacted {
+            record.compacted_paths
+        } else {
+            record.changes.len()
+        };
+        let mut value = json!({"id":record.id,"status":record.status,"paths":paths,"digest":record.digest,"compacted":compacted});
+        if detail && !compacted {
             value["entries"] = json!(record.changes.iter().map(|change| json!({"path":change.path,
-                "before":change.before.as_ref().map(|s| &s.blob),"after":change.after.as_ref().map(|s| &s.blob)})).collect::<Vec<_>>());
+                "before":change.before.as_ref().map(|s| &s.blob),"after":change.after.as_ref().map(|s| &s.blob),
+                "before_flags":change.before.as_ref().map(|s| s.flags),"after_flags":change.after.as_ref().map(|s| s.flags)})).collect::<Vec<_>>());
         }
         value
     }
 }
 
-pub(in crate::git) fn require_plain_entries(root: &Path, paths: &BTreeSet<String>) -> Result<()> {
+fn retained(stack: &[u64], keep: usize) -> BTreeSet<u64> {
+    stack.iter().rev().take(keep).copied().collect()
+}
+
+fn compaction_candidates(state: &State, keep: usize) -> BTreeSet<u64> {
+    let retained = retained(&state.applied, keep)
+        .into_iter()
+        .chain(retained(&state.redo, keep))
+        .collect::<BTreeSet<_>>();
+    state
+        .records
+        .iter()
+        .filter(|record| {
+            crate::git::staging_record_compactable(
+                !record.changes.is_empty(),
+                state
+                    .pending
+                    .as_ref()
+                    .is_some_and(|pending| pending.id == record.id),
+                retained.contains(&record.id),
+            )
+        })
+        .map(|record| record.id)
+        .collect()
+}
+
+fn compact_state(state: &mut State, candidates: &BTreeSet<u64>) -> Result<()> {
+    state.applied.retain(|id| !candidates.contains(id));
+    state.redo.retain(|id| !candidates.contains(id));
+    for record in &mut state.records {
+        if candidates.contains(&record.id) {
+            record.compacted_paths = record.changes.len();
+            record.changes.clear();
+            record.compaction_digest = Some(digest(&(
+                record.id,
+                record.status,
+                &record.digest,
+                record.compacted_paths,
+            ))?);
+        }
+    }
+    Ok(())
+}
+
+fn compact(root: &Path, options: &Compaction) -> Result<Value> {
+    ensure!(
+        options.keep <= 10_000,
+        "staging history keep count must be 0 through 10000."
+    );
+    let root = process::repository_root(&root.canonicalize()?)?;
+    let _lock = options
+        .write
+        .then(|| IndexLock::acquire(&root))
+        .transpose()?;
+    let index = super::apply::index_path(&root)?;
+    let mut journal = Journal::read(&root, &index)?;
+    journal.ready()?;
+    let candidates = compaction_candidates(&journal.state, options.keep);
+    let paths = candidates
+        .iter()
+        .map(|id| journal.record(*id).map(|record| record.changes.len()))
+        .collect::<Result<Vec<_>>>()?
+        .into_iter()
+        .sum::<usize>();
+    let before_bytes = journal.original.as_ref().map_or(0, Vec::len);
+    let mut compacted = journal.state.clone();
+    compact_state(&mut compacted, &candidates)?;
+    let after_bytes = serde_json::to_vec(&compacted)?.len();
+    let basis = format!(
+        "frstagecompact1:{}",
+        digest(&(&journal.state, options.keep, &candidates))?
+    );
+    if let Some(expected) = &options.basis {
+        ensure!(
+            *expected == basis,
+            "stale staging compaction basis; request a new preview."
+        );
+    }
+    journal.check()?;
+    let mut result = json!({"schema":1,"repository_root":root,
+        "operation":if options.write{"stage-history-compact"}else{"stage-history-compact-preview"},
+        "basis":basis,"basis_verified":options.basis.is_some(),"applied":false,
+        "keep_per_stack":options.keep,"records_compacted":candidates.len(),"paths_compacted":paths,
+        "journal_bytes_before":before_bytes,"journal_bytes_after":after_bytes,
+        "can_compact":!candidates.is_empty(),"undo_after":compacted.applied.last(),
+        "redo_after":compacted.redo.last(),"source_bodies":"omitted"});
+    if !options.write {
+        return Ok(result);
+    }
+    ensure!(
+        !candidates.is_empty(),
+        "staging journal has no replay payloads eligible for compaction."
+    );
+    journal.state = compacted;
+    match journal.save() {
+        Ok(()) => result["applied"] = json!(true),
+        Err(error) => {
+            result["applied"] = Value::Null;
+            result["can_compact"] = Value::Null;
+            result["warning"] = json!("Staging compaction is incomplete or unconfirmed. Inspect staging history before retrying.");
+            let message = format!("{error:#}");
+            result["diagnostic"] = json!(crate::git::process::diagnostic(message.as_bytes()));
+            result["diagnostic_truncated"] = json!(message.len() > 16 * 1024);
+        }
+    }
+    Ok(result)
+}
+
+fn age(metadata: &fs::Metadata) -> (Option<u64>, Option<u64>) {
+    let modified = metadata
+        .modified()
+        .ok()
+        .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|duration| duration.as_secs());
+    let age = metadata
+        .modified()
+        .ok()
+        .and_then(|time| std::time::SystemTime::now().duration_since(time).ok())
+        .map(|duration| duration.as_secs());
+    (modified, age)
+}
+
+fn evidence(path: &Path, stale_after: u64) -> Result<Value> {
+    let metadata = fs::symlink_metadata(path)?;
+    let kind = if metadata.file_type().is_file() {
+        "regular"
+    } else if metadata.file_type().is_dir() {
+        "directory"
+    } else if metadata.file_type().is_symlink() {
+        "symlink"
+    } else {
+        "other"
+    };
+    let (modified_unix_seconds, age_seconds) = age(&metadata);
+    let stale_candidate = matches!(kind, "regular" | "directory")
+        && age_seconds.is_some_and(|age| age >= stale_after);
+    let mut value = json!({"path":path,"present":true,"kind":kind,"bytes":metadata.len(),
+        "modified_unix_seconds":modified_unix_seconds,"age_seconds":age_seconds,
+        "stale_after_seconds":stale_after,"stale_candidate":stale_candidate,
+        "safe_to_remove":false});
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        value["identity"] = json!([metadata.dev(), metadata.ino()]);
+        value["mode"] = json!(metadata.mode());
+    }
+    Ok(value)
+}
+
+fn inspect(root: &Path, options: &Inspection) -> Result<Value> {
+    ensure!(
+        options.stale_after <= 31_536_000,
+        "stale candidate age must be at most 31536000 seconds."
+    );
+    ensure!(
+        (1..=100).contains(&options.limit),
+        "staging inspection limit must be 1 through 100."
+    );
+    let root = process::repository_root(&root.canonicalize()?)?;
+    let index = super::apply::index_path(&root)?;
+    let journal = Journal::read(&root, &index)?;
+    let lock_path = index.with_extension("lock");
+    let index_lock = match fs::symlink_metadata(&lock_path) {
+        Ok(_) => evidence(&lock_path, options.stale_after)?,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            json!({"path":lock_path,"present":false,"safe_to_remove":false})
+        }
+        Err(error) => return Err(error.into()),
+    };
+    let parent = index.parent().context("missing Git index directory")?;
+    let mut preparations = Vec::new();
+    for entry in fs::read_dir(parent)? {
+        let entry = entry?;
+        if entry
+            .file_name()
+            .to_str()
+            .is_some_and(|name| name.starts_with("fr-stage-"))
+        {
+            preparations.push(evidence(&entry.path(), options.stale_after)?);
+        }
+    }
+    preparations.sort_by(|left, right| left["path"].as_str().cmp(&right["path"].as_str()));
+    let preparation_count = preparations.len();
+    preparations.truncate(options.limit);
+    let lock_present = index_lock["present"] == true;
+    let pending = journal.state.pending.is_some();
+    let review = crate::git::staging_crash_state_requires_review(
+        pending,
+        lock_present,
+        preparation_count > 0,
+    );
+    let state = if pending {
+        "recovery-required"
+    } else if review {
+        "manual-review"
+    } else {
+        "clean"
+    };
+    let advice = if pending {
+        "Confirm the writer has exited, preserve any lock evidence, then preview `fr git stage-history recover`."
+    } else if review {
+        "Confirm no Git or fr writer is active before manually handling stale candidates. Age alone never proves a lock is abandoned."
+    } else {
+        "No pending staging operation, index lock or preparation directory was observed."
+    };
+    journal.check()?;
+    Ok(
+        json!({"schema":1,"repository_root":root,"operation":"stage-history-inspect",
+        "state":state,"requires_review":review,"pending":journal.state.pending,
+        "index":index,"index_lock":index_lock,"preparations":preparations,
+        "preparation_count":preparation_count,"preparations_omitted":preparation_count.saturating_sub(options.limit),
+        "stale_after_seconds":options.stale_after,"advice":advice,"source_bodies":"omitted",
+        "content_inspected":false,"writes":false}),
+    )
+}
+
+pub(in crate::git) fn require_no_intent_to_add(
+    root: &Path,
+    paths: &BTreeSet<String>,
+) -> Result<()> {
     if paths.is_empty() {
         return Ok(());
     }
-    let mut args = vec![
-        "--literal-pathspecs".into(),
-        "ls-files".into(),
-        "-v".into(),
-        "-z".into(),
-        "--".into(),
-    ];
-    args.extend(paths.iter().map(Into::into));
-    let rows = process::checked(root, &args)?;
-    ensure!(
-        status::records(&rows)?
-            .iter()
-            .all(|row| row.starts_with(b"H ")),
-        "selected staging history entries must not use assume-unchanged or skip-worktree flags."
-    );
     let diff = |visibility: &str| -> Result<Vec<u8>> {
         let mut args = vec![
             "--literal-pathspecs".into(),
@@ -478,14 +757,33 @@ pub(in crate::git) fn require_plain_entries(root: &Path, paths: &BTreeSet<String
         args.extend(paths.iter().map(Into::into));
         process::checked(root, &args)
     };
+    let intent_to_add = diff("--ita-visible-in-index")? != diff("--ita-invisible-in-index")?;
     ensure!(
-        diff("--ita-visible-in-index")? == diff("--ita-invisible-in-index")?,
+        crate::git::staging_index_entry_replayable(true, intent_to_add, false, false),
         "selected intent-to-add entries are unsupported for staging history."
     );
     Ok(())
 }
 
+pub(in crate::git) fn require_plain_entries(root: &Path, paths: &BTreeSet<String>) -> Result<()> {
+    require_no_intent_to_add(root, paths)?;
+    let flags = index_flags(root, paths)?;
+    ensure!(
+        flags
+            .values()
+            .all(|flags| !flags.assume_unchanged && !flags.skip_worktree),
+        "selected entries must not use assume-unchanged or skip-worktree flags."
+    );
+    Ok(())
+}
+
 pub(in crate::git) fn report(root: &Path, command: &Command) -> Result<Value> {
+    if let Command::Compact(options) = command {
+        return compact(root, options);
+    }
+    if let Command::Inspect(options) = command {
+        return inspect(root, options);
+    }
     let root = process::repository_root(&root.canonicalize()?)?;
     let (action, id, options) = match command {
         Command::Undo(replay) => (Action::Undo, Some(replay.id), Some(&replay.options)),
@@ -544,8 +842,13 @@ pub(in crate::git) fn report(root: &Path, command: &Command) -> Result<Value> {
         || (action == Action::Recover && pending_action != Some(Action::Undo));
     let changes = &record.changes;
     let paths = changes.iter().map(|change| change.path.clone()).collect();
-    require_plain_entries(&root, &paths)?;
+    require_no_intent_to_add(&root, &paths)?;
     let current = inventory(&root, &paths, None)?;
+    let current_flags = index_flags(&root, &paths)?;
+    ensure!(
+        current.keys().eq(current_flags.keys()),
+        "selected staging entries and index flags disagree."
+    );
     let mut entries = Vec::new();
     let mut matches_before = true;
     let mut matches_after = true;
@@ -556,9 +859,13 @@ pub(in crate::git) fn report(root: &Path, command: &Command) -> Result<Value> {
             (&change.before, &change.after)
         };
         let observed = current.get(&change.path).cloned();
-        matches_before &= observed.as_ref() == before.as_ref().map(|stored| &stored.blob);
-        matches_after &= observed.as_ref() == after.as_ref().map(|stored| &stored.blob);
+        let observed_flags = observed.as_ref().map(|_| current_flags[&change.path]);
+        matches_before &= observed.as_ref() == before.as_ref().map(|stored| &stored.blob)
+            && observed_flags == before.as_ref().map(|stored| stored.flags);
+        matches_after &= observed.as_ref() == after.as_ref().map(|stored| &stored.blob)
+            && observed_flags == after.as_ref().map(|stored| stored.flags);
         let target = after.as_ref().map(|stored| stored.blob.clone());
+        let target_flags = after.as_ref().map(|stored| stored.flags);
         entries.push(Entry {
             path: change.path.clone(),
             action: match (&observed, &target) {
@@ -569,6 +876,8 @@ pub(in crate::git) fn report(root: &Path, command: &Command) -> Result<Value> {
             },
             before: observed,
             after: target,
+            before_flags: observed_flags,
+            after_flags: target_flags,
             working_bytes: None,
             source: after.as_ref().map(|stored| stored.content.clone()),
         });
@@ -583,7 +892,7 @@ pub(in crate::git) fn report(root: &Path, command: &Command) -> Result<Value> {
     );
     let basis = format!(
         "frstagehistory1:{}",
-        digest(&(&journal.state, action, id, &current))?
+        digest(&(&journal.state, action, id, &current, &current_flags))?
     );
     if let Some(expected) = &options.basis {
         ensure!(
@@ -595,7 +904,11 @@ pub(in crate::git) fn report(root: &Path, command: &Command) -> Result<Value> {
         inventory(&root, &paths, None)? == current,
         "selected index changed during staging history inspection."
     );
-    require_plain_entries(&root, &paths)?;
+    ensure!(
+        index_flags(&root, &paths)? == current_flags,
+        "selected index flags changed during staging history inspection."
+    );
+    require_no_intent_to_add(&root, &paths)?;
     journal.check()?;
     let outcome = if let Some(lock) = lock {
         Some(lock.replay(&root, &entries, &mut journal, action, id)?)

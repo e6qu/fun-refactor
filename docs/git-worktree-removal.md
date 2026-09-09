@@ -18,16 +18,16 @@ A receipt is local ownership evidence, not a signed attestation.
 
 The target must be attached to its original, direct local branch with its registration lock still present.
 Later commits on that branch are supported. Removal reviews the current commit and retains the branch at that commit.
-The entire checkout must match the current commit's raw blobs and executable bits.
+The entire checkout must match the current commit's raw blobs, entry kinds and executable bits.
 All files must be present. Extra files and directories refuse, including ignored paths and local history directories.
-The regular-file, path and payload restrictions from [raw creation](git-worktree-creation.md) apply.
+The regular-file, symlink, path and payload restrictions from [raw creation](git-worktree-creation.md) apply.
 
 The index must match the committed inventory with plain entries.
 Staged changes, conflicts, intent-to-add, assume-unchanged and skip-worktree entries refuse.
 Active Git operations, existing locks and unknown private metadata also refuse.
-The supported private files are `HEAD`, `index`, `commondir`, `gitdir`, `locked`, `fr-creation.json`, `logs/HEAD`, `COMMIT_EDITMSG` and `ORIG_HEAD`.
+The supported private files are `HEAD`, `index`, `commondir`, `gitdir`, `locked`, `fr-creation.json`, `config.worktree`, `logs/HEAD`, `COMMIT_EDITMSG` and `ORIG_HEAD`.
 Private file contents are limited to 16 MiB in total. An empty private `refs` directory is accepted. Private refs, other logs, staging journals and additional files require manual inspection.
-Only the files reference backend is supported. Per-worktree configuration must be disabled.
+Removal accepts only the files reference backend. The repository-local `extensions.worktreeConfig` mode must match the creation receipt.
 
 ## Review and deletion
 
@@ -43,10 +43,11 @@ Closing that transaction releases its locks without updating the branch or reflo
 Hooks, content filters, replacement objects and inherited Git environment overrides remain disabled or bypassed.
 
 Before deleting anything, the writer saves `fr-worktree-removal-*/record.json` under the shared Git directory.
-This private archive contains the proposal, receipt, snapshot and exact bytes of supported private metadata, including the index and Git link.
+This private archive contains the proposal, receipt, snapshot and exact bytes of supported private metadata, including the index, Git link and any `config.worktree` file.
 The source bytes remain available in the retained commit. The archive directory and record are synchronized before deletion starts.
 
 Each unlink checks the reviewed file's identity, bytes and complete Unix mode again.
+Symlink checks read target bytes without following the link.
 Parent directory identities are checked before accessing selected files.
 Directories are removed only when empty; cleanup never recursively removes a destination.
 Unexpected content that arrives after review can stop cleanup and remains for inspection.
@@ -65,7 +66,7 @@ The archive retains the reviewed metadata and identifies the retained source com
 Absence of a `complete` marker requires inspection; it does not establish which deletions occurred.
 [Removal inspection and checked resumption](git-worktree-removal-resumption.md) accept missing paths and matching survivors. Worktree undo/redo remains pending.
 Creation recovery refuses completed receipts and must not be used to reverse partial removal.
-Completed records support [reviewed archive compaction](git-worktree-archive-compaction.md), retaining a small audit summary. Bulk retention remains pending.
+Completed records support [reviewed archive compaction](git-worktree-archive-compaction.md), retaining a small audit summary and explicit bulk retention.
 
 Locks coordinate cooperating Git and `fr` writers. Existing and replacement locks are preserved.
 Crashes can leave locks requiring manual ownership review. Readers do not take these locks.
@@ -75,6 +76,7 @@ Removal is not an atomic transaction across checkout files, registration metadat
 ## Formal coverage
 
 The anchored deletion predicate requires matching identity, bytes and mode; Lean proves all three are necessary.
+The shared configuration predicate also requires the reviewed repository mode and a regular per-worktree configuration file when present.
 A separate abstract namespace model proves that removing selected paths preserves unselected paths.
 Shared Rust/Lean cases cover every boolean predicate input.
 These results do not prove correspondence for filesystem observation, unlinking, Git transactions or crash durability.

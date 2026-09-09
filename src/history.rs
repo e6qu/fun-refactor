@@ -6,15 +6,16 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs::{self, File};
 use std::io::Write;
-use std::os::unix::fs::PermissionsExt;
+use std::os::unix::ffi::OsStrExt;
+use std::os::unix::fs::{symlink, PermissionsExt};
 use std::path::{Component, Path, PathBuf};
 
 pub mod files;
 mod patch;
 pub use patch::{
     check_git_patch, check_patch_basis, export_patch, git_mode, git_mode_change_supported,
-    matches_patch_basis, owner_executable_mode, GitPatchCheck, PatchBasisCheck, PatchBasisFile,
-    PatchExport,
+    git_snapshot_mode, matches_patch_basis, owner_executable_mode, GitPatchCheck, PatchBasisCheck,
+    PatchBasisFile, PatchExport,
 };
 
 const DIRECTORY: &str = ".fr-history";
@@ -35,6 +36,28 @@ fn workspace(root: &Path) -> Result<PathBuf> {
 pub struct Snapshot {
     pub content: String,
     pub mode: u32,
+    #[serde(default, skip_serializing_if = "SnapshotKind::is_regular")]
+    pub kind: SnapshotKind,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum SnapshotKind {
+    #[default]
+    Regular,
+    Symlink,
+}
+
+impl SnapshotKind {
+    fn is_regular(&self) -> bool {
+        *self == Self::Regular
+    }
+}
+
+impl Snapshot {
+    pub(crate) fn reported_mode(&self) -> Option<u32> {
+        (self.kind == SnapshotKind::Regular).then_some(self.mode)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -102,14 +125,40 @@ fn regular(path: &Path) -> Result<bool> {
 }
 
 fn snapshot(path: &Path) -> Result<Option<Snapshot>> {
-    if !regular(path)? {
-        return Ok(None);
+    let metadata = match fs::symlink_metadata(path) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(error.into()),
+    };
+    if metadata.file_type().is_symlink() {
+        let target = fs::read_link(path)?;
+        let content = target
+            .to_str()
+            .with_context(|| format!("symlink target must use UTF-8: {}", path.display()))?
+            .to_owned();
+        validate_symlink_target(&content)?;
+        return Ok(Some(Snapshot {
+            content,
+            mode: 0,
+            kind: SnapshotKind::Symlink,
+        }));
+    }
+    if !metadata.is_file() {
+        bail!("{} is neither a regular file nor a symlink", path.display());
     }
     Ok(Some(Snapshot {
         content: crate::vfs::read_to_string(path)
             .with_context(|| format!("reading snapshot for {}", path.display()))?,
-        mode: fs::metadata(path)?.permissions().mode() & 0o7777,
+        mode: metadata.permissions().mode() & 0o7777,
+        kind: SnapshotKind::Regular,
     }))
+}
+
+fn validate_symlink_target(target: &str) -> Result<()> {
+    if target.is_empty() || target.len() > 1023 || target.contains('\0') {
+        bail!("symlink targets require between 1 and 1023 UTF-8 bytes without NUL");
+    }
+    Ok(())
 }
 
 fn directory(root: &Path) -> Result<PathBuf> {
@@ -135,10 +184,11 @@ fn target(root: &Path, relative: &Path) -> Result<PathBuf> {
         bail!("invalid history target {}", relative.display());
     }
     let mut path = root.to_path_buf();
-    for component in relative.components() {
+    let mut components = relative.components().peekable();
+    while let Some(component) = components.next() {
         path.push(component);
         match fs::symlink_metadata(&path) {
-            Ok(meta) if meta.file_type().is_symlink() => {
+            Ok(meta) if meta.file_type().is_symlink() && components.peek().is_some() => {
                 bail!("history target traverses a symlink: {}", path.display())
             }
             Ok(_) => (),
@@ -180,8 +230,14 @@ impl History {
                     bail!("duplicate or unchanged history target");
                 }
                 for state in [&change.before, &change.after].into_iter().flatten() {
-                    if state.mode > 0o7777 {
+                    if state.kind == SnapshotKind::Regular && state.mode > 0o7777 {
                         bail!("invalid recorded file mode");
+                    }
+                    if state.kind == SnapshotKind::Symlink {
+                        if state.mode != 0 {
+                            bail!("invalid recorded symlink mode");
+                        }
+                        validate_symlink_target(&state.content)?;
                     }
                 }
             }
@@ -430,12 +486,22 @@ pub fn record_with_status(
             bail!("duplicate history target {}", path.display());
         }
         let before = snapshot(&path)?;
+        if before
+            .as_ref()
+            .is_some_and(|snapshot| snapshot.kind != SnapshotKind::Regular)
+        {
+            bail!(
+                "source refactors require a regular file: {}",
+                path.display()
+            );
+        }
         if before.as_ref().map(|s| s.content.as_str()).unwrap_or("") != change.original {
             bail!("{} changed after planning", path.display());
         }
         let after = Some(Snapshot {
             content: change.updated.to_owned(),
             mode: before.as_ref().map_or(0o600, |s| s.mode),
+            kind: SnapshotKind::Regular,
         });
         stored.push(Change {
             path: path.strip_prefix(&root)?.to_path_buf(),
@@ -583,7 +649,8 @@ pub fn act_with_context(
         "changes": changes.iter().map(|c| {
             let (before, after) = (&c.before, &c.after);
             serde_json::json!({"path": c.path, "before_exists": before.is_some(), "after_exists": after.is_some(),
-                "before_mode": before.as_ref().map(|s| s.mode), "after_mode": after.as_ref().map(|s| s.mode),
+                "before_mode": before.as_ref().and_then(Snapshot::reported_mode), "after_mode": after.as_ref().and_then(Snapshot::reported_mode),
+                "before_kind": before.as_ref().map(|s| s.kind), "after_kind": after.as_ref().map(|s| s.kind),
                 "diff": crate::edit::unified_diff(before.as_ref().map_or("", |s| &s.content), after.as_ref().map_or("", |s| &s.content), &c.path.to_string_lossy())})
         }).collect::<Vec<_>>() });
     if let Some(supplied) = supplied_context {
@@ -672,11 +739,20 @@ fn install(root: &Path, changes: &[Change]) -> Result<()> {
             let mut temp = tempfile::Builder::new()
                 .prefix(".fr-history-stage-")
                 .tempfile_in(dir)?;
-            temp.write_all(after.content.as_bytes())?;
-            temp.as_file()
-                .set_permissions(fs::Permissions::from_mode(after.mode))?;
-            temp.as_file().sync_all()?;
-            Some(temp.into_temp_path())
+            if after.kind == SnapshotKind::Regular {
+                temp.write_all(after.content.as_bytes())?;
+                temp.as_file()
+                    .set_permissions(fs::Permissions::from_mode(after.mode))?;
+                temp.as_file().sync_all()?;
+                Some(temp.into_temp_path())
+            } else {
+                validate_symlink_target(&after.content)?;
+                let temp = temp.into_temp_path();
+                fs::remove_file(&temp)?;
+                symlink(std::ffi::OsStr::from_bytes(after.content.as_bytes()), &temp)?;
+                File::open(dir)?.sync_all()?;
+                Some(temp)
+            }
         } else {
             None
         };
@@ -795,7 +871,8 @@ mod tests {
             snapshot(&root.join("0.txt")).unwrap(),
             Some(Snapshot {
                 content: "before λ\n".to_owned(),
-                mode: 0o751
+                mode: 0o751,
+                kind: SnapshotKind::Regular,
             })
         );
         assert_eq!(snapshot(&root.join("1.txt")).unwrap(), None);
@@ -803,7 +880,8 @@ mod tests {
             snapshot(&root.join("2.txt")).unwrap(),
             Some(Snapshot {
                 content: String::new(),
-                mode: 0o751
+                mode: 0o751,
+                kind: SnapshotKind::Regular,
             })
         );
     }

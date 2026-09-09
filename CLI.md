@@ -27,6 +27,7 @@ half the work, and does not do nothing quietly.
 ## Write guarantees
 
 Native source editing commands record a transaction in `.fr-history/state.json` before changing source.
+Ordinary analysis and the complete source-history workflow do not require Git to be installed.
 The journal stores before/after text, existence, Unix permission modes, validation labels and source digests.
 Replacements use staged files and filesystem renames. Other processes can observe intermediate states.
 A handled failure restores the starting snapshots when the current files still match this transaction.
@@ -39,7 +40,7 @@ Recovery can itself fail or stop; the same command can resume it.
 Journal checkpoints, replacement contents and directory updates use filesystem sync operations.
 These guarantees assume the filesystem honors sync and atomic rename.
 Directory locks coordinate `fr` writers. Another program can still race a check and its subsequent rename.
-Changes must stay inside the selected workspace and must not traverse symlinks.
+Changes must stay inside the selected workspace and must not traverse parent symlinks. Only the explicit `file symlink` operation may create or replace a symlink leaf.
 With a single file as `-C`, its parent owns the journal.
 
 The native library's `edit::commit` retains handled-failure recovery without a persistent journal.
@@ -1070,11 +1071,11 @@ History uses schema 1 and numeric identities local to the workspace.
 `patch` prints a Git text patch, or metadata with a `patch` string under `--json`.
 `patch --output FILE` creates a new artifact and returns JSON with its SHA-256 and byte count, without patch text.
 Relative paths start at the workspace root. Existing paths refuse.
-`patch --check` prints a JSON basis report and exits unsuccessfully when affected contents, existence or executable modes differ.
+`patch --check` prints a JSON basis report and exits unsuccessfully when affected contents or link targets, entry kinds, existence or Git modes differ.
 `--against` selects a receiving directory; `--reverse` checks the recorded result as the starting state.
 `patch --git-check` reports Git application checks; `--index` also checks the affected index entries.
 Git checks require a working tree and refuse affected content filters. They use repository configuration.
-Other history commands print JSON in both output modes. `show` and transition previews include diffs and existence/mode changes.
+Other history commands print JSON in both output modes. `show` and transition previews include diffs plus existence, kind and mode changes.
 After reviewing a plan or transition preview, add `--no-diff` to `apply`, `undo`, `redo` or `recover` with `--write`.
 The completion report omits each change's `diff` and sets `diffs_omitted: true`, retaining transaction, action, applied status, paths, existence and modes.
 This option requires `--write`; previews keep their diffs. Default reports and stored snapshots remain unchanged.
@@ -1088,6 +1089,8 @@ It excludes `.git`, `.fr-history`, `target`, `node_modules` and `.lake` director
 It does not establish build, dependency or behavioral equivalence.
 A changed source digest requires a fresh plan.
 Undo and redo check only the affected files, preserving unrelated edits.
+They do not read or write the Git index. An affected path may already be staged.
+Its index entry remains intact, along with unrelated staged, unstaged and untracked state.
 
 Undo requires the latest applied ID. Redo requires the next ID on the redo stack.
 Saving a plan preserves the redo stack. Applying a new plan clears that stack and marks its old entries `abandoned`.
@@ -1096,7 +1099,7 @@ The journal contains full source text, resides in a private directory and ignore
 Deleting `.fr-history` discards all saved plans and recovery data; retain it while an operation needs recovery.
 The workspace scanner excludes this directory even with `--no-ignore`.
 A killed process can leave temporary staging files beside source files; recovery restores targets but leaves those orphaned temporary files.
-History restores file contents, existence and permission modes. It does not restore timestamps, ownership, extended attributes or empty directory topology.
+History restores entry kinds, file contents or UTF-8 link targets, existence and regular-file permission modes. It does not restore timestamps, ownership, extended attributes, symlink permissions or empty directory topology.
 
 ### `fr file`
 
@@ -1105,9 +1108,11 @@ fr file delete obsolete.txt empty.txt
 fr file delete obsolete.txt --save-plan
 fr file executable scripts/build.sh --set on --write
 fr file executable scripts/build.sh --set off
+
+fr file symlink public/current --target releases/v2 --save-plan
 ```
 
-Preview or record operations on 1 through 500 explicit workspace-relative regular text files.
+Preview or record deletion and owner-execute operations on up to 500 explicit entries, or create and replace one symlink.
 Both output modes print JSON metadata without source bodies. Paths sort before recording and reporting.
 The default previews without writing. `--save-plan` saves a transaction; `--write` records and applies it.
 Choose either flag. Apply a saved transaction with `fr history apply ID --write`.
@@ -1116,10 +1121,13 @@ The same history commands provide undo, redo, recovery and Git patch export.
 `delete` removes whole files, including empty files, without checking references or project behavior.
 `executable --set on|off` changes only the owner-execute bit and preserves content and all other permission bits.
 For example, setting `on` changes `0644` to `0744`; Git patches project that result to `100755`.
+`symlink PATH --target TARGET` creates or replaces a regular file or link without following the target.
+The target may be relative, absolute or dangling and must contain 1 through 1,023 UTF-8 bytes without NUL.
 Already-correct modes produce no transaction and leave any existing journal unchanged.
-The `file-snapshots` validation label covers existence, complete contents and full recorded modes; it does not claim compilation or dependency validation.
+The `file-snapshots` validation label covers existence, entry kind, complete contents or link target and recorded regular-file modes; it does not claim compilation or dependency validation.
 
-Absolute paths, parent traversal, duplicate targets, symlinks, directories, missing files, non-UTF-8 files and NUL-containing contents cause refusal.
+Absolute paths, parent traversal, duplicate targets, parent symlinks, directories, missing deletion targets, non-UTF-8 entries and NUL-containing contents cause refusal.
+Executable changes require regular files. Reports use a null permission mode for symlinks.
 Targets cannot traverse `.git` or `.fr-history`. Explicit paths can name ignored files.
 Git is optional; operations preserve its index and use the native journal for checked writes.
 See [file transactions](docs/file-transactions.md) for the report, permission scope and recovery limits.
@@ -1228,10 +1236,16 @@ fr git stage-history undo 1 --basis TOKEN --write
 
 fr git stage-history redo 1 --basis TOKEN --write
 fr git stage-history recover
+
+fr git stage-history compact --keep 100
+fr git stage-history compact --keep 100 --basis TOKEN --write
+fr git stage-history inspect --stale-after 3600
 ```
 
-Changed staging writes record index snapshots separately from source history. Undo, redo and recovery default to previews and require their own basis for writes.
+Changed staging writes record index snapshots separately from source history. Undo, redo, recovery and compaction default to previews and require their own basis for writes.
 They preserve working files and unrelated staged entries. Pending operations block further staging writes until recovery.
+Compaction keeps the requested number of replay payloads on each stack while retaining record summaries and monotonic IDs.
+Inspection reports pending operations, index locks and leftover preparation directories without removing or reading them.
 See [staging history](docs/git-stage-history.md) for stack order, storage, flag restrictions and durability limits.
 
 ```sh
@@ -1299,6 +1313,10 @@ Incomplete removals, reappeared paths and active locks block compaction. Compact
 Keep the original record path for inspection and retry, including after compaction removes that file.
 `resume-removal` recognizes compaction summaries as audit reports with `can_resume: false`.
 See [archive compaction](docs/git-worktree-archive-compaction.md) for retained data, review fields and interrupted writes.
+
+`fr git worktree compact-removals RECORD...` previews bulk compaction for 1 through 32 explicit completed archives.
+Its checked write revalidates the complete selection and preserves unselected archives.
+The operation is sequential; an uncertain result names completed records and the record where it stopped.
 
 ### `fr cache`
 

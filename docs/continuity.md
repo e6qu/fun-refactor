@@ -2,7 +2,38 @@
 
 PR 0, the agent-ready verified refactoring foundation, merged as GitHub PR 259.
 PR 1, Agent Context Protocol v2, merged as GitHub PR 261.
-The current `generalized_structural_authoring` branch completes roadmap PR 2 and is ready for review. Its first checkpoint extends exact-byte Rust insertion to impl and trait bodies and generalizes the insertion placement model.
+PR 2, Generalized Structural Authoring, merged as GitHub PR 262.
+The current `durable_git_workspace_lifecycle` branch is roadmap PR 3. Its first checkpoint adds checked staging-journal compaction with explicit per-stack retention.
+Compacted records retain stable IDs, statuses, path counts and digests while discarding bytes that can no longer be replayed.
+Preview/write bases, the index lock and full journal rechecks preserve the index, working files and concurrent staging state.
+Lean proves compaction selection requirements, unselected-payload preservation and idempotence; all eight boolean selection states agree with Rust.
+The second PR 3 checkpoint adds `compact-removals` for 1 through 32 explicit completed removal archives.
+One aggregate basis binds every normalized archive and its individual review; sequential writes report completed and stopped paths if the set cannot finish.
+The third checkpoint adds `stage-history inspect`, which reports pending journal actions, index-lock metadata and bounded leftover preparation directories without reading or removing them.
+Only a state with no pending, lock or preparation evidence is clean in the Lean model and all eight Rust/Lean cases.
+The fourth checkpoint records selected assume-unchanged and skip-worktree values in preview bases and staging journals, then restores them in prepared indexes across apply, removal, undo, redo and recovery.
+Intent-to-add remains unsupported; flag drift refuses replay, plain schema-one records retain their prior serialized digest form, and all sixteen index-entry policy states agree between Rust and Lean.
+The fifth checkpoint carries the repository-local `extensions.worktreeConfig` mode through creation receipts, recovery bases and removal archives.
+Recovery preserves a bounded regular `config.worktree` without rewriting it, removal archives its exact bytes, older receipts default safely, and mode drift or non-regular paths refuse.
+The anchored configuration guard proves the reviewed-mode and regular-file requirements; all sixteen boolean states agree between Rust and Lean.
+The sixth checkpoint publishes a bounded destination-keyed preparation before worktree mutation and removes it after ownership receipt publication.
+A killed creator with an exact retained registration can recover from this provisional evidence without adopting an arbitrary worktree; new-branch and existing-branch crash tests preserve source Git state.
+Lean proves the absent-receipt, matching-preparation and matching-registration requirements, and all eight policy states agree with Rust.
+The seventh checkpoint adds Git symlink blobs to raw creation, recovery, removal and removal-archive validation without following their targets.
+It bounds target length, rejects NUL bytes before mutation and rechecks entry identity after reads. Submodules remain outside the owned lifecycle.
+The anchored entry-mode policy accepts one recognized blob kind, and all sixteen boolean states agree between Rust and Lean.
+The eighth checkpoint extends schema-one source snapshots with an omitted-by-default entry kind, preserving regular-record serialization while representing UTF-8 symlink targets explicitly.
+`fr file symlink` creates or replaces one link, `file delete` accepts links, and history apply, undo, redo, recovery, basis checks and Git patch export preserve the entry kind without following targets.
+Git type changes render as the paired deletion and addition records Git requires; the anchored snapshot-mode projection fixes links at `120000`, and 8,258 Rust/Lean cases cover both entry kinds across the existing mode corpus.
+The ninth checkpoint closes the source-history preservation deliverable with a direct Git-backed CLI scenario.
+An affected path may already be staged before planning. Apply, undo and redo leave the index byte-identical.
+They retain unrelated staged and unstaged content, a later tracked source edit and a later untracked file.
+The History kernel now models selected namespace replay. It proves that replay installs selected snapshots and preserves every unselected path's current value.
+The tenth checkpoint runs scan plus save, apply, undo and redo with `PATH` pointing to a nonexistent directory.
+This establishes the CLI boundary that ordinary analysis and source history do not require a Git executable.
+All PR 3 deliverables and acceptance categories now have implementation, proof or host-test evidence.
+`PLAN.md` marks the branch ready for review. The final native and WASM gates pass on this branch head.
+PR 2's first checkpoint extends exact-byte Rust insertion to impl and trait bodies and generalizes the insertion placement model.
 The second checkpoint authors TypeScript/TSX expression-bodied arrows and permits checked transitions between expression and block bodies.
 The third checkpoint adds Java method, constructor and default-interface body authoring through the same checked splice and history path.
 The fourth checkpoint lets one authoring batch combine declaration, caller and conservative import-organization changes.

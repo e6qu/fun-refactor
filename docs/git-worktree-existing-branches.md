@@ -25,7 +25,7 @@ The destination and raw file restrictions from [reviewed creation](git-worktree-
 The destination must be fresh, with an existing parent outside Git repositories.
 Files come from the reviewed commit, including when the invoking worktree has staged, unstaged or untracked changes.
 Packed refs, SHA-256 repositories and invocation from another linked worktree are supported.
-Symlinks, submodules and per-worktree configuration remain outside the supported checkout subset.
+Symlinks and submodules remain outside the supported checkout subset. `fr` accepts repository worktree configuration and applies the same lifecycle checks as new-branch creation.
 
 ## Review and reference preservation
 

@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 mod branch;
 mod checkout;
 mod ownership;
+mod preparation;
 pub(super) mod recovery;
 pub(super) mod removal;
 
@@ -71,6 +72,28 @@ pub(super) fn common(root: &Path) -> Result<PathBuf> {
     Ok(path)
 }
 
+pub(super) fn worktree_config(root: &Path) -> Result<bool> {
+    let output = process::run(
+        root,
+        &args(&[
+            "config",
+            "--local",
+            "--bool",
+            "--get",
+            "extensions.worktreeConfig",
+        ]),
+        None,
+    )?;
+    if output.status.code() == Some(1) {
+        return Ok(false);
+    }
+    ensure!(
+        output.status.success() && matches!(output.stdout.as_slice(), b"true\n" | b"false\n"),
+        "cannot read extensions.worktreeConfig as a boolean."
+    );
+    Ok(output.stdout == b"true\n")
+}
+
 fn commit(root: &Path, revision: &str) -> Result<String> {
     let output = checked(
         root,
@@ -118,13 +141,15 @@ fn branch_present(root: &Path, branch: &str) -> Result<bool> {
     Ok(output.status.success())
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct Proposal {
     version: String,
     root: PathBuf,
     common: PathBuf,
     common_identity: (u64, u64),
+    #[serde(default)]
+    worktree_config: bool,
     destination: PathBuf,
     parent_identity: (u64, u64),
     branch: String,
@@ -205,15 +230,7 @@ fn proposal(requested: &Path, options: &CreateOptions) -> Result<Proposal> {
             "new worktree branch already exists."
         }
     );
-    let config = process::run(
-        &root,
-        &args(&["config", "--bool", "--get", "extensions.worktreeConfig"]),
-        None,
-    )?;
-    ensure!(
-        config.status.code() == Some(1) || (config.status.success() && config.stdout == b"false\n"),
-        "worktree-specific configuration is unsupported for reviewed creation."
-    );
+    let worktree_config = worktree_config(&root)?;
     let registrations = checked(
         &root,
         &["worktree", "list", "--porcelain", "-z", "--expire=now"],
@@ -267,6 +284,7 @@ fn proposal(requested: &Path, options: &CreateOptions) -> Result<Proposal> {
         common_identity: directory(&common)?,
         root,
         common,
+        worktree_config,
         destination,
         branch: selected_branch.clone(),
         existing_branch,
@@ -301,6 +319,7 @@ pub(super) fn report(root: &Path, options: &CreateOptions) -> Result<Value> {
     let mut result = json!({"schema":1, "operation":if options.write {"worktree-create"} else {"worktree-create-preview"},
         "applied":false, "basis":basis, "basis_verified":options.basis.is_some(),
         "repository_root":plan.root, "common_directory":plan.common, "destination":plan.destination,
+        "worktree_config":plan.worktree_config,
         "branch":format!("refs/heads/{}", plan.branch), "branch_action":if plan.existing_branch {"retain"}else{"create"}, "from":plan.from, "commit":plan.commit, "tree":plan.tree,
         "checkout":"raw-blobs", "hooks":"disabled", "content_filters":"bypassed", "lock_policy":"retain",
         "bytes":plan.files.iter().map(|entry| entry.size).sum::<usize>(),
@@ -333,9 +352,14 @@ pub(super) fn report(root: &Path, options: &CreateOptions) -> Result<Value> {
                     json!(commit(&plan.root, &format!("refs/heads/{}", plan.branch)).ok());
                 result["destination_present"] =
                     json!(absent(&plan.destination).ok().map(|absent| !absent));
-                result["recovery_hint"] = json!(
-                    "Use fr git worktree recover PATH if creation recorded an ownership receipt."
-                );
+                if let Ok(path) =
+                    preparation::Prepared::record_path(&plan.common, &plan.destination)
+                {
+                    if !absent(&path).unwrap_or(true) {
+                        result["preparation_record"] = json!(path);
+                    }
+                }
+                result["recovery_hint"] = json!("Use fr git worktree recover PATH if creation recorded an ownership receipt or durable preparation.");
             }
         }
     }

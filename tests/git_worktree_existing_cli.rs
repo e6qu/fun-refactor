@@ -344,6 +344,12 @@ case " $* " in
         "$FR_ACTUAL_GIT" "$@" || exit $?
         exit 97
         ;;
+      crash-before-receipt)
+        "$FR_ACTUAL_GIT" "$@" || exit $?
+        kill -KILL "$PPID"
+        sleep 1
+        exit 97
+        ;;
       locked-update)
         if "$FR_ACTUAL_GIT" -C "$FR_ROOT" update-ref -d refs/heads/feature 2>/dev/null; then
           echo unsafe > "$FR_RESULT"
@@ -492,6 +498,60 @@ fn interrupted_existing_checkout_recovers_and_removes_without_changing_branch_hi
 }
 
 #[test]
+fn prepared_recovery_preserves_an_existing_branch_and_its_history() {
+    let temp = fixture();
+    let root = temp.path().join("main");
+    git(&root, &["branch", "feature"]);
+    let refs = git(&root, &["show-ref"]);
+    let log = fs::read(root.join(".git/logs/refs/heads/feature")).unwrap();
+    let preview = report(&root, &["../task", "--existing-branch", "feature"]);
+    let (bin, actual) = shim(&root);
+    let out = fr(
+        &root,
+        &[
+            "../task",
+            "--existing-branch",
+            "feature",
+            "--write",
+            "--basis",
+            preview["basis"].as_str().unwrap(),
+        ],
+    )
+    .env(
+        "PATH",
+        format!("{}:{}", bin.display(), std::env::var("PATH").unwrap()),
+    )
+    .env("FR_ACTUAL_GIT", actual)
+    .env("FR_FAULT", "crash-before-receipt")
+    .env("FR_ROOT", &root)
+    .output()
+    .unwrap();
+    assert!(!out.status.success());
+    let recovery = other(&root, "recover", &["../task"]);
+    assert_eq!(recovery["ownership_state"], "prepared", "{recovery}");
+    let recovered = other(
+        &root,
+        "recover",
+        &[
+            "../task",
+            "--basis",
+            recovery["basis"].as_str().unwrap(),
+            "--write",
+        ],
+    );
+    assert_eq!(recovered["applied"], true, "{recovered}");
+    assert_eq!(git(&root, &["show-ref"]), refs);
+    assert_eq!(
+        fs::read(root.join(".git/logs/refs/heads/feature")).unwrap(),
+        log
+    );
+    assert_eq!(
+        git(&temp.path().join("task"), &["symbolic-ref", "HEAD"]),
+        b"refs/heads/feature\n"
+    );
+}
+
+#[test]
 fn refuses_a_branch_claimed_between_review_and_registration() {
     let temp = fixture();
     let root = temp.path().join("main");
@@ -508,7 +568,7 @@ fn refuses_a_branch_claimed_between_review_and_registration() {
 }
 
 #[test]
-fn receipts_and_removal_archives_without_branch_mode_remain_readable() {
+fn receipts_and_removal_archives_without_added_modes_remain_readable() {
     let temp = fixture();
     let root = temp.path().join("main");
     let preview = report(&root, &["../task", "--branch", "feature"]);
@@ -527,6 +587,8 @@ fn receipts_and_removal_archives_without_branch_mode_remain_readable() {
     let receipt_path = Path::new(created["ownership_record"].as_str().unwrap());
     let mut receipt: Value = serde_json::from_slice(&fs::read(receipt_path).unwrap()).unwrap();
     receipt.as_object_mut().unwrap().remove("existing_branch");
+    receipt.as_object_mut().unwrap().remove("worktree_config");
+    receipt.as_object_mut().unwrap().remove("preparation");
     fs::write(receipt_path, serde_json::to_vec(&receipt).unwrap()).unwrap();
     let preview = other(&root, "remove", &["../task"]);
     let removed = other(
@@ -546,10 +608,22 @@ fn receipts_and_removal_archives_without_branch_mode_remain_readable() {
         .as_object_mut()
         .unwrap()
         .remove("existing_branch");
+    record["proposal"]
+        .as_object_mut()
+        .unwrap()
+        .remove("worktree_config");
     record["receipt"]
         .as_object_mut()
         .unwrap()
         .remove("existing_branch");
+    record["receipt"]
+        .as_object_mut()
+        .unwrap()
+        .remove("worktree_config");
+    record["receipt"]
+        .as_object_mut()
+        .unwrap()
+        .remove("preparation");
     fs::write(record_path, serde_json::to_vec(&record).unwrap()).unwrap();
     fs::remove_file(record_path.with_file_name("complete")).unwrap();
     let preview = other(&root, "resume-removal", &[record_path.to_str().unwrap()]);

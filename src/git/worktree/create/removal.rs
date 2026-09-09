@@ -6,6 +6,7 @@ use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::fs::{self, File};
 use std::io::Write;
+use std::os::unix::ffi::OsStringExt;
 use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 
@@ -30,6 +31,10 @@ impl FileState {
 
     fn read_limited(path: &Path, limit: u64) -> Result<Self> {
         let before = fs::symlink_metadata(path)?;
+        ensure!(
+            before.file_type().is_file(),
+            "unsupported ownership metadata file; removal metadata must be regular."
+        );
         let bytes = ownership::bytes(path, limit)?;
         let after = fs::symlink_metadata(path)?;
         ensure!(
@@ -46,12 +51,52 @@ impl FileState {
         })
     }
 
+    fn read_expected(path: &Path, expected_mode: u32, limit: u64) -> Result<Self> {
+        let before = fs::symlink_metadata(path)?;
+        let symlink = expected_mode & 0o170000 == 0o120000;
+        ensure!(
+            if symlink {
+                before.file_type().is_symlink()
+            } else {
+                expected_mode & 0o170000 == 0o100000 && before.file_type().is_file()
+            },
+            "removal entry type changed."
+        );
+        let bytes = if symlink {
+            let bytes = fs::read_link(path)?.into_os_string().into_vec();
+            ensure!(
+                bytes.len() as u64 <= limit,
+                "removal symlink exceeds limit."
+            );
+            bytes
+        } else {
+            ownership::bytes(path, limit)?
+        };
+        let after = fs::symlink_metadata(path)?;
+        ensure!(
+            before.dev() == after.dev()
+                && before.ino() == after.ino()
+                && before.mode() == after.mode(),
+            "removal entry changed during inspection."
+        );
+        Ok(Self {
+            identity: (after.dev(), after.ino()),
+            mode: after.mode(),
+            digest: ownership::digest(&bytes),
+            bytes,
+        })
+    }
+
+    fn current(&self, path: &Path) -> Result<Self> {
+        Self::read_expected(path, self.mode, 64 * 1024 * 1024)
+    }
+
     fn remove(&self, path: &Path) -> Result<()> {
         self.remove_limited(path, 64 * 1024 * 1024)
     }
 
     fn remove_limited(&self, path: &Path, limit: u64) -> Result<()> {
-        let current = Self::read_limited(path, limit)?;
+        let current = Self::read_expected(path, self.mode, limit)?;
         ensure!(
             crate::git::worktree_removal_file_allowed(
                 self.identity == current.identity,
@@ -74,18 +119,26 @@ struct Snapshot {
     gitfile: FileState,
 }
 
-fn configuration(root: &Path) -> Result<()> {
-    for (key, allowed) in [
-        ("extensions.refStorage", "files"),
-        ("extensions.worktreeConfig", "false"),
-    ] {
-        let output = crate::git::process::run(root, &super::args(&["config", "--get", key]), None)?;
-        ensure!(
-            output.status.code() == Some(1)
-                || (output.status.success() && super::line(&output.stdout)? == allowed),
-            "unsupported removal configuration: {key}."
-        );
-    }
+fn configuration(root: &Path, expected_worktree_config: bool) -> Result<()> {
+    let output = crate::git::process::run(
+        root,
+        &super::args(&["config", "--local", "--get", "extensions.refStorage"]),
+        None,
+    )?;
+    ensure!(
+        output.status.code() == Some(1)
+            || (output.status.success() && super::line(&output.stdout)? == "files"),
+        "unsupported removal configuration: extensions.refStorage."
+    );
+    ensure!(
+        crate::git::worktree_configuration_allowed(
+            expected_worktree_config,
+            super::worktree_config(root)?,
+            false,
+            false
+        ),
+        "extensions.worktreeConfig changed after reviewed creation."
+    );
     Ok(())
 }
 
@@ -95,7 +148,7 @@ fn observe(capture: &recovery::Capture, leases: &[ownership::Lease]) -> Result<S
         checkout.missing.is_empty() && checkout.index.is_some(),
         "removal requires a complete clean checkout and index."
     );
-    configuration(&capture.plan.root)?;
+    configuration(&capture.plan.root, capture.plan.worktree_config)?;
     branch::check(
         &capture.plan.root,
         &capture.plan.branch,
@@ -131,6 +184,7 @@ fn observe(capture: &recovery::Capture, leases: &[ownership::Lease]) -> Result<S
                         "gitdir",
                         "locked",
                         "fr-creation.json",
+                        "config.worktree",
                         "logs/HEAD",
                         "COMMIT_EDITMSG",
                         "ORIG_HEAD"
@@ -335,6 +389,7 @@ pub(in crate::git::worktree) fn report(root: &Path, options: &RemoveOptions) -> 
         "applied":false,"basis":token,"basis_verified":options.basis.is_some(),"repository_root":capture.plan.root,
         "destination":capture.plan.destination,"branch":format!("refs/heads/{}",capture.plan.branch),
         "commit":capture.plan.commit,"tree":capture.plan.tree,"branch_action":"retain","atomic_snapshot":false,
+        "worktree_config":capture.plan.worktree_config,"worktree_config_file":snapshot.checkout.worktree_config.is_some(),
         "files":capture.plan.files.iter().take(options.limit).collect::<Vec<_>>(),
         "page":{"total":capture.plan.files.len(),"returned":capture.plan.files.len().min(options.limit),
             "omitted":capture.plan.files.len().saturating_sub(options.limit)}});

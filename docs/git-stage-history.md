@@ -11,16 +11,19 @@ fr git stage-history undo 1
 fr git stage-history undo 1 --basis TOKEN --write
 fr git stage-history redo 1
 fr git stage-history redo 1 --basis TOKEN --write
+fr git stage-history compact --keep 100
+fr git stage-history compact --keep 100 --basis TOKEN --write
+fr git stage-history inspect --stale-after 3600
 ```
 
 List and show omit blob bodies. List returns newest records first, with a limit from 1 through 500, total count and next undo/redo identities.
-Show returns the selected paths and their before/after modes and object IDs.
+Show returns the selected paths, before/after modes and object IDs, and nullable before/after assume-unchanged and skip-worktree flags.
 Undo and redo default to previews. Their `--write` requires the basis from that transition preview, using the same action and identity.
 Output remains JSON in both CLI output modes.
 
 ## Transition scope
 
-Undo restores the recorded prior index entries; redo restores the recorded staged result.
+Undo restores the recorded prior index entries and their ordinary flags; redo restores the recorded staged result and flags.
 Neither operation reads or modifies working-file contents, resets HEAD, creates commits, or changes source history.
 The working files can differ, be missing, or have become binary since staging.
 Unrelated staged paths survive, including unrelated conflict stages and index flags.
@@ -31,7 +34,25 @@ A new changed staging transaction abandons the redo branch only after successful
 Records remain available for inspection after abandonment.
 [Reviewed commits](git-commit.md) preserve completed staging history. A later staging undo changes the index relative to HEAD without removing the commit.
 
-The transition basis binds the full journal state, action, transaction and current selected index identities.
+## Retention and compaction
+
+`compact --keep N` previews removal of old replay payloads while retaining every record identity, status, path count and audit digest.
+It keeps the top `N` detailed records on the undo stack and the top `N` on the redo stack.
+Abandoned payloads are eligible immediately because they cannot be replayed.
+The default is 100 per stack; zero retires all current undo and redo payloads.
+
+The preview reports selected records and paths, journal bytes before and after, the resulting stack tops and a `frstagecompact1:` basis.
+The checked write requires that basis, takes the worktree's Git index lock and rechecks the complete journal before replacing it.
+It does not read or change the index, working files, HEAD, Git objects or source history.
+A pending staging transition refuses compaction until recovery finishes.
+Only `applied: true` confirms compaction. A storage or sync failure returns `applied: null` with bounded diagnostics because the replacement may already be visible.
+
+Compacted records remain visible to `list` and `show` with `compacted: true`.
+They retain their original content digest plus a digest over the compacted audit summary, but omit `entries` because their before/after bytes are gone.
+Compaction cannot be undone, and a retired record cannot later become an undo or redo target.
+New records continue with the next monotonic ID.
+
+The transition basis binds the full journal state, action, transaction and current selected index identities and flags.
 A later unrelated index change leaves the basis valid; a journal change invalidates it.
 Selected content, mode, existence or conflict drift causes refusal. Changing selected assume-unchanged, skip-worktree or intent-to-add state also blocks replay.
 The checks do not detect changes restored between observations.
@@ -39,8 +60,8 @@ The checks do not detect changes restored between observations.
 Restoration concerns raw entries, not byte-for-byte index serialization or stat caches.
 Undoing the first additions in an unborn repository can leave a valid empty index where no index file existed before.
 The same regular-file, split-index, sparse-checkout and Unix-host restrictions as [staging application](git-staging.md) apply.
-Writes involving changed selected assume-unchanged, skip-worktree or intent-to-add entries are unsupported.
-Unchanged selected entries and unrelated entries can retain those flags.
+Changed selected assume-unchanged and skip-worktree entries are supported, independently or together, and replay restores their recorded values.
+Changed selected intent-to-add entries remain unsupported. Unrelated entries retain all of those states.
 
 ## Storage and recovery
 
@@ -49,7 +70,8 @@ Linked worktrees use separate journals. Repository root and index location bind 
 New journal directories use mode `0700`; state files use private temporary files and atomic replacement.
 Symlink storage and malformed records cause refusal.
 
-Each record retains before/after blob bytes, modes and identities, with a SHA-256 record digest.
+Each record retains before/after blob bytes, modes, identities and ordinary flags, with a SHA-256 record digest.
+Plain entries omit the additive flag field in storage, preserving compatibility with existing schema-one record digests.
 Old blobs must be readable when staging begins; demand fetching remains disabled.
 Replays recreate needed objects from recorded bytes and check their Git identities, including SHA-256 repositories.
 This supports restoring an old staged blob after Git prunes it. Source bodies stay inside local storage and outside reports.
@@ -78,17 +100,28 @@ If installation happened, the command reports `applied: true` and a warning, eve
 Inspect history before retrying: a failed directory sync can leave either a completed or pending journal visible.
 Failures before installation may leave a pending marker and unreachable Git objects; recovery handles a matching recorded basis.
 
-After process termination, an owned `index.lock` or temporary preparation directory may remain.
-Confirm the writer has exited before removing a stale lock, then inspect recovery. The tool does not guess whether an existing lock is stale.
+After process termination, an owned `index.lock` or temporary `fr-stage-*` preparation directory may remain.
+`stage-history inspect` reports their paths, file types, identities, modes, sizes and ages without reading their contents.
+It combines that evidence with the pending journal action and classifies the state as `clean`, `manual-review` or `recovery-required`.
+`--stale-after SECONDS` changes the age threshold from its one-hour default; `--limit` bounds preparation rows while retaining the full count.
+
+An old regular lock or directory is only a `stale_candidate`; every row keeps `safe_to_remove: false`.
+Age does not prove that its writer exited, and symlinks are never candidates.
+Confirm the writer has exited before handling a candidate manually, preserve the reported identity, then inspect or recover the journal again.
+The command never removes locks or preparation data.
 Keep configuration, HEAD, journal storage and repository directory topology stable during operations.
 The index lock cannot constrain writers that bypass it, and filesystem durability still depends on the host honoring sync and atomic rename.
-There is no journal retention or compaction policy yet; reads validate and load the complete journal, despite bounded report rows.
+Compaction bounds retained replay payloads, while record summaries and their IDs remain in the journal for audit.
+The command is explicit rather than time based and does not remove summaries.
 
 ## Formal coverage
 
-The [Git Lean model](../kernels/FrKernels/Git.lean) anchors the transition acceptance predicate and checks every boolean input against Rust.
+The [Git Lean model](../kernels/FrKernels/Git.lean) anchors transition, index-entry replay, record-compaction and crash-review predicates and checks every boolean input against Rust.
 Its abstract index laws prove undo/redo round trips and preservation of unselected paths, including later unrelated changes.
+Its payload model proves that selected compaction discards detail, preserves unselected detail and is idempotent.
+The crash-review model proves that only the absence of pending, lock and preparation evidence is classified clean.
+The index-entry model proves that replay requires stage zero and rejects intent-to-add while accepting every combination of assume-unchanged and skip-worktree.
 These laws assume correct snapshot identities and replacement of exactly the selected entries.
 The existing history stack laws also describe the intended undo/redo ordering.
 Filesystem execution, journal parsing, object storage, crash durability and complete Rust correspondence remain outside these proofs.
-Regression tests cover the implemented journal, replay and recovery paths.
+Regression tests cover the implemented journal, replay, recovery and compaction paths.
