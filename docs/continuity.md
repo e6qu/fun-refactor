@@ -31,6 +31,8 @@ They retain unrelated staged and unstaged content, a later tracked source edit a
 The History kernel now models selected namespace replay. It proves that replay installs selected snapshots and preserves every unselected path's current value.
 The tenth checkpoint runs scan plus save, apply, undo and redo with `PATH` pointing to a nonexistent directory.
 This establishes the CLI boundary that ordinary analysis and source history do not require a Git executable.
+All PR 3 deliverables and acceptance categories now have implementation, proof or host-test evidence.
+`PLAN.md` marks the branch ready for review. The final native and WASM gates pass on this branch head.
 PR 2's first checkpoint extends exact-byte Rust insertion to impl and trait bodies and generalizes the insertion placement model.
 The second checkpoint authors TypeScript/TSX expression-bodied arrows and permits checked transitions between expression and block bodies.
 The third checkpoint adds Java method, constructor and default-interface body authoring through the same checked splice and history path.
