@@ -126,6 +126,11 @@ def main (args : List String) : IO Unit := do
       for pending in [false, true] do
         for retained in [false, true] do
           IO.println (FrKernels.Git.stagingRecordCompactable detailed pending retained)
+  else if args == ["staging-crash-state"] then
+    for pending in [false, true] do
+      for indexLock in [false, true] do
+        for preparation in [false, true] do
+          IO.println (FrKernels.Git.stagingCrashStateRequiresReview pending indexLock preparation)
   else if args == ["call-selection"] then
     for incoming in [false, true] do
       for outgoing in [false, true] do

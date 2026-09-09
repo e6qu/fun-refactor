@@ -115,6 +115,29 @@ theorem staging_compaction_is_idempotent (payload : Option String) (selected : B
       compactStagingPayload payload selected := by
   cases selected <;> rfl
 
+-- fr:spec src/git.rs::staging_crash_state_requires_review @ 9440dae3c9d4a485fc6d132214d00886e44bc6afc9aa10f2d25e14d83ef0c7a2
+-- fr:signature pending: bool => pending: Bool; index_lock: bool => indexLock: Bool; preparation: bool => preparation: Bool; return: bool => return: Bool
+def stagingCrashStateRequiresReview (pending : Bool) (indexLock : Bool)
+    (preparation : Bool) : Bool :=
+  pending || indexLock || preparation
+
+theorem staging_clean_requires_no_crash_evidence (pending indexLock preparation : Bool) :
+    stagingCrashStateRequiresReview pending indexLock preparation = false ↔
+      pending = false ∧ indexLock = false ∧ preparation = false := by
+  cases pending <;> cases indexLock <;> cases preparation <;>
+    simp [stagingCrashStateRequiresReview]
+
+theorem staging_pending_requires_review (indexLock preparation : Bool) :
+    stagingCrashStateRequiresReview true indexLock preparation = true := by rfl
+
+theorem staging_lock_requires_review (pending preparation : Bool) :
+    stagingCrashStateRequiresReview pending true preparation = true := by
+  cases pending <;> rfl
+
+theorem staging_preparation_requires_review (pending indexLock : Bool) :
+    stagingCrashStateRequiresReview pending indexLock true = true := by
+  cases pending <;> cases indexLock <;> rfl
+
 abbrev StagingIndex := String → Option (Nat × String)
 
 def replaceSelected (current target : StagingIndex) (selected : String → Bool) : StagingIndex :=

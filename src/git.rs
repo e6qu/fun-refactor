@@ -202,6 +202,14 @@ pub fn staging_record_compactable(detailed: bool, pending: bool, retained: bool)
     detailed && !pending && !retained
 }
 
+pub fn staging_crash_state_requires_review(
+    pending: bool,
+    index_lock: bool,
+    preparation: bool,
+) -> bool {
+    pending || index_lock || preparation
+}
+
 pub fn commit_basis_matches(
     expected_branch: &str,
     observed_branch: &str,

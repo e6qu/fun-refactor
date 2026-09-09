@@ -1400,6 +1400,34 @@ fn staging_record_compaction_matches_lean_for_every_boolean_input() {
 }
 
 #[test]
+fn staging_crash_state_matches_lean_for_every_boolean_input() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("staging-crash-state")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for pending in [false, true] {
+        for index_lock in [false, true] {
+            for preparation in [false, true] {
+                expected.push(fun_refactor::git::staging_crash_state_requires_review(
+                    pending,
+                    index_lock,
+                    preparation,
+                ));
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}
+
+#[test]
 fn commit_basis_matches_lean_for_branch_and_parent_changes() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))

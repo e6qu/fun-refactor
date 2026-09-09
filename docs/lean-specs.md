@@ -360,6 +360,7 @@ The portable agent skill includes a [Lean reference](../skills/fr/references/lea
 Staging proposals reuse the same anchored Git mode projection and shared snapshot readers as explicit call context.
 Staging history adds anchored transition and compaction predicates, each checked against all boolean inputs, plus abstract index and payload laws.
 Those laws establish undo/redo round trips, preservation of unselected entries, compaction idempotence and selected-payload removal.
+The crash-state predicate classifies every combination of pending journal, index-lock and preparation evidence; Lean proves the clean-state equivalence.
 Index locking, journal durability, basis hashing and prepared installation remain outside complete correspondence proofs.
 See [staging history assurance](git-stage-history.md#formal-coverage) for assumptions and tested behavior.
 

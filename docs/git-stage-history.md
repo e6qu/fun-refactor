@@ -13,6 +13,7 @@ fr git stage-history redo 1
 fr git stage-history redo 1 --basis TOKEN --write
 fr git stage-history compact --keep 100
 fr git stage-history compact --keep 100 --basis TOKEN --write
+fr git stage-history inspect --stale-after 3600
 ```
 
 List and show omit blob bodies. List returns newest records first, with a limit from 1 through 500, total count and next undo/redo identities.
@@ -98,8 +99,15 @@ If installation happened, the command reports `applied: true` and a warning, eve
 Inspect history before retrying: a failed directory sync can leave either a completed or pending journal visible.
 Failures before installation may leave a pending marker and unreachable Git objects; recovery handles a matching recorded basis.
 
-After process termination, an owned `index.lock` or temporary preparation directory may remain.
-Confirm the writer has exited before removing a stale lock, then inspect recovery. The tool does not guess whether an existing lock is stale.
+After process termination, an owned `index.lock` or temporary `fr-stage-*` preparation directory may remain.
+`stage-history inspect` reports their paths, file types, identities, modes, sizes and ages without reading their contents.
+It combines that evidence with the pending journal action and classifies the state as `clean`, `manual-review` or `recovery-required`.
+`--stale-after SECONDS` changes the age threshold from its one-hour default; `--limit` bounds preparation rows while retaining the full count.
+
+An old regular lock or directory is only a `stale_candidate`; every row keeps `safe_to_remove: false`.
+Age does not prove that its writer exited, and symlinks are never candidates.
+Confirm the writer has exited before handling a candidate manually, preserve the reported identity, then inspect or recover the journal again.
+The command never removes locks or preparation data.
 Keep configuration, HEAD, journal storage and repository directory topology stable during operations.
 The index lock cannot constrain writers that bypass it, and filesystem durability still depends on the host honoring sync and atomic rename.
 Compaction bounds retained replay payloads, while record summaries and their IDs remain in the journal for audit.
@@ -107,9 +115,10 @@ The command is explicit rather than time based and does not remove summaries.
 
 ## Formal coverage
 
-The [Git Lean model](../kernels/FrKernels/Git.lean) anchors the transition and record-compaction predicates and checks every boolean input against Rust.
+The [Git Lean model](../kernels/FrKernels/Git.lean) anchors transition, record-compaction and crash-review predicates and checks every boolean input against Rust.
 Its abstract index laws prove undo/redo round trips and preservation of unselected paths, including later unrelated changes.
 Its payload model proves that selected compaction discards detail, preserves unselected detail and is idempotent.
+The crash-review model proves that only the absence of pending, lock and preparation evidence is classified clean.
 These laws assume correct snapshot identities and replacement of exactly the selected entries.
 The existing history stack laws also describe the intended undo/redo ordering.
 Filesystem execution, journal parsing, object storage, crash durability and complete Rust correspondence remain outside these proofs.

@@ -22,6 +22,7 @@ pub enum Command {
     Redo(Replay),
     Recover(Recovery),
     Compact(Compaction),
+    Inspect(Inspection),
 }
 
 #[derive(Args)]
@@ -51,6 +52,22 @@ pub struct Compaction {
     basis: Option<String>,
     #[arg(long, requires = "basis")]
     write: bool,
+}
+
+#[derive(Args)]
+pub struct Inspection {
+    #[arg(
+        long,
+        default_value_t = 3600,
+        help = "Age in seconds used only to label stale candidates."
+    )]
+    stale_after: u64,
+    #[arg(
+        long,
+        default_value_t = 20,
+        help = "Maximum preparation rows, from 1 to 100."
+    )]
+    limit: usize,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -604,6 +621,114 @@ fn compact(root: &Path, options: &Compaction) -> Result<Value> {
     Ok(result)
 }
 
+fn age(metadata: &fs::Metadata) -> (Option<u64>, Option<u64>) {
+    let modified = metadata
+        .modified()
+        .ok()
+        .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|duration| duration.as_secs());
+    let age = metadata
+        .modified()
+        .ok()
+        .and_then(|time| std::time::SystemTime::now().duration_since(time).ok())
+        .map(|duration| duration.as_secs());
+    (modified, age)
+}
+
+fn evidence(path: &Path, stale_after: u64) -> Result<Value> {
+    let metadata = fs::symlink_metadata(path)?;
+    let kind = if metadata.file_type().is_file() {
+        "regular"
+    } else if metadata.file_type().is_dir() {
+        "directory"
+    } else if metadata.file_type().is_symlink() {
+        "symlink"
+    } else {
+        "other"
+    };
+    let (modified_unix_seconds, age_seconds) = age(&metadata);
+    let stale_candidate = matches!(kind, "regular" | "directory")
+        && age_seconds.is_some_and(|age| age >= stale_after);
+    let mut value = json!({"path":path,"present":true,"kind":kind,"bytes":metadata.len(),
+        "modified_unix_seconds":modified_unix_seconds,"age_seconds":age_seconds,
+        "stale_after_seconds":stale_after,"stale_candidate":stale_candidate,
+        "safe_to_remove":false});
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        value["identity"] = json!([metadata.dev(), metadata.ino()]);
+        value["mode"] = json!(metadata.mode());
+    }
+    Ok(value)
+}
+
+fn inspect(root: &Path, options: &Inspection) -> Result<Value> {
+    ensure!(
+        options.stale_after <= 31_536_000,
+        "stale candidate age must be at most 31536000 seconds."
+    );
+    ensure!(
+        (1..=100).contains(&options.limit),
+        "staging inspection limit must be 1 through 100."
+    );
+    let root = process::repository_root(&root.canonicalize()?)?;
+    let index = super::apply::index_path(&root)?;
+    let journal = Journal::read(&root, &index)?;
+    let lock_path = index.with_extension("lock");
+    let index_lock = match fs::symlink_metadata(&lock_path) {
+        Ok(_) => evidence(&lock_path, options.stale_after)?,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            json!({"path":lock_path,"present":false,"safe_to_remove":false})
+        }
+        Err(error) => return Err(error.into()),
+    };
+    let parent = index.parent().context("missing Git index directory")?;
+    let mut preparations = Vec::new();
+    for entry in fs::read_dir(parent)? {
+        let entry = entry?;
+        if entry
+            .file_name()
+            .to_str()
+            .is_some_and(|name| name.starts_with("fr-stage-"))
+        {
+            preparations.push(evidence(&entry.path(), options.stale_after)?);
+        }
+    }
+    preparations.sort_by(|left, right| left["path"].as_str().cmp(&right["path"].as_str()));
+    let preparation_count = preparations.len();
+    preparations.truncate(options.limit);
+    let lock_present = index_lock["present"] == true;
+    let pending = journal.state.pending.is_some();
+    let review = crate::git::staging_crash_state_requires_review(
+        pending,
+        lock_present,
+        preparation_count > 0,
+    );
+    let state = if pending {
+        "recovery-required"
+    } else if review {
+        "manual-review"
+    } else {
+        "clean"
+    };
+    let advice = if pending {
+        "Confirm the writer has exited, preserve any lock evidence, then preview `fr git stage-history recover`."
+    } else if review {
+        "Confirm no Git or fr writer is active before manually handling stale candidates. Age alone never proves a lock is abandoned."
+    } else {
+        "No pending staging operation, index lock or preparation directory was observed."
+    };
+    journal.check()?;
+    Ok(
+        json!({"schema":1,"repository_root":root,"operation":"stage-history-inspect",
+        "state":state,"requires_review":review,"pending":journal.state.pending,
+        "index":index,"index_lock":index_lock,"preparations":preparations,
+        "preparation_count":preparation_count,"preparations_omitted":preparation_count.saturating_sub(options.limit),
+        "stale_after_seconds":options.stale_after,"advice":advice,"source_bodies":"omitted",
+        "content_inspected":false,"writes":false}),
+    )
+}
+
 pub(in crate::git) fn require_plain_entries(root: &Path, paths: &BTreeSet<String>) -> Result<()> {
     if paths.is_empty() {
         return Ok(());
@@ -649,6 +774,9 @@ pub(in crate::git) fn require_plain_entries(root: &Path, paths: &BTreeSet<String
 pub(in crate::git) fn report(root: &Path, command: &Command) -> Result<Value> {
     if let Command::Compact(options) = command {
         return compact(root, options);
+    }
+    if let Command::Inspect(options) = command {
+        return inspect(root, options);
     }
     let root = process::repository_root(&root.canonicalize()?)?;
     let (action, id, options) = match command {

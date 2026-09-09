@@ -484,6 +484,56 @@ fn compaction_refuses_stale_empty_pending_and_corrupt_requests() {
 }
 
 #[test]
+fn inspection_reports_pending_locks_and_preparations_without_claiming_ownership() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    fixture(root);
+    stage(root, &["file.txt"]);
+    let index_path = root.join(".git/index");
+    let journal_path = root.join(".git/fr-stage/state.json");
+    let index = fs::read(&index_path).unwrap();
+    let journal = fs::read(&journal_path).unwrap();
+
+    let clean = read_history(root, &["inspect", "--stale-after", "0"]);
+    assert_eq!(clean["state"], "clean");
+    assert_eq!(clean["requires_review"], false);
+    assert_eq!(clean["index_lock"]["present"], false);
+    assert_eq!(clean["preparation_count"], 0);
+
+    fs::write(root.join(".git/index.lock"), b"opaque foreign lock").unwrap();
+    fs::create_dir(root.join(".git/fr-stage-orphan")).unwrap();
+    symlink("index", root.join(".git/fr-stage-link")).unwrap();
+    let review = read_history(root, &["inspect", "--stale-after", "0", "--limit", "1"]);
+    assert_eq!(review["state"], "manual-review");
+    assert_eq!(review["requires_review"], true);
+    assert_eq!(review["index_lock"]["kind"], "regular");
+    assert_eq!(review["index_lock"]["stale_candidate"], true);
+    assert_eq!(review["index_lock"]["safe_to_remove"], false);
+    assert!(review["index_lock"]["identity"].is_array());
+    assert_eq!(review["preparation_count"], 2);
+    assert_eq!(review["preparations"].as_array().unwrap().len(), 1);
+    assert_eq!(review["preparations_omitted"], 1);
+    assert_eq!(review["content_inspected"], false);
+    assert_eq!(fs::read(&index_path).unwrap(), index);
+    assert_eq!(fs::read(&journal_path).unwrap(), journal);
+
+    fs::remove_file(root.join(".git/index.lock")).unwrap();
+    fs::remove_dir(root.join(".git/fr-stage-orphan")).unwrap();
+    fs::remove_file(root.join(".git/fr-stage-link")).unwrap();
+    set_pending(root, "undo", false);
+    let pending = read_history(root, &["inspect"]);
+    assert_eq!(pending["state"], "recovery-required");
+    assert_eq!(pending["pending"]["id"], 1);
+    assert!(pending["advice"].as_str().unwrap().contains("recover"));
+    history_error(
+        root,
+        &["inspect", "--stale-after", "31536001"],
+        "at most 31536000",
+    );
+    history_error(root, &["inspect", "--limit", "0"], "1 through 100");
+}
+
+#[test]
 fn journal_refuses_selected_external_edits_and_special_flags() {
     for flag in ["--assume-unchanged", "--skip-worktree", "content"] {
         let dir = tempfile::tempdir().unwrap();

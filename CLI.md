@@ -1231,11 +1231,13 @@ fr git stage-history recover
 
 fr git stage-history compact --keep 100
 fr git stage-history compact --keep 100 --basis TOKEN --write
+fr git stage-history inspect --stale-after 3600
 ```
 
 Changed staging writes record index snapshots separately from source history. Undo, redo, recovery and compaction default to previews and require their own basis for writes.
 They preserve working files and unrelated staged entries. Pending operations block further staging writes until recovery.
 Compaction keeps the requested number of replay payloads on each stack while retaining record summaries and monotonic IDs.
+Inspection reports pending operations, index locks and leftover preparation directories without removing or reading them.
 See [staging history](docs/git-stage-history.md) for stack order, storage, flag restrictions and durability limits.
 
 ```sh
