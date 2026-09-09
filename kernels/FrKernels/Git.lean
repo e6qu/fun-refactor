@@ -333,6 +333,35 @@ theorem prepared_recovery_requires_matching_registration (receipt preparation : 
 theorem prepared_recovery_accepts_complete_evidence :
     worktreePreparedRecoveryAllowed false true true = true := by rfl
 
+-- fr:spec src/git.rs::worktree_entry_mode_allowed @ cd1b8788a8a9828da7798c07cdd744cfd869bea89ed7ad73c1305ee7acbb093b
+-- fr:signature regular: bool => regular: Bool; executable: bool => executable: Bool; symlink: bool => symlink: Bool; object_is_blob: bool => objectIsBlob: Bool; return: bool => return: Bool
+def worktreeEntryModeAllowed (regular : Bool) (executable : Bool) (symlink : Bool)
+    (objectIsBlob : Bool) : Bool :=
+  objectIsBlob &&
+    ((regular && !executable && !symlink) ||
+      (!regular && executable && !symlink) ||
+      (!regular && !executable && symlink))
+
+theorem worktree_entry_mode_requires_blob (regular executable symlink : Bool) :
+    worktreeEntryModeAllowed regular executable symlink false = false := by
+  cases regular <;> cases executable <;> cases symlink <;> rfl
+
+theorem worktree_entry_mode_accepts_regular :
+    worktreeEntryModeAllowed true false false true = true := by rfl
+
+theorem worktree_entry_mode_accepts_executable :
+    worktreeEntryModeAllowed false true false true = true := by rfl
+
+theorem worktree_entry_mode_accepts_symlink :
+    worktreeEntryModeAllowed false false true true = true := by rfl
+
+theorem worktree_entry_mode_refuses_ambiguous_kinds
+    (regular executable symlink : Bool)
+    (ambiguous : (regular && executable) || (regular && symlink) || (executable && symlink) = true) :
+    worktreeEntryModeAllowed regular executable symlink true = false := by
+  cases regular <;> cases executable <;> cases symlink <;>
+    simp_all [worktreeEntryModeAllowed]
+
 def resumeFile (before : Option (String × Nat)) (target : String × Nat) : Option (String × Nat) :=
   if before = none ∨ before = some target then some target else none
 

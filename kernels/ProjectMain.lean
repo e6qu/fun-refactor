@@ -116,6 +116,12 @@ def main (args : List String) : IO Unit := do
       for preparationMatches in [false, true] do
         for registrationMatches in [false, true] do
           IO.println (FrKernels.Git.worktreePreparedRecoveryAllowed receiptPresent preparationMatches registrationMatches)
+  else if args == ["worktree-entry-mode"] then
+    for regular in [false, true] do
+      for executable in [false, true] do
+        for symlink in [false, true] do
+          for objectIsBlob in [false, true] do
+            IO.println (FrKernels.Git.worktreeEntryModeAllowed regular executable symlink objectIsBlob)
   else if args == ["worktree-budget"] then
     for files in [0, 1, 19999, 20000, 20001, 18446744073709551615] do
       for bytes in [0, 268435455, 268435456, 268435457, 18446744073709551615] do

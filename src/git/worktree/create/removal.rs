@@ -6,6 +6,7 @@ use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::fs::{self, File};
 use std::io::Write;
+use std::os::unix::ffi::OsStringExt;
 use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 
@@ -30,6 +31,10 @@ impl FileState {
 
     fn read_limited(path: &Path, limit: u64) -> Result<Self> {
         let before = fs::symlink_metadata(path)?;
+        ensure!(
+            before.file_type().is_file(),
+            "unsupported ownership metadata file; removal metadata must be regular."
+        );
         let bytes = ownership::bytes(path, limit)?;
         let after = fs::symlink_metadata(path)?;
         ensure!(
@@ -46,12 +51,52 @@ impl FileState {
         })
     }
 
+    fn read_expected(path: &Path, expected_mode: u32, limit: u64) -> Result<Self> {
+        let before = fs::symlink_metadata(path)?;
+        let symlink = expected_mode & 0o170000 == 0o120000;
+        ensure!(
+            if symlink {
+                before.file_type().is_symlink()
+            } else {
+                expected_mode & 0o170000 == 0o100000 && before.file_type().is_file()
+            },
+            "removal entry type changed."
+        );
+        let bytes = if symlink {
+            let bytes = fs::read_link(path)?.into_os_string().into_vec();
+            ensure!(
+                bytes.len() as u64 <= limit,
+                "removal symlink exceeds limit."
+            );
+            bytes
+        } else {
+            ownership::bytes(path, limit)?
+        };
+        let after = fs::symlink_metadata(path)?;
+        ensure!(
+            before.dev() == after.dev()
+                && before.ino() == after.ino()
+                && before.mode() == after.mode(),
+            "removal entry changed during inspection."
+        );
+        Ok(Self {
+            identity: (after.dev(), after.ino()),
+            mode: after.mode(),
+            digest: ownership::digest(&bytes),
+            bytes,
+        })
+    }
+
+    fn current(&self, path: &Path) -> Result<Self> {
+        Self::read_expected(path, self.mode, 64 * 1024 * 1024)
+    }
+
     fn remove(&self, path: &Path) -> Result<()> {
         self.remove_limited(path, 64 * 1024 * 1024)
     }
 
     fn remove_limited(&self, path: &Path, limit: u64) -> Result<()> {
-        let current = Self::read_limited(path, limit)?;
+        let current = Self::read_expected(path, self.mode, limit)?;
         ensure!(
             crate::git::worktree_removal_file_allowed(
                 self.identity == current.identity,

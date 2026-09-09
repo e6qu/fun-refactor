@@ -244,23 +244,28 @@ pub(super) fn observe(capture: &Capture) -> Result<Observation> {
                 let (entry, blob) = expected
                     .get(name)
                     .with_context(|| format!("unexpected recovery file: {name:?}."))?;
-                ensure!(
-                    stat.file_type().is_file(),
-                    "recovery refuses non-regular files: {name:?}."
-                );
-                let raw = ownership::bytes(&plan.destination.join(&path), entry.size as u64)
+                let entry_path = plan.destination.join(&path);
+                let raw = checkout::entry_bytes(&entry_path, entry)
                     .with_context(|| format!("reading recovery file {name:?}."))?;
+                let after = fs::symlink_metadata(&entry_path)?;
                 ensure!(
                     crate::git::worktree_recovery_file_allowed(
-                        true,
+                        stat.dev() == after.dev()
+                            && stat.ino() == after.ino()
+                            && stat.mode() == after.mode(),
                         raw == **blob,
-                        (stat.mode() & 0o100 != 0) == (entry.mode == "100755")
+                        entry.metadata_matches(&after)
                     ),
                     "recovery file differs from committed bytes or mode: {name:?}."
                 );
                 observed.files.insert(
                     name.to_owned(),
-                    (stat.dev(), stat.ino(), stat.mode(), ownership::digest(&raw)),
+                    (
+                        after.dev(),
+                        after.ino(),
+                        after.mode(),
+                        ownership::digest(&raw),
+                    ),
                 );
             }
         }

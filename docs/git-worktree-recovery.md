@@ -36,11 +36,11 @@ Successful creation and recovery leave no preparation record.
 
 ## What recovery accepts
 
-Recovery reloads the original commit's regular blobs with the same limits as [raw creation](git-worktree-creation.md).
+Recovery reloads the original commit's regular and symlink blobs with the same limits as [raw creation](git-worktree-creation.md).
 It inventories the entire destination, including ignored paths, and refuses extra files or directories.
-Existing tracked files must match committed bytes and the Git executable bit.
-Matching files retain their bytes, permissions and inode identities. Missing tracked files can be created.
-Symlinks and other non-regular entries refuse.
+Existing regular files must match committed bytes and the Git executable bit. Existing symlinks must match the committed target bytes.
+Matching entries retain their bytes and inode identities; regular files also retain permissions. Missing tracked entries can be created.
+Other non-regular entries refuse.
 
 When worktree configuration is enabled, recovery accepts an absent `config.worktree` or preserves an existing regular file of at most 1 MiB.
 Its identity, mode and content digest participate in the basis, and recovery verifies that the file remains unchanged before completing the receipt.
@@ -68,7 +68,8 @@ Git documents the cooperating writer convention in its [lockfile API](https://gi
 An absent index is prepared privately, synchronized and installed with a hard link that refuses an existing destination.
 Index creation requires filesystem hard-link support. An existing index keeps its original bytes and inode.
 
-Missing files use exclusive creation. Matching files receive no writes or permission changes.
+Missing entries use exclusive creation. Matching entries receive no writes or permission changes.
+Missing symlinks use exclusive creation and recovery never follows their targets.
 The writer checks the resulting checkout before marking the receipt complete.
 Hooks, content filters, replacement objects and inherited Git environment overrides remain disabled or bypassed.
 
@@ -91,6 +92,7 @@ Recovery does not guarantee restoration after partial writes that leave differin
 The anchored recovery predicate has Lean proofs for missing-file acceptance and existing-file matching requirements.
 The configuration predicate proves that an accepted state has the reviewed repository mode and a regular file whenever the per-worktree configuration path is present.
 The prepared-recovery predicate requires an absent receipt, matching preparation and matching registration.
+The entry-mode predicate requires a blob and exactly one recognized regular, executable or symlink kind.
 Abstract file models prove preservation of accepted existing contents and modes, and refusal of changed files.
 Shared Rust/Lean tests exercise all boolean inputs for these predicates.
 Filesystem ownership, locks, receipt durability and the complete Rust workflow remain outside general correspondence proofs.

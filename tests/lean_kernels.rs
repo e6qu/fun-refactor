@@ -1603,6 +1603,37 @@ fn worktree_prepared_recovery_policy_matches_lean_for_every_input() {
 }
 
 #[test]
+fn worktree_entry_mode_policy_matches_lean_for_every_input() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("worktree-entry-mode")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for regular in [false, true] {
+        for executable in [false, true] {
+            for symlink in [false, true] {
+                for object_is_blob in [false, true] {
+                    expected.push(fun_refactor::git::worktree_entry_mode_allowed(
+                        regular,
+                        executable,
+                        symlink,
+                        object_is_blob,
+                    ));
+                }
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}
+
+#[test]
 fn worktree_removal_matches_lean_for_all_file_states() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))

@@ -32,7 +32,7 @@ The invoking worktree and its ancestors cannot be removed.
 ## Inspection and review
 
 Rows identify their scope, path, kind and observed state.
-Surviving reviewed files must retain their identity, bytes and full Unix mode.
+Surviving reviewed regular files and symlinks must retain their identity, bytes and full Unix mode.
 Surviving directories must retain their identities. Missing files and directories count as finished work.
 A replaced directory is not traversed; its recorded descendants are reported as uninspected.
 Extra paths, changed files, unsupported entries and existing locks are blockers.
@@ -60,6 +60,7 @@ Existing locks are not broken automatically. Cleanup preserves replacement lock 
 
 The writer repeats inspection after acquiring locks.
 It deletes only files observed as remaining, with fresh identity, bytes, mode and parent-directory checks before unlinking.
+Symlink observations and deletion checks never follow the target.
 Missing paths are skipped. Directories are removed only when empty.
 New content or changed bytes that arrive after review can stop deletion and remain for inspection.
 The private registration is removed after the checkout. Branches and the invoking worktree's index receive no writes.
@@ -74,7 +75,7 @@ Resumption does not recreate deleted paths or perform worktree undo/redo.
 Crashes can leave locks requiring manual ownership review.
 Observation and unlinking are separate filesystem operations; hostile concurrent path replacement remains outside complete race protection.
 Neither deletion nor completion is an atomic transaction across all involved paths.
-Completed records support [reviewed compaction](git-worktree-archive-compaction.md). Bulk archive retention remains pending.
+Completed records support [reviewed compaction](git-worktree-archive-compaction.md), including explicit bulk archive retention.
 When a compaction summary is present, this command returns a small audit report with `can_resume: false` and no per-file rows.
 Use the original record path with `compact-removal` to inspect or finish compaction.
 

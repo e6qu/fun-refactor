@@ -257,6 +257,15 @@ pub fn worktree_prepared_recovery_allowed(
     !receipt_present && preparation_matches && registration_matches
 }
 
+pub fn worktree_entry_mode_allowed(
+    regular: bool,
+    executable: bool,
+    symlink: bool,
+    object_is_blob: bool,
+) -> bool {
+    object_is_blob && (regular as u8 + executable as u8 + symlink as u8 == 1)
+}
+
 pub fn worktree_removal_file_allowed(
     identity_matches: bool,
     bytes_match: bool,

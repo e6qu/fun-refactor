@@ -18,9 +18,9 @@ A receipt is local ownership evidence, not a signed attestation.
 
 The target must be attached to its original, direct local branch with its registration lock still present.
 Later commits on that branch are supported. Removal reviews the current commit and retains the branch at that commit.
-The entire checkout must match the current commit's raw blobs and executable bits.
+The entire checkout must match the current commit's raw blobs, entry kinds and executable bits.
 All files must be present. Extra files and directories refuse, including ignored paths and local history directories.
-The regular-file, path and payload restrictions from [raw creation](git-worktree-creation.md) apply.
+The regular-file, symlink, path and payload restrictions from [raw creation](git-worktree-creation.md) apply.
 
 The index must match the committed inventory with plain entries.
 Staged changes, conflicts, intent-to-add, assume-unchanged and skip-worktree entries refuse.
@@ -47,6 +47,7 @@ This private archive contains the proposal, receipt, snapshot and exact bytes of
 The source bytes remain available in the retained commit. The archive directory and record are synchronized before deletion starts.
 
 Each unlink checks the reviewed file's identity, bytes and complete Unix mode again.
+Symlink checks read target bytes without following the link.
 Parent directory identities are checked before accessing selected files.
 Directories are removed only when empty; cleanup never recursively removes a destination.
 Unexpected content that arrives after review can stop cleanup and remains for inspection.
@@ -65,7 +66,7 @@ The archive retains the reviewed metadata and identifies the retained source com
 Absence of a `complete` marker requires inspection; it does not establish which deletions occurred.
 [Removal inspection and checked resumption](git-worktree-removal-resumption.md) accept missing paths and matching survivors. Worktree undo/redo remains pending.
 Creation recovery refuses completed receipts and must not be used to reverse partial removal.
-Completed records support [reviewed archive compaction](git-worktree-archive-compaction.md), retaining a small audit summary. Bulk retention remains pending.
+Completed records support [reviewed archive compaction](git-worktree-archive-compaction.md), retaining a small audit summary and explicit bulk retention.
 
 Locks coordinate cooperating Git and `fr` writers. Existing and replacement locks are preserved.
 Crashes can leave locks requiring manual ownership review. Readers do not take these locks.

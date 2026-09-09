@@ -104,16 +104,18 @@ fn create(root: &Path) -> Value {
 
 #[test]
 fn removes_reviewed_worktree_archives_metadata_and_retains_branch() {
+    use std::os::unix::fs::symlink;
     let temp = fixture();
     let root = temp.path().join("main");
     fs::create_dir(root.join("nested")).unwrap();
     fs::write(root.join("nested/binary"), [0, 255, 13]).unwrap();
+    symlink("../file.txt", root.join("nested/current")).unwrap();
     commit(&root);
     let created = create(&root);
     let index = fs::read(root.join(".git/index")).unwrap();
     let preview = report(&root, &["../owned", "--limit", "1"]);
     assert_eq!(preview["applied"], false);
-    assert_eq!(preview["page"]["total"], 2);
+    assert_eq!(preview["page"]["total"], 3);
     let result = report(
         &root,
         &[
@@ -140,6 +142,18 @@ fn removes_reviewed_worktree_archives_metadata_and_retains_branch() {
     let archived: Value = serde_json::from_slice(&fs::read(record).unwrap()).unwrap();
     assert!(archived["metadata_bytes"]["index"].is_array());
     assert!(record.with_file_name("complete").is_file());
+    let inspected = Command::new(env!("CARGO_BIN_EXE_fr"))
+        .args(["--json", "--no-cache", "-C"])
+        .arg(&root)
+        .args(["git", "worktree", "resume-removal"])
+        .arg(record)
+        .output()
+        .unwrap();
+    assert!(
+        inspected.status.success(),
+        "{}",
+        String::from_utf8_lossy(&inspected.stdout)
+    );
     assert_eq!(
         String::from_utf8(git(&root, &["worktree", "list", "--porcelain"]))
             .unwrap()

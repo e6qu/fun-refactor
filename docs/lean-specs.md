@@ -384,6 +384,10 @@ Lean proves that recovery rejects an existing receipt, a mismatched preparation 
 Rust and Lean agree on all eight boolean inputs. Host tests kill creation after Git registration and check receipt publication, preparation cleanup and checkout completion.
 They also check existing-branch preservation.
 
+Raw worktree entry support adds an anchored mode policy for regular, executable and symlink blobs.
+Lean proves that every accepted entry is a blob with one recognized kind and that ambiguous kinds refuse.
+Rust and Lean agree on all sixteen boolean states. Host tests cover symlink creation, interrupted recovery, removal and archive validation.
+
 The Git removal kernel anchors the identity, bytes and mode guard used before deleting reviewed worktree files.
 Lean proves that acceptance requires all three matches. Shared executable tests cover all eight input combinations.
 An abstract namespace model proves that selected removal preserves other paths.

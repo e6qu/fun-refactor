@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, DirBuilder, File, OpenOptions, Permissions};
 use std::io::Write;
+use std::os::unix::ffi::{OsStrExt, OsStringExt};
 use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Component, Path, PathBuf};
 
@@ -15,6 +16,24 @@ pub(super) struct Entry {
     pub(super) mode: String,
     oid: String,
     pub(super) size: usize,
+}
+
+impl Entry {
+    pub(super) fn symlink(&self) -> bool {
+        self.mode == "120000"
+    }
+
+    fn executable(&self) -> bool {
+        self.mode == "100755"
+    }
+
+    pub(super) fn metadata_matches(&self, metadata: &fs::Metadata) -> bool {
+        if self.symlink() {
+            metadata.file_type().is_symlink()
+        } else {
+            metadata.file_type().is_file() && (metadata.mode() & 0o100 != 0) == self.executable()
+        }
+    }
 }
 
 pub(super) fn inventory(root: &Path, commit: &str) -> Result<Vec<Entry>> {
@@ -31,12 +50,15 @@ pub(super) fn inventory(root: &Path, commit: &str) -> Result<Vec<Entry>> {
             .split_once('\t')
             .context("invalid worktree tree entry.")?;
         let fields = metadata.split_whitespace().collect::<Vec<_>>();
+        ensure!(fields.len() == 4, "invalid worktree tree entry.");
         ensure!(
-            fields.len() == 4
-                && matches!(fields[0], "100644" | "100755")
-                && fields[1] == "blob"
-                && process::oid(fields[2]),
-            "raw worktree creation supports regular blobs only."
+            crate::git::worktree_entry_mode_allowed(
+                fields[0] == "100644",
+                fields[0] == "100755",
+                fields[0] == "120000",
+                fields[1] == "blob"
+            ) && process::oid(fields[2]),
+            "raw worktree creation supports regular and symlink blobs only."
         );
         ensure!(
             !path.is_empty()
@@ -55,6 +77,10 @@ pub(super) fn inventory(root: &Path, commit: &str) -> Result<Vec<Entry>> {
         let size = fields[3]
             .parse::<usize>()
             .context("worktree blob is missing or has an invalid size.")?;
+        ensure!(
+            fields[0] != "120000" || (1..=1023).contains(&size),
+            "raw worktree symlink targets must contain 1 through 1023 bytes."
+        );
         total = total.checked_add(size).context("worktree size overflow.")?;
         ensure!(
             crate::git::worktree_budget_allows(entries.len() + 1, total, size),
@@ -122,10 +148,24 @@ pub(super) fn blobs(plan: &Proposal) -> Result<Vec<Vec<u8>>> {
             "incomplete worktree blob body."
         );
         blobs.push(rest[..entry.size].to_vec());
+        if entry.symlink() {
+            ensure!(
+                !blobs.last().unwrap().contains(&0),
+                "raw worktree symlink targets cannot contain NUL bytes."
+            );
+        }
         rest = &rest[entry.size + 1..];
     }
     ensure!(rest.is_empty(), "unexpected trailing worktree blob data.");
     Ok(blobs)
+}
+
+pub(super) fn entry_bytes(path: &Path, entry: &Entry) -> Result<Vec<u8>> {
+    if entry.symlink() {
+        Ok(fs::read_link(path)?.into_os_string().into_vec())
+    } else {
+        super::ownership::bytes(path, entry.size as u64)
+    }
 }
 
 pub(super) fn check_directory(plan: &Proposal, identity: (u64, u64)) -> Result<()> {
@@ -232,28 +272,31 @@ pub(super) fn populate(
         if resume && !absent(&path)? {
             let stat = fs::symlink_metadata(&path)?;
             ensure!(
-                stat.file_type().is_file()
-                    && (stat.mode() & 0o100 != 0) == (entry.mode == "100755")
-                    && super::ownership::bytes(&path, entry.size as u64)? == *bytes,
+                entry.metadata_matches(&stat) && entry_bytes(&path, entry)? == *bytes,
                 "existing recovery file differs from its committed bytes or mode."
             );
             files.insert(path, (stat.dev(), stat.ino()));
             continue;
         }
-        let mut file = OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .mode(0o600)
-            .open(&path)
-            .with_context(|| format!("creating fresh worktree file {:?}", entry.path))?;
-        file.write_all(bytes)?;
-        file.set_permissions(Permissions::from_mode(if entry.mode == "100755" {
-            0o755
+        if entry.symlink() {
+            std::os::unix::fs::symlink(std::ffi::OsStr::from_bytes(bytes), &path)
+                .with_context(|| format!("creating fresh worktree symlink {:?}", entry.path))?;
         } else {
-            0o644
-        }))?;
-        file.sync_all()?;
-        let metadata = file.metadata()?;
+            let mut file = OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .mode(0o600)
+                .open(&path)
+                .with_context(|| format!("creating fresh worktree file {:?}", entry.path))?;
+            file.write_all(bytes)?;
+            file.set_permissions(Permissions::from_mode(if entry.executable() {
+                0o755
+            } else {
+                0o644
+            }))?;
+            file.sync_all()?;
+        }
+        let metadata = fs::symlink_metadata(&path)?;
         files.insert(path, (metadata.dev(), metadata.ino()));
     }
     for (path, expected) in directories.iter().rev() {
@@ -264,11 +307,10 @@ pub(super) fn populate(
         let path = plan.destination.join(&entry.path);
         let metadata = fs::symlink_metadata(&path)?;
         ensure!(
-            metadata.file_type().is_file()
+            entry.metadata_matches(&metadata)
                 && files.get(&path) == Some(&(metadata.dev(), metadata.ino()))
-                && (metadata.mode() & 0o100 != 0) == (entry.mode == "100755")
-                && fs::read(&path)? == *bytes,
-            "raw worktree file changed during creation."
+                && entry_bytes(&path, entry)? == *bytes,
+            "raw worktree entry changed during creation."
         );
     }
     Ok(())

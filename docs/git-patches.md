@@ -138,7 +138,7 @@ Binary snapshots containing NUL, non-UTF-8 source, symlinks and submodules are o
 An unsupported change fails the entire export before any patch is printed.
 The exporter does not include blob IDs, binary hunks or three-way merge support.
 [Git status pages](git-status.md) report repository changes independently of history.
-Staging, commits and worktree authoring workflows remain roadmap work.
+[Git administration](git-staging.md) covers current staging, commits and owned worktree workflows.
 
 The format follows Git's [patch format documentation](https://git-scm.com/docs/diff-format).
 Application behavior is described in [git apply](https://git-scm.com/docs/git-apply).

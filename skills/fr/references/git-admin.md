@@ -16,6 +16,7 @@ Do not infer permission to commit, push or publish from a request to inspect or 
 `fr git worktree list` inspects registrations.
 `create PATH --branch NAME` previews a new branch; `--existing-branch NAME` attaches an unused local branch at its reviewed tip.
 Creation writes require their returned `--basis TOKEN --write` and support only the documented raw checkout subset.
+That subset includes bounded regular files and symlinks. It refuses submodules and never follows symlink targets during lifecycle operations.
 Existing-branch creation retains the ref and its configuration. Preview refusals expose unsupported layouts or state.
 `fr` accepts repositories with `extensions.worktreeConfig`. Recovery preserves a regular private `config.worktree`, and removal archives its bytes; a changed repository mode or a non-regular configuration path refuses.
 

@@ -158,8 +158,12 @@ impl Loaded {
                 .context("missing archived file identity.")?;
             ensure!(
                 *digest == ownership::digest(&bytes)
-                    && mode & 0o170000 == 0o100000
-                    && (*mode & 0o100 != 0) == (entry.mode == "100755"),
+                    && if entry.symlink() {
+                        mode & 0o170000 == 0o120000
+                    } else {
+                        mode & 0o170000 == 0o100000
+                            && (*mode & 0o100 != 0) == (entry.mode == "100755")
+                    },
                 "invalid archived file bytes or mode."
             );
             for parent in Path::new(&entry.path).ancestors().skip(1) {

@@ -153,7 +153,7 @@ fn create_report(root: &Path, args: &[&str]) -> Value {
 }
 
 fn pending_with_worktree_config(fault: &str, worktree_config: bool) -> tempfile::TempDir {
-    use std::os::unix::fs::PermissionsExt;
+    use std::os::unix::fs::{symlink, PermissionsExt};
     let temp = fixture();
     let root = temp.path().join("main");
     fs::create_dir(root.join("nested")).unwrap();
@@ -161,6 +161,7 @@ fn pending_with_worktree_config(fault: &str, worktree_config: bool) -> tempfile:
     fs::set_permissions(root.join("nested/run"), fs::Permissions::from_mode(0o755)).unwrap();
     fs::write(root.join("empty"), b"").unwrap();
     fs::write(root.join("binary"), [0, 255, 0, 1]).unwrap();
+    symlink("file.txt", root.join("current")).unwrap();
     commit(&root);
     if worktree_config {
         git(&root, &["config", "extensions.worktreeConfig", "true"]);
@@ -304,7 +305,7 @@ fn recovers_a_registered_creation_after_a_crash_before_receipt_publication() {
 }
 
 #[test]
-fn resumes_registered_failures_with_binary_modes_and_read_only_preview() {
+fn resumes_registered_failures_with_binary_modes_symlinks_and_read_only_preview() {
     use std::os::unix::fs::PermissionsExt;
     for fault in ["after-add", "before-index", "after-index"] {
         let temp = pending(fault);
@@ -319,7 +320,7 @@ fn resumes_registered_failures_with_binary_modes_and_read_only_preview() {
         let index = fs::read(root.join(".git/index")).unwrap();
         let refs = git(&root, &["show-ref"]);
         let preview = report(&root, &["../task", "--limit", "1"]);
-        assert_eq!(preview["page"]["total"], 4);
+        assert_eq!(preview["page"]["total"], 5);
         assert_eq!(preview["missing"].as_array().unwrap().len(), 1);
         assert_eq!(preview["index_action"], "create");
         assert_eq!(fs::read(&receipt).unwrap(), raw);
@@ -338,6 +339,10 @@ fn resumes_registered_failures_with_binary_modes_and_read_only_preview() {
         assert_eq!(value["applied"], true, "{fault}: {value}");
         assert_eq!(fs::read(task.join("binary")).unwrap(), [0, 255, 0, 1]);
         assert_eq!(fs::read(task.join("file.txt")).unwrap(), b"base\n");
+        assert_eq!(
+            fs::read_link(task.join("current")).unwrap(),
+            Path::new("file.txt")
+        );
         assert_eq!(
             fs::read(task.join("nested/run")).unwrap(),
             b"#!/bin/sh\r\nexit 0\r\n"
