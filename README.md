@@ -325,9 +325,13 @@ Direct variable handlers expose initializer annotations. Nested app candidates r
 FastAPI contract rows include explicit parameter markers and decorator response models, with separate return annotations and no inferred wire schemas.
 `fr project schemas` pages Python class, TypeScript interface/object-alias and Rust struct fields, with followable candidates and explicit validation gaps.
 `fr project contracts --types` adds optional declaration links from supported signature types, preserving ambiguity and unresolved names.
+`fr project features` joins the bounded Next.js App Router and FastAPI facts into a parent-linked hierarchy.
+It groups exact route paths inside inferred application boundaries, then links routes, handlers, contract fields and same-file schema candidates.
+Every fact retains a source anchor, evidence basis, status, confidence and explicit gaps.
+Use `--feature ID` to retrieve one revision-bound subtree.
 `fr project configuration` pages environment declarations and candidate code consumers, with captured-source checks and explicit analysis gaps.
 `fr project tests` adds catalog candidates and bounded call-path witnesses, preserving the weakest edge confidence without claiming runtime coverage.
-Complete dependency graphs, framework semantics and broader task evaluations remain roadmap work.
+Complete dependency graphs, frontend semantics and runtime framework behavior remain roadmap work.
 
 [TUTORIAL.md](TUTORIAL.md) walks through helm/helm.
 [EXAMPLES.md](EXAMPLES.md) shows capabilities on pinned public repositories.

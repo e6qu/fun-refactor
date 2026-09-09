@@ -32,7 +32,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | M3 Git integration | Complete | Patches, repository views, staging history, reviewed commits and durable owned-worktree lifecycle | Maintained as a shared repository invariant |
 | M4 agent workflow | In progress | Portable skill, bounded authoring, multi-file batches, checks and eighteen passing autonomous trials | Make context use competitive and extend authoring scope |
 | M5 Lean adoption | Complete | Pinned package initialization, anchored model scaffolds, regeneration, proof-debt ratchets, generated CI and bounded evidence reports | Maintain the trust boundary and extend the documented model subset as real projects require it |
-| M6 framework transformation | Pending | Shared code IR and bounded Next.js/FastAPI/OpenAPI support | Hierarchical feature models and verified migrations |
+| M6 framework transformation | In progress | Shared code IR, bounded Next.js/FastAPI/OpenAPI support and route-centered feature hierarchies | Complete framework semantics and verified migrations |
 
 ## What exists now
 
@@ -276,6 +276,8 @@ Every result distinguishes a proved model property, tested implementation/model 
 
 ### PR 5. Framework Semantic Model
 
+Status: in progress on `framework_semantic_model`. The first checkpoint adds a selectable route-centered hierarchy for the bounded Next.js App Router and FastAPI readers. Application, feature, route, handler, contract and schema facts retain parent IDs, source anchors, evidence, confidence and explicit gaps.
+
 Goal: represent a feature across application structure rather than as isolated syntax nodes.
 
 Deliverables:
@@ -283,7 +285,7 @@ Deliverables:
 - Model applications, packages, features, build settings and dependency boundaries.
 - Model backend routes, schemas, handlers, middleware, authentication boundaries and service dependencies.
 - Model frontend components, properties, events, state, effects, styles and rendering boundaries.
-- Attach source anchors, confidence, unsupported constructs and validation evidence to every fact.
+- Attach source anchors, confidence, unsupported constructs and validation evidence to every fact; complete for the first route-centered hierarchy.
 - Strengthen the existing Next.js and FastAPI readers before adding another backend pair.
 - Select one frontend pair and define a bounded component subset.
 - Keep framework-specific behavior visible where the shared model cannot express it.

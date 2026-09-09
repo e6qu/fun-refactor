@@ -633,6 +633,8 @@ fr project routes src --limit 40
 fr project routes '<FILE_HANDLE>' --cursor '<NEXT>'
 fr project contracts src --limit 40
 fr project contracts '<FILE_HANDLE>' --cursor '<NEXT>'
+fr project features src --limit 40
+fr project features --feature '<FEATURE_ID>' --limit 40
 fr project configuration deploy --limit 40
 fr project configuration src/settings.py
 fr project configuration --cursor '<NEXT>'
@@ -800,6 +802,38 @@ Unsupported languages produce count-based `coverage-gap` rows. Both diagnostics 
 The view has no expanded request/response schemas, middleware, mounted-router prefixes or cross-file handler resolution.
 An empty page does not prove the absence of routes. Route and handler inference remain outside the Lean paging proofs.
 Revision checks and query-bound cursors apply, including final source and inventory verification.
+
+`features` builds a flat, parent-linked semantic hierarchy from the bounded Next.js App Router and FastAPI readers.
+The hierarchy contains application, feature, route, handler, contract, schema-reference, schema and schema-field facts.
+Exact route paths group route candidates into provisional features inside an inferred application boundary.
+This grouping does not establish business ownership.
+
+Every fact carries `id`, `parent`, `source`, `status`, `confidence`, `evidence` and `gaps`.
+The source anchor contains a bounded path, line and project handle where the underlying reader supplies them.
+Evidence names the reader basis and the captured-source, syntax-tree and project-revision checks.
+Null confidence preserves facts whose reader has no stronger tier.
+Gap arrays keep known limitations beside the affected fact.
+
+```sh
+fr project features --limit 40
+fr project features api --limit 40
+fr project features --feature 'frff1:<ID>' --limit 40
+```
+
+Feature IDs belong to one project revision and selected scope.
+An unknown or stale ID refuses instead of returning an empty hierarchy.
+Cursors bind the feature selection as well as the source scope and revision.
+Page limits bound emitted hierarchy facts.
+The source reader inspects at most 500 route and contract facts per query and reports omitted facts.
+Schema expansion follows no more than 64 same-file type candidates and reports omitted expansions.
+Narrow the target if either counter reaches its limit.
+
+Next.js application boundaries use the observed package root retained by the route reader.
+FastAPI application boundaries currently use one route file.
+The model preserves ambiguous same-file schema candidates and expands each bounded candidate separately.
+Other route frameworks produce `framework-gap` facts rather than disappearing.
+Middleware, authentication, mounted routers, lifecycle, runtime configuration, service reachability, frontend components and build settings remain explicit analysis limitations.
+These facts describe captured syntax candidates; they do not prove runtime framework identity or wire correspondence.
 
 `contracts` extends the route view with partial request and response evidence from captured source.
 It accepts the same directory/file scopes, handles, revision checks and page limits as `routes`.

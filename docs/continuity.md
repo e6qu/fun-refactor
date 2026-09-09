@@ -4,7 +4,15 @@ PR 0, the agent-ready verified refactoring foundation, merged as GitHub PR 259.
 PR 1, Agent Context Protocol v2, merged as GitHub PR 261.
 PR 2, Generalized Structural Authoring, merged as GitHub PR 262.
 PR 3, Durable Git Workspace Lifecycle, merged as GitHub PR 263.
-The current `lean_adoption_kit` branch is roadmap PR 4. Its first checkpoint adds `fr spec init [PATH]` with a pinned toolchain, a minimal checked Lake target and refusal to overwrite differing files or escape through paths and symlinks.
+PR 4, the Lean Adoption Kit, merged as GitHub PR 264.
+The current `framework_semantic_model` branch is roadmap PR 5.
+Its first checkpoint adds `fr project features` for bounded Next.js App Router and FastAPI hierarchies.
+Applications contain exact-route-path feature candidates, which contain routes, handlers, contract fields, schema references and expanded same-file schema candidates.
+Every fact carries a parent, source anchor, status, confidence, validation basis and explicit gaps.
+Feature IDs retrieve one revision-bound subtree; cursors bind that selection.
+Duplicate type declarations remain ambiguous and other route frameworks produce gap facts.
+Middleware, authentication, lifecycle, runtime, frontend and build-setting semantics remain visible limitations.
+Roadmap PR 4's first checkpoint added `fr spec init [PATH]` with a pinned toolchain, a minimal checked Lake target and refusal to overwrite differing files or escape through paths and symlinks.
 Initialization previews by default, supports saved plans and writes through source history. Apply, undo and redo cover files created below a new directory, while plan recording no longer creates the target directory as a lock side effect.
 A real integration case initializes an external temporary workspace and passes `fr spec verify specs` against Lake.
 The second PR 4 checkpoint adds `fr spec scaffold SOURCE::SYMBOL` for a bounded Rust type subset. It writes a full anchor, strict signature map, checked module import and one visible handwritten proof obligation in a single source transaction.
@@ -18,7 +26,7 @@ The sixth checkpoint adds `fr spec evidence`. The bounded result combines strict
 Its axiom analysis explicitly covers declared syntax rather than transitive theorem dependencies. The external fixture asserts these evidence boundaries after a passing regeneration and Lake build.
 The proof-debt predicate now has an anchored Lean model and four ratchet theorems. All 4,225 pairs from zero through 64 match Rust; the axiom audit reports only `propext`.
 This correspondence covers the ceiling predicate. Debt discovery, marker parsing, command enforcement and the full adoption workflow remain host-tested boundaries.
-Roadmap PR 4 is ready for review after the complete repository gate passed. Strict project verification reports 33 fresh anchors, no remaining proof debt and a successful 40-job Lake build; formatting, Clippy, prose budgets, 311/311 capability coverage and both WASM configurations also pass.
+Roadmap PR 4 passed the complete repository gate before merge. Strict project verification reported 33 fresh anchors, no remaining proof debt and a successful 40-job Lake build; formatting, Clippy, prose budgets, 311/311 capability coverage and both WASM configurations also passed.
 PR 3's first checkpoint added checked staging-journal compaction with explicit per-stack retention.
 Compacted records retain stable IDs, statuses, path counts and digests while discarding bytes that can no longer be replayed.
 Preview/write bases, the index lock and full journal rechecks preserve the index, working files and concurrent staging state.
@@ -655,4 +663,4 @@ Keep revision inputs, coverage and final source verification intact; require byt
 State the cache policy for the next autonomous cohort; existing trials explicitly disable it and their records remain immutable.
 The latest paired task requires one coordinated three-operation change across two crate roots. It passes, while `fr` still uses 23.8% more measured context in this single pair.
 Keep portable skill references selective and executable against the distributed binary.
-PR 4 is complete and ready for review. The next planned milestone is PR 5's hierarchical framework semantic model in [PLAN.md](../PLAN.md), followed by PR 6's verified feature migration.
+PR 5 is active. Continue the hierarchical framework semantic model in [PLAN.md](../PLAN.md), then use it for PR 6's verified feature migration.

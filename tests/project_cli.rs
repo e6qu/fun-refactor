@@ -3320,6 +3320,155 @@ fn next_route_pages_bind_scope_revision_and_contract_queries() {
 }
 
 #[test]
+fn framework_features_join_routes_handlers_and_schemas_into_selectable_subtrees() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "web/package.json",
+        r#"{"dependencies":{"next":"16"}}"#,
+    );
+    put(
+        root,
+        "web/app/api/pets/route.ts",
+        "interface Pet { id: string; }\nexport function GET(): Pet { throw new Error('PRIVATE_NEXT'); }\n",
+    );
+    put(
+        root,
+        "api/app.py",
+        "from fastapi import FastAPI\nclass Pet:\n    id: int\napp = FastAPI()\n@app.get('/pets')\ndef pets() -> Pet:\n    raise RuntimeError('PRIVATE_FAST')\n",
+    );
+
+    let full = ok(root, &["project", "features", "--limit", "500"]);
+    assert_eq!(full["analysis"]["applications"], 2, "{full}");
+    assert_eq!(full["analysis"]["features"], 2);
+    assert_eq!(full["analysis"]["routes"], 2);
+    assert_eq!(full["analysis"]["handlers"], 2);
+    assert_eq!(full["analysis"]["schemas"], 2);
+    let items = full["items"].as_array().unwrap();
+    for fact in items {
+        assert!(fact.get("id").is_some(), "{fact}");
+        assert!(fact.get("parent").is_some(), "{fact}");
+        assert!(fact.get("source").is_some(), "{fact}");
+        assert!(fact.get("status").is_some(), "{fact}");
+        assert!(fact.get("confidence").is_some(), "{fact}");
+        assert!(fact["evidence"]["basis"] != Value::Null, "{fact}");
+        assert_eq!(
+            fact["evidence"]["validation"],
+            serde_json::json!(["captured-source", "syntax-tree", "project-revision"])
+        );
+        assert!(fact["gaps"].is_array(), "{fact}");
+    }
+    for kind in [
+        "application",
+        "feature",
+        "route",
+        "handler",
+        "contract-field",
+        "schema-reference",
+        "schema-candidate",
+        "schema",
+        "schema-field",
+    ] {
+        assert!(
+            items.iter().any(|fact| fact["kind"] == kind),
+            "{kind}: {full}"
+        );
+    }
+    assert!(!full.to_string().contains("PRIVATE_"));
+
+    let next_app = items
+        .iter()
+        .find(|fact| {
+            fact["kind"] == "application" && fact["application"]["framework"] == "nextjs-app"
+        })
+        .unwrap();
+    let next_feature = items
+        .iter()
+        .find(|fact| fact["kind"] == "feature" && fact["parent"] == next_app["id"])
+        .unwrap();
+    let feature_id = next_feature["id"].as_str().unwrap();
+    let selected = ok(
+        root,
+        &[
+            "project",
+            "features",
+            "--feature",
+            feature_id,
+            "--limit",
+            "500",
+        ],
+    );
+    assert_eq!(selected["analysis"]["applications"], 1);
+    assert_eq!(selected["analysis"]["features"], 1);
+    assert!(selected["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|fact| fact["source"]["path"] != "api/app.py"));
+
+    let first = ok(root, &["project", "features", "--limit", "1"]);
+    let cursor = first["page"]["next"].as_str().unwrap();
+    assert!(
+        !run(
+            root,
+            &[
+                "project",
+                "features",
+                "--feature",
+                feature_id,
+                "--cursor",
+                cursor,
+            ],
+        )
+        .0
+    );
+    assert!(!run(root, &["project", "features", "--feature", "frff1:absent"]).0);
+}
+
+#[test]
+fn framework_features_preserve_schema_ambiguity_and_unsupported_framework_routes() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "app/api/pets/route.ts",
+        "interface Pet { id: string; }\ninterface Pet { name: string; }\nexport function GET(): Pet { throw new Error('PRIVATE'); }\n",
+    );
+    put(
+        root,
+        "legacy.ts",
+        "app.get('/legacy', legacy);\nfunction legacy() { return 1; }\n",
+    );
+
+    let view = ok(root, &["project", "features", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    let reference = items
+        .iter()
+        .find(|fact| fact["kind"] == "schema-reference" && fact["reference"]["name"] == "Pet")
+        .unwrap();
+    assert_eq!(reference["status"], "ambiguous", "{view}");
+    assert_eq!(reference["reference"]["candidate_count"], 2);
+    assert_eq!(
+        items
+            .iter()
+            .filter(|fact| fact["kind"] == "schema-candidate" && fact["parent"] == reference["id"])
+            .count(),
+        2
+    );
+    assert_eq!(view["analysis"]["unsupported_framework_routes"], 1);
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "framework-gap"
+            && fact["gap"]["framework"] == "express"
+            && fact["gap"]["reason"]
+                .as_str()
+                .is_some_and(|reason| reason.contains("does not model express"))
+    }));
+    assert!(items.iter().any(|fact| fact["kind"] == "schema-gap"));
+    assert!(!view.to_string().contains("PRIVATE"));
+}
+
+#[test]
 fn next_contract_fields_clip_paths_and_names_without_losing_handles() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
