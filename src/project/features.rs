@@ -1,10 +1,13 @@
-use super::{hash, FeatureOptions, Project, RelationshipOptions};
+use super::{bounded_text, hash, links, FeatureOptions, Project, RelationshipOptions};
 use anyhow::{bail, Result};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
+use std::path::{Path, PathBuf};
 
 const SOURCE_FACT_LIMIT: usize = 500;
 const SCHEMA_EXPANSION_LIMIT: usize = 64;
+const BUILD_SETTING_LIMIT: usize = 64;
+const DEPENDENCY_FACT_LIMIT: usize = 256;
 
 #[derive(Clone)]
 struct Feature {
@@ -20,11 +23,28 @@ struct Application {
     root: Value,
     source: Value,
     basis: &'static str,
+    manifest: Option<PathBuf>,
     features: BTreeMap<String, Feature>,
+}
+
+#[derive(Default)]
+struct PackageCounts {
+    packages: usize,
+    build_settings: usize,
+    dependencies: usize,
+    gaps: usize,
+    build_settings_omitted: usize,
+    dependencies_omitted: usize,
 }
 
 fn key(value: &Value) -> String {
     serde_json::to_string(value).expect("JSON values always serialize")
+}
+
+fn value_text(value: &Value) -> Option<&str> {
+    value
+        .as_str()
+        .or_else(|| value.get("text").and_then(Value::as_str))
 }
 
 fn source(row: &Value) -> Value {
@@ -53,6 +73,7 @@ struct FactEvidence {
     status: Value,
     confidence: Value,
     gaps: Value,
+    validation: &'static [&'static str],
 }
 
 impl FactEvidence {
@@ -62,6 +83,17 @@ impl FactEvidence {
             status,
             confidence,
             gaps,
+            validation: &["captured-source", "syntax-tree", "project-revision"],
+        }
+    }
+
+    fn manifest(basis: Value, status: Value, confidence: Value, gaps: Value) -> Self {
+        Self {
+            basis,
+            status,
+            confidence,
+            gaps,
+            validation: &["captured-manifest", "project-revision"],
         }
     }
 }
@@ -80,6 +112,7 @@ fn fact(
         status,
         confidence,
         gaps,
+        validation,
     } = fact_evidence;
     let mut row = json!({
         "kind": kind,
@@ -88,7 +121,7 @@ fn fact(
         "source": source,
         "status": status,
         "confidence": confidence,
-        "evidence": evidence(basis, &["captured-source", "syntax-tree", "project-revision"]),
+        "evidence": evidence(basis, validation),
         "gaps": gaps,
     });
     row[detail_name] = detail;
@@ -164,15 +197,28 @@ impl Project<'_> {
             let Some(framework) = route["framework_candidate"].as_str() else {
                 continue;
             };
-            let (root, basis) = match framework {
-                "nextjs-app" => (
-                    route["nextjs_project"]
+            let (root, basis, manifest) = match framework {
+                "nextjs-app" => {
+                    let root = route["nextjs_project"]
                         .get("root")
                         .cloned()
-                        .unwrap_or_else(|| json!(".")),
-                    "nextjs-package-root",
-                ),
-                "fastapi" => (route["path"].clone(), "fastapi-route-file"),
+                        .unwrap_or_else(|| json!("."));
+                    let manifest = route["nextjs_project"]
+                        .get("manifest")
+                        .and_then(value_text)
+                        .map(PathBuf::from)
+                        .or_else(|| {
+                            let root = value_text(&root)?;
+                            let path = if root == "." {
+                                PathBuf::from("package.json")
+                            } else {
+                                Path::new(root).join("package.json")
+                            };
+                            self.manifests.documents.contains_key(&path).then_some(path)
+                        });
+                    (root, "nextjs-package-root", manifest)
+                }
+                "fastapi" => (route["path"].clone(), "fastapi-route-file", None),
                 _ => continue,
             };
             let app_key = key(&json!([framework, root]));
@@ -183,6 +229,7 @@ impl Project<'_> {
                 root: root.clone(),
                 source: source(route),
                 basis,
+                manifest,
                 features: BTreeMap::new(),
             });
             let feature_key = key(&route["url"]);
@@ -202,6 +249,264 @@ impl Project<'_> {
                 .push(route.clone());
         }
         Ok(applications)
+    }
+
+    fn package_facts(
+        &self,
+        application: &Application,
+        local_links: &[Value],
+        rows: &mut Vec<Value>,
+        counts: &mut PackageCounts,
+    ) -> Result<()> {
+        let Some(manifest) = &application.manifest else {
+            counts.gaps += 1;
+            let reason = if application.framework == "fastapi" {
+                "Python package manifests are outside the current Cargo/npm project reader."
+            } else {
+                "No captured npm manifest establishes this application package."
+            };
+            let detail = json!({"reason": reason, "framework": application.framework});
+            rows.push(fact(
+                "package-gap",
+                child_id("frfpg1", &self.revision, &application.id, &detail)?,
+                Some(&application.id),
+                application.source.clone(),
+                FactEvidence::new(
+                    json!("package-boundary-reader"),
+                    json!("gap"),
+                    Value::Null,
+                    json!([reason]),
+                ),
+                "gap",
+                detail,
+            ));
+            return Ok(());
+        };
+        let manifest_text = manifest.to_string_lossy();
+        let Some(package) = self.manifests.packages.iter().find(|row| {
+            row["manifest"]
+                .as_str()
+                .is_some_and(|path| path == manifest_text)
+        }) else {
+            counts.gaps += 1;
+            let reason = "The captured manifest has no usable package declaration.";
+            let detail = json!({"reason": reason, "manifest": bounded_text(&manifest_text, 512)});
+            rows.push(fact(
+                "package-gap",
+                child_id("frfpg1", &self.revision, &application.id, &detail)?,
+                Some(&application.id),
+                json!({"path": bounded_text(&manifest_text, 512), "line": null, "handle": null}),
+                FactEvidence::manifest(
+                    json!("manifest-declaration"),
+                    json!("gap"),
+                    Value::Null,
+                    json!([reason]),
+                ),
+                "gap",
+                detail,
+            ));
+            return Ok(());
+        };
+
+        counts.packages += 1;
+        let package_id = child_id("frfp1", &self.revision, &application.id, package)?;
+        let package_source =
+            json!({"path": bounded_text(&manifest_text, 512), "line": null, "handle": null});
+        rows.push(fact(
+            "package",
+            package_id.clone(),
+            Some(&application.id),
+            package_source.clone(),
+            FactEvidence::manifest(
+                package["basis"].clone(),
+                json!("declared"),
+                Value::Null,
+                json!(["Package-manager validation and source ownership remain unchecked."]),
+            ),
+            "package",
+            json!({
+                "manifest": package["manifest"],
+                "root": package["root"],
+                "ecosystem": package["ecosystem"],
+                "name": package["name"],
+                "version": package["version"],
+            }),
+        ));
+
+        let scripts_value = self
+            .manifests
+            .documents
+            .get(manifest)
+            .and_then(|document| document.get("scripts"));
+        if scripts_value.is_some_and(|scripts| !scripts.is_object()) {
+            counts.gaps += 1;
+            let reason = "The npm scripts declaration is not an object.";
+            let detail = json!({"reason": reason});
+            rows.push(fact(
+                "package-gap",
+                child_id("frfpg1", &self.revision, &package_id, &detail)?,
+                Some(&package_id),
+                package_source.clone(),
+                FactEvidence::manifest(
+                    json!("npm-script-declaration"),
+                    json!("gap"),
+                    Value::Null,
+                    json!([reason]),
+                ),
+                "gap",
+                detail,
+            ));
+        }
+        if let Some(scripts) = scripts_value.and_then(Value::as_object) {
+            let mut scripts: Vec<_> = scripts.iter().collect();
+            scripts.sort_by_key(|(name, _)| *name);
+            let omitted = scripts.len().saturating_sub(BUILD_SETTING_LIMIT);
+            counts.build_settings_omitted += omitted;
+            for (name, command) in scripts.into_iter().take(BUILD_SETTING_LIMIT) {
+                if let Some(command) = command.as_str() {
+                    counts.build_settings += 1;
+                    let detail = json!({
+                        "kind": "npm-script",
+                        "name": bounded_text(name, 160),
+                        "command": bounded_text(command, 512),
+                    });
+                    rows.push(fact(
+                        "build-setting",
+                        child_id("frfbs1", &self.revision, &package_id, &detail)?,
+                        Some(&package_id),
+                        package_source.clone(),
+                        FactEvidence::manifest(
+                            json!("npm-script-declaration"),
+                            json!("declared"),
+                            Value::Null,
+                            json!(["No runner has executed or resolved this declared command."]),
+                        ),
+                        "build_setting",
+                        detail,
+                    ));
+                } else {
+                    counts.gaps += 1;
+                    let reason = "An npm script has a non-string value.";
+                    let detail = json!({"reason": reason, "name": bounded_text(name, 160)});
+                    rows.push(fact(
+                        "package-gap",
+                        child_id("frfpg1", &self.revision, &package_id, &detail)?,
+                        Some(&package_id),
+                        package_source.clone(),
+                        FactEvidence::manifest(
+                            json!("npm-script-declaration"),
+                            json!("gap"),
+                            Value::Null,
+                            json!([reason]),
+                        ),
+                        "gap",
+                        detail,
+                    ));
+                }
+            }
+            if omitted > 0 {
+                counts.gaps += 1;
+                let reason =
+                    "The build-setting limit omitted npm scripts; narrow the application scope.";
+                let detail = json!({"reason": reason, "omitted": omitted});
+                rows.push(fact(
+                    "package-gap",
+                    child_id("frfpg1", &self.revision, &package_id, &detail)?,
+                    Some(&package_id),
+                    package_source.clone(),
+                    FactEvidence::manifest(
+                        json!("build-setting-limit"),
+                        json!("gap"),
+                        Value::Null,
+                        json!([reason]),
+                    ),
+                    "gap",
+                    detail,
+                ));
+            }
+        }
+
+        let mut dependencies: Vec<_> = self
+            .manifests
+            .declarations
+            .iter()
+            .filter(|(path, row)| path == manifest && row["kind"] == "dependency")
+            .map(|(_, row)| row)
+            .collect();
+        dependencies.sort_by_cached_key(|row| row.to_string());
+        let omitted = dependencies.len().saturating_sub(DEPENDENCY_FACT_LIMIT);
+        counts.dependencies_omitted += omitted;
+        for dependency in dependencies.into_iter().take(DEPENDENCY_FACT_LIMIT) {
+            counts.dependencies += 1;
+            let link = local_links.iter().find(|link| {
+                link["kind"] == "local-dependency"
+                    && link["manifest"] == dependency["manifest"]
+                    && link["name"] == dependency["name"]
+                    && link["section"] == dependency["section"]
+            });
+            let boundary = match link.and_then(|row| row["status"].as_str()) {
+                Some("linked") => "local-package",
+                Some(_) => "unresolved-local",
+                None => "external-or-unresolved",
+            };
+            let gaps = match boundary {
+                "local-package" => {
+                    json!(["Version compatibility, feature activation and runtime use remain unchecked."])
+                }
+                "unresolved-local" => json!(["The declared local package link did not resolve within the captured manifest snapshot."]),
+                _ => json!(["Package-manager resolution and runtime use remain unchecked."]),
+            };
+            let detail = json!({
+                "name": dependency["name"],
+                "section": dependency["section"],
+                "scope": dependency["scope"],
+                "requirement": dependency["requirement"],
+                "target_condition": dependency["target_condition"],
+                "resolution": dependency["resolution"],
+                "boundary": boundary,
+                "target_manifest": link.map(|row| row["target_manifest"].clone()).unwrap_or(Value::Null),
+                "link_status": link.map(|row| row["status"].clone()).unwrap_or(Value::Null),
+                "link_reason": link.map(|row| row["reason"].clone()).unwrap_or(Value::Null),
+            });
+            rows.push(fact(
+                "dependency",
+                child_id("frfd1", &self.revision, &package_id, &detail)?,
+                Some(&package_id),
+                package_source.clone(),
+                FactEvidence::manifest(
+                    dependency["basis"].clone(),
+                    dependency
+                        .get("declaration_status")
+                        .cloned()
+                        .unwrap_or_else(|| json!("declared")),
+                    Value::Null,
+                    gaps,
+                ),
+                "dependency",
+                detail,
+            ));
+        }
+        if omitted > 0 {
+            counts.gaps += 1;
+            let reason =
+                "The dependency fact limit omitted declarations; narrow the application scope.";
+            let detail = json!({"reason": reason, "omitted": omitted});
+            rows.push(fact(
+                "package-gap",
+                child_id("frfpg1", &self.revision, &package_id, &detail)?,
+                Some(&package_id),
+                package_source,
+                FactEvidence::manifest(
+                    json!("dependency-fact-limit"),
+                    json!("gap"),
+                    Value::Null,
+                    json!([reason]),
+                ),
+                "gap",
+                detail,
+            ));
+        }
+        Ok(())
     }
 
     fn schema_facts(
@@ -315,6 +620,7 @@ impl Project<'_> {
         let items = report["items"].as_array().cloned().unwrap_or_default();
         let source_omitted = report["page"]["remaining"].as_u64().unwrap_or(0) as usize;
         let applications = self.applications(&items)?;
+        let local_links = links::collect(&self.manifests, &self.root, None);
         let available: BTreeSet<_> = applications
             .values()
             .flat_map(|app| app.features.values().map(|feature| feature.id.clone()))
@@ -338,6 +644,7 @@ impl Project<'_> {
         let mut schema_expansions = 0usize;
         let mut schema_omitted = 0usize;
         let mut unsupported_framework_routes = 0usize;
+        let mut package_counts = PackageCounts::default();
         let mut selected_paths = BTreeSet::new();
 
         for application in applications.values() {
@@ -372,6 +679,7 @@ impl Project<'_> {
                     "feature_count": included.len(),
                 }),
             ));
+            self.package_facts(application, &local_links, &mut rows, &mut package_counts)?;
             for feature in included {
                 feature_count += 1;
                 rows.push(fact(
@@ -628,6 +936,14 @@ impl Project<'_> {
             "handlers": handler_count,
             "contract_fields": contract_count,
             "schemas": schema_count,
+            "packages": package_counts.packages,
+            "build_settings": package_counts.build_settings,
+            "dependencies": package_counts.dependencies,
+            "package_gaps": package_counts.gaps,
+            "build_setting_limit": BUILD_SETTING_LIMIT,
+            "build_settings_omitted": package_counts.build_settings_omitted,
+            "dependency_fact_limit": DEPENDENCY_FACT_LIMIT,
+            "dependencies_omitted": package_counts.dependencies_omitted,
             "source_fact_limit": SOURCE_FACT_LIMIT,
             "source_facts_omitted": source_omitted,
             "schema_expansion_limit": SCHEMA_EXPANSION_LIMIT,

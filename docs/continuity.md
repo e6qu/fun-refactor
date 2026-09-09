@@ -11,7 +11,12 @@ Applications contain exact-route-path feature candidates, which contain routes, 
 Every fact carries a parent, source anchor, status, confidence, validation basis and explicit gaps.
 Feature IDs retrieve one revision-bound subtree; cursors bind that selection.
 Duplicate type declarations remain ambiguous and other route frameworks produce gap facts.
-Middleware, authentication, lifecycle, runtime, frontend and build-setting semantics remain visible limitations.
+Middleware, authentication, lifecycle, runtime and frontend semantics remain visible limitations.
+The second PR 5 checkpoint attaches a captured npm package to each supported Next.js application.
+It adds bounded npm build scripts and dependency facts beneath that package.
+Existing manifest-link evidence distinguishes linked local packages, unresolved local links and dependencies that still need package-manager resolution.
+FastAPI retains an explicit Python-packaging gap.
+Per-application limits cap build settings at 64 and dependencies at 256; omission facts carry either overflow.
 Roadmap PR 4's first checkpoint added `fr spec init [PATH]` with a pinned toolchain, a minimal checked Lake target and refusal to overwrite differing files or escape through paths and symlinks.
 Initialization previews by default, supports saved plans and writes through source history. Apply, undo and redo cover files created below a new directory, while plan recording no longer creates the target directory as a lock side effect.
 A real integration case initializes an external temporary workspace and passes `fr spec verify specs` against Lake.

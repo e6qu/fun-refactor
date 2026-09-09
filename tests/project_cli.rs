@@ -3326,12 +3326,17 @@ fn framework_features_join_routes_handlers_and_schemas_into_selectable_subtrees(
     put(
         root,
         "web/package.json",
-        r#"{"dependencies":{"next":"16"}}"#,
+        r#"{"name":"web","scripts":{"build":"next build"},"dependencies":{"next":"16","@demo/ui":"file:packages/ui"}}"#,
+    );
+    put(
+        root,
+        "web/packages/ui/package.json",
+        r#"{"name":"@demo/ui","version":"1.0.0"}"#,
     );
     put(
         root,
         "web/app/api/pets/route.ts",
-        "interface Pet { id: string; }\nexport function GET(): Pet { throw new Error('PRIVATE_NEXT'); }\n",
+        "interface Pet { id: string; }\nexport function GET(): Pet { throw new Error('PRIVATE_NEXT'); }\nexport function POST(): Pet { throw new Error('PRIVATE_NEXT'); }\n",
     );
     put(
         root,
@@ -3342,9 +3347,13 @@ fn framework_features_join_routes_handlers_and_schemas_into_selectable_subtrees(
     let full = ok(root, &["project", "features", "--limit", "500"]);
     assert_eq!(full["analysis"]["applications"], 2, "{full}");
     assert_eq!(full["analysis"]["features"], 2);
-    assert_eq!(full["analysis"]["routes"], 2);
-    assert_eq!(full["analysis"]["handlers"], 2);
-    assert_eq!(full["analysis"]["schemas"], 2);
+    assert_eq!(full["analysis"]["routes"], 3);
+    assert_eq!(full["analysis"]["handlers"], 3);
+    assert_eq!(full["analysis"]["schemas"], 3);
+    assert_eq!(full["analysis"]["packages"], 1);
+    assert_eq!(full["analysis"]["build_settings"], 1);
+    assert_eq!(full["analysis"]["dependencies"], 2);
+    assert_eq!(full["analysis"]["package_gaps"], 1);
     let items = full["items"].as_array().unwrap();
     for fact in items {
         assert!(fact.get("id").is_some(), "{fact}");
@@ -3353,9 +3362,12 @@ fn framework_features_join_routes_handlers_and_schemas_into_selectable_subtrees(
         assert!(fact.get("status").is_some(), "{fact}");
         assert!(fact.get("confidence").is_some(), "{fact}");
         assert!(fact["evidence"]["basis"] != Value::Null, "{fact}");
-        assert_eq!(
-            fact["evidence"]["validation"],
-            serde_json::json!(["captured-source", "syntax-tree", "project-revision"])
+        assert!(
+            fact["evidence"]["validation"]
+                == serde_json::json!(["captured-source", "syntax-tree", "project-revision"])
+                || fact["evidence"]["validation"]
+                    == serde_json::json!(["captured-manifest", "project-revision"]),
+            "{fact}"
         );
         assert!(fact["gaps"].is_array(), "{fact}");
     }
@@ -3369,6 +3381,10 @@ fn framework_features_join_routes_handlers_and_schemas_into_selectable_subtrees(
         "schema-candidate",
         "schema",
         "schema-field",
+        "package",
+        "build-setting",
+        "dependency",
+        "package-gap",
     ] {
         assert!(
             items.iter().any(|fact| fact["kind"] == kind),
@@ -3387,6 +3403,41 @@ fn framework_features_join_routes_handlers_and_schemas_into_selectable_subtrees(
         .iter()
         .find(|fact| fact["kind"] == "feature" && fact["parent"] == next_app["id"])
         .unwrap();
+    assert_eq!(next_feature["feature"]["route_count"], 2);
+    let package = items
+        .iter()
+        .find(|fact| fact["kind"] == "package" && fact["parent"] == next_app["id"])
+        .unwrap();
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "build-setting"
+            && fact["parent"] == package["id"]
+            && fact["build_setting"]["name"] == "build"
+            && fact["build_setting"]["command"] == "next build"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "dependency"
+            && fact["parent"] == package["id"]
+            && fact["dependency"]["name"] == "@demo/ui"
+            && fact["dependency"]["boundary"] == "local-package"
+            && fact["dependency"]["target_manifest"] == "web/packages/ui/package.json"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "dependency"
+            && fact["parent"] == package["id"]
+            && fact["dependency"]["name"] == "next"
+            && fact["dependency"]["boundary"] == "external-or-unresolved"
+    }));
+    let fast_app = items
+        .iter()
+        .find(|fact| fact["kind"] == "application" && fact["application"]["framework"] == "fastapi")
+        .unwrap();
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "package-gap"
+            && fact["parent"] == fast_app["id"]
+            && fact["gap"]["reason"]
+                .as_str()
+                .is_some_and(|reason| reason.contains("Python package manifests"))
+    }));
     let feature_id = next_feature["id"].as_str().unwrap();
     let selected = ok(
         root,
@@ -3424,6 +3475,62 @@ fn framework_features_join_routes_handlers_and_schemas_into_selectable_subtrees(
         .0
     );
     assert!(!run(root, &["project", "features", "--feature", "frff1:absent"]).0);
+}
+
+#[test]
+fn framework_feature_package_facts_bound_build_settings_and_dependencies() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let scripts: serde_json::Map<_, _> = (0..65)
+        .map(|number| (format!("script-{number:03}"), serde_json::json!("run")))
+        .collect();
+    let dependencies: serde_json::Map<_, _> = (0..257)
+        .map(|number| (format!("dependency-{number:03}"), serde_json::json!("1")))
+        .collect();
+    put(
+        root,
+        "package.json",
+        &serde_json::json!({
+            "dependencies": dependencies,
+            "scripts": scripts,
+        })
+        .to_string(),
+    );
+    put(
+        root,
+        "app/api/route.ts",
+        "export function GET(): Response { throw new Error('PRIVATE'); }\n",
+    );
+
+    let view = ok(root, &["project", "features", "--limit", "500"]);
+    assert_eq!(view["analysis"]["build_settings"], 64);
+    assert_eq!(view["analysis"]["build_settings_omitted"], 1);
+    assert_eq!(view["analysis"]["dependencies"], 256);
+    assert_eq!(view["analysis"]["dependencies_omitted"], 1);
+    let items = view["items"].as_array().unwrap();
+    assert_eq!(
+        items
+            .iter()
+            .filter(|fact| fact["kind"] == "build-setting")
+            .count(),
+        64
+    );
+    assert_eq!(
+        items
+            .iter()
+            .filter(|fact| fact["kind"] == "dependency")
+            .count(),
+        256
+    );
+    for omitted in ["build-setting limit", "dependency fact limit"] {
+        assert!(items.iter().any(|fact| {
+            fact["kind"] == "package-gap"
+                && fact["gap"]["reason"]
+                    .as_str()
+                    .is_some_and(|reason| reason.contains(omitted))
+        }));
+    }
+    assert!(!view.to_string().contains("PRIVATE"));
 }
 
 #[test]

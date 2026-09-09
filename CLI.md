@@ -830,9 +830,17 @@ Narrow the target if either counter reaches its limit.
 
 Next.js application boundaries use the observed package root retained by the route reader.
 FastAPI application boundaries currently use one route file.
+An observed Next.js npm manifest adds a `package` child to its application.
+Declared npm scripts become `build-setting` children with bounded names and commands.
+Dependency children retain their section, requirement, target condition and unresolved package-manager status.
+Existing local-manifest evidence classifies a dependency boundary as `local-package` or `unresolved-local`.
+Other declarations use `external-or-unresolved` because this query does not invoke a package manager.
+Package, build-setting and dependency facts use captured-manifest validation evidence.
+The reader emits at most 64 build settings and 256 dependencies per application, with explicit omission gaps.
+FastAPI applications report a packaging gap because the project manifest reader does not inspect Python packaging yet.
 The model preserves ambiguous same-file schema candidates and expands each bounded candidate separately.
 Other route frameworks produce `framework-gap` facts rather than disappearing.
-Middleware, authentication, mounted routers, lifecycle, runtime configuration, service reachability, frontend components and build settings remain explicit analysis limitations.
+Middleware, authentication, mounted routers, lifecycle, runtime configuration, service reachability and frontend components remain explicit analysis limitations.
 These facts describe captured syntax candidates; they do not prove runtime framework identity or wire correspondence.
 
 `contracts` extends the route view with partial request and response evidence from captured source.
