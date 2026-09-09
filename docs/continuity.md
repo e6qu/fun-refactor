@@ -3,7 +3,11 @@
 PR 0, the agent-ready verified refactoring foundation, merged as GitHub PR 259.
 PR 1, Agent Context Protocol v2, merged as GitHub PR 261.
 PR 2, Generalized Structural Authoring, merged as GitHub PR 262.
-The current `durable_git_workspace_lifecycle` branch is roadmap PR 3. Its first checkpoint adds checked staging-journal compaction with explicit per-stack retention.
+PR 3, Durable Git Workspace Lifecycle, merged as GitHub PR 263.
+The current `lean_adoption_kit` branch is roadmap PR 4. Its first checkpoint adds `fr spec init [PATH]` with a pinned toolchain, a minimal checked Lake target and refusal to overwrite differing files or escape through paths and symlinks.
+Initialization previews by default, supports saved plans and writes through source history. Apply, undo and redo cover files created below a new directory, while plan recording no longer creates the target directory as a lock side effect.
+A real integration case initializes an external temporary workspace and passes `fr spec verify specs` against Lake.
+PR 3's first checkpoint added checked staging-journal compaction with explicit per-stack retention.
 Compacted records retain stable IDs, statuses, path counts and digests while discarding bytes that can no longer be replayed.
 Preview/write bases, the index lock and full journal rechecks preserve the index, working files and concurrent staging state.
 Lean proves compaction selection requirements, unselected-payload preservation and idempotence; all eight boolean selection states agree with Rust.
@@ -32,7 +36,7 @@ The History kernel now models selected namespace replay. It proves that replay i
 The tenth checkpoint runs scan plus save, apply, undo and redo with `PATH` pointing to a nonexistent directory.
 This establishes the CLI boundary that ordinary analysis and source history do not require a Git executable.
 All PR 3 deliverables and acceptance categories now have implementation, proof or host-test evidence.
-`PLAN.md` marks the branch ready for review. The final native and WASM gates pass on this branch head.
+The final native and WASM gates passed on the merged PR 3 head.
 PR 2's first checkpoint extends exact-byte Rust insertion to impl and trait bodies and generalizes the insertion placement model.
 The second checkpoint authors TypeScript/TSX expression-bodied arrows and permits checked transitions between expression and block bodies.
 The third checkpoint adds Java method, constructor and default-interface body authoring through the same checked splice and history path.
@@ -639,4 +643,4 @@ Keep revision inputs, coverage and final source verification intact; require byt
 State the cache policy for the next autonomous cohort; existing trials explicitly disable it and their records remain immutable.
 The latest paired task requires one coordinated three-operation change across two crate roots. It passes, while `fr` still uses 23.8% more measured context in this single pair.
 Keep portable skill references selective and executable against the distributed binary.
-Further authoring operations, M5 automated Lean adoption and M6 framework migrations remain open in [PLAN.md](../PLAN.md).
+PR 4 now has package initialization. Declaration selection, model scaffolding, handwritten-region regeneration, proof-debt ratchets, CI generation and bounded evidence reports remain open in [PLAN.md](../PLAN.md), together with M6 framework migrations.

@@ -29,9 +29,9 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | M0 safe writes | Complete | Recoverable multi-file commits and structured failure evidence | Maintained as a shared write invariant |
 | M1 undo and redo | Complete | Persistent transactions, recovery, conflict checks, apply, undo and redo | Retention and large-journal work continues in Git lifecycle work |
 | M2 compact project understanding | In progress | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests and Cargo workspace evidence | Lower repeated-query/context cost and broaden dependency and contract evidence |
-| M3 Git integration | In progress | Patches, repository views, staging history, reviewed commits and owned worktree lifecycle | Broader modes/configuration, crash recovery and retention |
+| M3 Git integration | Complete | Patches, repository views, staging history, reviewed commits and durable owned-worktree lifecycle | Maintained as a shared repository invariant |
 | M4 agent workflow | In progress | Portable skill, bounded authoring, multi-file batches, checks and eighteen passing autonomous trials | Make context use competitive and extend authoring scope |
-| M5 Lean adoption | Pending | Manual source anchors, signature maps, kernels, `spec check`, `sync` and `verify` | An end-to-end adoption workflow for external projects |
+| M5 Lean adoption | In progress | Pinned package initialization, source anchors, signature maps, kernels, `spec check`, `sync` and `verify` | Scaffolding, regeneration, proof debt, CI generation and evidence reports |
 | M6 framework transformation | Pending | Shared code IR and bounded Next.js/FastAPI/OpenAPI support | Hierarchical feature models and verified migrations |
 
 ## What exists now
@@ -214,7 +214,7 @@ Measured outcome:
 
 ### PR 3. Durable Git Workspace Lifecycle
 
-Status: ready for review on `durable_git_workspace_lifecycle`. Ten checkpoint commits complete the deliverables below; [continuity](docs/continuity.md) retains their detailed evidence.
+Status: merged as GitHub PR 263. Eleven checkpoint commits complete the deliverables below; [continuity](docs/continuity.md) retains their detailed evidence.
 
 Goal: finish the repository workflow needed for long-running agent changes and recovery.
 
@@ -248,11 +248,13 @@ Measured outcome:
 
 ### PR 4. Lean Adoption Kit
 
+Status: in progress on `lean_adoption_kit`. The first checkpoint implements bounded, pinned package initialization through source history. Preview, saved-plan, apply, undo and redo flows are covered, and the generated default target passes `fr spec verify` with Lake.
+
 Goal: let an external repository adopt and maintain one useful verified property through `fr`.
 
 Deliverables:
 
-- Initialize a bounded specification package and its checked build targets.
+- Initialize a bounded specification package and its checked build targets; complete.
 - Select source declarations and generate anchored Lean model scaffolds and signature maps.
 - Mark generated and handwritten regions and preserve handwritten proofs during regeneration.
 - Detect source drift and guide synchronization or repair.

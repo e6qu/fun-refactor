@@ -8,8 +8,132 @@ use ignore::WalkBuilder;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::process::Command;
+
+pub const LEAN_TOOLCHAIN: &str = "leanprover/lean4:v4.28.0";
+
+const LAKEFILE: &str = r#"name = "fr-specs"
+version = "0.1.0"
+defaultTargets = ["FrSpecs"]
+
+[[lean_lib]]
+name = "FrSpecs"
+"#;
+
+const ROOT_MODULE: &str = r#"/-
+This is the checked root of the project's Lean specification package.
+Import each model here so `fr spec verify` builds it.
+-/
+
+namespace FrSpecs
+
+end FrSpecs
+"#;
+
+#[derive(Debug, Serialize)]
+pub struct InitPlan {
+    pub package: PathBuf,
+    pub toolchain: &'static str,
+    pub files: Vec<InitFile>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct InitFile {
+    pub path: PathBuf,
+    pub content: &'static str,
+    pub existing: bool,
+}
+
+pub fn init(root: &Path, requested: &Path) -> Result<InitPlan> {
+    let root = root
+        .canonicalize()
+        .with_context(|| format!("reading workspace root {}", root.display()))?;
+    if !root.is_dir() {
+        bail!("spec initialization requires a workspace directory.");
+    }
+    let relative = if requested.is_absolute() {
+        requested.strip_prefix(&root).with_context(|| {
+            format!(
+                "spec package {} must stay inside {}.",
+                requested.display(),
+                root.display()
+            )
+        })?
+    } else {
+        requested
+    };
+    if relative.as_os_str().is_empty()
+        || relative.components().any(|part| {
+            !matches!(part, Component::Normal(_))
+                || matches!(part.as_os_str().to_str(), Some(".git" | ".fr-history"))
+        })
+    {
+        bail!("invalid spec package path {}.", requested.display());
+    }
+
+    let package = root.join(relative);
+    let mut current = root.clone();
+    for component in relative.components() {
+        current.push(component);
+        match std::fs::symlink_metadata(&current) {
+            Ok(metadata) if metadata.file_type().is_symlink() => {
+                bail!(
+                    "spec package path traverses a symlink: {}.",
+                    current.display()
+                )
+            }
+            Ok(metadata) if !metadata.is_dir() => {
+                bail!(
+                    "spec package path is not a directory: {}.",
+                    current.display()
+                )
+            }
+            Ok(_) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error.into()),
+        }
+    }
+
+    let definitions = [
+        ("lean-toolchain", concat!("leanprover/lean4:v4.28.0", "\n")),
+        ("lakefile.toml", LAKEFILE),
+        ("FrSpecs.lean", ROOT_MODULE),
+    ];
+    let mut files = Vec::with_capacity(definitions.len());
+    for (name, content) in definitions {
+        let path = package.join(name);
+        let existing = match std::fs::symlink_metadata(&path) {
+            Ok(metadata) if metadata.is_file() => {
+                let current = crate::vfs::read_to_string(&path)
+                    .with_context(|| format!("reading {}", path.display()))?;
+                if current != content {
+                    bail!(
+                        "refusing to replace existing spec package file {}.",
+                        path.display()
+                    );
+                }
+                true
+            }
+            Ok(_) => bail!(
+                "spec package target is not a regular file: {}.",
+                path.display()
+            ),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
+            Err(error) => return Err(error.into()),
+        };
+        files.push(InitFile {
+            path,
+            content,
+            existing,
+        });
+    }
+    Ok(InitPlan {
+        package,
+        toolchain: LEAN_TOOLCHAIN,
+        files,
+    })
+}
 
 #[derive(Debug, Serialize)]
 pub struct Report {
@@ -739,13 +863,13 @@ fn obligations_in(text: &str) -> usize {
 #[cfg(test)]
 mod tests {
     use super::{
-        anchors_in, check, check_strict, declaration_hash, lean_package, obligations_in, sync,
-        Status,
+        anchors_in, check, check_strict, declaration_hash, init, lean_package, obligations_in,
+        sync, Status,
     };
     use crate::extract::Extractor;
     use crate::parse::Parsers;
     use std::fs;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
 
     #[test]
     fn reads_anchors_and_counts_only_live_obligations() {
@@ -966,5 +1090,40 @@ mod tests {
         fs::write(&lean_spec, "def lean := 1\n").unwrap();
         assert_eq!(lean_package(root, &toml_spec).unwrap(), root.join("toml"));
         assert_eq!(lean_package(root, &lean_spec).unwrap(), root.join("lean"));
+    }
+
+    #[test]
+    fn init_is_bounded_and_idempotent_without_replacing_configuration() {
+        let workspace = tempfile::tempdir().unwrap();
+        let root = workspace.path();
+        let plan = init(root, Path::new("verification/lean")).unwrap();
+        assert_eq!(plan.files.len(), 3);
+        assert!(plan.files.iter().all(|file| !file.existing));
+        assert!(init(root, Path::new("../outside")).is_err());
+        assert!(init(root, &root.parent().unwrap().join("outside")).is_err());
+
+        fs::create_dir_all(root.join("verification/lean")).unwrap();
+        for file in &plan.files {
+            fs::write(&file.path, file.content).unwrap();
+        }
+        let repeated = init(root, Path::new("verification/lean")).unwrap();
+        assert!(repeated.files.iter().all(|file| file.existing));
+
+        fs::write(
+            root.join("verification/lean/lakefile.toml"),
+            "owned = true\n",
+        )
+        .unwrap();
+        let error = init(root, Path::new("verification/lean")).unwrap_err();
+        assert!(error.to_string().contains("refusing to replace"), "{error}");
+    }
+
+    #[test]
+    fn init_refuses_a_package_path_through_a_symlink() {
+        let workspace = tempfile::tempdir().unwrap();
+        let outside = tempfile::tempdir().unwrap();
+        std::os::unix::fs::symlink(outside.path(), workspace.path().join("specs")).unwrap();
+        let error = init(workspace.path(), Path::new("specs")).unwrap_err();
+        assert!(error.to_string().contains("traverses a symlink"), "{error}");
     }
 }

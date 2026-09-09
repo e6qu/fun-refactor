@@ -759,6 +759,99 @@ fn spec_check_reports_the_projects_kernel_anchors_as_json() {
 }
 
 #[test]
+fn spec_init_previews_then_creates_and_reverses_a_pinned_package() {
+    let ws = Workspace::new(&[(
+        "Cargo.toml",
+        "[package]\nname = \"fixture\"\nversion = \"0.1.0\"\n",
+    )]);
+
+    let (preview, ok) = ws.run(&["spec", "init"]);
+    assert!(ok, "{preview}");
+    assert!(preview.contains("specs/lean-toolchain"), "{preview}");
+    assert!(preview.contains("Nothing written"), "{preview}");
+    assert!(!ws.root().join("specs").exists());
+    assert!(!ws.root().join(".fr-history").exists());
+
+    let output = Command::new(FR)
+        .arg("--json")
+        .arg("-C")
+        .arg(ws.root())
+        .args(["spec", "init", "--write"])
+        .env("FUN_REFACTOR_CACHE", ws.cache.path())
+        .output()
+        .expect("fr should run");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["operation"], "spec_init", "{report}");
+    assert_eq!(report["toolchain"], "leanprover/lean4:v4.28.0", "{report}");
+    assert_eq!(report["files_changed"], 3, "{report}");
+    assert_eq!(report["applied"], true, "{report}");
+    let id = report["transaction"].as_u64().expect("transaction id");
+    assert_eq!(
+        std::fs::read_to_string(ws.root().join("specs/lean-toolchain")).unwrap(),
+        "leanprover/lean4:v4.28.0\n"
+    );
+    assert!(
+        std::fs::read_to_string(ws.root().join("specs/lakefile.toml"))
+            .unwrap()
+            .contains("defaultTargets = [\"FrSpecs\"]")
+    );
+
+    let id = id.to_string();
+    let (undone, ok) = ws.run(&["history", "undo", &id, "--write"]);
+    assert!(ok, "{undone}");
+    assert!(!ws.root().join("specs/FrSpecs.lean").exists());
+    let (redone, ok) = ws.run(&["history", "redo", &id, "--write"]);
+    assert!(ok, "{redone}");
+    assert!(ws.root().join("specs/FrSpecs.lean").is_file());
+
+    std::fs::write(
+        ws.root().join("specs/lakefile.toml"),
+        "user configuration\n",
+    )
+    .unwrap();
+    let (refused, ok) = ws.run(&["spec", "init", "--write"]);
+    assert!(!ok, "{refused}");
+    assert!(refused.contains("refusing to replace"), "{refused}");
+    assert_eq!(
+        std::fs::read_to_string(ws.root().join("specs/lakefile.toml")).unwrap(),
+        "user configuration\n"
+    );
+}
+
+#[test]
+fn spec_init_saved_plan_waits_for_history_apply() {
+    let ws = Workspace::new(&[("Cargo.toml", "[workspace]\n")]);
+    let output = Command::new(FR)
+        .arg("--json")
+        .arg("--save-plan")
+        .arg("-C")
+        .arg(ws.root())
+        .args(["spec", "init", "verification"])
+        .env("FUN_REFACTOR_CACHE", ws.cache.path())
+        .output()
+        .expect("fr should run");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["saved"], true, "{report}");
+    assert_eq!(report["applied"], false, "{report}");
+    assert!(!ws.root().join("verification").exists());
+
+    let id = report["transaction"].as_u64().unwrap().to_string();
+    let (applied, ok) = ws.run(&["history", "apply", &id, "--write"]);
+    assert!(ok, "{applied}");
+    assert!(ws.root().join("verification/FrSpecs.lean").is_file());
+}
+
+#[test]
 fn spec_sync_previews_then_renews_a_stale_anchor_without_touching_its_model() {
     let ws = Workspace::new(&[
         ("src/code.rs", "pub fn current() -> usize { 2 }\n"),

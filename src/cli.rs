@@ -625,6 +625,16 @@ enum RecipeCommand {
 
 #[derive(Subcommand)]
 enum SpecCommand {
+    #[command(about = "Initialize a checked Lean package.")]
+    Init {
+        #[arg(
+            default_value = "specs",
+            help = "Package directory inside the workspace."
+        )]
+        path: PathBuf,
+        #[arg(long, help = "Write through source history.")]
+        write: bool,
+    },
     #[command(about = "Report stale Lean specification anchors and unproved obligations")]
     Check {
         #[arg(help = "Lean spec files or directories; defaults to kernels and specs")]
@@ -855,6 +865,9 @@ fn dispatch(cli: &Cli) -> Result<()> {
                 | Command::Rewrite { .. }
                 | Command::Restructure { .. }
                 | Command::Spec {
+                    command: SpecCommand::Init { .. }
+                }
+                | Command::Spec {
                     command: SpecCommand::Sync { .. }
                 }
                 | Command::Openapi { out: Some(_), .. }
@@ -1016,6 +1029,7 @@ fn dispatch(cli: &Cli) -> Result<()> {
             ),
         },
         Command::Spec { command } => match command {
+            SpecCommand::Init { path, write } => cmd_spec_init(cli, path, *write),
             SpecCommand::Check { paths, strict } => cmd_spec_check(cli, paths, *strict),
             SpecCommand::Sync { paths, write } => cmd_spec_sync(cli, paths, *write),
             SpecCommand::Verify { paths } => cmd_spec_verify(cli, paths),
@@ -1089,6 +1103,101 @@ fn dispatch(cli: &Cli) -> Result<()> {
             unreachable,
         } => cmd_entrypoints(cli, kind.as_deref(), catalogs.as_deref(), *unreachable),
     }
+}
+
+fn cmd_spec_init(cli: &Cli, path: &Path, write: bool) -> Result<()> {
+    let root = workspace_root(cli);
+    let plan = crate::spec::init(&root, path)?;
+    let changes = plan
+        .files
+        .iter()
+        .map(|file| crate::edit::FileChange {
+            path: &file.path,
+            original: if file.existing { file.content } else { "" },
+            updated: file.content,
+        })
+        .collect::<Vec<_>>();
+    let transaction = persist_changes(cli, &changes, write, "lean-package-layout-v1")?;
+    let created = plan.files.iter().filter(|file| !file.existing).count();
+
+    if cli.json {
+        let files = plan
+            .files
+            .iter()
+            .map(|file| {
+                serde_json::json!({
+                    "path": shown_path(&root, &file.path),
+                    "existing": file.existing,
+                })
+            })
+            .collect::<Vec<_>>();
+        let changes = plan
+            .files
+            .iter()
+            .filter(|file| !file.existing)
+            .map(|file| {
+                let shown = shown_path(&root, &file.path);
+                serde_json::json!({
+                    "path": shown,
+                    "diff": crate::edit::unified_diff("", file.content, &shown),
+                })
+            })
+            .collect::<Vec<_>>();
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "schema": 1,
+                "operation": "spec_init",
+                "package": shown_path(&root, &plan.package),
+                "toolchain": plan.toolchain,
+                "validation": "lean-package-layout-v1",
+                "files_changed": created,
+                "files": files,
+                "changes": changes,
+                "transaction": transaction,
+                "applied": write && transaction.is_some(),
+                "saved": cli.save_plan && transaction.is_some(),
+            }))?
+        );
+        return Ok(());
+    }
+
+    if !write {
+        for file in plan.files.iter().filter(|file| !file.existing) {
+            let shown = shown_path(&root, &file.path);
+            print!("{}", crate::edit::unified_diff("", file.content, &shown));
+        }
+    }
+    if created == 0 {
+        println!(
+            "Lean specification package {} is already initialized with {}.",
+            shown_path(&root, &plan.package),
+            plan.toolchain
+        );
+    } else if write {
+        println!(
+            "Initialized {} with {} checked file(s) using {}.",
+            shown_path(&root, &plan.package),
+            created,
+            plan.toolchain
+        );
+    } else if cli.save_plan {
+        println!(
+            "Saved initialization of {} with {} checked file(s) using {}.",
+            shown_path(&root, &plan.package),
+            created,
+            plan.toolchain
+        );
+    } else {
+        println!(
+            "Would initialize {} with {} checked file(s) using {}.",
+            shown_path(&root, &plan.package),
+            created,
+            plan.toolchain
+        );
+        println!("Nothing written. Re-run with --write to apply.");
+    }
+    Ok(())
 }
 
 fn cmd_spec_check(cli: &Cli, paths: &[PathBuf], strict: bool) -> Result<()> {

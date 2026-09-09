@@ -448,10 +448,18 @@ may write.
 ### `fr spec`
 
 ```
+fr spec init [PATH] [--write]
 fr spec check [PATH...]
 fr spec sync [PATH...] [--write]
 fr spec verify [PATH...]
 ```
+
+`init` plans a minimal Lake package at `specs/`, or at the selected workspace-relative
+path. It pins the supported Lean toolchain and creates `lakefile.toml` plus the
+`FrSpecs` library root. The library is a default checked target. The command refuses
+to leave the workspace, traverse a symlink or replace a differing file. It is a dry
+run until `--write`; `--save-plan` records the three absent-file snapshots for later
+`history apply`. Ordinary history undo and redo remove and restore them together.
 
 Check that Lean models still point at the declarations they model. With no path,
 the command reads `kernels/` and `specs/`. A model names a declaration with an

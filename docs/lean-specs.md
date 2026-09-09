@@ -9,6 +9,7 @@ The [roadmap](../PLAN.md) extends this foundation into an adoption workflow for 
 | Surface | Current scope |
 |---|---|
 | Lean translation | Eight programming-language readers and writers, including Lean, over supported constructs |
+| `fr spec init` | Preview or create a pinned minimal Lake package and checked `FrSpecs` target through source history |
 | `fr spec check` | Source identity, missing declarations, signature maps and live `sorry` counts |
 | `fr spec check --strict` | Require an explicit signature map beside every source anchor |
 | `fr spec sync` | Preview renewal of stale source hashes; `--write` applies reviewed renewals |
@@ -36,6 +37,8 @@ Inspect a stale source change before renewing its hash.
 `spec sync` changes source identity markers; it does not rewrite signatures or repair proofs.
 
 ```sh
+fr spec init
+fr spec init --write
 fr spec check --strict
 fr spec sync
 fr spec sync --write
@@ -315,21 +318,27 @@ The [M4s timing report](project-context-evaluation.md#batched-revision-hashing) 
 
 ## Adopting Lean in another project today
 
-Create a Lake package and write a small executable model with a useful property.
+Run `fr spec init` to preview a minimal package, then apply it with `--write`.
+The command defaults to `specs/`, pins the supported Lean toolchain, and records all
+created files in one undoable transaction. Import every selected model from
+`FrSpecs.lean` so the default target builds it. The command preserves every existing
+package file that differs from its template.
+
+Write a small executable model with a useful property.
 Choose a pure function whose domain and assumptions can be stated clearly.
 Add its source anchor and explicit signature map, then run `fr spec check --strict`.
 Run `fr spec verify` to check correspondence and build the owning package.
 Add shared input/output cases when the model mirrors an implementation.
 
 This workflow still requires manual model and anchor authoring.
-Package initialization and `spec extract` are planned commands; they do not exist today.
+Declaration selection and automatic model scaffolding remain planned work.
 Use the existing examples under `kernels/` as working references.
 
 ## Adoption milestones
 
 The next adoption work should provide:
 
-- Package initialization with a pinned Lean toolchain and CI instructions.
+- CI generation for the initialized package.
 - Declaration selection and anchored model scaffolds with explicit unsupported types.
 - Named proof obligations and a proof-debt ratchet.
 - Generated-region ownership and regeneration that preserves handwritten work.
