@@ -58,6 +58,8 @@ The validation label is `file-snapshots`.
 The recorder checks selected content or link targets, entry kinds, existence and regular-file permission modes again under the shared transaction locks before saving.
 History apply also checks its recorded project source revision, with the same recognized-file scope and generated-directory exclusions as other transactions.
 Undo and redo check affected snapshots and stack order while preserving unrelated changes.
+Source-history transitions never write the Git index. Tests cover an affected path staged before planning.
+They also retain unrelated staged and unstaged content, a later tracked source edit and a later untracked file.
 These checks do not establish syntax, import, dependency, compilation or behavioral correctness after a file deletion.
 
 ## Scope and recovery

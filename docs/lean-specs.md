@@ -72,8 +72,11 @@ The full self-audits run in `tools/check.sh deep`.
 
 `FrKernels.History` adds snapshot acceptance, inverse laws, mixed-state recovery and undo/redo stack laws.
 Its anchored snapshot predicate has 432 shared Rust/Lean executable cases, including a symlink snapshot.
+An abstract selected-namespace model proves that replay installs the requested selected snapshot.
+It preserves the current snapshot at every unselected path, including an unrelated edit made after application.
 The inverse and mixed-recovery proofs use Lean’s propositional extensionality axiom. The two stack inverse proofs use no axioms.
-The model assumes durable journal checkpoints and atomic rename. Filesystem and full transaction implementation correspondence remain unproved.
+The selected-namespace proofs use no axioms. The model assumes durable journal checkpoints and atomic rename.
+Filesystem, path selection and full transaction implementation correspondence remain unproved. A Git-backed CLI test supplies concrete preservation evidence.
 
 `FrKernels.Patch` models Git regular, executable and symlink mode projection, supported permission changes and receiving patch-basis equality.
 Five Rust helpers used by file authoring, patch export and receiving checks carry explicit anchors and signature maps.

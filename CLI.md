@@ -1088,6 +1088,8 @@ It excludes `.git`, `.fr-history`, `target`, `node_modules` and `.lake` director
 It does not establish build, dependency or behavioral equivalence.
 A changed source digest requires a fresh plan.
 Undo and redo check only the affected files, preserving unrelated edits.
+They do not read or write the Git index. An affected path may already be staged.
+Its index entry remains intact, along with unrelated staged, unstaged and untracked state.
 
 Undo requires the latest applied ID. Redo requires the next ID on the redo stack.
 Saving a plan preserves the redo stack. Applying a new plan clears that stack and marks its old entries `abandoned`.

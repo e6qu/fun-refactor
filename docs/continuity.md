@@ -25,6 +25,10 @@ The anchored entry-mode policy accepts one recognized blob kind, and all sixteen
 The eighth checkpoint extends schema-one source snapshots with an omitted-by-default entry kind, preserving regular-record serialization while representing UTF-8 symlink targets explicitly.
 `fr file symlink` creates or replaces one link, `file delete` accepts links, and history apply, undo, redo, recovery, basis checks and Git patch export preserve the entry kind without following targets.
 Git type changes render as the paired deletion and addition records Git requires; the anchored snapshot-mode projection fixes links at `120000`, and 8,258 Rust/Lean cases cover both entry kinds across the existing mode corpus.
+The ninth checkpoint closes the source-history preservation deliverable with a direct Git-backed CLI scenario.
+An affected path may already be staged before planning. Apply, undo and redo leave the index byte-identical.
+They retain unrelated staged and unstaged content, a later tracked source edit and a later untracked file.
+The History kernel now models selected namespace replay. It proves that replay installs selected snapshots and preserves every unselected path's current value.
 PR 2's first checkpoint extends exact-byte Rust insertion to impl and trait bodies and generalizes the insertion placement model.
 The second checkpoint authors TypeScript/TSX expression-bodied arrows and permits checked transitions between expression and block bodies.
 The third checkpoint adds Java method, constructor and default-interface body authoring through the same checked splice and history path.
