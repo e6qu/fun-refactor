@@ -1,0 +1,6 @@
+Implemented and verified:
+
+- Added documented `escape_len` APIs to `regex-syntax` and `regex`.
+- Updated escaping to reserve exact capacity, preserving append behavior and avoiding allocation for empty input.
+- Passed upstream and no-default-feature checks.
+- Exported, undid, redid the transaction, and passed receiver verification.

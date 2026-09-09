@@ -40,6 +40,21 @@ fn fixture_file(name: &str, source: &str, body: &[u8]) -> (tempfile::TempDir, Pa
     (temp, root, input)
 }
 
+#[cfg(unix)]
+fn set_mode(path: &Path, mode: u32) {
+    use std::os::unix::fs::PermissionsExt;
+    fs::set_permissions(path, fs::Permissions::from_mode(mode)).unwrap();
+}
+
+#[cfg(unix)]
+fn assert_mode(path: &Path, mode: u32) {
+    use std::os::unix::fs::PermissionsExt;
+    assert_eq!(
+        fs::metadata(path).unwrap().permissions().mode() & 0o777,
+        mode
+    );
+}
+
 fn selection(root: &Path, name: &str) -> (String, String) {
     let map = ok(
         root,
@@ -59,6 +74,31 @@ fn selection(root: &Path, name: &str) -> (String, String) {
         .iter()
         .find(|row| row[1] == name)
         .unwrap_or_else(|| panic!("missing {name}: {map}"));
+    (
+        row[0].as_str().unwrap().to_owned(),
+        map["revision"].as_str().unwrap().to_owned(),
+    )
+}
+
+fn selection_kind(root: &Path, name: &str, kind: &str) -> (String, String) {
+    let map = ok(
+        root,
+        &[
+            "project",
+            "map",
+            "--locals",
+            "--depth",
+            "64",
+            "--fields",
+            "handle,kind,name",
+        ],
+    );
+    let row = map["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row[1] == kind && row[2] == name)
+        .unwrap_or_else(|| panic!("missing {kind} {name}: {map}"));
     (
         row[0].as_str().unwrap().to_owned(),
         map["revision"].as_str().unwrap().to_owned(),
@@ -113,6 +153,30 @@ fn compiled_result(root: &Path) -> Vec<u8> {
         String::from_utf8_lossy(&output.stderr)
     );
     let output = Command::new(output_path).output().unwrap();
+    assert!(output.status.success());
+    output.stdout
+}
+
+fn java_result(root: &Path) -> Vec<u8> {
+    let output_path = root.parent().unwrap().join("java-classes");
+    fs::create_dir_all(&output_path).unwrap();
+    let output = Command::new("javac")
+        .args(["-Xlint:all", "-Werror", "-d"])
+        .arg(&output_path)
+        .arg(root.join("App.java"))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let output = Command::new("java")
+        .arg("-cp")
+        .arg(output_path)
+        .arg("App")
+        .output()
+        .unwrap();
     assert!(output.status.success());
     output.stdout
 }
@@ -286,6 +350,129 @@ fn methods_default_trait_bodies_nested_functions_and_generic_headers_keep_surrou
 }
 
 #[test]
+fn java_method_body_compiles_through_saved_history_and_patch() {
+    let source = concat!(
+        "public final class App {\n",
+        "    static int calc(int value) /* keep */ { return value + 1; }\n",
+        "    public static void main(String[] args) { System.out.println(calc(3)); }\n",
+        "}\n",
+    );
+    let old = "{ return value + 1; }";
+    let new = "{ return value * 2; }";
+    let (_temp, root, input) = fixture_file("App.java", source, new.as_bytes());
+    #[cfg(unix)]
+    set_mode(&root.join("App.java"), 0o640);
+    assert_eq!(java_result(&root), b"4\n");
+    let (handle, _) = selection(&root, "calc");
+    let (success, saved) = replace(&root, &handle, &input, &["--save-plan"]);
+    assert!(success, "{saved}");
+    assert_eq!(saved["body"]["before_kind"], "block");
+    assert_eq!(fs::read_to_string(root.join("App.java")).unwrap(), source);
+
+    let id = saved["transaction"].as_u64().unwrap().to_string();
+    fs::write(&input, "{ return 999; }").unwrap();
+    ok(&root, &["history", "apply", &id, "--write"]);
+    let expected = source.replace(old, new);
+    assert_eq!(fs::read_to_string(root.join("App.java")).unwrap(), expected);
+    #[cfg(unix)]
+    assert_mode(&root.join("App.java"), 0o640);
+    assert_eq!(java_result(&root), b"6\n");
+    ok(&root, &["history", "undo", &id, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("App.java")).unwrap(), source);
+    #[cfg(unix)]
+    assert_mode(&root.join("App.java"), 0o640);
+    ok(&root, &["history", "patch", &id, "--check"]);
+    assert!(ok(&root, &["history", "patch", &id])["patch"]
+        .as_str()
+        .unwrap()
+        .contains(new));
+    ok(&root, &["history", "redo", &id, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("App.java")).unwrap(), expected);
+    #[cfg(unix)]
+    assert_mode(&root.join("App.java"), 0o640);
+    assert_eq!(java_result(&root), b"6\n");
+}
+
+#[test]
+fn java_constructors_and_default_methods_retain_headers() {
+    for (source, selected, old, new, output) in [
+        (
+            concat!(
+                "public final class App {\n",
+                "    private final int value;\n",
+                "    App(int value) /* keep */ { this.value = value + 1; }\n",
+                "    public static void main(String[] args) { System.out.println(new App(3).value); }\n",
+                "}\n",
+            ),
+            "App",
+            "{ this.value = value + 1; }",
+            "{ this.value = value * 2; }",
+            b"6\n".as_slice(),
+        ),
+        (
+            concat!(
+                "interface Value { default int calc(int value) { return value + 1; } }\n",
+                "public final class App implements Value {\n",
+                "    public static void main(String[] args) { System.out.println(new App().calc(3)); }\n",
+                "}\n",
+            ),
+            "calc",
+            "{ return value + 1; }",
+            "{ return value * 2; }",
+            b"6\n".as_slice(),
+        ),
+    ] {
+        let (_temp, root, input) = fixture_file("App.java", source, new.as_bytes());
+        let (handle, _) = selection_kind(&root, selected, "method");
+        let (success, report) = replace(&root, &handle, &input, &["--write"]);
+        assert!(success, "{source}: {report}");
+        assert_eq!(report["body"]["before_kind"], "block");
+        assert_eq!(
+            fs::read_to_string(root.join("App.java")).unwrap(),
+            source.replace(old, new)
+        );
+        assert_eq!(java_result(&root), output);
+    }
+
+    let source = "interface Value { int calc(int value); }\n";
+    let (_temp, root, input) = fixture_file("App.java", source, b"{ return value; }");
+    let (handle, _) = selection(&root, "calc");
+    assert!(!replace(&root, &handle, &input, &["--write"]).0);
+    assert_eq!(fs::read_to_string(root.join("App.java")).unwrap(), source);
+
+    let source = concat!(
+        "final class App {\n",
+        "    int calc(int value) { return value + 1; }\n",
+        "    String calc(String value) { return value.trim(); }\n",
+        "}\n",
+    );
+    let (_temp, root, input) = fixture_file("App.java", source, b"{}");
+    let map = ok(
+        &root,
+        &["project", "map", "--depth", "64", "--fields", "handle,name"],
+    );
+    let mut bodies = Vec::new();
+    for row in map["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|row| row[1] == "calc")
+    {
+        let (success, report) = replace(&root, row[0].as_str().unwrap(), &input, &[]);
+        assert!(success, "{report}");
+        let start = report["body"]["before_span"]["start"].as_u64().unwrap() as usize;
+        let end = report["body"]["before_span"]["end"].as_u64().unwrap() as usize;
+        bodies.push(&source[start..end]);
+    }
+    bodies.sort_unstable();
+    assert_eq!(
+        bodies,
+        vec!["{ return value + 1; }", "{ return value.trim(); }"]
+    );
+    assert_eq!(fs::read_to_string(root.join("App.java")).unwrap(), source);
+}
+
+#[test]
 fn short_ids_require_revision_and_equal_bodies_do_not_create_history() {
     let (_temp, root, input) = fixture("fn calc() {}\n", b" \n{}\n ");
     let (handle, revision) = selection(&root, "calc");
@@ -382,10 +569,6 @@ fn typescript_and_tsx_declarations_and_methods_preserve_their_headers() {
 fn typescript_refuses_unsupported_handles_and_never_edits_the_enclosing_function() {
     for extension in ["ts", "tsx"] {
         for source in [
-            "const calc = () => 1;\n",
-            "const calc = () => ({ value: 1 });\n",
-            "const calc = ((() => 1) as () => number);\n",
-            "const calc = ((() => ({ value: 1 })) satisfies () => object);\n",
             "const calc = ((wrap(() => { return 1; })) as () => number);\n",
             "const calc = (condition ? () => { return 1; } : () => { return 2; })!;\n",
             "const calc = (sideEffect(), () => { return 1; });\n",
@@ -394,7 +577,6 @@ fn typescript_refuses_unsupported_handles_and_never_edits_the_enclosing_function
             "const calc = wrap(() => { return 1; });\n",
             "const calc = condition ? () => { return 1; } : () => { return 2; };\n",
             "const { calc } = { calc: () => { return 1; } };\n",
-            "class C { calc = () => 1; }\n",
             "class C { calc = (wrap(() => { return 1; }))!; }\n",
             "function outer() { const calc = wrap(() => { return 1; }); return calc(); }\n",
             "const outer = () => { let calc = 1; return calc; };\n",
@@ -417,6 +599,117 @@ fn typescript_refuses_unsupported_handles_and_never_edits_the_enclosing_function
             assert!(!root.join(".fr-history").exists());
         }
     }
+}
+
+#[test]
+fn expression_arrow_bodies_support_expression_and_block_transitions() {
+    for (file, source, old, new, before_kind, after_kind) in [
+        (
+            "app.ts",
+            "const calc = ((n: number) => n + 1) satisfies (n: number) => number;\n",
+            "n + 1",
+            "n * 2",
+            "expression",
+            "expression",
+        ),
+        (
+            "app.ts",
+            "const calc = (n: number) => n + 1;\n",
+            "n + 1",
+            "{ return n * 2; }",
+            "expression",
+            "block",
+        ),
+        (
+            "app.ts",
+            "class C { calc = (n: number) => { return n + 1; }; }\n",
+            "{ return n + 1; }",
+            "n * 2",
+            "block",
+            "expression",
+        ),
+        (
+            "app.tsx",
+            "const calc = (value: number) => <span>{value + 1}</span>;\n",
+            "<span>{value + 1}</span>",
+            "<span>{value * 2}</span>",
+            "expression",
+            "expression",
+        ),
+    ] {
+        let (_temp, root, input) = fixture_file(file, source, new.as_bytes());
+        let (handle, _) = selection(&root, "calc");
+        let (success, report) = replace(&root, &handle, &input, &["--write"]);
+        assert!(success, "{file}: {source}: {report}");
+        assert_eq!(report["body"]["before_kind"], before_kind);
+        assert_eq!(report["body"]["after_kind"], after_kind);
+        assert_eq!(
+            fs::read_to_string(root.join(file)).unwrap(),
+            source.replace(old, new)
+        );
+    }
+
+    let source = "const calc = () => 0;\n";
+    let (_temp, root, input) = fixture_file("app.ts", source, b"1");
+    let (handle, _) = selection(&root, "calc");
+    let (success, report) = replace(&root, &handle, &input, &["--write"]);
+    assert!(success, "{report}");
+    assert_eq!(report["body"]["before_bytes"], 1);
+    assert_eq!(report["body"]["after_bytes"], 1);
+
+    for fragment in [
+        "",
+        "n + 1;",
+        "n + 1\nconst escaped = 2",
+        "/* leading */ n + 1",
+    ] {
+        let source = "const calc = (n: number) => n;\n";
+        let (_temp, root, input) = fixture_file("app.ts", source, fragment.as_bytes());
+        let (handle, _) = selection(&root, "calc");
+        assert!(!replace(&root, &handle, &input, &["--save-plan"]).0);
+        assert_eq!(fs::read_to_string(root.join("app.ts")).unwrap(), source);
+        assert!(!root.join(".fr-history").exists());
+    }
+
+    let source = "const calc = function () { return 1; };\n";
+    let (_temp, root, input) = fixture_file("app.ts", source, b"2");
+    let (handle, _) = selection(&root, "calc");
+    assert!(!replace(&root, &handle, &input, &["--write"]).0);
+    assert_eq!(fs::read_to_string(root.join("app.ts")).unwrap(), source);
+}
+
+#[test]
+fn expression_arrow_history_compiles_and_preserves_wrappers_and_patch() {
+    let source = concat!(
+        "const calc = (((n: number): number => n + 1) satisfies ",
+        "(n: number) => number)!;\n",
+        "console.log(calc(3));\n",
+    );
+    let (_temp, root, input) = fixture_file("app.ts", source, b"n * 2");
+    assert_eq!(typescript_result(&root, "app.ts"), b"4\n");
+    let (handle, _) = selection(&root, "calc");
+    let (success, saved) = replace(&root, &handle, &input, &["--save-plan"]);
+    assert!(success, "{saved}");
+    assert_eq!(saved["body"]["before_kind"], "expression");
+    assert_eq!(saved["body"]["after_kind"], "expression");
+    assert_eq!(fs::read_to_string(root.join("app.ts")).unwrap(), source);
+
+    let id = saved["transaction"].as_u64().unwrap().to_string();
+    fs::write(&input, "999").unwrap();
+    ok(&root, &["history", "apply", &id, "--write"]);
+    let expected = source.replace("n + 1", "n * 2");
+    assert_eq!(fs::read_to_string(root.join("app.ts")).unwrap(), expected);
+    assert_eq!(typescript_result(&root, "app.ts"), b"6\n");
+    ok(&root, &["history", "undo", &id, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("app.ts")).unwrap(), source);
+    ok(&root, &["history", "patch", &id, "--check"]);
+    assert!(ok(&root, &["history", "patch", &id])["patch"]
+        .as_str()
+        .unwrap()
+        .contains("n * 2"));
+    ok(&root, &["history", "redo", &id, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("app.ts")).unwrap(), expected);
+    assert_eq!(typescript_result(&root, "app.ts"), b"6\n");
 }
 
 #[test]
@@ -1467,11 +1760,6 @@ fn module_insertion_refuses_duplicates_dangling_metadata_and_unsupported_targets
     for (source, selected) in [
         ("mod target;", "target"),
         ("mod outer { fn target() {} }", "target"),
-        ("mod outer { trait target {} }", "target"),
-        (
-            "mod outer { struct Target; impl Target { fn target() {} } }",
-            "target",
-        ),
     ] {
         let (_temp, root, input) = fixture(source, b"fn calc() {}");
         let (handle, _) = selection(&root, selected);
@@ -1479,6 +1767,103 @@ fn module_insertion_refuses_duplicates_dangling_metadata_and_unsupported_targets
         assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
         assert!(!root.join(".fr-history").exists());
     }
+}
+
+#[test]
+fn impl_insertion_compiles_and_preserves_saved_history_and_patch() {
+    let source = concat!(
+        "#![deny(warnings)]\n",
+        "struct Counter(i32);\n",
+        "impl Counter {\n",
+        "    fn seed(&self) -> i32 { self.0 }\n",
+        "}\n",
+        "fn main() { println!(\"{}\", Counter(3).added()); }\n",
+    );
+    let added = "fn added(&self) -> i32 { self.seed() + 2 }";
+    let (_temp, root, input) = fixture(source, added.as_bytes());
+    #[cfg(unix)]
+    set_mode(&root.join("app.rs"), 0o640);
+    let (handle, _) = selection(&root, "seed");
+
+    let (success, saved) = insert_declaration(&root, &handle, &input, &["--save-plan"]);
+    assert!(success, "{saved}");
+    assert_eq!(saved["container"]["kind"], "impl");
+    assert_eq!(saved["container"]["name"], "Counter");
+    assert_eq!(
+        saved["name_check"],
+        concat!(
+            "direct items in the selected impl; ",
+            "Rust namespaces are not distinguished."
+        )
+    );
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+
+    let id = saved["transaction"].as_u64().unwrap().to_string();
+    fs::write(&input, "fn changed() {}\n").unwrap();
+    ok(&root, &["history", "apply", &id, "--write"]);
+    let expected = source.replace("}\nfn main", &format!("{added}\n}}\nfn main"));
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), expected);
+    #[cfg(unix)]
+    assert_mode(&root.join("app.rs"), 0o640);
+    assert_eq!(compiled_result(&root), b"5\n");
+    ok(&root, &["history", "undo", &id, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+    #[cfg(unix)]
+    assert_mode(&root.join("app.rs"), 0o640);
+    ok(&root, &["history", "patch", &id, "--check"]);
+    assert!(ok(&root, &["history", "patch", &id])["patch"]
+        .as_str()
+        .unwrap()
+        .contains(added));
+    ok(&root, &["history", "redo", &id, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), expected);
+    #[cfg(unix)]
+    assert_mode(&root.join("app.rs"), 0o640);
+}
+
+#[test]
+fn trait_insertion_accepts_default_methods_and_bodyless_requirements() {
+    let source = concat!(
+        "#![deny(warnings)]\n",
+        "trait Value { fn seed(&self) -> i32; }\n",
+        "struct Number(i32);\n",
+        "impl Value for Number { fn seed(&self) -> i32 { self.0 } }\n",
+        "fn main() { println!(\"{}\", Number(4).added()); }\n",
+    );
+    let added = "fn added(&self) -> i32 { self.seed() + 3 }";
+    let (_temp, root, input) = fixture(source, added.as_bytes());
+    let (handle, _) = selection(&root, "Value");
+    let (success, report) = insert_declaration(&root, &handle, &input, &["--write"]);
+    assert!(success, "{report}");
+    assert_eq!(report["container"]["kind"], "trait");
+    assert_eq!(report["container"]["name"], "Value");
+    assert_eq!(report["declaration"]["kind"], "function");
+    assert_eq!(compiled_result(&root), b"7\n");
+    let (fresh, _) = selection(&root, "Value");
+    assert!(!insert_declaration(&root, &fresh, &input, &["--save-plan"]).0);
+
+    let bodyless_source = "trait Value { fn seed(&self) -> i32; }\n";
+    let (_temp, root, input) = fixture(bodyless_source, b"fn required(&self) -> bool;");
+    let (method, _) = selection(&root, "seed");
+    let (success, preview) = insert_declaration(&root, &method, &input, &[]);
+    assert!(success, "{preview}");
+    assert_eq!(preview["container"]["kind"], "trait");
+    assert_eq!(preview["declaration"]["kind"], "function-signature");
+    assert_eq!(preview["signature"]["text"], "fn required(&self) -> bool;");
+    assert_eq!(
+        fs::read_to_string(root.join("app.rs")).unwrap(),
+        bodyless_source
+    );
+
+    let impl_source = "struct Value; impl Value { fn anchor(&self) {} }\n";
+    let (_temp, root, input) = fixture(impl_source, b"fn required(&self);");
+    let (method, _) = selection(&root, "anchor");
+    assert!(!insert_declaration(&root, &method, &input, &["--write"]).0);
+    assert_eq!(
+        fs::read_to_string(root.join("app.rs")).unwrap(),
+        impl_source
+    );
+    assert!(!root.join(".fr-history").exists());
 }
 
 #[test]
@@ -1847,6 +2232,10 @@ fn batch_step(root: &Path, op: &str, handle: &str, label: &str, text: &str) -> V
     serde_json::json!({"op":op,"handle":handle,"from":input})
 }
 
+fn organize_imports_step(handle: &str) -> Value {
+    serde_json::json!({"op":"organize-imports","handle":handle})
+}
+
 fn batch_manifest(root: &Path, operations: Vec<Value>, revision: Option<&str>) -> PathBuf {
     let input = root.parent().unwrap().join("batch.json");
     let mut manifest = serde_json::json!({"operations":operations});
@@ -1949,6 +2338,186 @@ fn batch_coordinates_caller_signature_and_helper_through_one_saved_transaction()
         fs::read_to_string(root.join("app.rs")).unwrap(),
         changed_app
     );
+}
+
+#[test]
+fn batch_coordinates_declaration_caller_and_import_changes() {
+    let app = concat!(
+        "mod calc;\n",
+        "use std::cmp::max;\n",
+        "use calc::evaluate;\n",
+        "\n",
+        "fn main() { println!(\"{}\", evaluate(3)); }\n",
+    );
+    let calc = "pub fn evaluate(value: i32) -> i32 { value + 1 }\n";
+    let (_temp, root, _) = fixture(app, b"{}");
+    fs::write(root.join("calc.rs"), calc).unwrap();
+    assert_eq!(compiled_result(&root), b"4\n");
+    let (main, _) = selection(&root, "main");
+    let (evaluate, _) = selection(&root, "evaluate");
+    let (file, _) = selection(&root, "app.rs");
+    let declaration = "pub fn evaluate(value: i32, factor: i32) -> i32 { value * factor }";
+    let caller = "{ println!(\"{}\", evaluate(3, 2)); }";
+    let input = batch_manifest(
+        &root,
+        vec![
+            batch_step(
+                &root,
+                "replace-declaration",
+                &evaluate,
+                "declaration.txt",
+                declaration,
+            ),
+            batch_step(&root, "replace-body", &main, "caller.txt", caller),
+            organize_imports_step(&file),
+        ],
+        None,
+    );
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&input).unwrap()).unwrap();
+    manifest["postconditions"] = serde_json::json!({
+        "files-changed": 2,
+        "edits": 3,
+        "changed-operations": 3,
+        "paths-changed": ["app.rs", "calc.rs"]
+    });
+    fs::write(&input, serde_json::to_vec(&manifest).unwrap()).unwrap();
+    let (success, saved) = batch(&root, &input, &["--save-plan"]);
+    assert!(success, "{saved}");
+    assert_eq!(saved["files_changed"], 2);
+    assert_eq!(saved["steps"][2]["operation"], "organize-imports");
+    assert_eq!(
+        saved["steps"][2]["imports"]["removed"][0]["path"],
+        "std::cmp::max"
+    );
+    assert_eq!(
+        saved["steps"][2]["imports"]["edits"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    assert_eq!(saved["postconditions_held"], true);
+    assert_eq!(saved["postconditions"].as_array().unwrap().len(), 4);
+    assert!(saved["postconditions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|item| item["held"] == true));
+
+    let id = saved["transaction"].as_u64().unwrap().to_string();
+    ok(&root, &["history", "apply", &id, "--write"]);
+    let changed_app = concat!(
+        "mod calc;\n",
+        "use calc::evaluate;\n",
+        "\n",
+        "fn main() { println!(\"{}\", evaluate(3, 2)); }\n",
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("app.rs")).unwrap(),
+        changed_app
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("calc.rs")).unwrap(),
+        format!("{declaration}\n")
+    );
+    assert_eq!(compiled_result(&root), b"6\n");
+    let warning_check = Command::new("rustc")
+        .args(["--edition=2021", "-D", "warnings", "--emit=metadata", "-o"])
+        .arg(root.parent().unwrap().join("batch-checked.rmeta"))
+        .arg(root.join("app.rs"))
+        .output()
+        .unwrap();
+    assert!(
+        warning_check.status.success(),
+        "{}",
+        String::from_utf8_lossy(&warning_check.stderr)
+    );
+    fs::write(root.join("unrelated.txt"), "retained\n").unwrap();
+    ok(&root, &["history", "undo", &id, "--write"]);
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), app);
+    assert_eq!(fs::read_to_string(root.join("calc.rs")).unwrap(), calc);
+    ok(&root, &["history", "patch", &id, "--check"]);
+    ok(&root, &["history", "redo", &id, "--write"]);
+    assert_eq!(
+        fs::read_to_string(root.join("app.rs")).unwrap(),
+        changed_app
+    );
+    assert_eq!(compiled_result(&root), b"6\n");
+    assert_eq!(
+        fs::read_to_string(root.join("unrelated.txt")).unwrap(),
+        "retained\n"
+    );
+}
+
+#[test]
+fn batch_import_steps_require_one_changed_file_handle_without_a_fragment() {
+    let source = "use std::cmp::max;\nfn main() {}\n";
+    let (_temp, root, _) = fixture(source, b"{}");
+    let (file, _) = selection(&root, "app.rs");
+    let (main, _) = selection(&root, "main");
+
+    let mut with_fragment = organize_imports_step(&file);
+    with_fragment["from"] = serde_json::json!(root.parent().unwrap().join("unused.txt"));
+    let input = batch_manifest(&root, vec![with_fragment], None);
+    assert!(!batch(&root, &input, &["--write"]).0);
+
+    let input = batch_manifest(&root, vec![organize_imports_step(&main)], None);
+    assert!(!batch(&root, &input, &["--write"]).0);
+
+    let input = batch_manifest(
+        &root,
+        vec![organize_imports_step(&file), organize_imports_step(&file)],
+        None,
+    );
+    let (success, report) = batch(&root, &input, &["--save-plan"]);
+    assert!(!success, "{report}");
+    assert!(report["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("overlap"));
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+    assert!(!root.join(".fr-history").exists());
+
+    let clean = "fn main() {}\n";
+    fs::write(root.join("app.rs"), clean).unwrap();
+    let (file, _) = selection(&root, "app.rs");
+    let input = batch_manifest(&root, vec![organize_imports_step(&file)], None);
+    assert!(!batch(&root, &input, &["--write"]).0);
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), clean);
+    assert!(!root.join(".fr-history").exists());
+}
+
+#[test]
+fn batch_postconditions_refuse_mismatches_before_history_or_source_changes() {
+    for postconditions in [
+        serde_json::json!({"files-changed": 2}),
+        serde_json::json!({"edits": 2}),
+        serde_json::json!({"changed-operations": 0}),
+        serde_json::json!({"paths-changed": ["other.rs"]}),
+        serde_json::json!({}),
+        serde_json::json!({"paths-changed": ["../app.rs"]}),
+    ] {
+        let source = "fn calc() { let value = 1; println!(\"{}\", value); }\n";
+        let (_temp, root, _) = fixture(source, b"{}");
+        let (handle, _) = selection(&root, "calc");
+        let input = batch_manifest(
+            &root,
+            vec![batch_step(
+                &root,
+                "replace-body",
+                &handle,
+                "body.txt",
+                "{ let value = 2; println!(\"{}\", value); }",
+            )],
+            None,
+        );
+        let mut manifest: Value = serde_json::from_slice(&fs::read(&input).unwrap()).unwrap();
+        manifest["postconditions"] = postconditions;
+        fs::write(&input, serde_json::to_vec(&manifest).unwrap()).unwrap();
+        assert!(!batch(&root, &input, &["--write"]).0);
+        assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+        assert!(!root.join(".fr-history").exists());
+    }
 }
 
 #[test]

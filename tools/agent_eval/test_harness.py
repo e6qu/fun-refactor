@@ -3,6 +3,7 @@
 import copy
 import hashlib
 import importlib.util
+import io
 import json
 from pathlib import Path
 import sys
@@ -233,6 +234,26 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
         prompt = harness.prompt(Path("session"), task, "fr")
         self.assertIn("regex-syntax/src/lib.rs, src/lib.rs", prompt)
         self.assertIn("one author batch saved transaction", prompt)
+        self.assertIn('{"tool":"read","path":"skill/SKILL.md","start":1,"lines":80}', prompt)
+        self.assertIn('{"tool":"read","path":"skill/references/author.md","start":1,"lines":160}', prompt)
+        self.assertIn("do not pass --write to author batch", prompt)
+        self.assertIn("both API insertion operations and the regex-syntax escape body replacement", prompt)
+        self.assertIn("--request-stdin <<'FRJSON'", prompt)
+        self.assertIn("Apply refuses until all declared checks pass", prompt)
+        self.assertIn("It refuses until all declared checks pass after the final redo/apply", prompt)
+        example = prompt.split("--request-stdin <<'FRJSON'\n", 1)[1].split("\nFRJSON", 1)[0]
+        self.assertEqual(json.loads(example)["text"], "{\n    buf.push('\\\\');\n}")
+
+    def test_stdin_request_preserves_source_apostrophes_and_backslashes(self):
+        source = "{\n    buf.push('\\\\');\n}"
+        request = harness.request_input(None, True, io.StringIO(json.dumps({
+            "tool": "write", "path": "fragment.rs", "text": source,
+        })))
+        self.assertEqual(request["text"], source)
+        with self.assertRaisesRegex(ValueError, "exactly one request source"):
+            harness.request_input("{}", True, io.StringIO("{}"))
+        with self.assertRaisesRegex(ValueError, "JSON object"):
+            harness.request_input("[]", False, io.StringIO())
 
     def test_baseline_diagnostics_must_only_report_missing_requested_apis(self):
         valid = {"level": "error", "code": {"code": "E0425"}, "message": "cannot find function `escape_len` in crate `regex`"}
@@ -288,6 +309,59 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
             payload["result"][key] = value
             broken[0]["visible"] = json.dumps(payload)
             self.assertFalse(harness.coordinated_batch(broken))
+
+    def test_receiver_requires_checks_after_the_latest_state_change(self):
+        original = {"src/lib.rs": {"sha256": "old"}}
+        changed = {"src/lib.rs": {"sha256": "new"}}
+
+        def event(before, after, report=None):
+            return {"before": before, "after": after, "visible": json.dumps({
+                "exit_code": 0,
+                "result": report or {},
+            })}
+
+        check = {"schema": "fr-checks-1", "executed": True, "passed": True,
+                 "results": [{"name": "unit", "passed": True}]}
+        events = [event(original, changed), event(changed, changed, check)]
+        self.assertTrue(harness.current_state_checked(events, changed, ["unit"]))
+        events.extend([event(changed, original), event(original, original, check), event(original, changed)])
+        self.assertFalse(harness.current_state_checked(events, changed, ["unit"]))
+        events.append(event(changed, changed, check))
+        self.assertTrue(harness.current_state_checked(events, changed, ["unit"]))
+        self.assertFalse(harness.current_state_checked(events, changed, ["unit", "missing"]))
+
+    def test_coordinated_manifest_requires_the_complete_single_transaction(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            session = Path(tmp)
+            project = session / "project"
+            artifacts = session / "artifacts"
+            project.mkdir()
+            artifacts.mkdir()
+            config = {"task": harness.regex_escape_len.TASK}
+            path = artifacts / "manifest.json"
+            complete = {
+                "operations": [
+                    {"op": "insert-declaration"},
+                    {"op": "insert-declaration"},
+                    {"op": "replace-body"},
+                ],
+                "postconditions": {
+                    "files-changed": 2,
+                    "edits": 3,
+                    "changed-operations": 3,
+                    "paths-changed": list(harness.regex_escape_len.PATHS),
+                },
+            }
+            path.write_text(json.dumps(complete))
+            args = ["author", "batch", "--from", "../artifacts/manifest.json"]
+            harness.validate_coordinated_manifest(session, project, config, args)
+            for broken in (
+                {**complete, "operations": complete["operations"][:2]},
+                {**complete, "postconditions": {**complete["postconditions"], "edits": 2}},
+            ):
+                path.write_text(json.dumps(broken))
+                with self.assertRaisesRegex(ValueError, "one coordinated batch"):
+                    harness.validate_coordinated_manifest(session, project, config, args)
 
     def test_replay_checks_the_second_file_and_reverses_complete_snapshots(self):
         task = harness.regex_escape_len.TASK

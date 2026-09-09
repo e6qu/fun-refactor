@@ -207,9 +207,9 @@ The page model represents the caller's allocation loop; it has no separate sourc
 General Rust correspondence, UTF-8 library internals, parser spans and JSON report assembly remain unproved.
 JSON escaping and metadata lie outside the raw source-text budget.
 
-## Module insertion placement kernels
+## Declaration insertion placement kernels
 
-`FrKernels.Author` models the byte offset used to insert a Rust function before an inline module's closing brace.
+`FrKernels.Author` models the byte offset used to insert a Rust function before an inline module, impl or trait closing brace.
 The input string contains the source before that brace; `bodyStart` is the byte offset of the selected body's opening brace.
 A line ending with only spaces, tabs or carriage returns keeps its indentation after the inserted fragment.
 Otherwise, insertion uses the closing-brace offset. A candidate line must start strictly after `bodyStart`.
@@ -224,7 +224,7 @@ Fifteen theorems establish:
 - Content at the end retains the closing-brace position; lines outside the body also fall back to that position.
 - Empty input yields offset zero.
 
-`src/project.rs::module_insertion_offset` holds the calculation extracted from module authoring without changing its behavior.
+`src/project.rs::declaration_insertion_offset` holds the shared calculation used by declaration authoring.
 It has a source anchor and explicit signature map. The model accepts arbitrary natural opening offsets; Rust accepts `usize` offsets.
 The positive opening-bound theorem assumes the opening offset is less than the input's byte length.
 The other offset bounds and boundary guarantees hold even for an opening offset beyond the input.
@@ -235,16 +235,35 @@ It covers CRLF, Unicode, indentation lookalikes, NUL in the pure helper, offsets
 Large cases include 65,536 spaces and a prefix containing 4,096 four-byte characters.
 A 32-bit host compares 25,371 cases, consuming but skipping opening offsets that its `usize` cannot represent.
 The same corpus applies each offset through the Rust edit engine and checks unchanged source prefixes and suffixes.
-Eight actual CLI previews also match the Lean placement result, alongside the existing insertion splice and history tests.
+Ten actual CLI previews across modules, impls and traits also match the Lean placement result, alongside the existing insertion splice and history tests.
 
 All fifteen theorem dependencies use only `propext`, `Classical.choice` and `Quot.sound`, with smaller subsets for some properties.
 There are no custom axioms or new obligations. Inspect each dependency with `#print axioms FrKernels.Author.offset_is_boundary`, for example.
-Run `cargo test --test lean_kernels module_insertion_` for the comparisons.
-The default kernel gate includes `lake exe fr-project-kernel module-offsets`; the package still uses five executables.
+Run `cargo test --test lean_kernels declaration_insertion_` for the comparisons.
+The default kernel gate includes `lake exe fr-project-kernel declaration-offsets`; the package still uses five executables.
 
 These are model proofs and tested implementation correspondence.
 They do not prove AST selection, parser correctness, fragment validity, name checks, filesystem behavior or general Rust/model refinement.
 The existing edit model supplies separate splice-preservation laws; byte-offset placement alone does not prove complete authoring correctness.
+
+## Batch selection conflict kernel
+
+`FrKernels.Author.selectionConflict` models the extra selection rule applied before a batch becomes an edit set.
+Nonempty half-open regions may be adjacent, but overlapping regions refuse.
+An insertion conflicts at either boundary or anywhere inside another selected region, and two insertions conflict at the same offset.
+This stricter rule prevents an operation from depending on ordering at a shared original-source boundary.
+
+Six theorems establish symmetry, permit adjacent nonempty regions and distinct separated insertion points, and reject nonempty overlap plus insertion at either boundary.
+`src/project.rs::author_selection_conflict` is the shared Rust predicate used by the batch planner and carries a source anchor and explicit signature map.
+The generated comparison checks all 6,084 pairs of valid ranges over twelve 64-bit boundary values against Lean and a separate interval oracle.
+A 32-bit host compares the 4,356 representable pairs while consuming all Lean output.
+Dedicated cases treat the byte boundaries around `é` and `🙂` as insertion, adjacency and overlap positions.
+
+These proofs characterize the numeric selection predicate for valid ranges.
+The parser supplies valid byte spans, and separate tests cover malformed manifests, actual duplicate and nested selections, Unicode splicing and refusal before history writes.
+They do not prove that parser spans identify the intended declarations or that every batch operation is semantically independent.
+The edit kernel separately validates UTF-8 splice boundaries and applies the accepted, disjoint edit set.
+Run `cargo test --test lean_kernels author_selection_conflicts_` for the model comparison.
 
 ## Revision buffer kernels
 

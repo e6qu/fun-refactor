@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tarfile
 import time
 
@@ -130,12 +131,15 @@ def initialize(root):
 
 def prompt(session, task, arm):
     surface = (
-        "Use fr for source exploration and edits. Start by reading skill/SKILL.md through the read tool; load its references only as needed. Source read/search/replace tools are unavailable in this arm. Use fr project handles and saved authoring plans. Write fragments under artifacts/ outside the project."
+        "Use fr for source exploration and edits. Start with the instrumented call "
+        "{\"tool\":\"read\",\"path\":\"skill/SKILL.md\",\"start\":1,\"lines\":80}. "
+        "Load only needed references. Source read/search/replace tools are unavailable in this arm. "
+        "Use fr project handles and saved authoring plans. Write fragments under artifacts/ outside the project."
         if arm == "fr" else
         "Use ordinary files, read, search and replace tools for source exploration and edits. Do not use fr project/author/history commands. The shared fr checks command is available for identical project validation. Export and reverse/reapply your patch through the ordinary Git tools."
     )
     if task == regex_escape_len.TASK and arm == "fr":
-        surface += " Coordinate the edits in one author batch saved transaction, and export, undo and redo that transaction. Retain the first full project context_basis and use it on related project and author calls. Retain the complete author diff and its transaction_context_basis; use that basis to compact forward apply and redo reports. Preview reverse transitions in full."
+        surface += " Before constructing the batch manifest, use the instrumented call {\"tool\":\"read\",\"path\":\"skill/references/author.md\",\"start\":1,\"lines\":160}. Coordinate the edits in one author batch saved transaction, and export, undo and redo that transaction. The manifest must contain both API insertion operations and the regex-syntax escape body replacement, with exact files-changed, edits, changed-operations and paths-changed postconditions. Preview the batch once without a mutation flag, call it once with --save-plan, then apply the saved transaction with history apply --write; do not pass --write to author batch. Retain the first full project context_basis and use it on related project and author calls. Retain the complete author diff and its transaction_context_basis; use that basis to compact forward apply and redo reports. Preview reverse transitions in full."
     return f"""You are an independent acceptance-test agent. Complete this code task in the supplied unfamiliar pinned public project: {TASKS[task]}
 
 {surface}
@@ -144,7 +148,11 @@ Only change {', '.join(edit_paths(task))}. The evaluator owns regression oracles
 
 Use only the instrumented tool for all task inspection and work. Invoke it using functions.exec / tools.exec_command:
 python3 {ROOT / 'tools/agent-eval.py'} step {session} '<JSON object>'
-Use proper shell quoting for JSON (a single quote inside JSON needs shell escaping). You may batch independent instrumented calls. Do not directly read or write the project or artifacts through other tools. This is a cooperative measurement boundary, not an OS sandbox.
+Use the positional JSON form for simple requests. Use this stdin form for every write request so source apostrophes and shell metacharacters survive unchanged:
+python3 {ROOT / 'tools/agent-eval.py'} step {session} --request-stdin <<'FRJSON'
+{{"tool":"write","path":"fragment.rs","text":"{{\\n    buf.push('\\\\\\\\');\\n}}"}}
+FRJSON
+You may batch independent instrumented calls. Do not directly read or write the project or artifacts through other tools. This is a cooperative measurement boundary, not an OS sandbox.
 
 Tool objects:
 {{"tool":"files","path":"."}} lists up to 200 paths (baseline only).
@@ -155,9 +163,9 @@ Tool objects:
 {{"tool":"write","path":"fragment.rs","text":"{{ replacement block }}"}} writes artifacts/fragment.rs and returns its absolute path (both arms).
 {{"tool":"fr","args":["checks"]}} invokes fr with the project root, JSON and no cache. Use this for checks in both arms and project/author/history/git in the fr arm. --help is available.
 {{"tool":"export"}} saves and shows a Git diff as artifacts/change.patch (baseline only). In the fr arm, use history patch TX --output ../artifacts/change.patch to retain the patch while returning only its identity and size.
-{{"tool":"reverse"}} / {{"tool":"apply"}} reverses/reapplies that saved Git patch (baseline only).
+{{"tool":"reverse"}} / {{"tool":"apply"}} reverses/reapplies that saved Git patch (baseline only). Apply refuses until all declared checks pass on the state restored by reverse.
 {{"tool":"sentinel"}} adds an unrelated edit after the requested change; it must survive reversal and reapplication.
-{{"tool":"receiver"}} checks and applies the saved patch in a clean separate receiver and compares tracked content with your project.
+{{"tool":"receiver"}} checks and applies the saved patch in a clean separate receiver and compares tracked content with your project. It refuses until all declared checks pass after the final redo/apply.
 {{"tool":"finish","summary":"..."}} records your final conclusion; independent oracles run later.
 
 Workflow: inspect; list and run declared checks on the original; implement the task; run checks on the change; export the patch; add the sentinel; undo and check; redo and check; verify the receiver; finish. fr arm: preview/save/apply an authoring transaction and use history undo/redo. Run all declared checks together at each validation stage using --run with comma-separated names; every run needs the configuration basis from its listing. Keep project handles revision-bound when using them. Keep tool output bounded and request only relevant context. Leave the requested change applied. Report uncertainty and tool refusals honestly.
@@ -263,6 +271,33 @@ def category(request):
     return "change_and_delivery"
 
 
+def validate_coordinated_manifest(session, project, config, args):
+    if config["task"] != regex_escape_len.TASK or args[:2] != ["author", "batch"]:
+        return
+    try:
+        source = args[args.index("--from") + 1]
+    except (ValueError, IndexError):
+        raise ValueError("The coordinated author batch requires --from MANIFEST") from None
+    manifest = json.loads(within(session / "artifacts", (project / source).resolve()).read_text())
+    operations = manifest.get("operations")
+    if not isinstance(operations, list):
+        raise ValueError("The coordinated manifest requires an operations array")
+    kinds = [operation.get("op") for operation in operations if isinstance(operation, dict)]
+    postconditions = manifest.get("postconditions")
+    expected = {
+        "files-changed": 2,
+        "edits": len(operations),
+        "changed-operations": len(operations),
+        "paths-changed": list(edit_paths(config["task"])),
+    }
+    if (len(operations) < 3 or kinds.count("insert-declaration") < 2
+            or "replace-body" not in kinds or postconditions != expected):
+        raise ValueError(
+            "The one coordinated batch must include both API insertions and the escape body "
+            "replacement, with exact files-changed, edits, changed-operations and paths-changed postconditions"
+        )
+
+
 def action(session, config, request):
     project = session / "project"
     kind = request["tool"]
@@ -314,6 +349,11 @@ def action(session, config, request):
         args = request["args"]
         if not args or (baseline and args[0] != "checks"):
             raise ValueError("Only fr checks is shared with the ordinary-file arm")
+        validate_coordinated_manifest(session, project, config, args)
+        if args[:2] == ["history", "redo"]:
+            events = [json.loads(line) for line in (session / "events.jsonl").read_text().splitlines()]
+            if not current_state_checked(events, snapshot(project), required_checks(config["task"])):
+                raise ValueError("Run all declared checks on the state restored by undo before redo")
         if config["binary_sha256"] != digest(Path(config["fr"]).read_bytes()):
             raise ValueError("Trial binary changed after preparation")
         result = process([config["fr"], "--no-cache", "--json", "-C", str(project), *args], project)
@@ -327,6 +367,10 @@ def action(session, config, request):
         (session / "artifacts/change.patch").write_bytes(result.stdout)
         return {"patch": result.stdout.decode(), "patch_artifact": "artifacts/change.patch"}
     if kind in ("reverse", "apply"):
+        if kind == "apply":
+            events = [json.loads(line) for line in (session / "events.jsonl").read_text().splitlines()]
+            if not current_state_checked(events, snapshot(project), required_checks(config["task"])):
+                raise ValueError("Run all declared checks on the state restored by reverse before reapplying")
         args = ["apply", "--reverse"] if kind == "reverse" else ["apply"]
         result = git(project, *args, data=(session / "artifacts/change.patch").read_bytes(), check=False)
         return {"exit_code": result.returncode, "stderr": result.stderr.decode()}
@@ -334,6 +378,9 @@ def action(session, config, request):
         (project / "unrelated.txt").write_text("Preserve this independent later edit.\n")
         return {"created": "unrelated.txt"}
     if kind == "receiver":
+        events = [json.loads(line) for line in (session / "events.jsonl").read_text().splitlines()]
+        if not current_state_checked(events, snapshot(project), required_checks(config["task"])):
+            raise ValueError("Run all declared checks on the final reapplied state before receiver verification")
         receiver = session / "receiver"
         patch = (session / "artifacts/change.patch").read_bytes()
         git(receiver, "apply", "--check", "--index", data=patch)
@@ -360,6 +407,15 @@ def step(session, request):
     with (session / "events.jsonl").open("a") as log:
         log.write(json.dumps(event, ensure_ascii=False) + "\n")
     print(rendered)
+
+
+def request_input(argument, use_stdin, stream):
+    if use_stdin == (argument is not None):
+        raise ValueError("provide exactly one request source: positional JSON or --request-stdin")
+    value = json.loads(stream.read() if use_stdin else argument)
+    if not isinstance(value, dict):
+        raise ValueError("request must be a JSON object")
+    return value
 
 
 def tokenizer():
@@ -405,6 +461,21 @@ def workflow(events, original, final, required_checks=()):
         for received in receivers if forward < received
     )
     return {"checks": checks, "undo_exact": bool(undo), "redo_exact": bool(redo), "workflow_ordered": ordered}
+
+
+def current_state_checked(events, state, required):
+    mutations = [index for index, event in enumerate(events) if event["before"] != event["after"]]
+    if not mutations:
+        return False
+    for event in events[mutations[-1] + 1:]:
+        payload = json.loads(event["visible"])
+        report = payload.get("result")
+        if (payload.get("exit_code") == 0 and isinstance(report, dict)
+                and report.get("schema") == "fr-checks-1" and report.get("executed")
+                and report.get("passed") and event["before"] == event["after"] == state
+                and set(required).issubset({check["name"] for check in report.get("results", []) if check.get("passed")})):
+            return True
+    return False
 
 
 def coordinated_batch(events):
@@ -642,7 +713,8 @@ def main():
     prepare_parser.add_argument("--repetitions", type=int, default=1)
     step_parser = commands.add_parser("step")
     step_parser.add_argument("session", type=Path)
-    step_parser.add_argument("request", type=json.loads)
+    step_parser.add_argument("request", nargs="?")
+    step_parser.add_argument("--request-stdin", action="store_true")
     score_parser = commands.add_parser("score")
     score_parser.add_argument("session", type=Path)
     replay_parser = commands.add_parser("replay")
@@ -662,7 +734,7 @@ def main():
     if args.command == "prepare":
         prepare(args.out.resolve(), args.fr.resolve(), args.project, args.repetitions)
     elif args.command == "step":
-        step(args.session.resolve(), args.request)
+        step(args.session.resolve(), request_input(args.request, args.request_stdin, sys.stdin))
     elif args.command == "score":
         score(args.session.resolve())
     elif args.command == "replay":

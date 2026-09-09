@@ -1,0 +1,34 @@
+diff --git "a/regex-syntax/src/lib.rs" "b/regex-syntax/src/lib.rs"
+--- "a/regex-syntax/src/lib.rs"
++++ "b/regex-syntax/src/lib.rs"
+@@ -202,6 +202,7 @@
+ /// expression.
+ pub fn escape(text: &str) -> String {
+     let mut quoted = String::new();
++    quoted.reserve(escape_len(text));
+     escape_into(text, &mut quoted);
+     quoted
+ }
+@@ -431,3 +432,9 @@
+         assert!(try_is_word_character('a').is_err());
+     }
+ }
++/// Returns the UTF-8 byte length of the escaped form of `text`.
++///
++/// This computes the length without allocating.
++pub fn escape_len(text: &str) -> usize {
++    text.len() + text.chars().filter(|&c| is_meta_character(c)).count()
++}
+diff --git "a/src/lib.rs" "b/src/lib.rs"
+--- "a/src/lib.rs"
++++ "b/src/lib.rs"
+@@ -1384,3 +1384,9 @@
+ pub mod __private {
+     pub use regex_automata::util::lazy::Lazy;
+ }
++/// Returns the UTF-8 byte length of the escaped form of `pattern`.
++///
++/// This computes the length without allocating.
++pub fn escape_len(pattern: &str) -> usize {
++    regex_syntax::escape_len(pattern)
++}

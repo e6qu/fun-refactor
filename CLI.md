@@ -488,13 +488,15 @@ fr author replace-body '<HANDLE>' --from /tmp/body.txt --save-plan
 fr history apply '<TX>' --write
 ```
 
-Replace a Rust, Go, TypeScript or TSX function block while preserving surrounding bytes, including its signature and attributes.
+Replace a Rust, Go, Java, TypeScript or TSX function body while preserving surrounding bytes, including its signature and attributes.
 Named declarations and methods are supported, alongside TypeScript/TSX variable or class-field function initializers.
 Initializers can contain parentheses, `as`, `satisfies`, postfix `!` and TypeScript angle-bracket assertions around the function.
-Arrows need block bodies. Calls, conditionals, comma expressions and expression bodies remain unsupported.
+Arrow targets accept a complete block or expression and can move between those forms. Other function forms require blocks.
+Calls, conditionals and comma expressions around a function initializer remain unsupported.
 Go supports named functions, `init` declarations and receiver methods; interface specifications and variables containing function literals refuse.
+Java supports methods, constructors and default interface methods with bodies. Abstract and bodyless interface methods refuse.
 Use a current project handle; this command accepts structural identities directly.
-The input is a regular UTF-8 file containing one complete block, at most 64 KiB. The old block must also fit 64 KiB.
+The input is a regular UTF-8 file containing one complete body, at most 64 KiB. The old body must also fit 64 KiB.
 Both original and resulting files must parse without errors. Types, imports, callers and behavior require separate checks.
 Both output modes return bounded JSON. The diff defaults to 4096 bytes and reports omitted bytes when clipped.
 `--save-plan` records the exact replacement for later application; `--write` records and applies it immediately.
@@ -507,17 +509,22 @@ Supply exactly one function without outer attributes or trailing comments; both 
 Callers and imports need separate changes and checks. The same preview, saved-plan and history flags apply.
 
 `fr author insert-declaration HANDLE --from FILE` adds one Rust function, preserving every existing file byte.
-Use a Rust file or inline module handle and a function fragment, optionally preceded by `///` or `/** ... */` documentation, at most 64 KiB total.
-Files append at EOF; inline modules insert before the closing brace, retaining its existing indentation when it occupies a separate line.
-The trimmed fragment stays verbatim without automatic indentation. External `mod name;`, impl, trait and function handles refuse.
+Use a Rust file, inline module or trait handle. To select an exact `impl` or a trait through one of its members, use a direct method handle from that body.
+The fragment is a function, optionally preceded by `///` or `/** ... */` documentation, at most 64 KiB total. Trait insertion also accepts one bodyless function signature.
+Files append at EOF; braced containers insert before the closing brace, retaining its existing indentation when it occupies a separate line.
+The trimmed fragment stays verbatim without automatic indentation. External `mod name;`, free-function, nested-function and empty-impl targets refuse.
 Other outer attributes and surrounding comments refuse. The signature excludes leading documentation; a separate field reports its span, size and fingerprint.
-The report accounts separately for LF or CRLF separators; module reports also identify the original body span in `container`.
+The report accounts separately for LF or CRLF separators; container reports identify the original body span and whether it is a module, impl or trait.
 Direct duplicate item names and pending outer documentation or attributes in the selected container refuse.
 Imports, macro expansion and full name resolution remain unchecked. Saved plans, undo/redo and patches use source history.
 
 `fr author batch --from MANIFEST` combines 1 through 32 disjoint authoring operations into one preview and source-history transaction.
-The JSON manifest contains `operations` entries with `op`, `handle` and `from`; an optional shared `revision` permits short IDs.
+The JSON manifest contains `operations` entries with `op` and `handle`; fragment operations also require `from`.
+An optional shared `revision` permits short IDs.
+An `organize-imports` entry uses a file handle and omits `from`. It removes and sorts imports through the existing conservative import planner.
 Operations use the original revision and existing language restrictions. Relative fragment paths resolve from the workspace root.
+Optional `postconditions` can require exact `files-changed`, `edits`, `changed-operations` and normalized `paths-changed` outcomes.
+Every declared postcondition appears with expected, actual and held values. A mismatch refuses before history or source changes.
 The manifest and each fragment must fit 64 KiB. Unknown fields, overlapping selections and shared insertion boundaries refuse.
 Use `--save-plan` or `--write`; the combined diff shares one `--diff-bytes` budget.
 The `fr-author-batch-1` report shares coverage once and gives original spans, sizes, hashes and signatures per step.

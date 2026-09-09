@@ -24,7 +24,7 @@ For an agent handoff, use the portable [fr skill](skills/fr/SKILL.md).
 [Agent skill validation](docs/agent-skill.md) describes its task-specific references, executable examples and measured limits.
 The [agent context protocol](docs/agent-context-protocol.md) lets later project, author and history calls omit retained facts and writes patch artifacts without echoing their contents through agent context. Its [v2 evaluation](docs/agent-context-v2-evaluation.md) reports the measured 15.4% fixed-workflow reduction and the remaining acceptance gap.
 The [local Codex runner](docs/agent-codex-runner.md) executes explicitly selected paired evaluations without spending quota in normal CI.
-[Function authoring](docs/body-authoring.md) adds bounded Rust, Go, TypeScript and TSX implementation changes through project handles and source-history transactions.
+[Function authoring](docs/body-authoring.md) adds bounded Rust, Go, Java, TypeScript and TSX implementation changes through project handles and source-history transactions.
 [Project checks](docs/project-checks.md) selects declared validation commands and reports bounded results and coverage claims.
 After reviewing the listing, add `--no-declarations` to `checks --run` to omit repeated command metadata while retaining execution outcomes and diagnostics.
 [Development continuity](docs/continuity.md) records the active milestone, evidence and remaining work for the next session.
@@ -41,7 +41,7 @@ Use `fr project find NAME --signature` to locate a known declaration without req
 After reviewing a source transaction, `history apply`, `undo`, `redo` and `recover` accept `--write --no-diff` for smaller completion reports.
 The [workspace evaluation](docs/agent-workspace-evaluation.md) records four passing trials on the larger regex repository, with context comparisons and replayable patches.
 Rust function declaration replacement also supports combined signature and implementation changes.
-Declaration insertion adds a Rust function through a file or inline module handle while retaining existing code.
+Declaration insertion adds a Rust function through a file, inline module, impl method, or trait handle while retaining existing code.
 Authoring batches coordinate disjoint edits across files through one reviewed source-history transaction.
 The [controlled batch comparison](docs/project-context-evaluation.md#coordinated-authoring-measurement) measures command and payload costs while checking behavior and exact reversal.
 The [coordinated workspace task](docs/agent-workspace-evaluation.md#coordinated-task-preparation) prepares evaluation of a change spanning regex and regex-syntax.

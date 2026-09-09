@@ -1,7 +1,16 @@
 # Development continuity
 
 PR 0, the agent-ready verified refactoring foundation, merged as GitHub PR 259.
-The current `agent_context_v2` branch is roadmap PR 1 and is ready for review. It reduces repeated response and skill context, retains a controlled projection, and provides an opt-in Codex CLI evaluation runner.
+PR 1, Agent Context Protocol v2, merged as GitHub PR 261.
+The current `generalized_structural_authoring` branch completes roadmap PR 2 and is ready for review. Its first checkpoint extends exact-byte Rust insertion to impl and trait bodies and generalizes the insertion placement model.
+The second checkpoint authors TypeScript/TSX expression-bodied arrows and permits checked transitions between expression and block bodies.
+The third checkpoint adds Java method, constructor and default-interface body authoring through the same checked splice and history path.
+The fourth checkpoint lets one authoring batch combine declaration, caller and conservative import-organization changes.
+The fifth checkpoint adds exact batch postconditions for changed files, edits, operations and paths.
+The sixth checkpoint anchors the batch selection-conflict predicate and compares 6,084 bounded cases across Rust, Lean and an independent oracle.
+The final workflow checkpoints make skill reads bounded, execute the documented batch example, preserve code fragments through stdin JSON, and enforce the complete preview/save/apply/check/undo/check/redo/check/receiver sequence.
+`tests/agent-eval/results/2026-09-09-structural-authoring` retains the passing Luna-low pair. The fr arm uses 18,806 context tokens and 29 calls with no refusals; files use 15,192 tokens and 20 calls.
+Both arms pass exact transition, index and receiver checks plus 1,060 independent allocation and byte-count cases. Token audit and offline replay pass.
 Project and author reports now emit a revision-bound `frcb1:` basis. Supplying it omits only `coverage`, `handle_prefix` and `revision`; stale bases refuse before author plans can be saved or written.
 Complete saved author diffs and detailed history records now emit a separate `frtb1:` transaction basis. Forward apply and redo reports can omit their repeated diffs while retaining change metadata; reverse use and mismatches refuse before writes.
 Unit and CLI regressions reconstruct full reports exactly and cover missing, truncated, stale and conflicting bases.
@@ -86,7 +95,7 @@ It checks the project at four stages, a separate patch receiver, unchanged index
 Negative controls target Unicode counting, missing escaping, allocation during length calculation, omitted preallocation and a disagreeing facade.
 The retained `tests/agent-eval/regex/coordinated-rehearsal.json` passes all stages and 1,060 independent inputs in both project and receiver.
 All five incorrect implementations compile but fail the oracle. The report retains commands, reports, snapshots, the patch and source/binary hashes.
-The rehearsal remains prescribed infrastructure evidence; the coordinated cohort above supplies the later autonomous measurements.
+The rehearsal remains prescribed infrastructure evidence. The retained 2026-09-09 structural-authoring pair supplies fresh autonomous acceptance for PR 2.
 
 ## Controlled coordinated authoring comparison
 
@@ -104,47 +113,56 @@ Request and artifact sizes remain separate from returned output. This is a synth
 Project/author calls fall from six to three; inspected routing implies twelve versus six scan passes, without runtime instrumentation.
 Five evaluator regressions reject failed or clipped evidence, incomplete review and selection, and unexpected source bytes; they also check metric accounting.
 The native acceptance suite now executes one complete pair. No production command or Lean model changes in this milestone.
-The coordinated workspace preparation above follows this controlled comparison; autonomous evaluation remains open.
+The coordinated workspace preparation above follows this controlled comparison. PR 2 closes its autonomous acceptance with the retained 2026-09-09 structural-authoring pair.
 
 ## Coordinated authoring batches
 
 `src/project/author.rs::author_batch` reads a bounded JSON manifest and plans each existing operation against the same captured project.
-The manifest accepts 1 through 32 entries with `op`, `handle` and `from`; optional `revision` supports short IDs and validates full-handle batches too.
+The manifest accepts 1 through 32 entries with `op` and `handle`; fragment operations also require `from`.
+An optional `revision` supports short IDs and validates full-handle batches too.
+An `organize-imports` entry uses a file handle without `from` and reuses the existing conservative import planner.
 Unknown fields and operations refuse. All input paths resolve from the workspace root; input files retain the regular-file and 64 KiB guards.
 Selected original regions must be disjoint even for no-ops; insertion points cannot share or touch another region's boundary.
 Every step must succeed, and combined file results must reparse before the CLI records one source-history transaction.
 
 `src/cli.rs::cmd_author` routes batches through the existing diff, persistence and source-verification path.
 Schema `fr-author-batch-1` reports coverage once, ordered step signatures and original spans, sizes and hashes.
+Optional postconditions report expected, actual and held values. Any mismatch refuses before persistence.
 It omits after-spans because earlier edits can shift later positions. Insertion hashes include separator bytes.
 Saved plans freeze all changes; unrelated source changes retain the existing history rules, and affected-file conflicts refuse the entire application.
 This does not strengthen filesystem atomicity or prove typing and behavior.
 
 Seven new CLI scenarios include a compiled two-file caller/signature/helper change through save, apply, undo, patch checking and redo.
+The PR 2 import case combines a declaration, caller and import cleanup in one transaction and compiles with warnings denied.
 Mixed Rust/Go/TSX operations, shared revisions, no-op batches, size/count limits, overlap refusal and malformed inputs have regression coverage.
 A two-edit batch also matches the Rust and Lean splice implementations, with Unicode, CRLF and different replacement lengths.
-This is tested edit correspondence, with no new proof of the batch planner, manifest parser or filesystem transaction implementation.
-The agent reference teaches combined review and one transaction ID; its existing shell examples remain unchanged.
+A body-and-import batch supplies another Rust/Lean splice comparison over Unicode source.
+The shared `author_selection_conflict` helper now gives the batch planner an anchored Rust boundary for duplicate, nested and insertion-boundary rejection.
+Six Lean theorems cover symmetry, adjacent nonempty ranges, overlap, distinct insertion points and insertion at either boundary.
+The executable comparison checks 6,084 valid 64-bit range pairs against Lean, Rust and an independent interval oracle, with explicit multibyte UTF-8 boundary cases.
+This is tested edit and selection-predicate correspondence, with no proof of the manifest parser or filesystem transaction implementation.
+The agent reference teaches a concrete batch manifest and the preview, save and history-apply sequence. The skill checker executes this two-operation example through exact undo and redo.
 The controlled comparison above measures report bytes and repeated calls without treating a prescribed workflow as autonomous agent evidence.
 
-## Formal module insertion placement
+## Formal declaration insertion placement
 
-`src/project.rs::module_insertion_offset` extracts the existing placement calculation from `insert_declaration` without changing its behavior.
-The caller still selects the exact inline module and passes the prefix before its closing brace plus the opening-brace offset.
+`src/project.rs::declaration_insertion_offset` supplies the placement calculation for inline module, impl and trait insertion.
+The caller passes the prefix before the selected container's closing brace plus the opening-brace offset.
 `kernels/FrKernels/Author.lean` models the result through character lists and UTF-8 byte widths.
 Its fifteen theorems cover bounds, boundary validity, placement after an opening brace within the input, and an indentation-only suffix.
 They characterize a trailing indented line, inline content, out-of-body line candidates and empty input.
 A source anchor and explicit signature map identify the helper. Theorems use only `propext`, `Classical.choice` and `Quot.sound`.
 
-`ProjectMain.lean` adds `module-offsets` for the generated corpus and `module-offset BODY_START TEXT` for a selected case.
+`ProjectMain.lean` exposes `declaration-offsets` for the generated corpus and `declaration-offset BODY_START TEXT` for a selected case.
 The default kernel gate runs the corpus through the existing project executable.
-Two new integration scenarios compare 28,185 cases on 64-bit hosts with both Rust and a reverse-scan oracle, and check eight CLI previews.
+Integration scenarios compare 28,185 cases on 64-bit hosts with both Rust and a reverse-scan oracle, and check ten CLI previews across modules, impls and traits.
 The corpus includes Unicode, CRLF, rejected indentation lookalikes, NUL in the pure helper, machine limits and large prefixes.
 A 32-bit host compares 25,371 representable cases.
 Each generated placement also passes through the Rust edit engine, with unchanged prefix and suffix checks.
 Existing authoring cases retain their behavior and transaction evidence.
+The Java method and Rust impl history cases now also assert that mode `0640` survives apply, undo and redo on Unix.
 This proves model properties and tests correspondence; AST selection, parsing, name checks and full authoring refinement remain unproved.
-See [placement kernels](lean-specs.md#module-insertion-placement-kernels) for assumptions and reproduction.
+See [placement kernels](lean-specs.md#declaration-insertion-placement-kernels) for assumptions and reproduction.
 
 ## Go body authoring
 
@@ -162,28 +180,44 @@ A reported Go method edit is compared with Rust and Lean splice implementations,
 This extends tested splice correspondence; it adds no new theorem or general proof of AST selection, typing or authoring behavior.
 The agent reference states which Go handles to select and which forms refuse.
 
-## Inline module insertion
+## Java body authoring
 
-`src/project/author.rs::insert_declaration` accepts a file or exact Rust inline module handle.
-It locates the module by its name span and inserts at the selected declaration list's closing brace.
+`src/project/author.rs::BodySyntax` validates a replacement block as a method inside a temporary Java class.
+It accepts indexed method and constructor declarations with bodies, including default interface methods.
+Abstract methods, bodyless interface declarations, initializer blocks and lambdas remain outside this target path.
+Annotations, modifiers, generic headers, parameters, throws clauses and all source outside the braces remain byte-identical.
+
+A saved method transaction compiles and runs with `javac -Xlint:all -Werror` before application, after application, after undo and after redo.
+Constructor and default-interface fixtures also compile with warnings denied after replacement.
+The method workflow checks its patch after undo and freezes the saved block against later fragment changes.
+A reported Java method edit matches the Rust and Lean splice implementations with Unicode, CRLF and a neighboring method.
+These checks establish parser acceptance, compiled examples and edit correspondence. They do not prove Java typing, behavior or parser correctness in general.
+
+## Rust declaration insertion containers
+
+`src/project/author.rs::insert_declaration` accepts a file, exact Rust inline module or trait handle, or an existing direct method handle that identifies its exact enclosing impl or trait.
+It locates the selected declaration list and inserts at its closing brace.
 A closing brace on a whitespace-only line keeps that indentation; inline braces receive a leading separator.
 Fragments remain verbatim, preserving multiline strings. Existing source bytes stay unchanged.
 Duplicate-name and dangling-outer-metadata checks apply to the selected body's direct items.
-External modules, impls, traits and functions refuse; file insertion retains its existing behavior and report fields.
-Module reports add `container` with the original body span including braces and a module-scoped name-check description.
+External modules, free and nested functions and empty impls refuse. Traits alone accept bodyless functions.
+Container reports identify an inline module, impl or trait and include the original body span and scoped name-check description.
 
-Five new CLI scenarios cover exact placement, raw identifiers, same-named modules, size/hash boundaries and stale selections.
+The original module scenarios cover exact placement, raw identifiers, same-named modules, size/hash boundaries and stale selections.
+A saved impl insertion compiles with warnings denied after application and redo, restores exact source on undo and exports a checked patch.
+Trait scenarios compile a default method and cover bodyless requirements through both trait and member handles.
 A nested function calls a private sibling after saved application and redo; undo restores exact original bytes and the patch applies after undo.
 The saved transaction retains its fragment despite later changes to the input file.
 Handle validation covers the project revision; later history application checks affected files and permits unrelated manifest changes.
-A reported nested-module edit is compared with the existing Rust and Lean splice implementations.
+A reported module, impl and trait edit is compared with the Rust and Lean placement implementations.
 This is tested splice correspondence, with no new proof of AST selection, parsing or complete authoring behavior.
 The portable authoring reference explains module-row handles, preserved fragment contents and unsupported scopes.
 
-## Wrapped function authoring
+## Wrapped function and expression-body authoring
 
 `src/project/author.rs::function_initializer` follows the expression operand through parentheses, `as`, `satisfies`, postfix `!` and TypeScript angle-bracket assertions.
-It accepts only arrow, ordinary function-expression and generator-expression terminals; replacement still requires a block body.
+It accepts arrow, ordinary function-expression and generator-expression terminals. Arrows accept expression or block bodies and can transition between the forms.
+Other function terminals continue to require blocks.
 Comments do not count as operands. The angle-bracket form skips its type-argument child and follows the value expression.
 Calls, conditionals, comma expressions and other initializer forms refuse, even inside an otherwise supported wrapper.
 The existing handle/name check prevents selecting an enclosing or neighboring function.
@@ -194,10 +228,11 @@ Its signature stays a header excerpt ending before the body; inspect selected so
 The portable authoring reference names the accepted wrappers and uses `--locals` lookup for variable handles.
 Its executable command examples stay unchanged; current skill text is separate from historical context measurements.
 
-All thirty-four authoring scenarios pass, including shadowed wrapped bindings and stale handles/plans after a wrapper changes.
+The authoring suite includes shadowed wrapped bindings and stale handles or plans after a wrapper changes.
 Four compiled history fixtures check lexical `this`, named recursion, generators and JSX before/after application, undo and redo.
 They also freeze the saved fragment and check patch applicability after undo.
-The Rust/Lean edit comparison now includes a reported wrapped TSX replacement with Unicode, CRLF, external comments and neighboring source.
+An additional expression-arrow history fixture compiles before application, after application and redo, and after exact undo.
+The Rust/Lean edit comparisons include reported wrapped block and expression TSX replacements with Unicode, CRLF, external comments and neighboring source.
 This extends tested splice correspondence; it adds no proof of AST traversal, parsing, typing or complete authoring behavior.
 See [body authoring](body-authoring.md) for supported targets and review limits.
 
@@ -335,7 +370,7 @@ History links to `references/recovery.md` only for a pending operation or interr
 Only a lookup explicitly scoped to an existing file supplies that file's insertion handle in `root`.
 Unscoped/directory roots cannot substitute, and source changes invalidate the handle. A file map remains the fallback.
 
-The skill checker executes 36 examples. The Rust wrapper example compiles under `deny(missing_docs)` and passes a compiled caller assertion.
+The skill checker executes 38 examples. Its Rust batch example compiles under `deny(missing_docs)` and passes a compiled caller assertion.
 It also checks wrong/stale-root refusals, exact undo/redo, unrelated-edit preservation and unchanged index bytes.
 The example uses the lookup's source and root directly, without separate source or file-map queries.
 
@@ -395,8 +430,9 @@ Each cohort retains prompts, transcripts, scores, patches and its original skill
 - `tests/agent-eval/results/2026-09-07-context`: four follow-up strsim trials after M4i; no pilots.
 - `tests/agent-eval/results/2026-09-08-regex`: four repeated regex workspace trials; no pilots.
 - `tests/agent-eval/results/2026-09-08-coordinated`: four two-crate regex trials using the M4aa protocol; no pilots.
+- `tests/agent-eval/results/2026-09-09-structural-authoring`: one fresh two-crate pair using the completed PR 2 workflow; no pilots.
 
-All sixteen autonomous trials pass. Recording also supports scored failures; behavioral replay refuses failed trials.
+All eighteen retained acceptance trials pass. Recording also supports scored failures; behavioral replay refuses failed trials.
 Replay checks recorded patches and transition evidence without rerunning agents. Token auditing recounts retained payloads.
 The initial and follow-up strsim findings remain in the [context report](agent-context-followup.md).
 Controlled reports are separate under `tests/agent-eval/`: `history-context.json`, `regex/rehearsal.json`, `checks-context.json`, `skill-context.json`, `find-source-context.json` and `project-cache.json`.
@@ -570,6 +606,6 @@ Measure proposed reductions on fixed transcripts or controlled workflows before 
 Reference serialization and hashing remain the largest measured construction cost after batching; evaluate further changes against this profile.
 Keep revision inputs, coverage and final source verification intact; require byte-identical reports and distinguish model proofs from implementation correspondence.
 State the cache policy for the next autonomous cohort; existing trials explicitly disable it and their records remain immutable.
-A later paired task should require coordinated changes across files; the current larger repository task is still a localized facade addition.
+The latest paired task requires one coordinated three-operation change across two crate roots. It passes, while `fr` still uses 23.8% more measured context in this single pair.
 Keep portable skill references selective and executable against the distributed binary.
 Further authoring operations, M5 automated Lean adoption and M6 framework migrations remain open in [PLAN.md](../PLAN.md).

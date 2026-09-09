@@ -56,65 +56,106 @@ theorem line_after_content (before : List Char) (c : Char)
   | nil => simp [insertionLine, notNewline, byteLength]
   | cons head rest ih => simp [insertionLine, List.all_append, notIndent, ih, byteLength, Nat.add_assoc]
 
--- fr:spec src/project.rs::module_insertion_offset @ e95b546f177b74e37626f5ad7cf247fb92327573d6d5c2d7857118235923416d
+-- fr:spec src/project.rs::declaration_insertion_offset @ 97b9aa9b57f5165a89d93c9fa994670d801b77a7ae49c0bbc3acb9b92caa1e92
 -- fr:signature prefix: &str => text: String; body_start: usize => bodyStart: Nat; return: usize => return: Nat
-def moduleInsertionOffset (text : String) (bodyStart : Nat) : Nat :=
+def declarationInsertionOffset (text : String) (bodyStart : Nat) : Nat :=
   let line := insertionLine text.toList
   if bodyStart < line then line else byteLength text.toList
 
 theorem offset_in_bounds (text : String) (bodyStart : Nat) :
-    moduleInsertionOffset text bodyStart ≤ byteLength text.toList := by
-  dsimp only [moduleInsertionOffset]
+    declarationInsertionOffset text bodyStart ≤ byteLength text.toList := by
+  dsimp only [declarationInsertionOffset]
   split
   · exact line_in_bounds _
   · exact Nat.le_refl _
 
 theorem offset_is_boundary (text : String) (bodyStart : Nat) :
-    moduleInsertionOffset text bodyStart ∈ boundaries text.toList := by
-  dsimp only [moduleInsertionOffset]
+    declarationInsertionOffset text bodyStart ∈ boundaries text.toList := by
+  dsimp only [declarationInsertionOffset]
   split
   · exact line_is_boundary _
   · exact end_is_boundary _
 
 theorem offset_after_opening (text : String) (bodyStart : Nat)
-    (inside : bodyStart < byteLength text.toList) : bodyStart < moduleInsertionOffset text bodyStart := by
-  dsimp only [moduleInsertionOffset]
+    (inside : bodyStart < byteLength text.toList) : bodyStart < declarationInsertionOffset text bodyStart := by
+  dsimp only [declarationInsertionOffset]
   split <;> assumption
 
 theorem offset_uses_inner_line (text : String) (bodyStart : Nat)
     (inside : bodyStart < insertionLine text.toList) :
-    moduleInsertionOffset text bodyStart = insertionLine text.toList := by
-  simp [moduleInsertionOffset, inside]
+    declarationInsertionOffset text bodyStart = insertionLine text.toList := by
+  simp [declarationInsertionOffset, inside]
 
 theorem offset_at_close_when_line_outside (text : String) (bodyStart : Nat)
     (outside : insertionLine text.toList ≤ bodyStart) :
-    moduleInsertionOffset text bodyStart = byteLength text.toList := by
-  simp [moduleInsertionOffset, Nat.not_lt.mpr outside]
+    declarationInsertionOffset text bodyStart = byteLength text.toList := by
+  simp [declarationInsertionOffset, Nat.not_lt.mpr outside]
 
 theorem offset_keeps_inline_close (text : String) (bodyStart : Nat)
     (inline : insertionLine text.toList = byteLength text.toList) :
-    moduleInsertionOffset text bodyStart = byteLength text.toList := by
-  simp [moduleInsertionOffset, inline]
+    declarationInsertionOffset text bodyStart = byteLength text.toList := by
+  simp [declarationInsertionOffset, inline]
 
 theorem offset_has_indent_suffix (text : String) (bodyStart : Nat) :
     ∃ before after, text.toList = before ++ after ∧
-      moduleInsertionOffset text bodyStart = byteLength before ∧ after.all isIndent = true := by
-  dsimp only [moduleInsertionOffset]
+      declarationInsertionOffset text bodyStart = byteLength before ∧ after.all isIndent = true := by
+  dsimp only [declarationInsertionOffset]
   split
   · exact line_has_indent_suffix _
   · exact ⟨text.toList, [], by simp, rfl, rfl⟩
 
-theorem offset_empty (bodyStart : Nat) : moduleInsertionOffset "" bodyStart = 0 := by
-  simp [moduleInsertionOffset, insertionLine, byteLength]
+theorem offset_empty (bodyStart : Nat) : declarationInsertionOffset "" bodyStart = 0 := by
+  simp [declarationInsertionOffset, insertionLine, byteLength]
 
 theorem offset_preserves_indent (before indent : List Char) (bodyStart : Nat)
     (clean : indent.all isIndent = true) (inside : bodyStart < byteLength before + 1) :
-    moduleInsertionOffset (String.ofList (before ++ '\n' :: indent)) bodyStart = byteLength before + 1 := by
-  simp [moduleInsertionOffset, line_after_newline before indent clean, inside]
+    declarationInsertionOffset (String.ofList (before ++ '\n' :: indent)) bodyStart = byteLength before + 1 := by
+  simp [declarationInsertionOffset, line_after_newline before indent clean, inside]
 
 theorem offset_at_close_after_content (before : List Char) (c : Char) (bodyStart : Nat)
     (notNewline : (c == '\n') = false) (notIndent : isIndent c = false) :
-    moduleInsertionOffset (String.ofList (before ++ [c])) bodyStart = byteLength (before ++ [c]) := by
-  simp [moduleInsertionOffset, line_after_content before c notNewline notIndent, byteLength]
+    declarationInsertionOffset (String.ofList (before ++ [c])) bodyStart = byteLength (before ++ [c]) := by
+  simp [declarationInsertionOffset, line_after_content before c notNewline notIndent, byteLength]
+
+-- fr:spec src/project.rs::author_selection_conflict @ 4edcb6cfdd7e1ae607a8188fc61eced535d0180442d1c012634e3e5e6561e2a4
+-- fr:signature left_start: usize => leftStart: Nat; left_end: usize => leftEnd: Nat; right_start: usize => rightStart: Nat; right_end: usize => rightEnd: Nat; return: bool => return: Bool
+def selectionConflict (leftStart : Nat) (leftEnd : Nat) (rightStart : Nat) (rightEnd : Nat) : Bool :=
+  decide ((leftStart < rightEnd ∧ rightStart < leftEnd) ∨
+    (leftStart = leftEnd ∧ rightStart ≤ leftStart ∧ leftStart ≤ rightEnd) ∨
+    (rightStart = rightEnd ∧ leftStart ≤ rightStart ∧ rightStart ≤ leftEnd))
+
+theorem selection_conflict_is_symmetric (leftStart leftEnd rightStart rightEnd : Nat) :
+    selectionConflict leftStart leftEnd rightStart rightEnd =
+      selectionConflict rightStart rightEnd leftStart leftEnd := by
+  simp only [selectionConflict, decide_eq_decide]
+  omega
+
+theorem adjacent_nonempty_selections_do_not_conflict (start boundary stop : Nat)
+    (leftNonempty : start < boundary) (rightNonempty : boundary < stop) :
+    selectionConflict start boundary boundary stop = false := by
+  simp [selectionConflict]
+  omega
+
+theorem overlapping_nonempty_selections_conflict (leftStart rightStart leftEnd rightEnd : Nat)
+    (leftFirst : leftStart ≤ rightStart) (overlap : rightStart < leftEnd)
+    (rightValid : leftEnd ≤ rightEnd) :
+    selectionConflict leftStart leftEnd rightStart rightEnd = true := by
+  simp [selectionConflict]
+  omega
+
+theorem insertion_at_left_boundary_conflicts (start stop : Nat) (valid : start ≤ stop) :
+    selectionConflict start start start stop = true := by
+  simp [selectionConflict]
+  omega
+
+theorem insertion_at_right_boundary_conflicts (start stop : Nat) (valid : start ≤ stop) :
+    selectionConflict stop stop start stop = true := by
+  simp [selectionConflict]
+  omega
+
+theorem distinct_separated_insertions_do_not_conflict (left right : Nat) (apart : left < right) :
+    selectionConflict left left right right = false := by
+  simp [selectionConflict]
+  omega
 
 end FrKernels.Author

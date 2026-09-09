@@ -269,10 +269,10 @@ fn check_limit(limit: usize) -> Result<()> {
 }
 
 pub fn body_replacement_budget(before: usize, after: usize) -> bool {
-    (2..=65536).contains(&before) && (2..=65536).contains(&after)
+    (1..=65536).contains(&before) && (1..=65536).contains(&after)
 }
 
-pub fn module_insertion_offset(prefix: &str, body_start: usize) -> usize {
+pub fn declaration_insertion_offset(prefix: &str, body_start: usize) -> usize {
     let line_start = prefix.rfind('\n').map_or(0, |at| at + 1);
     if line_start > body_start
         && prefix[line_start..]
@@ -283,6 +283,17 @@ pub fn module_insertion_offset(prefix: &str, body_start: usize) -> usize {
     } else {
         prefix.len()
     }
+}
+
+pub fn author_selection_conflict(
+    left_start: usize,
+    left_end: usize,
+    right_start: usize,
+    right_end: usize,
+) -> bool {
+    (left_start < right_end && right_start < left_end)
+        || (left_start == left_end && right_start <= left_start && left_start <= right_end)
+        || (right_start == right_end && left_start <= right_start && right_start <= left_end)
 }
 
 pub fn page_length(total: usize, start: usize, limit: usize) -> usize {

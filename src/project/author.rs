@@ -1,6 +1,7 @@
 use super::{bounded_text, Project};
 use crate::edit::{Edit, EditSet};
 use crate::lang::Language;
+use crate::model::SymbolKind;
 use crate::parse::{Parsed, Parsers};
 use crate::span::Span;
 use anyhow::{ensure, Context, Result};
@@ -15,7 +16,7 @@ use std::path::{Path, PathBuf};
 #[derive(Subcommand)]
 pub enum Command {
     #[command(
-        about = "Replace one Rust, Go, TypeScript or TSX function body, retaining surrounding source."
+        about = "Replace one Rust, Go, Java, TypeScript or TSX function body, retaining surrounding source."
     )]
     ReplaceBody(ReplaceBodyOptions),
     #[command(
@@ -23,7 +24,7 @@ pub enum Command {
     )]
     ReplaceDeclaration(ReplaceBodyOptions),
     #[command(
-        about = "Insert one Rust function into a file or inline module, retaining existing source bytes."
+        about = "Insert one Rust function into a file, module, impl or trait, retaining existing source bytes."
     )]
     InsertDeclaration(ReplaceBodyOptions),
     #[command(about = "Plan disjoint authoring edits from one revision as one transaction.")]
@@ -55,6 +56,16 @@ pub struct BatchOptions {
 struct BatchManifest {
     revision: Option<String>,
     operations: Vec<BatchStep>,
+    postconditions: Option<BatchPostconditions>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+struct BatchPostconditions {
+    files_changed: Option<usize>,
+    edits: Option<usize>,
+    changed_operations: Option<usize>,
+    paths_changed: Option<Vec<PathBuf>>,
 }
 
 #[derive(Deserialize)]
@@ -62,15 +73,16 @@ struct BatchManifest {
 struct BatchStep {
     op: BatchOperation,
     handle: String,
-    from: PathBuf,
+    from: Option<PathBuf>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Copy, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 enum BatchOperation {
     ReplaceBody,
     ReplaceDeclaration,
     InsertDeclaration,
+    OrganizeImports,
 }
 
 #[derive(Args)]
@@ -114,8 +126,10 @@ fn digest(source: &str) -> String {
 
 struct BodySyntax {
     prefix: &'static str,
+    suffix: &'static str,
     item: &'static str,
-    block: &'static str,
+    blocks: &'static [&'static str],
+    nested_item: bool,
     targets: &'static [&'static str],
     bindings: &'static [&'static str],
 }
@@ -125,22 +139,28 @@ impl BodySyntax {
         match language {
             Language::Rust => Ok(Self {
                 prefix: "fn __fr_body__() ",
+                suffix: "",
                 item: "function_item",
-                block: "block",
+                blocks: &["block"],
+                nested_item: false,
                 targets: &["function_item"],
                 bindings: &[],
             }),
             Language::Go => Ok(Self {
                 prefix: "func __fr_body__() ",
+                suffix: "",
                 item: "function_declaration",
-                block: "block",
+                blocks: &["block"],
+                nested_item: false,
                 targets: &["function_declaration", "method_declaration"],
                 bindings: &[],
             }),
             Language::TypeScript | Language::Tsx => Ok(Self {
                 prefix: "function __fr_body__() ",
+                suffix: "",
                 item: "function_declaration",
-                block: "statement_block",
+                blocks: &["statement_block"],
+                nested_item: false,
                 targets: &[
                     "function_declaration",
                     "generator_function_declaration",
@@ -148,17 +168,40 @@ impl BodySyntax {
                 ],
                 bindings: &["variable_declarator", "public_field_definition"],
             }),
+            Language::Java => Ok(Self {
+                prefix: "class __FrBody__ { void __fr_body__() ",
+                suffix: "}",
+                item: "method_declaration",
+                blocks: &["block", "constructor_body"],
+                nested_item: true,
+                targets: &["method_declaration", "constructor_declaration"],
+                bindings: &[],
+            }),
             _ => anyhow::bail!(
-                "body replacement supports Rust, Go, TypeScript and TSX; select a supported function."
+                "body replacement supports Rust, Go, Java, TypeScript and TSX; select a supported function."
             ),
         }
     }
 
+    fn is_block(&self, node: tree_sitter::Node<'_>) -> bool {
+        self.blocks.contains(&node.kind())
+    }
+
+    fn wrapped_item<'tree>(&self, parsed: &'tree Parsed) -> Option<tree_sitter::Node<'tree>> {
+        let outer = parsed.root().named_child(0)?;
+        if !self.nested_item {
+            return Some(outer);
+        }
+        let body = outer.child_by_field_name("body")?;
+        let mut cursor = body.walk();
+        let item = body
+            .named_children(&mut cursor)
+            .find(|node| node.kind() == self.item);
+        item
+    }
+
     fn block_span(&self, body: tree_sitter::Node<'_>) -> Result<Span> {
-        ensure!(
-            body.kind() == self.block,
-            "selected function needs a block body."
-        );
+        ensure!(self.is_block(body), "selected function needs a block body.");
         let mut cursor = body.walk();
         let mut braces = body
             .children(&mut cursor)
@@ -198,28 +241,61 @@ fn fragment(path: &Path) -> Result<String> {
     Ok(text.trim().to_owned())
 }
 
-fn replacement(path: &Path, language: Language, syntax: &BodySyntax) -> Result<String> {
+fn replacement(
+    path: &Path,
+    language: Language,
+    syntax: &BodySyntax,
+    allow_expression: bool,
+) -> Result<(String, &'static str)> {
     let text = fragment(path)?;
     let prefix = syntax.prefix;
-    let wrapped = format!("{prefix}{text}");
+    let wrapped = format!("{prefix}{text}{}", syntax.suffix);
     let parsed = Parsers::new().parse(language, &wrapped)?;
-    let item = parsed
-        .root()
-        .named_child(0)
-        .context("replacement needs a block in the selected language.")?;
-    let body = item
-        .child_by_field_name("body")
-        .context("replacement needs a block in the selected language.")?;
-    let span = syntax.block_span(body)?;
-    ensure!(
-        !parsed.has_errors()
+    if let Some(item) = syntax.wrapped_item(&parsed) {
+        if let Some(body) = item.child_by_field_name("body") {
+            if let Ok(span) = syntax.block_span(body) {
+                if !parsed.has_errors()
+                    && parsed.root().named_child_count() == 1
+                    && item.kind() == syntax.item
+                    && span.start == prefix.len()
+                    && span.end == prefix.len() + text.len()
+                {
+                    return Ok((text, "block"));
+                }
+            }
+        }
+    }
+    if allow_expression && matches!(language, Language::TypeScript | Language::Tsx) {
+        let prefix = "const __fr_body__ = () => ";
+        let wrapped = format!("{prefix}{text}");
+        let parsed = Parsers::new().parse(language, &wrapped)?;
+        let declaration = parsed.root().named_child(0);
+        let declarator = declaration.and_then(|node| {
+            let mut cursor = node.walk();
+            let found = node
+                .named_children(&mut cursor)
+                .find(|child| child.kind() == "variable_declarator");
+            found
+        });
+        let arrow = declarator.and_then(|node| node.child_by_field_name("value"));
+        let body = arrow.and_then(|node| node.child_by_field_name("body"));
+        if !parsed.has_errors()
             && parsed.root().named_child_count() == 1
-            && item.kind() == syntax.item
-            && span.start == prefix.len()
-            && span.end == wrapped.len(),
+            && arrow.is_some_and(|node| node.kind() == "arrow_function")
+            && body.is_some_and(|node| {
+                !syntax.is_block(node)
+                    && node.start_byte() == prefix.len()
+                    && node.end_byte() == wrapped.len()
+            })
+        {
+            return Ok((text, "expression"));
+        }
+    }
+    anyhow::bail!(if allow_expression {
+        "replacement must contain one complete block or arrow expression in the selected language."
+    } else {
         "replacement must contain exactly one complete block in the selected language."
-    );
-    Ok(text)
+    })
 }
 
 fn function_initializer(mut value: tree_sitter::Node<'_>) -> Result<tree_sitter::Node<'_>> {
@@ -250,6 +326,7 @@ fn function_fragment<'tree>(
     parsed: &'tree Parsed,
     text: &str,
     allow_documentation: bool,
+    allow_bodyless: bool,
 ) -> Result<tree_sitter::Node<'tree>> {
     let mut cursor = parsed.root().walk();
     let mut items = parsed.root().named_children(&mut cursor);
@@ -265,11 +342,19 @@ fn function_fragment<'tree>(
             .next()
             .context("documentation needs a following Rust function.")?;
     }
+    let supported = item.kind() == "function_item" && item.child_by_field_name("body").is_some()
+        || allow_bodyless && item.kind() == "function_signature_item";
     ensure!(
-        !parsed.has_errors() && items.next().is_none() && start == 0
-            && item.kind() == "function_item" && item.end_byte() == text.len()
-            && item.child_by_field_name("body").is_some(),
-        "fragment requires one Rust function with a body; only insertion accepts leading outer documentation comments."
+        !parsed.has_errors()
+            && items.next().is_none()
+            && start == 0
+            && supported
+            && item.end_byte() == text.len(),
+        if allow_bodyless {
+            "fragment requires one Rust function or bodyless trait function; only insertion accepts leading outer documentation comments."
+        } else {
+            "fragment requires one Rust function with a body; only insertion accepts leading outer documentation comments."
+        }
     );
     Ok(item)
 }
@@ -296,51 +381,87 @@ impl Project<'_> {
         let mut edits = EditSet::new();
         let mut regions: Vec<(PathBuf, Span)> = Vec::new();
         let mut steps = Vec::new();
+        let mut changed_operations = 0usize;
         for (index, step) in manifest.operations.into_iter().enumerate() {
-            let operation = ReplaceBodyOptions {
-                revision: if step.handle.starts_with("frp1:") {
-                    None
-                } else {
-                    manifest.revision.clone()
-                },
-                handle: step.handle,
-                from: step.from,
-                diff_bytes: options.diff_bytes,
-                write: false,
-            };
+            let revision = (!step.handle.starts_with("frp1:"))
+                .then(|| manifest.revision.clone())
+                .flatten();
             let plan = match step.op {
-                BatchOperation::ReplaceBody => self.replace_body(&operation),
-                BatchOperation::ReplaceDeclaration => self.replace_declaration(&operation),
-                BatchOperation::InsertDeclaration => self.insert_declaration(&operation),
+                BatchOperation::OrganizeImports => {
+                    ensure!(
+                        step.from.is_none(),
+                        "organize-imports does not accept a fragment path."
+                    );
+                    self.organize_imports(&step.handle, revision.as_deref())
+                }
+                operation => {
+                    let operation_options = ReplaceBodyOptions {
+                        revision: revision.clone(),
+                        handle: step.handle.clone(),
+                        from: step
+                            .from
+                            .context("authoring operation requires a fragment path.")?,
+                        diff_bytes: options.diff_bytes,
+                        write: false,
+                    };
+                    match operation {
+                        BatchOperation::ReplaceBody => self.replace_body(&operation_options),
+                        BatchOperation::ReplaceDeclaration => {
+                            self.replace_declaration(&operation_options)
+                        }
+                        BatchOperation::InsertDeclaration => {
+                            self.insert_declaration(&operation_options)
+                        }
+                        BatchOperation::OrganizeImports => unreachable!(),
+                    }
+                }
             }
             .with_context(|| format!("batch operation {} failed", index + 1))?;
-            let handle = self.explicit_handle(&operation.handle, operation.revision.as_deref())?;
+            if matches!(step.op, BatchOperation::OrganizeImports) {
+                ensure!(
+                    !plan.edits.is_empty(),
+                    "organize-imports produced no change; omit this batch step."
+                );
+            }
+            changed_operations += usize::from(plan.report["changed"] == true);
+            let handle = self.explicit_handle(&step.handle, revision.as_deref())?;
             let id = self.resolve_handle(&handle)?;
             let path = self.root.join(&self.nodes[id].path);
             let key = match step.op {
                 BatchOperation::ReplaceBody => "body",
                 BatchOperation::ReplaceDeclaration => "declaration",
                 BatchOperation::InsertDeclaration => "insertion",
+                BatchOperation::OrganizeImports => "imports",
             };
             let span: Span = serde_json::from_value(plan.report[key]["before_span"].clone())?;
             for (previous, selected) in &regions {
-                let conflict = selected.overlaps(span)
-                    || (selected.is_empty() && span.contains(*selected))
-                    || (span.is_empty() && selected.contains(span));
+                let conflict = super::author_selection_conflict(
+                    selected.start,
+                    selected.end,
+                    span.start,
+                    span.end,
+                );
                 ensure!(previous != &path || !conflict,
                     "batch selections overlap or share an insertion boundary; use disjoint selections.");
             }
-            let before = span.text(&self.sources[&path]);
-            let after = plan
-                .edits
-                .edits_for(&path)
-                .and_then(|items| items.first())
-                .map_or(before, |edit| edit.replacement.as_str());
-            let mut summary = json!({"operation": plan.report["query"], "handle": plan.report["handle"],
-                "path": plan.report["path"], "before_span": span, "before_bytes": before.len(),
-                "after_bytes": after.len(), "before_sha256": digest(before), "after_sha256": digest(after),
-                "signature": plan.report["signature"], "changed": plan.report["changed"],
-                "preservation": plan.report["preservation"]});
+            let mut summary = if matches!(step.op, BatchOperation::OrganizeImports) {
+                json!({"operation": plan.report["query"], "handle": plan.report["handle"],
+                    "path": plan.report["path"], "before_span": span,
+                    "imports": plan.report["imports"], "changed": plan.report["changed"],
+                    "preservation": plan.report["preservation"]})
+            } else {
+                let before = span.text(&self.sources[&path]);
+                let after = plan
+                    .edits
+                    .edits_for(&path)
+                    .and_then(|items| items.first())
+                    .map_or(before, |edit| edit.replacement.as_str());
+                json!({"operation": plan.report["query"], "handle": plan.report["handle"],
+                    "path": plan.report["path"], "before_span": span, "before_bytes": before.len(),
+                    "after_bytes": after.len(), "before_sha256": digest(before), "after_sha256": digest(after),
+                    "signature": plan.report["signature"], "changed": plan.report["changed"],
+                    "preservation": plan.report["preservation"]})
+            };
             for key in [
                 "replacement_signature",
                 "name_check",
@@ -372,10 +493,130 @@ impl Project<'_> {
         report["files_changed"] = json!(edits.file_count());
         report["changed"] = json!(!edits.is_empty());
         report["steps"] = json!(steps);
+        let mut postconditions = Vec::new();
+        if let Some(expected) = manifest.postconditions {
+            ensure!(
+                expected.files_changed.is_some()
+                    || expected.edits.is_some()
+                    || expected.changed_operations.is_some()
+                    || expected.paths_changed.is_some(),
+                "postconditions must declare at least one expected outcome."
+            );
+            let mut check = |name: &str, expected: Value, actual: Value| -> Result<()> {
+                let held = expected == actual;
+                postconditions.push(json!({"postcondition": name, "expected": expected,
+                    "actual": actual, "held": held}));
+                ensure!(
+                    held,
+                    "postcondition {name} failed: expected {}, actual {}.",
+                    expected,
+                    actual
+                );
+                Ok(())
+            };
+            if let Some(expected) = expected.files_changed {
+                check("files-changed", json!(expected), json!(edits.file_count()))?;
+            }
+            if let Some(expected) = expected.edits {
+                check("edits", json!(expected), json!(edits.edit_count()))?;
+            }
+            if let Some(expected) = expected.changed_operations {
+                check(
+                    "changed-operations",
+                    json!(expected),
+                    json!(changed_operations),
+                )?;
+            }
+            if let Some(mut expected) = expected.paths_changed {
+                ensure!(
+                    expected.iter().all(|path| {
+                        path.is_relative()
+                            && path
+                                .components()
+                                .all(|part| matches!(part, std::path::Component::Normal(_)))
+                    }),
+                    "paths-changed entries must be normalized relative paths."
+                );
+                expected.sort();
+                expected.dedup();
+                let actual = edits
+                    .paths()
+                    .filter(|path| edits.edits_for(path).is_some_and(|items| !items.is_empty()))
+                    .map(|path| path.strip_prefix(&self.root).unwrap_or(path).to_path_buf())
+                    .collect::<Vec<_>>();
+                check("paths-changed", json!(expected), json!(actual))?;
+            }
+        }
+        report["postconditions"] = json!(postconditions);
+        report["postconditions_held"] = json!(true);
         report["validation"] = json!("reparse-strict");
         report["behavior_checked"] = json!(false);
         report["atomic_snapshot"] = json!(false);
         Ok(Plan { edits, report })
+    }
+
+    fn organize_imports(&self, selected: &str, revision: Option<&str>) -> Result<Plan> {
+        let handle = self.explicit_handle(selected, revision)?;
+        let id = self.resolve_handle(&handle)?;
+        ensure!(
+            self.nodes[id].kind == "file",
+            "organize-imports requires a file handle."
+        );
+        let path = self.root.join(&self.nodes[id].path);
+        let source = &self.sources[&path];
+        let plan = crate::refactor::imports::plan_in(self.index, &path, source)?;
+        let import_edits = plan.edits.edits_for(&path).unwrap_or(&[]);
+        let before_span = import_edits
+            .iter()
+            .fold(None, |region: Option<Span>, edit| {
+                Some(region.map_or(edit.span, |region| {
+                    Span::new(
+                        region.start.min(edit.span.start),
+                        region.end.max(edit.span.end),
+                    )
+                }))
+            });
+        let edit_reports = import_edits
+            .iter()
+            .map(|edit| {
+                let before = edit.span.text(source);
+                json!({"before_span": edit.span, "before_bytes": before.len(),
+                    "after_bytes": edit.replacement.len(), "before_sha256": digest(before),
+                    "after_sha256": digest(&edit.replacement), "reason": edit.reason})
+            })
+            .collect::<Vec<_>>();
+        let removed = plan
+            .removed
+            .iter()
+            .map(|item| {
+                json!({"path": item.path, "bindings": item.bindings,
+                "span": item.span, "line": item.line})
+            })
+            .collect::<Vec<_>>();
+        let kept = plan
+            .warnings
+            .iter()
+            .map(|warning| {
+                json!({"line": warning.line, "col": warning.col,
+                "reason": warning.detail})
+            })
+            .collect::<Vec<_>>();
+        let mut report = self.envelope("organize-imports");
+        report["schema"] = json!("fr-author-1");
+        report["handle"] = json!(self.handle(id));
+        report["path"] = bounded_text(&self.nodes[id].path.to_string_lossy(), 512);
+        report["imports"] = json!({"before_span": before_span.unwrap_or(Span::new(0, source.len())),
+            "edits": edit_reports, "removed": removed, "kept": kept,
+            "sorted_blocks": plan.sorted_blocks});
+        report["changed"] = json!(!plan.edits.is_empty());
+        report["validation"] = json!("reparse-strict");
+        report["preservation"] = json!("bytes outside the reported import edit spans");
+        report["behavior_checked"] = json!(false);
+        report["atomic_snapshot"] = json!(false);
+        Ok(Plan {
+            edits: plan.edits,
+            report,
+        })
     }
 
     pub fn insert_declaration(&self, options: &ReplaceBodyOptions) -> Result<Plan> {
@@ -401,46 +642,88 @@ impl Project<'_> {
             !parsed.has_errors(),
             "declaration insertion requires a file without parser errors."
         );
-        let (container, offset) = if is_file {
-            (parsed.root(), source.len())
+        let (container, offset, container_kind, container_name) = if is_file {
+            (parsed.root(), source.len(), "file", None)
         } else {
             let symbol = self.nodes[id]
                 .symbol
                 .and_then(|id| self.index.symbol(id))
-                .context("declaration insertion requires a Rust file or inline module handle.")?;
+                .context(
+                    "declaration insertion requires a Rust file, module, trait or method handle.",
+                )?;
             let mut selected = parsed
                 .root()
                 .descendant_for_byte_range(symbol.name_span.start, symbol.name_span.end);
-            let module = loop {
-                let node = selected.context("select a Rust file or inline module handle.")?;
-                if node.kind() == "mod_item" {
-                    ensure!(
-                        node.child_by_field_name("name")
-                            .is_some_and(|name| Span::from(name) == symbol.name_span),
-                        "selected handle does not name this module."
-                    );
+            let declaration = loop {
+                let node = selected.context(
+                    "select a Rust file, inline module, trait, or a direct impl or trait method.",
+                )?;
+                let names_symbol = node
+                    .child_by_field_name("name")
+                    .is_some_and(|name| Span::from(name) == symbol.name_span);
+                if symbol.kind == SymbolKind::Module && node.kind() == "mod_item" && names_symbol {
                     break node;
+                }
+                if symbol.kind == SymbolKind::Trait && node.kind() == "trait_item" && names_symbol {
+                    break node;
+                }
+                if symbol.kind == SymbolKind::Method
+                    && matches!(node.kind(), "function_item" | "function_signature_item")
+                    && names_symbol
+                {
+                    let list = node
+                        .parent()
+                        .context("selected method has no declaration list.")?;
+                    ensure!(
+                        list.kind() == "declaration_list",
+                        "select a direct impl or trait method, not a nested function."
+                    );
+                    let owner = list
+                        .parent()
+                        .context("selected method has no enclosing declaration.")?;
+                    ensure!(
+                        matches!(owner.kind(), "impl_item" | "trait_item"),
+                        "select a direct impl or trait method."
+                    );
+                    break owner;
                 }
                 selected = node.parent();
             };
-            let body = module.child_by_field_name("body")
-                .context("external module declarations have no inline body; select their source file instead.")?;
+            let body = declaration.child_by_field_name("body").with_context(|| {
+                if declaration.kind() == "mod_item" {
+                    "external module declarations have no inline body; select their source file instead."
+                } else {
+                    "selected declaration has no insertable body."
+                }
+            })?;
             ensure!(
                 body.kind() == "declaration_list",
-                "module requires an inline declaration list."
+                "selected declaration requires a braced declaration list."
             );
             let mut cursor = body.walk();
             let close = body
                 .children(&mut cursor)
                 .find(|child| child.kind() == "}" && !child.is_missing())
-                .context("inline module needs a closing brace.")?;
+                .context("declaration body needs a closing brace.")?;
             let before = &source[..close.start_byte()];
-            let offset = super::module_insertion_offset(before, body.start_byte());
-            (body, offset)
+            let offset = super::declaration_insertion_offset(before, body.start_byte());
+            let kind = match declaration.kind() {
+                "mod_item" => "inline-module",
+                "impl_item" => "impl",
+                "trait_item" => "trait",
+                _ => unreachable!(),
+            };
+            let name = if declaration.kind() == "impl_item" {
+                declaration.child_by_field_name("type")
+            } else {
+                declaration.child_by_field_name("name")
+            }
+            .map(|name| Span::from(name).text(source).to_owned());
+            (body, offset, kind, name)
         };
         let text = fragment(&self.root.join(&options.from))?;
         let fragment_tree = Parsers::new().parse(Language::Rust, &text)?;
-        let function = function_fragment(&fragment_tree, &text, true)?;
+        let function = function_fragment(&fragment_tree, &text, true, container_kind == "trait")?;
         let name = Span::from(
             function
                 .child_by_field_name("name")
@@ -493,28 +776,34 @@ impl Project<'_> {
             !Parsers::new().parse(Language::Rust, &updated)?.has_errors(),
             "insertion introduces parser errors in its destination context."
         );
-        let body = function
-            .child_by_field_name("body")
-            .context("function needs a body.")?;
+        let body = function.child_by_field_name("body");
+        ensure!(
+            body.is_some() || container_kind == "trait",
+            "only trait containers accept bodyless functions."
+        );
+        let signature_end = body.map_or(function.end_byte(), |body| body.start_byte());
         let mut report = self.envelope("insert-declaration");
         report["schema"] = json!("fr-author-1");
         report["handle"] = json!(self.handle(id));
         report["path"] = bounded_text(&self.nodes[id].path.to_string_lossy(), 512);
-        report["signature"] = json!({"basis": "syntax-header", "text": bounded_text(text[function.start_byte()..body.start_byte()].trim_end(), 512)});
-        report["declaration"] = json!({"name": bounded_text(name, 512), "kind": "function", "span": Span::new(offset+leading.len(), offset+leading.len()+text.len()), "bytes": text.len(), "sha256": digest(&text)});
+        report["signature"] = json!({"basis": "syntax-header", "text": bounded_text(text[function.start_byte()..signature_end].trim_end(), 512)});
+        report["declaration"] = json!({"name": bounded_text(name, 512), "kind": if body.is_some() { "function" } else { "function-signature" }, "span": Span::new(offset+leading.len(), offset+leading.len()+text.len()), "bytes": text.len(), "sha256": digest(&text)});
         if function.start_byte() > 0 {
             let documentation = &text[..function.start_byte()];
             let start = offset + leading.len();
             report["documentation"] = json!({"kind": "outer-doc-comments", "span": Span::new(start, start + documentation.len()), "bytes": documentation.len(), "sha256": digest(documentation)});
         }
         report["insertion"] = json!({"before_span": span, "after_span": Span::new(span.start, span.start+inserted.len()), "added_bytes": inserted.len(), "leading_separator": leading, "trailing_separator": newline, "sha256": digest(&inserted)});
-        report["name_check"] = json!(if is_file {
-            "direct top-level item names; Rust namespaces are not distinguished"
-        } else {
-            "direct items in the selected module. Rust namespaces are not distinguished."
+        report["name_check"] = json!(match container_kind {
+            "file" => "direct top-level item names; Rust namespaces are not distinguished.",
+            "inline-module" =>
+                "direct items in the selected module; Rust namespaces are not distinguished.",
+            "impl" => "direct items in the selected impl; Rust namespaces are not distinguished.",
+            "trait" => "direct items in the selected trait; Rust namespaces are not distinguished.",
+            _ => unreachable!(),
         });
         if !is_file {
-            report["container"] = json!({"kind": "inline-module", "name": bounded_text(&self.nodes[id].name, 512),
+            report["container"] = json!({"kind": container_kind, "name": bounded_text(container_name.as_deref().unwrap_or(&self.nodes[id].name), 512),
                 "before_span": Span::from(container)});
         }
         report["name_resolution_checked"] = json!(false);
@@ -570,7 +859,7 @@ impl Project<'_> {
             "old and new declarations must each fit 2 through 65536 bytes."
         );
         let replacement = Parsers::new().parse(Language::Rust, &after)?;
-        let item = function_fragment(&replacement, &after, false)?;
+        let item = function_fragment(&replacement, &after, false, false)?;
         let name = item
             .child_by_field_name("name")
             .context("replacement function needs a name.")?;
@@ -634,9 +923,8 @@ impl Project<'_> {
             .descendant_for_byte_range(symbol.name_span.start, symbol.name_span.end);
         let mut binding_start = None;
         let function = loop {
-            let node = selected.context(
-                "select a function declaration, method or function binding with a block body.",
-            )?;
+            let node = selected
+                .context("select a function declaration, method or supported function binding.")?;
             let binding = syntax.bindings.contains(&node.kind());
             if binding || syntax.targets.contains(&node.kind()) {
                 ensure!(
@@ -658,12 +946,26 @@ impl Project<'_> {
         let body = function
             .child_by_field_name("body")
             .context("selected function has no body.")?;
-        let span = syntax.block_span(body)?;
+        let expression_arrow = matches!(language, Language::TypeScript | Language::Tsx)
+            && function.kind() == "arrow_function"
+            && !syntax.is_block(body);
+        let (span, before_kind) = if syntax.is_block(body) {
+            (syntax.block_span(body)?, "block")
+        } else if expression_arrow {
+            (Span::from(body), "expression")
+        } else {
+            anyhow::bail!("selected function needs a block body or an expression-bodied arrow.");
+        };
         let before = &source[span.start..span.end];
-        let after = replacement(&self.root.join(&options.from), language, &syntax)?;
+        let (after, after_kind) = replacement(
+            &self.root.join(&options.from),
+            language,
+            &syntax,
+            function.kind() == "arrow_function",
+        )?;
         ensure!(
             super::body_replacement_budget(before.len(), after.len()),
-            "old and new bodies must each fit 2 through 65536 bytes."
+            "old and new bodies must each fit 1 through 65536 bytes."
         );
         let mut edits = EditSet::new();
         if before != after {
@@ -689,6 +991,8 @@ impl Project<'_> {
         };
         report["body"] = json!({"before_span":span,"after_span":Span::new(span.start,span.start+after.len()),
             "before_bytes":before.len(),"after_bytes":after.len(),"before_sha256":digest(before),"after_sha256":digest(&after)});
+        report["body"]["before_kind"] = json!(before_kind);
+        report["body"]["after_kind"] = json!(after_kind);
         report["changed"] = json!(before != after);
         report["validation"] = json!("reparse-strict");
         report["preservation"] = json!("bytes outside the selected body");

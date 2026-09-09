@@ -141,37 +141,52 @@ fn kernel_accepts(source: &str, edits: &[Edit], expected: &str) {
 
 #[test]
 fn the_edit_kernel_accepts_a_reported_declaration_replacement() {
-    reported_declaration_plan("replace-declaration", "calc");
+    reported_declaration_plan("replace-declaration", "calc", false);
 }
 
 #[test]
 fn the_edit_kernel_accepts_a_reported_declaration_insertion() {
-    reported_declaration_plan("insert-declaration", "app.rs");
+    reported_declaration_plan("insert-declaration", "app.rs", false);
 }
 
 #[test]
 fn the_edit_kernel_accepts_a_reported_module_insertion() {
-    reported_declaration_plan("insert-declaration", "target");
+    reported_declaration_plan("insert-declaration", "target", false);
 }
 
 #[test]
 fn the_edit_kernel_accepts_a_reported_wrapped_body_replacement() {
-    reported_declaration_plan("replace-body", "calc");
+    reported_declaration_plan("replace-body", "calc", false);
+}
+
+#[test]
+fn the_edit_kernel_accepts_a_reported_expression_body_replacement() {
+    reported_declaration_plan("replace-body", "calc", true);
 }
 
 #[test]
 fn the_edit_kernel_accepts_a_reported_go_method_replacement() {
-    reported_declaration_plan("replace-body", "Calc");
+    reported_declaration_plan("replace-body", "Calc", false);
 }
 
-fn reported_declaration_plan(operation: &str, selected: &str) {
+#[test]
+fn the_edit_kernel_accepts_a_reported_java_method_replacement() {
+    reported_declaration_plan("replace-body", "CalcJava", false);
+}
+
+fn reported_declaration_plan(operation: &str, selected: &str, expression_body: bool) {
     let temp = tempfile::tempdir().unwrap();
     let workspace = temp.path().join("workspace");
     std::fs::create_dir(&workspace).unwrap();
     let body = operation == "replace-body";
     let go = body && selected == "Calc";
+    let java = body && selected == "CalcJava";
     let (file, old, new) = if go {
         ("app.go", "{ return value + 1 }", "{ return value * 2 }")
+    } else if java {
+        ("App.java", "{ return value + 1; }", "{ return value * 2; }")
+    } else if expression_body {
+        ("app.tsx", "value + 1", "value * 2")
     } else if body {
         (
             "app.tsx",
@@ -194,6 +209,10 @@ fn reported_declaration_plan(operation: &str, selected: &str) {
         "// π\r\nfn other() {}\r\n// Final comment.".to_owned()
     } else if go {
         format!("// π\r\npackage main\r\ntype Counter int\r\nfunc (c *Counter) Calc(value int) int /* keep */ {old}\r\nfunc other() {{}}\r\n")
+    } else if java {
+        format!("// π\r\nfinal class App {{\r\n    static int CalcJava(int value) /* keep */ {old}\r\n    static int other() {{ return 0; }}\r\n}}\r\n")
+    } else if expression_body {
+        format!("// π\r\nconst calc = (((value: number) => /* keep */ {old}) satisfies (value: number) => number)!;\r\nconst other = () => {{ return 0; }};\r\n")
     } else if body {
         format!("// π\r\nconst calc = (((value: number) => /* keep */ {old}) satisfies (value: number) => JSX.Element)!;\r\nconst other = () => {{ return 0; }};\r\n")
     } else {
@@ -1579,7 +1598,7 @@ fn body_replacement_budgets_match_lean_at_size_and_machine_boundaries() {
     assert_eq!(actual, expected);
 }
 
-fn module_offset_samples() -> Vec<String> {
+fn declaration_offset_samples() -> Vec<String> {
     let alphabet = ["a", " ", "\t", "\r", "\n", "é", "🙂"];
     let mut sources = vec![String::new()];
     let mut words = sources.clone();
@@ -1608,7 +1627,7 @@ fn module_offset_samples() -> Vec<String> {
     sources
 }
 
-fn reverse_module_offset(text: &str, body_start: usize) -> usize {
+fn reverse_declaration_offset(text: &str, body_start: usize) -> usize {
     for (offset, c) in text.char_indices().rev() {
         if matches!(c, ' ' | '\t' | '\r') {
             continue;
@@ -1623,10 +1642,96 @@ fn reverse_module_offset(text: &str, body_start: usize) -> usize {
 }
 
 #[test]
-fn module_insertion_offsets_match_lean_and_reverse_oracle() {
+fn author_selection_conflicts_match_lean_and_interval_oracle() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
-        .arg("module-offsets")
+        .arg("selection-conflicts")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let mut actual = stdout.lines();
+    let samples = [
+        0_u64,
+        1,
+        2,
+        3,
+        4,
+        79,
+        80,
+        499,
+        500,
+        65536,
+        u32::MAX.into(),
+        u64::MAX,
+    ];
+    let mut count = 0;
+    for left_start in samples {
+        for left_end in samples {
+            if left_start > left_end {
+                continue;
+            }
+            for right_start in samples {
+                for right_end in samples {
+                    if right_start > right_end {
+                        continue;
+                    }
+                    let line = actual.next().expect("one Lean result per valid span pair");
+                    let (Ok(left_start), Ok(left_end), Ok(right_start), Ok(right_end)) = (
+                        usize::try_from(left_start),
+                        usize::try_from(left_end),
+                        usize::try_from(right_start),
+                        usize::try_from(right_end),
+                    ) else {
+                        continue;
+                    };
+                    let rust = fun_refactor::project::author_selection_conflict(
+                        left_start,
+                        left_end,
+                        right_start,
+                        right_end,
+                    );
+                    let lean = line.parse::<bool>().unwrap();
+                    let oracle = if left_start == left_end {
+                        right_start <= left_start && left_start <= right_end
+                    } else if right_start == right_end {
+                        left_start <= right_start && right_start <= left_end
+                    } else {
+                        left_start.max(right_start) < left_end.min(right_end)
+                    };
+                    assert_eq!(
+                        rust, lean,
+                        "{left_start}..{left_end}, {right_start}..{right_end}"
+                    );
+                    assert_eq!(
+                        rust, oracle,
+                        "{left_start}..{left_end}, {right_start}..{right_end}"
+                    );
+                    count += 1;
+                }
+            }
+        }
+    }
+    assert!(actual.next().is_none());
+    assert_eq!(count, if usize::BITS == 64 { 6_084 } else { 4_356 });
+
+    let unicode = "aé🙂z";
+    assert!(unicode.is_char_boundary(1));
+    assert!(unicode.is_char_boundary(3));
+    assert!(unicode.is_char_boundary(7));
+    assert!(fun_refactor::project::author_selection_conflict(1, 1, 1, 3));
+    assert!(fun_refactor::project::author_selection_conflict(3, 3, 1, 3));
+    assert!(!fun_refactor::project::author_selection_conflict(
+        1, 3, 3, 7
+    ));
+    assert!(fun_refactor::project::author_selection_conflict(1, 7, 3, 7));
+}
+
+#[test]
+fn declaration_insertion_offsets_match_lean_and_reverse_oracle() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("declaration-offsets")
         .output()
         .unwrap();
     assert!(output.status.success(), "{output:?}");
@@ -1636,10 +1741,10 @@ fn module_insertion_offsets_match_lean_and_reverse_oracle() {
     let mut compare = |text: &str, body_start: u64| {
         let line = actual.next().expect("one Lean result per placement case");
         if let Ok(body_start) = usize::try_from(body_start) {
-            let rust = fun_refactor::project::module_insertion_offset(text, body_start);
+            let rust = fun_refactor::project::declaration_insertion_offset(text, body_start);
             let lean = line.parse::<usize>().unwrap();
             assert_eq!(rust, lean, "{text:?}, {body_start}");
-            assert_eq!(rust, reverse_module_offset(text, body_start));
+            assert_eq!(rust, reverse_declaration_offset(text, body_start));
             assert!(rust <= text.len() && text.is_char_boundary(rust));
             assert!(text[rust..]
                 .bytes()
@@ -1661,7 +1766,7 @@ fn module_insertion_offsets_match_lean_and_reverse_oracle() {
             count += 1;
         }
     };
-    for text in module_offset_samples() {
+    for text in declaration_offset_samples() {
         for body_start in (0..text.len() as u64 + 2).chain([u32::MAX.into(), u64::MAX]) {
             compare(&text, body_start);
         }
@@ -1680,24 +1785,71 @@ fn module_insertion_offsets_match_lean_and_reverse_oracle() {
 }
 
 #[test]
-fn module_insertion_reports_match_lean_placement() {
+fn declaration_insertion_reports_match_lean_placement() {
     build_kernel();
-    for source in [
-        "mod target {}",
-        "mod target {\n    }\n",
-        "mod outer {\r\n\tmod target {\r\n\t}\r\n}\r\n",
-        "// π\nmod target { /* } */ }",
-        "mod target {\n// }\n}\n",
-        "mod target {\r\n\t\r }\r\n",
-        "mod target { const X: &str = r#\"}\"#; }",
-        "mod target {\n//! Inner docs.\n}\n",
+    for (source, selected, fragment_text, kind) in [
+        ("mod target {}", "target", "fn calc() {}", "inline-module"),
+        (
+            "mod target {\n    }\n",
+            "target",
+            "fn calc() {}",
+            "inline-module",
+        ),
+        (
+            "mod outer {\r\n\tmod target {\r\n\t}\r\n}\r\n",
+            "target",
+            "fn calc() {}",
+            "inline-module",
+        ),
+        (
+            "// π\nmod target { /* } */ }",
+            "target",
+            "fn calc() {}",
+            "inline-module",
+        ),
+        (
+            "mod target {\n// }\n}\n",
+            "target",
+            "fn calc() {}",
+            "inline-module",
+        ),
+        (
+            "mod target {\r\n\t\r }\r\n",
+            "target",
+            "fn calc() {}",
+            "inline-module",
+        ),
+        (
+            "mod target { const X: &str = r#\"}\"#; }",
+            "target",
+            "fn calc() {}",
+            "inline-module",
+        ),
+        (
+            "mod target {\n//! Inner docs.\n}\n",
+            "target",
+            "fn calc() {}",
+            "inline-module",
+        ),
+        (
+            "struct Target; impl Target {\n    fn anchor(&self) {}\n}\n",
+            "anchor",
+            "fn calc(&self) {}",
+            "impl",
+        ),
+        (
+            "trait Contract {\r\n\tfn anchor(&self);\r\n}\r\n",
+            "Contract",
+            "fn calc(&self);",
+            "trait",
+        ),
     ] {
         let temp = tempfile::tempdir().unwrap();
         let workspace = temp.path().join("workspace");
         std::fs::create_dir(&workspace).unwrap();
         std::fs::write(workspace.join("app.rs"), source).unwrap();
         let fragment = temp.path().join("function.txt");
-        std::fs::write(&fragment, "fn calc() {}").unwrap();
+        std::fs::write(&fragment, fragment_text).unwrap();
         let run = |args: &[&str]| {
             let output = Command::new(env!("CARGO_BIN_EXE_fr"))
                 .args(["--json", "--no-cache", "-C"])
@@ -1712,7 +1864,7 @@ fn module_insertion_reports_match_lean_placement() {
             );
             serde_json::from_slice::<serde_json::Value>(&output.stdout).unwrap()
         };
-        let found = run(&["project", "find", "target", "--in", "app.rs"]);
+        let found = run(&["project", "find", selected, "--in", "app.rs"]);
         let handle = found["rows"][0][0].as_str().unwrap();
         let report = run(&[
             "author",
@@ -1721,12 +1873,13 @@ fn module_insertion_reports_match_lean_placement() {
             "--from",
             fragment.to_str().unwrap(),
         ]);
+        assert_eq!(report["container"]["kind"], kind);
         let body = &report["container"]["before_span"];
         let start = body["start"].as_u64().unwrap() as usize;
         let close = body["end"].as_u64().unwrap() as usize - 1;
         assert_eq!(&source[close..close + 1], "}");
         let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
-            .args(["module-offset", &start.to_string(), &source[..close]])
+            .args(["declaration-offset", &start.to_string(), &source[..close]])
             .output()
             .unwrap();
         assert!(output.status.success(), "{output:?}");
@@ -1816,4 +1969,74 @@ fn the_edit_kernel_accepts_a_reported_author_batch() {
         std::fs::read_to_string(workspace.join("app.rs")).unwrap(),
         source
     );
+}
+
+#[test]
+fn the_edit_kernel_accepts_a_reported_author_batch_with_imports() {
+    let temp = tempfile::tempdir().unwrap();
+    let workspace = temp.path().join("workspace");
+    std::fs::create_dir(&workspace).unwrap();
+    let source = "use std::cmp::max;\n// π\nfn calc() -> i32 { 1 }\n";
+    std::fs::write(workspace.join("app.rs"), source).unwrap();
+    let run = |args: &[&str]| {
+        let output = Command::new(env!("CARGO_BIN_EXE_fr"))
+            .args(["--json", "--no-cache", "-C"])
+            .arg(&workspace)
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stdout)
+        );
+        serde_json::from_slice::<serde_json::Value>(&output.stdout).unwrap()
+    };
+    let map = run(&["project", "map", "--fields", "handle,name"]);
+    let handle = |name: &str| {
+        map["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row[1] == name)
+            .unwrap()[0]
+            .as_str()
+            .unwrap()
+    };
+    let fragment = temp.path().join("body.txt");
+    std::fs::write(&fragment, "{ 2 }").unwrap();
+    let manifest = temp.path().join("batch.json");
+    std::fs::write(
+        &manifest,
+        serde_json::json!({"operations":[
+            {"op":"replace-body","handle":handle("calc"),"from":fragment},
+            {"op":"organize-imports","handle":handle("app.rs")}
+        ]})
+        .to_string(),
+    )
+    .unwrap();
+    let report = run(&["author", "batch", "--from", manifest.to_str().unwrap()]);
+    let body = &report["steps"][0]["before_span"];
+    let imports = &report["steps"][1]["imports"]["edits"][0]["before_span"];
+    let edits = [
+        Edit::new(
+            Span::new(
+                body["start"].as_u64().unwrap() as usize,
+                body["end"].as_u64().unwrap() as usize,
+            ),
+            "{ 2 }",
+            "body",
+        ),
+        Edit::new(
+            Span::new(
+                imports["start"].as_u64().unwrap() as usize,
+                imports["end"].as_u64().unwrap() as usize,
+            ),
+            "",
+            "imports",
+        ),
+    ];
+    let expected = "// π\nfn calc() -> i32 { 2 }\n";
+    assert_eq!(apply_to_string(source, &edits).unwrap(), expected);
+    kernel_accepts(source, &edits, expected);
 }
