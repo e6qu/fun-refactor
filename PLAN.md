@@ -248,7 +248,7 @@ Measured outcome:
 
 ### PR 4. Lean Adoption Kit
 
-Status: in progress on `lean_adoption_kit`. The first checkpoint implements bounded, pinned package initialization through source history. The second selects a Rust declaration and scaffolds a strictly mapped Lean model in the checked target. Both flows preview, save, apply, undo and redo as source transactions. The Lake integration replaces the scaffold obligation with a useful theorem, observes a passing build, then breaks the theorem and observes failure.
+Status: in progress on `lean_adoption_kit`. The first checkpoint implements bounded, pinned package initialization through source history. The second selects a Rust declaration and scaffolds a strictly mapped Lean model in the checked target. The third refreshes only the owned generated region after source drift and preserves the marked handwritten model and proofs byte for byte. These flows preview, save, apply, undo and redo as source transactions. The Lake integration proves a useful property, refreshes its changed source identity, observes a passing build, then breaks the theorem and observes failure.
 
 Goal: let an external repository adopt and maintain one useful verified property through `fr`.
 
@@ -256,8 +256,8 @@ Deliverables:
 
 - Initialize a bounded specification package and its checked build targets; complete.
 - Select Rust source declarations and generate anchored Lean model scaffolds and signature maps; complete for a documented type subset.
-- Mark generated and handwritten regions and preserve handwritten proofs during regeneration.
-- Detect source drift and guide synchronization or repair.
+- Mark generated and handwritten regions and preserve handwritten proofs during regeneration; complete for generated scaffolds.
+- Detect source drift and guide synchronization or repair; strict checks and scaffold refresh complete.
 - Introduce named proof-debt records and ratchets.
 - Generate CI configuration for the selected Lean checks.
 - Report assumptions, axioms, trusted components, covered properties and remaining obligations.

@@ -52,6 +52,8 @@ pub struct ScaffoldPlan {
     pub model: String,
     pub module: String,
     pub hash: String,
+    pub regenerated: bool,
+    pub handwritten_bytes: usize,
     pub files: Vec<ScaffoldFile>,
 }
 
@@ -219,8 +221,8 @@ pub fn scaffold(root: &Path, target: &str, requested_package: &Path) -> Result<S
         .last()
         .context("Rust signature has no return type")?
         .ty;
-    let generated = format!(
-        "namespace FrSpecs\n\n-- fr:generated-begin scaffold\n-- fr:spec {}::{} @ {}\n-- fr:signature {}\ndef {}{} : {} :=\n-- fr:generated-end scaffold\n\n-- fr:handwritten-begin model-and-proofs\n  by\n    sorry\n-- fr:handwritten-end model-and-proofs\n\nend FrSpecs\n",
+    let generated_region = format!(
+        "-- fr:generated-begin scaffold\n-- fr:spec {}::{} @ {}\n-- fr:signature {}\ndef {}{} : {} :=\n-- fr:generated-end scaffold\n",
         source.display(),
         symbol,
         hash,
@@ -229,23 +231,47 @@ pub fn scaffold(root: &Path, target: &str, requested_package: &Path) -> Result<S
         parameters,
         return_type
     );
-    let parsers = Parsers::new();
-    let parsed = parsers.parse(crate::lang::Language::Lean, &generated)?;
-    if parsed.has_errors() {
-        bail!("generated Lean scaffold did not parse; no files changed.");
-    }
-
     let model_path = package_plan
         .package
         .join("FrSpecs")
         .join(format!("{module}.lean"));
-    match std::fs::symlink_metadata(&model_path) {
-        Ok(_) => bail!(
-            "refusing to replace existing model {}.",
-            model_path.display()
-        ),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-        Err(error) => return Err(error.into()),
+    let (model_original, generated, regenerated, handwritten_bytes) =
+        match std::fs::symlink_metadata(&model_path) {
+            Ok(metadata) if metadata.is_file() => {
+                let original = crate::vfs::read_to_string(&model_path)?;
+                let anchors = anchors_in(&original)?;
+                if anchors.len() != 1 || anchors[0].1 != source || anchors[0].2 != symbol {
+                    bail!(
+                        "existing model {} does not belong to {}::{}.",
+                        model_path.display(),
+                        source.display(),
+                        symbol
+                    );
+                }
+                let (updated, preserved) = replace_generated_region(&original, &generated_region)?;
+                (original, updated, true, preserved)
+            }
+            Ok(_) => bail!(
+                "existing model is not a regular file: {}.",
+                model_path.display()
+            ),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                let handwritten = "-- fr:handwritten-begin model-and-proofs\n  by\n    sorry\n-- fr:handwritten-end model-and-proofs\n";
+                (
+                    String::new(),
+                    format!(
+                        "namespace FrSpecs\n\n{generated_region}\n{handwritten}\nend FrSpecs\n"
+                    ),
+                    false,
+                    handwritten.len(),
+                )
+            }
+            Err(error) => return Err(error.into()),
+        };
+    let parsers = Parsers::new();
+    let parsed = parsers.parse(crate::lang::Language::Lean, &generated)?;
+    if parsed.has_errors() {
+        bail!("generated Lean scaffold did not parse; no files changed.");
     }
     let root_path = package_plan.package.join("FrSpecs.lean");
     let root_original = crate::vfs::read_to_string(&root_path)?;
@@ -261,10 +287,12 @@ pub fn scaffold(root: &Path, target: &str, requested_package: &Path) -> Result<S
         model,
         module,
         hash,
+        regenerated,
+        handwritten_bytes,
         files: vec![
             ScaffoldFile {
                 path: model_path,
-                original: String::new(),
+                original: model_original,
                 updated: generated,
             },
             ScaffoldFile {
@@ -274,6 +302,58 @@ pub fn scaffold(root: &Path, target: &str, requested_package: &Path) -> Result<S
             },
         ],
     })
+}
+
+fn replace_generated_region(original: &str, replacement: &str) -> Result<(String, usize)> {
+    const BEGIN: &str = "-- fr:generated-begin scaffold";
+    const END: &str = "-- fr:generated-end scaffold";
+    let handwritten = handwritten_region(original)?.to_string();
+    let start = original
+        .find(BEGIN)
+        .context("existing model has no generated scaffold region")?;
+    if original[start + BEGIN.len()..].contains(BEGIN) {
+        bail!("existing model has more than one generated scaffold region.");
+    }
+    let end_start = original[start..]
+        .find(END)
+        .map(|offset| start + offset)
+        .context("existing model has no generated scaffold end marker")?;
+    if original[end_start + END.len()..].contains(END) {
+        bail!("existing model has more than one generated scaffold end marker.");
+    }
+    let end = original[end_start..]
+        .find('\n')
+        .map_or(original.len(), |offset| end_start + offset + 1);
+    let mut updated = String::with_capacity(original.len() + replacement.len());
+    updated.push_str(&original[..start]);
+    updated.push_str(replacement);
+    updated.push_str(&original[end..]);
+    if handwritten_region(&updated)? != handwritten {
+        bail!("scaffold regeneration did not preserve its handwritten region.");
+    }
+    Ok((updated, handwritten.len()))
+}
+
+fn handwritten_region(text: &str) -> Result<&str> {
+    const BEGIN: &str = "-- fr:handwritten-begin model-and-proofs";
+    const END: &str = "-- fr:handwritten-end model-and-proofs";
+    let start = text
+        .find(BEGIN)
+        .context("existing model has no handwritten region")?;
+    if text[start + BEGIN.len()..].contains(BEGIN) {
+        bail!("existing model has more than one handwritten region.");
+    }
+    let end_start = text[start..]
+        .find(END)
+        .map(|offset| start + offset)
+        .context("existing model has no handwritten end marker")?;
+    if text[end_start + END.len()..].contains(END) {
+        bail!("existing model has more than one handwritten end marker.");
+    }
+    let end = text[end_start..]
+        .find('\n')
+        .map_or(text.len(), |offset| end_start + offset + 1);
+    Ok(&text[start..end])
 }
 
 fn lean_identifier(name: &str) -> bool {

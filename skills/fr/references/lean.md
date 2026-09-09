@@ -6,6 +6,7 @@ Initialization pins the supported toolchain and records the checked package thro
 
 For a Rust function with supported primitive, reference, tuple, `Option`, `Result`, `Vec` or `Box` types, preview `fr --json spec scaffold src/lib.rs::allowed`.
 The write creates a full anchor, strict signature map and checked module with one visible handwritten `sorry`. Replace it with reviewed model semantics and add the property before expecting `spec verify` to pass.
+After source drift, rerun the same scaffold command. It previews changes to the marked generated region and preserves the marked handwritten region byte for byte. Review any signature change and repair the preserved model or proofs before writing.
 
 For an existing Rust declaration in `src/lib.rs`:
 

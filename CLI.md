@@ -471,6 +471,11 @@ parameter patterns refuse before history records a change. The generated body co
 one `sorry`, inside a handwritten region, so `spec verify` fails until the user defines
 the model and proves the selected property. JSON separates that model obligation from
 the anchored signature evidence and makes no implementation-correspondence claim.
+Run the same scaffold command after a source change to refresh its generated anchor,
+map and declaration signature. It replaces only the uniquely marked generated region
+and checks that the model still belongs to the selected source declaration. The marked
+handwritten region remains byte-identical. Missing or duplicate ownership markers
+refuse the full transaction.
 
 Check that Lean models still point at the declarations they model. With no path,
 the command reads `kernels/` and `specs/`. A model names a declaration with an

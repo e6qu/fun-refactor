@@ -907,10 +907,19 @@ fn spec_scaffold_selects_a_rust_declaration_in_one_reversible_change() {
     );
     let (redone, ok) = ws.run(&["history", "redo", &id, "--write"]);
     assert!(ok, "{redone}");
-    assert!(ws
-        .root()
-        .join("specs/FrSpecs/SrcLibRsChoose.lean")
-        .is_file());
+    let model_path = ws.root().join("specs/FrSpecs/SrcLibRsChoose.lean");
+    assert!(model_path.is_file());
+    let malformed = std::fs::read_to_string(&model_path)
+        .unwrap()
+        .replace("-- fr:generated-end scaffold", "-- marker removed");
+    std::fs::write(&model_path, &malformed).unwrap();
+    let (refused, ok) = ws.run(&["spec", "scaffold", "src/lib.rs::choose", "--write"]);
+    assert!(!ok, "{refused}");
+    assert!(
+        refused.contains("no generated scaffold end marker"),
+        "{refused}"
+    );
+    assert_eq!(std::fs::read_to_string(model_path).unwrap(), malformed);
 }
 
 #[test]

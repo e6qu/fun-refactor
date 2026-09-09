@@ -89,9 +89,57 @@ fn initialized_package_is_a_checked_lake_target() {
         String::from_utf8_lossy(&proved_build.stderr)
     );
 
+    let handwritten_start = proved
+        .find("-- fr:handwritten-begin model-and-proofs")
+        .unwrap();
+    let handwritten_end = proved
+        .find("-- fr:handwritten-end model-and-proofs")
+        .unwrap()
+        + "-- fr:handwritten-end model-and-proofs".len();
+    let handwritten = &proved[handwritten_start..handwritten_end];
+    std::fs::write(
+        workspace.path().join("src/lib.rs"),
+        "pub fn allowed(ok: bool) -> bool { if ok { true } else { false } }\n",
+    )
+    .unwrap();
+    let drift = Command::new(FR)
+        .arg("-C")
+        .arg(workspace.path())
+        .args(["spec", "check", "specs", "--strict"])
+        .output()
+        .unwrap();
+    assert!(!drift.status.success());
+    assert!(String::from_utf8_lossy(&drift.stdout).contains("stale"));
+    let refreshed = Command::new(FR)
+        .arg("-C")
+        .arg(workspace.path())
+        .args(["spec", "scaffold", "src/lib.rs::allowed", "--write"])
+        .output()
+        .unwrap();
+    assert!(
+        refreshed.status.success(),
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&refreshed.stdout),
+        String::from_utf8_lossy(&refreshed.stderr)
+    );
+    let refreshed_model = std::fs::read_to_string(&model_path).unwrap();
+    assert!(refreshed_model.contains(handwritten));
+    let refreshed_build = Command::new(FR)
+        .arg("-C")
+        .arg(workspace.path())
+        .args(["spec", "verify", "specs"])
+        .output()
+        .unwrap();
+    assert!(
+        refreshed_build.status.success(),
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&refreshed_build.stdout),
+        String::from_utf8_lossy(&refreshed_build.stderr)
+    );
+
     std::fs::write(
         &model_path,
-        proved.replace("allowedModel true = true", "allowedModel true = false"),
+        refreshed_model.replace("allowedModel true = true", "allowedModel true = false"),
     )
     .unwrap();
     let broken = Command::new(FR)

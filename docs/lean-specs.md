@@ -338,8 +338,10 @@ manual model and anchor authoring. Then run `fr spec check --strict`.
 Run `fr spec verify` to check correspondence and build the owning package.
 Add shared input/output cases when the model mirrors an implementation.
 
-Model semantics and proofs remain handwritten work. Automatic scaffold regeneration
-and preservation of those handwritten regions remain planned work.
+Model semantics and proofs remain handwritten work. After source drift, repeat the
+scaffold command to preview a new anchor and signature. Refresh changes only the marked
+generated region and preserves the complete handwritten region byte for byte. Review
+signature changes because preserved model text can still need a type repair.
 Use the existing examples under `kernels/` as working references.
 
 ## Adoption milestones

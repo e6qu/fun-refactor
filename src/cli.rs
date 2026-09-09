@@ -1262,6 +1262,8 @@ fn cmd_spec_scaffold(cli: &Cli, target: &str, package: &Path, write: bool) -> Re
                 "model": plan.model,
                 "module": format!("FrSpecs.{}", plan.module),
                 "source_hash": plan.hash,
+                "regenerated": plan.regenerated,
+                "handwritten_bytes_preserved": plan.handwritten_bytes,
                 "package": shown_path(&root, &root.join(package)),
                 "files_changed": changed,
                 "changes": rendered.iter().map(|(path, diff)| serde_json::json!({"path": path, "diff": diff})).collect::<Vec<_>>(),
@@ -1286,11 +1288,23 @@ fn cmd_spec_scaffold(cli: &Cli, target: &str, package: &Path, write: bool) -> Re
     println!(
         "{} FrSpecs.{} for {}::{} with one explicit proof obligation.",
         if write {
-            "Scaffolded"
+            if plan.regenerated {
+                "Refreshed"
+            } else {
+                "Scaffolded"
+            }
         } else if cli.save_plan {
-            "Saved scaffold for"
+            if plan.regenerated {
+                "Saved refresh for"
+            } else {
+                "Saved scaffold for"
+            }
         } else {
-            "Would scaffold"
+            if plan.regenerated {
+                "Would refresh"
+            } else {
+                "Would scaffold"
+            }
         },
         plan.module,
         plan.source.display(),
