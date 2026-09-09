@@ -71,7 +71,7 @@ fn initialized_package_is_a_checked_lake_target() {
     let model_path = workspace.path().join("specs/FrSpecs/SrcLibRsAllowed.lean");
     let scaffold = std::fs::read_to_string(&model_path).unwrap();
     let proved = scaffold.replace(
-        "  by\n    sorry\n-- fr:handwritten-end model-and-proofs",
+        "  by\n    -- fr:debt model-semantics\n    sorry\n-- fr:handwritten-end model-and-proofs",
         "  ok\n\ntheorem accepts_true : allowedModel true = true := by rfl\n-- fr:handwritten-end model-and-proofs",
     );
     assert_ne!(proved, scaffold);

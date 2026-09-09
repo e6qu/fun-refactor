@@ -11,6 +11,7 @@ The second PR 4 checkpoint adds `fr spec scaffold SOURCE::SYMBOL` for a bounded 
 The integration case fills that obligation with a Boolean model and theorem. Strict correspondence and Lake then pass; changing the theorem to a false property makes the same verification command fail.
 The third PR 4 checkpoint makes the same scaffold command a regeneration path. It validates unique ownership markers and source identity, replaces only the generated region, and verifies byte-identical preservation of the handwritten region.
 The external-workspace case changes the Rust declaration, observes strict drift failure, refreshes the scaffold and rebuilds the preserved theorem successfully.
+The fourth PR 4 checkpoint reports every live `sorry` as a file-and-line proof-debt record. Scaffold obligations carry stable names, strict checks reject unnamed debt, and `--max-debt` enforces an explicit ratchet ceiling.
 PR 3's first checkpoint added checked staging-journal compaction with explicit per-stack retention.
 Compacted records retain stable IDs, statuses, path counts and digests while discarding bytes that can no longer be replayed.
 Preview/write bases, the index lock and full journal rechecks preserve the index, working files and concurrent staging state.

@@ -452,6 +452,7 @@ fr spec init [PATH] [--write]
 fr spec scaffold SOURCE::SYMBOL [--package PATH] [--write]
 
 fr spec check [PATH...]
+fr spec check [PATH...] --strict --max-debt COUNT
 fr spec sync [PATH...] [--write]
 fr spec verify [PATH...]
 ```
@@ -499,6 +500,10 @@ mapping also blocks `sync`.
 
 Add `--strict` to require a mapping beside every anchor in the selected specs. This is
 the CI mode for a kernel tree that treats a source hash alone as incomplete evidence.
+Strict checks also require a `-- fr:debt NAME` marker immediately before each live
+`sorry`. Every obligation appears in the bounded `debts` report with its file, line,
+name or naming error. `--max-debt COUNT` fails when the current total exceeds its
+reviewed ceiling. Lower that ceiling as proofs discharge; a later increase then fails.
 
 `verify` always runs that strict correspondence check first. When it passes, the command
 finds the `lakefile.lean` or `lakefile.toml` owning each selected spec and runs

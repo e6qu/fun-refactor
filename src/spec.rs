@@ -256,7 +256,7 @@ pub fn scaffold(root: &Path, target: &str, requested_package: &Path) -> Result<S
                 model_path.display()
             ),
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                let handwritten = "-- fr:handwritten-begin model-and-proofs\n  by\n    sorry\n-- fr:handwritten-end model-and-proofs\n";
+                let handwritten = "-- fr:handwritten-begin model-and-proofs\n  by\n    -- fr:debt model-semantics\n    sorry\n-- fr:handwritten-end model-and-proofs\n";
                 (
                     String::new(),
                     format!(
@@ -464,6 +464,17 @@ fn generic_arguments<'a>(ty: &'a str, outer: &str) -> Option<&'a str> {
 pub struct Report {
     pub anchors: Vec<AnchorReport>,
     pub obligations: usize,
+    pub debts: Vec<DebtReport>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct DebtReport {
+    pub spec: PathBuf,
+    pub line: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub detail: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -525,6 +536,10 @@ pub enum Status {
 }
 
 impl Report {
+    pub fn unnamed_debts(&self) -> usize {
+        self.debts.iter().filter(|debt| debt.name.is_none()).count()
+    }
+
     pub fn fresh(&self) -> usize {
         self.anchors
             .iter()
@@ -650,14 +665,14 @@ fn check_with(
 ) -> Result<Report> {
     let files = spec_files(root, inputs, respect_ignore)?;
     let mut anchors = Vec::new();
-    let mut obligations = 0;
+    let mut debts = Vec::new();
     let mut parsers = Parsers::new();
     let mut extractor = Extractor::new();
 
     for spec in files {
         let text = crate::vfs::read_to_string(&spec)
             .with_context(|| format!("reading {}", spec.display()))?;
-        obligations += obligations_in(&text);
+        debts.extend(debts_in(&spec, &text));
         for (line, source, symbol, expected) in anchors_in(&text)? {
             let source = crate::vfs::normalise(root.join(source));
             let report = if !source.starts_with(root) {
@@ -747,7 +762,8 @@ fn check_with(
     anchors.sort_by(|left, right| (&left.spec, left.line).cmp(&(&right.spec, right.line)));
     Ok(Report {
         anchors,
-        obligations,
+        obligations: debts.len(),
+        debts,
     })
 }
 
@@ -1177,6 +1193,7 @@ fn compact_type(text: &str) -> String {
     text.split_whitespace().collect()
 }
 
+#[cfg(test)]
 fn obligations_in(text: &str) -> usize {
     text.lines()
         .filter(|line| !line.trim_start().starts_with("--"))
@@ -1185,11 +1202,56 @@ fn obligations_in(text: &str) -> usize {
         .count()
 }
 
+fn debts_in(spec: &Path, text: &str) -> Vec<DebtReport> {
+    let lines = text.lines().collect::<Vec<_>>();
+    let mut debts = Vec::new();
+    for (index, line) in lines.iter().enumerate() {
+        if line.trim_start().starts_with("--") {
+            continue;
+        }
+        let count = line
+            .split(|character: char| !character.is_ascii_alphanumeric() && character != '_')
+            .filter(|word| *word == "sorry")
+            .count();
+        for _ in 0..count {
+            let marker = index
+                .checked_sub(1)
+                .and_then(|previous| lines[previous].trim().strip_prefix("-- fr:debt "));
+            let (name, detail) = match marker {
+                Some(name)
+                    if !name.is_empty()
+                        && name.chars().all(|character| {
+                            character.is_ascii_alphanumeric()
+                                || matches!(character, '-' | '_' | '.')
+                        }) =>
+                {
+                    (Some(name.to_string()), None)
+                }
+                Some(_) => (
+                    None,
+                    Some("the preceding proof-debt name is malformed".to_string()),
+                ),
+                None => (
+                    None,
+                    Some("strict checks require `-- fr:debt <name>` before `sorry`".to_string()),
+                ),
+            };
+            debts.push(DebtReport {
+                spec: spec.to_path_buf(),
+                line: index + 1,
+                name,
+                detail,
+            });
+        }
+    }
+    debts
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        anchors_in, check, check_strict, declaration_hash, init, lean_package, obligations_in,
-        scaffold, sync, Status,
+        anchors_in, check, check_strict, debts_in, declaration_hash, init, lean_package,
+        obligations_in, scaffold, sync, Status,
     };
     use crate::extract::Extractor;
     use crate::parse::Parsers;
@@ -1206,6 +1268,13 @@ mod tests {
         assert_eq!(anchors[0].1.to_string_lossy(), "src/edit.rs");
         assert_eq!(anchors[0].2, "apply_to_string");
         assert_eq!(obligations_in("def x := sorry\n-- sorry\n"), 1);
+        let debts = debts_in(
+            Path::new("Model.lean"),
+            "-- fr:debt model-semantics\ndef x := sorry\ndef y := sorry\n-- sorry\n",
+        );
+        assert_eq!(debts.len(), 2);
+        assert_eq!(debts[0].name.as_deref(), Some("model-semantics"));
+        assert!(debts[1].name.is_none());
     }
 
     #[test]

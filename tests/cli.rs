@@ -897,6 +897,12 @@ fn spec_scaffold_selects_a_rust_declaration_in_one_reversible_change() {
     let (checked, ok) = ws.run(&["spec", "check", "specs", "--strict"]);
     assert!(ok, "{checked}");
     assert!(checked.contains("1 unproved obligation"), "{checked}");
+    assert!(checked.contains("model-semantics"), "{checked}");
+    let (ratcheted, ok) = ws.run(&["spec", "check", "specs", "--strict", "--max-debt", "0"]);
+    assert!(!ok, "{ratcheted}");
+    assert!(ratcheted.contains("above the ceiling of 0"), "{ratcheted}");
+    let (accepted, ok) = ws.run(&["spec", "check", "specs", "--strict", "--max-debt", "1"]);
+    assert!(ok, "{accepted}");
     let (undone, ok) = ws.run(&["history", "undo", &id, "--write"]);
     assert!(ok, "{undone}");
     assert!(!ws.root().join("specs/FrSpecs/SrcLibRsChoose.lean").exists());

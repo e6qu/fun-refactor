@@ -258,7 +258,7 @@ Deliverables:
 - Select Rust source declarations and generate anchored Lean model scaffolds and signature maps; complete for a documented type subset.
 - Mark generated and handwritten regions and preserve handwritten proofs during regeneration; complete for generated scaffolds.
 - Detect source drift and guide synchronization or repair; strict checks and scaffold refresh complete.
-- Introduce named proof-debt records and ratchets.
+- Introduce named proof-debt records and ratchets; complete with strict names and explicit debt ceilings.
 - Generate CI configuration for the selected Lean checks.
 - Report assumptions, axioms, trusted components, covered properties and remaining obligations.
 

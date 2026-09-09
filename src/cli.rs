@@ -654,6 +654,12 @@ enum SpecCommand {
         paths: Vec<PathBuf>,
         #[arg(long, help = "Require every anchor to carry an explicit signature map")]
         strict: bool,
+        #[arg(
+            long,
+            value_name = "COUNT",
+            help = "Reject proof debt above this ceiling."
+        )]
+        max_debt: Option<usize>,
     },
     #[command(about = "Renew stale source hashes without changing Lean declarations")]
     Sync {
@@ -1051,7 +1057,11 @@ fn dispatch(cli: &Cli) -> Result<()> {
                 package,
                 write,
             } => cmd_spec_scaffold(cli, target, package, *write),
-            SpecCommand::Check { paths, strict } => cmd_spec_check(cli, paths, *strict),
+            SpecCommand::Check {
+                paths,
+                strict,
+                max_debt,
+            } => cmd_spec_check(cli, paths, *strict, *max_debt),
             SpecCommand::Sync { paths, write } => cmd_spec_sync(cli, paths, *write),
             SpecCommand::Verify { paths } => cmd_spec_verify(cli, paths),
         },
@@ -1316,15 +1326,23 @@ fn cmd_spec_scaffold(cli: &Cli, target: &str, package: &Path, write: bool) -> Re
     Ok(())
 }
 
-fn cmd_spec_check(cli: &Cli, paths: &[PathBuf], strict: bool) -> Result<()> {
+fn cmd_spec_check(
+    cli: &Cli,
+    paths: &[PathBuf],
+    strict: bool,
+    max_debt: Option<usize>,
+) -> Result<()> {
     let root = workspace_root(cli);
     let report = match strict {
         true => crate::spec::check_strict(&root, paths, !cli.no_ignore)?,
         false => crate::spec::check(&root, paths, !cli.no_ignore)?,
     };
+    let unnamed_debt = strict && report.unnamed_debts() > 0;
+    let exceeded_debt = max_debt.is_some_and(|ceiling| report.obligations > ceiling);
+    let passed = report.ok() && !unnamed_debt && !exceeded_debt;
     if cli.json {
         println!("{}", serde_json::to_string_pretty(&report)?);
-        if !report.ok() {
+        if !passed {
             std::process::exit(1);
         }
     } else {
@@ -1376,8 +1394,27 @@ fn cmd_spec_check(cli: &Cli, paths: &[PathBuf], strict: bool) -> Result<()> {
             report.missing(),
             report.obligations
         );
+        for debt in &report.debts {
+            println!(
+                "debt {}:{} {}",
+                debt.spec.display(),
+                debt.line,
+                debt.name.as_deref().unwrap_or("unnamed")
+            );
+        }
     }
-    if report.ok() {
+    if unnamed_debt {
+        anyhow::bail!(
+            "strict spec check found {} unnamed proof-debt record(s).",
+            report.unnamed_debts()
+        )
+    } else if exceeded_debt {
+        anyhow::bail!(
+            "spec check found {} proof-debt record(s), above the ceiling of {}.",
+            report.obligations,
+            max_debt.unwrap()
+        )
+    } else if report.ok() {
         Ok(())
     } else {
         anyhow::bail!(

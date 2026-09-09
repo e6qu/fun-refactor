@@ -13,6 +13,7 @@ The [roadmap](../PLAN.md) extends this foundation into an adoption workflow for 
 | `fr spec scaffold` | Select a Rust function and create an anchored, strictly mapped model obligation in that target |
 | `fr spec check` | Source identity, missing declarations, signature maps and live `sorry` counts |
 | `fr spec check --strict` | Require an explicit signature map beside every source anchor |
+| `fr spec check --max-debt N` | Reject a proof-debt increase above a reviewed ceiling |
 | `fr spec sync` | Preview renewal of stale source hashes; `--write` applies reviewed renewals |
 | `fr spec verify` | Strict correspondence checks, then `lake build --wfail` in each owning package |
 | `kernels/` | Executable edit, position, history, pagination, source-budget, insertion-placement, confidence and workspace membership models with shared Rust/Lean cases |
@@ -44,6 +45,7 @@ fr spec scaffold src/lib.rs::allowed
 fr spec scaffold src/lib.rs::allowed --write
 
 fr spec check --strict
+fr spec check --strict --max-debt 0
 fr spec sync
 fr spec sync --write
 fr spec verify
@@ -354,7 +356,10 @@ The next adoption work should provide:
 - Explicit signature synchronization that exposes affected proofs.
 - Reports separating proved models, tested correspondence and proved implementation correspondence.
 
-`SPEC-DEBT`, generated-region markers and the kernel-generation annotation remain proposals.
+A `-- fr:debt NAME` line immediately before `sorry` names a live obligation. Strict
+checks reject unnamed obligations, and `--max-debt` supplies a CI ratchet. Generated
+and handwritten scaffold markers now define regeneration ownership. A separate
+kernel-generation annotation remains a proposal.
 A zero `sorry` count describes the selected files, not the completeness of their specifications.
 Reject unapproved axioms and expose assumptions before claiming stronger coverage.
 
