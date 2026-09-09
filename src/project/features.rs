@@ -1,4 +1,5 @@
 mod boundaries;
+mod component_facts;
 
 use super::{bounded_text, hash, links, FeatureOptions, Project, RelationshipOptions};
 use crate::analysis::stitch;
@@ -16,6 +17,8 @@ const LIFECYCLE_FACT_LIMIT: usize = 64;
 const CONFIGURATION_FACT_LIMIT: usize = 128;
 const CONFIGURATION_CONSUMER_LIMIT: usize = 256;
 const EXECUTION_DEPENDENCY_FACT_LIMIT: usize = 256;
+const COMPONENT_FACT_LIMIT: usize = 128;
+const COMPONENT_DETAIL_FACT_LIMIT: usize = 512;
 
 #[derive(Clone)]
 struct Feature {
@@ -23,6 +26,7 @@ struct Feature {
     url: Value,
     source: Value,
     routes: Vec<Value>,
+    frontend_files: BTreeSet<PathBuf>,
 }
 
 struct Application {
@@ -33,6 +37,11 @@ struct Application {
     basis: &'static str,
     manifest: Option<PathBuf>,
     features: BTreeMap<String, Feature>,
+}
+
+struct ApplicationDiscovery {
+    applications: BTreeMap<String, Application>,
+    frontend_gaps: Vec<(PathBuf, &'static str)>,
 }
 
 #[derive(Default)]
@@ -63,6 +72,17 @@ struct BoundaryCounts {
     configuration_consumers_omitted: usize,
     service_dependencies: usize,
     service_gaps: usize,
+    components: usize,
+    component_details: usize,
+    component_properties: usize,
+    component_states: usize,
+    component_effects: usize,
+    component_events: usize,
+    component_styles: usize,
+    render_edges: usize,
+    component_gaps: usize,
+    components_omitted: usize,
+    component_details_omitted: usize,
 }
 
 fn key(value: &Value) -> String {
@@ -81,6 +101,67 @@ fn source(row: &Value) -> Value {
         "line": row.get("line").cloned().unwrap_or(Value::Null),
         "handle": row.get("file_handle").cloned().unwrap_or(Value::Null),
     })
+}
+
+fn next_page_url(path: &Path) -> Option<Result<String, &'static str>> {
+    if !matches!(path.file_name()?.to_str()?, "page.tsx" | "page.jsx") {
+        return None;
+    }
+    let relative = path
+        .strip_prefix("app")
+        .or_else(|_| path.strip_prefix("src/app"))
+        .ok()?;
+    let mut segments = Vec::new();
+    for part in relative.parent()?.components() {
+        let part = part.as_os_str().to_str()?;
+        if part.starts_with('_') || part.starts_with('@') || part.starts_with("(.") {
+            return Some(Err(
+                "Private, parallel and intercepting page paths need further inspection.",
+            ));
+        }
+        if let Some(group) = part
+            .strip_prefix('(')
+            .and_then(|part| part.strip_suffix(')'))
+        {
+            if group.is_empty() || group.contains(['(', ')']) {
+                return Some(Err("The page route group exceeds the supported subset."));
+            }
+            continue;
+        }
+        if let Some(name) = part
+            .strip_prefix("[[...")
+            .and_then(|name| name.strip_suffix("]]"))
+        {
+            if !crate::project::contracts::simple_name(name) {
+                return Some(Err("The page has a malformed catch-all parameter."));
+            }
+            segments.push(format!("{{...{name}?}}"));
+        } else if let Some(name) = part
+            .strip_prefix("[...")
+            .and_then(|name| name.strip_suffix(']'))
+        {
+            if !crate::project::contracts::simple_name(name) {
+                return Some(Err("The page has a malformed catch-all parameter."));
+            }
+            segments.push(format!("{{...{name}}}"));
+        } else if let Some(name) = part
+            .strip_prefix('[')
+            .and_then(|name| name.strip_suffix(']'))
+        {
+            if !crate::project::contracts::simple_name(name) {
+                return Some(Err("The page has a malformed dynamic parameter."));
+            }
+            segments.push(format!("{{{name}}}"));
+        } else if !part
+            .chars()
+            .all(|character| character.is_alphanumeric() || "-._~".contains(character))
+        {
+            return Some(Err("The page path exceeds the literal segment subset."));
+        } else {
+            segments.push(part.to_owned());
+        }
+    }
+    Some(Ok(format!("/{}", segments.join("/"))))
 }
 
 fn declaration_source(row: &Value) -> Value {
@@ -226,8 +307,9 @@ fn reference_candidates(items: &[Value]) -> BTreeMap<String, Vec<Value>> {
 }
 
 impl Project<'_> {
-    fn applications(&self, routes: &[Value]) -> Result<BTreeMap<String, Application>> {
+    fn applications(&self, routes: &[Value], selected: usize) -> Result<ApplicationDiscovery> {
         let mut applications = BTreeMap::new();
+        let mut frontend_gaps = Vec::new();
         for route in routes.iter().filter(|row| row["kind"] == "route") {
             let Some(framework) = route["framework_candidate"].as_str() else {
                 continue;
@@ -279,11 +361,105 @@ impl Project<'_> {
                     url: route["url"].clone(),
                     source: source(route),
                     routes: Vec::new(),
+                    frontend_files: BTreeSet::new(),
                 })
                 .routes
                 .push(route.clone());
         }
-        Ok(applications)
+        for file in self.sources.keys() {
+            if !self.scope_file(selected, file) {
+                continue;
+            }
+            let relative = file.strip_prefix(&self.root)?;
+            let manifest = relative
+                .parent()
+                .into_iter()
+                .flat_map(Path::ancestors)
+                .map(|directory| directory.join("package.json"))
+                .find(|manifest| {
+                    self.manifests
+                        .snapshots
+                        .contains_key(&self.root.join(manifest))
+                });
+            let directory = manifest
+                .as_deref()
+                .and_then(Path::parent)
+                .unwrap_or(Path::new(""));
+            let package_path = relative.strip_prefix(directory)?;
+            let Some(url) = next_page_url(package_path) else {
+                continue;
+            };
+            let url = match url {
+                Ok(url) => url,
+                Err(reason) => {
+                    frontend_gaps.push((relative.to_path_buf(), reason));
+                    continue;
+                }
+            };
+            if let Some(document) = manifest
+                .as_ref()
+                .and_then(|manifest| self.manifests.documents.get(manifest))
+            {
+                let next = ["dependencies", "devDependencies"].iter().any(|section| {
+                    document[*section]["next"]
+                        .as_str()
+                        .is_some_and(|version| !version.trim().is_empty())
+                });
+                if !next {
+                    frontend_gaps.push((
+                        relative.to_path_buf(),
+                        "The nearest package has no captured string-valued Next.js dependency.",
+                    ));
+                    continue;
+                }
+            } else if manifest.is_some() {
+                frontend_gaps.push((
+                    relative.to_path_buf(),
+                    "The nearest package manifest is unavailable or invalid.",
+                ));
+                continue;
+            }
+            let root = if directory.as_os_str().is_empty() {
+                json!(".")
+            } else {
+                bounded_text(&directory.to_string_lossy(), 512)
+            };
+            let app_key = key(&json!(["nextjs-app", root]));
+            let app_id = format!("frfa1:{}", &hash((&self.revision, &app_key))?[..32]);
+            let app = applications.entry(app_key).or_insert_with(|| Application {
+                id: app_id,
+                framework: "nextjs-app".to_owned(),
+                root: root.clone(),
+                source: self.file_source(relative, 1),
+                basis: if manifest.is_some() {
+                    "nextjs-package-page"
+                } else {
+                    "project-root-page"
+                },
+                manifest: manifest.clone(),
+                features: BTreeMap::new(),
+            });
+            let feature_key = key(&json!(url));
+            let feature_id = format!(
+                "frff1:{}",
+                &hash((&self.revision, &app.id, &feature_key))?[..32]
+            );
+            app.features
+                .entry(feature_key)
+                .or_insert_with(|| Feature {
+                    id: feature_id,
+                    url: json!(url),
+                    source: self.file_source(relative, 1),
+                    routes: Vec::new(),
+                    frontend_files: BTreeSet::new(),
+                })
+                .frontend_files
+                .insert(relative.to_path_buf());
+        }
+        Ok(ApplicationDiscovery {
+            applications,
+            frontend_gaps,
+        })
     }
 
     fn package_facts(
@@ -655,7 +831,10 @@ impl Project<'_> {
         let configuration = stitch::analyze_snapshot(self.index, &self.sources)?;
         let items = report["items"].as_array().cloned().unwrap_or_default();
         let source_omitted = report["page"]["remaining"].as_u64().unwrap_or(0) as usize;
-        let applications = self.applications(&items)?;
+        let ApplicationDiscovery {
+            applications,
+            frontend_gaps,
+        } = self.applications(&items, selected)?;
         let local_links = links::collect(&self.manifests, &self.root, None);
         let available: BTreeSet<_> = applications
             .values()
@@ -737,8 +916,13 @@ impl Project<'_> {
                         ]),
                     ),
                     "feature",
-                    json!({"route_path": feature.url, "route_count": feature.routes.len()}),
+                    json!({
+                        "route_path": feature.url,
+                        "route_count": feature.routes.len(),
+                        "component_file_count": feature.frontend_files.len(),
+                    }),
                 ));
+                self.component_facts(application, feature, &mut rows, &mut boundary_counts)?;
                 for route in &feature.routes {
                     route_count += 1;
                     if let Some(path) = route["path"].as_str() {
@@ -987,6 +1171,31 @@ impl Project<'_> {
         }
 
         let include_global = options.feature.is_none();
+        if include_global {
+            for (path, reason) in frontend_gaps {
+                boundary_counts.component_gaps += 1;
+                let detail = json!({"reason": reason});
+                rows.push(fact(
+                    "framework-gap",
+                    child_id(
+                        "frfg1",
+                        &self.revision,
+                        "frontend-page",
+                        &json!([path, reason]),
+                    )?,
+                    None,
+                    self.file_source(&path, 1),
+                    FactEvidence::new(
+                        json!("nextjs-page-convention"),
+                        json!("gap"),
+                        Value::Null,
+                        json!([reason]),
+                    ),
+                    "gap",
+                    detail,
+                ));
+            }
+        }
         for route in items.iter().filter(|row| row["kind"] == "route") {
             let framework = route["framework_candidate"].as_str().unwrap_or("unknown");
             if matches!(framework, "nextjs-app" | "fastapi") {
@@ -1075,6 +1284,28 @@ impl Project<'_> {
                 gap,
             ));
         }
+        if boundary_counts.components_omitted > 0 || boundary_counts.component_details_omitted > 0 {
+            let reason = "The component fact limits omitted components or details; narrow TARGET before relying on completeness.";
+            let gap = json!({
+                "reason": reason,
+                "components_omitted": boundary_counts.components_omitted,
+                "component_details_omitted": boundary_counts.component_details_omitted,
+            });
+            rows.push(fact(
+                "framework-gap",
+                child_id("frfg1", &self.revision, "component-limit", &gap)?,
+                None,
+                json!({"path": null, "line": null, "handle": null}),
+                FactEvidence::new(
+                    json!("component-fact-limit"),
+                    json!("gap"),
+                    Value::Null,
+                    json!([reason]),
+                ),
+                "gap",
+                gap,
+            ));
+        }
 
         let mut analysis = json!({
             "applications": application_count,
@@ -1098,15 +1329,15 @@ impl Project<'_> {
             "unsupported_framework_routes": unsupported_framework_routes,
             "readers": ["nextjs-app", "fastapi"],
             "feature_selection": options.feature,
-            "certainty": "Applications and features are candidates. Routes, handlers, contracts, execution dependencies, middleware and schemas retain their source reader evidence.",
+            "certainty": "Applications and features are candidates. Backend and component facts retain their source reader evidence.",
             "limitations": [
-                "Feature identity groups exact route paths within an inferred application boundary; business ownership remains unchecked.",
+                "Feature identity groups exact backend or page paths within an inferred application boundary; business ownership remains unchecked.",
                 "Middleware and FastAPI parameter dependencies preserve recognized syntax and order evidence; runtime behavior remains unchecked.",
                 "Only FastAPI Security markers are authentication candidates; the purpose of Depends providers remains unknown.",
                 "Lifecycle hooks preserve supported declarations; execution, resource effects and runtime selection remain unchecked.",
                 "Runtime configuration preserves environment declaration and accessor evidence; values, precedence and deployment identity remain unchecked.",
                 "Outbound HTTP calls preserve sanitized literal targets; receiver identity, request options, response use and runtime reachability remain unchecked.",
-                "Frontend components and build settings are not modeled yet.",
+                "Next.js React function components preserve bounded props, state, effects, events, styles and render edges; runtime rendering remains unchecked.",
                 "Schema expansion follows bounded same-file type-name candidates and preserves ambiguity."
             ],
         });
@@ -1133,6 +1364,19 @@ impl Project<'_> {
             json!(boundary_counts.configuration_consumers_omitted);
         analysis["service_dependencies"] = json!(boundary_counts.service_dependencies);
         analysis["service_gaps"] = json!(boundary_counts.service_gaps);
+        analysis["components"] = json!(boundary_counts.components);
+        analysis["component_details"] = json!(boundary_counts.component_details);
+        analysis["component_properties"] = json!(boundary_counts.component_properties);
+        analysis["component_states"] = json!(boundary_counts.component_states);
+        analysis["component_effects"] = json!(boundary_counts.component_effects);
+        analysis["component_events"] = json!(boundary_counts.component_events);
+        analysis["component_styles"] = json!(boundary_counts.component_styles);
+        analysis["render_edges"] = json!(boundary_counts.render_edges);
+        analysis["component_gaps"] = json!(boundary_counts.component_gaps);
+        analysis["component_fact_limit"] = json!(COMPONENT_FACT_LIMIT);
+        analysis["component_detail_fact_limit"] = json!(COMPONENT_DETAIL_FACT_LIMIT);
+        analysis["components_omitted"] = json!(boundary_counts.components_omitted);
+        analysis["component_details_omitted"] = json!(boundary_counts.component_details_omitted);
         let mut result = self.relationship_page(
             "features",
             selected,
@@ -1141,7 +1385,7 @@ impl Project<'_> {
             rows,
             analysis,
         )?;
-        result["scope"] = json!("Bounded route-centered application feature candidates for Next.js App Router and FastAPI. Parent IDs form the hierarchy within this revision.");
+        result["scope"] = json!("Bounded route and page centered application feature candidates for Next.js App Router and FastAPI. Parent IDs form the hierarchy within this revision.");
         Ok(result)
     }
 }

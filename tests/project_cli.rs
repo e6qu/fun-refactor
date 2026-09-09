@@ -3358,6 +3358,21 @@ fn framework_features_join_routes_handlers_and_schemas_into_selectable_subtrees(
     );
     put(
         root,
+        "web/app/api/pets/page.tsx",
+        concat!(
+            "'use client';\n",
+            "import { useEffect, useState } from 'react';\n",
+            "interface Props { initial: number; }\n",
+            "function Badge() { return <span>ok</span>; }\n",
+            "export default function Pets({ initial }: Props) {\n",
+            "  const [count, setCount] = useState(initial);\n",
+            "  useEffect(() => { console.log('PRIVATE_EFFECT'); }, [count]);\n",
+            "  return <Panel className=\"PRIVATE_CLASS\" onClick={() => setCount(count + 1)}><Badge /></Panel>;\n",
+            "}\n",
+        ),
+    );
+    put(
+        root,
         "api/app.py",
         concat!(
             "from typing import Annotated\n",
@@ -3410,6 +3425,13 @@ fn framework_features_join_routes_handlers_and_schemas_into_selectable_subtrees(
     assert_eq!(full["analysis"]["configuration_consumers"], 3);
     assert_eq!(full["analysis"]["service_dependencies"], 2);
     assert_eq!(full["analysis"]["service_gaps"], 2);
+    assert_eq!(full["analysis"]["components"], 2, "{full}");
+    assert_eq!(full["analysis"]["component_properties"], 1, "{full}");
+    assert_eq!(full["analysis"]["component_states"], 1, "{full}");
+    assert_eq!(full["analysis"]["component_effects"], 1, "{full}");
+    assert_eq!(full["analysis"]["component_events"], 1, "{full}");
+    assert_eq!(full["analysis"]["component_styles"], 1, "{full}");
+    assert_eq!(full["analysis"]["render_edges"], 2, "{full}");
     let items = full["items"].as_array().unwrap();
     for fact in items {
         assert!(fact.get("id").is_some(), "{fact}");
@@ -3448,6 +3470,13 @@ fn framework_features_join_routes_handlers_and_schemas_into_selectable_subtrees(
         "configuration-consumer",
         "service-dependency",
         "service-gap",
+        "component",
+        "component-properties",
+        "component-state",
+        "component-effect",
+        "component-event",
+        "component-style",
+        "component-render",
     ] {
         assert!(
             items.iter().any(|fact| fact["kind"] == kind),
@@ -3467,6 +3496,53 @@ fn framework_features_join_routes_handlers_and_schemas_into_selectable_subtrees(
         .find(|fact| fact["kind"] == "feature" && fact["parent"] == next_app["id"])
         .unwrap();
     assert_eq!(next_feature["feature"]["route_count"], 2);
+    let pets_component = items
+        .iter()
+        .find(|fact| {
+            fact["kind"] == "component"
+                && fact["parent"] == next_feature["id"]
+                && fact["component"]["name"] == "Pets"
+        })
+        .unwrap();
+    assert_eq!(pets_component["component"]["rendering_boundary"], "client");
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "component-properties"
+            && fact["parent"] == pets_component["id"]
+            && fact["properties"]["names"] == serde_json::json!(["initial"])
+            && fact["properties"]["declared_type"] == "Props"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "component-state"
+            && fact["parent"] == pets_component["id"]
+            && fact["state"]["binding"] == "count"
+            && fact["state"]["setter"] == "setCount"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "component-effect"
+            && fact["parent"] == pets_component["id"]
+            && fact["effect"]["schedule"] == "dependency-change-candidate"
+            && fact["effect"]["dependency_count"] == 1
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "component-render"
+            && fact["parent"] == pets_component["id"]
+            && fact["render"]["target"] == "Badge"
+    }));
+    assert!(
+        items.iter().any(|fact| {
+            fact["kind"] == "component-event"
+                && fact["parent"] == pets_component["id"]
+                && fact["event"]["name"] == "onClick"
+                && fact["event"]["handler_kind"] == "inline"
+        }),
+        "{full}"
+    );
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "component-style"
+            && fact["parent"] == pets_component["id"]
+            && fact["style"]["attribute"] == "className"
+            && fact["style"]["value_kind"] == "literal"
+    }));
     let package = items
         .iter()
         .find(|fact| fact["kind"] == "package" && fact["parent"] == next_app["id"])
@@ -3631,6 +3707,80 @@ fn framework_features_join_routes_handlers_and_schemas_into_selectable_subtrees(
         .0
     );
     assert!(!run(root, &["project", "features", "--feature", "frff1:absent"]).0);
+}
+
+#[test]
+fn framework_features_include_frontend_only_next_pages_and_client_boundary_conflicts() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "package.json",
+        r#"{"dependencies":{"next":"16","react":"19"}}"#,
+    );
+    put(
+        root,
+        "app/page.tsx",
+        concat!(
+            "import { useState } from 'react';\n",
+            "export default function Home() {\n",
+            "  const [value, setValue] = useState(0);\n",
+            "  return <button onClick={() => setValue(value + 1)}>Count</button>;\n",
+            "}\n",
+        ),
+    );
+    put(
+        root,
+        "app/[bad-name]/page.tsx",
+        "export default function Hidden() { return <div />; }\n",
+    );
+
+    let view = ok(root, &["project", "features", "--limit", "500"]);
+    assert_eq!(view["analysis"]["applications"], 1, "{view}");
+    assert_eq!(view["analysis"]["features"], 1, "{view}");
+    assert_eq!(view["analysis"]["routes"], 0, "{view}");
+    assert_eq!(view["analysis"]["components"], 1, "{view}");
+    assert_eq!(view["analysis"]["component_gaps"], 2, "{view}");
+    let items = view["items"].as_array().unwrap();
+    let feature = items.iter().find(|fact| fact["kind"] == "feature").unwrap();
+    assert_eq!(feature["feature"]["route_path"], "/");
+    let component = items
+        .iter()
+        .find(|fact| fact["kind"] == "component")
+        .unwrap();
+    assert_eq!(
+        component["component"]["rendering_boundary"],
+        "server-default"
+    );
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "component-state"
+            && fact["parent"] == component["id"]
+            && fact["status"] == "conflict"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "framework-gap"
+            && fact["gap"]["reason"] == "The page has a malformed dynamic parameter."
+    }));
+}
+
+#[test]
+fn framework_feature_components_are_bounded_with_an_explicit_gap() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "package.json", r#"{"dependencies":{"next":"16"}}"#);
+    let components: String = (0..129)
+        .map(|number| format!("function Component{number}() {{ return <div />; }}\n"))
+        .collect();
+    put(root, "app/page.tsx", &components);
+
+    let view = ok(root, &["project", "features", "--limit", "500"]);
+    assert_eq!(view["analysis"]["components"], 128, "{view}");
+    assert_eq!(view["analysis"]["components_omitted"], 1, "{view}");
+    assert!(view["items"].as_array().unwrap().iter().any(|fact| {
+        fact["kind"] == "framework-gap"
+            && fact["evidence"]["basis"] == "component-fact-limit"
+            && fact["gap"]["components_omitted"] == 1
+    }));
 }
 
 #[test]

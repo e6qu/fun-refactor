@@ -30,7 +30,12 @@ Application configuration facts reuse captured environment declaration and acces
 Next.js `NEXT_PUBLIC_` variables carry a client build-time candidate marker; runtime substitution and client inclusion remain unchecked.
 Handler inspection adds sanitized HTTP service candidates for fetch, axios, requests and HTTPX syntax.
 It strips query strings, fragments and URL credentials, hides dynamic targets and reports them as gaps.
-The next checkpoint completes the selected frontend component boundary before the formal correspondence and fixture audit.
+The fifth checkpoint adds Next.js page features even when an application has no API route.
+Direct React function components retain server-default or `use client` placement, props, state hooks, effect schedules, events, style shapes and render edges.
+The reader exposes no prop values, hook initializers, effect bodies, event bodies or class values.
+Malformed page paths and stateful server-default components remain explicit gaps or conflicts.
+Limits cap components at 128 and child details at 512 per query.
+Imported component resolution, layouts and custom hooks remain open before the formal correspondence and fixture audit.
 Roadmap PR 4's first checkpoint added `fr spec init [PATH]` with a pinned toolchain, a minimal checked Lake target and refusal to overwrite differing files or escape through paths and symlinks.
 Initialization previews by default, supports saved plans and writes through source history. Apply, undo and redo cover files created below a new directory, while plan recording no longer creates the target directory as a lock side effect.
 A real integration case initializes an external temporary workspace and passes `fr spec verify specs` against Lake.

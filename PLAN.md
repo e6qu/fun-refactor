@@ -276,7 +276,7 @@ Every result distinguishes a proved model property, tested implementation/model 
 
 ### PR 5. Framework Semantic Model
 
-Status: in progress on `framework_semantic_model`. Three committed checkpoints provide the selectable hierarchy, npm boundaries and direct middleware or parameter dependency facts. The fourth checkpoint adds scoped FastAPI dependencies, lifecycle hooks, runtime configuration chains and sanitized outbound HTTP service candidates. Every fact retains its parent, source anchor, evidence, confidence and explicit gaps.
+Status: in progress on `framework_semantic_model`. Four committed checkpoints provide the hierarchy, package model and backend execution boundaries. The fifth checkpoint adds frontend-only Next.js page features and direct React component facts across server/client placement, props, state, effects, events, style shapes and render edges. Every fact retains its parent, source anchor, evidence, confidence and explicit gaps.
 
 Goal: represent a feature across application structure rather than as isolated syntax nodes.
 
@@ -287,17 +287,17 @@ Deliverables:
 - Model middleware and authentication boundaries; readers cover direct convention files plus application, route and parameter dependencies. Unsupported forms remain gaps.
 - Model lifecycle and runtime configuration boundaries; implemented for direct FastAPI and Next.js declarations with runtime validation still open.
 - Model service dependencies; readers recognize direct handler HTTP candidates. Client construction, non-HTTP services and runtime reachability remain open.
-- Model frontend components, properties, events, state, effects, styles and rendering boundaries.
+- Model frontend components, properties, events, state, effects, styles and rendering boundaries; complete for direct components in Next.js page files.
 - Attach source anchors, confidence, unsupported constructs and validation evidence to every fact; complete for the first route-centered hierarchy.
 - Strengthen the existing Next.js and FastAPI readers before adding another backend pair.
-- Select one frontend pair and define a bounded component subset.
+- Use Next.js React Server and Client Components as the first rendering-boundary pair; complete for the direct page component subset.
 - Keep framework-specific behavior visible where the shared model cannot express it.
 
 PR 5 completes each boundary against a named, versioned syntax subset. Executable fixtures validate runtime claims that source structure cannot establish.
 
 Verification and acceptance:
 
-- Display one feature hierarchy across routes, handlers, schemas, components and dependencies.
+- Display one feature hierarchy across routes, handlers, schemas, components and dependencies; complete for exact matching Next.js page and API paths.
 - Retrieve that subtree without loading the whole application.
 - Preserve ambiguity and unsupported middleware, authentication, lifecycle and runtime behavior as explicit gaps; complete for current dependency and middleware readers.
 - Compare readers against pinned framework fixtures and real projects with independent contract checks.

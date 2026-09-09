@@ -13,6 +13,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 pub mod author;
+mod components;
 mod configuration;
 mod context;
 mod contracts;
@@ -83,7 +84,7 @@ pub enum Command {
         )]
         types: bool,
     },
-    #[command(about = "Page through route-centered application feature hierarchies.")]
+    #[command(about = "Page through route and page centered application feature hierarchies.")]
     Features(FeatureOptions),
     #[command(about = "Page through declared schema fields and local type-reference candidates.")]
     Schemas(RelationshipOptions),

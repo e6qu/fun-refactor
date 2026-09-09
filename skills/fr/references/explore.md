@@ -36,4 +36,6 @@ Pass a returned `--feature ID` to retrieve one revision-bound subtree.
 Middleware order and direct FastAPI providers are syntax candidates; inspect their source before making runtime or authentication claims.
 Lifecycle, configuration and service facts also retain syntax evidence and explicit runtime gaps.
 Service targets omit query strings, fragments and URL credentials; use a source slice only when the task needs request details.
+Next.js page features include direct React components and their bounded prop, hook, event, style and render facts.
+Treat capitalized render targets as unresolved names until a declaration handle confirms them.
 These commands do not establish complete dependency resolution or framework semantics.

@@ -872,6 +872,29 @@ Handler inspection recognizes plain `fetch` and axios calls in Next.js and modul
 Sanitization removes query strings, fragments and URL credentials and records those omissions.
 Dynamic targets become `service-gap` children, and nested callable bodies remain outside the handler.
 Receiver identity, shadowing, request options, response use and runtime reachability remain unchecked.
+
+Next.js `page.tsx` and `page.jsx` files add exact-path features, including frontend-only applications.
+The same route-group and dynamic-segment subset used by App Router evidence determines the page path.
+Malformed, private, parallel and intercepting page paths produce framework gaps.
+The nearest captured npm package must declare Next.js; a project-root page without a manifest remains a candidate.
+
+Direct named function declarations and function-valued variables with JSX become React `component` facts.
+A leading `use client` directive marks every component in the file as a client boundary.
+Without that directive, the reader records the Next.js server-default boundary.
+This follows the [Next.js Server and Client Component model](https://nextjs.org/learn/react-foundations/server-and-client-components).
+
+Component children summarize destructured prop names and declared prop types without defaults or values.
+Direct `useState` and `useReducer` bindings expose state names and setters.
+Direct effect hooks retain their dependency-list shape and a cleanup candidate flag.
+React documents state through [`useState`](https://react.dev/reference/react/useState) and external synchronization through [`useEffect`](https://react.dev/reference/react/useEffect).
+JSX event attributes retain the event name, element and handler shape without handler source.
+Class and style attributes expose only their attribute and value shape.
+Capitalized JSX elements become unresolved name-only render edges.
+State and effect hooks in a server-default file carry conflict status.
+
+The reader inspects direct components in page files only.
+Imported declarations, layouts, context, reducers, custom hooks, CSS resolution, hydration and runtime rendering remain unchecked.
+The query emits at most 128 components and 512 component details, with explicit omission gaps.
 The model preserves ambiguous same-file schema candidates and expands each bounded candidate separately.
 Other route frameworks produce `framework-gap` facts rather than disappearing.
 Unsupported middleware and authentication forms, mounted routers, lifecycle, runtime configuration, service reachability and frontend components remain explicit analysis limitations.
