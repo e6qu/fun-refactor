@@ -852,6 +852,68 @@ fn spec_init_saved_plan_waits_for_history_apply() {
 }
 
 #[test]
+fn spec_scaffold_selects_a_rust_declaration_in_one_reversible_change() {
+    let ws = Workspace::new(&[
+        ("Cargo.toml", "[workspace]\n"),
+        (
+            "src/lib.rs",
+            "pub fn choose(ok: bool, values: Vec<usize>) -> Option<usize> {\n    if ok { values.into_iter().next() } else { None }\n}\n",
+        ),
+    ]);
+    let (initialized, ok) = ws.run(&["spec", "init", "--write"]);
+    assert!(ok, "{initialized}");
+
+    let (preview, ok) = ws.run(&["spec", "scaffold", "src/lib.rs::choose"]);
+    assert!(ok, "{preview}");
+    assert!(preview.contains("FrSpecs/SrcLibRsChoose.lean"), "{preview}");
+    assert!(
+        preview.contains("return: Option<usize> => return: Option Nat"),
+        "{preview}"
+    );
+    assert!(!ws.root().join("specs/FrSpecs/SrcLibRsChoose.lean").exists());
+
+    let output = Command::new(FR)
+        .arg("--json")
+        .arg("-C")
+        .arg(ws.root())
+        .args(["spec", "scaffold", "src/lib.rs::choose", "--write"])
+        .env("FUN_REFACTOR_CACHE", ws.cache.path())
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["operation"], "spec_scaffold", "{report}");
+    assert_eq!(report["evidence"]["model_property"], "unproved_obligation");
+    assert_eq!(
+        report["evidence"]["proved_implementation_correspondence"],
+        false
+    );
+    let id = report["transaction"].as_u64().unwrap().to_string();
+
+    let (checked, ok) = ws.run(&["spec", "check", "specs", "--strict"]);
+    assert!(ok, "{checked}");
+    assert!(checked.contains("1 unproved obligation"), "{checked}");
+    let (undone, ok) = ws.run(&["history", "undo", &id, "--write"]);
+    assert!(ok, "{undone}");
+    assert!(!ws.root().join("specs/FrSpecs/SrcLibRsChoose.lean").exists());
+    assert!(
+        !std::fs::read_to_string(ws.root().join("specs/FrSpecs.lean"))
+            .unwrap()
+            .contains("SrcLibRsChoose")
+    );
+    let (redone, ok) = ws.run(&["history", "redo", &id, "--write"]);
+    assert!(ok, "{redone}");
+    assert!(ws
+        .root()
+        .join("specs/FrSpecs/SrcLibRsChoose.lean")
+        .is_file());
+}
+
+#[test]
 fn spec_sync_previews_then_renews_a_stale_anchor_without_touching_its_model() {
     let ws = Workspace::new(&[
         ("src/code.rs", "pub fn current() -> usize { 2 }\n"),

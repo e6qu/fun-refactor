@@ -248,14 +248,14 @@ Measured outcome:
 
 ### PR 4. Lean Adoption Kit
 
-Status: in progress on `lean_adoption_kit`. The first checkpoint implements bounded, pinned package initialization through source history. Preview, saved-plan, apply, undo and redo flows are covered, and the generated default target passes `fr spec verify` with Lake.
+Status: in progress on `lean_adoption_kit`. The first checkpoint implements bounded, pinned package initialization through source history. The second selects a Rust declaration and scaffolds a strictly mapped Lean model in the checked target. Both flows preview, save, apply, undo and redo as source transactions. The Lake integration replaces the scaffold obligation with a useful theorem, observes a passing build, then breaks the theorem and observes failure.
 
 Goal: let an external repository adopt and maintain one useful verified property through `fr`.
 
 Deliverables:
 
 - Initialize a bounded specification package and its checked build targets; complete.
-- Select source declarations and generate anchored Lean model scaffolds and signature maps.
+- Select Rust source declarations and generate anchored Lean model scaffolds and signature maps; complete for a documented type subset.
 - Mark generated and handwritten regions and preserve handwritten proofs during regeneration.
 - Detect source drift and guide synchronization or repair.
 - Introduce named proof-debt records and ratchets.

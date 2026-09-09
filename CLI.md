@@ -449,6 +449,8 @@ may write.
 
 ```
 fr spec init [PATH] [--write]
+fr spec scaffold SOURCE::SYMBOL [--package PATH] [--write]
+
 fr spec check [PATH...]
 fr spec sync [PATH...] [--write]
 fr spec verify [PATH...]
@@ -460,6 +462,15 @@ path. It pins the supported Lean toolchain and creates `lakefile.toml` plus the
 to leave the workspace, traverse a symlink or replace a differing file. It is a dry
 run until `--write`; `--save-plan` records the three absent-file snapshots for later
 `history apply`. Ordinary history undo and redo remove and restore them together.
+
+`scaffold` selects one qualified Rust function from a source file. It creates a model
+module, a full source anchor and an explicit signature map, then imports that module
+from `FrSpecs.lean`. Supported types are booleans, strings, integer families, unit,
+references, tuples, `Option`, `Result`, `Vec` and `Box` compositions. Other types and
+parameter patterns refuse before history records a change. The generated body contains
+one `sorry`, inside a handwritten region, so `spec verify` fails until the user defines
+the model and proves the selected property. JSON separates that model obligation from
+the anchored signature evidence and makes no implementation-correspondence claim.
 
 Check that Lean models still point at the declarations they model. With no path,
 the command reads `kernels/` and `specs/`. A model names a declaration with an

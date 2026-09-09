@@ -142,6 +142,7 @@ fr translate openapi.yaml fastapi  # a service skeleton from a contract
 fr recipe <file.recipe>       # a workspace transaction: recipes find, do, expect together
 fr recipe fmt recipes --check # format every recipe in a directory, or reject drift
 fr spec init --write          # create a pinned, checked Lean package through history
+fr spec scaffold src/lib.rs::allowed --write # select one Rust model obligation
 fr spec check                 # Lean models whose source anchors still match
 fr spec sync --write          # renew reviewed stale source hashes
 fr spec verify                # strict correspondence plus Lake builds

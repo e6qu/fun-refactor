@@ -635,6 +635,19 @@ enum SpecCommand {
         #[arg(long, help = "Write through source history.")]
         write: bool,
     },
+    #[command(about = "Scaffold one Rust function in Lean.")]
+    Scaffold {
+        #[arg(help = "Target as path::symbol.")]
+        target: String,
+        #[arg(
+            long,
+            default_value = "specs",
+            help = "Initialized specification package."
+        )]
+        package: PathBuf,
+        #[arg(long, help = "Write through source history.")]
+        write: bool,
+    },
     #[command(about = "Report stale Lean specification anchors and unproved obligations")]
     Check {
         #[arg(help = "Lean spec files or directories; defaults to kernels and specs")]
@@ -868,6 +881,9 @@ fn dispatch(cli: &Cli) -> Result<()> {
                     command: SpecCommand::Init { .. }
                 }
                 | Command::Spec {
+                    command: SpecCommand::Scaffold { .. }
+                }
+                | Command::Spec {
                     command: SpecCommand::Sync { .. }
                 }
                 | Command::Openapi { out: Some(_), .. }
@@ -1030,6 +1046,11 @@ fn dispatch(cli: &Cli) -> Result<()> {
         },
         Command::Spec { command } => match command {
             SpecCommand::Init { path, write } => cmd_spec_init(cli, path, *write),
+            SpecCommand::Scaffold {
+                target,
+                package,
+                write,
+            } => cmd_spec_scaffold(cli, target, package, *write),
             SpecCommand::Check { paths, strict } => cmd_spec_check(cli, paths, *strict),
             SpecCommand::Sync { paths, write } => cmd_spec_sync(cli, paths, *write),
             SpecCommand::Verify { paths } => cmd_spec_verify(cli, paths),
@@ -1195,6 +1216,87 @@ fn cmd_spec_init(cli: &Cli, path: &Path, write: bool) -> Result<()> {
             created,
             plan.toolchain
         );
+        println!("Nothing written. Re-run with --write to apply.");
+    }
+    Ok(())
+}
+
+fn cmd_spec_scaffold(cli: &Cli, target: &str, package: &Path, write: bool) -> Result<()> {
+    let root = workspace_root(cli);
+    let plan = crate::spec::scaffold(&root, target, package)?;
+    let changes = plan
+        .files
+        .iter()
+        .map(|file| crate::edit::FileChange {
+            path: &file.path,
+            original: &file.original,
+            updated: &file.updated,
+        })
+        .collect::<Vec<_>>();
+    let transaction = persist_changes(cli, &changes, write, "lean-scaffold-v1")?;
+    let changed = plan
+        .files
+        .iter()
+        .filter(|file| file.original != file.updated)
+        .count();
+    let rendered = plan
+        .files
+        .iter()
+        .filter(|file| file.original != file.updated)
+        .map(|file| {
+            let shown = shown_path(&root, &file.path);
+            (
+                shown.clone(),
+                crate::edit::unified_diff(&file.original, &file.updated, &shown),
+            )
+        })
+        .collect::<Vec<_>>();
+    if cli.json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "schema": 1,
+                "operation": "spec_scaffold",
+                "source": plan.source,
+                "symbol": plan.symbol,
+                "model": plan.model,
+                "module": format!("FrSpecs.{}", plan.module),
+                "source_hash": plan.hash,
+                "package": shown_path(&root, &root.join(package)),
+                "files_changed": changed,
+                "changes": rendered.iter().map(|(path, diff)| serde_json::json!({"path": path, "diff": diff})).collect::<Vec<_>>(),
+                "transaction": transaction,
+                "applied": write && transaction.is_some(),
+                "saved": cli.save_plan && transaction.is_some(),
+                "evidence": {
+                    "model_property": "unproved_obligation",
+                    "source_correspondence": "anchored_signature_map",
+                    "tested_correspondence": false,
+                    "proved_implementation_correspondence": false,
+                }
+            }))?
+        );
+        return Ok(());
+    }
+    if !write {
+        for (_, diff) in &rendered {
+            print!("{diff}");
+        }
+    }
+    println!(
+        "{} FrSpecs.{} for {}::{} with one explicit proof obligation.",
+        if write {
+            "Scaffolded"
+        } else if cli.save_plan {
+            "Saved scaffold for"
+        } else {
+            "Would scaffold"
+        },
+        plan.module,
+        plan.source.display(),
+        plan.symbol
+    );
+    if !write && !cli.save_plan {
         println!("Nothing written. Re-run with --write to apply.");
     }
     Ok(())

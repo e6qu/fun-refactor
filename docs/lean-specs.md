@@ -10,6 +10,7 @@ The [roadmap](../PLAN.md) extends this foundation into an adoption workflow for 
 |---|---|
 | Lean translation | Eight programming-language readers and writers, including Lean, over supported constructs |
 | `fr spec init` | Preview or create a pinned minimal Lake package and checked `FrSpecs` target through source history |
+| `fr spec scaffold` | Select a Rust function and create an anchored, strictly mapped model obligation in that target |
 | `fr spec check` | Source identity, missing declarations, signature maps and live `sorry` counts |
 | `fr spec check --strict` | Require an explicit signature map beside every source anchor |
 | `fr spec sync` | Preview renewal of stale source hashes; `--write` applies reviewed renewals |
@@ -39,6 +40,9 @@ Inspect a stale source change before renewing its hash.
 ```sh
 fr spec init
 fr spec init --write
+fr spec scaffold src/lib.rs::allowed
+fr spec scaffold src/lib.rs::allowed --write
+
 fr spec check --strict
 fr spec sync
 fr spec sync --write
@@ -326,12 +330,16 @@ package file that differs from its template.
 
 Write a small executable model with a useful property.
 Choose a pure function whose domain and assumptions can be stated clearly.
-Add its source anchor and explicit signature map, then run `fr spec check --strict`.
+For a supported Rust signature, `fr spec scaffold src/lib.rs::allowed` creates its source
+anchor, explicit map, imported module and handwritten model region. Review and apply
+that two-file transaction, replace its visible `sorry`, and add the useful theorem.
+Other languages and Rust signatures outside the documented type subset still require
+manual model and anchor authoring. Then run `fr spec check --strict`.
 Run `fr spec verify` to check correspondence and build the owning package.
 Add shared input/output cases when the model mirrors an implementation.
 
-This workflow still requires manual model and anchor authoring.
-Declaration selection and automatic model scaffolding remain planned work.
+Model semantics and proofs remain handwritten work. Automatic scaffold regeneration
+and preservation of those handwritten regions remain planned work.
 Use the existing examples under `kernels/` as working references.
 
 ## Adoption milestones
@@ -339,7 +347,6 @@ Use the existing examples under `kernels/` as working references.
 The next adoption work should provide:
 
 - CI generation for the initialized package.
-- Declaration selection and anchored model scaffolds with explicit unsupported types.
 - Named proof obligations and a proof-debt ratchet.
 - Generated-region ownership and regeneration that preserves handwritten work.
 - Explicit signature synchronization that exposes affected proofs.

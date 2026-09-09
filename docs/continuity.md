@@ -7,6 +7,8 @@ PR 3, Durable Git Workspace Lifecycle, merged as GitHub PR 263.
 The current `lean_adoption_kit` branch is roadmap PR 4. Its first checkpoint adds `fr spec init [PATH]` with a pinned toolchain, a minimal checked Lake target and refusal to overwrite differing files or escape through paths and symlinks.
 Initialization previews by default, supports saved plans and writes through source history. Apply, undo and redo cover files created below a new directory, while plan recording no longer creates the target directory as a lock side effect.
 A real integration case initializes an external temporary workspace and passes `fr spec verify specs` against Lake.
+The second PR 4 checkpoint adds `fr spec scaffold SOURCE::SYMBOL` for a bounded Rust type subset. It writes a full anchor, strict signature map, checked module import and one visible handwritten proof obligation in a single source transaction.
+The integration case fills that obligation with a Boolean model and theorem. Strict correspondence and Lake then pass; changing the theorem to a false property makes the same verification command fail.
 PR 3's first checkpoint added checked staging-journal compaction with explicit per-stack retention.
 Compacted records retain stable IDs, statuses, path counts and digests while discarding bytes that can no longer be replayed.
 Preview/write bases, the index lock and full journal rechecks preserve the index, working files and concurrent staging state.

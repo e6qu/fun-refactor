@@ -2,7 +2,10 @@
 
 Ordinary `fr` use does not require Lean. `spec verify` requires Lean/Lake and an owning package whose checked targets include the selected model.
 Start an unconfigured project with `fr --json spec init`, review the three-file package diff, then use `fr --json spec init --write` or `--save-plan`.
-Initialization pins the supported toolchain and records the checked package through source history. Automatic model scaffolding remains roadmap work.
+Initialization pins the supported toolchain and records the checked package through source history. Broader source-language scaffolding remains roadmap work.
+
+For a Rust function with supported primitive, reference, tuple, `Option`, `Result`, `Vec` or `Box` types, preview `fr --json spec scaffold src/lib.rs::allowed`.
+The write creates a full anchor, strict signature map and checked module with one visible handwritten `sorry`. Replace it with reviewed model semantics and add the property before expecting `spec verify` to pass.
 
 For an existing Rust declaration in `src/lib.rs`:
 

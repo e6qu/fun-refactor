@@ -45,6 +45,23 @@ pub struct InitFile {
     pub existing: bool,
 }
 
+#[derive(Debug)]
+pub struct ScaffoldPlan {
+    pub source: PathBuf,
+    pub symbol: String,
+    pub model: String,
+    pub module: String,
+    pub hash: String,
+    pub files: Vec<ScaffoldFile>,
+}
+
+#[derive(Debug)]
+pub struct ScaffoldFile {
+    pub path: PathBuf,
+    pub original: String,
+    pub updated: String,
+}
+
 pub fn init(root: &Path, requested: &Path) -> Result<InitPlan> {
     let root = root
         .canonicalize()
@@ -107,7 +124,7 @@ pub fn init(root: &Path, requested: &Path) -> Result<InitPlan> {
             Ok(metadata) if metadata.is_file() => {
                 let current = crate::vfs::read_to_string(&path)
                     .with_context(|| format!("reading {}", path.display()))?;
-                if current != content {
+                if current != content && name != "FrSpecs.lean" {
                     bail!(
                         "refusing to replace existing spec package file {}.",
                         path.display()
@@ -133,6 +150,234 @@ pub fn init(root: &Path, requested: &Path) -> Result<InitPlan> {
         toolchain: LEAN_TOOLCHAIN,
         files,
     })
+}
+
+pub fn scaffold(root: &Path, target: &str, requested_package: &Path) -> Result<ScaffoldPlan> {
+    let package_plan = init(root, requested_package)?;
+    if package_plan.files.iter().any(|file| !file.existing) {
+        bail!(
+            "{} is not initialized; run `fr spec init {} --write` first.",
+            package_plan.package.display(),
+            requested_package.display()
+        );
+    }
+    let (source, symbol) = target.split_once("::").ok_or_else(|| {
+        anyhow::anyhow!("a scaffold target needs `<source-path>::<qualified-symbol>`.")
+    })?;
+    if source.is_empty() || symbol.is_empty() {
+        bail!("a scaffold target needs `<source-path>::<qualified-symbol>`.");
+    }
+    let source = PathBuf::from(source);
+    if source.is_absolute()
+        || source
+            .components()
+            .any(|part| !matches!(part, Component::Normal(_)))
+    {
+        bail!("a scaffold source must be a workspace-relative path.");
+    }
+    let source_path = root.join(&source);
+    let signature = rust_signature(&source_path, symbol)?;
+    let hash = declaration_hash(
+        &mut Parsers::new(),
+        &mut Extractor::new(),
+        &source_path,
+        symbol,
+    )?;
+    let mapped = signature
+        .iter()
+        .map(|part| {
+            if !lean_identifier(&part.name) && part.name != "return" {
+                bail!(
+                    "Rust parameter `{}` needs a simple identifier for scaffolding.",
+                    part.name
+                );
+            }
+            Ok(SignaturePart {
+                name: part.name.clone(),
+                ty: rust_type_to_lean(&part.ty)?,
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let model = format!("{}Model", lower_identifier(symbol));
+    let module = scaffold_module(&source, symbol);
+    let mapping = signature
+        .iter()
+        .zip(&mapped)
+        .map(|(source, model)| {
+            format!(
+                "{}: {} => {}: {}",
+                source.name, source.ty, model.name, model.ty
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("; ");
+    let parameters = mapped[..mapped.len() - 1]
+        .iter()
+        .map(|part| format!(" ({} : {})", part.name, part.ty))
+        .collect::<String>();
+    let return_type = &mapped
+        .last()
+        .context("Rust signature has no return type")?
+        .ty;
+    let generated = format!(
+        "namespace FrSpecs\n\n-- fr:generated-begin scaffold\n-- fr:spec {}::{} @ {}\n-- fr:signature {}\ndef {}{} : {} :=\n-- fr:generated-end scaffold\n\n-- fr:handwritten-begin model-and-proofs\n  by\n    sorry\n-- fr:handwritten-end model-and-proofs\n\nend FrSpecs\n",
+        source.display(),
+        symbol,
+        hash,
+        mapping,
+        model,
+        parameters,
+        return_type
+    );
+    let parsers = Parsers::new();
+    let parsed = parsers.parse(crate::lang::Language::Lean, &generated)?;
+    if parsed.has_errors() {
+        bail!("generated Lean scaffold did not parse; no files changed.");
+    }
+
+    let model_path = package_plan
+        .package
+        .join("FrSpecs")
+        .join(format!("{module}.lean"));
+    match std::fs::symlink_metadata(&model_path) {
+        Ok(_) => bail!(
+            "refusing to replace existing model {}.",
+            model_path.display()
+        ),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => return Err(error.into()),
+    }
+    let root_path = package_plan.package.join("FrSpecs.lean");
+    let root_original = crate::vfs::read_to_string(&root_path)?;
+    let import = format!("import FrSpecs.{module}");
+    let root_updated = if root_original.lines().any(|line| line.trim() == import) {
+        root_original.clone()
+    } else {
+        format!("{import}\n{root_original}")
+    };
+    Ok(ScaffoldPlan {
+        source,
+        symbol: symbol.to_string(),
+        model,
+        module,
+        hash,
+        files: vec![
+            ScaffoldFile {
+                path: model_path,
+                original: String::new(),
+                updated: generated,
+            },
+            ScaffoldFile {
+                path: root_path,
+                original: root_original,
+                updated: root_updated,
+            },
+        ],
+    })
+}
+
+fn lean_identifier(name: &str) -> bool {
+    let mut characters = name.chars();
+    characters
+        .next()
+        .is_some_and(|character| character.is_ascii_alphabetic() || character == '_')
+        && characters.all(|character| character.is_ascii_alphanumeric() || character == '_')
+}
+
+fn lower_identifier(symbol: &str) -> String {
+    let name = symbol.rsplit("::").next().unwrap_or(symbol);
+    let mut output = name
+        .chars()
+        .map(|character| {
+            if character.is_ascii_alphanumeric() || character == '_' {
+                character
+            } else {
+                '_'
+            }
+        })
+        .collect::<String>();
+    if !lean_identifier(&output) {
+        output.insert(0, 'm');
+    }
+    output
+}
+
+fn scaffold_module(source: &Path, symbol: &str) -> String {
+    let raw = format!("{} {}", source.display(), symbol);
+    let mut output = String::new();
+    let mut capitalize = true;
+    for character in raw.chars() {
+        if character.is_ascii_alphanumeric() {
+            output.push(if capitalize {
+                character.to_ascii_uppercase()
+            } else {
+                character
+            });
+            capitalize = false;
+        } else {
+            capitalize = true;
+        }
+    }
+    if output
+        .chars()
+        .next()
+        .is_some_and(|first| first.is_ascii_digit())
+    {
+        output.insert_str(0, "Model");
+    }
+    output
+}
+
+fn rust_type_to_lean(ty: &str) -> Result<String> {
+    let ty = ty.trim();
+    let direct = match ty {
+        "bool" => Some("Bool"),
+        "String" | "str" | "&str" => Some("String"),
+        "usize" | "u8" | "u16" | "u32" | "u64" | "u128" => Some("Nat"),
+        "isize" | "i8" | "i16" | "i32" | "i64" | "i128" => Some("Int"),
+        "()" => Some("Unit"),
+        _ => None,
+    };
+    if let Some(mapped) = direct {
+        return Ok(mapped.to_string());
+    }
+    if let Some(inner) = ty.strip_prefix('&') {
+        return rust_type_to_lean(inner.trim_start_matches("mut"));
+    }
+    for (rust, lean) in [("Option", "Option"), ("Vec", "List"), ("Box", "")] {
+        if let Some(inner) = generic_arguments(ty, rust) {
+            let mapped = rust_type_to_lean(inner)?;
+            return Ok(match lean {
+                "" => mapped,
+                _ => format!("{lean} {mapped}"),
+            });
+        }
+    }
+    if let Some(inner) = generic_arguments(ty, "Result") {
+        let parts = inner.split_top_level(',');
+        if let [ok, error] = parts.as_slice() {
+            return Ok(format!(
+                "Except {} {}",
+                rust_type_to_lean(error)?,
+                rust_type_to_lean(ok)?
+            ));
+        }
+    }
+    if ty.starts_with('(') && ty.ends_with(')') {
+        let parts = ty[1..ty.len() - 1].split_top_level(',');
+        if parts.len() >= 2 {
+            return parts
+                .into_iter()
+                .map(rust_type_to_lean)
+                .collect::<Result<Vec<_>>>()
+                .map(|parts| format!("({})", parts.join(" × ")));
+        }
+    }
+    bail!("Rust type `{ty}` has no safe Lean scaffold mapping.")
+}
+
+fn generic_arguments<'a>(ty: &'a str, outer: &str) -> Option<&'a str> {
+    ty.strip_prefix(outer)?.strip_prefix('<')?.strip_suffix('>')
 }
 
 #[derive(Debug, Serialize)]
@@ -594,7 +839,7 @@ fn anchor_records(text: &str) -> Result<Vec<Anchor>> {
         let (target, expected) = body
             .split_once(SEPARATOR)
             .ok_or_else(|| anyhow::anyhow!("line {number}: a spec anchor needs ` @ <hash>`"))?;
-        let (source, symbol) = target.rsplit_once("::").ok_or_else(|| {
+        let (source, symbol) = target.split_once("::").ok_or_else(|| {
             anyhow::anyhow!("line {number}: a spec anchor needs `<path>::<symbol>`")
         })?;
         if source.is_empty()
@@ -864,7 +1109,7 @@ fn obligations_in(text: &str) -> usize {
 mod tests {
     use super::{
         anchors_in, check, check_strict, declaration_hash, init, lean_package, obligations_in,
-        sync, Status,
+        scaffold, sync, Status,
     };
     use crate::extract::Extractor;
     use crate::parse::Parsers;
@@ -1125,5 +1370,48 @@ mod tests {
         std::os::unix::fs::symlink(outside.path(), workspace.path().join("specs")).unwrap();
         let error = init(workspace.path(), Path::new("specs")).unwrap_err();
         assert!(error.to_string().contains("traverses a symlink"), "{error}");
+    }
+
+    #[test]
+    fn scaffolds_a_strictly_mapped_rust_model_and_checked_import() {
+        let workspace = tempfile::tempdir().unwrap();
+        let root = workspace.path();
+        fs::create_dir_all(root.join("src")).unwrap();
+        fs::write(
+            root.join("src/lib.rs"),
+            "pub fn choose(ok: bool, values: Vec<usize>) -> Option<usize> { values.into_iter().next() }\n",
+        )
+        .unwrap();
+        let package = init(root, Path::new("specs")).unwrap();
+        for file in package.files {
+            fs::create_dir_all(file.path.parent().unwrap()).unwrap();
+            fs::write(file.path, file.content).unwrap();
+        }
+
+        let plan = scaffold(root, "src/lib.rs::choose", Path::new("specs")).unwrap();
+        assert_eq!(plan.module, "SrcLibRsChoose");
+        assert_eq!(plan.model, "chooseModel");
+        assert!(plan.files[0].updated.contains(
+            "ok: bool => ok: Bool; values: Vec<usize> => values: List Nat; return: Option<usize> => return: Option Nat"
+        ));
+        assert!(plan.files[0]
+            .updated
+            .contains("def chooseModel (ok : Bool) (values : List Nat) : Option Nat :="));
+        for file in plan.files {
+            fs::create_dir_all(file.path.parent().unwrap()).unwrap();
+            fs::write(file.path, file.updated).unwrap();
+        }
+        let checked = check_strict(root, &[PathBuf::from("specs")], true).unwrap();
+        assert!(checked.ok(), "{checked:#?}");
+        assert_eq!(checked.obligations, 1);
+    }
+
+    #[test]
+    fn source_anchors_allow_qualified_symbols_after_the_source_path() {
+        let anchors =
+            anchors_in("-- fr:spec src/lib.rs::module::Thing::method @ deadbeef\ndef x := 0\n")
+                .unwrap();
+        assert_eq!(anchors[0].1, PathBuf::from("src/lib.rs"));
+        assert_eq!(anchors[0].2, "module::Thing::method");
     }
 }
