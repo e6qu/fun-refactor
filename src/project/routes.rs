@@ -292,7 +292,7 @@ impl Project<'_> {
             "unsupported_files": unsupported, "declarations": declarations, "handler_candidates": handlers,
             "readers": ["express", "flask", "axum", "gin", "spring", "nextjs-app", "fastapi"],
             "fastapi_gaps": fast_gaps,
-            "fastapi_limitations": "Top-level verb decorators on a direct FastAPI/APIRouter constructor assignment with an observed fastapi import. No runtime import validation, shadowing analysis, factories, nested routers, prefixes, includes or method-list decorators.",
+            "fastapi_limitations": "Top-level verb decorators on a direct FastAPI/APIRouter constructor assignment with an observed fastapi import. The reader joins valid plain literal constructor prefixes. No runtime import validation, shadowing analysis, factories, nested routers, include-router or mounted prefixes, or method-list decorators.",
             "nextjs_gaps": next_gaps,
             "nextjs_limitations": "Only route.ts and route.js under app or src/app at the project root or an observed nested npm Next.js package. Nearest observed manifests bound nested layouts. Runtime package identity, layout precedence, route validity, basePath, rewrites and implicit methods remain unchecked.",
             "certainty": "Declaration patterns and local handler-name candidates; the reader does not verify framework identity or runtime reachability.",

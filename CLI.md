@@ -786,6 +786,8 @@ Both root layouts remain candidates under each package; the reader does not appl
 Package metadata comes from the project snapshot; manifest changes invalidate revisions and cursors before output.
 
 The `fastapi` reader recognizes top-level verb decorators on a direct `FastAPI()` or `APIRouter()` assignment.
+It joins valid plain literal constructor prefixes into literal decorator paths.
+Dynamic, relative or trailing-slash prefixes produce explicit gaps and suppress affected route facts.
 The file must contain the corresponding top-level `fastapi` import; constructor and module import aliases also match.
 Repeated direct assignments to a receiver exclude it from this subset. Conditional rebinding and general shadowing analysis remain unchecked.
 One plain absolute string supplies the path, either positionally or through `path=`.

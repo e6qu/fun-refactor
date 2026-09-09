@@ -59,6 +59,10 @@ def main (args : List String) : IO Unit := do
     for queryOrFragment in [false, true] do
       for credentials in [false, true] do
         IO.println (serviceRedactionFlags queryOrFragment credentials)
+    for empty in [false, true] do
+      for startsSlash in [false, true] do
+        for endsSlash in [false, true] do
+          IO.println (fastapiPrefixSupported empty startsSlash endsSlash)
   else if args == ["selection-conflicts"] then
     for leftStart in samples do
       for leftEnd in samples do

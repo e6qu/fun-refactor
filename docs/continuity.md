@@ -48,7 +48,11 @@ The traversal reuses the workspace membership step whose closure and convergence
 Import-edge construction remains covered by component fixtures.
 Direct custom-hook calls retain names while their implementations and runtime needs remain unchecked.
 Competing page and layout convention files produce ambiguity gaps.
-The pinned framework and real-project audit remains open.
+The eighth checkpoint pins the framework syntax witnesses and compares feature reports with independent route contracts over unmodified Next.js and FastAPI project files.
+It adds a real five-operation `APIRouter` source file and joins valid constructor prefixes into reported paths.
+Dynamic and runtime-composed prefixes remain explicit gaps.
+The verified prefix predicate raises the framework kernel to eight anchors, sixteen theorems and 271 shared Rust and Lean cases.
+The framework model makes source-level candidate claims; any future runtime claim requires an executable framework fixture.
 Roadmap PR 4's first checkpoint added `fr spec init [PATH]` with a pinned toolchain, a minimal checked Lake target and refusal to overwrite differing files or escape through paths and symlinks.
 Initialization previews by default, supports saved plans and writes through source history. Apply, undo and redo cover files created below a new directory, while plan recording no longer creates the target directory as a lock side effect.
 A real integration case initializes an external temporary workspace and passes `fr spec verify specs` against Lake.

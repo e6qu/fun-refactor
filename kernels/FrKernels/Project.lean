@@ -97,6 +97,24 @@ theorem service_redaction_zero_iff_clear (queryOrFragment credentials : Bool) :
       queryOrFragment = false ∧ credentials = false := by
   cases queryOrFragment <;> cases credentials <;> decide
 
+-- fr:spec src/project/framework_kernel.rs::fastapi_prefix_supported @ c6a0e76ee26cc51b3ff32c70f42e44e45eda7ada1ce40bd9fa9db0f9f2e1be78
+-- fr:signature empty: bool => empty: Bool; starts_slash: bool => startsSlash: Bool; ends_slash: bool => endsSlash: Bool; return: bool => return: Bool
+def fastapiPrefixSupported (empty : Bool) (startsSlash : Bool) (endsSlash : Bool) : Bool :=
+  empty || startsSlash && !endsSlash
+
+theorem empty_fastapi_prefix_is_supported (startsSlash endsSlash : Bool) :
+    fastapiPrefixSupported true startsSlash endsSlash = true := by
+  cases startsSlash <;> cases endsSlash <;> decide
+
+theorem nonempty_fastapi_prefix_supported_iff (startsSlash endsSlash : Bool) :
+    fastapiPrefixSupported false startsSlash endsSlash = true ↔
+      startsSlash = true ∧ endsSlash = false := by
+  cases startsSlash <;> cases endsSlash <;> decide
+
+theorem trailing_slash_rejects_nonempty_fastapi_prefix (startsSlash : Bool) :
+    fastapiPrefixSupported false startsSlash true = false := by
+  cases startsSlash <;> decide
+
 -- fr:spec src/project.rs::path_confidence @ b5a8549e
 -- fr:signature edges: &[Confidence] => edges: List Nat; return: Confidence => return: Nat
 def pathConfidence (edges : List Nat) : Nat := edges.foldr max 0

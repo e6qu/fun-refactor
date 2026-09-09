@@ -4508,7 +4508,7 @@ fn next_route_analysis_uses_captured_exports_after_source_removal() {
 fn fastapi_routes_use_observed_constructor_aliases_and_declaration_positions() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
-    put(root, "app.py", "from fastapi import FastAPI as API, APIRouter as Router\nservice = API()\nroutes = Router(prefix='/PREFIX_NOT_APPLIED')\n\n@service.get('/pets')\n@routes.post(path='/pets')\ndef pets():\n    return 'PRIVATE_ONE'\n\n@service.delete('/pets/{petId}')\ndef pets():\n    return 'PRIVATE_TWO'\n\nclass Other:\n    def pets(self):\n        return 'PRIVATE_OTHER'\n\n@bp.get('/legacy')\ndef legacy():\n    pass\n");
+    put(root, "app.py", "from fastapi import FastAPI as API, APIRouter as Router\nservice = API()\nroutes = Router(prefix='/v1')\n\n@service.get('/pets')\n@routes.post(path='/pets')\ndef pets():\n    return 'PRIVATE_ONE'\n\n@service.delete('/pets/{petId}')\ndef pets():\n    return 'PRIVATE_TWO'\n\nclass Other:\n    def pets(self):\n        return 'PRIVATE_OTHER'\n\n@bp.get('/legacy')\ndef legacy():\n    pass\n");
     put(
         root,
         "other.py",
@@ -4549,8 +4549,140 @@ fn fastapi_routes_use_observed_constructor_aliases_and_declaration_positions() {
     assert!(items
         .iter()
         .any(|r| r["framework_candidate"] == "flask" && r["url"] == "/legacy"));
-    assert!(!view.to_string().contains("PREFIX_NOT_APPLIED"));
+    assert!(items.iter().any(|r| {
+        r["framework_candidate"] == "fastapi" && r["method"] == "POST" && r["url"] == "/v1/pets"
+    }));
     assert!(!view.to_string().contains("PRIVATE_"));
+}
+
+#[test]
+fn fastapi_router_prefixes_accept_runtime_shapes_and_reject_unresolved_forms() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "app.py",
+        "from fastapi import APIRouter, FastAPI\nplain = APIRouter(prefix='/items')\nempty = APIRouter(prefix='')\ndynamic = APIRouter(prefix=PREFIX)\ntrailing = APIRouter(prefix='/bad/')\napp = FastAPI(prefix='/not-a-router-prefix')\n\n@plain.get('/')\ndef list_items(): pass\n@empty.get('/health')\ndef health(): pass\n@dynamic.get('/hidden')\ndef hidden(): pass\n@trailing.get('/invalid')\ndef invalid(): pass\n@app.get('/app')\ndef app_route(): pass\n",
+    );
+    let view = ok(root, &["project", "routes", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    let routes: Vec<_> = items
+        .iter()
+        .filter(|row| row["framework_candidate"] == "fastapi")
+        .map(|row| (row["method"].clone(), row["url"].clone()))
+        .collect();
+    assert_eq!(
+        routes,
+        vec![
+            (serde_json::json!("GET"), serde_json::json!("/health")),
+            (serde_json::json!("GET"), serde_json::json!("/items/"))
+        ]
+    );
+    assert_eq!(view["analysis"]["fastapi_gaps"], 6);
+    assert_eq!(
+        items
+            .iter()
+            .filter(|row| row["basis"] == "fastapi-reader")
+            .count(),
+        6
+    );
+}
+
+#[test]
+fn pinned_fastapi_project_matches_an_independent_route_contract() {
+    use sha2::{Digest, Sha256};
+
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/framework-corpus/fastapi");
+    let source = fs::read(root.join("items.py")).unwrap();
+    assert_eq!(
+        format!("{:x}", Sha256::digest(source)),
+        "7f0fa55d1f7b02188c4abd4f88aa6db92fe03de38258b765ed050ec72032b410"
+    );
+    let view = ok(&root, &["project", "features", "--limit", "500"]);
+    assert_eq!(view["analysis"]["applications"], 1);
+    assert_eq!(view["analysis"]["features"], 2);
+    assert_eq!(view["analysis"]["routes"], 5);
+    assert_eq!(view["analysis"]["handlers"], 5);
+    let mut actual: Vec<_> = view["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|row| row["kind"] == "route")
+        .map(|row| {
+            (
+                row["route"]["method"].as_str().unwrap().to_owned(),
+                row["route"]["url"].as_str().unwrap().to_owned(),
+            )
+        })
+        .collect();
+    actual.sort();
+    assert_eq!(
+        actual,
+        [
+            ("DELETE", "/items/{id}"),
+            ("GET", "/items/"),
+            ("GET", "/items/{id}"),
+            ("POST", "/items/"),
+            ("PUT", "/items/{id}"),
+        ]
+        .map(|(method, url)| (method.to_owned(), url.to_owned()))
+    );
+    let application = view["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["kind"] == "application")
+        .unwrap();
+    assert_eq!(application["application"]["framework"], "fastapi");
+    assert!(application["gaps"].as_array().unwrap().iter().any(|gap| gap
+        .as_str()
+        .unwrap()
+        .contains("Include-router and mounted prefixes")));
+}
+
+#[test]
+fn pinned_nextjs_project_matches_an_independent_route_contract() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/corpus/nextjs");
+    let view = ok(&root, &["project", "features", "--limit", "500"]);
+    assert_eq!(view["analysis"]["applications"], 1);
+    assert_eq!(view["analysis"]["features"], 3);
+    assert_eq!(view["analysis"]["routes"], 5);
+    assert_eq!(view["analysis"]["handlers"], 5);
+    let mut actual: Vec<_> = view["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|row| row["kind"] == "route")
+        .map(|row| {
+            (
+                row["route"]["method"].as_str().unwrap().to_owned(),
+                row["route"]["url"].as_str().unwrap().to_owned(),
+            )
+        })
+        .collect();
+    actual.sort();
+    assert_eq!(
+        actual,
+        [
+            ("DELETE", "/api/posts/{postId}"),
+            ("GET", "/api/posts"),
+            ("PATCH", "/api/posts/{postId}"),
+            ("POST", "/api/posts"),
+            ("POST", "/api/webhooks/stripe"),
+        ]
+        .map(|(method, url)| (method.to_owned(), url.to_owned()))
+    );
+    let application = view["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["kind"] == "application")
+        .unwrap();
+    assert_eq!(application["application"]["framework"], "nextjs-app");
+    assert!(application["gaps"].as_array().unwrap().iter().any(|gap| gap
+        .as_str()
+        .unwrap()
+        .contains("Runtime Next.js configuration")));
 }
 
 #[test]

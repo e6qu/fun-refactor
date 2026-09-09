@@ -902,8 +902,9 @@ fn project_page_lengths_match_lean_including_integer_limits() {
 #[test]
 fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
     use fun_refactor::project::framework_kernel::{
-        component_hooks_compatible, configuration_visibility, framework_emitted, framework_omitted,
-        middleware_request_order, service_redaction_flags, service_target_kind,
+        component_hooks_compatible, configuration_visibility, fastapi_prefix_supported,
+        framework_emitted, framework_omitted, middleware_request_order, service_redaction_flags,
+        service_target_kind,
     };
 
     build_kernel();
@@ -949,6 +950,14 @@ fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
     for query_or_fragment in [false, true] {
         for credentials in [false, true] {
             expected.push(service_redaction_flags(query_or_fragment, credentials).to_string());
+        }
+    }
+    for empty in [false, true] {
+        for starts_slash in [false, true] {
+            for ends_slash in [false, true] {
+                expected
+                    .push(fastapi_prefix_supported(empty, starts_slash, ends_slash).to_string());
+            }
         }
     }
     assert_eq!(actual, expected);

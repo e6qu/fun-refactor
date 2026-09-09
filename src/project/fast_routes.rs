@@ -1,4 +1,5 @@
 use crate::parse::Parsed;
+use crate::project::framework_kernel;
 use crate::transpile::routes::Endpoint;
 use std::collections::{BTreeMap, BTreeSet};
 use tree_sitter::Node;
@@ -39,9 +40,9 @@ pub(super) fn literal(node: Node<'_>, source: &str) -> Option<String> {
     (!value.contains([quote, '\\', '\n', '\r'])).then(|| value.to_owned())
 }
 
-fn receivers(parsed: &Parsed, source: &str) -> BTreeSet<String> {
+fn receivers(parsed: &Parsed, source: &str) -> BTreeMap<String, bool> {
     let nodes = children(parsed.root());
-    let mut constructors = BTreeSet::new();
+    let mut constructors = BTreeMap::new();
     for node in &nodes {
         let from_fastapi = node.kind() == "import_from_statement"
             && node
@@ -66,14 +67,14 @@ fn receivers(parsed: &Parsed, source: &str) -> BTreeSet<String> {
                 (text(import, source), text(import, source))
             };
             if from_fastapi && matches!(name, "FastAPI" | "APIRouter") {
-                constructors.insert(alias.to_owned());
+                constructors.insert(alias.to_owned(), name == "APIRouter");
             } else if !from_fastapi && name == "fastapi" {
-                constructors.insert(format!("{alias}.FastAPI"));
-                constructors.insert(format!("{alias}.APIRouter"));
+                constructors.insert(format!("{alias}.FastAPI"), false);
+                constructors.insert(format!("{alias}.APIRouter"), true);
             }
         }
     }
-    let mut bindings: BTreeMap<String, Vec<bool>> = BTreeMap::new();
+    let mut bindings: BTreeMap<String, Vec<Option<bool>>> = BTreeMap::new();
     for node in nodes {
         if node.kind() != "expression_statement" {
             continue;
@@ -88,21 +89,89 @@ fn receivers(parsed: &Parsed, source: &str) -> BTreeSet<String> {
             else {
                 continue;
             };
-            let valid = assignment
+            let kind = assignment
                 .child_by_field_name("right")
                 .filter(|n| n.kind() == "call")
                 .and_then(|n| n.child_by_field_name("function"))
-                .is_some_and(|n| constructors.contains(text(n, source)));
+                .and_then(|n| constructors.get(text(n, source)).copied());
             bindings
                 .entry(text(left, source).to_owned())
                 .or_default()
-                .push(valid);
+                .push(kind);
         }
     }
     bindings
         .into_iter()
-        .filter_map(|(name, occurrences)| (occurrences == [true]).then_some(name))
+        .filter_map(|(name, occurrences)| match occurrences.as_slice() {
+            [Some(router)] => Some((name, *router)),
+            _ => None,
+        })
         .collect()
+}
+
+struct ReceiverPrefixes {
+    values: BTreeMap<String, Option<String>>,
+    gaps: Vec<(usize, &'static str)>,
+}
+
+fn receiver_prefixes(
+    parsed: &Parsed,
+    source: &str,
+    receivers: &BTreeMap<String, bool>,
+) -> ReceiverPrefixes {
+    let mut prefixes = BTreeMap::new();
+    let mut gaps = Vec::new();
+    for node in children(parsed.root()) {
+        if node.kind() != "expression_statement" {
+            continue;
+        }
+        for assignment in children(node)
+            .into_iter()
+            .filter(|node| node.kind() == "assignment")
+        {
+            let (Some(left), Some(call)) = (
+                assignment
+                    .child_by_field_name("left")
+                    .filter(|node| node.kind() == "identifier"),
+                assignment
+                    .child_by_field_name("right")
+                    .filter(|node| node.kind() == "call"),
+            ) else {
+                continue;
+            };
+            let name = text(left, source);
+            let Some(router) = receivers.get(name) else {
+                continue;
+            };
+            let values = keyword(call, "prefix", source);
+            let prefix = match (*router, values.as_slice()) {
+                (_, []) => Some(String::new()),
+                (true, [value]) => literal(*value, source).filter(|value| {
+                    framework_kernel::fastapi_prefix_supported(
+                        value.is_empty(),
+                        value.starts_with('/'),
+                        value.ends_with('/'),
+                    )
+                }),
+                _ => None,
+            };
+            if prefix.is_none() {
+                gaps.push((
+                    call.start_position().row + 1,
+                    if *router {
+                        "The FastAPI router prefix is not one valid plain string literal."
+                    } else {
+                        "FastAPI constructors do not supply an APIRouter prefix."
+                    },
+                ));
+            }
+            prefixes.insert(name.to_owned(), prefix);
+        }
+    }
+    ReceiverPrefixes {
+        values: prefixes,
+        gaps,
+    }
 }
 
 fn simple_callable(node: Node<'_>, source: &str) -> Option<String> {
@@ -274,7 +343,7 @@ pub(super) fn global_dependencies(parsed: &Parsed, source: &str) -> ScopedDepend
             ) else {
                 continue;
             };
-            if !receivers.contains(text(left, source)) {
+            if !receivers.contains_key(text(left, source)) {
                 continue;
             }
             let Some(dependencies) = dependency_argument(call, "dependencies", source) else {
@@ -323,7 +392,7 @@ pub(super) fn lifecycles(parsed: &Parsed, source: &str) -> Lifecycles {
                 ) else {
                     continue;
                 };
-                if !receivers.contains(text(left, source)) {
+                if !receivers.contains_key(text(left, source)) {
                     continue;
                 }
                 for (keyword_name, phase, form) in [
@@ -378,7 +447,7 @@ pub(super) fn lifecycles(parsed: &Parsed, source: &str) -> Lifecycles {
             ) else {
                 continue;
             };
-            if !receivers.contains(text(object, source)) || text(method, source) != "on_event" {
+            if !receivers.contains_key(text(object, source)) || text(method, source) != "on_event" {
                 continue;
             }
             let events: Vec<_> = call
@@ -457,7 +526,7 @@ pub(super) fn middleware(parsed: &Parsed, source: &str) -> Vec<Middleware> {
                     .filter(|argument| argument.kind() != "keyword_argument")
                     .filter_map(|argument| literal(argument, source))
                     .collect::<Vec<_>>();
-                if receivers.contains(text(object, source))
+                if receivers.contains_key(text(object, source))
                     && text(method, source) == "middleware"
                     && http == ["http"]
                 {
@@ -487,7 +556,7 @@ pub(super) fn middleware(parsed: &Parsed, source: &str) -> Vec<Middleware> {
                 ) else {
                     continue;
                 };
-                if !receivers.contains(text(object, source))
+                if !receivers.contains_key(text(object, source))
                     || text(method, source) != "add_middleware"
                 {
                     continue;
@@ -532,6 +601,8 @@ pub(super) fn keyword<'a>(call: Node<'a>, name: &str, source: &str) -> Vec<Node<
 pub(super) fn read(parsed: &Parsed, source: &str) -> FastRoutes {
     let mut result = FastRoutes::default();
     let receivers = receivers(parsed, source);
+    let prefixes = receiver_prefixes(parsed, source, &receivers);
+    result.gaps.extend(prefixes.gaps);
     for decorated in children(parsed.root())
         .into_iter()
         .filter(|n| n.kind() == "decorated_definition")
@@ -562,9 +633,20 @@ pub(super) fn read(parsed: &Parsed, source: &str) -> FastRoutes {
             ) else {
                 continue;
             };
-            if !receivers.contains(text(object, source)) {
+            if !receivers.contains_key(text(object, source)) {
                 continue;
             }
+            let Some(prefix) = prefixes
+                .values
+                .get(text(object, source))
+                .and_then(Option::as_ref)
+            else {
+                result.gaps.push((
+                    decorator.start_position().row + 1,
+                    "The route belongs to a FastAPI router with an unresolved prefix.",
+                ));
+                continue;
+            };
             let method = text(method, source);
             if !METHODS.contains(&method) && !matches!(method, "api_route" | "route") {
                 continue;
@@ -598,7 +680,7 @@ pub(super) fn read(parsed: &Parsed, source: &str) -> FastRoutes {
             result.entries.push(FastRoute {
                 endpoint: Endpoint {
                     method: method.to_uppercase(),
-                    url,
+                    url: format!("{prefix}{url}"),
                     handler: Some(text(name, source).to_owned()),
                     line,
                 },

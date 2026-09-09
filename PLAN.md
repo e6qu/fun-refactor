@@ -276,7 +276,7 @@ Every result distinguishes a proved model property, tested implementation/model 
 
 ### PR 5. Framework Semantic Model
 
-Status: in progress on `framework_semantic_model`. Six committed checkpoints provide the hierarchy, execution boundaries, React facts and Lean-backed policies. The seventh checkpoint adds inherited layouts, bounded relative component expansion, resolved render sources and custom-hook facts. Every fact retains its parent, source anchor, evidence, confidence and explicit gaps.
+Status: ready for review on `framework_semantic_model`. Eight checkpoints provide the hierarchy, execution boundaries, React facts, relative component expansion and Lean-backed policies. They add a named version matrix, pinned real-project contracts and verified FastAPI prefix rules. Every fact retains its parent, source anchor, evidence, confidence and explicit gaps. The complete native, Lean, prose, capability and WASM gate passes.
 
 Goal: represent a feature across application structure rather than as isolated syntax nodes.
 
@@ -292,17 +292,17 @@ Deliverables:
 - Strengthen the existing Next.js and FastAPI readers before adding another backend pair.
 - Use Next.js React Server and Client Components as the first rendering-boundary pair; complete for the bounded direct-function and relative-import subset.
 - Keep framework-specific behavior visible where the shared model cannot express it.
-- Prove deterministic reporting policies after syntax recognition; complete for caps, middleware rank, hook placement, configuration visibility, service tiers and redaction flags.
+- Prove deterministic reporting policies after syntax recognition; complete for caps, middleware rank, hook placement, configuration visibility, service tiers, redaction flags and FastAPI prefix validity.
 - Reuse the proved membership closure for transitive client boundaries; complete over supplied relative-import edges.
 
-PR 5 completes each boundary against a named, versioned syntax subset. Executable fixtures validate runtime claims that source structure cannot establish.
+PR 5 completes each boundary against a named, versioned syntax subset. It makes no framework-runtime claims. Any future runtime claim requires an executable framework fixture.
 
 Verification and acceptance:
 
 - Display one feature hierarchy across routes, handlers, schemas, components and dependencies; complete for exact matching Next.js page and API paths.
 - Retrieve that subtree without loading the whole application.
 - Preserve ambiguity and unsupported middleware, authentication, lifecycle and runtime behavior as explicit gaps; complete for current dependency and middleware readers.
-- Compare readers against pinned framework fixtures and real projects with independent contract checks.
+- Compare readers against pinned framework fixtures and real projects with independent contract checks; complete for Next.js, React and FastAPI syntax witnesses.
 - Keep parser recognition, framework runtime behavior and report assembly outside the theorem boundary unless a later correspondence proof covers them.
 
 ### PR 6. Verified Feature Migration

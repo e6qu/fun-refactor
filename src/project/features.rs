@@ -1041,7 +1041,7 @@ impl Project<'_> {
                     if application.framework == "nextjs-app" {
                         json!(["Runtime Next.js configuration and package resolution remain unchecked."])
                     } else {
-                        json!(["Mounted routers, prefixes and FastAPI application factories remain unchecked."])
+                        json!(["The reader joins constructor prefixes into route paths. Include-router and mounted prefixes, application factories and runtime registration remain unchecked."])
                     },
                 ),
                 "application",

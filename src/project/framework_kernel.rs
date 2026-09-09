@@ -37,3 +37,7 @@ pub fn service_target_kind(absolute_http: bool, root_relative: bool) -> usize {
 pub fn service_redaction_flags(query_or_fragment: bool, credentials: bool) -> usize {
     usize::from(query_or_fragment) + 2 * usize::from(credentials)
 }
+
+pub fn fastapi_prefix_supported(empty: bool, starts_slash: bool, ends_slash: bool) -> bool {
+    empty || starts_slash && !ends_slash
+}

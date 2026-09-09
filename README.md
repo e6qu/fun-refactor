@@ -341,6 +341,7 @@ Render edges resolve unique same-file, default-import and named-import declarati
 Files below a captured `use client` import path retain a client-transitive candidate marker.
 Every fact retains a source anchor, evidence basis, status, confidence and explicit gaps.
 Use `--feature ID` to retrieve one revision-bound subtree.
+The [framework semantic model](docs/framework-semantics.md) lists the versioned syntax witnesses, modeled boundaries and runtime gaps.
 `fr project configuration` pages environment declarations and candidate code consumers, with captured-source checks and explicit analysis gaps.
 `fr project tests` adds catalog candidates and bounded call-path witnesses, preserving the weakest edge confidence without claiming runtime coverage.
 Package aliases, framework runtime behavior and complete dependency graphs remain roadmap work.
