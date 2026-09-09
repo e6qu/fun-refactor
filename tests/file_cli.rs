@@ -210,6 +210,103 @@ fn executable_changes_only_owner_bit_and_records_only_changed_paths() {
 }
 
 #[test]
+fn symlink_create_replace_delete_apply_undo_redo_and_patch_checks_are_exact() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "entry", "regular before\n", 0o640);
+    put(root, "unrelated.txt", "unchanged\n", 0o644);
+    git(root, &["init", "-q"]);
+    git(root, &["add", "."]);
+    git(root, &["commit", "-qm", "base"]);
+    let index = fs::read(root.join(".git/index")).unwrap();
+
+    let saved = ok(
+        root,
+        &[
+            "file",
+            "symlink",
+            "entry",
+            "--target",
+            "missing-λ",
+            "--save-plan",
+        ],
+    );
+    assert_eq!(saved["operation"], "symlink");
+    assert_eq!(saved["entries"][0]["before_kind"], "regular");
+    assert_eq!(saved["entries"][0]["after_kind"], "symlink");
+    assert_eq!(saved["entries"][0]["after_mode"], Value::Null);
+    assert_eq!(saved["target"], "missing-λ");
+    let exported = ok(root, &["history", "patch", "1"]);
+    let patch = exported["patch"].as_str().unwrap();
+    assert!(patch.contains("deleted file mode 100644"));
+    assert!(patch.contains("new file mode 120000"));
+    assert_eq!(exported["mode_scope"], "regular-executable-or-symlink");
+    assert_eq!(
+        ok(root, &["history", "patch", "1", "--check"])["matches_patch_basis"],
+        true
+    );
+    assert_eq!(
+        ok(root, &["history", "patch", "1", "--git-check"])["applicable"],
+        true
+    );
+
+    ok(root, &["history", "apply", "1", "--write"]);
+    assert_eq!(
+        fs::read_link(root.join("entry")).unwrap(),
+        Path::new("missing-λ")
+    );
+    assert_eq!(fs::read(root.join(".git/index")).unwrap(), index);
+    let reverse = ok(root, &["history", "patch", "1", "--reverse", "--check"]);
+    assert_eq!(reverse["files"][0]["actual_kind"], "symlink");
+    assert_eq!(reverse["matches_recorded_snapshots"], true);
+    assert_eq!(
+        ok(root, &["history", "patch", "1", "--reverse", "--git-check"])["applicable"],
+        true
+    );
+    ok(root, &["history", "undo", "1", "--write"]);
+    assert_eq!(
+        fs::read_to_string(root.join("entry")).unwrap(),
+        "regular before\n"
+    );
+    assert_eq!(mode(&root.join("entry")), 0o640);
+    ok(root, &["history", "redo", "1", "--write"]);
+
+    let deleted = ok(root, &["file", "delete", "entry", "--write"]);
+    assert_eq!(deleted["entries"][0]["before_kind"], "symlink");
+    assert!(!root.join("entry").exists());
+    assert!(fs::symlink_metadata(root.join("entry")).is_err());
+    ok(root, &["history", "undo", "2", "--write"]);
+    assert_eq!(
+        fs::read_link(root.join("entry")).unwrap(),
+        Path::new("missing-λ")
+    );
+
+    let created = ok(
+        root,
+        &[
+            "file", "symlink", "new-link", "--target", "-literal", "--write",
+        ],
+    );
+    assert_eq!(created["entries"][0]["before_exists"], false);
+    assert_eq!(
+        fs::read_link(root.join("new-link")).unwrap(),
+        Path::new("-literal")
+    );
+    let noop = ok(
+        root,
+        &[
+            "file", "symlink", "new-link", "--target", "-literal", "--write",
+        ],
+    );
+    assert_eq!(noop["changed"], 0);
+    assert_eq!(noop["transaction"], Value::Null);
+    assert_eq!(
+        fs::read_to_string(root.join("unrelated.txt")).unwrap(),
+        "unchanged\n"
+    );
+}
+
+#[test]
 fn unsafe_or_unsupported_batches_refuse_before_creating_history_or_changing_files() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
@@ -222,7 +319,6 @@ fn unsafe_or_unsupported_batches_refuse_before_creating_history_or_changing_file
     for bad in [
         "missing",
         "directory",
-        "link",
         "linked-directory/good.txt",
         "nul.txt",
         "invalid.txt",
@@ -239,6 +335,26 @@ fn unsafe_or_unsupported_batches_refuse_before_creating_history_or_changing_file
             assert_eq!(fs::read_to_string(root.join("good.txt")).unwrap(), "keep\n");
             assert!(!root.join(".fr-history").exists());
         }
+    }
+    error(
+        command(
+            root,
+            &["file", "executable", "link", "--set", "on", "--write"],
+        )
+        .output()
+        .unwrap(),
+        "regular file",
+    );
+    for target in ["", &"x".repeat(1024)] {
+        error(
+            command(
+                root,
+                &["file", "symlink", "new-link", "--target", target, "--write"],
+            )
+            .output()
+            .unwrap(),
+            "between 1 and 1023",
+        );
     }
     error(
         command(

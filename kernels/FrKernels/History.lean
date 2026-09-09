@@ -3,6 +3,7 @@ namespace FrKernels.History
 structure FileSnapshot where
   content : String
   mode : Nat
+  symlink : Bool
   deriving DecidableEq, Repr
 
 abbrev Snapshot := Option FileSnapshot

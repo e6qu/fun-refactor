@@ -120,7 +120,7 @@ enum Command {
         #[command(subcommand)]
         command: crate::project::author::Command,
     },
-    #[command(about = "Preview and record file deletions or executable-mode changes.")]
+    #[command(about = "Preview and record file deletion, mode, or symlink changes.")]
     File {
         #[command(subcommand)]
         command: crate::history::files::Command,
@@ -1896,7 +1896,8 @@ fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
                         record["context_basis"] = serde_json::json!(format!("frtb1:{}", r.basis));
                         record["changes"] = serde_json::json!(r.changes.iter().map(|c| serde_json::json!({
                             "path": c.path, "before_exists": c.before.is_some(), "after_exists": c.after.is_some(),
-                            "before_mode": c.before.as_ref().map(|s| s.mode), "after_mode": c.after.as_ref().map(|s| s.mode),
+                            "before_mode": c.before.as_ref().and_then(crate::history::Snapshot::reported_mode), "after_mode": c.after.as_ref().and_then(crate::history::Snapshot::reported_mode),
+                            "before_kind": c.before.as_ref().map(|s| s.kind), "after_kind": c.after.as_ref().map(|s| s.kind),
                             "diff": crate::edit::unified_diff(c.before.as_ref().map_or("", |s| &s.content), c.after.as_ref().map_or("", |s| &s.content), &c.path.to_string_lossy())
                         })).collect::<Vec<_>>());
                     }

@@ -22,6 +22,9 @@ Lean proves the absent-receipt, matching-preparation and matching-registration r
 The seventh checkpoint adds Git symlink blobs to raw creation, recovery, removal and removal-archive validation without following their targets.
 It bounds target length, rejects NUL bytes before mutation and rechecks entry identity after reads. Submodules remain outside the owned lifecycle.
 The anchored entry-mode policy accepts one recognized blob kind, and all sixteen boolean states agree between Rust and Lean.
+The eighth checkpoint extends schema-one source snapshots with an omitted-by-default entry kind, preserving regular-record serialization while representing UTF-8 symlink targets explicitly.
+`fr file symlink` creates or replaces one link, `file delete` accepts links, and history apply, undo, redo, recovery, basis checks and Git patch export preserve the entry kind without following targets.
+Git type changes render as the paired deletion and addition records Git requires; the anchored snapshot-mode projection fixes links at `120000`, and 8,258 Rust/Lean cases cover both entry kinds across the existing mode corpus.
 PR 2's first checkpoint extends exact-byte Rust insertion to impl and trait bodies and generalizes the insertion placement model.
 The second checkpoint authors TypeScript/TSX expression-bodied arrows and permits checked transitions between expression and block bodies.
 The third checkpoint adds Java method, constructor and default-interface body authoring through the same checked splice and history path.

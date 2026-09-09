@@ -71,28 +71,29 @@ It also checks plans from real refactoring commands.
 The full self-audits run in `tools/check.sh deep`.
 
 `FrKernels.History` adds snapshot acceptance, inverse laws, mixed-state recovery and undo/redo stack laws.
-Its anchored snapshot predicate has 250 shared Rust/Lean executable cases.
+Its anchored snapshot predicate has 432 shared Rust/Lean executable cases, including a symlink snapshot.
 The inverse and mixed-recovery proofs use Lean’s propositional extensionality axiom. The two stack inverse proofs use no axioms.
 The model assumes durable journal checkpoints and atomic rename. Filesystem and full transaction implementation correspondence remain unproved.
 
-`FrKernels.Patch` models Git executable-mode projection, supported permission changes and receiving patch-basis equality.
-Four Rust helpers used by file authoring, patch export and receiving checks carry explicit anchors and signature maps.
+`FrKernels.Patch` models Git regular, executable and symlink mode projection, supported permission changes and receiving patch-basis equality.
+Five Rust helpers used by file authoring, patch export and receiving checks carry explicit anchors and signature maps.
 Mode fields use `UInt32`, matching Rust's `u32` domain, including complement and XOR operations.
-The model's 20 theorems establish:
+The model's 24 theorems establish:
 
 - Projection produces only regular or executable Git modes, depends exactly on the owner-execute bit and is idempotent.
+- Snapshot projection fixes symlinks at `120000`, delegates regular entries to the executable projection and distinguishes both kinds.
 - Supported mode changes preserve all non-execute bits and either change nothing or toggle owner execute. Reversing a change preserves support.
-- Basis matching is reflexive, symmetric and transitive, preserves existence, and requires identical content and owner-execute bits for present files.
+- Basis matching is reflexive, symmetric and transitive, preserves existence and entry kind, and requires identical content and owner-execute bits for present regular files.
 - Full snapshot equality implies patch-basis acceptance. Other permission differences can pass the patch check while failing full snapshot equality.
 - The owner-execute setter changes the requested bit, preserves other bits, is idempotent and always produces a supported mode change.
 - The setter produces the requested Git mode and preserves the journal's maximum recorded permission value.
 
 Shared execution compares 45,419 mode results across all 4,096 permission patterns, individual high bits, `u32::MAX` and ten change masks.
-It also compares 1,681 pairs of absent/present snapshots with empty, Unicode and NUL-containing contents across ten modes.
+It also compares 1,849 pairs of absent/present snapshots with empty, Unicode and NUL-containing contents across ten modes plus two link targets.
 NUL cases exercise the pure comparison only; patch export still refuses binary snapshots before receiving checks.
-Another 8,258 comparisons cover both owner-execute settings across the same mode corpus.
+Another 8,258 comparisons cover both owner-execute settings, and 8,258 cover both snapshot kinds across the same mode corpus.
 
-An axiom audit of all 20 theorems reports `propext` and `Quot.sound`.
+An axiom audit of all 24 theorems reports `propext` and `Quot.sound`.
 Proofs using `bv_decide`, and theorems depending on them, also use `Classical.choice`, `Lean.ofReduceBool` and `Lean.trustCompiler`.
 Lean 4.28's [bitvector proof checker](https://github.com/leanprover/lean4/blob/v4.28.0/src/Lean/Elab/Tactic/BVDecide/Frontend/BVDecide.lean) performs compiled certificate validation.
 That adds compiler trust to those proofs. Zero `sorry` obligations does not remove these assumptions.

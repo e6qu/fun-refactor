@@ -1,5 +1,5 @@
-use super::{git_mode, matches_patch_basis, render, History, Status};
-use crate::history::{matches_snapshot, snapshot, target};
+use super::{git_snapshot_mode, matches_patch_basis, render, History, Status};
+use crate::history::{matches_snapshot, snapshot, target, SnapshotKind};
 use anyhow::{bail, Result};
 use serde::Serialize;
 use std::path::{Path, PathBuf};
@@ -11,6 +11,8 @@ pub struct PatchBasisFile {
     pub actual_exists: bool,
     pub expected_mode: Option<u32>,
     pub actual_mode: Option<u32>,
+    pub expected_kind: Option<SnapshotKind>,
+    pub actual_kind: Option<SnapshotKind>,
     pub content_matches: bool,
     pub git_mode_matches: bool,
     pub matches_patch_basis: bool,
@@ -56,14 +58,20 @@ pub fn check_patch_basis(
         let actual = snapshot(&target(&receiving_root, &change.path)?)?;
         let content_matches =
             actual.as_ref().map(|s| &s.content) == expected.as_ref().map(|s| &s.content);
-        let git_mode_matches = actual.as_ref().map(|s| git_mode(s.mode))
-            == expected.as_ref().map(|s| git_mode(s.mode));
+        let git_mode_matches = actual
+            .as_ref()
+            .map(|s| git_snapshot_mode(s.kind == SnapshotKind::Symlink, s.mode))
+            == expected
+                .as_ref()
+                .map(|s| git_snapshot_mode(s.kind == SnapshotKind::Symlink, s.mode));
         files.push(PatchBasisFile {
             path: change.path.clone(),
             expected_exists: expected.is_some(),
             actual_exists: actual.is_some(),
-            expected_mode: expected.as_ref().map(|s| s.mode),
-            actual_mode: actual.as_ref().map(|s| s.mode),
+            expected_mode: expected.as_ref().and_then(|s| s.reported_mode()),
+            actual_mode: actual.as_ref().and_then(|s| s.reported_mode()),
+            expected_kind: expected.as_ref().map(|s| s.kind),
+            actual_kind: actual.as_ref().map(|s| s.kind),
             content_matches,
             git_mode_matches,
             matches_patch_basis: matches_patch_basis(&actual, expected),
@@ -76,7 +84,7 @@ pub fn check_patch_basis(
         record_basis: record.basis.clone(),
         reverse,
         receiving_root,
-        scope: "affected-paths-content-and-git-mode",
+        scope: "affected-paths-content-kind-and-git-mode",
         checked_files: files.len(),
         matches_patch_basis: files.iter().all(|file| file.matches_patch_basis),
         matches_recorded_snapshots: files.iter().all(|file| file.matches_recorded_snapshot),

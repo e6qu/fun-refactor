@@ -270,12 +270,12 @@ LSP delegation stays outside the default engine; daemon/watch mode awaits a meas
 
 The shared commit path recovers earlier writes after a handled failure and reports recovery problems.
 The native CLI now saves plans and supports checked apply, undo, redo and interrupted-write recovery through `fr history`.
-`fr history patch ID` exports stored text changes for Git, with reverse export and optional JSON metadata.
+`fr history patch ID` exports stored text and UTF-8 symlink changes for Git, with reverse export and optional JSON metadata.
 Add `--check` to compare the receiving files with the recorded starting state; `--against DIR` selects another workspace.
 Use `--git-check` for Git's application verdict, with `--index` to include the index.
-Patch-basis and executable-mode helpers have anchored Lean models with 55,358 shared execution comparisons.
+Patch-basis, executable-mode and symlink-mode helpers have anchored Lean models with 63,784 shared execution comparisons.
 See [recorded transaction patches](docs/git-patches.md) for application checks, mode scope and limitations.
-`fr file delete` and `fr file executable --set on|off` add explicit file operations with saved plans, undo/redo and patch export.
+`fr file delete`, `fr file executable --set on|off` and `fr file symlink --target TARGET` add explicit entry operations with saved plans, undo/redo and patch export.
 See [file transactions](docs/file-transactions.md) for owner-execute semantics and validation scope.
 `fr git status` pages through repository changes with filters, rename sources and continuation cursors.
 See [Git status](docs/git-status.md) for observation limits, omitted submodules and configuration scope.

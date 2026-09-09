@@ -12,7 +12,7 @@ The command writes only the patch to stdout. Errors go to stderr.
 It renders stored snapshots and requires neither Git nor a Git repository.
 It does not modify source files, history, the index or repository configuration.
 Export stays the same when a plan becomes applied, undone or abandoned, or when working files change.
-Journal validation still refuses unsafe paths, including current symlinks.
+Journal validation refuses unsafe parent symlinks. A selected leaf may be a recorded symlink.
 
 The receiving files must match the recorded starting state closely enough for Git to apply the patch.
 Export does not check the receiving workspace or promise that a patch will apply there.
@@ -48,9 +48,9 @@ fr history patch 1 --check --against /path/to/receiving/workspace --reverse
 ```
 
 `--check` prints a JSON report in both output modes, with no patch or stored source text.
-It compares every affected file's complete UTF-8 content, existence and Git executable mode with the starting snapshots.
+It compares every affected entry's complete UTF-8 content or link target, existence, kind and Git mode with the starting snapshots.
 The exit code is zero when all files match that basis, and one when any file differs.
-Each sorted file row reports content and Git mode matches, expected/actual existence and recorded/observed Unix permission modes.
+Each sorted file row reports content and Git mode matches, expected/actual existence and kinds, and recorded/observed Unix permission modes.
 `matches_recorded_snapshot` also requires all recorded permission bits to match.
 The report totals files in `checked_files` and aggregates both comparisons.
 A permission difference outside Git's executable distinction can pass `matches_patch_basis` while failing `matches_recorded_snapshots`.
@@ -62,7 +62,7 @@ The source history stays under `-C`, including when the receiving directory diff
 `--reverse` checks the recorded result as the starting state; `record_basis` still names the original before snapshots.
 
 Checks read affected paths and leave source, history, Git state and unrelated files unchanged.
-They refuse symlinks in affected paths, non-regular targets, unreadable/non-UTF-8 files and unsupported exports.
+They refuse parent symlinks, directories, unreadable/non-UTF-8 entries and unsupported exports.
 These errors fail the command before it prints a report; `--json` uses the standard error object.
 
 This command checks complete starting snapshots, independently of Git's contextual hunk matching.
@@ -111,11 +111,11 @@ Git's [content conversion path](https://github.com/git/git/blob/master/apply.c) 
 The command refuses affected paths with content filters before running the application check.
 Configured drivers named `unset` or `unspecified` also cause refusal because their names overlap Git's attribute-report states.
 Other filter drivers on unrelated paths do not prevent a check.
-Symlinks and non-regular affected targets remain unsupported.
+Affected regular files and UTF-8 symlinks are supported. Directories remain unsupported.
 
 Checks observe current state and do not freeze files or configuration against concurrent changes.
 A successful Git verdict does not establish exact snapshot equality, write permissions or project validation.
-Use the snapshot check when complete starting content and executable modes must match.
+Use the snapshot check when complete starting content or link targets, entry kinds and Git modes must match.
 Git execution and attribute handling have regression tests, without a Lean correspondence proof.
 
 ## Supported scope
@@ -125,16 +125,16 @@ It preserves content bytes, including CRLF and missing final newlines.
 Empty file creation and deletion, multiple hunks and unusual UTF-8 filenames are supported.
 Paths use Git quoting, and output is sorted by path.
 Recorded deletion/addition pairs can express moves without rename detection.
-Use [`fr file delete` and `fr file executable`](file-transactions.md) to record file deletions and owner-execute changes.
+Use [`fr file delete`, `fr file executable` and `fr file symlink`](file-transactions.md) to record deletion, owner-execute and link changes.
 A dedicated file-move transaction remains pending.
 
-Git mode output distinguishes regular files (`100644`) from executable files (`100755`), using the owner execute bit.
+Git mode output distinguishes regular files (`100644`), executable files (`100755`) and symlinks (`120000`), using the owner execute bit for regular files.
 Other Unix permissions are not reproduced. New files use Git modes rather than private history creation permissions.
 An existing file's permission change is accepted only when it changes executable bits and toggles the owner execute bit.
 Changes to other permission bits are refused, including when accompanied by content changes.
 Use history apply/undo/redo when full recorded permissions must be restored.
 
-Binary snapshots containing NUL, non-UTF-8 source, symlinks and submodules are outside this text patch scope.
+Binary snapshots containing NUL, non-UTF-8 regular contents or link targets, and submodules are outside this text patch scope.
 An unsupported change fails the entire export before any patch is printed.
 The exporter does not include blob IDs, binary hunks or three-way merge support.
 [Git status pages](git-status.md) report repository changes independently of history.
@@ -142,7 +142,7 @@ The exporter does not include blob IDs, binary hunks or three-way merge support.
 
 The format follows Git's [patch format documentation](https://git-scm.com/docs/diff-format).
 Application behavior is described in [git apply](https://git-scm.com/docs/git-apply).
-Tests run Git checks and forward/reverse applications against recorded contents and executable modes.
+Tests run Git checks and forward/reverse applications against recorded contents, link targets and regular, executable and symlink modes.
 They also cover conflicting files and preservation of unrelated staged, unstaged and untracked changes.
 These tests provide compatibility evidence; patch rendering has no Lean correspondence proof yet.
 The mode-change acceptance helper also has an anchored Lean model covering 32-bit masks and forward/reverse symmetry.

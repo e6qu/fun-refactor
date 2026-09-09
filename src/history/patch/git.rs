@@ -1,6 +1,6 @@
 use super::{render, History, Status};
 use crate::git::process::{diagnostic, repository_root, require_no_filters, run};
-use crate::history::{regular, target};
+use crate::history::{snapshot, target};
 use anyhow::{bail, Context, Result};
 use serde::Serialize;
 use std::ffi::OsString;
@@ -42,7 +42,7 @@ pub fn check_git_patch(
         bail!("Git patch checks require a receiving directory.");
     }
     for change in &record.changes {
-        regular(&target(&receiving_root, &change.path)?)?;
+        snapshot(&target(&receiving_root, &change.path)?)?;
     }
     let repository_root = repository_root(&receiving_root)?;
     let prefix = receiving_root
