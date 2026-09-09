@@ -163,7 +163,7 @@ Tool objects:
 {{"tool":"write","path":"fragment.rs","text":"{{ replacement block }}"}} writes artifacts/fragment.rs and returns its absolute path (both arms).
 {{"tool":"fr","args":["checks"]}} invokes fr with the project root, JSON and no cache. Use this for checks in both arms and project/author/history/git in the fr arm. --help is available.
 {{"tool":"export"}} saves and shows a Git diff as artifacts/change.patch (baseline only). In the fr arm, use history patch TX --output ../artifacts/change.patch to retain the patch while returning only its identity and size.
-{{"tool":"reverse"}} / {{"tool":"apply"}} reverses/reapplies that saved Git patch (baseline only).
+{{"tool":"reverse"}} / {{"tool":"apply"}} reverses/reapplies that saved Git patch (baseline only). Apply refuses until all declared checks pass on the state restored by reverse.
 {{"tool":"sentinel"}} adds an unrelated edit after the requested change; it must survive reversal and reapplication.
 {{"tool":"receiver"}} checks and applies the saved patch in a clean separate receiver and compares tracked content with your project. It refuses until all declared checks pass after the final redo/apply.
 {{"tool":"finish","summary":"..."}} records your final conclusion; independent oracles run later.
@@ -322,6 +322,10 @@ def action(session, config, request):
         args = request["args"]
         if not args or (baseline and args[0] != "checks"):
             raise ValueError("Only fr checks is shared with the ordinary-file arm")
+        if args[:2] == ["history", "redo"]:
+            events = [json.loads(line) for line in (session / "events.jsonl").read_text().splitlines()]
+            if not current_state_checked(events, snapshot(project), required_checks(config["task"])):
+                raise ValueError("Run all declared checks on the state restored by undo before redo")
         if config["binary_sha256"] != digest(Path(config["fr"]).read_bytes()):
             raise ValueError("Trial binary changed after preparation")
         result = process([config["fr"], "--no-cache", "--json", "-C", str(project), *args], project)
@@ -335,6 +339,10 @@ def action(session, config, request):
         (session / "artifacts/change.patch").write_bytes(result.stdout)
         return {"patch": result.stdout.decode(), "patch_artifact": "artifacts/change.patch"}
     if kind in ("reverse", "apply"):
+        if kind == "apply":
+            events = [json.loads(line) for line in (session / "events.jsonl").read_text().splitlines()]
+            if not current_state_checked(events, snapshot(project), required_checks(config["task"])):
+                raise ValueError("Run all declared checks on the state restored by reverse before reapplying")
         args = ["apply", "--reverse"] if kind == "reverse" else ["apply"]
         result = git(project, *args, data=(session / "artifacts/change.patch").read_bytes(), check=False)
         return {"exit_code": result.returncode, "stderr": result.stderr.decode()}

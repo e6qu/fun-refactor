@@ -238,6 +238,8 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
         self.assertIn('{"tool":"read","path":"skill/references/author.md","start":1,"lines":160}', prompt)
         self.assertIn("do not pass --write to author batch", prompt)
         self.assertIn("--request-stdin <<'FRJSON'", prompt)
+        self.assertIn("Apply refuses until all declared checks pass", prompt)
+        self.assertIn("It refuses until all declared checks pass after the final redo/apply", prompt)
         example = prompt.split("--request-stdin <<'FRJSON'\n", 1)[1].split("\nFRJSON", 1)[0]
         self.assertEqual(json.loads(example)["text"], "{\n    buf.push('\\\\');\n}")
 
