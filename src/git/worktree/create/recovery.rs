@@ -22,6 +22,7 @@ pub(super) struct Observation {
     pub(super) files: BTreeMap<String, (u64, u64, u32, String)>,
     pub(super) directories: BTreeMap<String, (u64, u64)>,
     pub(super) index_digest: Option<String>,
+    pub(super) worktree_config: Option<(u64, u64, u32, String)>,
     #[serde(skip)]
     pub(super) index: Option<Vec<u8>>,
 }
@@ -73,6 +74,15 @@ pub(super) fn capture(root: &Path, path: &Path, removal: bool) -> Result<Capture
         receipt.common == shared && receipt.destination == destination,
         "ownership receipt belongs to another worktree."
     );
+    ensure!(
+        crate::git::worktree_configuration_allowed(
+            receipt.worktree_config,
+            super::worktree_config(&root)?,
+            false,
+            false
+        ),
+        "extensions.worktreeConfig changed after reviewed creation."
+    );
     let selected = if removal {
         ensure!(
             !root.starts_with(&destination),
@@ -100,6 +110,7 @@ pub(super) fn capture(root: &Path, path: &Path, removal: bool) -> Result<Capture
         root,
         common: shared,
         common_identity: receipt.common_identity,
+        worktree_config: receipt.worktree_config,
         destination,
         parent_identity: receipt.parent_identity,
         branch: receipt.branch.clone(),
@@ -153,6 +164,7 @@ pub(super) fn observe(capture: &Capture) -> Result<Observation> {
         files: BTreeMap::new(),
         directories: BTreeMap::new(),
         index_digest: None,
+        worktree_config: None,
         index: None,
     };
     let mut pending = vec![PathBuf::new()];
@@ -211,6 +223,44 @@ pub(super) fn observe(capture: &Capture) -> Result<Observation> {
         .map(|entry| entry.path.clone())
         .collect();
     let index = checkout::index_path(plan)?;
+    let config = index.parent().unwrap().join("config.worktree");
+    match fs::symlink_metadata(&config) {
+        Ok(before) => {
+            ensure!(
+                crate::git::worktree_configuration_allowed(
+                    plan.worktree_config,
+                    super::worktree_config(&plan.root)?,
+                    true,
+                    before.file_type().is_file()
+                ),
+                "per-worktree configuration must be a regular file."
+            );
+            let raw = ownership::bytes(&config, 1024 * 1024)?;
+            let after = fs::symlink_metadata(&config)?;
+            ensure!(
+                before.dev() == after.dev()
+                    && before.ino() == after.ino()
+                    && before.mode() == after.mode(),
+                "per-worktree configuration changed during inspection."
+            );
+            observed.worktree_config = Some((
+                after.dev(),
+                after.ino(),
+                after.mode(),
+                ownership::digest(&raw),
+            ));
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => ensure!(
+            crate::git::worktree_configuration_allowed(
+                plan.worktree_config,
+                super::worktree_config(&plan.root)?,
+                false,
+                false
+            ),
+            "extensions.worktreeConfig changed during inspection."
+        ),
+        Err(error) => return Err(error.into()),
+    }
     for marker in [
         "MERGE_HEAD",
         "CHERRY_PICK_HEAD",
@@ -271,6 +321,7 @@ pub(in crate::git::worktree) fn report(root: &Path, options: &RecoverOptions) ->
         "applied":false,"basis":token,"basis_verified":options.basis.is_some(),"destination":capture.plan.destination,
         "repository_root":capture.plan.root,"ownership_record":capture.receipt.path(),"branch":format!("refs/heads/{}",capture.plan.branch),
         "commit":capture.plan.commit,"tree":capture.plan.tree,"checkout":"raw-blobs","existing_files":observed.files.len(),
+        "worktree_config":capture.plan.worktree_config,"worktree_config_file":observed.worktree_config.is_some(),
         "index_action":if observed.index.is_some(){"preserve"}else{"create"},
         "missing":observed.missing.iter().take(options.limit).collect::<Vec<_>>(),
         "page":{"total":observed.missing.len(),"returned":observed.missing.len().min(options.limit),
@@ -301,6 +352,10 @@ pub(in crate::git::worktree) fn report(root: &Path, options: &RecoverOptions) ->
                     "recovery index changed before completion."
                 );
             }
+            ensure!(
+                finished.worktree_config == current.worktree_config,
+                "per-worktree configuration changed during recovery."
+            );
             checkout::sync(&capture.plan)?;
             index_lease.check()?;
             capture.receipt.finish(&lease, &capture.receipt_bytes)?;

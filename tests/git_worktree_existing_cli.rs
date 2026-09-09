@@ -508,7 +508,7 @@ fn refuses_a_branch_claimed_between_review_and_registration() {
 }
 
 #[test]
-fn receipts_and_removal_archives_without_branch_mode_remain_readable() {
+fn receipts_and_removal_archives_without_added_modes_remain_readable() {
     let temp = fixture();
     let root = temp.path().join("main");
     let preview = report(&root, &["../task", "--branch", "feature"]);
@@ -527,6 +527,7 @@ fn receipts_and_removal_archives_without_branch_mode_remain_readable() {
     let receipt_path = Path::new(created["ownership_record"].as_str().unwrap());
     let mut receipt: Value = serde_json::from_slice(&fs::read(receipt_path).unwrap()).unwrap();
     receipt.as_object_mut().unwrap().remove("existing_branch");
+    receipt.as_object_mut().unwrap().remove("worktree_config");
     fs::write(receipt_path, serde_json::to_vec(&receipt).unwrap()).unwrap();
     let preview = other(&root, "remove", &["../task"]);
     let removed = other(
@@ -546,10 +547,18 @@ fn receipts_and_removal_archives_without_branch_mode_remain_readable() {
         .as_object_mut()
         .unwrap()
         .remove("existing_branch");
+    record["proposal"]
+        .as_object_mut()
+        .unwrap()
+        .remove("worktree_config");
     record["receipt"]
         .as_object_mut()
         .unwrap()
         .remove("existing_branch");
+    record["receipt"]
+        .as_object_mut()
+        .unwrap()
+        .remove("worktree_config");
     fs::write(record_path, serde_json::to_vec(&record).unwrap()).unwrap();
     fs::remove_file(record_path.with_file_name("complete")).unwrap();
     let preview = other(&root, "resume-removal", &[record_path.to_str().unwrap()]);

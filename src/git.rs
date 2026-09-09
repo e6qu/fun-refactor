@@ -240,6 +240,15 @@ pub fn worktree_recovery_file_allowed(
     !present || (bytes_match && mode_matches)
 }
 
+pub fn worktree_configuration_allowed(
+    reviewed_mode: bool,
+    observed_mode: bool,
+    config_present: bool,
+    config_regular: bool,
+) -> bool {
+    reviewed_mode == observed_mode && (!config_present || config_regular)
+}
+
 pub fn worktree_removal_file_allowed(
     identity_matches: bool,
     bytes_match: bool,

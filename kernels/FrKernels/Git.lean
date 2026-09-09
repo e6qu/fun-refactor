@@ -290,6 +290,29 @@ theorem recovery_requires_existing_match (bytesMatch modeMatches : Bool) :
     worktreeRecoveryFileAllowed true bytesMatch modeMatches = (bytesMatch && modeMatches) := by
   cases bytesMatch <;> cases modeMatches <;> rfl
 
+-- fr:spec src/git.rs::worktree_configuration_allowed @ 1bc754961f2104c4847a9da4d54ff0100ab8d7d33bce0e4760cb2be0d518b0bf
+-- fr:signature reviewed_mode: bool => reviewedMode: Bool; observed_mode: bool => observedMode: Bool; config_present: bool => configPresent: Bool; config_regular: bool => configRegular: Bool; return: bool => return: Bool
+def worktreeConfigurationAllowed (reviewedMode : Bool) (observedMode : Bool)
+    (configPresent : Bool) (configRegular : Bool) : Bool :=
+  decide (reviewedMode = observedMode) && (!configPresent || configRegular)
+
+theorem worktree_configuration_requires_reviewed_mode
+    (reviewed observed present regular : Bool)
+    (allowed : worktreeConfigurationAllowed reviewed observed present regular = true) :
+    reviewed = observed := by
+  cases reviewed <;> cases observed <;> cases present <;> cases regular <;>
+    simp_all [worktreeConfigurationAllowed]
+
+theorem worktree_configuration_requires_regular_file
+    (reviewed observed regular : Bool) :
+    worktreeConfigurationAllowed reviewed observed true regular =
+      (decide (reviewed = observed) && regular) := by
+  cases reviewed <;> cases observed <;> cases regular <;> rfl
+
+theorem worktree_configuration_accepts_absent_file (mode : Bool) :
+    worktreeConfigurationAllowed mode mode false false = true := by
+  cases mode <;> rfl
+
 def resumeFile (before : Option (String × Nat)) (target : String × Nat) : Option (String × Nat) :=
   if before = none ∨ before = some target then some target else none
 

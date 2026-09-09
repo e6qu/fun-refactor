@@ -150,6 +150,54 @@ fn removes_reviewed_worktree_archives_metadata_and_retains_branch() {
 }
 
 #[test]
+fn archives_per_worktree_configuration_before_removal() {
+    let temp = fixture();
+    let root = temp.path().join("main");
+    git(&root, &["config", "extensions.worktreeConfig", "true"]);
+    let created = create(&root);
+    assert_eq!(created["worktree_config"], true, "{created}");
+    let target = temp.path().join("owned");
+    git(&target, &["config", "--worktree", "fr.test", "preserve"]);
+    let config = fs::read(root.join(".git/worktrees/owned/config.worktree")).unwrap();
+    let preview = report(&root, &["../owned"]);
+    assert_eq!(preview["worktree_config"], true, "{preview}");
+    assert_eq!(preview["worktree_config_file"], true, "{preview}");
+    let removed = report(
+        &root,
+        &[
+            "../owned",
+            "--basis",
+            preview["basis"].as_str().unwrap(),
+            "--write",
+        ],
+    );
+    assert_eq!(removed["applied"], true, "{removed}");
+    let archive: Value =
+        serde_json::from_slice(&fs::read(removed["removal_record"].as_str().unwrap()).unwrap())
+            .unwrap();
+    assert_eq!(
+        archive["metadata_bytes"]["config.worktree"],
+        serde_json::to_value(config).unwrap()
+    );
+    let inspected = Command::new(env!("CARGO_BIN_EXE_fr"))
+        .args(["--json", "--no-cache", "-C"])
+        .arg(&root)
+        .args(["git", "worktree", "resume-removal"])
+        .arg(removed["removal_record"].as_str().unwrap())
+        .output()
+        .unwrap();
+    assert!(
+        inspected.status.success(),
+        "{}",
+        String::from_utf8_lossy(&inspected.stdout)
+    );
+    assert_eq!(
+        serde_json::from_slice::<Value>(&inspected.stdout).unwrap()["state"],
+        "complete-marker-present"
+    );
+}
+
+#[test]
 fn accepts_later_commits_on_owned_branch() {
     let temp = fixture();
     let root = temp.path().join("main");

@@ -105,6 +105,12 @@ def main (args : List String) : IO Unit := do
       for bytesMatch in [false, true] do
         for modeMatches in [false, true] do
           IO.println (FrKernels.Git.worktreeRecoveryFileAllowed present bytesMatch modeMatches)
+  else if args == ["worktree-configuration"] then
+    for reviewedMode in [false, true] do
+      for observedMode in [false, true] do
+        for configPresent in [false, true] do
+          for configRegular in [false, true] do
+            IO.println (FrKernels.Git.worktreeConfigurationAllowed reviewedMode observedMode configPresent configRegular)
   else if args == ["worktree-budget"] then
     for files in [0, 1, 19999, 20000, 20001, 18446744073709551615] do
       for bytes in [0, 268435455, 268435456, 268435457, 18446744073709551615] do

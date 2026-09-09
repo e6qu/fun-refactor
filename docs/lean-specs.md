@@ -376,6 +376,9 @@ Recorded worktree recovery adds an anchored file-acceptance predicate and abstra
 Shared Rust/Lean cases cover every boolean input. Ownership receipts and filesystem durability still require host-level evidence.
 See [worktree recovery](git-worktree-recovery.md) for the tested protocol and proof boundaries.
 
+Worktree configuration adds an anchored mode-and-file predicate with proofs that acceptance requires the reviewed repository mode and a regular file whenever `config.worktree` is present.
+Rust and Lean agree on all sixteen boolean states. Git configuration parsing, file observation and lifecycle durability remain host-tested assumptions.
+
 The Git removal kernel anchors the identity, bytes and mode guard used before deleting reviewed worktree files.
 Lean proves that acceptance requires all three matches. Shared executable tests cover all eight input combinations.
 An abstract namespace model proves that selected removal preserves other paths.

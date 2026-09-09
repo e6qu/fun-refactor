@@ -305,13 +305,36 @@ fn refuses_occupied_paths_branches_nested_destinations_and_unsupported_states() 
         &["symbolic-ref", "refs/heads/alias", "refs/heads/main"],
     );
     error(&root, &["../task", "--branch", "alias"], "already symbolic");
-    git(&root, &["config", "extensions.worktreeConfig", "true"]);
-    error(
-        &root,
-        &["../task", "--branch", "topic"],
-        "worktree-specific configuration",
-    );
     assert_eq!(fs::read(temp.path().join("file")).unwrap(), b"keep");
+}
+
+#[test]
+fn supports_repository_worktree_configuration() {
+    let temp = fixture();
+    let root = temp.path().join("main");
+    git(&root, &["config", "extensions.worktreeConfig", "true"]);
+    let preview = report(&root, &["../task", "--branch", "topic"]);
+    assert_eq!(preview["worktree_config"], true, "{preview}");
+    let created = report(
+        &root,
+        &[
+            "../task",
+            "--branch",
+            "topic",
+            "--basis",
+            preview["basis"].as_str().unwrap(),
+            "--write",
+        ],
+    );
+    assert_eq!(created["applied"], true, "{created}");
+    assert_eq!(created["worktree_config"], true, "{created}");
+    assert_eq!(
+        serde_json::from_slice::<Value>(
+            &fs::read(created["ownership_record"].as_str().unwrap()).unwrap()
+        )
+        .unwrap()["worktree_config"],
+        true
+    );
 }
 
 #[test]

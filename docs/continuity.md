@@ -13,6 +13,9 @@ The third checkpoint adds `stage-history inspect`, which reports pending journal
 Only a state with no pending, lock or preparation evidence is clean in the Lean model and all eight Rust/Lean cases.
 The fourth checkpoint records selected assume-unchanged and skip-worktree values in preview bases and staging journals, then restores them in prepared indexes across apply, removal, undo, redo and recovery.
 Intent-to-add remains unsupported; flag drift refuses replay, plain schema-one records retain their prior serialized digest form, and all sixteen index-entry policy states agree between Rust and Lean.
+The fifth checkpoint carries the repository-local `extensions.worktreeConfig` mode through creation receipts, recovery bases and removal archives.
+Recovery preserves a bounded regular `config.worktree` without rewriting it, removal archives its exact bytes, older receipts default safely, and mode drift or non-regular paths refuse.
+The anchored configuration guard proves the reviewed-mode and regular-file requirements; all sixteen boolean states agree between Rust and Lean.
 PR 2's first checkpoint extends exact-byte Rust insertion to impl and trait bodies and generalizes the insertion placement model.
 The second checkpoint authors TypeScript/TSX expression-bodied arrows and permits checked transitions between expression and block bodies.
 The third checkpoint adds Java method, constructor and default-interface body authoring through the same checked splice and history path.

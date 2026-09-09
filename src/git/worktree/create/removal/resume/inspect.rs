@@ -146,7 +146,7 @@ pub(super) fn observe(loaded: &Loaded, owned: bool) -> Result<Observation> {
     let mut rows = Vec::new();
     tree(&loaded.trees[0], "checkout", false, &mut rows)?;
     tree(&loaded.trees[1], "metadata", owned, &mut rows)?;
-    if configuration(&loaded.root).is_err() {
+    if configuration(&loaded.root, loaded.plan.worktree_config).is_err() {
         row(
             &mut rows,
             "repository",

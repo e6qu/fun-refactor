@@ -1544,6 +1544,37 @@ fn worktree_recovery_matches_lean_for_all_file_states() {
 }
 
 #[test]
+fn worktree_configuration_matches_lean_for_every_boolean_input() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("worktree-configuration")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for reviewed_mode in [false, true] {
+        for observed_mode in [false, true] {
+            for config_present in [false, true] {
+                for config_regular in [false, true] {
+                    expected.push(fun_refactor::git::worktree_configuration_allowed(
+                        reviewed_mode,
+                        observed_mode,
+                        config_present,
+                        config_regular,
+                    ));
+                }
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}
+
+#[test]
 fn worktree_removal_matches_lean_for_all_file_states() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))

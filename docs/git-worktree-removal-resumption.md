@@ -18,7 +18,7 @@ The command returns JSON in both output modes. File bodies and archived metadata
 The record must be a regular `record.json` file in a removal archive directly under the shared Git directory.
 The reader accepts the existing version-one removal format and limits the record to 128 MiB.
 It checks ownership fields, parent identities, allowed private metadata paths and the recorded Git links.
-Archived metadata contents retain the removal limit of 16 MiB in total.
+Archived metadata contents retain the removal limit of 16 MiB in total, including any preserved `config.worktree` bytes.
 The inventory and source hashes must agree with the retained commit; private metadata hashes must agree with the archived bytes.
 The original completed creation receipt must match its archived copy.
 Malformed, inconsistent, foreign and unsafe records refuse before deletion.
@@ -44,6 +44,7 @@ The basis binds the caller, archive bytes and identity, path states and current 
 Only an incomplete observation with no blockers reports `can_resume: true`.
 A completion marker prevents further writes, including when its contents are invalid or paths have reappeared.
 The owned branch must still be direct and point to the commit reviewed for removal.
+The repository-local `extensions.worktreeConfig` mode must still match the archived creation receipt.
 
 Resumption accepts partial checkout deletion, partial private metadata deletion and absent checkout or metadata roots.
 It can also confirm a removal whose directories disappeared before its completion marker was written.

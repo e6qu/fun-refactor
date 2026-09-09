@@ -77,6 +77,8 @@ pub(super) struct Receipt {
     pub(super) complete: bool,
     pub(super) common: PathBuf,
     pub(super) common_identity: (u64, u64),
+    #[serde(default)]
+    pub(super) worktree_config: bool,
     pub(super) destination: PathBuf,
     pub(super) parent_identity: (u64, u64),
     pub(super) destination_identity: (u64, u64),
@@ -107,6 +109,7 @@ impl Receipt {
             complete: false,
             common: plan.common.clone(),
             common_identity: plan.common_identity,
+            worktree_config: plan.worktree_config,
             destination: plan.destination.clone(),
             parent_identity: plan.parent_identity,
             destination_identity,

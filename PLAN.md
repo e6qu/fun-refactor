@@ -214,13 +214,13 @@ Measured outcome:
 
 ### PR 3. Durable Git Workspace Lifecycle
 
-Status: in progress on `durable_git_workspace_lifecycle`. The first checkpoint adds reviewed per-worktree staging-journal compaction with explicit stack retention, stable audit summaries and formal selection laws. The second applies existing archive checks to explicit bulk retention of completed worktree removals, with one aggregate basis and partial-result evidence. The third exposes read-only staging crash evidence and formally classifies pending, index-lock and preparation states without claiming that age proves safe removal. The fourth preserves selected assume-unchanged and skip-worktree flags through staging, removal, undo, redo and recovery while continuing to reject intent-to-add.
+Status: in progress on `durable_git_workspace_lifecycle`. The first checkpoint adds reviewed per-worktree staging-journal compaction with explicit stack retention, stable audit summaries and formal selection laws. The second applies existing archive checks to explicit bulk retention of completed worktree removals, with one aggregate basis and partial-result evidence. The third exposes read-only staging crash evidence and formally classifies pending, index-lock and preparation states without claiming that age proves safe removal. The fourth preserves selected assume-unchanged and skip-worktree flags through staging, removal, undo, redo and recovery while continuing to reject intent-to-add. The fifth supports repository worktree configuration throughout creation, interrupted recovery and removal, preserving and archiving bounded `config.worktree` bytes under a formally checked mode-and-file guard.
 
 Goal: finish the repository workflow needed for long-running agent changes and recovery.
 
 Deliverables:
 
-- Extend raw checkout and patch behavior to the required file modes and per-worktree configuration.
+- Extend raw checkout and patch behavior to the remaining required file modes; repository worktree configuration is complete.
 - Improve recovery for failures before ownership-receipt publication.
 - Expose stale-lock and uncertain crash states with actionable inspection evidence.
 - Add staging-journal retention and checked compaction.

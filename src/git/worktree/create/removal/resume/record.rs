@@ -96,7 +96,8 @@ impl Loaded {
                 && plan.destination == receipt.destination
                 && plan.parent_identity == receipt.parent_identity
                 && plan.branch == receipt.branch
-                && plan.existing_branch == receipt.existing_branch,
+                && plan.existing_branch == receipt.existing_branch
+                && plan.worktree_config == receipt.worktree_config,
             "removal archive ownership does not match its repository."
         );
         ensure!(
@@ -207,6 +208,7 @@ impl Loaded {
                     "gitdir",
                     "locked",
                     "fr-creation.json",
+                    "config.worktree",
                     "logs/HEAD",
                     "COMMIT_EDITMSG",
                     "ORIG_HEAD"

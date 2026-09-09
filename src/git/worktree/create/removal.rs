@@ -74,18 +74,26 @@ struct Snapshot {
     gitfile: FileState,
 }
 
-fn configuration(root: &Path) -> Result<()> {
-    for (key, allowed) in [
-        ("extensions.refStorage", "files"),
-        ("extensions.worktreeConfig", "false"),
-    ] {
-        let output = crate::git::process::run(root, &super::args(&["config", "--get", key]), None)?;
-        ensure!(
-            output.status.code() == Some(1)
-                || (output.status.success() && super::line(&output.stdout)? == allowed),
-            "unsupported removal configuration: {key}."
-        );
-    }
+fn configuration(root: &Path, expected_worktree_config: bool) -> Result<()> {
+    let output = crate::git::process::run(
+        root,
+        &super::args(&["config", "--local", "--get", "extensions.refStorage"]),
+        None,
+    )?;
+    ensure!(
+        output.status.code() == Some(1)
+            || (output.status.success() && super::line(&output.stdout)? == "files"),
+        "unsupported removal configuration: extensions.refStorage."
+    );
+    ensure!(
+        crate::git::worktree_configuration_allowed(
+            expected_worktree_config,
+            super::worktree_config(root)?,
+            false,
+            false
+        ),
+        "extensions.worktreeConfig changed after reviewed creation."
+    );
     Ok(())
 }
 
@@ -95,7 +103,7 @@ fn observe(capture: &recovery::Capture, leases: &[ownership::Lease]) -> Result<S
         checkout.missing.is_empty() && checkout.index.is_some(),
         "removal requires a complete clean checkout and index."
     );
-    configuration(&capture.plan.root)?;
+    configuration(&capture.plan.root, capture.plan.worktree_config)?;
     branch::check(
         &capture.plan.root,
         &capture.plan.branch,
@@ -131,6 +139,7 @@ fn observe(capture: &recovery::Capture, leases: &[ownership::Lease]) -> Result<S
                         "gitdir",
                         "locked",
                         "fr-creation.json",
+                        "config.worktree",
                         "logs/HEAD",
                         "COMMIT_EDITMSG",
                         "ORIG_HEAD"
@@ -335,6 +344,7 @@ pub(in crate::git::worktree) fn report(root: &Path, options: &RemoveOptions) -> 
         "applied":false,"basis":token,"basis_verified":options.basis.is_some(),"repository_root":capture.plan.root,
         "destination":capture.plan.destination,"branch":format!("refs/heads/{}",capture.plan.branch),
         "commit":capture.plan.commit,"tree":capture.plan.tree,"branch_action":"retain","atomic_snapshot":false,
+        "worktree_config":capture.plan.worktree_config,"worktree_config_file":snapshot.checkout.worktree_config.is_some(),
         "files":capture.plan.files.iter().take(options.limit).collect::<Vec<_>>(),
         "page":{"total":capture.plan.files.len(),"returned":capture.plan.files.len().min(options.limit),
             "omitted":capture.plan.files.len().saturating_sub(options.limit)}});

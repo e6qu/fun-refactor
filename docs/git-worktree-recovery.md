@@ -16,7 +16,7 @@ The command returns JSON in both output modes.
 
 New creation operations record `fr-creation.json` in the linked worktree's private Git metadata directory.
 The receipt binds the canonical destination, its parent, shared Git directory and linked metadata directory to their filesystem identities.
-It also binds the `.git` link file's identity and bytes, branch, commit and tree.
+It also binds the `.git` link file's identity and bytes, branch, commit, tree and repository-local `extensions.worktreeConfig` mode.
 The receipt records whether creation used an existing branch; older receipts default to new-branch mode.
 The file starts with `complete: false`. Creation or recovery changes it to `complete: true` after checkout verification and synchronization.
 Successful creation reports its `ownership_record` path.
@@ -37,6 +37,10 @@ It inventories the entire destination, including ignored paths, and refuses extr
 Existing tracked files must match committed bytes and the Git executable bit.
 Matching files retain their bytes, permissions and inode identities. Missing tracked files can be created.
 Symlinks and other non-regular entries refuse.
+
+When worktree configuration is enabled, recovery accepts an absent `config.worktree` or preserves an existing regular file of at most 1 MiB.
+Its identity, mode and content digest participate in the basis, and recovery verifies that the file remains unchanged before completing the receipt.
+Changing the repository-local `extensions.worktreeConfig` mode after creation refuses recovery.
 
 An existing index must match the complete committed inventory with plain entries.
 Staged changes, unmerged entries, assume-unchanged, skip-worktree and intent-to-add states refuse.
@@ -79,8 +83,9 @@ Readers do not take these locks, and hostile concurrent filesystem changes remai
 Recovery does not guarantee restoration after partial writes that leave differing file bytes; it refuses those files for inspection.
 
 The anchored recovery predicate has Lean proofs for missing-file acceptance and existing-file matching requirements.
+The configuration predicate proves that an accepted state has the reviewed repository mode and a regular file whenever the per-worktree configuration path is present.
 Abstract file models prove preservation of accepted existing contents and modes, and refusal of changed files.
-Shared Rust/Lean tests exercise all boolean predicate inputs.
+Shared Rust/Lean tests exercise all boolean inputs for both predicates.
 Filesystem ownership, locks, receipt durability and the complete Rust workflow remain outside general correspondence proofs.
 
 Completed receipts support [reviewed removal](git-worktree-removal.md) of clean owned worktrees.
