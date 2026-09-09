@@ -21,6 +21,24 @@ fn run(root: &Path, args: &[&str]) -> (bool, Value) {
     (output.status.success(), report)
 }
 
+fn run_without_git(root: &Path, args: &[&str]) -> (bool, Value) {
+    let output = Command::new(env!("CARGO_BIN_EXE_fr"))
+        .env("PATH", "/nonexistent-fr-history-test")
+        .args(["--json", "--no-cache", "-C"])
+        .arg(root)
+        .args(args)
+        .output()
+        .unwrap();
+    let report = serde_json::from_slice(&output.stdout).unwrap_or_else(|error| {
+        panic!(
+            "{args:?}: {error}\n{}\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        )
+    });
+    (output.status.success(), report)
+}
+
 fn ok(root: &Path, args: &[&str]) -> Value {
     let (success, report) = run(root, args);
     assert!(success, "{args:?}: {report}");
@@ -165,6 +183,30 @@ fn source_undo_and_redo_preserve_affected_staging_and_unrelated_git_state() {
     assert_eq!(
         fs::read_to_string(root.join("untracked.txt")).unwrap(),
         "later untracked\n"
+    );
+}
+
+#[test]
+fn analysis_and_source_history_work_without_git() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let original = "fn helper() {}\nfn main() { helper(); }\n";
+    fs::write(root.join("app.rs"), original).unwrap();
+
+    let (scanned, report) = run_without_git(root, &["scan"]);
+    assert!(scanned, "{report}");
+    assert_eq!(report["files"].as_array().unwrap().len(), 1);
+
+    let (saved, plan) = run_without_git(root, &["rename", "helper", "renamed", "--save-plan"]);
+    assert!(saved, "{plan}");
+    let id = plan["transaction"].as_u64().unwrap().to_string();
+    for action in ["apply", "undo", "redo"] {
+        let (accepted, transition) = run_without_git(root, &["history", action, &id, "--write"]);
+        assert!(accepted, "{action}: {transition}");
+    }
+    assert_eq!(
+        fs::read_to_string(root.join("app.rs")).unwrap(),
+        original.replace("helper", "renamed")
     );
 }
 

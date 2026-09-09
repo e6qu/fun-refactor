@@ -27,6 +27,7 @@ half the work, and does not do nothing quietly.
 ## Write guarantees
 
 Native source editing commands record a transaction in `.fr-history/state.json` before changing source.
+Ordinary analysis and the complete source-history workflow do not require Git to be installed.
 The journal stores before/after text, existence, Unix permission modes, validation labels and source digests.
 Replacements use staged files and filesystem renames. Other processes can observe intermediate states.
 A handled failure restores the starting snapshots when the current files still match this transaction.

@@ -29,6 +29,8 @@ The ninth checkpoint closes the source-history preservation deliverable with a d
 An affected path may already be staged before planning. Apply, undo and redo leave the index byte-identical.
 They retain unrelated staged and unstaged content, a later tracked source edit and a later untracked file.
 The History kernel now models selected namespace replay. It proves that replay installs selected snapshots and preserves every unselected path's current value.
+The tenth checkpoint runs scan plus save, apply, undo and redo with `PATH` pointing to a nonexistent directory.
+This establishes the CLI boundary that ordinary analysis and source history do not require a Git executable.
 PR 2's first checkpoint extends exact-byte Rust insertion to impl and trait bodies and generalizes the insertion placement model.
 The second checkpoint authors TypeScript/TSX expression-bodied arrows and permits checked transitions between expression and block bodies.
 The third checkpoint adds Java method, constructor and default-interface body authoring through the same checked splice and history path.
