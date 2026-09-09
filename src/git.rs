@@ -198,6 +198,10 @@ pub fn staging_transition_allowed(
     matches_before || (recovery && matches_after)
 }
 
+pub fn staging_record_compactable(detailed: bool, pending: bool, retained: bool) -> bool {
+    detailed && !pending && !retained
+}
+
 pub fn commit_basis_matches(
     expected_branch: &str,
     observed_branch: &str,

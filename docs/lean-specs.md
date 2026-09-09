@@ -358,8 +358,8 @@ The local [Lean skill](../.claude/skills/lean-spec/SKILL.md) describes the imple
 The portable agent skill includes a [Lean reference](../skills/fr/references/lean.md) with an executable anchor-review workflow.
 
 Staging proposals reuse the same anchored Git mode projection and shared snapshot readers as explicit call context.
-Staging history adds an anchored transition predicate, checked against all boolean inputs, and abstract index replacement laws.
-Those laws establish undo/redo round trips and preservation of unselected entries.
+Staging history adds anchored transition and compaction predicates, each checked against all boolean inputs, plus abstract index and payload laws.
+Those laws establish undo/redo round trips, preservation of unselected entries, compaction idempotence and selected-payload removal.
 Index locking, journal durability, basis hashing and prepared installation remain outside complete correspondence proofs.
 See [staging history assurance](git-stage-history.md#formal-coverage) for assumptions and tested behavior.
 

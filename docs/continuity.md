@@ -2,7 +2,12 @@
 
 PR 0, the agent-ready verified refactoring foundation, merged as GitHub PR 259.
 PR 1, Agent Context Protocol v2, merged as GitHub PR 261.
-The current `generalized_structural_authoring` branch completes roadmap PR 2 and is ready for review. Its first checkpoint extends exact-byte Rust insertion to impl and trait bodies and generalizes the insertion placement model.
+PR 2, Generalized Structural Authoring, merged as GitHub PR 262.
+The current `durable_git_workspace_lifecycle` branch is roadmap PR 3. Its first checkpoint adds checked staging-journal compaction with explicit per-stack retention.
+Compacted records retain stable IDs, statuses, path counts and digests while discarding bytes that can no longer be replayed.
+Preview/write bases, the index lock and full journal rechecks preserve the index, working files and concurrent staging state.
+Lean proves compaction selection requirements, unselected-payload preservation and idempotence; all eight boolean selection states agree with Rust.
+PR 2's first checkpoint extends exact-byte Rust insertion to impl and trait bodies and generalizes the insertion placement model.
 The second checkpoint authors TypeScript/TSX expression-bodied arrows and permits checked transitions between expression and block bodies.
 The third checkpoint adds Java method, constructor and default-interface body authoring through the same checked splice and history path.
 The fourth checkpoint lets one authoring batch combine declaration, caller and conservative import-organization changes.

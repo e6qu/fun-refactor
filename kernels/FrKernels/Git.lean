@@ -83,6 +83,38 @@ theorem staging_recovery_accepts_either (before after : Bool) :
 theorem staging_recovery_refuses_other :
     stagingTransitionAllowed false false true = false := rfl
 
+-- fr:spec src/git.rs::staging_record_compactable @ b950d8b98a91ce3745e26cc2ec39494ed41f90379043541e41f344fe52dbbdda
+-- fr:signature detailed: bool => detailed: Bool; pending: bool => pending: Bool; retained: bool => retained: Bool; return: bool => return: Bool
+def stagingRecordCompactable (detailed : Bool) (pending : Bool) (retained : Bool) : Bool :=
+  detailed && !pending && !retained
+
+theorem staging_compaction_requires_detail (detailed pending retained : Bool)
+    (allowed : stagingRecordCompactable detailed pending retained = true) : detailed = true := by
+  cases detailed <;> cases pending <;> cases retained <;>
+    simp_all [stagingRecordCompactable]
+
+theorem staging_compaction_refuses_pending (detailed retained : Bool) :
+    stagingRecordCompactable detailed true retained = false := by
+  cases detailed <;> cases retained <;> rfl
+
+theorem staging_compaction_preserves_retained (detailed pending : Bool) :
+    stagingRecordCompactable detailed pending true = false := by
+  cases detailed <;> cases pending <;> rfl
+
+def compactStagingPayload (payload : Option String) (selected : Bool) : Option String :=
+  if selected then none else payload
+
+theorem staging_compaction_preserves_unselected (payload : Option String) :
+    compactStagingPayload payload false = payload := by rfl
+
+theorem staging_compaction_discards_selected (payload : Option String) :
+    compactStagingPayload payload true = none := by rfl
+
+theorem staging_compaction_is_idempotent (payload : Option String) (selected : Bool) :
+    compactStagingPayload (compactStagingPayload payload selected) selected =
+      compactStagingPayload payload selected := by
+  cases selected <;> rfl
+
 abbrev StagingIndex := String → Option (Nat × String)
 
 def replaceSelected (current target : StagingIndex) (selected : String → Bool) : StagingIndex :=

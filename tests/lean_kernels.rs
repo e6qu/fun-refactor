@@ -1374,6 +1374,32 @@ fn staging_transition_matches_lean_for_every_boolean_input() {
 }
 
 #[test]
+fn staging_record_compaction_matches_lean_for_every_boolean_input() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("staging-record-compaction")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let actual = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| line.parse::<bool>().unwrap())
+        .collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for detailed in [false, true] {
+        for pending in [false, true] {
+            for retained in [false, true] {
+                expected.push(fun_refactor::git::staging_record_compactable(
+                    detailed, pending, retained,
+                ));
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}
+
+#[test]
 fn commit_basis_matches_lean_for_branch_and_parent_changes() {
     build_kernel();
     let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))

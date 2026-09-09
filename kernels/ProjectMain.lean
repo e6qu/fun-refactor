@@ -121,6 +121,11 @@ def main (args : List String) : IO Unit := do
       for after in [false, true] do
         for recovery in [false, true] do
           IO.println (FrKernels.Git.stagingTransitionAllowed before after recovery)
+  else if args == ["staging-record-compaction"] then
+    for detailed in [false, true] do
+      for pending in [false, true] do
+        for retained in [false, true] do
+          IO.println (FrKernels.Git.stagingRecordCompactable detailed pending retained)
   else if args == ["call-selection"] then
     for incoming in [false, true] do
       for outgoing in [false, true] do

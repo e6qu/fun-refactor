@@ -214,6 +214,8 @@ Measured outcome:
 
 ### PR 3. Durable Git Workspace Lifecycle
 
+Status: in progress on `durable_git_workspace_lifecycle`. The first checkpoint adds reviewed per-worktree staging-journal compaction with explicit stack retention, stable audit summaries and formal selection laws.
+
 Goal: finish the repository workflow needed for long-running agent changes and recovery.
 
 Deliverables:

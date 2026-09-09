@@ -265,6 +265,225 @@ fn journal_enforces_stack_order_stale_tokens_and_redo_invalidation() {
 }
 
 #[test]
+fn compaction_retires_old_replay_payloads_without_changing_files_or_index() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    fixture(root);
+    assert_eq!(stage(root, &["file.txt"]), 1);
+    fs::write(root.join("other.txt"), "second\n").unwrap();
+    assert_eq!(stage(root, &["other.txt"]), 2);
+    fs::write(root.join("file.txt"), "third\n").unwrap();
+    assert_eq!(stage(root, &["file.txt"]), 3);
+
+    let index = fs::read(root.join(".git/index")).unwrap();
+    let file = fs::read(root.join("file.txt")).unwrap();
+    let other = fs::read(root.join("other.txt")).unwrap();
+    let journal_path = root.join(".git/fr-stage/state.json");
+    let journal = fs::read(&journal_path).unwrap();
+
+    let preview = read_history(root, &["compact", "--keep", "1"]);
+    assert_eq!(preview["operation"], "stage-history-compact-preview");
+    assert_eq!(preview["records_compacted"], 2);
+    assert_eq!(preview["paths_compacted"], 2);
+    assert_eq!(preview["undo_after"], 3);
+    assert!(
+        preview["journal_bytes_after"].as_u64().unwrap()
+            < preview["journal_bytes_before"].as_u64().unwrap()
+    );
+    assert_eq!(fs::read(&journal_path).unwrap(), journal);
+
+    let applied = read_history(
+        root,
+        &[
+            "compact",
+            "--keep",
+            "1",
+            "--basis",
+            preview["basis"].as_str().unwrap(),
+            "--write",
+        ],
+    );
+    assert_eq!(applied["applied"], true);
+    assert_eq!(fs::read(root.join(".git/index")).unwrap(), index);
+    assert_eq!(fs::read(root.join("file.txt")).unwrap(), file);
+    assert_eq!(fs::read(root.join("other.txt")).unwrap(), other);
+
+    let list = read_history(root, &["list"]);
+    assert_eq!(list["total"], 3);
+    assert_eq!(list["records"][0]["id"], 3);
+    assert_eq!(list["records"][0]["compacted"], false);
+    assert_eq!(list["records"][1]["id"], 2);
+    assert_eq!(list["records"][1]["compacted"], true);
+    assert_eq!(list["records"][2]["id"], 1);
+    assert_eq!(list["records"][2]["paths"], 1);
+    let show = read_history(root, &["show", "1"]);
+    assert_eq!(show["record"]["compacted"], true);
+    assert!(show["record"]["entries"].is_null());
+
+    replay(root, &["undo", "3"]);
+    history_error(root, &["undo", "2"], "top transaction");
+    let preview = read_history(root, &["compact", "--keep", "0"]);
+    assert_eq!(preview["records_compacted"], 1);
+    let result = read_history(
+        root,
+        &[
+            "compact",
+            "--keep",
+            "0",
+            "--basis",
+            preview["basis"].as_str().unwrap(),
+            "--write",
+        ],
+    );
+    assert!(result["undo_after"].is_null());
+    assert!(result["redo_after"].is_null());
+    history_error(root, &["redo", "3"], "top transaction");
+
+    fs::write(root.join("other.txt"), "fourth\n").unwrap();
+    assert_eq!(stage(root, &["other.txt"]), 4);
+    assert_eq!(
+        read_history(root, &["show", "4"])["record"]["compacted"],
+        false
+    );
+}
+
+#[test]
+fn compaction_discards_abandoned_payloads_even_when_both_stacks_are_retained() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    fixture(root);
+    stage(root, &["file.txt"]);
+    replay(root, &["undo", "1"]);
+    fs::write(root.join("other.txt"), "new branch\n").unwrap();
+    assert_eq!(stage(root, &["other.txt"]), 2);
+
+    let preview = read_history(root, &["compact"]);
+    assert_eq!(preview["keep_per_stack"], 100);
+    assert_eq!(preview["records_compacted"], 1);
+    let applied = read_history(
+        root,
+        &[
+            "compact",
+            "--basis",
+            preview["basis"].as_str().unwrap(),
+            "--write",
+        ],
+    );
+    assert_eq!(applied["applied"], true);
+    assert_eq!(
+        read_history(root, &["show", "1"])["record"]["compacted"],
+        true
+    );
+    assert_eq!(
+        read_history(root, &["show", "2"])["record"]["compacted"],
+        false
+    );
+    replay(root, &["undo", "2"]);
+}
+
+#[test]
+fn compaction_reports_an_unconfirmed_storage_failure_without_touching_the_index() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    fixture(root);
+    stage(root, &["file.txt"]);
+    fs::write(root.join("other.txt"), "second\n").unwrap();
+    stage(root, &["other.txt"]);
+    let preview = read_history(root, &["compact", "--keep", "1"]);
+    let index = fs::read(root.join(".git/index")).unwrap();
+    let journal_dir = root.join(".git/fr-stage");
+    let journal = fs::read(journal_dir.join("state.json")).unwrap();
+    fs::set_permissions(&journal_dir, fs::Permissions::from_mode(0o500)).unwrap();
+    let output = history(
+        root,
+        &[
+            "compact",
+            "--keep",
+            "1",
+            "--basis",
+            preview["basis"].as_str().unwrap(),
+            "--write",
+        ],
+    )
+    .output()
+    .unwrap();
+    fs::set_permissions(&journal_dir, fs::Permissions::from_mode(0o700)).unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let result: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert!(result["applied"].is_null());
+    assert!(result["warning"].as_str().unwrap().contains("unconfirmed"));
+    assert_eq!(fs::read(root.join(".git/index")).unwrap(), index);
+    assert_eq!(fs::read(journal_dir.join("state.json")).unwrap(), journal);
+}
+
+#[test]
+fn compaction_refuses_stale_empty_pending_and_corrupt_requests() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    fixture(root);
+    stage(root, &["file.txt"]);
+    fs::write(root.join("other.txt"), "second\n").unwrap();
+    stage(root, &["other.txt"]);
+    let stale = read_history(root, &["compact", "--keep", "1"]);
+    fs::write(root.join("file.txt"), "third\n").unwrap();
+    stage(root, &["file.txt"]);
+    history_error(
+        root,
+        &[
+            "compact",
+            "--keep",
+            "1",
+            "--basis",
+            stale["basis"].as_str().unwrap(),
+            "--write",
+        ],
+        "stale staging compaction basis",
+    );
+    history_error(root, &["compact", "--keep", "10001"], "0 through 10000");
+    let no_work = read_history(root, &["compact", "--keep", "100"]);
+    assert_eq!(no_work["can_compact"], false);
+    history_error(
+        root,
+        &[
+            "compact",
+            "--keep",
+            "100",
+            "--basis",
+            no_work["basis"].as_str().unwrap(),
+            "--write",
+        ],
+        "no replay payloads",
+    );
+
+    replay(root, &["undo", "3"]);
+    replay(root, &["undo", "2"]);
+    set_pending(root, "undo", false);
+    history_error(root, &["compact", "--keep", "0"], "needs recovery");
+    replay(root, &["recover"]);
+    let preview = read_history(root, &["compact", "--keep", "0"]);
+    read_history(
+        root,
+        &[
+            "compact",
+            "--keep",
+            "0",
+            "--basis",
+            preview["basis"].as_str().unwrap(),
+            "--write",
+        ],
+    );
+    let path = root.join(".git/fr-stage/state.json");
+    let mut corrupt: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    corrupt["records"][0]["compacted_paths"] = json!(0);
+    fs::write(path, serde_json::to_vec(&corrupt).unwrap()).unwrap();
+    history_error(root, &["list"], "compaction summary");
+}
+
+#[test]
 fn journal_refuses_selected_external_edits_and_special_flags() {
     for flag in ["--assume-unchanged", "--skip-worktree", "content"] {
         let dir = tempfile::tempdir().unwrap();

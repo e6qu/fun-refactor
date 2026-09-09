@@ -5,6 +5,7 @@
 Use `fr git stage PATH...` for explicit paths, inspect the returned basis and index changes, then use the same selection with `--basis TOKEN --write`.
 Staging uses raw bytes and refuses unsupported index states and affected content filters.
 Its `fr git stage-history` IDs belong to an index journal, not source history.
+Use `stage-history compact --keep N` to preview retention after reviewing which undo and redo payloads will remain. Apply only with its own basis; compacted records retain audit summaries but cannot be replayed.
 Use `fr git commit` help and preview for an authorized commit; the reviewed write binds the branch, parent and index.
 Do not infer permission to commit, push or publish from a request to inspect or export.
 

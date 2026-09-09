@@ -11,6 +11,8 @@ fr git stage-history undo 1
 fr git stage-history undo 1 --basis TOKEN --write
 fr git stage-history redo 1
 fr git stage-history redo 1 --basis TOKEN --write
+fr git stage-history compact --keep 100
+fr git stage-history compact --keep 100 --basis TOKEN --write
 ```
 
 List and show omit blob bodies. List returns newest records first, with a limit from 1 through 500, total count and next undo/redo identities.
@@ -30,6 +32,24 @@ Undo and redo follow separate stacks. The newest applied transaction is undone f
 A new changed staging transaction abandons the redo branch only after successful installation and journal finalization.
 Records remain available for inspection after abandonment.
 [Reviewed commits](git-commit.md) preserve completed staging history. A later staging undo changes the index relative to HEAD without removing the commit.
+
+## Retention and compaction
+
+`compact --keep N` previews removal of old replay payloads while retaining every record identity, status, path count and audit digest.
+It keeps the top `N` detailed records on the undo stack and the top `N` on the redo stack.
+Abandoned payloads are eligible immediately because they cannot be replayed.
+The default is 100 per stack; zero retires all current undo and redo payloads.
+
+The preview reports selected records and paths, journal bytes before and after, the resulting stack tops and a `frstagecompact1:` basis.
+The checked write requires that basis, takes the worktree's Git index lock and rechecks the complete journal before replacing it.
+It does not read or change the index, working files, HEAD, Git objects or source history.
+A pending staging transition refuses compaction until recovery finishes.
+Only `applied: true` confirms compaction. A storage or sync failure returns `applied: null` with bounded diagnostics because the replacement may already be visible.
+
+Compacted records remain visible to `list` and `show` with `compacted: true`.
+They retain their original content digest plus a digest over the compacted audit summary, but omit `entries` because their before/after bytes are gone.
+Compaction cannot be undone, and a retired record cannot later become an undo or redo target.
+New records continue with the next monotonic ID.
 
 The transition basis binds the full journal state, action, transaction and current selected index identities.
 A later unrelated index change leaves the basis valid; a journal change invalidates it.
@@ -82,13 +102,15 @@ After process termination, an owned `index.lock` or temporary preparation direct
 Confirm the writer has exited before removing a stale lock, then inspect recovery. The tool does not guess whether an existing lock is stale.
 Keep configuration, HEAD, journal storage and repository directory topology stable during operations.
 The index lock cannot constrain writers that bypass it, and filesystem durability still depends on the host honoring sync and atomic rename.
-There is no journal retention or compaction policy yet; reads validate and load the complete journal, despite bounded report rows.
+Compaction bounds retained replay payloads, while record summaries and their IDs remain in the journal for audit.
+The command is explicit rather than time based and does not remove summaries.
 
 ## Formal coverage
 
-The [Git Lean model](../kernels/FrKernels/Git.lean) anchors the transition acceptance predicate and checks every boolean input against Rust.
+The [Git Lean model](../kernels/FrKernels/Git.lean) anchors the transition and record-compaction predicates and checks every boolean input against Rust.
 Its abstract index laws prove undo/redo round trips and preservation of unselected paths, including later unrelated changes.
+Its payload model proves that selected compaction discards detail, preserves unselected detail and is idempotent.
 These laws assume correct snapshot identities and replacement of exactly the selected entries.
 The existing history stack laws also describe the intended undo/redo ordering.
 Filesystem execution, journal parsing, object storage, crash durability and complete Rust correspondence remain outside these proofs.
-Regression tests cover the implemented journal, replay and recovery paths.
+Regression tests cover the implemented journal, replay, recovery and compaction paths.
