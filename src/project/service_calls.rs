@@ -1,4 +1,5 @@
 use crate::lang::Language;
+use crate::project::framework_kernel;
 use tree_sitter::Node;
 
 const METHODS: &[&str] = &["get", "post", "put", "patch", "delete", "head", "options"];
@@ -53,12 +54,13 @@ fn literal(node: Node<'_>, source: &str) -> Option<String> {
 fn sanitize_target(raw: &str) -> (String, &'static str, bool, bool) {
     let boundary = raw.find(['?', '#']).unwrap_or(raw.len());
     let mut target = raw[..boundary].to_owned();
-    let kind = if raw.starts_with("http://") || raw.starts_with("https://") {
-        "external-http"
-    } else if raw.starts_with('/') {
-        "local-http"
-    } else {
-        "relative-http"
+    let kind = match framework_kernel::service_target_kind(
+        raw.starts_with("http://") || raw.starts_with("https://"),
+        raw.starts_with('/'),
+    ) {
+        2 => "external-http",
+        1 => "local-http",
+        _ => "relative-http",
     };
     let credentials_omitted = if let Some(scheme) = target.find("://") {
         let authority_start = scheme + 3;
@@ -74,7 +76,9 @@ fn sanitize_target(raw: &str) -> (String, &'static str, bool, bool) {
     } else {
         false
     };
-    (target, kind, boundary < raw.len(), credentials_omitted)
+    let flags =
+        framework_kernel::service_redaction_flags(boundary < raw.len(), credentials_omitted);
+    (target, kind, flags & 1 != 0, flags & 2 != 0)
 }
 
 fn typescript_call(call: Node<'_>, source: &str) -> Option<(Option<String>, &'static str)> {

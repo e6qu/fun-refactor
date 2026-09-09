@@ -4,7 +4,7 @@ use super::{
 };
 use crate::lang::Language;
 use crate::parse::Parsers;
-use crate::project::{components, Project};
+use crate::project::{components, framework_kernel, Project};
 use anyhow::Result;
 use serde_json::{json, Value};
 
@@ -175,7 +175,7 @@ impl Project<'_> {
                     counts.component_properties += 1;
                 }
                 for state in component.states {
-                    if !component.client {
+                    if !framework_kernel::component_hooks_compatible(component.client, 1) {
                         counts.component_gaps += 1;
                     }
                     if self.component_detail(
@@ -192,7 +192,7 @@ impl Project<'_> {
                     )? { counts.component_states += 1; }
                 }
                 for effect in component.effects {
-                    if !component.client {
+                    if !framework_kernel::component_hooks_compatible(component.client, 1) {
                         counts.component_gaps += 1;
                     }
                     if self.component_detail(

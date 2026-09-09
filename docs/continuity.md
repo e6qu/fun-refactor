@@ -35,7 +35,11 @@ Direct React function components retain server-default or `use client` placement
 The reader exposes no prop values, hook initializers, effect bodies, event bodies or class values.
 Malformed page paths and stateful server-default components remain explicit gaps or conflicts.
 Limits cap components at 128 and child details at 512 per query.
-Imported component resolution, layouts and custom hooks remain open before the formal correspondence and fixture audit.
+The sixth checkpoint extracts seven framework policy helpers used by production reporting and anchors them in `FrKernels.Project`.
+Thirteen theorems cover cap partitioning, reverse middleware order, component hook placement, configuration visibility, service target tiers and redaction flags.
+All 263 bounded Rust/Lean results agree, strict source and signature verification passes with zero obligations, and the axiom audit records only standard Lean axioms for the arithmetic and hook proofs; the finite classifiers use none.
+Syntax recognition, framework runtime meaning and report assembly remain fixture-tested boundaries.
+Imported component resolution, layouts, custom hooks and the pinned framework audit remain open.
 Roadmap PR 4's first checkpoint added `fr spec init [PATH]` with a pinned toolchain, a minimal checked Lake target and refusal to overwrite differing files or escape through paths and symlinks.
 Initialization previews by default, supports saved plans and writes through source history. Apply, undo and redo cover files created below a new directory, while plan recording no longer creates the target directory as a lock side effect.
 A real integration case initializes an external temporary workspace and passes `fr spec verify specs` against Lake.

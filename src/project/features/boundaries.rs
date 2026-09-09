@@ -6,6 +6,7 @@ use super::{
 use crate::analysis::stitch;
 use crate::lang::Language;
 use crate::parse::{Parsed, Parsers};
+use crate::project::framework_kernel;
 use crate::project::{fast_routes, Project};
 use anyhow::Result;
 use serde_json::{json, Value};
@@ -227,14 +228,13 @@ impl Project<'_> {
             }
             configuration_budget -= 1;
             counts.runtime_configurations += 1;
-            let visibility = if application.framework == "nextjs-app"
-                && chain.env_var.starts_with("NEXT_PUBLIC_")
-            {
-                "client-build-time-candidate"
-            } else if application.framework == "nextjs-app" {
-                "server-default-candidate"
-            } else {
-                "server-process-candidate"
+            let visibility = match framework_kernel::configuration_visibility(
+                application.framework == "nextjs-app",
+                chain.env_var.starts_with("NEXT_PUBLIC_"),
+            ) {
+                2 => "client-build-time-candidate",
+                1 => "server-default-candidate",
+                _ => "server-process-candidate",
             };
             let detail = json!({
                 "name": bounded_text(&chain.env_var, 160),
@@ -314,12 +314,13 @@ impl Project<'_> {
             counts.runtime_configurations += 1;
             let detail = json!({
                 "name": bounded_text(name, 160),
-                "visibility": if application.framework == "nextjs-app" && name.starts_with("NEXT_PUBLIC_") {
-                    "client-build-time-candidate"
-                } else if application.framework == "nextjs-app" {
-                    "server-default-candidate"
-                } else {
-                    "server-process-candidate"
+                "visibility": match framework_kernel::configuration_visibility(
+                    application.framework == "nextjs-app",
+                    name.starts_with("NEXT_PUBLIC_"),
+                ) {
+                    2 => "client-build-time-candidate",
+                    1 => "server-default-candidate",
+                    _ => "server-process-candidate",
                 },
                 "workspace_consumer_count": consumers.len(),
                 "application_consumer_count": consumers.len(),
@@ -441,8 +442,11 @@ impl Project<'_> {
             let parsed = Parsers::new().parse(Language::Python, source)?;
             let mut middleware = fast_routes::middleware(&parsed, source);
             let total = middleware.len();
-            let omitted = total.saturating_sub(MIDDLEWARE_FACT_LIMIT);
-            middleware.truncate(MIDDLEWARE_FACT_LIMIT);
+            let omitted = framework_kernel::framework_omitted(total, MIDDLEWARE_FACT_LIMIT);
+            middleware.truncate(framework_kernel::framework_emitted(
+                total,
+                MIDDLEWARE_FACT_LIMIT,
+            ));
             for (index, entry) in middleware.into_iter().enumerate() {
                 counts.middleware += 1;
                 let resolved = entry.name.is_some();
@@ -456,7 +460,7 @@ impl Project<'_> {
                     "form": entry.form,
                     "name": entry.name.as_deref().map(|name| bounded_text(name, 160)),
                     "declaration_order": index + 1,
-                    "request_order": total - index,
+                    "request_order": framework_kernel::middleware_request_order(total, index),
                     "order_basis": "reverse-registration-order",
                 });
                 rows.push(fact(

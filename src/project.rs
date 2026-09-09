@@ -23,6 +23,7 @@ mod digest_tests;
 mod fast_routes;
 mod features;
 mod find;
+pub mod framework_kernel;
 mod links;
 mod manifests;
 mod next_routes;
