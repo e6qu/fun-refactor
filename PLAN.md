@@ -276,7 +276,7 @@ Every result distinguishes a proved model property, tested implementation/model 
 
 ### PR 5. Framework Semantic Model
 
-Status: in progress on `framework_semantic_model`. The first checkpoint adds a selectable route-centered hierarchy for the bounded Next.js App Router and FastAPI readers. The second links Next.js applications to captured npm packages, build scripts and dependency boundaries while preserving a FastAPI packaging gap. The third adds bounded Next.js Proxy and FastAPI middleware facts plus FastAPI parameter execution dependencies and `Security` authentication candidates. Every fact retains its parent, source anchor, evidence, confidence and explicit gaps.
+Status: in progress on `framework_semantic_model`. Three committed checkpoints provide the selectable hierarchy, npm boundaries and direct middleware or parameter dependency facts. The fourth checkpoint adds scoped FastAPI dependencies, lifecycle hooks, runtime configuration chains and sanitized outbound HTTP service candidates. Every fact retains its parent, source anchor, evidence, confidence and explicit gaps.
 
 Goal: represent a feature across application structure rather than as isolated syntax nodes.
 
@@ -284,13 +284,16 @@ Deliverables:
 
 - Model applications, packages, features, build settings and dependency boundaries; complete for npm-backed Next.js applications, with Python packaging still explicit as a gap.
 - Model backend routes, schemas and handlers; complete for the first bounded Next.js/FastAPI subset.
-- Model middleware and authentication boundaries; readers cover direct convention files, FastAPI HTTP registrations and parameter dependencies. Unsupported forms remain gaps.
-- Model service dependencies; open beyond direct FastAPI parameter provider names.
+- Model middleware and authentication boundaries; readers cover direct convention files plus application, route and parameter dependencies. Unsupported forms remain gaps.
+- Model lifecycle and runtime configuration boundaries; implemented for direct FastAPI and Next.js declarations with runtime validation still open.
+- Model service dependencies; readers recognize direct handler HTTP candidates. Client construction, non-HTTP services and runtime reachability remain open.
 - Model frontend components, properties, events, state, effects, styles and rendering boundaries.
 - Attach source anchors, confidence, unsupported constructs and validation evidence to every fact; complete for the first route-centered hierarchy.
 - Strengthen the existing Next.js and FastAPI readers before adding another backend pair.
 - Select one frontend pair and define a bounded component subset.
 - Keep framework-specific behavior visible where the shared model cannot express it.
+
+PR 5 completes each boundary against a named, versioned syntax subset. Executable fixtures validate runtime claims that source structure cannot establish.
 
 Verification and acceptance:
 

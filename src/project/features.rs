@@ -1,6 +1,7 @@
-use super::{bounded_text, fast_routes, hash, links, FeatureOptions, Project, RelationshipOptions};
-use crate::lang::Language;
-use crate::parse::Parsers;
+mod boundaries;
+
+use super::{bounded_text, hash, links, FeatureOptions, Project, RelationshipOptions};
+use crate::analysis::stitch;
 use anyhow::{bail, Result};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
@@ -11,6 +12,10 @@ const SCHEMA_EXPANSION_LIMIT: usize = 64;
 const BUILD_SETTING_LIMIT: usize = 64;
 const DEPENDENCY_FACT_LIMIT: usize = 256;
 const MIDDLEWARE_FACT_LIMIT: usize = 64;
+const LIFECYCLE_FACT_LIMIT: usize = 64;
+const CONFIGURATION_FACT_LIMIT: usize = 128;
+const CONFIGURATION_CONSUMER_LIMIT: usize = 256;
+const EXECUTION_DEPENDENCY_FACT_LIMIT: usize = 256;
 
 #[derive(Clone)]
 struct Feature {
@@ -45,8 +50,19 @@ struct BoundaryCounts {
     middleware: usize,
     middleware_gaps: usize,
     middleware_omitted: usize,
+    lifecycle_hooks: usize,
+    lifecycle_gaps: usize,
+    lifecycle_omitted: usize,
     execution_dependencies: usize,
+    execution_dependencies_omitted: usize,
     authentication_candidates: usize,
+    runtime_configurations: usize,
+    configuration_consumers: usize,
+    configuration_gaps: usize,
+    configurations_omitted: usize,
+    configuration_consumers_omitted: usize,
+    service_dependencies: usize,
+    service_gaps: usize,
 }
 
 fn key(value: &Value) -> String {
@@ -164,6 +180,8 @@ fn route_children(items: &[Value]) -> BTreeMap<String, Vec<Value>> {
                     | "route-contract-field"
                     | "route-contract-gap"
                     | "route-dependency"
+                    | "route-service-dependency"
+                    | "route-service-gap"
             )
         ) {
             if let Some(route) = item["route"].as_str() {
@@ -266,161 +284,6 @@ impl Project<'_> {
                 .push(route.clone());
         }
         Ok(applications)
-    }
-
-    fn file_source(&self, relative: &Path, line: usize) -> Value {
-        let handle = self
-            .nodes
-            .iter()
-            .position(|node| node.kind == "file" && node.path == relative)
-            .map(|node| self.handle(node));
-        json!({
-            "path": bounded_text(&relative.to_string_lossy(), 512),
-            "line": line,
-            "handle": handle,
-        })
-    }
-
-    fn middleware_facts(
-        &self,
-        application: &Application,
-        rows: &mut Vec<Value>,
-        counts: &mut BoundaryCounts,
-    ) -> Result<()> {
-        if application.framework == "fastapi" {
-            let Some(path) = value_text(&application.root).map(PathBuf::from) else {
-                return Ok(());
-            };
-            let absolute = self.root.join(&path);
-            let Some(source) = self.sources.get(&absolute) else {
-                return Ok(());
-            };
-            let parsed = Parsers::new().parse(Language::Python, source)?;
-            let mut middleware = fast_routes::middleware(&parsed, source);
-            let total = middleware.len();
-            let omitted = total.saturating_sub(MIDDLEWARE_FACT_LIMIT);
-            middleware.truncate(MIDDLEWARE_FACT_LIMIT);
-            for (index, entry) in middleware.into_iter().enumerate() {
-                counts.middleware += 1;
-                let resolved = entry.name.is_some();
-                let gaps = if resolved {
-                    json!(["Runtime registration, middleware behavior and response ordering remain unchecked."])
-                } else {
-                    json!(["The middleware callable exceeds the direct name subset; runtime behavior remains unchecked."])
-                };
-                let detail = json!({
-                    "framework": "fastapi",
-                    "form": entry.form,
-                    "name": entry.name.as_deref().map(|name| bounded_text(name, 160)),
-                    "declaration_order": index + 1,
-                    "request_order": total - index,
-                    "order_basis": "reverse-registration-order",
-                });
-                rows.push(fact(
-                    "middleware",
-                    child_id("frfm1", &self.revision, &application.id, &detail)?,
-                    Some(&application.id),
-                    self.file_source(&path, entry.line),
-                    FactEvidence::new(
-                        json!(entry.form),
-                        json!(if resolved { "candidate" } else { "unresolved" }),
-                        json!(if resolved { "name-only" } else { "unknown" }),
-                        gaps,
-                    ),
-                    "middleware",
-                    detail,
-                ));
-            }
-            if omitted > 0 {
-                counts.middleware_gaps += 1;
-                counts.middleware_omitted += omitted;
-                let reason = "The per-application middleware fact limit omitted registrations; narrow TARGET before relying on completeness.";
-                let detail = json!({"reason": reason, "omitted": omitted});
-                rows.push(fact(
-                    "framework-gap",
-                    child_id("frfg1", &self.revision, &application.id, &detail)?,
-                    Some(&application.id),
-                    application.source.clone(),
-                    FactEvidence::new(
-                        json!("middleware-fact-limit"),
-                        json!("gap"),
-                        Value::Null,
-                        json!([reason]),
-                    ),
-                    "gap",
-                    detail,
-                ));
-            }
-            return Ok(());
-        }
-
-        let Some(root) = value_text(&application.root) else {
-            return Ok(());
-        };
-        let root = if root == "." {
-            PathBuf::new()
-        } else {
-            PathBuf::from(root)
-        };
-        let conventions = [
-            ("proxy.ts", "nextjs-proxy", false),
-            ("proxy.js", "nextjs-proxy", false),
-            ("src/proxy.ts", "nextjs-proxy", false),
-            ("src/proxy.js", "nextjs-proxy", false),
-            ("middleware.ts", "nextjs-middleware", true),
-            ("middleware.js", "nextjs-middleware", true),
-            ("src/middleware.ts", "nextjs-middleware", true),
-            ("src/middleware.js", "nextjs-middleware", true),
-        ];
-        let found: Vec<_> = conventions
-            .into_iter()
-            .map(|(path, form, deprecated)| (root.join(path), form, deprecated))
-            .filter(|(path, _, _)| self.sources.contains_key(&self.root.join(path)))
-            .collect();
-        for (path, form, deprecated) in &found {
-            counts.middleware += 1;
-            let detail = json!({
-                "framework": "nextjs-app",
-                "form": form,
-                "name": if *deprecated { "middleware" } else { "proxy" },
-                "phase": "before-filesystem-routes",
-                "deprecated_convention": deprecated,
-            });
-            rows.push(fact(
-                "middleware",
-                child_id("frfm1", &self.revision, &application.id, &detail)?,
-                Some(&application.id),
-                self.file_source(path, 1),
-                FactEvidence::new(
-                    json!("nextjs-convention-file"),
-                    json!("candidate"),
-                    Value::Null,
-                    json!(["Export shape, matcher, execution runtime and request behavior remain unchecked."]),
-                ),
-                "middleware",
-                detail,
-            ));
-        }
-        if found.len() > 1 {
-            counts.middleware_gaps += 1;
-            let reason = "Multiple Next.js proxy or legacy middleware convention files need precedence review.";
-            let detail = json!({"reason": reason, "candidates": found.len()});
-            rows.push(fact(
-                "framework-gap",
-                child_id("frfg1", &self.revision, &application.id, &detail)?,
-                Some(&application.id),
-                application.source.clone(),
-                FactEvidence::new(
-                    json!("nextjs-convention-file"),
-                    json!("gap"),
-                    Value::Null,
-                    json!([reason]),
-                ),
-                "gap",
-                detail,
-            ));
-        }
-        Ok(())
     }
 
     fn package_facts(
@@ -789,6 +652,7 @@ impl Project<'_> {
             cursor: None,
         };
         let report = self.routes(&source_options, true, true)?;
+        let configuration = stitch::analyze_snapshot(self.index, &self.sources)?;
         let items = report["items"].as_array().cloned().unwrap_or_default();
         let source_omitted = report["page"]["remaining"].as_u64().unwrap_or(0) as usize;
         let applications = self.applications(&items)?;
@@ -854,6 +718,9 @@ impl Project<'_> {
             ));
             self.package_facts(application, &local_links, &mut rows, &mut package_counts)?;
             self.middleware_facts(application, &mut rows, &mut boundary_counts)?;
+            self.lifecycle_facts(application, &mut rows, &mut boundary_counts)?;
+            self.global_dependency_facts(application, &mut rows, &mut boundary_counts)?;
+            self.configuration_facts(application, &configuration, &mut rows, &mut boundary_counts)?;
             for feature in included {
                 feature_count += 1;
                 rows.push(fact(
@@ -1025,6 +892,12 @@ impl Project<'_> {
                                 }
                             }
                             Some("route-dependency") => {
+                                if boundary_counts.execution_dependencies
+                                    >= EXECUTION_DEPENDENCY_FACT_LIMIT
+                                {
+                                    boundary_counts.execution_dependencies_omitted += 1;
+                                    continue;
+                                }
                                 boundary_counts.execution_dependencies += 1;
                                 if child["authentication_candidate"] == true {
                                     boundary_counts.authentication_candidates += 1;
@@ -1050,8 +923,60 @@ impl Project<'_> {
                                         "binding": child["binding"],
                                         "provider": child["provider"],
                                         "marker": child["marker"],
+                                        "scope": child["scope"],
                                         "authentication_candidate": child["authentication_candidate"],
                                     }),
+                                ));
+                            }
+                            Some("route-service-dependency") => {
+                                boundary_counts.service_dependencies += 1;
+                                let id = child_id("frfsd1", &self.revision, &route_id, child)?;
+                                rows.push(fact(
+                                    "service-dependency",
+                                    id,
+                                    Some(&route_id),
+                                    json!({
+                                        "path": route["path"],
+                                        "line": child["line"],
+                                        "handle": route["file_handle"],
+                                    }),
+                                    FactEvidence::new(
+                                        child["basis"].clone(),
+                                        child["status"].clone(),
+                                        child["confidence"].clone(),
+                                        child["gaps"].clone(),
+                                    ),
+                                    "service_dependency",
+                                    json!({
+                                        "transport": child["transport"],
+                                        "method": child["method"],
+                                        "target": child["target"],
+                                        "target_kind": child["target_kind"],
+                                        "query_or_fragment_omitted": child["query_or_fragment_omitted"],
+                                        "credentials_omitted": child["credentials_omitted"],
+                                    }),
+                                ));
+                            }
+                            Some("route-service-gap") => {
+                                boundary_counts.service_gaps += 1;
+                                let id = child_id("frfsg1", &self.revision, &route_id, child)?;
+                                rows.push(fact(
+                                    "service-gap",
+                                    id,
+                                    Some(&route_id),
+                                    json!({
+                                        "path": route["path"],
+                                        "line": child["line"],
+                                        "handle": route["file_handle"],
+                                    }),
+                                    FactEvidence::new(
+                                        child["basis"].clone(),
+                                        json!("gap"),
+                                        Value::Null,
+                                        json!([child["reason"]]),
+                                    ),
+                                    "gap",
+                                    json!({"reason": child["reason"]}),
                                 ));
                             }
                             _ => {}
@@ -1132,8 +1057,26 @@ impl Project<'_> {
                 gap,
             ));
         }
+        if boundary_counts.execution_dependencies_omitted > 0 {
+            let reason = "The execution dependency fact limit omitted dependencies; narrow TARGET before relying on completeness.";
+            let gap = json!({"reason": reason, "omitted": boundary_counts.execution_dependencies_omitted});
+            rows.push(fact(
+                "framework-gap",
+                child_id("frfg1", &self.revision, "execution-dependency-limit", &gap)?,
+                None,
+                json!({"path": null, "line": null, "handle": null}),
+                FactEvidence::new(
+                    json!("execution-dependency-fact-limit"),
+                    json!("gap"),
+                    Value::Null,
+                    json!([reason]),
+                ),
+                "gap",
+                gap,
+            ));
+        }
 
-        let analysis = json!({
+        let mut analysis = json!({
             "applications": application_count,
             "features": feature_count,
             "routes": route_count,
@@ -1148,12 +1091,6 @@ impl Project<'_> {
             "build_settings_omitted": package_counts.build_settings_omitted,
             "dependency_fact_limit": DEPENDENCY_FACT_LIMIT,
             "dependencies_omitted": package_counts.dependencies_omitted,
-            "middleware": boundary_counts.middleware,
-            "middleware_gaps": boundary_counts.middleware_gaps,
-            "middleware_fact_limit": MIDDLEWARE_FACT_LIMIT,
-            "middleware_omitted": boundary_counts.middleware_omitted,
-            "execution_dependencies": boundary_counts.execution_dependencies,
-            "authentication_candidates": boundary_counts.authentication_candidates,
             "source_fact_limit": SOURCE_FACT_LIMIT,
             "source_facts_omitted": source_omitted,
             "schema_expansion_limit": SCHEMA_EXPANSION_LIMIT,
@@ -1166,11 +1103,36 @@ impl Project<'_> {
                 "Feature identity groups exact route paths within an inferred application boundary; business ownership remains unchecked.",
                 "Middleware and FastAPI parameter dependencies preserve recognized syntax and order evidence; runtime behavior remains unchecked.",
                 "Only FastAPI Security markers are authentication candidates; the purpose of Depends providers remains unknown.",
-                "Lifecycle, effects, runtime configuration and service reachability are not modeled yet.",
+                "Lifecycle hooks preserve supported declarations; execution, resource effects and runtime selection remain unchecked.",
+                "Runtime configuration preserves environment declaration and accessor evidence; values, precedence and deployment identity remain unchecked.",
+                "Outbound HTTP calls preserve sanitized literal targets; receiver identity, request options, response use and runtime reachability remain unchecked.",
                 "Frontend components and build settings are not modeled yet.",
                 "Schema expansion follows bounded same-file type-name candidates and preserves ambiguity."
             ],
         });
+        analysis["middleware"] = json!(boundary_counts.middleware);
+        analysis["middleware_gaps"] = json!(boundary_counts.middleware_gaps);
+        analysis["middleware_fact_limit"] = json!(MIDDLEWARE_FACT_LIMIT);
+        analysis["middleware_omitted"] = json!(boundary_counts.middleware_omitted);
+        analysis["lifecycle_hooks"] = json!(boundary_counts.lifecycle_hooks);
+        analysis["lifecycle_gaps"] = json!(boundary_counts.lifecycle_gaps);
+        analysis["lifecycle_fact_limit"] = json!(LIFECYCLE_FACT_LIMIT);
+        analysis["lifecycle_omitted"] = json!(boundary_counts.lifecycle_omitted);
+        analysis["execution_dependencies"] = json!(boundary_counts.execution_dependencies);
+        analysis["execution_dependency_fact_limit"] = json!(EXECUTION_DEPENDENCY_FACT_LIMIT);
+        analysis["execution_dependencies_omitted"] =
+            json!(boundary_counts.execution_dependencies_omitted);
+        analysis["authentication_candidates"] = json!(boundary_counts.authentication_candidates);
+        analysis["runtime_configurations"] = json!(boundary_counts.runtime_configurations);
+        analysis["configuration_consumers"] = json!(boundary_counts.configuration_consumers);
+        analysis["configuration_gaps"] = json!(boundary_counts.configuration_gaps);
+        analysis["configuration_fact_limit"] = json!(CONFIGURATION_FACT_LIMIT);
+        analysis["configuration_consumer_limit"] = json!(CONFIGURATION_CONSUMER_LIMIT);
+        analysis["configurations_omitted"] = json!(boundary_counts.configurations_omitted);
+        analysis["configuration_consumers_omitted"] =
+            json!(boundary_counts.configuration_consumers_omitted);
+        analysis["service_dependencies"] = json!(boundary_counts.service_dependencies);
+        analysis["service_gaps"] = json!(boundary_counts.service_gaps);
         let mut result = self.relationship_page(
             "features",
             selected,

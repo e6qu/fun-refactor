@@ -34,4 +34,6 @@ Use `project routes`, `contracts` and `configuration` for their supported declar
 Use `project features` for the parent-linked Next.js App Router or FastAPI application, package, route, handler, contract, execution-dependency, middleware and schema hierarchy.
 Pass a returned `--feature ID` to retrieve one revision-bound subtree.
 Middleware order and direct FastAPI providers are syntax candidates; inspect their source before making runtime or authentication claims.
+Lifecycle, configuration and service facts also retain syntax evidence and explicit runtime gaps.
+Service targets omit query strings, fragments and URL credentials; use a source slice only when the task needs request details.
 These commands do not establish complete dependency resolution or framework semantics.

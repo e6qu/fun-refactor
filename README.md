@@ -331,6 +331,9 @@ Next.js applications also link to captured npm packages, build scripts and decla
 Local manifest links remain distinct from dependencies that need package-manager resolution.
 Application children expose Next.js Proxy or legacy middleware convention files and direct FastAPI HTTP middleware registrations.
 FastAPI `Depends` and `Security` parameter markers become route execution dependencies; only `Security` is labeled as an authentication candidate.
+Lifecycle children cover Next.js instrumentation exports and FastAPI lifespan or event declarations.
+Runtime configuration links environment declarations to application consumers without exposing values.
+Handler children include sanitized `fetch`, axios, requests and HTTPX service candidates; dynamic targets become gaps.
 Every fact retains a source anchor, evidence basis, status, confidence and explicit gaps.
 Use `--feature ID` to retrieve one revision-bound subtree.
 `fr project configuration` pages environment declarations and candidate code consumers, with captured-source checks and explicit analysis gaps.

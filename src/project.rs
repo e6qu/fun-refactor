@@ -28,6 +28,7 @@ mod next_routes;
 mod relationships;
 mod routes;
 mod schemas;
+mod service_calls;
 mod tests;
 
 #[derive(Subcommand)]

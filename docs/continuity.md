@@ -22,7 +22,15 @@ Middleware output is capped at 64 facts per application with an explicit omissio
 FastAPI `Depends` and `Security` parameter markers now appear as route dependencies in contract output and as `execution-dependency` children in feature output.
 Direct callable providers are name-only candidates; competing markers and computed providers stay unresolved.
 Only `Security` is labeled as an authentication candidate, without claiming that authorization succeeds at runtime.
-Unsupported middleware and authentication forms, lifecycle, runtime, service reachability and frontend semantics remain visible limitations.
+Unsupported middleware, authentication and lifecycle forms remain visible gaps. Runtime behavior, broad service reachability and frontend semantics remain open.
+The fourth checkpoint recognizes FastAPI constructor and route dependency lists, preserving application, route and parameter scope.
+It adds FastAPI lifespan and deprecated event hooks, with explicit conflict diagnostics.
+Next.js instrumentation files contribute direct `register` and `onRequestError` exports; re-exports and competing files stay gaps.
+Application configuration facts reuse captured environment declaration and accessor chains, omit values and distinguish unmatched reads.
+Next.js `NEXT_PUBLIC_` variables carry a client build-time candidate marker; runtime substitution and client inclusion remain unchecked.
+Handler inspection adds sanitized HTTP service candidates for fetch, axios, requests and HTTPX syntax.
+It strips query strings, fragments and URL credentials, hides dynamic targets and reports them as gaps.
+The next checkpoint completes the selected frontend component boundary before the formal correspondence and fixture audit.
 Roadmap PR 4's first checkpoint added `fr spec init [PATH]` with a pinned toolchain, a minimal checked Lake target and refusal to overwrite differing files or escape through paths and symlinks.
 Initialization previews by default, supports saved plans and writes through source history. Apply, undo and redo cover files created below a new directory, while plan recording no longer creates the target directory as a lock side effect.
 A real integration case initializes an external temporary workspace and passes `fr spec verify specs` against Lake.

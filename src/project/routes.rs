@@ -93,6 +93,8 @@ impl Project<'_> {
         let mut contract_fields = 0usize;
         let mut contract_gaps = 0usize;
         let mut route_dependencies = 0usize;
+        let mut service_dependencies = 0usize;
+        let mut service_gaps = 0usize;
         let mut next_gaps = 0usize;
         let mut fast_gaps = 0usize;
         let parsers = Parsers::new();
@@ -262,6 +264,14 @@ impl Project<'_> {
                         .iter()
                         .filter(|r| r["kind"] == "route-dependency")
                         .count();
+                    service_dependencies += details
+                        .iter()
+                        .filter(|r| r["kind"] == "route-service-dependency")
+                        .count();
+                    service_gaps += details
+                        .iter()
+                        .filter(|r| r["kind"] == "route-service-gap")
+                        .count();
                     rows.extend(details);
                 }
                 for candidate in candidates {
@@ -303,6 +313,8 @@ impl Project<'_> {
             analysis["contract_fields"] = json!(contract_fields);
             analysis["contract_gaps"] = json!(contract_gaps);
             analysis["route_dependencies"] = json!(route_dependencies);
+            analysis["service_dependencies"] = json!(service_dependencies);
+            analysis["service_gaps"] = json!(service_gaps);
             analysis["contract_readers"] = json!([
                 "literal-path-segments",
                 "axum-extractor-types",

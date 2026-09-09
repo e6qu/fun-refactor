@@ -804,7 +804,7 @@ An empty page does not prove the absence of routes. Route and handler inference 
 Revision checks and query-bound cursors apply, including final source and inventory verification.
 
 `features` builds a flat, parent-linked semantic hierarchy from the bounded Next.js App Router and FastAPI readers.
-The hierarchy contains application, package, feature, route, handler, contract, execution-dependency, middleware, schema-reference, schema and schema-field facts.
+The hierarchy contains application, package, feature, route, handler, contract, execution-dependency, middleware, lifecycle, configuration, service and schema facts.
 Exact route paths group route candidates into provisional features inside an inferred application boundary.
 This grouping does not establish business ownership.
 
@@ -846,6 +846,32 @@ The reader emits at most 64 FastAPI middleware facts per application; overflow p
 FastAPI `Depends` and `Security` parameter calls become route `execution-dependency` children when their provider is a direct callable name.
 Competing markers and computed providers remain unresolved, and provider bodies are not exposed.
 `Security` marks an authentication candidate; `Depends` does not establish the provider's purpose.
+FastAPI constructor dependency lists add application children, and route decorator lists add route children.
+Unsupported or competing list entries produce gaps.
+The query emits at most 256 execution dependencies and reports any omitted facts.
+The scope follows FastAPI's [global dependency model](https://fastapi.tiangolo.com/tutorial/dependencies/global-dependencies/).
+
+FastAPI lifespan constructor arguments and deprecated startup or shutdown forms become `lifecycle-hook` children.
+The reader reports a conflict when lifespan and deprecated event declarations coexist.
+These forms follow FastAPI's [lifespan and event rules](https://fastapi.tiangolo.com/advanced/events/).
+Next.js `instrumentation.ts` or `instrumentation.js` exports add startup and request-error hooks.
+Direct function, function-valued variable and local named exports form the supported subset.
+Syntax errors, re-exports, missing hooks and competing convention files produce gaps.
+Lifecycle output has a 64-fact application limit.
+The export names follow the [Next.js instrumentation convention](https://nextjs.org/docs/pages/api-reference/file-conventions/instrumentation).
+
+`runtime-configuration` children reuse the captured environment declaration and accessor analysis from `project configuration`.
+Their consumers remain beneath the declaration, and unmatched accessors retain `no-observed-declaration` status.
+The facts expose names, locations and candidate visibility without values.
+For Next.js, `NEXT_PUBLIC_` names carry a client build-time candidate marker; other names retain server-default status.
+These classifications follow the [Next.js environment rules](https://nextjs.org/docs/pages/guides/environment-variables).
+The reader emits at most 128 configuration facts and 256 consumers per application, with explicit omission gaps.
+
+Handler inspection recognizes plain `fetch` and axios calls in Next.js and module-qualified requests or HTTPX calls in FastAPI.
+`service-dependency` facts contain the HTTP method when syntax supplies one, plus a sanitized literal target.
+Sanitization removes query strings, fragments and URL credentials and records those omissions.
+Dynamic targets become `service-gap` children, and nested callable bodies remain outside the handler.
+Receiver identity, shadowing, request options, response use and runtime reachability remain unchecked.
 The model preserves ambiguous same-file schema candidates and expands each bounded candidate separately.
 Other route frameworks produce `framework-gap` facts rather than disappearing.
 Unsupported middleware and authentication forms, mounted routers, lifecycle, runtime configuration, service reachability and frontend components remain explicit analysis limitations.
@@ -894,6 +920,8 @@ Unsupported type expressions leave `declared_type` null. These patterns follow F
 `Depends` and `Security` calls appear separately as `route-dependency` rows.
 One direct callable provider is a name-only candidate; nested provider expressions and multiple dependency markers stay unresolved.
 The route analysis count is available as `analysis.route_dependencies`.
+Supported handler HTTP calls appear as `route-service-dependency` rows.
+Dynamic targets appear as `route-service-gap` rows; their source expressions stay hidden.
 
 Explicit `response_model` arguments produce separate response fields with `basis: fastapi-response-model` and `location: response-model`.
 Names, qualified names, generic subscriptions, unions and `None` form the supported type subset, with a depth limit of 16.
