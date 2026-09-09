@@ -648,6 +648,19 @@ enum SpecCommand {
         #[arg(long, help = "Write through source history.")]
         write: bool,
     },
+    #[command(about = "Generate Lean CI.")]
+    Ci {
+        #[arg(
+            long,
+            default_value = "specs",
+            help = "Initialized specification package."
+        )]
+        package: PathBuf,
+        #[arg(long, default_value_t = 0, help = "Reviewed proof-debt ceiling.")]
+        max_debt: usize,
+        #[arg(long, help = "Write through source history.")]
+        write: bool,
+    },
     #[command(about = "Report stale Lean specification anchors and unproved obligations")]
     Check {
         #[arg(help = "Lean spec files or directories; defaults to kernels and specs")]
@@ -890,6 +903,9 @@ fn dispatch(cli: &Cli) -> Result<()> {
                     command: SpecCommand::Scaffold { .. }
                 }
                 | Command::Spec {
+                    command: SpecCommand::Ci { .. }
+                }
+                | Command::Spec {
                     command: SpecCommand::Sync { .. }
                 }
                 | Command::Openapi { out: Some(_), .. }
@@ -1057,6 +1073,11 @@ fn dispatch(cli: &Cli) -> Result<()> {
                 package,
                 write,
             } => cmd_spec_scaffold(cli, target, package, *write),
+            SpecCommand::Ci {
+                package,
+                max_debt,
+                write,
+            } => cmd_spec_ci(cli, package, *max_debt, *write),
             SpecCommand::Check {
                 paths,
                 strict,
@@ -1321,6 +1342,64 @@ fn cmd_spec_scaffold(cli: &Cli, target: &str, package: &Path, write: bool) -> Re
         plan.symbol
     );
     if !write && !cli.save_plan {
+        println!("Nothing written. Re-run with --write to apply.");
+    }
+    Ok(())
+}
+
+fn cmd_spec_ci(cli: &Cli, package: &Path, max_debt: usize, write: bool) -> Result<()> {
+    let root = workspace_root(cli);
+    let plan = crate::spec::ci(&root, package, max_debt)?;
+    let change = crate::edit::FileChange {
+        path: &plan.path,
+        original: &plan.original,
+        updated: &plan.updated,
+    };
+    let transaction = persist_changes(cli, &[change], write, "lean-ci-v1")?;
+    let changed = plan.original != plan.updated;
+    let shown = shown_path(&root, &plan.path);
+    let diff = crate::edit::unified_diff(&plan.original, &plan.updated, &shown);
+    if cli.json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "schema": 1,
+                "operation": "spec_ci",
+                "path": &shown,
+                "package": plan.package,
+                "max_debt": plan.max_debt,
+                "fr_version": env!("CARGO_PKG_VERSION"),
+                "action": "leanprover/lean-action@v1",
+                "files_changed": usize::from(changed),
+                "changes": if changed { vec![serde_json::json!({"path": &shown, "diff": diff})] } else { Vec::new() },
+                "transaction": transaction,
+                "applied": write && transaction.is_some(),
+                "saved": cli.save_plan && transaction.is_some(),
+            }))?
+        );
+        return Ok(());
+    }
+    if !write && changed {
+        print!("{diff}");
+    }
+    if changed {
+        println!(
+            "{} {} for {} with proof-debt ceiling {}.",
+            if write {
+                "Generated"
+            } else if cli.save_plan {
+                "Saved"
+            } else {
+                "Would generate"
+            },
+            shown,
+            plan.package.display(),
+            plan.max_debt
+        );
+    } else {
+        println!("Lean CI workflow {shown} already matches the requested policy.");
+    }
+    if !write && !cli.save_plan && changed {
         println!("Nothing written. Re-run with --write to apply.");
     }
     Ok(())

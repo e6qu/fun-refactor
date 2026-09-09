@@ -143,6 +143,7 @@ fr recipe <file.recipe>       # a workspace transaction: recipes find, do, expec
 fr recipe fmt recipes --check # format every recipe in a directory, or reject drift
 fr spec init --write          # create a pinned, checked Lean package through history
 fr spec scaffold src/lib.rs::allowed --write # select one Rust model obligation
+fr spec ci --max-debt 0 --write # pin correspondence, debt and Lean checks in CI
 fr spec check                 # Lean models whose source anchors still match
 fr spec sync --write          # renew reviewed stale source hashes
 fr spec verify                # strict correspondence plus Lake builds

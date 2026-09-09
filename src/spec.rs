@@ -64,6 +64,15 @@ pub struct ScaffoldFile {
     pub updated: String,
 }
 
+#[derive(Debug)]
+pub struct CiPlan {
+    pub package: PathBuf,
+    pub path: PathBuf,
+    pub original: String,
+    pub updated: String,
+    pub max_debt: usize,
+}
+
 pub fn init(root: &Path, requested: &Path) -> Result<InitPlan> {
     let root = root
         .canonicalize()
@@ -302,6 +311,79 @@ pub fn scaffold(root: &Path, target: &str, requested_package: &Path) -> Result<S
             },
         ],
     })
+}
+
+pub fn ci(root: &Path, requested_package: &Path, max_debt: usize) -> Result<CiPlan> {
+    let package_plan = init(root, requested_package)?;
+    if package_plan.files.iter().any(|file| !file.existing) {
+        bail!(
+            "{} is not initialized; run `fr spec init {} --write` first.",
+            package_plan.package.display(),
+            requested_package.display()
+        );
+    }
+    let root = root.canonicalize()?;
+    let package = package_plan.package.strip_prefix(&root)?.to_path_buf();
+    let shell_package = shell_quote(&package.display().to_string());
+    let yaml_package = serde_json::to_string(&package.display().to_string())?;
+    let updated = format!(
+        "name: fr Lean verification\n\non:\n  push:\n  pull_request:\n  workflow_dispatch:\n\npermissions:\n  contents: read\n\njobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n\n      - uses: actions/checkout@v4\n\n      - name: Install fr\n        run: cargo install fun-refactor --locked --version {}\n\n      - name: Check source correspondence and proof-debt ratchet\n        run: fr spec check {} --strict --max-debt {}\n\n      - uses: leanprover/lean-action@v1\n        with:\n          lake-package-directory: {}\n          build-args: --wfail\n",
+        env!("CARGO_PKG_VERSION"),
+        shell_package,
+        max_debt,
+        yaml_package
+    );
+    serde_yaml::from_str::<serde_yaml::Value>(&updated)
+        .context("generated Lean CI workflow is not valid YAML")?;
+    let path = root.join(".github/workflows/fr-lean.yml");
+    for directory in [root.join(".github"), root.join(".github/workflows")] {
+        match std::fs::symlink_metadata(&directory) {
+            Ok(metadata) if metadata.file_type().is_symlink() => {
+                bail!(
+                    "CI workflow path traverses a symlink: {}.",
+                    directory.display()
+                )
+            }
+            Ok(metadata) if !metadata.is_dir() => {
+                bail!(
+                    "CI workflow parent is not a directory: {}.",
+                    directory.display()
+                )
+            }
+            Ok(_) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error.into()),
+        }
+    }
+    let original = match std::fs::symlink_metadata(&path) {
+        Ok(metadata) if metadata.is_file() => {
+            let original = crate::vfs::read_to_string(&path)?;
+            if original != updated {
+                bail!(
+                    "refusing to replace existing CI workflow {}.",
+                    path.display()
+                );
+            }
+            original
+        }
+        Ok(_) => bail!(
+            "CI workflow target is not a regular file: {}.",
+            path.display()
+        ),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
+        Err(error) => return Err(error.into()),
+    };
+    Ok(CiPlan {
+        package,
+        path,
+        original,
+        updated,
+        max_debt,
+    })
+}
+
+fn shell_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "'\"'\"'"))
 }
 
 fn replace_generated_region(original: &str, replacement: &str) -> Result<(String, usize)> {
@@ -1250,7 +1332,7 @@ fn debts_in(spec: &Path, text: &str) -> Vec<DebtReport> {
 #[cfg(test)]
 mod tests {
     use super::{
-        anchors_in, check, check_strict, debts_in, declaration_hash, init, lean_package,
+        anchors_in, check, check_strict, ci, debts_in, declaration_hash, init, lean_package,
         obligations_in, scaffold, sync, Status,
     };
     use crate::extract::Extractor;
@@ -1562,5 +1644,39 @@ mod tests {
                 .unwrap();
         assert_eq!(anchors[0].1, PathBuf::from("src/lib.rs"));
         assert_eq!(anchors[0].2, "module::Thing::method");
+    }
+
+    #[test]
+    fn generates_valid_ci_with_a_selected_debt_ceiling() {
+        let workspace = tempfile::tempdir().unwrap();
+        let root = workspace.path();
+        let package = init(root, Path::new("verification")).unwrap();
+        for file in package.files {
+            fs::create_dir_all(file.path.parent().unwrap()).unwrap();
+            fs::write(file.path, file.content).unwrap();
+        }
+        let plan = ci(root, Path::new("verification"), 2).unwrap();
+        let yaml: serde_yaml::Value = serde_yaml::from_str(&plan.updated).unwrap();
+        assert_eq!(yaml["jobs"]["verify"]["runs-on"], "ubuntu-latest");
+        assert!(plan.updated.contains("--strict --max-debt 2"));
+        assert!(plan
+            .updated
+            .contains("lake-package-directory: \"verification\""));
+        assert!(plan.updated.contains("build-args: --wfail"));
+    }
+
+    #[test]
+    fn ci_refuses_to_preview_through_a_workflow_symlink() {
+        let workspace = tempfile::tempdir().unwrap();
+        let outside = tempfile::tempdir().unwrap();
+        let root = workspace.path();
+        let package = init(root, Path::new("specs")).unwrap();
+        for file in package.files {
+            fs::create_dir_all(file.path.parent().unwrap()).unwrap();
+            fs::write(file.path, file.content).unwrap();
+        }
+        std::os::unix::fs::symlink(outside.path(), root.join(".github")).unwrap();
+        let error = ci(root, Path::new("specs"), 0).unwrap_err();
+        assert!(error.to_string().contains("traverses a symlink"), "{error}");
     }
 }

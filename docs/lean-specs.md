@@ -11,6 +11,7 @@ The [roadmap](../PLAN.md) extends this foundation into an adoption workflow for 
 | Lean translation | Eight programming-language readers and writers, including Lean, over supported constructs |
 | `fr spec init` | Preview or create a pinned minimal Lake package and checked `FrSpecs` target through source history |
 | `fr spec scaffold` | Select a Rust function and create an anchored, strictly mapped model obligation in that target |
+| `fr spec ci` | Generate an undoable GitHub Actions workflow with strict checks, a debt ceiling and a Lake build |
 | `fr spec check` | Source identity, missing declarations, signature maps and live `sorry` counts |
 | `fr spec check --strict` | Require an explicit signature map beside every source anchor |
 | `fr spec check --max-debt N` | Reject a proof-debt increase above a reviewed ceiling |
@@ -43,6 +44,7 @@ fr spec init
 fr spec init --write
 fr spec scaffold src/lib.rs::allowed
 fr spec scaffold src/lib.rs::allowed --write
+fr spec ci --max-debt 0 --write
 
 fr spec check --strict
 fr spec check --strict --max-debt 0
@@ -339,6 +341,9 @@ Other languages and Rust signatures outside the documented type subset still req
 manual model and anchor authoring. Then run `fr spec check --strict`.
 Run `fr spec verify` to check correspondence and build the owning package.
 Add shared input/output cases when the model mirrors an implementation.
+Generate CI after choosing the current debt ceiling. The workflow pins this `fr`
+release, runs strict correspondence and uses the official
+[`lean-action`](https://github.com/leanprover/lean-action) for the initialized package.
 
 Model semantics and proofs remain handwritten work. After source drift, repeat the
 scaffold command to preview a new anchor and signature. Refresh changes only the marked
@@ -348,13 +353,9 @@ Use the existing examples under `kernels/` as working references.
 
 ## Adoption milestones
 
-The next adoption work should provide:
-
-- CI generation for the initialized package.
-- Named proof obligations and a proof-debt ratchet.
-- Generated-region ownership and regeneration that preserves handwritten work.
-- Explicit signature synchronization that exposes affected proofs.
-- Reports separating proved models, tested correspondence and proved implementation correspondence.
+The remaining adoption work should produce bounded evidence reports. Those reports
+must separate proved models, tested correspondence and proved implementation
+correspondence, while naming assumptions, axioms and trusted components.
 
 A `-- fr:debt NAME` line immediately before `sorry` names a live obligation. Strict
 checks reject unnamed obligations, and `--max-debt` supplies a CI ratchet. Generated

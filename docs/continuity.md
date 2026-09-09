@@ -12,6 +12,8 @@ The integration case fills that obligation with a Boolean model and theorem. Str
 The third PR 4 checkpoint makes the same scaffold command a regeneration path. It validates unique ownership markers and source identity, replaces only the generated region, and verifies byte-identical preservation of the handwritten region.
 The external-workspace case changes the Rust declaration, observes strict drift failure, refreshes the scaffold and rebuilds the preserved theorem successfully.
 The fourth PR 4 checkpoint reports every live `sorry` as a file-and-line proof-debt record. Scaffold obligations carry stable names, strict checks reject unnamed debt, and `--max-debt` enforces an explicit ratchet ceiling.
+The fifth checkpoint adds `fr spec ci`. It generates a valid read-only GitHub Actions workflow for the initialized package, current `fr` release, reviewed debt ceiling and warnings-as-errors Lake build.
+CI preview refuses symlink traversal and divergent workflow replacement. Saved plans, writes and reversal retain the source-history contract.
 PR 3's first checkpoint added checked staging-journal compaction with explicit per-stack retention.
 Compacted records retain stable IDs, statuses, path counts and digests while discarding bytes that can no longer be replayed.
 Preview/write bases, the index lock and full journal rechecks preserve the index, working files and concurrent staging state.

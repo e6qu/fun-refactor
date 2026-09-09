@@ -929,6 +929,42 @@ fn spec_scaffold_selects_a_rust_declaration_in_one_reversible_change() {
 }
 
 #[test]
+fn spec_ci_generates_an_undoable_workflow_with_the_reviewed_ratchet() {
+    let ws = Workspace::new(&[("Cargo.toml", "[workspace]\n")]);
+    let (initialized, ok) = ws.run(&["spec", "init", "--write"]);
+    assert!(ok, "{initialized}");
+    let (preview, ok) = ws.run(&["spec", "ci", "--max-debt", "3"]);
+    assert!(ok, "{preview}");
+    assert!(preview.contains("leanprover/lean-action@v1"), "{preview}");
+    assert!(preview.contains("--strict --max-debt 3"), "{preview}");
+    assert!(!ws.root().join(".github/workflows/fr-lean.yml").exists());
+
+    let output = Command::new(FR)
+        .arg("--json")
+        .arg("-C")
+        .arg(ws.root())
+        .args(["spec", "ci", "--max-debt", "3", "--write"])
+        .env("FUN_REFACTOR_CACHE", ws.cache.path())
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["operation"], "spec_ci", "{report}");
+    assert_eq!(report["max_debt"], 3, "{report}");
+    let id = report["transaction"].as_u64().unwrap().to_string();
+    let workflow = ws.root().join(".github/workflows/fr-lean.yml");
+    serde_yaml::from_str::<serde_yaml::Value>(&std::fs::read_to_string(&workflow).unwrap())
+        .unwrap();
+    let (undone, ok) = ws.run(&["history", "undo", &id, "--write"]);
+    assert!(ok, "{undone}");
+    assert!(!workflow.exists());
+}
+
+#[test]
 fn spec_sync_previews_then_renews_a_stale_anchor_without_touching_its_model() {
     let ws = Workspace::new(&[
         ("src/code.rs", "pub fn current() -> usize { 2 }\n"),

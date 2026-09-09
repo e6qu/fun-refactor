@@ -450,6 +450,7 @@ may write.
 ```
 fr spec init [PATH] [--write]
 fr spec scaffold SOURCE::SYMBOL [--package PATH] [--write]
+fr spec ci [--package PATH] [--max-debt COUNT] [--write]
 
 fr spec check [PATH...]
 fr spec check [PATH...] --strict --max-debt COUNT
@@ -477,6 +478,13 @@ map and declaration signature. It replaces only the uniquely marked generated re
 and checks that the model still belongs to the selected source declaration. The marked
 handwritten region remains byte-identical. Missing or duplicate ownership markers
 refuse the full transaction.
+
+`ci` generates `.github/workflows/fr-lean.yml` for one initialized package. The
+workflow installs the current `fr` version and runs strict correspondence with the
+selected debt ceiling. It gives the package to `leanprover/lean-action@v1` with Lake
+warnings treated as errors. It grants read-only repository contents permission.
+Generation refuses a workflow-path symlink or a differing existing workflow. Preview,
+saved-plan, write, undo and redo use the same source-history contract as other files.
 
 Check that Lean models still point at the declarations they model. With no path,
 the command reads `kernels/` and `specs/`. A model names a declaration with an
