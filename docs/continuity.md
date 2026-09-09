@@ -2,11 +2,15 @@
 
 PR 0, the agent-ready verified refactoring foundation, merged as GitHub PR 259.
 PR 1, Agent Context Protocol v2, merged as GitHub PR 261.
-The current `generalized_structural_authoring` branch is roadmap PR 2. Its first checkpoint extends exact-byte Rust insertion to impl and trait bodies and generalizes the insertion placement model.
+The current `generalized_structural_authoring` branch completes roadmap PR 2 and is ready for review. Its first checkpoint extends exact-byte Rust insertion to impl and trait bodies and generalizes the insertion placement model.
 The second checkpoint authors TypeScript/TSX expression-bodied arrows and permits checked transitions between expression and block bodies.
 The third checkpoint adds Java method, constructor and default-interface body authoring through the same checked splice and history path.
 The fourth checkpoint lets one authoring batch combine declaration, caller and conservative import-organization changes.
 The fifth checkpoint adds exact batch postconditions for changed files, edits, operations and paths.
+The sixth checkpoint anchors the batch selection-conflict predicate and compares 6,084 bounded cases across Rust, Lean and an independent oracle.
+The final workflow checkpoints make skill reads bounded, execute the documented batch example, preserve code fragments through stdin JSON, and enforce the complete preview/save/apply/check/undo/check/redo/check/receiver sequence.
+`tests/agent-eval/results/2026-09-09-structural-authoring` retains the passing Luna-low pair. The fr arm uses 18,806 context tokens and 29 calls with no refusals; files use 15,192 tokens and 20 calls.
+Both arms pass exact transition, index and receiver checks plus 1,060 independent allocation and byte-count cases. Token audit and offline replay pass.
 Project and author reports now emit a revision-bound `frcb1:` basis. Supplying it omits only `coverage`, `handle_prefix` and `revision`; stale bases refuse before author plans can be saved or written.
 Complete saved author diffs and detailed history records now emit a separate `frtb1:` transaction basis. Forward apply and redo reports can omit their repeated diffs while retaining change metadata; reverse use and mismatches refuse before writes.
 Unit and CLI regressions reconstruct full reports exactly and cover missing, truncated, stale and conflicting bases.
@@ -91,7 +95,7 @@ It checks the project at four stages, a separate patch receiver, unchanged index
 Negative controls target Unicode counting, missing escaping, allocation during length calculation, omitted preallocation and a disagreeing facade.
 The retained `tests/agent-eval/regex/coordinated-rehearsal.json` passes all stages and 1,060 independent inputs in both project and receiver.
 All five incorrect implementations compile but fail the oracle. The report retains commands, reports, snapshots, the patch and source/binary hashes.
-The rehearsal remains prescribed infrastructure evidence; the coordinated cohort above supplies the later autonomous measurements.
+The rehearsal remains prescribed infrastructure evidence. The retained 2026-09-09 structural-authoring pair supplies fresh autonomous acceptance for PR 2.
 
 ## Controlled coordinated authoring comparison
 
@@ -109,7 +113,7 @@ Request and artifact sizes remain separate from returned output. This is a synth
 Project/author calls fall from six to three; inspected routing implies twelve versus six scan passes, without runtime instrumentation.
 Five evaluator regressions reject failed or clipped evidence, incomplete review and selection, and unexpected source bytes; they also check metric accounting.
 The native acceptance suite now executes one complete pair. No production command or Lean model changes in this milestone.
-The coordinated workspace preparation above follows this controlled comparison; autonomous evaluation remains open.
+The coordinated workspace preparation above follows this controlled comparison. PR 2 closes its autonomous acceptance with the retained 2026-09-09 structural-authoring pair.
 
 ## Coordinated authoring batches
 
@@ -137,7 +141,7 @@ The shared `author_selection_conflict` helper now gives the batch planner an anc
 Six Lean theorems cover symmetry, adjacent nonempty ranges, overlap, distinct insertion points and insertion at either boundary.
 The executable comparison checks 6,084 valid 64-bit range pairs against Lean, Rust and an independent interval oracle, with explicit multibyte UTF-8 boundary cases.
 This is tested edit and selection-predicate correspondence, with no proof of the manifest parser or filesystem transaction implementation.
-The agent reference teaches combined review and one transaction ID; its existing shell examples remain unchanged.
+The agent reference teaches a concrete batch manifest and the preview, save and history-apply sequence. The skill checker executes this two-operation example through exact undo and redo.
 The controlled comparison above measures report bytes and repeated calls without treating a prescribed workflow as autonomous agent evidence.
 
 ## Formal declaration insertion placement
@@ -366,7 +370,7 @@ History links to `references/recovery.md` only for a pending operation or interr
 Only a lookup explicitly scoped to an existing file supplies that file's insertion handle in `root`.
 Unscoped/directory roots cannot substitute, and source changes invalidate the handle. A file map remains the fallback.
 
-The skill checker executes 36 examples. The Rust wrapper example compiles under `deny(missing_docs)` and passes a compiled caller assertion.
+The skill checker executes 38 examples. Its Rust batch example compiles under `deny(missing_docs)` and passes a compiled caller assertion.
 It also checks wrong/stale-root refusals, exact undo/redo, unrelated-edit preservation and unchanged index bytes.
 The example uses the lookup's source and root directly, without separate source or file-map queries.
 
@@ -426,8 +430,9 @@ Each cohort retains prompts, transcripts, scores, patches and its original skill
 - `tests/agent-eval/results/2026-09-07-context`: four follow-up strsim trials after M4i; no pilots.
 - `tests/agent-eval/results/2026-09-08-regex`: four repeated regex workspace trials; no pilots.
 - `tests/agent-eval/results/2026-09-08-coordinated`: four two-crate regex trials using the M4aa protocol; no pilots.
+- `tests/agent-eval/results/2026-09-09-structural-authoring`: one fresh two-crate pair using the completed PR 2 workflow; no pilots.
 
-All sixteen autonomous trials pass. Recording also supports scored failures; behavioral replay refuses failed trials.
+All eighteen retained acceptance trials pass. Recording also supports scored failures; behavioral replay refuses failed trials.
 Replay checks recorded patches and transition evidence without rerunning agents. Token auditing recounts retained payloads.
 The initial and follow-up strsim findings remain in the [context report](agent-context-followup.md).
 Controlled reports are separate under `tests/agent-eval/`: `history-context.json`, `regex/rehearsal.json`, `checks-context.json`, `skill-context.json`, `find-source-context.json` and `project-cache.json`.
@@ -601,6 +606,6 @@ Measure proposed reductions on fixed transcripts or controlled workflows before 
 Reference serialization and hashing remain the largest measured construction cost after batching; evaluate further changes against this profile.
 Keep revision inputs, coverage and final source verification intact; require byte-identical reports and distinguish model proofs from implementation correspondence.
 State the cache policy for the next autonomous cohort; existing trials explicitly disable it and their records remain immutable.
-A later paired task should require coordinated changes across files; the current larger repository task is still a localized facade addition.
+The latest paired task requires one coordinated three-operation change across two crate roots. It passes, while `fr` still uses 23.8% more measured context in this single pair.
 Keep portable skill references selective and executable against the distributed binary.
 Further authoring operations, M5 automated Lean adoption and M6 framework migrations remain open in [PLAN.md](../PLAN.md).

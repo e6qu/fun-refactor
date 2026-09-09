@@ -30,7 +30,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | M1 undo and redo | Complete | Persistent transactions, recovery, conflict checks, apply, undo and redo | Retention and large-journal work continues in Git lifecycle work |
 | M2 compact project understanding | In progress | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests and Cargo workspace evidence | Lower repeated-query/context cost and broaden dependency and contract evidence |
 | M3 Git integration | In progress | Patches, repository views, staging history, reviewed commits and owned worktree lifecycle | Broader modes/configuration, crash recovery and retention |
-| M4 agent workflow | In progress | Portable skill, bounded authoring, multi-file batches, checks and sixteen passing autonomous trials | Make context use competitive and extend authoring scope |
+| M4 agent workflow | In progress | Portable skill, bounded authoring, multi-file batches, checks and eighteen passing autonomous trials | Make context use competitive and extend authoring scope |
 | M5 Lean adoption | Pending | Manual source anchors, signature maps, kernels, `spec check`, `sync` and `verify` | An end-to-end adoption workflow for external projects |
 | M6 framework transformation | Pending | Shared code IR and bounded Next.js/FastAPI/OpenAPI support | Hierarchical feature models and verified migrations |
 
@@ -53,13 +53,14 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Native releases, a WASM API, a browser playground and patch downloads.
 - Lean models for edits, positions, history, patch properties, pagination, confidence, workspace membership, revision buffers and declaration insertion placement.
 - Source anchors, signature maps and shared Rust/Lean executable cases.
-- Sixteen passing autonomous trials across pinned strsim and regex snapshots, with replayable patches and independent behavioral oracles.
+- Eighteen passing autonomous trials across pinned strsim and regex snapshots, with replayable patches and independent behavioral oracles.
 
 ## Evidence baseline
 
-The latest coordinated evaluation changes two crates in the complete pinned regex workspace.
-All four fresh agents pass the project checks, independent 1,060-input project and receiver oracles, exact reversal and index-preservation checks.
-The original scores show 13,278.5 mean context tokens for `fr` and 13,652.5 for ordinary files.
+The latest structural-authoring evaluation changes two crates in the complete pinned regex workspace.
+Both fresh Luna-low agents pass project checks, independent 1,060-input project and receiver oracles, exact reversal and index-preservation checks.
+The `fr` arm uses 18,806 measured context tokens and 29 calls; ordinary files use 15,192 tokens and 20 calls.
+This single pair shows a 23.8% `fr` context premium and makes no context-parity claim.
 
 The file agents retained verbose successful check logs while the `fr` agents used compact output.
 The checksum-bound M4ac projection applies the same output policy to both arms without altering prompts, requests, calls or other payloads.
@@ -180,7 +181,7 @@ This PR closes the scoped v2 implementation and measurement work. Context parity
 
 ### PR 2. Generalized Structural Authoring
 
-Status: in progress on `generalized_structural_authoring`. The implementation checkpoints extend Rust insertion to impl and trait bodies, add TypeScript/TSX expression transitions and add Java body authoring. They also compose conservative imports into coordinated batches and enforce explicit batch postconditions. A sixth checkpoint anchors and models the batch selection-conflict rule, with exhaustive bounded Rust/Lean/oracle comparison and mode-preservation checks for the added Java and Rust-scope workflows.
+Status: ready for review on `generalized_structural_authoring`.
 
 Goal: let an agent perform broader high-level changes without replacing entire files.
 
@@ -200,6 +201,16 @@ Verification and acceptance:
 - Compile and run representative changes with warnings denied in every added language.
 - Preserve exact bytes, modes and unrelated edits across patch application, undo and redo.
 - Complete an autonomous coordinated change using only bounded source and the portable skill.
+
+Measured outcome:
+
+- Rust insertion now targets files, inline modules, impls and traits; Java methods, constructors and default methods use the same checked body path.
+- TypeScript and TSX arrows move between expression and block bodies while preserving surrounding source.
+- One batch can combine declaration, caller and conservative import edits with exact postconditions.
+- The selection-conflict predicate has six Lean theorems and 6,084 shared Rust, Lean and independent-oracle cases, including UTF-8 boundaries.
+- Representative Java and Rust-scope histories preserve mode `0640` through apply, undo and redo on Unix.
+- A fresh `gpt-5.6-luna` low-effort pair passes the coordinated two-crate task. The `fr` arm uses one three-operation saved transaction, exact undo/redo and a clean receiver.
+- Both arms pass all 1,060 independent byte and allocation cases. Offline replay and token auditing pass for the retained evidence.
 
 ### PR 3. Durable Git Workspace Lifecycle
 

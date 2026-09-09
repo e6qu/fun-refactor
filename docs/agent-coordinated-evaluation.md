@@ -1,5 +1,42 @@
 # Coordinated agent evaluation on regex
 
+This report retains the original 2026-09-08 cohort and the PR 2 structural-authoring follow-up.
+The follow-up validates the generalized batch workflow; it does not replace the original context comparison.
+
+## Structural-authoring follow-up
+
+One fresh paired run used Codex CLI 0.153.4 with `gpt-5.6-luna`, low reasoning effort and the default service tier.
+Both agents started in ephemeral sessions with user configuration and repository rules ignored.
+No human correction occurred.
+
+| Tool surface | Passed | Retrieved context tokens | Tool calls | Refusals | Trial seconds |
+|---|---|---:|---:|---:|---:|
+| fr | Yes | 18,806 | 29 | 0 | 212.4 |
+| Ordinary files | Yes | 15,192 | 20 | 1 | 100.9 |
+
+The fr agent reads the bounded skill and author reference, then creates one three-operation batch.
+It previews and saves that plan, applies one transaction, exports its patch, and performs exact undo and redo.
+Both arms run the declared checks on the original, changed, restored and reapplied states in order.
+Both preserve the sentinel and indexes, match clean receivers, and pass all 1,060 independent allocation and byte-count cases in the project and receiver.
+
+The fr arm uses 23.8% more measured context and 45% more calls in this one pair.
+The result establishes autonomous structural-authoring acceptance and makes no context-parity or general success-rate claim.
+The [retained follow-up manifest](../tests/agent-eval/results/2026-09-09-structural-authoring/manifest.json) binds the prompts, Codex events, tool events, patches, scores, skill snapshot and execution metadata.
+Exact token audit and offline replay both pass.
+
+The evaluator accepts write requests through JSON stdin so code apostrophes survive the shell transport.
+It validates the required coordinated manifest before plan recording and refuses redo or receiver transitions until the preceding state has passed every declared check.
+These are task-protocol guards; the independent oracle, project checks and clean receiver still determine code correctness.
+
+Reproduce the retained evidence without spending agent quota:
+
+```sh
+python3 tools/agent-eval.py replay tests/agent-eval/results/2026-09-09-structural-authoring
+target/agent-eval-venv/bin/python tools/agent-eval.py audit-tokens tests/agent-eval/results/2026-09-09-structural-authoring
+```
+
+## Original paired cohort
+
 Four fresh agents completed two paired trials of `regex-escape-len` on the pinned regex workspace.
 All four pass independent acceptance. Mean retrieved context is 2.7% lower for fr, with near parity in the first pair.
 Verbose check output from both ordinary-file agents accounts for much of this comparison; it does not establish a general context advantage.
