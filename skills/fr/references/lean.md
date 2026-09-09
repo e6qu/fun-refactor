@@ -9,6 +9,7 @@ The write creates a full anchor, strict signature map and checked module with on
 After source drift, rerun the same scaffold command. It previews changes to the marked generated region and preserves the marked handwritten region byte for byte. Review any signature change and repair the preserved model or proofs before writing.
 Keep each remaining `sorry` directly below a stable `-- fr:debt NAME` marker. Run `fr --json spec check specs --strict --max-debt N` with the reviewed ceiling. Lower the ceiling when a proof lands so later debt growth fails.
 Preview `fr --json spec ci --max-debt N`, then write or save its source transaction. The generated GitHub workflow pins this `fr` release, strict correspondence, the debt ceiling and a warnings-as-errors Lake build.
+Finish with `fr --json spec evidence specs`. Report checked model properties, declared assumptions, trusted components and remaining obligations. Its axiom analysis covers declared syntax only. Keep both implementation/model correspondence fields false unless separate tests or a proof support them.
 
 For an existing Rust declaration in `src/lib.rs`:
 

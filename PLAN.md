@@ -248,7 +248,7 @@ Measured outcome:
 
 ### PR 4. Lean Adoption Kit
 
-Status: in progress on `lean_adoption_kit`. The first checkpoint implements bounded, pinned package initialization through source history. The second selects a Rust declaration and scaffolds a strictly mapped Lean model in the checked target. The third refreshes only the owned generated region after source drift and preserves the marked handwritten model and proofs byte for byte. These flows preview, save, apply, undo and redo as source transactions. The Lake integration proves a useful property, refreshes its changed source identity, observes a passing build, then breaks the theorem and observes failure.
+Status: implementation complete on `lean_adoption_kit`, pending the full repository gate. Six product checkpoints cover initialization, scaffolding, regeneration, debt, CI and evidence. The Lake integration proves a useful property, refreshes its changed source identity, observes a passing build, then breaks the theorem and observes failure. Four Lean theorems cover the proof-debt ceiling, with 4,225 shared Rust and Lean cases.
 
 Goal: let an external repository adopt and maintain one useful verified property through `fr`.
 
@@ -260,7 +260,7 @@ Deliverables:
 - Detect source drift and guide synchronization or repair; strict checks and scaffold refresh complete.
 - Introduce named proof-debt records and ratchets; complete with strict names and explicit debt ceilings.
 - Generate CI configuration for the selected Lean checks; complete for GitHub Actions.
-- Report assumptions, axioms, trusted components, covered properties and remaining obligations.
+- Report assumptions, axioms, trusted components, covered properties and remaining obligations; complete with an explicit syntactic-axiom-analysis boundary.
 
 Verification and acceptance:
 

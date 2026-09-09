@@ -147,6 +147,7 @@ fr spec ci --max-debt 0 --write # pin correspondence, debt and Lean checks in CI
 fr spec check                 # Lean models whose source anchors still match
 fr spec sync --write          # renew reviewed stale source hashes
 fr spec verify                # strict correspondence plus Lake builds
+fr spec evidence              # bounded claims, assumptions, trust and open obligations
 fr openapi [--yaml]           # the contract a Next.js route tree declares
 fr callers <fn> --depth 3     # who calls this
 fr callees <fn> --depth 3     # what does it call

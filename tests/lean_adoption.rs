@@ -72,7 +72,7 @@ fn initialized_package_is_a_checked_lake_target() {
     let scaffold = std::fs::read_to_string(&model_path).unwrap();
     let proved = scaffold.replace(
         "  by\n    -- fr:debt model-semantics\n    sorry\n-- fr:handwritten-end model-and-proofs",
-        "  ok\n\ntheorem accepts_true : allowedModel true = true := by rfl\n-- fr:handwritten-end model-and-proofs",
+        "  ok\n\naxiom external_policy : Bool\n\ntheorem accepts_true : allowedModel true = true := by rfl\n-- fr:handwritten-end model-and-proofs",
     );
     assert_ne!(proved, scaffold);
     std::fs::write(&model_path, &proved).unwrap();
@@ -135,6 +135,35 @@ fn initialized_package_is_a_checked_lake_target() {
         "stdout:\n{}\nstderr:\n{}",
         String::from_utf8_lossy(&refreshed_build.stdout),
         String::from_utf8_lossy(&refreshed_build.stderr)
+    );
+    let evidence = Command::new(FR)
+        .arg("--json")
+        .arg("-C")
+        .arg(workspace.path())
+        .args(["spec", "evidence", "specs"])
+        .output()
+        .unwrap();
+    assert!(
+        evidence.status.success(),
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&evidence.stdout),
+        String::from_utf8_lossy(&evidence.stderr)
+    );
+    let evidence: serde_json::Value = serde_json::from_slice(&evidence.stdout).unwrap();
+    assert_eq!(evidence["properties"].as_array().unwrap().len(), 1);
+    assert_eq!(evidence["properties"][0]["status"], "checked_by_lean");
+    assert_eq!(
+        evidence["declared_assumptions"].as_array().unwrap().len(),
+        1
+    );
+    assert_eq!(evidence["declared_assumptions"][0]["kind"], "axiom");
+    assert_eq!(
+        evidence["correspondence"]["proved_implementation_model"],
+        false
+    );
+    assert_eq!(
+        evidence["remaining_obligations"].as_array().unwrap().len(),
+        1
     );
 
     std::fs::write(

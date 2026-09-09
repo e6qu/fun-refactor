@@ -2,6 +2,7 @@ import FrKernels.Workspace
 import FrKernels.Git
 import FrKernels.Source
 import FrKernels.Author
+import FrKernels.Adoption
 
 open FrKernels.Project
 
@@ -206,7 +207,11 @@ def main (args : List String) : IO Unit := do
       paths := paths ++ words
     for pattern in paths do
       for path in paths do
-        IO.println (workspacePatternMatches pattern path)
+          IO.println (workspacePatternMatches pattern path)
+  else if args == ["adoption-debt"] then
+    for obligations in [0:65] do
+      for ceiling in [0:65] do
+        IO.println (FrKernels.Adoption.debtWithinCeiling obligations ceiling)
   else
     for total in samples do
       for start in samples do

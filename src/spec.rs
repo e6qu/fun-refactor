@@ -73,6 +73,43 @@ pub struct CiPlan {
     pub max_debt: usize,
 }
 
+#[derive(Debug, Serialize)]
+pub struct Evidence {
+    pub schema: u8,
+    pub verification: Verification,
+    pub properties: Vec<PropertyReport>,
+    pub declared_assumptions: Vec<DeclaredAssumption>,
+    pub axiom_analysis: &'static str,
+    pub trusted_components: Vec<&'static str>,
+    pub correspondence: CorrespondenceEvidence,
+    pub remaining_obligations: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PropertyReport {
+    pub spec: PathBuf,
+    pub line: usize,
+    pub name: String,
+    pub kind: String,
+    pub status: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+pub struct DeclaredAssumption {
+    pub spec: PathBuf,
+    pub line: usize,
+    pub name: String,
+    pub kind: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CorrespondenceEvidence {
+    pub source_identity: &'static str,
+    pub signature_surface: &'static str,
+    pub tested_implementation_model: bool,
+    pub proved_implementation_model: bool,
+}
+
 pub fn init(root: &Path, requested: &Path) -> Result<InitPlan> {
     let root = root
         .canonicalize()
@@ -382,6 +419,92 @@ pub fn ci(root: &Path, requested_package: &Path, max_debt: usize) -> Result<CiPl
     })
 }
 
+pub fn evidence(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result<Evidence> {
+    let verification = verify(root, inputs, respect_ignore)?;
+    let files = spec_files(root, inputs, respect_ignore)?;
+    let mut properties = Vec::new();
+    let mut declared_assumptions = Vec::new();
+    let parsers = Parsers::new();
+    let mut extractor = Extractor::new();
+    for spec in files {
+        let source = crate::vfs::read_to_string(&spec)?;
+        let parsed = parsers.parse(crate::lang::Language::Lean, &source)?;
+        let facts = extractor.extract(&parsed, &spec, &source)?;
+        let package = lean_package(root, &spec)?;
+        let package_passed = verification
+            .packages
+            .iter()
+            .find(|report| report.package == package)
+            .is_some_and(|report| report.passed);
+        for symbol in facts.symbols {
+            let declaration = symbol.full_span.text(&source).trim_start();
+            let keyword = declaration.split_whitespace().next().unwrap_or("");
+            let line = crate::span::LineIndex::new(&source)
+                .line_col(symbol.name_span.start, &source)
+                .line;
+            if matches!(keyword, "theorem" | "lemma") {
+                properties.push(PropertyReport {
+                    spec: spec.clone(),
+                    line,
+                    name: symbol.qualified_name(),
+                    kind: keyword.to_string(),
+                    status: if package_passed {
+                        "checked_by_lean"
+                    } else {
+                        "unchecked"
+                    },
+                });
+            } else if matches!(keyword, "axiom" | "opaque" | "constant") {
+                declared_assumptions.push(DeclaredAssumption {
+                    spec: spec.clone(),
+                    line,
+                    name: symbol.qualified_name(),
+                    kind: keyword.to_string(),
+                });
+            }
+        }
+    }
+    properties.sort_by(|left, right| (&left.spec, left.line).cmp(&(&right.spec, right.line)));
+    declared_assumptions
+        .sort_by(|left, right| (&left.spec, left.line).cmp(&(&right.spec, right.line)));
+    let mut remaining_obligations = verification
+        .report
+        .debts
+        .iter()
+        .map(|debt| {
+            format!(
+                "{}:{} proof debt {}",
+                debt.spec.display(),
+                debt.line,
+                debt.name.as_deref().unwrap_or("unnamed")
+            )
+        })
+        .collect::<Vec<_>>();
+    remaining_obligations.push(
+        "No proof currently connects each Rust implementation to its Lean model.".to_string(),
+    );
+    Ok(Evidence {
+        schema: 1,
+        verification,
+        properties,
+        declared_assumptions,
+        axiom_analysis: "Declared Lean axiom, opaque and constant syntax only.",
+        trusted_components: vec![
+            "Lean kernel, elaborator and compiler.",
+            "Lake package and checked-target selection.",
+            "fr parsing, declaration spans, signature checks and SHA-256.",
+            "Host filesystem and process execution.",
+        ],
+        correspondence: CorrespondenceEvidence {
+            source_identity: "Declaration bytes match each recorded SHA-256 anchor.",
+            signature_surface: "Explicit maps match parsed Rust and Lean signatures.",
+            tested_implementation_model: false,
+            proved_implementation_model: false,
+        },
+        remaining_obligations,
+    })
+}
+
 fn shell_quote(value: &str) -> String {
     format!("'{}'", value.replace('\'', "'\"'\"'"))
 }
@@ -677,6 +800,10 @@ impl Report {
                     .is_none_or(|signature| signature.status == Status::Fresh)
             })
     }
+}
+
+pub fn debt_within_ceiling(obligations: usize, ceiling: usize) -> bool {
+    obligations <= ceiling
 }
 
 pub fn check(root: &Path, inputs: &[PathBuf], respect_ignore: bool) -> Result<Report> {

@@ -12,6 +12,7 @@ The [roadmap](../PLAN.md) extends this foundation into an adoption workflow for 
 | `fr spec init` | Preview or create a pinned minimal Lake package and checked `FrSpecs` target through source history |
 | `fr spec scaffold` | Select a Rust function and create an anchored, strictly mapped model obligation in that target |
 | `fr spec ci` | Generate an undoable GitHub Actions workflow with strict checks, a debt ceiling and a Lake build |
+| `fr spec evidence` | Build and report model properties, declared assumptions, trust, correspondence and remaining obligations |
 | `fr spec check` | Source identity, missing declarations, signature maps and live `sorry` counts |
 | `fr spec check --strict` | Require an explicit signature map beside every source anchor |
 | `fr spec check --max-debt N` | Reject a proof-debt increase above a reviewed ceiling |
@@ -51,6 +52,7 @@ fr spec check --strict --max-debt 0
 fr spec sync
 fr spec sync --write
 fr spec verify
+fr spec evidence
 ```
 
 Without paths, these commands inspect existing `kernels/` and `specs/` roots.
@@ -114,6 +116,13 @@ That adds compiler trust to those proofs. Zero `sorry` obligations does not remo
 Inspect individual dependencies with `#print axioms FrKernels.Patch.mode_change_supported_iff` in a Lean file importing `FrKernels.Patch`.
 Source anchors and shared cases do not prove general Rust/model correspondence.
 Filesystem observation, path validation, patch rendering, report aggregation and Git execution remain outside this model.
+
+`FrKernels.Adoption` models the proof-debt ceiling used by `spec check`. Four
+theorems characterize its Boolean result, accept an equal ceiling, preserve acceptance
+when debt falls, and reject debt above the ceiling. All 4,225 obligation/ceiling pairs
+from zero through 64 agree with Rust. The theorem axiom audit reports only `propext`.
+This proves the small ratchet predicate. It does not prove debt discovery, CLI
+enforcement, marker parsing or the broader adoption workflow.
 
 `FrKernels.Project` models the shared page-length calculation and workspace component matcher.
 Its theorems bound each page by the requested limit and remaining items.
@@ -353,9 +362,11 @@ Use the existing examples under `kernels/` as working references.
 
 ## Adoption milestones
 
-The remaining adoption work should produce bounded evidence reports. Those reports
-must separate proved models, tested correspondence and proved implementation
-correspondence, while naming assumptions, axioms and trusted components.
+`fr spec evidence` produces the bounded adoption report. It identifies checked theorem
+and lemma declarations, declared Lean assumptions, trusted tools and remaining proof
+debt. It reports syntactically declared axioms, opaque values and constants. It does
+not compute transitive theorem axiom dependencies. The correspondence fields keep
+tested implementation/model cases and an implementation proof false until supplied.
 
 A `-- fr:debt NAME` line immediately before `sorry` names a live obligation. Strict
 checks reject unnamed obligations, and `--max-debt` supplies a CI ratchet. Generated

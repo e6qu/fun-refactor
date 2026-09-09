@@ -456,6 +456,7 @@ fr spec check [PATH...]
 fr spec check [PATH...] --strict --max-debt COUNT
 fr spec sync [PATH...] [--write]
 fr spec verify [PATH...]
+fr spec evidence [PATH...]
 ```
 
 `init` plans a minimal Lake package at `specs/`, or at the selected workspace-relative
@@ -517,6 +518,14 @@ reviewed ceiling. Lower that ceiling as proofs discharge; a later increase then 
 finds the `lakefile.lean` or `lakefile.toml` owning each selected spec and runs
 `lake build --wfail` once per package. Lake can write build artifacts; `fr` does not edit source. JSON includes the strict report,
 each package, its result, and Lean's output.
+
+`evidence` runs the same strict correspondence and Lake checks, then reports theorem
+and lemma declarations as covered model properties. It lists declared `axiom`,
+`opaque` and `constant` assumptions, trusted components, named debt and the remaining
+implementation/model proof obligation. Its axiom analysis covers declared syntax; it
+does not compute each theorem's transitive axiom dependencies. The correspondence
+record distinguishes anchor identity, mapped signatures, executable comparisons and
+implementation proofs. The latter two stay false unless future evidence supplies them.
 
 ### `fr author`
 

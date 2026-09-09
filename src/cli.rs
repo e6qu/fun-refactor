@@ -661,6 +661,11 @@ enum SpecCommand {
         #[arg(long, help = "Write through source history.")]
         write: bool,
     },
+    #[command(about = "Report bounded Lean verification evidence.")]
+    Evidence {
+        #[arg(help = "Lean spec files or directories; defaults to kernels and specs")]
+        paths: Vec<PathBuf>,
+    },
     #[command(about = "Report stale Lean specification anchors and unproved obligations")]
     Check {
         #[arg(help = "Lean spec files or directories; defaults to kernels and specs")]
@@ -1078,6 +1083,7 @@ fn dispatch(cli: &Cli) -> Result<()> {
                 max_debt,
                 write,
             } => cmd_spec_ci(cli, package, *max_debt, *write),
+            SpecCommand::Evidence { paths } => cmd_spec_evidence(cli, paths),
             SpecCommand::Check {
                 paths,
                 strict,
@@ -1405,6 +1411,67 @@ fn cmd_spec_ci(cli: &Cli, package: &Path, max_debt: usize, write: bool) -> Resul
     Ok(())
 }
 
+fn cmd_spec_evidence(cli: &Cli, paths: &[PathBuf]) -> Result<()> {
+    let root = workspace_root(cli);
+    let evidence = crate::spec::evidence(&root, paths, !cli.no_ignore)?;
+    let passed = evidence.verification.report.ok()
+        && evidence
+            .verification
+            .packages
+            .iter()
+            .all(|package| package.passed);
+    if cli.json {
+        println!("{}", serde_json::to_string_pretty(&evidence)?);
+        if !passed {
+            std::process::exit(1);
+        }
+        return Ok(());
+    }
+    println!(
+        "{} checked model propert{}; {} declared assumption(s); {} remaining obligation(s).",
+        evidence.properties.len(),
+        if evidence.properties.len() == 1 {
+            "y"
+        } else {
+            "ies"
+        },
+        evidence.declared_assumptions.len(),
+        evidence.remaining_obligations.len()
+    );
+    for property in &evidence.properties {
+        println!(
+            "property {}:{} {} {}",
+            property.spec.display(),
+            property.line,
+            property.status,
+            property.name
+        );
+    }
+    for assumption in &evidence.declared_assumptions {
+        println!(
+            "assumption {}:{} {} {}",
+            assumption.spec.display(),
+            assumption.line,
+            assumption.kind,
+            assumption.name
+        );
+    }
+    println!("axioms: {}", evidence.axiom_analysis);
+    println!(
+        "implementation/model correspondence: tested={}, proved={}",
+        evidence.correspondence.tested_implementation_model,
+        evidence.correspondence.proved_implementation_model
+    );
+    for obligation in &evidence.remaining_obligations {
+        println!("remaining: {obligation}");
+    }
+    if passed {
+        Ok(())
+    } else {
+        anyhow::bail!("Lean evidence includes failed correspondence or package checks.")
+    }
+}
+
 fn cmd_spec_check(
     cli: &Cli,
     paths: &[PathBuf],
@@ -1417,7 +1484,8 @@ fn cmd_spec_check(
         false => crate::spec::check(&root, paths, !cli.no_ignore)?,
     };
     let unnamed_debt = strict && report.unnamed_debts() > 0;
-    let exceeded_debt = max_debt.is_some_and(|ceiling| report.obligations > ceiling);
+    let exceeded_debt = max_debt
+        .is_some_and(|ceiling| !crate::spec::debt_within_ceiling(report.obligations, ceiling));
     let passed = report.ok() && !unnamed_debt && !exceeded_debt;
     if cli.json {
         println!("{}", serde_json::to_string_pretty(&report)?);

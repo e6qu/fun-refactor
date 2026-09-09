@@ -14,6 +14,10 @@ The external-workspace case changes the Rust declaration, observes strict drift 
 The fourth PR 4 checkpoint reports every live `sorry` as a file-and-line proof-debt record. Scaffold obligations carry stable names, strict checks reject unnamed debt, and `--max-debt` enforces an explicit ratchet ceiling.
 The fifth checkpoint adds `fr spec ci`. It generates a valid read-only GitHub Actions workflow for the initialized package, current `fr` release, reviewed debt ceiling and warnings-as-errors Lake build.
 CI preview refuses symlink traversal and divergent workflow replacement. Saved plans, writes and reversal retain the source-history contract.
+The sixth checkpoint adds `fr spec evidence`. The bounded result combines strict verification with checked theorem names, declared assumptions, trusted components, debt and the unproved implementation/model relationship.
+Its axiom analysis explicitly covers declared syntax rather than transitive theorem dependencies. The external fixture asserts these evidence boundaries after a passing regeneration and Lake build.
+The proof-debt predicate now has an anchored Lean model and four ratchet theorems. All 4,225 pairs from zero through 64 match Rust; the axiom audit reports only `propext`.
+This correspondence covers the ceiling predicate. Debt discovery, marker parsing, command enforcement and the full adoption workflow remain host-tested boundaries.
 PR 3's first checkpoint added checked staging-journal compaction with explicit per-stack retention.
 Compacted records retain stable IDs, statuses, path counts and digests while discarding bytes that can no longer be replayed.
 Preview/write bases, the index lock and full journal rechecks preserve the index, working files and concurrent staging state.
