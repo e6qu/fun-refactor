@@ -20,6 +20,7 @@ Existing-branch creation retains the ref and its configuration. Preview refusals
 `fr` accepts repositories with `extensions.worktreeConfig`. Recovery preserves a regular private `config.worktree`, and removal archives its bytes; a changed repository mode or a non-regular configuration path refuses.
 
 Use `recover PATH` only for an owned incomplete creation, and `remove PATH` for reviewed removal of an owned clean worktree.
+Recovery can use a pending ownership receipt or the durable preparation left by a crash after exact registration. Require `ownership_state` to say `receipt` or `prepared`; neither path authorizes adoption of an arbitrary worktree.
 Removal retains the branch and returns a `removal_record` archive path.
 Use `resume-removal RECORD` to inspect or finish incomplete removal with a fresh basis.
 Use `compact-removal RECORD` only to discard a completed recovery record after reviewing its basis; it retains an audit summary and cannot be undone through `fr`.

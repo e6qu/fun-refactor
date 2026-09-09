@@ -249,6 +249,14 @@ pub fn worktree_configuration_allowed(
     reviewed_mode == observed_mode && (!config_present || config_regular)
 }
 
+pub fn worktree_prepared_recovery_allowed(
+    receipt_present: bool,
+    preparation_matches: bool,
+    registration_matches: bool,
+) -> bool {
+    !receipt_present && preparation_matches && registration_matches
+}
+
 pub fn worktree_removal_file_allowed(
     identity_matches: bool,
     bytes_match: bool,

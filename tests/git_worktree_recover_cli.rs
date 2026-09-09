@@ -106,6 +106,7 @@ case " $* " in
     fi
 
     "$FR_ACTUAL_GIT" "$@" || exit $?
+    [ "$FR_FAULT" != crash-before-receipt ] || kill -KILL "$PPID"
     if [ "$FR_FAULT" = after-add ]; then exit 42; fi
     if [ "$FR_FAULT" = file-collision ]; then printf foreign > "$FR_DEST/file.txt"; fi
     exit 0
@@ -211,6 +212,95 @@ fn apply(root: &Path) -> Value {
     );
     assert_eq!(value["applied"], true, "{value}");
     value
+}
+
+#[test]
+fn recovers_a_registered_creation_after_a_crash_before_receipt_publication() {
+    let temp = fixture();
+    let root = temp.path().join("main");
+    let task = temp.path().join("task");
+    git(&root, &["config", "extensions.worktreeConfig", "true"]);
+    let source_index = fs::read(root.join(".git/index")).unwrap();
+    let preview = create_report(&root, &["../task", "--branch", "topic"]);
+    let (bin, real) = shim(temp.path());
+    let out = create(
+        &root,
+        &[
+            "../task",
+            "--branch",
+            "topic",
+            "--basis",
+            preview["basis"].as_str().unwrap(),
+            "--write",
+        ],
+    )
+    .env(
+        "PATH",
+        format!("{}:{}", bin.display(), std::env::var("PATH").unwrap()),
+    )
+    .env("FR_ACTUAL_GIT", real)
+    .env("FR_FAULT", "crash-before-receipt")
+    .env("FR_DEST", &task)
+    .output()
+    .unwrap();
+    assert!(!out.status.success());
+    let metadata = root.join(".git/worktrees/task");
+    assert!(!metadata.join("fr-creation.json").exists());
+    let preparations = fs::read_dir(root.join(".git"))
+        .unwrap()
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .filter(|path| {
+            path.file_name()
+                .unwrap()
+                .to_string_lossy()
+                .starts_with("fr-worktree-creation-")
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(preparations.len(), 1, "{preparations:?}");
+    let recovery = report(&root, &["../task"]);
+    assert_eq!(recovery["ownership_state"], "prepared", "{recovery}");
+    assert_eq!(recovery["worktree_config"], true, "{recovery}");
+    assert_eq!(
+        Path::new(recovery["preparation_record"].as_str().unwrap())
+            .canonicalize()
+            .unwrap(),
+        preparations[0].canonicalize().unwrap()
+    );
+    assert!(!metadata.join("fr-creation.json").exists());
+    let preparation_bytes = fs::read(&preparations[0]).unwrap();
+    let replaced = preparations[0].with_extension("replaced");
+    fs::rename(&preparations[0], &replaced).unwrap();
+    fs::write(&preparations[0], &preparation_bytes).unwrap();
+    error(
+        &root,
+        &[
+            "../task",
+            "--basis",
+            recovery["basis"].as_str().unwrap(),
+            "--write",
+        ],
+        "stale worktree recovery basis",
+    );
+    fs::remove_file(&preparations[0]).unwrap();
+    fs::rename(&replaced, &preparations[0]).unwrap();
+    git(&root, &["gc", "--prune=now"]);
+    let recovery = report(&root, &["../task"]);
+    let recovered = report(
+        &root,
+        &[
+            "../task",
+            "--basis",
+            recovery["basis"].as_str().unwrap(),
+            "--write",
+        ],
+    );
+    assert_eq!(recovered["applied"], true, "{recovered}");
+    assert!(metadata.join("fr-creation.json").is_file());
+    assert!(!preparations[0].exists());
+    assert_eq!(fs::read(task.join("file.txt")).unwrap(), b"base\n");
+    assert_eq!(fs::read(root.join(".git/index")).unwrap(), source_index);
+    assert_eq!(git(&task, &["status", "--porcelain"]), b"");
 }
 
 #[test]

@@ -8,7 +8,7 @@ use std::io::Write;
 use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Component, Path, PathBuf};
 
-#[derive(Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub(super) struct Entry {
     pub(super) path: String,
@@ -280,6 +280,7 @@ pub(super) fn apply(plan: &Proposal, blobs: &[Vec<u8>]) -> Result<PathBuf> {
             && directory(&plan.common)? == plan.common_identity,
         "worktree parent or repository changed before creation."
     );
+    let preparation = super::preparation::Prepared::create(plan)?;
     DirBuilder::new().mode(0o700).create(&plan.destination)?;
     let identity = directory(&plan.destination)?;
     check_directory(plan, identity)?;
@@ -312,8 +313,11 @@ pub(super) fn apply(plan: &Proposal, blobs: &[Vec<u8>]) -> Result<PathBuf> {
         checked(&plan.root, &registration_args).context("registering reviewed worktree");
     check_directory(plan, identity)?;
     check_registration(plan)?;
-    let (receipt, lease) = super::ownership::Receipt::record(plan, identity)?;
+    let (receipt, lease) =
+        super::ownership::Receipt::record(plan, identity, Some(preparation.id()))?;
     let receipt_bytes = super::ownership::bytes(&receipt.path(), 64 * 1024)?;
+    let preparation_lease = super::ownership::Lease::acquire(preparation.lock_path())?;
+    preparation.remove(preparation_lease)?;
     registration?;
     let index_lease = prepare_index(plan, None)?;
     populate(plan, blobs, identity, false)?;

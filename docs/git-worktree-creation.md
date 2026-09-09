@@ -42,6 +42,8 @@ Changing the row limit preserves the basis. Changes to working files and staged 
 Creation always copies the selected committed tree.
 
 `--write` requires the preview token. The writer captures the selected blobs and repeats the proposal checks before creating a directory.
+It atomically publishes a bounded `fr-worktree-creation-*.json` preparation in the shared Git directory before the first destination or registration mutation.
+That record contains the reviewed proposal and identifies the destination; it omits source bodies.
 New-branch mode passes the pinned commit to Git. Existing-branch mode holds a verification lease on the reviewed branch tip.
 Both modes install the raw index and files from the pinned commit.
 No preview reserves the destination or branch. Concurrent Git or filesystem changes can still cause refusal or partial creation.
@@ -91,6 +93,8 @@ After successful creation, ordinary project inspection, edits and reviewed commi
 Use `git worktree unlock ../task` when you intend to allow ordinary worktree removal or movement.
 
 Creation now records ownership receipts for checked forward recovery of incomplete registered checkouts.
+After receipt publication, creation removes its preparation record before installing the index and files.
+Successful creation leaves no preparation record. A partial result reports `preparation_record` when durable evidence remains.
 See [recorded worktree recovery](git-worktree-recovery.md) for receipt scope, refusals and crash limits.
 [Reviewed removal](git-worktree-removal.md) uses completed receipts and retains the branch. Worktree undo/redo remains pending.
 File and directory synchronization does not establish an atomic crash transaction across Git refs, registrations and checkout files.

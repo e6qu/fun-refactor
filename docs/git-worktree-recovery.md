@@ -26,9 +26,13 @@ Moved or replaced worktree directories and Git links cause refusal. Malformed re
 Completed receipts refuse recovery, including when an agent later deletes tracked files intentionally.
 Older worktrees without receipts require manual inspection. Recovery does not adopt them automatically.
 
+Before mutation, creation publishes a destination-keyed preparation record in the shared Git directory.
+The record binds the complete reviewed proposal and stays below 64 MiB; it contains file identities and sizes without source bodies.
 The receipt begins after Git registration and ownership checks, before index or file materialization.
 A failed Git command that leaves a valid registration can still receive a pending receipt.
-Failures or crashes before receipt publication remain outside automatic recovery.
+If a process exits after exact registration but before receipt publication, recovery accepts the matching preparation as provisional ownership evidence.
+It requires an absent receipt plus matching preparation and registration, then publishes the receipt and removes the preparation before materializing files.
+Successful creation and recovery leave no preparation record.
 
 ## What recovery accepts
 
@@ -51,6 +55,7 @@ The command retains the branch, registration lock, source worktree and other rep
 ## Review and writes
 
 Previews include bounded missing paths, existing-file counts and an `index_action` of `create` or `preserve`.
+`ownership_state` distinguishes an existing `receipt` from a durable `prepared` recovery, and the latter reports `preparation_record`.
 `--limit` defaults to 20 and accepts 1 through 500. The report counts omitted missing paths; it has no continuation cursor.
 The basis includes the receipt, invoking repository, registrations, captured file identities and content hashes, directories and index bytes.
 Changing the row limit preserves the basis. A changed observation or different invoking worktree requires a new preview.
@@ -75,6 +80,7 @@ These JSON outcomes exit successfully, so agents must inspect `applied`.
 A failure can leave additional matching files or a newly installed index with the receipt still pending.
 Inspect the result, resolve any conflicting content deliberately, and request a fresh recovery preview.
 The command never removes conflicting files, deletes a branch or recursively cleans a destination.
+Prepared recovery refuses an absent, changed or mismatched registration. It does not adopt an arbitrary unowned worktree or retry a registration that Git did not retain.
 
 Lock cleanup removes only the lock inode held by the process. Existing or replaced locks remain untouched.
 A process crash can leave a lock requiring manual ownership review before another attempt.
@@ -84,8 +90,9 @@ Recovery does not guarantee restoration after partial writes that leave differin
 
 The anchored recovery predicate has Lean proofs for missing-file acceptance and existing-file matching requirements.
 The configuration predicate proves that an accepted state has the reviewed repository mode and a regular file whenever the per-worktree configuration path is present.
+The prepared-recovery predicate requires an absent receipt, matching preparation and matching registration.
 Abstract file models prove preservation of accepted existing contents and modes, and refusal of changed files.
-Shared Rust/Lean tests exercise all boolean inputs for both predicates.
+Shared Rust/Lean tests exercise all boolean inputs for these predicates.
 Filesystem ownership, locks, receipt durability and the complete Rust workflow remain outside general correspondence proofs.
 
 Completed receipts support [reviewed removal](git-worktree-removal.md) of clean owned worktrees.

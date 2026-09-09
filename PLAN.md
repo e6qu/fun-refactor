@@ -214,14 +214,14 @@ Measured outcome:
 
 ### PR 3. Durable Git Workspace Lifecycle
 
-Status: in progress on `durable_git_workspace_lifecycle`. The first checkpoint adds reviewed per-worktree staging-journal compaction with explicit stack retention, stable audit summaries and formal selection laws. The second applies existing archive checks to explicit bulk retention of completed worktree removals, with one aggregate basis and partial-result evidence. The third exposes read-only staging crash evidence and formally classifies pending, index-lock and preparation states without claiming that age proves safe removal. The fourth preserves selected assume-unchanged and skip-worktree flags through staging, removal, undo, redo and recovery while continuing to reject intent-to-add. The fifth supports repository worktree configuration throughout creation, interrupted recovery and removal, preserving and archiving bounded `config.worktree` bytes under a formally checked mode-and-file guard.
+Status: in progress on `durable_git_workspace_lifecycle`. The first checkpoint adds reviewed per-worktree staging-journal compaction with explicit stack retention, stable audit summaries and formal selection laws. The second applies existing archive checks to explicit bulk retention of completed worktree removals, with one aggregate basis and partial-result evidence. The third exposes read-only staging crash evidence and formally classifies pending, index-lock and preparation states without claiming that age proves safe removal. The fourth preserves selected assume-unchanged and skip-worktree flags through staging, removal, undo, redo and recovery while continuing to reject intent-to-add. The fifth supports repository worktree configuration throughout creation, interrupted recovery and removal, preserving and archiving bounded `config.worktree` bytes under a formally checked mode-and-file guard. The sixth closes the post-registration, pre-receipt crash window with a durable reviewed preparation, checked provisional ownership recovery and exact cleanup.
 
 Goal: finish the repository workflow needed for long-running agent changes and recovery.
 
 Deliverables:
 
 - Extend raw checkout and patch behavior to the remaining required file modes; repository worktree configuration is complete.
-- Improve recovery for failures before ownership-receipt publication.
+- Improve recovery for registration failures that Git does not retain; exact registered pre-receipt recovery is complete.
 - Expose stale-lock and uncertain crash states with actionable inspection evidence.
 - Add staging-journal retention and checked compaction.
 - Add bulk retention for completed worktree-removal archives.

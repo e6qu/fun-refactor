@@ -379,6 +379,11 @@ See [worktree recovery](git-worktree-recovery.md) for the tested protocol and pr
 Worktree configuration adds an anchored mode-and-file predicate with proofs that acceptance requires the reviewed repository mode and a regular file whenever `config.worktree` is present.
 Rust and Lean agree on all sixteen boolean states. Git configuration parsing, file observation and lifecycle durability remain host-tested assumptions.
 
+Pre-receipt worktree recovery adds an anchored evidence predicate.
+Lean proves that recovery rejects an existing receipt, a mismatched preparation or a mismatched registration, and accepts the complete provisional evidence state.
+Rust and Lean agree on all eight boolean inputs. Host tests kill creation after Git registration and check receipt publication, preparation cleanup and checkout completion.
+They also check existing-branch preservation.
+
 The Git removal kernel anchors the identity, bytes and mode guard used before deleting reviewed worktree files.
 Lean proves that acceptance requires all three matches. Shared executable tests cover all eight input combinations.
 An abstract namespace model proves that selected removal preserves other paths.

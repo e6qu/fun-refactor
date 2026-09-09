@@ -147,6 +147,13 @@ fn previews_without_mutation_and_creates_raw_isolated_checkout() {
         ],
     );
     assert_eq!(value["applied"], true, "{value}");
+    assert!(fs::read_dir(root.join(".git"))
+        .unwrap()
+        .filter_map(Result::ok)
+        .all(|entry| !entry
+            .file_name()
+            .to_string_lossy()
+            .starts_with("fr-worktree-creation-")));
     let task = temp.path().join("task");
     assert_eq!(fs::read(task.join("file.txt")).unwrap(), b"base\n");
     assert_eq!(fs::read(task.join("binary")).unwrap(), [0, 255, 1, 0]);

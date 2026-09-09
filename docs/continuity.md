@@ -16,6 +16,9 @@ Intent-to-add remains unsupported; flag drift refuses replay, plain schema-one r
 The fifth checkpoint carries the repository-local `extensions.worktreeConfig` mode through creation receipts, recovery bases and removal archives.
 Recovery preserves a bounded regular `config.worktree` without rewriting it, removal archives its exact bytes, older receipts default safely, and mode drift or non-regular paths refuse.
 The anchored configuration guard proves the reviewed-mode and regular-file requirements; all sixteen boolean states agree between Rust and Lean.
+The sixth checkpoint publishes a bounded destination-keyed preparation before worktree mutation and removes it after ownership receipt publication.
+A killed creator with an exact retained registration can recover from this provisional evidence without adopting an arbitrary worktree; new-branch and existing-branch crash tests preserve source Git state.
+Lean proves the absent-receipt, matching-preparation and matching-registration requirements, and all eight policy states agree with Rust.
 PR 2's first checkpoint extends exact-byte Rust insertion to impl and trait bodies and generalizes the insertion placement model.
 The second checkpoint authors TypeScript/TSX expression-bodied arrows and permits checked transitions between expression and block bodies.
 The third checkpoint adds Java method, constructor and default-interface body authoring through the same checked splice and history path.

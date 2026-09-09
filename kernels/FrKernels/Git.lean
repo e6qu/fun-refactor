@@ -313,6 +313,26 @@ theorem worktree_configuration_accepts_absent_file (mode : Bool) :
     worktreeConfigurationAllowed mode mode false false = true := by
   cases mode <;> rfl
 
+-- fr:spec src/git.rs::worktree_prepared_recovery_allowed @ 2ec191ee1b6f1747fa4c2f30f188d3a82e052d55437c3b2da03efa6786344eb2
+-- fr:signature receipt_present: bool => receiptPresent: Bool; preparation_matches: bool => preparationMatches: Bool; registration_matches: bool => registrationMatches: Bool; return: bool => return: Bool
+def worktreePreparedRecoveryAllowed (receiptPresent : Bool) (preparationMatches : Bool)
+    (registrationMatches : Bool) : Bool :=
+  !receiptPresent && preparationMatches && registrationMatches
+
+theorem prepared_recovery_requires_no_receipt (preparation registration : Bool) :
+    worktreePreparedRecoveryAllowed true preparation registration = false := by rfl
+
+theorem prepared_recovery_requires_matching_preparation (receipt registration : Bool) :
+    worktreePreparedRecoveryAllowed receipt false registration = false := by
+  cases receipt <;> rfl
+
+theorem prepared_recovery_requires_matching_registration (receipt preparation : Bool) :
+    worktreePreparedRecoveryAllowed receipt preparation false = false := by
+  cases receipt <;> cases preparation <;> rfl
+
+theorem prepared_recovery_accepts_complete_evidence :
+    worktreePreparedRecoveryAllowed false true true = true := by rfl
+
 def resumeFile (before : Option (String × Nat)) (target : String × Nat) : Option (String × Nat) :=
   if before = none ∨ before = some target then some target else none
 

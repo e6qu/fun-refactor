@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 mod branch;
 mod checkout;
 mod ownership;
+mod preparation;
 pub(super) mod recovery;
 pub(super) mod removal;
 
@@ -140,7 +141,7 @@ fn branch_present(root: &Path, branch: &str) -> Result<bool> {
     Ok(output.status.success())
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct Proposal {
     version: String,
@@ -351,9 +352,14 @@ pub(super) fn report(root: &Path, options: &CreateOptions) -> Result<Value> {
                     json!(commit(&plan.root, &format!("refs/heads/{}", plan.branch)).ok());
                 result["destination_present"] =
                     json!(absent(&plan.destination).ok().map(|absent| !absent));
-                result["recovery_hint"] = json!(
-                    "Use fr git worktree recover PATH if creation recorded an ownership receipt."
-                );
+                if let Ok(path) =
+                    preparation::Prepared::record_path(&plan.common, &plan.destination)
+                {
+                    if !absent(&path).unwrap_or(true) {
+                        result["preparation_record"] = json!(path);
+                    }
+                }
+                result["recovery_hint"] = json!("Use fr git worktree recover PATH if creation recorded an ownership receipt or durable preparation.");
             }
         }
     }
