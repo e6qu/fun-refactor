@@ -105,6 +105,192 @@ fn receivers(parsed: &Parsed, source: &str) -> BTreeSet<String> {
         .collect()
 }
 
+fn simple_callable(node: Node<'_>, source: &str) -> Option<String> {
+    let value = text(node, source);
+    matches!(node.kind(), "identifier" | "attribute")
+        .then(|| {
+            value
+                .split('.')
+                .all(|part| {
+                    let mut chars = part.chars();
+                    chars.next().is_some_and(|c| c.is_alphabetic() || c == '_')
+                        && chars.all(|c| c.is_alphanumeric() || c == '_')
+                })
+                .then(|| value.to_owned())
+        })
+        .flatten()
+}
+
+pub(super) struct Dependency {
+    pub binding: String,
+    pub provider: Option<String>,
+    pub marker: String,
+    pub line: usize,
+}
+
+pub(super) fn dependencies(parameter: Node<'_>, source: &str) -> Vec<Dependency> {
+    let Some(binding) = parameter
+        .child_by_field_name("name")
+        .or_else(|| {
+            children(parameter)
+                .into_iter()
+                .find(|node| node.kind() == "identifier")
+        })
+        .filter(|node| node.kind() == "identifier")
+    else {
+        return Vec::new();
+    };
+    let mut stack = vec![parameter];
+    let mut calls = Vec::new();
+    while let Some(node) = stack.pop() {
+        if node.kind() == "call"
+            && node
+                .child_by_field_name("function")
+                .is_some_and(|function| {
+                    matches!(
+                        text(function, source).rsplit('.').next(),
+                        Some("Depends" | "Security")
+                    )
+                })
+        {
+            calls.push(node);
+            continue;
+        }
+        stack.extend(children(node));
+    }
+    calls.sort_by_key(Node::start_byte);
+    calls
+        .into_iter()
+        .map(|call| {
+            let function = call.child_by_field_name("function").unwrap();
+            let marker = text(function, source)
+                .rsplit('.')
+                .next()
+                .unwrap()
+                .to_owned();
+            let mut providers: Vec<_> = call
+                .child_by_field_name("arguments")
+                .into_iter()
+                .flat_map(children)
+                .filter(|node| {
+                    node.kind() != "keyword_argument" && node.kind() != "dictionary_splat"
+                })
+                .collect();
+            providers.extend(keyword(call, "dependency", source));
+            let provider = match providers.as_slice() {
+                [provider] => simple_callable(*provider, source),
+                _ => None,
+            };
+            Dependency {
+                binding: text(binding, source).to_owned(),
+                provider,
+                marker,
+                line: call.start_position().row + 1,
+            }
+        })
+        .collect()
+}
+
+pub(super) struct Middleware {
+    pub name: Option<String>,
+    pub line: usize,
+    pub form: &'static str,
+}
+
+pub(super) fn middleware(parsed: &Parsed, source: &str) -> Vec<Middleware> {
+    let receivers = receivers(parsed, source);
+    let mut result = Vec::new();
+    for node in children(parsed.root()) {
+        if node.kind() == "decorated_definition" {
+            let parts = children(node);
+            let function = parts
+                .iter()
+                .find(|part| part.kind() == "function_definition");
+            for decorator in parts.iter().filter(|part| part.kind() == "decorator") {
+                let Some(call) = children(*decorator)
+                    .into_iter()
+                    .find(|part| part.kind() == "call")
+                else {
+                    continue;
+                };
+                let Some(attribute) = call
+                    .child_by_field_name("function")
+                    .filter(|part| part.kind() == "attribute")
+                else {
+                    continue;
+                };
+                let (Some(object), Some(method)) = (
+                    attribute.child_by_field_name("object"),
+                    attribute.child_by_field_name("attribute"),
+                ) else {
+                    continue;
+                };
+                let http = call
+                    .child_by_field_name("arguments")
+                    .into_iter()
+                    .flat_map(children)
+                    .filter(|argument| argument.kind() != "keyword_argument")
+                    .filter_map(|argument| literal(argument, source))
+                    .collect::<Vec<_>>();
+                if receivers.contains(text(object, source))
+                    && text(method, source) == "middleware"
+                    && http == ["http"]
+                {
+                    result.push(Middleware {
+                        name: function
+                            .and_then(|function| function.child_by_field_name("name"))
+                            .map(|name| text(name, source).to_owned()),
+                        line: decorator.start_position().row + 1,
+                        form: "fastapi-http-decorator",
+                    });
+                }
+            }
+        } else if node.kind() == "expression_statement" {
+            for call in children(node)
+                .into_iter()
+                .filter(|part| part.kind() == "call")
+            {
+                let Some(attribute) = call
+                    .child_by_field_name("function")
+                    .filter(|part| part.kind() == "attribute")
+                else {
+                    continue;
+                };
+                let (Some(object), Some(method)) = (
+                    attribute.child_by_field_name("object"),
+                    attribute.child_by_field_name("attribute"),
+                ) else {
+                    continue;
+                };
+                if !receivers.contains(text(object, source))
+                    || text(method, source) != "add_middleware"
+                {
+                    continue;
+                }
+                let names: Vec<_> = call
+                    .child_by_field_name("arguments")
+                    .into_iter()
+                    .flat_map(children)
+                    .filter(|argument| {
+                        argument.kind() != "keyword_argument"
+                            && argument.kind() != "dictionary_splat"
+                    })
+                    .collect();
+                result.push(Middleware {
+                    name: names
+                        .first()
+                        .filter(|_| names.len() == 1)
+                        .and_then(|name| simple_callable(*name, source)),
+                    line: call.start_position().row + 1,
+                    form: "fastapi-add-middleware",
+                });
+            }
+        }
+    }
+    result.sort_by_key(|middleware| middleware.line);
+    result
+}
+
 pub(super) fn keyword<'a>(call: Node<'a>, name: &str, source: &str) -> Vec<Node<'a>> {
     call.child_by_field_name("arguments")
         .into_iter()

@@ -799,12 +799,12 @@ Route analysis reads captured source only within selected files, after workspace
 Syntax errors produce `analysis-gap` rows instead of route guesses from the broken file.
 Unsupported languages produce count-based `coverage-gap` rows. Both diagnostics share the page limit.
 `analysis` reports selected-file totals, files without patterns, reader names and interpretation limits.
-The view has no expanded request/response schemas, middleware, mounted-router prefixes or cross-file handler resolution.
+The route view has no expanded request/response schemas, middleware, mounted-router prefixes or cross-file handler resolution.
 An empty page does not prove the absence of routes. Route and handler inference remain outside the Lean paging proofs.
 Revision checks and query-bound cursors apply, including final source and inventory verification.
 
 `features` builds a flat, parent-linked semantic hierarchy from the bounded Next.js App Router and FastAPI readers.
-The hierarchy contains application, feature, route, handler, contract, schema-reference, schema and schema-field facts.
+The hierarchy contains application, package, feature, route, handler, contract, execution-dependency, middleware, schema-reference, schema and schema-field facts.
 Exact route paths group route candidates into provisional features inside an inferred application boundary.
 This grouping does not establish business ownership.
 
@@ -838,9 +838,17 @@ Other declarations use `external-or-unresolved` because this query does not invo
 Package, build-setting and dependency facts use captured-manifest validation evidence.
 The reader emits at most 64 build settings and 256 dependencies per application, with explicit omission gaps.
 FastAPI applications report a packaging gap because the project manifest reader does not inspect Python packaging yet.
+Next.js `proxy.ts` or `proxy.js` files beneath the application root become middleware children with before-route phase evidence.
+The reader also reports legacy `middleware.ts` or `middleware.js` convention files as deprecated candidates; multiple convention files produce a precedence gap.
+Direct FastAPI `@app.middleware("http")` and `app.add_middleware(Name, ...)` registrations become application middleware children.
+Their source order and reverse request order follow the observed registration syntax, while runtime registration, response order and behavior remain unchecked.
+The reader emits at most 64 FastAPI middleware facts per application; overflow produces an explicit omission gap.
+FastAPI `Depends` and `Security` parameter calls become route `execution-dependency` children when their provider is a direct callable name.
+Competing markers and computed providers remain unresolved, and provider bodies are not exposed.
+`Security` marks an authentication candidate; `Depends` does not establish the provider's purpose.
 The model preserves ambiguous same-file schema candidates and expands each bounded candidate separately.
 Other route frameworks produce `framework-gap` facts rather than disappearing.
-Middleware, authentication, mounted routers, lifecycle, runtime configuration, service reachability and frontend components remain explicit analysis limitations.
+Unsupported middleware and authentication forms, mounted routers, lifecycle, runtime configuration, service reachability and frontend components remain explicit analysis limitations.
 These facts describe captured syntax candidates; they do not prove runtime framework identity or wire correspondence.
 
 `contracts` extends the route view with partial request and response evidence from captured source.
@@ -877,12 +885,15 @@ Fields, summaries, gaps, route declarations and handlers all share the page limi
 
 FastAPI request fields recognize `Path`, `Query`, `Body`, `Header`, `Cookie`, `Form` and `File` calls.
 Markers can occupy a default value or `Annotated` metadata; qualified names also match by their final component.
-Exactly one supported marker must identify the binding. Conflicting markers, dependencies, aliases and implicit parameter classification remain unknown.
+Exactly one supported request marker must identify the binding. Conflicting request markers, aliases and implicit parameter classification remain unknown.
 `binding_kind` preserves the marker name. Form and file markers use the body location without inferring a media type.
 Literal aliases supply candidate names; header and body bindings without aliases leave the name null.
 Dynamic, escaped, empty, competing or expanded alias arguments also leave it null. Requiredness stays null throughout.
 The reader strips `Annotated` metadata before emitting the type; defaults, descriptions and validation arguments stay outside the output.
 Unsupported type expressions leave `declared_type` null. These patterns follow FastAPI's [parameter declarations](https://fastapi.tiangolo.com/tutorial/body-multiple-params/).
+`Depends` and `Security` calls appear separately as `route-dependency` rows.
+One direct callable provider is a name-only candidate; nested provider expressions and multiple dependency markers stay unresolved.
+The route analysis count is available as `analysis.route_dependencies`.
 
 Explicit `response_model` arguments produce separate response fields with `basis: fastapi-response-model` and `location: response-model`.
 Names, qualified names, generic subscriptions, unions and `None` form the supported type subset, with a depth limit of 16.

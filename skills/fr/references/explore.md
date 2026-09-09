@@ -31,6 +31,7 @@ Call results preserve confidence and unresolved or dispatch-candidate rows; cand
 Test associations are candidates for selecting checks, not proof of complete coverage or commands to execute blindly.
 Use `project packages`, `dependencies`, `links` and `workspaces` for manifest declarations and local relationships when package boundaries matter.
 Use `project routes`, `contracts` and `configuration` for their supported declaration patterns when the task needs those views.
-Use `project features` for the parent-linked Next.js App Router or FastAPI route, handler, contract and schema hierarchy.
+Use `project features` for the parent-linked Next.js App Router or FastAPI application, package, route, handler, contract, execution-dependency, middleware and schema hierarchy.
 Pass a returned `--feature ID` to retrieve one revision-bound subtree.
+Middleware order and direct FastAPI providers are syntax candidates; inspect their source before making runtime or authentication claims.
 These commands do not establish complete dependency resolution or framework semantics.

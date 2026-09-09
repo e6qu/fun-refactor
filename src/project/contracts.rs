@@ -152,6 +152,26 @@ fn fastapi_fields(
         .flat_map(fast_routes::children)
         .filter(|n| !matches!(n.kind(), "keyword_separator" | "positional_separator"))
     {
+        let dependencies = fast_routes::dependencies(parameter, source);
+        if !dependencies.is_empty() {
+            let competing = dependencies.len() > 1;
+            for dependency in dependencies {
+                let resolved = dependency.provider.is_some() && !competing;
+                let authentication_candidate = dependency.marker == "Security";
+                rows.push(json!({"kind": "route-dependency", "route": route, "handler": handler,
+                    "binding": bounded_text(&dependency.binding, 160),
+                    "provider": dependency.provider.as_deref().map(|provider| bounded_text(provider, 160)),
+                    "marker": dependency.marker,
+                    "authentication_candidate": authentication_candidate,
+                    "line": dependency.line, "basis": "fastapi-parameter-dependency",
+                    "status": if resolved { "candidate" } else { "unresolved" },
+                    "confidence": if resolved { "name-only" } else { "unknown" },
+                    "gaps": if competing { json!(["Competing dependency markers need further inspection."]) }
+                        else if dependency.provider.is_none() { json!(["The dependency provider is implicit or exceeds the direct callable subset."]) }
+                        else { json!([]) }}));
+            }
+            continue;
+        }
         let Some(input) = fast_routes::input(parameter, source) else {
             unknown += 1;
             continue;

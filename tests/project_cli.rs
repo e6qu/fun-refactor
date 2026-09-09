@@ -3340,8 +3340,29 @@ fn framework_features_join_routes_handlers_and_schemas_into_selectable_subtrees(
     );
     put(
         root,
+        "web/proxy.ts",
+        "export function proxy() { throw new Error('PRIVATE_PROXY'); }\n",
+    );
+    put(
+        root,
         "api/app.py",
-        "from fastapi import FastAPI\nclass Pet:\n    id: int\napp = FastAPI()\n@app.get('/pets')\ndef pets() -> Pet:\n    raise RuntimeError('PRIVATE_FAST')\n",
+        concat!(
+            "from typing import Annotated\n",
+            "from fastapi import Depends, FastAPI, Security\n",
+            "from fastapi.middleware.cors import CORSMiddleware\n",
+            "class Pet:\n    id: int\n",
+            "app = FastAPI()\n",
+            "def load_user(): pass\n",
+            "def check_scope(): pass\n",
+            "@app.middleware('http')\n",
+            "async def timing(request, call_next):\n",
+            "    return await call_next(request)\n",
+            "app.add_middleware(CORSMiddleware, allow_origins=[])\n",
+            "@app.get('/pets')\n",
+            "def pets(user=Depends(load_user), ",
+            "guard: Annotated[str, Security(check_scope)] = None) -> Pet:\n",
+            "    raise RuntimeError('PRIVATE_FAST')\n",
+        ),
     );
 
     let full = ok(root, &["project", "features", "--limit", "500"]);
@@ -3354,6 +3375,9 @@ fn framework_features_join_routes_handlers_and_schemas_into_selectable_subtrees(
     assert_eq!(full["analysis"]["build_settings"], 1);
     assert_eq!(full["analysis"]["dependencies"], 2);
     assert_eq!(full["analysis"]["package_gaps"], 1);
+    assert_eq!(full["analysis"]["middleware"], 3);
+    assert_eq!(full["analysis"]["execution_dependencies"], 2);
+    assert_eq!(full["analysis"]["authentication_candidates"], 1);
     let items = full["items"].as_array().unwrap();
     for fact in items {
         assert!(fact.get("id").is_some(), "{fact}");
@@ -3385,6 +3409,8 @@ fn framework_features_join_routes_handlers_and_schemas_into_selectable_subtrees(
         "build-setting",
         "dependency",
         "package-gap",
+        "middleware",
+        "execution-dependency",
     ] {
         assert!(
             items.iter().any(|fact| fact["kind"] == kind),
@@ -3431,6 +3457,46 @@ fn framework_features_join_routes_handlers_and_schemas_into_selectable_subtrees(
         .iter()
         .find(|fact| fact["kind"] == "application" && fact["application"]["framework"] == "fastapi")
         .unwrap();
+    let mut fast_middleware: Vec<_> = items
+        .iter()
+        .filter(|fact| fact["kind"] == "middleware" && fact["parent"] == fast_app["id"])
+        .collect();
+    fast_middleware.sort_by_key(|fact| fact["middleware"]["declaration_order"].as_u64());
+    assert_eq!(fast_middleware.len(), 2, "{full}");
+    assert_eq!(fast_middleware[0]["middleware"]["name"], "timing");
+    assert_eq!(fast_middleware[0]["middleware"]["request_order"], 2);
+    assert_eq!(fast_middleware[1]["middleware"]["name"], "CORSMiddleware");
+    assert_eq!(fast_middleware[1]["middleware"]["request_order"], 1);
+    let route = items
+        .iter()
+        .find(|fact| {
+            fact["kind"] == "route"
+                && fact["parent"].as_str().is_some_and(|parent| {
+                    items.iter().any(|candidate| {
+                        candidate["id"] == parent && candidate["parent"] == fast_app["id"]
+                    })
+                })
+        })
+        .unwrap();
+    let dependencies: Vec<_> = items
+        .iter()
+        .filter(|fact| fact["kind"] == "execution-dependency" && fact["parent"] == route["id"])
+        .collect();
+    assert_eq!(dependencies.len(), 2, "{full}");
+    assert!(dependencies.iter().any(|fact| {
+        fact["execution_dependency"]["provider"] == "load_user"
+            && fact["execution_dependency"]["authentication_candidate"] == false
+    }));
+    assert!(dependencies.iter().any(|fact| {
+        fact["execution_dependency"]["provider"] == "check_scope"
+            && fact["execution_dependency"]["authentication_candidate"] == true
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "middleware"
+            && fact["parent"] == next_app["id"]
+            && fact["middleware"]["form"] == "nextjs-proxy"
+            && fact["middleware"]["deprecated_convention"] == false
+    }));
     assert!(items.iter().any(|fact| {
         fact["kind"] == "package-gap"
             && fact["parent"] == fast_app["id"]
@@ -3534,6 +3600,32 @@ fn framework_feature_package_facts_bound_build_settings_and_dependencies() {
 }
 
 #[test]
+fn framework_feature_middleware_facts_are_bounded_with_an_explicit_gap() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let registrations: String = (0..65)
+        .map(|number| format!("app.add_middleware(Middleware{number})\n"))
+        .collect();
+    put(
+        root,
+        "app.py",
+        &format!(
+            "from fastapi import FastAPI\napp = FastAPI()\n{registrations}@app.get('/pets')\ndef pets(): pass\n"
+        ),
+    );
+
+    let view = ok(root, &["project", "features", "--limit", "500"]);
+    assert_eq!(view["analysis"]["middleware"], 64, "{view}");
+    assert_eq!(view["analysis"]["middleware_omitted"], 1, "{view}");
+    assert_eq!(view["analysis"]["middleware_gaps"], 1, "{view}");
+    assert!(view["items"].as_array().unwrap().iter().any(|fact| {
+        fact["kind"] == "framework-gap"
+            && fact["gap"]["omitted"] == 1
+            && fact["evidence"]["basis"] == "middleware-fact-limit"
+    }));
+}
+
+#[test]
 fn framework_features_preserve_schema_ambiguity_and_unsupported_framework_routes() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
@@ -3573,6 +3665,66 @@ fn framework_features_preserve_schema_ambiguity_and_unsupported_framework_routes
     }));
     assert!(items.iter().any(|fact| fact["kind"] == "schema-gap"));
     assert!(!view.to_string().contains("PRIVATE"));
+}
+
+#[test]
+fn framework_features_preserve_dependency_and_next_middleware_ambiguity_as_gaps() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "package.json", r#"{"dependencies":{"next":"16"}}"#);
+    put(root, "app/api/route.ts", "export function GET() {}\n");
+    put(root, "proxy.js", "export function proxy() {}\n");
+    put(root, "middleware.ts", "export function middleware() {}\n");
+    put(
+        root,
+        "api.py",
+        "from typing import Annotated\nfrom fastapi import Depends, FastAPI, Security\napp = FastAPI()\n@app.get('/pets')\ndef pets(value: Annotated[str, Depends(first), Security(second)], dynamic=Depends(build_provider())):\n    pass\n",
+    );
+
+    let view = ok(root, &["project", "features", "--limit", "500"]);
+    assert_eq!(view["analysis"]["middleware"], 2, "{view}");
+    assert_eq!(view["analysis"]["middleware_gaps"], 1, "{view}");
+    assert_eq!(view["analysis"]["execution_dependencies"], 3, "{view}");
+    assert_eq!(view["analysis"]["authentication_candidates"], 1, "{view}");
+    let items = view["items"].as_array().unwrap();
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "middleware"
+            && fact["middleware"]["form"] == "nextjs-middleware"
+            && fact["middleware"]["deprecated_convention"] == true
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "framework-gap"
+            && fact["gap"]["reason"]
+                .as_str()
+                .is_some_and(|reason| reason.contains("Multiple Next.js"))
+    }));
+    let dependencies: Vec<_> = items
+        .iter()
+        .filter(|fact| fact["kind"] == "execution-dependency")
+        .collect();
+    assert!(dependencies
+        .iter()
+        .all(|fact| fact["status"] == "unresolved"));
+    assert!(dependencies.iter().any(|fact| {
+        fact["execution_dependency"]["binding"] == "dynamic"
+            && fact["execution_dependency"]["provider"].is_null()
+    }));
+
+    let contracts = ok(root, &["project", "contracts", "--limit", "500"]);
+    assert_eq!(
+        contracts["analysis"]["route_dependencies"], 3,
+        "{contracts}"
+    );
+    assert_eq!(
+        contracts["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|fact| fact["kind"] == "route-dependency")
+            .count(),
+        3
+    );
+    assert!(!view.to_string().contains("build_provider"));
 }
 
 #[test]
@@ -3719,7 +3871,13 @@ fn fastapi_contracts_read_default_markers_without_leaking_defaults_or_constraint
     }
     assert!(items
         .iter()
-        .any(|r| r["parameters"] == 2 && r["basis"] == "fastapi-explicit-binding"));
+        .any(|r| r["parameters"] == 1 && r["basis"] == "fastapi-explicit-binding"));
+    assert!(items.iter().any(|r| {
+        r["kind"] == "route-dependency"
+            && r["binding"] == "user"
+            && r["provider"] == "load_user"
+            && r["authentication_candidate"] == false
+    }));
     assert!(items
         .iter()
         .any(|r| r["declared_type"] == "Pet" && r["location"] == "return"));
@@ -3750,7 +3908,10 @@ fn fastapi_annotated_bindings_strip_metadata_and_keep_unknown_types_explicit() {
     assert!(inputs
         .iter()
         .any(|r| r["binding"] == "dynamic" && r["declared_type"].is_null()));
-    assert!(items.iter().any(|r| r["parameters"] == 2));
+    assert!(items.iter().any(|r| r["parameters"] == 1));
+    assert!(items.iter().any(|r| {
+        r["kind"] == "route-dependency" && r["binding"] == "dep" && r["provider"] == "load_user"
+    }));
     assert!(!view.to_string().contains("PRIVATE_"));
 }
 

@@ -276,14 +276,16 @@ Every result distinguishes a proved model property, tested implementation/model 
 
 ### PR 5. Framework Semantic Model
 
-Status: in progress on `framework_semantic_model`. The first checkpoint adds a selectable route-centered hierarchy for the bounded Next.js App Router and FastAPI readers. The second links Next.js applications to captured npm packages, build scripts and dependency boundaries while preserving a FastAPI packaging gap. Every fact retains its parent, source anchor, evidence, confidence and explicit gaps.
+Status: in progress on `framework_semantic_model`. The first checkpoint adds a selectable route-centered hierarchy for the bounded Next.js App Router and FastAPI readers. The second links Next.js applications to captured npm packages, build scripts and dependency boundaries while preserving a FastAPI packaging gap. The third adds bounded Next.js Proxy and FastAPI middleware facts plus FastAPI parameter execution dependencies and `Security` authentication candidates. Every fact retains its parent, source anchor, evidence, confidence and explicit gaps.
 
 Goal: represent a feature across application structure rather than as isolated syntax nodes.
 
 Deliverables:
 
 - Model applications, packages, features, build settings and dependency boundaries; complete for npm-backed Next.js applications, with Python packaging still explicit as a gap.
-- Model backend routes, schemas, handlers, middleware, authentication boundaries and service dependencies.
+- Model backend routes, schemas and handlers; complete for the first bounded Next.js/FastAPI subset.
+- Model middleware and authentication boundaries; readers cover direct convention files, FastAPI HTTP registrations and parameter dependencies. Unsupported forms remain gaps.
+- Model service dependencies; open beyond direct FastAPI parameter provider names.
 - Model frontend components, properties, events, state, effects, styles and rendering boundaries.
 - Attach source anchors, confidence, unsupported constructs and validation evidence to every fact; complete for the first route-centered hierarchy.
 - Strengthen the existing Next.js and FastAPI readers before adding another backend pair.
@@ -294,7 +296,7 @@ Verification and acceptance:
 
 - Display one feature hierarchy across routes, handlers, schemas, components and dependencies.
 - Retrieve that subtree without loading the whole application.
-- Preserve ambiguity and unsupported middleware, authentication, lifecycle and runtime behavior as explicit gaps.
+- Preserve ambiguity and unsupported middleware, authentication, lifecycle and runtime behavior as explicit gaps; complete for current dependency and middleware readers.
 - Compare readers against pinned framework fixtures and real projects with independent contract checks.
 
 ### PR 6. Verified Feature Migration

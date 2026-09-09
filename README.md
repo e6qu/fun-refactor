@@ -326,9 +326,11 @@ FastAPI contract rows include explicit parameter markers and decorator response 
 `fr project schemas` pages Python class, TypeScript interface/object-alias and Rust struct fields, with followable candidates and explicit validation gaps.
 `fr project contracts --types` adds optional declaration links from supported signature types, preserving ambiguity and unresolved names.
 `fr project features` joins the bounded Next.js App Router and FastAPI facts into a parent-linked hierarchy.
-It groups exact route paths inside inferred application boundaries, then links routes, handlers, contract fields and same-file schema candidates.
+It groups exact route paths inside inferred application boundaries, then links routes, handlers, contract fields, execution dependencies and same-file schema candidates.
 Next.js applications also link to captured npm packages, build scripts and declared dependency boundaries.
 Local manifest links remain distinct from dependencies that need package-manager resolution.
+Application children expose Next.js Proxy or legacy middleware convention files and direct FastAPI HTTP middleware registrations.
+FastAPI `Depends` and `Security` parameter markers become route execution dependencies; only `Security` is labeled as an authentication candidate.
 Every fact retains a source anchor, evidence basis, status, confidence and explicit gaps.
 Use `--feature ID` to retrieve one revision-bound subtree.
 `fr project configuration` pages environment declarations and candidate code consumers, with captured-source checks and explicit analysis gaps.
