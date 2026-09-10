@@ -155,6 +155,45 @@ fn migration_uses_the_selected_route_instead_of_fixture_names() {
 }
 
 #[test]
+fn migration_compares_generic_declared_schema_shapes_after_generation() {
+    let dir = tempfile::tempdir().unwrap();
+    let route = dir.path().join("app/measurements/route.ts");
+    fs::create_dir_all(route.parent().unwrap()).unwrap();
+    fs::write(
+        route,
+        "interface Measurement {\n  sensor_id: string;\n  values: number[];\n  active: boolean;\n}\n\nexport async function POST(request: Request): Promise<Response> {\n  const measurement: Measurement = await request.json();\n  return Response.json(measurement);\n}\n",
+    )
+    .unwrap();
+    let feature = feature(dir.path());
+    let report = ok(
+        dir.path(),
+        &[
+            "migrate",
+            "feature",
+            &feature,
+            "--to",
+            "fastapi",
+            "--out",
+            "services/measurements.py",
+        ],
+    );
+    let schemas = &report["contract"]["declared_schemas"];
+    assert_eq!(schemas["status"], "agreed");
+    assert_eq!(schemas["translation_agreement"], true);
+    assert_eq!(schemas["wire_schema_agreement"], "unverified");
+    assert_eq!(schemas["source"], schemas["generated"]);
+    assert_eq!(schemas["source"][0]["name"], "Measurement");
+    assert_eq!(
+        schemas["source"][0]["fields"],
+        serde_json::json!([
+            {"name": "active", "declared_type": "bool"},
+            {"name": "sensor_id", "declared_type": "string"},
+            {"name": "values", "declared_type": "list<float>"}
+        ])
+    );
+}
+
+#[test]
 fn feature_migration_replays_through_history_and_exports_a_git_patch() {
     let dir = fixture();
     let source = dir.path().join("app/api/pets/route.ts");
@@ -246,4 +285,32 @@ fn a_dynamic_fastapi_feature_previews_as_a_nextjs_app_route() {
         .path()
         .join("web/app/accounts/[accountId]/audit-log/route.ts")
         .exists());
+}
+
+#[test]
+fn fastapi_migration_compares_only_models_reached_by_handler_signatures() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(
+        dir.path().join("routes.py"),
+        "from fastapi import APIRouter\nfrom pydantic import BaseModel\n\nrouter = APIRouter()\n\nclass Reading(BaseModel):\n    device_id: str\n    samples: list[float]\n    valid: bool\n\nclass InternalCache:\n    value: str\n\n@router.post('/readings', response_model=Reading)\nasync def record_reading(reading: Reading) -> Reading:\n    return reading\n",
+    )
+    .unwrap();
+    let feature = feature(dir.path());
+    let report = ok(
+        dir.path(),
+        &[
+            "migrate", "feature", &feature, "--to", "nextjs", "--out", "web/app",
+        ],
+    );
+    let schemas = &report["contract"]["declared_schemas"];
+    assert_eq!(schemas["status"], "agreed");
+    assert_eq!(schemas["translation_agreement"], true);
+    assert_eq!(schemas["source"].as_array().unwrap().len(), 1);
+    assert_eq!(schemas["source"][0]["name"], "Reading");
+    assert!(schemas["generated"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|shape| shape == &schemas["source"][0]));
+    assert!(!schemas["source"].to_string().contains("InternalCache"));
 }

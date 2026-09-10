@@ -10,6 +10,8 @@ def samples : List Nat := [0, 1, 2, 3, 4, 79, 80, 499, 500, 65536, 4294967295, 1
 
 def frameworkSamples : List Nat := [0, 1, 2, 63, 64, 65, 128, 512, 65536]
 
+def schemaSamples : List (List String) := [[], ["a"], ["a", "b"], ["b", "a"], ["a", "a"]]
+
 def sourceSamples : List String := Id.run do
   let mut sources := [""]
   let mut words := sources
@@ -69,6 +71,9 @@ def main (args : List String) : IO Unit := do
     for gap in [false, true] do
       for automaticKind in [false, true] do
         IO.println (migrationDisposition gap automaticKind)
+    for expected in schemaSamples do
+      for generated in schemaSamples do
+        IO.println (migrationSchemaAgreement expected generated)
   else if args == ["selection-conflicts"] then
     for leftStart in samples do
       for leftEnd in samples do

@@ -7,8 +7,8 @@ Start with a compact feature query, then pass its ID to the migration command:
 
 ```sh
 fr --json project features
-fr --json migrate feature frff1:... --to fastapi --out migrated/pets.py
-fr --save-plan --json migrate feature frff1:... --to fastapi --out migrated/pets.py
+fr --json migrate feature frff1:... --to fastapi --out services/telemetry.py
+fr --save-plan --json migrate feature frff1:... --to fastapi --out services/telemetry.py
 ```
 
 The selected feature must exist in the current project revision, contain at least one route and keep every selected method in one source file.
@@ -18,6 +18,8 @@ The destination cannot replace the source.
 
 The report binds the feature, source revision, source and target frameworks, source paths and generated paths.
 It lists the exact method and URL contract and refuses when the framework reader and file translator disagree.
+It also lists canonical declared models, field names and supported field types parsed from source and generated code.
+Migration refuses when a translated source shape is missing or different after independently parsing the destination.
 The migration preview also carries a bounded diff and translation fidelity notes.
 
 Each selected semantic fact has one disposition:
@@ -28,7 +30,7 @@ Each selected semantic fact has one disposition:
 
 The first automatic step translates the selected route file.
 Application registration and final cutover remain agent decisions because composition and deployment conventions vary by project.
-The plan does not claim runtime, middleware, authentication, validation, lifecycle or schema equivalence.
+The plan does not claim full framework runtime, middleware, authentication, validation, lifecycle or wire-schema equivalence.
 
 The command keeps the source route and adds the destination.
 This supports an incremental period where both frameworks remain in the workspace.
@@ -47,7 +49,8 @@ fr history redo
 
 The anchored migration-direction policy accepts only a transition between the two supported framework classes.
 The anchored disposition policy maps gaps to unsupported work, supported automatic kinds to automatic work and all other recognized facts to agent decisions.
-Lean proves these finite policies, and shared execution compares their complete Boolean domains with Rust.
+The anchored schema policy accepts a generated shape set exactly when it contains every expected shape.
+Lean proves these policies, and shared execution compares their bounded domains with Rust.
 Parser recognition, endpoint extraction, kind assignment, translation, filesystem history and framework runtime behavior remain outside those proofs.
 
 ## Runtime evidence
@@ -59,4 +62,13 @@ Node and Python execute the handlers, while small stubs supply decorator registr
 This evidence covers handler behavior in the supported constructs.
 It does not cover framework middleware, dependency injection, validation, startup, routing registration or deployment.
 
-Current follow-up work adds registered framework fixtures, independent schema comparisons, connected build and test edits, and a reviewed cutover stage.
+## Declared schema evidence
+
+The migration report canonicalizes records into names and sorted fields whose supported types use language-neutral spellings.
+It reparses the generated Python or TypeScript and checks the resulting declarations against the translated source records.
+FastAPI migration includes only models reached through selected handler signatures.
+The framework writers retain source field spellings because those names can be JSON keys.
+This check covers declarations and supported types.
+It does not establish aliases, requiredness, defaults, validators, serialization settings, OpenAPI output or runtime request and response validation.
+
+Current follow-up work adds registered framework fixtures, runtime schema comparisons, connected build and test edits, and a reviewed cutover stage.

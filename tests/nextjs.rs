@@ -328,8 +328,8 @@ fn a_zod_schema_becomes_a_pydantic_model() {
         ("views", "int"),
         ("tags", "list[str]"),
         ("draft", "bool"),
-        // The name takes Python's convention, like every other name the file declares.
-        ("published_at", "datetime | None"),
+        // Schema fields keep the spelling used on the JSON wire.
+        ("publishedAt", "datetime | None"),
     ] {
         assert!(
             plan.output.contains(&format!("{field}: {ty}")),

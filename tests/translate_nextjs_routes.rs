@@ -147,6 +147,19 @@ fn a_model_crosses_without_the_framework_it_was_declared_to() {
 }
 
 #[test]
+fn model_fields_keep_their_wire_names() {
+    let source = APP.replace("    age: int", "    device_id: str\n    age: int");
+    let (_tmp, plan) = translate(&source);
+    let pets = route(&plan, "/pets");
+    assert!(
+        pets.output.contains("device_id: string;"),
+        "{}",
+        pets.output
+    );
+    assert!(!pets.output.contains("deviceId:"), "{}", pets.output);
+}
+
+#[test]
 fn every_returned_value_becomes_a_response() {
     // FastAPI serialises what a handler returns.
     let (_tmp, plan) = translate(APP);

@@ -904,8 +904,8 @@ fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
     use fun_refactor::project::framework_kernel::{
         component_hooks_compatible, configuration_visibility, fastapi_prefix_supported,
         framework_emitted, framework_migration_supported, framework_omitted,
-        middleware_request_order, migration_disposition, service_redaction_flags,
-        service_target_kind,
+        middleware_request_order, migration_disposition, migration_schema_agreement,
+        service_redaction_flags, service_target_kind,
     };
 
     build_kernel();
@@ -970,6 +970,19 @@ fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
     for gap in [false, true] {
         for automatic_kind in [false, true] {
             expected.push(migration_disposition(gap, automatic_kind).to_string());
+        }
+    }
+    let schema_samples = [
+        vec![],
+        vec!["a".to_owned()],
+        vec!["a".to_owned(), "b".to_owned()],
+        vec!["b".to_owned(), "a".to_owned()],
+        vec!["a".to_owned(), "a".to_owned()],
+    ];
+    for expected_shapes in &schema_samples {
+        for generated_shapes in &schema_samples {
+            expected
+                .push(migration_schema_agreement(expected_shapes, generated_shapes).to_string());
         }
     }
     assert_eq!(actual, expected);

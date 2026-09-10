@@ -1128,11 +1128,37 @@ pub fn write(language: Language, module: &Module) -> Result<(String, Fidelity)> 
     write_in_context(language, module, module)
 }
 
+/// Write a module while retaining declared field spellings for a wire contract.
+pub(crate) fn write_preserving_fields(
+    language: Language,
+    module: &Module,
+) -> Result<(String, Fidelity)> {
+    write_in_context_preserving_fields(language, module, module)
+}
+
 /// Write `module`, spelling names as declared by `context`.
 pub fn write_in_context(
     language: Language,
     module: &Module,
     context: &Module,
+) -> Result<(String, Fidelity)> {
+    write_in_context_with_fields(language, module, context, true)
+}
+
+/// Write `module` without applying target naming conventions to declared fields.
+pub(crate) fn write_in_context_preserving_fields(
+    language: Language,
+    module: &Module,
+    context: &Module,
+) -> Result<(String, Fidelity)> {
+    write_in_context_with_fields(language, module, context, false)
+}
+
+fn write_in_context_with_fields(
+    language: Language,
+    module: &Module,
+    context: &Module,
+    translate_fields: bool,
 ) -> Result<(String, Fidelity)> {
     let mut out = Out::new(language);
     // What the sweep had to change about this file travels with it, so the
@@ -1140,7 +1166,10 @@ pub fn write_in_context(
     out.fidelity
         .notes
         .extend(module.sweep_notes.iter().cloned());
-    let (names, fields) = spellings(language, context);
+    let (names, mut fields) = spellings(language, context);
+    if !translate_fields {
+        fields.clear();
+    }
     out.names = names;
     out.fields = fields;
     out.declared_types = context

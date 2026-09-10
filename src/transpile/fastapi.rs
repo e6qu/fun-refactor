@@ -37,6 +37,7 @@ pub struct AppPlan {
     pub source: PathBuf,
     pub routes: Vec<RouteFile>,
     pub endpoints: Vec<(String, String)>,
+    pub models: Vec<Record>,
     pub fidelity: Fidelity,
     /// What the module declared that a route tree has no place for.
     pub notes: Vec<String>,
@@ -139,18 +140,20 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<AppPlan> 
             .map(|endpoint| Item::Function(endpoint.handler.clone())),
     );
 
+    let migrated_models = models
+        .iter()
+        .filter(|model| {
+            by_route
+                .values()
+                .flatten()
+                .any(|endpoint| names_type(&endpoint.handler, &model.name))
+        })
+        .cloned()
+        .collect::<Vec<_>>();
     let mut routes = Vec::new();
     let mut fidelity = Fidelity {
         functions: by_route.values().map(|group| group.len()).sum(),
-        records: models
-            .iter()
-            .filter(|model| {
-                by_route
-                    .values()
-                    .flatten()
-                    .any(|e| names_type(&e.handler, &model.name))
-            })
-            .count(),
+        records: migrated_models.len(),
         ..Fidelity::default()
     };
     let mut edits = crate::edit::EditSet::new();
@@ -196,6 +199,7 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<AppPlan> 
         source: path.to_path_buf(),
         routes,
         endpoints,
+        models: migrated_models,
         fidelity,
         notes,
         edits,
@@ -384,7 +388,8 @@ fn write_route(
         items,
         sweep_notes: Vec::new(),
     };
-    let (output, fidelity) = super::write_module_in(Language::TypeScript, &module, context)?;
+    let (output, fidelity) =
+        super::write_module_in_preserving_fields(Language::TypeScript, &module, context)?;
 
     Ok((
         RouteFile {

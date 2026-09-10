@@ -143,6 +143,20 @@ theorem supported_nonautomatic_kind_needs_a_decision :
     migrationDisposition false false = 1 := by
   decide
 
+-- fr:spec src/project/framework_kernel.rs::migration_schema_agreement @ 1b6293851270d68ca599ab29dc38f9687619f8af10f01955a0eb5f1371072a03
+-- fr:signature expected: &[String] => expected: List String; generated: &[String] => generated: List String; return: bool => return: Bool
+def migrationSchemaAgreement (expected : List String) (generated : List String) : Bool :=
+  expected.all (generated.contains ·)
+
+theorem migration_schema_agreement_iff_subset (expected generated : List String) :
+    migrationSchemaAgreement expected generated = true ↔
+      ∀ shape ∈ expected, shape ∈ generated := by
+  simp [migrationSchemaAgreement]
+
+theorem migration_schema_agreement_reflexive (shapes : List String) :
+    migrationSchemaAgreement shapes shapes = true := by
+  simp [migrationSchemaAgreement]
+
 -- fr:spec src/project.rs::path_confidence @ b5a8549e
 -- fr:signature edges: &[Confidence] => edges: List Nat; return: Confidence => return: Nat
 def pathConfidence (edges : List Nat) : Nat := edges.foldr max 0

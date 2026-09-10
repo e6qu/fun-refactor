@@ -786,7 +786,7 @@ fn write(module: &Module, endpoints: &[Endpoint], source: &Path) -> Result<Writt
 
     // Everything that is not a handler goes through the ordinary Python writer, which turns
     // interfaces into dataclasses.
-    let (body, mut fidelity) = super::write_module(Language::Python, &rest)?;
+    let (body, mut fidelity) = super::write_module_preserving_fields(Language::Python, &rest)?;
     let body = body
         .replace("from dataclasses import dataclass", "")
         .replace("@dataclass", "");
@@ -970,7 +970,8 @@ fn write(module: &Module, endpoints: &[Endpoint], source: &Path) -> Result<Writt
                 is_private: false,
             })],
         };
-        let (written, inner) = super::write_module_in(Language::Python, &one, module)?;
+        let (written, inner) =
+            super::write_module_in_preserving_fields(Language::Python, &one, module)?;
         fidelity.carried_verbatim += inner.carried_verbatim;
         fidelity.notes.extend(inner.notes);
 
