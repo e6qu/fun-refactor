@@ -84,6 +84,10 @@ def main (args : List String) : IO Unit := do
     for candidateCount in [0, 1, 2, 65536] do
       for supportedShape in [false, true] do
         IO.println (nextjsBodyValidationAutomatic candidateCount supportedShape)
+    for explicitTarget in [false, true] do
+      for applicationBinding in [false, true] do
+        for endpointConflict in [false, true] do
+          IO.println (fastapiRegistrationAutomatic explicitTarget applicationBinding endpointConflict)
   else if args == ["selection-conflicts"] then
     for leftStart in samples do
       for leftEnd in samples do

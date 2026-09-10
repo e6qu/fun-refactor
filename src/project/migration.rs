@@ -1,5 +1,5 @@
 use super::{bounded_text, FeatureOptions, Project, RelationshipOptions};
-use crate::edit::EditSet;
+use crate::edit::{Edit, EditSet};
 use crate::lang::Language;
 use crate::transpile::ir::{Item, Record, Type};
 use crate::transpile::nextjs::Model;
@@ -29,6 +29,11 @@ pub struct Options {
         help = "Workspace-relative destination file for FastAPI or directory for Next.js."
     )]
     pub out: PathBuf,
+    #[arg(
+        long,
+        help = "Mount generated FastAPI routes in an explicit PATH::APP_SYMBOL target."
+    )]
+    pub register_with: Option<String>,
     #[arg(
         long,
         default_value_t = 4096,
@@ -92,6 +97,176 @@ fn destination(root: &Path, out: &Path) -> Result<PathBuf> {
         "migration output must be one normalized workspace-relative path."
     );
     Ok(root.join(out))
+}
+
+struct FastapiRegistration {
+    path: PathBuf,
+    report: Value,
+    note: String,
+}
+
+fn registration_selector(root: &Path, selector: &str) -> Result<(PathBuf, String)> {
+    let (path, application) = selector
+        .rsplit_once("::")
+        .ok_or_else(|| anyhow::anyhow!("registration target must use PATH::APP_SYMBOL."))?;
+    let path = Path::new(path);
+    ensure!(
+        !path.as_os_str().is_empty()
+            && !path.is_absolute()
+            && path
+                .components()
+                .all(|part| matches!(part, Component::Normal(_)))
+            && path.extension().is_some_and(|extension| extension == "py")
+            && super::contracts::simple_name(application),
+        "registration target must name one normalized Python PATH::APP_SYMBOL."
+    );
+    Ok((root.join(path), application.to_owned()))
+}
+
+fn python_module_path(out: &Path) -> Result<String> {
+    let module_path = out.with_extension("");
+    let mut parts = module_path
+        .components()
+        .map(|part| part.as_os_str().to_str())
+        .collect::<Option<Vec<_>>>()
+        .ok_or_else(|| anyhow::anyhow!("FastAPI output path is not UTF-8."))?;
+    if parts.last() == Some(&"__init__") {
+        parts.pop();
+    }
+    ensure!(
+        !parts.is_empty() && parts.iter().all(|part| super::contracts::simple_name(part)),
+        "FastAPI output must have Python identifier path components for registration."
+    );
+    Ok(parts.join("."))
+}
+
+fn top_import_offset(root: tree_sitter::Node<'_>) -> usize {
+    let mut offset = 0;
+    for node in super::fast_routes::children(root) {
+        let module_doc = offset == 0
+            && node.kind() == "expression_statement"
+            && node
+                .named_child(0)
+                .is_some_and(|child| child.kind() == "string");
+        if module_doc
+            || matches!(
+                node.kind(),
+                "import_statement" | "import_from_statement" | "future_import_statement"
+            )
+        {
+            offset = node.end_byte();
+        } else if node.kind() != "comment" {
+            break;
+        }
+    }
+    offset
+}
+
+fn application_assignment_end(
+    root: tree_sitter::Node<'_>,
+    source: &str,
+    application: &str,
+) -> Option<usize> {
+    super::fast_routes::children(root)
+        .into_iter()
+        .filter(|node| node.kind() == "expression_statement")
+        .filter_map(|statement| {
+            let assignment = statement
+                .named_children(&mut statement.walk())
+                .find(|node| node.kind() == "assignment")?;
+            let left = assignment.child_by_field_name("left")?;
+            (left.kind() == "identifier" && super::fast_routes::text(left, source) == application)
+                .then_some(statement.end_byte())
+        })
+        .next()
+}
+
+fn fresh_registration_alias(source: &str) -> String {
+    let mut alias = "fr_migrated_router".to_owned();
+    while source.contains(&alias) {
+        alias.push('_');
+    }
+    alias
+}
+
+fn add_fastapi_registration(
+    project: &Project<'_>,
+    edits: &mut EditSet,
+    selector: &str,
+    out: &Path,
+    source: &Path,
+    endpoints: &[(String, String)],
+) -> Result<FastapiRegistration> {
+    let (path, application) = registration_selector(&project.root, selector)?;
+    ensure!(
+        path != source && path != project.root.join(out),
+        "registration target must be separate from the source and generated route."
+    );
+    let text = project.sources.get(&path).ok_or_else(|| {
+        anyhow::anyhow!("registration target is not a captured project source file.")
+    })?;
+    let parsed = crate::parse::Parsers::new().parse(Language::Python, text)?;
+    ensure!(
+        !parsed.has_errors(),
+        "registration target does not parse cleanly as Python."
+    );
+    let application_binding = super::fast_routes::receivers(&parsed, text)
+        .get(&application)
+        .is_some_and(|router| !router);
+    let routes = super::fast_routes::read(&parsed, text);
+    let endpoint_conflict = routes.entries.iter().any(|route| {
+        endpoints
+            .iter()
+            .any(|(method, url)| route.endpoint.method == *method && route.endpoint.url == *url)
+    });
+    ensure!(
+        crate::project::framework_kernel::fastapi_registration_automatic(
+            true,
+            application_binding,
+            endpoint_conflict,
+        ),
+        "registration target must contain one recognized FastAPI application binding and no direct endpoint conflict."
+    );
+    let assignment_end =
+        application_assignment_end(parsed.root(), text, &application).ok_or_else(|| {
+            anyhow::anyhow!("recognized FastAPI application assignment is unavailable.")
+        })?;
+    let import_offset = top_import_offset(parsed.root());
+    let module = python_module_path(out)?;
+    let alias = fresh_registration_alias(text);
+    let import = if import_offset == 0 {
+        format!("from {module} import router as {alias}\n")
+    } else {
+        format!("\nfrom {module} import router as {alias}")
+    };
+    edits.add(
+        path.clone(),
+        Edit::new(
+            crate::span::Span::new(import_offset, import_offset),
+            import,
+            "Import the generated FastAPI router.",
+        ),
+    );
+    edits.add(
+        path.clone(),
+        Edit::new(
+            crate::span::Span::new(assignment_end, assignment_end),
+            format!("\n{application}.include_router({alias})"),
+            "Mount the generated FastAPI router.",
+        ),
+    );
+    let relative = path.strip_prefix(&project.root).unwrap_or(&path);
+    Ok(FastapiRegistration {
+        path: relative.to_path_buf(),
+        report: json!({
+            "framework": "fastapi",
+            "root": relative.parent().filter(|path| !path.as_os_str().is_empty()).unwrap_or(Path::new(".")),
+            "entrypoint": relative,
+            "application": application,
+            "basis": "explicit-recognized-fastapi-binding-and-direct-route-check",
+        }),
+        note: "FastAPI registration checks direct routes in the selected application file; included and mounted routers remain unchecked.".to_owned(),
+    })
 }
 
 fn text_set(values: impl Iterator<Item = String>) -> Vec<String> {
@@ -372,9 +547,13 @@ impl Project<'_> {
                 "a Next.js migration output must name the destination app directory."
             ),
         }
+        ensure!(
+            options.register_with.is_none() || matches!(options.to, Target::Fastapi),
+            "--register-with applies only to a FastAPI destination."
+        );
 
         let (
-            edits,
+            mut edits,
             destinations,
             translated_endpoints,
             source_shapes,
@@ -456,6 +635,20 @@ impl Project<'_> {
             destinations.iter().all(|path| path != &source),
             "migration must keep the source route while the destination coexists."
         );
+        let registration = options
+            .register_with
+            .as_deref()
+            .map(|selector| {
+                add_fastapi_registration(
+                    self,
+                    &mut edits,
+                    selector,
+                    &options.out,
+                    &source,
+                    &semantic_endpoints,
+                )
+            })
+            .transpose()?;
 
         let facts = items
             .iter()
@@ -474,7 +667,12 @@ impl Project<'_> {
                 .flat_map(|row| row["gaps"].as_array().into_iter().flatten())
                 .filter_map(Value::as_str)
                 .map(str::to_owned)
-                .chain(translator_notes),
+                .chain(translator_notes)
+                .chain(
+                    registration
+                        .iter()
+                        .map(|registration| registration.note.clone()),
+                ),
         );
         let destinations_relative = destinations
             .iter()
@@ -487,6 +685,7 @@ impl Project<'_> {
                 &options.feature,
                 options.to.name(),
                 &options.out,
+                &options.register_with,
             ))?[..32]
         );
         let endpoints = semantic_endpoints
@@ -495,7 +694,9 @@ impl Project<'_> {
             .collect::<Vec<_>>();
         let target_application = match options.to {
             Target::Nextjs => nextjs_target_application(self, &options.out),
-            Target::Fastapi => None,
+            Target::Fastapi => registration
+                .as_ref()
+                .map(|registration| registration.report.clone()),
         };
         let registration_automatic = target_application.is_some();
         let mut automatic_steps = vec![json!({
@@ -505,11 +706,18 @@ impl Project<'_> {
         })];
         let mut agent_decisions = Vec::new();
         if registration_automatic {
-            automatic_steps.push(json!({
-                "order": 2,
-                "action": "register-nextjs-route-by-app-router-placement",
-                "validation": ["captured-nextjs-dependency", "app-or-src-app-destination"],
-            }));
+            automatic_steps.push(match options.to {
+                Target::Nextjs => json!({
+                    "order": 2,
+                    "action": "register-nextjs-route-by-app-router-placement",
+                    "validation": ["captured-nextjs-dependency", "app-or-src-app-destination"],
+                }),
+                Target::Fastapi => json!({
+                    "order": 2,
+                    "action": "register-fastapi-router-with-application",
+                    "validation": ["explicit-application-target", "recognized-fastapi-binding", "no-direct-endpoint-conflict", "reparse-strict"],
+                }),
+            });
         } else {
             agent_decisions.push(json!({
                 "order": 2,
@@ -530,6 +738,7 @@ impl Project<'_> {
             "target_framework": options.to,
             "source_files": source_paths,
             "destination_files": destinations_relative,
+            "connected_files": registration.iter().map(|registration| &registration.path).collect::<Vec<_>>(),
             "target_application": target_application,
             "coexistence": {
                 "source_retained": true,
@@ -556,7 +765,7 @@ impl Project<'_> {
         });
         report["facts"] = json!(facts);
         report["translation"] = fidelity;
-        report["scope"] = json!("One route-centered feature whose methods share one source file. Source removal and runtime registration require later reviewed steps.");
+        report["scope"] = json!("One route-centered feature whose methods share one source file. FastAPI registration can join the transaction through an explicit application target. Source removal remains a later reviewed step.");
         Ok(Plan { edits, report })
     }
 }

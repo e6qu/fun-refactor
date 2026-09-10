@@ -40,7 +40,7 @@ pub(super) fn literal(node: Node<'_>, source: &str) -> Option<String> {
     (!value.contains([quote, '\\', '\n', '\r'])).then(|| value.to_owned())
 }
 
-fn receivers(parsed: &Parsed, source: &str) -> BTreeMap<String, bool> {
+pub(super) fn receivers(parsed: &Parsed, source: &str) -> BTreeMap<String, bool> {
     let nodes = children(parsed.root());
     let mut constructors = BTreeMap::new();
     for node in &nodes {

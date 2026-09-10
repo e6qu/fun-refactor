@@ -254,6 +254,71 @@ fn run_json_path(program: &Path, root: &Path, file: &str) -> Value {
     serde_json::from_str(stdout.trim()).unwrap_or_else(|error| panic!("{error}: {stdout}"))
 }
 
+fn run_json_path_args(program: &Path, root: &Path, file: &str, args: &[&str]) -> Value {
+    let stdout = assert_success(command_output({
+        let mut command = Command::new(program);
+        command.current_dir(root).arg(file).args(args);
+        command
+    }));
+    serde_json::from_str(stdout.trim()).unwrap_or_else(|error| panic!("{error}: {stdout}"))
+}
+
+#[test]
+fn generated_fastapi_router_runs_through_the_explicit_application_registration() {
+    let Some(python) = fastapi_python() else {
+        return;
+    };
+    let dir = tempfile::tempdir().unwrap();
+    let route = dir.path().join("app/signals/route.ts");
+    fs::create_dir_all(route.parent().unwrap()).unwrap();
+    fs::create_dir_all(dir.path().join("backend/routes")).unwrap();
+    fs::write(
+        route,
+        "export async function GET() {\n  return Response.json({ state: \"ready\" });\n}\n",
+    )
+    .unwrap();
+    fs::write(dir.path().join("backend/__init__.py"), "").unwrap();
+    fs::write(dir.path().join("backend/routes/__init__.py"), "").unwrap();
+    fs::write(
+        dir.path().join("backend/main.py"),
+        "from fastapi import FastAPI\n\napplication = FastAPI()\n",
+    )
+    .unwrap();
+    let selected = feature(dir.path());
+    let report = fr(
+        dir.path(),
+        &[
+            "migrate",
+            "feature",
+            &selected,
+            "--to",
+            "fastapi",
+            "--out",
+            "backend/routes/signals.py",
+            "--register-with",
+            "backend/main.py::application",
+            "--write",
+        ],
+    );
+    assert_eq!(
+        report["migration"]["coexistence"]["destination_registration"],
+        "automatic"
+    );
+    fs::write(
+        dir.path().join("registered-runner.py"),
+        include_str!("migration-runtime/fastapi-registered-runner.py"),
+    )
+    .unwrap();
+    let response = run_json_path_args(
+        &python,
+        dir.path(),
+        "registered-runner.py",
+        &["backend.main", "application", "GET", "/signals"],
+    );
+    assert_eq!(response["status"], 200);
+    assert_eq!(response["body"], serde_json::json!({"state": "ready"}));
+}
+
 #[test]
 fn nextjs_and_generated_fastapi_handlers_return_the_same_value() {
     let Some(tsc) = toolchains() else {

@@ -75,3 +75,11 @@ pub fn fastapi_body_parameter_automatic(
 pub fn nextjs_body_validation_automatic(candidate_count: usize, supported_shape: bool) -> bool {
     candidate_count == 1 && supported_shape
 }
+
+pub fn fastapi_registration_automatic(
+    explicit_target: bool,
+    application_binding: bool,
+    endpoint_conflict: bool,
+) -> bool {
+    explicit_target && application_binding && !endpoint_conflict
+}

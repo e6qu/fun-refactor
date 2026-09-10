@@ -68,6 +68,24 @@ fn feature(root: &Path) -> String {
         .to_owned()
 }
 
+fn feature_for_framework(root: &Path, framework: &str) -> String {
+    let report = ok(root, &["project", "features", "--limit", "500"]);
+    let items = report["items"].as_array().unwrap();
+    let application = items
+        .iter()
+        .find(|row| row["kind"] == "application" && row["application"]["framework"] == framework)
+        .unwrap()["id"]
+        .as_str()
+        .unwrap();
+    items
+        .iter()
+        .find(|row| row["kind"] == "feature" && row["parent"] == application)
+        .unwrap()["id"]
+        .as_str()
+        .unwrap()
+        .to_owned()
+}
+
 fn migration<'a>(feature: &'a str, intent: Option<&'a str>) -> Vec<&'a str> {
     let mut args = vec![
         "migrate",
@@ -173,6 +191,129 @@ fn migration_uses_the_selected_route_instead_of_fixture_names() {
         report["migration"]["destination_files"],
         serde_json::json!(["services/telemetry.py"])
     );
+}
+
+#[test]
+fn explicit_fastapi_registration_joins_the_reversible_migration_transaction() {
+    let dir = tempfile::tempdir().unwrap();
+    let route = dir.path().join("app/signals/route.ts");
+    fs::create_dir_all(route.parent().unwrap()).unwrap();
+    fs::create_dir_all(dir.path().join("backend")).unwrap();
+    fs::write(
+        route,
+        "export async function GET() {\n  return Response.json({ state: \"ready\" });\n}\n",
+    )
+    .unwrap();
+    let application = dir.path().join("backend/main.py");
+    let original =
+        "from fastapi import FastAPI as API\n\napplication = API()\nfr_migrated_router = 'occupied'\n";
+    fs::write(&application, original).unwrap();
+    let selected = feature_for_framework(dir.path(), "nextjs-app");
+    let report = ok(
+        dir.path(),
+        &[
+            "migrate",
+            "feature",
+            &selected,
+            "--to",
+            "fastapi",
+            "--out",
+            "backend/routes/signals.py",
+            "--register-with",
+            "backend/main.py::application",
+            "--write",
+        ],
+    );
+
+    assert_eq!(
+        report["migration"]["connected_files"],
+        serde_json::json!(["backend/main.py"])
+    );
+    assert_eq!(
+        report["migration"]["coexistence"]["destination_registration"],
+        "automatic"
+    );
+    assert_eq!(
+        report["migration"]["target_application"]["application"],
+        "application"
+    );
+    assert!(report["steps"]["automatic"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|step| step["action"] == "register-fastapi-router-with-application"));
+    let registered = fs::read_to_string(&application).unwrap();
+    assert!(registered.contains("from backend.routes.signals import router as fr_migrated_router_"));
+    assert!(registered.contains("application.include_router(fr_migrated_router_)"));
+    assert!(dir.path().join("backend/routes/signals.py").exists());
+
+    ok(dir.path(), &["history", "undo", "1", "--write"]);
+    assert_eq!(fs::read_to_string(&application).unwrap(), original);
+    assert!(!dir.path().join("backend/routes/signals.py").exists());
+    ok(dir.path(), &["history", "redo", "1", "--write"]);
+    assert_eq!(fs::read_to_string(&application).unwrap(), registered);
+}
+
+#[test]
+fn fastapi_registration_refuses_unrecognized_apps_and_direct_route_conflicts() {
+    let dir = tempfile::tempdir().unwrap();
+    let route = dir.path().join("app/signals/route.ts");
+    fs::create_dir_all(route.parent().unwrap()).unwrap();
+    fs::write(
+        route,
+        "export async function GET() { return Response.json({ state: \"ready\" }); }\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("main.py"),
+        "from fastapi import FastAPI\napplication = FastAPI()\n@application.get('/signals')\ndef existing(): return {}\n",
+    )
+    .unwrap();
+    let selected = feature_for_framework(dir.path(), "nextjs-app");
+    let base = [
+        "migrate",
+        "feature",
+        &selected,
+        "--to",
+        "fastapi",
+        "--out",
+        "generated/signals.py",
+        "--register-with",
+    ];
+    let mut conflict = base.to_vec();
+    conflict.push("main.py::application");
+    let (success, report) = run(dir.path(), &conflict);
+    assert!(!success);
+    assert!(report["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("no direct endpoint conflict"));
+
+    let mut unknown = base.to_vec();
+    unknown.push("main.py::unknown");
+    assert!(!run(dir.path(), &unknown).0);
+
+    let fastapi_feature = feature_for_framework(dir.path(), "fastapi");
+    let (success, report) = run(
+        dir.path(),
+        &[
+            "migrate",
+            "feature",
+            &fastapi_feature,
+            "--to",
+            "nextjs",
+            "--out",
+            "web/app",
+            "--register-with",
+            "main.py::application",
+        ],
+    );
+    assert!(!success);
+    assert!(report["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("applies only to a FastAPI destination"));
+    assert!(!dir.path().join("generated/signals.py").exists());
 }
 
 #[test]

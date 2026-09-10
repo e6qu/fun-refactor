@@ -213,6 +213,28 @@ theorem nextjs_body_validation_accepts_unique_supported :
     nextjsBodyValidationAutomatic 1 true = true := by
   decide
 
+-- fr:spec src/project/framework_kernel.rs::fastapi_registration_automatic @ 5a48b67679e7d69d6375ea7924f45d6df5de6355043b63c35ec02940d20547b4
+-- fr:signature explicit_target: bool => explicitTarget: Bool; application_binding: bool => applicationBinding: Bool; endpoint_conflict: bool => endpointConflict: Bool; return: bool => return: Bool
+def fastapiRegistrationAutomatic
+    (explicitTarget : Bool) (applicationBinding : Bool) (endpointConflict : Bool) : Bool :=
+  explicitTarget && applicationBinding && !endpointConflict
+
+theorem fastapi_registration_automatic_iff_explicit_valid_without_conflict
+    (explicitTarget applicationBinding endpointConflict : Bool) :
+    fastapiRegistrationAutomatic explicitTarget applicationBinding endpointConflict = true ↔
+      explicitTarget = true ∧ applicationBinding = true ∧ endpointConflict = false := by
+  cases explicitTarget <;> cases applicationBinding <;> cases endpointConflict <;> decide
+
+theorem fastapi_registration_rejects_implicit
+    (applicationBinding endpointConflict : Bool) :
+    fastapiRegistrationAutomatic false applicationBinding endpointConflict = false := by
+  cases applicationBinding <;> cases endpointConflict <;> decide
+
+theorem fastapi_registration_rejects_endpoint_conflict
+    (explicitTarget applicationBinding : Bool) :
+    fastapiRegistrationAutomatic explicitTarget applicationBinding true = false := by
+  cases explicitTarget <;> cases applicationBinding <;> decide
+
 -- fr:spec src/project.rs::path_confidence @ b5a8549e
 -- fr:signature edges: &[Confidence] => edges: List Nat; return: Confidence => return: Nat
 def pathConfidence (edges : List Nat) : Nat := edges.foldr max 0

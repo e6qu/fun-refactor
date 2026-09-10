@@ -604,7 +604,8 @@ stays: nobody can read a deleted input back out of the diff.
 ### `fr migrate`
 
 ```sh
-fr migrate feature <FEATURE-ID> --to fastapi --out migrated/pets.py
+fr migrate feature <FEATURE-ID> --to fastapi --out migrated/pets.py \
+  --register-with service/main.py::app
 fr migrate feature <FEATURE-ID> --to nextjs --out web/app
 ```
 
@@ -614,8 +615,10 @@ A FastAPI destination names one `.py` file. A Next.js destination names an `app`
 
 The command compares the semantic endpoint set with the translator output and refuses any difference.
 Its report groups facts and work into `automatic`, `agent-decision` and `unsupported` classes.
-The source remains present, so the destination can coexist until the caller registers it, validates runtime behavior and reviews cutover.
-Runtime registration and source removal are separate agent decisions in the plan.
+The source remains present while the caller validates runtime behavior and reviews cutover.
+For a FastAPI destination, `--register-with PATH::APP_SYMBOL` can import and mount the generated router in one recognized application file as part of the same transaction.
+The command refuses an unknown binding, invalid module path or direct endpoint conflict.
+Composition through other included routers and source removal remain separate reviewed decisions.
 
 Preview is the default. `--save-plan` records the transaction without applying it, while `--write` records and applies it.
 `fr history patch`, `apply`, `undo` and `redo` then use the same checked transaction.

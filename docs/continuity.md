@@ -10,12 +10,12 @@ The current `verified_feature_migration` branch is roadmap PR 6.
 Its first checkpoint adds `fr migrate feature` for one revision-bound Next.js App Router or FastAPI route feature whose methods share one source file.
 The planner refuses stale feature IDs, same-framework requests, escaping destinations and any disagreement between semantic and translated endpoint sets.
 It retains the source route, adds the destination and classifies feature facts and gaps as automatic, agent-decision or unsupported work.
-Runtime registration and cutover stay as named agent decisions.
+Validated Next.js placement and explicit FastAPI application wiring can register destinations automatically; cutover stays a named agent decision.
 Preview, saved plans and writes use the existing source-history transaction, so patch checks, export, apply, undo and redo remain available.
 Four CLI integration cases cover both migration directions, refusal boundaries and exact forward undo/redo replay.
-Six migration policies constrain supported directions, disposition classes, schema inclusion, registration, body promotion and generated body-validation eligibility.
-Thirty framework theorems now cover fourteen helpers, with 332 shared Rust and Lean results.
-The checkpoint has strict syntax, endpoint-contract and declared-schema evidence; full framework behavior, runtime schema validation and connected project edits remain next.
+Seven migration policies constrain supported directions, disposition classes, schema inclusion, registration, body promotion and generated body-validation eligibility.
+Thirty-three framework theorems now cover fifteen helpers, with 340 shared Rust and Lean results.
+The checkpoints have strict syntax, endpoint-contract, declared-schema and direct application-registration evidence; full framework behavior and remaining connected project edits stay open.
 The second PR 6 checkpoint adds generic runtime oracles for both migration directions.
 A telemetry handler runs through Node before migration and through generated Python afterward.
 A parameterized metrics handler runs through Python before migration and through generated Node afterward.
@@ -55,6 +55,12 @@ Ambiguous and unsupported shapes stay visible as fidelity notes.
 The real FastAPI source and generated Next.js route both accept the generic valid event and reject its invalid array element with status 422 at the same body-field location.
 The eligibility rule is anchored in Lean with three theorems and eight shared Rust/Lean cases.
 Pydantic coercion, aliases, custom validators, constraints, strict and extra-field settings, connected project edits and cutover remain open.
+The tenth checkpoint lets an explicit `--register-with PATH::APP_SYMBOL` target join a FastAPI migration transaction.
+The command requires a captured, cleanly parsed Python file, one recognized FastAPI application binding, a valid dotted import path and no direct endpoint conflict.
+It generates a collision-free router alias, adds the import and `include_router` call, reparses the combined edit and records the application file beside the generated route for exact undo and redo.
+A pinned FastAPI fixture imports the edited application and serves the generic selected route through ASGI.
+The eligibility policy has three Lean theorems and eight shared Rust/Lean cases.
+Included or mounted routers, overlapping dynamic paths, middleware order, dependency and test configuration and cutover remain reviewed boundaries.
 Roadmap PR 5's first checkpoint added `fr project features` for bounded Next.js App Router and FastAPI hierarchies.
 Applications contain exact-route-path feature candidates, which contain routes, handlers, contract fields, schema references and expanded same-file schema candidates.
 Every fact carries a parent, source anchor, status, confidence, validation basis and explicit gaps.
@@ -753,4 +759,4 @@ Keep revision inputs, coverage and final source verification intact; require byt
 State the cache policy for the next autonomous cohort; existing trials explicitly disable it and their records remain immutable.
 The latest paired task requires one coordinated three-operation change across two crate roots. It passes, while `fr` still uses 23.8% more measured context in this single pair.
 Keep portable skill references selective and executable against the distributed binary.
-PR 6 is active. Continue with connected project edits and a reviewed cutover as ordered in [PLAN.md](../PLAN.md).
+PR 6 is active. Continue with connected dependency and test evidence, then a reviewed cutover, as ordered in [PLAN.md](../PLAN.md).

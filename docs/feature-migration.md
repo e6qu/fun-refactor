@@ -8,6 +8,8 @@ Start with a compact feature query, then pass its ID to the migration command:
 ```sh
 fr --json project features
 fr --json migrate feature frff1:... --to fastapi --out services/telemetry.py
+fr --json migrate feature frff1:... --to fastapi --out services/telemetry.py \
+  --register-with services/main.py::app
 fr --save-plan --json migrate feature frff1:... --to fastapi --out services/telemetry.py
 ```
 
@@ -31,12 +33,17 @@ Each selected semantic fact has one disposition:
 The first automatic step translates the selected route file.
 For a destination under `app` or `src/app`, a captured package manifest with a string-valued Next.js dependency proves registration by route placement.
 The report binds that target application and makes registration a second automatic step.
-FastAPI router composition, unrecognized targets and final cutover remain agent decisions because their application wiring varies by project.
+For FastAPI, `--register-with PATH::APP_SYMBOL` can add that step to the same transaction.
+The path must identify a captured Python source file, the symbol must be one recognized FastAPI application binding and the destination must form a valid dotted Python import path.
+The command adds a collision-free router import and `include_router` call, reparses the edited application strictly and refuses a direct method-and-path conflict in that file.
+Without an explicit validated target, FastAPI composition remains an agent decision.
+Routers already included or mounted elsewhere, overlapping dynamic paths and final cutover remain reviewed work.
 The plan does not claim full framework runtime, middleware, authentication, lifecycle or wire-schema equivalence.
 
 The command keeps the source route and adds the destination.
+An explicit FastAPI registration edit shares that source-history transaction with the generated route.
 This supports an incremental period where both frameworks remain in the workspace.
-Executable coexistence still depends on project registration and independent behavior checks.
+Executable coexistence still depends on independent behavior checks and the surrounding service configuration.
 
 Preview changes no files.
 `--save-plan` records the migration, and `--write` records and applies it.
@@ -71,6 +78,7 @@ Node and Python execute the handlers, while small stubs supply decorator registr
 This evidence covers handler behavior and payload preservation in the supported constructs.
 The pinned FastAPI 0.141.1 fixture mounts the generated router through `include_router` and invokes its ASGI application.
 Pydantic 2.13.5 accepts the valid body, and an invalid array element produces a field-specific 422 response through Starlette 1.6.0.
+Another pinned fixture imports the application edited by `--register-with` and serves the selected generic route through that application.
 The reverse fixture places the generated route below a captured application manifest and starts Next.js 16.3.4 with React 19.3.0.
 It sends a real HTTP request to the registered `/events` route.
 Its valid response matches the FastAPI source exactly.
@@ -80,7 +88,7 @@ The real Next.js fixture rejects an invalid array element with status 422 and th
 Ambiguous candidates, sets, function types, unresolved or generic named types, cycles and deeper shapes retain an explicit fidelity note instead of claiming automatic validation.
 The stubbed cases remain separate handler evidence.
 This structural check does not reproduce Pydantic coercion, aliases, custom validators, field constraints, serialization settings, strict modes or extra-field configuration.
-The fixtures do not cover middleware, dependency injection, lifecycle behavior or deployment.
+The fixtures do not cover middleware, dependency injection, lifecycle behavior, package installation or deployment.
 
 ## Declared schema evidence
 
@@ -93,4 +101,4 @@ Next.js dynamic path names also retain their spelling because the route placehol
 This check covers declarations and supported types.
 It does not establish aliases, validators, constraints, serialization settings, OpenAPI output or response validation.
 
-Current follow-up work adds remaining connected build and test edits and a reviewed cutover stage.
+Current follow-up work adds connected dependency and test configuration plus a reviewed cutover stage.

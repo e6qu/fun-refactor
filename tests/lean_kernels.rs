@@ -903,9 +903,9 @@ fn project_page_lengths_match_lean_including_integer_limits() {
 fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
     use fun_refactor::project::framework_kernel::{
         component_hooks_compatible, configuration_visibility, fastapi_body_parameter_automatic,
-        fastapi_prefix_supported, framework_emitted, framework_migration_supported,
-        framework_omitted, middleware_request_order, migration_disposition,
-        migration_schema_agreement, nextjs_body_validation_automatic,
+        fastapi_prefix_supported, fastapi_registration_automatic, framework_emitted,
+        framework_migration_supported, framework_omitted, middleware_request_order,
+        migration_disposition, migration_schema_agreement, nextjs_body_validation_automatic,
         nextjs_registration_automatic, service_redaction_flags, service_target_kind,
     };
 
@@ -1011,6 +1011,20 @@ fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
             expected.push(
                 nextjs_body_validation_automatic(candidate_count, supported_shape).to_string(),
             );
+        }
+    }
+    for explicit_target in [false, true] {
+        for application_binding in [false, true] {
+            for endpoint_conflict in [false, true] {
+                expected.push(
+                    fastapi_registration_automatic(
+                        explicit_target,
+                        application_binding,
+                        endpoint_conflict,
+                    )
+                    .to_string(),
+                );
+            }
         }
     }
     assert_eq!(actual, expected);
