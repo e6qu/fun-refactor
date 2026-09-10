@@ -30,6 +30,7 @@ fn record(changes: Vec<Change>) -> Record {
         source_revision: "test-revision".into(),
         validation: "test-snapshots".into(),
         changes,
+        check_evidence: Vec::new(),
     }
 }
 

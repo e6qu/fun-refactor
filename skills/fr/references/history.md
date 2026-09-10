@@ -14,6 +14,8 @@ Preview first. `--no-diff` keeps outcome and change metadata. A complete saved a
 
 Undo/redo verify affected contents or link targets, entry kinds, existence, and regular-file modes while preserving unrelated edits. They leave the Git index unchanged, including an existing staged version of an affected path. Undo must be the latest applied transaction; redo must be next on its stack. A new applied transaction abandons the redo branch. Never erase a conflicting user edit to force a transition.
 
+`fr checks --run NAME --basis '<CHECK_BASIS>' --record-for '<TX>'` can attach a passing source-bound receipt to an applied transaction. `history show` retains that evidence after undo and redo; its source revision describes the checked historical state.
+
 For an interrupted write or lock, load [Recovery](recovery.md). The journal retains source snapshots but not timestamps, ownership, extended attributes, empty directories, or multi-file filesystem atomicity. Git has separate journals; see [Git](git.md).
 
 Source history does not require a Git executable. Patch export also works without Git; only `history patch --git-check` invokes it.

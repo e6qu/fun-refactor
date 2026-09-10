@@ -38,6 +38,28 @@ fn basis(root: &tempfile::TempDir) -> String {
     run(root, &[], 0)["basis"].as_str().unwrap().to_owned()
 }
 
+fn fr(root: &tempfile::TempDir, args: &[&str], code: i32) -> Value {
+    let output = Command::new(env!("CARGO_BIN_EXE_fr"))
+        .args(["--json", "-C"])
+        .arg(root.path())
+        .args(args)
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(code), "{output:?}");
+    serde_json::from_slice(&output.stdout).expect("One JSON report, even on failure.")
+}
+
+fn applied_transaction(root: &tempfile::TempDir) -> u64 {
+    fs::write(root.path().join("source.py"), "value = 1\n").unwrap();
+    fr(
+        root,
+        &["file", "executable", "source.py", "--set", "on", "--write"],
+        0,
+    )["transaction"]
+        .as_u64()
+        .unwrap()
+}
+
 #[test]
 fn quiet_success_omits_success_text_but_retains_failed_diagnostics() {
     let root = fixture(vec![
@@ -240,7 +262,184 @@ fn reports_failure_spawn_error_and_later_success_without_claiming_coverage() {
     assert_eq!(report["results"][0]["exit_code"], 7);
     assert!(report["results"][1]["error"].is_string());
     assert_eq!(report["results"][2]["passed"], true);
-    assert_eq!(report["source_snapshot_checked"], false);
+    assert_eq!(report["source_snapshot_checked"], true);
+    assert_eq!(report["source_snapshot_stable"], true);
+}
+
+#[test]
+fn passing_checks_record_source_bound_evidence_on_an_applied_transaction() {
+    let root = fixture(vec![check("unit", "print('passed')")]);
+    let transaction = applied_transaction(&root);
+    let reviewed = basis(&root);
+    let report = run(
+        &root,
+        &[
+            "--run",
+            "unit",
+            "--basis",
+            &reviewed,
+            "--record-for",
+            &transaction.to_string(),
+        ],
+        0,
+    );
+    assert_eq!(report["passed"], true);
+    assert_eq!(report["source_snapshot_checked"], true);
+    assert_eq!(report["source_snapshot_stable"], true);
+    assert_eq!(report["source_revision"].as_str().unwrap().len(), 64);
+    assert_eq!(report["recorded_evidence"]["transaction"], transaction);
+    assert_eq!(report["recorded_evidence"]["created"], true);
+    let receipt = report["recorded_evidence"]["receipt"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert!(receipt.starts_with("frce1:"));
+
+    let repeated = run(
+        &root,
+        &[
+            "--run",
+            "unit",
+            "--basis",
+            &reviewed,
+            "--record-for",
+            &transaction.to_string(),
+        ],
+        0,
+    );
+    assert_eq!(repeated["recorded_evidence"]["receipt"], receipt);
+    assert_eq!(repeated["recorded_evidence"]["created"], false);
+
+    let shown = fr(&root, &["history", "show", &transaction.to_string()], 0);
+    assert_eq!(
+        shown["records"][0]["check_evidence"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    assert_eq!(shown["records"][0]["check_evidence"][0]["receipt"], receipt);
+    assert_eq!(
+        shown["records"][0]["check_evidence"][0]["configuration_basis"],
+        reviewed
+    );
+    assert_eq!(
+        shown["records"][0]["check_evidence"][0]["checks"],
+        json!(["unit"])
+    );
+    fr(
+        &root,
+        &["history", "undo", &transaction.to_string(), "--write"],
+        0,
+    );
+    fr(
+        &root,
+        &["history", "redo", &transaction.to_string(), "--write"],
+        0,
+    );
+    let replayed = fr(&root, &["history", "show", &transaction.to_string()], 0);
+    assert_eq!(
+        replayed["records"][0]["check_evidence"][0]["receipt"],
+        receipt
+    );
+}
+
+#[test]
+fn source_drift_fails_the_check_receipt_and_records_nothing() {
+    let root = fixture(vec![check("mutate", "open('x.py','w').write('x=2')")]);
+    let transaction = applied_transaction(&root);
+    let reviewed = basis(&root);
+    let report = run(
+        &root,
+        &[
+            "--run",
+            "mutate",
+            "--basis",
+            &reviewed,
+            "--record-for",
+            &transaction.to_string(),
+        ],
+        1,
+    );
+    assert_eq!(report["results"][0]["passed"], true);
+    assert_eq!(report["results"][0]["source_snapshot_stable"], false);
+    assert_eq!(report["source_snapshot_stable"], false);
+    assert_eq!(report["passed"], false);
+    assert_eq!(report["recorded_evidence"], Value::Null);
+    let shown = fr(&root, &["history", "show", &transaction.to_string()], 0);
+    assert!(shown["records"][0].get("check_evidence").is_none());
+}
+
+#[test]
+fn configuration_drift_fails_the_check_receipt_and_records_nothing() {
+    let mut mutating = check("mutate", "open('checks.json','a').write(' ')");
+    mutating["cwd"] = json!(".fr");
+    let root = fixture(vec![mutating]);
+    let transaction = applied_transaction(&root);
+    let reviewed = basis(&root);
+    let report = run(
+        &root,
+        &[
+            "--run",
+            "mutate",
+            "--basis",
+            &reviewed,
+            "--record-for",
+            &transaction.to_string(),
+        ],
+        1,
+    );
+    assert_eq!(report["results"][0]["passed"], true);
+    assert_eq!(report["configuration_stable"], false);
+    assert_eq!(report["source_snapshot_stable"], false);
+    assert_eq!(report["passed"], false);
+    assert_eq!(report["recorded_evidence"], Value::Null);
+    let shown = fr(&root, &["history", "show", &transaction.to_string()], 0);
+    assert!(shown["records"][0].get("check_evidence").is_none());
+}
+
+#[test]
+fn corrupted_check_evidence_invalidates_the_history_journal() {
+    let root = fixture(vec![check("unit", "print('passed')")]);
+    let transaction = applied_transaction(&root);
+    run(
+        &root,
+        &[
+            "--run",
+            "unit",
+            "--basis",
+            &basis(&root),
+            "--record-for",
+            &transaction.to_string(),
+        ],
+        0,
+    );
+    let state_path = root.path().join(".fr-history/state.json");
+    let mut state: Value = serde_json::from_slice(&fs::read(&state_path).unwrap()).unwrap();
+    state["records"][0]["check_evidence"][0]["receipt"] = json!("frce1:corrupt");
+    fs::write(&state_path, serde_json::to_vec(&state).unwrap()).unwrap();
+    let report = fr(&root, &["history", "show", &transaction.to_string()], 1);
+    assert!(report["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("invalid recorded check evidence"));
+}
+
+#[test]
+fn invalid_evidence_target_refuses_before_running_a_check() {
+    let root = fixture(vec![check("unit", "open('marker', 'w').write('ran')")]);
+    applied_transaction(&root);
+    let reviewed = basis(&root);
+    let report = run(
+        &root,
+        &["--run", "unit", "--basis", &reviewed, "--record-for", "99"],
+        1,
+    );
+    assert!(report["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("unknown transaction identity"));
+    assert!(!root.path().join("marker").exists());
 }
 
 #[test]

@@ -266,6 +266,22 @@ fn explicit_cutover_removes_and_restores_the_source_in_the_migration_transaction
     let application = dir.path().join("backend/main.py");
     let original_application = "from fastapi import FastAPI\n\napplication = FastAPI()\n";
     fs::write(&application, original_application).unwrap();
+    fs::create_dir(dir.path().join(".fr")).unwrap();
+    fs::write(
+        dir.path().join(".fr/checks.json"),
+        serde_json::to_vec(&serde_json::json!({
+            "schema": 1,
+            "checks": [{
+                "name": "migration",
+                "argv": ["python3", "-c", "import pathlib;assert pathlib.Path('backend/routes/signals.py').is_file();assert not pathlib.Path('app/signals/route.ts').exists() #."],
+                "cwd": ".",
+                "timeout_seconds": 5,
+                "covers": ["registered destination and source cutover"]
+            }]
+        }))
+        .unwrap(),
+    )
+    .unwrap();
     let selected = feature_for_framework(dir.path(), "nextjs-app");
     let args = [
         "migrate",
@@ -294,6 +310,29 @@ fn explicit_cutover_removes_and_restores_the_source_in_the_migration_transaction
     assert!(!route.exists());
     assert!(dir.path().join("backend/routes/signals.py").exists());
     let registered = fs::read_to_string(&application).unwrap();
+    let check_basis = ok(dir.path(), &["checks"])["basis"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let evidence = ok(
+        dir.path(),
+        &[
+            "checks",
+            "--run",
+            "migration",
+            "--basis",
+            &check_basis,
+            "--record-for",
+            "1",
+            "--quiet-success",
+        ],
+    );
+    assert_eq!(evidence["passed"], true);
+    assert_eq!(evidence["recorded_evidence"]["transaction"], 1);
+    assert!(evidence["recorded_evidence"]["receipt"]
+        .as_str()
+        .unwrap()
+        .starts_with("frce1:"));
 
     let patch = ok(dir.path(), &["history", "patch", "1"]);
     assert!(patch["patch"]

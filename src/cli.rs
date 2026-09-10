@@ -2375,6 +2375,9 @@ fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
                         "id": r.id, "status": r.status, "basis": r.basis, "source_revision": r.source_revision, "validation": r.validation,
                         "paths": r.changes.iter().map(|c| &c.path).collect::<Vec<_>>()
                     });
+                    if !r.check_evidence.is_empty() {
+                        record["check_evidence"] = serde_json::json!(r.check_evidence);
+                    }
                     if other.is_some() {
                         record["context_basis"] = serde_json::json!(format!("frtb1:{}", r.basis));
                         record["changes"] = serde_json::json!(r.changes.iter().map(|c| serde_json::json!({

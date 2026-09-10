@@ -3,6 +3,7 @@ import FrKernels.Git
 import FrKernels.Source
 import FrKernels.Author
 import FrKernels.Adoption
+import FrKernels.Checks
 
 open FrKernels.Project
 
@@ -92,6 +93,12 @@ def main (args : List String) : IO Unit := do
       for registrationAutomatic in [false, true] do
         for externalReferences in [false, true] do
           IO.println (migrationCutoverAutomatic explicitCutover registrationAutomatic externalReferences)
+    for executed in [false, true] do
+      for commandsPassed in [false, true] do
+        for configurationStable in [false, true] do
+          for sourceSnapshotStable in [false, true] do
+            IO.println (FrKernels.Checks.checkEvidenceAcceptable
+              executed commandsPassed configurationStable sourceSnapshotStable)
   else if args == ["selection-conflicts"] then
     for leftStart in samples do
       for leftEnd in samples do

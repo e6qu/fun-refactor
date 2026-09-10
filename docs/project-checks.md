@@ -28,8 +28,12 @@ fr checks --run unit --basis <BASIS> --output-bytes 4096
 
 `--run unit,integration` selects several names. Execution follows declaration order and continues after a failed check.
 Supply the full configuration digest or at least 32 leading hex characters. Missing, short or stale digests, unknown names and duplicate selections refuse before execution.
-The digest identifies configuration bytes, including whitespace. It does not identify the source tree or executable contents.
-Run the selected checks after applying the reviewed change. Rerun them after any subsequent relevant source change.
+The digest identifies configuration bytes, including whitespace. It does not identify executable contents.
+Execution separately identifies the supported-source tree and rejects a change to that revision or to the configuration during the selected commands.
+
+```sh
+fr checks --run unit --basis <BASIS> --record-for <TRANSACTION>
+```
 
 The `fr-checks-1` JSON report includes each command's status, exit code, timing and bounded stdout/stderr.
 `--quiet-success` omits successful stream text while preserving byte counts and every outcome field.
@@ -47,12 +51,32 @@ The flag requires `--run`; stale or missing bases still refuse before any comman
 It combines with `--quiet-success`. Default reports and listings keep their declarations.
 
 Coverage descriptions come from project declarations. They do not establish test coverage, behavior preservation or formal verification.
-The report states `source_snapshot_checked: false`. Concurrent source changes can invalidate the evidence.
+
+## Source-bound transaction receipts
+
+An execution report captures `source_revision` before the first selected command and compares it with the revision after every command.
+The revision hashes regular files whose language `fr` recognizes while excluding `.fr-history`, `.git`, `target`, `node_modules` and `.lake` trees.
+The report sets `source_snapshot_checked: true`; `source_snapshot_stable` and `configuration_stable` must both remain true for `passed: true`.
+The configuration receives a fresh confined read and digest after execution.
+
+`--record-for <TRANSACTION>` requires an applied source-history transaction.
+Before execution it checks the transaction status, affected-file snapshots and current source revision.
+After every command passes without drift, it repeats those checks while holding the history lock.
+It then appends one evidence row to the transaction.
+The `frce1:` receipt hashes the configuration basis, common source revision and selected check names in declaration order.
+Repeating the same evidence is idempotent.
+`fr history show <TRANSACTION>` displays recorded rows, and undo or redo retains them as historical evidence for the named revision.
+Corrupt receipt data makes the journal invalid instead of silently weakening the claim.
+
+This is a boundary-snapshot receipt rather than a filesystem snapshot held during execution.
+A command can mutate and restore a source file between observations.
+Files in unsupported languages, executable identities, dependencies, services, environment variables and external state do not enter the source revision.
+The receipt therefore establishes which declared commands passed at one stable observed source boundary; it does not prove their declared coverage or general behavior preservation.
 
 ## Execution boundaries
 
 Running checks executes project code with the user's inherited environment and permissions.
-The digest review is a stale-configuration guard, not a command sandbox or a source transaction.
+The digest review is a stale-configuration guard, not a command sandbox.
 Commands may write files; these writes do not enter `fr` history. Use commands appropriate to the authorized task.
 Arguments pass directly to the executable without shell expansion. An explicitly declared shell still interprets its own arguments.
 Standard input is closed. Executable lookup uses the inherited PATH; relative executable paths use the declared working directory.

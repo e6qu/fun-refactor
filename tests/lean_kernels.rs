@@ -1042,6 +1042,23 @@ fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
             }
         }
     }
+    for executed in [false, true] {
+        for commands_passed in [false, true] {
+            for configuration_stable in [false, true] {
+                for source_snapshot_stable in [false, true] {
+                    expected.push(
+                        fun_refactor::checks::check_evidence_acceptable(
+                            executed,
+                            commands_passed,
+                            configuration_stable,
+                            source_snapshot_stable,
+                        )
+                        .to_string(),
+                    );
+                }
+            }
+        }
+    }
     assert_eq!(actual, expected);
 }
 

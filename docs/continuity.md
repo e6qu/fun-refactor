@@ -10,7 +10,7 @@ The current `verified_feature_migration` branch is roadmap PR 6.
 Its first checkpoint adds `fr migrate feature` for one revision-bound Next.js App Router or FastAPI route feature whose methods share one source file.
 The planner refuses stale feature IDs, same-framework requests, escaping destinations and any disagreement between semantic and translated endpoint sets.
 It retains the source route, adds the destination and classifies feature facts and gaps as automatic, agent-decision or unsupported work.
-Validated Next.js placement and explicit FastAPI application wiring can register destinations automatically; cutover stays a named agent decision.
+Validated Next.js placement and explicit FastAPI application wiring can register destinations automatically; explicit eligible cutover can remove the source in that transaction.
 Preview, saved plans and writes use the existing source-history transaction, so patch checks, export, apply, undo and redo remain available.
 Four CLI integration cases cover both migration directions, refusal boundaries and exact forward undo/redo replay.
 Eight migration policies constrain supported directions, disposition classes, schema inclusion, registration, body promotion, generated body-validation and cutover eligibility.
@@ -67,6 +67,12 @@ The history layer records source absence beside generated and connected-file edi
 The pinned FastAPI fixture serves the generated route through the edited application after the source route disappears.
 Three Lean theorems characterize cutover eligibility, and all eight Boolean cases agree with Rust.
 Runtime imports, string paths, deployment routing, external callers and project-specific checks remain reviewed evidence outside the eligibility proof.
+The twelfth checkpoint adds source-bound declared-check receipts to applied history transactions.
+`fr checks --record-for <TX>` verifies the applied transaction before execution, hashes recognized source before and after every selected command, rereads the check configuration and revalidates under the history lock before recording.
+Each `frce1:` receipt binds the reviewed configuration digest, stable source revision and selected check names; repeated recording is idempotent and `history show` retains the row through undo and redo.
+Source or configuration drift fails the report, invalid transaction state refuses before project code runs and corrupted receipt data invalidates the journal.
+Four Lean theorems characterize receipt acceptance, and all sixteen Boolean cases agree with Rust.
+The boundary snapshots do not observe command-internal mutate-and-restore behavior, unsupported files, executable identities, dependencies, services, environment values or external state.
 Roadmap PR 5's first checkpoint added `fr project features` for bounded Next.js App Router and FastAPI hierarchies.
 Applications contain exact-route-path feature candidates, which contain routes, handlers, contract fields, schema references and expanded same-file schema candidates.
 Every fact carries a parent, source anchor, status, confidence, validation basis and explicit gaps.
@@ -765,4 +771,4 @@ Keep revision inputs, coverage and final source verification intact; require byt
 State the cache policy for the next autonomous cohort; existing trials explicitly disable it and their records remain immutable.
 The latest paired task requires one coordinated three-operation change across two crate roots. It passes, while `fr` still uses 23.8% more measured context in this single pair.
 Keep portable skill references selective and executable against the distributed binary.
-PR 6 is active. Continue with source-bound project-check evidence and connected dependency or test edits as ordered in [PLAN.md](../PLAN.md).
+PR 6 is active. Continue with connected dependency and test edits as ordered in [PLAN.md](../PLAN.md).

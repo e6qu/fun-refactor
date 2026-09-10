@@ -86,6 +86,17 @@ pub struct Record {
     pub source_revision: String,
     pub validation: String,
     pub changes: Vec<Change>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub check_evidence: Vec<CheckEvidence>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CheckEvidence {
+    pub receipt: String,
+    pub configuration_basis: String,
+    pub source_revision: String,
+    pub checks: Vec<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
@@ -241,6 +252,32 @@ impl History {
                     }
                 }
             }
+            let mut receipts = std::collections::BTreeSet::new();
+            for evidence in &record.check_evidence {
+                let mut names = std::collections::BTreeSet::new();
+                if !sha256_text(&evidence.configuration_basis)
+                    || !sha256_text(&evidence.source_revision)
+                    || evidence.checks.is_empty()
+                    || evidence.checks.len() > 32
+                    || evidence.checks.iter().any(|name| {
+                        name.is_empty()
+                            || name.len() > 64
+                            || !name
+                                .bytes()
+                                .all(|byte| byte.is_ascii_alphanumeric() || b"_-".contains(&byte))
+                            || !names.insert(name)
+                    })
+                    || evidence.receipt
+                        != check_evidence_receipt(
+                            &evidence.configuration_basis,
+                            &evidence.source_revision,
+                            &evidence.checks,
+                        )?
+                    || !receipts.insert(&evidence.receipt)
+                {
+                    bail!("invalid recorded check evidence.");
+                }
+            }
         }
         let mut active = std::collections::BTreeSet::new();
         for (stack, status) in [
@@ -354,7 +391,26 @@ fn basis(changes: &[Change]) -> Result<String> {
     ))
 }
 
-fn source_revision(root: &Path) -> Result<String> {
+pub(crate) fn check_evidence_receipt(
+    configuration_basis: &str,
+    source_revision: &str,
+    checks: &[String],
+) -> Result<String> {
+    Ok(format!(
+        "frce1:{:x}",
+        Sha256::digest(serde_json::to_vec(&(
+            configuration_basis,
+            source_revision,
+            checks
+        ))?)
+    ))
+}
+
+fn sha256_text(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+pub(crate) fn source_revision(root: &Path) -> Result<String> {
     let mut digest = Sha256::new();
     let walker = ignore::WalkBuilder::new(root)
         .standard_filters(false)
@@ -594,12 +650,70 @@ fn store_record(
         source_revision: revision,
         validation: validation.to_owned(),
         changes,
+        check_evidence: Vec::new(),
     });
     history.save()?;
     if apply {
         transition(history, Action::Apply, id)?;
     }
     Ok(RecordResult { id, created: true })
+}
+
+pub(crate) fn record_check_evidence(root: &Path, id: u64, evidence: CheckEvidence) -> Result<bool> {
+    let root = workspace(root)?;
+    let _lock = lock(&root)?;
+    let mut history = History::read(&root)?;
+    history.ensure_ready()?;
+    ensure_check_evidence_target(&history, &root, id, &evidence.source_revision)?;
+    let record = history.record(id)?;
+    if record
+        .check_evidence
+        .iter()
+        .any(|existing| existing.receipt == evidence.receipt)
+    {
+        return Ok(false);
+    }
+    history
+        .records
+        .iter_mut()
+        .find(|record| record.id == id)
+        .unwrap()
+        .check_evidence
+        .push(evidence);
+    history.save()?;
+    Ok(true)
+}
+
+fn ensure_check_evidence_target(
+    history: &History,
+    root: &Path,
+    id: u64,
+    revision: &str,
+) -> Result<()> {
+    let record = history.record(id)?;
+    ensure!(
+        record.status == Status::Applied,
+        "transaction must be applied."
+    );
+    for change in &record.changes {
+        ensure!(
+            snapshot(&target(root, &change.path)?)? == change.after,
+            "{} differs from transaction {id}.",
+            change.path.display()
+        );
+    }
+    ensure!(
+        source_revision(root)? == revision,
+        "source changed after checks."
+    );
+    Ok(())
+}
+
+pub(crate) fn check_evidence_target(root: &Path, id: u64, revision: &str) -> Result<()> {
+    let root = workspace(root)?;
+    let history = History::read(&root)?;
+    history.ensure_ready()?;
+    ensure_check_evidence_target(&history, &root, id, revision)
 }
 
 pub fn act(root: &Path, action: Action, id: u64, write: bool) -> Result<serde_json::Value> {

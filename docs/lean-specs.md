@@ -18,7 +18,7 @@ The [roadmap](../PLAN.md) extends this foundation into an adoption workflow for 
 | `fr spec check --max-debt N` | Reject a proof-debt increase above a reviewed ceiling |
 | `fr spec sync` | Preview renewal of stale source hashes; `--write` applies reviewed renewals |
 | `fr spec verify` | Strict correspondence checks, then `lake build --wfail` in each owning package |
-| `kernels/` | Executable edit, position, history, pagination, source-budget, insertion-placement, confidence and workspace membership models with shared Rust/Lean cases |
+| `kernels/` | Executable edit, position, history, checks, pagination, source-budget, insertion-placement, confidence and workspace membership models with shared Rust/Lean cases |
 
 Strict signature maps currently require Rust source declarations.
 The checker compares both signatures with the explicit map. It does not infer semantic equivalence between mapped types.
@@ -149,6 +149,12 @@ Automatic FastAPI registration requires an explicit target, a recognized applica
 Automatic source cutover requires explicit intent, automatic destination registration and no resolved external source reference.
 These laws receive facts that the readers already recognized.
 Fixtures cover framework parsing, kind classification, `use client`, environment-name prefixes, URL decomposition, source edits, runtime registration and report aggregation.
+
+`FrKernels.Checks` models the final acceptance predicate for a durable project-check receipt.
+Four theorems characterize acceptance and show that a failed command, configuration drift or source drift rejects evidence.
+All sixteen Boolean combinations agree with the Rust predicate.
+The proof uses no custom axiom or compiler-trust tactic.
+It covers the final conjunction only; command execution, digest construction, filesystem observation and history persistence retain Rust and integration-test evidence.
 
 `FrKernels.Git` models the inclusive line-range predicate used by changed-declaration views.
 Six theorems characterize membership, reject lines before/after or within reversed bounds, characterize singletons, and preserve matches when bounds widen.

@@ -51,7 +51,8 @@ Executable coexistence still depends on independent behavior checks and the surr
 It requires automatic destination registration and refuses any resolved reference from another source file to a symbol in the source route.
 The reference check cannot see runtime imports, string paths, deployment routing or external callers.
 The flag records explicit intent after those connections receive review; it does not record runtime-test evidence.
-Save and inspect the plan, apply it through history, run the declared project checks and undo it when a check fails.
+Save and inspect the plan, apply it through history, run declared project checks with `--record-for <ID>` and undo it when a check fails.
+The successful receipt binds the reviewed check configuration, selected names and supported-source revision to the applied migration transaction.
 Patch export, exact undo and redo preserve the source file's existence as well as its bytes and mode.
 
 Preview changes no files.
@@ -61,6 +62,7 @@ The resulting history ID supports checked apply, patch export, undo and redo:
 ```sh
 fr history patch <ID> --check
 fr history apply <ID>
+fr checks --run migration --basis <CHECK-BASIS> --record-for <ID> --quiet-success
 fr history undo
 fr history redo
 ```

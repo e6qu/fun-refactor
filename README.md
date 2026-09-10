@@ -27,6 +27,7 @@ The [local Codex runner](docs/agent-codex-runner.md) executes explicitly selecte
 [Function authoring](docs/body-authoring.md) adds bounded Rust, Go, Java, TypeScript and TSX implementation changes through project handles and source-history transactions.
 [Project checks](docs/project-checks.md) selects declared validation commands and reports bounded results and coverage claims.
 After reviewing the listing, add `--no-declarations` to `checks --run` to omit repeated command metadata while retaining execution outcomes and diagnostics.
+Passing checks can record a configuration- and source-bound receipt on an applied source transaction with `--record-for <TX>`.
 [Development continuity](docs/continuity.md) records the active milestone, evidence and remaining work for the next session.
 The portable skill starts targeted edits with authoring guidance and loads exploration or interrupted-write recovery when needed.
 `project find --source --bytes N` combines name lookup with source slices under one shared page budget.
@@ -165,7 +166,7 @@ fr entrypoints --kind http-route
 ```
 
 Every command takes `--json`. Source refactorings preview their diff; `--write` applies it and `--save-plan` records a plan.
-`checks --run` executes declared project commands outside source history.
+`checks --run` executes declared project commands; `--record-for <TX>` attaches passing evidence to an applied source-history transaction.
 [CLI.md](CLI.md#write-guarantees) states the commit and recovery guarantees and command-specific exceptions.
 
 `fr` indexes files in parallel and caches the facts it extracts by file content and
