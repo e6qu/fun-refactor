@@ -1,7 +1,7 @@
 # Agent Context Protocol v3 evaluation
 
 Protocol v3 projects the current portable skill and transaction-basis namespace onto the same
-four passing coordinated trials used by v2. The projection is bound to the cohort manifest, the
+four passing coordinated trials used by [v2](agent-context-v2-evaluation.md). The projection is bound to the cohort manifest, the
 frozen v2 report, every measurement dependency and each loaded skill file. It audits every
 changed request and response path against an embedded allowlist.
 
