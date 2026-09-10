@@ -48,6 +48,13 @@ pub struct Options {
     )]
     pub dependency_requirement: Vec<String>,
     #[arg(
+        long = "check",
+        value_name = "NAME",
+        value_delimiter = ',',
+        help = "Bind one declared project check to the migration transaction; repeat as needed."
+    )]
+    pub checks: Vec<String>,
+    #[arg(
         long,
         help = "Remove the source route in the same transaction after registration checks."
     )]
@@ -86,6 +93,7 @@ pub struct Plan {
     pub edits: EditSet,
     pub connected_changes: Vec<ConnectedChange>,
     pub source_removal: Option<SourceRemoval>,
+    pub required_checks: Option<crate::history::CheckRequirement>,
     pub report: Value,
 }
 
@@ -795,6 +803,32 @@ impl Project<'_> {
             options.dependency_manifest.is_none() || matches!(options.to, Target::Fastapi),
             "--dependency-manifest applies only to a FastAPI destination."
         );
+        let check_selection = crate::checks::select(&self.root, &options.checks)?;
+        let required_checks =
+            check_selection
+                .as_ref()
+                .map(|selection| crate::history::CheckRequirement {
+                    configuration_basis: selection.configuration_basis.clone(),
+                    checks: selection.checks.clone(),
+                });
+        let check_report = check_selection.as_ref().map_or_else(
+            || {
+                json!({
+                    "status": "agent-decision",
+                    "configuration_basis": null,
+                    "checks": [],
+                    "coverage": [],
+                })
+            },
+            |selection| {
+                json!({
+                    "status": "bound",
+                    "configuration_basis": selection.configuration_basis,
+                    "checks": selection.checks,
+                    "coverage": selection.coverage,
+                })
+            },
+        );
 
         let (
             mut edits,
@@ -976,6 +1010,7 @@ impl Project<'_> {
                 &options.out,
                 &options.register_with,
                 &dependency_plan.report,
+                &required_checks,
                 options.cutover,
             ))?[..32]
         );
@@ -1022,15 +1057,28 @@ impl Project<'_> {
                 "reason": "No explicit Python dependency manifest proves the generated runtime imports.",
             }));
         }
-        if options.cutover {
+        if check_selection.is_some() {
             automatic_steps.push(json!({
                 "order": 4,
+                "action": "bind-declared-project-checks",
+                "validation": ["captured-check-configuration", "unique-declared-checks", "configuration-basis"],
+            }));
+        } else {
+            agent_decisions.push(json!({
+                "order": 4,
+                "action": "select-project-checks",
+                "reason": "No declared project checks bind to the migration transaction.",
+            }));
+        }
+        if options.cutover {
+            automatic_steps.push(json!({
+                "order": 5,
                 "action": "remove-source-route-after-explicit-cutover",
                 "validation": ["explicit-cutover", "automatic-destination-registration", "no-resolved-external-source-references", "source-snapshot"],
             }));
         } else {
             agent_decisions.push(json!({
-                "order": 4,
+                "order": 5,
                 "action": "run-independent-checks-then-cut-over",
                 "reason": "Cutover remains explicit after source-bound project checks pass.",
             }));
@@ -1057,6 +1105,7 @@ impl Project<'_> {
             "connected_files": connected_files,
             "target_application": target_application,
             "dependencies": dependency_plan.report,
+            "verification": check_report,
             "coexistence": {
                 "source_retained": !options.cutover,
                 "destination_added": true,
@@ -1089,6 +1138,7 @@ impl Project<'_> {
             edits,
             connected_changes: dependency_plan.change.into_iter().collect(),
             source_removal,
+            required_checks,
             report,
         })
     }

@@ -608,7 +608,7 @@ stays: nobody can read a deleted input back out of the diff.
 ```sh
 fr migrate feature <FEATURE-ID> --to fastapi --out service/routes/telemetry.py \
   --register-with service/main.py::app --dependency-manifest service/pyproject.toml \
-  --dependency-requirement 'fastapi>=0.115,<1' --cutover --save-plan
+  --dependency-requirement 'fastapi>=0.115,<1' --check migration --cutover --save-plan
 
 fr migrate feature <FEATURE-ID> --to nextjs --out web/app
 ```
@@ -626,6 +626,9 @@ The command refuses an unknown binding, invalid module path or direct endpoint c
 Repeat `--dependency-requirement SPEC` for every missing generated runtime import.
 The command preserves existing strings and refuses missing, duplicate, extra, malformed or unowned requirements.
 It reparses TOML before the manifest joins the transaction. Package-manager resolution and requirement semantics remain unchecked.
+Repeat `--check NAME` to bind declared project checks and their configuration digest to the transaction.
+`checks --record-for` then refuses a different configuration or selected name set before executing project code.
+Without this option, check selection remains an explicit decision and any valid declared selection can produce evidence.
 Composition through other included routers remains a reviewed decision.
 `--cutover` removes the source route in the migration transaction when registration is automatic and no resolved external source reference exists.
 The flag records explicit cutover intent; it does not claim that project checks passed.

@@ -105,6 +105,11 @@ def main (args : List String) : IO Unit := do
           for sourceSnapshotStable in [false, true] do
             IO.println (FrKernels.Checks.checkEvidenceAcceptable
               executed commandsPassed configurationStable sourceSnapshotStable)
+    for requirementPresent in [false, true] do
+      for configurationMatches in [false, true] do
+        for checkNamesMatch in [false, true] do
+          IO.println (FrKernels.Checks.checkRequirementSatisfied
+            requirementPresent configurationMatches checkNamesMatch)
   else if args == ["selection-conflicts"] then
     for leftStart in samples do
       for leftEnd in samples do

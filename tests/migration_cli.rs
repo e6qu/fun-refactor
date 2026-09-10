@@ -136,7 +136,7 @@ fn feature_migration_preview_binds_scope_and_separates_decisions() {
     assert_eq!(report["steps"]["automatic"].as_array().unwrap().len(), 1);
     assert_eq!(
         report["steps"]["agent_decisions"].as_array().unwrap().len(),
-        3
+        4
     );
     assert_eq!(
         report["migration"]["dependencies"]["status"],
@@ -417,21 +417,31 @@ fn explicit_cutover_removes_and_restores_the_source_in_the_migration_transaction
     let original_application = "from fastapi import FastAPI\n\napplication = FastAPI()\n";
     fs::write(&application, original_application).unwrap();
     fs::create_dir(dir.path().join(".fr")).unwrap();
-    fs::write(
-        dir.path().join(".fr/checks.json"),
-        serde_json::to_vec(&serde_json::json!({
-            "schema": 1,
-            "checks": [{
-                "name": "migration",
-                "argv": ["python3", "-c", "import pathlib;assert pathlib.Path('backend/routes/signals.py').is_file();assert not pathlib.Path('app/signals/route.ts').exists() #."],
-                "cwd": ".",
-                "timeout_seconds": 5,
-                "covers": ["registered destination and source cutover"]
-            }]
-        }))
-        .unwrap(),
-    )
-    .unwrap();
+    let checks_path = dir.path().join(".fr/checks.json");
+    let checks_configuration = serde_json::json!({
+        "schema": 1,
+        "checks": [{
+            "name": "migration",
+            "argv": ["python3", "-c", "import pathlib;assert pathlib.Path('backend/routes/signals.py').is_file();assert not pathlib.Path('app/signals/route.ts').exists() #."],
+            "cwd": ".",
+            "timeout_seconds": 5,
+            "covers": ["registered destination and source cutover"]
+        }, {
+            "name": "syntax",
+            "argv": ["python3", "-m", "py_compile", "backend/routes/signals.py"],
+            "cwd": ".",
+            "timeout_seconds": 5,
+            "covers": ["generated destination syntax"]
+        }, {
+            "name": "unrelated",
+            "argv": ["python3", "-c", "import pathlib;pathlib.Path('should-not-run').write_text('ran')"],
+            "cwd": ".",
+            "timeout_seconds": 5,
+            "covers": ["an unrelated command"]
+        }]
+    });
+    let checks_bytes = serde_json::to_vec(&checks_configuration).unwrap();
+    fs::write(&checks_path, &checks_bytes).unwrap();
     let selected = feature_for_framework(dir.path(), "nextjs-app");
     let args = [
         "migrate",
@@ -443,6 +453,10 @@ fn explicit_cutover_removes_and_restores_the_source_in_the_migration_transaction
         "backend/routes/signals.py",
         "--register-with",
         "backend/main.py::application",
+        "--check",
+        "syntax",
+        "--check",
+        "migration",
         "--cutover",
     ];
     let preview = ok(dir.path(), &args);
@@ -457,6 +471,11 @@ fn explicit_cutover_removes_and_restores_the_source_in_the_migration_transaction
     let report = ok(dir.path(), &write_args);
     assert_eq!(report["migration"]["coexistence"]["source_retained"], false);
     assert_eq!(report["migration"]["coexistence"]["cutover_applied"], true);
+    assert_eq!(report["migration"]["verification"]["status"], "bound");
+    assert_eq!(
+        report["migration"]["verification"]["checks"],
+        serde_json::json!(["migration", "syntax"])
+    );
     assert!(!route.exists());
     assert!(dir.path().join("backend/routes/signals.py").exists());
     let registered = fs::read_to_string(&application).unwrap();
@@ -464,12 +483,64 @@ fn explicit_cutover_removes_and_restores_the_source_in_the_migration_transaction
         .as_str()
         .unwrap()
         .to_owned();
+    let (success, mismatch) = run(
+        dir.path(),
+        &[
+            "checks",
+            "--run",
+            "unrelated",
+            "--basis",
+            &check_basis,
+            "--record-for",
+            "1",
+        ],
+    );
+    assert!(!success);
+    assert!(mismatch["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("required selection"));
+    assert!(!dir.path().join("should-not-run").exists());
+    let mut changed_configuration = checks_configuration;
+    changed_configuration["checks"][0]["argv"] = serde_json::json!([
+        "python3",
+        "-c",
+        "import pathlib;pathlib.Path('changed-check-ran').write_text('ran')"
+    ]);
+    fs::write(
+        &checks_path,
+        serde_json::to_vec(&changed_configuration).unwrap(),
+    )
+    .unwrap();
+    let changed_basis = ok(dir.path(), &["checks"])["basis"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let (success, mismatch) = run(
+        dir.path(),
+        &[
+            "checks",
+            "--run",
+            "syntax,migration",
+            "--basis",
+            &changed_basis,
+            "--record-for",
+            "1",
+        ],
+    );
+    assert!(!success);
+    assert!(mismatch["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("required selection"));
+    assert!(!dir.path().join("changed-check-ran").exists());
+    fs::write(&checks_path, checks_bytes).unwrap();
     let evidence = ok(
         dir.path(),
         &[
             "checks",
             "--run",
-            "migration",
+            "syntax,migration",
             "--basis",
             &check_basis,
             "--record-for",
@@ -483,6 +554,15 @@ fn explicit_cutover_removes_and_restores_the_source_in_the_migration_transaction
         .as_str()
         .unwrap()
         .starts_with("frce1:"));
+    let history = ok(dir.path(), &["history", "show", "1"]);
+    assert_eq!(
+        history["records"][0]["required_checks"]["checks"],
+        serde_json::json!(["migration", "syntax"])
+    );
+    assert_eq!(
+        history["records"][0]["check_evidence"][0]["checks"],
+        serde_json::json!(["migration", "syntax"])
+    );
 
     let patch = ok(dir.path(), &["history", "patch", "1"]);
     assert!(patch["patch"]
@@ -499,6 +579,27 @@ fn explicit_cutover_removes_and_restores_the_source_in_the_migration_transaction
     ok(dir.path(), &["history", "redo", "1", "--write"]);
     assert!(!route.exists());
     assert_eq!(fs::read_to_string(&application).unwrap(), registered);
+    let replayed = ok(dir.path(), &["history", "show", "1"]);
+    assert_eq!(
+        replayed["records"][0]["required_checks"]["checks"],
+        serde_json::json!(["migration", "syntax"])
+    );
+    assert_eq!(
+        replayed["records"][0]["check_evidence"][0]["checks"],
+        serde_json::json!(["migration", "syntax"])
+    );
+    let state_path = dir.path().join(".fr-history/state.json");
+    let mut state: serde_json::Value =
+        serde_json::from_slice(&fs::read(&state_path).unwrap()).unwrap();
+    state["records"][0]["required_checks"]["checks"] =
+        serde_json::json!(["migration", "migration"]);
+    fs::write(&state_path, serde_json::to_vec(&state).unwrap()).unwrap();
+    let (success, corrupt) = run(dir.path(), &["history", "show", "1"]);
+    assert!(!success);
+    assert!(corrupt["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("invalid required check selection"));
 }
 
 #[test]
@@ -874,7 +975,7 @@ fn a_captured_nextjs_app_registers_the_migrated_route_by_placement() {
         .any(|step| step["action"] == "register-nextjs-route-by-app-router-placement"));
     assert_eq!(
         report["steps"]["agent_decisions"].as_array().unwrap().len(),
-        1
+        2
     );
     assert!(!dir
         .path()

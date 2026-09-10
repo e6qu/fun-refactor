@@ -71,6 +71,12 @@ struct Check {
     covers: Vec<String>,
 }
 
+pub(crate) struct Selection {
+    pub configuration_basis: String,
+    pub checks: Vec<String>,
+    pub coverage: Vec<Value>,
+}
+
 fn confined(root: &Path, relative: &Path, directory: bool) -> Result<PathBuf> {
     let mut path = root.to_path_buf();
     for component in relative.components() {
@@ -142,6 +148,41 @@ fn configuration(root: &Path) -> Result<(Configuration, String)> {
         confined(root, &check.cwd, true)?;
     }
     Ok((config, format!("{:x}", Sha256::digest(&bytes))))
+}
+
+pub(crate) fn select(root: &Path, names: &[String]) -> Result<Option<Selection>> {
+    if names.is_empty() {
+        return Ok(None);
+    }
+    let (configuration, configuration_basis) = configuration(root)?;
+    let selected = names.iter().collect::<BTreeSet<_>>();
+    if selected.len() != names.len()
+        || selected.iter().any(|name| {
+            !configuration
+                .checks
+                .iter()
+                .any(|check| &check.name == *name)
+        })
+    {
+        bail!("Select existing check names once each; inspect fr checks first.");
+    }
+    let checks = configuration
+        .checks
+        .iter()
+        .filter(|check| selected.contains(&check.name))
+        .map(|check| check.name.clone())
+        .collect::<Vec<_>>();
+    let coverage = configuration
+        .checks
+        .iter()
+        .filter(|check| selected.contains(&check.name))
+        .map(|check| json!({"name": check.name, "covers": check.covers}))
+        .collect();
+    Ok(Some(Selection {
+        configuration_basis,
+        checks,
+        coverage,
+    }))
 }
 
 fn output(file: &mut File, limit: usize) -> Result<Value> {
@@ -221,6 +262,14 @@ pub fn check_evidence_acceptable(
     executed && commands_passed && configuration_stable && source_snapshot_stable
 }
 
+pub fn check_requirement_satisfied(
+    requirement_present: bool,
+    configuration_matches: bool,
+    check_names_match: bool,
+) -> bool {
+    !requirement_present || configuration_matches && check_names_match
+}
+
 pub fn report(root: &Path, options: &Options) -> Result<Value> {
     if options.no_declarations && options.run.is_empty() {
         bail!("Declaration omission requires selected checks and a reviewed configuration basis.");
@@ -245,11 +294,23 @@ pub fn report(root: &Path, options: &Options) -> Result<Value> {
     if !selected.is_empty() && !reviewed {
         bail!("Check configuration basis is missing or stale; inspect fr checks before execution.");
     }
+    let selected_names = config
+        .checks
+        .iter()
+        .filter(|check| selected.contains(&check.name))
+        .map(|check| check.name.clone())
+        .collect::<Vec<_>>();
     let source_revision = (!selected.is_empty())
         .then(|| crate::history::source_revision(&root))
         .transpose()?;
     if let (Some(transaction), Some(revision)) = (options.record_for, source_revision.as_deref()) {
-        crate::history::check_evidence_target(&root, transaction, revision)?;
+        crate::history::check_evidence_target(
+            &root,
+            transaction,
+            revision,
+            &basis,
+            &selected_names,
+        )?;
     }
     let mut results = Vec::new();
     for check in &config.checks {
@@ -281,12 +342,7 @@ pub fn report(root: &Path, options: &Options) -> Result<Value> {
     if let (Some(transaction), Some(source_revision), Some(true)) =
         (options.record_for, source_revision.as_ref(), passed)
     {
-        let names = config
-            .checks
-            .iter()
-            .filter(|check| selected.contains(&check.name))
-            .map(|check| check.name.clone())
-            .collect::<Vec<_>>();
+        let names = selected_names.clone();
         let receipt = crate::history::check_evidence_receipt(&basis, source_revision, &names)?;
         let evidence = crate::history::CheckEvidence {
             receipt: receipt.clone(),

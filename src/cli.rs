@@ -2207,6 +2207,7 @@ fn cmd_migrate(cli: &Cli, command: &crate::project::migration::Command) -> Resul
                 &removals,
                 options.write,
                 "feature-migration-reparse-strict",
+                plan.required_checks.as_ref(),
             )?
         } else {
             None
@@ -2401,6 +2402,9 @@ fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
                         "id": r.id, "status": r.status, "basis": r.basis, "source_revision": r.source_revision, "validation": r.validation,
                         "paths": r.changes.iter().map(|c| &c.path).collect::<Vec<_>>()
                     });
+                    if let Some(required_checks) = &r.required_checks {
+                        record["required_checks"] = serde_json::json!(required_checks);
+                    }
                     if !r.check_evidence.is_empty() {
                         record["check_evidence"] = serde_json::json!(r.check_evidence);
                     }

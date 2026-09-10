@@ -29,4 +29,5 @@ For whole-entry changes, use `fr file delete`, `fr file executable`, or `fr file
 
 For a revision-bound Next.js or FastAPI route feature, use `fr migrate feature` after `fr project features`.
 FastAPI dependency edits require an explicit owning `pyproject.toml` and one exact requirement string for every missing generated import.
-Review the connected files, save the plan, apply its transaction and attach declared check evidence before cutover.
+Use repeated `--check NAME` options to bind project-owned test commands to the transaction.
+Review the connected files, save the plan, apply its transaction and attach the required evidence before cutover.

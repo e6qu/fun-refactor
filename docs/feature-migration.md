@@ -11,7 +11,7 @@ fr --json migrate feature frff1:... --to fastapi --out services/telemetry.py
 fr --json migrate feature frff1:... --to fastapi --out services/telemetry.py \
   --register-with services/main.py::app \
   --dependency-manifest services/pyproject.toml \
-  --dependency-requirement 'fastapi>=0.115,<1'
+  --dependency-requirement 'fastapi>=0.115,<1' --check migration
 fr --save-plan --json migrate feature frff1:... --to fastapi \
   --out services/telemetry.py --register-with services/main.py::app --cutover
 fr --save-plan --json migrate feature frff1:... --to fastapi --out services/telemetry.py
@@ -54,6 +54,13 @@ The report binds the manifest's exact starting bytes through a SHA-256 revision.
 It refuses duplicate distributions, incomplete additions, extra additions, malformed arrays, symlinks and manifests outside the destination package.
 The manifest edit shares the migration transaction and its patch, undo and redo behavior.
 `fr` does not resolve the requirement, install packages or interpret package-manager extensions.
+
+Repeat `--check NAME` to select real project commands from `.fr/checks.json`.
+The migration report includes each selected check's declared coverage and the exact configuration digest.
+Saved and applied transactions retain that required selection.
+`fr checks --record-for <ID>` requires the same digest and names before it starts any command.
+Successful evidence still requires every selected command to pass while configuration and supported source remain stable.
+This binds project-owned test configuration without inventing a runner, fixture style or expected behavior.
 
 The command keeps the source route and adds the destination.
 An explicit FastAPI registration edit shares that source-history transaction with the generated route.
@@ -125,4 +132,4 @@ Next.js dynamic path names also retain their spelling because the route placehol
 This check covers declarations and supported types.
 It does not establish aliases, validators, constraints, serialization settings, OpenAPI output or response validation.
 
-Current follow-up work adds connected test configuration when the destination needs it.
+Projects must still author the test commands and their behavioral assertions.

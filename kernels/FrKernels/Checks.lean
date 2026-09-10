@@ -30,4 +30,26 @@ theorem source_drift_rejects_check_evidence
     checkEvidenceAcceptable executed commandsPassed configurationStable false = false := by
   cases executed <;> cases commandsPassed <;> cases configurationStable <;> decide
 
+-- fr:spec src/checks.rs::check_requirement_satisfied @ 297b24d458e376b0c70238d024c5fcfb869670afbab0ccbabcfaf05bf16e42bc
+-- fr:signature requirement_present: bool => requirementPresent: Bool; configuration_matches: bool => configurationMatches: Bool; check_names_match: bool => checkNamesMatch: Bool; return: bool => return: Bool
+def checkRequirementSatisfied
+    (requirementPresent : Bool) (configurationMatches : Bool) (checkNamesMatch : Bool) : Bool :=
+  !requirementPresent || configurationMatches && checkNamesMatch
+
+theorem check_requirement_satisfied_iff_absent_or_exact
+    (requirementPresent configurationMatches checkNamesMatch : Bool) :
+    checkRequirementSatisfied requirementPresent configurationMatches checkNamesMatch = true ↔
+      requirementPresent = false ∨ configurationMatches = true ∧ checkNamesMatch = true := by
+  cases requirementPresent <;> cases configurationMatches <;> cases checkNamesMatch <;> decide
+
+theorem absent_check_requirement_accepts_any_evidence
+    (configurationMatches checkNamesMatch : Bool) :
+    checkRequirementSatisfied false configurationMatches checkNamesMatch = true := by
+  cases configurationMatches <;> cases checkNamesMatch <;> decide
+
+theorem present_check_requirement_rejects_different_names
+    (configurationMatches : Bool) :
+    checkRequirementSatisfied true configurationMatches false = false := by
+  cases configurationMatches <;> decide
+
 end FrKernels.Checks

@@ -61,6 +61,8 @@ The configuration receives a fresh confined read and digest after execution.
 
 `--record-for <TRANSACTION>` requires an applied source-history transaction.
 Before execution it checks the transaction status, affected-file snapshots and current source revision.
+When the transaction carries `required_checks`, its exact configuration digest and ordered check names must match the requested execution.
+This refusal happens before a project command starts.
 After every command passes without drift, it repeats those checks while holding the history lock.
 It then appends one evidence row to the transaction.
 The `frce1:` receipt hashes the configuration basis, common source revision and selected check names in declaration order.

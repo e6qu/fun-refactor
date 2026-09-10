@@ -32,7 +32,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | M3 Git integration | Complete | Patches, repository views, staging history, reviewed commits and durable owned-worktree lifecycle | Maintained as a shared repository invariant |
 | M4 agent workflow | In progress | Portable skill, bounded authoring, multi-file batches, checks and eighteen passing autonomous trials | Make context use competitive and extend authoring scope |
 | M5 Lean adoption | Complete | Pinned package initialization, anchored model scaffolds, regeneration, proof-debt ratchets, generated CI and bounded evidence reports | Maintain the trust boundary and extend the documented model subset as real projects require it |
-| M6 framework transformation | In progress | Shared code IR, route/page feature hierarchies, Lean-backed framework policies, revision-bound migration, reversible registration, dependency and cutover edits, source-bound check receipts, plus pinned two-way runtime fixtures | Add connected test edits |
+| M6 framework transformation | Complete | Shared code IR, route/page feature hierarchies, Lean-backed framework policies, revision-bound migration, reversible registration, dependency and cutover edits, transaction-bound project checks, plus pinned two-way runtime fixtures | Maintain the bounded framework subset and add new pairs from evidence |
 
 ## What exists now
 
@@ -308,14 +308,14 @@ Verification and acceptance:
 
 ### PR 6. Verified Feature Migration
 
-Status: in progress on `verified_feature_migration`. The completed checkpoints add a revision-bound, two-way Next.js App Router and FastAPI route migration. Preview, history, patches, exact reversal and source-bound checks share one transaction identity. Registration and cutover use explicit eligibility rules. An explicit PEP 621 manifest can receive caller-supplied requirements for missing FastAPI and Pydantic imports in that transaction. Lean-backed policies cover migration, schema, registration, validation, cutover, dependency edits and check receipts. Generic handler and pinned framework fixtures exercise both directions, including invalid bodies. A clean Git receiver checks exact patch application and reversal.
+Status: ready for review on `verified_feature_migration`. Fourteen checkpoints provide a revision-bound, two-way Next.js App Router and FastAPI route migration. Preview, history, patches, exact reversal and project checks share one transaction identity. Registration and cutover use explicit eligibility rules. An explicit PEP 621 manifest can receive caller-supplied requirements for missing FastAPI and Pydantic imports in that transaction. The migration can bind exact project-owned checks without assuming a test runner. Lean-backed policies cover migration, schema, registration, validation, cutover, dependency edits and check receipts. Generic handler and pinned framework fixtures exercise both directions, including invalid bodies. A clean Git receiver checks exact patch application and reversal.
 
 Goal: migrate one real feature through an inspectable, reversible high-level transformation.
 
 Deliverables:
 
 - Move or translate a bounded feature using the framework semantic model; complete for a one-file route feature in both supported directions.
-- Update connected routes, handlers, schemas, callers, components, build settings and tests. Registration and explicit PEP 621 dependency edits cover the current runtime connection subset. Stable route URLs need no caller rewrite; test configuration remains open.
+- Update connected routes, handlers, schemas, callers, components, build settings and tests. Registration and explicit PEP 621 dependency edits cover the current runtime connection subset. Stable route URLs need no caller rewrite. Exact project-owned check selections can now bind to the transaction; projects still author their commands and assertions.
 - Separate automatic steps, agent decisions and unsupported behavior in the migration plan; complete for the current semantic facts and translator gaps.
 - Allow source and destination frameworks to coexist during an incremental migration. Source transactions, registered Next.js destinations and explicitly mounted FastAPI routers support the current subset; broader cross-runtime composition remains open.
 - Produce one reviewed source-history transaction and one Git patch; complete through saved plans and existing history patch export.
@@ -331,6 +331,7 @@ Verification and acceptance:
 - Refuse automatic cutover without destination registration or when the index resolves an external source reference. Runtime imports, string paths, deployment routing and external callers remain review inputs.
 - Bind passing declared checks to the applied transaction, reviewed configuration and one stable supported-source revision. Boundary hashing is complete; command-internal mutation and unsupported files remain outside the claim.
 - Bind explicit Python dependency edits to an owning PEP 621 manifest and caller-supplied requirements; complete with exact history replay.
+- Bind a migration to exact project-owned check names and configuration before execution; complete without assuming a runner or synthesizing project-specific assertions.
 
 ## Delivery order
 
@@ -409,7 +410,7 @@ The harness retains every attempted trial and keeps infrastructure failures sepa
 - Existing model proofs and executable comparisons do not establish general Rust implementation correspondence.
 - LSP delegation remains excluded from the default engine. Reconsider it only for measured tasks that need it.
 - Daemon/watch mode remains deferred until cache and repeated-query measurements justify it.
-- Feature migration currently covers one route source file across Next.js App Router and FastAPI. Generated Next.js validation covers one direct body model built from primitive, optional, list, string-keyed map, tuple and acyclic local-record shapes. Explicit FastAPI registration checks one application file and its direct routes. Explicit cutover checks resolved external source references and keeps deletion reversible. Reviewed work includes framework coercion, aliases, custom validators, field constraints, strict and extra-field settings, composed-router conflicts and runtime imports. It also includes external callers and connected test edits.
+- Feature migration currently covers one route source file across Next.js App Router and FastAPI. Generated Next.js validation covers one direct body model built from primitive, optional, list, string-keyed map, tuple and acyclic local-record shapes. Explicit FastAPI registration checks one application file and its direct routes. Explicit cutover checks resolved external source references and keeps deletion reversible. Reviewed work includes framework coercion, aliases, custom validators, field constraints, strict and extra-field settings, composed-router conflicts, runtime imports and external callers. Projects provide the commands and assertions selected for transaction evidence.
 
 ## Further reading
 

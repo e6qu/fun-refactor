@@ -153,7 +153,9 @@ Fixtures cover framework parsing, kind classification, `use client`, environment
 
 `FrKernels.Checks` models the final acceptance predicate for a durable project-check receipt.
 Four theorems characterize acceptance and show that a failed command, configuration drift or source drift rejects evidence.
-All sixteen Boolean combinations agree with the Rust predicate.
+Three more characterize the optional transaction requirement.
+An absent requirement accepts any valid evidence; a present requirement needs the exact configuration and ordered check names.
+All twenty-four Boolean combinations agree with the two Rust predicates.
 The proof uses no custom axiom or compiler-trust tactic.
 It covers the final conjunction only; command execution, digest construction, filesystem observation and history persistence retain Rust and integration-test evidence.
 

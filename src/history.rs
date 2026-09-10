@@ -86,8 +86,17 @@ pub struct Record {
     pub source_revision: String,
     pub validation: String,
     pub changes: Vec<Change>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub required_checks: Option<CheckRequirement>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub check_evidence: Vec<CheckEvidence>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CheckRequirement {
+    pub configuration_basis: String,
+    pub checks: Vec<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -250,6 +259,23 @@ impl History {
                         }
                         validate_symlink_target(&state.content)?;
                     }
+                }
+            }
+            if let Some(requirement) = &record.required_checks {
+                let mut names = std::collections::BTreeSet::new();
+                if !sha256_text(&requirement.configuration_basis)
+                    || requirement.checks.is_empty()
+                    || requirement.checks.len() > 32
+                    || requirement.checks.iter().any(|name| {
+                        name.is_empty()
+                            || name.len() > 64
+                            || !name
+                                .bytes()
+                                .all(|byte| byte.is_ascii_alphanumeric() || b"_-".contains(&byte))
+                            || !names.insert(name)
+                    })
+                {
+                    bail!("invalid required check selection.");
                 }
             }
             let mut receipts = std::collections::BTreeSet::new();
@@ -506,7 +532,7 @@ pub fn record_with_status(
     apply: bool,
     validation: &str,
 ) -> Result<Option<RecordResult>> {
-    record_with_removals_status(root, changes, &[], apply, validation)
+    record_with_removals_status(root, changes, &[], apply, validation, None)
 }
 
 pub(crate) fn record_with_removals_status(
@@ -515,6 +541,7 @@ pub(crate) fn record_with_removals_status(
     removals: &[FileRemoval<'_>],
     apply: bool,
     validation: &str,
+    required_checks: Option<&CheckRequirement>,
 ) -> Result<Option<RecordResult>> {
     if !changes.iter().any(|c| c.original != c.updated) && removals.is_empty() {
         return Ok(None);
@@ -610,7 +637,7 @@ pub(crate) fn record_with_removals_status(
             after: None,
         });
     }
-    store_record(&mut history, stored, apply, validation).map(Some)
+    store_record(&mut history, stored, apply, validation, required_checks).map(Some)
 }
 
 fn store_record(
@@ -618,6 +645,7 @@ fn store_record(
     changes: Vec<Change>,
     apply: bool,
     validation: &str,
+    required_checks: Option<&CheckRequirement>,
 ) -> Result<RecordResult> {
     let record_basis = basis(&changes)?;
     let revision = source_revision(&history.root)?;
@@ -628,6 +656,7 @@ fn store_record(
                 && record.source_revision == revision
                 && record.validation == validation
                 && record.changes == changes
+                && record.required_checks.as_ref() == required_checks
         }) {
             return Ok(RecordResult {
                 id: record.id,
@@ -650,6 +679,7 @@ fn store_record(
         source_revision: revision,
         validation: validation.to_owned(),
         changes,
+        required_checks: required_checks.cloned(),
         check_evidence: Vec::new(),
     });
     history.save()?;
@@ -664,7 +694,14 @@ pub(crate) fn record_check_evidence(root: &Path, id: u64, evidence: CheckEvidenc
     let _lock = lock(&root)?;
     let mut history = History::read(&root)?;
     history.ensure_ready()?;
-    ensure_check_evidence_target(&history, &root, id, &evidence.source_revision)?;
+    ensure_check_evidence_target(
+        &history,
+        &root,
+        id,
+        &evidence.source_revision,
+        &evidence.configuration_basis,
+        &evidence.checks,
+    )?;
     let record = history.record(id)?;
     if record
         .check_evidence
@@ -689,6 +726,8 @@ fn ensure_check_evidence_target(
     root: &Path,
     id: u64,
     revision: &str,
+    configuration_basis: &str,
+    checks: &[String],
 ) -> Result<()> {
     let record = history.record(id)?;
     ensure!(
@@ -706,14 +745,37 @@ fn ensure_check_evidence_target(
         source_revision(root)? == revision,
         "source changed after checks."
     );
+    let requirement_present = record.required_checks.is_some();
+    let configuration_matches = record
+        .required_checks
+        .as_ref()
+        .is_some_and(|requirement| requirement.configuration_basis == configuration_basis);
+    let check_names_match = record
+        .required_checks
+        .as_ref()
+        .is_some_and(|requirement| requirement.checks == checks);
+    ensure!(
+        crate::checks::check_requirement_satisfied(
+            requirement_present,
+            configuration_matches,
+            check_names_match,
+        ),
+        "check evidence does not satisfy the transaction's required selection"
+    );
     Ok(())
 }
 
-pub(crate) fn check_evidence_target(root: &Path, id: u64, revision: &str) -> Result<()> {
+pub(crate) fn check_evidence_target(
+    root: &Path,
+    id: u64,
+    revision: &str,
+    configuration_basis: &str,
+    checks: &[String],
+) -> Result<()> {
     let root = workspace(root)?;
     let history = History::read(&root)?;
     history.ensure_ready()?;
-    ensure_check_evidence_target(&history, &root, id, revision)
+    ensure_check_evidence_target(&history, &root, id, revision, configuration_basis, checks)
 }
 
 pub fn act(root: &Path, action: Action, id: u64, write: bool) -> Result<serde_json::Value> {

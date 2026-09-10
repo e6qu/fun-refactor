@@ -1076,6 +1076,20 @@ fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
             }
         }
     }
+    for requirement_present in [false, true] {
+        for configuration_matches in [false, true] {
+            for check_names_match in [false, true] {
+                expected.push(
+                    fun_refactor::checks::check_requirement_satisfied(
+                        requirement_present,
+                        configuration_matches,
+                        check_names_match,
+                    )
+                    .to_string(),
+                );
+            }
+        }
+    }
     assert_eq!(actual, expected);
 }
 

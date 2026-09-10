@@ -15,7 +15,7 @@ Preview, saved plans and writes use the existing source-history transaction, so 
 Four CLI integration cases cover both migration directions, refusal boundaries and exact forward undo/redo replay.
 Nine migration policies constrain supported directions, disposition classes, schema inclusion, registration, body promotion, body validation, cutover and dependency edits.
 Thirty-nine framework theorems now cover seventeen helpers, with 364 shared Rust and Lean results.
-The checkpoints have strict syntax, endpoint, schema, registration and dependency evidence; full framework behavior and connected test edits stay open.
+The checkpoints have strict syntax, endpoint, schema, registration, dependency and project-check evidence; full framework behavior remains outside the bounded claim.
 The second PR 6 checkpoint adds generic runtime oracles for both migration directions.
 A telemetry handler runs through Node before migration and through generated Python afterward.
 A parameterized metrics handler runs through Python before migration and through generated Node afterward.
@@ -79,7 +79,15 @@ Caller-supplied requirement strings must cover each missing `fastapi` or `pydant
 The command preserves existing requirements, reparses TOML and records the manifest beside generated and registration files for exact patch, undo and redo behavior.
 Next.js dependency evidence reuses the captured manifest required for automatic route registration.
 Three Lean theorems characterize the four dependency-edit boundaries, and all sixteen Boolean cases agree with Rust.
-Requirement semantics, package-manager resolution, installation and connected test edits remain reviewed work.
+Requirement semantics, package-manager resolution and installation remain reviewed work.
+The fourteenth checkpoint binds project-owned test commands to the migration transaction.
+Repeated `--check` options select names from `.fr/checks.json`, canonicalize them to declaration order and retain the exact configuration digest and names in history.
+Evidence for that transaction must use the same configuration and selection; a mismatch refuses before any project command starts.
+Three Lean theorems characterize the optional exact-selection rule, and all eight Boolean cases agree with Rust.
+The mechanism is runner-agnostic and does not invent fixtures or behavioral assertions for a project.
+`FrKernels.Checks` now has seven theorems and 24 shared Boolean results across receipt acceptance and required-selection policy.
+The full native/WASM gate passes with 407 library tests, 150 project scenarios, 16 migration scenarios, six runtime scenarios, 311/311 capability coverage and 42 Lean build jobs.
+Strict source-anchor and signature verification also passes with zero obligations.
 Roadmap PR 5's first checkpoint added `fr project features` for bounded Next.js App Router and FastAPI hierarchies.
 Applications contain exact-route-path feature candidates, which contain routes, handlers, contract fields, schema references and expanded same-file schema candidates.
 Every fact carries a parent, source anchor, status, confidence, validation basis and explicit gaps.
@@ -778,4 +786,5 @@ Keep revision inputs, coverage and final source verification intact; require byt
 State the cache policy for the next autonomous cohort; existing trials explicitly disable it and their records remain immutable.
 The latest paired task requires one coordinated three-operation change across two crate roots. It passes, while `fr` still uses 23.8% more measured context in this single pair.
 Keep portable skill references selective and executable against the distributed binary.
-PR 6 is active. Continue with connected dependency and test edits as ordered in [PLAN.md](../PLAN.md).
+PR 6 is ready for review. Its bounded migration flow now connects registration, dependency manifests, cutover and project-owned checks in one reversible transaction.
+After merge, choose the next milestone from the remaining M2 context-efficiency or M4 agent-workflow outcomes in [PLAN.md](../PLAN.md).
