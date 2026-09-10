@@ -29,9 +29,9 @@ shows the patch additive. What remains below is a limit of the available source 
   A call whose receiver nothing types is fanned out to the definitions the workspace
   admits. Four declarations each fan such a call out to every implementation:
 
-  * a Rust `impl Trait for Type`, supertraits included;
-  * a Go interface whose method set a type covers by name and arity;
-  * a TypeScript `implements`/`extends` clause;
+  * a Rust `impl Trait for Type`, supertraits included.
+  * a Go interface whose method set a type covers by name and arity.
+  * a TypeScript `implements`/`extends` clause.
   * a Python base class.
 
   A fifth follows a callable value through its binding. `let f = candidate` followed

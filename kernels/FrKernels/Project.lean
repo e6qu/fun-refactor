@@ -194,6 +194,25 @@ theorem fastapi_body_parameter_rejects_query_collision
     fastapiBodyParameterAutomatic candidateCount pathCollision true = false := by
   cases pathCollision <;> simp [fastapiBodyParameterAutomatic]
 
+-- fr:spec src/project/framework_kernel.rs::nextjs_body_validation_automatic @ 22ec1ca1fa70fe1f5ab3eaca2645ba66a6221b87683a4fe8f50b8baea0cb329e
+-- fr:signature candidate_count: usize => candidateCount: Nat; supported_shape: bool => supportedShape: Bool; return: bool => return: Bool
+def nextjsBodyValidationAutomatic (candidateCount : Nat) (supportedShape : Bool) : Bool :=
+  decide (candidateCount = 1) && supportedShape
+
+theorem nextjs_body_validation_automatic_iff_unique_supported
+    (candidateCount : Nat) (supportedShape : Bool) :
+    nextjsBodyValidationAutomatic candidateCount supportedShape = true ↔
+      candidateCount = 1 ∧ supportedShape = true := by
+  cases supportedShape <;> simp [nextjsBodyValidationAutomatic]
+
+theorem nextjs_body_validation_rejects_unsupported (candidateCount : Nat) :
+    nextjsBodyValidationAutomatic candidateCount false = false := by
+  simp [nextjsBodyValidationAutomatic]
+
+theorem nextjs_body_validation_accepts_unique_supported :
+    nextjsBodyValidationAutomatic 1 true = true := by
+  decide
+
 -- fr:spec src/project.rs::path_confidence @ b5a8549e
 -- fr:signature edges: &[Confidence] => edges: List Nat; return: Confidence => return: Nat
 def pathConfidence (edges : List Nat) : Nat := edges.foldr max 0

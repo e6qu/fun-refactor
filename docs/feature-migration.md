@@ -32,7 +32,7 @@ The first automatic step translates the selected route file.
 For a destination under `app` or `src/app`, a captured package manifest with a string-valued Next.js dependency proves registration by route placement.
 The report binds that target application and makes registration a second automatic step.
 FastAPI router composition, unrecognized targets and final cutover remain agent decisions because their application wiring varies by project.
-The plan does not claim full framework runtime, middleware, authentication, validation, lifecycle or wire-schema equivalence.
+The plan does not claim full framework runtime, middleware, authentication, lifecycle or wire-schema equivalence.
 
 The command keeps the source route and adds the destination.
 This supports an incremental period where both frameworks remain in the workspace.
@@ -74,8 +74,12 @@ Pydantic 2.13.5 accepts the valid body, and an invalid array element produces a 
 The reverse fixture places the generated route below a captured application manifest and starts Next.js 16.3.4 with React 19.3.0.
 It sends a real HTTP request to the registered `/events` route.
 Its valid response matches the FastAPI source exactly.
+For one direct body model whose complete declared shape uses the supported structural types, the generated route checks the parsed JSON before invoking the translated handler.
+The shape is derived generically from declarations: primitives, optional values, lists, string-keyed maps, tuples and acyclic local records up to the documented depth bound.
+The real Next.js fixture rejects an invalid array element with status 422 and the same body-field location as the source FastAPI application.
+Ambiguous candidates, sets, function types, unresolved or generic named types, cycles and deeper shapes retain an explicit fidelity note instead of claiming automatic validation.
 The stubbed cases remain separate handler evidence.
-Generated TypeScript interfaces do not enforce request shapes at runtime, so equivalent Next.js rejection remains unverified.
+This structural check does not reproduce Pydantic coercion, aliases, custom validators, field constraints, serialization settings, strict modes or extra-field configuration.
 The fixtures do not cover middleware, dependency injection, lifecycle behavior or deployment.
 
 ## Declared schema evidence
@@ -83,10 +87,10 @@ The fixtures do not cover middleware, dependency injection, lifecycle behavior o
 The migration report canonicalizes records into names and sorted fields whose supported types use language-neutral spellings.
 Python integers and floats both compare as `number` because TypeScript has one numeric declaration type.
 It reparses the generated Python or TypeScript and checks the resulting declarations against the translated source records.
-FastAPI migration includes only models reached through selected handler signatures.
+FastAPI migration includes only models transitively reached through selected handler signatures and local record fields.
 The framework writers retain source field spellings because those names can be JSON keys.
 Next.js dynamic path names also retain their spelling because the route placeholder and generated handler parameter form one runtime binding.
 This check covers declarations and supported types.
-It does not establish aliases, requiredness, defaults, validators, serialization settings, OpenAPI output or runtime request and response validation.
+It does not establish aliases, validators, constraints, serialization settings, OpenAPI output or response validation.
 
-Current follow-up work adds Next.js runtime validation, remaining connected build and test edits, and a reviewed cutover stage.
+Current follow-up work adds remaining connected build and test edits and a reviewed cutover stage.

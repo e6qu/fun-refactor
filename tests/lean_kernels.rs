@@ -905,8 +905,8 @@ fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
         component_hooks_compatible, configuration_visibility, fastapi_body_parameter_automatic,
         fastapi_prefix_supported, framework_emitted, framework_migration_supported,
         framework_omitted, middleware_request_order, migration_disposition,
-        migration_schema_agreement, nextjs_registration_automatic, service_redaction_flags,
-        service_target_kind,
+        migration_schema_agreement, nextjs_body_validation_automatic,
+        nextjs_registration_automatic, service_redaction_flags, service_target_kind,
     };
 
     build_kernel();
@@ -1004,6 +1004,13 @@ fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
                     .to_string(),
                 );
             }
+        }
+    }
+    for candidate_count in [0, 1, 2, 65536] {
+        for supported_shape in [false, true] {
+            expected.push(
+                nextjs_body_validation_automatic(candidate_count, supported_shape).to_string(),
+            );
         }
     }
     assert_eq!(actual, expected);

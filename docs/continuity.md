@@ -13,8 +13,8 @@ It retains the source route, adds the destination and classifies feature facts a
 Runtime registration and cutover stay as named agent decisions.
 Preview, saved plans and writes use the existing source-history transaction, so patch checks, export, apply, undo and redo remain available.
 Four CLI integration cases cover both migration directions, refusal boundaries and exact forward undo/redo replay.
-Five migration policies constrain supported directions, disposition classes, schema inclusion, registration and body promotion.
-Twenty-seven framework theorems now cover thirteen helpers, with 324 shared Rust and Lean results.
+Six migration policies constrain supported directions, disposition classes, schema inclusion, registration, body promotion and generated body-validation eligibility.
+Thirty framework theorems now cover fourteen helpers, with 332 shared Rust and Lean results.
 The checkpoint has strict syntax, endpoint-contract and declared-schema evidence; full framework behavior, runtime schema validation and connected project edits remain next.
 The second PR 6 checkpoint adds generic runtime oracles for both migration directions.
 A telemetry handler runs through Node before migration and through generated Python afterward.
@@ -48,7 +48,13 @@ The eighth checkpoint installs a lockfile-pinned Next.js 16.3.4 application with
 App Router placement registers the generated generic events route.
 A real framework request returns the exact FastAPI source payload.
 The runtime fixture uses no example-specific translation rule.
-Generated Next.js request rejection, connected project edits and cutover remain open.
+The ninth checkpoint generates structural Next.js request validation from the intermediate type model.
+Exactly one direct local body model is automatic when every reachable field uses a supported primitive, optional, list, string-keyed map, tuple or acyclic local-record shape within the depth bound.
+The translator now emits local models reached transitively through record fields, so nested declarations and their validators remain complete without fixture-specific rules.
+Ambiguous and unsupported shapes stay visible as fidelity notes.
+The real FastAPI source and generated Next.js route both accept the generic valid event and reject its invalid array element with status 422 at the same body-field location.
+The eligibility rule is anchored in Lean with three theorems and eight shared Rust/Lean cases.
+Pydantic coercion, aliases, custom validators, constraints, strict and extra-field settings, connected project edits and cutover remain open.
 Roadmap PR 5's first checkpoint added `fr project features` for bounded Next.js App Router and FastAPI hierarchies.
 Applications contain exact-route-path feature candidates, which contain routes, handlers, contract fields, schema references and expanded same-file schema candidates.
 Every fact carries a parent, source anchor, status, confidence, validation basis and explicit gaps.
@@ -747,4 +753,4 @@ Keep revision inputs, coverage and final source verification intact; require byt
 State the cache policy for the next autonomous cohort; existing trials explicitly disable it and their records remain immutable.
 The latest paired task requires one coordinated three-operation change across two crate roots. It passes, while `fr` still uses 23.8% more measured context in this single pair.
 Keep portable skill references selective and executable against the distributed binary.
-PR 6 is active. Continue with generated Next.js request validation, connected project edits and a reviewed cutover as ordered in [PLAN.md](../PLAN.md).
+PR 6 is active. Continue with connected project edits and a reviewed cutover as ordered in [PLAN.md](../PLAN.md).

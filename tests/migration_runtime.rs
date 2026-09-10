@@ -131,7 +131,7 @@ impl Drop for RunningNext {
     }
 }
 
-fn run_nextjs_route(runtime: &NextRuntime, root: &Path, payload: &Value) -> Value {
+fn run_nextjs_route(runtime: &NextRuntime, root: &Path, payloads: &[Value]) -> Vec<Value> {
     let web = root.join("web");
     #[cfg(unix)]
     std::os::unix::fs::symlink(runtime.root.join("node_modules"), web.join("node_modules"))
@@ -168,8 +168,10 @@ fn run_nextjs_route(runtime: &NextRuntime, root: &Path, payload: &Value) -> Valu
         command
             .current_dir(&web)
             .arg(runner)
-            .arg(format!("http://127.0.0.1:{port}/events"))
-            .arg(payload.to_string());
+            .arg(format!("http://127.0.0.1:{port}/events"));
+        for payload in payloads {
+            command.arg(payload.to_string());
+        }
         command
     });
     assert!(
@@ -489,8 +491,36 @@ fn fastapi_payload_keys_and_values_survive_nextjs_generation() {
         serde_json::json!(["accepted", "priority"])
     );
 
+    let invalid = serde_json::json!({
+        "event_id": "evt-9",
+        "sentAt": 1_757_500_200_u64,
+        "labels": [7],
+    });
+    let fastapi_framework = fastapi_python().map(|python| {
+        fs::write(
+            dir.path().join("framework-source-runner.py"),
+            include_str!("migration-runtime/fastapi-framework-source-runner.py"),
+        )
+        .unwrap();
+        run_json_path(&python, dir.path(), "framework-source-runner.py")
+    });
     if let Some(runtime) = next_runtime {
-        let framework = run_nextjs_route(&runtime, dir.path(), &source["body"]);
-        assert_eq!(framework, source);
+        let framework = run_nextjs_route(&runtime, dir.path(), &[source["body"].clone(), invalid]);
+        assert_eq!(framework[0], source);
+        assert_eq!(framework[1]["status"], 422);
+        assert!(framework[1]["body"]["detail"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|error| error["loc"] == serde_json::json!(["body", "labels", 0])));
+        if let Some(fastapi) = fastapi_framework {
+            assert_eq!(fastapi["valid"], framework[0]);
+            assert_eq!(fastapi["invalid"]["status"], framework[1]["status"]);
+            assert!(fastapi["invalid"]["body"]["detail"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|error| error["loc"] == serde_json::json!(["body", "labels", 0])));
+        }
     }
 }

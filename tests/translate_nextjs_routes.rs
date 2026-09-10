@@ -123,6 +123,113 @@ fn a_model_parameter_is_the_request_body() {
         "{}",
         pets.output
     );
+    assert!(
+        pets.output.contains(
+            &[
+                "frMigrationValidate(pet, ",
+                "{ kind: \"record\", fields: { ",
+                "\"name\": { required: true, ",
+                "shape: { kind: \"string\" } }, ",
+                "\"age\": { required: true, ",
+                "shape: { kind: \"integer\" } } } }, ",
+                "[\"body\"]);",
+            ]
+            .concat()
+        ),
+        "{}",
+        pets.output
+    );
+    assert!(
+        pets.output.contains(
+            &[
+                "return Response.json(",
+                "{ detail: frMigrationErrors }, ",
+                "{ status: 422 });",
+            ]
+            .concat()
+        ),
+        "{}",
+        pets.output
+    );
+}
+
+#[test]
+fn an_unsupported_body_shape_keeps_runtime_validation_explicit() {
+    let source = concat!(
+        "from fastapi import FastAPI\n",
+        "from pydantic import BaseModel\n\n",
+        "app = FastAPI()\n\n",
+        "class Envelope(BaseModel):\n",
+        "    labels: set[str]\n\n",
+        "@app.post(\"/events\")\n",
+        "async def publish(",
+        "envelope: Envelope):\n",
+        "    return envelope\n",
+    );
+    let (_tmp, plan) = translate(source);
+    let events = route(&plan, "/events");
+
+    assert!(
+        !events.output.contains("frMigrationValidate"),
+        "{}",
+        events.output
+    );
+    assert!(
+        plan.fidelity.notes.iter().any(|note| note.contains(
+            &[
+                "generated Next.js route cannot enforce ",
+                "their complete declared shape at runtime",
+            ]
+            .concat()
+        )),
+        "{:?}",
+        plan.fidelity.notes
+    );
+}
+
+#[test]
+fn nested_body_models_are_emitted_and_validated_from_their_declared_shapes() {
+    let source = concat!(
+        "from fastapi import FastAPI\n",
+        "from pydantic import BaseModel\n\n",
+        "app = FastAPI()\n\n",
+        "class Reading(BaseModel):\n",
+        "    value: float\n\n",
+        "class BatchEnvelope(BaseModel):\n",
+        "    readings: list[Reading]\n\n",
+        "@app.post(\"/batches\")\n",
+        "async def publish(",
+        "batch: BatchEnvelope):\n",
+        "    return batch\n",
+    );
+    let (_tmp, plan) = translate(source);
+    let batches = route(&plan, "/batches");
+
+    assert_eq!(plan.models.len(), 2, "{:?}", plan.models);
+    assert!(
+        batches.output.contains("export interface Reading {"),
+        "{}",
+        batches.output
+    );
+    assert!(
+        batches.output.contains("export interface BatchEnvelope {"),
+        "{}",
+        batches.output
+    );
+    assert!(
+        batches.output.contains(
+            &[
+                "\"readings\": { required: true, ",
+                "shape: { kind: \"list\", item: ",
+                "{ kind: \"record\", fields: { ",
+                "\"value\": { required: true, ",
+                "shape: { kind: \"number\" } } } } } }",
+            ]
+            .concat()
+        ),
+        "{}",
+        batches.output
+    );
 }
 
 #[test]

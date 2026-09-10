@@ -71,3 +71,7 @@ pub fn fastapi_body_parameter_automatic(
 ) -> bool {
     candidate_count == 1 && !path_collision && !query_collision
 }
+
+pub fn nextjs_body_validation_automatic(candidate_count: usize, supported_shape: bool) -> bool {
+    candidate_count == 1 && supported_shape
+}
