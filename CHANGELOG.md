@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.16.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.15.0...fun-refactor-v0.16.0) (2026-09-10)
+
+
+### Features
+
+* add the Lean adoption kit ([#264](https://github.com/e6qu/fun-refactor/issues/264)) ([59a4525](https://github.com/e6qu/fun-refactor/commit/59a4525a2090351e3b78750940b928a778ec019c))
+* **agent:** add context protocol v2 ([#261](https://github.com/e6qu/fun-refactor/issues/261)) ([0dd19b0](https://github.com/e6qu/fun-refactor/commit/0dd19b05cad78853b5ec2a5ca91554c613201c27))
+* build the agent-ready verified refactoring foundation ([#259](https://github.com/e6qu/fun-refactor/issues/259)) ([31a75d7](https://github.com/e6qu/fun-refactor/commit/31a75d7800b5b44d12cc59b03b0fac6bf52bf3d3))
+* complete durable Git workspace lifecycle ([#263](https://github.com/e6qu/fun-refactor/issues/263)) ([3d9a92b](https://github.com/e6qu/fun-refactor/commit/3d9a92b19f32fc27c670f6b4faeac695ae3976ed))
+* generalize structural authoring ([#262](https://github.com/e6qu/fun-refactor/issues/262)) ([499d7a2](https://github.com/e6qu/fun-refactor/commit/499d7a25599e90b3e2762f41f6b488e5b2bfd899))
+* **project:** add framework semantic model ([#265](https://github.com/e6qu/fun-refactor/issues/265)) ([cbd741b](https://github.com/e6qu/fun-refactor/commit/cbd741b40b002090d5783f76f8665382439ec403))
+* **project:** add verified feature migration ([#266](https://github.com/e6qu/fun-refactor/issues/266)) ([a03bac5](https://github.com/e6qu/fun-refactor/commit/a03bac5d5fbd5d318d9294eed2f080c6585bb23f))
+
 ## [0.15.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.14.0...fun-refactor-v0.15.0) (2026-09-05)
 
 
