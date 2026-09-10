@@ -6,8 +6,14 @@ PR 2, Generalized Structural Authoring, merged as GitHub PR 262.
 PR 3, Durable Git Workspace Lifecycle, merged as GitHub PR 263.
 PR 4, the Lean Adoption Kit, merged as GitHub PR 264.
 PR 5, Framework Semantic Model, merged as GitHub PR 265.
-The current `verified_feature_migration` branch is roadmap PR 6.
-Its first checkpoint adds `fr migrate feature` for one revision-bound Next.js App Router or FastAPI route feature whose methods share one source file.
+PR 6, Verified Feature Migration, merged as GitHub PR 266.
+Release PR 260 then published the completed roadmap state from `main`.
+The current `agent_context_v3` branch is roadmap PR 7, Context-Competitive Agent Workflow.
+It targets the remaining 4,419-token fixed-projection gap through multi-symbol inspection,
+review-bound payload omission, a smaller task-routed skill and a fresh paired acceptance cohort.
+The cohort must pass independent project and receiver oracles, ordered checks, exact reversal
+and index preservation before it supports any context-improvement claim.
+PR 6's first checkpoint adds `fr migrate feature` for one revision-bound Next.js App Router or FastAPI route feature whose methods share one source file.
 The planner refuses stale feature IDs, same-framework requests, escaping destinations and any disagreement between semantic and translated endpoint sets.
 It retains the source route, adds the destination and classifies feature facts and gaps as automatic, agent-decision or unsupported work.
 Validated Next.js placement and explicit FastAPI application wiring can register destinations automatically; explicit eligible cutover can remove the source in that transaction.

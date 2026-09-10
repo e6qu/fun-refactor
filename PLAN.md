@@ -110,248 +110,61 @@ The identifiers remain stable for references in defect records.
 
 ## Delivery plan
 
-The foundation landed as PR 0. The remaining roadmap is packaged as six reviewable product PRs.
-Each PR can contain internal checkpoint commits, but its description and acceptance evidence must describe one final outcome.
+The first packaged roadmap is complete. Its seven pull requests established the product foundation:
 
-### PR 0. Agent-ready verified refactoring foundation
+| PR | Outcome | Status |
+|---|---|---|
+| [PR 0](https://github.com/e6qu/fun-refactor/pull/259) | Agent-ready verified refactoring foundation | Merged |
+| [PR 1](https://github.com/e6qu/fun-refactor/pull/261) | Agent Context Protocol v2 | Merged |
+| [PR 2](https://github.com/e6qu/fun-refactor/pull/262) | Generalized structural authoring | Merged |
+| [PR 3](https://github.com/e6qu/fun-refactor/pull/263) | Durable Git workspace lifecycle | Merged |
+| [PR 4](https://github.com/e6qu/fun-refactor/pull/264) | Lean adoption kit | Merged |
+| [PR 5](https://github.com/e6qu/fun-refactor/pull/265) | Framework semantic model | Merged |
+| [PR 6](https://github.com/e6qu/fun-refactor/pull/266) | Verified feature migration | Merged |
 
-Status: merged as [PR 259](https://github.com/e6qu/fun-refactor/pull/259).
+Git history and [development continuity](docs/continuity.md) retain checkpoint-level detail.
 
-Goal: establish the shared product and evidence base required by the remaining roadmap.
+### PR 7. Context-Competitive Agent Workflow
 
-Delivered:
+Status: active on `agent_context_v3`.
 
-- Recoverable source transactions with checked apply, undo, redo, recovery and Git patch export.
-- Bounded project maps and targeted evidence for packages, dependencies, symbols, calls, routes, contracts, schemas and tests.
-- Bounded Git status, diff, changed-declaration, staging, commit and owned-worktree workflows.
-- Structural authoring for selected Rust, Go, TypeScript and TSX declarations, including reviewed multi-file batches.
-- A portable `fr` agent skill with executable workflows for exploration, authoring, checks, history, Git and Lean specifications.
-- Lean models for source positions, edits, history, patches, pagination, project membership, revision buffers and insertion placement.
-- Source anchors, signature maps, strict specification checks and shared executable Rust/Lean cases.
-- Sixteen retained autonomous trials, independent behavioral oracles, exact patch replay and token audits.
-- Native and WASM validation with measured capability coverage for every supported language-operation pair.
+Goal: reduce the context and call cost of a complete high-level change while retaining bounded evidence, independent validation, exact patch replay and undo/redo.
 
-Acceptance evidence:
+Measured baseline:
 
-- The complete native/WASM gate passes with 311 supported capability-language pairs exercised.
-- Strict Lean verification rejects stale anchors, signature drift, unbuilt targets and unresolved proof obligations.
-- Agent evaluation records preserve prompts, events, patches, source states, checks, independent oracles and exact reversal evidence.
-- Documentation states the supported subsets, refusal boundaries, proof limits and current context-cost findings.
-
-PR 0 supplies the baseline that every later PR must preserve or improve.
-
-### PR 1. Agent Context Protocol v2
-
-Status: merged as [PR 261](https://github.com/e6qu/fun-refactor/pull/261).
-The projection saves 2,049.5 mean fr tokens and leaves a 4,419-token normalized gap. Fresh low-effort attempts did not produce a complete passing post-fix pair, so this PR makes no context-parity claim.
-
-Goal: make the structured `fr` workflow competitive on retrieved context while retaining its stronger evidence and reversal guarantees.
+- The fixed v2 projection uses 11,229 mean `fr` context tokens and 6,810 ordinary-file tokens.
+- The remaining measured gap is 4,419 tokens, or a 64.9% `fr` premium.
+- Skill loading costs 1,962 tokens. Inspection costs 2,935, checks 2,133, authoring 1,466, delivery 1,838 and the prompt 925.
+- The latest fresh diagnostic pair cannot support a comparison because neither arm passed every acceptance oracle.
 
 Deliverables:
 
-- Measure repeated project, authoring and history metadata against the retained M4ab transcripts.
-- Add revision-bound compact reports only where an earlier reviewed basis reconstructs the omitted fields exactly.
-- Reduce repeated coverage, source-revision, handle and transaction serialization.
-- Shrink the portable skill entrypoint and route agents to specialized references only when the task requires them.
-- Preserve bounded results, uncertainty, source verification, check declarations and reviewable diffs.
-- Keep fixed projections separate from autonomous outcomes and preserve all existing scores.
-- Freeze one shared check-output policy and an explicit cache policy before the next paired cohort.
-- Add an opt-in local `codex exec` runner with fresh ephemeral sessions, ignored user configuration and retained JSONL events.
-- Use `gpt-5.6-luna` at `low` effort and the default service tier for the initial local baseline.
-- Evaluate a larger task that requires coordinated changes and broader exploration.
+- Add one revision-bound query for several exact symbol selections, with shared coverage, pagination and source budgets.
+- Remove repeated authoring-plan and transaction payloads only when a reviewed cryptographic basis reconstructs them.
+- Keep failed checks, refusals, uncertainty, omissions and changed source evidence complete.
+- Shrink the portable skill and route agents to small task-specific references.
+- Bind each context projection to immutable transcripts, tool and skill fingerprints and an exact field-change allowlist.
+- Run a fresh paired task through ephemeral Codex CLI sessions with the weakest economical model at low effort.
+- Retain the prompt, events, patches, source states, independent oracles, exact reversal and token audit for every attempted trial.
 
 Verification and acceptance:
 
-- Reconstruction tests recover the full report from its compact form and reviewed basis.
-- Missing, stale, truncated and conflicting bases refuse without writes.
-- Fixed-transcript tests prove that projections change only declared payload fields.
-- The existing sixteen trials retain exact token audits and behavioral replay.
-- Fresh paired agents receive identical check-output rules, inherited model settings and independent correctness oracles.
-- Normal CI replays retained evidence without spending agent quota; authenticated real-agent runs remain explicit local or scheduled jobs.
-- A milestone cohort includes a small Terra or Sol calibration only when Luna failures could hide whether the workflow itself works.
-- The report separates skill, inspection, checks, authoring, delivery, request and latency costs.
-- Context improvement counts only when task success and evidence coverage remain intact.
+1. Full reports reconstruct byte-for-byte from each compact report and its reviewed basis.
+2. Missing, stale, truncated and conflicting bases refuse before history or source writes.
+3. Batches return each requested symbol's match status and never turn an omitted result into evidence of absence.
+4. Fixed projections change only declared request and response fields while preserving calls, source states, scores and timings.
+5. Both arms of the fresh comparison pass project and receiver oracles, ordered checks, exact undo/redo and index-preservation checks.
+6. A context-improvement claim requires a passing pair and reports skill, inspection, checks, authoring, delivery, request and latency costs separately.
+7. The complete native, WASM, prose, capability and Lean gates pass.
 
-Measured outcome:
+Planned checkpoints:
 
-- Revision-bound project and transaction reports reconstruct exactly, and malformed or stale bases refuse before writes.
-- The fixed passing-cohort projection reduces mean fr context from 13,278.5 to 11,229 tokens, a 15.4% saving, while ordinary files remain at 6,810.
-- The retained Terra-low diagnostic pair records 15,979 fr tokens and 11,025 file tokens. The fr change passes both independent oracles but fails delivery sequencing; the file change passes its workflow but fails both behavioral oracles.
-- Codex launch metadata and raw JSONL are checksum-bound in recorded evidence, and the manifest states cohort acceptance directly.
-
-This PR closes the scoped v2 implementation and measurement work. Context parity remains open: a future claim requires a fresh passing pair after a material reduction in skill and authoring/delivery context. See the [v2 evaluation](docs/agent-context-v2-evaluation.md).
-
-### PR 2. Generalized Structural Authoring
-
-Status: ready for review on `generalized_structural_authoring`.
-
-Goal: let an agent perform broader high-level changes without replacing entire files.
-
-Deliverables:
-
-- Insert declarations into Rust `impl` and trait bodies and corresponding bounded scopes in selected languages.
-- Extend initializer and expression-body support beyond the current TypeScript/TSX forms.
-- Add the next authoring languages from measured project demand.
-- Compose declaration, caller and import changes as one inspectable multi-file transaction.
-- Add explicit postconditions to high-level authoring recipes.
-- Reuse handles, revision guards, edit planning, syntax validation, history and patch export.
-
-Verification and acceptance:
-
-- Generalize insertion-position and disjoint-splice models for the added scopes.
-- Compare executable Lean and Rust models across boundary, Unicode and overlapping-edit cases.
-- Compile and run representative changes with warnings denied in every added language.
-- Preserve exact bytes, modes and unrelated edits across patch application, undo and redo.
-- Complete an autonomous coordinated change using only bounded source and the portable skill.
-
-Measured outcome:
-
-- Rust insertion now targets files, inline modules, impls and traits; Java methods, constructors and default methods use the same checked body path.
-- TypeScript and TSX arrows move between expression and block bodies while preserving surrounding source.
-- One batch can combine declaration, caller and conservative import edits with exact postconditions.
-- The selection-conflict predicate has six Lean theorems and 6,084 shared Rust, Lean and independent-oracle cases, including UTF-8 boundaries.
-- Representative Java and Rust-scope histories preserve mode `0640` through apply, undo and redo on Unix.
-- A fresh `gpt-5.6-luna` low-effort pair passes the coordinated two-crate task. The `fr` arm uses one three-operation saved transaction, exact undo/redo and a clean receiver.
-- Both arms pass all 1,060 independent byte and allocation cases. Offline replay and token auditing pass for the retained evidence.
-
-### PR 3. Durable Git Workspace Lifecycle
-
-Status: merged as GitHub PR 263. Eleven checkpoint commits complete the deliverables below; [continuity](docs/continuity.md) retains their detailed evidence.
-
-Goal: finish the repository workflow needed for long-running agent changes and recovery.
-
-Deliverables:
-
-- Extend transaction patches to the required regular, executable and symlink modes; complete.
-- Improve recovery for registration failures that Git does not retain; exact registered pre-receipt recovery is complete.
-- Expose stale-lock and uncertain crash states with actionable inspection evidence; complete.
-- Add staging-journal retention and checked compaction; complete.
-- Add bulk retention for completed worktree-removal archives; complete.
-- Extend selected index-flag replay where Git can preserve it safely; complete.
-- Undo an `fr` source transaction without disturbing unrelated working-tree or index changes; complete.
-- Keep Git optional for ordinary analysis and source history; complete.
-
-Verification and acceptance:
-
-- Exercise dirty files, staged entries, untracked content, linked worktrees, object pruning and injected failures.
-- Prove abstract retention, compaction, transition and unselected-state preservation laws.
-- Compare the guarded Rust predicates with Lean across complete bounded state domains.
-- Keep filesystem durability, Git locking and implementation correspondence explicit where proofs do not cover them.
-
-Measured outcome:
-
-- Staging history has explicit retention, checked compaction, crash inspection and replay of supported index flags.
-- Owned worktrees preserve repository-local configuration and raw symlink entries through creation, recovery, removal and archive resumption.
-- A durable preparation recovers exact post-registration crashes before ownership-receipt publication, including after object pruning.
-- Source transactions and Git patches preserve regular, executable and symlink kinds across apply, undo, redo and recovery.
-- Source-history reversal leaves affected staging and unrelated Git state intact, while ordinary source workflows remain usable without Git.
-- Thirty-five new Lean theorems cover selection, compaction, crash classification, entry policies, recovery evidence, snapshot modes and namespace preservation.
-- Host tests cover linked and SHA-256 repositories, dirty and untracked files, staged entries, injected failures and byte-identical index preservation.
-
-### PR 4. Lean Adoption Kit
-
-Status: ready for review on `lean_adoption_kit`. Six product checkpoints cover initialization, scaffolding, regeneration, debt, CI and evidence. The Lake integration proves a useful property, refreshes its changed source identity, observes a passing build, then breaks the theorem and observes failure. Four Lean theorems cover the proof-debt ceiling, with 4,225 shared Rust and Lean cases. The complete native, Lean, prose, capability and WASM gate passes.
-
-Goal: let an external repository adopt and maintain one useful verified property through `fr`.
-
-Deliverables:
-
-- Initialize a bounded specification package and its checked build targets; complete.
-- Select Rust source declarations and generate anchored Lean model scaffolds and signature maps; complete for a documented type subset.
-- Mark generated and handwritten regions and preserve handwritten proofs during regeneration; complete for generated scaffolds.
-- Detect source drift and guide synchronization or repair; strict checks and scaffold refresh complete.
-- Introduce named proof-debt records and ratchets; complete with strict names and explicit debt ceilings.
-- Generate CI configuration for the selected Lean checks; complete for GitHub Actions.
-- Report assumptions, axioms, trusted components, covered properties and remaining obligations; complete with an explicit syntactic-axiom-analysis boundary.
-
-Verification and acceptance:
-
-1. Initialize verification in a pinned external Rust repository.
-2. Select and prove one useful property.
-3. Change its source declaration and observe a drift failure.
-4. Repair the source/model relationship through `fr`.
-5. Preserve handwritten regions through regeneration.
-6. Break the property and observe the checked build fail.
-
-Every result distinguishes a proved model property, tested implementation/model correspondence and proved implementation correspondence.
-
-### PR 5. Framework Semantic Model
-
-Status: complete and merged as GitHub PR 265. Eight checkpoints provide the hierarchy, execution boundaries, React facts, relative component expansion and Lean-backed policies. They add a named version matrix, pinned real-project contracts and verified FastAPI prefix rules. Every fact retains its parent, source anchor, evidence, confidence and explicit gaps.
-
-Goal: represent a feature across application structure rather than as isolated syntax nodes.
-
-Deliverables:
-
-- Model applications, packages, features, build settings and dependency boundaries; complete for npm-backed Next.js applications, with Python packaging still explicit as a gap.
-- Model backend routes, schemas and handlers; complete for the first bounded Next.js/FastAPI subset.
-- Model middleware and authentication boundaries; readers cover direct convention files plus application, route and parameter dependencies. Unsupported forms remain gaps.
-- Model lifecycle and runtime configuration boundaries; implemented for direct FastAPI and Next.js declarations with runtime validation still open.
-- Model service dependencies; readers recognize direct handler HTTP candidates. Client construction, non-HTTP services and runtime reachability remain open.
-- Model frontend components, properties, events, state, effects, styles and rendering boundaries; complete for direct components in pages, inherited layouts and relative imports.
-- Attach source anchors, confidence, unsupported constructs and validation evidence to every fact; complete for the first route-centered hierarchy.
-- Strengthen the existing Next.js and FastAPI readers before adding another backend pair.
-- Use Next.js React Server and Client Components as the first rendering-boundary pair; complete for the bounded direct-function and relative-import subset.
-- Keep framework-specific behavior visible where the shared model cannot express it.
-- Prove deterministic reporting policies after syntax recognition; complete for caps, middleware rank, hook placement, configuration visibility, service tiers, redaction flags and FastAPI prefix validity.
-- Reuse the proved membership closure for transitive client boundaries; complete over supplied relative-import edges.
-
-PR 5 completes each boundary against a named, versioned syntax subset. It makes no framework-runtime claims. Any future runtime claim requires an executable framework fixture.
-
-Verification and acceptance:
-
-- Display one feature hierarchy across routes, handlers, schemas, components and dependencies; complete for exact matching Next.js page and API paths.
-- Retrieve that subtree without loading the whole application.
-- Preserve ambiguity and unsupported middleware, authentication, lifecycle and runtime behavior as explicit gaps; complete for current dependency and middleware readers.
-- Compare readers against pinned framework fixtures and real projects with independent contract checks; complete for Next.js, React and FastAPI syntax witnesses.
-- Keep parser recognition, framework runtime behavior and report assembly outside the theorem boundary unless a later correspondence proof covers them.
-
-### PR 6. Verified Feature Migration
-
-Status: ready for review on `verified_feature_migration`. Fourteen checkpoints provide a revision-bound, two-way Next.js App Router and FastAPI route migration. Preview, history, patches, exact reversal and project checks share one transaction identity. Registration and cutover use explicit eligibility rules. An explicit PEP 621 manifest can receive caller-supplied requirements for missing FastAPI and Pydantic imports in that transaction. The migration can bind exact project-owned checks without assuming a test runner. Lean-backed policies cover migration, schema, registration, validation, cutover, dependency edits and check receipts. Generic handler and pinned framework fixtures exercise both directions, including invalid bodies. A clean Git receiver checks exact patch application and reversal. The deep self-translation audit also passes after generic TypeScript template and Java type/name validity fixes.
-
-Goal: migrate one real feature through an inspectable, reversible high-level transformation.
-
-Deliverables:
-
-- Move or translate a bounded feature using the framework semantic model; complete for a one-file route feature in both supported directions.
-- Update connected routes, handlers, schemas, callers, components, build settings and tests. Registration and explicit PEP 621 dependency edits cover the current runtime connection subset. Stable route URLs need no caller rewrite. Exact project-owned check selections can now bind to the transaction; projects still author their commands and assertions.
-- Separate automatic steps, agent decisions and unsupported behavior in the migration plan; complete for the current semantic facts and translator gaps.
-- Allow source and destination frameworks to coexist during an incremental migration. Source transactions, registered Next.js destinations and explicitly mounted FastAPI routers support the current subset; broader cross-runtime composition remains open.
-- Produce one reviewed source-history transaction and one Git patch; complete through saved plans and existing history patch export.
-- Preserve mixed-framework operation until the feature cutover completes; source retention is the default. Explicit cutover records source deletion with the destination and registration edits for exact undo and redo.
-
-Verification and acceptance:
-
-- Compile and execute the source and migrated feature in pinned projects. Handler-level and installed-framework execution are complete in both directions for the generic request fixtures, including the explicitly edited FastAPI application.
-- Compare route and schema contracts with independent behavioral fixtures. Static endpoints, handler results, JSON payloads, declared shapes and bounded body rejection are covered in both directions.
-- Check middleware order, authentication, validation and lifecycle behavior wherever the migration claims preservation; the first checkpoint makes no such preservation claim.
-- Keep every unsupported construct visible in the final plan; complete for feature-model and translator gaps.
-- Apply the patch to a clean receiver and reproduce the result through exact undo and redo. The bounded transaction now checks, applies, reverses and reapplies in a separate Git repository.
-- Refuse automatic cutover without destination registration or when the index resolves an external source reference. Runtime imports, string paths, deployment routing and external callers remain review inputs.
-- Bind passing declared checks to the applied transaction, reviewed configuration and one stable supported-source revision. Boundary hashing is complete; command-internal mutation and unsupported files remain outside the claim.
-- Bind explicit Python dependency edits to an owning PEP 621 manifest and caller-supplied requirements; complete with exact history replay.
-- Bind a migration to exact project-owned check names and configuration before execution; complete without assuming a runner or synthesizing project-specific assertions.
-
-## Delivery order
-
-PR 0 supplies the verified refactoring, repository and evaluation foundation.
-PR 1 establishes the response and evaluation protocol used by every later agent workflow.
-PR 2 and PR 3 can then proceed independently.
-PR 4 depends on the stable authoring workflow but does not require the framework model.
-PR 5 depends on compact project evidence and supplies the semantic input for PR 6.
-PR 6 depends on PR 2, PR 3 and PR 5.
-
-```text
-PR 0  Agent-ready verified refactoring foundation
-  └── PR 1  Agent Context Protocol v2
-  ├── PR 2  Generalized Structural Authoring ──┬── PR 4  Lean Adoption Kit
-  │                                            └──┐
-  ├── PR 3  Durable Git Workspace Lifecycle ─────┼── PR 6  Verified Feature Migration
-  └── PR 5  Framework Semantic Model ────────────┘
-```
-
-PR 4 may run alongside framework work after PR 2 provides the required external-project authoring path.
+1. Reset the completed roadmap and freeze the PR 7 measurement contract.
+2. Add bounded multi-symbol project inspection and reconstruction tests.
+3. Add reviewed-plan and transaction compaction with stale-basis refusals.
+4. Reduce and retest the portable skill's task routes.
+5. Publish checksum-bound v3 projections and their measured contribution.
+6. Run and retain the fresh paired acceptance cohort, then close only the claims its evidence supports.
 
 ## Formal verification policy
 
