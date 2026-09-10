@@ -102,6 +102,17 @@ fn migration<'a>(feature: &'a str, intent: Option<&'a str>) -> Vec<&'a str> {
     args
 }
 
+fn reconstruct_plan(reviewed: &Value, compact: Value) -> Value {
+    let mut reconstructed = reviewed.clone();
+    let mut compact = compact.as_object().unwrap().clone();
+    let omitted = compact.remove("plan_context_omitted").unwrap();
+    for key in omitted.as_array().unwrap() {
+        assert!(reviewed.get(key.as_str().unwrap()).is_some());
+    }
+    reconstructed.as_object_mut().unwrap().extend(compact);
+    reconstructed
+}
+
 #[test]
 fn feature_migration_preview_binds_scope_and_separates_decisions() {
     let dir = fixture();
@@ -798,6 +809,56 @@ fn feature_migration_replays_through_history_and_exports_a_git_patch() {
     ok(dir.path(), &["history", "redo", "1", "--write"]);
     assert_eq!(fs::read(&destination).unwrap(), migrated);
     assert_eq!(fs::read(&source).unwrap(), original);
+}
+
+#[test]
+fn reviewed_plan_basis_compacts_migration_and_reconstructs_exactly() {
+    let root = fixture();
+    let selected = feature(root.path());
+    let reviewed = ok(root.path(), &migration(&selected, None));
+    let basis = reviewed["plan_context_basis"].as_str().unwrap();
+    assert!(basis.starts_with("frpb1:"));
+    let mut args = migration(&selected, Some("--save-plan"));
+    args.extend(["--plan-basis", basis]);
+    let compact = ok(root.path(), &args);
+    assert!(compact.get("diff").is_none(), "{compact}");
+    assert!(compact.get("steps").is_none(), "{compact}");
+    assert_eq!(compact["saved"], true);
+    let mut full = ok(root.path(), &migration(&selected, Some("--save-plan")));
+    full["saved"] = serde_json::json!(true);
+    full.as_object_mut().unwrap().remove("reused_transaction");
+    assert_eq!(reconstruct_plan(&reviewed, compact), full);
+}
+
+#[test]
+fn changed_migration_options_refuse_a_reviewed_plan_before_history() {
+    let dir = fixture();
+    let selected = feature(dir.path());
+    let reviewed = ok(dir.path(), &migration(&selected, None));
+    let basis = reviewed["plan_context_basis"].as_str().unwrap();
+    let (success, error) = run(
+        dir.path(),
+        &[
+            "migrate",
+            "feature",
+            &selected,
+            "--to",
+            "fastapi",
+            "--out",
+            "other/pets.py",
+            "--save-plan",
+            "--plan-basis",
+            basis,
+        ],
+    );
+    assert!(!success, "{error}");
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("stale or conflicting plan basis"));
+    assert!(!dir.path().join(".fr-history").exists());
+    assert!(!dir.path().join("migrated/pets.py").exists());
+    assert!(!dir.path().join("other/pets.py").exists());
 }
 
 #[test]

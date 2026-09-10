@@ -68,6 +68,7 @@ ambiguous, and the tool tells you which case you are in.
 |---|---|
 | `--save-plan` | Store a change plan and return its transaction ID. Conflicts with `--write`. |
 | `--context-basis <BASIS>` | Omit context retained from a matching full project report or saved source transaction. Stale or conflicting bases refuse before writes. |
+| `--plan-basis <BASIS>` | Persist a complete author or migration plan while omitting payload already reviewed under its exact basis. |
 | `--json` | Machine-readable output instead of text |
 | `-C`, `--root <ROOT>` | The workspace to act on. Naming a single file scans that file alone. Default `.` |
 | `--max-file-size <BYTES>` | Skip files larger than this. Default 4 MiB. Every command warns when a scan skipped one |
@@ -533,8 +534,8 @@ implementation proofs. The latter two stay false unless future evidence supplies
 
 ```sh
 fr author replace-body '<HANDLE>' --from /tmp/body.txt
-fr author replace-body '<HANDLE>' --from /tmp/body.txt --save-plan
-fr history apply '<TX>' --write
+fr author replace-body '<HANDLE>' --from /tmp/body.txt --save-plan --plan-basis '<PLAN_BASIS>'
+fr history apply '<TX>' --write --no-diff --context-basis '<TRANSACTION_CONTEXT_BASIS>'
 ```
 
 Replace a Rust, Go, Java, TypeScript or TSX function body while preserving surrounding bytes, including its signature and attributes.
@@ -549,6 +550,9 @@ The input is a regular UTF-8 file containing one complete body, at most 64 KiB. 
 Both original and resulting files must parse without errors. Types, imports, callers and behavior require separate checks.
 Both output modes return bounded JSON. The diff defaults to 4096 bytes and reports omitted bytes when clipped.
 `--save-plan` records the exact replacement for later application; `--write` records and applies it immediately.
+An untruncated preview returns `plan_context_basis`. Supplying it through `--plan-basis`
+on the repeated save or write omits unchanged plan fields and refuses changed source,
+fragments, options or report contents before persistence.
 History provides undo/redo, recovery and patch export. A no-op produces no record.
 See [body authoring](docs/body-authoring.md) for supported targets, input rules and review limits.
 

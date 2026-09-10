@@ -255,15 +255,18 @@ def author_workflow(exercise, root):
             assert "value + 1" in row["source"]["text"]
             assert row["source"]["next_offset"] is None
             assert value["source_budget"]["returned_bytes"] <= 512
+        if command[1:3] == ["author", "batch"] and "--save-plan" not in command:
+            exercise.values["<PLAN_CONTEXT_BASIS>"] = value["plan_context_basis"]
         if "--save-plan" in command:
             assert value["saved"] and not value["applied"] and source.read_text() == original
             exercise.values["<AUTHOR_TX>"] = str(value["transaction"])
             exercise.values["<TRANSACTION_CONTEXT_BASIS>"] = value["transaction_context_basis"]
         if "--write" in command:
             assert value["applied"]
-            if "--no-diff" in command:
+            if "--no-diff" in command and "--context-basis" not in command:
                 assert value["diffs_omitted"]
             if "--context-basis" in command:
+                assert value["context_omitted"] == ["changes[].diff"]
                 assert all("diff" not in change for change in value["changes"])
     changed = source.read_text()
     assert changed.startswith("//! Skill fixture.") and changed != original

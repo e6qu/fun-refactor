@@ -256,6 +256,23 @@ The page model represents the caller's allocation loop; it has no separate sourc
 General Rust correspondence, UTF-8 library internals, parser spans and JSON report assembly remain unproved.
 JSON escaping and metadata lie outside the raw source-text budget.
 
+## Reviewed plan basis kernel
+
+`FrKernels.Author.reviewedPlanBasisAllowed` models the final acceptance gate for compacting a
+repeated author or migration plan. A call without a supplied basis remains self-contained.
+A supplied basis requires a complete diff and a matching recomputed identity.
+Four theorems characterize those cases and reject incomplete or conflicting supplied bases.
+
+The function anchors `src/project.rs::reviewed_plan_basis_allowed` with an explicit signature map.
+All eight Boolean inputs agree between Rust and Lean. The CLI uses the predicate before history or
+source persistence; integration tests separately preserve source and history across mismatch refusals.
+The proofs have no custom axioms, compiler-trust tactic or `sorry` obligations.
+
+This model covers the acceptance conjunction. SHA-256 collision resistance, canonical JSON encoding,
+source capture, diff completeness, report compaction, filesystem locking and persistence remain trusted
+or integration-tested components. Run `cargo test --test lean_kernels reviewed_plan_basis_` for the
+shared execution check.
+
 ## Declaration insertion placement kernels
 
 `FrKernels.Author` models the byte offset used to insert a Rust function before an inline module, impl or trait closing brace.

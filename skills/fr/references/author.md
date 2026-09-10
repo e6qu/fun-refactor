@@ -25,7 +25,10 @@ For example, a two-operation manifest has this shape:
 }
 ```
 
-Review the combined diff, save the same manifest, then apply its transaction. Do not pass `--write` to `author batch` in a saved-plan workflow. A complete saved diff includes `transaction_context_basis` for compact forward apply/redo reports. Repeating an identical saved plan reuses its transaction and reports `reused_transaction: true` with `saved: false`.
+Review the combined diff and retain its `plan_context_basis`. Save the same manifest with
+`--save-plan --plan-basis BASIS`; this omits matching plan fields and refuses drift before
+persistence. Do not pass `--write` to `author batch` in a saved-plan workflow. A complete saved
+diff includes `transaction_context_basis` for compact forward apply/redo reports.
 
 Go accepts named functions and receiver methods. Java accepts methods, constructors and default interface methods with bodies. TypeScript/TSX accepts supported function bindings; arrows accept an expression or block and can move between forms. Rust insertion accepts `///` or `/** */` docs, rejects other outer attributes or pending metadata, trims boundary whitespace, and preserves the remaining fragment bytes. A trait accepts a bodyless function declaration; files, modules and impls require a body. Unsupported declaration kinds refuse.
 
@@ -43,8 +46,8 @@ Use the lookup's file-scoped `root` as `<FILE_HANDLE>`:
 ```sh
 fr project find increment --in src/lib.rs --source --bytes 512
 fr author batch --from '<MANIFEST>'
-fr author batch --from '<MANIFEST>' --save-plan
-fr history apply '<AUTHOR_TX>' --write --context-basis '<TRANSACTION_CONTEXT_BASIS>'
+fr author batch --from '<MANIFEST>' --save-plan --plan-basis '<PLAN_CONTEXT_BASIS>'
+fr history apply '<AUTHOR_TX>' --write --no-diff --context-basis '<TRANSACTION_CONTEXT_BASIS>'
 ```
 
 The source byte budget is shared across rows. Continue a non-null `source.next_offset` with `project show HANDLE --source --offset NEXT --bytes N`. Run [checks](checks.md) after applying. Keep the transaction for [history](history.md) and [patch export](git.md).

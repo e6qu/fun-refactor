@@ -41,6 +41,7 @@ The portable skill starts targeted edits with authoring guidance and loads explo
 The [context-reduction follow-up](docs/agent-context-followup.md) measures targeted lookup, quiet successful checks and selective skill loading against fresh file-tool trials.
 Use `fr project find NAME --signature` to locate a known declaration without requesting a broad map.
 After reviewing a source transaction, `history apply`, `undo`, `redo` and `recover` accept `--write --no-diff` for smaller completion reports.
+Complete author and migration previews return a cryptographic plan basis so their repeated save or write can omit unchanged reviewed payloads.
 The [workspace evaluation](docs/agent-workspace-evaluation.md) records four passing trials on the larger regex repository, with context comparisons and replayable patches.
 Rust function declaration replacement also supports combined signature and implementation changes.
 Declaration insertion adds a Rust function through a file, inline module, impl method, or trait handle while retaining existing code.

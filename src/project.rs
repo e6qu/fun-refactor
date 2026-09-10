@@ -292,6 +292,10 @@ pub fn body_replacement_budget(before: usize, after: usize) -> bool {
     (1..=65536).contains(&before) && (1..=65536).contains(&after)
 }
 
+pub fn reviewed_plan_basis_allowed(complete: bool, supplied: bool, matches: bool) -> bool {
+    !supplied || (complete && matches)
+}
+
 pub fn declaration_insertion_offset(prefix: &str, body_start: usize) -> usize {
     let line_start = prefix.rfind('\n').map_or(0, |at| at + 1);
     if line_start > body_start

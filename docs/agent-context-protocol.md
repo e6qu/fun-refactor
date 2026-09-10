@@ -25,9 +25,28 @@ Copy the three declared fields from the reviewed full report and remove `context
 
 Do not use an omitted response without its complete reviewed basis. A compact response is evidence only when its basis matches that retained report and none of the omitted fields is already present with a competing value.
 
+## Reviewed plan context
+
+An author or feature-migration preview with a complete diff includes `plan_context_basis`.
+It is a `frpb1:` SHA-256 identity over the full plan report and exact ordered before/after
+source payloads. Retain that preview, then compact the repeated persistence call:
+
+```sh
+fr author batch --from '<MANIFEST>'
+fr author batch --from '<MANIFEST>' --save-plan --plan-basis '<PLAN_CONTEXT_BASIS>'
+```
+
+The compact response keeps the plan basis and persistence outcome, including the transaction
+and its context basis. `plan_context_omitted` names unchanged top-level fields copied from the
+preview. Overlay the remaining response fields on the preview and remove that list to reconstruct
+the ordinary saved or applied response. A clipped diff cannot create or consume a plan basis.
+Changed source, fragments, manifests, migration options or generated output change the digest and
+refuse before history or source writes. Project and plan bases can be used together; reconstruction
+then applies both retained reports.
+
 ## Saved transaction context
 
-A saved `fr author` report with a complete diff includes `transaction_context_basis`. A detailed `fr history show TX` report exposes the same `frtb1:` basis. It is bound to every before/after snapshot in that transaction. Retain the complete author diff or detailed record, then use the basis to omit repeated diff strings from a forward apply or redo:
+A saved `fr author` report with a complete diff includes `transaction_context_basis`. A detailed `fr history show TX` report exposes the same `frtb2:` basis. It is bound to the ordered paths and complete before/after snapshots in that transaction. Retain the complete author diff or detailed record, then use the basis to omit repeated diff strings from a forward apply or redo:
 
 ```sh
 fr author batch --from '<MANIFEST>' --save-plan
@@ -42,7 +61,7 @@ Transaction bases cannot compact undo or recovery because those reverse diffs we
 
 Saving an identical plan again against the same revision reuses the existing planned transaction. The repeated report has `saved: false` and `reused_transaction: true`, so a retried agent call cannot create duplicate journal entries.
 
-Project bases and transaction bases are separate namespaces. Check configuration bases, Git status revisions, raw patch record bases and worktree proposal bases keep their existing meanings and cannot substitute for either context basis.
+Project, plan and transaction bases are separate namespaces. Check configuration bases, Git status revisions, raw patch record bases and worktree proposal bases keep their existing meanings and cannot substitute for them.
 
 ## Patch artifacts
 

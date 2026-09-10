@@ -17,6 +17,10 @@ PR 7 checkpoint 2 adds `project select NAME...`: one bounded traversal retrieves
 32 exact declaration names under a shared revision, coverage envelope, page and source
 budget. Per-request statuses distinguish matches, omitted locals and indexed absence;
 cursors bind the full ordered request and context-basis reconstruction remains exact.
+PR 7 checkpoint 3 adds `frpb1` reviewed-plan bases to authoring and feature migration.
+They bind complete plan reports and exact source payloads, compact only equal top-level fields
+and refuse clipped, stale or conflicting plans before persistence. Transaction context moves to
+`frtb2`, which binds complete before and after snapshots while leaving journal compatibility intact.
 PR 6's first checkpoint adds `fr migrate feature` for one revision-bound Next.js App Router or FastAPI route feature whose methods share one source file.
 The planner refuses stale feature IDs, same-framework requests, escaping destinations and any disagreement between semantic and translated endpoint sets.
 It retains the source route, adds the destination and classifies feature facts and gaps as automatic, agent-decision or unsupported work.

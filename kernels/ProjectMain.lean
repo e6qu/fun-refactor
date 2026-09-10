@@ -42,7 +42,12 @@ def declarationOffsetLargeSamples : List String :=
    "{" ++ String.ofList (List.replicate 4096 ' ') ++ "x"]
 
 def main (args : List String) : IO Unit := do
-  if args == ["framework-boundaries"] then
+  if args == ["plan-basis"] then
+    for complete in [false, true] do
+      for supplied in [false, true] do
+        for identityMatches in [false, true] do
+          IO.println (FrKernels.Author.reviewedPlanBasisAllowed complete supplied identityMatches)
+  else if args == ["framework-boundaries"] then
     for total in frameworkSamples do
       for limit in frameworkSamples do
         IO.println (frameworkEmitted total limit)

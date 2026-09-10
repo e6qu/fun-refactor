@@ -899,8 +899,33 @@ pub fn act_with_context(
     Ok(report)
 }
 
-fn transaction_context_basis(record: &Record) -> String {
-    format!("frtb1:{}", record.basis)
+fn digest_part(digest: &mut Sha256, bytes: &[u8]) {
+    digest.update((bytes.len() as u64).to_be_bytes());
+    digest.update(bytes);
+}
+
+pub(crate) fn transaction_context_basis(record: &Record) -> String {
+    let mut digest = Sha256::new();
+    digest_part(&mut digest, b"fr-transaction-context-2");
+    digest.update((record.changes.len() as u64).to_be_bytes());
+    for change in &record.changes {
+        digest_part(&mut digest, change.path.as_os_str().as_bytes());
+        for snapshot in [&change.before, &change.after] {
+            match snapshot {
+                None => digest.update([0]),
+                Some(snapshot) => {
+                    digest.update([1]);
+                    digest.update([match snapshot.kind {
+                        SnapshotKind::Regular => 0,
+                        SnapshotKind::Symlink => 1,
+                    }]);
+                    digest.update(snapshot.mode.to_be_bytes());
+                    digest_part(&mut digest, snapshot.content.as_bytes());
+                }
+            }
+        }
+    }
+    format!("frtb2:{:x}", digest.finalize())
 }
 
 pub fn record_context_basis(root: &Path, id: u64) -> Result<String> {
@@ -1105,6 +1130,37 @@ mod tests {
                 kind: SnapshotKind::Regular,
             })
         );
+    }
+
+    #[test]
+    fn transaction_context_basis_binds_the_complete_before_and_after_snapshots() {
+        let before = Some(Snapshot {
+            content: "before\n".to_owned(),
+            mode: 0o644,
+            kind: SnapshotKind::Regular,
+        });
+        let record = |after: &str| Record {
+            id: 1,
+            status: Status::Planned,
+            basis: "journal-basis".to_owned(),
+            source_revision: "revision".to_owned(),
+            validation: "reparse-strict".to_owned(),
+            changes: vec![Change {
+                path: PathBuf::from("src/lib.rs"),
+                before: before.clone(),
+                after: Some(Snapshot {
+                    content: after.to_owned(),
+                    mode: 0o644,
+                    kind: SnapshotKind::Regular,
+                }),
+            }],
+            required_checks: None,
+            check_evidence: Vec::new(),
+        };
+        let first = transaction_context_basis(&record("first\n"));
+        let second = transaction_context_basis(&record("second\n"));
+        assert!(first.starts_with("frtb2:"));
+        assert_ne!(first, second);
     }
 
     #[test]

@@ -98,6 +98,14 @@ struct Cli {
     )]
     context_basis: Option<String>,
 
+    #[arg(
+        long,
+        global = true,
+        value_name = "BASIS",
+        help = "Omit an unchanged author or migration plan reviewed under this basis."
+    )]
+    plan_basis: Option<String>,
+
     #[command(subcommand)]
     command: Command,
 }
@@ -926,6 +934,14 @@ fn dispatch(cli: &Cli) -> Result<()> {
         )
     {
         anyhow::bail!("--save-plan requires a command that produces a change plan.");
+    }
+    if cli.plan_basis.is_some()
+        && !matches!(
+            cli.command,
+            Command::Author { .. } | Command::Migrate { .. }
+        )
+    {
+        anyhow::bail!("--plan-basis requires an author or migration command.");
     }
     if !matches!(cli.command, Command::History { .. } | Command::Git { .. }) {
         if let Some(pending) = crate::history::History::read(&cli.root)?.pending {
@@ -1765,6 +1781,92 @@ fn workspace_diff(cli: &Cli, outcome: &crate::edit::FileOutcome) -> String {
     )
 }
 
+struct PlanContext {
+    reviewed: serde_json::Map<String, serde_json::Value>,
+    compact: bool,
+}
+
+fn exact_plan_changes(
+    root: &Path,
+    changes: &[crate::edit::FileChange<'_>],
+    removals: &[crate::history::FileRemoval<'_>],
+) -> serde_json::Value {
+    let changed = changes.iter().map(|change| {
+        serde_json::json!({
+            "kind": "change",
+            "path": shown_path(root, change.path),
+            "before": change.original,
+            "after": change.updated,
+        })
+    });
+    let removed = removals.iter().map(|removal| {
+        serde_json::json!({
+            "kind": "removal",
+            "path": shown_path(root, removal.path),
+            "before": removal.original,
+            "after": null,
+        })
+    });
+    serde_json::Value::Array(changed.chain(removed).collect())
+}
+
+fn prepare_plan_context(
+    report: &mut serde_json::Value,
+    exact_changes: &serde_json::Value,
+    supplied: Option<&str>,
+) -> Result<Option<PlanContext>> {
+    let complete = report.get("diff").is_some_and(serde_json::Value::is_string);
+    if !crate::project::reviewed_plan_basis_allowed(complete, supplied.is_some(), true) {
+        anyhow::bail!(
+            "a plan basis requires a complete untruncated diff; review the plan with a larger --diff-bytes value."
+        );
+    }
+    if !complete {
+        return Ok(None);
+    }
+    let reviewed = report
+        .as_object()
+        .context("authoring plan report must be an object")?
+        .clone();
+    let basis = format!(
+        "frpb1:{:x}",
+        Sha256::digest(serde_json::to_vec(&(
+            "fr-plan-context-1",
+            &reviewed,
+            exact_changes
+        ))?)
+    );
+    if !crate::project::reviewed_plan_basis_allowed(
+        complete,
+        supplied.is_some(),
+        supplied.is_none_or(|supplied| supplied == basis),
+    ) {
+        anyhow::bail!("stale or conflicting plan basis; review the complete current plan.");
+    }
+    report["plan_context_basis"] = serde_json::json!(basis);
+    Ok(Some(PlanContext {
+        reviewed,
+        compact: supplied.is_some(),
+    }))
+}
+
+fn finish_plan_context(context: Option<PlanContext>, report: &mut serde_json::Value) {
+    let Some(context) = context.filter(|context| context.compact) else {
+        return;
+    };
+    let mut omitted = Vec::new();
+    for (key, reviewed) in context.reviewed {
+        if matches!(key.as_str(), "query" | "schema") {
+            continue;
+        }
+        if report.get(&key) == Some(&reviewed) {
+            report.as_object_mut().unwrap().remove(&key);
+            omitted.push(key);
+        }
+    }
+    report["plan_context_omitted"] = serde_json::json!(omitted);
+}
+
 fn write_patch_artifact(root: &Path, requested: &Path, patch: &str) -> Result<()> {
     let root = root.canonicalize()?;
     let workspace = if root.is_file() {
@@ -2148,6 +2250,10 @@ fn cmd_migrate(cli: &Cli, command: &crate::project::migration::Command) -> Resul
         !(options.write && cli.save_plan),
         "choose --save-plan or --write, not both."
     );
+    anyhow::ensure!(
+        cli.plan_basis.is_none() || options.write || cli.save_plan,
+        "--plan-basis requires --save-plan or --write."
+    );
     with_project(cli, |project, root| {
         let context = project.response_context(cli.context_basis.as_deref())?;
         let mut plan = project.migrate_feature(options)?;
@@ -2200,6 +2306,11 @@ fn cmd_migrate(cli: &Cli, command: &crate::project::migration::Command) -> Resul
                 original: &removal.original,
             })
             .collect::<Vec<_>>();
+        let plan_context = prepare_plan_context(
+            &mut plan.report,
+            &exact_plan_changes(root, &changes, &removals),
+            cli.plan_basis.as_deref(),
+        )?;
         let recorded = if options.write || cli.save_plan {
             crate::history::record_with_removals_status(
                 &cli.root,
@@ -2227,6 +2338,7 @@ fn cmd_migrate(cli: &Cli, command: &crate::project::migration::Command) -> Resul
                 serde_json::json!(crate::history::record_context_basis(root, id)?);
         }
         context.apply(&mut plan.report)?;
+        finish_plan_context(plan_context, &mut plan.report);
         println!("{}", serde_json::to_string(&plan.report)?);
         Ok(())
     })
@@ -2244,6 +2356,10 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
         !(write && cli.save_plan),
         "choose --save-plan or --write, not both."
     );
+    anyhow::ensure!(
+        cli.plan_basis.is_none() || write || cli.save_plan,
+        "--plan-basis requires --save-plan or --write."
+    );
     with_project(cli, |project, root| {
         let context = project.response_context(cli.context_basis.as_deref())?;
         let mut plan = match command {
@@ -2259,15 +2375,16 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
             .map(|outcome| workspace_diff(cli, outcome))
             .collect::<String>();
         plan.set_diff(&diff, diff_bytes);
-        let recorded = persist_changes_with_status(
-            cli,
-            &outcomes
-                .iter()
-                .map(crate::edit::FileChange::from)
-                .collect::<Vec<_>>(),
-            write,
-            "reparse-strict",
+        let changes = outcomes
+            .iter()
+            .map(crate::edit::FileChange::from)
+            .collect::<Vec<_>>();
+        let plan_context = prepare_plan_context(
+            &mut plan.report,
+            &exact_plan_changes(root, &changes, &[]),
+            cli.plan_basis.as_deref(),
         )?;
+        let recorded = persist_changes_with_status(cli, &changes, write, "reparse-strict")?;
         let transaction = recorded.map(|result| result.id);
         plan.report["transaction"] = serde_json::json!(transaction);
         plan.report["applied"] = serde_json::json!(write && transaction.is_some());
@@ -2281,6 +2398,7 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
                 serde_json::json!(crate::history::record_context_basis(root, id)?);
         }
         context.apply(&mut plan.report)?;
+        finish_plan_context(plan_context, &mut plan.report);
         println!("{}", serde_json::to_string(&plan.report)?);
         Ok(())
     })
@@ -2409,7 +2527,8 @@ fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
                         record["check_evidence"] = serde_json::json!(r.check_evidence);
                     }
                     if other.is_some() {
-                        record["context_basis"] = serde_json::json!(format!("frtb1:{}", r.basis));
+                        record["context_basis"] =
+                            serde_json::json!(crate::history::transaction_context_basis(r));
                         record["changes"] = serde_json::json!(r.changes.iter().map(|c| serde_json::json!({
                             "path": c.path, "before_exists": c.before.is_some(), "after_exists": c.after.is_some(),
                             "before_mode": c.before.as_ref().and_then(crate::history::Snapshot::reported_mode), "after_mode": c.after.as_ref().and_then(crate::history::Snapshot::reported_mode),

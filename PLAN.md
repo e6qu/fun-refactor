@@ -159,9 +159,9 @@ Verification and acceptance:
 
 Planned checkpoints:
 
-1. Reset the completed roadmap and freeze the PR 7 measurement contract.
-2. Add bounded multi-symbol project inspection and reconstruction tests.
-3. Add reviewed-plan and transaction compaction with stale-basis refusals.
+1. **Complete.** Reset the completed roadmap and freeze the PR 7 measurement contract.
+2. **Complete.** Add bounded multi-symbol project inspection and reconstruction tests.
+3. **Complete.** Add reviewed-plan and transaction compaction with stale-basis refusals.
 4. Reduce and retest the portable skill's task routes.
 5. Publish checksum-bound v3 projections and their measured contribution.
 6. Run and retain the fresh paired acceptance cohort, then close only the claims its evidence supports.
