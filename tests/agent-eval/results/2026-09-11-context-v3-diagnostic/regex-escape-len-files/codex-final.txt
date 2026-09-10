@@ -1,0 +1,7 @@
+Implemented and validated:
+
+- Added documented `escape_len(pattern: &str) -> usize` to both crates.
+- Updated escaping capacity reservation to avoid reallocations.
+- Preserved existing APIs and behavior.
+- Verified default and no-default-feature builds.
+- Export/reverse/reapply and clean receiver checks passed.

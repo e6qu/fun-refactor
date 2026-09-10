@@ -64,3 +64,23 @@ target/agent-eval-venv/bin/python tools/agent-context-protocol-v3.py --tokens
 These counts exclude system context, hidden reasoning, cache effects and billed usage. They are
 deterministic serialization evidence over prior successful behavior, not new autonomous-agent
 results or a latency estimate.
+
+## First fresh diagnostic pair
+
+A fresh pair used Codex CLI 0.154.0 with `gpt-5.6-luna`, low reasoning effort and the default
+service tier. Both runs were sequential and ephemeral, with user configuration and rules ignored.
+Neither received a human correction.
+
+| Arm | Accepted | Context tokens | Calls | Result |
+|---|---|---:|---:|---|
+| `fr` | No | 6,523 | 26 | No source change; the batch manifest used invalid operation names. |
+| Ordinary files | No | 12,749 | 22 | Both behavior oracles passed; the original-state check was omitted. |
+
+The failed pair supports no context comparison. Its complete evidence is retained in
+[`2026-09-11-context-v3-diagnostic`](../tests/agent-eval/results/2026-09-11-context-v3-diagnostic/manifest.json).
+
+The `fr` trace exposed a handoff regression: the compressed author reference described the
+operations but no longer named `insert-declaration`. The harness also returned one broad error
+before the CLI could report its accepted schema. The reference now names every operation, and
+the harness refusal reports received kinds and exact expected postconditions. A later fresh pair
+must establish whether that correction is sufficient.

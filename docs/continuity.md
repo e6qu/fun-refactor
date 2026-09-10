@@ -21,8 +21,8 @@ PR 7 checkpoint 3 adds `frpb1` reviewed-plan bases to authoring and feature migr
 They bind complete plan reports and exact source payloads, compact only equal top-level fields
 and refuse clipped, stale or conflicting plans before persistence. Transaction context moves to
 `frtb2`, which binds complete before and after snapshots while leaving journal compatibility intact.
-PR 7 checkpoint 4 reduces the targeted authoring skill route from 9,937 to 6,106 raw bytes
-and the complete portable bundle from 24,691 to 20,860 bytes. The checker now caps the
+PR 7 checkpoint 4 reduces the targeted authoring skill route from 9,937 to 6,074 raw bytes
+and the complete portable bundle from 24,691 to 20,828 bytes. The checker now caps the
 entrypoint, every reference and seven task routes; all 42 shell examples still execute. The
 pinned tokenizer and retained read framing measure the targeted route at 1,693 tokens instead
 of 2,699, a 37.3% reduction from this PR's starting revision.
@@ -30,6 +30,10 @@ PR 7 checkpoint 5 publishes a v3 fixed projection bound to the immutable passing
 frozen v2 report. An exact path allowlist audits every changed request and response. It measures
 a 10,960-token `fr` mean, 269 below v2, while marking multi-select and plan compaction as
 inapplicable to those transcripts rather than changing their calls.
+The first fresh PR 7 pair is retained as a failed diagnostic. The `fr` arm stopped after using
+undocumented batch operation spellings; the files arm passed both behavior oracles but omitted
+the original-state check. The author route now names every operation, and harness refusals expose
+the received kinds and exact expected postconditions.
 PR 6's first checkpoint adds `fr migrate feature` for one revision-bound Next.js App Router or FastAPI route feature whose methods share one source file.
 The planner refuses stale feature IDs, same-framework requests, escaping destinations and any disagreement between semantic and translated endpoint sets.
 It retains the source route, adds the destination and classifies feature facts and gaps as automatic, agent-decision or unsupported work.

@@ -126,7 +126,7 @@ Rerunning the script after skill updates prints new counts; the retained report 
 
 PR 7 keeps the same five-file targeted route while removing repeated explanations from its
 entrypoint, authoring, checks, history and patch references. Raw Markdown falls from 9,937 to
-6,106 bytes for that route, a 38.6% reduction. The complete bundle falls from 24,691 to 20,860
+6,074 bytes for that route, a 38.9% reduction. The complete bundle falls from 24,691 to 20,828
 bytes. Under the pinned tokenizer and numbered-read framing used by `skill-context.py`, the
 same route falls from 2,699 to 1,693 tokens, a 37.3% reduction. It is 269 tokens below the
 1,962-token route in the frozen v2 projection. These measurements make no agent-success claim.

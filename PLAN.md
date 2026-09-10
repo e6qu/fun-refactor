@@ -166,7 +166,8 @@ Planned checkpoints:
 3. **Complete.** Add reviewed-plan and transaction compaction with stale-basis refusals.
 4. **Complete.** Reduce and retest the portable skill's task routes.
 5. **Complete.** Publish checksum-bound v3 projections and their measured contribution.
-6. Run and retain the fresh paired acceptance cohort, then close only the claims its evidence supports.
+6. **In progress.** Retain the first failed diagnostic, correct its skill-schema ambiguity, then
+   run a fresh pair and close only the claims supported by passing evidence.
 
 ## Formal verification policy
 

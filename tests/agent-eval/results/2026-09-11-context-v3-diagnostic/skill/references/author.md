@@ -1,6 +1,6 @@
 # Author selected code
 
-`fr author` operations are `replace-body`, `replace-declaration`, `insert-declaration`, and `batch`. A batch holds up to 32 disjoint operations and also accepts `organize-imports`. Signature changes need coordinated caller edits; unsupported targets refuse.
+`fr author` accepts revision-bound handles for supported body replacement, same-named Rust function replacement, Rust function insertion into a file/module/impl/trait, and batches of up to 32 disjoint operations. Signature changes need coordinated caller edits; unsupported targets refuse.
 
 Use `project find NAME --in FILE --source`; its `root` is the file handle. A module/trait row selects that container, while any direct method selects its impl/trait. If needed, get a file handle with `project map FILE --depth 0 --fields handle,kind,name --limit 1`. Source changes expire handles.
 

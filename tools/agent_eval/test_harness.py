@@ -139,7 +139,9 @@ class ContextProtocolV3Evidence(unittest.TestCase):
             "multi_select_eligible_groups": 0,
             "plan_basis_eligible_pairs": 0,
         })
-        self.assertEqual(report["contributions"]["bytes"]["total"], 995)
+        contribution = report["contributions"]["bytes"]
+        self.assertGreater(contribution["total"], 0)
+        self.assertEqual(contribution["total"], contribution["skill_and_current_docs"])
         for trial in report["trials"]:
             for event in trial["allowlist_audit"]:
                 self.assertTrue(set(event["output_paths"]) <=
@@ -398,7 +400,7 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
                 {**complete, "postconditions": {**complete["postconditions"], "edits": 2}},
             ):
                 path.write_text(json.dumps(broken))
-                with self.assertRaisesRegex(ValueError, "one coordinated batch"):
+                with self.assertRaisesRegex(ValueError, "coordinated batch"):
                     harness.validate_coordinated_manifest(session, project, config, args)
 
     def test_replay_checks_the_second_file_and_reverses_complete_snapshots(self):

@@ -293,8 +293,9 @@ def validate_coordinated_manifest(session, project, config, args):
     if (len(operations) < 3 or kinds.count("insert-declaration") < 2
             or "replace-body" not in kinds or postconditions != expected):
         raise ValueError(
-            "The one coordinated batch must include both API insertions and the escape body "
-            "replacement, with exact files-changed, edits, changed-operations and paths-changed postconditions"
+            "The coordinated batch needs at least two insert-declaration operations and one "
+            f"replace-body operation; received operation kinds {kinds}. Its top-level "
+            f"postconditions must equal {expected}; received {postconditions}."
         )
 
 
