@@ -1,11 +1,11 @@
 ---
 name: fr
-description: Use the fr CLI for bounded project structure, structural code changes, source history, Git patches, checks, and Lean evidence. Use when fr is available or requested.
+description: Use fr for bounded project inspection, structural edits, reversible history, Git patches, declared checks, and Lean evidence when fr is available or requested.
 ---
 
 # Work with fr
 
-Run at the project root or pass `-C`. Find a known declaration directly; request source only when needed:
+Run at the project root or pass `-C`. Query known declarations directly and request source only when needed:
 
 ```sh
 fr project find greet --signature
@@ -13,20 +13,16 @@ fr project select greet render validate --signature --source --bytes 2048
 fr project map --depth 2 --limit 12
 ```
 
-Read `columns` with `rows`, `coverage`, `omitted`, and `page`. Gaps or omitted/unresolved rows are not evidence of absence. Retain a full report's `context_basis` and pass it to related project/author calls; a stale basis refuses.
+Read `coverage`, `omitted`, pagination, and every selection status. Missing or clipped rows do not prove absence. Retain full `context_basis` reports for related calls; stale bases refuse.
 
-Load only the relevant reference:
+Read only the route needed now:
 
-- [Author](references/author.md): structural body edits and Rust declaration insertion/replacement.
-- [Explore](references/explore.md): pagination, relationships, and broader discovery.
-- [Change](references/change.md): built-in refactorings and recipes.
-- [Checks](references/checks.md): declared validation and bounded output.
-- [History](references/history.md): apply, undo, redo, conflicts, and recovery.
-- [Git](references/git.md): patches, indexes, commits, and worktrees.
-- [Lean](references/lean.md): source drift, signature maps, and proof evidence.
+- [Author](references/author.md) for implementation edits.
+- [Explore](references/explore.md) for unknown structure, relations, or pagination.
+- [Change](references/change.md) for built-in refactors, recipes, or feature migration.
+- [Checks](references/checks.md) before running declared project commands.
+- [History](references/history.md) before applying, undoing, or redoing.
+- [Git](references/git.md) for patch export or Git state.
+- [Lean](references/lean.md) for specifications and proof evidence.
 
-Before any `fr author batch`, read [Author](references/author.md). Read [History](references/history.md) before applying or reversing its transaction.
-
-Handles expire after source changes. Built-in refactorings use names or positions; `fr author` uses handles. Mutations preview by default. `--save-plan` records a checked plan for later history application. Inspect omissions and refusals as evidence limits.
-
-Keep full basis reports. Report parser, project-check, and Lean results separately because they prove different properties.
+`fr author` uses revision-bound handles; built-in refactors use names or positions. Mutations preview by default. Prefer one reviewed saved transaction for a coordinated change, then apply that exact transaction. Preserve full basis reports and treat refusals, gaps, and uncertainty as limits on the evidence.

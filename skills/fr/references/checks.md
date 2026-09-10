@@ -1,6 +1,6 @@
-# Run project checks
+# Run declared checks
 
-Inspect `.fr/checks.json` declarations before execution:
+Review `.fr/checks.json` through the listing, then run task-relevant names with its basis:
 
 ```sh
 fr checks
@@ -8,10 +8,10 @@ fr checks --run unit --basis '<CHECK_BASIS>' --quiet-success --no-declarations -
 fr checks --run unit --basis '<CHECK_BASIS>' --record-for '<TX>' --quiet-success
 ```
 
-Choose task-relevant names from the listing; `unit` is only the example. Use its configuration `basis`. The full digest or a prefix of at least 32 hex characters is valid. Listing runs no project code. Execution runs declared argv in its project-relative directory, with inherited environment, no command sandbox, and a direct-child timeout.
+`unit` is an example name. Listing executes nothing. A run executes declared argv in its declared directory with inherited environment and a direct-child timeout. The full basis or a prefix of at least 32 hex characters is accepted.
 
-Read `passed`, each selected result, `source_snapshot_stable`, `configuration_stable`, and `not_run`. Coverage labels are project claims. `passed: null` means nothing ran. Quiet success omits stream text but keeps byte counts; failures retain bounded diagnostics. `--no-declarations` relies on the matching reviewed listing. Raise `--output-bytes` up to 65536 only for needed failure detail.
+Read `passed`, results, `not_run`, `source_snapshot_stable`, and `configuration_stable`. `passed: null` means nothing ran. Quiet success removes streams but retains byte counts; failures keep bounded diagnostics. `--no-declarations` relies on the retained matching listing. Increase `--output-bytes` only for needed failure detail.
 
-Execution compares the supported-source revision before the first check and after every selected check. Source or declaration drift fails the report. `--record-for` preflights one applied transaction, then attaches a passing `frce1:` receipt to its durable journal after rechecking its affected files and source revision. When the transaction has `required_checks`, the reviewed configuration and selected names must match it exactly. The receipt binds the configuration basis, source revision and selected names. It remains historical after undo or later source changes.
+Source or check-configuration drift fails the run. `--record-for` preflights an applied transaction and attaches a passing source-bound receipt. Required checks must match their recorded basis and ordered names exactly.
 
-Checks do not lock sources while project code runs. Commands can mutate and restore a file between boundary snapshots, and unsupported files are outside the revision. If declarations are absent, use documented project commands. Syntax acceptance or an unrelated check does not prove behavior.
+Checks do not lock files while commands run, and unsupported files lie outside the source revision. Syntax acceptance, coverage labels, and unrelated checks do not establish behavioral correctness.

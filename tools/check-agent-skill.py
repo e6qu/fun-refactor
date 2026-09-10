@@ -13,6 +13,19 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
 SKILL = ROOT / "skills/fr"
+ROUTES = {
+    "targeted-author": ["SKILL.md", "references/author.md", "references/checks.md",
+                        "references/history.md", "references/git.md"],
+    "built-in-change": ["SKILL.md", "references/change.md", "references/checks.md",
+                        "references/history.md", "references/git.md"],
+    "recipe-change": ["SKILL.md", "references/change.md", "references/recipes.md",
+                      "references/checks.md", "references/history.md", "references/git.md"],
+    "author-recovery": ["SKILL.md", "references/author.md", "references/checks.md",
+                        "references/history.md", "references/recovery.md", "references/git.md"],
+    "exploration": ["SKILL.md", "references/explore.md"],
+    "lean": ["SKILL.md", "references/lean.md"],
+    "git-admin": ["SKILL.md", "references/git.md", "references/git-admin.md"],
+}
 
 
 def blocks(path, language):
@@ -27,15 +40,20 @@ def commands(path):
 def check_bundle():
     files = sorted(SKILL.rglob("*.md"))
     entry_bytes = (SKILL / "SKILL.md").stat().st_size
-    assert entry_bytes <= 3072, "Keep the introductory context within 3 KiB."
+    assert entry_bytes <= 2048, "Keep the introductory context within 2 KiB."
     for path in files:
-        assert path.stat().st_size <= 6144, f"Split task-specific detail: {path}"
+        assert path.stat().st_size <= 4096, f"Split task-specific detail: {path}"
         for link in re.findall(r"\]\(([^)]+)\)", path.read_text()):
             target = (path.parent / link).resolve()
             assert target.is_relative_to(SKILL.resolve()) and target.is_file(), link
         for command in commands(path):
             assert command[0] == "fr", command
-    return files, entry_bytes
+    route_bytes = {
+        name: sum((SKILL / relative).stat().st_size for relative in route)
+        for name, route in ROUTES.items()
+    }
+    assert max(route_bytes.values()) <= 8192, route_bytes
+    return files, entry_bytes, route_bytes
 
 
 class Exercise:
@@ -316,7 +334,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fr", required=True, type=Path, help="Built fr binary to validate.")
     args = parser.parse_args()
-    files, entry_bytes = check_bundle()
+    files, entry_bytes, route_bytes = check_bundle()
     exercise = Exercise(str(args.fr.resolve()))
     with tempfile.TemporaryDirectory(prefix="fr-agent-skill-") as directory:
         root = Path(directory)
@@ -332,6 +350,7 @@ def main():
     assert exercise.exploration_bytes < source_bytes
     print(json.dumps({"passed": True, "shell_examples": exercise.examples,
                       "entry_bytes": entry_bytes, "reference_bytes": sum(path.stat().st_size for path in files) - entry_bytes,
+                      "route_bytes": route_bytes,
                       "exploration_output_bytes": exercise.exploration_bytes,
                       "fixture_source_bytes": source_bytes,
                       "measurement": "UTF-8 bytes on a synthetic fixture, not model tokens or an agent success rate."}))

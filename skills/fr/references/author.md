@@ -1,19 +1,10 @@
-# Edit selected code
+# Author selected code
 
-`fr author` accepts revision-bound handles:
+`fr author` accepts revision-bound handles. It can replace supported bodies, replace a same-named Rust function declaration, insert a Rust function into a file/module/impl/trait, or combine up to 32 disjoint operations in one batch. Signature changes need coordinated caller edits. Unsupported targets refuse.
 
-- `replace-body`: one Rust, Go, Java, TypeScript, or TSX body.
-- `replace-declaration`: one same-named Rust function; callers need separate edits after signature changes.
-- `insert-declaration`: one Rust function in a file, inline module, impl, or trait; bodyless functions are trait-only.
-- `batch`: up to 32 disjoint operations saved as one transaction.
+Use `project find NAME --in FILE --source`; its `root` is that file's handle. A module or trait row selects that container. Any direct method selects its exact impl or trait. If no file handle is available, use `project map FILE --depth 0 --fields handle,kind,name --limit 1`. Source changes expire handles.
 
-Find a declaration with `project find NAME --in FILE --source`. That report's `root` is the file handle. For module or trait insertion, use that container's row handle. For an exact impl or trait body, use a handle for any existing direct method in it. Empty impls currently have no selectable structural handle. Use `project map FILE --depth 0 --fields handle,kind,name --limit 1` if no file handle is available.
-
-Fragments are UTF-8 files outside the project and at most 64 KiB. A batch manifest contains `operations` with `op` and `handle`; fragment operations also require `from`. Short IDs require top-level `revision`. An `organize-imports` operation uses a file handle and removes or sorts imports through the conservative `fr imports` planner. All handles and import liveness decisions use the original source. Overlaps and shared insertion boundaries refuse.
-
-Add `postconditions` when the intended transaction shape is known. It accepts exact `files-changed`, `edits`, `changed-operations`, and `paths-changed` values. A mismatch refuses before saving or writing.
-
-For example, a two-operation manifest has this shape:
+Fragments are external UTF-8 files of at most 64 KiB. Batch operations need `op` and `handle`; fragment operations also need `from`. Short IDs require top-level `revision`. `organize-imports` takes a file handle. All steps use the original source, and overlaps refuse. Add exact `postconditions` when the intended counts and paths are known:
 
 ```json
 {
@@ -25,14 +16,11 @@ For example, a two-operation manifest has this shape:
 }
 ```
 
-Review the combined diff and retain its `plan_context_basis`. Save the same manifest with
-`--save-plan --plan-basis BASIS`; this omits matching plan fields and refuses drift before
-persistence. Do not pass `--write` to `author batch` in a saved-plan workflow. A complete saved
-diff includes `transaction_context_basis` for compact forward apply/redo reports.
+Review the complete diff and retain `plan_context_basis`. Repeat the same plan with `--save-plan --plan-basis BASIS`; drift or a clipped preview refuses before persistence. The saved result supplies `transaction_context_basis` for the compact forward apply.
 
-Go accepts named functions and receiver methods. Java accepts methods, constructors and default interface methods with bodies. TypeScript/TSX accepts supported function bindings; arrows accept an expression or block and can move between forms. Rust insertion accepts `///` or `/** */` docs, rejects other outer attributes or pending metadata, trims boundary whitespace, and preserves the remaining fragment bytes. A trait accepts a bodyless function declaration; files, modules and impls require a body. Unsupported declaration kinds refuse.
+Rust insertion preserves fragment bytes, accepts outer doc comments, and limits bodyless functions to traits. Body replacement supports Rust, Go functions/methods, Java methods/constructors/default methods, and supported TypeScript/TSX function bindings. TypeScript arrows may switch between expression and block bodies.
 
-Example: save this outside the project as `<FRAGMENT>`:
+Example insertion fragment:
 
 ```rust
 /// Increments a value twice.
@@ -50,4 +38,4 @@ fr author batch --from '<MANIFEST>' --save-plan --plan-basis '<PLAN_CONTEXT_BASI
 fr history apply '<AUTHOR_TX>' --write --no-diff --context-basis '<TRANSACTION_CONTEXT_BASIS>'
 ```
 
-The source byte budget is shared across rows. Continue a non-null `source.next_offset` with `project show HANDLE --source --offset NEXT --bytes N`. Run [checks](checks.md) after applying. Keep the transaction for [history](history.md) and [patch export](git.md).
+Continue a source slice with its `next_offset`. Run [checks](checks.md) after applying; keep the transaction for [history](history.md) and [patch export](git.md).

@@ -1,6 +1,6 @@
-# Apply or reverse a source transaction
+# Apply or reverse source history
 
-The examples assume `<TX>` is applied:
+For an applied `<TX>`:
 
 ```sh
 fr history show '<TX>'
@@ -10,12 +10,10 @@ fr history redo '<TX>'
 fr history redo '<TX>' --write --no-diff
 ```
 
-Preview first. `--no-diff` keeps outcome and change metadata. A complete saved author diff supplies `transaction_context_basis`; detailed `history show` calls it `context_basis`. On forward apply/redo, pass that value to `--context-basis` to replace reviewed diffs with `diff_bytes`. Keep the full basis report. Reverse transitions require full review; stale or different bases refuse before writing.
+Preview transitions. `--no-diff` retains outcome and change metadata. A complete author plan supplies `transaction_context_basis`; detailed `history show` calls it `context_basis`. A forward apply or redo may pass that retained basis with `--context-basis` to omit reviewed diffs. Undo always needs its own full review.
 
-Undo/redo verify affected contents or link targets, entry kinds, existence, and regular-file modes while preserving unrelated edits. They leave the Git index unchanged, including an existing staged version of an affected path. Undo must be the latest applied transaction; redo must be next on its stack. A new applied transaction abandons the redo branch. Never erase a conflicting user edit to force a transition.
+Transitions verify affected contents, links, kinds, existence, and regular-file modes. They preserve unrelated files and the Git index. Undo must be the latest applied transaction; redo must be next, and a new applied transaction abandons the redo branch. Conflicting user edits must remain untouched.
 
-`fr checks --run NAME --basis '<CHECK_BASIS>' --record-for '<TX>'` can attach a passing source-bound receipt to an applied transaction. A `required_checks` row binds a workflow to one exact configuration digest and ordered name set. `history show` retains the requirement and its evidence after undo and redo; the evidence source revision describes the checked historical state.
+Attach a passing check receipt with `fr checks --run NAME --basis '<CHECK_BASIS>' --record-for '<TX>'`. Required checks bind an exact configuration and ordered names.
 
-For an interrupted write or lock, load [Recovery](recovery.md). The journal retains source snapshots but not timestamps, ownership, extended attributes, empty directories, or multi-file filesystem atomicity. Git has separate journals; see [Git](git.md).
-
-Source history does not require a Git executable. Patch export also works without Git; only `history patch --git-check` invokes it.
+For a pending write or lock, read [Recovery](recovery.md). The journal lacks filesystem-wide atomicity, timestamps, ownership, extended attributes, and empty directories. Git uses [separate journals](git.md).
