@@ -77,6 +77,10 @@ def main (args : List String) : IO Unit := do
     for declaresNext in [false, true] do
       for appRouterPath in [false, true] do
         IO.println (nextjsRegistrationAutomatic declaresNext appRouterPath)
+    for candidateCount in [0, 1, 2, 65536] do
+      for pathCollision in [false, true] do
+        for queryCollision in [false, true] do
+          IO.println (fastapiBodyParameterAutomatic candidateCount pathCollision queryCollision)
   else if args == ["selection-conflicts"] then
     for leftStart in samples do
       for leftEnd in samples do

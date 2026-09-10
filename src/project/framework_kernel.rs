@@ -63,3 +63,11 @@ pub fn migration_schema_agreement(expected: &[String], generated: &[String]) -> 
 pub fn nextjs_registration_automatic(declares_next: bool, app_router_path: bool) -> bool {
     declares_next && app_router_path
 }
+
+pub fn fastapi_body_parameter_automatic(
+    candidate_count: usize,
+    path_collision: bool,
+    query_collision: bool,
+) -> bool {
+    candidate_count == 1 && !path_collision && !query_collision
+}

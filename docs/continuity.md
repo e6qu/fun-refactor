@@ -13,8 +13,8 @@ It retains the source route, adds the destination and classifies feature facts a
 Runtime registration and cutover stay as named agent decisions.
 Preview, saved plans and writes use the existing source-history transaction, so patch checks, export, apply, undo and redo remain available.
 Four CLI integration cases cover both migration directions, refusal boundaries and exact forward undo/redo replay.
-Three newly anchored framework policies constrain supported directions, disposition classes and declared schema inclusion.
-Twenty-four framework theorems now cover twelve helpers, with 308 shared Rust and Lean results.
+Five migration policies constrain supported directions, disposition classes, schema inclusion, registration and body promotion.
+Twenty-seven framework theorems now cover thirteen helpers, with 324 shared Rust and Lean results.
 The checkpoint has strict syntax, endpoint-contract and declared-schema evidence; full framework behavior, runtime schema validation and connected project edits remain next.
 The second PR 6 checkpoint adds generic runtime oracles for both migration directions.
 A telemetry handler runs through Node before migration and through generated Python afterward.
@@ -39,6 +39,12 @@ The fixture exposed that a typed Next.js `request.json()` binding became an anno
 Generated FastAPI handlers now call `model_validate` for that bounded pattern before accessing declared fields.
 It also exposed that Python `int` and TypeScript `number` need one language-neutral declaration family, so integer and float declarations now canonicalize as `number` for cross-language schema comparison.
 The runners use minimal framework and Pydantic stubs; installed-framework validation, middleware, dependency injection and lifecycle behavior remain open.
+The seventh checkpoint promotes one direct typed Next.js JSON binding to a native FastAPI body parameter when no path or query name collides.
+Pinned FastAPI 0.141.1 mounts the generated router through `include_router` and handles requests through its ASGI application.
+Pydantic 2.13.5 and Starlette 1.6.0 preserve the valid body and produce a field-specific 422 response for an invalid array item.
+The promotion policy requires one candidate and no collision.
+Three Lean theorems characterize that rule, and sixteen shared cases cover unique, missing, repeated and colliding candidates.
+Installed Next.js execution and broader framework behavior remain open.
 Roadmap PR 5's first checkpoint added `fr project features` for bounded Next.js App Router and FastAPI hierarchies.
 Applications contain exact-route-path feature candidates, which contain routes, handlers, contract fields, schema references and expanded same-file schema candidates.
 Every fact carries a parent, source anchor, status, confidence, validation basis and explicit gaps.
@@ -737,4 +743,4 @@ Keep revision inputs, coverage and final source verification intact; require byt
 State the cache policy for the next autonomous cohort; existing trials explicitly disable it and their records remain immutable.
 The latest paired task requires one coordinated three-operation change across two crate roots. It passes, while `fr` still uses 23.8% more measured context in this single pair.
 Keep portable skill references selective and executable against the distributed binary.
-PR 6 is active. Continue with installed-framework execution, connected project edits and a reviewed cutover as ordered in [PLAN.md](../PLAN.md).
+PR 6 is active. Continue with installed Next.js execution, connected project edits and a reviewed cutover as ordered in [PLAN.md](../PLAN.md).

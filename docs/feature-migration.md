@@ -65,11 +65,14 @@ The integration suite executes generic source and generated handlers in both dir
 Cases cross from Next.js TypeScript to FastAPI Python and from FastAPI Python to Next.js TypeScript.
 They cover telemetry and parameterized metrics results plus request bodies with mixed-spelling keys, scalar values and arrays.
 Every case compares status and JSON bodies exactly.
-For a direct typed binding from `await request.json()`, generated FastAPI code calls the corresponding Pydantic model's `model_validate` method before reading its fields.
+One direct typed binding from `await request.json()` becomes a native FastAPI body parameter when its name does not collide with a path or query parameter.
+Multiple candidate bindings and name collisions retain explicit request parsing and Pydantic materialization.
 Node and Python execute the handlers, while small stubs supply decorator registration.
 This evidence covers handler behavior and payload preservation in the supported constructs.
-The Pydantic stub materializes declared fields but does not reproduce Pydantic validation rules.
-The fixtures do not cover framework middleware, dependency injection, framework validation, startup, routing registration or deployment.
+The pinned FastAPI 0.141.1 fixture mounts the generated router through `include_router` and invokes its ASGI application.
+Pydantic 2.13.5 accepts the valid body, and an invalid array element produces a field-specific 422 response through Starlette 1.6.0.
+The stubbed cases remain separate handler evidence.
+The fixtures do not cover middleware, dependency injection, startup, installed Next.js routing or deployment.
 
 ## Declared schema evidence
 
@@ -82,4 +85,4 @@ Next.js dynamic path names also retain their spelling because the route placehol
 This check covers declarations and supported types.
 It does not establish aliases, requiredness, defaults, validators, serialization settings, OpenAPI output or runtime request and response validation.
 
-Current follow-up work adds installed-framework fixtures, framework validation comparisons, remaining connected build and test edits, and a reviewed cutover stage.
+Current follow-up work adds installed Next.js execution, broader framework validation comparisons, remaining connected build and test edits, and a reviewed cutover stage.

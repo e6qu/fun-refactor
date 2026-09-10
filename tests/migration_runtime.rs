@@ -48,6 +48,26 @@ fn toolchains() -> Option<PathBuf> {
     missing.is_empty().then_some(tsc)
 }
 
+fn fastapi_python() -> Option<PathBuf> {
+    let python = std::env::var_os("FR_FASTAPI_PYTHON")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("python3"));
+    let has_framework = available(&python)
+        && Command::new(&python)
+            .args([
+                "-c",
+                "from importlib.metadata import version; assert (version('fastapi'), version('pydantic'), version('starlette')) == ('0.141.1', '2.13.5', '1.6.0')",
+            ])
+            .output()
+            .is_ok_and(|output| output.status.success());
+    let missing = (!has_framework)
+        .then(|| format!("{} with the pinned FastAPI stack", python.display()))
+        .into_iter()
+        .collect::<Vec<_>>();
+    common::require_on_ci("feature migration FastAPI runtime comparison", &missing);
+    has_framework.then_some(python)
+}
+
 fn fr(root: &Path, args: &[&str]) -> Value {
     let output = command_output({
         let mut command = Command::new(FR);
@@ -101,6 +121,15 @@ fn compile_typescript(root: &Path, tsc: &Path, out: &str, files: &[&str]) {
 }
 
 fn run_json(program: &str, root: &Path, file: &str) -> Value {
+    let stdout = assert_success(command_output({
+        let mut command = Command::new(program);
+        command.current_dir(root).arg(file);
+        command
+    }));
+    serde_json::from_str(stdout.trim()).unwrap_or_else(|error| panic!("{error}: {stdout}"))
+}
+
+fn run_json_path(program: &Path, root: &Path, file: &str) -> Value {
     let stdout = assert_success(command_output({
         let mut command = Command::new(program);
         command.current_dir(root).arg(file);
@@ -239,9 +268,8 @@ fn nextjs_payload_keys_and_values_survive_fastapi_generation() {
         true
     );
     let generated = fs::read_to_string(dir.path().join("services/readings.py")).unwrap();
-    assert!(generated.contains(
-        "reading: ReadingEnvelope = ReadingEnvelope.model_validate(await request.json())"
-    ));
+    assert!(generated.contains("async def post(request: Request, reading: ReadingEnvelope):"));
+    assert!(!generated.contains("await request.json()"));
     compile_typescript(
         dir.path(),
         &tsc,
@@ -259,7 +287,26 @@ fn nextjs_payload_keys_and_values_survive_fastapi_generation() {
     assert_eq!(source, target);
     assert_eq!(source["body"]["sensor_id"], "sensor-4");
     assert_eq!(source["body"]["measuredAt"], "2026-09-10T10:30:00Z");
-    assert_eq!(source["body"]["values"], serde_json::json!([3, 5, 8]));
+    assert_eq!(
+        source["body"]["values"],
+        serde_json::json!([3.25, 5.5, 8.75])
+    );
+
+    if let Some(python) = fastapi_python() {
+        fs::write(
+            dir.path().join("framework-target-runner.py"),
+            include_str!("migration-runtime/fastapi-framework-target-runner.py"),
+        )
+        .unwrap();
+        let framework = run_json_path(&python, dir.path(), "framework-target-runner.py");
+        assert_eq!(framework["valid"], source);
+        assert_eq!(framework["invalid"]["status"], 422);
+        assert!(framework["invalid"]["body"]["detail"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|error| error["loc"] == serde_json::json!(["body", "values", 0])));
+    }
 }
 
 #[test]

@@ -891,9 +891,35 @@ fn write(module: &Module, endpoints: &[Endpoint], source: &Path) -> Result<Writt
             .iter()
             .filter(|_| endpoint.kind == Kind::Route)
             .find(|p| is_the_request(p));
+        let request_body_candidates = handler
+            .body
+            .iter()
+            .filter_map(|stmt| {
+                request_model_binding(
+                    stmt,
+                    request.map(|parameter| parameter.name.as_str()),
+                    &rest,
+                )
+            })
+            .collect::<Vec<_>>();
+        let path_body_collision = request_body_candidates
+            .first()
+            .is_some_and(|(name, _)| parameters.contains(name));
+        let query_body_collision = request_body_candidates
+            .first()
+            .is_some_and(|(name, _)| declared_queries.contains(name));
+        let request_body = crate::project::framework_kernel::fastapi_body_parameter_automatic(
+            request_body_candidates.len(),
+            path_body_collision,
+            query_body_collision,
+        )
+        .then(|| request_body_candidates[0].clone());
         if let Some(param) = request {
             signature.push(format!("{}: Request", param.name));
             takes_request = true;
+        }
+        if let Some((name, ty)) = &request_body {
+            signature.push(format!("{name}: {}", super::write::python_type(ty)));
         }
         // Last, because they carry a default and Python will not have one before a
         // parameter that does not.
@@ -929,6 +955,22 @@ fn write(module: &Module, endpoints: &[Endpoint], source: &Path) -> Result<Writt
                     handler.name
                 )),
                 None => {
+                    if let Some((body_name, _)) = &request_body {
+                        let supplies_body = request_model_binding(
+                            stmt,
+                            request.map(|parameter| parameter.name.as_str()),
+                            &rest,
+                        )
+                        .is_some_and(|(found, _)| found == *body_name);
+                        if supplies_body {
+                            fidelity.notes.push(format!(
+                                "`{}` parsed `{body_name}` from the request JSON; FastAPI \
+                                 supplies it as a validated body model, so that line went",
+                                handler.name
+                            ));
+                            continue;
+                        }
+                    }
                     let supplied = supply_path_parameters(stmt.clone(), &dropped, &parameters);
                     let supplied = supply_query_parameters(supplied, &declared_queries);
                     let supplied = validate_request_model(
@@ -1109,6 +1151,9 @@ fn write(module: &Module, endpoints: &[Endpoint], source: &Path) -> Result<Writt
 }
 
 fn validate_request_model(stmt: Stmt, request: Option<&str>, models: &Module) -> Stmt {
+    if request_model_binding(&stmt, request, models).is_none() {
+        return stmt;
+    }
     let Stmt::Let {
         name,
         ty: Some(ty @ Type::Named { .. }),
@@ -1118,7 +1163,39 @@ fn validate_request_model(stmt: Stmt, request: Option<&str>, models: &Module) ->
     else {
         return stmt;
     };
-    let Type::Named { name: model, args } = &ty else {
+    let Type::Named { name: model, .. } = &ty else {
+        unreachable!();
+    };
+    let value = Expr::Call {
+        callee: Box::new(Expr::Field {
+            of: Box::new(Expr::Name(model.clone())),
+            name: "model_validate".into(),
+        }),
+        args: vec![value],
+    };
+    Stmt::Let {
+        name,
+        ty: Some(ty),
+        value: Some(value),
+        mutable,
+    }
+}
+
+fn request_model_binding(
+    stmt: &Stmt,
+    request: Option<&str>,
+    models: &Module,
+) -> Option<(String, Type)> {
+    let Stmt::Let {
+        name,
+        ty: Some(ty @ Type::Named { .. }),
+        value: Some(value),
+        ..
+    } = stmt
+    else {
+        return None;
+    };
+    let Type::Named { name: model, args } = ty else {
         unreachable!();
     };
     let declared = args.is_empty()
@@ -1128,7 +1205,7 @@ fn validate_request_model(stmt: Stmt, request: Option<&str>, models: &Module) ->
             .any(|item| matches!(item, Item::Record(record) if record.name == *model));
     let reads_request_json = request.is_some_and(|request| {
         matches!(
-            &value,
+            value,
             Expr::Await(inner)
                 if matches!(
                     inner.as_ref(),
@@ -1138,23 +1215,7 @@ fn validate_request_model(stmt: Stmt, request: Option<&str>, models: &Module) ->
                 )
         )
     });
-    let value = if declared && reads_request_json {
-        Expr::Call {
-            callee: Box::new(Expr::Field {
-                of: Box::new(Expr::Name(model.clone())),
-                name: "model_validate".into(),
-            }),
-            args: vec![value],
-        }
-    } else {
-        value
-    };
-    Stmt::Let {
-        name,
-        ty: Some(ty),
-        value: Some(value),
-        mutable,
-    }
+    (declared && reads_request_json).then(|| (name.clone(), ty.clone()))
 }
 
 /// What [`write`] produced: the Python text, and what it says about itself.

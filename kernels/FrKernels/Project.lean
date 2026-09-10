@@ -172,6 +172,28 @@ theorem nextjs_registration_requires_dependency (appRouterPath : Bool) :
     nextjsRegistrationAutomatic false appRouterPath = false := by
   cases appRouterPath <;> decide
 
+-- fr:spec src/project/framework_kernel.rs::fastapi_body_parameter_automatic @ 917a5d5e70786d7d2692a97244b5e5d3ba9cf1601a671a80bd78a3e28c81fa87
+-- fr:signature candidate_count: usize => candidateCount: Nat; path_collision: bool => pathCollision: Bool; query_collision: bool => queryCollision: Bool; return: bool => return: Bool
+def fastapiBodyParameterAutomatic
+    (candidateCount : Nat) (pathCollision : Bool) (queryCollision : Bool) : Bool :=
+  decide (candidateCount = 1) && !pathCollision && !queryCollision
+
+theorem fastapi_body_parameter_automatic_iff_unique_without_collision
+    (candidateCount : Nat) (pathCollision queryCollision : Bool) :
+    fastapiBodyParameterAutomatic candidateCount pathCollision queryCollision = true ↔
+      candidateCount = 1 ∧ pathCollision = false ∧ queryCollision = false := by
+  cases pathCollision <;> cases queryCollision <;> simp [fastapiBodyParameterAutomatic]
+
+theorem fastapi_body_parameter_rejects_path_collision
+    (candidateCount : Nat) (queryCollision : Bool) :
+    fastapiBodyParameterAutomatic candidateCount true queryCollision = false := by
+  cases queryCollision <;> simp [fastapiBodyParameterAutomatic]
+
+theorem fastapi_body_parameter_rejects_query_collision
+    (candidateCount : Nat) (pathCollision : Bool) :
+    fastapiBodyParameterAutomatic candidateCount pathCollision true = false := by
+  cases pathCollision <;> simp [fastapiBodyParameterAutomatic]
+
 -- fr:spec src/project.rs::path_confidence @ b5a8549e
 -- fr:signature edges: &[Confidence] => edges: List Nat; return: Confidence => return: Nat
 def pathConfidence (edges : List Nat) : Nat := edges.foldr max 0

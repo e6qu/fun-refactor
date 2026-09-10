@@ -136,13 +136,14 @@ The model does not establish filesystem containment or package-manager workspace
 Matcher proofs use propositional extensionality; the self-match proof also uses Lean's standard classical-choice and quotient-soundness axioms.
 The model does not prove parser correctness, snapshot-hash collision resistance or agent task success.
 
-The same project kernel anchors twelve framework policy helpers used after syntax recognition.
-Twenty-four theorems cover capped output, reverse middleware ranks, server-default hook rejection, valid FastAPI constructor-prefix shapes, migration policies and automatic Next.js registration.
+The same project kernel anchors thirteen framework policy helpers used after syntax recognition.
+Twenty-seven theorems cover capped output, reverse middleware ranks, server-default hook rejection, valid FastAPI prefixes, migration policies, registration and body promotion.
 They also bound every configuration, service-target and redaction classification to its declared finite tier.
-The executable comparison covers 279 Rust and Lean results across output limits, middleware positions, hook placement and every Boolean classification input.
+The executable comparison covers 324 Rust and Lean results across output limits, middleware positions, hook placement and finite classification inputs.
 The classification proofs use no axioms. The arithmetic and hook proofs report combinations of Lean's standard `propext`, `Quot.sound` and `Classical.choice` axioms; none uses a custom axiom or compiler-trust tactic.
 The migration laws require a change between the supported framework classes.
 They map gaps to unsupported work, recognized automatic kinds to automatic work and every other fact to an agent decision.
+FastAPI body promotion requires one direct typed JSON candidate and no path or query name collision.
 These laws receive facts that the readers already recognized.
 Fixtures cover framework parsing, kind classification, `use client`, environment-name prefixes, URL decomposition, runtime registration and report aggregation.
 

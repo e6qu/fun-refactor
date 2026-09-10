@@ -902,10 +902,11 @@ fn project_page_lengths_match_lean_including_integer_limits() {
 #[test]
 fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
     use fun_refactor::project::framework_kernel::{
-        component_hooks_compatible, configuration_visibility, fastapi_prefix_supported,
-        framework_emitted, framework_migration_supported, framework_omitted,
-        middleware_request_order, migration_disposition, migration_schema_agreement,
-        nextjs_registration_automatic, service_redaction_flags, service_target_kind,
+        component_hooks_compatible, configuration_visibility, fastapi_body_parameter_automatic,
+        fastapi_prefix_supported, framework_emitted, framework_migration_supported,
+        framework_omitted, middleware_request_order, migration_disposition,
+        migration_schema_agreement, nextjs_registration_automatic, service_redaction_flags,
+        service_target_kind,
     };
 
     build_kernel();
@@ -989,6 +990,20 @@ fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
         for app_router_path in [false, true] {
             expected
                 .push(nextjs_registration_automatic(declares_next, app_router_path).to_string());
+        }
+    }
+    for candidate_count in [0, 1, 2, 65536] {
+        for path_collision in [false, true] {
+            for query_collision in [false, true] {
+                expected.push(
+                    fastapi_body_parameter_automatic(
+                        candidate_count,
+                        path_collision,
+                        query_collision,
+                    )
+                    .to_string(),
+                );
+            }
         }
     }
     assert_eq!(actual, expected);

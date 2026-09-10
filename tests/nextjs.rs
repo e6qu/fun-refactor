@@ -496,3 +496,34 @@ fn a_fastapi_path_parameter_takes_the_type_the_source_declared() {
     );
     assert_eq!(typed("name"), "string", "a str one. {parameters:?}");
 }
+
+#[test]
+fn a_body_name_collision_keeps_explicit_request_materialization() {
+    let (_tmp, root) = workspace(&[(
+        "app/api/measurements/[payload]/route.ts",
+        r#"export interface Envelope {
+  source: string;
+  values: number[];
+}
+
+export async function POST(request: Request) {
+  const payload: Envelope = await request.json();
+  return payload;
+}
+"#,
+    )]);
+    let plan = nextjs::plan(&root.join("app/api/measurements/[payload]/route.ts")).unwrap();
+
+    assert!(
+        plan.output
+            .contains("async def post(payload: str, request: Request):"),
+        "{}",
+        plan.output
+    );
+    assert!(
+        plan.output
+            .contains("payload: Envelope = Envelope.model_validate(await request.json())"),
+        "{}",
+        plan.output
+    );
+}

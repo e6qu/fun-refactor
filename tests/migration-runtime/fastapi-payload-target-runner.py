@@ -15,7 +15,7 @@ class Request:
         return {
             "sensor_id": "sensor-4",
             "measuredAt": "2026-09-10T10:30:00Z",
-            "values": [3, 5, 8],
+            "values": [3.25, 5.5, 8.75],
         }
 
 
@@ -37,5 +37,6 @@ sys.modules["pydantic"] = pydantic
 spec = importlib.util.spec_from_file_location("generated", "services/readings.py")
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
-body = asyncio.run(module.post(Request()))
+reading = module.ReadingEnvelope.model_validate(asyncio.run(Request().json()))
+body = asyncio.run(module.post(Request(), reading))
 print(json.dumps({"status": 200, "body": body}, sort_keys=True))

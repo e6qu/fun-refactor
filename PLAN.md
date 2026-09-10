@@ -308,7 +308,7 @@ Verification and acceptance:
 
 ### PR 6. Verified Feature Migration
 
-Status: in progress on `verified_feature_migration`. The completed checkpoints add `fr migrate feature` for one revision-bound route feature whose methods share one source file. It supports Next.js App Router to FastAPI and the reverse direction. Preview, saved plans, writes, patch export, apply, undo and redo share the existing source-history transaction. The source stays present for coexistence. Exact endpoint agreement gates the generated destination. Placement under a captured Next.js package's `app` or `src/app` directory proves destination registration; other runtime registration and cutover remain agent decisions. Lean-backed policies restrict migration direction, fact disposition, schema inclusion and automatic Next.js registration. Generic Node and Python oracles execute source and generated handlers in both directions. They compare status and JSON bodies, including mixed-spelling request fields, scalar values and arrays. Canonical declared schema shapes are reparsed from generated code and must contain every translated source shape. Framework translators preserve field and path-parameter names that participate in runtime bindings. Direct typed Next.js JSON bindings become Pydantic model validation calls in generated FastAPI code. A separate clean Git receiver checks, applies, reverses and reapplies the exported patch, comparing exact generated and retained source bytes.
+Status: in progress on `verified_feature_migration`. The completed checkpoints add `fr migrate feature` for one revision-bound route feature whose methods share one source file. It supports Next.js App Router to FastAPI and the reverse direction. Preview, saved plans, writes, patch export, apply, undo and redo share the existing source-history transaction. The source stays present for coexistence. Exact endpoint agreement gates the generated destination. Placement under a captured Next.js package's `app` or `src/app` directory proves destination registration; other runtime registration and cutover remain agent decisions. Lean-backed policies restrict migration direction, fact disposition, schema inclusion, automatic Next.js registration and native FastAPI body promotion. Generic Node and Python oracles execute source and generated handlers in both directions. They compare status and JSON bodies, including mixed-spelling request fields, scalar values and arrays. Canonical declared schema shapes are reparsed from generated code and must contain every translated source shape. Framework translators preserve field and path-parameter names that participate in runtime bindings. One direct typed Next.js JSON binding becomes a native FastAPI body parameter when names do not collide. A pinned FastAPI, Pydantic and Starlette fixture mounts the generated router, matches a valid payload and observes a field-specific 422 response. A separate clean Git receiver checks, applies, reverses and reapplies the exported patch, comparing exact generated and retained source bytes.
 
 Goal: migrate one real feature through an inspectable, reversible high-level transformation.
 
@@ -323,8 +323,8 @@ Deliverables:
 
 Verification and acceptance:
 
-- Compile and execute the source and migrated feature in pinned projects. Handler-level Node and Python execution is complete. Installed-framework execution remains open.
-- Compare route and schema contracts with independent behavioral fixtures. Exact static endpoints, bounded handler results, mixed-spelling JSON payloads and generated declared schema shapes are covered. Framework validation behavior and full framework comparison remain open.
+- Compile and execute the source and migrated feature in pinned projects. Handler-level execution is complete. Installed FastAPI execution covers one direction; Next.js remains open.
+- Compare route and schema contracts with independent behavioral fixtures. Static endpoints, handler results, JSON payloads and declared shapes are covered. FastAPI body validation has bounded evidence.
 - Check middleware order, authentication, validation and lifecycle behavior wherever the migration claims preservation; the first checkpoint makes no such preservation claim.
 - Keep every unsupported construct visible in the final plan; complete for feature-model and translator gaps.
 - Apply the patch to a clean receiver and reproduce the result through exact undo and redo. The bounded transaction now checks, applies, reverses and reapplies in a separate Git repository.
@@ -406,7 +406,7 @@ The harness retains every attempted trial and keeps infrastructure failures sepa
 - Existing model proofs and executable comparisons do not establish general Rust implementation correspondence.
 - LSP delegation remains excluded from the default engine. Reconsider it only for measured tasks that need it.
 - Daemon/watch mode remains deferred until cache and repeated-query measurements justify it.
-- Feature migration currently covers one route source file across Next.js App Router and FastAPI. Installed-framework execution, connected build changes and cutover remain reviewed work.
+- Feature migration currently covers one route source file across Next.js App Router and FastAPI. Installed Next.js execution, connected build changes and cutover remain reviewed work.
 
 ## Further reading
 
