@@ -105,6 +105,10 @@ fn feature_migration_preview_binds_scope_and_separates_decisions() {
     assert_eq!(report["migration"]["coexistence"]["source_retained"], true);
     assert_eq!(report["contract"]["semantic_translation_agreement"], true);
     assert_eq!(
+        report["migration"]["coexistence"]["destination_registration"],
+        "agent-decision"
+    );
+    assert_eq!(
         report["contract"]["endpoints"],
         serde_json::json!([
             {"method": "GET", "url": "/api/pets"},
@@ -368,6 +372,67 @@ fn a_dynamic_fastapi_feature_previews_as_a_nextjs_app_route() {
         .path()
         .join("web/app/accounts/[account_id]/audit-log/route.ts")
         .exists());
+}
+
+#[test]
+fn a_captured_nextjs_app_registers_the_migrated_route_by_placement() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::create_dir_all(dir.path().join("web")).unwrap();
+    fs::write(
+        dir.path().join("web/package.json"),
+        "{\"private\":true,\"dependencies\":{\"next\":\"15.4.0\"}}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("routes.py"),
+        "from fastapi import APIRouter\n\nrouter = APIRouter()\n\n@router.get('/operations/{operation_id}')\nasync def read_operation(operation_id: str):\n    return {'operation_id': operation_id}\n",
+    )
+    .unwrap();
+    let feature = feature(dir.path());
+    let report = ok(
+        dir.path(),
+        &[
+            "migrate", "feature", &feature, "--to", "nextjs", "--out", "web/app",
+        ],
+    );
+    assert_eq!(
+        report["migration"]["target_application"]["manifest"],
+        "web/package.json"
+    );
+    assert_eq!(
+        report["migration"]["coexistence"]["destination_registration"],
+        "automatic"
+    );
+    assert!(report["steps"]["automatic"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|step| step["action"] == "register-nextjs-route-by-app-router-placement"));
+    assert_eq!(
+        report["steps"]["agent_decisions"].as_array().unwrap().len(),
+        1
+    );
+    assert!(!dir
+        .path()
+        .join("web/app/operations/[operation_id]/route.ts")
+        .exists());
+
+    let src_report = ok(
+        dir.path(),
+        &[
+            "migrate",
+            "feature",
+            &feature,
+            "--to",
+            "nextjs",
+            "--out",
+            "web/src/app",
+        ],
+    );
+    assert_eq!(
+        src_report["migration"]["coexistence"]["destination_registration"],
+        "automatic"
+    );
 }
 
 #[test]

@@ -136,8 +136,8 @@ The model does not establish filesystem containment or package-manager workspace
 Matcher proofs use propositional extensionality; the self-match proof also uses Lean's standard classical-choice and quotient-soundness axioms.
 The model does not prove parser correctness, snapshot-hash collision resistance or agent task success.
 
-The same project kernel anchors ten framework policy helpers used after syntax recognition.
-Twenty theorems cover capped output, reverse middleware ranks, server-default hook rejection, valid FastAPI constructor-prefix shapes, migration direction and migration fact disposition.
+The same project kernel anchors twelve framework policy helpers used after syntax recognition.
+Twenty-four theorems cover capped output, reverse middleware ranks, server-default hook rejection, valid FastAPI constructor-prefix shapes, migration policies and automatic Next.js registration.
 They also bound every configuration, service-target and redaction classification to its declared finite tier.
 The executable comparison covers 279 Rust and Lean results across output limits, middleware positions, hook placement and every Boolean classification input.
 The classification proofs use no axioms. The arithmetic and hook proofs report combinations of Lean's standard `propext`, `Quot.sound` and `Classical.choice` axioms; none uses a custom axiom or compiler-trust tactic.

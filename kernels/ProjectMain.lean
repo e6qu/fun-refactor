@@ -74,6 +74,9 @@ def main (args : List String) : IO Unit := do
     for expected in schemaSamples do
       for generated in schemaSamples do
         IO.println (migrationSchemaAgreement expected generated)
+    for declaresNext in [false, true] do
+      for appRouterPath in [false, true] do
+        IO.println (nextjsRegistrationAutomatic declaresNext appRouterPath)
   else if args == ["selection-conflicts"] then
     for leftStart in samples do
       for leftEnd in samples do

@@ -157,6 +157,21 @@ theorem migration_schema_agreement_reflexive (shapes : List String) :
     migrationSchemaAgreement shapes shapes = true := by
   simp [migrationSchemaAgreement]
 
+-- fr:spec src/project/framework_kernel.rs::nextjs_registration_automatic @ 1b11251331a535bbe2f7ecebe93bc4d6ea8937469de89d774eff03ef0db87db0
+-- fr:signature declares_next: bool => declaresNext: Bool; app_router_path: bool => appRouterPath: Bool; return: bool => return: Bool
+def nextjsRegistrationAutomatic (declaresNext : Bool) (appRouterPath : Bool) : Bool :=
+  declaresNext && appRouterPath
+
+theorem nextjs_registration_automatic_iff_evidence
+    (declaresNext appRouterPath : Bool) :
+    nextjsRegistrationAutomatic declaresNext appRouterPath = true ↔
+      declaresNext = true ∧ appRouterPath = true := by
+  cases declaresNext <;> cases appRouterPath <;> decide
+
+theorem nextjs_registration_requires_dependency (appRouterPath : Bool) :
+    nextjsRegistrationAutomatic false appRouterPath = false := by
+  cases appRouterPath <;> decide
+
 -- fr:spec src/project.rs::path_confidence @ b5a8549e
 -- fr:signature edges: &[Confidence] => edges: List Nat; return: Confidence => return: Nat
 def pathConfidence (edges : List Nat) : Nat := edges.foldr max 0

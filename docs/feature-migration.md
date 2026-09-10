@@ -29,7 +29,9 @@ Each selected semantic fact has one disposition:
 - `unsupported` covers explicit semantic gaps and translator notes.
 
 The first automatic step translates the selected route file.
-Application registration and final cutover remain agent decisions because composition and deployment conventions vary by project.
+For a destination under `app` or `src/app`, a captured package manifest with a string-valued Next.js dependency proves registration by route placement.
+The report binds that target application and makes registration a second automatic step.
+FastAPI router composition, unrecognized targets and final cutover remain agent decisions because their application wiring varies by project.
 The plan does not claim full framework runtime, middleware, authentication, validation, lifecycle or wire-schema equivalence.
 
 The command keeps the source route and adds the destination.
@@ -76,4 +78,4 @@ Next.js dynamic path names also retain their spelling because the route placehol
 This check covers declarations and supported types.
 It does not establish aliases, requiredness, defaults, validators, serialization settings, OpenAPI output or runtime request and response validation.
 
-Current follow-up work adds registered framework fixtures, runtime schema comparisons, connected build and test edits, and a reviewed cutover stage.
+Current follow-up work adds framework-runtime fixtures, runtime schema comparisons, remaining connected build and test edits, and a reviewed cutover stage.

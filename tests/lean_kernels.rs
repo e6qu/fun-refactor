@@ -905,7 +905,7 @@ fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
         component_hooks_compatible, configuration_visibility, fastapi_prefix_supported,
         framework_emitted, framework_migration_supported, framework_omitted,
         middleware_request_order, migration_disposition, migration_schema_agreement,
-        service_redaction_flags, service_target_kind,
+        nextjs_registration_automatic, service_redaction_flags, service_target_kind,
     };
 
     build_kernel();
@@ -983,6 +983,12 @@ fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
         for generated_shapes in &schema_samples {
             expected
                 .push(migration_schema_agreement(expected_shapes, generated_shapes).to_string());
+        }
+    }
+    for declares_next in [false, true] {
+        for app_router_path in [false, true] {
+            expected
+                .push(nextjs_registration_automatic(declares_next, app_router_path).to_string());
         }
     }
     assert_eq!(actual, expected);

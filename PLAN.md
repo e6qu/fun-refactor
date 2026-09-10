@@ -308,16 +308,16 @@ Verification and acceptance:
 
 ### PR 6. Verified Feature Migration
 
-Status: in progress on `verified_feature_migration`. The first checkpoints add `fr migrate feature` for one revision-bound route feature whose methods share one source file. It supports Next.js App Router to FastAPI and the reverse direction. Preview, saved plans, writes, patch export, apply, undo and redo share the existing source-history transaction. The source stays present for coexistence. Exact endpoint agreement gates the generated destination, while runtime registration and cutover remain explicit agent decisions. Lean-backed policies restrict migration to a framework boundary and assign each semantic fact to automatic, agent-decision or unsupported work. Generic Node and Python oracles execute source and generated handlers in both directions and compare status and JSON bodies. Canonical declared schema shapes are reparsed from generated code and must contain every translated source shape. Framework translators preserve field and path-parameter names that participate in runtime bindings. A separate clean Git receiver checks, applies, reverses and reapplies the exported patch, comparing exact generated and retained source bytes.
+Status: in progress on `verified_feature_migration`. The first checkpoints add `fr migrate feature` for one revision-bound route feature whose methods share one source file. It supports Next.js App Router to FastAPI and the reverse direction. Preview, saved plans, writes, patch export, apply, undo and redo share the existing source-history transaction. The source stays present for coexistence. Exact endpoint agreement gates the generated destination. Placement under a captured Next.js package's `app` or `src/app` directory proves destination registration; other runtime registration and cutover remain agent decisions. Lean-backed policies restrict migration direction, fact disposition, schema inclusion and automatic Next.js registration. Generic Node and Python oracles execute source and generated handlers in both directions and compare status and JSON bodies. Canonical declared schema shapes are reparsed from generated code and must contain every translated source shape. Framework translators preserve field and path-parameter names that participate in runtime bindings. A separate clean Git receiver checks, applies, reverses and reapplies the exported patch, comparing exact generated and retained source bytes.
 
 Goal: migrate one real feature through an inspectable, reversible high-level transformation.
 
 Deliverables:
 
 - Move or translate a bounded feature using the framework semantic model; complete for a one-file route feature in both supported directions.
-- Update connected routes, handlers, schemas, callers, components, build settings and tests; route and handler translation is present, while connected project edits remain open.
+- Update connected routes, handlers, schemas, callers, components, build settings and tests. Route placement registers a destination in captured Next.js App Router packages; other connected project edits remain open.
 - Separate automatic steps, agent decisions and unsupported behavior in the migration plan; complete for the current semantic facts and translator gaps.
-- Allow source and destination frameworks to coexist during an incremental migration; complete at the source transaction level, with runtime composition still open.
+- Allow source and destination frameworks to coexist during an incremental migration. Source transactions and registered Next.js destinations support coexistence; cross-runtime composition remains open.
 - Produce one reviewed source-history transaction and one Git patch; complete through saved plans and existing history patch export.
 - Preserve mixed-framework operation until the feature cutover completes; source retention is enforced, while executable coexistence evidence remains open.
 

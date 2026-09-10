@@ -14,7 +14,7 @@ Runtime registration and cutover stay as named agent decisions.
 Preview, saved plans and writes use the existing source-history transaction, so patch checks, export, apply, undo and redo remain available.
 Four CLI integration cases cover both migration directions, refusal boundaries and exact forward undo/redo replay.
 Three newly anchored framework policies constrain supported directions, disposition classes and declared schema inclusion.
-Twenty-two framework theorems now cover eleven helpers, with 304 shared Rust and Lean results.
+Twenty-four framework theorems now cover twelve helpers, with 308 shared Rust and Lean results.
 The checkpoint has strict syntax, endpoint-contract and declared-schema evidence; full framework behavior, runtime schema validation and connected project edits remain next.
 The second PR 6 checkpoint adds generic runtime oracles for both migration directions.
 A telemetry handler runs through Node before migration and through generated Python afterward.
@@ -30,6 +30,9 @@ The fourth checkpoint applies an exported migration patch in a separate clean Gi
 The receiver checks, applies, reverses and reapplies the patch, comparing the retained source and generated destination exactly.
 That generic operations-route fixture exposed a route-binding bug: a Next.js `[operationId]` segment became `{operation_id}` while its source context still used `operationId`.
 Framework migration now preserves dynamic parameter spelling in both the FastAPI route and handler signature, and generated documentation records the corrected contract.
+The fifth checkpoint recognizes destination registration when a captured Next.js dependency owns an `app` or `src/app` output path.
+The migration report binds that target application and classifies route placement as automatic; unknown targets and FastAPI router composition remain agent decisions.
+Lean proves that automatic registration requires both pieces of evidence, and shared execution checks every Boolean combination against Rust.
 Roadmap PR 5's first checkpoint added `fr project features` for bounded Next.js App Router and FastAPI hierarchies.
 Applications contain exact-route-path feature candidates, which contain routes, handlers, contract fields, schema references and expanded same-file schema candidates.
 Every fact carries a parent, source anchor, status, confidence, validation basis and explicit gaps.

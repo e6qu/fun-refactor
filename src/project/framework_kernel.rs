@@ -59,3 +59,7 @@ pub fn migration_disposition(gap: bool, automatic_kind: bool) -> usize {
 pub fn migration_schema_agreement(expected: &[String], generated: &[String]) -> bool {
     expected.iter().all(|shape| generated.contains(shape))
 }
+
+pub fn nextjs_registration_automatic(declares_next: bool, app_router_path: bool) -> bool {
+    declares_next && app_router_path
+}

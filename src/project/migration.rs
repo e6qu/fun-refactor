@@ -260,6 +260,43 @@ fn fact_disposition(row: &Value) -> &'static str {
     }
 }
 
+fn nextjs_target_application(project: &Project<'_>, out: &Path) -> Option<Value> {
+    let parent = out.parent()?;
+    let mut roots = vec![parent];
+    if parent.file_name().is_some_and(|name| name == "src") {
+        roots.push(parent.parent().unwrap_or(Path::new("")));
+    }
+    for root in roots {
+        let app_path = out.strip_prefix(root).ok()?;
+        let app_router_path = app_path == Path::new("app") || app_path == Path::new("src/app");
+        if !app_router_path {
+            continue;
+        }
+        let manifest = root.join("package.json");
+        let Some(document) = project.manifests.documents.get(&manifest) else {
+            continue;
+        };
+        let declares_next = ["dependencies", "devDependencies"].iter().any(|section| {
+            document[*section]["next"]
+                .as_str()
+                .is_some_and(|version| !version.trim().is_empty())
+        });
+        if !crate::project::framework_kernel::nextjs_registration_automatic(
+            declares_next,
+            app_router_path,
+        ) {
+            return None;
+        }
+        return Some(json!({
+            "framework": "nextjs-app",
+            "root": if root.as_os_str().is_empty() { "." } else { root.to_str()? },
+            "manifest": manifest,
+            "basis": "captured-nextjs-dependency-and-app-router-path",
+        }));
+    }
+    None
+}
+
 impl Project<'_> {
     pub fn migrate_feature(&self, options: &Options) -> Result<Plan> {
         ensure!(
@@ -457,6 +494,35 @@ impl Project<'_> {
             .iter()
             .map(|(method, url)| json!({"method": method, "url": url}))
             .collect::<Vec<_>>();
+        let target_application = match options.to {
+            Target::Nextjs => nextjs_target_application(self, &options.out),
+            Target::Fastapi => None,
+        };
+        let registration_automatic = target_application.is_some();
+        let mut automatic_steps = vec![json!({
+            "order": 1,
+            "action": "translate-selected-route-file",
+            "validation": ["selected-feature-revision", "semantic-translation-endpoint-agreement", "declared-schema-translation-agreement", "reparse-strict"],
+        })];
+        let mut agent_decisions = Vec::new();
+        if registration_automatic {
+            automatic_steps.push(json!({
+                "order": 2,
+                "action": "register-nextjs-route-by-app-router-placement",
+                "validation": ["captured-nextjs-dependency", "app-or-src-app-destination"],
+            }));
+        } else {
+            agent_decisions.push(json!({
+                "order": 2,
+                "action": "register-destination-with-application",
+                "reason": "No captured target application proves automatic runtime registration.",
+            }));
+        }
+        agent_decisions.push(json!({
+            "order": 3,
+            "action": "cut-over-and-remove-source-route",
+            "reason": "The preview keeps both frameworks available until independent behavior checks pass.",
+        }));
         let mut report = self.envelope("migration");
         report["migration"] = json!({
             "id": migration_id,
@@ -465,9 +531,11 @@ impl Project<'_> {
             "target_framework": options.to,
             "source_files": source_paths,
             "destination_files": destinations_relative,
+            "target_application": target_application,
             "coexistence": {
                 "source_retained": true,
                 "destination_added": true,
+                "destination_registration": if registration_automatic { "automatic" } else { "agent-decision" },
                 "cutover_applied": false,
             },
         });
@@ -483,23 +551,8 @@ impl Project<'_> {
             },
         });
         report["steps"] = json!({
-            "automatic": [{
-                "order": 1,
-                "action": "translate-selected-route-file",
-                "validation": ["selected-feature-revision", "semantic-translation-endpoint-agreement", "declared-schema-translation-agreement", "reparse-strict"],
-            }],
-            "agent_decisions": [
-                {
-                    "order": 2,
-                    "action": "register-destination-with-application",
-                    "reason": "Application composition and runtime registration remain project-specific.",
-                },
-                {
-                    "order": 3,
-                    "action": "cut-over-and-remove-source-route",
-                    "reason": "The preview keeps both frameworks available until independent behavior checks pass.",
-                }
-            ],
+            "automatic": automatic_steps,
+            "agent_decisions": agent_decisions,
             "unsupported": unsupported,
         });
         report["facts"] = json!(facts);
