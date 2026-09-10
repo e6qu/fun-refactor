@@ -16,6 +16,11 @@ Four CLI integration cases cover both migration directions, refusal boundaries a
 Two newly anchored framework policies constrain supported directions and disposition classes.
 Twenty framework theorems now cover ten helpers, with 279 shared Rust and Lean results.
 The checkpoint has strict syntax and endpoint-contract evidence; executable framework behavior, schema comparison and connected project edits remain next.
+The second PR 6 checkpoint adds generic runtime oracles for both migration directions.
+A telemetry handler runs through Node before migration and through generated Python afterward.
+A parameterized metrics handler runs through Python before migration and through generated Node afterward.
+Each oracle compares the exact status and JSON body.
+The harness uses minimal registration stubs, so it establishes handler behavior without claiming framework middleware, dependency injection, startup or deployment behavior.
 Roadmap PR 5's first checkpoint added `fr project features` for bounded Next.js App Router and FastAPI hierarchies.
 Applications contain exact-route-path feature candidates, which contain routes, handlers, contract fields, schema references and expanded same-file schema candidates.
 Every fact carries a parent, source anchor, status, confidence, validation basis and explicit gaps.

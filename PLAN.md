@@ -308,7 +308,7 @@ Verification and acceptance:
 
 ### PR 6. Verified Feature Migration
 
-Status: in progress on `verified_feature_migration`. The first checkpoint adds `fr migrate feature` for one revision-bound route feature whose methods share one source file. It supports Next.js App Router to FastAPI and the reverse direction. Preview, saved plans, writes, patch export, apply, undo and redo share the existing source-history transaction. The source stays present for coexistence. Exact endpoint agreement gates the generated destination, while runtime registration and cutover remain explicit agent decisions. Lean-backed policies restrict migration to a framework boundary and assign each semantic fact to automatic, agent-decision or unsupported work.
+Status: in progress on `verified_feature_migration`. The first checkpoint adds `fr migrate feature` for one revision-bound route feature whose methods share one source file. It supports Next.js App Router to FastAPI and the reverse direction. Preview, saved plans, writes, patch export, apply, undo and redo share the existing source-history transaction. The source stays present for coexistence. Exact endpoint agreement gates the generated destination, while runtime registration and cutover remain explicit agent decisions. Lean-backed policies restrict migration to a framework boundary and assign each semantic fact to automatic, agent-decision or unsupported work. Generic Node and Python oracles now execute source and generated handlers in both directions and compare status and JSON bodies.
 
 Goal: migrate one real feature through an inspectable, reversible high-level transformation.
 
@@ -323,8 +323,8 @@ Deliverables:
 
 Verification and acceptance:
 
-- Compile and execute the source and migrated feature in pinned projects; open.
-- Compare route and schema contracts with independent behavioral fixtures; exact static endpoint agreement is complete, while runtime and schema comparison remain open.
+- Compile and execute the source and migrated feature in pinned projects; handler-level Node and Python execution is complete, while registered framework execution remains open.
+- Compare route and schema contracts with independent behavioral fixtures. Exact static endpoints and bounded handler results are covered; schema and full framework comparison remain open.
 - Check middleware order, authentication, validation and lifecycle behavior wherever the migration claims preservation; the first checkpoint makes no such preservation claim.
 - Keep every unsupported construct visible in the final plan; complete for feature-model and translator gaps.
 - Apply the patch to a clean receiver and reproduce the result through exact undo and redo. History replay checks pass; an external receiver fixture remains open.

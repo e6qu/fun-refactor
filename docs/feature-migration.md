@@ -50,4 +50,13 @@ The anchored disposition policy maps gaps to unsupported work, supported automat
 Lean proves these finite policies, and shared execution compares their complete Boolean domains with Rust.
 Parser recognition, endpoint extraction, kind assignment, translation, filesystem history and framework runtime behavior remain outside those proofs.
 
-Current follow-up work adds executable source and destination fixtures, independent schema and behavior comparisons, connected build and test edits, and a reviewed cutover stage.
+## Runtime evidence
+
+The integration suite executes generic source and generated handlers in both directions.
+One case crosses from Next.js TypeScript to FastAPI Python, and one crosses from FastAPI Python to Next.js TypeScript.
+The cases use telemetry and parameterized metrics routes, then compare status and JSON bodies exactly.
+Node and Python execute the handlers, while small stubs supply decorator registration.
+This evidence covers handler behavior in the supported constructs.
+It does not cover framework middleware, dependency injection, validation, startup, routing registration or deployment.
+
+Current follow-up work adds registered framework fixtures, independent schema comparisons, connected build and test edits, and a reviewed cutover stage.
