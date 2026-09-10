@@ -605,7 +605,7 @@ stays: nobody can read a deleted input back out of the diff.
 
 ```sh
 fr migrate feature <FEATURE-ID> --to fastapi --out migrated/pets.py \
-  --register-with service/main.py::app
+  --register-with service/main.py::app --cutover --save-plan
 fr migrate feature <FEATURE-ID> --to nextjs --out web/app
 ```
 
@@ -619,6 +619,9 @@ The source remains present while the caller validates runtime behavior and revie
 For a FastAPI destination, `--register-with PATH::APP_SYMBOL` can import and mount the generated router in one recognized application file as part of the same transaction.
 The command refuses an unknown binding, invalid module path or direct endpoint conflict.
 Composition through other included routers and source removal remain separate reviewed decisions.
+`--cutover` removes the source route in the migration transaction when registration is automatic and no resolved external source reference exists.
+The flag records explicit cutover intent; it does not claim that project checks passed.
+Use `--save-plan` to review the deletion, apply it through history, run declared checks and undo the transaction if they fail.
 
 Preview is the default. `--save-plan` records the transaction without applying it, while `--write` records and applies it.
 `fr history patch`, `apply`, `undo` and `redo` then use the same checked transaction.

@@ -905,8 +905,9 @@ fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
         component_hooks_compatible, configuration_visibility, fastapi_body_parameter_automatic,
         fastapi_prefix_supported, fastapi_registration_automatic, framework_emitted,
         framework_migration_supported, framework_omitted, middleware_request_order,
-        migration_disposition, migration_schema_agreement, nextjs_body_validation_automatic,
-        nextjs_registration_automatic, service_redaction_flags, service_target_kind,
+        migration_cutover_automatic, migration_disposition, migration_schema_agreement,
+        nextjs_body_validation_automatic, nextjs_registration_automatic, service_redaction_flags,
+        service_target_kind,
     };
 
     build_kernel();
@@ -1021,6 +1022,20 @@ fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
                         explicit_target,
                         application_binding,
                         endpoint_conflict,
+                    )
+                    .to_string(),
+                );
+            }
+        }
+    }
+    for explicit_cutover in [false, true] {
+        for registration_automatic in [false, true] {
+            for external_references in [false, true] {
+                expected.push(
+                    migration_cutover_automatic(
+                        explicit_cutover,
+                        registration_automatic,
+                        external_references,
                     )
                     .to_string(),
                 );

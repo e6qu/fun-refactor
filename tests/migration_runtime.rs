@@ -273,7 +273,7 @@ fn generated_fastapi_router_runs_through_the_explicit_application_registration()
     fs::create_dir_all(route.parent().unwrap()).unwrap();
     fs::create_dir_all(dir.path().join("backend/routes")).unwrap();
     fs::write(
-        route,
+        &route,
         "export async function GET() {\n  return Response.json({ state: \"ready\" });\n}\n",
     )
     .unwrap();
@@ -297,6 +297,7 @@ fn generated_fastapi_router_runs_through_the_explicit_application_registration()
             "backend/routes/signals.py",
             "--register-with",
             "backend/main.py::application",
+            "--cutover",
             "--write",
         ],
     );
@@ -304,6 +305,7 @@ fn generated_fastapi_router_runs_through_the_explicit_application_registration()
         report["migration"]["coexistence"]["destination_registration"],
         "automatic"
     );
+    assert!(!route.exists());
     fs::write(
         dir.path().join("registered-runner.py"),
         include_str!("migration-runtime/fastapi-registered-runner.py"),

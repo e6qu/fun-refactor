@@ -2153,23 +2153,43 @@ fn cmd_migrate(cli: &Cli, command: &crate::project::migration::Command) -> Resul
         let mut plan = project.migrate_feature(options)?;
         let outcomes = crate::edit::plan(&plan.edits, crate::edit::Validation::ReparseStrict)?;
         project.verify(root)?;
-        let diff = outcomes
+        let mut diff = outcomes
             .iter()
             .map(|outcome| workspace_diff(cli, outcome))
             .collect::<String>();
+        if let Some(removal) = &plan.source_removal {
+            let shown = shown_path(root, &removal.path);
+            diff.push_str(&crate::edit::unified_diff(&removal.original, "", &shown));
+        }
         plan.set_diff(&diff, options.diff_bytes);
-        let recorded = persist_changes_with_status(
-            cli,
-            &outcomes
-                .iter()
-                .map(crate::edit::FileChange::from)
-                .collect::<Vec<_>>(),
-            options.write,
-            "feature-migration-reparse-strict",
-        )?;
+        let changes = outcomes
+            .iter()
+            .map(crate::edit::FileChange::from)
+            .collect::<Vec<_>>();
+        let removals = plan
+            .source_removal
+            .iter()
+            .map(|removal| crate::history::FileRemoval {
+                path: &removal.path,
+                original: &removal.original,
+            })
+            .collect::<Vec<_>>();
+        let recorded = if options.write || cli.save_plan {
+            crate::history::record_with_removals_status(
+                &cli.root,
+                &changes,
+                &removals,
+                options.write,
+                "feature-migration-reparse-strict",
+            )?
+        } else {
+            None
+        };
         let transaction = recorded.map(|result| result.id);
         plan.report["transaction"] = serde_json::json!(transaction);
         plan.report["applied"] = serde_json::json!(options.write && transaction.is_some());
+        plan.report["migration"]["coexistence"]["cutover_applied"] =
+            serde_json::json!(options.cutover && options.write && transaction.is_some());
         plan.report["saved"] =
             serde_json::json!(cli.save_plan && recorded.is_some_and(|result| result.created));
         if recorded.is_some_and(|result| !result.created) {

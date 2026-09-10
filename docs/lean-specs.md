@@ -136,16 +136,17 @@ The model does not establish filesystem containment or package-manager workspace
 Matcher proofs use propositional extensionality; the self-match proof also uses Lean's standard classical-choice and quotient-soundness axioms.
 The model does not prove parser correctness, snapshot-hash collision resistance or agent task success.
 
-The same project kernel anchors fifteen framework policy helpers used after syntax recognition.
-Thirty-three theorems cover capped output, reverse middleware ranks, server-default hook rejection, valid FastAPI prefixes, migration policies, registration, body promotion and generated body-validation eligibility.
+The same project kernel anchors sixteen framework policy helpers used after syntax recognition.
+Thirty-six theorems cover capped output, reverse middleware ranks, server-default hook rejection, valid FastAPI prefixes, migration policies, registration, body promotion, validation and cutover eligibility.
 They also bound every configuration, service-target and redaction classification to its declared finite tier.
-The executable comparison covers 340 Rust and Lean results across output limits, middleware positions, hook placement and finite classification inputs.
+The executable comparison covers 348 Rust and Lean results across output limits, middleware positions, hook placement and finite classification inputs.
 The classification proofs use no axioms. The arithmetic and hook proofs report combinations of Lean's standard `propext`, `Quot.sound` and `Classical.choice` axioms; none uses a custom axiom or compiler-trust tactic.
 The migration laws require a change between the supported framework classes.
 They map gaps to unsupported work, recognized automatic kinds to automatic work and every other fact to an agent decision.
 FastAPI body promotion requires one direct typed JSON candidate and no path or query name collision.
 Generated Next.js validation requires exactly one body-model candidate and a fully supported structural shape.
 Automatic FastAPI registration requires an explicit target, a recognized application binding and no direct endpoint conflict.
+Automatic source cutover requires explicit intent, automatic destination registration and no resolved external source reference.
 These laws receive facts that the readers already recognized.
 Fixtures cover framework parsing, kind classification, `use client`, environment-name prefixes, URL decomposition, source edits, runtime registration and report aggregation.
 

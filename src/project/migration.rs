@@ -36,6 +36,11 @@ pub struct Options {
     pub register_with: Option<String>,
     #[arg(
         long,
+        help = "Remove the source route in the same transaction after registration checks."
+    )]
+    pub cutover: bool,
+    #[arg(
+        long,
         default_value_t = 4096,
         help = "Maximum UTF-8 diff bytes, from 0 through 65536."
     )]
@@ -66,7 +71,13 @@ impl Target {
 
 pub struct Plan {
     pub edits: EditSet,
+    pub source_removal: Option<SourceRemoval>,
     pub report: Value,
+}
+
+pub struct SourceRemoval {
+    pub path: PathBuf,
+    pub original: String,
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize)]
@@ -471,6 +482,23 @@ fn nextjs_target_application(project: &Project<'_>, out: &Path) -> Option<Value>
     None
 }
 
+fn source_has_external_references(project: &Project<'_>, source: &Path) -> bool {
+    let Some((_, file)) = project
+        .index
+        .files()
+        .find(|(path, _)| path.as_path() == source)
+    else {
+        return true;
+    };
+    file.symbols.iter().any(|symbol| {
+        project
+            .index
+            .references_to(*symbol)
+            .into_iter()
+            .any(|reference| reference.file != source)
+    })
+}
+
 impl Project<'_> {
     pub fn migrate_feature(&self, options: &Options) -> Result<Plan> {
         ensure!(
@@ -649,6 +677,27 @@ impl Project<'_> {
                 )
             })
             .transpose()?;
+        let target_application = match options.to {
+            Target::Nextjs => nextjs_target_application(self, &options.out),
+            Target::Fastapi => registration
+                .as_ref()
+                .map(|registration| registration.report.clone()),
+        };
+        let registration_automatic = target_application.is_some();
+        let external_references = source_has_external_references(self, &source);
+        ensure!(
+            !options.cutover
+                || crate::project::framework_kernel::migration_cutover_automatic(
+                    true,
+                    registration_automatic,
+                    external_references,
+                ),
+            "--cutover requires automatic destination registration and no resolved external source references."
+        );
+        let source_removal = options.cutover.then(|| SourceRemoval {
+            path: source.clone(),
+            original: self.sources[&source].clone(),
+        });
 
         let facts = items
             .iter()
@@ -686,19 +735,13 @@ impl Project<'_> {
                 options.to.name(),
                 &options.out,
                 &options.register_with,
+                options.cutover,
             ))?[..32]
         );
         let endpoints = semantic_endpoints
             .iter()
             .map(|(method, url)| json!({"method": method, "url": url}))
             .collect::<Vec<_>>();
-        let target_application = match options.to {
-            Target::Nextjs => nextjs_target_application(self, &options.out),
-            Target::Fastapi => registration
-                .as_ref()
-                .map(|registration| registration.report.clone()),
-        };
-        let registration_automatic = target_application.is_some();
         let mut automatic_steps = vec![json!({
             "order": 1,
             "action": "translate-selected-route-file",
@@ -725,11 +768,19 @@ impl Project<'_> {
                 "reason": "No captured target application proves automatic runtime registration.",
             }));
         }
-        agent_decisions.push(json!({
-            "order": 3,
-            "action": "cut-over-and-remove-source-route",
-            "reason": "The preview keeps both frameworks available until independent behavior checks pass.",
-        }));
+        if options.cutover {
+            automatic_steps.push(json!({
+                "order": 3,
+                "action": "remove-source-route-after-explicit-cutover",
+                "validation": ["explicit-cutover", "automatic-destination-registration", "no-resolved-external-source-references", "source-snapshot"],
+            }));
+        } else {
+            agent_decisions.push(json!({
+                "order": 3,
+                "action": "run-independent-checks-then-cut-over",
+                "reason": "Project check results do not carry a durable source-snapshot receipt.",
+            }));
+        }
         let mut report = self.envelope("migration");
         report["migration"] = json!({
             "id": migration_id,
@@ -741,10 +792,12 @@ impl Project<'_> {
             "connected_files": registration.iter().map(|registration| &registration.path).collect::<Vec<_>>(),
             "target_application": target_application,
             "coexistence": {
-                "source_retained": true,
+                "source_retained": !options.cutover,
                 "destination_added": true,
                 "destination_registration": if registration_automatic { "automatic" } else { "agent-decision" },
+                "cutover_planned": options.cutover,
                 "cutover_applied": false,
+                "resolved_external_source_references": external_references,
             },
         });
         report["contract"] = json!({
@@ -765,7 +818,11 @@ impl Project<'_> {
         });
         report["facts"] = json!(facts);
         report["translation"] = fidelity;
-        report["scope"] = json!("One route-centered feature whose methods share one source file. FastAPI registration can join the transaction through an explicit application target. Source removal remains a later reviewed step.");
-        Ok(Plan { edits, report })
+        report["scope"] = json!("One route-centered feature whose methods share one source file. Registered destinations may use an explicit source-removal cutover. Runtime checks and unresolved project connections remain reviewed evidence.");
+        Ok(Plan {
+            edits,
+            source_removal,
+            report,
+        })
     }
 }

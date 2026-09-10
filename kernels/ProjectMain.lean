@@ -88,6 +88,10 @@ def main (args : List String) : IO Unit := do
       for applicationBinding in [false, true] do
         for endpointConflict in [false, true] do
           IO.println (fastapiRegistrationAutomatic explicitTarget applicationBinding endpointConflict)
+    for explicitCutover in [false, true] do
+      for registrationAutomatic in [false, true] do
+        for externalReferences in [false, true] do
+          IO.println (migrationCutoverAutomatic explicitCutover registrationAutomatic externalReferences)
   else if args == ["selection-conflicts"] then
     for leftStart in samples do
       for leftEnd in samples do

@@ -430,6 +430,11 @@ pub struct RecordResult {
     pub created: bool,
 }
 
+pub(crate) struct FileRemoval<'a> {
+    pub path: &'a Path,
+    pub original: &'a str,
+}
+
 pub fn record(
     root: &Path,
     changes: &[FileChange<'_>],
@@ -445,7 +450,17 @@ pub fn record_with_status(
     apply: bool,
     validation: &str,
 ) -> Result<Option<RecordResult>> {
-    if !changes.iter().any(|c| c.original != c.updated) {
+    record_with_removals_status(root, changes, &[], apply, validation)
+}
+
+pub(crate) fn record_with_removals_status(
+    root: &Path,
+    changes: &[FileChange<'_>],
+    removals: &[FileRemoval<'_>],
+    apply: bool,
+    validation: &str,
+) -> Result<Option<RecordResult>> {
+    if !changes.iter().any(|c| c.original != c.updated) && removals.is_empty() {
         return Ok(None);
     }
     let requested_root = std::path::absolute(root)?;
@@ -461,6 +476,15 @@ pub fn record_with_status(
     let mut paths = Vec::new();
     for change in changes.iter().filter(|c| c.original != c.updated) {
         let absolute = std::path::absolute(change.path)?;
+        let relative = absolute
+            .strip_prefix(&root)
+            .or_else(|_| absolute.strip_prefix(&requested_root))
+            .context("history targets must be inside the workspace root; choose -C accordingly")?;
+        paths.push(target(&root, relative)?);
+    }
+    let changed_paths = paths.len();
+    for removal in removals {
+        let absolute = std::path::absolute(removal.path)?;
         let relative = absolute
             .strip_prefix(&root)
             .or_else(|_| absolute.strip_prefix(&requested_root))
@@ -484,12 +508,12 @@ pub fn record_with_status(
     for (change, path) in changes
         .iter()
         .filter(|c| c.original != c.updated)
-        .zip(paths)
+        .zip(paths.iter().take(changed_paths))
     {
-        if !seen.insert(path.clone()) {
+        if !seen.insert(path.to_path_buf()) {
             bail!("duplicate history target {}", path.display());
         }
-        let before = snapshot(&path)?;
+        let before = snapshot(path)?;
         if before
             .as_ref()
             .is_some_and(|snapshot| snapshot.kind != SnapshotKind::Regular)
@@ -511,6 +535,23 @@ pub fn record_with_status(
             path: path.strip_prefix(&root)?.to_path_buf(),
             before,
             after,
+        });
+    }
+    for (removal, path) in removals.iter().zip(paths.iter().skip(changed_paths)) {
+        if !seen.insert(path.to_path_buf()) {
+            bail!("duplicate history target {}", path.display());
+        }
+        let before = snapshot(path)?;
+        let snapshot = before
+            .as_ref()
+            .with_context(|| format!("source removal target does not exist: {}", path.display()))?;
+        if snapshot.kind != SnapshotKind::Regular || snapshot.content != removal.original {
+            bail!("{} changed after planning", path.display());
+        }
+        stored.push(Change {
+            path: path.strip_prefix(&root)?.to_path_buf(),
+            before,
+            after: None,
         });
     }
     store_record(&mut history, stored, apply, validation).map(Some)

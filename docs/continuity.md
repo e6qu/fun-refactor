@@ -13,8 +13,8 @@ It retains the source route, adds the destination and classifies feature facts a
 Validated Next.js placement and explicit FastAPI application wiring can register destinations automatically; cutover stays a named agent decision.
 Preview, saved plans and writes use the existing source-history transaction, so patch checks, export, apply, undo and redo remain available.
 Four CLI integration cases cover both migration directions, refusal boundaries and exact forward undo/redo replay.
-Seven migration policies constrain supported directions, disposition classes, schema inclusion, registration, body promotion and generated body-validation eligibility.
-Thirty-three framework theorems now cover fifteen helpers, with 340 shared Rust and Lean results.
+Eight migration policies constrain supported directions, disposition classes, schema inclusion, registration, body promotion, generated body-validation and cutover eligibility.
+Thirty-six framework theorems now cover sixteen helpers, with 348 shared Rust and Lean results.
 The checkpoints have strict syntax, endpoint-contract, declared-schema and direct application-registration evidence; full framework behavior and remaining connected project edits stay open.
 The second PR 6 checkpoint adds generic runtime oracles for both migration directions.
 A telemetry handler runs through Node before migration and through generated Python afterward.
@@ -60,7 +60,13 @@ The command requires a captured, cleanly parsed Python file, one recognized Fast
 It generates a collision-free router alias, adds the import and `include_router` call, reparses the combined edit and records the application file beside the generated route for exact undo and redo.
 A pinned FastAPI fixture imports the edited application and serves the generic selected route through ASGI.
 The eligibility policy has three Lean theorems and eight shared Rust/Lean cases.
-Included or mounted routers, overlapping dynamic paths, middleware order, dependency and test configuration and cutover remain reviewed boundaries.
+Included or mounted routers, overlapping dynamic paths, middleware order and dependency or test configuration remain reviewed boundaries.
+The eleventh checkpoint adds explicit `--cutover` source removal to the migration transaction.
+It requires automatic destination registration and refuses a resolved reference from another source file to any indexed source symbol.
+The history layer records source absence beside generated and connected-file edits, so patch export, undo and redo preserve existence, bytes and modes.
+The pinned FastAPI fixture serves the generated route through the edited application after the source route disappears.
+Three Lean theorems characterize cutover eligibility, and all eight Boolean cases agree with Rust.
+Runtime imports, string paths, deployment routing, external callers and project-specific checks remain reviewed evidence outside the eligibility proof.
 Roadmap PR 5's first checkpoint added `fr project features` for bounded Next.js App Router and FastAPI hierarchies.
 Applications contain exact-route-path feature candidates, which contain routes, handlers, contract fields, schema references and expanded same-file schema candidates.
 Every fact carries a parent, source anchor, status, confidence, validation basis and explicit gaps.
@@ -759,4 +765,4 @@ Keep revision inputs, coverage and final source verification intact; require byt
 State the cache policy for the next autonomous cohort; existing trials explicitly disable it and their records remain immutable.
 The latest paired task requires one coordinated three-operation change across two crate roots. It passes, while `fr` still uses 23.8% more measured context in this single pair.
 Keep portable skill references selective and executable against the distributed binary.
-PR 6 is active. Continue with connected dependency and test evidence, then a reviewed cutover, as ordered in [PLAN.md](../PLAN.md).
+PR 6 is active. Continue with source-bound project-check evidence and connected dependency or test edits as ordered in [PLAN.md](../PLAN.md).

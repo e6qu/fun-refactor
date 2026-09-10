@@ -10,6 +10,8 @@ fr --json project features
 fr --json migrate feature frff1:... --to fastapi --out services/telemetry.py
 fr --json migrate feature frff1:... --to fastapi --out services/telemetry.py \
   --register-with services/main.py::app
+fr --save-plan --json migrate feature frff1:... --to fastapi \
+  --out services/telemetry.py --register-with services/main.py::app --cutover
 fr --save-plan --json migrate feature frff1:... --to fastapi --out services/telemetry.py
 ```
 
@@ -45,6 +47,13 @@ An explicit FastAPI registration edit shares that source-history transaction wit
 This supports an incremental period where both frameworks remain in the workspace.
 Executable coexistence still depends on independent behavior checks and the surrounding service configuration.
 
+`--cutover` changes that transaction to remove the source route after adding and registering the destination.
+It requires automatic destination registration and refuses any resolved reference from another source file to a symbol in the source route.
+The reference check cannot see runtime imports, string paths, deployment routing or external callers.
+The flag records explicit intent after those connections receive review; it does not record runtime-test evidence.
+Save and inspect the plan, apply it through history, run the declared project checks and undo it when a check fails.
+Patch export, exact undo and redo preserve the source file's existence as well as its bytes and mode.
+
 Preview changes no files.
 `--save-plan` records the migration, and `--write` records and applies it.
 The resulting history ID supports checked apply, patch export, undo and redo:
@@ -78,7 +87,7 @@ Node and Python execute the handlers, while small stubs supply decorator registr
 This evidence covers handler behavior and payload preservation in the supported constructs.
 The pinned FastAPI 0.141.1 fixture mounts the generated router through `include_router` and invokes its ASGI application.
 Pydantic 2.13.5 accepts the valid body, and an invalid array element produces a field-specific 422 response through Starlette 1.6.0.
-Another pinned fixture imports the application edited by `--register-with` and serves the selected generic route through that application.
+Another pinned fixture imports the application edited by `--register-with` after cutover and serves the selected generic route through that application.
 The reverse fixture places the generated route below a captured application manifest and starts Next.js 16.3.4 with React 19.3.0.
 It sends a real HTTP request to the registered `/events` route.
 Its valid response matches the FastAPI source exactly.
@@ -101,4 +110,4 @@ Next.js dynamic path names also retain their spelling because the route placehol
 This check covers declarations and supported types.
 It does not establish aliases, validators, constraints, serialization settings, OpenAPI output or response validation.
 
-Current follow-up work adds connected dependency and test configuration plus a reviewed cutover stage.
+Current follow-up work adds durable source-bound check evidence and connected dependency or test configuration when the destination needs it.

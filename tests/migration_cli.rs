@@ -255,6 +255,64 @@ fn explicit_fastapi_registration_joins_the_reversible_migration_transaction() {
 }
 
 #[test]
+fn explicit_cutover_removes_and_restores_the_source_in_the_migration_transaction() {
+    let dir = tempfile::tempdir().unwrap();
+    let route = dir.path().join("app/signals/route.ts");
+    fs::create_dir_all(route.parent().unwrap()).unwrap();
+    fs::create_dir_all(dir.path().join("backend")).unwrap();
+    let original_route =
+        "export async function GET() { return Response.json({ state: \"ready\" }); }\n";
+    fs::write(&route, original_route).unwrap();
+    let application = dir.path().join("backend/main.py");
+    let original_application = "from fastapi import FastAPI\n\napplication = FastAPI()\n";
+    fs::write(&application, original_application).unwrap();
+    let selected = feature_for_framework(dir.path(), "nextjs-app");
+    let args = [
+        "migrate",
+        "feature",
+        &selected,
+        "--to",
+        "fastapi",
+        "--out",
+        "backend/routes/signals.py",
+        "--register-with",
+        "backend/main.py::application",
+        "--cutover",
+    ];
+    let preview = ok(dir.path(), &args);
+    assert_eq!(preview["migration"]["coexistence"]["cutover_planned"], true);
+    assert_eq!(
+        preview["migration"]["coexistence"]["cutover_applied"],
+        false
+    );
+    assert!(route.exists());
+    let mut write_args = args.to_vec();
+    write_args.push("--write");
+    let report = ok(dir.path(), &write_args);
+    assert_eq!(report["migration"]["coexistence"]["source_retained"], false);
+    assert_eq!(report["migration"]["coexistence"]["cutover_applied"], true);
+    assert!(!route.exists());
+    assert!(dir.path().join("backend/routes/signals.py").exists());
+    let registered = fs::read_to_string(&application).unwrap();
+
+    let patch = ok(dir.path(), &["history", "patch", "1"]);
+    assert!(patch["patch"]
+        .as_str()
+        .unwrap()
+        .contains("deleted file mode"));
+    ok(dir.path(), &["history", "undo", "1", "--write"]);
+    assert_eq!(fs::read_to_string(&route).unwrap(), original_route);
+    assert_eq!(
+        fs::read_to_string(&application).unwrap(),
+        original_application
+    );
+    assert!(!dir.path().join("backend/routes/signals.py").exists());
+    ok(dir.path(), &["history", "redo", "1", "--write"]);
+    assert!(!route.exists());
+    assert_eq!(fs::read_to_string(&application).unwrap(), registered);
+}
+
+#[test]
 fn fastapi_registration_refuses_unrecognized_apps_and_direct_route_conflicts() {
     let dir = tempfile::tempdir().unwrap();
     let route = dir.path().join("app/signals/route.ts");
@@ -293,6 +351,25 @@ fn fastapi_registration_refuses_unrecognized_apps_and_direct_route_conflicts() {
     unknown.push("main.py::unknown");
     assert!(!run(dir.path(), &unknown).0);
 
+    let (success, report) = run(
+        dir.path(),
+        &[
+            "migrate",
+            "feature",
+            &selected,
+            "--to",
+            "fastapi",
+            "--out",
+            "generated/signals.py",
+            "--cutover",
+        ],
+    );
+    assert!(!success);
+    assert!(report["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("requires automatic destination registration"));
+
     let fastapi_feature = feature_for_framework(dir.path(), "fastapi");
     let (success, report) = run(
         dir.path(),
@@ -314,6 +391,52 @@ fn fastapi_registration_refuses_unrecognized_apps_and_direct_route_conflicts() {
         .unwrap()
         .contains("applies only to a FastAPI destination"));
     assert!(!dir.path().join("generated/signals.py").exists());
+}
+
+#[test]
+fn cutover_refuses_a_resolved_external_source_reference() {
+    let dir = tempfile::tempdir().unwrap();
+    let route = dir.path().join("app/signals/route.ts");
+    fs::create_dir_all(route.parent().unwrap()).unwrap();
+    fs::create_dir_all(dir.path().join("backend")).unwrap();
+    fs::write(
+        &route,
+        "export async function GET() { return Response.json({ state: \"ready\" }); }\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("consumer.ts"),
+        "import { GET } from './app/signals/route';\nexport async function probe() { return GET(); }\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("backend/main.py"),
+        "from fastapi import FastAPI\napplication = FastAPI()\n",
+    )
+    .unwrap();
+    let selected = feature_for_framework(dir.path(), "nextjs-app");
+    let (success, report) = run(
+        dir.path(),
+        &[
+            "migrate",
+            "feature",
+            &selected,
+            "--to",
+            "fastapi",
+            "--out",
+            "backend/routes/signals.py",
+            "--register-with",
+            "backend/main.py::application",
+            "--cutover",
+        ],
+    );
+    assert!(!success);
+    assert!(report["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("no resolved external source references"));
+    assert!(route.exists());
+    assert!(!dir.path().join("backend/routes/signals.py").exists());
 }
 
 #[test]

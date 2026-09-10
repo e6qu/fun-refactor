@@ -83,3 +83,11 @@ pub fn fastapi_registration_automatic(
 ) -> bool {
     explicit_target && application_binding && !endpoint_conflict
 }
+
+pub fn migration_cutover_automatic(
+    explicit_cutover: bool,
+    registration_automatic: bool,
+    external_references: bool,
+) -> bool {
+    explicit_cutover && registration_automatic && !external_references
+}

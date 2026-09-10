@@ -235,6 +235,28 @@ theorem fastapi_registration_rejects_endpoint_conflict
     fastapiRegistrationAutomatic explicitTarget applicationBinding true = false := by
   cases explicitTarget <;> cases applicationBinding <;> decide
 
+-- fr:spec src/project/framework_kernel.rs::migration_cutover_automatic @ 36a04fe8185b8657fcfab2d784028d2a498c5f699fb8b8725874e52781ba3359
+-- fr:signature explicit_cutover: bool => explicitCutover: Bool; registration_automatic: bool => registrationAutomatic: Bool; external_references: bool => externalReferences: Bool; return: bool => return: Bool
+def migrationCutoverAutomatic
+    (explicitCutover : Bool) (registrationAutomatic : Bool) (externalReferences : Bool) : Bool :=
+  explicitCutover && registrationAutomatic && !externalReferences
+
+theorem migration_cutover_automatic_iff_explicit_registered_without_references
+    (explicitCutover registrationAutomatic externalReferences : Bool) :
+    migrationCutoverAutomatic explicitCutover registrationAutomatic externalReferences = true ↔
+      explicitCutover = true ∧ registrationAutomatic = true ∧ externalReferences = false := by
+  cases explicitCutover <;> cases registrationAutomatic <;> cases externalReferences <;> decide
+
+theorem migration_cutover_rejects_unregistered
+    (explicitCutover externalReferences : Bool) :
+    migrationCutoverAutomatic explicitCutover false externalReferences = false := by
+  cases explicitCutover <;> cases externalReferences <;> decide
+
+theorem migration_cutover_rejects_external_references
+    (explicitCutover registrationAutomatic : Bool) :
+    migrationCutoverAutomatic explicitCutover registrationAutomatic true = false := by
+  cases explicitCutover <;> cases registrationAutomatic <;> decide
+
 -- fr:spec src/project.rs::path_confidence @ b5a8549e
 -- fr:signature edges: &[Confidence] => edges: List Nat; return: Confidence => return: Nat
 def pathConfidence (edges : List Nat) : Nat := edges.foldr max 0
