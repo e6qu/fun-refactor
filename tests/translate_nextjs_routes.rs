@@ -44,7 +44,7 @@ fn translate(source: &str) -> (tempfile::TempDir, fastapi::AppPlan) {
     let tmp = tempfile::tempdir().expect("a temporary directory");
     let path = tmp.path().join("main.py");
     std::fs::write(&path, source).expect("write");
-    let out = tmp.path().join("app").join("api");
+    let out = tmp.path().join("app");
     let plan = fastapi::plan_to(&path, Some(&out), false).expect("a plan");
     (tmp, plan)
 }
@@ -81,7 +81,7 @@ fn a_path_parameter_is_a_directory() {
     let one = route(&plan, "/pets/[petId]");
     assert_eq!(
         one.destination,
-        tmp.path().join("app/api/pets/[petId]/route.ts"),
+        tmp.path().join("app/pets/[petId]/route.ts"),
         "the URL is where the file sits"
     );
 }

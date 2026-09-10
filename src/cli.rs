@@ -371,6 +371,11 @@ enum Command {
         #[command(subcommand)]
         command: SpecCommand,
     },
+    #[command(about = "Plan or apply a revision-bound framework feature migration.")]
+    Migrate {
+        #[command(subcommand)]
+        command: crate::project::migration::Command,
+    },
     /// Rewrite a file as another language, beside the original.
     Translate {
         /// File to rewrite, or a directory to sweep file by file.
@@ -879,7 +884,10 @@ fn dispatch(cli: &Cli) -> Result<()> {
     if cli.context_basis.is_some()
         && !matches!(
             cli.command,
-            Command::Project { .. } | Command::Author { .. } | Command::History { .. }
+            Command::Project { .. }
+                | Command::Author { .. }
+                | Command::Migrate { .. }
+                | Command::History { .. }
         )
     {
         anyhow::bail!("--context-basis requires a project, author or history transition command.");
@@ -888,6 +896,7 @@ fn dispatch(cli: &Cli) -> Result<()> {
         && !matches!(
             &cli.command,
             Command::Author { .. }
+                | Command::Migrate { .. }
                 | Command::File { .. }
                 | Command::Rename { .. }
                 | Command::Extract { .. }
@@ -949,6 +958,7 @@ fn dispatch(cli: &Cli) -> Result<()> {
             Ok(())
         }
         Command::Project { command } => cmd_project(cli, command),
+        Command::Migrate { command } => cmd_migrate(cli, command),
         Command::History { action } => cmd_history(cli, action.as_ref()),
         Command::Capabilities {
             capability,
@@ -2127,6 +2137,50 @@ fn cmd_project(cli: &Cli, command: &crate::project::Command) -> Result<()> {
         project.verify(root)?;
         context.apply(&mut report)?;
         println!("{}", serde_json::to_string(&report)?);
+        Ok(())
+    })
+}
+
+fn cmd_migrate(cli: &Cli, command: &crate::project::migration::Command) -> Result<()> {
+    use crate::project::migration::Command;
+    let Command::Feature(options) = command;
+    anyhow::ensure!(
+        !(options.write && cli.save_plan),
+        "choose --save-plan or --write, not both."
+    );
+    with_project(cli, |project, root| {
+        let context = project.response_context(cli.context_basis.as_deref())?;
+        let mut plan = project.migrate_feature(options)?;
+        let outcomes = crate::edit::plan(&plan.edits, crate::edit::Validation::ReparseStrict)?;
+        project.verify(root)?;
+        let diff = outcomes
+            .iter()
+            .map(|outcome| workspace_diff(cli, outcome))
+            .collect::<String>();
+        plan.set_diff(&diff, options.diff_bytes);
+        let recorded = persist_changes_with_status(
+            cli,
+            &outcomes
+                .iter()
+                .map(crate::edit::FileChange::from)
+                .collect::<Vec<_>>(),
+            options.write,
+            "feature-migration-reparse-strict",
+        )?;
+        let transaction = recorded.map(|result| result.id);
+        plan.report["transaction"] = serde_json::json!(transaction);
+        plan.report["applied"] = serde_json::json!(options.write && transaction.is_some());
+        plan.report["saved"] =
+            serde_json::json!(cli.save_plan && recorded.is_some_and(|result| result.created));
+        if recorded.is_some_and(|result| !result.created) {
+            plan.report["reused_transaction"] = serde_json::json!(true);
+        }
+        if let Some(id) = transaction.filter(|_| plan.report["diff"].is_string()) {
+            plan.report["transaction_context_basis"] =
+                serde_json::json!(crate::history::record_context_basis(root, id)?);
+        }
+        context.apply(&mut plan.report)?;
+        println!("{}", serde_json::to_string(&plan.report)?);
         Ok(())
     })
 }

@@ -81,6 +81,18 @@ fn invocations() -> Vec<(&'static str, Vec<&'static str>)> {
         ("file", vec!["file", "delete", "svc/a.go"]),
         ("git", vec!["git", "status"]),
         ("project", vec!["project", "map"]),
+        (
+            "migrate",
+            vec![
+                "migrate",
+                "feature",
+                "missing",
+                "--to",
+                "fastapi",
+                "--out",
+                "migrated.py",
+            ],
+        ),
         ("checks", vec!["checks"]),
         (
             "author",

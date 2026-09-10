@@ -10,9 +10,10 @@ fn scaffolded(target: Target) -> (tempfile::TempDir, scaffold::ScaffoldPlan) {
     let tmp = tempfile::tempdir().expect("a temporary directory");
     let path = tmp.path().join("openapi.yaml");
     std::fs::write(&path, DOCUMENT).expect("write");
-    // The api root, the same place the FastAPI-to-Next.js translation writes: a
-    // Next.js route is only a route under `app/api`.
-    let out = tmp.path().join("app").join("api");
+    let out = match target {
+        Target::NextJs => tmp.path().join("app"),
+        Target::FastApi => tmp.path().to_path_buf(),
+    };
     let plan = scaffold::plan_to(&path, target, Some(&out), false).expect("a plan");
     (tmp, plan)
 }
@@ -48,7 +49,7 @@ fn a_nextjs_scaffold_is_one_file_per_url() {
         .map(|f| {
             f.destination
                 .to_string_lossy()
-                .rsplit("/app/api/")
+                .rsplit("/app/")
                 .next()
                 .unwrap_or_default()
                 .to_string()
@@ -143,8 +144,8 @@ fn the_nextjs_scaffold_round_trips_through_the_contract() {
         .collect();
     let root = written[0]
         .ancestors()
-        .find(|a| a.ends_with("app/api"))
-        .expect("the api root")
+        .find(|a| a.ends_with("app"))
+        .expect("the app root")
         .to_path_buf();
     let baseline = fun_refactor::openapi::from_routes("pets", &root, &written).expect("a baseline");
     let paths = baseline.document["paths"].as_object().expect("paths");

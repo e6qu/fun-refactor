@@ -32,7 +32,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | M3 Git integration | Complete | Patches, repository views, staging history, reviewed commits and durable owned-worktree lifecycle | Maintained as a shared repository invariant |
 | M4 agent workflow | In progress | Portable skill, bounded authoring, multi-file batches, checks and eighteen passing autonomous trials | Make context use competitive and extend authoring scope |
 | M5 Lean adoption | Complete | Pinned package initialization, anchored model scaffolds, regeneration, proof-debt ratchets, generated CI and bounded evidence reports | Maintain the trust boundary and extend the documented model subset as real projects require it |
-| M6 framework transformation | In progress | Shared code IR, bounded Next.js/FastAPI/OpenAPI support, route/page feature hierarchies and Lean-backed framework policies | Complete framework semantics and verified migrations |
+| M6 framework transformation | In progress | Shared code IR, route/page feature hierarchies, Lean-backed framework policies and a revision-bound Next.js/FastAPI migration preview | Add runtime fixtures, connected-project edits and verified cutover |
 
 ## What exists now
 
@@ -43,6 +43,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - A shared translation IR with Rust, Go, Java, Python, TypeScript, Zig, Bash and Lean readers and writers.
 - Bounded project views for Cargo/npm packages, local dependencies, Cargo ownership, calls, tests, routes, request/response contracts and selected schemas.
 - Next.js/FastAPI route conversion and OpenAPI service scaffolds within documented subsets.
+- Revision-bound migration plans for one-file Next.js/FastAPI route features, with endpoint agreement, explicit dispositions and reversible source-history writes.
 - Local recipes, expectations, workspace previews and canonical formatting.
 - Rust, Go, Java, TypeScript and TSX body authoring, Rust declaration replacement and Rust function insertion into files, inline modules, impls and traits.
 - Multi-file authoring batches using one reviewed source-history transaction.
@@ -276,7 +277,7 @@ Every result distinguishes a proved model property, tested implementation/model 
 
 ### PR 5. Framework Semantic Model
 
-Status: ready for review on `framework_semantic_model`. Eight checkpoints provide the hierarchy, execution boundaries, React facts, relative component expansion and Lean-backed policies. They add a named version matrix, pinned real-project contracts and verified FastAPI prefix rules. Every fact retains its parent, source anchor, evidence, confidence and explicit gaps. The complete native, Lean, prose, capability and WASM gate passes.
+Status: complete and merged as GitHub PR 265. Eight checkpoints provide the hierarchy, execution boundaries, React facts, relative component expansion and Lean-backed policies. They add a named version matrix, pinned real-project contracts and verified FastAPI prefix rules. Every fact retains its parent, source anchor, evidence, confidence and explicit gaps.
 
 Goal: represent a feature across application structure rather than as isolated syntax nodes.
 
@@ -307,24 +308,26 @@ Verification and acceptance:
 
 ### PR 6. Verified Feature Migration
 
+Status: in progress on `verified_feature_migration`. The first checkpoint adds `fr migrate feature` for one revision-bound route feature whose methods share one source file. It supports Next.js App Router to FastAPI and the reverse direction. Preview, saved plans, writes, patch export, apply, undo and redo share the existing source-history transaction. The source stays present for coexistence. Exact endpoint agreement gates the generated destination, while runtime registration and cutover remain explicit agent decisions. Lean-backed policies restrict migration to a framework boundary and assign each semantic fact to automatic, agent-decision or unsupported work.
+
 Goal: migrate one real feature through an inspectable, reversible high-level transformation.
 
 Deliverables:
 
-- Move or translate a bounded feature using the framework semantic model.
-- Update connected routes, handlers, schemas, callers, components, build settings and tests.
-- Separate automatic steps, agent decisions and unsupported behavior in the migration plan.
-- Allow source and destination frameworks to coexist during an incremental migration.
-- Produce one reviewed source-history transaction and one Git patch.
-- Preserve mixed-framework operation until the feature cutover completes.
+- Move or translate a bounded feature using the framework semantic model; complete for a one-file route feature in both supported directions.
+- Update connected routes, handlers, schemas, callers, components, build settings and tests; route and handler translation is present, while connected project edits remain open.
+- Separate automatic steps, agent decisions and unsupported behavior in the migration plan; complete for the current semantic facts and translator gaps.
+- Allow source and destination frameworks to coexist during an incremental migration; complete at the source transaction level, with runtime composition still open.
+- Produce one reviewed source-history transaction and one Git patch; complete through saved plans and existing history patch export.
+- Preserve mixed-framework operation until the feature cutover completes; source retention is enforced, while executable coexistence evidence remains open.
 
 Verification and acceptance:
 
-- Compile and execute the source and migrated feature in pinned projects.
-- Compare route and schema contracts with independent behavioral fixtures.
-- Check middleware order, authentication, validation and lifecycle behavior wherever the migration claims preservation.
-- Keep every unsupported construct visible in the final plan.
-- Apply the patch to a clean receiver and reproduce the result through exact undo and redo.
+- Compile and execute the source and migrated feature in pinned projects; open.
+- Compare route and schema contracts with independent behavioral fixtures; exact static endpoint agreement is complete, while runtime and schema comparison remain open.
+- Check middleware order, authentication, validation and lifecycle behavior wherever the migration claims preservation; the first checkpoint makes no such preservation claim.
+- Keep every unsupported construct visible in the final plan; complete for feature-model and translator gaps.
+- Apply the patch to a clean receiver and reproduce the result through exact undo and redo. History replay checks pass; an external receiver fixture remains open.
 
 ## Delivery order
 
@@ -403,7 +406,7 @@ The harness retains every attempted trial and keeps infrastructure failures sepa
 - Existing model proofs and executable comparisons do not establish general Rust implementation correspondence.
 - LSP delegation remains excluded from the default engine. Reconsider it only for measured tasks that need it.
 - Daemon/watch mode remains deferred until cache and repeated-query measurements justify it.
-- The first frontend migration pair remains open until PR 5 defines its bounded subset.
+- Feature migration currently covers one route source file across Next.js App Router and FastAPI. Runtime registration, connected build changes and cutover remain reviewed work.
 
 ## Further reading
 

@@ -32,7 +32,8 @@ Recognition of a route does not imply whole-framework translation support.
 | OpenAPI to Next.js | Route skeletons and supported TypeScript shapes |
 
 Next.js route extraction uses directory structure as well as source text.
-A handler under `app/api/users/[id]/route.ts` names a parameterized endpoint.
+A handler under `app/api/users/[id]/route.ts` names `/api/users/{id}`.
+App Router route handlers can sit below any `app` path; the `api` segment has no special routing meaning there.
 Catch-all path segments need the target framework's catch-all behavior.
 The converter handles these supported forms and reports unsupported constructs.
 
@@ -43,6 +44,7 @@ fr openapi --yaml
 fr translate app/api/pets/route.ts fastapi
 fr translate app.py nextjs
 fr translate openapi.yaml fastapi
+fr migrate feature <ID> --to fastapi --out migrated/pets.py
 ```
 
 These commands preview output. Use `--write` only when the planned result is suitable.
@@ -81,9 +83,11 @@ Adapters must state supported patterns and preserve everything they cannot trans
 
 ## Verification and migration plans
 
-The planned workflow selects a feature or route group, records its contract and reports feasibility.
-The resulting change plan should include generated files, dependency updates, unresolved decisions and validation evidence.
-The same plan should support patch export, apply and undo/redo.
+`fr migrate feature` selects one revision-bound route feature, records its contract and reports feasibility.
+The first subset requires one source file and supports Next.js App Router and FastAPI.
+The resulting change plan includes generated files, unresolved decisions, validation evidence and visible gaps.
+Source history supplies patch export, apply and undo/redo.
+See [verified feature migration](docs/feature-migration.md) for its current contract.
 
 Formal properties can cover supported URL mappings, schema transformations and selected handler lowerings.
 A proof about these models needs a correspondence argument before it establishes implementation behavior.

@@ -36,6 +36,7 @@ pub struct RouteFile {
 pub struct AppPlan {
     pub source: PathBuf,
     pub routes: Vec<RouteFile>,
+    pub endpoints: Vec<(String, String)>,
     pub fidelity: Fidelity,
     /// What the module declared that a route tree has no place for.
     pub notes: Vec<String>,
@@ -126,11 +127,7 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<AppPlan> 
 
     let root = match out {
         Some(out) => out.to_path_buf(),
-        None => path
-            .parent()
-            .unwrap_or(Path::new("."))
-            .join("app")
-            .join("api"),
+        None => path.parent().unwrap_or(Path::new(".")).join("app"),
     };
 
     // The handlers, so the writer spells their names the target's way.
@@ -190,9 +187,15 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<AppPlan> 
         edits.declare_language(file.destination.clone(), Language::TypeScript);
         routes.push(file);
     }
+    let endpoints = by_route
+        .values()
+        .flatten()
+        .map(|endpoint| (endpoint.method.clone(), endpoint.path.clone()))
+        .collect();
     Ok(AppPlan {
         source: path.to_path_buf(),
         routes,
+        endpoints,
         fidelity,
         notes,
         edits,

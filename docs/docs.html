@@ -273,7 +273,7 @@
     <p>
       Reading the file alone cannot translate a Next.js API route, because
       <strong>the URL is the path</strong>.
-      <code>app/api/users/[id]/route.ts</code> serves <code>/users/{id}</code>, and
+      <code>app/api/users/[id]/route.ts</code> serves <code>/api/users/{id}</code>, and
       nothing inside the file says so. <code>[...path]</code> is a catch-all, which
       FastAPI spells <code>{path:path}</code>. A translation emitting
       <code>{path}</code> would point silently at the wrong URLs.
@@ -354,7 +354,7 @@
 
     <h3>The URL is the path</h3>
     <p>
-      <code>app/api/posts/[postId]/route.ts</code> serves <code>/posts/{post_id}</code>,
+      <code>app/api/posts/[postId]/route.ts</code> serves <code>/api/posts/{post_id}</code>,
       and <strong>nothing inside the file says so</strong>. No content-only translation
       can recover that, however well it reads TypeScript. This one part of the job needs the tree instead of the text, and it carries most of the value.
     </p>
@@ -386,7 +386,7 @@
       <em>decorator</em>, so a status on a returned <code>Response</code> changes what
       the endpoint does without changing what it says it does:
     </p>
-    <pre class="grammar"><code>@router.delete("/posts/{post_id}")
+    <pre class="grammar"><code>@router.delete("/api/posts/{post_id}")
 async def delete(post_id: str, req: Request):
     return Response(status_code=204)</code></pre>
     <p>

@@ -601,6 +601,27 @@ Two different promises share this command.
 `--out` chooses the destination and `--force` overwrites. The original always
 stays: nobody can read a deleted input back out of the diff.
 
+### `fr migrate`
+
+```sh
+fr migrate feature <FEATURE-ID> --to fastapi --out migrated/pets.py
+fr migrate feature <FEATURE-ID> --to nextjs --out web/app
+```
+
+Plan one route-centered migration from a revision-bound `fr project features` ID.
+The current subset supports Next.js App Router to FastAPI and FastAPI to Next.js when every selected method shares one source file.
+A FastAPI destination names one `.py` file. A Next.js destination names an `app` directory, beneath which the command creates route files.
+
+The command compares the semantic endpoint set with the translator output and refuses any difference.
+Its report groups facts and work into `automatic`, `agent-decision` and `unsupported` classes.
+The source remains present, so the destination can coexist until the caller registers it, validates runtime behavior and reviews cutover.
+Runtime registration and source removal are separate agent decisions in the plan.
+
+Preview is the default. `--save-plan` records the transaction without applying it, while `--write` records and applies it.
+`fr history patch`, `apply`, `undo` and `redo` then use the same checked transaction.
+`--diff-bytes` bounds the report diff from zero through 65,536 bytes.
+See [the feature migration contract](docs/feature-migration.md) for the modeled and fixture-tested boundaries.
+
 ### `fr openapi`
 
 ```

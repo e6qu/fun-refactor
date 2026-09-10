@@ -169,9 +169,9 @@ fn the_url_survives_the_crossing_with_the_targets_conventions() {
     let (_tmp, root) = corpus("nextjs");
     let plan = nextjs::plan(&root.join("app/api/posts/[postId]/route.ts")).unwrap();
 
-    // `[postId]` is a placeholder name, not part of the URL, `/posts/{postId}` and
-    // `/posts/{post_id}` serve exactly the same requests.
-    assert_eq!(plan.route, "/posts/{post_id}");
+    // `[postId]` is a placeholder name. The `api` directory is part of an App
+    // Router URL, and the target spells the parameter as `{post_id}`.
+    assert_eq!(plan.route, "/api/posts/{post_id}");
     assert_eq!(plan.methods, vec!["DELETE", "PATCH"]);
     assert!(
         plan.output
@@ -179,7 +179,10 @@ fn the_url_survives_the_crossing_with_the_targets_conventions() {
         "{}",
         plan.output
     );
-    assert_eq!(plan.destination.file_name().unwrap(), "posts_post_id.py");
+    assert_eq!(
+        plan.destination.file_name().unwrap(),
+        "api_posts_post_id.py"
+    );
 }
 
 #[test]

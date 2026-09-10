@@ -109,12 +109,8 @@ pub fn plan_to(
 
     let root = match (out, target) {
         (Some(out), _) => out.to_path_buf(),
-        // A Next.js route is only a route under `app/api`.
-        (None, Target::NextJs) => path
-            .parent()
-            .unwrap_or(Path::new("."))
-            .join("app")
-            .join("api"),
+        // App Router URL segments start directly below `app`.
+        (None, Target::NextJs) => path.parent().unwrap_or(Path::new(".")).join("app"),
         (None, Target::FastApi) => path.parent().unwrap_or(Path::new(".")).to_path_buf(),
     };
 

@@ -115,6 +115,34 @@ theorem trailing_slash_rejects_nonempty_fastapi_prefix (startsSlash : Bool) :
     fastapiPrefixSupported false startsSlash true = false := by
   cases startsSlash <;> decide
 
+-- fr:spec src/project/framework_kernel.rs::framework_migration_supported @ 2b6adb54c00914716834b06d5d8f08020911833f96c16fc10cd7ca9f621d3e8f
+-- fr:signature source_fastapi: bool => sourceFastapi: Bool; target_fastapi: bool => targetFastapi: Bool; return: bool => return: Bool
+def frameworkMigrationSupported (sourceFastapi : Bool) (targetFastapi : Bool) : Bool :=
+  sourceFastapi != targetFastapi
+
+theorem framework_migration_supported_iff_crosses_boundary
+    (sourceFastapi targetFastapi : Bool) :
+    frameworkMigrationSupported sourceFastapi targetFastapi = true ↔
+      sourceFastapi != targetFastapi := by
+  cases sourceFastapi <;> cases targetFastapi <;> decide
+
+-- fr:spec src/project/framework_kernel.rs::migration_disposition @ 12d6711dd5abc9fdfd1c6c94fee86397941097d6444a2edc0f3bde8898ce147c
+-- fr:signature gap: bool => gap: Bool; automatic_kind: bool => automaticKind: Bool; return: usize => return: Nat
+def migrationDisposition (gap : Bool) (automaticKind : Bool) : Nat :=
+  if gap then 2 else if automaticKind then 0 else 1
+
+theorem migration_gap_is_unsupported (automaticKind : Bool) :
+    migrationDisposition true automaticKind = 2 := by
+  cases automaticKind <;> decide
+
+theorem supported_automatic_kind_is_automatic :
+    migrationDisposition false true = 0 := by
+  decide
+
+theorem supported_nonautomatic_kind_needs_a_decision :
+    migrationDisposition false false = 1 := by
+  decide
+
 -- fr:spec src/project.rs::path_confidence @ b5a8549e
 -- fr:signature edges: &[Confidence] => edges: List Nat; return: Confidence => return: Nat
 def pathConfidence (edges : List Nat) : Nat := edges.foldr max 0

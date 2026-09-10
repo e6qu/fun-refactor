@@ -5,8 +5,18 @@ PR 1, Agent Context Protocol v2, merged as GitHub PR 261.
 PR 2, Generalized Structural Authoring, merged as GitHub PR 262.
 PR 3, Durable Git Workspace Lifecycle, merged as GitHub PR 263.
 PR 4, the Lean Adoption Kit, merged as GitHub PR 264.
-The current `framework_semantic_model` branch is roadmap PR 5.
-Its first checkpoint adds `fr project features` for bounded Next.js App Router and FastAPI hierarchies.
+PR 5, Framework Semantic Model, merged as GitHub PR 265.
+The current `verified_feature_migration` branch is roadmap PR 6.
+Its first checkpoint adds `fr migrate feature` for one revision-bound Next.js App Router or FastAPI route feature whose methods share one source file.
+The planner refuses stale feature IDs, same-framework requests, escaping destinations and any disagreement between semantic and translated endpoint sets.
+It retains the source route, adds the destination and classifies feature facts and gaps as automatic, agent-decision or unsupported work.
+Runtime registration and cutover stay as named agent decisions.
+Preview, saved plans and writes use the existing source-history transaction, so patch checks, export, apply, undo and redo remain available.
+Four CLI integration cases cover both migration directions, refusal boundaries and exact forward undo/redo replay.
+Two newly anchored framework policies constrain supported directions and disposition classes.
+Twenty framework theorems now cover ten helpers, with 279 shared Rust and Lean results.
+The checkpoint has strict syntax and endpoint-contract evidence; executable framework behavior, schema comparison and connected project edits remain next.
+Roadmap PR 5's first checkpoint added `fr project features` for bounded Next.js App Router and FastAPI hierarchies.
 Applications contain exact-route-path feature candidates, which contain routes, handlers, contract fields, schema references and expanded same-file schema candidates.
 Every fact carries a parent, source anchor, status, confidence, validation basis and explicit gaps.
 Feature IDs retrieve one revision-bound subtree; cursors bind that selection.

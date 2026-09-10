@@ -124,15 +124,14 @@ fn route_segments(path: &Path) -> Option<Vec<String>> {
     // `pages/api/...`, the pair has to be adjacent, or `pages/foo/api` would count.
     let pages = parts
         .windows(2)
-        .position(|w| w[0] == "pages" && w[1] == "api")
-        .map(|at| at + 2);
-    // `app/**/api/**/route.ts`, the last `api` above the file, since a route may
-    // legitimately be at `app/api/api/route.ts`.
+        .rposition(|w| w[0] == "pages" && w[1] == "api")
+        .map(|at| at + 1);
+    // `app/**/route.ts`, starting after the closest `app` above the file.
     let app = (stem == "route")
         .then(|| {
             parts
                 .iter()
-                .rposition(|part| part == "api")
+                .rposition(|part| part == "app")
                 .map(|at| at + 1)
         })
         .flatten();
@@ -235,8 +234,8 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<RoutePlan
     let server_module = declares_use_server(&source);
     if !is_api_route(path) && !server_module {
         bail!(
-            "{} is neither a Next.js API route nor a module of server functions. A route \
-             is `app/**/api/**/route.ts` or anything under `pages/api/`, and its URL comes \
+            "{} is neither a Next.js route handler nor a module of server functions. A route \
+             is `app/**/route.ts` or anything under `pages/api/`, and its URL comes \
              from where the file sits. A server module opens with `\"use server\"`, and its own name \
              reaches each of its exports.",
             path.display()

@@ -139,6 +139,8 @@ fr translate <file> [language]  # write it as another language, or `fastapi`
                               #   (routes and "use server" modules both)
 fr translate app.py nextjs    # a FastAPI application as a Next.js route tree
 fr translate openapi.yaml fastapi  # a service skeleton from a contract
+fr migrate feature <ID> --to fastapi --out migrated/pets.py
+                              # a checked, reversible feature migration plan
 fr recipe <file.recipe>       # a workspace transaction: recipes find, do, expect together
 fr recipe fmt recipes --check # format every recipe in a directory, or reject drift
 fr spec init --write          # create a pinned, checked Lean package through history
@@ -342,6 +344,10 @@ Files below a captured `use client` import path retain a client-transitive candi
 Every fact retains a source anchor, evidence basis, status, confidence and explicit gaps.
 Use `--feature ID` to retrieve one revision-bound subtree.
 The [framework semantic model](docs/framework-semantics.md) lists the versioned syntax witnesses, modeled boundaries and runtime gaps.
+`fr migrate feature` consumes one revision-bound feature subtree and previews a bounded Next.js/FastAPI route migration.
+It requires exact endpoint agreement, keeps the source available and reports automatic work, agent decisions and unsupported gaps separately.
+Saved plans and writes use source history, including patch export and exact undo/redo.
+The [feature migration contract](docs/feature-migration.md) states destination rules, coexistence behavior and current runtime limits.
 `fr project configuration` pages environment declarations and candidate code consumers, with captured-source checks and explicit analysis gaps.
 `fr project tests` adds catalog candidates and bounded call-path witnesses, preserving the weakest edge confidence without claiming runtime coverage.
 Package aliases, framework runtime behavior and complete dependency graphs remain roadmap work.

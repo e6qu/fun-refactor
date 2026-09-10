@@ -26,6 +26,7 @@ mod find;
 pub mod framework_kernel;
 mod links;
 mod manifests;
+pub mod migration;
 mod next_routes;
 mod relationships;
 mod routes;

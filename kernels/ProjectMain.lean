@@ -63,6 +63,12 @@ def main (args : List String) : IO Unit := do
       for startsSlash in [false, true] do
         for endsSlash in [false, true] do
           IO.println (fastapiPrefixSupported empty startsSlash endsSlash)
+    for sourceFastapi in [false, true] do
+      for targetFastapi in [false, true] do
+        IO.println (frameworkMigrationSupported sourceFastapi targetFastapi)
+    for gap in [false, true] do
+      for automaticKind in [false, true] do
+        IO.println (migrationDisposition gap automaticKind)
   else if args == ["selection-conflicts"] then
     for leftStart in samples do
       for leftEnd in samples do

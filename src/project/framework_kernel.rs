@@ -41,3 +41,17 @@ pub fn service_redaction_flags(query_or_fragment: bool, credentials: bool) -> us
 pub fn fastapi_prefix_supported(empty: bool, starts_slash: bool, ends_slash: bool) -> bool {
     empty || starts_slash && !ends_slash
 }
+
+pub fn framework_migration_supported(source_fastapi: bool, target_fastapi: bool) -> bool {
+    source_fastapi != target_fastapi
+}
+
+pub fn migration_disposition(gap: bool, automatic_kind: bool) -> usize {
+    if gap {
+        2
+    } else if automatic_kind {
+        0
+    } else {
+        1
+    }
+}
