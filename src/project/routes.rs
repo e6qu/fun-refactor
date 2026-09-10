@@ -92,6 +92,9 @@ impl Project<'_> {
         let mut handlers = 0usize;
         let mut contract_fields = 0usize;
         let mut contract_gaps = 0usize;
+        let mut route_dependencies = 0usize;
+        let mut service_dependencies = 0usize;
+        let mut service_gaps = 0usize;
         let mut next_gaps = 0usize;
         let mut fast_gaps = 0usize;
         let parsers = Parsers::new();
@@ -257,6 +260,18 @@ impl Project<'_> {
                         .iter()
                         .filter(|r| r["kind"] == "route-contract-gap")
                         .count();
+                    route_dependencies += details
+                        .iter()
+                        .filter(|r| r["kind"] == "route-dependency")
+                        .count();
+                    service_dependencies += details
+                        .iter()
+                        .filter(|r| r["kind"] == "route-service-dependency")
+                        .count();
+                    service_gaps += details
+                        .iter()
+                        .filter(|r| r["kind"] == "route-service-gap")
+                        .count();
                     rows.extend(details);
                 }
                 for candidate in candidates {
@@ -277,7 +292,7 @@ impl Project<'_> {
             "unsupported_files": unsupported, "declarations": declarations, "handler_candidates": handlers,
             "readers": ["express", "flask", "axum", "gin", "spring", "nextjs-app", "fastapi"],
             "fastapi_gaps": fast_gaps,
-            "fastapi_limitations": "Top-level verb decorators on a direct FastAPI/APIRouter constructor assignment with an observed fastapi import. No runtime import validation, shadowing analysis, factories, nested routers, prefixes, includes or method-list decorators.",
+            "fastapi_limitations": "Top-level verb decorators on a direct FastAPI/APIRouter constructor assignment with an observed fastapi import. The reader joins valid plain literal constructor prefixes. No runtime import validation, shadowing analysis, factories, nested routers, include-router or mounted prefixes, or method-list decorators.",
             "nextjs_gaps": next_gaps,
             "nextjs_limitations": "Only route.ts and route.js under app or src/app at the project root or an observed nested npm Next.js package. Nearest observed manifests bound nested layouts. Runtime package identity, layout precedence, route validity, basePath, rewrites and implicit methods remain unchecked.",
             "certainty": "Declaration patterns and local handler-name candidates; the reader does not verify framework identity or runtime reachability.",
@@ -297,6 +312,9 @@ impl Project<'_> {
             }
             analysis["contract_fields"] = json!(contract_fields);
             analysis["contract_gaps"] = json!(contract_gaps);
+            analysis["route_dependencies"] = json!(route_dependencies);
+            analysis["service_dependencies"] = json!(service_dependencies);
+            analysis["service_gaps"] = json!(service_gaps);
             analysis["contract_readers"] = json!([
                 "literal-path-segments",
                 "axum-extractor-types",

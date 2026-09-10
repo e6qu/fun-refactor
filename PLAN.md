@@ -32,7 +32,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | M3 Git integration | Complete | Patches, repository views, staging history, reviewed commits and durable owned-worktree lifecycle | Maintained as a shared repository invariant |
 | M4 agent workflow | In progress | Portable skill, bounded authoring, multi-file batches, checks and eighteen passing autonomous trials | Make context use competitive and extend authoring scope |
 | M5 Lean adoption | Complete | Pinned package initialization, anchored model scaffolds, regeneration, proof-debt ratchets, generated CI and bounded evidence reports | Maintain the trust boundary and extend the documented model subset as real projects require it |
-| M6 framework transformation | Pending | Shared code IR and bounded Next.js/FastAPI/OpenAPI support | Hierarchical feature models and verified migrations |
+| M6 framework transformation | In progress | Shared code IR, bounded Next.js/FastAPI/OpenAPI support, route/page feature hierarchies and Lean-backed framework policies | Complete framework semantics and verified migrations |
 
 ## What exists now
 
@@ -51,7 +51,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Bounded Git status, diff, changed-declaration and call-context views.
 - Unix staging previews and writes, durable staging undo/redo, reviewed commits and owned worktree creation, recovery, removal, resumption and archive compaction.
 - Native releases, a WASM API, a browser playground and patch downloads.
-- Lean models for edits, positions, history, patch properties, pagination, confidence, workspace membership, revision buffers and declaration insertion placement.
+- Lean models for edits, positions, history, patch properties, pagination, confidence, workspace membership, revision buffers, declaration insertion placement and framework reporting policies.
 - Source anchors, signature maps and shared Rust/Lean executable cases.
 - External-project Lean initialization, anchored Rust model scaffolds, proof-preserving regeneration, named debt ceilings, generated CI and bounded verification evidence.
 - Eighteen passing autonomous trials across pinned strsim and regex snapshots, with replayable patches and independent behavioral oracles.
@@ -276,24 +276,34 @@ Every result distinguishes a proved model property, tested implementation/model 
 
 ### PR 5. Framework Semantic Model
 
+Status: ready for review on `framework_semantic_model`. Eight checkpoints provide the hierarchy, execution boundaries, React facts, relative component expansion and Lean-backed policies. They add a named version matrix, pinned real-project contracts and verified FastAPI prefix rules. Every fact retains its parent, source anchor, evidence, confidence and explicit gaps. The complete native, Lean, prose, capability and WASM gate passes.
+
 Goal: represent a feature across application structure rather than as isolated syntax nodes.
 
 Deliverables:
 
-- Model applications, packages, features, build settings and dependency boundaries.
-- Model backend routes, schemas, handlers, middleware, authentication boundaries and service dependencies.
-- Model frontend components, properties, events, state, effects, styles and rendering boundaries.
-- Attach source anchors, confidence, unsupported constructs and validation evidence to every fact.
+- Model applications, packages, features, build settings and dependency boundaries; complete for npm-backed Next.js applications, with Python packaging still explicit as a gap.
+- Model backend routes, schemas and handlers; complete for the first bounded Next.js/FastAPI subset.
+- Model middleware and authentication boundaries; readers cover direct convention files plus application, route and parameter dependencies. Unsupported forms remain gaps.
+- Model lifecycle and runtime configuration boundaries; implemented for direct FastAPI and Next.js declarations with runtime validation still open.
+- Model service dependencies; readers recognize direct handler HTTP candidates. Client construction, non-HTTP services and runtime reachability remain open.
+- Model frontend components, properties, events, state, effects, styles and rendering boundaries; complete for direct components in pages, inherited layouts and relative imports.
+- Attach source anchors, confidence, unsupported constructs and validation evidence to every fact; complete for the first route-centered hierarchy.
 - Strengthen the existing Next.js and FastAPI readers before adding another backend pair.
-- Select one frontend pair and define a bounded component subset.
+- Use Next.js React Server and Client Components as the first rendering-boundary pair; complete for the bounded direct-function and relative-import subset.
 - Keep framework-specific behavior visible where the shared model cannot express it.
+- Prove deterministic reporting policies after syntax recognition; complete for caps, middleware rank, hook placement, configuration visibility, service tiers, redaction flags and FastAPI prefix validity.
+- Reuse the proved membership closure for transitive client boundaries; complete over supplied relative-import edges.
+
+PR 5 completes each boundary against a named, versioned syntax subset. It makes no framework-runtime claims. Any future runtime claim requires an executable framework fixture.
 
 Verification and acceptance:
 
-- Display one feature hierarchy across routes, handlers, schemas, components and dependencies.
+- Display one feature hierarchy across routes, handlers, schemas, components and dependencies; complete for exact matching Next.js page and API paths.
 - Retrieve that subtree without loading the whole application.
-- Preserve ambiguity and unsupported middleware, authentication, lifecycle and runtime behavior as explicit gaps.
-- Compare readers against pinned framework fixtures and real projects with independent contract checks.
+- Preserve ambiguity and unsupported middleware, authentication, lifecycle and runtime behavior as explicit gaps; complete for current dependency and middleware readers.
+- Compare readers against pinned framework fixtures and real projects with independent contract checks; complete for Next.js, React and FastAPI syntax witnesses.
+- Keep parser recognition, framework runtime behavior and report assembly outside the theorem boundary unless a later correspondence proof covers them.
 
 ### PR 6. Verified Feature Migration
 

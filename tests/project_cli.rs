@@ -3320,6 +3320,1127 @@ fn next_route_pages_bind_scope_revision_and_contract_queries() {
 }
 
 #[test]
+fn framework_features_join_routes_handlers_and_schemas_into_selectable_subtrees() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "web/package.json",
+        r#"{"name":"web","scripts":{"build":"next build"},"dependencies":{"next":"16","@demo/ui":"file:packages/ui"}}"#,
+    );
+    put(
+        root,
+        "web/packages/ui/package.json",
+        r#"{"name":"@demo/ui","version":"1.0.0"}"#,
+    );
+    put(
+        root,
+        "web/app/api/pets/route.ts",
+        concat!(
+            "interface Pet { id: string; }\n",
+            "export function GET(): Pet {\n",
+            "  process.env.NEXT_PUBLIC_SITE; process.env.UNDECLARED;\n",
+            "  fetch('https://catalog.example/pets?token=PRIVATE_QUERY');\n",
+            "  fetch(dynamicEndpoint); throw new Error('PRIVATE_NEXT');\n",
+            "}\n",
+            "export function POST(): Pet { throw new Error('PRIVATE_NEXT'); }\n",
+        ),
+    );
+    put(
+        root,
+        "web/proxy.ts",
+        "export function proxy() { throw new Error('PRIVATE_PROXY'); }\n",
+    );
+    put(
+        root,
+        "web/instrumentation.ts",
+        "export function register() {}\nexport const onRequestError = () => {};\n",
+    );
+    put(
+        root,
+        "web/app/api/pets/page.tsx",
+        concat!(
+            "'use client';\n",
+            "import { useEffect, useState } from 'react';\n",
+            "interface Props { initial: number; }\n",
+            "function Badge() { return <span>ok</span>; }\n",
+            "export default function Pets({ initial }: Props) {\n",
+            "  const [count, setCount] = useState(initial);\n",
+            "  useEffect(() => { console.log('PRIVATE_EFFECT'); }, [count]);\n",
+            "  return <Panel className=\"PRIVATE_CLASS\" onClick={() => setCount(count + 1)}><Badge /></Panel>;\n",
+            "}\n",
+        ),
+    );
+    put(
+        root,
+        "api/app.py",
+        concat!(
+            "from typing import Annotated\n",
+            "import httpx, requests\n",
+            "from fastapi import Depends, FastAPI, Security\n",
+            "from fastapi.middleware.cors import CORSMiddleware\n",
+            "class Pet:\n    id: int\n",
+            "async def app_lifespan(app): yield\n",
+            "def load_user(): pass\n",
+            "def check_scope(): pass\n",
+            "def global_guard(): pass\n",
+            "def route_guard(): pass\n",
+            "app = FastAPI(lifespan=app_lifespan, ",
+            "dependencies=[Security(global_guard)])\n",
+            "@app.middleware('http')\n",
+            "async def timing(request, call_next):\n",
+            "    return await call_next(request)\n",
+            "app.add_middleware(CORSMiddleware, allow_origins=[])\n",
+            "@app.get('/pets', dependencies=[Depends(route_guard)])\n",
+            "def pets(user=Depends(load_user), ",
+            "guard: Annotated[str, Security(check_scope)] = None) -> Pet:\n",
+            "    os.environ['API_URL']\n",
+            "    requests.get('https://PRIVATE_USER:PRIVATE_PASS@billing.example/pets#PRIVATE_FRAGMENT')\n",
+            "    httpx.post(dynamic_url)\n",
+            "    raise RuntimeError('PRIVATE_FAST')\n",
+        ),
+    );
+    put(
+        root,
+        "deploy/compose.yaml",
+        "services:\n  app:\n    environment:\n      API_URL: PRIVATE_API_VALUE\n      NEXT_PUBLIC_SITE: PRIVATE_SITE_VALUE\n",
+    );
+
+    let full = ok(root, &["project", "features", "--limit", "500"]);
+    assert_eq!(full["analysis"]["applications"], 2, "{full}");
+    assert_eq!(full["analysis"]["features"], 2);
+    assert_eq!(full["analysis"]["routes"], 3);
+    assert_eq!(full["analysis"]["handlers"], 3);
+    assert_eq!(full["analysis"]["schemas"], 3);
+    assert_eq!(full["analysis"]["packages"], 1);
+    assert_eq!(full["analysis"]["build_settings"], 1);
+    assert_eq!(full["analysis"]["dependencies"], 2);
+    assert_eq!(full["analysis"]["package_gaps"], 1);
+    assert_eq!(full["analysis"]["middleware"], 3);
+    assert_eq!(full["analysis"]["execution_dependencies"], 4);
+    assert_eq!(full["analysis"]["authentication_candidates"], 2);
+    assert_eq!(full["analysis"]["lifecycle_hooks"], 3);
+    assert_eq!(full["analysis"]["lifecycle_gaps"], 0);
+    assert_eq!(full["analysis"]["runtime_configurations"], 3);
+    assert_eq!(full["analysis"]["configuration_consumers"], 3);
+    assert_eq!(full["analysis"]["service_dependencies"], 2);
+    assert_eq!(full["analysis"]["service_gaps"], 2);
+    assert_eq!(full["analysis"]["components"], 2, "{full}");
+    assert_eq!(full["analysis"]["component_properties"], 1, "{full}");
+    assert_eq!(full["analysis"]["component_states"], 1, "{full}");
+    assert_eq!(full["analysis"]["component_effects"], 1, "{full}");
+    assert_eq!(full["analysis"]["component_events"], 1, "{full}");
+    assert_eq!(full["analysis"]["component_styles"], 1, "{full}");
+    assert_eq!(full["analysis"]["render_edges"], 2, "{full}");
+    let items = full["items"].as_array().unwrap();
+    for fact in items {
+        assert!(fact.get("id").is_some(), "{fact}");
+        assert!(fact.get("parent").is_some(), "{fact}");
+        assert!(fact.get("source").is_some(), "{fact}");
+        assert!(fact.get("status").is_some(), "{fact}");
+        assert!(fact.get("confidence").is_some(), "{fact}");
+        assert!(fact["evidence"]["basis"] != Value::Null, "{fact}");
+        assert!(
+            fact["evidence"]["validation"]
+                == serde_json::json!(["captured-source", "syntax-tree", "project-revision"])
+                || fact["evidence"]["validation"]
+                    == serde_json::json!(["captured-manifest", "project-revision"]),
+            "{fact}"
+        );
+        assert!(fact["gaps"].is_array(), "{fact}");
+    }
+    for kind in [
+        "application",
+        "feature",
+        "route",
+        "handler",
+        "contract-field",
+        "schema-reference",
+        "schema-candidate",
+        "schema",
+        "schema-field",
+        "package",
+        "build-setting",
+        "dependency",
+        "package-gap",
+        "middleware",
+        "execution-dependency",
+        "lifecycle-hook",
+        "runtime-configuration",
+        "configuration-consumer",
+        "service-dependency",
+        "service-gap",
+        "component",
+        "component-properties",
+        "component-state",
+        "component-effect",
+        "component-event",
+        "component-style",
+        "component-render",
+    ] {
+        assert!(
+            items.iter().any(|fact| fact["kind"] == kind),
+            "{kind}: {full}"
+        );
+    }
+    assert!(!full.to_string().contains("PRIVATE_"));
+
+    let next_app = items
+        .iter()
+        .find(|fact| {
+            fact["kind"] == "application" && fact["application"]["framework"] == "nextjs-app"
+        })
+        .unwrap();
+    let next_feature = items
+        .iter()
+        .find(|fact| fact["kind"] == "feature" && fact["parent"] == next_app["id"])
+        .unwrap();
+    assert_eq!(next_feature["feature"]["route_count"], 2);
+    let pets_component = items
+        .iter()
+        .find(|fact| {
+            fact["kind"] == "component"
+                && fact["parent"] == next_feature["id"]
+                && fact["component"]["name"] == "Pets"
+        })
+        .unwrap();
+    assert_eq!(pets_component["component"]["rendering_boundary"], "client");
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "component-properties"
+            && fact["parent"] == pets_component["id"]
+            && fact["properties"]["names"] == serde_json::json!(["initial"])
+            && fact["properties"]["declared_type"] == "Props"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "component-state"
+            && fact["parent"] == pets_component["id"]
+            && fact["state"]["binding"] == "count"
+            && fact["state"]["setter"] == "setCount"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "component-effect"
+            && fact["parent"] == pets_component["id"]
+            && fact["effect"]["schedule"] == "dependency-change-candidate"
+            && fact["effect"]["dependency_count"] == 1
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "component-render"
+            && fact["parent"] == pets_component["id"]
+            && fact["render"]["target"] == "Badge"
+    }));
+    assert!(
+        items.iter().any(|fact| {
+            fact["kind"] == "component-event"
+                && fact["parent"] == pets_component["id"]
+                && fact["event"]["name"] == "onClick"
+                && fact["event"]["handler_kind"] == "inline"
+        }),
+        "{full}"
+    );
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "component-style"
+            && fact["parent"] == pets_component["id"]
+            && fact["style"]["attribute"] == "className"
+            && fact["style"]["value_kind"] == "literal"
+    }));
+    let package = items
+        .iter()
+        .find(|fact| fact["kind"] == "package" && fact["parent"] == next_app["id"])
+        .unwrap();
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "build-setting"
+            && fact["parent"] == package["id"]
+            && fact["build_setting"]["name"] == "build"
+            && fact["build_setting"]["command"] == "next build"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "dependency"
+            && fact["parent"] == package["id"]
+            && fact["dependency"]["name"] == "@demo/ui"
+            && fact["dependency"]["boundary"] == "local-package"
+            && fact["dependency"]["target_manifest"] == "web/packages/ui/package.json"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "dependency"
+            && fact["parent"] == package["id"]
+            && fact["dependency"]["name"] == "next"
+            && fact["dependency"]["boundary"] == "external-or-unresolved"
+    }));
+    let fast_app = items
+        .iter()
+        .find(|fact| fact["kind"] == "application" && fact["application"]["framework"] == "fastapi")
+        .unwrap();
+    let mut fast_middleware: Vec<_> = items
+        .iter()
+        .filter(|fact| fact["kind"] == "middleware" && fact["parent"] == fast_app["id"])
+        .collect();
+    fast_middleware.sort_by_key(|fact| fact["middleware"]["declaration_order"].as_u64());
+    assert_eq!(fast_middleware.len(), 2, "{full}");
+    assert_eq!(fast_middleware[0]["middleware"]["name"], "timing");
+    assert_eq!(fast_middleware[0]["middleware"]["request_order"], 2);
+    assert_eq!(fast_middleware[1]["middleware"]["name"], "CORSMiddleware");
+    assert_eq!(fast_middleware[1]["middleware"]["request_order"], 1);
+    let route = items
+        .iter()
+        .find(|fact| {
+            fact["kind"] == "route"
+                && fact["parent"].as_str().is_some_and(|parent| {
+                    items.iter().any(|candidate| {
+                        candidate["id"] == parent && candidate["parent"] == fast_app["id"]
+                    })
+                })
+        })
+        .unwrap();
+    let dependencies: Vec<_> = items
+        .iter()
+        .filter(|fact| fact["kind"] == "execution-dependency" && fact["parent"] == route["id"])
+        .collect();
+    assert_eq!(dependencies.len(), 3, "{full}");
+    assert!(dependencies.iter().any(|fact| {
+        fact["execution_dependency"]["provider"] == "load_user"
+            && fact["execution_dependency"]["authentication_candidate"] == false
+    }));
+    assert!(dependencies.iter().any(|fact| {
+        fact["execution_dependency"]["provider"] == "check_scope"
+            && fact["execution_dependency"]["authentication_candidate"] == true
+    }));
+    assert!(dependencies.iter().any(|fact| {
+        fact["execution_dependency"]["provider"] == "route_guard"
+            && fact["execution_dependency"]["scope"] == "route"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "execution-dependency"
+            && fact["parent"] == fast_app["id"]
+            && fact["execution_dependency"]["provider"] == "global_guard"
+            && fact["execution_dependency"]["scope"] == "application"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "middleware"
+            && fact["parent"] == next_app["id"]
+            && fact["middleware"]["form"] == "nextjs-proxy"
+            && fact["middleware"]["deprecated_convention"] == false
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "lifecycle-hook"
+            && fact["parent"] == next_app["id"]
+            && fact["lifecycle"]["phase"] == "startup"
+            && fact["lifecycle"]["exported_as"] == "register"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "lifecycle-hook"
+            && fact["parent"] == fast_app["id"]
+            && fact["lifecycle"]["form"] == "fastapi-lifespan"
+            && fact["lifecycle"]["name"] == "app_lifespan"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "runtime-configuration"
+            && fact["parent"] == next_app["id"]
+            && fact["configuration"]["name"] == "NEXT_PUBLIC_SITE"
+            && fact["configuration"]["visibility"] == "client-build-time-candidate"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "runtime-configuration"
+            && fact["parent"] == next_app["id"]
+            && fact["configuration"]["name"] == "UNDECLARED"
+            && fact["status"] == "no-observed-declaration"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "runtime-configuration"
+            && fact["parent"] == fast_app["id"]
+            && fact["configuration"]["name"] == "API_URL"
+            && fact["configuration"]["visibility"] == "server-process-candidate"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "service-dependency"
+            && fact["service_dependency"]["target"] == "https://catalog.example/pets"
+            && fact["service_dependency"]["query_or_fragment_omitted"] == true
+            && fact["service_dependency"]["credentials_omitted"] == false
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "service-dependency"
+            && fact["service_dependency"]["target"] == "https://billing.example/pets"
+            && fact["service_dependency"]["method"] == "GET"
+            && fact["service_dependency"]["query_or_fragment_omitted"] == true
+            && fact["service_dependency"]["credentials_omitted"] == true
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "package-gap"
+            && fact["parent"] == fast_app["id"]
+            && fact["gap"]["reason"]
+                .as_str()
+                .is_some_and(|reason| reason.contains("Python package manifests"))
+    }));
+    let feature_id = next_feature["id"].as_str().unwrap();
+    let selected = ok(
+        root,
+        &[
+            "project",
+            "features",
+            "--feature",
+            feature_id,
+            "--limit",
+            "500",
+        ],
+    );
+    assert_eq!(selected["analysis"]["applications"], 1);
+    assert_eq!(selected["analysis"]["features"], 1);
+    assert!(selected["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|fact| fact["source"]["path"] != "api/app.py"));
+
+    let first = ok(root, &["project", "features", "--limit", "1"]);
+    let cursor = first["page"]["next"].as_str().unwrap();
+    assert!(
+        !run(
+            root,
+            &[
+                "project",
+                "features",
+                "--feature",
+                feature_id,
+                "--cursor",
+                cursor,
+            ],
+        )
+        .0
+    );
+    assert!(!run(root, &["project", "features", "--feature", "frff1:absent"]).0);
+}
+
+#[test]
+fn framework_features_include_frontend_only_next_pages_and_client_boundary_conflicts() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "package.json",
+        r#"{"dependencies":{"next":"16","react":"19"}}"#,
+    );
+    put(
+        root,
+        "app/page.tsx",
+        concat!(
+            "import { useState } from 'react';\n",
+            "export default function Home() {\n",
+            "  const [value, setValue] = useState(0);\n",
+            "  return <button onClick={() => setValue(value + 1)}>Count</button>;\n",
+            "}\n",
+        ),
+    );
+    put(
+        root,
+        "app/[bad-name]/page.tsx",
+        "export default function Hidden() { return <div />; }\n",
+    );
+
+    let view = ok(root, &["project", "features", "--limit", "500"]);
+    assert_eq!(view["analysis"]["applications"], 1, "{view}");
+    assert_eq!(view["analysis"]["features"], 1, "{view}");
+    assert_eq!(view["analysis"]["routes"], 0, "{view}");
+    assert_eq!(view["analysis"]["components"], 1, "{view}");
+    assert_eq!(view["analysis"]["component_gaps"], 2, "{view}");
+    let items = view["items"].as_array().unwrap();
+    let feature = items.iter().find(|fact| fact["kind"] == "feature").unwrap();
+    assert_eq!(feature["feature"]["route_path"], "/");
+    let component = items
+        .iter()
+        .find(|fact| fact["kind"] == "component")
+        .unwrap();
+    assert_eq!(
+        component["component"]["rendering_boundary"],
+        "server-default"
+    );
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "component-state"
+            && fact["parent"] == component["id"]
+            && fact["status"] == "conflict"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "framework-gap"
+            && fact["gap"]["reason"] == "The page has a malformed dynamic parameter."
+    }));
+}
+
+#[test]
+fn framework_feature_components_are_bounded_with_an_explicit_gap() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "package.json", r#"{"dependencies":{"next":"16"}}"#);
+    let components: String = (0..129)
+        .map(|number| format!("function Component{number}() {{ return <div />; }}\n"))
+        .collect();
+    put(root, "app/page.tsx", &components);
+
+    let view = ok(root, &["project", "features", "--limit", "500"]);
+    assert_eq!(view["analysis"]["components"], 128, "{view}");
+    assert_eq!(view["analysis"]["components_omitted"], 1, "{view}");
+    assert!(view["items"].as_array().unwrap().iter().any(|fact| {
+        fact["kind"] == "framework-gap"
+            && fact["evidence"]["basis"] == "component-fact-limit"
+            && fact["gap"]["components_omitted"] == 1
+    }));
+}
+
+#[test]
+fn framework_features_expand_layouts_relative_components_and_custom_hooks() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "package.json",
+        r#"{"dependencies":{"next":"16","react":"19"}}"#,
+    );
+    put(
+        root,
+        "app/layout.tsx",
+        concat!(
+            "import Shell from './ui/Shell';\n",
+            "export default function RootLayout({ children }: { children: React.ReactNode }) {\n",
+            "  return <Shell>{children}</Shell>;\n",
+            "}\n",
+        ),
+    );
+    put(
+        root,
+        "app/page.tsx",
+        concat!(
+            "import { Card as PetCard } from './ui/Card';\n",
+            "import Local from './Local';\n",
+            "import type TypeCard from './TypeCard';\n",
+            "function usePets() { return 1; }\n",
+            "function Badge() { return <span />; }\n",
+            "export default function Home() {\n",
+            "  usePets();\n",
+            "  return <main><Badge /><PetCard /><Local /><TypeCard /></main>;\n",
+            "}\n",
+        ),
+    );
+    put(
+        root,
+        "app/ui/Shell.tsx",
+        "export default function Shell() { return <section />; }\n",
+    );
+    put(
+        root,
+        "app/ui/Card.tsx",
+        concat!(
+            "import Leaf from './Leaf';\n",
+            "export function Card() { return <article><Leaf /></article>; }\n",
+        ),
+    );
+    put(
+        root,
+        "app/ui/Leaf.tsx",
+        concat!(
+            "import { Card } from './Card';\n",
+            "export default function Leaf() { return <small />; }\n",
+        ),
+    );
+    put(
+        root,
+        "app/Local.jsx",
+        concat!(
+            "'use client';\n",
+            "import Inner from './Inner';\n",
+            "export default function Local() { return <aside><Inner /></aside>; }\n",
+        ),
+    );
+    put(
+        root,
+        "app/Inner.tsx",
+        concat!(
+            "import { useState } from 'react';\n",
+            "export default function Inner() {\n",
+            "  const [value] = useState(0);\n",
+            "  return <strong>{value}</strong>;\n",
+            "}\n",
+        ),
+    );
+    put(
+        root,
+        "app/TypeCard.tsx",
+        "export default function TypeCard() { return <strong />; }\n",
+    );
+
+    let view = ok(root, &["project", "features", "--limit", "500"]);
+    assert_eq!(view["analysis"]["features"], 1, "{view}");
+    assert_eq!(view["analysis"]["components"], 8, "{view}");
+    assert_eq!(view["analysis"]["component_hooks"], 1, "{view}");
+    let items = view["items"].as_array().unwrap();
+    let feature = items.iter().find(|fact| fact["kind"] == "feature").unwrap();
+    assert_eq!(feature["feature"]["component_file_count"], 7, "{view}");
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "component"
+            && fact["component"]["name"] == "RootLayout"
+            && fact["component"]["file_role"] == "layout"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "component-hook"
+            && fact["hook"]["name"] == "usePets"
+            && fact["hook"]["kind"] == "custom-hook-candidate"
+            && fact["status"] == "unresolved"
+    }));
+    let inner = items
+        .iter()
+        .find(|fact| fact["kind"] == "component" && fact["component"]["name"] == "Inner")
+        .unwrap();
+    assert_eq!(
+        inner["component"]["rendering_boundary"],
+        "client-transitive-candidate"
+    );
+    assert_eq!(inner["component"]["declared_boundary"], "server-default");
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "component-state"
+            && fact["parent"] == inner["id"]
+            && fact["status"] == "candidate"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "component-render"
+            && fact["render"]["target"] == "Badge"
+            && fact["render"]["resolution"] == "same-file"
+            && fact["status"] == "resolved"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "component-render"
+            && fact["render"]["target"] == "TypeCard"
+            && fact["render"]["resolution"] == "unresolved-import"
+            && fact["status"] == "unresolved"
+    }));
+    for (target, imported_as, path) in [
+        ("Shell", "default", "app/ui/Shell.tsx"),
+        ("PetCard", "Card", "app/ui/Card.tsx"),
+        ("Local", "default", "app/Local.jsx"),
+        ("Leaf", "default", "app/ui/Leaf.tsx"),
+    ] {
+        assert!(
+            items.iter().any(|fact| {
+                fact["kind"] == "component-render"
+                    && fact["render"]["target"] == target
+                    && fact["render"]["imported_as"] == imported_as
+                    && fact["render"]["target_source"]["path"] == path
+                    && fact["status"] == "resolved"
+                    && fact["confidence"] == "import-qualified"
+            }),
+            "{target}: {view}"
+        );
+    }
+}
+
+#[test]
+fn framework_component_imports_preserve_missing_ambiguous_and_package_gaps() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "web/package.json",
+        r#"{"dependencies":{"next":"16"}}"#,
+    );
+    put(
+        root,
+        "web/app/page.tsx",
+        concat!(
+            "import Missing from './Missing';\n",
+            "import Ambiguous from './Ambiguous';\n",
+            "import Escaped from '../../outside/Escaped';\n",
+            "export default function Home() {\n",
+            "  return <main><Missing /><Ambiguous /><Escaped /></main>;\n",
+            "}\n",
+        ),
+    );
+    put(
+        root,
+        "web/app/Ambiguous.tsx",
+        "export default function Ambiguous() { return <div />; }\n",
+    );
+    put(
+        root,
+        "web/app/Ambiguous.jsx",
+        "export default function Ambiguous() { return <div />; }\n",
+    );
+    put(
+        root,
+        "outside/Escaped.tsx",
+        "export default function Escaped() { return <div />; }\n",
+    );
+
+    let view = ok(root, &["project", "features", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    for reason in [
+        "A relative component import has no captured TSX or JSX target.",
+        "A relative component import has multiple captured TSX or JSX targets.",
+        "A relative component import crosses the captured package boundary.",
+    ] {
+        assert!(
+            items
+                .iter()
+                .any(|fact| { fact["kind"] == "framework-gap" && fact["gap"]["reason"] == reason }),
+            "{reason}: {view}"
+        );
+    }
+    assert_eq!(view["analysis"]["components"], 1, "{view}");
+    assert_eq!(view["analysis"]["component_gaps"], 3, "{view}");
+    assert_eq!(
+        items
+            .iter()
+            .filter(|fact| fact["kind"] == "component-render" && fact["status"] == "unresolved")
+            .count(),
+        3,
+        "{view}"
+    );
+}
+
+#[test]
+fn framework_component_file_expansion_is_bounded_with_an_explicit_gap() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "package.json", r#"{"dependencies":{"next":"16"}}"#);
+    let imports: String = (0..65)
+        .map(|number| format!("import Component{number} from './Component{number}';\n"))
+        .collect();
+    let renders: String = (0..65)
+        .map(|number| format!("<Component{number} />"))
+        .collect();
+    put(
+        root,
+        "app/page.tsx",
+        &format!("{imports}export default function Home() {{ return <main>{renders}</main>; }}\n"),
+    );
+    for number in 0..65 {
+        put(
+            root,
+            &format!("app/Component{number}.tsx"),
+            &format!("export default function Component{number}() {{ return <div />; }}\n"),
+        );
+    }
+
+    let view = ok(root, &["project", "features", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    let feature = items.iter().find(|fact| fact["kind"] == "feature").unwrap();
+    assert_eq!(view["analysis"]["component_file_limit"], 64, "{view}");
+    assert_eq!(feature["feature"]["component_file_count"], 64, "{view}");
+    assert!(
+        items.iter().any(|fact| {
+            fact["kind"] == "framework-gap"
+                && fact["gap"]["reason"]
+                    == "The component file limit omitted a relative import target."
+        }),
+        "{view}"
+    );
+}
+
+#[test]
+fn framework_page_layout_and_import_diagnostics_are_bounded_and_explicit() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "package.json", r#"{"dependencies":{"next":"16"}}"#);
+    for path in ["app/page.tsx", "app/page.jsx"] {
+        put(
+            root,
+            path,
+            "export default function Home() { return <main />; }\n",
+        );
+    }
+    for path in ["app/layout.tsx", "app/layout.jsx"] {
+        put(
+            root,
+            path,
+            "export default function Layout() { return <section />; }\n",
+        );
+    }
+
+    let view = ok(root, &["project", "features", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    for reason in [
+        "Multiple page convention files map to the same feature path.",
+        "Multiple layout convention files apply at one route level.",
+    ] {
+        assert!(
+            items
+                .iter()
+                .any(|fact| { fact["kind"] == "framework-gap" && fact["gap"]["reason"] == reason }),
+            "{reason}: {view}"
+        );
+    }
+    assert_eq!(view["analysis"]["features"], 1, "{view}");
+    assert_eq!(view["analysis"]["components"], 4, "{view}");
+    assert_eq!(view["analysis"]["component_gaps"], 2, "{view}");
+
+    let imports: String = (0..129)
+        .map(|number| format!("import Missing{number} from './Missing{number}';\n"))
+        .collect();
+    let renders: String = (0..129)
+        .map(|number| format!("<Missing{number} />"))
+        .collect();
+    put(
+        root,
+        "app/page.jsx",
+        &format!("{imports}export default function Home() {{ return <main>{renders}</main>; }}\n"),
+    );
+    std::fs::remove_file(root.join("app/page.tsx")).unwrap();
+    std::fs::remove_file(root.join("app/layout.tsx")).unwrap();
+    std::fs::remove_file(root.join("app/layout.jsx")).unwrap();
+    let bounded = ok(root, &["project", "features", "--limit", "500"]);
+    assert_eq!(bounded["analysis"]["component_file_gap_limit"], 128);
+    assert!(
+        bounded["items"].as_array().unwrap().iter().any(|fact| {
+            fact["kind"] == "framework-gap"
+                && fact["evidence"]["basis"] == "component-file-gap-limit"
+                && fact["gap"]["omitted"] == 1
+        }),
+        "{bounded}"
+    );
+}
+
+#[test]
+fn framework_feature_package_facts_bound_build_settings_and_dependencies() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let scripts: serde_json::Map<_, _> = (0..65)
+        .map(|number| (format!("script-{number:03}"), serde_json::json!("run")))
+        .collect();
+    let dependencies: serde_json::Map<_, _> = (0..257)
+        .map(|number| (format!("dependency-{number:03}"), serde_json::json!("1")))
+        .collect();
+    put(
+        root,
+        "package.json",
+        &serde_json::json!({
+            "dependencies": dependencies,
+            "scripts": scripts,
+        })
+        .to_string(),
+    );
+    put(
+        root,
+        "app/api/route.ts",
+        "export function GET(): Response { throw new Error('PRIVATE'); }\n",
+    );
+
+    let view = ok(root, &["project", "features", "--limit", "500"]);
+    assert_eq!(view["analysis"]["build_settings"], 64);
+    assert_eq!(view["analysis"]["build_settings_omitted"], 1);
+    assert_eq!(view["analysis"]["dependencies"], 256);
+    assert_eq!(view["analysis"]["dependencies_omitted"], 1);
+    let items = view["items"].as_array().unwrap();
+    assert_eq!(
+        items
+            .iter()
+            .filter(|fact| fact["kind"] == "build-setting")
+            .count(),
+        64
+    );
+    assert_eq!(
+        items
+            .iter()
+            .filter(|fact| fact["kind"] == "dependency")
+            .count(),
+        256
+    );
+    for omitted in ["build-setting limit", "dependency fact limit"] {
+        assert!(items.iter().any(|fact| {
+            fact["kind"] == "package-gap"
+                && fact["gap"]["reason"]
+                    .as_str()
+                    .is_some_and(|reason| reason.contains(omitted))
+        }));
+    }
+    assert!(!view.to_string().contains("PRIVATE"));
+}
+
+#[test]
+fn framework_feature_middleware_facts_are_bounded_with_an_explicit_gap() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let registrations: String = (0..65)
+        .map(|number| format!("app.add_middleware(Middleware{number})\n"))
+        .collect();
+    put(
+        root,
+        "app.py",
+        &format!(
+            "from fastapi import FastAPI\napp = FastAPI()\n{registrations}@app.get('/pets')\ndef pets(): pass\n"
+        ),
+    );
+
+    let view = ok(root, &["project", "features", "--limit", "500"]);
+    assert_eq!(view["analysis"]["middleware"], 64, "{view}");
+    assert_eq!(view["analysis"]["middleware_omitted"], 1, "{view}");
+    assert_eq!(view["analysis"]["middleware_gaps"], 1, "{view}");
+    assert!(view["items"].as_array().unwrap().iter().any(|fact| {
+        fact["kind"] == "framework-gap"
+            && fact["gap"]["omitted"] == 1
+            && fact["evidence"]["basis"] == "middleware-fact-limit"
+    }));
+}
+
+#[test]
+fn framework_feature_configuration_facts_are_bounded_without_values() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "package.json", r#"{"dependencies":{"next":"16"}}"#);
+    put(root, "app/api/route.ts", "export function GET() {}\n");
+    let declarations: String = (0..129)
+        .map(|number| format!("      SETTING_{number:03}: PRIVATE_VALUE_{number:03}\n"))
+        .collect();
+    put(
+        root,
+        "compose.yaml",
+        &format!("services:\n  app:\n    environment:\n{declarations}"),
+    );
+
+    let view = ok(root, &["project", "features", "--limit", "500"]);
+    assert_eq!(view["analysis"]["runtime_configurations"], 128, "{view}");
+    assert_eq!(view["analysis"]["configurations_omitted"], 1, "{view}");
+    assert!(view["items"].as_array().unwrap().iter().any(|fact| {
+        fact["kind"] == "framework-gap"
+            && fact["evidence"]["basis"] == "runtime-configuration-limit"
+            && fact["gap"]["configurations_omitted"] == 1
+    }));
+    assert!(!view.to_string().contains("PRIVATE_VALUE"));
+}
+
+#[test]
+fn framework_feature_execution_dependencies_are_bounded_with_an_explicit_gap() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let parameters = (0..257)
+        .map(|number| format!("p{number}=Depends(d{number})"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    put(
+        root,
+        "app.py",
+        &format!(
+            "from fastapi import Depends, FastAPI\napp=FastAPI()\n@app.get('/pets')\ndef pets({parameters}): pass\n"
+        ),
+    );
+
+    let view = ok(root, &["project", "features", "--limit", "500"]);
+    assert_eq!(view["analysis"]["execution_dependencies"], 256, "{view}");
+    assert_eq!(
+        view["analysis"]["execution_dependencies_omitted"], 1,
+        "{view}"
+    );
+    assert!(view["items"].as_array().unwrap().iter().any(|fact| {
+        fact["kind"] == "framework-gap"
+            && fact["evidence"]["basis"] == "execution-dependency-fact-limit"
+            && fact["gap"]["omitted"] == 1
+    }));
+}
+
+#[test]
+fn framework_feature_lifecycle_facts_are_bounded_with_an_explicit_gap() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let hooks: String = (0..65)
+        .map(|number| format!("@app.on_event('startup')\ndef startup_{number}(): pass\n"))
+        .collect();
+    put(
+        root,
+        "app.py",
+        &format!(
+            "from fastapi import FastAPI\napp=FastAPI()\n{hooks}@app.get('/pets')\ndef pets(): pass\n"
+        ),
+    );
+
+    let view = ok(root, &["project", "features", "--limit", "500"]);
+    assert_eq!(view["analysis"]["lifecycle_hooks"], 64, "{view}");
+    assert_eq!(view["analysis"]["lifecycle_omitted"], 1, "{view}");
+    assert!(view["items"].as_array().unwrap().iter().any(|fact| {
+        fact["kind"] == "framework-gap"
+            && fact["evidence"]["basis"] == "lifecycle-fact-limit"
+            && fact["gap"]["omitted"] == 1
+    }));
+}
+
+#[test]
+fn framework_features_preserve_schema_ambiguity_and_unsupported_framework_routes() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "app/api/pets/route.ts",
+        "interface Pet { id: string; }\ninterface Pet { name: string; }\nexport function GET(): Pet { throw new Error('PRIVATE'); }\n",
+    );
+    put(
+        root,
+        "legacy.ts",
+        "app.get('/legacy', legacy);\nfunction legacy() { return 1; }\n",
+    );
+
+    let view = ok(root, &["project", "features", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    let reference = items
+        .iter()
+        .find(|fact| fact["kind"] == "schema-reference" && fact["reference"]["name"] == "Pet")
+        .unwrap();
+    assert_eq!(reference["status"], "ambiguous", "{view}");
+    assert_eq!(reference["reference"]["candidate_count"], 2);
+    assert_eq!(
+        items
+            .iter()
+            .filter(|fact| fact["kind"] == "schema-candidate" && fact["parent"] == reference["id"])
+            .count(),
+        2
+    );
+    assert_eq!(view["analysis"]["unsupported_framework_routes"], 1);
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "framework-gap"
+            && fact["gap"]["framework"] == "express"
+            && fact["gap"]["reason"]
+                .as_str()
+                .is_some_and(|reason| reason.contains("does not model express"))
+    }));
+    assert!(items.iter().any(|fact| fact["kind"] == "schema-gap"));
+    assert!(!view.to_string().contains("PRIVATE"));
+}
+
+#[test]
+fn framework_features_preserve_dependency_and_next_middleware_ambiguity_as_gaps() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "package.json", r#"{"dependencies":{"next":"16"}}"#);
+    put(root, "app/api/route.ts", "export function GET() {}\n");
+    put(root, "proxy.js", "export function proxy() {}\n");
+    put(root, "middleware.ts", "export function middleware() {}\n");
+    put(
+        root,
+        "api.py",
+        concat!(
+            "from typing import Annotated\n",
+            "from fastapi import Depends, FastAPI, Security\n",
+            "app = FastAPI(dependencies=[Depends(global_dep), dynamic])\n",
+            "@app.get('/pets', dependencies=ROUTE_DEPENDENCIES)\n",
+            "def pets(value: Annotated[str, Depends(first), Security(second)], ",
+            "dynamic=Depends(build_provider())):\n",
+            "    pass\n",
+        ),
+    );
+
+    let view = ok(root, &["project", "features", "--limit", "500"]);
+    assert_eq!(view["analysis"]["middleware"], 2, "{view}");
+    assert_eq!(view["analysis"]["middleware_gaps"], 1, "{view}");
+    assert_eq!(view["analysis"]["execution_dependencies"], 4, "{view}");
+    assert_eq!(view["analysis"]["authentication_candidates"], 1, "{view}");
+    let items = view["items"].as_array().unwrap();
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "middleware"
+            && fact["middleware"]["form"] == "nextjs-middleware"
+            && fact["middleware"]["deprecated_convention"] == true
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "framework-gap"
+            && fact["gap"]["reason"]
+                .as_str()
+                .is_some_and(|reason| reason.contains("Multiple Next.js"))
+    }));
+    let dependencies: Vec<_> = items
+        .iter()
+        .filter(|fact| fact["kind"] == "execution-dependency")
+        .collect();
+    assert!(dependencies
+        .iter()
+        .filter(|fact| fact["execution_dependency"]["scope"] != "application")
+        .all(|fact| fact["status"] == "unresolved"));
+    assert!(dependencies.iter().any(|fact| {
+        fact["execution_dependency"]["binding"] == "dynamic"
+            && fact["execution_dependency"]["provider"].is_null()
+    }));
+    assert!(dependencies.iter().any(|fact| {
+        fact["execution_dependency"]["provider"] == "global_dep"
+            && fact["execution_dependency"]["scope"] == "application"
+    }));
+    for fragment in ["application dependency list", "route dependency list"] {
+        assert!(items.iter().any(|fact| {
+            fact["gaps"].as_array().is_some_and(|gaps| {
+                gaps.iter()
+                    .any(|gap| gap.as_str().is_some_and(|gap| gap.contains(fragment)))
+            })
+        }));
+    }
+
+    let contracts = ok(root, &["project", "contracts", "--limit", "500"]);
+    assert_eq!(
+        contracts["analysis"]["route_dependencies"], 3,
+        "{contracts}"
+    );
+    assert_eq!(
+        contracts["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|fact| fact["kind"] == "route-dependency")
+            .count(),
+        3
+    );
+    assert!(!view.to_string().contains("build_provider"));
+}
+
+#[test]
+fn framework_features_keep_lifecycle_conflicts_and_cross_file_hooks_as_gaps() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(root, "package.json", r#"{"dependencies":{"next":"16"}}"#);
+    put(root, "app/api/route.ts", "export function GET() {}\n");
+    put(
+        root,
+        "instrumentation.ts",
+        concat!(
+            "const boot = () => {};\n",
+            "export { boot as register };\n",
+            "export { missing as onRequestError };\n",
+            "export { onRequestError } from './errors';\n",
+        ),
+    );
+    put(
+        root,
+        "api.py",
+        concat!(
+            "from fastapi import FastAPI\n",
+            "def life(app): yield\n",
+            "def start(): pass\n",
+            "app = FastAPI(lifespan=life, on_startup=[start, build_hook()])\n",
+            "@app.on_event(EVENT)\n",
+            "def dynamic_event(): pass\n",
+            "@app.get('/pets')\n",
+            "def pets(): pass\n",
+        ),
+    );
+
+    let view = ok(root, &["project", "features", "--limit", "500"]);
+    assert_eq!(view["analysis"]["lifecycle_hooks"], 4, "{view}");
+    assert_eq!(view["analysis"]["lifecycle_gaps"], 4, "{view}");
+    let items = view["items"].as_array().unwrap();
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "lifecycle-hook"
+            && fact["lifecycle"]["name"] == "boot"
+            && fact["lifecycle"]["exported_as"] == "register"
+    }));
+    assert!(items.iter().any(|fact| {
+        fact["kind"] == "lifecycle-hook"
+            && fact["lifecycle"]["form"] == "fastapi-constructor-event"
+            && fact["lifecycle"]["name"].is_null()
+            && fact["status"] == "ambiguous"
+    }));
+    for fragment in [
+        "Re-exported",
+        "no unique direct callable",
+        "event phase",
+        "lifespan and deprecated",
+    ] {
+        assert!(items.iter().any(|fact| {
+            fact["kind"] == "framework-gap"
+                && fact["gap"]["reason"]
+                    .as_str()
+                    .is_some_and(|reason| reason.contains(fragment))
+        }));
+    }
+    assert!(!view.to_string().contains("build_hook"));
+}
+
+#[test]
 fn next_contract_fields_clip_paths_and_names_without_losing_handles() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
@@ -3387,7 +4508,7 @@ fn next_route_analysis_uses_captured_exports_after_source_removal() {
 fn fastapi_routes_use_observed_constructor_aliases_and_declaration_positions() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
-    put(root, "app.py", "from fastapi import FastAPI as API, APIRouter as Router\nservice = API()\nroutes = Router(prefix='/PREFIX_NOT_APPLIED')\n\n@service.get('/pets')\n@routes.post(path='/pets')\ndef pets():\n    return 'PRIVATE_ONE'\n\n@service.delete('/pets/{petId}')\ndef pets():\n    return 'PRIVATE_TWO'\n\nclass Other:\n    def pets(self):\n        return 'PRIVATE_OTHER'\n\n@bp.get('/legacy')\ndef legacy():\n    pass\n");
+    put(root, "app.py", "from fastapi import FastAPI as API, APIRouter as Router\nservice = API()\nroutes = Router(prefix='/v1')\n\n@service.get('/pets')\n@routes.post(path='/pets')\ndef pets():\n    return 'PRIVATE_ONE'\n\n@service.delete('/pets/{petId}')\ndef pets():\n    return 'PRIVATE_TWO'\n\nclass Other:\n    def pets(self):\n        return 'PRIVATE_OTHER'\n\n@bp.get('/legacy')\ndef legacy():\n    pass\n");
     put(
         root,
         "other.py",
@@ -3428,8 +4549,140 @@ fn fastapi_routes_use_observed_constructor_aliases_and_declaration_positions() {
     assert!(items
         .iter()
         .any(|r| r["framework_candidate"] == "flask" && r["url"] == "/legacy"));
-    assert!(!view.to_string().contains("PREFIX_NOT_APPLIED"));
+    assert!(items.iter().any(|r| {
+        r["framework_candidate"] == "fastapi" && r["method"] == "POST" && r["url"] == "/v1/pets"
+    }));
     assert!(!view.to_string().contains("PRIVATE_"));
+}
+
+#[test]
+fn fastapi_router_prefixes_accept_runtime_shapes_and_reject_unresolved_forms() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    put(
+        root,
+        "app.py",
+        "from fastapi import APIRouter, FastAPI\nplain = APIRouter(prefix='/items')\nempty = APIRouter(prefix='')\ndynamic = APIRouter(prefix=PREFIX)\ntrailing = APIRouter(prefix='/bad/')\napp = FastAPI(prefix='/not-a-router-prefix')\n\n@plain.get('/')\ndef list_items(): pass\n@empty.get('/health')\ndef health(): pass\n@dynamic.get('/hidden')\ndef hidden(): pass\n@trailing.get('/invalid')\ndef invalid(): pass\n@app.get('/app')\ndef app_route(): pass\n",
+    );
+    let view = ok(root, &["project", "routes", "--limit", "500"]);
+    let items = view["items"].as_array().unwrap();
+    let routes: Vec<_> = items
+        .iter()
+        .filter(|row| row["framework_candidate"] == "fastapi")
+        .map(|row| (row["method"].clone(), row["url"].clone()))
+        .collect();
+    assert_eq!(
+        routes,
+        vec![
+            (serde_json::json!("GET"), serde_json::json!("/health")),
+            (serde_json::json!("GET"), serde_json::json!("/items/"))
+        ]
+    );
+    assert_eq!(view["analysis"]["fastapi_gaps"], 6);
+    assert_eq!(
+        items
+            .iter()
+            .filter(|row| row["basis"] == "fastapi-reader")
+            .count(),
+        6
+    );
+}
+
+#[test]
+fn pinned_fastapi_project_matches_an_independent_route_contract() {
+    use sha2::{Digest, Sha256};
+
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/framework-corpus/fastapi");
+    let source = fs::read(root.join("items.py")).unwrap();
+    assert_eq!(
+        format!("{:x}", Sha256::digest(source)),
+        "7f0fa55d1f7b02188c4abd4f88aa6db92fe03de38258b765ed050ec72032b410"
+    );
+    let view = ok(&root, &["project", "features", "--limit", "500"]);
+    assert_eq!(view["analysis"]["applications"], 1);
+    assert_eq!(view["analysis"]["features"], 2);
+    assert_eq!(view["analysis"]["routes"], 5);
+    assert_eq!(view["analysis"]["handlers"], 5);
+    let mut actual: Vec<_> = view["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|row| row["kind"] == "route")
+        .map(|row| {
+            (
+                row["route"]["method"].as_str().unwrap().to_owned(),
+                row["route"]["url"].as_str().unwrap().to_owned(),
+            )
+        })
+        .collect();
+    actual.sort();
+    assert_eq!(
+        actual,
+        [
+            ("DELETE", "/items/{id}"),
+            ("GET", "/items/"),
+            ("GET", "/items/{id}"),
+            ("POST", "/items/"),
+            ("PUT", "/items/{id}"),
+        ]
+        .map(|(method, url)| (method.to_owned(), url.to_owned()))
+    );
+    let application = view["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["kind"] == "application")
+        .unwrap();
+    assert_eq!(application["application"]["framework"], "fastapi");
+    assert!(application["gaps"].as_array().unwrap().iter().any(|gap| gap
+        .as_str()
+        .unwrap()
+        .contains("Include-router and mounted prefixes")));
+}
+
+#[test]
+fn pinned_nextjs_project_matches_an_independent_route_contract() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/corpus/nextjs");
+    let view = ok(&root, &["project", "features", "--limit", "500"]);
+    assert_eq!(view["analysis"]["applications"], 1);
+    assert_eq!(view["analysis"]["features"], 3);
+    assert_eq!(view["analysis"]["routes"], 5);
+    assert_eq!(view["analysis"]["handlers"], 5);
+    let mut actual: Vec<_> = view["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|row| row["kind"] == "route")
+        .map(|row| {
+            (
+                row["route"]["method"].as_str().unwrap().to_owned(),
+                row["route"]["url"].as_str().unwrap().to_owned(),
+            )
+        })
+        .collect();
+    actual.sort();
+    assert_eq!(
+        actual,
+        [
+            ("DELETE", "/api/posts/{postId}"),
+            ("GET", "/api/posts"),
+            ("PATCH", "/api/posts/{postId}"),
+            ("POST", "/api/posts"),
+            ("POST", "/api/webhooks/stripe"),
+        ]
+        .map(|(method, url)| (method.to_owned(), url.to_owned()))
+    );
+    let application = view["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["kind"] == "application")
+        .unwrap();
+    assert_eq!(application["application"]["framework"], "nextjs-app");
+    assert!(application["gaps"].as_array().unwrap().iter().any(|gap| gap
+        .as_str()
+        .unwrap()
+        .contains("Runtime Next.js configuration")));
 }
 
 #[test]
@@ -3463,7 +4716,13 @@ fn fastapi_contracts_read_default_markers_without_leaking_defaults_or_constraint
     }
     assert!(items
         .iter()
-        .any(|r| r["parameters"] == 2 && r["basis"] == "fastapi-explicit-binding"));
+        .any(|r| r["parameters"] == 1 && r["basis"] == "fastapi-explicit-binding"));
+    assert!(items.iter().any(|r| {
+        r["kind"] == "route-dependency"
+            && r["binding"] == "user"
+            && r["provider"] == "load_user"
+            && r["authentication_candidate"] == false
+    }));
     assert!(items
         .iter()
         .any(|r| r["declared_type"] == "Pet" && r["location"] == "return"));
@@ -3494,7 +4753,10 @@ fn fastapi_annotated_bindings_strip_metadata_and_keep_unknown_types_explicit() {
     assert!(inputs
         .iter()
         .any(|r| r["binding"] == "dynamic" && r["declared_type"].is_null()));
-    assert!(items.iter().any(|r| r["parameters"] == 2));
+    assert!(items.iter().any(|r| r["parameters"] == 1));
+    assert!(items.iter().any(|r| {
+        r["kind"] == "route-dependency" && r["binding"] == "dep" && r["provider"] == "load_user"
+    }));
     assert!(!view.to_string().contains("PRIVATE_"));
 }
 

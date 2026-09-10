@@ -8,6 +8,8 @@ open FrKernels.Project
 
 def samples : List Nat := [0, 1, 2, 3, 4, 79, 80, 499, 500, 65536, 4294967295, 18446744073709551615]
 
+def frameworkSamples : List Nat := [0, 1, 2, 63, 64, 65, 128, 512, 65536]
+
 def sourceSamples : List String := Id.run do
   let mut sources := [""]
   let mut words := sources
@@ -37,7 +39,31 @@ def declarationOffsetLargeSamples : List String :=
    "{" ++ String.ofList (List.replicate 4096 ' ') ++ "x"]
 
 def main (args : List String) : IO Unit := do
-  if args == ["selection-conflicts"] then
+  if args == ["framework-boundaries"] then
+    for total in frameworkSamples do
+      for limit in frameworkSamples do
+        IO.println (frameworkEmitted total limit)
+        IO.println (frameworkOmitted total limit)
+    for total in frameworkSamples do
+      for declarationIndex in frameworkSamples do
+        IO.println (middlewareRequestOrder total declarationIndex)
+    for client in [false, true] do
+      for runtimeHooks in [0, 1, 2, 65536] do
+        IO.println (componentHooksCompatible client runtimeHooks)
+    for nextjs in [false, true] do
+      for publicName in [false, true] do
+        IO.println (configurationVisibility nextjs publicName)
+    for absoluteHttp in [false, true] do
+      for rootRelative in [false, true] do
+        IO.println (serviceTargetKind absoluteHttp rootRelative)
+    for queryOrFragment in [false, true] do
+      for credentials in [false, true] do
+        IO.println (serviceRedactionFlags queryOrFragment credentials)
+    for empty in [false, true] do
+      for startsSlash in [false, true] do
+        for endsSlash in [false, true] do
+          IO.println (fastapiPrefixSupported empty startsSlash endsSlash)
+  else if args == ["selection-conflicts"] then
     for leftStart in samples do
       for leftEnd in samples do
         if leftStart ≤ leftEnd then

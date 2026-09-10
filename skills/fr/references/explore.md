@@ -10,6 +10,7 @@ fr project show '<HANDLE>' --relations --limit 8
 fr project show '<HANDLE>' --source --bytes 256
 fr project calls '<HANDLE>' --direction incoming --limit 8
 fr project tests app.py --limit 8
+fr project features --limit 12
 fr project gaps --limit 8
 ```
 
@@ -30,4 +31,12 @@ Call results preserve confidence and unresolved or dispatch-candidate rows; cand
 Test associations are candidates for selecting checks, not proof of complete coverage or commands to execute blindly.
 Use `project packages`, `dependencies`, `links` and `workspaces` for manifest declarations and local relationships when package boundaries matter.
 Use `project routes`, `contracts` and `configuration` for their supported declaration patterns when the task needs those views.
+Use `project features` for the parent-linked Next.js App Router or FastAPI application, package, route, handler, contract, execution-dependency, middleware and schema hierarchy.
+Pass a returned `--feature ID` to retrieve one revision-bound subtree.
+Middleware order and direct FastAPI providers are syntax candidates; inspect their source before making runtime or authentication claims.
+Lifecycle, configuration and service facts also retain syntax evidence and explicit runtime gaps.
+Service targets omit query strings, fragments and URL credentials; use a source slice only when the task needs request details.
+Next.js page features include inherited layouts and bounded direct relative component imports.
+Their React facts cover props, hooks, events, styles and render edges.
+Unique same-file, default-import and named-import render targets include a source anchor; inspect unresolved targets directly.
 These commands do not establish complete dependency resolution or framework semantics.

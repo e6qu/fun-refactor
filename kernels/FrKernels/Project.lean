@@ -2,6 +2,119 @@ import Init.Data.List.Sort.Lemmas
 
 namespace FrKernels.Project
 
+-- fr:spec src/project/framework_kernel.rs::framework_emitted @ 9afa46708862e53eb40bf7e4c5f732cf57c9007874e05a1efe18fe61d5b80ac7
+-- fr:signature total: usize => total: Nat; limit: usize => limit: Nat; return: usize => return: Nat
+def frameworkEmitted (total : Nat) (limit : Nat) : Nat := min total limit
+
+-- fr:spec src/project/framework_kernel.rs::framework_omitted @ 1fcd250b558f64c8203739f82829b3958874173d42694554d312c42e5ecf4f32
+-- fr:signature total: usize => total: Nat; limit: usize => limit: Nat; return: usize => return: Nat
+def frameworkOmitted (total : Nat) (limit : Nat) : Nat := total - limit
+
+theorem framework_partition (total limit : Nat) :
+    frameworkEmitted total limit + frameworkOmitted total limit = total := by
+  by_cases ordered : total ≤ limit
+  · simp [frameworkEmitted, frameworkOmitted, Nat.min_eq_left ordered,
+      Nat.sub_eq_zero_of_le ordered]
+  · have reverse : limit ≤ total := Nat.le_of_not_ge ordered
+    rw [frameworkEmitted, frameworkOmitted, Nat.min_eq_right reverse]
+    omega
+
+theorem framework_emitted_respects_limit (total limit : Nat) :
+    frameworkEmitted total limit ≤ limit := Nat.min_le_right _ _
+
+theorem framework_omitted_is_zero_iff (total limit : Nat) :
+    frameworkOmitted total limit = 0 ↔ total ≤ limit := by
+  unfold frameworkOmitted
+  omega
+
+-- fr:spec src/project/framework_kernel.rs::middleware_request_order @ 8216192cd608316f86f46581f9d759b435f3aa05e1ccb7a3aae1597b1dbf4027
+-- fr:signature total: usize => total: Nat; declaration_index: usize => declarationIndex: Nat; return: usize => return: Nat
+def middlewareRequestOrder (total : Nat) (declarationIndex : Nat) : Nat := total - declarationIndex
+
+theorem middleware_request_order_in_range (total declarationIndex : Nat)
+    (valid : declarationIndex < total) :
+    1 ≤ middlewareRequestOrder total declarationIndex ∧
+      middlewareRequestOrder total declarationIndex ≤ total := by
+  simp [middlewareRequestOrder]
+  omega
+
+theorem middleware_request_order_reverses (total earlier later : Nat)
+    (ordered : earlier < later) (valid : later < total) :
+    middlewareRequestOrder total later < middlewareRequestOrder total earlier := by
+  simp [middlewareRequestOrder]
+  omega
+
+-- fr:spec src/project/framework_kernel.rs::component_hooks_compatible @ 2683af30799c8796c086e3f5c4a01a644ab0cda68bed70ff4bb13fce8d5eaa7b
+-- fr:signature client: bool => client: Bool; runtime_hooks: usize => runtimeHooks: Nat; return: bool => return: Bool
+def componentHooksCompatible (client : Bool) (runtimeHooks : Nat) : Bool :=
+  client || decide (runtimeHooks = 0)
+
+theorem server_hooks_compatible_iff_empty (runtimeHooks : Nat) :
+    componentHooksCompatible false runtimeHooks = true ↔ runtimeHooks = 0 := by
+  simp [componentHooksCompatible]
+
+theorem client_hooks_are_compatible (runtimeHooks : Nat) :
+    componentHooksCompatible true runtimeHooks = true := by
+  simp [componentHooksCompatible]
+
+-- fr:spec src/project/framework_kernel.rs::configuration_visibility @ 537d173c9f9187b1a7ce38245dfe63887d1e24f8fc54db9b88b0bec4a59a7195
+-- fr:signature nextjs: bool => nextjs: Bool; public_name: bool => publicName: Bool; return: usize => return: Nat
+def configurationVisibility (nextjs : Bool) (publicName : Bool) : Nat :=
+  if !nextjs then 0 else if publicName then 2 else 1
+
+theorem configuration_visibility_is_known (nextjs publicName : Bool) :
+    configurationVisibility nextjs publicName ≤ 2 := by
+  cases nextjs <;> cases publicName <;> decide
+
+theorem public_configuration_requires_next (nextjs publicName : Bool) :
+    configurationVisibility nextjs publicName = 2 ↔ nextjs = true ∧ publicName = true := by
+  cases nextjs <;> cases publicName <;> decide
+
+-- fr:spec src/project/framework_kernel.rs::service_target_kind @ 2c124fe8abc7f90d35c6be9bbb18102239701d2de79f51d882fbd7a94f5a3e4b
+-- fr:signature absolute_http: bool => absoluteHttp: Bool; root_relative: bool => rootRelative: Bool; return: usize => return: Nat
+def serviceTargetKind (absoluteHttp : Bool) (rootRelative : Bool) : Nat :=
+  if absoluteHttp then 2 else if rootRelative then 1 else 0
+
+theorem service_target_kind_is_known (absoluteHttp rootRelative : Bool) :
+    serviceTargetKind absoluteHttp rootRelative ≤ 2 := by
+  cases absoluteHttp <;> cases rootRelative <;> decide
+
+theorem absolute_service_target_wins (rootRelative : Bool) :
+    serviceTargetKind true rootRelative = 2 := by
+  cases rootRelative <;> rfl
+
+-- fr:spec src/project/framework_kernel.rs::service_redaction_flags @ ab640c3628e3562292ae80a5bb5e809068215aa9a001eb1542ba4a72abaa99cd
+-- fr:signature query_or_fragment: bool => queryOrFragment: Bool; credentials: bool => credentials: Bool; return: usize => return: Nat
+def serviceRedactionFlags (queryOrFragment : Bool) (credentials : Bool) : Nat :=
+  (if queryOrFragment then 1 else 0) + (if credentials then 2 else 0)
+
+theorem service_redaction_flags_are_bounded (queryOrFragment credentials : Bool) :
+    serviceRedactionFlags queryOrFragment credentials ≤ 3 := by
+  cases queryOrFragment <;> cases credentials <;> decide
+
+theorem service_redaction_zero_iff_clear (queryOrFragment credentials : Bool) :
+    serviceRedactionFlags queryOrFragment credentials = 0 ↔
+      queryOrFragment = false ∧ credentials = false := by
+  cases queryOrFragment <;> cases credentials <;> decide
+
+-- fr:spec src/project/framework_kernel.rs::fastapi_prefix_supported @ c6a0e76ee26cc51b3ff32c70f42e44e45eda7ada1ce40bd9fa9db0f9f2e1be78
+-- fr:signature empty: bool => empty: Bool; starts_slash: bool => startsSlash: Bool; ends_slash: bool => endsSlash: Bool; return: bool => return: Bool
+def fastapiPrefixSupported (empty : Bool) (startsSlash : Bool) (endsSlash : Bool) : Bool :=
+  empty || startsSlash && !endsSlash
+
+theorem empty_fastapi_prefix_is_supported (startsSlash endsSlash : Bool) :
+    fastapiPrefixSupported true startsSlash endsSlash = true := by
+  cases startsSlash <;> cases endsSlash <;> decide
+
+theorem nonempty_fastapi_prefix_supported_iff (startsSlash endsSlash : Bool) :
+    fastapiPrefixSupported false startsSlash endsSlash = true ↔
+      startsSlash = true ∧ endsSlash = false := by
+  cases startsSlash <;> cases endsSlash <;> decide
+
+theorem trailing_slash_rejects_nonempty_fastapi_prefix (startsSlash : Bool) :
+    fastapiPrefixSupported false startsSlash true = false := by
+  cases startsSlash <;> decide
+
 -- fr:spec src/project.rs::path_confidence @ b5a8549e
 -- fr:signature edges: &[Confidence] => edges: List Nat; return: Confidence => return: Nat
 def pathConfidence (edges : List Nat) : Nat := edges.foldr max 0

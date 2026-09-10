@@ -136,6 +136,13 @@ The model does not establish filesystem containment or package-manager workspace
 Matcher proofs use propositional extensionality; the self-match proof also uses Lean's standard classical-choice and quotient-soundness axioms.
 The model does not prove parser correctness, snapshot-hash collision resistance or agent task success.
 
+The same project kernel anchors eight framework policy helpers used after syntax recognition.
+Sixteen theorems cover capped output, reverse middleware ranks, server-default hook rejection and valid FastAPI constructor-prefix shapes.
+They also bound every configuration, service-target and redaction classification to its declared finite tier.
+The executable comparison covers 271 Rust and Lean results across output limits, middleware positions, hook placement and every Boolean classification input.
+The classification proofs use no axioms. The arithmetic and hook proofs report combinations of Lean's standard `propext`, `Quot.sound` and `Classical.choice` axioms; none uses a custom axiom or compiler-trust tactic.
+These laws receive facts that the readers already recognized. Framework parsing, the meaning of `use client`, environment-name prefixes, URL decomposition, runtime registration and report aggregation remain covered by fixtures rather than by these proofs.
+
 `FrKernels.Git` models the inclusive line-range predicate used by changed-declaration views.
 Six theorems characterize membership, reject lines before/after or within reversed bounds, characterize singletons, and preserve matches when bounds widen.
 Shared execution compares 1,728 cases, including zero, reversed ranges and 32-bit/64-bit maximum values.
@@ -179,6 +186,8 @@ The chains require exactly their edge count in changing Rust rounds, exercising 
 The reachability induction uses no axioms; the expansion proofs use propositional extensionality and quotient soundness from Lean's standard library.
 The convergence and unconditional closure proofs also use Lean's standard classical-choice axiom. These proofs introduce no custom axioms.
 These are model proofs with tested Rust correspondence. Cargo semantics, eligible-edge construction, witness selection and the complete Rust loop remain outside the proofs.
+Frontend client-boundary propagation reuses the same Rust membership step over captured relative-import edges.
+The closure laws therefore cover supplied import graphs; import parsing and edge construction remain fixture-tested assumptions.
 
 The Cargo reader checks literal exclusion prefixes and explicit-member overrides with `cargo metadata` fixtures.
 These cover nested roots, descendant dependencies, Unicode paths and neighboring directory names.

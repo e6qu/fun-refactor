@@ -13,6 +13,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 pub mod author;
+mod components;
 mod configuration;
 mod context;
 mod contracts;
@@ -20,13 +21,16 @@ mod digest;
 #[cfg(test)]
 mod digest_tests;
 mod fast_routes;
+mod features;
 mod find;
+pub mod framework_kernel;
 mod links;
 mod manifests;
 mod next_routes;
 mod relationships;
 mod routes;
 mod schemas;
+mod service_calls;
 mod tests;
 
 #[derive(Subcommand)]
@@ -81,6 +85,8 @@ pub enum Command {
         )]
         types: bool,
     },
+    #[command(about = "Page through route and page centered application feature hierarchies.")]
+    Features(FeatureOptions),
     #[command(about = "Page through declared schema fields and local type-reference candidates.")]
     Schemas(RelationshipOptions),
     #[command(about = "Page through environment declarations and candidate code consumers.")]
@@ -137,6 +143,17 @@ pub enum Command {
         #[arg(long)]
         cursor: Option<String>,
     },
+}
+
+#[derive(clap::Args)]
+pub struct FeatureOptions {
+    #[command(flatten)]
+    selection: RelationshipOptions,
+    #[arg(
+        long,
+        help = "Select one feature ID returned by this project revision."
+    )]
+    feature: Option<String>,
 }
 
 #[derive(clap::Args)]
@@ -1023,6 +1040,7 @@ impl<'a> Project<'a> {
             Command::Implementations(selection) => self.implementations(selection),
             Command::Routes(selection) => self.routes(selection, false, false),
             Command::Contracts { selection, types } => self.routes(selection, true, *types),
+            Command::Features(options) => self.features(options),
             Command::Schemas(selection) => self.schemas(selection),
             Command::Configuration(selection) => self.configuration(selection),
             Command::Tests { selection, depth } => self.tests(selection, *depth),

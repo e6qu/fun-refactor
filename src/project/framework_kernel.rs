@@ -1,0 +1,43 @@
+pub fn framework_emitted(total: usize, limit: usize) -> usize {
+    total.min(limit)
+}
+
+pub fn framework_omitted(total: usize, limit: usize) -> usize {
+    total.saturating_sub(limit)
+}
+
+pub fn middleware_request_order(total: usize, declaration_index: usize) -> usize {
+    total.saturating_sub(declaration_index)
+}
+
+pub fn component_hooks_compatible(client: bool, runtime_hooks: usize) -> bool {
+    client || runtime_hooks == 0
+}
+
+pub fn configuration_visibility(nextjs: bool, public_name: bool) -> usize {
+    if !nextjs {
+        0
+    } else if public_name {
+        2
+    } else {
+        1
+    }
+}
+
+pub fn service_target_kind(absolute_http: bool, root_relative: bool) -> usize {
+    if absolute_http {
+        2
+    } else if root_relative {
+        1
+    } else {
+        0
+    }
+}
+
+pub fn service_redaction_flags(query_or_fragment: bool, credentials: bool) -> usize {
+    usize::from(query_or_fragment) + 2 * usize::from(credentials)
+}
+
+pub fn fastapi_prefix_supported(empty: bool, starts_slash: bool, ends_slash: bool) -> bool {
+    empty || starts_slash && !ends_slash
+}

@@ -4,7 +4,56 @@ PR 0, the agent-ready verified refactoring foundation, merged as GitHub PR 259.
 PR 1, Agent Context Protocol v2, merged as GitHub PR 261.
 PR 2, Generalized Structural Authoring, merged as GitHub PR 262.
 PR 3, Durable Git Workspace Lifecycle, merged as GitHub PR 263.
-The current `lean_adoption_kit` branch is roadmap PR 4. Its first checkpoint adds `fr spec init [PATH]` with a pinned toolchain, a minimal checked Lake target and refusal to overwrite differing files or escape through paths and symlinks.
+PR 4, the Lean Adoption Kit, merged as GitHub PR 264.
+The current `framework_semantic_model` branch is roadmap PR 5.
+Its first checkpoint adds `fr project features` for bounded Next.js App Router and FastAPI hierarchies.
+Applications contain exact-route-path feature candidates, which contain routes, handlers, contract fields, schema references and expanded same-file schema candidates.
+Every fact carries a parent, source anchor, status, confidence, validation basis and explicit gaps.
+Feature IDs retrieve one revision-bound subtree; cursors bind that selection.
+Duplicate type declarations remain ambiguous and other route frameworks produce gap facts.
+The second PR 5 checkpoint attaches a captured npm package to each supported Next.js application.
+It adds bounded npm build scripts and dependency facts beneath that package.
+Existing manifest-link evidence distinguishes linked local packages, unresolved local links and dependencies that still need package-manager resolution.
+FastAPI retains an explicit Python-packaging gap.
+Per-application limits cap build settings at 64 and dependencies at 256; omission facts carry either overflow.
+The third checkpoint adds application middleware facts for Next.js `proxy` and legacy `middleware` convention files, plus direct FastAPI HTTP decorators and `add_middleware` calls.
+FastAPI declaration order and reverse request order remain syntax evidence; runtime registration and behavior remain unchecked.
+Middleware output is capped at 64 facts per application with an explicit omission gap.
+FastAPI `Depends` and `Security` parameter markers now appear as route dependencies in contract output and as `execution-dependency` children in feature output.
+Direct callable providers are name-only candidates; competing markers and computed providers stay unresolved.
+Only `Security` is labeled as an authentication candidate, without claiming that authorization succeeds at runtime.
+Unsupported middleware, authentication and lifecycle forms remain visible gaps. Runtime behavior, broad service reachability and frontend semantics remain open.
+The fourth checkpoint recognizes FastAPI constructor and route dependency lists, preserving application, route and parameter scope.
+It adds FastAPI lifespan and deprecated event hooks, with explicit conflict diagnostics.
+Next.js instrumentation files contribute direct `register` and `onRequestError` exports; re-exports and competing files stay gaps.
+Application configuration facts reuse captured environment declaration and accessor chains, omit values and distinguish unmatched reads.
+Next.js `NEXT_PUBLIC_` variables carry a client build-time candidate marker; runtime substitution and client inclusion remain unchecked.
+Handler inspection adds sanitized HTTP service candidates for fetch, axios, requests and HTTPX syntax.
+It strips query strings, fragments and URL credentials, hides dynamic targets and reports them as gaps.
+The fifth checkpoint adds Next.js page features even when an application has no API route.
+Direct React function components retain server-default or `use client` placement, props, state hooks, effect schedules, events, style shapes and render edges.
+The reader exposes no prop values, hook initializers, effect bodies, event bodies or class values.
+Malformed page paths and stateful server-default components remain explicit gaps or conflicts.
+Limits cap components at 128 and child details at 512 per query.
+The sixth checkpoint extracts seven framework policy helpers used by production reporting and anchors them in `FrKernels.Project`.
+Thirteen theorems cover cap partitioning, reverse middleware order, component hook placement, configuration visibility, service target tiers and redaction flags.
+All 263 bounded Rust/Lean results agree, strict source and signature verification passes with zero obligations, and the axiom audit records only standard Lean axioms for the arithmetic and hook proofs; the finite classifiers use none.
+Syntax recognition, framework runtime meaning and report assembly remain fixture-tested boundaries.
+The seventh checkpoint attaches inherited Next.js layouts and recursively follows direct relative component imports within the captured package.
+Cycles terminate through a bounded file set; missing, ambiguous, package-crossing and overflow cases remain explicit gaps.
+Render edges resolve unique same-file, default-import and named-import declarations to source anchors.
+Static reachability below a `use client` entry marks imported files as client-transitive candidates.
+State and effect conflicts use that effective boundary.
+The traversal reuses the workspace membership step whose closure and convergence have Lean proofs and shared Rust/Lean cases.
+Import-edge construction remains covered by component fixtures.
+Direct custom-hook calls retain names while their implementations and runtime needs remain unchecked.
+Competing page and layout convention files produce ambiguity gaps.
+The eighth checkpoint pins the framework syntax witnesses and compares feature reports with independent route contracts over unmodified Next.js and FastAPI project files.
+It adds a real five-operation `APIRouter` source file and joins valid constructor prefixes into reported paths.
+Dynamic and runtime-composed prefixes remain explicit gaps.
+The verified prefix predicate raises the framework kernel to eight anchors, sixteen theorems and 271 shared Rust and Lean cases.
+The framework model makes source-level candidate claims; any future runtime claim requires an executable framework fixture.
+Roadmap PR 4's first checkpoint added `fr spec init [PATH]` with a pinned toolchain, a minimal checked Lake target and refusal to overwrite differing files or escape through paths and symlinks.
 Initialization previews by default, supports saved plans and writes through source history. Apply, undo and redo cover files created below a new directory, while plan recording no longer creates the target directory as a lock side effect.
 A real integration case initializes an external temporary workspace and passes `fr spec verify specs` against Lake.
 The second PR 4 checkpoint adds `fr spec scaffold SOURCE::SYMBOL` for a bounded Rust type subset. It writes a full anchor, strict signature map, checked module import and one visible handwritten proof obligation in a single source transaction.
@@ -18,7 +67,7 @@ The sixth checkpoint adds `fr spec evidence`. The bounded result combines strict
 Its axiom analysis explicitly covers declared syntax rather than transitive theorem dependencies. The external fixture asserts these evidence boundaries after a passing regeneration and Lake build.
 The proof-debt predicate now has an anchored Lean model and four ratchet theorems. All 4,225 pairs from zero through 64 match Rust; the axiom audit reports only `propext`.
 This correspondence covers the ceiling predicate. Debt discovery, marker parsing, command enforcement and the full adoption workflow remain host-tested boundaries.
-Roadmap PR 4 is ready for review after the complete repository gate passed. Strict project verification reports 33 fresh anchors, no remaining proof debt and a successful 40-job Lake build; formatting, Clippy, prose budgets, 311/311 capability coverage and both WASM configurations also pass.
+Roadmap PR 4 passed the complete repository gate before merge. Strict project verification reported 33 fresh anchors, no remaining proof debt and a successful 40-job Lake build; formatting, Clippy, prose budgets, 311/311 capability coverage and both WASM configurations also passed.
 PR 3's first checkpoint added checked staging-journal compaction with explicit per-stack retention.
 Compacted records retain stable IDs, statuses, path counts and digests while discarding bytes that can no longer be replayed.
 Preview/write bases, the index lock and full journal rechecks preserve the index, working files and concurrent staging state.
@@ -655,4 +704,4 @@ Keep revision inputs, coverage and final source verification intact; require byt
 State the cache policy for the next autonomous cohort; existing trials explicitly disable it and their records remain immutable.
 The latest paired task requires one coordinated three-operation change across two crate roots. It passes, while `fr` still uses 23.8% more measured context in this single pair.
 Keep portable skill references selective and executable against the distributed binary.
-PR 4 is complete and ready for review. The next planned milestone is PR 5's hierarchical framework semantic model in [PLAN.md](../PLAN.md), followed by PR 6's verified feature migration.
+PR 5 is active. Continue the hierarchical framework semantic model in [PLAN.md](../PLAN.md), then use it for PR 6's verified feature migration.

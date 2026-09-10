@@ -899,6 +899,70 @@ fn project_page_lengths_match_lean_including_integer_limits() {
     }
 }
 
+#[test]
+fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
+    use fun_refactor::project::framework_kernel::{
+        component_hooks_compatible, configuration_visibility, fastapi_prefix_supported,
+        framework_emitted, framework_omitted, middleware_request_order, service_redaction_flags,
+        service_target_kind,
+    };
+
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("framework-boundaries")
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let actual = actual.lines().collect::<Vec<_>>();
+    let samples = [0, 1, 2, 63, 64, 65, 128, 512, 65536];
+    let mut expected = Vec::new();
+    for total in samples {
+        for limit in samples {
+            expected.push(framework_emitted(total, limit).to_string());
+            expected.push(framework_omitted(total, limit).to_string());
+        }
+    }
+    for total in samples {
+        for declaration_index in samples {
+            expected.push(middleware_request_order(total, declaration_index).to_string());
+        }
+    }
+    for client in [false, true] {
+        for runtime_hooks in [0, 1, 2, 65536] {
+            expected.push(component_hooks_compatible(client, runtime_hooks).to_string());
+        }
+    }
+    for nextjs in [false, true] {
+        for public_name in [false, true] {
+            expected.push(configuration_visibility(nextjs, public_name).to_string());
+        }
+    }
+    for absolute_http in [false, true] {
+        for root_relative in [false, true] {
+            expected.push(service_target_kind(absolute_http, root_relative).to_string());
+        }
+    }
+    for query_or_fragment in [false, true] {
+        for credentials in [false, true] {
+            expected.push(service_redaction_flags(query_or_fragment, credentials).to_string());
+        }
+    }
+    for empty in [false, true] {
+        for starts_slash in [false, true] {
+            for ends_slash in [false, true] {
+                expected
+                    .push(fastapi_prefix_supported(empty, starts_slash, ends_slash).to_string());
+            }
+        }
+    }
+    assert_eq!(actual, expected);
+}
+
 fn source_samples() -> Vec<String> {
     let mut sources = vec![String::new()];
     let mut words = sources.clone();

@@ -1,4 +1,6 @@
-use super::{bounded_text, fast_routes, hash, routes::RouteDeclaration, schemas, Project};
+use super::{
+    bounded_text, fast_routes, hash, routes::RouteDeclaration, schemas, service_calls, Project,
+};
 use crate::lang::Language;
 use crate::model::Symbol;
 use crate::parse::Parsed;
@@ -152,6 +154,27 @@ fn fastapi_fields(
         .flat_map(fast_routes::children)
         .filter(|n| !matches!(n.kind(), "keyword_separator" | "positional_separator"))
     {
+        let dependencies = fast_routes::dependencies(parameter, source);
+        if !dependencies.is_empty() {
+            let competing = dependencies.len() > 1;
+            for dependency in dependencies {
+                let resolved = dependency.provider.is_some() && !competing;
+                let authentication_candidate = dependency.marker == "Security";
+                rows.push(json!({"kind": "route-dependency", "route": route, "handler": handler,
+                    "binding": bounded_text(&dependency.binding, 160),
+                    "provider": dependency.provider.as_deref().map(|provider| bounded_text(provider, 160)),
+                    "marker": dependency.marker,
+                    "scope": "parameter",
+                    "authentication_candidate": authentication_candidate,
+                    "line": dependency.line, "basis": "fastapi-parameter-dependency",
+                    "status": if resolved { "candidate" } else { "unresolved" },
+                    "confidence": if resolved { "name-only" } else { "unknown" },
+                    "gaps": if competing { json!(["Competing dependency markers need further inspection."]) }
+                        else if dependency.provider.is_none() { json!(["The dependency provider is implicit or exceeds the direct callable subset."]) }
+                        else { json!([]) }}));
+            }
+            continue;
+        }
         let Some(input) = fast_routes::input(parameter, source) else {
             unknown += 1;
             continue;
@@ -171,6 +194,29 @@ fn fastapi_fields(
         .into_iter()
         .find(|n| n.kind() == "call")
     {
+        if let Some(dependencies) = fast_routes::dependency_argument(call, "dependencies", source) {
+            for dependency in dependencies.entries {
+                let resolved = dependency.provider.is_some();
+                let authentication_candidate = dependency.marker == "Security";
+                rows.push(json!({"kind": "route-dependency", "route": route, "handler": handler,
+                    "binding": null,
+                    "provider": dependency.provider.as_deref().map(|provider| bounded_text(provider, 160)),
+                    "marker": dependency.marker,
+                    "scope": "route",
+                    "authentication_candidate": authentication_candidate,
+                    "line": dependency.line, "basis": "fastapi-route-dependency",
+                    "status": if resolved { "candidate" } else { "unresolved" },
+                    "confidence": if resolved { "name-only" } else { "unknown" },
+                    "gaps": if dependency.provider.is_none() {
+                        json!(["The route dependency provider exceeds the direct callable subset."])
+                    } else { json!([]) }}));
+            }
+            if !dependencies.complete {
+                rows.push(json!({"kind": "route-contract-gap", "route": route, "handler": handler,
+                    "basis": "fastapi-route-dependency",
+                    "reason": "The route dependency list contains unsupported or competing entries."}));
+            }
+        }
         let models = fast_routes::keyword(call, "response_model", source);
         if let [model] = models.as_slice() {
             if fast_routes::simple_type(*model, source, 0) {
@@ -312,6 +358,27 @@ impl Project<'_> {
                     r["basis"] == "fastapi-response-model" && r["kind"] == "route-contract-field"
                 });
                 rows.extend(fields);
+            }
+            if matches!(declaration.framework.as_str(), "nextjs-app" | "fastapi") {
+                let service_calls = service_calls::read(function, parsed.language, source);
+                for call in service_calls.entries {
+                    rows.push(json!({
+                        "kind": "route-service-dependency", "route": route, "handler": handler,
+                        "transport": "http", "method": call.method, "target": bounded_text(&call.target, 512),
+                        "target_kind": call.target_kind,
+                        "query_or_fragment_omitted": call.query_or_fragment_omitted,
+                        "credentials_omitted": call.credentials_omitted,
+                        "line": call.line, "basis": call.basis, "status": "candidate", "confidence": "name-only",
+                        "gaps": ["Receiver shadowing, request options, response use and runtime reachability remain unchecked."]
+                    }));
+                }
+                for gap in service_calls.gaps {
+                    rows.push(json!({
+                        "kind": "route-service-gap", "route": route, "handler": handler,
+                        "line": gap.line, "basis": gap.basis, "reason": gap.reason,
+                        "status": "gap", "confidence": null
+                    }));
+                }
             }
             let mut unknown_inputs = 0usize;
             if function.child_by_field_name("parameter").is_some() {

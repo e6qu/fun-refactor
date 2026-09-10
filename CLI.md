@@ -633,6 +633,8 @@ fr project routes src --limit 40
 fr project routes '<FILE_HANDLE>' --cursor '<NEXT>'
 fr project contracts src --limit 40
 fr project contracts '<FILE_HANDLE>' --cursor '<NEXT>'
+fr project features src --limit 40
+fr project features --feature '<FEATURE_ID>' --limit 40
 fr project configuration deploy --limit 40
 fr project configuration src/settings.py
 fr project configuration --cursor '<NEXT>'
@@ -784,6 +786,8 @@ Both root layouts remain candidates under each package; the reader does not appl
 Package metadata comes from the project snapshot; manifest changes invalidate revisions and cursors before output.
 
 The `fastapi` reader recognizes top-level verb decorators on a direct `FastAPI()` or `APIRouter()` assignment.
+It joins valid plain literal constructor prefixes into literal decorator paths.
+Dynamic, relative or trailing-slash prefixes produce explicit gaps and suppress affected route facts.
 The file must contain the corresponding top-level `fastapi` import; constructor and module import aliases also match.
 Repeated direct assignments to a receiver exclude it from this subset. Conditional rebinding and general shadowing analysis remain unchecked.
 One plain absolute string supplies the path, either positionally or through `path=`.
@@ -797,9 +801,116 @@ Route analysis reads captured source only within selected files, after workspace
 Syntax errors produce `analysis-gap` rows instead of route guesses from the broken file.
 Unsupported languages produce count-based `coverage-gap` rows. Both diagnostics share the page limit.
 `analysis` reports selected-file totals, files without patterns, reader names and interpretation limits.
-The view has no expanded request/response schemas, middleware, mounted-router prefixes or cross-file handler resolution.
+The route view has no expanded request/response schemas, middleware, mounted-router prefixes or cross-file handler resolution.
 An empty page does not prove the absence of routes. Route and handler inference remain outside the Lean paging proofs.
 Revision checks and query-bound cursors apply, including final source and inventory verification.
+
+`features` builds a flat, parent-linked semantic hierarchy from the bounded Next.js App Router and FastAPI readers.
+The hierarchy contains application, package, feature, route, handler, contract, execution-dependency, middleware, lifecycle, configuration, service and schema facts.
+Exact route paths group route candidates into provisional features inside an inferred application boundary.
+This grouping does not establish business ownership.
+
+Every fact carries `id`, `parent`, `source`, `status`, `confidence`, `evidence` and `gaps`.
+The source anchor contains a bounded path, line and project handle where the underlying reader supplies them.
+Evidence names the reader basis and the captured-source, syntax-tree and project-revision checks.
+Null confidence preserves facts whose reader has no stronger tier.
+Gap arrays keep known limitations beside the affected fact.
+
+```sh
+fr project features --limit 40
+fr project features api --limit 40
+fr project features --feature 'frff1:<ID>' --limit 40
+```
+
+Feature IDs belong to one project revision and selected scope.
+An unknown or stale ID refuses instead of returning an empty hierarchy.
+Cursors bind the feature selection as well as the source scope and revision.
+Page limits bound emitted hierarchy facts.
+The source reader inspects at most 500 route and contract facts per query and reports omitted facts.
+Schema expansion follows no more than 64 same-file type candidates and reports omitted expansions.
+Narrow the target if either counter reaches its limit.
+
+Next.js application boundaries use the observed package root retained by the route reader.
+FastAPI application boundaries currently use one route file.
+An observed Next.js npm manifest adds a `package` child to its application.
+Declared npm scripts become `build-setting` children with bounded names and commands.
+Dependency children retain their section, requirement, target condition and unresolved package-manager status.
+Existing local-manifest evidence classifies a dependency boundary as `local-package` or `unresolved-local`.
+Other declarations use `external-or-unresolved` because this query does not invoke a package manager.
+Package, build-setting and dependency facts use captured-manifest validation evidence.
+The reader emits at most 64 build settings and 256 dependencies per application, with explicit omission gaps.
+FastAPI applications report a packaging gap because the project manifest reader does not inspect Python packaging yet.
+Next.js `proxy.ts` or `proxy.js` files beneath the application root become middleware children with before-route phase evidence.
+The reader also reports legacy `middleware.ts` or `middleware.js` convention files as deprecated candidates; multiple convention files produce a precedence gap.
+Direct FastAPI `@app.middleware("http")` and `app.add_middleware(Name, ...)` registrations become application middleware children.
+Their source order and reverse request order follow the observed registration syntax, while runtime registration, response order and behavior remain unchecked.
+The reader emits at most 64 FastAPI middleware facts per application; overflow produces an explicit omission gap.
+FastAPI `Depends` and `Security` parameter calls become route `execution-dependency` children when their provider is a direct callable name.
+Competing markers and computed providers remain unresolved, and provider bodies are not exposed.
+`Security` marks an authentication candidate; `Depends` does not establish the provider's purpose.
+FastAPI constructor dependency lists add application children, and route decorator lists add route children.
+Unsupported or competing list entries produce gaps.
+The query emits at most 256 execution dependencies and reports any omitted facts.
+The scope follows FastAPI's [global dependency model](https://fastapi.tiangolo.com/tutorial/dependencies/global-dependencies/).
+
+FastAPI lifespan constructor arguments and deprecated startup or shutdown forms become `lifecycle-hook` children.
+The reader reports a conflict when lifespan and deprecated event declarations coexist.
+These forms follow FastAPI's [lifespan and event rules](https://fastapi.tiangolo.com/advanced/events/).
+Next.js `instrumentation.ts` or `instrumentation.js` exports add startup and request-error hooks.
+Direct function, function-valued variable and local named exports form the supported subset.
+Syntax errors, re-exports, missing hooks and competing convention files produce gaps.
+Lifecycle output has a 64-fact application limit.
+The export names follow the [Next.js instrumentation convention](https://nextjs.org/docs/pages/api-reference/file-conventions/instrumentation).
+
+`runtime-configuration` children reuse the captured environment declaration and accessor analysis from `project configuration`.
+Their consumers remain beneath the declaration, and unmatched accessors retain `no-observed-declaration` status.
+The facts expose names, locations and candidate visibility without values.
+For Next.js, `NEXT_PUBLIC_` names carry a client build-time candidate marker; other names retain server-default status.
+These classifications follow the [Next.js environment rules](https://nextjs.org/docs/pages/guides/environment-variables).
+The reader emits at most 128 configuration facts and 256 consumers per application, with explicit omission gaps.
+
+Handler inspection recognizes plain `fetch` and axios calls in Next.js and module-qualified requests or HTTPX calls in FastAPI.
+`service-dependency` facts contain the HTTP method when syntax supplies one, plus a sanitized literal target.
+Sanitization removes query strings, fragments and URL credentials and records those omissions.
+Dynamic targets become `service-gap` children, and nested callable bodies remain outside the handler.
+Receiver identity, shadowing, request options, response use and runtime reachability remain unchecked.
+
+Next.js `page.tsx` and `page.jsx` files add exact-path features, including frontend-only applications.
+The same route-group and dynamic-segment subset used by App Router evidence determines the page path.
+Malformed, private, parallel and intercepting page paths produce framework gaps.
+The nearest captured npm package must declare Next.js; a project-root page without a manifest remains a candidate.
+
+Direct named function declarations and function-valued variables with JSX become React `component` facts.
+A leading `use client` directive marks every component in the file as a client boundary.
+Without that directive, the reader records the Next.js server-default boundary.
+Files reached below a captured client entry carry a client-transitive candidate boundary.
+This follows the [Next.js Server and Client Component model](https://nextjs.org/learn/react-foundations/server-and-client-components).
+Each page feature also includes existing `layout.tsx` or `layout.jsx` files from its route ancestry.
+Competing page or layout convention files produce ambiguity gaps.
+
+Component children summarize destructured prop names and declared prop types without defaults or values.
+Direct `useState` and `useReducer` bindings expose state names and setters.
+Direct effect hooks retain their dependency-list shape and a cleanup candidate flag.
+Other direct `useX` calls become hook facts without expanding their implementations.
+Known React names and possible custom hooks retain separate candidate kinds.
+React documents state through [`useState`](https://react.dev/reference/react/useState) and external synchronization through [`useEffect`](https://react.dev/reference/react/useEffect).
+JSX event attributes retain the event name, element and handler shape without handler source.
+Class and style attributes expose only their attribute and value shape.
+Capitalized JSX elements become render edges.
+Unique same-file declarations resolve by name.
+Unique default and named relative imports resolve to the target file and declaration line.
+State and effect hooks in a server-default file carry conflict status.
+Hooks below a captured client import path retain candidate status.
+
+Relative imports expand through `.tsx`, `.jsx` and matching `index` files inside the captured package.
+The traversal terminates on cycles and retains missing, ambiguous and package-crossing targets as gaps.
+It includes at most 64 component files and 128 file diagnostics per feature.
+The query also emits at most 128 components and 512 component details, with explicit omission gaps.
+Package aliases, namespace imports, re-exports, dynamic imports, context, CSS resolution, hydration and runtime rendering remain unchecked.
+The model preserves ambiguous same-file schema candidates and expands each bounded candidate separately.
+Other route frameworks produce `framework-gap` facts rather than disappearing.
+Unsupported middleware and authentication forms, mounted routers, lifecycle, runtime configuration, service reachability and frontend components remain explicit analysis limitations.
+These facts describe captured syntax candidates; they do not prove runtime framework identity or wire correspondence.
 
 `contracts` extends the route view with partial request and response evidence from captured source.
 It accepts the same directory/file scopes, handles, revision checks and page limits as `routes`.
@@ -835,12 +946,17 @@ Fields, summaries, gaps, route declarations and handlers all share the page limi
 
 FastAPI request fields recognize `Path`, `Query`, `Body`, `Header`, `Cookie`, `Form` and `File` calls.
 Markers can occupy a default value or `Annotated` metadata; qualified names also match by their final component.
-Exactly one supported marker must identify the binding. Conflicting markers, dependencies, aliases and implicit parameter classification remain unknown.
+Exactly one supported request marker must identify the binding. Conflicting request markers, aliases and implicit parameter classification remain unknown.
 `binding_kind` preserves the marker name. Form and file markers use the body location without inferring a media type.
 Literal aliases supply candidate names; header and body bindings without aliases leave the name null.
 Dynamic, escaped, empty, competing or expanded alias arguments also leave it null. Requiredness stays null throughout.
 The reader strips `Annotated` metadata before emitting the type; defaults, descriptions and validation arguments stay outside the output.
 Unsupported type expressions leave `declared_type` null. These patterns follow FastAPI's [parameter declarations](https://fastapi.tiangolo.com/tutorial/body-multiple-params/).
+`Depends` and `Security` calls appear separately as `route-dependency` rows.
+One direct callable provider is a name-only candidate; nested provider expressions and multiple dependency markers stay unresolved.
+The route analysis count is available as `analysis.route_dependencies`.
+Supported handler HTTP calls appear as `route-service-dependency` rows.
+Dynamic targets appear as `route-service-gap` rows; their source expressions stay hidden.
 
 Explicit `response_model` arguments produce separate response fields with `basis: fastapi-response-model` and `location: response-model`.
 Names, qualified names, generic subscriptions, unions and `None` form the supported type subset, with a depth limit of 16.
