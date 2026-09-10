@@ -165,24 +165,21 @@ fn every_route_becomes_a_fastapi_module_that_parses_as_python() {
 }
 
 #[test]
-fn the_url_survives_the_crossing_with_the_targets_conventions() {
+fn the_url_and_parameter_binding_survive_the_crossing() {
     let (_tmp, root) = corpus("nextjs");
     let plan = nextjs::plan(&root.join("app/api/posts/[postId]/route.ts")).unwrap();
 
-    // `[postId]` is a placeholder name. The `api` directory is part of an App
-    // Router URL, and the target spells the parameter as `{post_id}`.
-    assert_eq!(plan.route, "/api/posts/{post_id}");
+    // The `api` directory is part of an App Router URL. The placeholder keeps its
+    // spelling because the generated route and handler parameter must agree.
+    assert_eq!(plan.route, "/api/posts/{postId}");
     assert_eq!(plan.methods, vec!["DELETE", "PATCH"]);
     assert!(
         plan.output
-            .contains("async def delete(post_id: str, req: Request):"),
+            .contains("async def delete(postId: str, req: Request):"),
         "{}",
         plan.output
     );
-    assert_eq!(
-        plan.destination.file_name().unwrap(),
-        "api_posts_post_id.py"
-    );
+    assert_eq!(plan.destination.file_name().unwrap(), "api_posts_postId.py");
 }
 
 #[test]

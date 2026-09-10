@@ -184,8 +184,6 @@ fn has_jsx(source: &str, language: Language) -> Result<bool> {
 
 /// `[id]` → `{id}`, `[...path]` → `{path:path}`, anything else unchanged.
 fn translate_segment(segment: &str) -> String {
-    // The placeholder's name is internal: `/posts/{postId}` and `/posts/{post_id}` serve the
-    // same URLs.
     let Some(inner) = segment.strip_prefix('[').and_then(|s| s.strip_suffix(']')) else {
         return segment.to_string();
     };
@@ -193,8 +191,8 @@ fn translate_segment(segment: &str) -> String {
     let inner = inner.trim_start_matches('[').trim_end_matches(']');
     match inner.strip_prefix("...") {
         // A catch-all matches slashes too, which FastAPI spells `:path`.
-        Some(name) => format!("{{{}:path}}", super::snake_always(name)),
-        None => format!("{{{}}}", super::snake_always(inner)),
+        Some(name) => format!("{{{name}:path}}"),
+        None => format!("{{{inner}}}"),
     }
 }
 
@@ -1470,7 +1468,7 @@ fn supply_path_parameters(stmt: Stmt, dropped: &[String], parameters: &[String])
             } = of.as_ref()
             {
                 if let Expr::Name(object) = object.as_ref() {
-                    let supplied = super::snake_always(field);
+                    let supplied = field.clone();
                     if params == "params"
                         && dropped.contains(object)
                         && parameters.contains(&supplied)

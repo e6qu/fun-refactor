@@ -139,7 +139,7 @@ fr translate <file> [language]  # write it as another language, or `fastapi`
                               #   (routes and "use server" modules both)
 fr translate app.py nextjs    # a FastAPI application as a Next.js route tree
 fr translate openapi.yaml fastapi  # a service skeleton from a contract
-fr migrate feature <ID> --to fastapi --out migrated/pets.py
+fr migrate feature <ID> --to fastapi --out services/telemetry.py
                               # a checked, reversible feature migration plan
 fr recipe <file.recipe>       # a workspace transaction: recipes find, do, expect together
 fr recipe fmt recipes --check # format every recipe in a directory, or reject drift

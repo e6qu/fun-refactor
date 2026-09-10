@@ -502,7 +502,7 @@ fn typescript_field_type(ty: &FieldType) -> String {
     }
 }
 
-/// `{petId}` and `{pet_id}` both become the directory `[petId]`.
+/// `{itemId}` becomes `[itemId]` without changing the contract key.
 fn nextjs_directory(path: &str) -> PathBuf {
     let mut directory = PathBuf::new();
     for segment in path.trim_matches('/').split('/') {
@@ -510,7 +510,7 @@ fn nextjs_directory(path: &str) -> PathBuf {
             continue;
         }
         match segment.strip_prefix('{').and_then(|s| s.strip_suffix('}')) {
-            Some(inner) => directory.push(format!("[{}]", super::write::camel(inner))),
+            Some(inner) => directory.push(format!("[{inner}]")),
             None => directory.push(segment),
         }
     }
@@ -571,7 +571,7 @@ fn write_nextjs(
             for (name, _) in parameters {
                 // Every Next.js path segment arrives as text, whatever the document
                 // declared; the handler converts.
-                out.push_str(&format!("    {}: string;\n", super::write::camel(name)));
+                out.push_str(&format!("    {name}: string;\n"));
             }
             out.push_str("}\n");
         }

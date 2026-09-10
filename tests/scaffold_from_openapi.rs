@@ -151,12 +151,12 @@ fn the_nextjs_scaffold_round_trips_through_the_contract() {
     let paths = baseline.document["paths"].as_object().expect("paths");
     let mut urls: Vec<&String> = paths.keys().collect();
     urls.sort();
-    // A placeholder's name is internal to the framework, and the derivation spells it
-    // snake_case.
-    assert_eq!(urls, ["/pets", "/pets/{pet_id}"]);
+    // The contract and generated route keep the same placeholder spelling so the
+    // route, handler and regenerated contract agree.
+    assert_eq!(urls, ["/pets", "/pets/{petId}"]);
     assert!(paths["/pets"].get("get").is_some());
     assert!(paths["/pets"].get("post").is_some());
-    assert!(paths["/pets/{pet_id}"].get("get").is_some());
+    assert!(paths["/pets/{petId}"].get("get").is_some());
 }
 
 #[test]

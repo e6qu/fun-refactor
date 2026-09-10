@@ -50,6 +50,10 @@ fn the_url_comes_from_the_path_not_the_file() {
         "/api/users/{id}"
     );
     assert_eq!(
+        nextjs::route_for(Path::new("app/operations/[operationId]/route.ts")),
+        "/operations/{operationId}"
+    );
+    assert_eq!(
         nextjs::route_for(Path::new("app/api/files/[...path]/route.ts")),
         "/api/files/{path:path}"
     );
@@ -383,10 +387,10 @@ fn the_openapi_baseline_states_what_the_tree_declares() {
     assert!(paths["/api/posts"]["post"].is_object());
 
     // The path parameter comes from the tree, which is the whole trick.
-    let parameters = paths["/api/posts/{post_id}"]["delete"]["parameters"]
+    let parameters = paths["/api/posts/{postId}"]["delete"]["parameters"]
         .as_array()
         .unwrap();
-    assert_eq!(parameters[0]["name"], "post_id");
+    assert_eq!(parameters[0]["name"], "postId");
     assert_eq!(parameters[0]["in"], "path");
     assert_eq!(parameters[0]["required"], true);
 

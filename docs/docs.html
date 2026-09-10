@@ -354,7 +354,7 @@
 
     <h3>The URL is the path</h3>
     <p>
-      <code>app/api/posts/[postId]/route.ts</code> serves <code>/api/posts/{post_id}</code>,
+      <code>app/api/posts/[postId]/route.ts</code> serves <code>/api/posts/{postId}</code>,
       and <strong>nothing inside the file says so</strong>. No content-only translation
       can recover that, however well it reads TypeScript. This one part of the job needs the tree instead of the text, and it carries most of the value.
     </p>
@@ -386,8 +386,8 @@
       <em>decorator</em>, so a status on a returned <code>Response</code> changes what
       the endpoint does without changing what it says it does:
     </p>
-    <pre class="grammar"><code>@router.delete("/api/posts/{post_id}")
-async def delete(post_id: str, req: Request):
+    <pre class="grammar"><code>@router.delete("/api/posts/{postId}")
+async def delete(postId: str, req: Request):
     return Response(status_code=204)</code></pre>
     <p>
       The decorator documents a <code>200</code> and the body returns a

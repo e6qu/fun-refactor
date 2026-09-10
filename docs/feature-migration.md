@@ -47,6 +47,10 @@ fr history undo
 fr history redo
 ```
 
+The integration suite exports that patch to a separate clean Git repository.
+It checks and applies the patch, compares the retained source and generated destination byte for byte, reverses it, then checks and reapplies it.
+This verifies that the delivered artifact reproduces the reviewed migration independently of the producer workspace.
+
 The anchored migration-direction policy accepts only a transition between the two supported framework classes.
 The anchored disposition policy maps gaps to unsupported work, supported automatic kinds to automatic work and all other recognized facts to agent decisions.
 The anchored schema policy accepts a generated shape set exactly when it contains every expected shape.
@@ -68,6 +72,7 @@ The migration report canonicalizes records into names and sorted fields whose su
 It reparses the generated Python or TypeScript and checks the resulting declarations against the translated source records.
 FastAPI migration includes only models reached through selected handler signatures.
 The framework writers retain source field spellings because those names can be JSON keys.
+Next.js dynamic path names also retain their spelling because the route placeholder and generated handler parameter form one runtime binding.
 This check covers declarations and supported types.
 It does not establish aliases, requiredness, defaults, validators, serialization settings, OpenAPI output or runtime request and response validation.
 

@@ -193,7 +193,7 @@ fn fastapi_and_generated_nextjs_handlers_return_the_same_value() {
         dir.path(),
         &tsc,
         "target-build",
-        &["target-runner.ts", "web/app/metrics/[metricId]/route.ts"],
+        &["target-runner.ts", "web/app/metrics/[metric_id]/route.ts"],
     );
     let target = run_json("node", dir.path(), "target-build/target-runner.js");
     assert_eq!(source, target);

@@ -308,7 +308,7 @@ Verification and acceptance:
 
 ### PR 6. Verified Feature Migration
 
-Status: in progress on `verified_feature_migration`. The first checkpoint adds `fr migrate feature` for one revision-bound route feature whose methods share one source file. It supports Next.js App Router to FastAPI and the reverse direction. Preview, saved plans, writes, patch export, apply, undo and redo share the existing source-history transaction. The source stays present for coexistence. Exact endpoint agreement gates the generated destination, while runtime registration and cutover remain explicit agent decisions. Lean-backed policies restrict migration to a framework boundary and assign each semantic fact to automatic, agent-decision or unsupported work. Generic Node and Python oracles execute source and generated handlers in both directions and compare status and JSON bodies. Canonical declared schema shapes are reparsed from generated code and must contain every translated source shape. Framework translators preserve field names used as JSON keys.
+Status: in progress on `verified_feature_migration`. The first checkpoints add `fr migrate feature` for one revision-bound route feature whose methods share one source file. It supports Next.js App Router to FastAPI and the reverse direction. Preview, saved plans, writes, patch export, apply, undo and redo share the existing source-history transaction. The source stays present for coexistence. Exact endpoint agreement gates the generated destination, while runtime registration and cutover remain explicit agent decisions. Lean-backed policies restrict migration to a framework boundary and assign each semantic fact to automatic, agent-decision or unsupported work. Generic Node and Python oracles execute source and generated handlers in both directions and compare status and JSON bodies. Canonical declared schema shapes are reparsed from generated code and must contain every translated source shape. Framework translators preserve field and path-parameter names that participate in runtime bindings. A separate clean Git receiver checks, applies, reverses and reapplies the exported patch, comparing exact generated and retained source bytes.
 
 Goal: migrate one real feature through an inspectable, reversible high-level transformation.
 
@@ -327,7 +327,7 @@ Verification and acceptance:
 - Compare route and schema contracts with independent behavioral fixtures. Exact static endpoints, bounded handler results and generated declared schema shapes are covered. Runtime validation and full framework comparison remain open.
 - Check middleware order, authentication, validation and lifecycle behavior wherever the migration claims preservation; the first checkpoint makes no such preservation claim.
 - Keep every unsupported construct visible in the final plan; complete for feature-model and translator gaps.
-- Apply the patch to a clean receiver and reproduce the result through exact undo and redo. History replay checks pass; an external receiver fixture remains open.
+- Apply the patch to a clean receiver and reproduce the result through exact undo and redo. The bounded transaction now checks, applies, reverses and reapplies in a separate Git repository.
 
 ## Delivery order
 

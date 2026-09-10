@@ -26,6 +26,10 @@ FastAPI to Next.js compares only models reached by handler signatures; unrelated
 Framework writers now retain declared model field spellings in both directions, fixing JSON key changes such as `device_id` becoming `deviceId`.
 Wire aliases, validators, defaults, serialization settings and runtime validation remain unverified and visible as gaps.
 Lean proves the schema inclusion policy, and shared execution checks empty, reordered, duplicate, partial and complete shape lists against Rust.
+The fourth checkpoint applies an exported migration patch in a separate clean Git repository.
+The receiver checks, applies, reverses and reapplies the patch, comparing the retained source and generated destination exactly.
+That generic operations-route fixture exposed a route-binding bug: a Next.js `[operationId]` segment became `{operation_id}` while its source context still used `operationId`.
+Framework migration now preserves dynamic parameter spelling in both the FastAPI route and handler signature, and generated documentation records the corrected contract.
 Roadmap PR 5's first checkpoint added `fr project features` for bounded Next.js App Router and FastAPI hierarchies.
 Applications contain exact-route-path feature candidates, which contain routes, handlers, contract fields, schema references and expanded same-file schema candidates.
 Every fact carries a parent, source anchor, status, confidence, validation basis and explicit gaps.

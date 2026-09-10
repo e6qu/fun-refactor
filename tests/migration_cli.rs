@@ -1,3 +1,5 @@
+mod common;
+
 use serde_json::Value;
 use std::fs;
 use std::path::Path;
@@ -24,6 +26,21 @@ fn ok(root: &Path, args: &[&str]) -> Value {
     let (success, report) = run(root, args);
     assert!(success, "{args:?}: {report}");
     report
+}
+
+fn git(root: &Path, args: &[&str]) {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(root)
+        .args(args)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "git {args:?}\n{}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
 }
 
 fn fixture() -> tempfile::TempDir {
@@ -226,6 +243,72 @@ fn feature_migration_replays_through_history_and_exports_a_git_patch() {
 }
 
 #[test]
+fn exported_migration_patch_round_trips_in_a_clean_receiver() {
+    let missing = (!Command::new("git")
+        .arg("--version")
+        .output()
+        .is_ok_and(|output| output.status.success()))
+    .then_some("git".to_owned())
+    .into_iter()
+    .collect::<Vec<_>>();
+    common::require_on_ci("feature migration clean receiver", &missing);
+    if !missing.is_empty() {
+        return;
+    }
+
+    let producer = tempfile::tempdir().unwrap();
+    let source_path = "app/operations/[operationId]/route.ts";
+    let source = producer.path().join(source_path);
+    fs::create_dir_all(source.parent().unwrap()).unwrap();
+    let original = "export async function GET(_request: Request, context: { params: { operationId: string } }) {\n  return Response.json({ operation_id: context.params.operationId, state: \"ready\" });\n}\n";
+    fs::write(&source, original).unwrap();
+    let selected = feature(producer.path());
+    let saved = ok(
+        producer.path(),
+        &[
+            "migrate",
+            "feature",
+            &selected,
+            "--to",
+            "fastapi",
+            "--out",
+            "services/operations.py",
+            "--save-plan",
+        ],
+    );
+    let transaction = saved["transaction"].as_u64().unwrap().to_string();
+    let exported = ok(producer.path(), &["history", "patch", &transaction]);
+    let patch_file = tempfile::NamedTempFile::new().unwrap();
+    fs::write(patch_file.path(), exported["patch"].as_str().unwrap()).unwrap();
+
+    ok(
+        producer.path(),
+        &["history", "apply", &transaction, "--write"],
+    );
+    let expected = fs::read(producer.path().join("services/operations.py")).unwrap();
+
+    let receiver = tempfile::tempdir().unwrap();
+    let receiver_source = receiver.path().join(source_path);
+    fs::create_dir_all(receiver_source.parent().unwrap()).unwrap();
+    fs::write(&receiver_source, original).unwrap();
+    git(receiver.path(), &["init", "-q"]);
+    let patch = patch_file.path().to_str().unwrap();
+    git(receiver.path(), &["apply", "--check", patch]);
+    git(receiver.path(), &["apply", patch]);
+    let destination = receiver.path().join("services/operations.py");
+    assert_eq!(fs::read(&destination).unwrap(), expected);
+    assert_eq!(fs::read(&receiver_source).unwrap(), original.as_bytes());
+
+    git(receiver.path(), &["apply", "--reverse", "--check", patch]);
+    git(receiver.path(), &["apply", "--reverse", patch]);
+    assert!(!destination.exists());
+    assert_eq!(fs::read(&receiver_source).unwrap(), original.as_bytes());
+    git(receiver.path(), &["apply", "--check", patch]);
+    git(receiver.path(), &["apply", patch]);
+    assert_eq!(fs::read(&destination).unwrap(), expected);
+}
+
+#[test]
 fn feature_migration_rejects_stale_scope_same_framework_and_escaping_output() {
     let dir = fixture();
     let stale_feature = feature(dir.path());
@@ -271,7 +354,7 @@ fn a_dynamic_fastapi_feature_previews_as_a_nextjs_app_route() {
     assert_eq!(report["migration"]["target_framework"], "nextjs");
     assert_eq!(
         report["migration"]["destination_files"],
-        serde_json::json!(["web/app/accounts/[accountId]/audit-log/route.ts"])
+        serde_json::json!(["web/app/accounts/[account_id]/audit-log/route.ts"])
     );
     assert_eq!(
         report["contract"]["endpoints"],
@@ -283,7 +366,7 @@ fn a_dynamic_fastapi_feature_previews_as_a_nextjs_app_route() {
     assert_eq!(report["contract"]["semantic_translation_agreement"], true);
     assert!(!dir
         .path()
-        .join("web/app/accounts/[accountId]/audit-log/route.ts")
+        .join("web/app/accounts/[account_id]/audit-log/route.ts")
         .exists());
 }
 

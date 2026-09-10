@@ -257,7 +257,7 @@ fn route_decorator(text: &str) -> Option<(String, String)> {
     Some((method.to_string(), url[..end].to_string()))
 }
 
-/// `{pet_id}` → `petId`, `{path:path}` → `path`, in the order the URL writes them.
+/// `{item_id}` → `item_id`, `{path:path}` → `path`, in URL order.
 fn path_parameters(url: &str) -> Vec<(String, bool)> {
     let mut found = Vec::new();
     let mut rest = url;
@@ -291,7 +291,6 @@ fn route_directory(url: &str) -> PathBuf {
             Some((name, kind)) => (name, kind == "path"),
             None => (inner, false),
         };
-        let name = super::write::camel(name);
         directory.push(match catch_all {
             true => format!("[...{name}]"),
             false => format!("[{name}]"),
@@ -344,7 +343,7 @@ fn write_route(
                 .iter()
                 .map(|(name, _)| Field {
                     doc: Vec::new(),
-                    name: super::write::camel(name),
+                    name: name.clone(),
                     ty: Some(Type::String),
                     default: None,
                     exported: true,
@@ -470,18 +469,18 @@ fn handler_for(endpoint: &Endpoint, parameters: &[(String, bool)], models: &[Rec
 
 /// The line that gives one handler parameter its value.
 fn read_parameter(param: &Param, parameters: &[(String, bool)], models: &[Record]) -> Option<Stmt> {
-    let camel = super::write::camel(&param.name);
-    let from_path = parameters
+    let path_name = parameters
         .iter()
-        .any(|(name, _)| super::write::camel(name) == camel);
+        .find(|(name, _)| name == &param.name)
+        .map(|(name, _)| name);
 
-    let value = if from_path {
+    let value = if let Some(path_name) = path_name {
         let read = Expr::Field {
             of: Box::new(Expr::Field {
                 of: Box::new(Expr::Name("context".into())),
                 name: "params".into(),
             }),
-            name: camel.clone(),
+            name: path_name.clone(),
         };
         // A path parameter arrives as text.
         match param.ty {

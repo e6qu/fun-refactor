@@ -78,10 +78,10 @@ fn one_url_is_one_file_however_many_methods_it_answers() {
 #[test]
 fn a_path_parameter_is_a_directory() {
     let (tmp, plan) = translate(APP);
-    let one = route(&plan, "/pets/[petId]");
+    let one = route(&plan, "/pets/[pet_id]");
     assert_eq!(
         one.destination,
-        tmp.path().join("app/pets/[petId]/route.ts"),
+        tmp.path().join("app/pets/[pet_id]/route.ts"),
         "the URL is where the file sits"
     );
 }
@@ -104,10 +104,10 @@ fn a_catch_all_keeps_its_reach() {
 fn a_path_parameter_arrives_as_text_and_is_converted() {
     // `pet_id: int` in Python.
     let (_tmp, plan) = translate(APP);
-    let one = route(&plan, "/pets/[petId]");
+    let one = route(&plan, "/pets/[pet_id]");
     assert!(
         one.output
-            .contains("const petId = Number(context.params.petId);"),
+            .contains("const petId = Number(context.params.pet_id);"),
         "{}",
         one.output
     );
@@ -163,7 +163,7 @@ fn model_fields_keep_their_wire_names() {
 fn every_returned_value_becomes_a_response() {
     // FastAPI serialises what a handler returns.
     let (_tmp, plan) = translate(APP);
-    let one = route(&plan, "/pets/[petId]");
+    let one = route(&plan, "/pets/[pet_id]");
     assert!(
         one.output.contains("return Response.json(pet);"),
         "{}",
