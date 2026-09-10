@@ -136,7 +136,11 @@ fn feature_migration_preview_binds_scope_and_separates_decisions() {
     assert_eq!(report["steps"]["automatic"].as_array().unwrap().len(), 1);
     assert_eq!(
         report["steps"]["agent_decisions"].as_array().unwrap().len(),
-        2
+        3
+    );
+    assert_eq!(
+        report["migration"]["dependencies"]["status"],
+        "agent-decision"
     );
     assert!(!report["steps"]["unsupported"]
         .as_array()
@@ -252,6 +256,152 @@ fn explicit_fastapi_registration_joins_the_reversible_migration_transaction() {
     assert!(!dir.path().join("backend/routes/signals.py").exists());
     ok(dir.path(), &["history", "redo", "1", "--write"]);
     assert_eq!(fs::read_to_string(&application).unwrap(), registered);
+}
+
+#[test]
+fn explicit_python_dependencies_join_the_reversible_migration_transaction() {
+    let dir = tempfile::tempdir().unwrap();
+    let route = dir.path().join("app/measurements/route.ts");
+    fs::create_dir_all(route.parent().unwrap()).unwrap();
+    fs::create_dir_all(dir.path().join("backend")).unwrap();
+    fs::write(
+        route,
+        "// => generic route fixture\ninterface Measurement {\n  source_id: string;\n  values: number[];\n}\nexport async function POST(request: Request) {\n  const measurement: Measurement = await request.json();\n  return Response.json(measurement);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("backend/main.py"),
+        "from fastapi import FastAPI\napplication = FastAPI()\n",
+    )
+    .unwrap();
+    let manifest = dir.path().join("backend/pyproject.toml");
+    let original_manifest =
+        "[project]\nname = \"measurement-service\"\ndependencies = [\"uvicorn>=0.30\"]\n";
+    fs::write(&manifest, original_manifest).unwrap();
+    let selected = feature_for_framework(dir.path(), "nextjs-app");
+    let report = ok(
+        dir.path(),
+        &[
+            "migrate",
+            "feature",
+            &selected,
+            "--to",
+            "fastapi",
+            "--out",
+            "backend/routes/measurements.py",
+            "--register-with",
+            "backend/main.py::application",
+            "--dependency-manifest",
+            "backend/pyproject.toml",
+            "--dependency-requirement",
+            "fastapi>=0.115,<1",
+            "--dependency-requirement",
+            "pydantic>=2,<3",
+            "--write",
+        ],
+    );
+
+    assert_eq!(
+        report["migration"]["connected_files"],
+        serde_json::json!(["backend/main.py", "backend/pyproject.toml"])
+    );
+    assert_eq!(report["migration"]["dependencies"]["status"], "updated");
+    assert!(report["migration"]["dependencies"]["manifest_revision"]
+        .as_str()
+        .unwrap()
+        .starts_with("sha256:"));
+    assert_eq!(
+        report["migration"]["dependencies"]["required"],
+        serde_json::json!(["fastapi", "pydantic"])
+    );
+    assert_eq!(
+        report["migration"]["dependencies"]["added"],
+        serde_json::json!(["fastapi>=0.115,<1", "pydantic>=2,<3"])
+    );
+    let updated_manifest = fs::read_to_string(&manifest).unwrap();
+    assert!(updated_manifest.contains("\"uvicorn>=0.30\""));
+    assert!(updated_manifest.contains("\"fastapi>=0.115,<1\""));
+    assert!(updated_manifest.contains("\"pydantic>=2,<3\""));
+    assert!(report["steps"]["automatic"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|step| step["action"] == "update-python-project-dependencies"));
+    let patch = ok(dir.path(), &["history", "patch", "1"])["patch"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert!(patch.contains("b/backend/pyproject.toml"));
+    assert!(patch.contains("fastapi>=0.115,<1"));
+
+    ok(dir.path(), &["history", "undo", "1", "--write"]);
+    assert_eq!(fs::read_to_string(&manifest).unwrap(), original_manifest);
+    assert!(!dir.path().join("backend/routes/measurements.py").exists());
+    ok(dir.path(), &["history", "redo", "1", "--write"]);
+    assert_eq!(fs::read_to_string(&manifest).unwrap(), updated_manifest);
+}
+
+#[test]
+fn python_dependency_edits_refuse_missing_or_unowned_requirements() {
+    let dir = tempfile::tempdir().unwrap();
+    let route = dir.path().join("app/measurements/route.ts");
+    fs::create_dir_all(route.parent().unwrap()).unwrap();
+    fs::create_dir_all(dir.path().join("backend")).unwrap();
+    fs::create_dir_all(dir.path().join("unrelated")).unwrap();
+    fs::write(
+        route,
+        "// => generic route fixture\ninterface Measurement { value: number; }\nexport async function POST(request: Request) {\n  const measurement: Measurement = await request.json();\n  return Response.json(measurement);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("backend/pyproject.toml"),
+        "[project]\nname = \"backend\"\ndependencies = []\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("unrelated/pyproject.toml"),
+        "[project]\nname = \"unrelated\"\ndependencies = []\n",
+    )
+    .unwrap();
+    let selected = feature(dir.path());
+    let base = [
+        "migrate",
+        "feature",
+        &selected,
+        "--to",
+        "fastapi",
+        "--out",
+        "backend/routes/measurements.py",
+        "--dependency-manifest",
+    ];
+    let mut missing = base.to_vec();
+    missing.extend([
+        "backend/pyproject.toml",
+        "--dependency-requirement",
+        "fastapi>=0.115,<1",
+    ]);
+    let (success, report) = run(dir.path(), &missing);
+    assert!(!success);
+    assert!(report["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("each missing generated runtime import exactly once"));
+
+    let mut unowned = base.to_vec();
+    unowned.extend([
+        "unrelated/pyproject.toml",
+        "--dependency-requirement",
+        "fastapi>=0.115,<1",
+        "--dependency-requirement",
+        "pydantic>=2,<3",
+    ]);
+    let (success, report) = run(dir.path(), &unowned);
+    assert!(!success);
+    assert!(report["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("must be an ancestor"));
+    assert!(!dir.path().join("backend/routes/measurements.py").exists());
 }
 
 #[test]
@@ -701,6 +851,17 @@ fn a_captured_nextjs_app_registers_the_migrated_route_by_placement() {
     assert_eq!(
         report["migration"]["target_application"]["manifest"],
         "web/package.json"
+    );
+    assert_eq!(
+        report["migration"]["dependencies"],
+        serde_json::json!({
+            "status": "satisfied",
+            "manifest": "web/package.json",
+            "required": ["next"],
+            "declared": ["next"],
+            "added": [],
+            "basis": "captured-nextjs-dependency"
+        })
     );
     assert_eq!(
         report["migration"]["coexistence"]["destination_registration"],

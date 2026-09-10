@@ -257,6 +257,33 @@ theorem migration_cutover_rejects_external_references
     migrationCutoverAutomatic explicitCutover registrationAutomatic true = false := by
   cases explicitCutover <;> cases registrationAutomatic <;> decide
 
+-- fr:spec src/project/framework_kernel.rs::migration_dependency_edit_automatic @ 38894165ae7ecc67c248dbed95775572f0aab6cd8bbfd23f1d200a0256bd427a
+-- fr:signature pep621_manifest: bool => pep621Manifest: Bool; owns_destination: bool => ownsDestination: Bool; dependencies_array: bool => dependenciesArray: Bool; requirements_cover_missing: bool => requirementsCoverMissing: Bool; return: bool => return: Bool
+def migrationDependencyEditAutomatic
+    (pep621Manifest : Bool) (ownsDestination : Bool) (dependenciesArray : Bool)
+    (requirementsCoverMissing : Bool) : Bool :=
+  pep621Manifest && ownsDestination && dependenciesArray && requirementsCoverMissing
+
+theorem migration_dependency_edit_automatic_iff_all_boundaries_hold
+    (pep621Manifest ownsDestination dependenciesArray requirementsCoverMissing : Bool) :
+    migrationDependencyEditAutomatic pep621Manifest ownsDestination dependenciesArray
+      requirementsCoverMissing = true ↔
+      pep621Manifest = true ∧ ownsDestination = true ∧ dependenciesArray = true ∧
+        requirementsCoverMissing = true := by
+  cases pep621Manifest <;> cases ownsDestination <;> cases dependenciesArray <;>
+    cases requirementsCoverMissing <;> decide
+
+theorem migration_dependency_edit_rejects_unowned_manifest
+    (pep621Manifest dependenciesArray requirementsCoverMissing : Bool) :
+    migrationDependencyEditAutomatic pep621Manifest false dependenciesArray
+      requirementsCoverMissing = false := by
+  cases pep621Manifest <;> cases dependenciesArray <;> cases requirementsCoverMissing <;> decide
+
+theorem migration_dependency_edit_rejects_missing_requirements
+    (pep621Manifest ownsDestination dependenciesArray : Bool) :
+    migrationDependencyEditAutomatic pep621Manifest ownsDestination dependenciesArray false = false := by
+  cases pep621Manifest <;> cases ownsDestination <;> cases dependenciesArray <;> decide
+
 -- fr:spec src/project.rs::path_confidence @ b5a8549e
 -- fr:signature edges: &[Confidence] => edges: List Nat; return: Confidence => return: Nat
 def pathConfidence (edges : List Nat) : Nat := edges.foldr max 0

@@ -91,3 +91,12 @@ pub fn migration_cutover_automatic(
 ) -> bool {
     explicit_cutover && registration_automatic && !external_references
 }
+
+pub fn migration_dependency_edit_automatic(
+    pep621_manifest: bool,
+    owns_destination: bool,
+    dependencies_array: bool,
+    requirements_cover_missing: bool,
+) -> bool {
+    pep621_manifest && owns_destination && dependencies_array && requirements_cover_missing
+}

@@ -905,9 +905,9 @@ fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
         component_hooks_compatible, configuration_visibility, fastapi_body_parameter_automatic,
         fastapi_prefix_supported, fastapi_registration_automatic, framework_emitted,
         framework_migration_supported, framework_omitted, middleware_request_order,
-        migration_cutover_automatic, migration_disposition, migration_schema_agreement,
-        nextjs_body_validation_automatic, nextjs_registration_automatic, service_redaction_flags,
-        service_target_kind,
+        migration_cutover_automatic, migration_dependency_edit_automatic, migration_disposition,
+        migration_schema_agreement, nextjs_body_validation_automatic,
+        nextjs_registration_automatic, service_redaction_flags, service_target_kind,
     };
 
     build_kernel();
@@ -1039,6 +1039,23 @@ fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
                     )
                     .to_string(),
                 );
+            }
+        }
+    }
+    for pep621_manifest in [false, true] {
+        for owns_destination in [false, true] {
+            for dependencies_array in [false, true] {
+                for requirements_cover_missing in [false, true] {
+                    expected.push(
+                        migration_dependency_edit_automatic(
+                            pep621_manifest,
+                            owns_destination,
+                            dependencies_array,
+                            requirements_cover_missing,
+                        )
+                        .to_string(),
+                    );
+                }
             }
         }
     }

@@ -107,7 +107,7 @@ streaming-iterator = "0.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
-toml_edit = { version = "0.25", default-features = false, features = ["parse"], optional = true }
+toml_edit = { version = "0.25", default-features = false, features = ["parse", "display"], optional = true }
 clap = { version = "4.6", features = ["derive"], optional = true }
 thiserror = "2.0"
 anyhow = "1.0"

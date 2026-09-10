@@ -93,6 +93,12 @@ def main (args : List String) : IO Unit := do
       for registrationAutomatic in [false, true] do
         for externalReferences in [false, true] do
           IO.println (migrationCutoverAutomatic explicitCutover registrationAutomatic externalReferences)
+    for pep621Manifest in [false, true] do
+      for ownsDestination in [false, true] do
+        for dependenciesArray in [false, true] do
+          for requirementsCoverMissing in [false, true] do
+            IO.println (migrationDependencyEditAutomatic pep621Manifest ownsDestination
+              dependenciesArray requirementsCoverMissing)
     for executed in [false, true] do
       for commandsPassed in [false, true] do
         for configurationStable in [false, true] do

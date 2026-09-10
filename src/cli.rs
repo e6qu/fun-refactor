@@ -2153,19 +2153,45 @@ fn cmd_migrate(cli: &Cli, command: &crate::project::migration::Command) -> Resul
         let mut plan = project.migrate_feature(options)?;
         let outcomes = crate::edit::plan(&plan.edits, crate::edit::Validation::ReparseStrict)?;
         project.verify(root)?;
+        for change in &plan.connected_changes {
+            anyhow::ensure!(
+                crate::vfs::read_to_string(&change.path)
+                    .as_deref()
+                    .is_ok_and(|current| current == change.original),
+                "{} changed during the migration plan; retry.",
+                shown_path(root, &change.path)
+            );
+        }
         let mut diff = outcomes
             .iter()
             .map(|outcome| workspace_diff(cli, outcome))
             .collect::<String>();
+        for change in &plan.connected_changes {
+            let shown = shown_path(root, &change.path);
+            diff.push_str(&crate::edit::unified_diff(
+                &change.original,
+                &change.updated,
+                &shown,
+            ));
+        }
         if let Some(removal) = &plan.source_removal {
             let shown = shown_path(root, &removal.path);
             diff.push_str(&crate::edit::unified_diff(&removal.original, "", &shown));
         }
         plan.set_diff(&diff, options.diff_bytes);
-        let changes = outcomes
+        let mut changes = outcomes
             .iter()
             .map(crate::edit::FileChange::from)
             .collect::<Vec<_>>();
+        changes.extend(
+            plan.connected_changes
+                .iter()
+                .map(|change| crate::edit::FileChange {
+                    path: &change.path,
+                    original: &change.original,
+                    updated: &change.updated,
+                }),
+        );
         let removals = plan
             .source_removal
             .iter()

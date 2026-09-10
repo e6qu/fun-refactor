@@ -606,8 +606,10 @@ stays: nobody can read a deleted input back out of the diff.
 ### `fr migrate`
 
 ```sh
-fr migrate feature <FEATURE-ID> --to fastapi --out migrated/pets.py \
-  --register-with service/main.py::app --cutover --save-plan
+fr migrate feature <FEATURE-ID> --to fastapi --out service/routes/telemetry.py \
+  --register-with service/main.py::app --dependency-manifest service/pyproject.toml \
+  --dependency-requirement 'fastapi>=0.115,<1' --cutover --save-plan
+
 fr migrate feature <FEATURE-ID> --to nextjs --out web/app
 ```
 
@@ -620,7 +622,11 @@ Its report groups facts and work into `automatic`, `agent-decision` and `unsuppo
 The source remains present while the caller validates runtime behavior and reviews cutover.
 For a FastAPI destination, `--register-with PATH::APP_SYMBOL` can import and mount the generated router in one recognized application file as part of the same transaction.
 The command refuses an unknown binding, invalid module path or direct endpoint conflict.
-Composition through other included routers and source removal remain separate reviewed decisions.
+`--dependency-manifest PATH` selects one PEP 621 `pyproject.toml` that owns the FastAPI destination.
+Repeat `--dependency-requirement SPEC` for every missing generated runtime import.
+The command preserves existing strings and refuses missing, duplicate, extra, malformed or unowned requirements.
+It reparses TOML before the manifest joins the transaction. Package-manager resolution and requirement semantics remain unchecked.
+Composition through other included routers remains a reviewed decision.
 `--cutover` removes the source route in the migration transaction when registration is automatic and no resolved external source reference exists.
 The flag records explicit cutover intent; it does not claim that project checks passed.
 Use `--save-plan` to review the deletion, apply it through history, run declared checks with `--record-for <TX>` and undo the transaction if they fail.

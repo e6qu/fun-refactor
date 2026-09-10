@@ -13,9 +13,9 @@ It retains the source route, adds the destination and classifies feature facts a
 Validated Next.js placement and explicit FastAPI application wiring can register destinations automatically; explicit eligible cutover can remove the source in that transaction.
 Preview, saved plans and writes use the existing source-history transaction, so patch checks, export, apply, undo and redo remain available.
 Four CLI integration cases cover both migration directions, refusal boundaries and exact forward undo/redo replay.
-Eight migration policies constrain supported directions, disposition classes, schema inclusion, registration, body promotion, generated body-validation and cutover eligibility.
-Thirty-six framework theorems now cover sixteen helpers, with 348 shared Rust and Lean results.
-The checkpoints have strict syntax, endpoint-contract, declared-schema and direct application-registration evidence; full framework behavior and remaining connected project edits stay open.
+Nine migration policies constrain supported directions, disposition classes, schema inclusion, registration, body promotion, body validation, cutover and dependency edits.
+Thirty-nine framework theorems now cover seventeen helpers, with 364 shared Rust and Lean results.
+The checkpoints have strict syntax, endpoint, schema, registration and dependency evidence; full framework behavior and connected test edits stay open.
 The second PR 6 checkpoint adds generic runtime oracles for both migration directions.
 A telemetry handler runs through Node before migration and through generated Python afterward.
 A parameterized metrics handler runs through Python before migration and through generated Node afterward.
@@ -60,7 +60,7 @@ The command requires a captured, cleanly parsed Python file, one recognized Fast
 It generates a collision-free router alias, adds the import and `include_router` call, reparses the combined edit and records the application file beside the generated route for exact undo and redo.
 A pinned FastAPI fixture imports the edited application and serves the generic selected route through ASGI.
 The eligibility policy has three Lean theorems and eight shared Rust/Lean cases.
-Included or mounted routers, overlapping dynamic paths, middleware order and dependency or test configuration remain reviewed boundaries.
+Included or mounted routers, overlapping dynamic paths, middleware order and test configuration remain reviewed boundaries.
 The eleventh checkpoint adds explicit `--cutover` source removal to the migration transaction.
 It requires automatic destination registration and refuses a resolved reference from another source file to any indexed source symbol.
 The history layer records source absence beside generated and connected-file edits, so patch export, undo and redo preserve existence, bytes and modes.
@@ -73,6 +73,13 @@ Each `frce1:` receipt binds the reviewed configuration digest, stable source rev
 Source or configuration drift fails the report, invalid transaction state refuses before project code runs and corrupted receipt data invalidates the journal.
 Four Lean theorems characterize receipt acceptance, and all sixteen Boolean cases agree with Rust.
 The boundary snapshots do not observe command-internal mutate-and-restore behavior, unsupported files, executable identities, dependencies, services, environment values or external state.
+The thirteenth checkpoint adds explicit PEP 621 dependency edits for generated FastAPI imports.
+The selected `pyproject.toml` must own the destination and contain one supported `[project].dependencies` array.
+Caller-supplied requirement strings must cover each missing `fastapi` or `pydantic` import once, without extras or duplicate existing distributions.
+The command preserves existing requirements, reparses TOML and records the manifest beside generated and registration files for exact patch, undo and redo behavior.
+Next.js dependency evidence reuses the captured manifest required for automatic route registration.
+Three Lean theorems characterize the four dependency-edit boundaries, and all sixteen Boolean cases agree with Rust.
+Requirement semantics, package-manager resolution, installation and connected test edits remain reviewed work.
 Roadmap PR 5's first checkpoint added `fr project features` for bounded Next.js App Router and FastAPI hierarchies.
 Applications contain exact-route-path feature candidates, which contain routes, handlers, contract fields, schema references and expanded same-file schema candidates.
 Every fact carries a parent, source anchor, status, confidence, validation basis and explicit gaps.

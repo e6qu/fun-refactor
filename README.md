@@ -350,6 +350,7 @@ It requires exact endpoint agreement, keeps the source available and reports aut
 Saved plans and writes use source history, including patch export and exact undo/redo.
 A captured Next.js package makes route placement under `app` or `src/app` an automatic registration step.
 An explicit `--register-with PATH::APP_SYMBOL` target can make generated FastAPI router registration an automatic edit in the same reversible transaction.
+An explicit PEP 621 manifest and caller-supplied requirement strings can add missing generated imports to that transaction.
 An explicit `--cutover` can remove the source in that transaction after registration and resolved-reference checks.
 Generic handler oracles compare migrated status, JSON bodies and mixed-spelling payload fields in both directions.
 Pinned FastAPI and Next.js fixtures register generated routes and execute real framework requests; both check bounded body rejection at the expected field.

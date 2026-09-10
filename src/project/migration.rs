@@ -7,7 +7,7 @@ use anyhow::{ensure, Result};
 use clap::{Args, Subcommand, ValueEnum};
 use serde::Serialize;
 use serde_json::{json, Value};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Component, Path, PathBuf};
 
 const FEATURE_FACT_LIMIT: usize = 500;
@@ -34,6 +34,19 @@ pub struct Options {
         help = "Mount generated FastAPI routes in an explicit PATH::APP_SYMBOL target."
     )]
     pub register_with: Option<String>,
+    #[arg(
+        long,
+        value_name = "PATH",
+        help = "Update one explicit PEP 621 pyproject.toml that owns the FastAPI destination."
+    )]
+    pub dependency_manifest: Option<PathBuf>,
+    #[arg(
+        long,
+        value_name = "SPEC",
+        requires = "dependency_manifest",
+        help = "Exact Python requirement to add; repeat for every missing generated import."
+    )]
+    pub dependency_requirement: Vec<String>,
     #[arg(
         long,
         help = "Remove the source route in the same transaction after registration checks."
@@ -71,8 +84,15 @@ impl Target {
 
 pub struct Plan {
     pub edits: EditSet,
+    pub connected_changes: Vec<ConnectedChange>,
     pub source_removal: Option<SourceRemoval>,
     pub report: Value,
+}
+
+pub struct ConnectedChange {
+    pub path: PathBuf,
+    pub original: String,
+    pub updated: String,
 }
 
 pub struct SourceRemoval {
@@ -108,6 +128,198 @@ fn destination(root: &Path, out: &Path) -> Result<PathBuf> {
         "migration output must be one normalized workspace-relative path."
     );
     Ok(root.join(out))
+}
+
+fn normalized_relative(root: &Path, path: &Path, label: &str) -> Result<PathBuf> {
+    ensure!(
+        !path.as_os_str().is_empty()
+            && !path.is_absolute()
+            && path
+                .components()
+                .all(|part| matches!(part, Component::Normal(_))),
+        "{label} must be one normalized workspace-relative path."
+    );
+    Ok(root.join(path))
+}
+
+fn distribution_name(requirement: &str) -> Option<String> {
+    let requirement = requirement.trim();
+    let end = requirement
+        .char_indices()
+        .take_while(|(_, character)| {
+            character.is_ascii_alphanumeric() || matches!(character, '-' | '_' | '.')
+        })
+        .map(|(index, character)| index + character.len_utf8())
+        .last()?;
+    let name = &requirement[..end];
+    if !name
+        .as_bytes()
+        .first()
+        .is_some_and(u8::is_ascii_alphanumeric)
+        || !name
+            .as_bytes()
+            .last()
+            .is_some_and(u8::is_ascii_alphanumeric)
+        || requirement[end..].chars().any(char::is_control)
+    {
+        return None;
+    }
+    let mut normalized = String::new();
+    let mut separator = false;
+    for character in name.chars() {
+        if matches!(character, '-' | '_' | '.') {
+            if !separator {
+                normalized.push('-');
+            }
+            separator = true;
+        } else {
+            normalized.push(character.to_ascii_lowercase());
+            separator = false;
+        }
+    }
+    Some(normalized)
+}
+
+struct DependencyPlan {
+    change: Option<ConnectedChange>,
+    report: Value,
+    note: Option<String>,
+}
+
+fn fastapi_dependencies(
+    project: &Project<'_>,
+    options: &Options,
+    out: &Path,
+    required: &[String],
+) -> Result<DependencyPlan> {
+    let Some(selected) = options.dependency_manifest.as_deref() else {
+        return Ok(DependencyPlan {
+            change: None,
+            report: json!({
+                "status": "agent-decision",
+                "manifest": null,
+                "required": required,
+                "declared": [],
+                "added": [],
+                "basis": "generated-runtime-imports",
+            }),
+            note: Some(
+                "No explicit Python dependency manifest proves the generated runtime imports."
+                    .to_owned(),
+            ),
+        });
+    };
+    let path = normalized_relative(&project.root, selected, "dependency manifest")?;
+    ensure!(
+        selected
+            .file_name()
+            .is_some_and(|name| name == "pyproject.toml"),
+        "the dependency manifest must name pyproject.toml."
+    );
+    let metadata = std::fs::symlink_metadata(&path)
+        .map_err(anyhow::Error::from)
+        .map_err(|error| error.context("reading the dependency manifest metadata"))?;
+    ensure!(
+        metadata.file_type().is_file() && !metadata.file_type().is_symlink(),
+        "the dependency manifest must be a regular file."
+    );
+    ensure!(
+        path.canonicalize().is_ok_and(|canonical| canonical == path),
+        "the dependency manifest path must not traverse symbolic links."
+    );
+    let owner = path.parent().unwrap_or(&project.root);
+    let owns_destination = out.starts_with(owner);
+    ensure!(
+        owns_destination,
+        "the dependency manifest must be an ancestor of the FastAPI destination."
+    );
+    let original = crate::vfs::read_to_string(&path)
+        .map_err(anyhow::Error::from)
+        .map_err(|error| error.context("reading the dependency manifest"))?;
+    ensure!(
+        original.len() as u64 <= project.options.max_file_bytes,
+        "the dependency manifest exceeds the project file-size limit."
+    );
+    let manifest_revision = format!("sha256:{}", super::hash(&original)?);
+    let mut document = original
+        .parse::<toml_edit::DocumentMut>()
+        .map_err(|_| anyhow::anyhow!("the dependency manifest is not valid TOML."))?;
+    let project_table = document
+        .get_mut("project")
+        .and_then(toml_edit::Item::as_table_mut)
+        .ok_or_else(|| anyhow::anyhow!("the dependency manifest needs one [project] table."))?;
+    if !project_table.contains_key("dependencies") {
+        project_table.insert(
+            "dependencies",
+            toml_edit::Item::Value(toml_edit::Value::Array(toml_edit::Array::new())),
+        );
+    }
+    let dependencies = project_table
+        .get_mut("dependencies")
+        .and_then(toml_edit::Item::as_array_mut)
+        .ok_or_else(|| anyhow::anyhow!("[project].dependencies must be an array."))?;
+    let mut declared = BTreeSet::new();
+    for value in dependencies.iter() {
+        let name = value.as_str().and_then(distribution_name).ok_or_else(|| {
+            anyhow::anyhow!("[project].dependencies must contain valid requirement strings.")
+        })?;
+        ensure!(
+            declared.insert(name),
+            "[project].dependencies must name each distribution once."
+        );
+    }
+    let missing = required
+        .iter()
+        .filter(|name| !declared.contains(*name))
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let mut supplied = BTreeMap::new();
+    for requirement in &options.dependency_requirement {
+        let name = distribution_name(requirement).ok_or_else(|| {
+            anyhow::anyhow!(
+                "dependency requirements must start with a valid distribution name and contain no control characters."
+            )
+        })?;
+        ensure!(
+            supplied
+                .insert(name, requirement.trim().to_owned())
+                .is_none(),
+            "dependency requirements must provide each missing generated runtime import exactly once."
+        );
+    }
+    let requirements_cover_missing =
+        supplied.keys().all(|name| missing.contains(name)) && supplied.len() == missing.len();
+    ensure!(
+        crate::project::framework_kernel::migration_dependency_edit_automatic(
+            true,
+            owns_destination,
+            true,
+            requirements_cover_missing,
+        ),
+        "dependency requirements must provide each missing generated runtime import exactly once."
+    );
+    for requirement in supplied.values() {
+        dependencies.push(requirement);
+    }
+    let updated = document.to_string();
+    let relative = path.strip_prefix(&project.root).unwrap_or(&path);
+    Ok(DependencyPlan {
+        change: (updated != original).then(|| ConnectedChange {
+            path: path.clone(),
+            original,
+            updated,
+        }),
+        report: json!({
+            "status": if supplied.is_empty() { "satisfied" } else { "updated" },
+            "manifest": relative,
+            "manifest_revision": manifest_revision,
+            "required": required,
+            "declared": declared,
+            "added": supplied.values().collect::<Vec<_>>(),
+            "basis": "explicit-pep-621-project-dependencies",
+        }),
+        note: None,
+    })
 }
 
 struct FastapiRegistration {
@@ -579,6 +791,10 @@ impl Project<'_> {
             options.register_with.is_none() || matches!(options.to, Target::Fastapi),
             "--register-with applies only to a FastAPI destination."
         );
+        ensure!(
+            options.dependency_manifest.is_none() || matches!(options.to, Target::Fastapi),
+            "--dependency-manifest applies only to a FastAPI destination."
+        );
 
         let (
             mut edits,
@@ -588,9 +804,14 @@ impl Project<'_> {
             generated_shapes,
             fidelity,
             translator_notes,
+            required_dependencies,
         ) = match options.to {
             Target::Fastapi => {
                 let translated = crate::transpile::nextjs::plan_to(&source, Some(&out), false)?;
+                let mut required_dependencies = vec!["fastapi".to_owned()];
+                if translated.output.contains("from pydantic import") {
+                    required_dependencies.push("pydantic".to_owned());
+                }
                 let source_shapes = model_shapes(&translated.models);
                 let generated_shapes =
                     generated_shapes(Language::Python, std::slice::from_ref(&translated.output))?;
@@ -608,6 +829,7 @@ impl Project<'_> {
                     generated_shapes,
                     fidelity,
                     translated.fidelity.notes,
+                    required_dependencies,
                 )
             }
             Target::Nextjs => {
@@ -641,6 +863,7 @@ impl Project<'_> {
                     generated_shapes,
                     fidelity,
                     notes,
+                    vec!["next".to_owned()],
                 )
             }
         };
@@ -677,6 +900,22 @@ impl Project<'_> {
                 )
             })
             .transpose()?;
+        let dependency_plan = match options.to {
+            Target::Fastapi => fastapi_dependencies(self, options, &out, &required_dependencies)?,
+            Target::Nextjs => DependencyPlan {
+                change: None,
+                report: json!({
+                    "status": "satisfied",
+                    "manifest": nextjs_target_application(self, &options.out)
+                        .and_then(|application| application["manifest"].as_str().map(str::to_owned)),
+                    "required": required_dependencies,
+                    "declared": ["next"],
+                    "added": [],
+                    "basis": "captured-nextjs-dependency",
+                }),
+                note: None,
+            },
+        };
         let target_application = match options.to {
             Target::Nextjs => nextjs_target_application(self, &options.out),
             Target::Fastapi => registration
@@ -721,7 +960,8 @@ impl Project<'_> {
                     registration
                         .iter()
                         .map(|registration| registration.note.clone()),
-                ),
+                )
+                .chain(dependency_plan.note.iter().cloned()),
         );
         let destinations_relative = destinations
             .iter()
@@ -735,6 +975,7 @@ impl Project<'_> {
                 options.to.name(),
                 &options.out,
                 &options.register_with,
+                &dependency_plan.report,
                 options.cutover,
             ))?[..32]
         );
@@ -768,19 +1009,43 @@ impl Project<'_> {
                 "reason": "No captured target application proves automatic runtime registration.",
             }));
         }
-        if options.cutover {
+        if dependency_plan.change.is_some() {
             automatic_steps.push(json!({
                 "order": 3,
+                "action": "update-python-project-dependencies",
+                "validation": ["explicit-pep-621-manifest", "destination-owned-by-manifest", "generated-runtime-imports-covered", "toml-reparse"],
+            }));
+        } else if dependency_plan.report["status"] == "agent-decision" {
+            agent_decisions.push(json!({
+                "order": 3,
+                "action": "declare-generated-runtime-dependencies",
+                "reason": "No explicit Python dependency manifest proves the generated runtime imports.",
+            }));
+        }
+        if options.cutover {
+            automatic_steps.push(json!({
+                "order": 4,
                 "action": "remove-source-route-after-explicit-cutover",
                 "validation": ["explicit-cutover", "automatic-destination-registration", "no-resolved-external-source-references", "source-snapshot"],
             }));
         } else {
             agent_decisions.push(json!({
-                "order": 3,
+                "order": 4,
                 "action": "run-independent-checks-then-cut-over",
-                "reason": "Project check results do not carry a durable source-snapshot receipt.",
+                "reason": "Cutover remains explicit after source-bound project checks pass.",
             }));
         }
+        let connected_files = registration
+            .iter()
+            .map(|registration| registration.path.clone())
+            .chain(dependency_plan.change.iter().map(|change| {
+                change
+                    .path
+                    .strip_prefix(&self.root)
+                    .unwrap_or(&change.path)
+                    .to_path_buf()
+            }))
+            .collect::<BTreeSet<_>>();
         let mut report = self.envelope("migration");
         report["migration"] = json!({
             "id": migration_id,
@@ -789,8 +1054,9 @@ impl Project<'_> {
             "target_framework": options.to,
             "source_files": source_paths,
             "destination_files": destinations_relative,
-            "connected_files": registration.iter().map(|registration| &registration.path).collect::<Vec<_>>(),
+            "connected_files": connected_files,
             "target_application": target_application,
+            "dependencies": dependency_plan.report,
             "coexistence": {
                 "source_retained": !options.cutover,
                 "destination_added": true,
@@ -821,6 +1087,7 @@ impl Project<'_> {
         report["scope"] = json!("One route-centered feature whose methods share one source file. Registered destinations may use an explicit source-removal cutover. Runtime checks and unresolved project connections remain reviewed evidence.");
         Ok(Plan {
             edits,
+            connected_changes: dependency_plan.change.into_iter().collect(),
             source_removal,
             report,
         })

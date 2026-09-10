@@ -9,7 +9,9 @@ Start with a compact feature query, then pass its ID to the migration command:
 fr --json project features
 fr --json migrate feature frff1:... --to fastapi --out services/telemetry.py
 fr --json migrate feature frff1:... --to fastapi --out services/telemetry.py \
-  --register-with services/main.py::app
+  --register-with services/main.py::app \
+  --dependency-manifest services/pyproject.toml \
+  --dependency-requirement 'fastapi>=0.115,<1'
 fr --save-plan --json migrate feature frff1:... --to fastapi \
   --out services/telemetry.py --register-with services/main.py::app --cutover
 fr --save-plan --json migrate feature frff1:... --to fastapi --out services/telemetry.py
@@ -41,6 +43,17 @@ The command adds a collision-free router import and `include_router` call, repar
 Without an explicit validated target, FastAPI composition remains an agent decision.
 Routers already included or mounted elsewhere, overlapping dynamic paths and final cutover remain reviewed work.
 The plan does not claim full framework runtime, middleware, authentication, lifecycle or wire-schema equivalence.
+
+Generated Next.js routes use the `next` dependency already required for automatic registration.
+Generated FastAPI routes always import `fastapi` and import `pydantic` when they emit models.
+Without `--dependency-manifest`, the report lists those imports as an agent decision.
+The flag accepts one explicit PEP 621 `pyproject.toml` whose directory contains the destination.
+Each missing distribution needs one exact `--dependency-requirement` string.
+The command retains existing strings, normalizes distribution names for comparison and reparses the updated TOML.
+The report binds the manifest's exact starting bytes through a SHA-256 revision.
+It refuses duplicate distributions, incomplete additions, extra additions, malformed arrays, symlinks and manifests outside the destination package.
+The manifest edit shares the migration transaction and its patch, undo and redo behavior.
+`fr` does not resolve the requirement, install packages or interpret package-manager extensions.
 
 The command keeps the source route and adds the destination.
 An explicit FastAPI registration edit shares that source-history transaction with the generated route.
@@ -112,4 +125,4 @@ Next.js dynamic path names also retain their spelling because the route placehol
 This check covers declarations and supported types.
 It does not establish aliases, validators, constraints, serialization settings, OpenAPI output or response validation.
 
-Current follow-up work adds durable source-bound check evidence and connected dependency or test configuration when the destination needs it.
+Current follow-up work adds connected test configuration when the destination needs it.
