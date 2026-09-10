@@ -33,6 +33,12 @@ Framework migration now preserves dynamic parameter spelling in both the FastAPI
 The fifth checkpoint recognizes destination registration when a captured Next.js dependency owns an `app` or `src/app` output path.
 The migration report binds that target application and classifies route placement as automatic; unknown targets and FastAPI router composition remain agent decisions.
 Lean proves that automatic registration requires both pieces of evidence, and shared execution checks every Boolean combination against Rust.
+The sixth checkpoint executes generic request payloads through source and generated handlers in both directions.
+Mixed-spelling keys, strings, numbers and arrays retain their exact JSON values.
+The fixture exposed that a typed Next.js `request.json()` binding became an annotated Python dictionary instead of a Pydantic model.
+Generated FastAPI handlers now call `model_validate` for that bounded pattern before accessing declared fields.
+It also exposed that Python `int` and TypeScript `number` need one language-neutral declaration family, so integer and float declarations now canonicalize as `number` for cross-language schema comparison.
+The runners use minimal framework and Pydantic stubs; installed-framework validation, middleware, dependency injection and lifecycle behavior remain open.
 Roadmap PR 5's first checkpoint added `fr project features` for bounded Next.js App Router and FastAPI hierarchies.
 Applications contain exact-route-path feature candidates, which contain routes, handlers, contract fields, schema references and expanded same-file schema candidates.
 Every fact carries a parent, source anchor, status, confidence, validation basis and explicit gaps.
@@ -731,4 +737,4 @@ Keep revision inputs, coverage and final source verification intact; require byt
 State the cache policy for the next autonomous cohort; existing trials explicitly disable it and their records remain immutable.
 The latest paired task requires one coordinated three-operation change across two crate roots. It passes, while `fr` still uses 23.8% more measured context in this single pair.
 Keep portable skill references selective and executable against the distributed binary.
-PR 5 is active. Continue the hierarchical framework semantic model in [PLAN.md](../PLAN.md), then use it for PR 6's verified feature migration.
+PR 6 is active. Continue with installed-framework execution, connected project edits and a reviewed cutover as ordered in [PLAN.md](../PLAN.md).

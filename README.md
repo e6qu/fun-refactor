@@ -348,6 +348,7 @@ The [framework semantic model](docs/framework-semantics.md) lists the versioned 
 It requires exact endpoint agreement, keeps the source available and reports automatic work, agent decisions and unsupported gaps separately.
 Saved plans and writes use source history, including patch export and exact undo/redo.
 A captured Next.js package makes route placement under `app` or `src/app` an automatic registration step.
+Generic handler oracles compare migrated status, JSON bodies and mixed-spelling payload fields in both directions.
 The [feature migration contract](docs/feature-migration.md) states destination rules, coexistence behavior and current runtime limits.
 `fr project configuration` pages environment declarations and candidate code consumers, with captured-source checks and explicit analysis gaps.
 `fr project tests` adds catalog candidates and bounded call-path witnesses, preserving the weakest edge confidence without claiming runtime coverage.

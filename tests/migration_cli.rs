@@ -209,7 +209,7 @@ fn migration_compares_generic_declared_schema_shapes_after_generation() {
         serde_json::json!([
             {"name": "active", "declared_type": "bool"},
             {"name": "sensor_id", "declared_type": "string"},
-            {"name": "values", "declared_type": "list<float>"}
+            {"name": "values", "declared_type": "list<number>"}
         ])
     );
 }

@@ -931,6 +931,11 @@ fn write(module: &Module, endpoints: &[Endpoint], source: &Path) -> Result<Writt
                 None => {
                     let supplied = supply_path_parameters(stmt.clone(), &dropped, &parameters);
                     let supplied = supply_query_parameters(supplied, &declared_queries);
+                    let supplied = validate_request_model(
+                        supplied,
+                        request.map(|parameter| parameter.name.as_str()),
+                        &rest,
+                    );
                     match binds_itself(&supplied) {
                         Some(name) => fidelity.notes.push(format!(
                             "`{}` read `{name}` out of the query string; FastAPI supplies \
@@ -1101,6 +1106,55 @@ fn write(module: &Module, endpoints: &[Endpoint], source: &Path) -> Result<Writt
         methods,
         statuses: responses.statuses,
     })
+}
+
+fn validate_request_model(stmt: Stmt, request: Option<&str>, models: &Module) -> Stmt {
+    let Stmt::Let {
+        name,
+        ty: Some(ty @ Type::Named { .. }),
+        value: Some(value),
+        mutable,
+    } = stmt
+    else {
+        return stmt;
+    };
+    let Type::Named { name: model, args } = &ty else {
+        unreachable!();
+    };
+    let declared = args.is_empty()
+        && models
+            .items
+            .iter()
+            .any(|item| matches!(item, Item::Record(record) if record.name == *model));
+    let reads_request_json = request.is_some_and(|request| {
+        matches!(
+            &value,
+            Expr::Await(inner)
+                if matches!(
+                    inner.as_ref(),
+                    Expr::Call { callee, args }
+                        if args.is_empty()
+                            && matches!(callee.as_ref(), Expr::Field { of, name } if name == "json" && matches!(of.as_ref(), Expr::Name(found) if found == request))
+                )
+        )
+    });
+    let value = if declared && reads_request_json {
+        Expr::Call {
+            callee: Box::new(Expr::Field {
+                of: Box::new(Expr::Name(model.clone())),
+                name: "model_validate".into(),
+            }),
+            args: vec![value],
+        }
+    } else {
+        value
+    };
+    Stmt::Let {
+        name,
+        ty: Some(ty),
+        value: Some(value),
+        mutable,
+    }
 }
 
 /// What [`write`] produced: the Python text, and what it says about itself.

@@ -62,15 +62,19 @@ Parser recognition, endpoint extraction, kind assignment, translation, filesyste
 ## Runtime evidence
 
 The integration suite executes generic source and generated handlers in both directions.
-One case crosses from Next.js TypeScript to FastAPI Python, and one crosses from FastAPI Python to Next.js TypeScript.
-The cases use telemetry and parameterized metrics routes, then compare status and JSON bodies exactly.
+Cases cross from Next.js TypeScript to FastAPI Python and from FastAPI Python to Next.js TypeScript.
+They cover telemetry and parameterized metrics results plus request bodies with mixed-spelling keys, scalar values and arrays.
+Every case compares status and JSON bodies exactly.
+For a direct typed binding from `await request.json()`, generated FastAPI code calls the corresponding Pydantic model's `model_validate` method before reading its fields.
 Node and Python execute the handlers, while small stubs supply decorator registration.
-This evidence covers handler behavior in the supported constructs.
-It does not cover framework middleware, dependency injection, validation, startup, routing registration or deployment.
+This evidence covers handler behavior and payload preservation in the supported constructs.
+The Pydantic stub materializes declared fields but does not reproduce Pydantic validation rules.
+The fixtures do not cover framework middleware, dependency injection, framework validation, startup, routing registration or deployment.
 
 ## Declared schema evidence
 
 The migration report canonicalizes records into names and sorted fields whose supported types use language-neutral spellings.
+Python integers and floats both compare as `number` because TypeScript has one numeric declaration type.
 It reparses the generated Python or TypeScript and checks the resulting declarations against the translated source records.
 FastAPI migration includes only models reached through selected handler signatures.
 The framework writers retain source field spellings because those names can be JSON keys.
@@ -78,4 +82,4 @@ Next.js dynamic path names also retain their spelling because the route placehol
 This check covers declarations and supported types.
 It does not establish aliases, requiredness, defaults, validators, serialization settings, OpenAPI output or runtime request and response validation.
 
-Current follow-up work adds framework-runtime fixtures, runtime schema comparisons, remaining connected build and test edits, and a reviewed cutover stage.
+Current follow-up work adds installed-framework fixtures, framework validation comparisons, remaining connected build and test edits, and a reviewed cutover stage.

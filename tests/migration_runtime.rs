@@ -200,3 +200,114 @@ fn fastapi_and_generated_nextjs_handlers_return_the_same_value() {
     assert_eq!(source["body"]["metric_id"], 7);
     assert_eq!(source["body"]["scaled"], 28);
 }
+
+#[test]
+fn nextjs_payload_keys_and_values_survive_fastapi_generation() {
+    let Some(tsc) = toolchains() else {
+        return;
+    };
+    let dir = tempfile::tempdir().unwrap();
+    let route = dir.path().join("app/readings/route.ts");
+    fs::create_dir_all(route.parent().unwrap()).unwrap();
+    fs::write(
+        route,
+        include_str!("migration-runtime/nextjs-payload-route.ts"),
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("source-runner.ts"),
+        include_str!("migration-runtime/nextjs-payload-source-runner.ts"),
+    )
+    .unwrap();
+
+    let feature = feature(dir.path());
+    let report = fr(
+        dir.path(),
+        &[
+            "migrate",
+            "feature",
+            &feature,
+            "--to",
+            "fastapi",
+            "--out",
+            "services/readings.py",
+            "--write",
+        ],
+    );
+    assert_eq!(
+        report["contract"]["declared_schemas"]["translation_agreement"],
+        true
+    );
+    let generated = fs::read_to_string(dir.path().join("services/readings.py")).unwrap();
+    assert!(generated.contains(
+        "reading: ReadingEnvelope = ReadingEnvelope.model_validate(await request.json())"
+    ));
+    compile_typescript(
+        dir.path(),
+        &tsc,
+        "source-build",
+        &["source-runner.ts", "app/readings/route.ts"],
+    );
+    let source = run_json("node", dir.path(), "source-build/source-runner.js");
+
+    fs::write(
+        dir.path().join("target-runner.py"),
+        include_str!("migration-runtime/fastapi-payload-target-runner.py"),
+    )
+    .unwrap();
+    let target = run_json("python3", dir.path(), "target-runner.py");
+    assert_eq!(source, target);
+    assert_eq!(source["body"]["sensor_id"], "sensor-4");
+    assert_eq!(source["body"]["measuredAt"], "2026-09-10T10:30:00Z");
+    assert_eq!(source["body"]["values"], serde_json::json!([3, 5, 8]));
+}
+
+#[test]
+fn fastapi_payload_keys_and_values_survive_nextjs_generation() {
+    let Some(tsc) = toolchains() else {
+        return;
+    };
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(
+        dir.path().join("events.py"),
+        include_str!("migration-runtime/fastapi-payload-route.py"),
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("source-runner.py"),
+        include_str!("migration-runtime/fastapi-payload-source-runner.py"),
+    )
+    .unwrap();
+
+    let source = run_json("python3", dir.path(), "source-runner.py");
+    let feature = feature(dir.path());
+    let report = fr(
+        dir.path(),
+        &[
+            "migrate", "feature", &feature, "--to", "nextjs", "--out", "web/app", "--write",
+        ],
+    );
+    assert_eq!(
+        report["contract"]["declared_schemas"]["translation_agreement"],
+        true
+    );
+    fs::write(
+        dir.path().join("target-runner.ts"),
+        include_str!("migration-runtime/nextjs-payload-target-runner.ts"),
+    )
+    .unwrap();
+    compile_typescript(
+        dir.path(),
+        &tsc,
+        "target-build",
+        &["target-runner.ts", "web/app/events/route.ts"],
+    );
+    let target = run_json("node", dir.path(), "target-build/target-runner.js");
+    assert_eq!(source, target);
+    assert_eq!(source["body"]["event_id"], "evt-9");
+    assert_eq!(source["body"]["sentAt"], 1_757_500_200_u64);
+    assert_eq!(
+        source["body"]["labels"],
+        serde_json::json!(["accepted", "priority"])
+    );
+}

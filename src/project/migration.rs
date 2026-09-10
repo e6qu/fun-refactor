@@ -118,8 +118,7 @@ fn canonical_type(ty: &Type) -> String {
     match ty {
         Type::Unit => "unit".to_owned(),
         Type::Bool => "bool".to_owned(),
-        Type::Int => "int".to_owned(),
-        Type::Float => "float".to_owned(),
+        Type::Int | Type::Float => "number".to_owned(),
         Type::String => "string".to_owned(),
         Type::List(inner) => format!("list<{}>", canonical_type(inner)),
         Type::Set(inner) => format!("set<{}>", canonical_type(inner)),
