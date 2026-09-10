@@ -60,6 +60,22 @@ fn a_nextjs_scaffold_is_one_file_per_url() {
 }
 
 #[test]
+fn a_nextjs_scaffold_preserves_an_arbitrary_contract_parameter_key() {
+    let tmp = tempfile::tempdir().expect("a temporary directory");
+    let path = tmp.path().join("openapi.yaml");
+    let document = "openapi: '3.1.0'\ninfo:\n  title: jobs\n  version: '1'\npaths:\n  /runs/{run-key}:\n    get:\n      parameters:\n        - name: run-key\n          in: path\n          required: true\n          schema:\n            type: string\n";
+    std::fs::write(&path, document).expect("write");
+    let plan = scaffold::plan_to(&path, Target::NextJs, Some(&tmp.path().join("app")), false)
+        .expect("a plan");
+    let dynamic = plan
+        .files
+        .iter()
+        .find(|file| file.destination.to_string_lossy().contains("[run-key]"))
+        .expect("the dynamic route");
+    assert!(dynamic.output.contains("\"run-key\": string;"));
+}
+
+#[test]
 fn a_schema_becomes_a_model_with_its_required_fields() {
     let (_tmp, plan) = scaffolded(Target::FastApi);
     let output = &plan.files[0].output;

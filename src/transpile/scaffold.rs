@@ -571,7 +571,7 @@ fn write_nextjs(
             for (name, _) in parameters {
                 // Every Next.js path segment arrives as text, whatever the document
                 // declared; the handler converts.
-                out.push_str(&format!("    {name}: string;\n"));
+                out.push_str(&format!("    {}: string;\n", ts_key(name)));
             }
             out.push_str("}\n");
         }
