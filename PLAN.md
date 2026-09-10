@@ -21,7 +21,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | Entry-point catalogs | 10 |
 | Capabilities × languages | 24 × 19 |
 | Supported pairs | 311 of 456, every other one carrying its reason |
-| Defects fixed | 682 |
+| Defects fixed | 686 |
 | Defects open | 1 |
 
 | Milestone | Status | Delivered foundation | Remaining outcome |
@@ -308,7 +308,7 @@ Verification and acceptance:
 
 ### PR 6. Verified Feature Migration
 
-Status: ready for review on `verified_feature_migration`. Fourteen checkpoints provide a revision-bound, two-way Next.js App Router and FastAPI route migration. Preview, history, patches, exact reversal and project checks share one transaction identity. Registration and cutover use explicit eligibility rules. An explicit PEP 621 manifest can receive caller-supplied requirements for missing FastAPI and Pydantic imports in that transaction. The migration can bind exact project-owned checks without assuming a test runner. Lean-backed policies cover migration, schema, registration, validation, cutover, dependency edits and check receipts. Generic handler and pinned framework fixtures exercise both directions, including invalid bodies. A clean Git receiver checks exact patch application and reversal.
+Status: ready for review on `verified_feature_migration`. Fourteen checkpoints provide a revision-bound, two-way Next.js App Router and FastAPI route migration. Preview, history, patches, exact reversal and project checks share one transaction identity. Registration and cutover use explicit eligibility rules. An explicit PEP 621 manifest can receive caller-supplied requirements for missing FastAPI and Pydantic imports in that transaction. The migration can bind exact project-owned checks without assuming a test runner. Lean-backed policies cover migration, schema, registration, validation, cutover, dependency edits and check receipts. Generic handler and pinned framework fixtures exercise both directions, including invalid bodies. A clean Git receiver checks exact patch application and reversal. The deep self-translation audit also passes after generic TypeScript template and Java type/name validity fixes.
 
 Goal: migrate one real feature through an inspectable, reversible high-level transformation.
 

@@ -67,6 +67,28 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B844: **a punctuated Java output filename produced an invalid wrapper class.**
+  The writer derived its wrapper directly from an explicit destination stem.
+  Punctuation other than underscores survived case conversion, so `fr-report.java` contained
+  `class Fr-report` and failed the output reparse gate. Wrapper names now sanitize separators
+  and prefix stems that begin with a non-identifier character.
+
+- [x] B843: **Rust character signatures crossed Java as an invented `char_` type.**
+  The shared IR retains Rust `char` as a named scalar. Java type rendering treated that name as
+  a reserved identifier, producing `char_` and `List<char_>`. It now emits primitive `char` and
+  boxed `Character`; the Java reader maps the boxed spelling back to the shared numeric scalar.
+
+- [x] B842: **a reserved segment made a qualified Java type fail to parse.**
+  Rust permits path segments such as `record`; Java reserves that word.
+  Each carried type-path segment is now checked independently and receives the
+  established keyword suffix when needed.
+
+- [x] B841: **TypeScript templates contained literal control bytes.**
+  Rust string decoding turns `\0` into a NUL before the TypeScript writer sees it. Template text
+  escaped delimiters but emitted that byte unchanged, so the generated draft failed its syntax
+  gate. Template text now escapes controls, backticks, backslashes and literal interpolation
+  openers in one pass.
+
 - [x] B840: **failed spec checks emitted two JSON objects.**
   Failures printed a report followed by a second JSON error object.
   JSON check and verify now emit one structured report and retain their unsuccessful exit status.

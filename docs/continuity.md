@@ -88,6 +88,11 @@ The mechanism is runner-agnostic and does not invent fixtures or behavioral asse
 `FrKernels.Checks` now has seven theorems and 24 shared Boolean results across receipt acceptance and required-selection policy.
 The full native/WASM gate passes with 407 library tests, 150 project scenarios, 16 migration scenarios, six runtime scenarios, 311/311 capability coverage and 42 Lean build jobs.
 Strict source-anchor and signature verification also passes with zero obligations.
+The scheduled deep self-translation audit exposed four generic draft-validity defects while PR 6
+was open. TypeScript templates now escape decoded control characters and delimiter sequences.
+Java qualified types escape reserved path segments, Rust characters render as `char` or boxed
+`Character`, and custom output stems produce legal wrapper class names. Focused translation
+regressions and the complete Rust-source round-trip audit pass after these fixes.
 Roadmap PR 5's first checkpoint added `fr project features` for bounded Next.js App Router and FastAPI hierarchies.
 Applications contain exact-route-path feature candidates, which contain routes, handlers, contract fields, schema references and expanded same-file schema candidates.
 Every fact carries a parent, source anchor, status, confidence, validation basis and explicit gaps.
