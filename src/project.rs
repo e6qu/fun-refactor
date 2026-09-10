@@ -38,6 +38,8 @@ mod tests;
 pub enum Command {
     #[command(about = "Find declaration handles by literal name without loading file maps.")]
     Find(find::Options),
+    #[command(about = "Find several exact declaration names in one revision-bound query.")]
+    Select(find::SelectOptions),
     #[command(about = "Page through a directory, file or symbol hierarchy.")]
     Map {
         #[arg(default_value = ".", help = "Workspace path or revision-bound handle")]
@@ -1017,6 +1019,7 @@ impl<'a> Project<'a> {
     pub fn report(&self, command: &Command) -> Result<Value> {
         match command {
             Command::Find(options) => self.find(options),
+            Command::Select(options) => self.select(options),
             Command::Map {
                 target,
                 revision,

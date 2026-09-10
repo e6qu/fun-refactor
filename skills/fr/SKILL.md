@@ -9,6 +9,7 @@ Run at the project root or pass `-C`. Find a known declaration directly; request
 
 ```sh
 fr project find greet --signature
+fr project select greet render validate --signature --source --bytes 2048
 fr project map --depth 2 --limit 12
 ```
 

@@ -5,6 +5,7 @@ Keep the repository as the scan root when callers elsewhere matter; a single-fil
 
 ```sh
 fr project find greet --in app.py --signature --limit 12
+fr project select greet render validate --signature --source --bytes 2048
 fr project show '<HANDLE>'
 fr project show '<HANDLE>' --relations --limit 8
 fr project show '<HANDLE>' --source --bytes 256
@@ -16,6 +17,8 @@ fr project gaps --limit 8
 
 Use exact `project find NAME` for known declarations; add `--contains` for a literal substring.
 Find matches names before clipping and reports all candidates with pagination and source coverage.
+Use `project select NAME...` for several exact declarations so one revision, coverage report,
+cursor and source budget cover the complete request. Read every per-name status before claiming absence.
 Use maps when the hierarchy itself matters. Choose `<HANDLE>` from the relevant declaration row. Full handles include their source revision.
 Alternatively use a short ID with the returned `--revision`; never reuse a bare ID across revisions.
 `show` gives the declaration's `position`, a 1-based line and column suitable for a refactoring target.

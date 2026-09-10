@@ -13,6 +13,10 @@ It targets the remaining 4,419-token fixed-projection gap through multi-symbol i
 review-bound payload omission, a smaller task-routed skill and a fresh paired acceptance cohort.
 The cohort must pass independent project and receiver oracles, ordered checks, exact reversal
 and index preservation before it supports any context-improvement claim.
+PR 7 checkpoint 2 adds `project select NAME...`: one bounded traversal retrieves up to
+32 exact declaration names under a shared revision, coverage envelope, page and source
+budget. Per-request statuses distinguish matches, omitted locals and indexed absence;
+cursors bind the full ordered request and context-basis reconstruction remains exact.
 PR 6's first checkpoint adds `fr migrate feature` for one revision-bound Next.js App Router or FastAPI route feature whose methods share one source file.
 The planner refuses stale feature IDs, same-framework requests, escaping destinations and any disagreement between semantic and translated endpoint sets.
 It retains the source route, adds the destination and classifies feature facts and gaps as automatic, agent-decision or unsupported work.
