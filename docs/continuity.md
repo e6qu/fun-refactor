@@ -11,8 +11,8 @@ Release PR 260 then published the completed roadmap state from `main`.
 The current `agent_context_v3` branch is roadmap PR 7, Context-Competitive Agent Workflow.
 It targets the remaining 4,419-token fixed-projection gap through multi-symbol inspection,
 review-bound payload omission, a smaller task-routed skill and a fresh paired acceptance cohort.
-The cohort must pass independent project and receiver oracles, ordered checks, exact reversal
-and index preservation before it supports any context-improvement claim.
+The retained fresh cohort passes independent project and receiver oracles, ordered checks, exact
+reversal and index preservation. Its single-pair comparison remains narrower than a population claim.
 PR 7 checkpoint 2 adds `project select NAME...`: one bounded traversal retrieves up to
 32 exact declaration names under a shared revision, coverage envelope, page and source
 budget. Per-request statuses distinguish matches, omitted locals and indexed absence;
@@ -34,6 +34,13 @@ The first fresh PR 7 pair is retained as a failed diagnostic. The `fr` arm stopp
 undocumented batch operation spellings; the files arm passed both behavior oracles but omitted
 the original-state check. The author route now names every operation, and harness refusals expose
 the received kinds and exact expected postconditions.
+PR 7 checkpoint 6 retains a second fresh pair under the same task and Luna-low configuration.
+Both arms pass all acceptance gates without corrections or restarts. The `fr` arm uses 15,458
+measured context tokens and 42 calls; the files arm uses 11,600 tokens and 20 calls, leaving a
+3,858-token or 33.3% `fr` premium in this sample. The `fr` agent adopted reviewed-plan compaction
+and `frtb2` delivery. The evaluator now reconstructs an omitted `files_changed` count only from a
+unique earlier batch preview with the same plan basis; missing and conflicting evidence refuse.
+The cohort passes exact token audit and complete patch replay.
 PR 6's first checkpoint adds `fr migrate feature` for one revision-bound Next.js App Router or FastAPI route feature whose methods share one source file.
 The planner refuses stale feature IDs, same-framework requests, escaping destinations and any disagreement between semantic and translated endpoint sets.
 It retains the source route, adds the destination and classifies feature facts and gaps as automatic, agent-decision or unsupported work.
@@ -821,7 +828,10 @@ Measure proposed reductions on fixed transcripts or controlled workflows before 
 Reference serialization and hashing remain the largest measured construction cost after batching; evaluate further changes against this profile.
 Keep revision inputs, coverage and final source verification intact; require byte-identical reports and distinguish model proofs from implementation correspondence.
 State the cache policy for the next autonomous cohort; existing trials explicitly disable it and their records remain immutable.
-The latest paired task requires one coordinated three-operation change across two crate roots. It passes, while `fr` still uses 23.8% more measured context in this single pair.
+The latest paired task requires one coordinated three-operation change across two crate roots.
+Both arms pass, while `fr` uses 33.3% more measured context and 22 more calls in this single pair.
+Use its refused path guesses, help calls and repeated inspection to simplify authoring discovery
+before spending quota on another autonomous cohort.
 Keep portable skill references selective and executable against the distributed binary.
-PR 6 is ready for review. Its bounded migration flow now connects registration, dependency manifests, cutover and project-owned checks in one reversible transaction.
-After merge, choose the next milestone from the remaining M2 context-efficiency or M4 agent-workflow outcomes in [PLAN.md](../PLAN.md).
+PR 7 is ready for review. After merge, choose the next milestone from the remaining M2
+context-efficiency or M4 authoring outcomes in [PLAN.md](../PLAN.md).

@@ -31,6 +31,7 @@ fn recorded_workspace_patches_pass_checks_oracles_and_exact_reversal() {
         "tests/agent-eval/results/2026-09-08-regex",
         "tests/agent-eval/results/2026-09-08-coordinated",
         "tests/agent-eval/results/2026-09-09-structural-authoring",
+        "tests/agent-eval/results/2026-09-11-context-v3",
     ] {
         python(&["tools/agent-eval.py", "replay", directory]);
     }

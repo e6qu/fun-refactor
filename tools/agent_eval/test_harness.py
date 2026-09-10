@@ -350,6 +350,33 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
             broken[0]["visible"] = json.dumps(payload)
             self.assertFalse(harness.coordinated_batch(broken))
 
+    def test_coordinated_delivery_reconstructs_compact_saved_batch(self):
+        def event(args, report):
+            return {"request": {"tool": "fr", "args": args},
+                    "visible": json.dumps({"exit_code": 0, "result": report})}
+
+        basis = "frpb1:" + "a" * 64
+        preview = event(["author", "batch", "--from", "manifest.json"], {
+            "schema": "fr-author-batch-1", "saved": False, "applied": False,
+            "files_changed": 2, "plan_context_basis": basis,
+        })
+        saved = event(["author", "batch", "--from", "manifest.json", "--save-plan",
+                       "--plan-basis", basis], {
+            "schema": "fr-author-batch-1", "saved": True, "applied": False,
+            "transaction": 1, "plan_context_basis": basis,
+            "plan_context_omitted": ["files_changed"],
+        })
+        history = [event(["history", action, "1", "--write"], {})
+                   for action in ("apply", "undo", "redo", "patch")]
+        self.assertTrue(harness.coordinated_batch([preview, saved, *history]))
+        self.assertFalse(harness.coordinated_batch([saved, *history]))
+
+        wrong_basis = copy.deepcopy(preview)
+        payload = json.loads(wrong_basis["visible"])
+        payload["result"]["plan_context_basis"] = "frpb1:" + "b" * 64
+        wrong_basis["visible"] = json.dumps(payload)
+        self.assertFalse(harness.coordinated_batch([wrong_basis, saved, *history]))
+
     def test_receiver_requires_checks_after_the_latest_state_change(self):
         original = {"src/lib.rs": {"sha256": "old"}}
         changed = {"src/lib.rs": {"sha256": "new"}}

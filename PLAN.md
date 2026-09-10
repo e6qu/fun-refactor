@@ -30,7 +30,7 @@ A supported pair describes the accepted operation scope; individual inputs can s
 | M1 undo and redo | Complete | Persistent transactions, recovery, conflict checks, apply, undo and redo | Retention and large-journal work continues in Git lifecycle work |
 | M2 compact project understanding | In progress | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests and Cargo workspace evidence | Lower repeated-query/context cost and broaden dependency and contract evidence |
 | M3 Git integration | Complete | Patches, repository views, staging history, reviewed commits and durable owned-worktree lifecycle | Maintained as a shared repository invariant |
-| M4 agent workflow | In progress | Portable skill, bounded authoring, multi-file batches, checks and eighteen passing autonomous trials | Make context use competitive and extend authoring scope |
+| M4 agent workflow | In progress | Portable skill, bounded authoring, multi-file batches, checks and twenty passing autonomous trials | Make context use competitive and extend authoring scope |
 | M5 Lean adoption | Complete | Pinned package initialization, anchored model scaffolds, regeneration, proof-debt ratchets, generated CI and bounded evidence reports | Maintain the trust boundary and extend the documented model subset as real projects require it |
 | M6 framework transformation | Complete | Shared code IR, route/page feature hierarchies, Lean-backed framework policies, revision-bound migration, reversible registration, dependency and cutover edits, transaction-bound project checks, plus pinned two-way runtime fixtures | Maintain the bounded framework subset and add new pairs from evidence |
 
@@ -55,14 +55,17 @@ A supported pair describes the accepted operation scope; individual inputs can s
 - Lean models for edits, positions, history, patch properties, pagination, confidence, workspace membership, revision buffers, declaration insertion placement and framework reporting policies.
 - Source anchors, signature maps and shared Rust/Lean executable cases.
 - External-project Lean initialization, anchored Rust model scaffolds, proof-preserving regeneration, named debt ceilings, generated CI and bounded verification evidence.
-- Eighteen passing autonomous trials across pinned strsim and regex snapshots, with replayable patches and independent behavioral oracles.
+- Twenty passing autonomous trials across pinned strsim and regex snapshots, with replayable patches and independent behavioral oracles.
 
 ## Evidence baseline
 
-The latest structural-authoring evaluation changes two crates in the complete pinned regex workspace.
-Both fresh Luna-low agents pass project checks, independent 1,060-input project and receiver oracles, exact reversal and index-preservation checks.
-The `fr` arm uses 18,806 measured context tokens and 29 calls; ordinary files use 15,192 tokens and 20 calls.
-This single pair shows a 23.8% `fr` context premium and makes no context-parity claim.
+The latest PR 7 evaluation changes two crates in the complete pinned regex workspace.
+Both fresh Luna-low agents pass project checks, independent 1,060-input project and receiver oracles,
+ordered original/final checks, exact reversal and index-preservation checks.
+The `fr` arm uses 15,458 measured context tokens and 42 calls; ordinary files use 11,600 tokens and 20 calls.
+This single pair shows a 33.3% `fr` context premium and makes no context-parity claim.
+The `fr` agent uses the reviewed-plan and compact transaction workflow.
+Seven refused or failed calls and repeated inspection identify discoverability and call count as the next practical bottlenecks.
 
 The file agents retained verbose successful check logs while the `fr` agents used compact output.
 The checksum-bound M4ac projection applies the same output policy to both arms without altering prompts, requests, calls or other payloads.
@@ -126,7 +129,7 @@ Git history and [development continuity](docs/continuity.md) retain checkpoint-l
 
 ### PR 7. Context-Competitive Agent Workflow
 
-Status: active on `agent_context_v3`.
+Status: ready for review on `agent_context_v3`.
 
 Goal: reduce the context and call cost of a complete high-level change while retaining bounded evidence, independent validation, exact patch replay and undo/redo.
 
@@ -135,9 +138,11 @@ Measured baseline:
 - The fixed v2 projection uses 11,229 mean `fr` context tokens and 6,810 ordinary-file tokens.
 - The remaining measured gap is 4,419 tokens, or a 64.9% `fr` premium.
 - Skill loading costs 1,962 tokens. Inspection costs 2,935, checks 2,133, authoring 1,466, delivery 1,838 and the prompt 925.
-- The latest fresh diagnostic pair cannot support a comparison because neither arm passed every acceptance oracle.
+- The first fresh pair remains a diagnostic because neither arm passed every acceptance oracle.
 - The checksum-bound v3 projection lowers the passing-cohort `fr` mean to 10,960 tokens,
   a further 269-token reduction from v2. The remaining premium is 4,150 tokens or 60.9%.
+- A second fresh pair passes every acceptance gate. It measures 15,458 `fr` context tokens and
+  11,600 ordinary-file tokens, a 3,858-token or 33.3% `fr` premium in this one sample.
 
 Deliverables:
 
@@ -166,8 +171,8 @@ Planned checkpoints:
 3. **Complete.** Add reviewed-plan and transaction compaction with stale-basis refusals.
 4. **Complete.** Reduce and retest the portable skill's task routes.
 5. **Complete.** Publish checksum-bound v3 projections and their measured contribution.
-6. **In progress.** Retain the first failed diagnostic, correct its skill-schema ambiguity, then
-   run a fresh pair and close only the claims supported by passing evidence.
+6. **Complete.** Retain the first failed diagnostic and correct its skill-schema ambiguity.
+   Run a fresh passing pair with checksum, token, patch, receiver, exact reversal and ordered-workflow replay.
 
 ## Formal verification policy
 

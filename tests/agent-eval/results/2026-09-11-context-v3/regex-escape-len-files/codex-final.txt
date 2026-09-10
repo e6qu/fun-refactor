@@ -1,0 +1,7 @@
+Implemented successfully.
+
+- Added documented `escape_len(&str) -> usize` to both crates.
+- Updated `regex-syntax::escape` to reserve exact capacity.
+- Preserved append behavior and no allocation for empty input.
+- All upstream and no-default-feature checks passed.
+- Patch export/reapply and clean receiver verification succeeded.

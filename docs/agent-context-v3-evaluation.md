@@ -82,5 +82,41 @@ The failed pair supports no context comparison. Its complete evidence is retaine
 The `fr` trace exposed a handoff regression: the compressed author reference described the
 operations but no longer named `insert-declaration`. The harness also returned one broad error
 before the CLI could report its accepted schema. The reference now names every operation, and
-the harness refusal reports received kinds and exact expected postconditions. A later fresh pair
-must establish whether that correction is sufficient.
+the harness refusal reports received kinds and exact expected postconditions.
+
+## Fresh passing pair
+
+A second fresh pair used the same archive, task, runner and model configuration after that
+instruction correction. Neither run received a correction or restart. Both arms pass every
+acceptance gate, including the independent 1,060-case project and receiver oracles, checks in the
+original and changed states, exact undo and redo, patch delivery and Git-index preservation.
+
+| Measure | `fr` | Ordinary files | Difference |
+|---|---:|---:|---:|
+| Context tokens | 15,458 | 11,600 | 3,858 (33.3%) |
+| Prompt tokens | 1,324 | 1,133 | 191 |
+| Tool-request tokens | 2,282 | 1,184 | 1,098 |
+| Calls | 42 | 20 | 22 |
+| Tool time | 119.114 s | 11.049 s | 108.065 s |
+| Session elapsed time | 263.758 s | 92.137 s | 171.621 s |
+| Refused or failed calls | 7 | 1 | 6 |
+
+The context total follows the established protocol and counts the prompt plus visible tool
+payloads. Tool-request tokens are reported separately. The `fr` output comprises 1,693 skill,
+5,727 inspection, 2,413 check and 4,301 change-and-delivery tokens. The ordinary-file output
+comprises 7,220 inspection, 2,487 check and 760 change-and-delivery tokens.
+
+The `fr` agent adopted the compact reviewed-plan flow and the `frtb2` transaction basis. Its
+extra calls came largely from help, path correction and repeated inspection. This pair therefore
+establishes successful autonomous adoption and a 33.3% premium for one sample; it does not
+establish parity or a population-level improvement over prior cohorts.
+
+The scorer originally rejected the successful `fr` trace because it required `files_changed`
+inside the compact saved response. The production protocol deliberately omits that field after a
+reviewed preview. The evaluator now accepts it only when one earlier batch preview has the same
+cryptographic plan basis and supplies the required two-file count; missing and conflicting
+previews remain rejected.
+
+Complete checksum-bound evidence is retained in
+[`2026-09-11-context-v3`](../tests/agent-eval/results/2026-09-11-context-v3/manifest.json).
+Its token audit and full patch replay pass without rerunning an agent.
