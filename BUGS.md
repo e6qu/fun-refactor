@@ -67,6 +67,12 @@ shows the patch additive. What remains below is a limit of the available source 
 
 ## Fixed
 
+- [x] B845: **framework migration policies disappeared from non-CLI builds.**
+  The translation writers called pure policy helpers through the CLI-gated project module.
+  WASM and playground builds disable default features, so both failed before compiling the
+  browser library. The policy kernel now lives at the feature-independent library boundary,
+  while the project module re-exports its established API when CLI support is enabled.
+
 - [x] B844: **a punctuated Java output filename produced an invalid wrapper class.**
   The writer derived its wrapper directly from an explicit destination stem.
   Punctuation other than underscores survived case conversion, so `fr-report.java` contained

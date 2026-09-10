@@ -93,6 +93,11 @@ was open. TypeScript templates now escape decoded control characters and delimit
 Java qualified types escape reserved path segments, Rust characters render as `char` or boxed
 `Character`, and custom output stems produce legal wrapper class names. Focused translation
 regressions and the complete Rust-source round-trip audit pass after these fixes.
+The pull-request WASM and playground jobs then exposed a feature-boundary error in the same
+framework writers. Their pure policy helpers were reachable only through the CLI-gated project
+module, although browser translation uses them without CLI support. The kernel is now exported
+from the common library boundary and re-exported through its established project path. The full
+WASM check, including the no-default-feature configuration used by the browser build, passes.
 Roadmap PR 5's first checkpoint added `fr project features` for bounded Next.js App Router and FastAPI hierarchies.
 Applications contain exact-route-path feature candidates, which contain routes, handlers, contract fields, schema references and expanded same-file schema candidates.
 Every fact carries a parent, source anchor, status, confidence, validation basis and explicit gaps.

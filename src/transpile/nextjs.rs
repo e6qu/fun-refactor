@@ -908,7 +908,7 @@ fn write(module: &Module, endpoints: &[Endpoint], source: &Path) -> Result<Writt
         let query_body_collision = request_body_candidates
             .first()
             .is_some_and(|(name, _)| declared_queries.contains(name));
-        let request_body = crate::project::framework_kernel::fastapi_body_parameter_automatic(
+        let request_body = crate::framework_kernel::fastapi_body_parameter_automatic(
             request_body_candidates.len(),
             path_body_collision,
             query_body_collision,

@@ -23,7 +23,7 @@ mod digest_tests;
 mod fast_routes;
 mod features;
 mod find;
-pub mod framework_kernel;
+pub use crate::framework_kernel;
 mod links;
 mod manifests;
 pub mod migration;

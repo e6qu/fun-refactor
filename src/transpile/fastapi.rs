@@ -593,10 +593,8 @@ fn add_body_validation(
         let supported = candidates
             .first()
             .is_some_and(|(_, model)| validation_record_supported(model, models));
-        let automatic = crate::project::framework_kernel::nextjs_body_validation_automatic(
-            candidates.len(),
-            supported,
-        );
+        let automatic =
+            crate::framework_kernel::nextjs_body_validation_automatic(candidates.len(), supported);
         if !automatic {
             if !candidates.is_empty() {
                 fidelity.notes.push(format!(
