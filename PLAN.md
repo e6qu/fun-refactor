@@ -136,6 +136,8 @@ Measured baseline:
 - The remaining measured gap is 4,419 tokens, or a 64.9% `fr` premium.
 - Skill loading costs 1,962 tokens. Inspection costs 2,935, checks 2,133, authoring 1,466, delivery 1,838 and the prompt 925.
 - The latest fresh diagnostic pair cannot support a comparison because neither arm passed every acceptance oracle.
+- The checksum-bound v3 projection lowers the passing-cohort `fr` mean to 10,960 tokens,
+  a further 269-token reduction from v2. The remaining premium is 4,150 tokens or 60.9%.
 
 Deliverables:
 
@@ -163,7 +165,7 @@ Planned checkpoints:
 2. **Complete.** Add bounded multi-symbol project inspection and reconstruction tests.
 3. **Complete.** Add reviewed-plan and transaction compaction with stale-basis refusals.
 4. **Complete.** Reduce and retest the portable skill's task routes.
-5. Publish checksum-bound v3 projections and their measured contribution.
+5. **Complete.** Publish checksum-bound v3 projections and their measured contribution.
 6. Run and retain the fresh paired acceptance cohort, then close only the claims its evidence supports.
 
 ## Formal verification policy

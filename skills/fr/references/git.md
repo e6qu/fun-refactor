@@ -6,7 +6,6 @@ fr git diff app.py --limit 8
 fr history patch '<TX>' --output '<PATCH>'
 fr history patch '<TX>' --git-check --index --against '<RECEIVER>'
 ```
+Write `<PATCH>` outside the project. Export refuses replacement and returns its digest and size. `<RECEIVER>` must match the transaction's starting source and index; `--reverse` exports the inverse. These commands do not stage or commit.
 
-Write `<PATCH>` outside the project. Export refuses an existing file and returns its digest and size without echoing it. `<RECEIVER>` must match the transaction's recorded source and index; `--reverse` exports the inverse. Inspection, export, and checks do not stage or commit.
-
-Text patches cover regular text, symlinks, and executable-mode projection, with explicit limits. Source history works without Git. For staging, commits, or worktrees read [Git administration](git-admin.md).
+Text patches cover text, symlinks, and executable-mode projection. Source history works without Git. For staging, commits, or worktrees read [Git administration](git-admin.md).

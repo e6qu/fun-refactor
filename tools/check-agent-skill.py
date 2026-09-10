@@ -40,7 +40,7 @@ def commands(path):
 def check_bundle():
     files = sorted(SKILL.rglob("*.md"))
     entry_bytes = (SKILL / "SKILL.md").stat().st_size
-    assert entry_bytes <= 2048, "Keep the introductory context within 2 KiB."
+    assert entry_bytes <= 1536, "Keep the introductory context within 1.5 KiB."
     for path in files:
         assert path.stat().st_size <= 4096, f"Split task-specific detail: {path}"
         for link in re.findall(r"\]\(([^)]+)\)", path.read_text()):
@@ -52,7 +52,7 @@ def check_bundle():
         name: sum((SKILL / relative).stat().st_size for relative in route)
         for name, route in ROUTES.items()
     }
-    assert max(route_bytes.values()) <= 8192, route_bytes
+    assert max(route_bytes.values()) <= 7168, route_bytes
     return files, entry_bytes, route_bytes
 
 

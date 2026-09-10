@@ -2,6 +2,9 @@
 
 Agent Context Protocol v2 reduces repeated structured output and makes local Codex evaluation reproducible. It does not yet establish context parity with ordinary file tools. The fixed passing-cohort projection saves 15.4% of mean `fr` context, while the latest fresh low-effort pair failed acceptance for independent agent mistakes.
 
+The [v3 evaluation](agent-context-v3-evaluation.md) preserves this report as its immutable
+baseline, adds an exact field-change audit and measures the smaller current skill route.
+
 ## Fixed passing-cohort projection
 
 The checksum-bound [projection](../tests/agent-eval/context-protocol.json) starts from the four passing M4ab trials. It preserves their prompts, calls, outcomes, source states and timings, applies the shared compact-check policy, substitutes the current skill files, and changes only documented request and response fields.

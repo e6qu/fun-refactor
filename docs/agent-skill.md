@@ -64,7 +64,7 @@ The checker does not exercise interrupted-write recovery or every optional Git o
 
 The standard native test gate runs this checker through `tests/agent_skill.rs`.
 The skill validator also checks its frontmatter and unfinished placeholders during authoring.
-The checker enforces a 2 KiB entrypoint budget, a 4 KiB budget per reference, an 8 KiB budget for each declared task route and valid links inside the portable folder.
+The checker enforces a 1.5 KiB entrypoint budget, a 4 KiB budget per reference, a 7 KiB budget for each declared task route and valid links inside the portable folder.
 
 The initial macOS run against the development binary executed 31 fenced command examples.
 Declared project-check listing and execution brought the checker to 33 examples; M4n's targeted authoring workflow raised that to 37.
@@ -126,10 +126,10 @@ Rerunning the script after skill updates prints new counts; the retained report 
 
 PR 7 keeps the same five-file targeted route while removing repeated explanations from its
 entrypoint, authoring, checks, history and patch references. Raw Markdown falls from 9,937 to
-7,242 bytes for that route, a 27.1% reduction. The complete bundle falls from 24,691 to 21,996
+6,106 bytes for that route, a 38.6% reduction. The complete bundle falls from 24,691 to 20,860
 bytes. Under the pinned tokenizer and numbered-read framing used by `skill-context.py`, the
-same route falls from 2,699 to 2,088 tokens, a 22.6% reduction. These measurements make no
-agent-success claim.
+same route falls from 2,699 to 1,693 tokens, a 37.3% reduction. It is 269 tokens below the
+1,962-token route in the frozen v2 projection. These measurements make no agent-success claim.
 The executable checker covers the route and enforces bounded routes for built-in changes,
 recipes, recovery, exploration, Lean and Git administration as well.
 
