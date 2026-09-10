@@ -140,7 +140,7 @@ fn persist(root: &Path, changes: Vec<Change>, apply: bool) -> Result<u64> {
         sync_ancestors(root, path.parent().unwrap())?;
     }
     check(root, &changes, false)?;
-    store_record(&mut history, changes, apply, "file-snapshots").map(|result| result.id)
+    store_record(&mut history, changes, apply, "file-snapshots", None).map(|result| result.id)
 }
 
 pub fn execute(root: &Path, command: &Command, save_plan: bool) -> Result<Value> {

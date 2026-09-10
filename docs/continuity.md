@@ -5,8 +5,100 @@ PR 1, Agent Context Protocol v2, merged as GitHub PR 261.
 PR 2, Generalized Structural Authoring, merged as GitHub PR 262.
 PR 3, Durable Git Workspace Lifecycle, merged as GitHub PR 263.
 PR 4, the Lean Adoption Kit, merged as GitHub PR 264.
-The current `framework_semantic_model` branch is roadmap PR 5.
-Its first checkpoint adds `fr project features` for bounded Next.js App Router and FastAPI hierarchies.
+PR 5, Framework Semantic Model, merged as GitHub PR 265.
+The current `verified_feature_migration` branch is roadmap PR 6.
+Its first checkpoint adds `fr migrate feature` for one revision-bound Next.js App Router or FastAPI route feature whose methods share one source file.
+The planner refuses stale feature IDs, same-framework requests, escaping destinations and any disagreement between semantic and translated endpoint sets.
+It retains the source route, adds the destination and classifies feature facts and gaps as automatic, agent-decision or unsupported work.
+Validated Next.js placement and explicit FastAPI application wiring can register destinations automatically; explicit eligible cutover can remove the source in that transaction.
+Preview, saved plans and writes use the existing source-history transaction, so patch checks, export, apply, undo and redo remain available.
+Four CLI integration cases cover both migration directions, refusal boundaries and exact forward undo/redo replay.
+Nine migration policies constrain supported directions, disposition classes, schema inclusion, registration, body promotion, body validation, cutover and dependency edits.
+Thirty-nine framework theorems now cover seventeen helpers, with 364 shared Rust and Lean results.
+The checkpoints have strict syntax, endpoint, schema, registration, dependency and project-check evidence; full framework behavior remains outside the bounded claim.
+The second PR 6 checkpoint adds generic runtime oracles for both migration directions.
+A telemetry handler runs through Node before migration and through generated Python afterward.
+A parameterized metrics handler runs through Python before migration and through generated Node afterward.
+Each oracle compares the exact status and JSON body.
+The harness uses minimal registration stubs, so it establishes handler behavior without claiming framework middleware, dependency injection, startup or deployment behavior.
+The third checkpoint canonicalizes translated model names, fields and supported types, reparses each generated destination and requires every source shape in that independent result.
+FastAPI to Next.js compares only models reached by handler signatures; unrelated classes do not enter the migration contract.
+Framework writers now retain declared model field spellings in both directions, fixing JSON key changes such as `device_id` becoming `deviceId`.
+Wire aliases, validators, defaults, serialization settings and runtime validation remain unverified and visible as gaps.
+Lean proves the schema inclusion policy, and shared execution checks empty, reordered, duplicate, partial and complete shape lists against Rust.
+The fourth checkpoint applies an exported migration patch in a separate clean Git repository.
+The receiver checks, applies, reverses and reapplies the patch, comparing the retained source and generated destination exactly.
+That generic operations-route fixture exposed a route-binding bug: a Next.js `[operationId]` segment became `{operation_id}` while its source context still used `operationId`.
+Framework migration now preserves dynamic parameter spelling in both the FastAPI route and handler signature, and generated documentation records the corrected contract.
+The fifth checkpoint recognizes destination registration when a captured Next.js dependency owns an `app` or `src/app` output path.
+The migration report binds that target application and classifies route placement as automatic; unknown targets and FastAPI router composition remain agent decisions.
+Lean proves that automatic registration requires both pieces of evidence, and shared execution checks every Boolean combination against Rust.
+The sixth checkpoint executes generic request payloads through source and generated handlers in both directions.
+Mixed-spelling keys, strings, numbers and arrays retain their exact JSON values.
+The fixture exposed that a typed Next.js `request.json()` binding became an annotated Python dictionary instead of a Pydantic model.
+Generated FastAPI handlers now call `model_validate` for that bounded pattern before accessing declared fields.
+It also exposed that Python `int` and TypeScript `number` need one language-neutral declaration family, so integer and float declarations now canonicalize as `number` for cross-language schema comparison.
+The runners use minimal framework and Pydantic stubs; installed-framework validation, middleware, dependency injection and lifecycle behavior remain open.
+The seventh checkpoint promotes one direct typed Next.js JSON binding to a native FastAPI body parameter when no path or query name collides.
+Pinned FastAPI 0.141.1 mounts the generated router through `include_router` and handles requests through its ASGI application.
+Pydantic 2.13.5 and Starlette 1.6.0 preserve the valid body and produce a field-specific 422 response for an invalid array item.
+The promotion policy requires one candidate and no collision.
+Three Lean theorems characterize that rule, and sixteen shared cases cover unique, missing, repeated and colliding candidates.
+The eighth checkpoint installs a lockfile-pinned Next.js 16.3.4 application with React 19.3.0 and TypeScript 5.9.3.
+App Router placement registers the generated generic events route.
+A real framework request returns the exact FastAPI source payload.
+The runtime fixture uses no example-specific translation rule.
+The ninth checkpoint generates structural Next.js request validation from the intermediate type model.
+Exactly one direct local body model is automatic when every reachable field uses a supported primitive, optional, list, string-keyed map, tuple or acyclic local-record shape within the depth bound.
+The translator now emits local models reached transitively through record fields, so nested declarations and their validators remain complete without fixture-specific rules.
+Ambiguous and unsupported shapes stay visible as fidelity notes.
+The real FastAPI source and generated Next.js route both accept the generic valid event and reject its invalid array element with status 422 at the same body-field location.
+The eligibility rule is anchored in Lean with three theorems and eight shared Rust/Lean cases.
+Pydantic coercion, aliases, custom validators, constraints, strict and extra-field settings, connected project edits and cutover remain open.
+The tenth checkpoint lets an explicit `--register-with PATH::APP_SYMBOL` target join a FastAPI migration transaction.
+The command requires a captured, cleanly parsed Python file, one recognized FastAPI application binding, a valid dotted import path and no direct endpoint conflict.
+It generates a collision-free router alias, adds the import and `include_router` call, reparses the combined edit and records the application file beside the generated route for exact undo and redo.
+A pinned FastAPI fixture imports the edited application and serves the generic selected route through ASGI.
+The eligibility policy has three Lean theorems and eight shared Rust/Lean cases.
+Included or mounted routers, overlapping dynamic paths, middleware order and test configuration remain reviewed boundaries.
+The eleventh checkpoint adds explicit `--cutover` source removal to the migration transaction.
+It requires automatic destination registration and refuses a resolved reference from another source file to any indexed source symbol.
+The history layer records source absence beside generated and connected-file edits, so patch export, undo and redo preserve existence, bytes and modes.
+The pinned FastAPI fixture serves the generated route through the edited application after the source route disappears.
+Three Lean theorems characterize cutover eligibility, and all eight Boolean cases agree with Rust.
+Runtime imports, string paths, deployment routing, external callers and project-specific checks remain reviewed evidence outside the eligibility proof.
+The twelfth checkpoint adds source-bound declared-check receipts to applied history transactions.
+`fr checks --record-for <TX>` verifies the applied transaction before execution, hashes recognized source before and after every selected command, rereads the check configuration and revalidates under the history lock before recording.
+Each `frce1:` receipt binds the reviewed configuration digest, stable source revision and selected check names; repeated recording is idempotent and `history show` retains the row through undo and redo.
+Source or configuration drift fails the report, invalid transaction state refuses before project code runs and corrupted receipt data invalidates the journal.
+Four Lean theorems characterize receipt acceptance, and all sixteen Boolean cases agree with Rust.
+The boundary snapshots do not observe command-internal mutate-and-restore behavior, unsupported files, executable identities, dependencies, services, environment values or external state.
+The thirteenth checkpoint adds explicit PEP 621 dependency edits for generated FastAPI imports.
+The selected `pyproject.toml` must own the destination and contain one supported `[project].dependencies` array.
+Caller-supplied requirement strings must cover each missing `fastapi` or `pydantic` import once, without extras or duplicate existing distributions.
+The command preserves existing requirements, reparses TOML and records the manifest beside generated and registration files for exact patch, undo and redo behavior.
+Next.js dependency evidence reuses the captured manifest required for automatic route registration.
+Three Lean theorems characterize the four dependency-edit boundaries, and all sixteen Boolean cases agree with Rust.
+Requirement semantics, package-manager resolution and installation remain reviewed work.
+The fourteenth checkpoint binds project-owned test commands to the migration transaction.
+Repeated `--check` options select names from `.fr/checks.json`, canonicalize them to declaration order and retain the exact configuration digest and names in history.
+Evidence for that transaction must use the same configuration and selection; a mismatch refuses before any project command starts.
+Three Lean theorems characterize the optional exact-selection rule, and all eight Boolean cases agree with Rust.
+The mechanism is runner-agnostic and does not invent fixtures or behavioral assertions for a project.
+`FrKernels.Checks` now has seven theorems and 24 shared Boolean results across receipt acceptance and required-selection policy.
+The full native/WASM gate passes with 407 library tests, 150 project scenarios, 16 migration scenarios, six runtime scenarios, 311/311 capability coverage and 42 Lean build jobs.
+Strict source-anchor and signature verification also passes with zero obligations.
+The scheduled deep self-translation audit exposed four generic draft-validity defects while PR 6
+was open. TypeScript templates now escape decoded control characters and delimiter sequences.
+Java qualified types escape reserved path segments, Rust characters render as `char` or boxed
+`Character`, and custom output stems produce legal wrapper class names. Focused translation
+regressions and the complete Rust-source round-trip audit pass after these fixes.
+The pull-request WASM and playground jobs then exposed a feature-boundary error in the same
+framework writers. Their pure policy helpers were reachable only through the CLI-gated project
+module, although browser translation uses them without CLI support. The kernel is now exported
+from the common library boundary and re-exported through its established project path. The full
+WASM check, including the no-default-feature configuration used by the browser build, passes.
+Roadmap PR 5's first checkpoint added `fr project features` for bounded Next.js App Router and FastAPI hierarchies.
 Applications contain exact-route-path feature candidates, which contain routes, handlers, contract fields, schema references and expanded same-file schema candidates.
 Every fact carries a parent, source anchor, status, confidence, validation basis and explicit gaps.
 Feature IDs retrieve one revision-bound subtree; cursors bind that selection.
@@ -704,4 +796,5 @@ Keep revision inputs, coverage and final source verification intact; require byt
 State the cache policy for the next autonomous cohort; existing trials explicitly disable it and their records remain immutable.
 The latest paired task requires one coordinated three-operation change across two crate roots. It passes, while `fr` still uses 23.8% more measured context in this single pair.
 Keep portable skill references selective and executable against the distributed binary.
-PR 5 is active. Continue the hierarchical framework semantic model in [PLAN.md](../PLAN.md), then use it for PR 6's verified feature migration.
+PR 6 is ready for review. Its bounded migration flow now connects registration, dependency manifests, cutover and project-owned checks in one reversible transaction.
+After merge, choose the next milestone from the remaining M2 context-efficiency or M4 agent-workflow outcomes in [PLAN.md](../PLAN.md).

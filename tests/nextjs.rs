@@ -43,19 +43,23 @@ fn the_url_comes_from_the_path_not_the_file() {
     // Nothing inside a Next.js route says what it serves.
     assert_eq!(
         nextjs::route_for(Path::new("app/api/users/route.ts")),
-        "/users"
+        "/api/users"
     );
     assert_eq!(
         nextjs::route_for(Path::new("app/api/users/[id]/route.ts")),
-        "/users/{id}"
+        "/api/users/{id}"
+    );
+    assert_eq!(
+        nextjs::route_for(Path::new("app/operations/[operationId]/route.ts")),
+        "/operations/{operationId}"
     );
     assert_eq!(
         nextjs::route_for(Path::new("app/api/files/[...path]/route.ts")),
-        "/files/{path:path}"
+        "/api/files/{path:path}"
     );
     assert_eq!(
         nextjs::route_for(Path::new("pages/api/health.ts")),
-        "/health"
+        "/api/health"
     );
 }
 
@@ -64,10 +68,10 @@ fn a_route_becomes_a_router_with_its_methods() {
     let (_tmp, root) = workspace(&[("app/api/users/[id]/route.ts", ROUTE)]);
     let plan = nextjs::plan(&root.join("app/api/users/[id]/route.ts")).expect("a route translates");
 
-    assert_eq!(plan.route, "/users/{id}");
+    assert_eq!(plan.route, "/api/users/{id}");
     assert_eq!(plan.methods, vec!["GET", "PUT"]);
-    assert!(plan.output.contains("@router.get(\"/users/{id}\")"));
-    assert!(plan.output.contains("@router.put(\"/users/{id}\")"));
+    assert!(plan.output.contains("@router.get(\"/api/users/{id}\")"));
+    assert!(plan.output.contains("@router.put(\"/api/users/{id}\")"));
     // The path parameter is a typed argument, which is the whole point of FastAPI.
     assert!(plan
         .output
@@ -238,15 +242,18 @@ fn a_react_component_is_refused_with_the_reason() {
 }
 
 #[test]
-fn a_file_outside_the_api_directories_is_refused() {
+fn a_file_outside_the_route_directories_is_refused() {
     // The URL is the path.
     let (_tmp, root) = workspace(&[("lib/users.ts", ROUTE)]);
     let error = nextjs::plan(&root.join("lib/users.ts")).expect_err("not a route");
     assert!(
-        error.to_string().contains("neither a Next.js API route"),
+        error
+            .to_string()
+            .contains("neither a Next.js route handler"),
         "{error}"
     );
     assert!(!nextjs::is_api_route(Path::new("lib/users.ts")));
+    assert!(nextjs::is_api_route(Path::new("app/users/route.ts")));
     assert!(nextjs::is_api_route(Path::new("app/api/users/route.ts")));
     assert!(nextjs::is_api_route(Path::new("pages/api/users.ts")));
 }
@@ -272,7 +279,7 @@ fn a_catch_all_segment_becomes_a_path_converter() {
         "export async function GET(request: Request) {\n  return null;\n}\n",
     )]);
     let plan = nextjs::plan(&root.join("app/api/files/[...path]/route.ts")).unwrap();
-    assert_eq!(plan.route, "/files/{path:path}");
+    assert_eq!(plan.route, "/api/files/{path:path}");
     assert!(
         plan.output
             .contains("async def get(path: str, request: Request):"),
@@ -285,7 +292,7 @@ fn a_catch_all_segment_becomes_a_path_converter() {
 fn the_destination_is_named_for_the_route() {
     let (_tmp, root) = workspace(&[("app/api/users/[id]/route.ts", ROUTE)]);
     let plan = nextjs::plan(&root.join("app/api/users/[id]/route.ts")).unwrap();
-    assert_eq!(plan.destination.file_name().unwrap(), "users_id.py");
+    assert_eq!(plan.destination.file_name().unwrap(), "api_users_id.py");
     assert_eq!(plan.edits.file_count(), 1);
 }
 
@@ -325,8 +332,8 @@ fn a_zod_schema_becomes_a_pydantic_model() {
         ("views", "int"),
         ("tags", "list[str]"),
         ("draft", "bool"),
-        // The name takes Python's convention, like every other name the file declares.
-        ("published_at", "datetime | None"),
+        // Schema fields keep the spelling used on the JSON wire.
+        ("publishedAt", "datetime | None"),
     ] {
         assert!(
             plan.output.contains(&format!("{field}: {ty}")),
@@ -376,14 +383,14 @@ fn the_openapi_baseline_states_what_the_tree_declares() {
     assert_eq!(baseline.routes.len(), 2, "{:?}", baseline.routes);
 
     let paths = document["paths"].as_object().unwrap();
-    assert!(paths.contains_key("/posts"));
-    assert!(paths["/posts"]["post"].is_object());
+    assert!(paths.contains_key("/api/posts"));
+    assert!(paths["/api/posts"]["post"].is_object());
 
     // The path parameter comes from the tree, which is the whole trick.
-    let parameters = paths["/posts/{post_id}"]["delete"]["parameters"]
+    let parameters = paths["/api/posts/{postId}"]["delete"]["parameters"]
         .as_array()
         .unwrap();
-    assert_eq!(parameters[0]["name"], "post_id");
+    assert_eq!(parameters[0]["name"], "postId");
     assert_eq!(parameters[0]["in"], "path");
     assert_eq!(parameters[0]["required"], true);
 
@@ -411,7 +418,7 @@ fn the_baseline_never_invents_a_response() {
     let files = vec![root.join("app/api/posts/route.ts")];
     let baseline = fun_refactor::openapi::from_routes("demo", &root, &files).unwrap();
 
-    let responses = &baseline.document["paths"]["/posts"]["post"]["responses"];
+    let responses = &baseline.document["paths"]["/api/posts"]["post"]["responses"];
     assert!(responses["default"].is_object());
     assert!(responses["200"].is_null(), "{responses}");
     assert!(responses["201"].is_null(), "{responses}");
@@ -488,4 +495,35 @@ fn a_fastapi_path_parameter_takes_the_type_the_source_declared() {
         "an int path parameter. {parameters:?}"
     );
     assert_eq!(typed("name"), "string", "a str one. {parameters:?}");
+}
+
+#[test]
+fn a_body_name_collision_keeps_explicit_request_materialization() {
+    let (_tmp, root) = workspace(&[(
+        "app/api/measurements/[payload]/route.ts",
+        r#"export interface Envelope {
+  source: string;
+  values: number[];
+}
+
+export async function POST(request: Request) {
+  const payload: Envelope = await request.json();
+  return payload;
+}
+"#,
+    )]);
+    let plan = nextjs::plan(&root.join("app/api/measurements/[payload]/route.ts")).unwrap();
+
+    assert!(
+        plan.output
+            .contains("async def post(payload: str, request: Request):"),
+        "{}",
+        plan.output
+    );
+    assert!(
+        plan.output
+            .contains("payload: Envelope = Envelope.model_validate(await request.json())"),
+        "{}",
+        plan.output
+    );
 }

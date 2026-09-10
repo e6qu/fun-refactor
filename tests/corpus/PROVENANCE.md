@@ -38,7 +38,7 @@ foreign library types.
 | `app/api/webhooks/stripe/route.ts` | `c6984f90fdd2aeac6edb262f7dbead6502566fdeb563901168890b846226edd6` | same |
 
 The directory layout is reproduced exactly, because a Next.js route's URL **is** its
-path: `app/api/posts/[postId]/route.ts` serves `/posts/{post_id}` and nothing inside
+path: `app/api/posts/[postId]/route.ts` serves `/api/posts/{postId}` and nothing inside
 the file says so. Flattening these into a fixtures directory would delete the thing
 under test.
 

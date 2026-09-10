@@ -86,6 +86,26 @@ pub struct Record {
     pub source_revision: String,
     pub validation: String,
     pub changes: Vec<Change>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub required_checks: Option<CheckRequirement>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub check_evidence: Vec<CheckEvidence>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CheckRequirement {
+    pub configuration_basis: String,
+    pub checks: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CheckEvidence {
+    pub receipt: String,
+    pub configuration_basis: String,
+    pub source_revision: String,
+    pub checks: Vec<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
@@ -241,6 +261,49 @@ impl History {
                     }
                 }
             }
+            if let Some(requirement) = &record.required_checks {
+                let mut names = std::collections::BTreeSet::new();
+                if !sha256_text(&requirement.configuration_basis)
+                    || requirement.checks.is_empty()
+                    || requirement.checks.len() > 32
+                    || requirement.checks.iter().any(|name| {
+                        name.is_empty()
+                            || name.len() > 64
+                            || !name
+                                .bytes()
+                                .all(|byte| byte.is_ascii_alphanumeric() || b"_-".contains(&byte))
+                            || !names.insert(name)
+                    })
+                {
+                    bail!("invalid required check selection.");
+                }
+            }
+            let mut receipts = std::collections::BTreeSet::new();
+            for evidence in &record.check_evidence {
+                let mut names = std::collections::BTreeSet::new();
+                if !sha256_text(&evidence.configuration_basis)
+                    || !sha256_text(&evidence.source_revision)
+                    || evidence.checks.is_empty()
+                    || evidence.checks.len() > 32
+                    || evidence.checks.iter().any(|name| {
+                        name.is_empty()
+                            || name.len() > 64
+                            || !name
+                                .bytes()
+                                .all(|byte| byte.is_ascii_alphanumeric() || b"_-".contains(&byte))
+                            || !names.insert(name)
+                    })
+                    || evidence.receipt
+                        != check_evidence_receipt(
+                            &evidence.configuration_basis,
+                            &evidence.source_revision,
+                            &evidence.checks,
+                        )?
+                    || !receipts.insert(&evidence.receipt)
+                {
+                    bail!("invalid recorded check evidence.");
+                }
+            }
         }
         let mut active = std::collections::BTreeSet::new();
         for (stack, status) in [
@@ -354,7 +417,26 @@ fn basis(changes: &[Change]) -> Result<String> {
     ))
 }
 
-fn source_revision(root: &Path) -> Result<String> {
+pub(crate) fn check_evidence_receipt(
+    configuration_basis: &str,
+    source_revision: &str,
+    checks: &[String],
+) -> Result<String> {
+    Ok(format!(
+        "frce1:{:x}",
+        Sha256::digest(serde_json::to_vec(&(
+            configuration_basis,
+            source_revision,
+            checks
+        ))?)
+    ))
+}
+
+fn sha256_text(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+pub(crate) fn source_revision(root: &Path) -> Result<String> {
     let mut digest = Sha256::new();
     let walker = ignore::WalkBuilder::new(root)
         .standard_filters(false)
@@ -430,6 +512,11 @@ pub struct RecordResult {
     pub created: bool,
 }
 
+pub(crate) struct FileRemoval<'a> {
+    pub path: &'a Path,
+    pub original: &'a str,
+}
+
 pub fn record(
     root: &Path,
     changes: &[FileChange<'_>],
@@ -445,7 +532,18 @@ pub fn record_with_status(
     apply: bool,
     validation: &str,
 ) -> Result<Option<RecordResult>> {
-    if !changes.iter().any(|c| c.original != c.updated) {
+    record_with_removals_status(root, changes, &[], apply, validation, None)
+}
+
+pub(crate) fn record_with_removals_status(
+    root: &Path,
+    changes: &[FileChange<'_>],
+    removals: &[FileRemoval<'_>],
+    apply: bool,
+    validation: &str,
+    required_checks: Option<&CheckRequirement>,
+) -> Result<Option<RecordResult>> {
+    if !changes.iter().any(|c| c.original != c.updated) && removals.is_empty() {
         return Ok(None);
     }
     let requested_root = std::path::absolute(root)?;
@@ -461,6 +559,15 @@ pub fn record_with_status(
     let mut paths = Vec::new();
     for change in changes.iter().filter(|c| c.original != c.updated) {
         let absolute = std::path::absolute(change.path)?;
+        let relative = absolute
+            .strip_prefix(&root)
+            .or_else(|_| absolute.strip_prefix(&requested_root))
+            .context("history targets must be inside the workspace root; choose -C accordingly")?;
+        paths.push(target(&root, relative)?);
+    }
+    let changed_paths = paths.len();
+    for removal in removals {
+        let absolute = std::path::absolute(removal.path)?;
         let relative = absolute
             .strip_prefix(&root)
             .or_else(|_| absolute.strip_prefix(&requested_root))
@@ -484,12 +591,12 @@ pub fn record_with_status(
     for (change, path) in changes
         .iter()
         .filter(|c| c.original != c.updated)
-        .zip(paths)
+        .zip(paths.iter().take(changed_paths))
     {
-        if !seen.insert(path.clone()) {
+        if !seen.insert(path.to_path_buf()) {
             bail!("duplicate history target {}", path.display());
         }
-        let before = snapshot(&path)?;
+        let before = snapshot(path)?;
         if before
             .as_ref()
             .is_some_and(|snapshot| snapshot.kind != SnapshotKind::Regular)
@@ -513,7 +620,24 @@ pub fn record_with_status(
             after,
         });
     }
-    store_record(&mut history, stored, apply, validation).map(Some)
+    for (removal, path) in removals.iter().zip(paths.iter().skip(changed_paths)) {
+        if !seen.insert(path.to_path_buf()) {
+            bail!("duplicate history target {}", path.display());
+        }
+        let before = snapshot(path)?;
+        let snapshot = before
+            .as_ref()
+            .with_context(|| format!("source removal target does not exist: {}", path.display()))?;
+        if snapshot.kind != SnapshotKind::Regular || snapshot.content != removal.original {
+            bail!("{} changed after planning", path.display());
+        }
+        stored.push(Change {
+            path: path.strip_prefix(&root)?.to_path_buf(),
+            before,
+            after: None,
+        });
+    }
+    store_record(&mut history, stored, apply, validation, required_checks).map(Some)
 }
 
 fn store_record(
@@ -521,6 +645,7 @@ fn store_record(
     changes: Vec<Change>,
     apply: bool,
     validation: &str,
+    required_checks: Option<&CheckRequirement>,
 ) -> Result<RecordResult> {
     let record_basis = basis(&changes)?;
     let revision = source_revision(&history.root)?;
@@ -531,6 +656,7 @@ fn store_record(
                 && record.source_revision == revision
                 && record.validation == validation
                 && record.changes == changes
+                && record.required_checks.as_ref() == required_checks
         }) {
             return Ok(RecordResult {
                 id: record.id,
@@ -553,12 +679,103 @@ fn store_record(
         source_revision: revision,
         validation: validation.to_owned(),
         changes,
+        required_checks: required_checks.cloned(),
+        check_evidence: Vec::new(),
     });
     history.save()?;
     if apply {
         transition(history, Action::Apply, id)?;
     }
     Ok(RecordResult { id, created: true })
+}
+
+pub(crate) fn record_check_evidence(root: &Path, id: u64, evidence: CheckEvidence) -> Result<bool> {
+    let root = workspace(root)?;
+    let _lock = lock(&root)?;
+    let mut history = History::read(&root)?;
+    history.ensure_ready()?;
+    ensure_check_evidence_target(
+        &history,
+        &root,
+        id,
+        &evidence.source_revision,
+        &evidence.configuration_basis,
+        &evidence.checks,
+    )?;
+    let record = history.record(id)?;
+    if record
+        .check_evidence
+        .iter()
+        .any(|existing| existing.receipt == evidence.receipt)
+    {
+        return Ok(false);
+    }
+    history
+        .records
+        .iter_mut()
+        .find(|record| record.id == id)
+        .unwrap()
+        .check_evidence
+        .push(evidence);
+    history.save()?;
+    Ok(true)
+}
+
+fn ensure_check_evidence_target(
+    history: &History,
+    root: &Path,
+    id: u64,
+    revision: &str,
+    configuration_basis: &str,
+    checks: &[String],
+) -> Result<()> {
+    let record = history.record(id)?;
+    ensure!(
+        record.status == Status::Applied,
+        "transaction must be applied."
+    );
+    for change in &record.changes {
+        ensure!(
+            snapshot(&target(root, &change.path)?)? == change.after,
+            "{} differs from transaction {id}.",
+            change.path.display()
+        );
+    }
+    ensure!(
+        source_revision(root)? == revision,
+        "source changed after checks."
+    );
+    let requirement_present = record.required_checks.is_some();
+    let configuration_matches = record
+        .required_checks
+        .as_ref()
+        .is_some_and(|requirement| requirement.configuration_basis == configuration_basis);
+    let check_names_match = record
+        .required_checks
+        .as_ref()
+        .is_some_and(|requirement| requirement.checks == checks);
+    ensure!(
+        crate::checks::check_requirement_satisfied(
+            requirement_present,
+            configuration_matches,
+            check_names_match,
+        ),
+        "check evidence does not satisfy the transaction's required selection"
+    );
+    Ok(())
+}
+
+pub(crate) fn check_evidence_target(
+    root: &Path,
+    id: u64,
+    revision: &str,
+    configuration_basis: &str,
+    checks: &[String],
+) -> Result<()> {
+    let root = workspace(root)?;
+    let history = History::read(&root)?;
+    history.ensure_ready()?;
+    ensure_check_evidence_target(&history, &root, id, revision, configuration_basis, checks)
 }
 
 pub fn act(root: &Path, action: Action, id: u64, write: bool) -> Result<serde_json::Value> {

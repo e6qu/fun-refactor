@@ -3,12 +3,15 @@ import FrKernels.Git
 import FrKernels.Source
 import FrKernels.Author
 import FrKernels.Adoption
+import FrKernels.Checks
 
 open FrKernels.Project
 
 def samples : List Nat := [0, 1, 2, 3, 4, 79, 80, 499, 500, 65536, 4294967295, 18446744073709551615]
 
 def frameworkSamples : List Nat := [0, 1, 2, 63, 64, 65, 128, 512, 65536]
+
+def schemaSamples : List (List String) := [[], ["a"], ["a", "b"], ["b", "a"], ["a", "a"]]
 
 def sourceSamples : List String := Id.run do
   let mut sources := [""]
@@ -63,6 +66,50 @@ def main (args : List String) : IO Unit := do
       for startsSlash in [false, true] do
         for endsSlash in [false, true] do
           IO.println (fastapiPrefixSupported empty startsSlash endsSlash)
+    for sourceFastapi in [false, true] do
+      for targetFastapi in [false, true] do
+        IO.println (frameworkMigrationSupported sourceFastapi targetFastapi)
+    for gap in [false, true] do
+      for automaticKind in [false, true] do
+        IO.println (migrationDisposition gap automaticKind)
+    for expected in schemaSamples do
+      for generated in schemaSamples do
+        IO.println (migrationSchemaAgreement expected generated)
+    for declaresNext in [false, true] do
+      for appRouterPath in [false, true] do
+        IO.println (nextjsRegistrationAutomatic declaresNext appRouterPath)
+    for candidateCount in [0, 1, 2, 65536] do
+      for pathCollision in [false, true] do
+        for queryCollision in [false, true] do
+          IO.println (fastapiBodyParameterAutomatic candidateCount pathCollision queryCollision)
+    for candidateCount in [0, 1, 2, 65536] do
+      for supportedShape in [false, true] do
+        IO.println (nextjsBodyValidationAutomatic candidateCount supportedShape)
+    for explicitTarget in [false, true] do
+      for applicationBinding in [false, true] do
+        for endpointConflict in [false, true] do
+          IO.println (fastapiRegistrationAutomatic explicitTarget applicationBinding endpointConflict)
+    for explicitCutover in [false, true] do
+      for registrationAutomatic in [false, true] do
+        for externalReferences in [false, true] do
+          IO.println (migrationCutoverAutomatic explicitCutover registrationAutomatic externalReferences)
+    for pep621Manifest in [false, true] do
+      for ownsDestination in [false, true] do
+        for dependenciesArray in [false, true] do
+          for requirementsCoverMissing in [false, true] do
+            IO.println (migrationDependencyEditAutomatic pep621Manifest ownsDestination
+              dependenciesArray requirementsCoverMissing)
+    for executed in [false, true] do
+      for commandsPassed in [false, true] do
+        for configurationStable in [false, true] do
+          for sourceSnapshotStable in [false, true] do
+            IO.println (FrKernels.Checks.checkEvidenceAcceptable
+              executed commandsPassed configurationStable sourceSnapshotStable)
+    for requirementPresent in [false, true] do
+      for configurationMatches in [false, true] do
+        for checkNamesMatch in [false, true] do
+          IO.println (FrKernels.Checks.checkRequirementSatisfied
+            requirementPresent configurationMatches checkNamesMatch)
   else if args == ["selection-conflicts"] then
     for leftStart in samples do
       for leftEnd in samples do

@@ -124,15 +124,14 @@ fn route_segments(path: &Path) -> Option<Vec<String>> {
     // `pages/api/...`, the pair has to be adjacent, or `pages/foo/api` would count.
     let pages = parts
         .windows(2)
-        .position(|w| w[0] == "pages" && w[1] == "api")
-        .map(|at| at + 2);
-    // `app/**/api/**/route.ts`, the last `api` above the file, since a route may
-    // legitimately be at `app/api/api/route.ts`.
+        .rposition(|w| w[0] == "pages" && w[1] == "api")
+        .map(|at| at + 1);
+    // `app/**/route.ts`, starting after the closest `app` above the file.
     let app = (stem == "route")
         .then(|| {
             parts
                 .iter()
-                .rposition(|part| part == "api")
+                .rposition(|part| part == "app")
                 .map(|at| at + 1)
         })
         .flatten();
@@ -185,8 +184,6 @@ fn has_jsx(source: &str, language: Language) -> Result<bool> {
 
 /// `[id]` → `{id}`, `[...path]` → `{path:path}`, anything else unchanged.
 fn translate_segment(segment: &str) -> String {
-    // The placeholder's name is internal: `/posts/{postId}` and `/posts/{post_id}` serve the
-    // same URLs.
     let Some(inner) = segment.strip_prefix('[').and_then(|s| s.strip_suffix(']')) else {
         return segment.to_string();
     };
@@ -194,8 +191,8 @@ fn translate_segment(segment: &str) -> String {
     let inner = inner.trim_start_matches('[').trim_end_matches(']');
     match inner.strip_prefix("...") {
         // A catch-all matches slashes too, which FastAPI spells `:path`.
-        Some(name) => format!("{{{}:path}}", super::snake_always(name)),
-        None => format!("{{{}}}", super::snake_always(inner)),
+        Some(name) => format!("{{{name}:path}}"),
+        None => format!("{{{inner}}}"),
     }
 }
 
@@ -235,8 +232,8 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<RoutePlan
     let server_module = declares_use_server(&source);
     if !is_api_route(path) && !server_module {
         bail!(
-            "{} is neither a Next.js API route nor a module of server functions. A route \
-             is `app/**/api/**/route.ts` or anything under `pages/api/`, and its URL comes \
+            "{} is neither a Next.js route handler nor a module of server functions. A route \
+             is `app/**/route.ts` or anything under `pages/api/`, and its URL comes \
              from where the file sits. A server module opens with `\"use server\"`, and its own name \
              reaches each of its exports.",
             path.display()
@@ -787,7 +784,7 @@ fn write(module: &Module, endpoints: &[Endpoint], source: &Path) -> Result<Writt
 
     // Everything that is not a handler goes through the ordinary Python writer, which turns
     // interfaces into dataclasses.
-    let (body, mut fidelity) = super::write_module(Language::Python, &rest)?;
+    let (body, mut fidelity) = super::write_module_preserving_fields(Language::Python, &rest)?;
     let body = body
         .replace("from dataclasses import dataclass", "")
         .replace("@dataclass", "");
@@ -894,9 +891,35 @@ fn write(module: &Module, endpoints: &[Endpoint], source: &Path) -> Result<Writt
             .iter()
             .filter(|_| endpoint.kind == Kind::Route)
             .find(|p| is_the_request(p));
+        let request_body_candidates = handler
+            .body
+            .iter()
+            .filter_map(|stmt| {
+                request_model_binding(
+                    stmt,
+                    request.map(|parameter| parameter.name.as_str()),
+                    &rest,
+                )
+            })
+            .collect::<Vec<_>>();
+        let path_body_collision = request_body_candidates
+            .first()
+            .is_some_and(|(name, _)| parameters.contains(name));
+        let query_body_collision = request_body_candidates
+            .first()
+            .is_some_and(|(name, _)| declared_queries.contains(name));
+        let request_body = crate::framework_kernel::fastapi_body_parameter_automatic(
+            request_body_candidates.len(),
+            path_body_collision,
+            query_body_collision,
+        )
+        .then(|| request_body_candidates[0].clone());
         if let Some(param) = request {
             signature.push(format!("{}: Request", param.name));
             takes_request = true;
+        }
+        if let Some((name, ty)) = &request_body {
+            signature.push(format!("{name}: {}", super::write::python_type(ty)));
         }
         // Last, because they carry a default and Python will not have one before a
         // parameter that does not.
@@ -932,8 +955,29 @@ fn write(module: &Module, endpoints: &[Endpoint], source: &Path) -> Result<Writt
                     handler.name
                 )),
                 None => {
+                    if let Some((body_name, _)) = &request_body {
+                        let supplies_body = request_model_binding(
+                            stmt,
+                            request.map(|parameter| parameter.name.as_str()),
+                            &rest,
+                        )
+                        .is_some_and(|(found, _)| found == *body_name);
+                        if supplies_body {
+                            fidelity.notes.push(format!(
+                                "`{}` parsed `{body_name}` from the request JSON; FastAPI \
+                                 supplies it as a validated body model, so that line went",
+                                handler.name
+                            ));
+                            continue;
+                        }
+                    }
                     let supplied = supply_path_parameters(stmt.clone(), &dropped, &parameters);
                     let supplied = supply_query_parameters(supplied, &declared_queries);
+                    let supplied = validate_request_model(
+                        supplied,
+                        request.map(|parameter| parameter.name.as_str()),
+                        &rest,
+                    );
                     match binds_itself(&supplied) {
                         Some(name) => fidelity.notes.push(format!(
                             "`{}` read `{name}` out of the query string; FastAPI supplies \
@@ -971,7 +1015,8 @@ fn write(module: &Module, endpoints: &[Endpoint], source: &Path) -> Result<Writt
                 is_private: false,
             })],
         };
-        let (written, inner) = super::write_module_in(Language::Python, &one, module)?;
+        let (written, inner) =
+            super::write_module_in_preserving_fields(Language::Python, &one, module)?;
         fidelity.carried_verbatim += inner.carried_verbatim;
         fidelity.notes.extend(inner.notes);
 
@@ -1103,6 +1148,74 @@ fn write(module: &Module, endpoints: &[Endpoint], source: &Path) -> Result<Writt
         methods,
         statuses: responses.statuses,
     })
+}
+
+fn validate_request_model(stmt: Stmt, request: Option<&str>, models: &Module) -> Stmt {
+    if request_model_binding(&stmt, request, models).is_none() {
+        return stmt;
+    }
+    let Stmt::Let {
+        name,
+        ty: Some(ty @ Type::Named { .. }),
+        value: Some(value),
+        mutable,
+    } = stmt
+    else {
+        return stmt;
+    };
+    let Type::Named { name: model, .. } = &ty else {
+        unreachable!();
+    };
+    let value = Expr::Call {
+        callee: Box::new(Expr::Field {
+            of: Box::new(Expr::Name(model.clone())),
+            name: "model_validate".into(),
+        }),
+        args: vec![value],
+    };
+    Stmt::Let {
+        name,
+        ty: Some(ty),
+        value: Some(value),
+        mutable,
+    }
+}
+
+fn request_model_binding(
+    stmt: &Stmt,
+    request: Option<&str>,
+    models: &Module,
+) -> Option<(String, Type)> {
+    let Stmt::Let {
+        name,
+        ty: Some(ty @ Type::Named { .. }),
+        value: Some(value),
+        ..
+    } = stmt
+    else {
+        return None;
+    };
+    let Type::Named { name: model, args } = ty else {
+        unreachable!();
+    };
+    let declared = args.is_empty()
+        && models
+            .items
+            .iter()
+            .any(|item| matches!(item, Item::Record(record) if record.name == *model));
+    let reads_request_json = request.is_some_and(|request| {
+        matches!(
+            value,
+            Expr::Await(inner)
+                if matches!(
+                    inner.as_ref(),
+                    Expr::Call { callee, args }
+                        if args.is_empty()
+                            && matches!(callee.as_ref(), Expr::Field { of, name } if name == "json" && matches!(of.as_ref(), Expr::Name(found) if found == request))
+                )
+        )
+    });
+    (declared && reads_request_json).then(|| (name.clone(), ty.clone()))
 }
 
 /// What [`write`] produced: the Python text, and what it says about itself.
@@ -1470,7 +1583,7 @@ fn supply_path_parameters(stmt: Stmt, dropped: &[String], parameters: &[String])
             } = of.as_ref()
             {
                 if let Expr::Name(object) = object.as_ref() {
-                    let supplied = super::snake_always(field);
+                    let supplied = field.clone();
                     if params == "params"
                         && dropped.contains(object)
                         && parameters.contains(&supplied)

@@ -18,7 +18,7 @@ The [roadmap](../PLAN.md) extends this foundation into an adoption workflow for 
 | `fr spec check --max-debt N` | Reject a proof-debt increase above a reviewed ceiling |
 | `fr spec sync` | Preview renewal of stale source hashes; `--write` applies reviewed renewals |
 | `fr spec verify` | Strict correspondence checks, then `lake build --wfail` in each owning package |
-| `kernels/` | Executable edit, position, history, pagination, source-budget, insertion-placement, confidence and workspace membership models with shared Rust/Lean cases |
+| `kernels/` | Executable edit, position, history, checks, pagination, source-budget, insertion-placement, confidence and workspace membership models with shared Rust/Lean cases |
 
 Strict signature maps currently require Rust source declarations.
 The checker compares both signatures with the explicit map. It does not infer semantic equivalence between mapped types.
@@ -136,12 +136,28 @@ The model does not establish filesystem containment or package-manager workspace
 Matcher proofs use propositional extensionality; the self-match proof also uses Lean's standard classical-choice and quotient-soundness axioms.
 The model does not prove parser correctness, snapshot-hash collision resistance or agent task success.
 
-The same project kernel anchors eight framework policy helpers used after syntax recognition.
-Sixteen theorems cover capped output, reverse middleware ranks, server-default hook rejection and valid FastAPI constructor-prefix shapes.
+The same project kernel anchors seventeen framework policy helpers used after syntax recognition.
+Thirty-nine theorems cover caps, middleware ranks, hook rejection, prefixes, migration, registration, body handling, cutover and dependency edits.
 They also bound every configuration, service-target and redaction classification to its declared finite tier.
-The executable comparison covers 271 Rust and Lean results across output limits, middleware positions, hook placement and every Boolean classification input.
+The executable comparison covers 364 Rust and Lean results across output limits, middleware positions, hook placement and finite classification inputs.
 The classification proofs use no axioms. The arithmetic and hook proofs report combinations of Lean's standard `propext`, `Quot.sound` and `Classical.choice` axioms; none uses a custom axiom or compiler-trust tactic.
-These laws receive facts that the readers already recognized. Framework parsing, the meaning of `use client`, environment-name prefixes, URL decomposition, runtime registration and report aggregation remain covered by fixtures rather than by these proofs.
+The migration laws require a change between the supported framework classes.
+They map gaps to unsupported work, recognized automatic kinds to automatic work and every other fact to an agent decision.
+FastAPI body promotion requires one direct typed JSON candidate and no path or query name collision.
+Generated Next.js validation requires exactly one body-model candidate and a fully supported structural shape.
+Automatic FastAPI registration requires an explicit target, a recognized application binding and no direct endpoint conflict.
+Automatic source cutover requires explicit intent, automatic destination registration and no resolved external source reference.
+Automatic dependency edits require a PEP 621 manifest, destination ownership, an array shape and complete missing-requirement coverage.
+These laws receive facts that the readers already recognized.
+Fixtures cover framework parsing, kind classification, `use client`, environment-name prefixes, URL decomposition, source edits, runtime registration and report aggregation.
+
+`FrKernels.Checks` models the final acceptance predicate for a durable project-check receipt.
+Four theorems characterize acceptance and show that a failed command, configuration drift or source drift rejects evidence.
+Three more characterize the optional transaction requirement.
+An absent requirement accepts any valid evidence; a present requirement needs the exact configuration and ordered check names.
+All twenty-four Boolean combinations agree with the two Rust predicates.
+The proof uses no custom axiom or compiler-trust tactic.
+It covers the final conjunction only; command execution, digest construction, filesystem observation and history persistence retain Rust and integration-test evidence.
 
 `FrKernels.Git` models the inclusive line-range predicate used by changed-declaration views.
 Six theorems characterize membership, reject lines before/after or within reversed bounds, characterize singletons, and preserve matches when bounds widen.

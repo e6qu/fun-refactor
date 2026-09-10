@@ -4,7 +4,7 @@ use super::ir::*;
 use crate::lang::Language;
 use crate::parse::Parsers;
 use anyhow::{bail, Result};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use tree_sitter::Node;
 
@@ -36,6 +36,8 @@ pub struct RouteFile {
 pub struct AppPlan {
     pub source: PathBuf,
     pub routes: Vec<RouteFile>,
+    pub endpoints: Vec<(String, String)>,
+    pub models: Vec<Record>,
     pub fidelity: Fidelity,
     /// What the module declared that a route tree has no place for.
     pub notes: Vec<String>,
@@ -126,11 +128,7 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<AppPlan> 
 
     let root = match out {
         Some(out) => out.to_path_buf(),
-        None => path
-            .parent()
-            .unwrap_or(Path::new("."))
-            .join("app")
-            .join("api"),
+        None => path.parent().unwrap_or(Path::new(".")).join("app"),
     };
 
     // The handlers, so the writer spells their names the target's way.
@@ -142,18 +140,20 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<AppPlan> 
             .map(|endpoint| Item::Function(endpoint.handler.clone())),
     );
 
+    let migrated_models = reachable_models(
+        by_route
+            .values()
+            .flatten()
+            .map(|endpoint| &endpoint.handler),
+        &models,
+    )
+    .into_iter()
+    .cloned()
+    .collect::<Vec<_>>();
     let mut routes = Vec::new();
     let mut fidelity = Fidelity {
         functions: by_route.values().map(|group| group.len()).sum(),
-        records: models
-            .iter()
-            .filter(|model| {
-                by_route
-                    .values()
-                    .flatten()
-                    .any(|e| names_type(&e.handler, &model.name))
-            })
-            .count(),
+        records: migrated_models.len(),
         ..Fidelity::default()
     };
     let mut edits = crate::edit::EditSet::new();
@@ -190,9 +190,16 @@ pub fn plan_to(path: &Path, out: Option<&Path>, force: bool) -> Result<AppPlan> 
         edits.declare_language(file.destination.clone(), Language::TypeScript);
         routes.push(file);
     }
+    let endpoints = by_route
+        .values()
+        .flatten()
+        .map(|endpoint| (endpoint.method.clone(), endpoint.path.clone()))
+        .collect();
     Ok(AppPlan {
         source: path.to_path_buf(),
         routes,
+        endpoints,
+        models: migrated_models,
         fidelity,
         notes,
         edits,
@@ -250,7 +257,7 @@ fn route_decorator(text: &str) -> Option<(String, String)> {
     Some((method.to_string(), url[..end].to_string()))
 }
 
-/// `{pet_id}` → `petId`, `{path:path}` → `path`, in the order the URL writes them.
+/// `{item_id}` → `item_id`, `{path:path}` → `path`, in URL order.
 fn path_parameters(url: &str) -> Vec<(String, bool)> {
     let mut found = Vec::new();
     let mut rest = url;
@@ -284,7 +291,6 @@ fn route_directory(url: &str) -> PathBuf {
             Some((name, kind)) => (name, kind == "path"),
             None => (inner, false),
         };
-        let name = super::write::camel(name);
         directory.push(match catch_all {
             true => format!("[...{name}]"),
             false => format!("[{name}]"),
@@ -314,10 +320,7 @@ fn write_route(
     let mut items = Vec::new();
 
     // The shapes the handlers name.
-    let named: Vec<&Record> = models
-        .iter()
-        .filter(|model| group.iter().any(|e| names_type(&e.handler, &model.name)))
-        .collect();
+    let named = reachable_models(group.iter().map(|endpoint| &endpoint.handler), models);
     for model in &named {
         let mut model = (*model).clone();
         model.exported = true;
@@ -337,7 +340,7 @@ fn write_route(
                 .iter()
                 .map(|(name, _)| Field {
                     doc: Vec::new(),
-                    name: super::write::camel(name),
+                    name: name.clone(),
                     ty: Some(Type::String),
                     default: None,
                     exported: true,
@@ -381,7 +384,9 @@ fn write_route(
         items,
         sweep_notes: Vec::new(),
     };
-    let (output, fidelity) = super::write_module_in(Language::TypeScript, &module, context)?;
+    let (mut output, mut fidelity) =
+        super::write_module_in_preserving_fields(Language::TypeScript, &module, context)?;
+    add_body_validation(&mut output, group, &parameters, models, &mut fidelity)?;
 
     Ok((
         RouteFile {
@@ -394,26 +399,58 @@ fn write_route(
     ))
 }
 
-/// Does this handler name this type anywhere in its signature?
-fn names_type(handler: &Function, name: &str) -> bool {
-    let named = |ty: &Option<Type>| -> bool {
-        let mut stack: Vec<Type> = ty.iter().cloned().collect();
-        while let Some(ty) = stack.pop() {
-            match ty {
-                Type::Named { name: n, .. } if n == name => return true,
-                Type::Named { args, .. } => stack.extend(args),
-                Type::List(inner) | Type::Optional(inner) => stack.push(*inner),
-                Type::Map(key, value) => {
-                    stack.push(*key);
-                    stack.push(*value);
-                }
-                Type::Tuple(parts) => stack.extend(parts),
-                _ => {}
+fn reachable_models<'m, 'h>(
+    handlers: impl IntoIterator<Item = &'h Function>,
+    models: &'m [Record],
+) -> Vec<&'m Record> {
+    let mut names = BTreeSet::new();
+    for handler in handlers {
+        for param in &handler.params {
+            collect_type_names(param.ty.as_ref(), &mut names);
+        }
+        collect_type_names(handler.returns.as_ref(), &mut names);
+    }
+    loop {
+        let before = names.len();
+        for model in models {
+            if !names.contains(&model.name) {
+                continue;
+            }
+            for field in &model.fields {
+                collect_type_names(field.ty.as_ref(), &mut names);
             }
         }
-        false
-    };
-    handler.params.iter().any(|p| named(&p.ty)) || named(&handler.returns)
+        if names.len() == before {
+            break;
+        }
+    }
+    models
+        .iter()
+        .filter(|model| names.contains(&model.name))
+        .collect()
+}
+
+fn collect_type_names(ty: Option<&Type>, names: &mut BTreeSet<String>) {
+    let mut stack = ty.into_iter().collect::<Vec<_>>();
+    while let Some(ty) = stack.pop() {
+        match ty {
+            Type::Named { name, args } => {
+                names.insert(name.clone());
+                stack.extend(args);
+            }
+            Type::List(inner) | Type::Set(inner) | Type::Optional(inner) => stack.push(inner),
+            Type::Map(key, value) => {
+                stack.push(key);
+                stack.push(value);
+            }
+            Type::Tuple(parts) => stack.extend(parts),
+            Type::Fn { params, returns } => {
+                stack.extend(params);
+                stack.push(returns);
+            }
+            Type::Unit | Type::Bool | Type::Int | Type::Float | Type::String => {}
+        }
+    }
 }
 
 /// The Next.js handler for one endpoint.
@@ -462,18 +499,18 @@ fn handler_for(endpoint: &Endpoint, parameters: &[(String, bool)], models: &[Rec
 
 /// The line that gives one handler parameter its value.
 fn read_parameter(param: &Param, parameters: &[(String, bool)], models: &[Record]) -> Option<Stmt> {
-    let camel = super::write::camel(&param.name);
-    let from_path = parameters
+    let path_name = parameters
         .iter()
-        .any(|(name, _)| super::write::camel(name) == camel);
+        .find(|(name, _)| name == &param.name)
+        .map(|(name, _)| name);
 
-    let value = if from_path {
+    let value = if let Some(path_name) = path_name {
         let read = Expr::Field {
             of: Box::new(Expr::Field {
                 of: Box::new(Expr::Name("context".into())),
                 name: "params".into(),
             }),
-            name: camel.clone(),
+            name: path_name.clone(),
         };
         // A path parameter arrives as text.
         match param.ty {
@@ -525,6 +562,251 @@ fn read_parameter(param: &Param, parameters: &[(String, bool)], models: &[Record
 fn names_a_model(param: &Param, models: &[Record]) -> bool {
     matches!(&param.ty, Some(Type::Named { name, .. })
         if models.iter().any(|model| &model.name == name))
+}
+
+fn add_body_validation(
+    output: &mut String,
+    group: &[Endpoint],
+    parameters: &[(String, bool)],
+    models: &[Record],
+    fidelity: &mut Fidelity,
+) -> Result<()> {
+    let helper = fresh_generated_name(output, "frMigrationValidate");
+    let mut additions = Vec::new();
+    for endpoint in group {
+        let candidates = endpoint
+            .handler
+            .params
+            .iter()
+            .filter(|param| !depends_on_the_framework(param))
+            .filter(|param| !parameters.iter().any(|(name, _)| name == &param.name))
+            .filter_map(|param| {
+                let Some(Type::Named { name, .. }) = &param.ty else {
+                    return None;
+                };
+                models
+                    .iter()
+                    .find(|model| model.name == *name)
+                    .map(|model| (param, model))
+            })
+            .collect::<Vec<_>>();
+        let supported = candidates
+            .first()
+            .is_some_and(|(_, model)| validation_record_supported(model, models));
+        let automatic =
+            crate::framework_kernel::nextjs_body_validation_automatic(candidates.len(), supported);
+        if !automatic {
+            if !candidates.is_empty() {
+                fidelity.notes.push(format!(
+                    "{} has {} body model candidate(s), and the generated Next.js route cannot enforce their complete declared shape at runtime.",
+                    endpoint.handler.name,
+                    candidates.len()
+                ));
+            }
+            continue;
+        }
+        let (param, model) = candidates[0];
+        let value = super::write::camel(&param.name);
+        let model_name = super::write::pascal(&model.name);
+        let binding = format!("    const {value}: {model_name} = await request.json();\n");
+        if output.matches(&binding).count() != 1 {
+            bail!(
+                "runtime validation could not select the generated `{}` body binding uniquely.",
+                endpoint.method
+            );
+        }
+        let errors = fresh_generated_name(output, "frMigrationErrors");
+        let validation = format!(
+            "{binding}    const {errors} = {helper}({value}, {}, [\"body\"]);\n    if ({errors}.length > 0) {{\n        return Response.json({{ detail: {errors} }}, {{ status: 422 }});\n    }}\n",
+            validation_record_shape(model, models)
+        );
+        *output = output.replacen(&binding, &validation, 1);
+        additions.push(model.name.clone());
+    }
+    if additions.is_empty() {
+        return Ok(());
+    }
+    let marker = output.find("export async function ").ok_or_else(|| {
+        anyhow::anyhow!("the generated Next.js route has no exported handler for validation")
+    })?;
+    output.insert_str(marker, &validation_helper(&helper));
+    fidelity.notes.push(format!(
+        "generated Next.js runtime validation covers the declared structure of {} body model(s)",
+        additions.len()
+    ));
+    Ok(())
+}
+
+fn fresh_generated_name(output: &str, base: &str) -> String {
+    let mut candidate = base.to_owned();
+    while output.contains(&candidate) {
+        candidate.push('_');
+    }
+    candidate
+}
+
+fn validation_record_supported(record: &Record, models: &[Record]) -> bool {
+    validation_fields_supported(record, models, &mut vec![record.name.as_str()], 0)
+}
+
+fn validation_fields_supported<'a>(
+    record: &'a Record,
+    models: &'a [Record],
+    visiting: &mut Vec<&'a str>,
+    depth: usize,
+) -> bool {
+    depth < 16
+        && record.fields.iter().all(|field| {
+            field.ty.as_ref().is_some_and(|ty| {
+                validation_type_supported(ty, models, visiting, depth.saturating_add(1))
+            })
+        })
+}
+
+fn validation_type_supported<'a>(
+    ty: &'a Type,
+    models: &'a [Record],
+    visiting: &mut Vec<&'a str>,
+    depth: usize,
+) -> bool {
+    if depth >= 16 {
+        return false;
+    }
+    match ty {
+        Type::Unit | Type::Bool | Type::Int | Type::Float | Type::String => true,
+        Type::List(inner) | Type::Optional(inner) => {
+            validation_type_supported(inner, models, visiting, depth.saturating_add(1))
+        }
+        Type::Map(key, value) => {
+            matches!(key.as_ref(), Type::String)
+                && validation_type_supported(value, models, visiting, depth.saturating_add(1))
+        }
+        Type::Tuple(items) => items
+            .iter()
+            .all(|item| validation_type_supported(item, models, visiting, depth.saturating_add(1))),
+        Type::Named { name, args } if args.is_empty() && !visiting.contains(&name.as_str()) => {
+            let Some(record) = models.iter().find(|model| model.name == *name) else {
+                return false;
+            };
+            visiting.push(name);
+            let supported = validation_fields_supported(record, models, visiting, depth);
+            visiting.pop();
+            supported
+        }
+        Type::Set(_) | Type::Named { .. } | Type::Fn { .. } => false,
+    }
+}
+
+fn validation_record_shape(record: &Record, models: &[Record]) -> String {
+    let fields = record
+        .fields
+        .iter()
+        .map(|field| {
+            format!(
+                "{}: {{ required: {}, shape: {} }}",
+                serde_json::to_string(&field.name).expect("a JSON field name"),
+                field.default.is_none(),
+                validation_type_shape(field.ty.as_ref().expect("a supported field"), models)
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("{{ kind: \"record\", fields: {{ {fields} }} }}")
+}
+
+fn validation_type_shape(ty: &Type, models: &[Record]) -> String {
+    match ty {
+        Type::Unit => "{ kind: \"null\" }".to_owned(),
+        Type::Bool => "{ kind: \"boolean\" }".to_owned(),
+        Type::Int => "{ kind: \"integer\" }".to_owned(),
+        Type::Float => "{ kind: \"number\" }".to_owned(),
+        Type::String => "{ kind: \"string\" }".to_owned(),
+        Type::List(inner) => format!(
+            "{{ kind: \"list\", item: {} }}",
+            validation_type_shape(inner, models)
+        ),
+        Type::Map(_, value) => format!(
+            "{{ kind: \"map\", value: {} }}",
+            validation_type_shape(value, models)
+        ),
+        Type::Optional(inner) => format!(
+            "{{ kind: \"optional\", item: {} }}",
+            validation_type_shape(inner, models)
+        ),
+        Type::Tuple(items) => format!(
+            "{{ kind: \"tuple\", items: [{}] }}",
+            items
+                .iter()
+                .map(|item| validation_type_shape(item, models))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+        Type::Named { name, .. } => validation_record_shape(
+            models
+                .iter()
+                .find(|model| model.name == *name)
+                .expect("a supported named model"),
+            models,
+        ),
+        Type::Set(_) | Type::Fn { .. } => unreachable!("unsupported validation shape"),
+    }
+}
+
+fn validation_helper(name: &str) -> String {
+    format!(
+        r#"type {name}Shape =
+    | {{ kind: "null" | "boolean" | "integer" | "number" | "string" }}
+    | {{ kind: "list" | "optional", item: {name}Shape }}
+    | {{ kind: "map", value: {name}Shape }}
+    | {{ kind: "tuple", items: {name}Shape[] }}
+    | {{ kind: "record", fields: {{ [key: string]: {{ required: boolean, shape: {name}Shape }} }} }};
+
+type {name}Error = {{
+    type: string;
+    loc: (string | number)[];
+    msg: string;
+    input: unknown;
+}};
+
+function {name}(value: unknown, shape: {name}Shape, loc: (string | number)[]): {name}Error[] {{
+    const fail = (type: string, msg: string): {name}Error[] => [{{ type, loc, msg, input: value }}];
+    switch (shape.kind) {{
+        case "null": return value === null ? [] : fail("none_required", "Input should be null");
+        case "boolean": return typeof value === "boolean" ? [] : fail("bool_type", "Input should be a valid boolean");
+        case "integer": return typeof value === "number" && Number.isFinite(value) && Number.isInteger(value) ? [] : fail("int_type", "Input should be a valid integer");
+        case "number": return typeof value === "number" && Number.isFinite(value) ? [] : fail("float_type", "Input should be a valid number");
+        case "string": return typeof value === "string" ? [] : fail("string_type", "Input should be a valid string");
+        case "optional": return value === null ? [] : {name}(value, shape.item, loc);
+        case "list":
+            return Array.isArray(value)
+                ? value.flatMap((item, index) => {name}(item, shape.item, [...loc, index]))
+                : fail("list_type", "Input should be a valid array");
+        case "map":
+            return typeof value === "object" && value !== null && !Array.isArray(value)
+                ? Object.entries(value).flatMap(([key, item]) => {name}(item, shape.value, [...loc, key]))
+                : fail("dict_type", "Input should be a valid object");
+        case "tuple":
+            if (!Array.isArray(value) || value.length !== shape.items.length) {{
+                return fail("tuple_type", "Input should be a valid tuple");
+            }}
+            return shape.items.flatMap((item, index) => {name}(value[index], item, [...loc, index]));
+        case "record":
+            if (typeof value !== "object" || value === null || Array.isArray(value)) {{
+                return fail("model_type", "Input should be a valid object");
+            }}
+            return Object.entries(shape.fields).flatMap(([key, field]) => {{
+                if (!Object.prototype.hasOwnProperty.call(value, key)) {{
+                    return field.required
+                        ? [{{ type: "missing", loc: [...loc, key], msg: "Field required", input: value }}]
+                        : [];
+                }}
+                return {name}((value as {{ [key: string]: unknown }})[key], field.shape, [...loc, key]);
+            }});
+    }}
+}}
+
+"#
+    )
 }
 
 /// Turn every returned value into a response.

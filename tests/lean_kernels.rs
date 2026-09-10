@@ -902,9 +902,12 @@ fn project_page_lengths_match_lean_including_integer_limits() {
 #[test]
 fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
     use fun_refactor::project::framework_kernel::{
-        component_hooks_compatible, configuration_visibility, fastapi_prefix_supported,
-        framework_emitted, framework_omitted, middleware_request_order, service_redaction_flags,
-        service_target_kind,
+        component_hooks_compatible, configuration_visibility, fastapi_body_parameter_automatic,
+        fastapi_prefix_supported, fastapi_registration_automatic, framework_emitted,
+        framework_migration_supported, framework_omitted, middleware_request_order,
+        migration_cutover_automatic, migration_dependency_edit_automatic, migration_disposition,
+        migration_schema_agreement, nextjs_body_validation_automatic,
+        nextjs_registration_automatic, service_redaction_flags, service_target_kind,
     };
 
     build_kernel();
@@ -957,6 +960,133 @@ fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
             for ends_slash in [false, true] {
                 expected
                     .push(fastapi_prefix_supported(empty, starts_slash, ends_slash).to_string());
+            }
+        }
+    }
+    for source_fastapi in [false, true] {
+        for target_fastapi in [false, true] {
+            expected
+                .push(framework_migration_supported(source_fastapi, target_fastapi).to_string());
+        }
+    }
+    for gap in [false, true] {
+        for automatic_kind in [false, true] {
+            expected.push(migration_disposition(gap, automatic_kind).to_string());
+        }
+    }
+    let schema_samples = [
+        vec![],
+        vec!["a".to_owned()],
+        vec!["a".to_owned(), "b".to_owned()],
+        vec!["b".to_owned(), "a".to_owned()],
+        vec!["a".to_owned(), "a".to_owned()],
+    ];
+    for expected_shapes in &schema_samples {
+        for generated_shapes in &schema_samples {
+            expected
+                .push(migration_schema_agreement(expected_shapes, generated_shapes).to_string());
+        }
+    }
+    for declares_next in [false, true] {
+        for app_router_path in [false, true] {
+            expected
+                .push(nextjs_registration_automatic(declares_next, app_router_path).to_string());
+        }
+    }
+    for candidate_count in [0, 1, 2, 65536] {
+        for path_collision in [false, true] {
+            for query_collision in [false, true] {
+                expected.push(
+                    fastapi_body_parameter_automatic(
+                        candidate_count,
+                        path_collision,
+                        query_collision,
+                    )
+                    .to_string(),
+                );
+            }
+        }
+    }
+    for candidate_count in [0, 1, 2, 65536] {
+        for supported_shape in [false, true] {
+            expected.push(
+                nextjs_body_validation_automatic(candidate_count, supported_shape).to_string(),
+            );
+        }
+    }
+    for explicit_target in [false, true] {
+        for application_binding in [false, true] {
+            for endpoint_conflict in [false, true] {
+                expected.push(
+                    fastapi_registration_automatic(
+                        explicit_target,
+                        application_binding,
+                        endpoint_conflict,
+                    )
+                    .to_string(),
+                );
+            }
+        }
+    }
+    for explicit_cutover in [false, true] {
+        for registration_automatic in [false, true] {
+            for external_references in [false, true] {
+                expected.push(
+                    migration_cutover_automatic(
+                        explicit_cutover,
+                        registration_automatic,
+                        external_references,
+                    )
+                    .to_string(),
+                );
+            }
+        }
+    }
+    for pep621_manifest in [false, true] {
+        for owns_destination in [false, true] {
+            for dependencies_array in [false, true] {
+                for requirements_cover_missing in [false, true] {
+                    expected.push(
+                        migration_dependency_edit_automatic(
+                            pep621_manifest,
+                            owns_destination,
+                            dependencies_array,
+                            requirements_cover_missing,
+                        )
+                        .to_string(),
+                    );
+                }
+            }
+        }
+    }
+    for executed in [false, true] {
+        for commands_passed in [false, true] {
+            for configuration_stable in [false, true] {
+                for source_snapshot_stable in [false, true] {
+                    expected.push(
+                        fun_refactor::checks::check_evidence_acceptable(
+                            executed,
+                            commands_passed,
+                            configuration_stable,
+                            source_snapshot_stable,
+                        )
+                        .to_string(),
+                    );
+                }
+            }
+        }
+    }
+    for requirement_present in [false, true] {
+        for configuration_matches in [false, true] {
+            for check_names_match in [false, true] {
+                expected.push(
+                    fun_refactor::checks::check_requirement_satisfied(
+                        requirement_present,
+                        configuration_matches,
+                        check_names_match,
+                    )
+                    .to_string(),
+                );
             }
         }
     }

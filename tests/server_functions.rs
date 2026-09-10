@@ -167,8 +167,8 @@ fn a_route_file_still_translates_exactly_as_before() {
     assert_eq!(
         plan.endpoints,
         vec![
-            ("GET".to_string(), "/pets".to_string()),
-            ("POST".to_string(), "/pets".to_string()),
+            ("GET".to_string(), "/api/pets".to_string()),
+            ("POST".to_string(), "/api/pets".to_string()),
         ]
     );
 }

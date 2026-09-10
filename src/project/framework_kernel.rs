@@ -41,3 +41,62 @@ pub fn service_redaction_flags(query_or_fragment: bool, credentials: bool) -> us
 pub fn fastapi_prefix_supported(empty: bool, starts_slash: bool, ends_slash: bool) -> bool {
     empty || starts_slash && !ends_slash
 }
+
+pub fn framework_migration_supported(source_fastapi: bool, target_fastapi: bool) -> bool {
+    source_fastapi != target_fastapi
+}
+
+pub fn migration_disposition(gap: bool, automatic_kind: bool) -> usize {
+    if gap {
+        2
+    } else if automatic_kind {
+        0
+    } else {
+        1
+    }
+}
+
+pub fn migration_schema_agreement(expected: &[String], generated: &[String]) -> bool {
+    expected.iter().all(|shape| generated.contains(shape))
+}
+
+pub fn nextjs_registration_automatic(declares_next: bool, app_router_path: bool) -> bool {
+    declares_next && app_router_path
+}
+
+pub fn fastapi_body_parameter_automatic(
+    candidate_count: usize,
+    path_collision: bool,
+    query_collision: bool,
+) -> bool {
+    candidate_count == 1 && !path_collision && !query_collision
+}
+
+pub fn nextjs_body_validation_automatic(candidate_count: usize, supported_shape: bool) -> bool {
+    candidate_count == 1 && supported_shape
+}
+
+pub fn fastapi_registration_automatic(
+    explicit_target: bool,
+    application_binding: bool,
+    endpoint_conflict: bool,
+) -> bool {
+    explicit_target && application_binding && !endpoint_conflict
+}
+
+pub fn migration_cutover_automatic(
+    explicit_cutover: bool,
+    registration_automatic: bool,
+    external_references: bool,
+) -> bool {
+    explicit_cutover && registration_automatic && !external_references
+}
+
+pub fn migration_dependency_edit_automatic(
+    pep621_manifest: bool,
+    owns_destination: bool,
+    dependencies_array: bool,
+    requirements_cover_missing: bool,
+) -> bool {
+    pep621_manifest && owns_destination && dependencies_array && requirements_cover_missing
+}

@@ -44,7 +44,7 @@ fn translate(source: &str) -> (tempfile::TempDir, fastapi::AppPlan) {
     let tmp = tempfile::tempdir().expect("a temporary directory");
     let path = tmp.path().join("main.py");
     std::fs::write(&path, source).expect("write");
-    let out = tmp.path().join("app").join("api");
+    let out = tmp.path().join("app");
     let plan = fastapi::plan_to(&path, Some(&out), false).expect("a plan");
     (tmp, plan)
 }
@@ -78,10 +78,10 @@ fn one_url_is_one_file_however_many_methods_it_answers() {
 #[test]
 fn a_path_parameter_is_a_directory() {
     let (tmp, plan) = translate(APP);
-    let one = route(&plan, "/pets/[petId]");
+    let one = route(&plan, "/pets/[pet_id]");
     assert_eq!(
         one.destination,
-        tmp.path().join("app/api/pets/[petId]/route.ts"),
+        tmp.path().join("app/pets/[pet_id]/route.ts"),
         "the URL is where the file sits"
     );
 }
@@ -104,10 +104,10 @@ fn a_catch_all_keeps_its_reach() {
 fn a_path_parameter_arrives_as_text_and_is_converted() {
     // `pet_id: int` in Python.
     let (_tmp, plan) = translate(APP);
-    let one = route(&plan, "/pets/[petId]");
+    let one = route(&plan, "/pets/[pet_id]");
     assert!(
         one.output
-            .contains("const petId = Number(context.params.petId);"),
+            .contains("const petId = Number(context.params.pet_id);"),
         "{}",
         one.output
     );
@@ -122,6 +122,113 @@ fn a_model_parameter_is_the_request_body() {
             .contains("const pet: Pet = await request.json();"),
         "{}",
         pets.output
+    );
+    assert!(
+        pets.output.contains(
+            &[
+                "frMigrationValidate(pet, ",
+                "{ kind: \"record\", fields: { ",
+                "\"name\": { required: true, ",
+                "shape: { kind: \"string\" } }, ",
+                "\"age\": { required: true, ",
+                "shape: { kind: \"integer\" } } } }, ",
+                "[\"body\"]);",
+            ]
+            .concat()
+        ),
+        "{}",
+        pets.output
+    );
+    assert!(
+        pets.output.contains(
+            &[
+                "return Response.json(",
+                "{ detail: frMigrationErrors }, ",
+                "{ status: 422 });",
+            ]
+            .concat()
+        ),
+        "{}",
+        pets.output
+    );
+}
+
+#[test]
+fn an_unsupported_body_shape_keeps_runtime_validation_explicit() {
+    let source = concat!(
+        "from fastapi import FastAPI\n",
+        "from pydantic import BaseModel\n\n",
+        "app = FastAPI()\n\n",
+        "class Envelope(BaseModel):\n",
+        "    labels: set[str]\n\n",
+        "@app.post(\"/events\")\n",
+        "async def publish(",
+        "envelope: Envelope):\n",
+        "    return envelope\n",
+    );
+    let (_tmp, plan) = translate(source);
+    let events = route(&plan, "/events");
+
+    assert!(
+        !events.output.contains("frMigrationValidate"),
+        "{}",
+        events.output
+    );
+    assert!(
+        plan.fidelity.notes.iter().any(|note| note.contains(
+            &[
+                "generated Next.js route cannot enforce ",
+                "their complete declared shape at runtime",
+            ]
+            .concat()
+        )),
+        "{:?}",
+        plan.fidelity.notes
+    );
+}
+
+#[test]
+fn nested_body_models_are_emitted_and_validated_from_their_declared_shapes() {
+    let source = concat!(
+        "from fastapi import FastAPI\n",
+        "from pydantic import BaseModel\n\n",
+        "app = FastAPI()\n\n",
+        "class Reading(BaseModel):\n",
+        "    value: float\n\n",
+        "class BatchEnvelope(BaseModel):\n",
+        "    readings: list[Reading]\n\n",
+        "@app.post(\"/batches\")\n",
+        "async def publish(",
+        "batch: BatchEnvelope):\n",
+        "    return batch\n",
+    );
+    let (_tmp, plan) = translate(source);
+    let batches = route(&plan, "/batches");
+
+    assert_eq!(plan.models.len(), 2, "{:?}", plan.models);
+    assert!(
+        batches.output.contains("export interface Reading {"),
+        "{}",
+        batches.output
+    );
+    assert!(
+        batches.output.contains("export interface BatchEnvelope {"),
+        "{}",
+        batches.output
+    );
+    assert!(
+        batches.output.contains(
+            &[
+                "\"readings\": { required: true, ",
+                "shape: { kind: \"list\", item: ",
+                "{ kind: \"record\", fields: { ",
+                "\"value\": { required: true, ",
+                "shape: { kind: \"number\" } } } } } }",
+            ]
+            .concat()
+        ),
+        "{}",
+        batches.output
     );
 }
 
@@ -147,10 +254,23 @@ fn a_model_crosses_without_the_framework_it_was_declared_to() {
 }
 
 #[test]
+fn model_fields_keep_their_wire_names() {
+    let source = APP.replace("    age: int", "    device_id: str\n    age: int");
+    let (_tmp, plan) = translate(&source);
+    let pets = route(&plan, "/pets");
+    assert!(
+        pets.output.contains("device_id: string;"),
+        "{}",
+        pets.output
+    );
+    assert!(!pets.output.contains("deviceId:"), "{}", pets.output);
+}
+
+#[test]
 fn every_returned_value_becomes_a_response() {
     // FastAPI serialises what a handler returns.
     let (_tmp, plan) = translate(APP);
-    let one = route(&plan, "/pets/[petId]");
+    let one = route(&plan, "/pets/[pet_id]");
     assert!(
         one.output.contains("return Response.json(pet);"),
         "{}",

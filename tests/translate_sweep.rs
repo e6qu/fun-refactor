@@ -161,7 +161,7 @@ fn a_next_js_route_is_offered_as_a_fastapi_router() {
         "the fixture has to be a route for this to mean anything"
     );
     let planned = transpile::nextjs::plan(&route).expect("a plan for the route");
-    assert_eq!(planned.route, "/posts");
+    assert_eq!(planned.route, "/api/posts");
     assert!(planned.methods.contains(&"GET".to_string()));
 }
 

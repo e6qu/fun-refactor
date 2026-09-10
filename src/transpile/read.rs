@@ -5642,7 +5642,7 @@ mod java {
                     returns: Box::new(Type::Unit),
                 },
                 "String" | "CharSequence" => Type::String,
-                "Integer" | "Long" | "Short" | "Byte" => Type::Int,
+                "Integer" | "Long" | "Short" | "Byte" | "Character" => Type::Int,
                 "Double" | "Float" => Type::Float,
                 "Boolean" => Type::Bool,
                 "Object" => Type::named("Object"),

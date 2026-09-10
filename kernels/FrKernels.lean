@@ -9,3 +9,4 @@ import FrKernels.Digest
 import FrKernels.Workspace
 import FrKernels.Git
 import FrKernels.Adoption
+import FrKernels.Checks

@@ -18,7 +18,7 @@ Project, history, Git and check reports also use paths relative to their reporte
 **Every mutation is a dry run until you say otherwise.** A command that changes
 files prints a unified diff and exits. Pass `--write` to apply it. `--save-plan` stores a plan without changing source.
 `openapi --out` also authorizes writing its named output. See [Write guarantees](#write-guarantees) for failure and recovery behavior.
-`checks --run` executes declared project commands; their side effects do not enter source history.
+`checks --run` executes declared project commands; their side effects do not enter source history. `--record-for <TX>` can attach a passing receipt to one applied transaction.
 
 **A refusal names the gap.** Where an operation cannot be done for a language
 or for an input, the tool says which and why. It exits non-zero, does not do
@@ -91,6 +91,8 @@ Execution reports bounded output, individual failures and checks that did not ru
 See [project checks](docs/project-checks.md) for the schema, limits and process boundaries.
 Use `--quiet-success` to omit successful stream text while retaining bounded failure diagnostics.
 After reviewing the listing, add `--no-declarations` to omit repeated command metadata; names, basis, outcomes and diagnostics remain.
+Execution hashes the supported-source snapshot before the first check and after every selected check. Source or check-configuration drift makes the report fail.
+Add `--record-for <TX>` to record a passing `frce1:` receipt on an applied source-history transaction whose affected files still match.
 
 
 ### `fr scan`
@@ -600,6 +602,42 @@ Two different promises share this command.
 
 `--out` chooses the destination and `--force` overwrites. The original always
 stays: nobody can read a deleted input back out of the diff.
+
+### `fr migrate`
+
+```sh
+fr migrate feature <FEATURE-ID> --to fastapi --out service/routes/telemetry.py \
+  --register-with service/main.py::app --dependency-manifest service/pyproject.toml \
+  --dependency-requirement 'fastapi>=0.115,<1' --check migration --cutover --save-plan
+
+fr migrate feature <FEATURE-ID> --to nextjs --out web/app
+```
+
+Plan one route-centered migration from a revision-bound `fr project features` ID.
+The current subset supports Next.js App Router to FastAPI and FastAPI to Next.js when every selected method shares one source file.
+A FastAPI destination names one `.py` file. A Next.js destination names an `app` directory, beneath which the command creates route files.
+
+The command compares the semantic endpoint set with the translator output and refuses any difference.
+Its report groups facts and work into `automatic`, `agent-decision` and `unsupported` classes.
+The source remains present while the caller validates runtime behavior and reviews cutover.
+For a FastAPI destination, `--register-with PATH::APP_SYMBOL` can import and mount the generated router in one recognized application file as part of the same transaction.
+The command refuses an unknown binding, invalid module path or direct endpoint conflict.
+`--dependency-manifest PATH` selects one PEP 621 `pyproject.toml` that owns the FastAPI destination.
+Repeat `--dependency-requirement SPEC` for every missing generated runtime import.
+The command preserves existing strings and refuses missing, duplicate, extra, malformed or unowned requirements.
+It reparses TOML before the manifest joins the transaction. Package-manager resolution and requirement semantics remain unchecked.
+Repeat `--check NAME` to bind declared project checks and their configuration digest to the transaction.
+`checks --record-for` then refuses a different configuration or selected name set before executing project code.
+Without this option, check selection remains an explicit decision and any valid declared selection can produce evidence.
+Composition through other included routers remains a reviewed decision.
+`--cutover` removes the source route in the migration transaction when registration is automatic and no resolved external source reference exists.
+The flag records explicit cutover intent; it does not claim that project checks passed.
+Use `--save-plan` to review the deletion, apply it through history, run declared checks with `--record-for <TX>` and undo the transaction if they fail.
+
+Preview is the default. `--save-plan` records the transaction without applying it, while `--write` records and applies it.
+`fr history patch`, `apply`, `undo` and `redo` then use the same checked transaction.
+`--diff-bytes` bounds the report diff from zero through 65,536 bytes.
+See [the feature migration contract](docs/feature-migration.md) for the modeled and fixture-tested boundaries.
 
 ### `fr openapi`
 

@@ -29,9 +29,9 @@ shows the patch additive. What remains below is a limit of the available source 
   A call whose receiver nothing types is fanned out to the definitions the workspace
   admits. Four declarations each fan such a call out to every implementation:
 
-  * a Rust `impl Trait for Type`, supertraits included;
-  * a Go interface whose method set a type covers by name and arity;
-  * a TypeScript `implements`/`extends` clause;
+  * a Rust `impl Trait for Type`, supertraits included.
+  * a Go interface whose method set a type covers by name and arity.
+  * a TypeScript `implements`/`extends` clause.
   * a Python base class.
 
   A fifth follows a callable value through its binding. `let f = candidate` followed
@@ -66,6 +66,34 @@ shows the patch additive. What remains below is a limit of the available source 
   neither has a hierarchy to read.
 
 ## Fixed
+
+- [x] B845: **framework migration policies disappeared from non-CLI builds.**
+  The translation writers called pure policy helpers through the CLI-gated project module.
+  WASM and playground builds disable default features, so both failed before compiling the
+  browser library. The policy kernel now lives at the feature-independent library boundary,
+  while the project module re-exports its established API when CLI support is enabled.
+
+- [x] B844: **a punctuated Java output filename produced an invalid wrapper class.**
+  The writer derived its wrapper directly from an explicit destination stem.
+  Punctuation other than underscores survived case conversion, so `fr-report.java` contained
+  `class Fr-report` and failed the output reparse gate. Wrapper names now sanitize separators
+  and prefix stems that begin with a non-identifier character.
+
+- [x] B843: **Rust character signatures crossed Java as an invented `char_` type.**
+  The shared IR retains Rust `char` as a named scalar. Java type rendering treated that name as
+  a reserved identifier, producing `char_` and `List<char_>`. It now emits primitive `char` and
+  boxed `Character`; the Java reader maps the boxed spelling back to the shared numeric scalar.
+
+- [x] B842: **a reserved segment made a qualified Java type fail to parse.**
+  Rust permits path segments such as `record`; Java reserves that word.
+  Each carried type-path segment is now checked independently and receives the
+  established keyword suffix when needed.
+
+- [x] B841: **TypeScript templates contained literal control bytes.**
+  Rust string decoding turns `\0` into a NUL before the TypeScript writer sees it. Template text
+  escaped delimiters but emitted that byte unchanged, so the generated draft failed its syntax
+  gate. Template text now escapes controls, backticks, backslashes and literal interpolation
+  openers in one pass.
 
 - [x] B840: **failed spec checks emitted two JSON objects.**
   Failures printed a report followed by a second JSON error object.

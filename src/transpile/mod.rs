@@ -40,18 +40,19 @@ pub(crate) fn read_module(
     read::read(language, source, root, None)
 }
 
-/// Write a module out as a language.
-pub(crate) fn write_module(language: Language, module: &ir::Module) -> Result<(String, Fidelity)> {
-    write::write(language, module)
+pub(crate) fn write_module_preserving_fields(
+    language: Language,
+    module: &ir::Module,
+) -> Result<(String, Fidelity)> {
+    write::write_preserving_fields(language, module)
 }
 
-/// Write a piece of a file, spelling names the way the whole file does.
-pub(crate) fn write_module_in(
+pub(crate) fn write_module_in_preserving_fields(
     language: Language,
     module: &ir::Module,
     context: &ir::Module,
 ) -> Result<(String, Fidelity)> {
-    write::write_in_context(language, module, context)
+    write::write_in_context_preserving_fields(language, module, context)
 }
 
 pub use ir::{Fidelity, Module};

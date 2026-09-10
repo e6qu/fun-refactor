@@ -206,3 +206,73 @@ fn force_replaces_the_previous_translation_instead_of_stacking_a_second() {
         "a forced rerun reproduces the file, not two of it"
     );
 }
+
+#[test]
+fn typescript_templates_escape_source_controls_and_delimiters() {
+    let (_tmp, root) = workspace(&[(
+        "render.rs",
+        r#"fn render(value: &str) -> String {
+    format!("head\0{value}\u{7}${{literal}}`\\tail")
+}
+"#,
+    )]);
+
+    let plan = transpile::plan(&root.join("render.rs"), Language::TypeScript)
+        .expect("escaped template text remains valid TypeScript.");
+
+    assert!(plan
+        .output
+        .contains(r"head\x00${value}\x07\${literal}\`\\tail"));
+}
+
+#[test]
+fn java_escapes_reserved_segments_in_qualified_types() {
+    let (_tmp, root) = workspace(&[(
+        "load.rs",
+        "fn load(value: &record::Loaded) -> record::Loaded {\n    value.clone()\n}\n",
+    )]);
+
+    let plan = transpile::plan(&root.join("load.rs"), Language::Java)
+        .expect("a reserved module name remains valid in a Java type path.");
+
+    assert!(plan.output.contains("record_.Loaded"), "{}", plan.output);
+    assert!(!plan.output.contains("record.Loaded"), "{}", plan.output);
+}
+
+#[test]
+fn java_keeps_character_types_scalar_and_boxes_collections() {
+    let (_tmp, root) = workspace(&[(
+        "chars.rs",
+        "fn includes(rest: &[char], separator: char) -> bool {\n    rest.contains(&separator)\n}\n",
+    )]);
+
+    let plan = transpile::plan(&root.join("chars.rs"), Language::Java)
+        .expect("Rust character types have valid Java counterparts.");
+
+    assert!(
+        plan.output.contains("List<Character> rest, char separator"),
+        "{}",
+        plan.output
+    );
+    assert!(!plan.output.contains("char_"), "{}", plan.output);
+}
+
+#[test]
+fn java_sanitises_a_custom_output_stem_for_its_wrapper_class() {
+    let (_tmp, root) = workspace(&[("source.rs", "fn run() {}\n")]);
+    let destination = root.join("fr-report.java");
+
+    let plan = transpile::plan_to(
+        &root.join("source.rs"),
+        Language::Java,
+        Some(&destination),
+        false,
+    )
+    .expect("a punctuated output stem still produces valid Java.");
+
+    assert!(
+        plan.output.contains("public final class FrReport"),
+        "{}",
+        plan.output
+    );
+}

@@ -27,6 +27,7 @@ The [local Codex runner](docs/agent-codex-runner.md) executes explicitly selecte
 [Function authoring](docs/body-authoring.md) adds bounded Rust, Go, Java, TypeScript and TSX implementation changes through project handles and source-history transactions.
 [Project checks](docs/project-checks.md) selects declared validation commands and reports bounded results and coverage claims.
 After reviewing the listing, add `--no-declarations` to `checks --run` to omit repeated command metadata while retaining execution outcomes and diagnostics.
+Passing checks can record a configuration- and source-bound receipt on an applied source transaction with `--record-for <TX>`.
 [Development continuity](docs/continuity.md) records the active milestone, evidence and remaining work for the next session.
 The portable skill starts targeted edits with authoring guidance and loads exploration or interrupted-write recovery when needed.
 `project find --source --bytes N` combines name lookup with source slices under one shared page budget.
@@ -139,6 +140,8 @@ fr translate <file> [language]  # write it as another language, or `fastapi`
                               #   (routes and "use server" modules both)
 fr translate app.py nextjs    # a FastAPI application as a Next.js route tree
 fr translate openapi.yaml fastapi  # a service skeleton from a contract
+fr migrate feature <ID> --to fastapi --out services/telemetry.py
+                              # a checked, reversible feature migration plan
 fr recipe <file.recipe>       # a workspace transaction: recipes find, do, expect together
 fr recipe fmt recipes --check # format every recipe in a directory, or reject drift
 fr spec init --write          # create a pinned, checked Lean package through history
@@ -163,7 +166,7 @@ fr entrypoints --kind http-route
 ```
 
 Every command takes `--json`. Source refactorings preview their diff; `--write` applies it and `--save-plan` records a plan.
-`checks --run` executes declared project commands outside source history.
+`checks --run` executes declared project commands; `--record-for <TX>` attaches passing evidence to an applied source-history transaction.
 [CLI.md](CLI.md#write-guarantees) states the commit and recovery guarantees and command-specific exceptions.
 
 `fr` indexes files in parallel and caches the facts it extracts by file content and
@@ -342,6 +345,17 @@ Files below a captured `use client` import path retain a client-transitive candi
 Every fact retains a source anchor, evidence basis, status, confidence and explicit gaps.
 Use `--feature ID` to retrieve one revision-bound subtree.
 The [framework semantic model](docs/framework-semantics.md) lists the versioned syntax witnesses, modeled boundaries and runtime gaps.
+`fr migrate feature` consumes one revision-bound feature subtree and previews a bounded Next.js/FastAPI route migration.
+It requires exact endpoint agreement, keeps the source available and reports automatic work, agent decisions and unsupported gaps separately.
+Saved plans and writes use source history, including patch export and exact undo/redo.
+A captured Next.js package makes route placement under `app` or `src/app` an automatic registration step.
+An explicit `--register-with PATH::APP_SYMBOL` target can make generated FastAPI router registration an automatic edit in the same reversible transaction.
+An explicit PEP 621 manifest and caller-supplied requirement strings can add missing generated imports to that transaction.
+Repeated `--check NAME` options bind project-owned test commands to the transaction and its accepted evidence.
+An explicit `--cutover` can remove the source in that transaction after registration and resolved-reference checks.
+Generic handler oracles compare migrated status, JSON bodies and mixed-spelling payload fields in both directions.
+Pinned FastAPI and Next.js fixtures register generated routes and execute real framework requests; both check bounded body rejection at the expected field.
+The [feature migration contract](docs/feature-migration.md) states destination rules, coexistence behavior and current runtime limits.
 `fr project configuration` pages environment declarations and candidate code consumers, with captured-source checks and explicit analysis gaps.
 `fr project tests` adds catalog candidates and bounded call-path witnesses, preserving the weakest edge confidence without claiming runtime coverage.
 Package aliases, framework runtime behavior and complete dependency graphs remain roadmap work.

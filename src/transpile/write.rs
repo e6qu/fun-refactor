@@ -1019,6 +1019,7 @@ fn reserved(language: Language, name: &str) -> bool {
         "private",
         "protected",
         "public",
+        "record",
         "return",
         "short",
         "static",
@@ -1128,11 +1129,37 @@ pub fn write(language: Language, module: &Module) -> Result<(String, Fidelity)> 
     write_in_context(language, module, module)
 }
 
+/// Write a module while retaining declared field spellings for a wire contract.
+pub(crate) fn write_preserving_fields(
+    language: Language,
+    module: &Module,
+) -> Result<(String, Fidelity)> {
+    write_in_context_preserving_fields(language, module, module)
+}
+
 /// Write `module`, spelling names as declared by `context`.
 pub fn write_in_context(
     language: Language,
     module: &Module,
     context: &Module,
+) -> Result<(String, Fidelity)> {
+    write_in_context_with_fields(language, module, context, true)
+}
+
+/// Write `module` without applying target naming conventions to declared fields.
+pub(crate) fn write_in_context_preserving_fields(
+    language: Language,
+    module: &Module,
+    context: &Module,
+) -> Result<(String, Fidelity)> {
+    write_in_context_with_fields(language, module, context, false)
+}
+
+fn write_in_context_with_fields(
+    language: Language,
+    module: &Module,
+    context: &Module,
+    translate_fields: bool,
 ) -> Result<(String, Fidelity)> {
     let mut out = Out::new(language);
     // What the sweep had to change about this file travels with it, so the
@@ -1140,7 +1167,10 @@ pub fn write_in_context(
     out.fidelity
         .notes
         .extend(module.sweep_notes.iter().cloned());
-    let (names, fields) = spellings(language, context);
+    let (names, mut fields) = spellings(language, context);
+    if !translate_fields {
+        fields.clear();
+    }
     out.names = names;
     out.fields = fields;
     out.declared_types = context
@@ -9007,12 +9037,7 @@ fn ts_expr(out: &mut Out, e: &Expr) -> String {
                 match part {
                     // A literal `${` in the text would open a substitution of its
                     // own, so it is escaped along with the delimiters.
-                    TemplatePart::Text(text) => body.push_str(
-                        &text
-                            .replace('\\', "\\\\")
-                            .replace('`', "\\`")
-                            .replace("${", "\\${"),
-                    ),
+                    TemplatePart::Text(text) => body.push_str(&ts_template_text(text)),
                     TemplatePart::Expr(e) => {
                         body.push_str("${");
                         body.push_str(&ts_expr(out, e));
@@ -9159,7 +9184,7 @@ fn java(out: &mut Out, module: &Module) {
     let name = module
         .name
         .as_deref()
-        .map(pascal)
+        .map(java_module_name)
         .unwrap_or_else(|| "Module".to_string());
     out.line(&format!("public final class {name} {{"));
     out.open();
@@ -10176,8 +10201,37 @@ fn java_type(ty: &Type) -> String {
         },
         // Java has no tuple type.
         Type::Tuple(parts) => format!("Unwritable_tuple_{}", parts.len()),
-        Type::Named { name, args } => generic(name, args, "<", ">", ".", java_boxed),
+        Type::Named { name, args } if name == "char" && args.is_empty() => "char".to_string(),
+        Type::Named { name, args } => {
+            generic(&java_type_path(name), args, "<", ">", ".", java_boxed)
+        }
     }
+}
+
+fn java_type_path(name: &str) -> String {
+    name.split("::")
+        .flat_map(|part| part.split('.'))
+        .map(|part| match reserved(Language::Java, part) {
+            true => format!("{part}_"),
+            false => part.to_string(),
+        })
+        .collect::<Vec<_>>()
+        .join(".")
+}
+
+fn java_module_name(name: &str) -> String {
+    let mut named = pascal(&sanitise(name));
+    if named.is_empty() {
+        return "Module".to_string();
+    }
+    if !named
+        .chars()
+        .next()
+        .is_some_and(|c| c.is_alphabetic() || matches!(c, '_' | '$'))
+    {
+        named.insert_str(0, "Module");
+    }
+    named
 }
 
 /// A generic argument in Java cannot be a primitive: `List<int>` does not compile.
@@ -10187,6 +10241,7 @@ fn java_boxed(ty: &Type) -> String {
         Type::Int => "Integer".to_string(),
         Type::Float => "Double".to_string(),
         Type::Unit => "Void".to_string(),
+        Type::Named { name, args } if name == "char" && args.is_empty() => "Character".to_string(),
         other => java_type(other),
     }
 }
@@ -12232,6 +12287,27 @@ fn escaped(language: Language, value: &str) -> String {
             // Java has no `\xNN`, so spell both with the form it does have.
             c if language == Language::Java => out.push_str(&format!("\\u{:04x}", c as u32)),
             c => out.push_str(&format!("\\x{:02x}", c as u32)),
+        }
+    }
+    out
+}
+
+fn ts_template_text(value: &str) -> String {
+    let mut out = String::with_capacity(value.len());
+    let mut chars = value.chars().peekable();
+    while let Some(c) = chars.next() {
+        match c {
+            '\\' => out.push_str("\\\\"),
+            '`' => out.push_str("\\`"),
+            '$' if chars.peek() == Some(&'{') => out.push_str("\\$"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if !c.is_control() => out.push(c),
+            c if (c as u32) <= u8::MAX as u32 => {
+                out.push_str(&format!("\\x{:02x}", c as u32));
+            }
+            c => out.push_str(&format!("\\u{{{:x}}}", c as u32)),
         }
     }
     out

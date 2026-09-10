@@ -371,6 +371,11 @@ enum Command {
         #[command(subcommand)]
         command: SpecCommand,
     },
+    #[command(about = "Plan or apply a revision-bound framework feature migration.")]
+    Migrate {
+        #[command(subcommand)]
+        command: crate::project::migration::Command,
+    },
     /// Rewrite a file as another language, beside the original.
     Translate {
         /// File to rewrite, or a directory to sweep file by file.
@@ -879,7 +884,10 @@ fn dispatch(cli: &Cli) -> Result<()> {
     if cli.context_basis.is_some()
         && !matches!(
             cli.command,
-            Command::Project { .. } | Command::Author { .. } | Command::History { .. }
+            Command::Project { .. }
+                | Command::Author { .. }
+                | Command::Migrate { .. }
+                | Command::History { .. }
         )
     {
         anyhow::bail!("--context-basis requires a project, author or history transition command.");
@@ -888,6 +896,7 @@ fn dispatch(cli: &Cli) -> Result<()> {
         && !matches!(
             &cli.command,
             Command::Author { .. }
+                | Command::Migrate { .. }
                 | Command::File { .. }
                 | Command::Rename { .. }
                 | Command::Extract { .. }
@@ -949,6 +958,7 @@ fn dispatch(cli: &Cli) -> Result<()> {
             Ok(())
         }
         Command::Project { command } => cmd_project(cli, command),
+        Command::Migrate { command } => cmd_migrate(cli, command),
         Command::History { action } => cmd_history(cli, action.as_ref()),
         Command::Capabilities {
             capability,
@@ -2131,6 +2141,97 @@ fn cmd_project(cli: &Cli, command: &crate::project::Command) -> Result<()> {
     })
 }
 
+fn cmd_migrate(cli: &Cli, command: &crate::project::migration::Command) -> Result<()> {
+    use crate::project::migration::Command;
+    let Command::Feature(options) = command;
+    anyhow::ensure!(
+        !(options.write && cli.save_plan),
+        "choose --save-plan or --write, not both."
+    );
+    with_project(cli, |project, root| {
+        let context = project.response_context(cli.context_basis.as_deref())?;
+        let mut plan = project.migrate_feature(options)?;
+        let outcomes = crate::edit::plan(&plan.edits, crate::edit::Validation::ReparseStrict)?;
+        project.verify(root)?;
+        for change in &plan.connected_changes {
+            anyhow::ensure!(
+                crate::vfs::read_to_string(&change.path)
+                    .as_deref()
+                    .is_ok_and(|current| current == change.original),
+                "{} changed during the migration plan; retry.",
+                shown_path(root, &change.path)
+            );
+        }
+        let mut diff = outcomes
+            .iter()
+            .map(|outcome| workspace_diff(cli, outcome))
+            .collect::<String>();
+        for change in &plan.connected_changes {
+            let shown = shown_path(root, &change.path);
+            diff.push_str(&crate::edit::unified_diff(
+                &change.original,
+                &change.updated,
+                &shown,
+            ));
+        }
+        if let Some(removal) = &plan.source_removal {
+            let shown = shown_path(root, &removal.path);
+            diff.push_str(&crate::edit::unified_diff(&removal.original, "", &shown));
+        }
+        plan.set_diff(&diff, options.diff_bytes);
+        let mut changes = outcomes
+            .iter()
+            .map(crate::edit::FileChange::from)
+            .collect::<Vec<_>>();
+        changes.extend(
+            plan.connected_changes
+                .iter()
+                .map(|change| crate::edit::FileChange {
+                    path: &change.path,
+                    original: &change.original,
+                    updated: &change.updated,
+                }),
+        );
+        let removals = plan
+            .source_removal
+            .iter()
+            .map(|removal| crate::history::FileRemoval {
+                path: &removal.path,
+                original: &removal.original,
+            })
+            .collect::<Vec<_>>();
+        let recorded = if options.write || cli.save_plan {
+            crate::history::record_with_removals_status(
+                &cli.root,
+                &changes,
+                &removals,
+                options.write,
+                "feature-migration-reparse-strict",
+                plan.required_checks.as_ref(),
+            )?
+        } else {
+            None
+        };
+        let transaction = recorded.map(|result| result.id);
+        plan.report["transaction"] = serde_json::json!(transaction);
+        plan.report["applied"] = serde_json::json!(options.write && transaction.is_some());
+        plan.report["migration"]["coexistence"]["cutover_applied"] =
+            serde_json::json!(options.cutover && options.write && transaction.is_some());
+        plan.report["saved"] =
+            serde_json::json!(cli.save_plan && recorded.is_some_and(|result| result.created));
+        if recorded.is_some_and(|result| !result.created) {
+            plan.report["reused_transaction"] = serde_json::json!(true);
+        }
+        if let Some(id) = transaction.filter(|_| plan.report["diff"].is_string()) {
+            plan.report["transaction_context_basis"] =
+                serde_json::json!(crate::history::record_context_basis(root, id)?);
+        }
+        context.apply(&mut plan.report)?;
+        println!("{}", serde_json::to_string(&plan.report)?);
+        Ok(())
+    })
+}
+
 fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()> {
     use crate::project::author::Command;
     let (write, diff_bytes) = match command {
@@ -2301,6 +2402,12 @@ fn cmd_history(cli: &Cli, command: Option<&HistoryCommand>) -> Result<()> {
                         "id": r.id, "status": r.status, "basis": r.basis, "source_revision": r.source_revision, "validation": r.validation,
                         "paths": r.changes.iter().map(|c| &c.path).collect::<Vec<_>>()
                     });
+                    if let Some(required_checks) = &r.required_checks {
+                        record["required_checks"] = serde_json::json!(required_checks);
+                    }
+                    if !r.check_evidence.is_empty() {
+                        record["check_evidence"] = serde_json::json!(r.check_evidence);
+                    }
                     if other.is_some() {
                         record["context_basis"] = serde_json::json!(format!("frtb1:{}", r.basis));
                         record["changes"] = serde_json::json!(r.changes.iter().map(|c| serde_json::json!({

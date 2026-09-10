@@ -115,6 +115,175 @@ theorem trailing_slash_rejects_nonempty_fastapi_prefix (startsSlash : Bool) :
     fastapiPrefixSupported false startsSlash true = false := by
   cases startsSlash <;> decide
 
+-- fr:spec src/project/framework_kernel.rs::framework_migration_supported @ 2b6adb54c00914716834b06d5d8f08020911833f96c16fc10cd7ca9f621d3e8f
+-- fr:signature source_fastapi: bool => sourceFastapi: Bool; target_fastapi: bool => targetFastapi: Bool; return: bool => return: Bool
+def frameworkMigrationSupported (sourceFastapi : Bool) (targetFastapi : Bool) : Bool :=
+  sourceFastapi != targetFastapi
+
+theorem framework_migration_supported_iff_crosses_boundary
+    (sourceFastapi targetFastapi : Bool) :
+    frameworkMigrationSupported sourceFastapi targetFastapi = true ↔
+      sourceFastapi != targetFastapi := by
+  cases sourceFastapi <;> cases targetFastapi <;> decide
+
+-- fr:spec src/project/framework_kernel.rs::migration_disposition @ 12d6711dd5abc9fdfd1c6c94fee86397941097d6444a2edc0f3bde8898ce147c
+-- fr:signature gap: bool => gap: Bool; automatic_kind: bool => automaticKind: Bool; return: usize => return: Nat
+def migrationDisposition (gap : Bool) (automaticKind : Bool) : Nat :=
+  if gap then 2 else if automaticKind then 0 else 1
+
+theorem migration_gap_is_unsupported (automaticKind : Bool) :
+    migrationDisposition true automaticKind = 2 := by
+  cases automaticKind <;> decide
+
+theorem supported_automatic_kind_is_automatic :
+    migrationDisposition false true = 0 := by
+  decide
+
+theorem supported_nonautomatic_kind_needs_a_decision :
+    migrationDisposition false false = 1 := by
+  decide
+
+-- fr:spec src/project/framework_kernel.rs::migration_schema_agreement @ 1b6293851270d68ca599ab29dc38f9687619f8af10f01955a0eb5f1371072a03
+-- fr:signature expected: &[String] => expected: List String; generated: &[String] => generated: List String; return: bool => return: Bool
+def migrationSchemaAgreement (expected : List String) (generated : List String) : Bool :=
+  expected.all (generated.contains ·)
+
+theorem migration_schema_agreement_iff_subset (expected generated : List String) :
+    migrationSchemaAgreement expected generated = true ↔
+      ∀ shape ∈ expected, shape ∈ generated := by
+  simp [migrationSchemaAgreement]
+
+theorem migration_schema_agreement_reflexive (shapes : List String) :
+    migrationSchemaAgreement shapes shapes = true := by
+  simp [migrationSchemaAgreement]
+
+-- fr:spec src/project/framework_kernel.rs::nextjs_registration_automatic @ 1b11251331a535bbe2f7ecebe93bc4d6ea8937469de89d774eff03ef0db87db0
+-- fr:signature declares_next: bool => declaresNext: Bool; app_router_path: bool => appRouterPath: Bool; return: bool => return: Bool
+def nextjsRegistrationAutomatic (declaresNext : Bool) (appRouterPath : Bool) : Bool :=
+  declaresNext && appRouterPath
+
+theorem nextjs_registration_automatic_iff_evidence
+    (declaresNext appRouterPath : Bool) :
+    nextjsRegistrationAutomatic declaresNext appRouterPath = true ↔
+      declaresNext = true ∧ appRouterPath = true := by
+  cases declaresNext <;> cases appRouterPath <;> decide
+
+theorem nextjs_registration_requires_dependency (appRouterPath : Bool) :
+    nextjsRegistrationAutomatic false appRouterPath = false := by
+  cases appRouterPath <;> decide
+
+-- fr:spec src/project/framework_kernel.rs::fastapi_body_parameter_automatic @ 917a5d5e70786d7d2692a97244b5e5d3ba9cf1601a671a80bd78a3e28c81fa87
+-- fr:signature candidate_count: usize => candidateCount: Nat; path_collision: bool => pathCollision: Bool; query_collision: bool => queryCollision: Bool; return: bool => return: Bool
+def fastapiBodyParameterAutomatic
+    (candidateCount : Nat) (pathCollision : Bool) (queryCollision : Bool) : Bool :=
+  decide (candidateCount = 1) && !pathCollision && !queryCollision
+
+theorem fastapi_body_parameter_automatic_iff_unique_without_collision
+    (candidateCount : Nat) (pathCollision queryCollision : Bool) :
+    fastapiBodyParameterAutomatic candidateCount pathCollision queryCollision = true ↔
+      candidateCount = 1 ∧ pathCollision = false ∧ queryCollision = false := by
+  cases pathCollision <;> cases queryCollision <;> simp [fastapiBodyParameterAutomatic]
+
+theorem fastapi_body_parameter_rejects_path_collision
+    (candidateCount : Nat) (queryCollision : Bool) :
+    fastapiBodyParameterAutomatic candidateCount true queryCollision = false := by
+  cases queryCollision <;> simp [fastapiBodyParameterAutomatic]
+
+theorem fastapi_body_parameter_rejects_query_collision
+    (candidateCount : Nat) (pathCollision : Bool) :
+    fastapiBodyParameterAutomatic candidateCount pathCollision true = false := by
+  cases pathCollision <;> simp [fastapiBodyParameterAutomatic]
+
+-- fr:spec src/project/framework_kernel.rs::nextjs_body_validation_automatic @ 22ec1ca1fa70fe1f5ab3eaca2645ba66a6221b87683a4fe8f50b8baea0cb329e
+-- fr:signature candidate_count: usize => candidateCount: Nat; supported_shape: bool => supportedShape: Bool; return: bool => return: Bool
+def nextjsBodyValidationAutomatic (candidateCount : Nat) (supportedShape : Bool) : Bool :=
+  decide (candidateCount = 1) && supportedShape
+
+theorem nextjs_body_validation_automatic_iff_unique_supported
+    (candidateCount : Nat) (supportedShape : Bool) :
+    nextjsBodyValidationAutomatic candidateCount supportedShape = true ↔
+      candidateCount = 1 ∧ supportedShape = true := by
+  cases supportedShape <;> simp [nextjsBodyValidationAutomatic]
+
+theorem nextjs_body_validation_rejects_unsupported (candidateCount : Nat) :
+    nextjsBodyValidationAutomatic candidateCount false = false := by
+  simp [nextjsBodyValidationAutomatic]
+
+theorem nextjs_body_validation_accepts_unique_supported :
+    nextjsBodyValidationAutomatic 1 true = true := by
+  decide
+
+-- fr:spec src/project/framework_kernel.rs::fastapi_registration_automatic @ 5a48b67679e7d69d6375ea7924f45d6df5de6355043b63c35ec02940d20547b4
+-- fr:signature explicit_target: bool => explicitTarget: Bool; application_binding: bool => applicationBinding: Bool; endpoint_conflict: bool => endpointConflict: Bool; return: bool => return: Bool
+def fastapiRegistrationAutomatic
+    (explicitTarget : Bool) (applicationBinding : Bool) (endpointConflict : Bool) : Bool :=
+  explicitTarget && applicationBinding && !endpointConflict
+
+theorem fastapi_registration_automatic_iff_explicit_valid_without_conflict
+    (explicitTarget applicationBinding endpointConflict : Bool) :
+    fastapiRegistrationAutomatic explicitTarget applicationBinding endpointConflict = true ↔
+      explicitTarget = true ∧ applicationBinding = true ∧ endpointConflict = false := by
+  cases explicitTarget <;> cases applicationBinding <;> cases endpointConflict <;> decide
+
+theorem fastapi_registration_rejects_implicit
+    (applicationBinding endpointConflict : Bool) :
+    fastapiRegistrationAutomatic false applicationBinding endpointConflict = false := by
+  cases applicationBinding <;> cases endpointConflict <;> decide
+
+theorem fastapi_registration_rejects_endpoint_conflict
+    (explicitTarget applicationBinding : Bool) :
+    fastapiRegistrationAutomatic explicitTarget applicationBinding true = false := by
+  cases explicitTarget <;> cases applicationBinding <;> decide
+
+-- fr:spec src/project/framework_kernel.rs::migration_cutover_automatic @ 36a04fe8185b8657fcfab2d784028d2a498c5f699fb8b8725874e52781ba3359
+-- fr:signature explicit_cutover: bool => explicitCutover: Bool; registration_automatic: bool => registrationAutomatic: Bool; external_references: bool => externalReferences: Bool; return: bool => return: Bool
+def migrationCutoverAutomatic
+    (explicitCutover : Bool) (registrationAutomatic : Bool) (externalReferences : Bool) : Bool :=
+  explicitCutover && registrationAutomatic && !externalReferences
+
+theorem migration_cutover_automatic_iff_explicit_registered_without_references
+    (explicitCutover registrationAutomatic externalReferences : Bool) :
+    migrationCutoverAutomatic explicitCutover registrationAutomatic externalReferences = true ↔
+      explicitCutover = true ∧ registrationAutomatic = true ∧ externalReferences = false := by
+  cases explicitCutover <;> cases registrationAutomatic <;> cases externalReferences <;> decide
+
+theorem migration_cutover_rejects_unregistered
+    (explicitCutover externalReferences : Bool) :
+    migrationCutoverAutomatic explicitCutover false externalReferences = false := by
+  cases explicitCutover <;> cases externalReferences <;> decide
+
+theorem migration_cutover_rejects_external_references
+    (explicitCutover registrationAutomatic : Bool) :
+    migrationCutoverAutomatic explicitCutover registrationAutomatic true = false := by
+  cases explicitCutover <;> cases registrationAutomatic <;> decide
+
+-- fr:spec src/project/framework_kernel.rs::migration_dependency_edit_automatic @ 38894165ae7ecc67c248dbed95775572f0aab6cd8bbfd23f1d200a0256bd427a
+-- fr:signature pep621_manifest: bool => pep621Manifest: Bool; owns_destination: bool => ownsDestination: Bool; dependencies_array: bool => dependenciesArray: Bool; requirements_cover_missing: bool => requirementsCoverMissing: Bool; return: bool => return: Bool
+def migrationDependencyEditAutomatic
+    (pep621Manifest : Bool) (ownsDestination : Bool) (dependenciesArray : Bool)
+    (requirementsCoverMissing : Bool) : Bool :=
+  pep621Manifest && ownsDestination && dependenciesArray && requirementsCoverMissing
+
+theorem migration_dependency_edit_automatic_iff_all_boundaries_hold
+    (pep621Manifest ownsDestination dependenciesArray requirementsCoverMissing : Bool) :
+    migrationDependencyEditAutomatic pep621Manifest ownsDestination dependenciesArray
+      requirementsCoverMissing = true ↔
+      pep621Manifest = true ∧ ownsDestination = true ∧ dependenciesArray = true ∧
+        requirementsCoverMissing = true := by
+  cases pep621Manifest <;> cases ownsDestination <;> cases dependenciesArray <;>
+    cases requirementsCoverMissing <;> decide
+
+theorem migration_dependency_edit_rejects_unowned_manifest
+    (pep621Manifest dependenciesArray requirementsCoverMissing : Bool) :
+    migrationDependencyEditAutomatic pep621Manifest false dependenciesArray
+      requirementsCoverMissing = false := by
+  cases pep621Manifest <;> cases dependenciesArray <;> cases requirementsCoverMissing <;> decide
+
+theorem migration_dependency_edit_rejects_missing_requirements
+    (pep621Manifest ownsDestination dependenciesArray : Bool) :
+    migrationDependencyEditAutomatic pep621Manifest ownsDestination dependenciesArray false = false := by
+  cases pep621Manifest <;> cases ownsDestination <;> cases dependenciesArray <;> decide
+
 -- fr:spec src/project.rs::path_confidence @ b5a8549e
 -- fr:signature edges: &[Confidence] => edges: List Nat; return: Confidence => return: Nat
 def pathConfidence (edges : List Nat) : Nat := edges.foldr max 0
