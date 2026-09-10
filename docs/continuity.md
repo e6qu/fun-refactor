@@ -44,7 +44,11 @@ Pinned FastAPI 0.141.1 mounts the generated router through `include_router` and 
 Pydantic 2.13.5 and Starlette 1.6.0 preserve the valid body and produce a field-specific 422 response for an invalid array item.
 The promotion policy requires one candidate and no collision.
 Three Lean theorems characterize that rule, and sixteen shared cases cover unique, missing, repeated and colliding candidates.
-Installed Next.js execution and broader framework behavior remain open.
+The eighth checkpoint installs a lockfile-pinned Next.js 16.3.4 application with React 19.3.0 and TypeScript 5.9.3.
+App Router placement registers the generated generic events route.
+A real framework request returns the exact FastAPI source payload.
+The runtime fixture uses no example-specific translation rule.
+Generated Next.js request rejection, connected project edits and cutover remain open.
 Roadmap PR 5's first checkpoint added `fr project features` for bounded Next.js App Router and FastAPI hierarchies.
 Applications contain exact-route-path feature candidates, which contain routes, handlers, contract fields, schema references and expanded same-file schema candidates.
 Every fact carries a parent, source anchor, status, confidence, validation basis and explicit gaps.
@@ -743,4 +747,4 @@ Keep revision inputs, coverage and final source verification intact; require byt
 State the cache policy for the next autonomous cohort; existing trials explicitly disable it and their records remain immutable.
 The latest paired task requires one coordinated three-operation change across two crate roots. It passes, while `fr` still uses 23.8% more measured context in this single pair.
 Keep portable skill references selective and executable against the distributed binary.
-PR 6 is active. Continue with installed Next.js execution, connected project edits and a reviewed cutover as ordered in [PLAN.md](../PLAN.md).
+PR 6 is active. Continue with generated Next.js request validation, connected project edits and a reviewed cutover as ordered in [PLAN.md](../PLAN.md).

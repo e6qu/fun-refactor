@@ -71,8 +71,12 @@ Node and Python execute the handlers, while small stubs supply decorator registr
 This evidence covers handler behavior and payload preservation in the supported constructs.
 The pinned FastAPI 0.141.1 fixture mounts the generated router through `include_router` and invokes its ASGI application.
 Pydantic 2.13.5 accepts the valid body, and an invalid array element produces a field-specific 422 response through Starlette 1.6.0.
+The reverse fixture places the generated route below a captured application manifest and starts Next.js 16.3.4 with React 19.3.0.
+It sends a real HTTP request to the registered `/events` route.
+Its valid response matches the FastAPI source exactly.
 The stubbed cases remain separate handler evidence.
-The fixtures do not cover middleware, dependency injection, startup, installed Next.js routing or deployment.
+Generated TypeScript interfaces do not enforce request shapes at runtime, so equivalent Next.js rejection remains unverified.
+The fixtures do not cover middleware, dependency injection, lifecycle behavior or deployment.
 
 ## Declared schema evidence
 
@@ -85,4 +89,4 @@ Next.js dynamic path names also retain their spelling because the route placehol
 This check covers declarations and supported types.
 It does not establish aliases, requiredness, defaults, validators, serialization settings, OpenAPI output or runtime request and response validation.
 
-Current follow-up work adds installed Next.js execution, broader framework validation comparisons, remaining connected build and test edits, and a reviewed cutover stage.
+Current follow-up work adds Next.js runtime validation, remaining connected build and test edits, and a reviewed cutover stage.

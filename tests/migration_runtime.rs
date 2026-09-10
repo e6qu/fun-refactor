@@ -1,9 +1,12 @@
 mod common;
 
 use serde_json::Value;
-use std::fs;
+use std::fs::{self, File};
+use std::net::TcpListener;
+#[cfg(unix)]
+use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
+use std::process::{Child, Command, Output, Stdio};
 
 const FR: &str = env!("CARGO_BIN_EXE_fr");
 
@@ -64,8 +67,119 @@ fn fastapi_python() -> Option<PathBuf> {
         .then(|| format!("{} with the pinned FastAPI stack", python.display()))
         .into_iter()
         .collect::<Vec<_>>();
-    common::require_on_ci("feature migration FastAPI runtime comparison", &missing);
+    common::require_on_ci("feature migration FastAPI runtime comparison.", &missing);
     has_framework.then_some(python)
+}
+
+struct NextRuntime {
+    root: PathBuf,
+    executable: PathBuf,
+}
+
+fn nextjs_runtime() -> Option<NextRuntime> {
+    let root =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/migration-runtime/nextjs-framework");
+    let executable = root.join("node_modules/.bin/next");
+    let packages = [
+        ("next", "16.3.4"),
+        ("react", "19.3.0"),
+        ("react-dom", "19.3.0"),
+        ("typescript", "5.9.3"),
+        ("@types/node", "22.20.2"),
+        ("@types/react", "19.3.0"),
+        ("@types/react-dom", "19.3.0"),
+    ];
+    let mut missing = packages
+        .into_iter()
+        .filter_map(|(name, expected)| {
+            let manifest = root.join("node_modules").join(name).join("package.json");
+            let actual = fs::read_to_string(&manifest)
+                .ok()
+                .and_then(|text| serde_json::from_str::<Value>(&text).ok())
+                .and_then(|json| json["version"].as_str().map(str::to_owned));
+            (actual.as_deref() != Some(expected))
+                .then(|| format!("{name} {expected} under {}", root.display()))
+        })
+        .collect::<Vec<_>>();
+    if !available(&executable) {
+        missing.push(format!("{}", executable.display()));
+    }
+    if TcpListener::bind(("127.0.0.1", 0)).is_err() {
+        missing.push("a local loopback listener".to_owned());
+    }
+    #[cfg(not(unix))]
+    missing.push("Unix process and directory-link support".to_owned());
+    common::require_on_ci("feature migration Next.js runtime comparison.", &missing);
+    missing
+        .is_empty()
+        .then_some(NextRuntime { root, executable })
+}
+
+struct RunningNext {
+    child: Child,
+}
+
+impl Drop for RunningNext {
+    fn drop(&mut self) {
+        #[cfg(unix)]
+        {
+            let group = format!("-{}", self.child.id());
+            let _ = Command::new("kill").args(["-TERM", &group]).status();
+        }
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+    }
+}
+
+fn run_nextjs_route(runtime: &NextRuntime, root: &Path, payload: &Value) -> Value {
+    let web = root.join("web");
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(runtime.root.join("node_modules"), web.join("node_modules"))
+        .unwrap();
+    #[cfg(not(unix))]
+    panic!("the installed Next.js runtime fixture currently requires Unix directory links.");
+
+    let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+    let port = listener.local_addr().unwrap().port();
+    drop(listener);
+    let log_path = root.join("nextjs-runtime.log");
+    let log = File::create(&log_path).unwrap();
+    let mut command = Command::new(&runtime.executable);
+    command
+        .current_dir(&web)
+        .args([
+            "dev",
+            "--hostname",
+            "127.0.0.1",
+            "--port",
+            &port.to_string(),
+        ])
+        .env("NEXT_TELEMETRY_DISABLED", "1")
+        .stdout(Stdio::from(log.try_clone().unwrap()))
+        .stderr(Stdio::from(log));
+    #[cfg(unix)]
+    command.process_group(0);
+    let child = command.spawn().unwrap();
+    let _running = RunningNext { child };
+    let runner = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/migration-runtime/nextjs-framework-runner.mjs");
+    let output = command_output({
+        let mut command = Command::new("node");
+        command
+            .current_dir(&web)
+            .arg(runner)
+            .arg(format!("http://127.0.0.1:{port}/events"))
+            .arg(payload.to_string());
+        command
+    });
+    assert!(
+        output.status.success(),
+        "{}\n{}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr),
+        fs::read_to_string(log_path).unwrap_or_default()
+    );
+    serde_json::from_slice(&output.stdout).unwrap()
 }
 
 fn fr(root: &Path, args: &[&str]) -> Value {
@@ -314,10 +428,23 @@ fn fastapi_payload_keys_and_values_survive_nextjs_generation() {
     let Some(tsc) = toolchains() else {
         return;
     };
-    let dir = tempfile::tempdir().unwrap();
+    let next_runtime = nextjs_runtime();
+    let dir = match &next_runtime {
+        Some(runtime) => tempfile::Builder::new()
+            .prefix(".fr-runtime-")
+            .tempdir_in(&runtime.root)
+            .unwrap(),
+        None => tempfile::tempdir().unwrap(),
+    };
     fs::write(
         dir.path().join("events.py"),
         include_str!("migration-runtime/fastapi-payload-route.py"),
+    )
+    .unwrap();
+    fs::create_dir_all(dir.path().join("web")).unwrap();
+    fs::write(
+        dir.path().join("web/package.json"),
+        include_str!("migration-runtime/nextjs-framework/package.json"),
     )
     .unwrap();
     fs::write(
@@ -338,6 +465,10 @@ fn fastapi_payload_keys_and_values_survive_nextjs_generation() {
         report["contract"]["declared_schemas"]["translation_agreement"],
         true
     );
+    assert_eq!(
+        report["migration"]["coexistence"]["destination_registration"],
+        "automatic"
+    );
     fs::write(
         dir.path().join("target-runner.ts"),
         include_str!("migration-runtime/nextjs-payload-target-runner.ts"),
@@ -357,4 +488,9 @@ fn fastapi_payload_keys_and_values_survive_nextjs_generation() {
         source["body"]["labels"],
         serde_json::json!(["accepted", "priority"])
     );
+
+    if let Some(runtime) = next_runtime {
+        let framework = run_nextjs_route(&runtime, dir.path(), &source["body"]);
+        assert_eq!(framework, source);
+    }
 }
