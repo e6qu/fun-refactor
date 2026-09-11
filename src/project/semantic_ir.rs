@@ -299,6 +299,27 @@ fn section_report(section: Section) -> Value {
     }
 }
 
+fn python_constructor(section: Section, kind: &str) -> String {
+    let namespace = match section {
+        Section::Type => "Type",
+        Section::Statement => "Stmt",
+        Section::Expression => "Expr",
+        Section::Template => "TemplatePart",
+        _ => unreachable!(),
+    };
+    let name = kind
+        .split('-')
+        .map(|part| {
+            let mut chars = part.chars();
+            chars
+                .next()
+                .map(|first| first.to_uppercase().collect::<String>() + chars.as_str())
+                .unwrap_or_default()
+        })
+        .collect::<String>();
+    format!("{namespace}.{name}")
+}
+
 pub fn catalog(options: &SchemaOptions) -> Result<Value> {
     if let Some(kind) = options.kind.as_deref() {
         let section = options
@@ -314,9 +335,13 @@ pub fn catalog(options: &SchemaOptions) -> Result<Value> {
             section.name(),
             kind
         );
-        return Ok(
-            json!({"schema":"fr-semantic-catalog-1","semantic_schema":BODY_SCHEMA,"section":section.name(),"variant":entry}),
-        );
+        return Ok(json!({
+            "schema":"fr-semantic-catalog-1",
+            "semantic_schema":BODY_SCHEMA,
+            "section":section.name(),
+            "variant":entry,
+            "python":{"package":"fr_ir","constructor":python_constructor(section, kind)}
+        }));
     }
     if let Some(section) = options.section {
         return Ok(
@@ -353,4 +378,42 @@ pub fn kind_authorable(category: usize, kind: usize) -> bool {
         _ => return false,
     };
     specs.get(kind).is_some_and(|entry| entry.authorable)
+}
+
+pub fn semantic_node_source_free(
+    has_source_field: bool,
+    unsupported_kind: bool,
+    children_source_free: bool,
+) -> bool {
+    !has_source_field && !unsupported_kind && children_source_free
+}
+
+pub fn source_free(value: &Value) -> bool {
+    match value {
+        Value::Array(values) => values.iter().all(source_free),
+        Value::Object(object) => semantic_node_source_free(
+            object.contains_key("source"),
+            object.get("kind").and_then(Value::as_str) == Some("unsupported"),
+            object.values().all(source_free),
+        ),
+        _ => true,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn source_free_walk_checks_every_nested_value() {
+        assert!(source_free(
+            &json!({"body":[{"kind":"comment","value":"ok"}]})
+        ));
+        assert!(!source_free(
+            &json!({"body":[{"kind":"comment","value":{"source":"hidden"}}]})
+        ));
+        assert!(!source_free(
+            &json!({"body":[{"kind":"unsupported","value":null}]})
+        ));
+    }
 }

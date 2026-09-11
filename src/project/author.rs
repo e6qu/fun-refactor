@@ -393,22 +393,10 @@ fn replacement(
     })
 }
 
-fn contains_source_or_unsupported(value: &Value) -> bool {
-    match value {
-        Value::Array(values) => values.iter().any(contains_source_or_unsupported),
-        Value::Object(object) => {
-            object.contains_key("source")
-                || object.get("kind").and_then(Value::as_str) == Some("unsupported")
-                || object.values().any(contains_source_or_unsupported)
-        }
-        _ => false,
-    }
-}
-
 fn validated_semantic_body(input: &str) -> Result<ValidatedSemanticBody> {
     let value: Value = serde_json::from_str(input).context("semantic body input must be JSON.")?;
     ensure!(
-        !contains_source_or_unsupported(&value),
+        super::semantic_ir::source_free(&value),
         "semantic body input must not contain source fields or unsupported nodes."
     );
     let nodes = super::semantic::semantic_nodes(&value);

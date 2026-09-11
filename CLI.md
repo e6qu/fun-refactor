@@ -535,6 +535,12 @@ implementation proofs. The latter two stay false unless future evidence supplies
 ```sh
 fr author guide
 
+fr author semantic-schema [body|type|statement|expression|template|binary-operator|unary-operator|record]
+
+fr author semantic-schema statement --kind return
+
+fr author validate-semantic --from /tmp/change.json [--canonical]
+
 fr author replace-body '<HANDLE>' --from /tmp/body.txt
 
 fr author replace-body '<HANDLE>' --from /tmp/body.txt --save-plan --plan-basis '<PLAN_BASIS>'
@@ -546,6 +552,12 @@ fr history apply '<TX>' --write --no-diff --context-basis '<TRANSACTION_CONTEXT_
 project. It names every batch operation and required field, size limits, postconditions and
 the exact preview/save/apply/patch/undo/redo command sequence. This is a discovery surface;
 the individual preview and transition reports remain the evidence for a specific change.
+
+`author semantic-schema` exposes the `fr-semantic-catalog-1` index without scanning a project.
+Request one section or one `--kind` to bound contract context. A variant report includes its exact
+JSON value shape, author admission and Python SDK constructor. `author validate-semantic` reads one
+64 KiB input, rejects unknown or source-bearing structure, enforces statement and node limits, and
+returns its Rust-canonical SHA-256 identity. `--canonical` also returns the normalized payload.
 
 Replace a Rust, Go, Java, TypeScript or TSX function body while preserving surrounding bytes, including its signature and attributes.
 Named declarations and methods are supported, alongside TypeScript/TSX variable or class-field function initializers.

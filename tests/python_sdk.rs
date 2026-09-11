@@ -81,3 +81,28 @@ fn every_python_constructor_deserializes_and_canonicalizes_in_rust() {
     assert_eq!(report["statements"], 65);
     assert_eq!(report["canonical"]["schema"], "fr-semantic-body-1");
 }
+
+#[test]
+fn checked_sdk_evaluation_is_reproducible() {
+    let temp = tempfile::tempdir().unwrap();
+    let output_path = temp.path().join("report.json");
+    let output = Command::new("python3")
+        .arg(root().join("tools/agent-ir-sdk-eval.py"))
+        .arg("--fr")
+        .arg(env!("CARGO_BIN_EXE_fr"))
+        .arg("--output")
+        .arg(&output_path)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let actual: Value = serde_json::from_slice(&fs::read(output_path).unwrap()).unwrap();
+    let expected: Value = serde_json::from_slice(
+        &fs::read(root().join("tests/agent-eval/semantic-ir-sdk.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(actual, expected);
+}

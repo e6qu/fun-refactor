@@ -1,0 +1,40 @@
+{
+  "schema": "fr-agent-ir-sdk-evaluation-1",
+  "fixture": "generic multiply-and-return function body",
+  "routes": {
+    "direct-json": {
+      "producer_bytes": 179,
+      "contract_context_bytes": 895,
+      "valid": true
+    },
+    "python-sdk": {
+      "producer_bytes": 125,
+      "contract_context_bytes": 895,
+      "valid": true
+    }
+  },
+  "equivalence": {
+    "payloads_equal": true,
+    "canonical_sha256_equal": true
+  },
+  "category_error": {
+    "sdk_rejected_before_serialization": true,
+    "direct_json_rejected_by_rust": true,
+    "rust_error_kind": "error"
+  },
+  "translation_scaffold": {
+    "source": "src/transpile/ir.rs",
+    "target": "python",
+    "lines": 977,
+    "bytes": 24962,
+    "functions": 11,
+    "records": 15,
+    "sum_types": 8,
+    "carried_verbatim": 51,
+    "imports_listed": 2,
+    "foreign_signature_types": 1,
+    "syntax_executable": true
+  },
+  "scope": "Deterministic construction, validation, size and early-refusal evidence. This is not an agent-quality or token-usage claim.",
+  "report_sha256": "68089bb8ec87e6c3afb02cc095ff4605a47918d34eb2b7f880b2882a5bd2170b"
+}

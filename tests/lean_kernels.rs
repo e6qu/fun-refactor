@@ -1145,6 +1145,35 @@ fn semantic_ir_catalog_admission_matches_lean_exhaustively() {
 }
 
 #[test]
+fn semantic_source_free_policy_matches_lean_exhaustively() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("semantic-source-free")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let mut actual = actual.lines().map(|line| line.parse::<bool>().unwrap());
+    for source in [false, true] {
+        for unsupported in [false, true] {
+            for children in [false, true] {
+                assert_eq!(
+                    actual.next(),
+                    Some(
+                        fun_refactor::project::semantic_ir::semantic_node_source_free(
+                            source,
+                            unsupported,
+                            children,
+                        )
+                    )
+                );
+            }
+        }
+    }
+    assert!(actual.next().is_none());
+}
+
+#[test]
 fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
     use fun_refactor::project::framework_kernel::{
         component_hooks_compatible, configuration_visibility, fastapi_body_parameter_automatic,

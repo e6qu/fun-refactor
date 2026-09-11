@@ -79,8 +79,30 @@ class _Node:
             seen.remove(identity)
 
 
+class TypeNode(_Node):
+    """A value accepted only at an IR type boundary."""
+
+
+class StatementNode(_Node):
+    """A value accepted only at an IR statement boundary."""
+
+
+class ExpressionNode(_Node):
+    """A value accepted only at an IR expression boundary."""
+
+
+class TemplateNode(_Node):
+    """A value accepted only at an interpolated-string part boundary."""
+
+
 def _node(category: str, kind: str, value: Any = _ABSENT) -> _Node:
-    return _Node(category, kind, value)
+    classes = {
+        "type": TypeNode,
+        "statement": StatementNode,
+        "expr": ExpressionNode,
+        "template": TemplateNode,
+    }
+    return classes[category](category, kind, value)
 
 
 def _expect(value: Any, category: str, field: str) -> _Node:
@@ -425,6 +447,7 @@ class SemanticBody:
 
 __all__ = [
     "BinaryOp", "Catch", "EXPRESSION_KINDS", "Expr", "Function", "IrError", "Param",
-    "ParamKind", "SCHEMA", "STATEMENT_KINDS", "SemanticBody", "Stmt", "TEMPLATE_KINDS",
-    "TYPE_KINDS", "TemplatePart", "Type", "UnaryOp", "VariantArm",
+    "ExpressionNode", "ParamKind", "SCHEMA", "STATEMENT_KINDS", "SemanticBody", "StatementNode",
+    "Stmt", "TEMPLATE_KINDS", "TYPE_KINDS", "TemplateNode", "TemplatePart", "Type", "TypeNode",
+    "UnaryOp", "VariantArm",
 ]

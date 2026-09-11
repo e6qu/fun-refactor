@@ -37,6 +37,14 @@ structural observation rather than a behavioral proof.
 
 ## Typed body authoring
 
+Inspect the contract before constructing a body. These commands do not build a project index:
+
+```sh
+fr author semantic-schema
+fr author semantic-schema statement --kind return
+fr author semantic-schema expression --kind binary
+```
+
 `fr author replace-body-semantic HANDLE --from FILE` accepts a source-free body with schema
 `fr-semantic-body-1`:
 
@@ -62,6 +70,24 @@ structural observation rather than a behavioral proof.
 The JSON contract uses kebab-case `kind` tags and `value` payloads. Unknown fields refuse.
 The input may contain at most 512 top-level statements and 4,096 tagged semantic nodes. Any
 `source` field or `unsupported` node refuses, preventing source fragments from crossing this route.
+Run `fr author validate-semantic --from FILE --canonical` before selecting a project. It returns
+the canonical Rust identity, top-level statement count and complete semantic node count.
+
+The zero-dependency package under `sdk/python` mirrors the Rust namespaces while hiding wire-format
+details:
+
+```python
+from fr_ir import BinaryOp, Expr, SemanticBody, Stmt
+
+change = SemanticBody([
+    Stmt.Return(Expr.Binary(BinaryOp.MUL, Expr.Name("value"), Expr.Int(2)))
+])
+change.write("change.json")
+```
+
+`Type`, `Stmt`, `Expr` and `TemplatePart` produce distinct node classes and reject category
+crossings immediately. The package has no `Unsupported` constructor. Its exhaustive fixture covers
+every authorable constructor and passes Rust deserialization and canonical serialization.
 
 The operation selects the existing function model, replaces its IR body and renders one function
 through the writer for the target language. It currently supports the same Rust, Go, Java,
@@ -77,5 +103,7 @@ project-task and task-change manifests.
 The Lean project model proves whole-model budget admission. The Lean author model proves that
 admission requires the exact schema, a supported target, source-free input and bounded size. Shared
 executions cover selected numeric boundaries, every Boolean admission state and the expanded task
-target matrix. These proofs do not cover parser correctness, JSON deserialization, SHA-256 or writer
-semantics.
+target matrix. The anchored catalog model proves uniqueness within each finite category, refusal of
+both unsupported kinds and category separation. All 155 category/index cases agree with Rust.
+These proofs do not cover parser correctness, JSON deserialization, Python execution, SHA-256 or
+writer semantics.

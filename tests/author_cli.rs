@@ -81,6 +81,7 @@ fn semantic_contract_is_bounded_and_selectable_without_a_project() {
     assert_eq!(statement["section"], "statement");
     assert_eq!(statement["variant"]["kind"], "if");
     assert_eq!(statement["variant"]["authorable"], true);
+    assert_eq!(statement["python"]["constructor"], "Stmt.If");
     assert!(statement["variant"]["value"]
         .as_str()
         .unwrap()

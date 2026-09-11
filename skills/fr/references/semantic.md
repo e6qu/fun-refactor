@@ -15,9 +15,25 @@ requires the exact unsupported syntax because it exposes text.
 Pattern rows describe IR shapes such as filter-map, optional-branch, variant-match,
 failure-propagation and deferred-cleanup. Treat `behavior_proved: false` as a firm claim boundary.
 
-For an implementation change, write a strict JSON file with schema `fr-semantic-body-1`. Its `body`
-is a list of tagged statements from the returned model. Keep `kind` and `value`; change only the
-semantic nodes needed for the task. Never add `source` or `unsupported` nodes.
+For an implementation change, inspect only the needed contract entries. `fr author semantic-schema`
+returns the bounded index. Add a section and `--kind` for one exact JSON shape and its Python
+constructor. These calls do not scan a project.
+
+Use the Python SDK when it is available. Its `Type`, `Stmt`, `Expr` and `TemplatePart` namespaces
+match the IR hierarchy and reject category mistakes before serialization:
+
+```python
+from fr_ir import BinaryOp, Expr, SemanticBody, Stmt
+
+change = SemanticBody([
+    Stmt.Return(Expr.Binary(BinaryOp.MUL, Expr.Name("value"), Expr.Int(2)))
+])
+change.write("change.json")
+```
+
+Direct JSON remains a portable route. Write schema `fr-semantic-body-1`; its `body` is a list of
+tagged statements from the returned model. Keep `kind` and `value`. Never add `source` or
+`unsupported` nodes.
 
 ```json
 {
@@ -36,7 +52,8 @@ semantic nodes needed for the task. Never add `source` or `unsupported` nodes.
 }
 ```
 
-Preview `fr author replace-body-semantic HANDLE --from FILE`. Review the rendered diff and writer
+Run `fr author validate-semantic --from FILE --canonical`, then preview
+`fr author replace-body-semantic HANDLE --from FILE`. Review the rendered diff and writer
 fidelity. Save or apply it through the same plan, history and checked-workflow route as other author
 operations. Author batches, project tasks and task changes use operation `replace-body-semantic`.
 The route supports Rust, Go, Java, TypeScript and TSX function-body targets. A refusal means the IR
