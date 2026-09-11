@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import statistics
 import subprocess
 import tempfile
@@ -26,6 +27,10 @@ FILES = {
     "scripts/check.py": "def validate(value: str) -> bool:\n    return bool(value.strip())\n",
 }
 COMMON = ("schema", "revision", "handle_prefix", "coverage", "context_basis", "context_omitted")
+TOKEN_IDENTITIES = {
+    32: hashlib.sha256(b"fr-project-batch-token-32").hexdigest()[:32],
+    64: hashlib.sha256(b"fr-project-batch-token-64").hexdigest(),
+}
 
 
 def digest(data):
@@ -36,10 +41,19 @@ def compact(report):
     return {key: value for key, value in report.items() if key not in COMMON}
 
 
+def canonical_token_text(text):
+    return re.sub(
+        r"(?<![0-9a-f])(?:[0-9a-f]{64}|[0-9a-f]{32})(?![0-9a-f])",
+        lambda match: TOKEN_IDENTITIES[len(match.group(0))],
+        text,
+    )
+
+
 def sizes(texts, encoding):
     return {
         "bytes": sum(len(text.encode()) for text in texts),
-        "tokens": sum(len(encoding.encode(text, disallowed_special=())) for text in texts)
+        "tokens": sum(len(encoding.encode(canonical_token_text(text), disallowed_special=()))
+                      for text in texts)
         if encoding else None,
     }
 
@@ -175,6 +189,11 @@ def measure(binary, repetitions, encoding):
         "fixture": FILES, "manifest": manifest(),
         "tokenizer": {"package": "tiktoken", "version": "0.12.0", "encoding": "o200k_base",
                       "vocabulary_sha256": "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d"} if encoding else None,
+        "token_normalization": {
+            "pattern": "isolated lowercase hexadecimal identities of length 32 or 64",
+            "representatives": {str(length): value for length, value in TOKEN_IDENTITIES.items()},
+            "scope": "token counts only; byte counts and report identities use original output",
+        },
         "summary": summary, "runs": runs, "source_unchanged": True,
         "scope": "Prescribed generic Rust, TypeScript and Python fixture. Eight standalone project calls reuse context_basis; one batch uses a backward handle reference. Batch context includes its request manifest. Reports match after removing the standalone compact-context markers. Cold runs disable the fact cache; warm runs prefill separate per-arm caches. Rotating order does not control OS filesystem cache. Timings are local subprocess wall time. No agent, skill read, task success or population claim.",
     }
@@ -184,6 +203,9 @@ def audit(path):
     report = json.loads(path.read_text())
     assert report["schema"] == "fr-project-batch-context-1" and report["passed"]
     assert report["source_unchanged"] and report["repetitions"] >= 1
+    assert report["token_normalization"]["representatives"] == {
+        str(length): value for length, value in TOKEN_IDENTITIES.items()
+    }
     for name, expected in report["measurement_files"].items():
         assert digest((ROOT / name).read_bytes()) == expected, name
     for policy in POLICIES:

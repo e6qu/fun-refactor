@@ -34,6 +34,11 @@ batch_spec = importlib.util.spec_from_file_location("batch_measurement", TOOLS /
 batch_measurement = importlib.util.module_from_spec(batch_spec)
 batch_spec.loader.exec_module(batch_measurement)
 
+project_batch_spec = importlib.util.spec_from_file_location(
+    "project_batch_context_measurement", TOOLS / "project-batch-context.py")
+project_batch_measurement = importlib.util.module_from_spec(project_batch_spec)
+project_batch_spec.loader.exec_module(project_batch_measurement)
+
 checks_policy_spec = importlib.util.spec_from_file_location("checks_policy_measurement", TOOLS / "checks-policy-context.py")
 checks_policy = importlib.util.module_from_spec(checks_policy_spec)
 checks_policy_spec.loader.exec_module(checks_policy)
@@ -235,6 +240,12 @@ class AgentWorkflowV4Evidence(unittest.TestCase):
 
 
 class ProjectBatchAgentEvidence(unittest.TestCase):
+    def test_token_counts_canonicalize_opaque_identity_spellings(self):
+        first = json.dumps({"revision": "a" * 64, "handle_prefix": "b" * 32})
+        second = json.dumps({"revision": "c" * 64, "handle_prefix": "d" * 32})
+        self.assertEqual(project_batch_measurement.canonical_token_text(first),
+                         project_batch_measurement.canonical_token_text(second))
+
     def test_passing_pair_is_immutable_and_uses_project_batches(self):
         evidence = TOOLS.parent / "tests/agent-eval/results/2026-09-11-project-batch"
         manifest = json.loads((evidence / "manifest.json").read_text())
