@@ -779,6 +779,32 @@ fn workflow_stage_policy_matches_lean_for_every_state_and_stage() {
 }
 
 #[test]
+fn browser_history_transition_policy_matches_lean_exhaustively() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-history-kernel"))
+        .arg("memory-transitions")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let observed = String::from_utf8(output.stdout).unwrap();
+    let observed = observed.lines().collect::<Vec<_>>();
+    let mut expected = Vec::new();
+    for status in 0..4 {
+        for action in 0..3 {
+            for at_top in [false, true] {
+                expected.push(
+                    fun_refactor::transaction_kernel::memory_transition_allowed(
+                        status, action, at_top,
+                    )
+                    .to_string(),
+                );
+            }
+        }
+    }
+    assert_eq!(observed, expected);
+}
+
+#[test]
 fn owner_executable_settings_match_lean_across_permission_bits_and_u32_boundaries() {
     use fun_refactor::history::owner_executable_mode;
     build_kernel();

@@ -18,6 +18,16 @@ pub enum Status {
     Abandoned,
 }
 
+impl Status {
+    fn code(self) -> usize {
+        match self {
+            Self::Applied => 0,
+            Self::Undone => 1,
+            Self::Abandoned => 2,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Change {
     pub path: PathBuf,
@@ -203,14 +213,24 @@ impl History {
     }
 
     pub fn undo(&mut self, id: u32) -> Result<Transition> {
-        if self.applied.last() != Some(&id) {
+        let status = self.record(id)?.status;
+        if !crate::transaction_kernel::memory_transition_allowed(
+            status.code(),
+            0,
+            self.applied.last() == Some(&id),
+        ) {
             bail!("transaction {id} cannot undo; browser undo follows applied stack order");
         }
         self.transition(id, true)
     }
 
     pub fn redo(&mut self, id: u32) -> Result<Transition> {
-        if self.redo.last() != Some(&id) {
+        let status = self.record(id)?.status;
+        if !crate::transaction_kernel::memory_transition_allowed(
+            status.code(),
+            1,
+            self.redo.last() == Some(&id),
+        ) {
             bail!("transaction {id} cannot redo; browser redo follows reversal stack order");
         }
         self.transition(id, false)
@@ -370,19 +390,26 @@ mod tests {
             Some("three")
         );
 
-        crate::vfs::write("a.rs", "outside edit").unwrap();
+        let third = vec![
+            change("a.rs", Some("three"), Some("four")),
+            change("b.rs", Some("stable"), Some("changed")),
+        ];
+        history.ensure_capacity(&third).unwrap();
+        crate::vfs::write("a.rs", "four").unwrap();
+        crate::vfs::write("b.rs", "changed").unwrap();
+        history.push(third);
+        crate::vfs::write("b.rs", "outside edit").unwrap();
         assert!(history
-            .undo(2)
+            .undo(3)
             .unwrap_err()
             .to_string()
             .contains("preserving"));
-        assert_eq!(
-            current(Path::new("a.rs")).unwrap().as_deref(),
-            Some("outside edit")
-        );
+        // All paths were checked before any was written, so the earlier sorted path
+        // remains at its post-transaction value when the later path conflicts.
+        assert_eq!(current(Path::new("a.rs")).unwrap().as_deref(), Some("four"));
         assert_eq!(
             current(Path::new("b.rs")).unwrap().as_deref(),
-            Some("stable")
+            Some("outside edit")
         );
     }
 

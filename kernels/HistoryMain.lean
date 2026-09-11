@@ -1,4 +1,5 @@
 import FrKernels.History
+import FrKernels.MemoryHistory
 import FrKernels.Patch
 import FrKernels.Workflow
 
@@ -57,4 +58,9 @@ def main (args : List String) : IO Unit :=
       for applied in [false, true] do
         for stage in List.range 6 do
           IO.println (FrKernels.Workflow.stageState applied stage)
-  | _ => throw (IO.userError "expected patch-modes, patch-basis, owner-executable, snapshot-modes, workflow-stages or no arguments")
+  | ["memory-transitions"] =>
+      for status in List.range 4 do
+        for action in List.range 3 do
+          for atTop in [false, true] do
+            IO.println (FrKernels.MemoryHistory.transitionAllowed status action atTop)
+  | _ => throw (IO.userError "expected patch-modes, patch-basis, owner-executable, snapshot-modes, workflow-stages, memory-transitions or no arguments")

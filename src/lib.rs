@@ -45,6 +45,7 @@ pub mod span;
 pub mod spec;
 #[cfg(test)]
 pub mod testing;
+pub mod transaction_kernel;
 pub mod translate;
 pub mod transpile;
 #[cfg(feature = "wasm")]
