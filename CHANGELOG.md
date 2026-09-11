@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.17.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.16.0...fun-refactor-v0.17.0) (2026-09-11)
+
+
+### Features
+
+* add a verified change delivery workflow ([#271](https://github.com/e6qu/fun-refactor/issues/271)) ([a289d66](https://github.com/e6qu/fun-refactor/commit/a289d6683768831c3235e49f5bf9708d0c85cf66))
+* **agent:** add context protocol v3 workflows ([#267](https://github.com/e6qu/fun-refactor/issues/267)) ([dfa01ee](https://github.com/e6qu/fun-refactor/commit/dfa01ee9e1e7ea9fd6346e425a0f62b1240b0b8f))
+* **agent:** simplify high-level fr workflows ([#269](https://github.com/e6qu/fun-refactor/issues/269)) ([2a522ea](https://github.com/e6qu/fun-refactor/commit/2a522ea947eff68c5c6a65413a91ff30f7ac680f))
+* **project:** batch bounded snapshot queries ([#270](https://github.com/e6qu/fun-refactor/issues/270)) ([020e1d7](https://github.com/e6qu/fun-refactor/commit/020e1d79284489b57ce6a2067db3970d1acd1eec))
+* **wasm:** add checked browser transaction history ([#272](https://github.com/e6qu/fun-refactor/issues/272)) ([00dcc1d](https://github.com/e6qu/fun-refactor/commit/00dcc1dd9c37cbd10e217f60bb24ebac58353803))
+
 ## [0.16.0](https://github.com/e6qu/fun-refactor/compare/fun-refactor-v0.15.0...fun-refactor-v0.16.0) (2026-09-10)
 
 
