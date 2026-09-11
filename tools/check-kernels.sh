@@ -11,7 +11,7 @@ cd "$(dirname "$0")/.."
     lake exe fr-position-kernel >/dev/null
     lake exe fr-history-kernel >/dev/null
     lake exe fr-history-kernel patch-modes >/dev/null
-lake exe fr-history-kernel snapshot-modes >/dev/null
+    lake exe fr-history-kernel snapshot-modes >/dev/null
     lake exe fr-history-kernel workflow-stages >/dev/null
     lake exe fr-history-kernel task-change-modes >/dev/null
     lake exe fr-history-kernel memory-transitions >/dev/null
@@ -25,6 +25,9 @@ lake exe fr-history-kernel snapshot-modes >/dev/null
     lake exe fr-project-kernel body-replacement-budget >/dev/null
     lake exe fr-project-kernel plan-basis >/dev/null
     lake exe fr-project-kernel handle-selection >/dev/null
+    lake exe fr-project-kernel semantic-sections >/dev/null
+    lake exe fr-project-kernel semantic-author-admission >/dev/null
+    lake exe fr-project-kernel semantic-ir-catalog >/dev/null
     lake exe fr-project-kernel framework-boundaries >/dev/null
     lake exe fr-project-kernel line-ranges >/dev/null
     lake exe fr-project-kernel call-selection >/dev/null

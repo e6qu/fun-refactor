@@ -7,6 +7,10 @@ fn is_false(value: &bool) -> bool {
     !*value
 }
 
+fn is_zero(value: &usize) -> bool {
+    *value == 0
+}
+
 fn is_normal_param(value: &ParamKind) -> bool {
     *value == ParamKind::Normal
 }
@@ -379,7 +383,9 @@ pub enum Stmt {
         value: Expr,
         declares: bool,
         /// The original, for the two writers with no form for this.
+        #[serde(default, skip_serializing_if = "String::is_empty")]
         source: String,
+        #[serde(default, skip_serializing_if = "is_zero")]
         line: usize,
     },
     If {
@@ -409,7 +415,9 @@ pub enum Stmt {
         update: Option<Box<Stmt>>,
         body: Vec<Stmt>,
         /// The original, for a writer that cannot spell this loop.
+        #[serde(default, skip_serializing_if = "String::is_empty")]
         source: String,
+        #[serde(default, skip_serializing_if = "is_zero")]
         line: usize,
     },
     /// `for i, x in enumerate(xs)`, `for (xs, 0..) |x, i|`: each element beside its position,
@@ -475,7 +483,9 @@ pub enum Stmt {
         catches: Vec<Catch>,
         finally: Vec<Stmt>,
         /// The original, for the two writers that have no counterpart for this.
+        #[serde(default, skip_serializing_if = "String::is_empty")]
         source: String,
+        #[serde(default, skip_serializing_if = "is_zero")]
         line: usize,
     },
     Break,

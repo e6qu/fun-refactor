@@ -206,4 +206,47 @@ theorem semantic_body_requires_supported_target
     targetSupported = true := by
   exact (semantic_body_admitted_iff schemaMatches targetSupported sourceFree bounded).mp accepted |>.2.1
 
+def semanticTypeKinds : List String :=
+  ["unit", "bool", "int", "float", "string", "list", "set", "map", "optional", "tuple", "named", "fn"]
+
+def semanticStatementKinds : List String :=
+  ["return", "let", "assign", "tuple-assign", "if", "if-present", "while", "counted-for",
+   "for-each-indexed", "defer", "err-defer", "switch", "match-variants", "while-present",
+   "for-each", "expr", "assert", "comment", "local-function", "block", "throw", "try",
+   "break", "break-with", "continue", "unsupported"]
+
+def semanticExpressionKinds : List String :=
+  ["int", "float", "str", "bool", "null", "name", "field", "index", "call", "binary",
+   "unary", "await", "propagate", "keyword", "cast", "instance-of", "new", "record-lit",
+   "coalesce", "ternary", "variant", "tuple", "list-lit", "map-lit", "template", "lambda",
+   "set-lit", "comprehension", "unsupported"]
+
+def semanticTemplateKinds : List String := ["text", "expr"]
+
+theorem semantic_type_kinds_unique : semanticTypeKinds.Nodup := by decide
+theorem semantic_statement_kinds_unique : semanticStatementKinds.Nodup := by decide
+theorem semantic_expression_kinds_unique : semanticExpressionKinds.Nodup := by decide
+theorem semantic_template_kinds_unique : semanticTemplateKinds.Nodup := by decide
+
+def semanticKindAuthorable (category kind : Nat) : Bool :=
+  match category with
+  | 0 => kind < semanticTypeKinds.length
+  | 1 => kind < semanticStatementKinds.length - 1
+  | 2 => kind < semanticExpressionKinds.length - 1
+  | 3 => kind < semanticTemplateKinds.length
+  | _ => false
+
+theorem unsupported_statement_is_refused : semanticKindAuthorable 1 25 = false := by decide
+theorem unsupported_expression_is_refused : semanticKindAuthorable 2 28 = false := by decide
+
+structure SemanticKindRef where
+  category : Nat
+  kind : Nat
+deriving DecidableEq
+
+theorem semantic_categories_remain_distinct (left right kind : Nat) (different : left ≠ right) :
+    SemanticKindRef.mk left kind ≠ SemanticKindRef.mk right kind := by
+  intro equal
+  exact different (congrArg SemanticKindRef.category equal)
+
 end FrKernels.Author
