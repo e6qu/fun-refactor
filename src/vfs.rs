@@ -185,7 +185,6 @@ pub fn write(path: impl AsRef<Path>, contents: impl AsRef<str>) -> io::Result<()
     backing::write(path, contents)
 }
 
-/// Remove one file.
 pub fn remove(path: impl AsRef<Path>) -> io::Result<()> {
     let path = path.as_ref();
     through_memory!(remove(path));

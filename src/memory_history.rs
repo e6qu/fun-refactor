@@ -1,5 +1,3 @@
-//! Checked transaction history for a workspace held entirely in memory.
-
 use anyhow::{bail, ensure, Context, Result};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -132,11 +130,11 @@ impl History {
     pub fn ensure_capacity(&self, changes: &[Change]) -> Result<()> {
         ensure!(
             !changes.is_empty(),
-            "a transaction must change at least one file"
+            "a transaction must change at least one file."
         );
         ensure!(
             changes.len() <= 1024,
-            "a transaction exceeds 1024 changed files"
+            "a transaction exceeds 1024 changed files."
         );
         let mut paths = BTreeSet::new();
         ensure!(
@@ -145,20 +143,20 @@ impl History {
                     && paths.insert(&change.path)
                     && change.before != change.after
             }),
-            "a transaction has a duplicate or unchanged path"
+            "a transaction has a duplicate or unchanged path."
         );
         let bytes = changes.iter().map(snapshot_bytes).sum::<usize>();
         ensure!(
             bytes <= MAX_RECORD_BYTES,
-            "a transaction exceeds the 16 MiB snapshot limit"
+            "a transaction exceeds the 16 MiB snapshot limit."
         );
         ensure!(
             self.records.len() < MAX_RECORDS,
-            "browser history reached its 256-record limit"
+            "browser history reached its 256-record limit."
         );
         ensure!(
             self.bytes.saturating_add(bytes) <= MAX_HISTORY_BYTES,
-            "browser history reached its 64 MiB snapshot limit"
+            "browser history reached its 64 MiB snapshot limit."
         );
         Ok(())
     }
@@ -219,7 +217,7 @@ impl History {
             0,
             self.applied.last() == Some(&id),
         ) {
-            bail!("transaction {id} cannot undo; browser undo follows applied stack order");
+            bail!("transaction {id} cannot undo; browser undo follows applied stack order.");
         }
         self.transition(id, true)
     }
@@ -231,7 +229,7 @@ impl History {
             1,
             self.redo.last() == Some(&id),
         ) {
-            bail!("transaction {id} cannot redo; browser redo follows reversal stack order");
+            bail!("transaction {id} cannot redo; browser redo follows reversal stack order.");
         }
         self.transition(id, false)
     }
@@ -242,7 +240,7 @@ impl History {
             let expected = if undo { &change.after } else { &change.before };
             ensure!(
                 current(&change.path)? == *expected,
-                "{} changed after transaction {id}; preserving the current workspace",
+                "{} changed after transaction {id}; preserving the current workspace.",
                 change.path.display()
             );
         }
@@ -404,8 +402,6 @@ mod tests {
             .unwrap_err()
             .to_string()
             .contains("preserving"));
-        // All paths were checked before any was written, so the earlier sorted path
-        // remains at its post-transaction value when the later path conflicts.
         assert_eq!(current(Path::new("a.rs")).unwrap().as_deref(), Some("four"));
         assert_eq!(
             current(Path::new("b.rs")).unwrap().as_deref(),

@@ -11,11 +11,32 @@ Release PR 260 then published the completed roadmap state from `main`.
 PR 7, Context-Competitive Agent Workflow, merged as GitHub PR 267.
 PR 8, Agent Workflow Simplification, merged as GitHub PR 269.
 PR 9, Bounded Project Query Batches, merged as GitHub PR 270.
-The current `agent_change_workflow` branch is roadmap PR 10, Verified Change Workflow.
-It targets the remaining change-and-delivery overhead in the retained agent trials. One bounded
-manifest will bind a saved transaction, reviewed checks, optional reversal exercise and delayed
-Git patch output. The workflow will preflight all inputs before mutation, reuse durable history
-transitions, stop at a reported state on failure and create the patch only after requested checks pass.
+PR 10, Verified Change Workflow, merged as GitHub PR 271.
+The current `browser_transaction_history` branch is roadmap PR 11. It adds bounded transaction
+identity, checked one-step undo/redo and shared Rust Git patch export to the in-memory WASM workspace.
+The playground consumes those APIs directly and no longer owns a separate TypeScript diff engine.
+
+The browser journal keeps exact optional text snapshots, applied and redo stacks, a stable `frmb1:`
+basis and applied, undone or abandoned record status. Undo and redo verify every selected path before
+writing any path. Generated files are removed on undo and recreated on redo; a new edit abandons the
+redo stack. Limits are 256 records, 1,024 paths and 16 MiB per transaction, and 64 MiB retained.
+Cumulative and per-transaction patches use the same renderer as native source history.
+
+`FrKernels.MemoryHistory` anchors the finite transition policy and proves status/action restrictions,
+non-top and abandoned refusal, atomic abstract multi-snapshot refusal and complete apply/undo
+restoration. All 24 representative status/action/top combinations agree with Rust. Focused host-WASM
+tests cover stack order, conflicts, existence changes, redo abandonment, cumulative folding and API
+reports. The playground compiles against the new interface; its real WASM/Git acceptance runs in CI
+because this Mac's installed clang has no wasm32 backend.
+
+PR 11 also carries the PR 10 native-CI repair. The evaluator now accepts only its bounded JSON
+indexing-progress messages on stderr, includes them in measured visible output and still rejects
+arbitrary diagnostics. The exact CI agent-acceptance command passes locally.
+
+PR 10 targeted the remaining change-and-delivery overhead in the retained agent trials. Its bounded
+manifest binds a saved transaction, reviewed checks, optional reversal exercise and delayed Git patch
+output. The workflow preflights all inputs before mutation, reuses durable history transitions, stops
+at a reported state on failure and creates the patch only after requested checks pass.
 
 The first four checkpoints add `fr workflow --from MANIFEST`. Preview verifies one planned
 transaction, its complete `frtb2:` basis, an exact declared-check selection, patch rendering and a
@@ -966,5 +987,5 @@ Both arms pass, while `fr` uses 33.3% more measured context and 22 more calls in
 Use its refused path guesses, help calls and repeated inspection to simplify authoring discovery
 before spending quota on another autonomous cohort.
 Keep portable skill references selective and executable against the distributed binary.
-PR 7 merged as GitHub PR 267. PR 8 is ready for review on `agent_workflow_v4`; after merge,
-choose the next M2 context-efficiency or M4 authoring outcome in [PLAN.md](../PLAN.md).
+PRs 7 through 10 merged as GitHub PRs 267, 269, 270 and 271. PR 11 is the current browser
+transaction-history work; [PLAN.md](../PLAN.md) is the authoritative active delivery plan.

@@ -24,7 +24,6 @@ pub struct Workspace {
     facts: std::collections::BTreeMap<PathBuf, (Language, crate::model::FileFacts)>,
     /// Files whose language this build has no grammar for.
     unsupported: Vec<String>,
-    /// Checked, bounded refactoring transactions for this browser session.
     history: crate::memory_history::History,
 }
 
@@ -438,13 +437,11 @@ impl Workspace {
         crate::vfs::read_to_string(PathBuf::from(path)).unwrap_or_default()
     }
 
-    /// The bounded transaction journal for this browser session.
     pub fn history(&self) -> String {
         self.enter();
         ok(&self.history.summary())
     }
 
-    /// Undo the latest applied transaction after verifying its selected files.
     pub fn undo(&mut self, transaction: u32) -> String {
         self.enter();
         let transition = match self.history.undo(transaction) {
@@ -462,7 +459,6 @@ impl Workspace {
         ok(&transition)
     }
 
-    /// Reapply the latest undone transaction after verifying its selected files.
     pub fn redo(&mut self, transaction: u32) -> String {
         self.enter();
         let transition = match self.history.redo(transaction) {
@@ -480,7 +476,6 @@ impl Workspace {
         ok(&transition)
     }
 
-    /// Export one transaction through the same Git text renderer as native history.
     pub fn transaction_patch(&self, transaction: u32, reverse: bool) -> String {
         self.enter();
         match self.history.patch(transaction, reverse) {
@@ -489,7 +484,6 @@ impl Workspace {
         }
     }
 
-    /// Export all currently applied transactions from the loaded workspace basis.
     pub fn patch(&self) -> String {
         self.enter();
         match self.history.current_patch() {

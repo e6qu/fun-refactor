@@ -148,7 +148,6 @@ fn translating_writes_the_new_file_into_the_workspace() {
         "the route has to travel with the result: {applied}"
     );
 
-    // The new file is in the workspace and indexed.
     let files = json(&ws.files());
     assert!(
         files

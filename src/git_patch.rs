@@ -1,5 +1,3 @@
-//! Git text patches shared by native history and in-memory workspaces.
-
 use anyhow::{bail, Context, Result};
 use std::fmt::Write;
 use std::path::Path;
@@ -52,7 +50,6 @@ fn mode_change_supported(before: Snapshot<'_>, after: Snapshot<'_>) -> bool {
     changed & !0o111 == 0 && (changed == 0 || mode(before) != mode(after))
 }
 
-/// Render complete snapshots as a Git-compatible UTF-8 text patch.
 pub fn render(changes: &[Change<'_>], reverse: bool) -> Result<String> {
     let mut changes = changes.to_vec();
     changes.sort_by(|a, b| a.path.cmp(b.path));
