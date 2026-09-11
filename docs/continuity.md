@@ -40,6 +40,19 @@ The skill checker creates the documented artifact, runs the batch through the bu
 all request outcomes and enforces the 256-byte nested source limit. The portable bundle now has 43
 executable shell examples. CLI and Lean documentation state the reconstruction and proof boundaries.
 
+The fourth checkpoint retains `tests/agent-eval/project-batch-context.json`. A generic Rust,
+TypeScript and Python fixture requests structure, an exact declaration, referenced source, incoming
+calls, test candidates, packages, dependencies and gaps. Eight standalone calls already reuse the
+first response's `context_basis`; the batch includes its 794-byte manifest in counted context.
+All eight normalized reports have identical SHA-256 identities in both arms and source stays unchanged.
+Across three rotating repetitions, median context is 2,755 tokens for separate calls and 2,500 for
+the batch, a 255-token or 9.3% reduction. Calls fall from eight to one. Median local subprocess time
+is 0.420 versus 0.054 seconds with the fact cache disabled and 0.051 versus 0.008 seconds after each
+arm's separate cache is prewarmed. The release binary digest is
+`dafd9b8b557dc63658e3b8c94820e5f9a3b3c7b8f0371daa2454a0d341f068d4`.
+The audit recomputes every measurement-source digest, paired report identity and summary statistic.
+OS filesystem cache, agent adaptation, skill loading and task success remain outside this prescribed evidence.
+
 The historical PR 8 work follows.
 It follows the fresh passing PR 7 trace: seven failed or refused requests, repeated symbol
 inspection and ambiguous artifact references account for the first concrete reductions.

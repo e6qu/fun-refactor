@@ -87,6 +87,13 @@ With quiet successful streams and declarations retained, mean context is 14,194.
 With declarations omitted after review, the means are 13,278.5 and 6,810.
 The normalized fixed action sequence therefore leaves a 6,468.5-token mean `fr` gap.
 
+The PR 9 controlled broad-query fixture compares eight separate project calls, already reusing a
+reviewed `context_basis`, with one query batch. Every normalized nested report matches. Including
+the batch manifest, median counted context falls from 2,755 to 2,500 tokens, a 9.3% reduction, while
+calls fall from eight to one. Median local subprocess time falls from 0.420 to 0.054 seconds with the
+fact cache disabled and from 0.051 to 0.008 seconds with separate prewarmed caches. This prescribed
+three-repetition fixture supports a fresh workflow trial; it is not agent-success or population evidence.
+
 This projection explains the original aggregate result but does not predict how agents adapt to shared instructions.
 It makes repeated skill, inspection and transaction output the immediate optimization target.
 The [coordinated evaluation](docs/agent-coordinated-evaluation.md) contains the protocol, retained evidence and limits.
@@ -228,7 +235,7 @@ Planned checkpoints:
    budgeting, adversarial CLI regressions and a Lean-backed admission predicate.
 2. **Complete.** Add backward result references so one batch can discover and then inspect exact handles.
 3. **Complete.** Add portable skill guidance, executable examples and complete CLI/formal documentation.
-4. Retain a controlled separate-versus-batch measurement with immutable payload and binary digests.
+4. **Complete.** Retain a controlled separate-versus-batch measurement with immutable payload and binary digests.
 5. Exercise the route in a fresh broad-exploration pair if the controlled evidence justifies quota use.
 
 ## Formal verification policy

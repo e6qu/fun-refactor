@@ -295,3 +295,35 @@ The full native/WASM gate passes, including all 131 project CLI scenarios and 31
 Strict verification retains twenty-three fresh source anchors and signature maps, zero obligations and 31 Lean build jobs.
 M4s added no new Lean proof; its digest correspondence rested on the explicit byte tests and controlled report comparisons above.
 M4t adds [revision buffer model proofs](lean-specs.md#revision-buffer-kernels) and shared state comparisons without replacing this timing evidence.
+
+## Bounded heterogeneous query batches
+
+Roadmap PR 9 adds `project batch` after fresh agent traces showed repeated project construction and
+inspection calls. The retained [measurement](../tests/agent-eval/project-batch-context.json) uses a
+generic fixture with Rust, TypeScript and Python source plus a Cargo manifest. Its eight queries ask
+for the hierarchy, one exact declaration, that declaration's source, incoming calls, test candidates,
+packages, declared dependencies and gaps. The batch carries the lookup handle into later requests
+through a backward JSON Pointer.
+
+The separate arm is an optimized baseline: its first response supplies `context_basis`, and the
+remaining seven responses omit the reviewed revision, handle prefix and coverage. The batch arm
+counts both its visible tool request and its 794-byte manifest. After removing only the standalone
+compact-context markers, every corresponding report has the same SHA-256 in both arms.
+
+| Cache policy | Separate | Batch | Difference |
+|---|---:|---:|---:|
+| Calls | 8 | 1 | 7 fewer |
+| Median counted context | 2,755 tokens | 2,500 tokens | 255 tokens (9.3%) fewer |
+| Median counted context | 8,603 bytes | 8,285 bytes | 318 bytes (3.7%) fewer |
+| Fact cache disabled | 0.420 s | 0.054 s | 87.1% lower local wall time |
+| Separate prewarmed caches | 0.051 s | 0.008 s | 84.0% lower local wall time |
+
+Each policy has three runs with rotating arm order. The release binary, tokenizer vocabulary,
+measurement sources, fixture, manifest, per-query report identities and raw run metrics are bound in
+the artifact. `tools/project-batch-context.py --audit` recomputes source digests, pair equality and
+every summary statistic. A live one-repetition comparison runs in the default acceptance suite.
+
+The timings measure local subprocess wall time. Separate warmups isolate the fact cache per arm, but
+OS filesystem caching remains uncontrolled. The measurement prescribes queries; it has no agent,
+skill-read, discovery, behavioral-change or population-success claim. Its fixed broad route is enough
+to justify testing whether a fresh agent adopts the command before attributing workflow savings.

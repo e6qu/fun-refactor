@@ -72,4 +72,9 @@ fn batched_project_queries_match_separate_compact_reports() {
         "--repetitions",
         "1",
     ]);
+    python(&[
+        "tools/project-batch-context.py",
+        "--audit",
+        "tests/agent-eval/project-batch-context.json",
+    ]);
 }
