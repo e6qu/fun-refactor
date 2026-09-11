@@ -74,6 +74,7 @@ through source and semantic bodies. Both use five calls and produce identical fi
 bytes. The semantic route exposes zero source bytes; the source route exposes 48. On this tiny body,
 semantic output is 4,391 bytes versus 4,222 and its typed input is 179 bytes versus 26. This is a
 measured context premium, so broader compact addressing and a fresh agent trial remain future work.
+The complete native, documentation, skill, capability, Lean and WASM repository gate passes.
 
 The first three PR 12 checkpoints add `fr project task --from MANIFEST`. It reuses one project-batch
 snapshot for up to sixteen heterogeneous queries, then resolves up to sixteen exact file or
