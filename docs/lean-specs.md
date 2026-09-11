@@ -468,6 +468,13 @@ the existing workflow theorem, so every accepted generated lifecycle finishes ap
 host stages succeed. Rust and Lean agree on all sixteen boolean inputs. Hashing, parsing, project
 construction, check processes, history persistence and filesystem operations remain host-tested.
 
+Semantic project reports add two anchored policies. `semanticSectionFits` proves that an admitted
+model fits the complete node budget and rejects a short budget. `semanticBodyAdmitted` proves that
+typed authoring requires the declared schema, a supported target, source-free input and its size
+bound. Rust and Lean share selected numeric boundaries, all sixteen Boolean admission states and
+the expanded task target matrix. Parser, serializer, hash and writer correspondence remain outside
+these models.
+
 ## Formalization order
 
 Extend the edit and position models with general laws that their callers need.

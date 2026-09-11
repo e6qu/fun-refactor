@@ -28,9 +28,9 @@ A supported pair describes the accepted operation scope; individual inputs can s
 |---|---|---|---|
 | M0 safe writes | Complete | Recoverable multi-file commits and structured failure evidence | Maintained as a shared write invariant |
 | M1 undo and redo | Complete | Persistent native transactions plus bounded in-memory browser transactions, conflict checks, apply, undo and redo | Native retention and large-journal work continues in Git lifecycle work |
-| M2 compact project understanding | In progress | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests and Cargo workspace evidence | Lower repeated-query/context cost and broaden dependency and contract evidence |
+| M2 compact project understanding | In progress | Bounded maps, symbols, packages, dependencies, calls, routes, contracts, schemas, tests and Cargo workspace evidence | Expose a bounded semantic model and lower repeated-query/context cost |
 | M3 Git integration | Complete | Patches, repository views, staging history, reviewed commits and durable owned-worktree lifecycle | Maintained as a shared repository invariant |
-| M4 agent workflow | In progress | Portable skill, bounded authoring, multi-file batches, checks and twenty-two passing autonomous trials | Make context use competitive and extend authoring scope |
+| M4 agent workflow | In progress | Portable skill, reviewed task changes, bounded authoring, checks and twenty-two passing autonomous trials | Make context use competitive and replace source-fragment authoring with typed semantic operations |
 | M5 Lean adoption | Complete | Pinned package initialization, anchored model scaffolds, regeneration, proof-debt ratchets, generated CI and bounded evidence reports | Maintain the trust boundary and extend the documented model subset as real projects require it |
 | M6 framework transformation | Complete | Shared code IR, route/page feature hierarchies, Lean-backed framework policies, revision-bound migration, reversible registration, dependency and cutover edits, transaction-bound project checks, plus pinned two-way runtime fixtures | Maintain the bounded framework subset and add new pairs from evidence |
 
@@ -158,7 +158,7 @@ The identifiers remain stable for references in defect records.
 
 ## Delivery plan
 
-The first packaged roadmap is complete. Thirteen merged pull requests established the product foundation and its first measured workflow reduction:
+The first packaged roadmap is complete. Fourteen merged pull requests established the product foundation and its first measured workflow reduction:
 
 | PR | Outcome | Status |
 |---|---|---|
@@ -175,9 +175,10 @@ The first packaged roadmap is complete. Thirteen merged pull requests establishe
 | [PR 10](https://github.com/e6qu/fun-refactor/pull/271) | Verified Change Workflow | Merged |
 | [PR 11](https://github.com/e6qu/fun-refactor/pull/272) | Browser Transaction History | Merged |
 | [PR 12](https://github.com/e6qu/fun-refactor/pull/273) | Revision-Bound Agent Task Bundles | Merged |
+| [PR 13](https://github.com/e6qu/fun-refactor/pull/275) | Reviewed Agent Task Changes | Merged |
 
-The second package now joins task discovery to reviewed execution. Measured use will determine later
-PRs instead of preassigning command shapes before their need is clear.
+The second package now moves the existing internal semantic representation onto the public agent
+surface and uses it for source-free authoring. Later shapes remain evidence-driven.
 
 Git history and [development continuity](docs/continuity.md) retain checkpoint-level detail.
 
@@ -402,7 +403,7 @@ Planned checkpoints:
 
 ### PR 13. Reviewed Agent Task Changes
 
-Status: complete on `agent_task_change`; ready for review.
+Status: merged as [PR 275](https://github.com/e6qu/fun-refactor/pull/275).
 
 Goal: let an agent preview and execute one task change without manually translating task evidence
 into separate author and workflow manifests.
@@ -440,6 +441,55 @@ Planned checkpoints:
 3. **Complete.** Add the Lean policy and exhaustive Rust correspondence cases.
 4. **Complete.** Update CLI, portable skill and continuity documentation with an executable generic fixture.
 5. **Complete.** Retain a controlled comparison and pass the complete repository gate.
+
+### PR 14. Semantic Agent Model and Authoring
+
+Status: in review as [PR 276](https://github.com/e6qu/fun-refactor/pull/276).
+
+Goal: let an agent inspect and change supported program behavior through versioned semantic data
+without reading or writing language-specific source text.
+
+Deliverables:
+
+- Publish the existing cross-language module, declaration, type, statement and expression IR as a
+  versioned JSON contract with canonical encoding.
+- Add a revision-bound project query for a file or declaration. Omit bodies by default, admit a
+  complete requested body under a node budget and redact unsupported source unless explicitly requested.
+- Give returned declarations and nested semantic nodes stable revision-bound JSON-pointer addresses.
+  Report coverage, unsupported constructs, omissions, fidelity and exact semantic identity.
+- Identify generic functional and effect patterns already represented by the IR, including
+  comprehensions, optional binding, variant matching, propagation, deferred cleanup and exception regions.
+- Accept a typed semantic body for existing multi-language body targets and render it through the
+  target writer. Reuse the established parser, splice, preservation and transaction checks.
+- Carry semantic body replacement through author batches and the reviewed `task-change` lifecycle,
+  binding the semantic payload, rendered body, project revision, checks and delivery choices.
+- Add Lean-backed semantic report and author-admission policies with exhaustive Rust correspondence.
+- Teach the portable skill the source-free route and measure it against bounded source-fragment authoring
+  on generic fixtures. Run a fresh economical-agent comparison only after deterministic evidence passes.
+
+Verification and acceptance:
+
+1. Default semantic reports contain no source body, source fragment or unsupported source text.
+2. Every returned body is a complete IR subtree. A budget refusal reports the required node count
+   instead of clipping JSON or silently dropping children.
+3. Semantic handles and pointers refuse after source, scan-option, selection or payload drift.
+4. Semantic authoring accepts only the declared IR schema and supported target languages, refuses
+   unsupported nodes, and reparses the rendered body in its unchanged destination context.
+5. Bytes outside the selected body remain identical. Preview remains read-only; write requires the
+   unchanged complete basis and retains apply, check, undo, redo and patch identity.
+6. Pattern reports describe syntax-derived semantic shapes and make no unproved behavior claim.
+7. Lean models the finite report and author admission boundaries, with complete Rust/Lean cases.
+8. Native, WASM, documentation, skill, capability and strict Lean gates pass.
+
+Planned checkpoints:
+
+1. **Complete.** Freeze the public semantic schema, source-redaction boundary, addressing and budgets.
+2. **Complete.** Add bounded semantic project reports and generic pattern evidence.
+3. **Complete.** Add typed semantic body rendering and author-batch support.
+4. **Complete.** Integrate semantic targets with reviewed task changes and lifecycle drift checks.
+5. **Complete.** Add Lean policies and exhaustive Rust correspondence.
+6. **Complete.** Update CLI, portable skill and continuity documentation; retain controlled context evidence.
+7. **Complete.** Pass the complete repository gate and publish the large PR for review.
 
 ## Formal verification policy
 

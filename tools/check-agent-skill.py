@@ -23,6 +23,7 @@ ROUTES = {
     "author-recovery": ["SKILL.md", "references/author.md", "references/checks.md",
                         "references/history.md", "references/recovery.md", "references/git.md"],
     "exploration": ["SKILL.md", "references/explore.md", "references/batch.md"],
+    "semantic": ["SKILL.md", "references/semantic.md", "references/author.md"],
     "task": ["SKILL.md", "references/task.md", "references/batch.md"],
     "lean": ["SKILL.md", "references/lean.md"],
     "git-admin": ["SKILL.md", "references/git.md", "references/git-admin.md"],

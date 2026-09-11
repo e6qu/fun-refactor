@@ -479,11 +479,11 @@ theorem batch_section_rejects_exhausted_budget (used next budget : Nat)
   simp [batchSectionFits]
   omega
 
--- fr:spec src/project/task.rs::task_author_target_candidate @ 107db385cd0af76cb9f937f9ff188f4b6ad79f611b9aeb17c1fce1a24d2a73f2
+-- fr:spec src/project/task.rs::task_author_target_candidate @ 42793ab0a8d9b8b6b7d89061798611405395e2b4feda2741f91d1f81f458d7cb
 -- fr:signature operation: usize => operation: Nat; language: usize => language: Nat; target: usize => target: Nat; return: bool => return: Bool
 def taskAuthorTargetCandidate (operation : Nat) (language : Nat) (target : Nat) : Bool :=
   match operation with
-  | 0 => decide ((language = 0 ∨ language = 1 ∨ language = 3 ∨ language = 4 ∨ language = 5) ∧
+  | 0 | 4 => decide ((language = 0 ∨ language = 1 ∨ language = 3 ∨ language = 4 ∨ language = 5) ∧
       (target = 1 ∨ target = 2 ∨ (language = 4 ∨ language = 5) ∧ target = 3))
   | 1 => decide (language = 0 ∧ (target = 1 ∨ target = 2))
   | 2 => decide (language = 0 ∧ (target = 0 ∨ target = 2 ∨ target = 4 ∨ target = 5))
@@ -503,6 +503,28 @@ theorem insert_declaration_target_iff (language target : Nat) :
 theorem organize_imports_requires_file (language target : Nat)
     (accepted : taskAuthorTargetCandidate 3 language target = true) : target = 0 := by
   simpa [taskAuthorTargetCandidate] using accepted
+
+theorem semantic_body_targets_match_source_body_targets (language target : Nat) :
+    taskAuthorTargetCandidate 4 language target =
+      taskAuthorTargetCandidate 0 language target := by
+  simp [taskAuthorTargetCandidate]
+
+-- fr:spec src/project/semantic.rs::semantic_section_fits @ 175885c4aca0b4b28a0b6793cbdbaba945b5216abf4903d348c15cf2e56a4a25
+-- fr:signature required: usize => required: Nat; budget: usize => budget: Nat; return: bool => return: Bool
+def semanticSectionFits (required : Nat) (budget : Nat) : Bool := decide (required ≤ budget)
+
+theorem semantic_section_fits_iff (required budget : Nat) :
+    semanticSectionFits required budget = true ↔ required ≤ budget := by
+  simp [semanticSectionFits]
+
+theorem semantic_section_never_clips (required budget : Nat)
+    (accepted : semanticSectionFits required budget = true) : required ≤ budget := by
+  exact (semantic_section_fits_iff required budget).mp accepted
+
+theorem semantic_section_rejects_short_budget (required budget : Nat)
+    (short : budget < required) : semanticSectionFits required budget = false := by
+  simp [semanticSectionFits]
+  omega
 
 -- fr:spec src/project.rs::body_replacement_budget @ aab2e9e5858491c8ab262936994086babac8d14f8ae79fecd5e36b96897d65b3
 -- fr:signature before: usize => before: Nat; after: usize => after: Nat; return: bool => return: Bool

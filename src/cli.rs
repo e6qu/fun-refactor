@@ -2251,6 +2251,7 @@ fn cmd_project(cli: &Cli, command: &crate::project::Command) -> Result<()> {
         let mut report = project.report(command)?;
         project.verify(root)?;
         context.apply(&mut report)?;
+        crate::project::minimize_semantic_report(command, &mut report);
         println!("{}", serde_json::to_string(&report)?);
         Ok(())
     })
@@ -2375,6 +2376,7 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
     let (write, diff_bytes) = match command {
         Command::Guide => unreachable!(),
         Command::ReplaceBody(options)
+        | Command::ReplaceBodySemantic(options)
         | Command::ReplaceDeclaration(options)
         | Command::InsertDeclaration(options) => (options.write, options.diff_bytes),
         Command::Batch(options) => (options.write, options.diff_bytes),
@@ -2392,6 +2394,7 @@ fn cmd_author(cli: &Cli, command: &crate::project::author::Command) -> Result<()
         let mut plan = match command {
             Command::Guide => unreachable!(),
             Command::ReplaceBody(options) => project.replace_body(options)?,
+            Command::ReplaceBodySemantic(options) => project.replace_body_semantic(options)?,
             Command::ReplaceDeclaration(options) => project.replace_declaration(options)?,
             Command::InsertDeclaration(options) => project.insert_declaration(options)?,
             Command::Batch(options) => project.author_batch(options)?,

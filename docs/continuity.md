@@ -21,7 +21,7 @@ one bounded, revision-bound task contract that composes project queries, exact t
 conservative authoring eligibility, declared checks and ready delivery templates. Its purpose is to
 remove the path guessing, repeated help and repeated inspection observed in the latest agent traces.
 
-The completed `agent_task_change` branch is roadmap PR 13. It joins exact targets, concrete fragments,
+PR 13 merged as GitHub PR 275. It joins exact targets, concrete fragments,
 postconditions, declared checks, reversal and patch delivery into one reviewed task-change lifecycle.
 Preview must remain read-only. Write must require the unchanged complete basis before it records and
 executes the transaction through the existing checked workflow.
@@ -48,6 +48,33 @@ Across three rotating repetitions, calls fall from five to two. Median counted c
 stage results, normalized history, source and patch identities. Task change additionally binds its
 selected checks to the planned transaction. This is prescribed workflow evidence without an agent claim.
 The complete native, WASM, documentation, skill, capability and strict Lean repository gate passes.
+
+The current `agent_semantic_ir` branch is roadmap PR 14. It exposes the internal cross-language IR
+as bounded, revision-bound agent data and adds the first source-free authoring route, generic pattern
+evidence, reviewed task-change integration, Lean admission models and controlled context evidence.
+
+PR 14 now publishes `fr-semantic-model-1` through `fr project semantic`. Reports omit bodies by
+default, return only complete requested models under a 4,096-node ceiling, redact unsupported source
+and bind nested JSON-pointer addresses to `frsm1:` identities. Direct file-plus-declaration lookup
+and `--minimal` remove a preliminary call and optional generic envelope. Generic pattern rows report
+IR shapes without claiming behavior proofs.
+
+`fr author replace-body-semantic` accepts strict `fr-semantic-body-1` statement lists and rejects
+source fields, unsupported nodes, oversized inputs, unsupported targets, carried source and writers
+that emit more than one outer function. Rust, Go, Java, TypeScript and TSX pass one shared body
+matrix. Author batches and reviewed task changes retain semantic input and render identities through
+the existing checked apply, undo, redo and patch lifecycle.
+
+Lean anchors whole-model budget admission and source-free semantic author admission. Selected
+numeric boundaries, every Boolean admission state and the expanded task target matrix agree with
+Rust. Strict verification currently reports 61 fresh anchors and zero proof obligations.
+
+The retained `tests/agent-eval/semantic-context.json` comparison makes the same generic Rust change
+through source and semantic bodies. Both use five calls and produce identical final source and patch
+bytes. The semantic route exposes zero source bytes; the source route exposes 48. On this tiny body,
+semantic output is 4,391 bytes versus 4,222 and its typed input is 179 bytes versus 26. This is a
+measured context premium, so broader compact addressing and a fresh agent trial remain future work.
+The complete native, documentation, skill, capability, Lean and WASM repository gate passes.
 
 The first three PR 12 checkpoints add `fr project task --from MANIFEST`. It reuses one project-batch
 snapshot for up to sixteen heterogeneous queries, then resolves up to sixteen exact file or

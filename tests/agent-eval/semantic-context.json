@@ -1,0 +1,33 @@
+{
+  "schema": "fr-semantic-context-1",
+  "passed": true,
+  "binary_sha256": "265fb5023f651f22e5164d1b55afd4cb439bebce43083d02543d90a0c8a8486d",
+  "fixture": "generic Rust function-body change with an unrelated declaration",
+  "source_fragment": {
+    "calls": 5,
+    "visible_output_bytes": 4222,
+    "request_bytes": 357,
+    "input_bytes": 26,
+    "source_text_bytes_exposed": 48,
+    "semantic_report_bytes": 0,
+    "semantic_nodes": null,
+    "source_sha256": "078ac0fa83d7b1d344c7c8b2138e019d6b2c8d9d1d1530f74dc7889331769b3c",
+    "patch_sha256": "03594758ed95f9fbb62abc66a61ae44c15d1be884237ef70f565d35a7fcfb96a"
+  },
+  "semantic_body": {
+    "calls": 5,
+    "visible_output_bytes": 4391,
+    "request_bytes": 389,
+    "input_bytes": 179,
+    "source_text_bytes_exposed": 0,
+    "semantic_report_bytes": 954,
+    "semantic_nodes": 7,
+    "source_sha256": "078ac0fa83d7b1d344c7c8b2138e019d6b2c8d9d1d1530f74dc7889331769b3c",
+    "patch_sha256": "03594758ed95f9fbb62abc66a61ae44c15d1be884237ef70f565d35a7fcfb96a"
+  },
+  "claims": [
+    "Both routes produce identical changed source and Git patch bytes.",
+    "The semantic route exposes no source text and retains complete typed nodes.",
+    "Byte counts describe deterministic CLI payloads, not model tokens or agent success."
+  ]
+}
