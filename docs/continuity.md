@@ -53,6 +53,19 @@ each arm's separate cache is prewarmed. The release binary digest is
 The audit recomputes every measurement-source digest, paired report identity and summary statistic.
 OS filesystem cache, agent adaptation, skill loading and task success remain outside this prescribed evidence.
 
+The fifth checkpoint retains a fresh Luna-low pair on the pinned regex workspace. Both prompts ask
+for package hierarchy, exact declarations, incoming uses, tests and reported gaps before editing.
+The `fr` arm follows the shipped Explore and Batch route; the files arm uses bounded ordinary tools.
+Both agents pass the 1,060-case oracle, all declared checks, exact undo and redo, and clean receiver
+comparison. The `fr` arm uses 22,185 context tokens and 45 calls. The files arm uses 19,610 tokens
+and 27 calls. `fr` inspection output is 3,535 tokens smaller, while skill and change delivery leave
+a 2,575-token total premium in this single directed pair.
+
+The `fr` agent runs a six-view batch and a self-contained eight-view batch. One intervening batch
+fails because it tries to reference an earlier invocation. The agent corrects it without human help.
+The Batch route now states that references stay inside one manifest and start at its report root.
+The retained prompt variant, full streams, patches, scores and manifest bind the exact conditions.
+
 The historical PR 8 work follows.
 It follows the fresh passing PR 7 trace: seven failed or refused requests, repeated symbol
 inspection and ambiguous artifact references account for the first concrete reductions.

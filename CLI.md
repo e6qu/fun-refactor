@@ -780,8 +780,9 @@ with 16384 argument bytes across the batch. `manifest_basis` hashes the normaliz
 
 An argument can instead be `{"request":"ID","pointer":"/JSON/pointer"}`. It resolves one string
 from an earlier nested report using RFC 6901 JSON Pointer syntax. References cannot point forward,
-at the current request, or at a non-string value. The resolved request keeps the 4096-byte argument
-limit. In the example, `select` places the handle in column 1 because column 0 identifies the
+at the current request, across batch invocations, or at a non-string value. Pointers start at the
+nested report root, so `/rows/0/0` is valid and `/report/rows/0/0` is not. The resolved request keeps
+the 4096-byte argument limit. In the example, `select` places the handle in column 1 because column 0 identifies the
 selector. A `find` report places its handle in column 0. References can consume an earlier report
 even when the output budget omits it. The shared revision and final verification still cover that
 referenced report.

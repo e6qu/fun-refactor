@@ -236,7 +236,8 @@ Planned checkpoints:
 2. **Complete.** Add backward result references so one batch can discover and then inspect exact handles.
 3. **Complete.** Add portable skill guidance, executable examples and complete CLI/formal documentation.
 4. **Complete.** Retain a controlled separate-versus-batch measurement with immutable payload and binary digests.
-5. Exercise the route in a fresh broad-exploration pair if the controlled evidence justifies quota use.
+5. **Complete.** Exercise the route in a fresh broad-exploration pair after the controlled evidence
+   justifies quota use, and retain both successful sessions without intervention.
 
 ## Formal verification policy
 

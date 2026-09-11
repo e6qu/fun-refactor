@@ -17,6 +17,3 @@ complete report did not fit; use its ordinary subcommand when it is still needed
 A reference argument uses an RFC 6901 pointer into an earlier report and must resolve to a string.
 It works even when the earlier report is omitted from output. Keep references backward-only and use
 returned column positions: `find` puts its handle in column 0, while `select` puts it in column 1.
-References can reach only requests in the current manifest, not reports from an earlier batch
-command. Start each pointer at the nested report root, such as `/rows/0/0`; do not include the
-outer `requests` or `report` fields.

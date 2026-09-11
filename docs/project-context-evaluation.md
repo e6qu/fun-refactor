@@ -327,3 +327,36 @@ The timings measure local subprocess wall time. Separate warmups isolate the fac
 OS filesystem caching remains uncontrolled. The measurement prescribes queries; it has no agent,
 skill-read, discovery, behavioral-change or population-success claim. Its fixed broad route is enough
 to justify testing whether a fresh agent adopts the command before attributing workflow savings.
+
+## Fresh broad-exploration pair
+
+The retained [paired cohort](../tests/agent-eval/results/2026-09-11-project-batch/manifest.json)
+uses the pinned rust-lang/regex workspace and one fresh agent per arm. Both frozen prompts require
+the package hierarchy, exact declarations, incoming uses, associated tests and reported gaps before
+the coordinated two-crate change. The `fr` prompt directs the shipped Explore and Batch route. The
+files prompt directs bounded file listings, searches and reads.
+
+Codex CLI 0.154.0 ran both sessions sequentially with `gpt-5.6-luna`, low reasoning and the default
+service tier. Each run was ephemeral and ignored user configuration and rules. Neither run received
+human correction or a restart. Both agents passed all declared checks and the independent 1,060-case
+byte and allocation oracle. Both also preserved Git indexes, reversed and reapplied exactly, and
+matched a clean receiver.
+
+| Measure | `fr` | Files | Difference |
+|---|---:|---:|---:|
+| Context tokens | 22,185 | 19,610 | 2,575 more |
+| Tool calls | 45 | 27 | 18 more |
+| Inspection output tokens | 10,591 | 14,126 | 3,535 fewer |
+| Skill output tokens | 2,405 | 0 | 2,405 more |
+| Change and delivery output tokens | 4,798 | 743 | 4,055 more |
+| Instrumented tool time | 25.894 s | 14.350 s | 11.544 s more |
+
+The `fr` agent first runs a six-view batch. It later runs a self-contained eight-view batch whose
+lookups feed source and incoming-call requests. Between them, it attempts one invalid cross-command
+reference and receives a refusal. It corrects the manifest without intervention. The skill now says
+that references stay within the current manifest and that pointers start at the nested report root.
+
+This single directed pair establishes route usability and task success. Its inspection category is
+smaller than the files arm, but the complete workflow still has a 13.1% context premium. Skill
+loading and the existing structured authoring workflow account for that result. The cohort does not
+measure spontaneous adoption, population performance, hidden reasoning or billed tokens.

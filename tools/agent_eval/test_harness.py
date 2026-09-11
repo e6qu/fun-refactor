@@ -234,6 +234,39 @@ class AgentWorkflowV4Evidence(unittest.TestCase):
                     self.assertTrue(result[field])
 
 
+class ProjectBatchAgentEvidence(unittest.TestCase):
+    def test_passing_pair_is_immutable_and_uses_project_batches(self):
+        evidence = TOOLS.parent / "tests/agent-eval/results/2026-09-11-project-batch"
+        manifest = json.loads((evidence / "manifest.json").read_text())
+        self.assertTrue(manifest["acceptance"]["passed"])
+        self.assertEqual(manifest["implementation_commit"],
+                         "f0de990391baf1a0aec75d12345f570672d15a8a")
+        experiment = json.loads((evidence / "experiment.json").read_text())
+        self.assertEqual(experiment["prompt_variant"]["name"],
+                         "project-batch-broad-exploration-v1")
+        for relative, sha256 in manifest["files"].items():
+            actual = harness.digest(harness.within(evidence, relative).read_bytes())
+            self.assertEqual(actual, sha256)
+
+        expected = {"fr": (22185, 45), "files": (19610, 27)}
+        for arm, metrics in expected.items():
+            trial = evidence / f"regex-escape-len-{arm}"
+            result = json.loads((trial / "result.json").read_text())
+            self.assertTrue(result["passed"])
+            self.assertEqual((result["context_tokens"], result["tool_calls"]), metrics)
+            for field in ("undo_exact", "redo_exact", "workflow_ordered",
+                          "index_unchanged", "receiver_index_unchanged", "receiver_matches"):
+                self.assertTrue(result[field])
+
+        events = [json.loads(line) for line in
+                  (evidence / "regex-escape-len-fr/events.jsonl").read_text().splitlines()]
+        batches = [event for event in events
+                   if event["request"].get("args", [])[:2] == ["project", "batch"]]
+        self.assertEqual(len(batches), 3)
+        self.assertEqual(sum(json.loads(event["visible"])["exit_code"] == 0
+                             for event in batches), 2)
+
+
 class CheckPolicyEvidence(unittest.TestCase):
     def setUp(self):
         root = checks_policy.EVIDENCE / "regex-escape-len-files-r1"
