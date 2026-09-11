@@ -1,0 +1,39 @@
+You are an independent acceptance-test agent. Complete this code task in the supplied unfamiliar pinned public project: Add documented public escape_len(pattern: &str) -> usize APIs to both regex and regex-syntax. Return the UTF-8 byte length of the regex-escaped pattern, without allocating. Keep the facade consistent with the lower crate. Update regex-syntax::escape to reserve sufficient capacity before appending, so escaping a nonempty pattern uses at most one allocation and escaping empty input allocates nothing. Preserve all existing escaping results and APIs, including append behavior, and retain builds without default features.
+
+Before editing, establish the relevant package hierarchy, exact target declarations, incoming uses, associated tests and reported analysis gaps.
+
+For that broad inspection, follow the entrypoint's Explore route and its Batch reference. Perform the related project views in one project batch before any individual follow-up.
+
+Use fr for source exploration and edits. Start with the instrumented call {"tool":"read","path":"skill/SKILL.md","start":1,"lines":80}. Load only needed references, with at most 200 lines per read. Source read/search/replace tools are unavailable in this arm. Use fr project handles and saved authoring plans. Write fragments under artifacts/ outside the project. Before constructing the batch manifest, use the instrumented call {"tool":"read","path":"skill/references/author.md","start":1,"lines":160}. Coordinate the edits in one author batch saved transaction, and export, undo and redo that transaction. The manifest must contain both API insertion operations and the regex-syntax escape body replacement, with exact files-changed, edits, changed-operations and paths-changed postconditions. Write every fragment first, then copy each returned fr_reference into one final manifest; never write placeholder references. Preview the batch once without a mutation flag, call it once with --save-plan, then apply the saved transaction with history apply --write; do not pass --write to author batch. Retain the first full project context_basis and use it on related project and author calls. Retain the complete author diff and its transaction_context_basis; use that basis to compact forward apply and redo reports. Preview reverse transitions in full.
+
+Only change regex-syntax/src/lib.rs, src/lib.rs. The evaluator owns regression oracles; do not read or modify the harness, oracle, other sessions, or hidden tests. You may add a focused function-level implementation but need not alter project documentation for this trial. Do not browse, delegate, commit or push. No human correction is available.
+
+Use only the instrumented tool for all task inspection and work. Invoke it using functions.exec / tools.exec_command:
+python3 /Users/zardoz/projects/fun-refactor/tools/agent-eval.py step /private/tmp/fr-agent-project-batch-pr9/regex-escape-len-fr '<JSON object>'
+Use the positional JSON form for simple requests. Use this stdin form for every write request so source apostrophes and shell metacharacters survive unchanged:
+python3 /Users/zardoz/projects/fun-refactor/tools/agent-eval.py step /private/tmp/fr-agent-project-batch-pr9/regex-escape-len-fr --request-stdin <<'FRJSON'
+{"tool":"write","path":"fragment.rs","text":"{\n    buf.push('\\\\');\n}"}
+FRJSON
+You may batch independent instrumented calls. Do not directly read or write the project or artifacts through other tools. This is a cooperative measurement boundary, not an OS sandbox.
+
+Tool objects:
+{"tool":"files","path":"."} lists up to 200 paths (baseline only).
+{"tool":"read","path":"README.md","start":1,"lines":80} reads up to 200 lines. In the fr arm use project show for source; read can access README.md, Cargo.toml, .fr/checks.json and skill/ references.
+{"tool":"search","pattern":"normalized","path":"src"} runs literal rg with bounded output (baseline only).
+{"tool":"replace","path":"src/lib.rs","old":"unique existing text","new":"replacement"} requires exactly one match (baseline only).
+{"tool":"append","path":"src/lib.rs","text":"new function text"} appends source (baseline only).
+{"tool":"write","path":"fragment.rs","text":"{ replacement block }"} writes artifacts/fragment.rs and returns `fr_reference`, its absolute path (both arms). Copy `fr_reference` verbatim into every manifest `from` field and use the manifest write's `fr_reference` after `author batch --from`; relative paths resolve from the project and do not name the artifact directory.
+{"tool":"fr","args":["checks"]} invokes fr with the project root, JSON and no cache. The args array starts with `checks`, `project`, `author`, `history` or `git`; omit the `fr` executable name. Use this for checks in both arms and project/author/history/git in the fr arm. --help is available.
+{"tool":"export"} saves and shows a Git diff as artifacts/change.patch (baseline only). In the fr arm, use history patch TX --output ../artifacts/change.patch to retain the patch while returning only its identity and size.
+{"tool":"reverse"} / {"tool":"apply"} reverses/reapplies that saved Git patch (baseline only). Apply refuses until all declared checks pass on the state restored by reverse.
+{"tool":"sentinel"} adds an unrelated edit after the requested change; it must survive reversal and reapplication.
+{"tool":"receiver"} checks and applies the saved patch in a clean separate receiver and compares tracked content with your project. It refuses until all declared checks pass after the final redo/apply.
+{"tool":"finish","summary":"..."} records your final conclusion; independent oracles run later.
+
+Workflow: inspect; list and run declared checks on the original; implement the task; run checks on the change; export the patch; add the sentinel; undo and check; redo and check; verify the receiver; finish. The harness refuses every source-changing request until the original checks pass. fr arm: preview/save/apply an authoring transaction and use history undo/redo. Run all declared checks together at each validation stage using --run with comma-separated names; every run needs the configuration basis from its listing. Keep project handles revision-bound when using them. Keep tool output bounded and request only relevant context. Leave the requested change applied. Report uncertainty and tool refusals honestly.
+
+Execute each successful workflow step once. Do not repeat a successful skill read, listing, saved plan, mutation, patch export, check, or receiver call. Preserve the order above, including the original-state check before any edit and the final-state check before receiver verification.
+
+For every successful check run, pass --quiet-success --no-declarations --output-bytes 2048 after reviewing the listing. Failure diagnostics stay bounded and visible. The instrumented fr tool disables its fact cache for every arm and stage; do not add a separate cache warm-up or change that policy.
+
+The harness records visible tool payload tokens, calls, latency and final correctness. It does not measure your hidden reasoning, system context or billed tokens. The task directory is /private/tmp/fr-agent-project-batch-pr9/regex-escape-len-fr/project.

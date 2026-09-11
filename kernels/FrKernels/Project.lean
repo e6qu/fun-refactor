@@ -460,6 +460,25 @@ theorem stabilized_membership_is_exact (seeds : List Nat) (edges : List (Nat × 
       rw [← stable]
       exact (membership_step_iff _ edges target).mpr (Or.inr ⟨source, edge, known⟩)
 
+-- fr:spec src/project.rs::batch_section_fits @ 07f1ebce4e5674ffbd99d08895d71eb50c5bae707d92e1865d3a3dbf2d541dbc
+-- fr:signature used: usize => used: Nat; next: usize => next: Nat; budget: usize => budget: Nat; return: bool => return: Bool
+def batchSectionFits (used : Nat) (next : Nat) (budget : Nat) : Bool :=
+  decide (used ≤ budget ∧ next ≤ budget - used)
+
+theorem batch_section_fits_iff (used next budget : Nat) :
+    batchSectionFits used next budget = true ↔ used ≤ budget ∧ used + next ≤ budget := by
+  simp [batchSectionFits]
+  omega
+
+theorem batch_section_acceptance_preserves_budget (used next budget : Nat)
+    (accepted : batchSectionFits used next budget = true) : used + next ≤ budget := by
+  exact (batch_section_fits_iff used next budget).mp accepted |>.2
+
+theorem batch_section_rejects_exhausted_budget (used next budget : Nat)
+    (exhausted : budget < used) : batchSectionFits used next budget = false := by
+  simp [batchSectionFits]
+  omega
+
 -- fr:spec src/project.rs::body_replacement_budget @ aab2e9e5858491c8ab262936994086babac8d14f8ae79fecd5e36b96897d65b3
 -- fr:signature before: usize => before: Nat; after: usize => after: Nat; return: bool => return: Bool
 def bodyReplacementBudget (before : Nat) (after : Nat) : Bool :=

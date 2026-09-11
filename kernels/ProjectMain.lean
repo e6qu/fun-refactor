@@ -53,6 +53,11 @@ def main (args : List String) : IO Unit := do
         for isLocal in [false, true] do
           for includeLocals in [false, true] do
             IO.println (handleSelectionStatus inScope declaration isLocal includeLocals)
+  else if args == ["batch-budgets"] then
+    for used in samples do
+      for next in samples do
+        for budget in samples do
+          IO.println (batchSectionFits used next budget)
   else if args == ["framework-boundaries"] then
     for total in frameworkSamples do
       for limit in frameworkSamples do

@@ -18,6 +18,8 @@ Use the target project's root and existing task authorization.
 A request to inspect or export does not grant permission to commit or publish.
 
 Known names can go directly to `project find`; the initial map remains available when the hierarchy needs inspection.
+Broader exploration can put map, lookup, exact-handle inspection, call, test and gap queries in one
+versioned `project batch`. The distributed Explore reference supplies an executable manifest.
 The default lookup and introductory map each request at most twelve rows.
 Subsequent queries select a declaration, read its signature and relationships, and request source slices only as needed.
 `project find --source --bytes N` can return needed implementations during lookup, sharing its source-text budget across the page.
@@ -68,7 +70,8 @@ The checker enforces a 1.5 KiB entrypoint budget, a 4 KiB budget per reference, 
 
 The initial macOS run against the development binary executed 31 fenced command examples.
 Declared project-check listing and execution brought the checker to 33 examples; M4n's targeted authoring workflow raised that to 37.
-M4o combines its lookup and source read. Later project selection, plan compaction and Lean adoption examples bring the current total to 42.
+M4o combines its lookup and source read. Later project selection, plan compaction, Lean adoption and
+bounded project batching examples bring the current total to 43.
 The execution example combines quiet-success output with declaration omission after reviewing the configuration basis.
 The initial measurements were:
 

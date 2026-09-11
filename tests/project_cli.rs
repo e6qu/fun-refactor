@@ -93,6 +93,272 @@ fn context_basis_compacts_related_queries_and_rejects_stale_projects() {
         .contains("stale or conflicting context basis"));
 }
 
+fn project_batch(root: &Path, manifest: Value, report_bytes: usize) -> Value {
+    let input = tempfile::NamedTempFile::new().unwrap();
+    fs::write(input.path(), serde_json::to_vec(&manifest).unwrap()).unwrap();
+    ok(
+        root,
+        &[
+            "project",
+            "batch",
+            "--from",
+            input.path().to_str().unwrap(),
+            "--report-bytes",
+            &report_bytes.to_string(),
+        ],
+    )
+}
+
+fn reconstruct_batch_report(batch: &Value, request: usize) -> Value {
+    let mut report = batch["requests"][request]["report"].clone();
+    for field in [
+        "schema",
+        "revision",
+        "handle_prefix",
+        "coverage",
+        "context_basis",
+    ] {
+        report[field] = batch[field].clone();
+    }
+    report
+}
+
+#[test]
+fn project_batch_reuses_one_verified_context_for_existing_queries() {
+    let dir = fixture();
+    let manifest = serde_json::json!({
+        "schema": "fr-project-batch-1",
+        "requests": [
+            {"id": "structure", "arguments": ["map", "src", "--depth", "2", "--limit", "8"]},
+            {"id": "symbols", "arguments": ["select", "run", "helper", "--signature", "--source", "--bytes", "64"]},
+            {"id": "packages", "arguments": ["packages", "--limit", "4"]}
+        ]
+    });
+    let batch = project_batch(dir.path(), manifest.clone(), 1_048_576);
+    assert_eq!(batch["query"], "batch");
+    assert!(batch["manifest_basis"]
+        .as_str()
+        .unwrap()
+        .starts_with("frpqb1:"));
+    assert_eq!(batch["requests"].as_array().unwrap().len(), 3);
+    assert_eq!(batch["report_budget"]["omitted_requests"], 0);
+    for request in batch["requests"].as_array().unwrap() {
+        assert_eq!(request["status"], "returned");
+        for common in [
+            "schema",
+            "revision",
+            "handle_prefix",
+            "coverage",
+            "context_basis",
+        ] {
+            assert!(request["report"].get(common).is_none());
+        }
+    }
+    assert!(batch["resolution_basis"]
+        .as_str()
+        .unwrap()
+        .starts_with("frpqb2:"));
+    assert_eq!(
+        reconstruct_batch_report(&batch, 0),
+        ok(
+            dir.path(),
+            &["project", "map", "src", "--depth", "2", "--limit", "8"]
+        )
+    );
+    assert_eq!(
+        reconstruct_batch_report(&batch, 1),
+        ok(
+            dir.path(),
+            &[
+                "project",
+                "select",
+                "run",
+                "helper",
+                "--signature",
+                "--source",
+                "--bytes",
+                "64"
+            ]
+        )
+    );
+    assert_eq!(
+        reconstruct_batch_report(&batch, 2),
+        ok(dir.path(), &["project", "packages", "--limit", "4"])
+    );
+    assert_eq!(
+        batch["manifest_basis"],
+        project_batch(dir.path(), manifest, 1_048_576)["manifest_basis"]
+    );
+}
+
+#[test]
+fn project_batch_budget_omits_only_whole_reports_and_keeps_later_small_queries() {
+    let dir = fixture();
+    let unlimited = project_batch(
+        dir.path(),
+        serde_json::json!({
+            "schema": "fr-project-batch-1",
+            "requests": [
+                {"id": "large", "arguments": ["map", ".", "--depth", "8", "--limit", "500", "--fields", "handle,parent,kind,name,path,line,children,depth,language,exported,signature,qualifier"]},
+                {"id": "small", "arguments": ["find", "absent", "--limit", "1"]}
+            ]
+        }),
+        1_048_576,
+    );
+    let small_bytes = serde_json::to_vec(&unlimited["requests"][1]["report"])
+        .unwrap()
+        .len();
+    let batch = project_batch(
+        dir.path(),
+        serde_json::json!({
+            "schema": "fr-project-batch-1",
+            "requests": [
+                {"id": "large", "arguments": ["map", ".", "--depth", "8", "--limit", "500", "--fields", "handle,parent,kind,name,path,line,children,depth,language,exported,signature,qualifier"]},
+                {"id": "small", "arguments": ["find", "absent", "--limit", "1"]}
+            ]
+        }),
+        small_bytes,
+    );
+    assert_eq!(batch["requests"][0]["status"], "omitted-report-budget");
+    assert!(batch["requests"][0].get("report").is_none());
+    assert_eq!(batch["requests"][1]["status"], "returned");
+    assert_eq!(batch["report_budget"]["returned_bytes"], small_bytes);
+    assert_eq!(batch["report_budget"]["omitted_requests"], 1);
+}
+
+#[test]
+fn project_batch_references_prior_string_results_even_when_the_source_report_is_omitted() {
+    let dir = fixture();
+    let manifest = serde_json::json!({
+        "schema": "fr-project-batch-1",
+        "requests": [
+            {"id": "lookup", "arguments": ["find", "run", "--source", "--bytes", "65536"]},
+            {"id": "inspect", "arguments": [
+                "show", {"request": "lookup", "pointer": "/rows/0/0"}
+            ]}
+        ]
+    });
+    let unlimited = project_batch(dir.path(), manifest.clone(), 1_048_576);
+    let handle = unlimited["requests"][0]["report"]["rows"][0][0]
+        .as_str()
+        .unwrap();
+    assert_eq!(
+        reconstruct_batch_report(&unlimited, 1),
+        ok(dir.path(), &["project", "show", handle])
+    );
+    let inspect_bytes = serde_json::to_vec(&unlimited["requests"][1]["report"])
+        .unwrap()
+        .len();
+    assert!(
+        serde_json::to_vec(&unlimited["requests"][0]["report"])
+            .unwrap()
+            .len()
+            > inspect_bytes
+    );
+
+    let bounded = project_batch(dir.path(), manifest, inspect_bytes);
+    assert_eq!(bounded["requests"][0]["status"], "omitted-report-budget");
+    assert_eq!(bounded["requests"][1]["status"], "returned");
+    assert_eq!(bounded["resolution_basis"], unlimited["resolution_basis"]);
+    assert_eq!(
+        reconstruct_batch_report(&bounded, 1),
+        ok(dir.path(), &["project", "show", handle])
+    );
+}
+
+#[test]
+fn project_batch_references_are_backward_string_only_and_bounded() {
+    let dir = fixture();
+    let cases = [
+        serde_json::json!({"schema": "fr-project-batch-1", "requests": [
+            {"id": "first", "arguments": ["show", {"request": "later", "pointer": "/root"}]},
+            {"id": "later", "arguments": ["map"]}
+        ]}),
+        serde_json::json!({"schema": "fr-project-batch-1", "requests": [
+            {"id": "map", "arguments": ["map"]},
+            {"id": "bad-pointer", "arguments": ["show", {"request": "map", "pointer": "root"}]}
+        ]}),
+        serde_json::json!({"schema": "fr-project-batch-1", "requests": [
+            {"id": "map", "arguments": ["map"]},
+            {"id": "missing", "arguments": ["show", {"request": "map", "pointer": "/not-there"}]}
+        ]}),
+        serde_json::json!({"schema": "fr-project-batch-1", "requests": [
+            {"id": "map", "arguments": ["map"]},
+            {"id": "object", "arguments": ["show", {"request": "map", "pointer": "/page"}]}
+        ]}),
+    ];
+    for manifest in cases {
+        let input = tempfile::NamedTempFile::new().unwrap();
+        fs::write(input.path(), serde_json::to_vec(&manifest).unwrap()).unwrap();
+        assert!(
+            !run(
+                dir.path(),
+                &["project", "batch", "--from", input.path().to_str().unwrap()]
+            )
+            .0,
+            "{manifest}"
+        );
+    }
+}
+
+#[test]
+fn project_batch_refuses_ambiguous_or_recursive_manifests_before_reporting() {
+    let dir = fixture();
+    let cases = [
+        serde_json::json!({"schema": "old", "requests": [{"id": "one", "arguments": ["map"]}]}),
+        serde_json::json!({"schema": "fr-project-batch-1", "requests": []}),
+        serde_json::json!({"schema": "fr-project-batch-1", "requests": [
+            {"id": "same", "arguments": ["map"]}, {"id": "same", "arguments": ["gaps"]}
+        ]}),
+        serde_json::json!({"schema": "fr-project-batch-1", "requests": [
+            {"id": "bad id", "arguments": ["map"]}
+        ]}),
+        serde_json::json!({"schema": "fr-project-batch-1", "requests": [
+            {"id": "nested", "arguments": ["batch", "--from", "other.json"]}
+        ]}),
+        serde_json::json!({"schema": "fr-project-batch-1", "requests": [
+            {"id": "global", "arguments": ["--context-basis", "x", "map"]}
+        ]}),
+        serde_json::json!({"schema": "fr-project-batch-1", "requests": [
+            {"id": "unknown", "arguments": ["no-such-query"]}
+        ]}),
+    ];
+    for manifest in cases {
+        let input = tempfile::NamedTempFile::new().unwrap();
+        fs::write(input.path(), serde_json::to_vec(&manifest).unwrap()).unwrap();
+        assert!(
+            !run(
+                dir.path(),
+                &["project", "batch", "--from", input.path().to_str().unwrap()]
+            )
+            .0,
+            "{manifest}"
+        );
+    }
+    for budget in ["0", "255", "1048577"] {
+        let input = tempfile::NamedTempFile::new().unwrap();
+        fs::write(
+            input.path(),
+            r#"{"schema":"fr-project-batch-1","requests":[{"id":"one","arguments":["map"]}]}"#,
+        )
+        .unwrap();
+        assert!(
+            !run(
+                dir.path(),
+                &[
+                    "project",
+                    "batch",
+                    "--from",
+                    input.path().to_str().unwrap(),
+                    "--report-bytes",
+                    budget
+                ]
+            )
+            .0
+        );
+    }
+}
+
 #[test]
 fn select_returns_several_exact_symbols_with_one_context_and_source_budget() {
     let dir = fixture();

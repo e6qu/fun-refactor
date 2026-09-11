@@ -1,0 +1,15 @@
+{
+  "project": "regex-coordinated",
+  "repetitions": 1,
+  "trials": [
+    "regex-escape-len-fr",
+    "regex-escape-len-files"
+  ],
+  "prompt_variant": {
+    "name": "project-batch-broad-exploration-v1",
+    "common_requirement": "package hierarchy, exact declarations, incoming uses, associated tests and reported analysis gaps",
+    "fr_route": "entrypoint Explore and Batch references; one project batch before individual follow-up",
+    "files_route": "bounded file listings, searches and reads; independent calls may be batched",
+    "application": "appended after deterministic preparation and before either fresh session"
+  }
+}

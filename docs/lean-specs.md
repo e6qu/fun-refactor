@@ -256,6 +256,25 @@ The page model represents the caller's allocation loop; it has no separate sourc
 General Rust correspondence, UTF-8 library internals, parser spans and JSON report assembly remain unproved.
 JSON escaping and metadata lie outside the raw source-text budget.
 
+## Project batch budget kernel
+
+`FrKernels.Project.batchSectionFits` models the admission check used by `project batch` before it
+emits a complete nested query report. It accepts when the bytes already emitted do not
+exceed the shared budget and adding the next complete report stays within that budget. The Rust
+predicate subtracts only after checking the first inequality, so machine arithmetic cannot
+underflow; successful addition is also bounded by the budget.
+
+Three theorems give the equivalent addition form, show that acceptance preserves the total bound
+and reject every state already beyond its budget. The source anchor and explicit signature map bind
+the model to `src/project.rs::batch_section_fits`. The shared executable corpus compares all 1,728
+triples drawn from twelve boundary values on 64-bit hosts, including zero, ordinary limits, `u32::MAX`
+and `u64::MAX`.
+
+The proof covers admission of an already serialized report length. JSON serialization, length
+measurement, manifest parsing, report construction and outer metadata are trusted or covered by CLI
+regressions. The report budget deliberately excludes the common envelope and bounded request
+metadata, as documented by the command.
+
 ## Reviewed plan basis kernel
 
 `FrKernels.Author.reviewedPlanBasisAllowed` models the final acceptance gate for compacting a

@@ -1,0 +1,7 @@
+Implemented and verified:
+
+- Added documented `escape_len` APIs to `regex` and `regex-syntax`.
+- Preserved escaping behavior and append APIs.
+- Updated `regex-syntax::escape` to reserve exact capacity without allocation for empty input.
+- Upstream and minimal-feature checks pass.
+- Undo/redo and clean receiver verification passed.

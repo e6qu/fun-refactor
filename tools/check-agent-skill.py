@@ -22,7 +22,7 @@ ROUTES = {
                       "references/checks.md", "references/history.md", "references/git.md"],
     "author-recovery": ["SKILL.md", "references/author.md", "references/checks.md",
                         "references/history.md", "references/recovery.md", "references/git.md"],
-    "exploration": ["SKILL.md", "references/explore.md"],
+    "exploration": ["SKILL.md", "references/explore.md", "references/batch.md"],
     "lean": ["SKILL.md", "references/lean.md"],
     "git-admin": ["SKILL.md", "references/git.md", "references/git-admin.md"],
 }
@@ -78,7 +78,7 @@ class Exercise:
         value, size = self.run(root, command[1:], success)
         self.examples += 1
         self.executed.append((path, tuple(command)))
-        if path.name in ("SKILL.md", "explore.md"):
+        if path.name in ("SKILL.md", "explore.md", "batch.md"):
             self.exploration_bytes += size
         return value
 
@@ -114,8 +114,11 @@ def source_workflow(exercise, root):
     git(root, "commit", "-qm", "fixture")
     index = (root / ".git/index").read_bytes()
     behavior(root)
+    query_manifest = root.parent / "project-queries.json"
+    query_manifest.write_text(blocks(reference / "batch.md", "json")[0])
+    exercise.values["<PROJECT_QUERIES>"] = str(query_manifest)
 
-    for path in [SKILL / "SKILL.md", reference / "explore.md"]:
+    for path in [SKILL / "SKILL.md", reference / "explore.md", reference / "batch.md"]:
         for command in commands(path):
             value = exercise.example(root, path, command)
             if value.get("query") in ("map", "find"):
@@ -132,6 +135,14 @@ def source_workflow(exercise, root):
                     assert "source" not in value
                 else:
                     assert size_of_source(value) <= 256
+            if value.get("query") == "batch":
+                assert value["report_budget"]["omitted_requests"] == 0
+                assert [request["id"] for request in value["requests"]] == [
+                    "structure", "lookup", "source", "callers", "tests", "gaps"]
+                assert all(request["status"] == "returned" for request in value["requests"])
+                assert all("coverage" not in request["report"] for request in value["requests"])
+                assert value["requests"][2]["report"]["query"] == "show"
+                assert size_of_source(value["requests"][2]["report"]) <= 256
     assert not (root / ".fr-history").exists()
 
     path = reference / "change.md"

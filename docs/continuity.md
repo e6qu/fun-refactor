@@ -9,7 +9,65 @@ PR 5, Framework Semantic Model, merged as GitHub PR 265.
 PR 6, Verified Feature Migration, merged as GitHub PR 266.
 Release PR 260 then published the completed roadmap state from `main`.
 PR 7, Context-Competitive Agent Workflow, merged as GitHub PR 267.
-The current `agent_workflow_v4` branch is roadmap PR 8, Agent Workflow Simplification.
+PR 8, Agent Workflow Simplification, merged as GitHub PR 269.
+The current `project_context_v5` branch is roadmap PR 9, Bounded Project Query Batches.
+Its first checkpoint adds `fr project batch --from MANIFEST`: up to sixteen existing read-only
+project queries share one constructed snapshot and final workspace verification. The outer response
+retains revision, handle prefix, coverage and context basis once. Each nested report omits those
+common fields. The versioned manifest and ordered resolved request set carry separate digests.
+A shared serialized-report budget admits or omits only complete nested reports. An omitted request
+retains its ID, query kind, request digest and required byte count, and a later smaller report can
+still use the remaining budget. Request counts, IDs, argument counts and bytes are bounded;
+unknown command shapes and recursive batches refuse.
+
+`FrKernels.Project.batchSectionFits` models the overflow-safe admission predicate. Three theorems
+characterize acceptance, preservation of the total budget and rejection after exhaustion.
+All 1,728 combinations over representative machine-sized values agree with Rust on a 64-bit host.
+CLI regressions reconstruct standalone map, select and package reports exactly from the common
+batch envelope and cover whole-report omission and adversarial manifests.
+
+The second checkpoint lets a request argument use an RFC 6901 JSON Pointer into an earlier nested
+report. References are backward-only and must resolve to a string. A lookup can therefore feed its
+exact revision-bound handle into `show`, `calls` or another query without an agent round trip.
+The resolved arguments remain subject to the per-request byte bound and join the project revision
+and manifest identity in `resolution_basis`. Reports remain available for internal references when the output budget omits
+them; their facts do not otherwise leak. Regressions cover omitted producers, missing pointers,
+forward references and non-string results.
+
+The third checkpoint adds the versioned manifest to the portable Explore skill. Its broad route
+combines map, exact lookup, referenced source inspection, incoming calls, test candidates and gaps.
+The skill checker creates the documented artifact, runs the batch through the built binary, checks
+all request outcomes and enforces the 256-byte nested source limit. The portable bundle now has 43
+executable shell examples. CLI and Lean documentation state the reconstruction and proof boundaries.
+
+The fourth checkpoint retains `tests/agent-eval/project-batch-context.json`. A generic Rust,
+TypeScript and Python fixture requests structure, an exact declaration, referenced source, incoming
+calls, test candidates, packages, dependencies and gaps. Eight standalone calls already reuse the
+first response's `context_basis`; the batch includes its 794-byte manifest in counted context.
+All eight normalized reports have identical SHA-256 identities in both arms and source stays unchanged.
+Across three rotating repetitions, median context is 2,695 tokens for separate calls and 2,453 for
+the batch, a 242-token or 9.0% reduction. Calls fall from eight to one. Median local subprocess time
+is 0.410 versus 0.052 seconds with the fact cache disabled. It is 0.050 versus 0.009 seconds after
+each arm's separate cache is prewarmed. Token counts replace opaque identities with fixed-length
+representatives. Byte counts and report identities retain the real values. The release binary digest is
+`3f68f6e2425ca1bcf523095a2793401313f84b43eca6a51ac22d7e2f380afd5d`.
+The audit recomputes every measurement-source digest, paired report identity and summary statistic.
+OS filesystem cache, agent adaptation, skill loading and task success remain outside this prescribed evidence.
+
+The fifth checkpoint retains a fresh Luna-low pair on the pinned regex workspace. Both prompts ask
+for package hierarchy, exact declarations, incoming uses, tests and reported gaps before editing.
+The `fr` arm follows the shipped Explore and Batch route; the files arm uses bounded ordinary tools.
+Both agents pass the 1,060-case oracle, all declared checks, exact undo and redo, and clean receiver
+comparison. The `fr` arm uses 22,185 context tokens and 45 calls. The files arm uses 19,610 tokens
+and 27 calls. `fr` inspection output is 3,535 tokens smaller, while skill and change delivery leave
+a 2,575-token total premium in this single directed pair.
+
+The `fr` agent runs a six-view batch and a self-contained eight-view batch. One intervening batch
+fails because it tries to reference an earlier invocation. The agent corrects it without human help.
+The Batch route now states that references stay inside one manifest and start at its report root.
+The retained prompt variant, full streams, patches, scores and manifest bind the exact conditions.
+
+The historical PR 8 work follows.
 It follows the fresh passing PR 7 trace: seven failed or refused requests, repeated symbol
 inspection and ambiguous artifact references account for the first concrete reductions.
 Its first checkpoint makes `project select` accept exact names and full revision-bound handles.
