@@ -494,7 +494,8 @@ Planned checkpoints:
 
 ### PR 15. Agent IR Contract and Python SDK
 
-Status: complete on `agent_ir_python_sdk`; ready for review.
+Status: [PR 277](https://github.com/e6qu/fun-refactor/pull/277) is in review from
+`agent_ir_python_sdk`.
 
 Goal: make semantic IR discoverable and safe to construct without asking an agent to memorize raw
 JSON. Keep Python objects visibly aligned with the public IR hierarchy.

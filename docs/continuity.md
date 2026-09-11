@@ -76,7 +76,7 @@ semantic output is 4,391 bytes versus 4,222 and its typed input is 179 bytes ver
 measured context premium, so broader compact addressing and a fresh agent trial remain future work.
 The complete native, documentation, skill, capability, Lean and WASM repository gate passes.
 
-The current `agent_ir_python_sdk` branch is roadmap PR 15. It adds project-independent semantic
+Roadmap [PR 15](https://github.com/e6qu/fun-refactor/pull/277) adds project-independent semantic
 catalog and validation commands, a zero-dependency Python SDK, exhaustive Python-to-Rust canonical
 fixtures, and a Lean model of catalog uniqueness, category separation and author admission.
 Rust-to-Python translation supplies the SDK scaffold evidence. Its 977 lines preserve 11 functions,
