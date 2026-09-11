@@ -77,7 +77,6 @@ fn every_stage_parses_in_both_languages() {
 
 #[test]
 fn the_first_stage_has_written_down_nothing() {
-    // The whole point of where it starts.
     for language in [Language::Python, Language::TypeScript] {
         let known = known_in(STAGES[0], language);
         assert_eq!(
@@ -167,7 +166,6 @@ fn the_states_carry_only_what_that_state_has() {
 
 #[test]
 fn the_last_stage_deleted_the_checks_the_one_before_still_had() {
-    // The payoff.
     for name in ["payments.py", "payments.ts"] {
         let before = std::fs::read_to_string(tutorial().join("stage6_state_machine").join(name))
             .expect("stage 6");

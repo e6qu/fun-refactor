@@ -183,7 +183,8 @@ fn target_code(file: bool, kind: Option<SymbolKind>) -> usize {
     }
 }
 
-/// Reports conservative target-level authoring admission before fragment syntax checks.
+/// Conservative target-level authoring admission. Fragment syntax and exact tree shape are
+/// deliberately checked later by the existing author preview.
 pub fn task_author_target_candidate(operation: usize, language: usize, target: usize) -> bool {
     match operation {
         0 => {
