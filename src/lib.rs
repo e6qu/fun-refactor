@@ -19,14 +19,16 @@ pub mod edit;
 pub mod extract;
 #[path = "project/framework_kernel.rs"]
 pub mod framework_kernel;
-pub mod git_patch;
 #[cfg(feature = "cli")]
 pub mod git;
+pub mod git_patch;
 pub mod helm;
 #[cfg(feature = "cli")]
 pub mod history;
 pub mod index;
 pub mod lang;
+#[cfg(feature = "wasm")]
+mod memory_history;
 pub mod mentions;
 pub mod model;
 pub mod navigate;

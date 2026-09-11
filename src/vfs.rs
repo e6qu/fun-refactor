@@ -82,6 +82,19 @@ mod memory {
         Ok(())
     }
 
+    pub fn remove(path: &Path) -> io::Result<()> {
+        ACTIVE.with(|a| {
+            let handle = Rc::clone(&a.borrow());
+            let removed = handle.borrow_mut().remove(path);
+            removed.map(|_| ()).ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::NotFound,
+                    format!("{} is not in the loaded workspace", path.display()),
+                )
+            })
+        })
+    }
+
     pub fn exists(path: &Path) -> bool {
         with_active(|files| files.contains_key(path))
     }
@@ -111,6 +124,10 @@ mod backing {
 
     pub fn write(path: &Path, contents: &str) -> io::Result<()> {
         std::fs::write(path, contents)
+    }
+
+    pub fn remove(path: &Path) -> io::Result<()> {
+        std::fs::remove_file(path)
     }
 
     pub fn exists(path: &Path) -> bool {
@@ -166,6 +183,13 @@ pub fn write(path: impl AsRef<Path>, contents: impl AsRef<str>) -> io::Result<()
     let (path, contents) = (path.as_ref(), contents.as_ref());
     through_memory!(write(path, contents));
     backing::write(path, contents)
+}
+
+/// Remove one file.
+pub fn remove(path: impl AsRef<Path>) -> io::Result<()> {
+    let path = path.as_ref();
+    through_memory!(remove(path));
+    backing::remove(path)
 }
 
 /// Is there a file here?

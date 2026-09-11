@@ -88,16 +88,22 @@ fn render(record: &Record, reverse: bool) -> Result<String> {
         .iter()
         .map(|change| crate::git_patch::Change {
             path: &change.path,
-            before: change.before.as_ref().map(|snapshot| crate::git_patch::Snapshot {
-                content: &snapshot.content,
-                mode: snapshot.mode,
-                symlink: snapshot.kind == SnapshotKind::Symlink,
-            }),
-            after: change.after.as_ref().map(|snapshot| crate::git_patch::Snapshot {
-                content: &snapshot.content,
-                mode: snapshot.mode,
-                symlink: snapshot.kind == SnapshotKind::Symlink,
-            }),
+            before: change
+                .before
+                .as_ref()
+                .map(|snapshot| crate::git_patch::Snapshot {
+                    content: &snapshot.content,
+                    mode: snapshot.mode,
+                    symlink: snapshot.kind == SnapshotKind::Symlink,
+                }),
+            after: change
+                .after
+                .as_ref()
+                .map(|snapshot| crate::git_patch::Snapshot {
+                    content: &snapshot.content,
+                    mode: snapshot.mode,
+                    symlink: snapshot.kind == SnapshotKind::Symlink,
+                }),
         })
         .collect::<Vec<_>>();
     crate::git_patch::render(&changes, reverse)
