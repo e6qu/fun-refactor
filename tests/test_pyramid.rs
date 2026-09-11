@@ -94,6 +94,7 @@ fn invocations() -> Vec<(&'static str, Vec<&'static str>)> {
             ],
         ),
         ("checks", vec!["checks"]),
+        ("workflow", vec!["workflow", "--from", "missing.workflow"]),
         (
             "author",
             vec!["author", "replace-body", "invalid", "--from", "missing.txt"],
