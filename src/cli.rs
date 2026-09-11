@@ -2484,12 +2484,18 @@ fn cmd_task_change(cli: &Cli, options: &crate::project::task_change::Options) ->
             crate::project::task_change::review_basis(&prepared.report, &exact)?;
         prepared.report["task_change_basis"] = serde_json::json!(task_change_basis);
         prepared.report["ready"] = serde_json::json!(true);
-        if !options.write {
+        let mode = crate::project::task_change::task_change_mode(
+            true,
+            options.write,
+            options.basis.is_some(),
+            options.basis.as_deref() == Some(task_change_basis.as_str()),
+        );
+        if mode == 0 {
             println!("{}", serde_json::to_string(&prepared.report)?);
             return Ok(());
         }
         anyhow::ensure!(
-            options.basis.as_deref() == Some(task_change_basis.as_str()),
+            mode == 1,
             "stale or conflicting task-change basis; review the complete current preview."
         );
         let requirement = crate::history::CheckRequirement {

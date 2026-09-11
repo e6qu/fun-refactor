@@ -34,3 +34,13 @@ Do not pass either template directly to its command. Preserve full bases until t
 write. If no `.fr/checks.json` exists, omit `checks` and `delivery`; use the manual author/history
 route and independent validation. A task reference to an omitted query report refuses, so increase
 `--report-bytes` or narrow that query instead of guessing its handle.
+
+When concrete fragments and declared checks exist, use `task-change` to remove the template joins.
+Keep the same requests and targets, add each fragment path as target `from`, add exact author
+`postconditions`, and use schema `fr-task-change-1`. Put `check-output-bytes` inside `delivery`.
+
+Preview with `fr task-change --from '<TASK_CHANGE_MANIFEST>'`. Retain the complete diff and
+`task_change_basis`. Execute with `fr task-change --from '<TASK_CHANGE_MANIFEST>' --write --basis
+'<TASK_CHANGE_BASIS>'`. The second call recomputes all inputs, records one check-bound transaction,
+and runs the requested reversal and patch lifecycle. Changed source, fragments, checks or delivery
+choices refuse before persistence. A failed stage withholds the patch and reports its current state.

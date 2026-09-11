@@ -592,6 +592,54 @@ Use `--save-plan` or `--write`; the combined diff shares one `--diff-bytes` budg
 The `fr-author-batch-1` report shares coverage once and gives original spans, sizes, hashes and signatures per step.
 Apply, undo/redo and patch export use one transaction ID. See [coordinated batches](docs/body-authoring.md#coordinated-authoring-batches) for the manifest and limits.
 
+### `fr task-change`
+
+```sh
+fr task-change --from .fr/task-change.json
+fr task-change --from .fr/task-change.json --write --basis 'frtc1:<DIGEST>'
+```
+
+This command joins project queries, exact authoring targets, concrete fragments, postconditions,
+declared checks, reversal and patch delivery under one reviewed basis. Its manifest uses this shape:
+
+```json
+{
+  "schema": "fr-task-change-1",
+  "requests": [
+    {"id": "target", "arguments": ["find", "render", "--signature", "--source", "--bytes", "2048"]}
+  ],
+  "targets": [
+    {"id": "render-body", "handle": {"request": "target", "pointer": "/rows/0/0"},
+     "op": "replace-body", "from": ".fr/render.fragment"}
+  ],
+  "postconditions": {"files-changed": 1, "edits": 1, "changed-operations": 1,
+                     "paths-changed": ["src/lib.rs"]},
+  "checks": ["unit"],
+  "delivery": {"exercise-reversal": true, "patch": "artifacts/change.patch",
+               "check-output-bytes": 2048}
+}
+```
+
+The query, target and fragment rules match `project task` and `author batch`. Fragment operations
+require `from`; `organize-imports` forbids it. The command requires at least one declared check and
+one real source change. The manifest and each fragment can contain at most 65,536 bytes.
+
+Preview writes no source, history, check output or patch. It resolves every reference from one
+verified snapshot, validates fragments, reparses the combined result and enforces all postconditions.
+Its report contains the complete diff, exact selected checks, planned workflow stages and an
+`frtc1:` `task_change_basis`. A clipped diff refuses because it cannot support complete review.
+
+Write requires the exact complete basis. The command recomputes the project, manifest, fragments,
+diff, checks and patch destination before recording one planned transaction. It then uses the
+existing verified workflow to apply, check, optionally reverse and recheck, and deliver the patch.
+Any input drift changes the basis and refuses before history or source mutation. A failed check
+retains the workflow's structured current state and withholds the patch.
+
+The write report omits reviewed task and author fields and names them in
+`reviewed_context_omitted`. It retains the task-change basis, transaction identity, reuse status and
+complete workflow stage outcomes. The preview and compact write report together describe the full
+execution.
+
 ## Crossing languages
 
 ### `fr translate`

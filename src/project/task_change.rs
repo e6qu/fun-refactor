@@ -118,10 +118,6 @@ pub(crate) struct Prepared {
 
 impl Project<'_> {
     pub(crate) fn task_change(&self, options: &Options) -> Result<Prepared> {
-        ensure!(
-            options.basis.is_some() || !options.write,
-            "task change --write requires the complete preview basis."
-        );
         let bytes = read_manifest(&self.root, &options.from)?;
         let manifest: Manifest = serde_json::from_slice(&bytes)
             .context("task-change input must be a task-change manifest.")?;
@@ -241,4 +237,17 @@ pub(crate) fn review_basis(report: &Value, exact_changes: &Value) -> Result<Stri
             exact_changes
         ))?)
     ))
+}
+
+pub fn task_change_mode(
+    complete_review: bool,
+    write: bool,
+    basis_supplied: bool,
+    basis_matches: bool,
+) -> usize {
+    match (complete_review, write, basis_supplied, basis_matches) {
+        (true, false, false, _) => 0,
+        (true, true, true, true) => 1,
+        _ => 2,
+    }
 }
