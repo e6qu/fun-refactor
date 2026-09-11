@@ -330,7 +330,7 @@ Planned checkpoints:
 2. **Complete.** Add bounded checked in-memory transaction identity, stack transitions and WASM APIs.
 3. **Complete.** Wire one-step undo/redo and Rust patch download into the playground; remove the duplicate renderer.
 4. **Complete.** Add the anchored Lean lifecycle model and exhaustive Rust correspondence cases.
-5. **In progress.** Finish public documentation, run the full repository gate and publish the large PR.
+5. **Complete.** Publish the contract and continuity docs and pass the complete repository gate.
 
 ## Formal verification policy
 

@@ -29,6 +29,10 @@ tests cover stack order, conflicts, existence changes, redo abandonment, cumulat
 reports. The playground compiles against the new interface; its real WASM/Git acceptance runs in CI
 because this Mac's installed clang has no wasm32 backend.
 
+The complete local repository gate passes. It includes 413 WASM-feature library tests, both browser
+API regressions, strict Clippy for all targets and the minimal browser features, agent acceptance,
+capability and documentation suites, the portable skill, strict anchors and all Lean kernel checks.
+
 PR 11 also carries the PR 10 native-CI repair. The evaluator now accepts only its bounded JSON
 indexing-progress messages on stderr, includes them in measured visible output and still rejects
 arbitrary diagnostics. The exact CI agent-acceptance command passes locally.
