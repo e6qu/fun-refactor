@@ -140,8 +140,8 @@ Goal: remove avoidable discovery and authoring calls exposed by the fresh PR 7 t
 
 Measured baseline:
 
-- The checksum-bound PR 7 projection uses 10,960 mean `fr` context tokens and 6,810 ordinary-file tokens, a 4,150-token or 60.9% `fr` premium under the fixed action sequence.
-- The fresh passing pair uses 15,458 `fr` context tokens and 42 calls versus 11,600 tokens and 20 calls for ordinary files, a 33.3% context premium in this sample.
+- The checksum-bound PR 7 projection uses 10,960 mean `fr` context tokens and 6,810 ordinary-file tokens. Its fixed action sequence has a 4,150-token or 60.9% `fr` premium.
+- The fresh passing pair uses 15,458 `fr` context tokens and 42 calls. Ordinary files use 11,600 tokens and 20 calls, a 33.3% context premium.
 - Seven refused or failed `fr` requests expose command-shape and artifact-path ambiguity. Repeated single-symbol inspection exposes a missing handle-aware batching route.
 - These measurements diagnose the workflow. They do not establish population-level agent behavior or predict savings from unfinished changes.
 

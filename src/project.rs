@@ -293,9 +293,6 @@ pub fn body_replacement_budget(before: usize, after: usize) -> bool {
 }
 
 /// Classify an exact-handle selection after resolving its revision-bound identity.
-///
-/// The values are part of the Rust/Lean correspondence harness: outside scope is 0,
-/// a non-declaration is 1, an omitted local is 2, and a returned declaration is 3.
 pub fn handle_selection_status(
     in_scope: bool,
     declaration: bool,

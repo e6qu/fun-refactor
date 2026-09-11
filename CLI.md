@@ -534,8 +534,11 @@ implementation proofs. The latter two stay false unless future evidence supplies
 
 ```sh
 fr author guide
+
 fr author replace-body '<HANDLE>' --from /tmp/body.txt
+
 fr author replace-body '<HANDLE>' --from /tmp/body.txt --save-plan --plan-basis '<PLAN_BASIS>'
+
 fr history apply '<TX>' --write --no-diff --context-basis '<TRANSACTION_CONTEXT_BASIS>'
 ```
 

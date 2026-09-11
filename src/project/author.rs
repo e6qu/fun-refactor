@@ -36,7 +36,7 @@ pub enum Command {
 pub fn guide() -> Value {
     json!({
         "schema": "fr-author-guide-1",
-        "purpose": "bounded structural authoring through revision-bound project handles",
+        "purpose": "Bounded structural authoring through revision-bound project handles.",
         "limits": {
             "operations": {"minimum": 1, "maximum": 32},
             "manifest_bytes": 65536,
@@ -72,9 +72,9 @@ pub fn guide() -> Value {
             {"step": "redo", "command": "fr history redo <TX> --write --context-basis <TRANSACTION_CONTEXT_BASIS>"}
         ],
         "evidence": [
-            "review the complete preview before using its plan_context_basis",
-            "run declared checks on original, changed, undone and redone states",
-            "retain refusals, coverage gaps, patch checks and receiver evidence"
+            "Review the complete preview before using its plan_context_basis.",
+            "Run declared checks on original, changed, undone and redone states.",
+            "Retain refusals, coverage gaps, patch checks and receiver evidence."
         ]
     })
 }

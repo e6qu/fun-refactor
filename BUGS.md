@@ -68,7 +68,7 @@ shows the patch additive. What remains below is a limit of the available source 
 ## Fixed
 
 - [x] B689: the coordinated acceptance harness intercepted `fr author batch --help` as an
-  invalid manifest and returned artifact paths without naming the value agents must reuse.
+  invalid manifest. Artifact paths also omitted the value agents must reuse.
   Help now reaches the real CLI, writes return an explicit absolute `fr_reference`, and path
   refusals explain the project-relative boundary.
 
