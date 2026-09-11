@@ -151,7 +151,7 @@ The identifiers remain stable for references in defect records.
 
 ## Delivery plan
 
-The first packaged roadmap is complete. Twelve merged pull requests established the product foundation and its first measured workflow reduction:
+The first packaged roadmap is complete. Thirteen merged pull requests established the product foundation and its first measured workflow reduction:
 
 | PR | Outcome | Status |
 |---|---|---|
@@ -167,8 +167,9 @@ The first packaged roadmap is complete. Twelve merged pull requests established 
 | [PR 9](https://github.com/e6qu/fun-refactor/pull/270) | Bounded Project Query Batches | Merged |
 | [PR 10](https://github.com/e6qu/fun-refactor/pull/271) | Verified Change Workflow | Merged |
 | [PR 11](https://github.com/e6qu/fun-refactor/pull/272) | Browser Transaction History | Merged |
+| [PR 12](https://github.com/e6qu/fun-refactor/pull/273) | Revision-Bound Agent Task Bundles | Merged |
 
-The second package begins with one task-oriented agent contract. Measured use will determine later
+The second package now joins task discovery to reviewed execution. Measured use will determine later
 PRs instead of preassigning command shapes before their need is clear.
 
 Git history and [development continuity](docs/continuity.md) retain checkpoint-level detail.
@@ -349,7 +350,7 @@ Planned checkpoints:
 
 ### PR 12. Revision-Bound Agent Task Bundles
 
-Status: in progress on `agent_task_bundle`.
+Status: merged as [PR 273](https://github.com/e6qu/fun-refactor/pull/273).
 
 Goal: let one bounded, immutable request reveal project evidence, exact edit targets, the authoring
 route and the declared verification contract for an agent task.
@@ -388,9 +389,50 @@ Planned checkpoints:
 2. **Complete.** Add conservative authoring eligibility, reusable author/workflow templates and exact declared-check selection.
 3. **Complete.** Anchor eligibility and section admission in Lean and compare exhaustive machine-sized cases with Rust.
 4. **Complete.** Update CLI, portable skill and continuity documentation; retain an executable generic fixture.
-5. **In progress.** Measure the equivalent separate and bundled flows. Run a fresh Luna-low pair only
-   if the deterministic result and complete repository gate justify it. The controlled result reduces
-   calls by 75% and counted context by 3.0%; the full gate precedes any quota use.
+5. **Complete.** Measure the equivalent separate and bundled flows. The controlled result reduces
+   calls by 75% and counted context by 3.0%. The complete repository gate passes. This deterministic
+   evidence makes no fresh agent claim.
+
+### PR 13. Reviewed Agent Task Changes
+
+Status: in progress on `agent_task_change`.
+
+Goal: let an agent preview and execute one task change without manually translating task evidence
+into separate author and workflow manifests.
+
+Deliverables:
+
+- Accept one versioned task-change manifest containing exact targets, fragment paths, postconditions,
+  declared checks, reversal policy and optional patch delivery.
+- Resolve every target and author all fragments against one verified project revision.
+- Preview the complete source diff, validation, check selection, reversal stages and patch destination
+  under one review basis without changing source or history.
+- Execute only the unchanged reviewed plan. Record one transaction, run the existing checked lifecycle,
+  exercise requested undo and redo, and delay patch creation until all checks pass.
+- Bind source, fragments, target resolution, check configuration and delivery choices into the review
+  basis so any stale input refuses before persistence or mutation.
+- Model the finite prepare, execute and delivery policy in Lean and compare its complete state space
+  with the Rust decision function.
+- Teach the portable skill the shorter route and measure it against the equivalent task, author and
+  workflow sequence with a generic fixture.
+
+Verification and acceptance:
+
+1. Preview performs no source, history, check or patch writes.
+2. Write requires the complete preview basis and refuses source, fragment, target, check or destination drift.
+3. All authoring operations retain existing syntax, overlap, preservation and postcondition checks.
+4. Failed checks return structured stage evidence and never create the requested patch.
+5. Requested reversal verifies the changed, restored and reapplied states in order.
+6. The delivered patch, applied source and recorded transaction describe the same reviewed edits.
+7. Native, WASM, documentation, skill, capability and strict Lean gates pass.
+
+Planned checkpoints:
+
+1. **In progress.** Freeze the combined manifest, preview basis and lifecycle boundaries.
+2. Add atomic reviewed execution with stale-input and failure-state regressions.
+3. Add the Lean policy and exhaustive Rust correspondence cases.
+4. Update CLI, portable skill and continuity documentation with an executable generic fixture.
+5. Retain a controlled comparison and pass the complete repository gate.
 
 ## Formal verification policy
 

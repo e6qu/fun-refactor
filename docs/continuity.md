@@ -16,10 +16,15 @@ PR 11, Browser Transaction History, merged as GitHub PR 272. It adds bounded tra
 identity, checked one-step undo/redo and shared Rust Git patch export to the in-memory WASM workspace.
 The playground consumes those APIs directly and no longer owns a separate TypeScript diff engine.
 
-The current `agent_task_bundle` branch is roadmap PR 12. It starts the second delivery package with
+PR 12, Revision-Bound Agent Task Bundles, merged as GitHub PR 273. It starts the second delivery package with
 one bounded, revision-bound task contract that composes project queries, exact target selection,
 conservative authoring eligibility, declared checks and ready delivery templates. Its purpose is to
 remove the path guessing, repeated help and repeated inspection observed in the latest agent traces.
+
+The current `agent_task_change` branch is roadmap PR 13. It joins exact targets, concrete fragments,
+postconditions, declared checks, reversal and patch delivery into one reviewed task-change lifecycle.
+Preview must remain read-only. Write must require the unchanged complete basis before it records and
+executes the transaction through the existing checked workflow.
 
 The first three PR 12 checkpoints add `fr project task --from MANIFEST`. It reuses one project-batch
 snapshot for up to sixteen heterogeneous queries, then resolves up to sixteen exact file or
