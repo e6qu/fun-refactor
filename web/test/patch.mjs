@@ -39,11 +39,22 @@ function check(name, fn) {
     console.log(`  FAIL ${name}: ${error.message}`);
   }
 }
-function at(path, name) {
+function at(path, name, occurrence = 1) {
   const lines = original[path].split("\n");
+  let seen = 0;
   for (let line = 0; line < lines.length; line += 1) {
-    const col = lines[line].indexOf(name);
-    if (col >= 0) return { path, line: line + 1, col: col + 1 };
+    let from = 0;
+    for (;;) {
+      const col = lines[line].indexOf(name, from);
+      if (col < 0) break;
+      const before = lines[line][col - 1] ?? " ";
+      const after = lines[line][col + name.length] ?? " ";
+      if (!/[A-Za-z0-9_]/.test(before) && !/[A-Za-z0-9_]/.test(after)) {
+        seen += 1;
+        if (seen === occurrence) return { path, line: line + 1, col: col + 1 };
+      }
+      from = col + 1;
+    }
   }
   throw new Error(`${name} does not appear in ${path}`);
 }

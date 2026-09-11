@@ -1382,10 +1382,6 @@ impl Workspace {
                 after: Some(outcome.updated.clone()),
             })
             .collect::<Vec<_>>();
-        if let Err(error) = self.history.ensure_capacity(&journal_changes) {
-            return fail(error);
-        }
-
         let changed: Vec<Changed> = outcomes
             .iter()
             .filter(|o| o.changed())
@@ -1398,6 +1394,18 @@ impl Workspace {
                 after_exists: true,
             })
             .collect();
+        if changed.is_empty() {
+            return ok(&Applied {
+                schema: "fr-memory-apply-1",
+                transaction: None,
+                transaction_basis: None,
+                files: changed,
+                warnings: &warnings,
+            });
+        }
+        if let Err(error) = self.history.ensure_capacity(&journal_changes) {
+            return fail(error);
+        }
 
         if let Err(e) = crate::edit::commit(&outcomes) {
             return fail(e);

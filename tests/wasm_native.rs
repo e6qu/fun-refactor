@@ -212,6 +212,16 @@ fn browser_edits_have_checked_stack_history_and_a_cumulative_patch() {
 }
 
 #[test]
+fn a_noop_refactoring_does_not_create_a_browser_transaction() {
+    let mut ws = workspace(&[("a.py", "def add(x: int) -> int:\n    return x\n")]);
+    let applied = json(&ws.organize_imports("a.py"));
+    assert_eq!(applied["schema"], "fr-memory-apply-1", "{applied}");
+    assert!(applied["transaction"].is_null(), "{applied}");
+    assert_eq!(applied["files"], serde_json::json!([]));
+    assert_eq!(json(&ws.history())["records"], serde_json::json!([]));
+}
+
+#[test]
 fn translating_into_something_impossible_fails_without_writing() {
     let mut ws = workspace(&[(
         "a.py",
