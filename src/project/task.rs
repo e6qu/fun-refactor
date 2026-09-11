@@ -127,7 +127,10 @@ fn safe_patch_path(path: &Path) -> bool {
         && path.as_os_str().as_encoded_bytes().len() <= 4096
         && path
             .components()
-            .all(|component| matches!(component, Component::CurDir | Component::Normal(_)))
+            .all(|component| matches!(component, Component::Normal(_)))
+        && !path
+            .components()
+            .any(|component| matches!(component.as_os_str().to_str(), Some(".git" | ".fr-history")))
 }
 
 fn reference_value(
@@ -239,6 +242,10 @@ impl Project<'_> {
         ensure!(
             manifest.checks.len() <= 32,
             "project task accepts at most 32 declared checks."
+        );
+        ensure!(
+            manifest.delivery.is_none() || !manifest.checks.is_empty(),
+            "project task delivery requires at least one declared check."
         );
         if let Some(path) = manifest
             .delivery
@@ -362,11 +369,18 @@ impl Project<'_> {
         report["task_resolution_basis"] = json!(resolution_basis);
         report["targets"] = json!(target_rows);
         report["checks"] = checks;
-        report["author_manifest"] = json!({
+        report["author_manifest_template"] = json!({
             "revision": self.revision,
             "operations": author_operations
         });
-        report["workflow_manifest"] = workflow_template.unwrap_or(Value::Null);
+        report["workflow_manifest_template"] = workflow_template.unwrap_or(Value::Null);
+        report["template_substitutions"] = json!({
+            "<FRAGMENT:TARGET_ID>": "write a UTF-8 fragment and replace the matching target placeholder with its path",
+            "<TRANSACTION_ID>": "transaction from the saved author plan",
+            "<TRANSACTION_CONTEXT_BASIS>": "transaction_context_basis from the saved author plan",
+            "<PLAN_CONTEXT_BASIS>": "plan_context_basis from the complete author preview",
+            "<WORKFLOW_BASIS>": "workflow_basis from the complete workflow preview"
+        });
         report["commands"] = json!([
             ["fr", "author", "batch", "--from", "<AUTHOR_MANIFEST>"],
             [

@@ -773,7 +773,7 @@ input:
 ```
 
 Each `arguments` array starts with the subcommand name and uses its ordinary options. Global CLI
-options do not belong there, and a batch cannot contain another batch. Request IDs are unique,
+options do not belong there, and a batch cannot contain another batch or task. Request IDs are unique,
 bounded ASCII identifiers. The manifest limits each request to 64 arguments and 4096 argument bytes,
 with 16384 argument bytes across the batch. `manifest_basis` hashes the normalized versioned input.
 `resolution_basis` additionally hashes the project revision and ordered IDs with resolved arguments.
@@ -795,6 +795,53 @@ through 1048576 bytes. It counts serialized nested reports. If a report does not
 returns `status: "omitted-report-budget"` and `required_report_bytes`; later smaller reports may still fit.
 Common context and bounded request metadata are outside that payload budget. The command never clips
 a nested report. Any invalid request or query failure refuses the whole batch before output.
+
+`project task` prepares the bounded evidence and transition contract for one high-level change. It
+uses the same query and report limits as `project batch`, then resolves 1 through 16 authoring
+targets from literal full handles or string references into returned query reports:
+
+```json
+{
+  "schema": "fr-project-task-1",
+  "requests": [
+    {"id": "target", "arguments": ["find", "render", "--signature", "--source", "--bytes", "2048"]},
+    {"id": "callers", "arguments": ["calls", {"request": "target", "pointer": "/rows/0/0"}, "--direction", "incoming"]}
+  ],
+  "targets": [
+    {"id": "render-body", "handle": {"request": "target", "pointer": "/rows/0/0"}, "op": "replace-body"}
+  ],
+  "checks": ["unit"],
+  "delivery": {"exercise-reversal": true, "patch": "artifacts/change.patch"}
+}
+```
+
+Target IDs are unique bounded ASCII identifiers. Each target operation is `replace-body`,
+`replace-declaration`, `insert-declaration` or `organize-imports`. A target reference names any
+query in the manifest and uses a 1 through 512 byte JSON pointer. Unlike query-to-query references,
+the referenced query report must fit the output budget because the task contract exposes the
+evidence from which it selected the handle. Literal targets must be full handles from the current
+revision. Files and declarations are accepted; directories and locals outside the requested
+authoring scope refuse.
+
+The response retains the ordinary batch `requests`, common context and batch bases. `task_basis`
+binds the complete input. `task_resolution_basis` additionally binds the project revision, resolved
+query arguments, exact target handles, operations and check names. Each target reports path,
+language, kind and `eligibility: target-supported`. This is a conservative target-level decision;
+`syntax_preflighted` remains false. A real `author batch` preview is still authoritative for the
+fragment grammar, exact syntax-tree shape, overlaps and no-op detection.
+
+`checks` selects existing names from `.fr/checks.json` without executing them. It returns their
+complete configuration basis, coverage and compact `checks --run` arguments. Duplicate or unknown
+names refuse. `delivery` requires at least one selected check. Its optional patch path must use only
+normal relative components and cannot enter `.git` or `.fr-history`; workflow preflight later checks
+the live destination and parent directories.
+
+`author_manifest_template` contains the resolved handles and explicit `<FRAGMENT:TARGET_ID>` values.
+`workflow_manifest_template` carries the selected checks and delivery choices with explicit
+transaction placeholders. These are templates rather than accepted manifests. Replace every value
+named by `template_substitutions`, write the resulting JSON, then use the ordered `commands`: preview
+and save the author batch, preview the workflow, and execute it under the reviewed workflow basis.
+The task command itself is read-only and a final project verification still precedes its output.
 
 `calls` and `implementations` accept a directory, file, full handle or short ID with `--revision`.
 Both default to the workspace root and 40 rows, with limits from 1 through 500.

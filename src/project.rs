@@ -35,6 +35,7 @@ mod schemas;
 mod service_calls;
 mod task;
 mod tests;
+pub use task::task_author_target_candidate;
 
 #[derive(Subcommand)]
 pub enum Command {

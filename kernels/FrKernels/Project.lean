@@ -479,6 +479,31 @@ theorem batch_section_rejects_exhausted_budget (used next budget : Nat)
   simp [batchSectionFits]
   omega
 
+-- fr:spec src/project/task.rs::task_author_target_candidate @ 107db385cd0af76cb9f937f9ff188f4b6ad79f611b9aeb17c1fce1a24d2a73f2
+-- fr:signature operation: usize => operation: Nat; language: usize => language: Nat; target: usize => target: Nat; return: bool => return: Bool
+def taskAuthorTargetCandidate (operation : Nat) (language : Nat) (target : Nat) : Bool :=
+  match operation with
+  | 0 => decide ((language = 0 ∨ language = 1 ∨ language = 3 ∨ language = 4 ∨ language = 5) ∧
+      (target = 1 ∨ target = 2 ∨ (language = 4 ∨ language = 5) ∧ target = 3))
+  | 1 => decide (language = 0 ∧ (target = 1 ∨ target = 2))
+  | 2 => decide (language = 0 ∧ (target = 0 ∨ target = 2 ∨ target = 4 ∨ target = 5))
+  | 3 => decide (target = 0)
+  | _ => false
+
+theorem replace_declaration_target_iff (language target : Nat) :
+    taskAuthorTargetCandidate 1 language target = true ↔
+      language = 0 ∧ (target = 1 ∨ target = 2) := by
+  simp [taskAuthorTargetCandidate]
+
+theorem insert_declaration_target_iff (language target : Nat) :
+    taskAuthorTargetCandidate 2 language target = true ↔
+      language = 0 ∧ (target = 0 ∨ target = 2 ∨ target = 4 ∨ target = 5) := by
+  simp [taskAuthorTargetCandidate]
+
+theorem organize_imports_requires_file (language target : Nat)
+    (accepted : taskAuthorTargetCandidate 3 language target = true) : target = 0 := by
+  simpa [taskAuthorTargetCandidate] using accepted
+
 -- fr:spec src/project.rs::body_replacement_budget @ aab2e9e5858491c8ab262936994086babac8d14f8ae79fecd5e36b96897d65b3
 -- fr:signature before: usize => before: Nat; after: usize => after: Nat; return: bool => return: Bool
 def bodyReplacementBudget (before : Nat) (after : Nat) : Bool :=

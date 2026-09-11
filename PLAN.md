@@ -375,9 +375,9 @@ Planned checkpoints:
 
 1. **Complete.** Freeze the manifest and response contract; add shared-revision queries,
    backward target references and adversarial CLI regressions.
-2. Add conservative authoring eligibility, reusable author/workflow templates and exact declared-check selection.
-3. Anchor eligibility and section admission in Lean and compare exhaustive machine-sized cases with Rust.
-4. Update CLI, portable skill and continuity documentation; retain an executable generic fixture.
+2. **Complete.** Add conservative authoring eligibility, reusable author/workflow templates and exact declared-check selection.
+3. **Complete.** Anchor eligibility and section admission in Lean and compare exhaustive machine-sized cases with Rust.
+4. **Complete.** Update CLI, portable skill and continuity documentation; retain an executable generic fixture.
 5. Measure the equivalent separate and bundled flows, then run a fresh Luna-low pair only if the
    deterministic result and complete repository gate justify it.
 

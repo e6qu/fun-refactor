@@ -21,6 +21,24 @@ one bounded, revision-bound task contract that composes project queries, exact t
 conservative authoring eligibility, declared checks and ready delivery templates. Its purpose is to
 remove the path guessing, repeated help and repeated inspection observed in the latest agent traces.
 
+The first three PR 12 checkpoints add `fr project task --from MANIFEST`. It reuses one project-batch
+snapshot for up to sixteen heterogeneous queries, then resolves up to sixteen exact file or
+declaration targets from literal handles or returned query strings. A task target selects one of
+four existing authoring operations. Unsupported language/kind pairs, omitted source reports, stale
+handles, unknown checks, recursive tasks and unsafe delivery paths refuse before output.
+
+The report binds its normalized request as `frpt1:` and the resolved revision, query arguments,
+targets, operations and checks as `frpt2:`. It selects declared check coverage and the full reviewed
+configuration basis without executing commands. Explicit author and workflow templates carry only
+known fields; named placeholders distinguish them from executable manifests. Author preview remains
+the authority for fragment grammar, exact syntax-tree shape, overlaps and no-op detection.
+
+`FrKernels.Project.taskAuthorTargetCandidate` models the finite operation/language/target policy.
+Three theorems characterize declaration replacement, insertion and file-only import organization.
+All 1,386 representative and out-of-domain policy cases agree with Rust. Task query sections reuse
+the existing proved whole-report admission predicate. The executable portable-skill fixture passes
+with the new route while retaining the 1.5 KiB entry and 7 KiB route limits.
+
 The browser journal keeps exact optional text snapshots, applied and redo stacks, a stable `frmb1:`
 basis and applied, undone or abandoned record status. Undo and redo verify every selected path before
 writing any path. Generated files are removed on undo and recreated on redo; a new edit abandons the

@@ -10,8 +10,11 @@ fr project find greet --signature
 fr project select greet render validate --signature --source --bytes 2048
 fr project map --depth 2 --limit 12
 ```
-Pass full `find` handles directly to `project select`. `project show` takes a handle and byte options, not line ranges. Read `coverage`, omissions, pages, and selection statuses. Missing or clipped rows do not prove absence. Retain full basis reports; stale identities refuse.
+Pass full `find` handles to `project select`. `project show` takes a handle and byte options. Read `coverage`, omissions, pages, and selection statuses. Missing or clipped rows do not prove absence. Retain full bases; stale identities refuse.
 
-Load only the needed route: [Explore](references/explore.md) structure; [Author](references/author.md) edits; [Change](references/change.md) refactors; [Workflow](references/workflow.md) checked delivery; [Checks](references/checks.md) commands; [History](references/history.md) transitions; [Git](references/git.md) patches or state; [Lean](references/lean.md) proofs.
+For a structural task needing several views, use [Task](references/task.md) to obtain targets,
+checks and delivery templates in one request.
 
-Authoring uses revision-bound handles; refactors use names or positions. Mutations preview by default. Prefer one reviewed saved transaction for a coordinated change, then apply it. Preserve refusals, gaps, and uncertainty as evidence limits.
+Load only the needed route: [Explore](references/explore.md), [Author](references/author.md), [Change](references/change.md), [Workflow](references/workflow.md), [Checks](references/checks.md), [History](references/history.md), [Git](references/git.md), or [Lean](references/lean.md).
+
+Authoring uses revision-bound handles; refactors use names or positions. Mutations preview by default. Prefer saved transactions for coordinated changes, then apply them. Preserve refusals, gaps, and uncertainty as evidence limits.

@@ -174,20 +174,26 @@ fn project_task_binds_queries_exact_targets_checks_and_delivery_templates() {
     assert_eq!(task["targets"][0]["eligibility"], "target-supported");
     assert_eq!(task["targets"][0]["syntax_preflighted"], false);
     let handle = task["targets"][0]["handle"].as_str().unwrap();
-    assert_eq!(task["author_manifest"]["operations"][0]["handle"], handle);
     assert_eq!(
-        task["author_manifest"]["operations"][0]["from"],
+        task["author_manifest_template"]["operations"][0]["handle"],
+        handle
+    );
+    assert_eq!(
+        task["author_manifest_template"]["operations"][0]["from"],
         "<FRAGMENT:render-body>"
     );
     assert_eq!(task["checks"]["selected"], true);
     assert_eq!(task["checks"]["names"], serde_json::json!(["unit"]));
     assert_eq!(
-        task["workflow_manifest"]["checks"]["basis"],
+        task["workflow_manifest_template"]["checks"]["basis"],
         task["checks"]["basis"]
     );
-    assert_eq!(task["workflow_manifest"]["exercise-reversal"], true);
     assert_eq!(
-        task["workflow_manifest"]["patch"]["output"],
+        task["workflow_manifest_template"]["exercise-reversal"],
+        true
+    );
+    assert_eq!(
+        task["workflow_manifest_template"]["patch"]["output"],
         "artifacts/change.patch"
     );
     assert_eq!(
@@ -229,6 +235,16 @@ fn project_task_refuses_invalid_targets_operations_checks_and_recursion() {
             "schema": "fr-project-task-1", "requests": [{"id":"target","arguments":["find","render"]}],
             "targets": [{"id":"edit","handle":{"request":"target","pointer":"/rows/0/0"},"op":"replace-body"}],
             "delivery": {"patch":"../outside.patch"}
+        }),
+        serde_json::json!({
+            "schema": "fr-project-task-1", "requests": [{"id":"target","arguments":["find","render"]}],
+            "targets": [{"id":"edit","handle":{"request":"target","pointer":"/rows/0/0"},"op":"replace-body"}],
+            "delivery": {"patch":"artifacts/change.patch"}
+        }),
+        serde_json::json!({
+            "schema": "fr-project-task-1", "requests": [{"id":"target","arguments":["find","render"]}],
+            "targets": [{"id":"edit","handle":{"request":"target","pointer":"/rows/0/0"},"op":"replace-body"}],
+            "checks": ["unit"], "delivery": {"patch":".git/change.patch"}
         }),
     ];
     for manifest in cases {

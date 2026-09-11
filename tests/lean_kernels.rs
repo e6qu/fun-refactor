@@ -996,6 +996,35 @@ fn project_batch_budgets_match_lean_including_integer_limits() {
 }
 
 #[test]
+fn project_task_authoring_targets_match_lean_exhaustively() {
+    build_kernel();
+    let output = Command::new(root().join("kernels/.lake/build/bin/fr-project-kernel"))
+        .arg("task-author-targets")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let actual = String::from_utf8(output.stdout).unwrap();
+    let mut actual = actual.lines().map(|line| line.parse::<bool>().unwrap());
+    let mut checked = 0usize;
+    for operation in 0..7 {
+        for language in 0..22 {
+            for target in 0..9 {
+                assert_eq!(
+                    actual.next(),
+                    Some(fun_refactor::project::task_author_target_candidate(
+                        operation, language, target
+                    )),
+                    "operation {operation}, language {language}, target {target}"
+                );
+                checked += 1;
+            }
+        }
+    }
+    assert!(actual.next().is_none());
+    assert_eq!(checked, 1_386);
+}
+
+#[test]
 fn framework_boundary_policies_match_lean_over_the_bounded_domains() {
     use fun_refactor::project::framework_kernel::{
         component_hooks_compatible, configuration_visibility, fastapi_body_parameter_automatic,
