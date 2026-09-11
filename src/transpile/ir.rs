@@ -3,16 +3,27 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+fn is_false(value: &bool) -> bool {
+    !*value
+}
+
+fn is_normal_param(value: &ParamKind) -> bool {
+    *value == ParamKind::Normal
+}
+
 /// One translated file.
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Module {
     /// The file-level doc comment, where the language has one.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub doc: Vec<String>,
     /// The file's own name, where a language needs it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     pub items: Vec<Item>,
     /// What a directory sweep had to change about this file, for its header.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub sweep_notes: Vec<String>,
 }
 
@@ -52,23 +63,34 @@ pub enum Item {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Function {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub doc: Vec<String>,
     pub name: String,
     /// The type this is a method on, when it is one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub receiver: Option<String>,
     /// What the source called the receiver inside the body.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub receiver_binding: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub params: Vec<Param>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub returns: Option<Type>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub body: Vec<Stmt>,
+    #[serde(default, skip_serializing_if = "is_false")]
     pub exported: bool,
     /// Report rather than translate. Python says so, and Go cannot say it.
+    #[serde(default, skip_serializing_if = "is_false")]
     pub is_async: bool,
     /// Is this method read as data at its use sites?
+    #[serde(default, skip_serializing_if = "is_false")]
     pub is_property: bool,
     /// Does this function make a value of its type?
+    #[serde(default, skip_serializing_if = "is_false")]
     pub is_constructor: bool,
     /// Did the source say `private` in so many words?
+    #[serde(default, skip_serializing_if = "is_false")]
     pub is_private: bool,
 }
 
@@ -76,8 +98,11 @@ pub struct Function {
 #[serde(deny_unknown_fields)]
 pub struct Param {
     pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ty: Option<Type>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default: Option<Expr>,
+    #[serde(default, skip_serializing_if = "is_normal_param")]
     pub kind: ParamKind,
 }
 
@@ -99,34 +124,46 @@ pub enum ParamKind {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Record {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub doc: Vec<String>,
     pub name: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub fields: Vec<Field>,
     /// The type it inherits from, where the source has inheritance.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub extends: Option<String>,
+    #[serde(default, skip_serializing_if = "is_false")]
     pub exported: bool,
     /// Methods declared on it.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub methods: Vec<Function>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Field {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub doc: Vec<String>,
     pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ty: Option<Type>,
     /// The value the field starts with, where the source gave one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default: Option<Expr>,
+    #[serde(default, skip_serializing_if = "is_false")]
     pub exported: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Constant {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub doc: Vec<String>,
     pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ty: Option<Type>,
     pub value: Expr,
+    #[serde(default, skip_serializing_if = "is_false")]
     pub exported: bool,
 }
 
@@ -134,9 +171,11 @@ pub struct Constant {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Newtype {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub doc: Vec<String>,
     pub name: String,
     pub base: Type,
+    #[serde(default, skip_serializing_if = "is_false")]
     pub exported: bool,
 }
 
@@ -145,21 +184,27 @@ pub struct Newtype {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Sum {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub doc: Vec<String>,
     pub name: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub variants: Vec<Variant>,
+    #[serde(default, skip_serializing_if = "is_false")]
     pub exported: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Variant {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub doc: Vec<String>,
     pub name: String,
     /// The discriminator literal the source wrote, where the language writes one: `kind:
     /// "idle"` on an interface named `FIdle`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tag: Option<String>,
     /// Empty for a bare tag like `None` or `Empty`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub fields: Vec<Field>,
 }
 
@@ -170,10 +215,13 @@ pub struct ImportTarget {
     /// The module path as the source wrote it: `helpers`, `.models`, `./m`.
     pub module: String,
     /// Whether the path is relative, a leading dot in Python or `./` here.
+    #[serde(default, skip_serializing_if = "is_false")]
     pub relative: bool,
     /// The named bindings, each with the alias the body uses, where it has one.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub names: Vec<ImportedName>,
     /// The sibling file stem this import points at, when it points inside a sweep.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub resolved: Option<String>,
 }
 
@@ -182,6 +230,7 @@ pub struct ImportTarget {
 #[serde(deny_unknown_fields)]
 pub struct ImportedName {
     pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub alias: Option<String>,
 }
 
@@ -191,7 +240,9 @@ pub struct ImportedName {
 #[serde(deny_unknown_fields)]
 pub struct VariantArm {
     pub variant: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub bindings: Vec<(String, String)>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub body: Vec<Stmt>,
 }
 

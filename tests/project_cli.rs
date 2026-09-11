@@ -313,10 +313,7 @@ fn semantic_query_returns_complete_source_free_ir_and_patterns() {
     assert_eq!(summary["source_policy"], "source-free");
     assert_eq!(summary["status"], "returned");
     assert_eq!(summary["selection"]["body_requested"], false);
-    assert_eq!(
-        summary["model"]["items"][0]["value"]["body"],
-        serde_json::json!([])
-    );
+    assert!(summary["model"]["items"][0]["value"].get("body").is_none());
     assert!(summary["omitted"]["bodies"].as_u64().unwrap() > 0);
     assert!(summary["semantic_basis"]
         .as_str()
@@ -338,6 +335,30 @@ fn semantic_query_returns_complete_source_free_ir_and_patterns() {
     assert!(address.contains("#/model/"));
     let encoded = serde_json::to_string(&full["model"]).unwrap();
     assert!(!encoded.contains("positive_names(names"));
+
+    let direct = ok(
+        dir.path(),
+        &[
+            "project",
+            "semantic",
+            "app.py",
+            "--declaration",
+            "positive_names",
+            "--body",
+            "--minimal",
+        ],
+    );
+    assert_eq!(direct["selection"]["kind"], "declaration");
+    assert!(direct["selection"]["handle"]
+        .as_str()
+        .unwrap()
+        .starts_with("frp1:"));
+    assert!(direct.get("coverage").is_none());
+    assert!(direct["report_omitted"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|field| field == "coverage"));
 }
 
 #[test]

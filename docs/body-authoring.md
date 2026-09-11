@@ -5,6 +5,11 @@ It supports Rust, Go, Java, TypeScript and TSX.
 It retains the signature, outer attributes, documentation and every byte outside that block.
 This native command complements the existing refactorings when an agent needs to write a new implementation.
 
+Use `fr project semantic HANDLE --body` and `fr author replace-body-semantic HANDLE --from FILE`
+when the agent should read and write the versioned cross-language IR instead of source fragments.
+The [semantic model contract](semantic-model.md) defines its source boundary, node budget, JSON form,
+writer checks and task-change integration. Both routes preserve the same bytes outside the selected body.
+
 ```sh
 fr project map src/lib.rs --fields handle,parent,kind,name,line --limit 12
 fr project show '<HANDLE>' --source --bytes 512
@@ -146,7 +151,7 @@ Use the returned source-history transaction for exact application, undo/redo and
 ## Coordinated authoring batches
 
 `fr author batch --from MANIFEST` plans 1 through 32 existing authoring operations against one captured project revision.
-It accepts `replace-body`, `replace-declaration`, `insert-declaration` and `organize-imports`, with their existing language and fragment restrictions.
+It accepts `replace-body`, `replace-body-semantic`, `replace-declaration`, `insert-declaration` and `organize-imports`, with their existing language and input restrictions.
 Use this to update a caller and callee together, or change several implementations across files in one source-history transaction.
 
 The manifest is a regular UTF-8 JSON file of at most 64 KiB:

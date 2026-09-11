@@ -21,6 +21,11 @@ pub struct Options {
     pub(super) revision: Option<String>,
     #[arg(
         long,
+        help = "Select one unique declaration name inside a path target."
+    )]
+    pub(super) declaration: Option<String>,
+    #[arg(
+        long,
         help = "Return complete supported bodies and their detected patterns."
     )]
     pub(super) body: bool,
@@ -35,6 +40,11 @@ pub struct Options {
         help = "Include source carried by unsupported or fallback IR nodes."
     )]
     pub(super) unsupported_source: bool,
+    #[arg(
+        long,
+        help = "Omit the generic project envelope after binding semantic identity."
+    )]
+    pub(super) minimal: bool,
 }
 
 pub fn semantic_section_fits(required: usize, budget: usize) -> bool {
@@ -265,13 +275,50 @@ impl Project<'_> {
             (1..=4096).contains(&options.nodes),
             "semantic node budget must be between 1 and 4096."
         );
-        let target = if options.target.starts_with("frp1:") || options.revision.is_some() {
+        ensure!(
+            options.declaration.is_none()
+                || !options.target.starts_with("frp1:") && options.revision.is_none(),
+            "--declaration requires a path target without --revision."
+        );
+        let mut target = if options.target.starts_with("frp1:") || options.revision.is_some() {
             self.resolve_handle(
                 &self.explicit_handle(&options.target, options.revision.as_deref())?,
             )?
         } else {
             self.target(&options.target)?
         };
+        if let Some(name) = &options.declaration {
+            ensure!(
+                self.nodes[target].kind == "file",
+                "--declaration requires a file path target."
+            );
+            let path = &self.nodes[target].path;
+            let mut matches = self.nodes.iter().enumerate().filter_map(|(id, node)| {
+                let symbol = node.symbol.and_then(|symbol| self.index.symbol(symbol))?;
+                (node.path == *path
+                    && symbol.name == *name
+                    && matches!(
+                        symbol.kind,
+                        SymbolKind::Function
+                            | SymbolKind::Method
+                            | SymbolKind::Class
+                            | SymbolKind::Struct
+                            | SymbolKind::Trait
+                            | SymbolKind::Interface
+                            | SymbolKind::Enum
+                            | SymbolKind::TypeAlias
+                            | SymbolKind::Constant
+                    ))
+                .then_some(id)
+            });
+            target = matches
+                .next()
+                .with_context(|| format!("no semantic declaration named '{name}' in the file."))?;
+            ensure!(
+                matches.next().is_none(),
+                "semantic declaration name is ambiguous; select a revision-bound handle."
+            );
+        }
         let node = &self.nodes[target];
         ensure!(
             node.kind != "directory",
@@ -381,4 +428,28 @@ impl Project<'_> {
         }
         Ok(report)
     }
+}
+
+pub(crate) fn minimize(command: &super::Command, report: &mut Value) {
+    let super::Command::Semantic(options) = command else {
+        return;
+    };
+    if !options.minimal {
+        return;
+    }
+    let omitted = [
+        "schema",
+        "revision",
+        "handle_prefix",
+        "root",
+        "coverage",
+        "context_basis",
+        "addressing",
+        "analysis_budget",
+        "scope",
+    ];
+    for field in omitted {
+        report.as_object_mut().unwrap().remove(field);
+    }
+    report["report_omitted"] = json!(omitted);
 }

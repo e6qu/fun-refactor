@@ -488,7 +488,7 @@ Planned checkpoints:
 3. **Complete.** Add typed semantic body rendering and author-batch support.
 4. **Complete.** Integrate semantic targets with reviewed task changes and lifecycle drift checks.
 5. **Complete.** Add Lean policies and exhaustive Rust correspondence.
-6. **Planned.** Update CLI, portable skill and continuity documentation; retain controlled context evidence.
+6. **Complete.** Update CLI, portable skill and continuity documentation; retain controlled context evidence.
 7. **Planned.** Pass the complete repository gate and publish the large PR.
 
 ## Formal verification policy

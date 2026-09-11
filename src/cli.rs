@@ -2251,6 +2251,7 @@ fn cmd_project(cli: &Cli, command: &crate::project::Command) -> Result<()> {
         let mut report = project.report(command)?;
         project.verify(root)?;
         context.apply(&mut report)?;
+        crate::project::minimize_semantic_report(command, &mut report);
         println!("{}", serde_json::to_string(&report)?);
         Ok(())
     })

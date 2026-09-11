@@ -1184,7 +1184,7 @@ impl Project<'_> {
             crate::transpile::write_module_in_preserving_fields(language, &generated, &context)?;
         ensure!(
             fidelity.carried_verbatim == 0,
-            "semantic body cannot be rendered without carrying source verbatim."
+            "writer cannot render semantic body without carrying source verbatim."
         );
         let rendered_parse = Parsers::new().parse(language, &rendered)?;
         ensure!(

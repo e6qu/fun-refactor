@@ -64,6 +64,15 @@ fn batch_and_individual_workflows_match_source_behavior_and_reversal() {
 }
 
 #[test]
+fn semantic_and_source_body_routes_produce_identical_changes_and_patches() {
+    python(&[
+        "tools/semantic-context.py",
+        "--fr",
+        env!("CARGO_BIN_EXE_fr"),
+    ]);
+}
+
+#[test]
 fn batched_project_queries_match_separate_compact_reports() {
     python(&[
         "tools/project-batch-context.py",

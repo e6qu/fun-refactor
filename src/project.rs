@@ -33,6 +33,7 @@ mod relationships;
 mod routes;
 mod schemas;
 mod semantic;
+pub(crate) use semantic::minimize as minimize_semantic_report;
 pub use semantic::semantic_section_fits;
 mod service_calls;
 mod task;
