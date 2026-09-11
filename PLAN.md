@@ -68,8 +68,9 @@ The `fr` agent uses the reviewed-plan and compact transaction workflow.
 Seven refused or failed calls and repeated inspection identify discoverability and call count as the next practical bottlenecks.
 The PR 8 prescribed-workflow projection exercises current handle selection against the pinned
 workspace and retains every mutation and verification step. With the current portable skill, it
-reduces that trace to 29 calls and 13,405 context tokens, 2,053 below the observed `fr` arm and 1,805 above the ordinary-file
-arm. This one-trace counterfactual is separate from the retained fresh adoption pair below.
+reduces that trace to 29 calls and 13,405 context tokens. This is 2,053 below the observed `fr` arm
+and 1,805 above the ordinary-file arm. This one-trace counterfactual is separate from the retained
+fresh adoption pair below.
 
 The first fresh PR 8 pair produced correct patches and passed both 1,060-case behavior oracles.
 Both agents edited before running the original-state checks, so neither passed acceptance. The
@@ -91,8 +92,8 @@ The PR 9 controlled broad-query fixture compares eight separate project calls, a
 reviewed `context_basis`, with one query batch. Every normalized nested report matches. Including
 the batch manifest, median counted context falls from 2,695 to 2,453 tokens, a 9.0% reduction, while
 calls fall from eight to one. The current local rerun records median subprocess time falling from
-1.792 to 0.229 seconds with the fact cache disabled and from 0.147 to 0.025 seconds with separate
-prewarmed caches. Token counts use
+1.792 to 0.229 seconds with the fact cache disabled. With separate prewarmed caches, it falls from
+0.147 to 0.025 seconds. Token counts use
 fixed representatives for opaque identities. This prescribed
 three-repetition fixture supports a fresh workflow trial; it is not agent-success or population evidence.
 
@@ -105,7 +106,7 @@ in all three repetitions. This fixed sequence supports an adoption trial and mak
 The PR 12 controlled task fixture compares four separate discovery and contract calls with one
 revision-bound task bundle. It counts the 446-byte task manifest and preserves identical normalized
 query reports, exact target operation and selected-check evidence. Across three rotating repetitions,
-median counted context falls from 1,557 to 1,510 tokens, a 3.0% reduction; serialized context falls
+median counted context falls from 1,557 to 1,510 tokens, a 3.0% reduction. Serialized context falls
 from 5,586 to 4,744 bytes, a 15.1% reduction. Calls fall from four to one and median local subprocess
 time falls from 0.119 to 0.053 seconds. Both arms stop before fragment creation or mutation. This is
 a fixed serialization and call-count comparison, not autonomous-agent or population evidence.
@@ -167,8 +168,8 @@ The first packaged roadmap is complete. Twelve merged pull requests established 
 | [PR 10](https://github.com/e6qu/fun-refactor/pull/271) | Verified Change Workflow | Merged |
 | [PR 11](https://github.com/e6qu/fun-refactor/pull/272) | Browser Transaction History | Merged |
 
-The second package begins with one task-oriented agent contract. Later PRs will be chosen from
-measured use rather than preassigning command shapes before their need is demonstrated.
+The second package begins with one task-oriented agent contract. Measured use will determine later
+PRs instead of preassigning command shapes before their need is clear.
 
 Git history and [development continuity](docs/continuity.md) retain checkpoint-level detail.
 
@@ -350,24 +351,23 @@ Planned checkpoints:
 
 Status: in progress on `agent_task_bundle`.
 
-Goal: let an agent discover the project evidence, exact edit targets, supported authoring route and
-declared verification contract for one task in a single bounded, immutable project request.
+Goal: let one bounded, immutable request reveal project evidence, exact edit targets, the authoring
+route and the declared verification contract for an agent task.
 
 Deliverables:
 
-- Extend the project batch manifest into a versioned task manifest that runs heterogeneous existing
-  read queries against one verified revision and resolves backward references to their string results.
-- Resolve named task targets to exact full handles and report their language, declaration kind,
-  path and candidate high-level authoring operations without claiming that an unwritten fragment
-  has passed syntax preflight.
+- Extend the project batch manifest into a versioned task manifest. It runs heterogeneous read
+  queries against one verified revision and resolves backward references to string results.
+- Resolve named task targets to exact full handles. Report their language, declaration kind, path
+  and candidate high-level operations without claiming syntax preflight for unwritten fragments.
 - Select declared project checks in the same request and return their exact reviewed basis,
   coverage and compact execution arguments.
 - Emit bounded author-batch and verified-workflow templates whose remaining placeholders are
   explicit, along with the exact command sequence that turns fragments into a reviewed transaction.
 - Bind the complete task request, resolved queries, target decisions and check selection to stable
   digests. Refuse stale handles, invalid references and unsupported requested operations.
-- Teach the portable skill this route and retain a controlled comparison against the equivalent
-  separate discovery, help and check-list calls before spending quota on another agent cohort.
+- Teach the portable skill this route. Retain a controlled comparison with equivalent separate
+  discovery, help and check-list calls before spending quota on another agent cohort.
 
 Verification and acceptance:
 
@@ -388,9 +388,9 @@ Planned checkpoints:
 2. **Complete.** Add conservative authoring eligibility, reusable author/workflow templates and exact declared-check selection.
 3. **Complete.** Anchor eligibility and section admission in Lean and compare exhaustive machine-sized cases with Rust.
 4. **Complete.** Update CLI, portable skill and continuity documentation; retain an executable generic fixture.
-5. **In progress.** Measure the equivalent separate and bundled flows, then run a fresh Luna-low pair
-   only if the deterministic result and complete repository gate justify it. The controlled result
-   reduces calls by 75% and counted context by 3.0%; the full gate precedes any quota use.
+5. **In progress.** Measure the equivalent separate and bundled flows. Run a fresh Luna-low pair only
+   if the deterministic result and complete repository gate justify it. The controlled result reduces
+   calls by 75% and counted context by 3.0%; the full gate precedes any quota use.
 
 ## Formal verification policy
 

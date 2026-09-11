@@ -305,7 +305,6 @@ pub fn batch_section_fits(used: usize, next: usize, budget: usize) -> bool {
     used <= budget && next <= budget - used
 }
 
-/// Classify an exact-handle selection after resolving its revision-bound identity.
 pub fn handle_selection_status(
     in_scope: bool,
     declaration: bool,

@@ -296,9 +296,9 @@ metadata, as documented by the command.
 for four operations, nineteen known language codes and seven target categories. Theorems characterize
 Rust declaration replacement and insertion and prove that import organization requires a file target.
 The shared executable compares Rust and Lean over 1,386 cases, including unknown operation, language
-and target codes. This proves the finite target policy on those codes. Parser-backed author preview,
-language detection, handle resolution and JSON template assembly remain trusted implementation steps
-covered by CLI regressions; the task report therefore keeps `syntax_preflighted` false.
+and target codes. This proves the finite target policy on those codes. CLI regressions cover the
+trusted parser-backed author preview, language detection, handle resolution and JSON template assembly.
+The task report therefore keeps `syntax_preflighted` false.
 
 ## Reviewed plan basis kernel
 

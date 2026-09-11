@@ -797,8 +797,8 @@ Common context and bounded request metadata are outside that payload budget. The
 a nested report. Any invalid request or query failure refuses the whole batch before output.
 
 `project task` prepares the bounded evidence and transition contract for one high-level change. It
-uses the same query and report limits as `project batch`, then resolves 1 through 16 authoring
-targets from literal full handles or string references into returned query reports:
+uses the query and report limits from `project batch`. It then resolves 1 through 16 authoring
+targets from full literal handles or string references into returned query reports:
 
 ```json
 {
@@ -832,16 +832,16 @@ fragment grammar, exact syntax-tree shape, overlaps and no-op detection.
 
 `checks` selects existing names from `.fr/checks.json` without executing them. It returns their
 complete configuration basis, coverage and compact `checks --run` arguments. Duplicate or unknown
-names refuse. `delivery` requires at least one selected check. Its optional patch path must use only
-normal relative components and cannot enter `.git` or `.fr-history`; workflow preflight later checks
+names refuse. `delivery` requires at least one selected check. Its optional patch path accepts only
+normal relative components and cannot enter `.git` or `.fr-history`. Workflow preflight later checks
 the live destination and parent directories.
 
 `author_manifest_template` contains the resolved handles and explicit `<FRAGMENT:TARGET_ID>` values.
 `workflow_manifest_template` carries the selected checks and delivery choices with explicit
 transaction placeholders. These are templates rather than accepted manifests. Replace every
-angle-bracketed value, write the resulting JSON, then use the commands in `next`: preview
-and save the author batch, preview the workflow, and execute it under the reviewed workflow basis.
-The task command itself is read-only and a final project verification still precedes its output.
+angle-bracketed value and write the resulting JSON. Then use `next` to preview and save the author
+batch, preview the workflow, and execute it under the reviewed workflow basis. The task command
+only reads the project, and final project verification still precedes its output.
 
 `calls` and `implementations` accept a directory, file, full handle or short ID with `--revision`.
 Both default to the workspace root and 40 rows, with limits from 1 through 500.
