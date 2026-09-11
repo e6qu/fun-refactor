@@ -63,6 +63,16 @@ def main (args : List String) : IO Unit := do
       for language in [0:22] do
         for target in [0:9] do
           IO.println (taskAuthorTargetCandidate operation language target)
+  else if args == ["semantic-sections"] then
+    for required in samples do
+      for budget in samples do
+        IO.println (semanticSectionFits required budget)
+  else if args == ["semantic-author-admission"] then
+    for schemaMatches in [false, true] do
+      for targetSupported in [false, true] do
+        for sourceFree in [false, true] do
+          for bounded in [false, true] do
+            IO.println (FrKernels.Author.semanticBodyAdmitted schemaMatches targetSupported sourceFree bounded)
   else if args == ["framework-boundaries"] then
     for total in frameworkSamples do
       for limit in frameworkSamples do

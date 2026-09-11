@@ -180,4 +180,30 @@ theorem distinct_separated_insertions_do_not_conflict (left right : Nat) (apart 
   simp [selectionConflict]
   omega
 
+-- fr:spec src/project/author.rs::semantic_body_admitted @ ff1baba25f00029ef9172f33d97571288eeeff3aa9c27eee210951ac0a8c5a41
+-- fr:signature schema_matches: bool => schemaMatches: Bool; target_supported: bool => targetSupported: Bool; source_free: bool => sourceFree: Bool; bounded: bool => bounded: Bool; return: bool => return: Bool
+def semanticBodyAdmitted
+    (schemaMatches : Bool)
+    (targetSupported : Bool)
+    (sourceFree : Bool)
+    (bounded : Bool) : Bool :=
+  schemaMatches && targetSupported && sourceFree && bounded
+
+theorem semantic_body_admitted_iff (schemaMatches targetSupported sourceFree bounded : Bool) :
+    semanticBodyAdmitted schemaMatches targetSupported sourceFree bounded = true ↔
+      schemaMatches = true ∧ targetSupported = true ∧ sourceFree = true ∧ bounded = true := by
+  cases schemaMatches <;> cases targetSupported <;> cases sourceFree <;> cases bounded <;> decide
+
+theorem semantic_body_requires_source_free
+    (schemaMatches targetSupported sourceFree bounded : Bool)
+    (accepted : semanticBodyAdmitted schemaMatches targetSupported sourceFree bounded = true) :
+    sourceFree = true := by
+  exact (semantic_body_admitted_iff schemaMatches targetSupported sourceFree bounded).mp accepted |>.2.2.1
+
+theorem semantic_body_requires_supported_target
+    (schemaMatches targetSupported sourceFree bounded : Bool)
+    (accepted : semanticBodyAdmitted schemaMatches targetSupported sourceFree bounded = true) :
+    targetSupported = true := by
+  exact (semantic_body_admitted_iff schemaMatches targetSupported sourceFree bounded).mp accepted |>.2.1
+
 end FrKernels.Author
