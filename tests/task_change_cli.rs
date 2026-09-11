@@ -205,3 +205,93 @@ fn failed_checks_leave_structured_state_and_withhold_the_patch() {
     assert_eq!(failed["workflow"]["stages"][1]["status"], "failed");
     assert!(!root.path().join("artifacts/change.patch").exists());
 }
+
+#[test]
+fn reviewed_source_manifest_checks_and_destination_drift_refuse_before_history() {
+    for fault in ["source", "manifest", "checks", "destination"] {
+        let root = fixture("true");
+        let preview = preview(root.path());
+        match fault {
+            "source" => fs::write(
+                root.path().join("src/lib.rs"),
+                "pub fn render(value: &str) -> String { value.repeat(2) }\n",
+            )
+            .unwrap(),
+            "manifest" => {
+                let path = root.path().join(".fr/task-change.json");
+                let mut manifest: Value =
+                    serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+                manifest["delivery"]["exercise-reversal"] = json!(false);
+                fs::write(path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+            }
+            "checks" => {
+                let path = root.path().join(".fr/checks.json");
+                let mut checks: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+                checks["checks"][0]["covers"] = json!(["changed declaration"]);
+                fs::write(path, serde_json::to_vec(&checks).unwrap()).unwrap();
+            }
+            "destination" => {
+                fs::write(root.path().join("artifacts/change.patch"), "occupied\n").unwrap()
+            }
+            _ => unreachable!(),
+        }
+        let failed = report(
+            fr(
+                root.path(),
+                &[
+                    "task-change",
+                    "--from",
+                    ".fr/task-change.json",
+                    "--write",
+                    "--basis",
+                    preview["task_change_basis"].as_str().unwrap(),
+                ],
+            ),
+            1,
+        );
+        let message = failed["error"]["message"].as_str().unwrap();
+        if fault == "destination" {
+            assert!(message.contains("already exists"), "{failed}");
+        } else {
+            assert!(message.contains("task-change basis"), "{failed}");
+        }
+        assert!(!root.path().join(".fr-history").exists(), "{fault}");
+    }
+}
+
+#[test]
+fn incomplete_diffs_bad_fragments_and_invalid_fragment_choices_never_create_history() {
+    for fault in ["diff", "syntax", "missing-fragment"] {
+        let root = fixture("true");
+        let mut args = vec!["task-change", "--from", ".fr/task-change.json"];
+        match fault {
+            "diff" => args.extend(["--diff-bytes", "1"]),
+            "syntax" => fs::write(
+                root.path().join(".fr/replacement.fragment"),
+                "{ let invalid = ; }\n",
+            )
+            .unwrap(),
+            "missing-fragment" => {
+                let path = root.path().join(".fr/task-change.json");
+                let mut manifest: Value =
+                    serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+                manifest["targets"][0]
+                    .as_object_mut()
+                    .unwrap()
+                    .remove("from");
+                fs::write(path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+            }
+            _ => unreachable!(),
+        }
+        let failed = report(fr(root.path(), &args), 1);
+        let message = failed["error"]["message"].as_str().unwrap();
+        match fault {
+            "diff" => assert!(message.contains("complete untruncated diff")),
+            "syntax" => assert!(message.contains("batch operation 1 failed")),
+            "missing-fragment" => assert!(message.contains("invalid fragment choice")),
+            _ => unreachable!(),
+        }
+        assert!(!root.path().join(".fr-history").exists(), "{fault}");
+        assert!(!root.path().join("artifacts/change.patch").exists());
+    }
+}
