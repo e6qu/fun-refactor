@@ -1,7 +1,6 @@
 use super::{History, Record, Snapshot, SnapshotKind, Status};
-use anyhow::{bail, Context, Result};
+use anyhow::Result;
 use serde::Serialize;
-use std::fmt::Write;
 use std::path::Path;
 
 mod check;
@@ -83,101 +82,23 @@ pub fn matches_patch_basis(actual: &Option<Snapshot>, expected: &Option<Snapshot
             .map(|s| (&s.content, snapshot_git_mode(s)))
 }
 
-fn quote(path: &str) -> String {
-    let mut quoted = String::from("\"");
-    for byte in path.bytes() {
-        match byte {
-            b'"' | b'\\' => {
-                quoted.push('\\');
-                quoted.push(char::from(byte));
-            }
-            b' '..=b'~' => quoted.push(char::from(byte)),
-            _ => write!(quoted, "\\{byte:03o}").unwrap(),
-        }
-    }
-    quoted.push('"');
-    quoted
-}
-
 fn render(record: &Record, reverse: bool) -> Result<String> {
-    let mut changes = record.changes.iter().collect::<Vec<_>>();
-    changes.sort_by(|a, b| a.path.cmp(&b.path));
-    let mut patch = String::new();
-    for change in changes {
-        let name = change
-            .path
-            .components()
-            .map(|part| part.as_os_str().to_str().context("non-UTF-8 patch path"))
-            .collect::<Result<Vec<_>>>()?
-            .join("/");
-        let (before, after) = if reverse {
-            (&change.after, &change.before)
-        } else {
-            (&change.before, &change.after)
-        };
-        for snapshot in [before, after].into_iter().flatten() {
-            if snapshot.content.contains('\0') {
-                bail!("cannot export binary snapshot as a text patch: {name:?}");
-            }
-        }
-        if let (Some(before), Some(after)) = (before, after) {
-            let both_regular =
-                before.kind == SnapshotKind::Regular && after.kind == SnapshotKind::Regular;
-            if both_regular && !git_mode_change_supported(before.mode, after.mode) {
-                bail!("cannot represent recorded permission change in a Git patch: {name:?}");
-            }
-        }
-        let old = quote(&format!("a/{name}"));
-        let new = quote(&format!("b/{name}"));
-        if let (Some(before), Some(after)) = (before, after) {
-            if before.kind != after.kind {
-                writeln!(patch, "diff --git {old} {new}")?;
-                writeln!(patch, "deleted file mode {:06o}", snapshot_git_mode(before))?;
-                patch.push_str(
-                    &similar::TextDiff::from_lines(before.content.as_str(), "")
-                        .unified_diff()
-                        .header(&old, "/dev/null")
-                        .to_string(),
-                );
-                writeln!(patch, "diff --git {old} {new}")?;
-                writeln!(patch, "new file mode {:06o}", snapshot_git_mode(after))?;
-                patch.push_str(
-                    &similar::TextDiff::from_lines("", after.content.as_str())
-                        .unified_diff()
-                        .header("/dev/null", &new)
-                        .to_string(),
-                );
-                continue;
-            }
-        }
-        writeln!(patch, "diff --git {old} {new}")?;
-        match (before, after) {
-            (None, Some(after)) => {
-                writeln!(patch, "new file mode {:06o}", snapshot_git_mode(after))?
-            }
-            (Some(before), None) => {
-                writeln!(patch, "deleted file mode {:06o}", snapshot_git_mode(before))?
-            }
-            (Some(before), Some(after))
-                if snapshot_git_mode(before) != snapshot_git_mode(after) =>
-            {
-                writeln!(patch, "old mode {:06o}", snapshot_git_mode(before))?;
-                writeln!(patch, "new mode {:06o}", snapshot_git_mode(after))?;
-            }
-            _ => (),
-        }
-        patch.push_str(
-            &similar::TextDiff::from_lines(
-                before.as_ref().map_or("", |s| &s.content),
-                after.as_ref().map_or("", |s| &s.content),
-            )
-            .unified_diff()
-            .header(
-                if before.is_some() { &old } else { "/dev/null" },
-                if after.is_some() { &new } else { "/dev/null" },
-            )
-            .to_string(),
-        );
-    }
-    Ok(patch)
+    let changes = record
+        .changes
+        .iter()
+        .map(|change| crate::git_patch::Change {
+            path: &change.path,
+            before: change.before.as_ref().map(|snapshot| crate::git_patch::Snapshot {
+                content: &snapshot.content,
+                mode: snapshot.mode,
+                symlink: snapshot.kind == SnapshotKind::Symlink,
+            }),
+            after: change.after.as_ref().map(|snapshot| crate::git_patch::Snapshot {
+                content: &snapshot.content,
+                mode: snapshot.mode,
+                symlink: snapshot.kind == SnapshotKind::Symlink,
+            }),
+        })
+        .collect::<Vec<_>>();
+    crate::git_patch::render(&changes, reverse)
 }
