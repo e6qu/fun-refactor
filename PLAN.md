@@ -444,7 +444,7 @@ Planned checkpoints:
 
 ### PR 14. Semantic Agent Model and Authoring
 
-Status: implementation complete on `agent_semantic_ir`; publication pending.
+Status: in review as [PR 276](https://github.com/e6qu/fun-refactor/pull/276).
 
 Goal: let an agent inspect and change supported program behavior through versioned semantic data
 without reading or writing language-specific source text.
@@ -489,7 +489,7 @@ Planned checkpoints:
 4. **Complete.** Integrate semantic targets with reviewed task changes and lifecycle drift checks.
 5. **Complete.** Add Lean policies and exhaustive Rust correspondence.
 6. **Complete.** Update CLI, portable skill and continuity documentation; retain controlled context evidence.
-7. **Complete.** Pass the complete repository gate and publish the large PR.
+7. **Complete.** Pass the complete repository gate and publish the large PR for review.
 
 ## Formal verification policy
 
