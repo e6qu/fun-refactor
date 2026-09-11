@@ -32,6 +32,7 @@ mod next_routes;
 mod relationships;
 mod routes;
 mod schemas;
+mod semantic;
 mod service_calls;
 mod task;
 pub mod task_change;
@@ -102,6 +103,8 @@ pub enum Command {
     Features(FeatureOptions),
     #[command(about = "Page through declared schema fields and local type-reference candidates.")]
     Schemas(RelationshipOptions),
+    #[command(about = "Inspect source-free semantic IR for a file or declaration.")]
+    Semantic(semantic::Options),
     #[command(about = "Page through environment declarations and candidate code consumers.")]
     Configuration(RelationshipOptions),
     #[command(about = "Page through test candidates and call-path witnesses.")]
@@ -1096,6 +1099,7 @@ impl<'a> Project<'a> {
             Command::Contracts { selection, types } => self.routes(selection, true, *types),
             Command::Features(options) => self.features(options),
             Command::Schemas(selection) => self.schemas(selection),
+            Command::Semantic(options) => self.semantic(options),
             Command::Configuration(selection) => self.configuration(selection),
             Command::Tests { selection, depth } => self.tests(selection, *depth),
             Command::Packages { limit, cursor } => self.packages(*limit, cursor.as_deref()),

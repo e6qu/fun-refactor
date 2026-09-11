@@ -1,9 +1,11 @@
 //! What a file means, said in a way no one language owns.
 
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// One translated file.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Module {
     /// The file-level doc comment, where the language has one.
     pub doc: Vec<String>,
@@ -14,7 +16,13 @@ pub struct Module {
     pub sweep_notes: Vec<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(
+    tag = "kind",
+    content = "value",
+    rename_all = "kebab-case",
+    deny_unknown_fields
+)]
 pub enum Item {
     Function(Function),
     Record(Record),
@@ -41,7 +49,8 @@ pub enum Item {
     Unsupported(Unsupported),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Function {
     pub doc: Vec<String>,
     pub name: String,
@@ -63,7 +72,8 @@ pub struct Function {
     pub is_private: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Param {
     pub name: String,
     pub ty: Option<Type>,
@@ -72,7 +82,8 @@ pub struct Param {
 }
 
 /// How a parameter arrives, which belongs to the signature.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum ParamKind {
     #[default]
     Normal,
@@ -85,7 +96,8 @@ pub enum ParamKind {
 }
 
 /// A struct, class, dataclass or interface, a named product of fields.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Record {
     pub doc: Vec<String>,
     pub name: String,
@@ -97,7 +109,8 @@ pub struct Record {
     pub methods: Vec<Function>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Field {
     pub doc: Vec<String>,
     pub name: String,
@@ -107,7 +120,8 @@ pub struct Field {
     pub exported: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Constant {
     pub doc: Vec<String>,
     pub name: String,
@@ -117,7 +131,8 @@ pub struct Constant {
 }
 
 /// A distinct type over an existing one, worth one line in every language here.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Newtype {
     pub doc: Vec<String>,
     pub name: String,
@@ -127,7 +142,8 @@ pub struct Newtype {
 
 /// A closed choice: a value is exactly one of the named variants, and each variant may carry
 /// its own fields.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Sum {
     pub doc: Vec<String>,
     pub name: String,
@@ -135,7 +151,8 @@ pub struct Sum {
     pub exported: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Variant {
     pub doc: Vec<String>,
     pub name: String,
@@ -147,7 +164,8 @@ pub struct Variant {
 }
 
 /// An import taken apart: where it points and which names it binds.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ImportTarget {
     /// The module path as the source wrote it: `helpers`, `.models`, `./m`.
     pub module: String,
@@ -160,7 +178,8 @@ pub struct ImportTarget {
 }
 
 /// One name an import binds, with its alias where the source gave one.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ImportedName {
     pub name: String,
     pub alias: Option<String>,
@@ -168,7 +187,8 @@ pub struct ImportedName {
 
 /// One arm of a [`Stmt::MatchVariants`]: the variant it selects, the payload
 /// fields the body reads (field name, local name), and the body itself.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct VariantArm {
     pub variant: String,
     pub bindings: Vec<(String, String)>,
@@ -176,7 +196,8 @@ pub struct VariantArm {
 }
 
 /// Something with no counterpart, carried whole so nothing is lost.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Unsupported {
     /// What the source called it, for the report: `impl_item`, `decorated_definition`.
     pub construct: String,
@@ -186,7 +207,13 @@ pub struct Unsupported {
 }
 
 /// A type, as far as one crosses between languages.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(
+    tag = "kind",
+    content = "value",
+    rename_all = "kebab-case",
+    deny_unknown_fields
+)]
 pub enum Type {
     Unit,
     Bool,
@@ -274,7 +301,13 @@ impl fmt::Display for Type {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(
+    tag = "kind",
+    content = "value",
+    rename_all = "kebab-case",
+    deny_unknown_fields
+)]
 pub enum Stmt {
     Return(Option<Expr>),
     /// A new binding.
@@ -405,7 +438,8 @@ pub enum Stmt {
 }
 
 /// One `except` or `catch` clause.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Catch {
     /// The name holding the error, where the source gives one.
     pub binding: Option<String>,
@@ -414,7 +448,13 @@ pub struct Catch {
     pub body: Vec<Stmt>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(
+    tag = "kind",
+    content = "value",
+    rename_all = "kebab-case",
+    deny_unknown_fields
+)]
 pub enum Expr {
     Int(String),
     Float(String),
@@ -521,14 +561,21 @@ pub enum Expr {
 }
 
 /// One piece of an interpolated string.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(
+    tag = "kind",
+    content = "value",
+    rename_all = "kebab-case",
+    deny_unknown_fields
+)]
 pub enum TemplatePart {
     Text(String),
     Expr(Expr),
 }
 
 /// The operators that mean the same thing in every language here.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum BinaryOp {
     Add,
     Sub,
@@ -613,7 +660,8 @@ impl BinaryOp {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum UnaryOp {
     Not,
     Neg,

@@ -300,6 +300,109 @@ fn reconstruct_batch_report(batch: &Value, request: usize) -> Value {
 }
 
 #[test]
+fn semantic_query_returns_complete_source_free_ir_and_patterns() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::write(
+        dir.path().join("app.py"),
+        "def positive_names(names: list[str]) -> list[str]:\n    return [name.upper() for name in names if len(name) > 0]\n",
+    )
+    .unwrap();
+
+    let summary = ok(dir.path(), &["project", "semantic", "app.py"]);
+    assert_eq!(summary["semantic_schema"], "fr-semantic-model-1");
+    assert_eq!(summary["source_policy"], "source-free");
+    assert_eq!(summary["status"], "returned");
+    assert_eq!(summary["selection"]["body_requested"], false);
+    assert_eq!(
+        summary["model"]["items"][0]["value"]["body"],
+        serde_json::json!([])
+    );
+    assert!(summary["omitted"]["bodies"].as_u64().unwrap() > 0);
+    assert!(summary["semantic_basis"]
+        .as_str()
+        .unwrap()
+        .starts_with("frsm1:"));
+    assert_eq!(summary["patterns"], serde_json::json!([]));
+
+    let full = ok(
+        dir.path(),
+        &["project", "semantic", "app.py", "--body", "--nodes", "64"],
+    );
+    assert_eq!(full["status"], "returned");
+    assert!(full["model"]["items"][0]["value"]["body"]
+        .as_array()
+        .is_some_and(|body| !body.is_empty()));
+    assert_eq!(full["patterns"][0]["pattern"], "filter-map");
+    let address = full["patterns"][0]["address"].as_str().unwrap();
+    assert!(address.starts_with(full["semantic_basis"].as_str().unwrap()));
+    assert!(address.contains("#/model/"));
+    let encoded = serde_json::to_string(&full["model"]).unwrap();
+    assert!(!encoded.contains("positive_names(names"));
+}
+
+#[test]
+fn semantic_query_omits_the_whole_model_when_its_node_budget_is_too_small() {
+    let dir = fixture();
+    let report = ok(
+        dir.path(),
+        &[
+            "project",
+            "semantic",
+            "src/app.py",
+            "--body",
+            "--nodes",
+            "1",
+        ],
+    );
+    assert_eq!(report["status"], "omitted-node-budget");
+    assert!(report["model"].is_null());
+    assert_eq!(report["patterns"], serde_json::json!([]));
+    assert!(report["node_budget"]["required"].as_u64().unwrap() > 1);
+    assert_eq!(report["node_budget"]["complete_subtrees_only"], true);
+}
+
+#[test]
+fn semantic_query_is_available_inside_a_project_batch() {
+    let dir = fixture();
+    let direct = ok(dir.path(), &["project", "semantic", "src/lib.py", "--body"]);
+    let batch = project_batch(
+        dir.path(),
+        serde_json::json!({
+            "schema": "fr-project-batch-1",
+            "requests": [{"id":"meaning", "arguments":["semantic", "src/lib.py", "--body"]}]
+        }),
+        65_536,
+    );
+    assert_eq!(reconstruct_batch_report(&batch, 0), direct);
+}
+
+#[test]
+fn semantic_query_refuses_stale_handles_and_oversized_sources() {
+    let dir = fixture();
+    let found = ok(dir.path(), &["project", "find", "helper"]);
+    let handle = found["rows"][0][0].as_str().unwrap().to_owned();
+    fs::write(
+        dir.path().join("src/lib.py"),
+        "def helper():\n    return 2\n",
+    )
+    .unwrap();
+    let (success, stale) = run(dir.path(), &["project", "semantic", &handle, "--body"]);
+    assert!(!success, "{stale}");
+    assert!(stale["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("stale or invalid project handle"));
+
+    fs::write(dir.path().join("huge.py"), "# x\n".repeat(70_000)).unwrap();
+    let (success, huge) = run(dir.path(), &["project", "semantic", "huge.py"]);
+    assert!(!success, "{huge}");
+    assert!(huge["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("262144-byte analysis limit"));
+}
+
+#[test]
 fn project_batch_reuses_one_verified_context_for_existing_queries() {
     let dir = fixture();
     let manifest = serde_json::json!({
