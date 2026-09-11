@@ -1,7 +1,7 @@
 use super::{bounded_text, hash, Project};
 use crate::model::{Symbol, SymbolKind};
 use crate::parse::Parsers;
-use crate::transpile::ir::{Item, Module};
+use crate::transpile::ir::{Function, Item, Module};
 use anyhow::{ensure, Context, Result};
 use clap::Args;
 use serde_json::{json, Value};
@@ -41,7 +41,7 @@ pub fn semantic_section_fits(required: usize, budget: usize) -> bool {
     required <= budget
 }
 
-fn selected_item(module: &Module, symbol: &Symbol) -> Option<Item> {
+pub(super) fn selected_function(module: &Module, symbol: &Symbol) -> Option<Function> {
     let record_matches = |name: &str| {
         symbol.qualifier.as_deref().is_none_or(|qualifier| {
             qualifier == name
@@ -51,18 +51,37 @@ fn selected_item(module: &Module, symbol: &Symbol) -> Option<Item> {
     };
     match symbol.kind {
         SymbolKind::Function => module.items.iter().find_map(|item| match item {
-            Item::Function(function) if function.name == symbol.name => Some(item.clone()),
+            Item::Function(function) if function.name == symbol.name => Some(function.clone()),
             _ => None,
         }),
-        SymbolKind::Method => module.items.iter().find_map(|item| match item {
-            Item::Record(record) if record_matches(&record.name) => record
-                .methods
-                .iter()
-                .find(|method| method.name == symbol.name)
-                .cloned()
-                .map(Item::Function),
-            _ => None,
-        }),
+        SymbolKind::Method => module
+            .items
+            .iter()
+            .find_map(|item| match item {
+                Item::Record(record) if record_matches(&record.name) => record
+                    .methods
+                    .iter()
+                    .find(|method| method.name == symbol.name)
+                    .cloned(),
+                _ => None,
+            })
+            .or_else(|| {
+                let mut matches = module.items.iter().filter_map(|item| match item {
+                    Item::Function(function) if function.name == symbol.name => Some(function),
+                    _ => None,
+                });
+                let only = matches.next()?.clone();
+                matches.next().is_none().then_some(only)
+            }),
+        _ => None,
+    }
+}
+
+fn selected_item(module: &Module, symbol: &Symbol) -> Option<Item> {
+    match symbol.kind {
+        SymbolKind::Function | SymbolKind::Method => {
+            selected_function(module, symbol).map(Item::Function)
+        }
         SymbolKind::Class | SymbolKind::Struct | SymbolKind::Trait | SymbolKind::Interface => {
             module.items.iter().find_map(|item| match item {
                 Item::Record(record) if record.name == symbol.name => Some(item.clone()),
@@ -181,7 +200,7 @@ fn redact_sources(value: &mut Value, redacted: &mut usize) {
     }
 }
 
-fn semantic_nodes(value: &Value) -> usize {
+pub(super) fn semantic_nodes(value: &Value) -> usize {
     match value {
         Value::Array(values) => values.iter().map(semantic_nodes).sum(),
         Value::Object(object) => {

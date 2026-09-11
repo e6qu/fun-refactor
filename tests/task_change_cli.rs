@@ -152,6 +152,73 @@ fn reviewed_task_change_previews_then_executes_the_checked_lifecycle() {
 }
 
 #[test]
+fn reviewed_task_change_accepts_and_binds_a_source_free_semantic_body() {
+    let root = fixture("true");
+    let semantic = json!({
+        "schema": "fr-semantic-body-1",
+        "body": [{
+            "kind": "return",
+            "value": {
+                "kind": "call",
+                "value": {
+                    "callee": {
+                        "kind": "field",
+                        "value": {"of":{"kind":"name","value":"value"},"name":"to_uppercase"}
+                    },
+                    "args": []
+                }
+            }
+        }]
+    });
+    fs::write(
+        root.path().join(".fr/replacement.fragment"),
+        serde_json::to_vec_pretty(&semantic).unwrap(),
+    )
+    .unwrap();
+    let manifest_path = root.path().join(".fr/task-change.json");
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    manifest["targets"][0]["op"] = json!("replace-body-semantic");
+    fs::write(
+        &manifest_path,
+        serde_json::to_vec_pretty(&manifest).unwrap(),
+    )
+    .unwrap();
+
+    let preview = preview(root.path());
+    assert_eq!(preview["ready"], true);
+    assert_eq!(
+        preview["author"]["steps"][0]["operation"],
+        "replace-body-semantic"
+    );
+    assert_eq!(
+        preview["author"]["steps"][0]["semantic_input"]["source_free"],
+        true
+    );
+    assert_eq!(
+        preview["author"]["steps"][0]["semantic_render"]["fidelity"]["carried_verbatim"],
+        0
+    );
+    let completed = report(
+        fr(
+            root.path(),
+            &[
+                "task-change",
+                "--from",
+                ".fr/task-change.json",
+                "--write",
+                "--basis",
+                preview["task_change_basis"].as_str().unwrap(),
+            ],
+        ),
+        0,
+    );
+    assert_eq!(completed["passed"], true);
+    assert!(fs::read_to_string(root.path().join("src/lib.rs"))
+        .unwrap()
+        .contains("value.to_uppercase"));
+}
+
+#[test]
 fn changed_fragments_refuse_the_reviewed_write_before_history() {
     let root = fixture("true");
     let preview = preview(root.path());

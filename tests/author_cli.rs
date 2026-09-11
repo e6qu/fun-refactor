@@ -33,9 +33,10 @@ fn author_guide_is_bounded_machine_readable_and_needs_no_project() {
     assert_eq!(guide["schema"], "fr-author-guide-1");
     assert_eq!(guide["limits"]["operations"]["maximum"], 32);
     assert_eq!(guide["limits"]["manifest_bytes"], 65536);
-    assert_eq!(guide["operations"].as_array().unwrap().len(), 4);
+    assert_eq!(guide["operations"].as_array().unwrap().len(), 5);
     assert_eq!(guide["operations"][0]["op"], "replace-body");
-    assert_eq!(guide["operations"][3]["op"], "organize-imports");
+    assert_eq!(guide["operations"][1]["op"], "replace-body-semantic");
+    assert_eq!(guide["operations"][4]["op"], "organize-imports");
     let steps = guide["workflow"]
         .as_array()
         .unwrap()
@@ -153,6 +154,93 @@ fn replace(root: &Path, handle: &str, input: &Path, flags: &[&str]) -> (bool, Va
     ];
     args.extend(flags);
     run(root, &args)
+}
+
+#[test]
+fn semantic_body_authoring_renders_one_typed_body_across_supported_languages() {
+    let cases = [
+        (
+            "app.rs",
+            "fn calc(value: i32) -> i32 { value + 1 }\n",
+            "value * 2",
+        ),
+        (
+            "app.go",
+            "package sample\nfunc calc(value int) int { return value + 1 }\n",
+            "value * 2",
+        ),
+        (
+            "App.java",
+            "final class App { static int calc(int value) { return value + 1; } }\n",
+            "value * 2",
+        ),
+        (
+            "app.ts",
+            "function calc(value: number): number { return value + 1; }\n",
+            "value * 2",
+        ),
+    ];
+    let semantic = serde_json::json!({
+        "schema": "fr-semantic-body-1",
+        "body": [{
+            "kind": "return",
+            "value": {
+                "kind": "binary",
+                "value": {
+                    "op": "mul",
+                    "left": {"kind": "name", "value": "value"},
+                    "right": {"kind": "int", "value": "2"}
+                }
+            }
+        }]
+    });
+    for (file, source, expected) in cases {
+        let (_temp, root, input) =
+            fixture_file(file, source, &serde_json::to_vec_pretty(&semantic).unwrap());
+        let (handle, _) = selection(&root, "calc");
+        let report = ok(
+            &root,
+            &[
+                "author",
+                "replace-body-semantic",
+                &handle,
+                "--from",
+                input.to_str().unwrap(),
+                "--write",
+            ],
+        );
+        assert_eq!(report["query"], "replace-body-semantic");
+        assert_eq!(report["semantic_input"]["schema"], "fr-semantic-body-1");
+        assert_eq!(report["semantic_input"]["source_free"], true);
+        assert_eq!(report["semantic_render"]["fidelity"]["carried_verbatim"], 0);
+        assert!(fs::read_to_string(root.join(file))
+            .unwrap()
+            .contains(expected));
+    }
+}
+
+#[test]
+fn semantic_body_authoring_refuses_source_escape_hatches() {
+    let original = "fn calc(value: i32) -> i32 { value + 1 }\n";
+    let payload = br#"{"schema":"fr-semantic-body-1","body":[{"kind":"unsupported","value":{"source":"value * 2","line":1}}]}"#;
+    let (_temp, root, input) = fixture(original, payload);
+    let (handle, _) = selection(&root, "calc");
+    let (success, error) = run(
+        &root,
+        &[
+            "author",
+            "replace-body-semantic",
+            &handle,
+            "--from",
+            input.to_str().unwrap(),
+        ],
+    );
+    assert!(!success, "{error}");
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("must not contain source fields or unsupported nodes"));
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), original);
 }
 
 fn reconstruct_plan(reviewed: &Value, compact: Value) -> Value {

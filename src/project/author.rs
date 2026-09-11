@@ -4,13 +4,14 @@ use crate::lang::Language;
 use crate::model::SymbolKind;
 use crate::parse::{Parsed, Parsers};
 use crate::span::Span;
+use crate::transpile::ir::{Item, Module, Stmt};
 use anyhow::{ensure, Context, Result};
 use clap::{Args, Subcommand};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::fs;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 #[derive(Subcommand)]
@@ -21,6 +22,8 @@ pub enum Command {
         about = "Replace one Rust, Go, Java, TypeScript or TSX function body, retaining surrounding source."
     )]
     ReplaceBody(ReplaceBodyOptions),
+    #[command(about = "Replace one supported function body from source-free semantic IR JSON.")]
+    ReplaceBodySemantic(ReplaceBodyOptions),
     #[command(
         about = "Replace one Rust function declaration while retaining its name and outer attributes."
     )]
@@ -45,6 +48,9 @@ pub fn guide() -> Value {
         },
         "operations": [
             {"op": "replace-body", "requires": ["handle", "from"],
+                "targets": "supported function or method body"},
+            {"op": "replace-body-semantic", "requires": ["handle", "from"],
+                "input-schema": "fr-semantic-body-1",
                 "targets": "supported function or method body"},
             {"op": "replace-declaration", "requires": ["handle", "from"],
                 "targets": "Rust function declaration with unchanged name"},
@@ -130,6 +136,7 @@ pub(super) struct BatchStep {
 #[serde(rename_all = "kebab-case")]
 pub(super) enum BatchOperation {
     ReplaceBody,
+    ReplaceBodySemantic,
     ReplaceDeclaration,
     InsertDeclaration,
     OrganizeImports,
@@ -162,6 +169,22 @@ pub struct ReplaceBodyOptions {
 pub struct Plan {
     pub edits: EditSet,
     pub report: Value,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SemanticBody {
+    schema: String,
+    body: Vec<Stmt>,
+}
+
+pub fn semantic_body_admitted(
+    schema_matches: bool,
+    target_supported: bool,
+    source_free: bool,
+    bounded: bool,
+) -> bool {
+    schema_matches && target_supported && source_free && bounded
 }
 
 impl Plan {
@@ -348,6 +371,35 @@ fn replacement(
     })
 }
 
+fn contains_source_or_unsupported(value: &Value) -> bool {
+    match value {
+        Value::Array(values) => values.iter().any(contains_source_or_unsupported),
+        Value::Object(object) => {
+            object.contains_key("source")
+                || object.get("kind").and_then(Value::as_str) == Some("unsupported")
+                || object.values().any(contains_source_or_unsupported)
+        }
+        _ => false,
+    }
+}
+
+fn outer_callable_bodies<'tree>(
+    node: tree_sitter::Node<'tree>,
+    syntax: &BodySyntax,
+    found: &mut Vec<tree_sitter::Node<'tree>>,
+) {
+    if syntax.targets.contains(&node.kind()) {
+        if let Some(body) = node.child_by_field_name("body") {
+            found.push(body);
+        }
+        return;
+    }
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        outer_callable_bodies(child, syntax, found);
+    }
+}
+
 fn function_initializer(mut value: tree_sitter::Node<'_>) -> Result<tree_sitter::Node<'_>> {
     loop {
         match value.kind() {
@@ -464,6 +516,9 @@ impl Project<'_> {
                     };
                     match operation {
                         BatchOperation::ReplaceBody => self.replace_body(&operation_options),
+                        BatchOperation::ReplaceBodySemantic => {
+                            self.replace_body_semantic(&operation_options)
+                        }
                         BatchOperation::ReplaceDeclaration => {
                             self.replace_declaration(&operation_options)
                         }
@@ -486,7 +541,7 @@ impl Project<'_> {
             let id = self.resolve_handle(&handle)?;
             let path = self.root.join(&self.nodes[id].path);
             let key = match step.op {
-                BatchOperation::ReplaceBody => "body",
+                BatchOperation::ReplaceBody | BatchOperation::ReplaceBodySemantic => "body",
                 BatchOperation::ReplaceDeclaration => "declaration",
                 BatchOperation::InsertDeclaration => "insertion",
                 BatchOperation::OrganizeImports => "imports",
@@ -524,6 +579,8 @@ impl Project<'_> {
                 "replacement_signature",
                 "name_check",
                 "name_resolution_checked",
+                "semantic_input",
+                "semantic_render",
             ] {
                 if let Some(value) = plan.report.get(key) {
                     summary[key] = value.clone();
@@ -1057,5 +1114,113 @@ impl Project<'_> {
         report["behavior_checked"] = json!(false);
         report["atomic_snapshot"] = json!(false);
         Ok(Plan { edits, report })
+    }
+
+    pub fn replace_body_semantic(&self, options: &ReplaceBodyOptions) -> Result<Plan> {
+        ensure!(
+            options.diff_bytes <= 65536,
+            "diff bytes must be between 0 and 65536."
+        );
+        let input = fragment(&self.root.join(&options.from))?;
+        let value: Value =
+            serde_json::from_str(&input).context("semantic body input must be JSON.")?;
+        let source_free = !contains_source_or_unsupported(&value);
+        ensure!(
+            source_free,
+            "semantic body input must not contain source fields or unsupported nodes."
+        );
+        let nodes = super::semantic::semantic_nodes(&value);
+        let manifest: SemanticBody = serde_json::from_value(value.clone())
+            .context("semantic body input must match fr-semantic-body-1.")?;
+        let schema_matches = manifest.schema == "fr-semantic-body-1";
+        let bounded = manifest.body.len() <= 512 && nodes <= 4096;
+
+        let handle = self.explicit_handle(&options.handle, options.revision.as_deref())?;
+        let id = self.resolve_handle(&handle)?;
+        let symbol = self.nodes[id]
+            .symbol
+            .and_then(|id| self.index.symbol(id))
+            .context("semantic body replacement requires a function handle.")?;
+        let target_supported = matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method)
+            && BodySyntax::for_language(symbol.language).is_ok();
+        ensure!(
+            schema_matches,
+            "semantic body schema must be fr-semantic-body-1."
+        );
+        ensure!(
+            bounded,
+            "semantic body input is limited to 512 statements and 4096 semantic nodes."
+        );
+        ensure!(
+            semantic_body_admitted(schema_matches, target_supported, source_free, bounded),
+            "selected target does not support semantic body replacement."
+        );
+
+        let language = symbol.language;
+        let syntax = BodySyntax::for_language(language)?;
+        let source = &self.sources[&symbol.file];
+        let parsed = Parsers::new().parse(language, source)?;
+        ensure!(
+            !parsed.has_errors(),
+            "semantic body replacement requires a file without parser errors."
+        );
+        let context = crate::transpile::read_module(language, source, parsed.root())?;
+        let mut function =
+            super::semantic::selected_function(&context, symbol).with_context(|| {
+                format!(
+                    "the {} '{}' has no exact semantic function model.",
+                    symbol.kind.as_str(),
+                    symbol.name
+                )
+            })?;
+        function.body = manifest.body;
+        let generated = Module {
+            doc: Vec::new(),
+            name: context.name.clone(),
+            items: vec![Item::Function(function)],
+            sweep_notes: Vec::new(),
+        };
+        let (rendered, fidelity) =
+            crate::transpile::write_module_in_preserving_fields(language, &generated, &context)?;
+        ensure!(
+            fidelity.carried_verbatim == 0,
+            "semantic body cannot be rendered without carrying source verbatim."
+        );
+        let rendered_parse = Parsers::new().parse(language, &rendered)?;
+        ensure!(
+            !rendered_parse.has_errors(),
+            "semantic body writer produced parser errors."
+        );
+        let mut bodies = Vec::new();
+        outer_callable_bodies(rendered_parse.root(), &syntax, &mut bodies);
+        ensure!(
+            bodies.len() == 1,
+            "semantic body rendering must produce exactly one outer function."
+        );
+        let body_span = syntax.block_span(bodies[0])?;
+        let rendered_body = body_span.text(&rendered).to_owned();
+        let mut temporary = tempfile::NamedTempFile::new_in(&self.root)?;
+        temporary.write_all(rendered_body.as_bytes())?;
+        temporary.flush()?;
+        let mut plan = self.replace_body(&ReplaceBodyOptions {
+            handle: options.handle.clone(),
+            revision: options.revision.clone(),
+            from: temporary.path().to_path_buf(),
+            diff_bytes: options.diff_bytes,
+            write: false,
+        })?;
+        plan.report["query"] = json!("replace-body-semantic");
+        plan.report["semantic_input"] = json!({
+            "schema": "fr-semantic-body-1",
+            "sha256": digest(&input),
+            "semantic_nodes": nodes,
+            "source_free": true
+        });
+        plan.report["semantic_render"] = json!({
+            "language": language,
+            "body_sha256": digest(&rendered_body),
+            "fidelity": fidelity
+        });
+        Ok(plan)
     }
 }

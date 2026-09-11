@@ -102,6 +102,7 @@ fn read_manifest(root: &Path, path: &Path) -> Result<Vec<u8>> {
 fn batch_operation(operation: task::AuthorOperation) -> author::BatchOperation {
     match operation {
         task::AuthorOperation::ReplaceBody => author::BatchOperation::ReplaceBody,
+        task::AuthorOperation::ReplaceBodySemantic => author::BatchOperation::ReplaceBodySemantic,
         task::AuthorOperation::ReplaceDeclaration => author::BatchOperation::ReplaceDeclaration,
         task::AuthorOperation::InsertDeclaration => author::BatchOperation::InsertDeclaration,
         task::AuthorOperation::OrganizeImports => author::BatchOperation::OrganizeImports,
