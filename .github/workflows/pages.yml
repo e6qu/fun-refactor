@@ -34,7 +34,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install the toolchain
         run: rustup toolchain install stable --profile minimal --target wasm32-unknown-unknown
@@ -60,7 +60,7 @@ jobs:
       - name: Generate the bindings
         run: wasm-bindgen --target web --out-dir web/src/wasm target/wasm32-unknown-unknown/release/fun_refactor.wasm
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: npm

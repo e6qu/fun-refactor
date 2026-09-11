@@ -29,13 +29,18 @@ tests cover stack order, conflicts, existence changes, redo abandonment, cumulat
 reports. The playground compiles against the new interface; its real WASM/Git acceptance runs in CI
 because this Mac's installed clang has no wasm32 backend.
 
-The complete local repository gate passes. It includes 413 WASM-feature library tests, both browser
+The complete local repository gate passes. It includes 413 WASM-feature library tests, 11 host-WASM
 API regressions, strict Clippy for all targets and the minimal browser features, agent acceptance,
 capability and documentation suites, the portable skill, strict anchors and all Lean kernel checks.
 
 PR 11 also carries the PR 10 native-CI repair. The evaluator now accepts only its bounded JSON
 indexing-progress messages on stderr, includes them in measured visible output and still rejects
 arbitrary diagnostics. The exact CI agent-acceptance command passes locally.
+
+The replacement PR run passes the WASM and complete playground lanes, including the generated-patch
+Git check. That run exposed Node 20 deprecation annotations from checkout v4 and setup-node v4. PR 11
+therefore refreshes every workflow to the maintained Node 24 action lines and keeps the previous npm
+cache choices explicit.
 
 PR 10 targeted the remaining change-and-delivery overhead in the retained agent trials. Its bounded
 manifest binds a saved transaction, reviewed checks, optional reversal exercise and delayed Git patch

@@ -81,7 +81,7 @@ jobs:
     # something stuck, and a stuck job held a runner for six hours in silence.
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install the toolchain
         run: rustup toolchain install stable --profile minimal --component clippy,rustfmt
@@ -161,10 +161,11 @@ jobs:
           "fastapi==0.141.1"
           "pydantic==2.13.5"
           "starlette==1.6.0"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         if: matrix.slice == 'default'
         with:
           node-version: 26
+          package-manager-cache: false
       # Go took the runner's default, which is the same unpinned toolchain that
       # broke the Java cells. A runner image moves without this repository asking.
       - uses: actions/setup-go@v5
@@ -250,7 +251,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install the toolchain
         run: rustup toolchain install stable --profile minimal --target wasm32-unknown-unknown
@@ -273,7 +274,7 @@ jobs:
       - name: Generate the bindings
         run: wasm-bindgen --target web --out-dir web/src/wasm target/wasm32-unknown-unknown/release/fun_refactor.wasm
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 26
           cache: npm

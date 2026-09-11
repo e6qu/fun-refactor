@@ -26,14 +26,15 @@ jobs:
     # Forty-five minutes permits that work while still failing a stalled runner.
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install the Rust toolchain
         run: rustup toolchain install stable --profile minimal
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 26
+          package-manager-cache: false
       - uses: actions/setup-go@v5
         with:
           go-version: "1.27"
