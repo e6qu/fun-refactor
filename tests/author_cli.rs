@@ -117,6 +117,17 @@ fn replace(root: &Path, handle: &str, input: &Path, flags: &[&str]) -> (bool, Va
     run(root, &args)
 }
 
+fn reconstruct_plan(reviewed: &Value, compact: Value) -> Value {
+    let mut reconstructed = reviewed.clone();
+    let mut compact = compact.as_object().unwrap().clone();
+    let omitted = compact.remove("plan_context_omitted").unwrap();
+    for key in omitted.as_array().unwrap() {
+        assert!(reviewed.get(key.as_str().unwrap()).is_some());
+    }
+    reconstructed.as_object_mut().unwrap().extend(compact);
+    reconstructed
+}
+
 #[test]
 fn stale_context_basis_refuses_author_writes_and_saved_plans_before_persistence() {
     for intent in ["--write", "--save-plan"] {
@@ -135,6 +146,78 @@ fn stale_context_basis_refuses_author_writes_and_saved_plans_before_persistence(
             .unwrap()
             .contains("stale or conflicting context basis"));
         assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), changed);
+        assert!(!root.join(".fr-history").exists());
+    }
+}
+
+#[test]
+fn reviewed_plan_basis_compacts_saved_authoring_and_reconstructs_exactly() {
+    let source = "fn calc(n: i32) -> i32 { n + 1 }\n";
+    let (_temp, root, input) = fixture(source, b"{ n * 2 }");
+    let (handle, _) = selection(&root, "calc");
+    let (success, reviewed) = replace(&root, &handle, &input, &[]);
+    assert!(success, "{reviewed}");
+    let basis = reviewed["plan_context_basis"].as_str().unwrap();
+    assert!(basis.starts_with("frpb1:"));
+    let (success, compact) = replace(
+        &root,
+        &handle,
+        &input,
+        &["--save-plan", "--plan-basis", basis],
+    );
+    assert!(success, "{compact}");
+    assert!(compact.get("diff").is_none(), "{compact}");
+    assert!(compact.get("body").is_none(), "{compact}");
+    assert_eq!(compact["saved"], true);
+    let (success, mut full) = replace(&root, &handle, &input, &["--save-plan"]);
+    assert!(success, "{full}");
+    full["saved"] = serde_json::json!(true);
+    full.as_object_mut().unwrap().remove("reused_transaction");
+    assert_eq!(reconstruct_plan(&reviewed, compact), full);
+    assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
+}
+
+#[test]
+fn plan_basis_refuses_incomplete_or_changed_authoring_before_persistence() {
+    let source = "fn calc(n: i32) -> i32 { n + 1 }\n";
+    let (_temp, root, input) = fixture(source, b"{ n * 2 }");
+    let (handle, _) = selection(&root, "calc");
+    let (_, reviewed) = replace(&root, &handle, &input, &[]);
+    let basis = reviewed["plan_context_basis"].as_str().unwrap();
+
+    let (success, error) = replace(
+        &root,
+        &handle,
+        &input,
+        &["--save-plan", "--diff-bytes", "1", "--plan-basis", basis],
+    );
+    assert!(!success, "{error}");
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("complete untruncated diff"));
+    assert!(!root.join(".fr-history").exists());
+
+    let (success, error) = replace(&root, &handle, &input, &["--plan-basis", basis]);
+    assert!(!success, "{error}");
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("requires --save-plan or --write"));
+
+    for intent in ["--save-plan", "--write"] {
+        let (_temp, root, input) = fixture(source, b"{ n * 2 }");
+        let (handle, _) = selection(&root, "calc");
+        let (_, reviewed) = replace(&root, &handle, &input, &[]);
+        let basis = reviewed["plan_context_basis"].as_str().unwrap();
+        fs::write(&input, "{ n * 3 }").unwrap();
+        let (success, error) = replace(&root, &handle, &input, &[intent, "--plan-basis", basis]);
+        assert!(!success, "{intent}: {error}");
+        assert!(error["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("stale or conflicting plan basis"));
+        assert_eq!(fs::read_to_string(root.join("app.rs")).unwrap(), source);
         assert!(!root.join(".fr-history").exists());
     }
 }
@@ -210,7 +293,7 @@ fn saves_reviewed_body_and_preserves_context_through_apply_undo_redo_and_patch()
     assert!(saved["transaction_context_basis"]
         .as_str()
         .unwrap()
-        .starts_with("frtb1:"));
+        .starts_with("frtb2:"));
     let id = saved["transaction"].as_u64().unwrap().to_string();
     let (success, reused) = replace(&root, &handle, &input, &["--save-plan"]);
     assert!(success, "{reused}");

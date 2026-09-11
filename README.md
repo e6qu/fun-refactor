@@ -22,7 +22,7 @@ uses. [TUTORIAL.md](TUTORIAL.md) walks through a real repository.
 
 For an agent handoff, use the portable [fr skill](skills/fr/SKILL.md).
 [Agent skill validation](docs/agent-skill.md) describes its task-specific references, executable examples and measured limits.
-The [agent context protocol](docs/agent-context-protocol.md) lets later project, author and history calls omit retained facts and writes patch artifacts without echoing their contents through agent context. Its [v2 evaluation](docs/agent-context-v2-evaluation.md) reports the measured 15.4% fixed-workflow reduction and the remaining acceptance gap.
+The [agent context protocol](docs/agent-context-protocol.md) lets later project, author and history calls omit retained facts and writes patch artifacts without echoing their contents through agent context. The [v2](docs/agent-context-v2-evaluation.md) and [v3](docs/agent-context-v3-evaluation.md) evaluations report the fixed-workflow reductions, exact change allowlists and latest passing comparison.
 The [local Codex runner](docs/agent-codex-runner.md) executes explicitly selected paired evaluations without spending quota in normal CI.
 [Function authoring](docs/body-authoring.md) adds bounded Rust, Go, Java, TypeScript and TSX implementation changes through project handles and source-history transactions.
 [Project checks](docs/project-checks.md) selects declared validation commands and reports bounded results and coverage claims.
@@ -31,6 +31,7 @@ Passing checks can record a configuration- and source-bound receipt on an applie
 [Development continuity](docs/continuity.md) records the active milestone, evidence and remaining work for the next session.
 The portable skill starts targeted edits with authoring guidance and loads exploration or interrupted-write recovery when needed.
 `project find --source --bytes N` combines name lookup with source slices under one shared page budget.
+`project select NAME...` retrieves several exact declarations through one revision and shared budget.
 [Source kernel proofs](docs/lean-specs.md#bounded-source-kernels) cover modeled UTF-8 slicing and shared budgets, with Rust and CLI comparisons.
 [Cache measurements](docs/project-context-evaluation.md#query-time-and-the-fact-cache) compare query time while checking identical reports and source invalidation.
 [Release profiling](docs/project-context-evaluation.md#release-stage-profiling) identifies project construction as the largest remaining stage in the measured cached lookups.
@@ -40,6 +41,7 @@ The portable skill starts targeted edits with authoring guidance and loads explo
 The [context-reduction follow-up](docs/agent-context-followup.md) measures targeted lookup, quiet successful checks and selective skill loading against fresh file-tool trials.
 Use `fr project find NAME --signature` to locate a known declaration without requesting a broad map.
 After reviewing a source transaction, `history apply`, `undo`, `redo` and `recover` accept `--write --no-diff` for smaller completion reports.
+Complete author and migration previews return a cryptographic plan basis so their repeated save or write can omit unchanged reviewed payloads.
 The [workspace evaluation](docs/agent-workspace-evaluation.md) records four passing trials on the larger regex repository, with context comparisons and replayable patches.
 Rust function declaration replacement also supports combined signature and implementation changes.
 Declaration insertion adds a Rust function through a file, inline module, impl method, or trait handle while retaining existing code.

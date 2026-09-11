@@ -1,0 +1,7 @@
+Implemented and verified:
+
+- Added documented `escape_len` APIs to `regex-syntax` and `regex`.
+- Updated escaping to preallocate sufficient capacity.
+- Preserved existing APIs and escaping behavior.
+- Confirmed default and no-default-feature builds pass.
+- Completed transaction save/apply, export, undo/redo, sentinel, and receiver verification.

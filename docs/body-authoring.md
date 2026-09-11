@@ -185,7 +185,8 @@ Its Lean model proves symmetry, adjacency and boundary behavior, while 6,084 gen
 
 Every step must pass its ordinary authoring checks; the combined file results must also reparse without errors.
 A planning refusal leaves all source files and history untouched.
-Use `--save-plan` to freeze the complete edit set, then apply its single transaction ID.
+Retain the complete preview's `plan_context_basis`, then use `--save-plan --plan-basis BASIS`
+to freeze the same edit set without repeating unchanged plan fields. Apply its single transaction ID.
 Later changes to the manifest or fragments do not alter that transaction.
 `--write` records and applies the complete set immediately; it conflicts with `--save-plan`.
 Undo/redo and patch export use that same transaction. Existing affected-file conflict and recovery rules apply.
@@ -217,6 +218,9 @@ A clipped diff alone does not show the full change. Read the selected body, the 
 The budget limits output, not workspace indexing or internal validation work.
 
 Previewing writes neither source nor a history record.
+An untruncated preview binds the complete plan and exact source payloads as `plan_context_basis`.
+Use `--plan-basis BASIS` with `--save-plan` or `--write` to omit matching plan fields; any mismatch
+refuses before persistence. Truncated diffs do not produce a plan basis.
 `--save-plan` stores the exact validated replacement and returns a source-history transaction ID.
 Apply that ID after review; later changes to the fragment file do not change the saved transaction.
 Saving checks the current project revision. Later history application checks the recorded affected-file snapshots, including existence and modes.

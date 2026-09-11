@@ -94,6 +94,112 @@ fn context_basis_compacts_related_queries_and_rejects_stale_projects() {
 }
 
 #[test]
+fn select_returns_several_exact_symbols_with_one_context_and_source_budget() {
+    let dir = fixture();
+    let reviewed = ok(dir.path(), &["project", "map"]);
+    let basis = reviewed["context_basis"].as_str().unwrap();
+    let args = [
+        "project",
+        "select",
+        "run",
+        "helper",
+        "local",
+        "missing",
+        "--signature",
+        "--source",
+        "--bytes",
+        "64",
+    ];
+    let full = ok(dir.path(), &args);
+    assert_eq!(full["query"], "select");
+    assert_eq!(full["page"]["total"], 2);
+    assert_eq!(full["columns"][0], "request");
+    assert_eq!(full["selections"][0]["status"], "matched");
+    assert_eq!(full["selections"][0]["total"], 1);
+    assert_eq!(full["selections"][1]["status"], "matched");
+    assert_eq!(full["selections"][2]["status"], "matching-locals-omitted");
+    assert_eq!(full["selections"][2]["matching_locals_omitted"], 1);
+    assert_eq!(full["selections"][3]["status"], "no-indexed-match");
+    let selected = rows(&full);
+    assert_eq!(selected[0]["request"], "run");
+    assert_eq!(selected[0]["name"], "run");
+    assert_eq!(selected[1]["request"], "helper");
+    assert_eq!(selected[1]["name"], "helper");
+    let returned = selected
+        .iter()
+        .map(|row| row["source"]["returned_bytes"].as_u64().unwrap())
+        .sum::<u64>();
+    assert_eq!(full["source_budget"]["returned_bytes"], returned);
+    assert!(returned <= 64);
+
+    let mut compact_args = args.to_vec();
+    compact_args.extend(["--context-basis", basis]);
+    let compact = ok(dir.path(), &compact_args);
+    assert_eq!(reconstruct_context(compact, &reviewed), full);
+}
+
+#[test]
+fn select_pages_the_combined_result_and_binds_every_selection_option() {
+    let dir = fixture();
+    let first = ok(
+        dir.path(),
+        &["project", "select", "helper", "run", "--limit", "1"],
+    );
+    assert_eq!(first["page"]["total"], 2);
+    assert_eq!(first["selections"][0]["returned"], 1);
+    assert_eq!(first["selections"][1]["returned"], 0);
+    let cursor = first["page"]["next"].as_str().unwrap();
+    let second = ok(
+        dir.path(),
+        &[
+            "project", "select", "helper", "run", "--limit", "1", "--cursor", cursor,
+        ],
+    );
+    assert_eq!(second["selections"][0]["returned"], 0);
+    assert_eq!(second["selections"][1]["returned"], 1);
+    assert_eq!(rows(&second)[0]["request"], "run");
+
+    for args in [
+        vec!["project", "select", "run", "helper", "--cursor", cursor],
+        vec![
+            "project",
+            "select",
+            "helper",
+            "run",
+            "--limit",
+            "1",
+            "--signature",
+            "--cursor",
+            cursor,
+        ],
+        vec![
+            "project", "select", "helper", "run", "--limit", "1", "--locals", "--cursor", cursor,
+        ],
+        vec![
+            "project", "select", "helper", "run", "--limit", "1", "--source", "--cursor", cursor,
+        ],
+    ] {
+        assert!(!run(dir.path(), &args).0, "{args:?}");
+    }
+    assert!(!run(dir.path(), &["project", "select", "run", "run"]).0);
+    assert!(!run(dir.path(), &["project", "select", ""]).0);
+    assert!(!run(dir.path(), &["project", "select", "run", &"x".repeat(4096)]).0);
+
+    fs::write(
+        dir.path().join("src/lib.py"),
+        "def helper(name: str) -> str:\n    return name.upper()\n",
+    )
+    .unwrap();
+    assert!(
+        !run(
+            dir.path(),
+            &["project", "select", "helper", "run", "--limit", "1", "--cursor", cursor,]
+        )
+        .0
+    );
+}
+
+#[test]
 fn find_source_matches_show_and_keeps_default_lookup_metadata() {
     let dir = fixture();
     let args = [

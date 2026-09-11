@@ -64,11 +64,11 @@ The checker does not exercise interrupted-write recovery or every optional Git o
 
 The standard native test gate runs this checker through `tests/agent_skill.rs`.
 The skill validator also checks its frontmatter and unfinished placeholders during authoring.
-The checker enforces a 3 KiB entrypoint budget, a 6 KiB budget per reference and valid links inside the portable folder.
+The checker enforces a 1.5 KiB entrypoint budget, a 4 KiB budget per reference, a 7 KiB budget for each declared task route and valid links inside the portable folder.
 
 The initial macOS run against the development binary executed 31 fenced command examples.
 Declared project-check listing and execution brought the checker to 33 examples; M4n's targeted authoring workflow raised that to 37.
-M4o combines its lookup and source read, leaving 36 executable examples today.
+M4o combines its lookup and source read. Later project selection, plan compaction and Lean adoption examples bring the current total to 42.
 The execution example combines quiet-success output with declaration omission after reviewing the configuration basis.
 The initial measurements were:
 
@@ -123,6 +123,15 @@ target/agent-eval-venv/bin/python tools/skill-context.py --tokens
 
 The report retains M4n's read payloads, skill digests and the frozen input-manifest digest. Original transcripts and scores remain unchanged.
 Rerunning the script after skill updates prints new counts; the retained report identifies its measured revision's files.
+
+PR 7 keeps the same five-file targeted route while removing repeated explanations from its
+entrypoint, authoring, checks, history and patch references. Raw Markdown falls from 9,937 to
+6,074 bytes for that route, a 38.9% reduction. The complete bundle falls from 24,691 to 20,828
+bytes. Under the pinned tokenizer and numbered-read framing used by `skill-context.py`, the
+same route falls from 2,699 to 1,693 tokens, a 37.3% reduction. It is 269 tokens below the
+1,962-token route in the frozen v2 projection. These measurements make no agent-success claim.
+The executable checker covers the route and enforces bounded routes for built-in changes,
+recipes, recovery, exploration, Lean and Git administration as well.
 
 M4o subsequently combines lookup and source inspection under one page budget.
 The [controlled source-lookup comparison](project-context-evaluation.md#bounded-source-during-name-lookup) measures that command composition separately from these skill-reading costs.

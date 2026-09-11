@@ -4,6 +4,28 @@ namespace FrKernels.Author
 
 open FrKernels.Source
 
+-- fr:spec src/project.rs::reviewed_plan_basis_allowed @ 5a1dfed6336ba17fa1424b0f3d5ae5f7b11841d018c7c0718aa9ac9d0f1d3620
+-- fr:signature complete: bool => complete: Bool; supplied: bool => supplied: Bool; matches: bool => identityMatches: Bool; return: bool => return: Bool
+def reviewedPlanBasisAllowed (complete : Bool) (supplied : Bool) (identityMatches : Bool) : Bool :=
+  !supplied || complete && identityMatches
+
+theorem reviewed_plan_without_basis_is_allowed (complete identityMatches : Bool) :
+    reviewedPlanBasisAllowed complete false identityMatches = true := by
+  cases complete <;> cases identityMatches <;> decide
+
+theorem supplied_plan_basis_allowed_iff_complete_and_matching (complete identityMatches : Bool) :
+    reviewedPlanBasisAllowed complete true identityMatches = true ↔
+      complete = true ∧ identityMatches = true := by
+  cases complete <;> cases identityMatches <;> decide
+
+theorem incomplete_supplied_plan_is_rejected (identityMatches : Bool) :
+    reviewedPlanBasisAllowed false true identityMatches = false := by
+  cases identityMatches <;> decide
+
+theorem conflicting_supplied_plan_is_rejected (complete : Bool) :
+    reviewedPlanBasisAllowed complete true false = false := by
+  cases complete <;> decide
+
 def isIndent (c : Char) : Bool := c == ' ' || c == '\t' || c == '\r'
 
 def insertionLine : List Char → Nat

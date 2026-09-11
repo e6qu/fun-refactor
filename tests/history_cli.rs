@@ -365,7 +365,7 @@ fn reviewed_transition_basis_compacts_completion_and_refuses_conflicting_writes(
     let shown = ok(dir.path(), &["history", "show", "1"]);
     let record = &shown["records"][0];
     let basis = record["context_basis"].as_str().unwrap().to_owned();
-    assert!(basis.starts_with("frtb1:"));
+    assert!(basis.starts_with("frtb2:"));
     let source_before = fs::read_to_string(&path).unwrap();
     let journal_before = fs::read(dir.path().join(".fr-history/state.json")).unwrap();
     let (success, error) = run(
@@ -376,7 +376,7 @@ fn reviewed_transition_basis_compacts_completion_and_refuses_conflicting_writes(
             "1",
             "--write",
             "--context-basis",
-            "frtb1:wrong",
+            "frtb2:wrong",
         ],
     );
     assert!(!success, "{error}");

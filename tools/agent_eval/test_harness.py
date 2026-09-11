@@ -41,6 +41,11 @@ context_spec = importlib.util.spec_from_file_location("agent_context_protocol", 
 context_protocol = importlib.util.module_from_spec(context_spec)
 context_spec.loader.exec_module(context_protocol)
 
+context_v3_spec = importlib.util.spec_from_file_location(
+    "agent_context_protocol_v3", TOOLS / "agent-context-protocol-v3.py")
+context_protocol_v3 = importlib.util.module_from_spec(context_v3_spec)
+context_v3_spec.loader.exec_module(context_protocol_v3)
+
 
 class ContextProtocolEvidence(unittest.TestCase):
     def payload(self, result):
@@ -124,6 +129,41 @@ class ContextProtocolEvidence(unittest.TestCase):
         self.assertTrue(report["passed"])
         self.assertEqual(len(report["trials"]), 4)
         self.assertTrue(all(trial["recorded_passed"] for trial in report["trials"]))
+
+
+class ContextProtocolV3Evidence(unittest.TestCase):
+    def test_projection_changes_only_allowlisted_paths(self):
+        report = context_protocol_v3.measure(None)
+        self.assertEqual(report["schema"], "fr-agent-context-protocol-projection-2")
+        self.assertEqual(report["feature_applicability"], {
+            "multi_select_eligible_groups": 0,
+            "plan_basis_eligible_pairs": 0,
+        })
+        contribution = report["contributions"]["bytes"]
+        self.assertGreater(contribution["total"], 0)
+        self.assertEqual(contribution["total"], contribution["skill_and_current_docs"])
+        for trial in report["trials"]:
+            for event in trial["allowlist_audit"]:
+                self.assertTrue(set(event["output_paths"]) <=
+                                set(report["allowlist"][event["rule"]]))
+
+    def test_retained_projection_matches_recomputed_byte_evidence(self):
+        retained = json.loads((TOOLS.parent / "tests/agent-eval/context-protocol-v3.json").read_text())
+        actual = context_protocol_v3.measure(None)
+        self.assertEqual(actual["summary"]["bytes"], retained["summary"]["bytes"])
+        self.assertEqual(actual["contributions"]["bytes"], retained["contributions"]["bytes"])
+        self.assertEqual(
+            [trial["allowlist_audit"] for trial in actual["trials"]],
+            [trial["allowlist_audit"] for trial in retained["trials"]],
+        )
+
+    def test_transaction_projection_changes_only_the_versioned_namespace(self):
+        event = {
+            "request": {"tool": "fr", "args": ["history", "patch", "7"]},
+            "visible": json.dumps({"result": {"id": 7, "record_basis": "a" * 64}}),
+        }
+        bases = context_protocol_v3.projection_transaction_bases([event])
+        self.assertEqual(bases, {7: "frtb2:" + "a" * 64})
 
 
 class CheckPolicyEvidence(unittest.TestCase):
@@ -310,6 +350,33 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
             broken[0]["visible"] = json.dumps(payload)
             self.assertFalse(harness.coordinated_batch(broken))
 
+    def test_coordinated_delivery_reconstructs_compact_saved_batch(self):
+        def event(args, report):
+            return {"request": {"tool": "fr", "args": args},
+                    "visible": json.dumps({"exit_code": 0, "result": report})}
+
+        basis = "frpb1:" + "a" * 64
+        preview = event(["author", "batch", "--from", "manifest.json"], {
+            "schema": "fr-author-batch-1", "saved": False, "applied": False,
+            "files_changed": 2, "plan_context_basis": basis,
+        })
+        saved = event(["author", "batch", "--from", "manifest.json", "--save-plan",
+                       "--plan-basis", basis], {
+            "schema": "fr-author-batch-1", "saved": True, "applied": False,
+            "transaction": 1, "plan_context_basis": basis,
+            "plan_context_omitted": ["files_changed"],
+        })
+        history = [event(["history", action, "1", "--write"], {})
+                   for action in ("apply", "undo", "redo", "patch")]
+        self.assertTrue(harness.coordinated_batch([preview, saved, *history]))
+        self.assertFalse(harness.coordinated_batch([saved, *history]))
+
+        wrong_basis = copy.deepcopy(preview)
+        payload = json.loads(wrong_basis["visible"])
+        payload["result"]["plan_context_basis"] = "frpb1:" + "b" * 64
+        wrong_basis["visible"] = json.dumps(payload)
+        self.assertFalse(harness.coordinated_batch([wrong_basis, saved, *history]))
+
     def test_receiver_requires_checks_after_the_latest_state_change(self):
         original = {"src/lib.rs": {"sha256": "old"}}
         changed = {"src/lib.rs": {"sha256": "new"}}
@@ -360,7 +427,7 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
                 {**complete, "postconditions": {**complete["postconditions"], "edits": 2}},
             ):
                 path.write_text(json.dumps(broken))
-                with self.assertRaisesRegex(ValueError, "one coordinated batch"):
+                with self.assertRaisesRegex(ValueError, "coordinated batch"):
                     harness.validate_coordinated_manifest(session, project, config, args)
 
     def test_replay_checks_the_second_file_and_reverses_complete_snapshots(self):

@@ -293,8 +293,9 @@ def validate_coordinated_manifest(session, project, config, args):
     if (len(operations) < 3 or kinds.count("insert-declaration") < 2
             or "replace-body" not in kinds or postconditions != expected):
         raise ValueError(
-            "The one coordinated batch must include both API insertions and the escape body "
-            "replacement, with exact files-changed, edits, changed-operations and paths-changed postconditions"
+            "The coordinated batch needs at least two insert-declaration operations and one "
+            f"replace-body operation; received operation kinds {kinds}. Its top-level "
+            f"postconditions must equal {expected}; received {postconditions}."
         )
 
 
@@ -488,8 +489,23 @@ def coordinated_batch(events):
     if len(saved) != 1:
         return False
     event, report = saved[0]
+    files_changed = report.get("files_changed")
+    if files_changed is None and "files_changed" in report.get("plan_context_omitted", []):
+        basis = report.get("plan_context_basis")
+        matching_previews = []
+        for prior in events[:events.index(event)]:
+            payload = json.loads(prior["visible"])
+            preview = payload.get("result")
+            if (payload.get("exit_code") == 0 and isinstance(preview, dict)
+                    and prior["request"].get("args", [])[:2] == ["author", "batch"]
+                    and preview.get("schema") == "fr-author-batch-1"
+                    and preview.get("saved") is False and preview.get("applied") is False
+                    and preview.get("plan_context_basis") == basis):
+                matching_previews.append(preview)
+        if len(matching_previews) == 1:
+            files_changed = matching_previews[0].get("files_changed")
     if (event["request"].get("args", [])[:2] != ["author", "batch"]
-            or report.get("schema") != "fr-author-batch-1" or report.get("files_changed") != 2
+            or report.get("schema") != "fr-author-batch-1" or files_changed != 2
             or report.get("applied") is not False
             or type(report.get("transaction")) is not int or report["transaction"] <= 0):
         return False

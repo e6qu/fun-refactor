@@ -132,6 +132,10 @@ The report separates prompt, skill, inspection, checks, authoring, delivery, req
 
 The later [Context Protocol v2 evaluation](agent-context-v2-evaluation.md) records the implementation outcome and a fresh diagnostic pair. That pair did not pass acceptance, so its observed token totals are not added to this passing comparison.
 
+The [v3 evaluation](agent-context-v3-evaluation.md) freezes this v2 report, audits each changed
+JSON path and measures the reduced current skill route. It does not rewrite the cohort to use
+multi-select or reviewed-plan compaction where the recorded call sequence has no eligible pair.
+
 Reproduce it with the pinned tokenizer:
 
 ```sh

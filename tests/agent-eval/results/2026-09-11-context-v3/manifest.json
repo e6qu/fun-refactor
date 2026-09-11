@@ -1,0 +1,66 @@
+{
+  "schema": "fr-agent-eval-evidence-1",
+  "trials": [
+    "regex-escape-len-fr",
+    "regex-escape-len-files"
+  ],
+  "project": "rust-lang/regex complete workspace snapshot, without Git history",
+  "upstream_commit": "2b527599eb9eea0dcc288c704584f242f26a5c61",
+  "archive_sha256": "7f8beace6ed6c94b2eec3c5aa92219e10e73bd8ad696035877bed01d3ee47255",
+  "dependency_lock_sha256": "7ae225f5fbac82509d5c259dd3613a809c75a8bd4e2124b9cb69ed29d98de3a0",
+  "implementation_commit": "63561124a2c665aaf7e20330e52567e9883c5554",
+  "agent_execution": "Fresh paired Codex CLI 0.154.0 sessions using gpt-5.6-luna, low reasoning effort, default service tier, ephemeral mode, ignored user configuration and rules, and no human corrections or restarts. Runs were sequential, fr then files. The pinned Cargo dependency cache was prepared before launch on one host.",
+  "acceptance": {
+    "passed": true,
+    "failed_trials": []
+  },
+  "pilots": {
+    "interrupted": [],
+    "reason": null,
+    "included_in_scored_trials": false
+  },
+  "versions": {
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "git": "git version 2.55.0",
+    "python3": "Python 3.14.6"
+  },
+  "evaluator_files": {
+    "tools/agent-eval.py": "ed721128c42cd6a4474d510398b8dee6c608a2951bb8af254d09b09ddf44def1",
+    "tools/agent_eval/oracle.py": "cf938812a50d1a7ce41d2c3e9b6ba9dc1abff2fa0f6fec84ff33bd2b28e7bf09",
+    "tools/agent_eval/regex_workspace.py": "d7003500c07c3c5b1b12916ffdcd094b3dddf2e59f6d8aa8510246d42b9fb08c",
+    "tools/agent_eval/regex_escape_len.py": "331700680ae35f2f41e94c93873011f417e82e6c71af3651895158a197d39a16"
+  },
+  "files": {
+    "experiment.json": "b7b891fa9a54cae496c2dafbad44a78a24ff42f774efc60716f0613d93418d1d",
+    "regex-escape-len-files/change.patch": "b12f5dc5755c4cfc3a20906fc6be13599b69b7ce68e2aa3bcd5cc36a5bd162c4",
+    "regex-escape-len-files/codex-events.jsonl": "00d3a29b610a0de7b40bec677fe3c0a265056913a2a43075326302edcf8c991d",
+    "regex-escape-len-files/codex-final.txt": "833b03d179989be85120913f91c9ff6ed11190cd1d6c4f53c52b2c993faca42a",
+    "regex-escape-len-files/codex-run.json": "96f02bd91f10d013ae21ab8976f7469bbe480e98ba97eee5880a0adda0703b7e",
+    "regex-escape-len-files/codex-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "regex-escape-len-files/events.jsonl": "3199989488409d7b71473b258a505a60df5186681f62f7497ea4d393c59e17dd",
+    "regex-escape-len-files/prompt.txt": "47b4c3eed633086e7f3d0a811471a21802d462f58f0316a1cda961bd5faeee29",
+    "regex-escape-len-files/result.json": "31869233a0935f810aa36c2493c7f229aeff49ca292df12dd174bfe5b2441f73",
+    "regex-escape-len-files/session.json": "ca70ac97526096ea23420e8c4188f4bcdd83ff31c6b3ebe2b9079300293ff425",
+    "regex-escape-len-fr/change.patch": "31dd2d68a36948e85a81eb71ed901ac300d2efc616255b5eafe35bfc5f88f919",
+    "regex-escape-len-fr/codex-events.jsonl": "179e48bf74dae37ae89b25a6bcb9d42d7148df187f293b86edd229f87d7c1010",
+    "regex-escape-len-fr/codex-final.txt": "2ab5eb6ee94128528d5f3b1443c369bd55f69fc6a6444eba4ca33e4cdf49725e",
+    "regex-escape-len-fr/codex-run.json": "116e48dbe18784ccca8f04d56d00405f6559e05930485ed6f954a45714c8a3af",
+    "regex-escape-len-fr/codex-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "regex-escape-len-fr/events.jsonl": "b92385d53e080cf3a9685d5cc9d6d80139f7b351508d92be2b6a1817a6c7f8cf",
+    "regex-escape-len-fr/prompt.txt": "4953f9ba46124b7851a13f4378f0dbef94cae61afe8506fd9a0019ecaf017d06",
+    "regex-escape-len-fr/result.json": "a151d528a941039aa38d4d6e25401a477cda59f40f865fd34ec5ec31fba8051d",
+    "regex-escape-len-fr/session.json": "16c25c6aa64e29c5e7ff97c59e4b059ef6110ceb827b5b1b5e42fffefecce29c",
+    "skill/SKILL.md": "cbf190612091adadeeb687ab9e9e539d6b0fac6a2120d59c9bf378d1bd40ce21",
+    "skill/references/author.md": "ab1a56374cb0a0cc7cb7189b58339e2e77dd8320647c8f72a0bd6269894482ea",
+    "skill/references/change.md": "fdb32e0a2b2ad9e9f47f7333a8c9d300d4bf242e0f657361909c226cf1eff6f8",
+    "skill/references/checks.md": "cbb02b7196c590d2cae243d765df19506b7030f34bf0a43a95ecd3d03d2ba34a",
+    "skill/references/explore.md": "c0f16e37f0b064cf700ba3ecb8107bd77b4f8dec49e450047dc5cf8e368247e2",
+    "skill/references/git-admin.md": "3e891eaa5b7ea068a8b8473e01236fb965ac900253c28e227ad1c62e4193392d",
+    "skill/references/git.md": "2c432ab7bd00c42451f197a9e9c484298fc6a565c8b0a1ae1d5a83a664ae8aa0",
+    "skill/references/history.md": "ede7ef59d0b667f148cfcafa79476eaa9e2a687eea7121415c51ad8ad222442f",
+    "skill/references/lean.md": "88b0b4321db3ef60247e6ecb376d4afa795e5fcb69b6178b6ef89dfacf1f9f1b",
+    "skill/references/recipes.md": "1a9da93e0ad4e22591ba80368383958cdd951d1eda0c1d978f1608d7cee01f68",
+    "skill/references/recovery.md": "a59b24bc256411f737b77e0532d25b308a34f614fa42a89f4c82ee539e576a4d"
+  }
+}
