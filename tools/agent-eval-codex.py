@@ -54,6 +54,7 @@ def codex_command(codex, session, model, effort, service_tier):
         "--ephemeral",
         "--ignore-user-config",
         "--ignore-rules",
+        "--skip-git-repo-check",
         "--json",
         "--color",
         "never",
