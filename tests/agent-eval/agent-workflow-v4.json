@@ -3,7 +3,7 @@
   "passed": true,
   "binary": {
     "path": "target/debug/fr",
-    "sha256": "e319c90cbf7b9dbbec619aa27eabd0967660e3a95c5209e32350abd92b49f88c"
+    "sha256": "17bbc4df2ebf2ee2c03f597bf8659cf42cc9785672bd3481de76d7e83bc1e07e"
   },
   "frozen_trace": {
     "path": "tests/agent-eval/results/2026-09-11-context-v3/regex-escape-len-fr/events.jsonl",
@@ -28,22 +28,22 @@
   },
   "prescribed": {
     "calls": 29,
-    "prompt_bytes": 6860,
+    "prompt_bytes": 7472,
     "visible_output_bytes": 35665,
     "tool_request_bytes": 4626,
-    "prompt_tokens": 1445,
+    "prompt_tokens": 1564,
     "visible_output_tokens": 11831,
-    "context_tokens": 13276,
+    "context_tokens": 13395,
     "tool_request_tokens": 1640
   },
   "difference": {
     "calls": -13,
-    "prompt_bytes": 581,
+    "prompt_bytes": 1193,
     "visible_output_bytes": -7306,
     "tool_request_bytes": -1854,
-    "prompt_tokens": 121,
+    "prompt_tokens": 240,
     "visible_output_tokens": -2303,
-    "context_tokens": -2182,
+    "context_tokens": -2063,
     "tool_request_tokens": -642
   },
   "removed_calls": [
@@ -109,7 +109,7 @@
     "tools/agent-workflow-v4.py": "b5a247873352a94ddc1560a0189a8eae1cd647b006b8f5b6f357c09b8a4039cf",
     "skills/fr/SKILL.md": "48a180c04d5bdefe3e8b60ef458cd1eec1e9f2010f9bfc4773c5223bdec201d9",
     "skills/fr/references/author.md": "a67f304b01543a455472872ec88fd0204518d9955389aa0e5a32eae15d345e26",
-    "tools/agent-eval.py": "47ff2e7511d94419985f7933a06c8c92fd59e75b6ccb09fc626640b49b8ed14f"
+    "tools/agent-eval.py": "e5be079d9551a063fbe60a55680953255e5f7bb794aaa099e9ae8d6d86a0748f"
   },
   "scope": "Prescribed counterfactual over one accepted frozen agent trace. It replaces one failed handle selection with semantically validated live output from this binary. Opaque live revision and context identities use fixed high-entropy representatives of the same byte lengths so token counts reproduce across runs. It uses current skill and harness prompt payloads, corrects the first artifact manifest from returned references, and removes only calls made unnecessary by those delivered contracts. Source-changing and verification calls remain in their original order. This is not an autonomous trial, latency estimate, population result, or billed-token claim; an agent may choose a different path."
 }

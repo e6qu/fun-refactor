@@ -388,7 +388,11 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
         self.assertIn("one author batch saved transaction", prompt)
         self.assertIn('{"tool":"read","path":"skill/SKILL.md","start":1,"lines":80}', prompt)
         self.assertIn('{"tool":"read","path":"skill/references/author.md","start":1,"lines":160}', prompt)
+        self.assertIn('{"tool":"read","path":"skill/references/workflow.md","start":1,"lines":160}', prompt)
         self.assertIn("do not pass --write to author batch", prompt)
+        self.assertIn("exercise-reversal false", prompt)
+        self.assertIn("patch output .fr-agent-change.patch", prompt)
+        self.assertIn("do not repeat that check or call history apply or history patch", prompt)
         self.assertIn("both API insertion operations and the regex-syntax escape body replacement", prompt)
         self.assertIn("at most 200 lines per read", prompt)
         self.assertIn("omit the `fr` executable name", prompt)
@@ -492,6 +496,75 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
         payload["result"]["plan_context_basis"] = "frpb1:" + "b" * 64
         wrong_basis["visible"] = json.dumps(payload)
         self.assertFalse(harness.coordinated_batch([wrong_basis, saved, *history]))
+
+    def test_coordinated_delivery_accepts_one_reviewed_workflow(self):
+        def event(args, report, **payload):
+            return {"request": {"tool": "fr", "args": args},
+                    "visible": json.dumps({"exit_code": 0, "result": report, **payload})}
+
+        basis = "frwb1:" + "a" * 64
+        saved = event(["author", "batch"], {
+            "schema": "fr-author-batch-1", "saved": True, "applied": False,
+            "files_changed": 2, "transaction": 7,
+        })
+        preview = event(["workflow", "--from", "/tmp/workflow.json"], {
+            "schema": "fr-workflow-1", "transaction": 7, "ready": True,
+            "executed": False, "workflow_basis": basis,
+        })
+        completed = event(
+            ["workflow", "--from", "/tmp/workflow.json", "--write", "--basis", basis],
+            {"schema": "fr-workflow-1", "transaction": 7, "executed": True,
+             "passed": True, "workflow_basis": basis,
+             "stages": [{"stage": name, "status": "passed"}
+                        for name in ("apply", "check-applied", "deliver-patch")]},
+            patch_artifact="artifacts/change.patch",
+        )
+        history = [event(["history", action, "7", "--write"], {}) for action in ("undo", "redo")]
+        events = [saved, preview, completed, *history]
+        self.assertTrue(harness.coordinated_batch(events))
+        for index in (1, 2, 3, 4):
+            self.assertFalse(harness.coordinated_batch(events[:index] + events[index + 1:]))
+        broken = copy.deepcopy(events)
+        broken[2]["request"]["args"][-1] = "frwb1:" + "b" * 64
+        self.assertFalse(harness.coordinated_batch(broken))
+
+    def test_nested_workflow_check_preserves_ordered_acceptance(self):
+        original = {"src/lib.rs": {"sha256": "old"}}
+        final = {"src/lib.rs": {"sha256": "new"}}
+        check = {"schema": "fr-checks-1", "executed": True, "passed": True,
+                 "results": [{"name": "unit", "passed": True}]}
+
+        def event(tool, before, after, payload, sentinel=None, args=None):
+            return {"request": {"tool": tool, "args": args or []}, "before": before,
+                    "after": after, "sentinel": sentinel, "visible": json.dumps(payload)}
+
+        events = [
+            event("fr", original, original, {"exit_code": 0, "result": check}, args=["checks"]),
+            event("fr", original, final, {"exit_code": 0, "result": {
+                "schema": "fr-workflow-1", "executed": True, "passed": True,
+                "stages": [{"stage": "apply", "status": "passed"},
+                           {"stage": "check-applied", "status": "passed", "result": {
+                               "passed": True, "results": [{"name": "unit", "passed": True}],
+                           }}],
+            }}, args=["workflow"]),
+            event("sentinel", final, final, {"created": "unrelated.txt"},
+                  sentinel="Preserve this independent later edit.\n"),
+            event("fr", final, original, {"exit_code": 0, "result": {}},
+                  sentinel="Preserve this independent later edit.\n", args=["history", "undo"]),
+            event("fr", original, original, {"exit_code": 0, "result": check},
+                  sentinel="Preserve this independent later edit.\n", args=["checks"]),
+            event("fr", original, final, {"exit_code": 0, "result": {}},
+                  sentinel="Preserve this independent later edit.\n", args=["history", "redo"]),
+            event("fr", final, final, {"exit_code": 0, "result": check},
+                  sentinel="Preserve this independent later edit.\n", args=["checks"]),
+            event("receiver", final, final, {"patch_applied": True, "matches": True},
+                  sentinel="Preserve this independent later edit.\n"),
+        ]
+        observed = harness.workflow(events, original, final, ["unit"])
+        self.assertTrue(observed["workflow_ordered"])
+        self.assertTrue(any(check.get("workflow_stage") == "check-applied"
+                            for check in observed["checks"]))
+        self.assertTrue(harness.state_checked(events[1:2], final, ["unit"]))
 
     def test_receiver_requires_checks_after_the_latest_state_change(self):
         original = {"src/lib.rs": {"sha256": "old"}}
@@ -640,6 +713,50 @@ class CoordinatedWorkspaceEvidence(unittest.TestCase):
             expected = str((session / "artifacts/fragment.rs").resolve())
             self.assertEqual(result["path"], expected)
             self.assertEqual(result["fr_reference"], expected)
+
+    def test_coordinated_workflow_manifest_and_patch_receipt_are_bounded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            session = Path(tmp)
+            project = session / "project"
+            artifacts = session / "artifacts"
+            project.mkdir()
+            artifacts.mkdir()
+            config = {"task": harness.regex_escape_len.TASK}
+            manifest = {
+                "schema": 1,
+                "transaction": 7,
+                "transaction-context-basis": "frtb2:" + "a" * 64,
+                "checks": {"basis": "b" * 64, "names": ["upstream", "minimal"]},
+                "exercise-reversal": False,
+                "patch": {"output": ".fr-agent-change.patch"},
+                "check-output-bytes": 2048,
+            }
+            manifest_path = artifacts / "workflow.json"
+            manifest_path.write_text(json.dumps(manifest))
+            args = ["workflow", "--from", str(manifest_path)]
+            self.assertEqual(
+                harness.coordinated_workflow_manifest(session, project, config, args), manifest
+            )
+            broken = copy.deepcopy(manifest)
+            broken["exercise-reversal"] = True
+            manifest_path.write_text(json.dumps(broken))
+            with self.assertRaisesRegex(ValueError, "disable bundled reversal"):
+                harness.coordinated_workflow_manifest(session, project, config, args)
+
+            patch = b"diff --git a/a b/a\n"
+            (project / ".fr-agent-change.patch").write_bytes(patch)
+            report = {
+                "schema": "fr-workflow-1", "executed": True, "passed": True,
+                "stages": [{"stage": "deliver-patch", "status": "passed", "result": {
+                    "output": ".fr-agent-change.patch", "bytes": len(patch),
+                    "sha256": harness.digest(patch),
+                }}],
+            }
+            self.assertEqual(
+                harness.retain_workflow_patch(session, project, report), "artifacts/change.patch"
+            )
+            self.assertEqual((artifacts / "change.patch").read_bytes(), patch)
+            self.assertFalse((project / ".fr-agent-change.patch").exists())
 
     def test_replay_checks_the_second_file_and_reverses_complete_snapshots(self):
         task = harness.regex_escape_len.TASK

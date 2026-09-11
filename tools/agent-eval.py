@@ -139,7 +139,24 @@ def prompt(session, task, arm):
         "Use ordinary files, read, search and replace tools for source exploration and edits. Do not use fr project/author/history commands. The shared fr checks command is available for identical project validation. Export and reverse/reapply your patch through the ordinary Git tools."
     )
     if task == regex_escape_len.TASK and arm == "fr":
-        surface += " Before constructing the batch manifest, use the instrumented call {\"tool\":\"read\",\"path\":\"skill/references/author.md\",\"start\":1,\"lines\":160}. Coordinate the edits in one author batch saved transaction, and export, undo and redo that transaction. The manifest must contain both API insertion operations and the regex-syntax escape body replacement, with exact files-changed, edits, changed-operations and paths-changed postconditions. Write every fragment first, then copy each returned fr_reference into one final manifest; never write placeholder references. Preview the batch once without a mutation flag, call it once with --save-plan, then apply the saved transaction with history apply --write; do not pass --write to author batch. Retain the first full project context_basis and use it on related project and author calls. Retain the complete author diff and its transaction_context_basis; use that basis to compact forward apply and redo reports. Preview reverse transitions in full."
+        surface += " Before constructing the batch manifest, use the instrumented call {\"tool\":\"read\",\"path\":\"skill/references/author.md\",\"start\":1,\"lines\":160}. Before delivering the saved plan, read {\"tool\":\"read\",\"path\":\"skill/references/workflow.md\",\"start\":1,\"lines\":160}. Coordinate the edits in one author batch saved transaction, then deliver, undo and redo that transaction. The author manifest must contain both API insertion operations and the regex-syntax escape body replacement, with exact files-changed, edits, changed-operations and paths-changed postconditions. Write every fragment first, then copy each returned fr_reference into one final manifest; never write placeholder references. Preview the batch once without a mutation flag, then call it once with --save-plan; do not pass --write to author batch. Retain the first full project context_basis and use it on related project and author calls. Retain the complete author diff, transaction_context_basis and check-listing basis. Write a workflow manifest under artifacts with the saved transaction, both declared checks, exercise-reversal false, patch output .fr-agent-change.patch and check-output-bytes 2048. Preview workflow once, then execute it once with --write and its workflow_basis. Its internal check-applied stage is the changed-state validation; do not repeat that check or call history apply or history patch. Add the sentinel afterward. Preview undo and redo transitions in full, execute them with --write, and use the transaction context basis to compact redo."
+
+    ordered_workflow = (
+        "Workflow: inspect; list and run declared checks on the original; implement and save the batch; "
+        "preview and execute the workflow to apply, check and export; add the sentinel; undo and check; "
+        "redo and check; verify the receiver; finish."
+        if task == regex_escape_len.TASK and arm == "fr" else
+        "Workflow: inspect; list and run declared checks on the original; implement the task; run checks "
+        "on the change; export the patch; add the sentinel; undo and check; redo and check; verify the "
+        "receiver; finish."
+    )
+    patch_instruction = (
+        "In the coordinated fr arm, workflow writes .fr-agent-change.patch and the harness retains it "
+        "as artifacts/change.patch after successful delivery."
+        if task == regex_escape_len.TASK and arm == "fr" else
+        "In the fr arm, use history patch TX --output ../artifacts/change.patch to retain the patch while "
+        "returning only its identity and size."
+    )
     return f"""You are an independent acceptance-test agent. Complete this code task in the supplied unfamiliar pinned public project: {TASKS[task]}
 
 {surface}
@@ -162,13 +179,13 @@ Tool objects:
 {{"tool":"append","path":"src/lib.rs","text":"new function text"}} appends source (baseline only).
 {{"tool":"write","path":"fragment.rs","text":"{{ replacement block }}"}} writes artifacts/fragment.rs and returns `fr_reference`, its absolute path (both arms). Copy `fr_reference` verbatim into every manifest `from` field and use the manifest write's `fr_reference` after `author batch --from`; relative paths resolve from the project and do not name the artifact directory.
 {{"tool":"fr","args":["checks"]}} invokes fr with the project root, JSON and no cache. The args array starts with `checks`, `project`, `author`, `history` or `git`; omit the `fr` executable name. Use this for checks in both arms and project/author/history/git in the fr arm. --help is available.
-{{"tool":"export"}} saves and shows a Git diff as artifacts/change.patch (baseline only). In the fr arm, use history patch TX --output ../artifacts/change.patch to retain the patch while returning only its identity and size.
+{{"tool":"export"}} saves and shows a Git diff as artifacts/change.patch (baseline only). {patch_instruction}
 {{"tool":"reverse"}} / {{"tool":"apply"}} reverses/reapplies that saved Git patch (baseline only). Apply refuses until all declared checks pass on the state restored by reverse.
 {{"tool":"sentinel"}} adds an unrelated edit after the requested change; it must survive reversal and reapplication.
 {{"tool":"receiver"}} checks and applies the saved patch in a clean separate receiver and compares tracked content with your project. It refuses until all declared checks pass after the final redo/apply.
 {{"tool":"finish","summary":"..."}} records your final conclusion; independent oracles run later.
 
-Workflow: inspect; list and run declared checks on the original; implement the task; run checks on the change; export the patch; add the sentinel; undo and check; redo and check; verify the receiver; finish. The harness refuses every source-changing request until the original checks pass. fr arm: preview/save/apply an authoring transaction and use history undo/redo. Run all declared checks together at each validation stage using --run with comma-separated names; every run needs the configuration basis from its listing. Keep project handles revision-bound when using them. Keep tool output bounded and request only relevant context. Leave the requested change applied. Report uncertainty and tool refusals honestly.
+{ordered_workflow} The harness refuses every source-changing request until the original checks pass. fr arm: preview/save an authoring transaction and use the reviewed delivery route plus history undo/redo. Run all declared checks together at each explicit validation stage using --run with comma-separated names; every run needs the configuration basis from its listing. Keep project handles revision-bound when using them. Keep tool output bounded and request only relevant context. Leave the requested change applied. Report uncertainty and tool refusals honestly.
 
 Execute each successful workflow step once. Do not repeat a successful skill read, listing, saved plan, mutation, patch export, check, or receiver call. Preserve the order above, including the original-state check before any edit and the final-state check before receiver verification.
 
@@ -308,6 +325,71 @@ def validate_coordinated_manifest(session, project, config, args):
         )
 
 
+def coordinated_workflow_manifest(session, project, config, args):
+    if config["task"] != regex_escape_len.TASK or args[:1] != ["workflow"]:
+        return None
+    if "--help" in args or "-h" in args:
+        return None
+    try:
+        source = args[args.index("--from") + 1]
+    except (ValueError, IndexError):
+        raise ValueError("The coordinated workflow requires --from MANIFEST") from None
+    try:
+        manifest_path = within(session / "artifacts", (project / source).resolve())
+    except ValueError:
+        raise ValueError(
+            "The coordinated workflow manifest must use the absolute fr_reference returned by the write tool"
+        ) from None
+    manifest = json.loads(manifest_path.read_text())
+    expected_checks = required_checks(config["task"])
+    checks = manifest.get("checks")
+    if (
+        manifest.get("schema") != 1
+        or type(manifest.get("transaction")) is not int
+        or manifest["transaction"] <= 0
+        or not isinstance(manifest.get("transaction-context-basis"), str)
+        or not isinstance(checks, dict)
+        or checks.get("names") != expected_checks
+        or not isinstance(checks.get("basis"), str)
+        or manifest.get("exercise-reversal") is not False
+        or manifest.get("patch") != {"output": ".fr-agent-change.patch"}
+        or manifest.get("check-output-bytes") != 2048
+    ):
+        raise ValueError(
+            "The coordinated workflow must identify the saved transaction and its context basis, select "
+            f"checks {expected_checks} under their basis, disable bundled reversal, deliver "
+            ".fr-agent-change.patch and use a 2048-byte check budget"
+        )
+    return manifest
+
+
+def retain_workflow_patch(session, project, report):
+    if not (
+        isinstance(report, dict)
+        and report.get("schema") == "fr-workflow-1"
+        and report.get("executed") is True
+        and report.get("passed") is True
+    ):
+        return None
+    delivered = [
+        stage for stage in report.get("stages", [])
+        if stage.get("stage") == "deliver-patch" and stage.get("status") == "passed"
+    ]
+    if len(delivered) != 1 or delivered[0].get("result", {}).get("output") != ".fr-agent-change.patch":
+        raise ValueError("The successful coordinated workflow did not deliver its declared patch")
+    source = within(project, ".fr-agent-change.patch")
+    data = source.read_bytes()
+    expected = delivered[0]["result"]
+    if len(data) != expected.get("bytes") or digest(data) != expected.get("sha256"):
+        raise ValueError("The coordinated workflow patch differs from its delivery receipt")
+    destination = session / "artifacts/change.patch"
+    if destination.exists():
+        raise ValueError("The coordinated workflow patch was already retained")
+    destination.write_bytes(data)
+    source.unlink()
+    return "artifacts/change.patch"
+
+
 def action(session, config, request):
     project = session / "project"
     kind = request["tool"]
@@ -362,6 +444,7 @@ def action(session, config, request):
         if args[0] == "fr":
             raise ValueError("The fr args array omits the executable name; start with its top-level command")
         validate_coordinated_manifest(session, project, config, args)
+        workflow_manifest = coordinated_workflow_manifest(session, project, config, args)
         if args[:2] == ["history", "redo"]:
             events = [json.loads(line) for line in (session / "events.jsonl").read_text().splitlines()]
             if not current_state_checked(events, snapshot(project), required_checks(config["task"])):
@@ -373,6 +456,10 @@ def action(session, config, request):
         if isinstance(report, dict) and isinstance(report.get("patch"), str) and args[:2] == ["history", "patch"]:
             (session / "artifacts/change.patch").write_text(report["patch"])
             result["patch_artifact"] = "artifacts/change.patch"
+        if workflow_manifest is not None and "--write" in args:
+            retained = retain_workflow_patch(session, project, report)
+            if retained is not None:
+                result["patch_artifact"] = retained
         return result
     if kind == "export":
         result = git(project, "diff", "--binary", "--", *edit_paths(config["task"]))
@@ -449,31 +536,51 @@ def tokenizer():
 
 def workflow(events, original, final, required_checks=()):
     checks = []
+    check_positions = []
     undo, redo, receivers = [], [], []
     for index, event in enumerate(events):
-        result = json.loads(event["visible"])
-        report = result.get("result")
+        payload = json.loads(event["visible"])
+        report = payload.get("result")
         if isinstance(report, dict) and report.get("schema") == "fr-checks-1" and report.get("executed"):
-            checks.append({"event": index, "passed": report["passed"] and result.get("exit_code") == 0
-                           and set(required_checks).issubset({check["name"] for check in report.get("results", []) if check.get("passed")}),
-                           "original": event["before"] == event["after"] == original,
-                           "final": event["before"] == event["after"] == final})
+            evidence = {"event": index, "passed": report["passed"] and payload.get("exit_code") == 0
+                        and set(required_checks).issubset({check["name"] for check in report.get("results", []) if check.get("passed")}),
+                        "original": event["before"] == event["after"] == original,
+                        "final": event["before"] == event["after"] == final}
+            checks.append(evidence)
+            check_positions.append((index * 10, evidence))
+        if (isinstance(report, dict) and report.get("schema") == "fr-workflow-1"
+                and report.get("executed") and report.get("passed") and payload.get("exit_code") == 0):
+            for stage_index, stage in enumerate(report.get("stages", []), 1):
+                result = stage.get("result", {})
+                if stage.get("status") != "passed" or stage.get("stage") not in ("check-applied", "check-restored"):
+                    continue
+                evidence = {
+                    "event": index,
+                    "workflow_stage": stage.get("stage"),
+                    "passed": result.get("passed") is True
+                    and set(required_checks).issubset({check["name"] for check in result.get("results", []) if check.get("passed")}),
+                    "original": stage.get("stage") == "check-restored" and event["before"] == original,
+                    "final": stage.get("stage") == "check-applied" and event["after"] == final,
+                }
+                checks.append(evidence)
+                check_positions.append((index * 10 + stage_index, evidence))
         tool, args = event["request"].get("tool"), event["request"].get("args", [])[:2]
         sentinel = event["sentinel"] == "Preserve this independent later edit.\n"
         if (tool == "reverse" or args == ["history", "undo"]) and sentinel and event["before"] == final and event["after"] == original:
-            undo.append(index)
+            undo.append(index * 10)
         if (tool == "apply" or args == ["history", "redo"]) and sentinel and event["before"] == original and event["after"] == final:
-            redo.append(index)
-        if tool == "receiver" and result.get("patch_applied") and result.get("matches"):
-            receivers.append(index)
-    initial_checks = [c["event"] for c in checks if c["passed"] and c["original"]]
-    final_checks = [c["event"] for c in checks if c["passed"] and c["final"]]
+            redo.append(index * 10)
+        if tool == "receiver" and payload.get("patch_applied") and payload.get("matches"):
+            receivers.append(index * 10)
+    initial_checks = [position for position, check in check_positions if check["passed"] and check["original"]]
+    final_checks = [position for position, check in check_positions if check["passed"] and check["final"]]
     ordered = any(
         any(c < changed for c in initial_checks)
         and any(changed < c < back for c in final_checks)
         and any(back < c < forward for c in initial_checks)
         and any(forward < c < received for c in final_checks)
-        for changed, event in enumerate(events) if event["before"] == original and event["after"] != original
+        for changed, event in ((index * 10, event) for index, event in enumerate(events))
+        if event["before"] == original and event["after"] != original
         for back in undo if changed < back
         for forward in redo if back < forward
         for received in receivers if forward < received
@@ -489,6 +596,15 @@ def state_checked(events, state, required):
                 and report.get("schema") == "fr-checks-1" and report.get("executed")
                 and report.get("passed") and event["before"] == event["after"] == state
                 and set(required).issubset({check["name"] for check in report.get("results", []) if check.get("passed")})):
+            return True
+        if (payload.get("exit_code") == 0 and isinstance(report, dict)
+                and report.get("schema") == "fr-workflow-1" and report.get("executed")
+                and report.get("passed") and event["after"] == state
+                and any(stage.get("stage") == "check-applied" and stage.get("status") == "passed"
+                        and stage.get("result", {}).get("passed")
+                        and set(required).issubset({check["name"] for check in stage["result"].get("results", [])
+                                                  if check.get("passed")})
+                        for stage in report.get("stages", []))):
             return True
     return False
 
@@ -538,12 +654,49 @@ def coordinated_batch(events):
             or type(report.get("transaction")) is not int or report["transaction"] <= 0):
         return False
     transaction = str(report["transaction"])
-    for action in ("apply", "undo", "redo", "patch"):
-        matching = [entry for entry in events if entry["request"].get("args", [])[:3] == ["history", action, transaction]]
-        if not any((action == "patch" or "--write" in entry["request"]["args"])
-                   and json.loads(entry["visible"]).get("exit_code") == 0 for entry in matching):
-            return False
-    return True
+
+    def successful_history(action):
+        matching = [entry for entry in events
+                    if entry["request"].get("args", [])[:3] == ["history", action, transaction]]
+        return any((action == "patch" or "--write" in entry["request"]["args"])
+                   and json.loads(entry["visible"]).get("exit_code") == 0 for entry in matching)
+
+    if not all(successful_history(action) for action in ("undo", "redo")):
+        return False
+    manual_delivery = successful_history("apply") and successful_history("patch")
+    workflow_previews, workflow_writes = [], []
+    for entry in events:
+        args = entry["request"].get("args", [])
+        payload = json.loads(entry["visible"])
+        delivery = payload.get("result")
+        if (args[:1] != ["workflow"] or payload.get("exit_code") != 0
+                or not isinstance(delivery, dict) or delivery.get("schema") != "fr-workflow-1"
+                or str(delivery.get("transaction")) != transaction):
+            continue
+        if "--write" not in args and delivery.get("ready") is True and delivery.get("executed") is False:
+            workflow_previews.append((entry, delivery))
+        elif "--write" in args and delivery.get("executed") is True and delivery.get("passed") is True:
+            workflow_writes.append((entry, delivery, payload))
+    reviewed_delivery = False
+    if len(workflow_previews) == len(workflow_writes) == 1:
+        preview_entry, preview = workflow_previews[0]
+        write_entry, completion, payload = workflow_writes[0]
+        write_args = write_entry["request"]["args"]
+        try:
+            supplied_basis = write_args[write_args.index("--basis") + 1]
+        except (ValueError, IndexError):
+            supplied_basis = None
+        passed_stages = {stage.get("stage") for stage in completion.get("stages", [])
+                         if stage.get("status") == "passed"}
+        reviewed_delivery = (
+            supplied_basis == preview.get("workflow_basis") == completion.get("workflow_basis")
+            and preview_entry["request"].get("args", [None, None])[2:]
+            == write_args[2:write_args.index("--write")]
+            and {"apply", "check-applied", "deliver-patch"}.issubset(passed_stages)
+            and payload.get("patch_artifact") == "artifacts/change.patch"
+            and not successful_history("apply") and not successful_history("patch")
+        )
+    return manual_delivery or reviewed_delivery
 
 
 def score(session):
