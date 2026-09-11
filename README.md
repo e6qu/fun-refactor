@@ -32,6 +32,8 @@ Passing checks can record a configuration- and source-bound receipt on an applie
 exercise and delayed Git patch delivery. `--write` runs the bounded lifecycle and reports its durable stage.
 The [controlled workflow evaluation](docs/workflow-evaluation.md) measures the compact route against
 the equivalent seven-call manual lifecycle and checks exact final-state equivalence.
+`fr task-change --from MANIFEST` joins task discovery, concrete authoring and checked delivery under one review basis.
+The [task-change evaluation](docs/task-change-evaluation.md) compares it with the composed five-call route.
 [Development continuity](docs/continuity.md) records the active milestone, evidence and remaining work for the next session.
 The portable skill starts targeted edits with authoring guidance and loads exploration or interrupted-write recovery when needed.
 `project find --source --bytes N` combines name lookup with source slices under one shared page budget.

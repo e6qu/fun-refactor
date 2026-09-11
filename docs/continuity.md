@@ -21,7 +21,7 @@ one bounded, revision-bound task contract that composes project queries, exact t
 conservative authoring eligibility, declared checks and ready delivery templates. Its purpose is to
 remove the path guessing, repeated help and repeated inspection observed in the latest agent traces.
 
-The current `agent_task_change` branch is roadmap PR 13. It joins exact targets, concrete fragments,
+The completed `agent_task_change` branch is roadmap PR 13. It joins exact targets, concrete fragments,
 postconditions, declared checks, reversal and patch delivery into one reviewed task-change lifecycle.
 Preview must remain read-only. Write must require the unchanged complete basis before it records and
 executes the transaction through the existing checked workflow.
@@ -47,6 +47,7 @@ Across three rotating repetitions, calls fall from five to two. Median counted c
 4,623 to 3,736 tokens (19.2%), and bytes fall from 13,676 to 11,274 (17.6%). Both arms produce equal
 stage results, normalized history, source and patch identities. Task change additionally binds its
 selected checks to the planned transaction. This is prescribed workflow evidence without an agent claim.
+The complete native, WASM, documentation, skill, capability and strict Lean repository gate passes.
 
 The first three PR 12 checkpoints add `fr project task --from MANIFEST`. It reuses one project-batch
 snapshot for up to sixteen heterogeneous queries, then resolves up to sixteen exact file or
@@ -208,8 +209,8 @@ tokens. Its added guidance distinguishes coordinated lookup and plan bases from 
 The fifth checkpoint publishes [the v4 prescribed workflow](agent-workflow-v4-evaluation.md).
 It checks the immutable accepted trace and exercises the current handle selection on the pinned
 workspace. The prescribed sequence retains every mutation and verification step while reducing
-42 calls to 29 and measured context from 15,458 to 13,405 tokens with the current skill. This
-2,053-token reduction is
+42 calls to 29 and measured context from 15,458 to 13,404 tokens with the current skill. This
+2,054-token reduction is
 a one-trace counterfactual, not autonomous adoption or a population claim.
 
 The first fresh PR 8 pair is retained as a diagnostic. Both arms made correct changes, passed

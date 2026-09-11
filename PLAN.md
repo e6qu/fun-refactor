@@ -68,8 +68,8 @@ The `fr` agent uses the reviewed-plan and compact transaction workflow.
 Seven refused or failed calls and repeated inspection identify discoverability and call count as the next practical bottlenecks.
 The PR 8 prescribed-workflow projection exercises current handle selection against the pinned
 workspace and retains every mutation and verification step. With the current portable skill, it
-reduces that trace to 29 calls and 13,405 context tokens. This is 2,053 below the observed `fr` arm
-and 1,805 above the ordinary-file arm. This one-trace counterfactual is separate from the retained
+reduces that trace to 29 calls and 13,404 context tokens. This is 2,054 below the observed `fr` arm
+and 1,804 above the ordinary-file arm. This one-trace counterfactual is separate from the retained
 fresh adoption pair below.
 
 The first fresh PR 8 pair produced correct patches and passed both 1,060-case behavior oracles.
@@ -402,7 +402,7 @@ Planned checkpoints:
 
 ### PR 13. Reviewed Agent Task Changes
 
-Status: in progress on `agent_task_change`.
+Status: complete on `agent_task_change`; ready for review.
 
 Goal: let an agent preview and execute one task change without manually translating task evidence
 into separate author and workflow manifests.
@@ -439,7 +439,7 @@ Planned checkpoints:
 2. **Complete.** Add atomic reviewed execution with stale-input and failure-state regressions.
 3. **Complete.** Add the Lean policy and exhaustive Rust correspondence cases.
 4. **Complete.** Update CLI, portable skill and continuity documentation with an executable generic fixture.
-5. **In progress.** Retain a controlled comparison and pass the complete repository gate.
+5. **Complete.** Retain a controlled comparison and pass the complete repository gate.
 
 ## Formal verification policy
 
